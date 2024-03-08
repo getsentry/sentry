@@ -234,7 +234,7 @@ def run_performnance_issue_detection() -> None:
     drain = options.get("standalone-spans.process-segments.drain.enable")
 
     for _ in range(max_batches):
-        keys = client.get_segment_keys_and_prune(batch_size)
+        keys = client.get_segment_keys_and_prune(batch_size, drain=drain)
         if len(keys) == 0:
             break
 

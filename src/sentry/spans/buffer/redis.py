@@ -36,7 +36,7 @@ class RedisSpansBuffer:
 
     def _read_key(self, key: str, batch_size: int = None) -> list[str | bytes]:
         if batch_size:
-            return self.client.lrange(key, 0, batch_size) or []
+            return self.client.lrange(key, 0, batch_size - 1) or []
         return self.client.lrange(key, 0, -1) or []
 
     def _read_many_keys(self, keys) -> list[str]:
@@ -76,22 +76,22 @@ class RedisSpansBuffer:
 
             p.execute()
 
-    def get_segment_keys_and_prune(self, batch_size=100) -> list[str]:
+    def get_segment_keys_and_prune(self, batch_size=100, drain=False) -> list[str]:
         key = get_unprocessed_segments_key()
         results = self._read_key(key, batch_size)
 
         now = to_timestamp(django_timezone.now())
 
-        i = 0
+        ltrim_index = 0
         segment_keys = []
-        for i, result in enumerate(results):
-            timestamp, key = json.loads(result)
-
-            if now - timestamp < TWO_MINUTES:
+        for _, result in enumerate(results):
+            timestamp, segment_key = json.loads(result)
+            if not drain and now - timestamp < TWO_MINUTES:
                 break
 
-            segment_keys.append((timestamp, key))
+            ltrim_index += 1
+            segment_keys.append((timestamp, segment_key))
 
-        self.client.lpop(key, 0, i)
+        self.client.ltrim(key, ltrim_index, -1)
 
         return segment_keys
