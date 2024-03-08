@@ -167,7 +167,7 @@ export function getCrashReportSDKInstallFirstStep(params) {
   };
 }
 
-export const getCrashReportDotnetInstallStep = params => [
+export const getCrashReportGenericInstallStep = params => [
   {
     type: StepType.INSTALL,
     configurations: [

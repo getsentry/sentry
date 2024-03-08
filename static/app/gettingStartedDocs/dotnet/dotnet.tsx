@@ -12,7 +12,7 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportApiIntroduction,
-  getCrashReportDotnetInstallStep,
+  getCrashReportGenericInstallStep,
   getCrashReportInstallDescription,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
@@ -249,7 +249,7 @@ SentrySdk.CaptureUserFeedback(eventId, "user@example.com", "It broke.", "The Use
 
 const crashReportOnboarding: OnboardingConfig = {
   introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportDotnetInstallStep(params),
+  install: (params: Params) => getCrashReportGenericInstallStep(params),
   configure: () => [
     {
       type: StepType.CONFIGURE,

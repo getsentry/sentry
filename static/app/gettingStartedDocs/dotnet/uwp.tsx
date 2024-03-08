@@ -12,7 +12,7 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
-  getCrashReportDotnetInstallStep,
+  getCrashReportGenericInstallStep,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
@@ -234,7 +234,7 @@ const onboarding: OnboardingConfig = {
 
 const crashReportOnboarding: OnboardingConfig = {
   introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportDotnetInstallStep(params),
+  install: (params: Params) => getCrashReportGenericInstallStep(params),
   configure: () => [
     {
       type: StepType.CONFIGURE,
