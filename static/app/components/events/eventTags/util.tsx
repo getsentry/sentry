@@ -13,7 +13,7 @@ export enum TagFilter {
 
 export const TagFilterData = {
   [TagFilter.APPLICATION]: new Set([
-    // AppContext
+    /* AppContext in Relay */
     'app',
     'app.app_start_time',
     'app.device_app_hash',
@@ -24,13 +24,13 @@ export const TagFilterData = {
     'app.app_build',
     'app.app_memory',
     'app.in_foreground',
-    // Runtime Context
+    /* RuntimeContext in Relay */
     'runtime',
     'runtime.name',
     'runtime.context',
     'runtime.version',
     'runtime.build',
-    // Manual
+    /* Manually Sorted */
     'release',
     'dist',
     'environment',
@@ -41,11 +41,11 @@ export const TagFilterData = {
     'site',
   ]),
   [TagFilter.CLIENT]: new Set([
-    // BrowserContext
+    /* BrowserContext in Relay */
     'browser',
     'browser.name',
     'browser.version',
-    // Device Context
+    /* DeviceContext in Relay */
     'device',
     'device.family',
     'device.model',
@@ -67,7 +67,7 @@ export const TagFilterData = {
     'device.memory_size',
     'device.free_memory',
     'device.usable_memory',
-    // OS Context
+    /* OsContext in Relay */
     'client_os',
     'client_os.name',
     'client_os.version',
@@ -83,7 +83,7 @@ export const TagFilterData = {
     'os.rooted',
     'os.raw_description',
     'os.raw_description',
-    // Manual
+    /* Manually Sorted */
     'user',
     'mobile',
     'device.class',
@@ -91,33 +91,23 @@ export const TagFilterData = {
     'url',
   ]),
   [TagFilter.OTHER]: new Set([
-    /* Common */
+    /* SDK (maybe?) */
     'handled',
     'level',
     'mechanism',
     'url',
-
-    /* tags.insert(...) */
+    'sdk.name',
+    'sdk.version',
+    /* Manually added in Relay with tags.insert(...) */
     'hostname',
     'server_name',
     'site',
     'transaction.start',
     'transaction.end',
-    // 'app.identifier',
-
     /* SpanTagKey in Relay */
-    // 'release',
-    // 'user',
-    // 'environment',
     'transaction',
     'transaction.method',
     'transaction.op',
-    // 'mobile',
-    // 'device.class',
-    // 'browser.name',
-    'sdk.name',
-    'sdk.version',
-    // 'platform',
     'action',
     'category',
     'description',
@@ -135,27 +125,19 @@ export const TagFilterData = {
     'ttid',
     'file_extension',
     'main_thread',
-    // 'os.name',
     'app_start_type',
     'replay_id',
-
     /* CommonTag in Relay */
-    // 'release',
-    // 'dist',
-    // 'environment',
-    // 'platform',
-    'transaction',
     'transaction.status',
-    'transaction.op',
     'http.method',
     'http.status_code',
-    // 'browser.name',
-    // 'os.name',
     'geo.country_code',
-    // 'device.class',
   ]),
 };
 
+/**
+ * Combines all of the above into a single set to determine if a tag is custom
+ */
 export const SentryDefaultTags = Object.values(TagFilterData).reduce(
   // TODO: result.union(s) when Set.prototype.union is Baseline
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set/union
