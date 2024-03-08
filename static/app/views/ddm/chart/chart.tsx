@@ -76,7 +76,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
 
     const firstUnit = filteredSeries[0]?.unit || 'none';
     const uniqueUnits = useMemo(
-      () => [...new Set(filteredSeries.map(s => s.unit))],
+      () => [...new Set(filteredSeries.map(s => s.unit || 'none'))],
       [filteredSeries]
     );
 
@@ -230,36 +230,49 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
             return getFormatter(timeseriesFormatters)(params, asyncTicket);
           },
         },
-        yAxes: [
-          ...uniqueUnits.map((unit, index) =>
-            unit === firstUnit
-              ? {
-                  id: unit,
+        yAxes:
+          uniqueUnits.length === 0
+            ? // fallback axis for when there are no series as echarts requires at least one axis
+              [
+                {
+                  id: 'none',
                   axisLabel: {
                     formatter: (value: number) => {
-                      return formatMetricUsingUnit(value, unit);
+                      return formatMetricUsingUnit(value, 'none');
                     },
                   },
-                }
-              : {
-                  id: unit,
-                  show: index === 1,
-                  axisLabel: {
-                    show: index === 1,
-                    formatter: (value: number) => {
-                      return formatMetricUsingUnit(value, unit);
-                    },
-                  },
-                  splitLine: {
-                    show: false,
-                  },
-                  position: 'right' as const,
-                  axisPointer: {
-                    type: 'none' as const,
-                  },
-                }
-          ),
-        ],
+                },
+              ]
+            : [
+                ...uniqueUnits.map((unit, index) =>
+                  unit === firstUnit
+                    ? {
+                        id: unit,
+                        axisLabel: {
+                          formatter: (value: number) => {
+                            return formatMetricUsingUnit(value, unit);
+                          },
+                        },
+                      }
+                    : {
+                        id: unit,
+                        show: index === 1,
+                        axisLabel: {
+                          show: index === 1,
+                          formatter: (value: number) => {
+                            return formatMetricUsingUnit(value, unit);
+                          },
+                        },
+                        splitLine: {
+                          show: false,
+                        },
+                        position: 'right' as const,
+                        axisPointer: {
+                          type: 'none' as const,
+                        },
+                      }
+                ),
+              ],
         xAxes: [
           {
             id: MAIN_X_AXIS_ID,
