@@ -14,7 +14,6 @@ from fido2.ctap2 import AuthenticatorData, base
 from fido2.server import Fido2Server, U2FFido2Server
 from fido2.utils import websafe_decode
 from fido2.webauthn import PublicKeyCredentialRpEntity
-from rest_framework.request import Request
 from u2flib_server.model import DeviceRegistration
 
 from sentry import options
@@ -216,7 +215,7 @@ class U2fInterface(AuthenticatorInterface):
 
         return ActivationChallengeResult(challenge=cbor.encode(challenge["publicKey"]))
 
-    def validate_response(self, request: Request, challenge, response):
+    def validate_response(self, request: HttpRequest, challenge, response):
         try:
             credentials = self.credentials()
             # Only 1 U2F state should be set at a time
