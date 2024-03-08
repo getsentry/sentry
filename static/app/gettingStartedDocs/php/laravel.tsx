@@ -117,7 +117,7 @@ const onboarding: OnboardingConfig = {
           : []),
         {
           description: tct(
-            'Enable capturing unhandled exception to report to Sentry by making the following change to your [code:App/Exceptions/Handler.php]:',
+            'Enable capturing unhandled exception to report to Sentry by making the following change to your [code:bootstrap/app.php]:',
             {
               code: <code />,
             }
