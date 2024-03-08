@@ -26,6 +26,7 @@ type Props = {
 
 export const ORDER = ['lcp', 'fcp', 'fid', 'cls', 'ttfb'];
 export const ORDER_WITH_INP = ['lcp', 'fcp', 'inp', 'cls', 'ttfb', 'fid'];
+export const ORDER_WITH_INP_WITHOUT_FID = ['lcp', 'fcp', 'inp', 'cls', 'ttfb'];
 
 export function PerformanceScoreChart({
   projectScore,
