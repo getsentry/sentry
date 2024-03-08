@@ -14,7 +14,7 @@ import {LoadingScreen} from 'sentry/views/dashboards/widgetCard/widgetCardChartC
 
 interface MetricBigNumberContainerProps {
   isLoading: boolean;
-  metricQueries: MetricsQueryApiRequestQuery[];
+  metricQueries: MetricsQueryApiQueryParams[];
   timeseriesData?: MetricsQueryApiResponse;
 }
 
