@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import {browserHistory} from 'react-router';
 
 import {addLoadingMessage} from 'sentry/actionCreators/indicator';
@@ -17,11 +16,11 @@ import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import withProjects from 'sentry/utils/withProjects';
+import useProjects from 'sentry/utils/useProjects';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
@@ -29,13 +28,10 @@ import {OrganizationRegionAction} from 'sentry/views/settings/organizationGenera
 
 import OrganizationSettingsForm from './organizationSettingsForm';
 
-type Props = {
-  projects: Project[];
-} & RouteComponentProps<{}, {}>;
-
-function OrganizationGeneralSettings({projects}: Props) {
+export default function OrganizationGeneralSettings() {
   const api = useApi();
   const organization = useOrganization();
+  const {projects} = useProjects();
 
   const removeConfirmMessage = (
     <Fragment>
@@ -144,5 +140,3 @@ function OrganizationGeneralSettings({projects}: Props) {
     </Fragment>
   );
 }
-
-export default withProjects(OrganizationGeneralSettings);

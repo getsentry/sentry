@@ -2,11 +2,16 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {WebVital} from 'sentry/utils/fields';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import TransactionEvents from 'sentry/views/performance/transactionSummary/transactionEvents';
+
+jest.mock('sentry/utils/useOrganization');
+jest.mock('sentry/utils/useProjects');
 
 // XXX(epurkhiser): This appears to also be tested by ./transactionSummary/transactionEvents/index.spec.tsx
 
@@ -159,8 +164,18 @@ describe('Performance > TransactionSummary', function () {
     const {organization, router, routerContext} = initializeData();
 
     ProjectsStore.loadInitialData(organization.projects);
+    jest.mocked(useOrganization).mockReturnValue(organization);
+    jest.mocked(useProjects).mockReturnValue({
+      projects: organization.projects,
+      onSearch: jest.fn(),
+      placeholders: [],
+      fetching: false,
+      hasMore: null,
+      fetchError: null,
+      initiallyLoaded: false,
+    });
 
-    render(<TransactionEvents organization={organization} location={router.location} />, {
+    render(<TransactionEvents location={router.location} />, {
       context: routerContext,
     });
 
@@ -193,10 +208,22 @@ describe('Performance > TransactionSummary', function () {
     const {organization, router, routerContext} = initializeData();
 
     ProjectsStore.loadInitialData(organization.projects);
+    jest.mocked(useOrganization).mockReturnValue(organization);
+    jest.mocked(useProjects).mockReturnValue({
+      projects: organization.projects,
+      onSearch: jest.fn(),
+      placeholders: [],
+      fetching: false,
+      hasMore: null,
+      fetchError: null,
+      initiallyLoaded: false,
+    });
 
-    render(<TransactionEvents organization={organization} location={router.location} />, {
+    render(<TransactionEvents location={router.location} />, {
       context: routerContext,
     });
+
+    await waitFor(() => screen.findByText('operation duration'));
 
     expect(await screen.findByText('operation duration')).toBeInTheDocument();
     expect(screen.getAllByRole('columnheader')).toHaveLength(6);
@@ -208,10 +235,22 @@ describe('Performance > TransactionSummary', function () {
     const {organization, router, routerContext} = initializeData();
 
     ProjectsStore.loadInitialData(organization.projects);
+    jest.mocked(useOrganization).mockReturnValue(organization);
+    jest.mocked(useProjects).mockReturnValue({
+      projects: organization.projects,
+      onSearch: jest.fn(),
+      placeholders: [],
+      fetching: false,
+      hasMore: null,
+      fetchError: null,
+      initiallyLoaded: false,
+    });
 
-    render(<TransactionEvents organization={organization} location={router.location} />, {
+    render(<TransactionEvents location={router.location} />, {
       context: routerContext,
     });
+
+    await waitFor(() => screen.findAllByRole('columnheader'));
 
     const tableHeader = await screen.findAllByRole('columnheader');
     expect(tableHeader).toHaveLength(6);
@@ -238,9 +277,19 @@ describe('Performance > TransactionSummary', function () {
       query: {webVital: WebVital.LCP},
     });
 
-    ProjectsStore.loadInitialData(organization.projects);
+    // ProjectsStore.loadInitialData(organization.projects);
+    jest.mocked(useOrganization).mockReturnValue(organization);
+    jest.mocked(useProjects).mockReturnValue({
+      projects: organization.projects,
+      onSearch: jest.fn(),
+      placeholders: [],
+      fetching: false,
+      hasMore: null,
+      fetchError: null,
+      initiallyLoaded: false,
+    });
 
-    render(<TransactionEvents organization={organization} location={router.location} />, {
+    render(<TransactionEvents location={router.location} />, {
       context: routerContext,
     });
 

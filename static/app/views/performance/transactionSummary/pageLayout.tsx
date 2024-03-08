@@ -249,7 +249,6 @@ function PageLayout(props: Props) {
   }
 
   const project = projects.find(p => p.id === projectId);
-
   return (
     <SentryDocumentTitle
       title={getDocumentTitle(transactionName)}

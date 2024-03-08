@@ -19,7 +19,7 @@ import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -34,8 +34,8 @@ import type {MetricsEnhancedPerformanceDataContext} from 'sentry/utils/performan
 import {useMEPDataContext} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {decodeScalar} from 'sentry/utils/queryString';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
+import useProjects from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
-import withProjects from 'sentry/utils/withProjects';
 import type {Actions} from 'sentry/views/discover/table/cellAction';
 import {updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
@@ -81,20 +81,18 @@ type Props = {
   onChangeFilter: (newFilter: SpanOperationBreakdownFilter) => void;
   organization: Organization;
   projectId: string;
-  projects: Project[];
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
   totalValues: Record<string, number> | null;
   transactionName: string;
   unfilteredTotalValues?: Record<string, number> | null;
 };
 
-function SummaryContent({
+export default function SummaryContent({
   eventView,
   location,
   totalValues,
   spanOperationBreakdownFilter,
   organization,
-  projects,
   isLoading,
   error,
   projectId,
@@ -104,6 +102,7 @@ function SummaryContent({
 }: Props) {
   const routes = useRoutes();
   const mepDataContext = useMEPDataContext();
+  const {projects} = useProjects();
 
   function handleSearch(query: string) {
     const queryParams = normalizeDateTimeParams({
@@ -585,5 +584,3 @@ const StyledSearchBar = styled(SearchBar)`
 const StyledIconWarning = styled(IconWarning)`
   display: block;
 `;
-
-export default withProjects(SummaryContent);
