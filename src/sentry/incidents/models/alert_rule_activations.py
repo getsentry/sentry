@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class AlertRuleActivationsManager(BaseManager["AlertRuleActivations"]):
     def get_activations_in_window(self, alert_rule: AlertRule, start: datetime, end: datetime):
         # Return all activations for this alert rule that were activated in the window
-        pass
+        return
 
 
 @region_silo_only_model
@@ -48,13 +48,13 @@ class AlertRuleActivations(Model):
     def is_complete(self) -> bool:
         # Assert alert_rule.snuba_query exists (activated alert rules MUST have an associated snuba_query)
         # return finished_at is not None and date_added + alert_rule.snuba_query.time_window < timezone.now()
-        pass
+        return False
 
     def get_triggers(self):
         # self.alert_rule.alertruletrigger_set.get()
-        pass
+        return
 
     def get_window(self):
         # Return start, expected end, and actual end
         # log warning if expected end and actual end are off?
-        pass
+        return
