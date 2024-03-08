@@ -71,6 +71,22 @@ function DiffLineCode({line}: {line: DiffLineWithChanges}) {
   );
 }
 
+function HunkHeader({lines, sectionHeader}: {lines: DiffLine[]; sectionHeader: string}) {
+  const {sourceStart, sourceLength, targetStart, targetLength} = useMemo(
+    () => ({
+      sourceStart: lines[0].source_line_no ?? 0,
+      sourceLength: lines.filter(line => line.line_type !== DiffLineType.ADDED).length,
+      targetStart: lines[0].target_line_no ?? 0,
+      targetLength: lines.filter(line => line.line_type !== DiffLineType.REMOVED).length,
+    }),
+    [lines]
+  );
+
+  return (
+    <HunkHeaderContent>{`@@ -${sourceStart},${sourceLength} +${targetStart},${targetLength} @@ ${sectionHeader ? ' ' + sectionHeader : ''}`}</HunkHeaderContent>
+  );
+}
+
 function DiffHunkContent({lines, header}: {header: string; lines: DiffLine[]}) {
   const linesWithChanges = useMemo(() => {
     return addChangesToDiffLines(lines);
@@ -79,7 +95,7 @@ function DiffHunkContent({lines, header}: {header: string; lines: DiffLine[]}) {
   return (
     <Fragment>
       <HunkHeaderEmptySpace />
-      <HunkHeader>{header}</HunkHeader>
+      <HunkHeader lines={lines} sectionHeader={header} />
       {linesWithChanges.map(line => (
         <Fragment key={line.diff_line_no}>
           <LineNumber lineType={line.line_type}>{line.source_line_no}</LineNumber>
@@ -102,7 +118,7 @@ export function AutofixDiff({fix}: AutofixDiffProps) {
   }
 
   return (
-    <Fragment>
+    <DiffsColumn>
       {fix.diff.map((file, i) => (
         <FileDiffWrapper key={i}>
           <FileName>{file.path}</FileName>
@@ -119,9 +135,15 @@ export function AutofixDiff({fix}: AutofixDiffProps) {
           </DiffContainer>
         </FileDiffWrapper>
       ))}
-    </Fragment>
+    </DiffsColumn>
   );
 }
+
+const DiffsColumn = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+`;
 
 const FileDiffWrapper = styled('div')`
   margin: 0 -${space(2)};
@@ -147,7 +169,7 @@ const HunkHeaderEmptySpace = styled('div')`
   background-color: ${p => p.theme.backgroundSecondary};
 `;
 
-const HunkHeader = styled('div')`
+const HunkHeaderContent = styled('div')`
   grid-column: 3 / -1;
   background-color: ${p => p.theme.backgroundSecondary};
   color: ${p => p.theme.subText};
