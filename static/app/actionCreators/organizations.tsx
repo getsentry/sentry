@@ -221,11 +221,13 @@ export async function fetchOrganizations(api: Client, query?: Record<string, any
       api.requestPromise(`/organizations/`, {
         host: region.url,
         query,
+        // Authentication errors can happen as we span regions.
         allowAuthError: true,
       })
     )
   );
   return results.reduce((acc, response) => {
+    // Don't append error results to the org list.
     if (response[0]) {
       acc = acc.concat(response);
     }
