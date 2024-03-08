@@ -807,16 +807,15 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_user(email=None, **kwargs):
+    def create_user(email=None, is_superuser=False, is_staff=False, is_active=True, **kwargs):
         if email is None:
             email = uuid4().hex + "@example.com"
 
         kwargs.setdefault("username", email)
-        kwargs.setdefault("is_staff", True)
-        kwargs.setdefault("is_active", True)
-        kwargs.setdefault("is_superuser", False)
 
-        user = User(email=email, **kwargs)
+        user = User(
+            email=email, is_superuser=is_superuser, is_staff=is_staff, is_active=is_active, **kwargs
+        )
         if kwargs.get("password") is None:
             user.set_password("admin")
         user.save()

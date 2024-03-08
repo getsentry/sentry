@@ -31,7 +31,6 @@ from sentry.auth.superuser import (
 from sentry.auth.system import SystemToken
 from sentry.middleware.placeholder import placeholder_get_response
 from sentry.middleware.superuser import SuperuserMiddleware
-from sentry.models.user import User
 from sentry.services.hybrid_cloud.auth.model import RpcAuthState, RpcMemberSsoState
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -58,6 +57,7 @@ class SuperuserTestCase(TestCase):
         super().setUp()
         self.current_datetime = django_timezone.now()
         self.default_token = "abcdefghjiklmnog"
+        self.superuser = self.create_user(is_superuser=True)
 
     def build_request(
         self,
@@ -71,7 +71,7 @@ class SuperuserTestCase(TestCase):
         method=None,
     ):
         if user is None:
-            user = self.create_user("foo@example.com", is_superuser=True)
+            user = self.superuser
         current_datetime = self.current_datetime
         request = self.make_request(user=user, method=method)
         if cookie_token is not None:
@@ -94,8 +94,7 @@ class SuperuserTestCase(TestCase):
         return request
 
     def test_ips(self):
-        user = User(is_superuser=True)
-        request = self.make_request(user=user)
+        request = self.make_request(user=self.superuser)
         request.META["REMOTE_ADDR"] = "10.0.0.1"
 
         # no ips = any host
@@ -112,8 +111,7 @@ class SuperuserTestCase(TestCase):
         assert superuser.is_active is True
 
     def test_sso(self):
-        user = User(is_superuser=True)
-        request = self.make_request(user=user)
+        request = self.make_request(user=self.superuser)
 
         # no ips = any host
         superuser = Superuser(request, org_id=None)
@@ -178,8 +176,7 @@ class SuperuserTestCase(TestCase):
     @override_settings(SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True)
     @mock.patch("sentry.auth.superuser.logger")
     def test_su_access_logs(self, logger):
-        user = User(is_superuser=True, email="test@sentry.io")
-        request = self.make_request(user=user, method="PUT")
+        request = self.make_request(user=self.superuser, method="PUT")
         request._body = json.dumps(
             {
                 "superuserAccessCategory": "for_unit_test",
@@ -196,8 +193,8 @@ class SuperuserTestCase(TestCase):
             "superuser.superuser_access",
             extra={
                 "superuser_token_id": superuser.token,
-                "user_id": user.id,
-                "user_email": user.email,
+                "user_id": self.superuser.id,
+                "user_email": self.superuser.email,
                 "su_access_category": "for_unit_test",
                 "reason_for_su": "Edit organization settings",
             },
@@ -205,8 +202,7 @@ class SuperuserTestCase(TestCase):
 
     @override_settings(SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True)
     def test_su_access_no_request(self):
-        user = User(is_superuser=True)
-        request = self.make_request(user=user, method="PUT")
+        request = self.make_request(user=self.superuser, method="PUT")
 
         superuser = Superuser(request, org_id=None)
 
@@ -251,8 +247,7 @@ class SuperuserTestCase(TestCase):
     @override_settings(SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True)
     @mock.patch("sentry.auth.superuser.logger")
     def test_su_access_no_request_user_missing_info(self, logger):
-        user = User(is_superuser=True)
-        request = self.make_request(user=user, method="PUT")
+        request = self.make_request(user=self.superuser, method="PUT")
         request._body = json.dumps(
             {
                 "superuserAccessCategory": "for_unit_test",
@@ -270,8 +265,7 @@ class SuperuserTestCase(TestCase):
     def test_su_access_invalid_request_body(
         self,
     ):
-        user = User(is_superuser=True)
-        request = self.make_request(user=user, method="PUT")
+        request = self.make_request(user=self.superuser, method="PUT")
         request._body = b'{"invalid" "json"}'
 
         superuser = Superuser(request, org_id=None)
@@ -406,15 +400,14 @@ class SuperuserTestCase(TestCase):
 
     @mock.patch("sentry.auth.superuser.logger")
     def test_superuser_session_doesnt_need_validation_superuser_prompts(self, logger):
-        user = User(is_superuser=True)
-        request = self.make_request(user=user, method="PUT")
+        request = self.make_request(user=self.superuser, method="PUT")
         superuser = Superuser(request, org_id=None)
         superuser.set_logged_in(request.user)
         assert superuser.is_active is True
         assert logger.info.call_count == 2
         logger.info.assert_any_call(
             "superuser.logged-in",
-            extra={"ip_address": "127.0.0.1", "user_id": user.id},
+            extra={"ip_address": "127.0.0.1", "user_id": self.superuser.id},
         )
 
     def test_superuser_invalid_serializer(self):
