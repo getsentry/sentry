@@ -251,7 +251,8 @@ class BaseApiClient(TrackResponseMixin):
                 )
                 if raw_response:
                     return resp
-                resp.raise_for_status()
+                if resp is not None:
+                    resp.raise_for_status()
         except RestrictedIPAddress as e:
             self.track_response_data("restricted_ip_address", e, extra=extra)
             self.record_error(e)
