@@ -932,11 +932,20 @@ def test_project_config_cardinality_limits(default_project, insta_snapshot, pass
         "sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org": [
             {"window_seconds": 5000, "granularity_seconds": 500, "limit": 50}
         ],
+        "sentry-metrics.cardinality-limiter.limits.profiles.per-org": [
+            {"window_seconds": 3600, "granularity_seconds": 600, "limit": 60}
+        ],
     }
 
     if passive:
         options["relay.cardinality-limiter.passive-limits-by-org"] = {
-            default_project.organization.id: ["sessions", "transactions", "spans", "custom"]
+            default_project.organization.id: [
+                "sessions",
+                "transactions",
+                "spans",
+                "profiles",
+                "custom",
+            ]
         }
 
     features = Feature({"organizations:relay-cardinality-limiter": True})

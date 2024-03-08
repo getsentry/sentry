@@ -34,3 +34,11 @@ cardinalityLimits:
   window:
     granularitySeconds: 400
     windowSeconds: 4000
+- id: profiles
+  limit: 60
+  namespace: profiles
+  passive: true
+  scope: organization
+  window:
+    granularitySeconds: 600
+    windowSeconds: 3600
