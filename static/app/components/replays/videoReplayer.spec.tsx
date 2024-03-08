@@ -58,6 +58,7 @@ describe('VideoReplayer - no starting gap', () => {
       onFinished: jest.fn(),
       onLoaded: jest.fn(),
     });
+    // @ts-expect-error private
     expect(inst._currentIndex).toEqual(0);
 
     const playPromise = inst.play(6500);
@@ -65,8 +66,10 @@ describe('VideoReplayer - no starting gap', () => {
 
     await playPromise;
 
+    // @ts-expect-error private
     expect(inst._currentIndex).toEqual(1);
     // `currentTime` is in seconds
+    // @ts-expect-error private
     expect(inst.getVideo(inst._currentIndex)?.currentTime).toEqual(1.5);
   });
 
@@ -84,8 +87,10 @@ describe('VideoReplayer - no starting gap', () => {
     // the beginning.
     jest.advanceTimersByTime(2500);
     await playPromise;
+    // @ts-expect-error private
     expect(inst._currentIndex).toEqual(3);
     // `currentTime` is in seconds
+    // @ts-expect-error private
     expect(inst.getVideo(inst._currentIndex)?.currentTime).toEqual(0);
   });
 
@@ -105,8 +110,10 @@ describe('VideoReplayer - no starting gap', () => {
     // the beginning.
     jest.advanceTimersByTime(5000);
     await playPromise;
+    // @ts-expect-error private
     expect(inst._currentIndex).toEqual(5);
     // `currentTime` is in seconds
+    // @ts-expect-error private
     expect(inst.getVideo(inst._currentIndex)?.currentTime).toEqual(5);
   });
 });
@@ -161,13 +168,16 @@ describe('VideoReplayer - with starting gap', () => {
       onFinished: jest.fn(),
       onLoaded: jest.fn(),
     });
+    // @ts-expect-error private
     expect(inst._currentIndex).toEqual(undefined);
     const playPromise = inst.play(1500);
     jest.advanceTimersByTime(2000);
     await playPromise;
 
+    // @ts-expect-error private
     expect(inst._currentIndex).toEqual(0);
     // `currentTime` is in seconds
+    // @ts-expect-error private
     expect(inst.getVideo(inst._currentIndex)?.currentTime).toEqual(0);
   });
 
@@ -185,8 +195,10 @@ describe('VideoReplayer - with starting gap', () => {
     // the beginning.
     jest.advanceTimersByTime(2500);
     await playPromise;
+    // @ts-expect-error private
     expect(inst._currentIndex).toEqual(3);
     // `currentTime` is in seconds
+    // @ts-expect-error private
     expect(inst.getVideo(inst._currentIndex)?.currentTime).toEqual(0);
   });
 
@@ -206,8 +218,10 @@ describe('VideoReplayer - with starting gap', () => {
     // the beginning.
     jest.advanceTimersByTime(5000);
     await playPromise;
+    // @ts-expect-error private
     expect(inst._currentIndex).toEqual(5);
     // `currentTime` is in seconds
+    // @ts-expect-error private
     expect(inst.getVideo(inst._currentIndex)?.currentTime).toEqual(5);
   });
 });
