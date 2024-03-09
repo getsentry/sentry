@@ -208,6 +208,281 @@ describe('TreeNode', () => {
     expect(root.getVisibleChildrenCount()).toBe(0);
   });
 
+  describe('indicators', () => {
+    it('collects indicator', () => {
+      const tree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              start_timestamp: 0,
+              timestamp: 1,
+            }),
+          ],
+        }),
+        {
+          measurements: {ttfb: {value: 0, unit: 'millisecond'}},
+        } as unknown as EventTransaction
+      );
+
+      expect(tree.indicators.length).toBe(1);
+      expect(tree.indicators[0].start).toBe(0);
+    });
+
+    it('converts timestamp to milliseconds', () => {
+      const tree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              start_timestamp: 0,
+              timestamp: 1,
+            }),
+          ],
+        }),
+        {
+          measurements: {
+            ttfb: {value: 500, unit: 'millisecond'},
+            fcp: {value: 0.5, unit: 'second'},
+            lcp: {value: 500_000_000, unit: 'nanosecond'},
+          },
+        } as unknown as EventTransaction
+      );
+
+      expect(tree.indicators[0].start).toBe(500);
+      expect(tree.indicators[1].start).toBe(500);
+      expect(tree.indicators[2].start).toBe(500);
+    });
+
+    it('extends end timestamp to include measurement', () => {
+      const tree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              start_timestamp: 0,
+              timestamp: 1,
+            }),
+          ],
+        }),
+        {
+          measurements: {
+            ttfb: {value: 2, unit: 'second'},
+          },
+        } as unknown as EventTransaction
+      );
+
+      expect(tree.root.space).toEqual([0, 2000]);
+    });
+
+    it('adjusts end and converst timestamp to ms', () => {
+      const tree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              start_timestamp: 0,
+              timestamp: 1,
+            }),
+          ],
+        }),
+        {
+          measurements: {
+            ttfb: {value: 2000, unit: 'millisecond'},
+          },
+        } as unknown as EventTransaction
+      );
+
+      expect(tree.root.space).toEqual([0, 2000]);
+      expect(tree.indicators[0].start).toBe(2000);
+    });
+
+    it('sorts measurements by start', () => {
+      const tree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              start_timestamp: 0,
+              timestamp: 1,
+            }),
+          ],
+        }),
+        {
+          measurements: {
+            ttfb: {value: 2000, unit: 'millisecond'},
+            lcp: {value: 1000, unit: 'millisecond'},
+          },
+        } as unknown as EventTransaction
+      );
+
+      expect(tree.indicators[0].start).toBe(1000);
+      expect(tree.indicators[1].start).toBe(2000);
+    });
+  });
+
+  describe('parent autogrouped node segments', () => {
+    it('collapses durations', () => {
+      const root = new TraceTreeNode(null, makeSpan({description: 'span1'}), {
+        project_slug: '',
+        event_id: '',
+      });
+
+      let parent = root;
+      for (let i = 0; i < 5; i++) {
+        const node = new TraceTreeNode(
+          parent,
+          makeSpan({
+            description: 'span',
+            op: 'db',
+            start_timestamp: i,
+            timestamp: i + 1,
+            span_id: i.toString(),
+            parent_span_id: parent.value.span_id,
+          }),
+          {
+            project_slug: '',
+            event_id: '',
+          }
+        );
+        parent.children.push(node);
+        parent = node;
+      }
+
+      TraceTree.AutogroupDirectChildrenSpanNodes(root);
+
+      const autogroupedNode = root.children[0];
+      assertParentAutogroupedNode(autogroupedNode);
+      expect(autogroupedNode.autogroupedSegments).toEqual([[0, 5000]]);
+    });
+
+    it('does not collapse durations when there is a gap', () => {
+      const root = new TraceTreeNode(null, makeSpan({description: 'span1'}), {
+        project_slug: '',
+        event_id: '',
+      });
+
+      let parent = root;
+
+      const ts = [
+        [0, 1],
+        [1.5, 2],
+        [2.5, 3],
+        [3.5, 4],
+        [4.5, 5],
+      ];
+
+      for (let i = 0; i < 5; i++) {
+        const node = new TraceTreeNode(
+          parent,
+          makeSpan({
+            description: 'span',
+            op: 'db',
+            start_timestamp: ts[i][0],
+            timestamp: ts[i][1],
+            span_id: i.toString(),
+            parent_span_id: parent.value.span_id,
+          }),
+          {
+            project_slug: '',
+            event_id: '',
+          }
+        );
+        parent.children.push(node);
+        parent = node;
+      }
+
+      for (let i = 1; i < ts.length; i++) {
+        ts[i][0] *= 1000;
+        ts[i][1] = 0.5 * 1000;
+      }
+
+      ts[0][0] = 0;
+      ts[0][1] = 1 * 1000;
+
+      TraceTree.AutogroupDirectChildrenSpanNodes(root);
+
+      const autogroupedNode = root.children[0];
+      assertParentAutogroupedNode(autogroupedNode);
+      expect(autogroupedNode.autogroupedSegments).toEqual(ts);
+    });
+  });
+
+  describe('sibling autogrouped node segments', () => {
+    it('collapses durations', () => {
+      const root = new TraceTreeNode(null, makeSpan({description: 'span1'}), {
+        project_slug: '',
+        event_id: '',
+      });
+
+      for (let i = 0; i < 5; i++) {
+        root.children.push(
+          new TraceTreeNode(
+            root,
+            makeSpan({
+              description: 'span',
+              op: 'db',
+              start_timestamp: i,
+              timestamp: i + 1,
+            }),
+            {
+              project_slug: '',
+              event_id: '',
+            }
+          )
+        );
+      }
+
+      TraceTree.AutogroupSiblingSpanNodes(root);
+      const autogroupedNode = root.children[0];
+
+      assertAutogroupedNode(autogroupedNode);
+      expect(autogroupedNode.autogroupedSegments).toEqual([[0, 5000]]);
+    });
+
+    it('does not collapse durations when there is a gap', () => {
+      const root = new TraceTreeNode(null, makeSpan({description: 'span1'}), {
+        project_slug: '',
+        event_id: '',
+      });
+
+      const ts = [
+        [0, 1],
+        [1.5, 2],
+        [2.5, 3],
+        [3.5, 4],
+        [4.5, 5],
+      ];
+
+      for (let i = 0; i < 5; i++) {
+        root.children.push(
+          new TraceTreeNode(
+            root,
+            makeSpan({
+              description: 'span',
+              op: 'db',
+              start_timestamp: ts[i][0],
+              timestamp: ts[i][1],
+            }),
+            {
+              project_slug: '',
+              event_id: '',
+            }
+          )
+        );
+      }
+
+      for (let i = 0; i < ts.length; i++) {
+        ts[i][0] *= 1000;
+        ts[i][1] = 0.5 * 1000;
+      }
+
+      ts[0][0] = 0;
+      ts[0][1] = 1 * 1000;
+
+      TraceTree.AutogroupSiblingSpanNodes(root);
+      const autogroupedNode = root.children[0];
+
+      assertAutogroupedNode(autogroupedNode);
+      expect(autogroupedNode.autogroupedSegments).toEqual(ts);
+    });
+  });
+
   describe('path', () => {
     describe('nested transactions', () => {
       let child: any = null;
@@ -234,112 +509,15 @@ describe('TreeNode', () => {
       });
     });
 
-    describe('indicators', () => {
-      it('collects indicator', () => {
-        const tree = TraceTree.FromTrace(
-          makeTrace({
-            transactions: [
-              makeTransaction({
-                start_timestamp: 0,
-                timestamp: 1,
-              }),
-            ],
-          }),
-          {
-            measurements: {ttfb: {value: 0, unit: 'millisecond'}},
-          } as unknown as EventTransaction
-        );
+    it('orphan errors', () => {
+      const tree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [],
+          orphan_errors: [makeTraceError({event_id: 'error_id'})],
+        })
+      );
 
-        expect(tree.indicators.length).toBe(1);
-        expect(tree.indicators[0].start).toBe(0);
-      });
-
-      it('converts timestamp to milliseconds', () => {
-        const tree = TraceTree.FromTrace(
-          makeTrace({
-            transactions: [
-              makeTransaction({
-                start_timestamp: 0,
-                timestamp: 1,
-              }),
-            ],
-          }),
-          {
-            measurements: {
-              ttfb: {value: 500, unit: 'millisecond'},
-              fcp: {value: 0.5, unit: 'second'},
-              lcp: {value: 500_000_000, unit: 'nanosecond'},
-            },
-          } as unknown as EventTransaction
-        );
-
-        expect(tree.indicators[0].start).toBe(500);
-        expect(tree.indicators[1].start).toBe(500);
-        expect(tree.indicators[2].start).toBe(500);
-      });
-
-      it('extends end timestamp to include measurement', () => {
-        const tree = TraceTree.FromTrace(
-          makeTrace({
-            transactions: [
-              makeTransaction({
-                start_timestamp: 0,
-                timestamp: 1,
-              }),
-            ],
-          }),
-          {
-            measurements: {
-              ttfb: {value: 2, unit: 'second'},
-            },
-          } as unknown as EventTransaction
-        );
-
-        expect(tree.root.space).toEqual([0, 2000]);
-      });
-
-      it('adjusts end and converst timestamp to ms', () => {
-        const tree = TraceTree.FromTrace(
-          makeTrace({
-            transactions: [
-              makeTransaction({
-                start_timestamp: 0,
-                timestamp: 1,
-              }),
-            ],
-          }),
-          {
-            measurements: {
-              ttfb: {value: 2000, unit: 'millisecond'},
-            },
-          } as unknown as EventTransaction
-        );
-
-        expect(tree.root.space).toEqual([0, 2000]);
-        expect(tree.indicators[0].start).toBe(2000);
-      });
-
-      it('sorts measurements by start', () => {
-        const tree = TraceTree.FromTrace(
-          makeTrace({
-            transactions: [
-              makeTransaction({
-                start_timestamp: 0,
-                timestamp: 1,
-              }),
-            ],
-          }),
-          {
-            measurements: {
-              ttfb: {value: 2000, unit: 'millisecond'},
-              lcp: {value: 1000, unit: 'millisecond'},
-            },
-          } as unknown as EventTransaction
-        );
-
-        expect(tree.indicators[0].start).toBe(1000);
-        expect(tree.indicators[1].start).toBe(2000);
-      });
+      expect(tree.list[1].path).toEqual(['error:error_id']);
     });
 
     describe('spans', () => {
@@ -358,7 +536,22 @@ describe('TreeNode', () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events/project:event_id/',
         method: 'GET',
-        body: makeEvent({}, [makeSpan({description: 'span', op: 'db', span_id: 'span'})]),
+        body: makeEvent({}, [
+          makeSpan({
+            description: 'span',
+            op: 'db',
+            span_id: 'span',
+            start_timestamp: 0,
+            timestamp: 1,
+          }),
+          makeSpan({
+            description: 'span',
+            op: 'db',
+            span_id: 'span',
+            start_timestamp: 1.5,
+            timestamp: 2,
+          }),
+        ]),
       });
 
       tree.zoomIn(tree.list[1], true, {
@@ -368,13 +561,17 @@ describe('TreeNode', () => {
 
       it('when span is a child of a txn', async () => {
         await waitFor(() => {
-          expect(tree.list.length).toBe(3);
+          expect(tree.list.length).toBe(5);
         });
 
         expect(tree.list[tree.list.length - 1].path).toEqual([
           'span:span',
           'txn:event_id',
         ]);
+      });
+
+      it('missing instrumentation', () => {
+        expect(tree.list[3].path).toEqual(['ms:span', 'txn:event_id']);
       });
     });
 
@@ -1521,6 +1718,31 @@ describe('TraceTree', () => {
       expect(root.children.length).toBe(1);
     });
 
+    it('collects errored children for sibling autogrouped node', () => {
+      const root = new TraceTreeNode(null, makeSpan({description: 'span1'}), {
+        project_slug: '',
+        event_id: '',
+      });
+
+      for (let i = 0; i < 5; i++) {
+        const node = new TraceTreeNode(root, makeSpan({description: 'span', op: 'db'}), {
+          project_slug: '',
+          event_id: '',
+        });
+        node.value.relatedErrors = [makeTraceError()];
+        root.children.push(node);
+      }
+
+      expect(root.children.length).toBe(5);
+
+      TraceTree.AutogroupSiblingSpanNodes(root);
+
+      expect(root.children.length).toBe(1);
+      assertAutogroupedNode(root.children[0]);
+      expect(root.children[0].has_error).toBe(true);
+      expect(root.children[0].errored_children).toHaveLength(5);
+    });
+
     it('adds autogrouped siblings as children under autogrouped node', () => {
       const root = new TraceTreeNode(null, makeSpan({description: 'span1'}), {
         project_slug: '',
@@ -1626,6 +1848,59 @@ describe('TraceTree', () => {
       expect((root.children[0].children[0].value as RawSpanType).description).toBe(
         'span0'
       );
+    });
+
+    it('collects errored children for parent autogrouped node', () => {
+      // db             db                           db
+      //  http    ->     parent autogroup (3) ->      parent autogroup (3)
+      //   http                                        http
+      //    http                                        http
+      //                                                 http
+
+      const root: TraceTreeNode<TraceTree.Span> = new TraceTreeNode(
+        null,
+        makeSpan({
+          description: `span1`,
+          span_id: `1`,
+          op: 'db',
+        }),
+        {project_slug: '', event_id: ''}
+      );
+
+      let last: TraceTreeNode<any> = root;
+
+      for (let i = 0; i < 3; i++) {
+        const node = new TraceTreeNode(
+          last,
+          makeSpan({
+            description: `span${i}`,
+            span_id: `${i}`,
+            op: 'http',
+          }),
+          {
+            project_slug: '',
+            event_id: '',
+          }
+        );
+        node.value.relatedErrors = [makeTraceError()];
+        last.children.push(node);
+        last = node;
+      }
+
+      if (!root) {
+        throw new Error('root is null');
+      }
+
+      expect(root.children.length).toBe(1);
+      expect(root.children[0].children.length).toBe(1);
+
+      TraceTree.AutogroupDirectChildrenSpanNodes(root);
+
+      expect(root.children.length).toBe(1);
+
+      assertAutogroupedNode(root.children[0]);
+      expect(root.children[0].has_error).toBe(true);
+      expect(root.children[0].errored_children).toHaveLength(3);
     });
 
     it('autogrouping direct children skips rendering intermediary nodes', () => {

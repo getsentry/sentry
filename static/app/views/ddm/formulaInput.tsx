@@ -51,10 +51,10 @@ export function FormulaInput({
   const validateVariable = useCallback(
     (variable: string): string | null => {
       if (formulaVariables.has(variable)) {
-        return t('Formulas cannot reference other formulas.', variable);
+        return t('Equations cannot reference other equations.', variable);
       }
       if (!availableVariables.has(variable)) {
-        return t('Unknown variable "%s"', variable);
+        return t('Unknown query "%s"', variable);
       }
       return null;
     },

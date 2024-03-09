@@ -3,7 +3,7 @@ import datetime
 from django.utils.dateparse import parse_datetime
 
 from sentry.incidents.charts import incident_date_range
-from sentry.incidents.models import Incident
+from sentry.incidents.models.incident import Incident
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 

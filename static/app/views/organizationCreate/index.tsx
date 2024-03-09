@@ -130,9 +130,9 @@ function OrganizationCreate() {
               required
             />
           )}
-          {!isSelfHosted && (
+          {!isSelfHosted && ConfigStore.get('features').has('relocation:enabled') && (
             <div>
-              {tct('Relocating from self-hosted? Click [relocationLink:here]', {
+              {tct('[relocationLink:Relocating from self-hosted?]', {
                 relocationLink: <a href={relocationUrl} />,
               })}
             </div>

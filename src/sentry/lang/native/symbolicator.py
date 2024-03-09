@@ -16,6 +16,7 @@ from requests.exceptions import RequestException
 from sentry import options
 from sentry.lang.native.sources import (
     get_internal_artifact_lookup_source,
+    get_internal_source,
     get_scraping_config,
     sources_for_symbolication,
 )
@@ -150,7 +151,10 @@ class Symbolicator:
         }
 
         res = self._process(
-            "process_minidump", "minidump", data=data, files={"upload_file_minidump": minidump}
+            "process_minidump",
+            "minidump",
+            data=data,
+            files={"upload_file_minidump": minidump},
         )
         return process_response(res)
 
@@ -176,7 +180,10 @@ class Symbolicator:
         scraping_config = get_scraping_config(self.project)
         json = {
             "sources": sources,
-            "options": {"dif_candidates": True, "apply_source_context": apply_source_context},
+            "options": {
+                "dif_candidates": True,
+                "apply_source_context": apply_source_context,
+            },
             "stacktraces": stacktraces,
             "modules": modules,
             "scraping": scraping_config,
@@ -206,6 +213,39 @@ class Symbolicator:
             json["dist"] = dist
 
         return self._process("symbolicate_js_stacktraces", "symbolicate-js", json=json)
+
+    def process_jvm(
+        self,
+        exceptions,
+        stacktraces,
+        modules,
+        release_package,
+        apply_source_context=True,
+    ):
+        """
+        Process a JVM event by remapping its frames and exceptions with
+        ProGuard.
+
+        :param exceptions: The event's exceptions. These must contain a `type` and a `module`.
+        :param stacktraces: The event's stacktraces. Frames must contain a `function` and a `module`.
+        :param modules: ProGuard modules to use for deobfuscation. They must contain a `uuid`.
+        :param release_package: The name of the release's package. This is optional.
+        :param apply_source_context: Whether to add source context to frames.
+        """
+        source = get_internal_source(self.project)
+
+        json = {
+            "sources": [source],
+            "exceptions": exceptions,
+            "stacktraces": stacktraces,
+            "modules": modules,
+            "options": {"apply_source_context": apply_source_context},
+        }
+
+        if release_package is not None:
+            json["release_package"] = release_package
+
+        return self._process("symbolicate_jvm_stacktraces", "symbolicate-jvm", json=json)
 
 
 class TaskIdNotFound(Exception):

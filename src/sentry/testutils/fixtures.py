@@ -8,7 +8,8 @@ import pytest
 from django.utils.functional import cached_property
 
 from sentry.eventstore.models import Event
-from sentry.incidents.models import AlertRuleMonitorType, IncidentActivityType
+from sentry.incidents.models.alert_rule import AlertRuleMonitorType
+from sentry.incidents.models.incident import IncidentActivityType
 from sentry.models.activity import Activity
 from sentry.models.actor import Actor, get_actor_id_for_user
 from sentry.models.grouprelease import GroupRelease
@@ -44,7 +45,7 @@ class Fixtures:
 
     @cached_property
     def user(self):
-        return self.create_user("admin@localhost", is_superuser=True)
+        return self.create_user("admin@localhost", is_superuser=True, is_staff=True)
 
     @cached_property
     def organization(self):
@@ -397,6 +398,13 @@ class Fixtures:
         return Factories.create_alert_rule_activation_condition(
             alert_rule=alert_rule, *args, **kwargs
         )
+
+    def create_alert_rule_activation(self, alert_rule=None, *args, **kwargs):
+        if not alert_rule:
+            alert_rule = self.create_alert_rule(
+                monitor_type=AlertRuleMonitorType.ACTIVATED,
+            )
+        return Factories.create_alert_rule_activation(alert_rule=alert_rule, *args, **kwargs)
 
     def create_alert_rule_trigger(self, alert_rule=None, *args, **kwargs):
         if not alert_rule:

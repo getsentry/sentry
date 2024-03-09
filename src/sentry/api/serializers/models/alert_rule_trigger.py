@@ -5,7 +5,7 @@ from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.incidents.endpoints.utils import translate_threshold
-from sentry.incidents.models import (
+from sentry.incidents.models.alert_rule import (
     AlertRuleTrigger,
     AlertRuleTriggerAction,
     AlertRuleTriggerExclusion,

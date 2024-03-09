@@ -1,4 +1,5 @@
 import type {Sort} from 'sentry/utils/discover/fields';
+import {SpanIndexedField} from 'sentry/views/starfish/types';
 
 export type Row = {
   'count()': number;
@@ -42,21 +43,20 @@ type Score = {
 export type ScoreWithWeightsAndOpportunity = Score & Weight & Opportunity;
 
 export type InteractionSpanSampleRow = {
-  'measurements.inp': number;
+  [SpanIndexedField.INP]: number;
   'profile.id': string;
   projectSlug: string;
   replayId: string;
-  'segment.id': string;
-  'span.description': string;
-  'span.op': string;
-  'span.self_time': number;
-  timestamp: string;
-  totalScore: number;
+  [SpanIndexedField.SPAN_DESCRIPTION]: string;
+  [SpanIndexedField.SPAN_OP]: string;
+  [SpanIndexedField.SPAN_SELF_TIME]: number;
+  [SpanIndexedField.TIMESTAMP]: string;
   'user.display': string;
 };
 
 export type InteractionSpanSampleRowWithScore = InteractionSpanSampleRow & {
   inpScore: number;
+  totalScore: number;
 };
 
 export type Weight = {

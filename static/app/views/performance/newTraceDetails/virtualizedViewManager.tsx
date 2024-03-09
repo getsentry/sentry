@@ -1,16 +1,20 @@
-import type {List} from 'react-virtualized';
+import {useLayoutEffect, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import {mat3, vec2} from 'gl-matrix';
 
 import type {Client} from 'sentry/api';
 import type {Organization} from 'sentry/types';
+import {getDuration} from 'sentry/utils/formatters';
 import clamp from 'sentry/utils/number/clamp';
+import {requestAnimationTimeout} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import {lightTheme as theme} from 'sentry/utils/theme';
 import {
   isAutogroupedNode,
+  isMissingInstrumentationNode,
   isParentAutogroupedNode,
   isSiblingAutogroupedNode,
   isSpanNode,
+  isTraceErrorNode,
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/guards';
 import {
@@ -22,12 +26,6 @@ const DIVIDER_WIDTH = 6;
 
 function easeOutSine(x: number): number {
   return Math.sin((x * Math.PI) / 2);
-}
-
-function onPreventBackForwardNavigation(event: WheelEvent) {
-  if (event.deltaX !== 0) {
-    event.preventDefault();
-  }
 }
 
 type ViewColumn = {
@@ -101,6 +99,35 @@ class View {
   }
 }
 
+export function computeTimelineIntervals(
+  view: View,
+  targetInterval: number,
+  results: (number | undefined)[]
+): void {
+  const minInterval = Math.pow(10, Math.floor(Math.log10(targetInterval)));
+  let interval = minInterval;
+
+  if (targetInterval / interval > 5) {
+    interval *= 5;
+  } else if (targetInterval / interval > 2) {
+    interval *= 2;
+  }
+
+  let x = Math.ceil(view.x / interval) * interval;
+  let idx = -1;
+  if (x > 0) {
+    x -= interval;
+  }
+  while (x <= view.right) {
+    results[++idx] = x;
+    x += interval;
+  }
+
+  while (idx < results.length - 1 && results[idx + 1] !== undefined) {
+    results[++idx] = undefined;
+  }
+}
+
 /**
  * Tracks the state of the virtualized view and manages the resizing of the columns.
  * Children components should call the appropriate register*Ref methods to register their
@@ -128,7 +155,10 @@ export class VirtualizedViewManager {
   text_measurer: TextMeasurer = new TextMeasurer();
 
   resize_observer: ResizeObserver | null = null;
-  list: List | null = null;
+  list: VirtualizedList | null = null;
+
+  isScrolling: boolean = false;
+  start_virtualized_index: number = 0;
 
   // HTML refs that we need to keep track of such
   // that rendering can be done programmatically
@@ -136,9 +166,21 @@ export class VirtualizedViewManager {
   container: HTMLElement | null = null;
   indicator_container: HTMLElement | null = null;
 
+  intervals: number[] = [];
+  interval_bars = new Array(10).fill(0);
   indicators: ({indicator: TraceTree['indicators'][0]; ref: HTMLElement} | undefined)[] =
     [];
+  timeline_indicators: (HTMLElement | undefined)[] = [];
   span_bars: ({ref: HTMLElement; space: [number, number]} | undefined)[] = [];
+  span_arrows: (
+    | {
+        position: 0 | 1;
+        ref: HTMLElement;
+        space: [number, number];
+        visible: boolean;
+      }
+    | undefined
+  )[] = [];
   span_text: ({ref: HTMLElement; space: [number, number]; text: string} | undefined)[] =
     [];
 
@@ -179,6 +221,7 @@ export class VirtualizedViewManager {
     this.trace_space = new View(0, 0, space[2], space[3]);
     this.trace_view = new View(0, 0, space[2], space[3]);
 
+    this.recomputeTimelineIntervals();
     this.recomputeSpanToPxMatrix();
   }
 
@@ -191,6 +234,7 @@ export class VirtualizedViewManager {
       height
     );
 
+    this.recomputeTimelineIntervals();
     this.recomputeSpanToPxMatrix();
   }
 
@@ -202,6 +246,7 @@ export class VirtualizedViewManager {
     }
   }
 
+  dividerScale: 1 | undefined = undefined;
   dividerStartVec: [number, number] | null = null;
   previousDividerClientVec: [number, number] | null = null;
   onDividerMouseDown(event: MouseEvent) {
@@ -209,6 +254,7 @@ export class VirtualizedViewManager {
       return;
     }
 
+    this.dividerScale = this.trace_view.width === this.trace_space.width ? 1 : undefined;
     this.dividerStartVec = [event.clientX, event.clientY];
     this.previousDividerClientVec = [event.clientX, event.clientY];
     this.container.style.userSelect = 'none';
@@ -224,6 +270,7 @@ export class VirtualizedViewManager {
       return;
     }
 
+    this.dividerScale = undefined;
     const distance = event.clientX - this.dividerStartVec[0];
     const distancePercentage = distance / this.container_physical_space.width;
 
@@ -255,10 +302,15 @@ export class VirtualizedViewManager {
     const config_distance_pct = physical_distance / this.trace_physical_space.width;
     const config_distance = this.trace_view.width * config_distance_pct;
 
-    this.setTraceView({
-      x: this.trace_view.x - config_distance,
-      width: this.trace_view.width + config_distance,
-    });
+    if (this.dividerScale) {
+      // just recompute the draw matrix and let the view scale itself
+      this.recomputeSpanToPxMatrix();
+    } else {
+      this.setTraceView({
+        x: this.trace_view.x - config_distance,
+        width: this.trace_view.width + config_distance,
+      });
+    }
 
     this.draw({
       list: this.columns.list.width + distancePercentage,
@@ -268,7 +320,7 @@ export class VirtualizedViewManager {
     this.previousDividerClientVec = [event.clientX, event.clientY];
   }
 
-  registerList(list: List | null) {
+  registerList(list: VirtualizedList | null) {
     this.list = list;
   }
 
@@ -297,6 +349,10 @@ export class VirtualizedViewManager {
     this.span_bars[index] = ref ? {ref, space} : undefined;
   }
 
+  registerArrowRef(ref: HTMLElement | null, space: [number, number], index: number) {
+    this.span_arrows[index] = ref ? {ref, space, visible: false, position: 0} : undefined;
+  }
+
   registerSpanBarTextRef(
     ref: HTMLElement | null,
     text: string,
@@ -312,21 +368,14 @@ export class VirtualizedViewManager {
     index: number,
     node: TraceTreeNode<any>
   ) {
-    if (!this.columns[column]) {
-      throw new TypeError('Invalid column');
-    }
-
-    if (typeof index !== 'number' || isNaN(index)) {
-      throw new TypeError('Invalid index');
-    }
-
     if (column === 'list') {
       const element = this.columns[column].column_refs[index];
       if (ref === undefined && element) {
         element.removeEventListener('wheel', this.onSyncedScrollbarScroll);
       } else if (ref) {
-        const scrollableElement = ref.children[0];
+        const scrollableElement = ref.children[0] as HTMLElement | undefined;
         if (scrollableElement) {
+          scrollableElement.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
           this.row_measurer.measure(node, scrollableElement as HTMLElement);
           ref.addEventListener('wheel', this.onSyncedScrollbarScroll, {passive: true});
         }
@@ -374,6 +423,14 @@ export class VirtualizedViewManager {
     }
   }
 
+  registerTimelineIndicatorRef(ref: HTMLElement | null, index: number) {
+    if (ref) {
+      this.timeline_indicators[index] = ref;
+    } else {
+      this.timeline_indicators[index] = undefined;
+    }
+  }
+
   getConfigSpaceCursor(cursor: {x: number; y: number}): [number, number] {
     const left_percentage = cursor.x / this.trace_physical_space.width;
     const left_view = left_percentage * this.trace_view.width;
@@ -413,18 +470,36 @@ export class VirtualizedViewManager {
         x: newView[0],
         width: newView[2],
       });
-      this.draw();
     } else {
       const physical_delta_pct = event.deltaX / this.trace_physical_space.width;
       const view_delta = physical_delta_pct * this.trace_view.width;
       this.setTraceView({
         x: this.trace_view.x + view_delta,
       });
-      this.draw();
     }
+    this.draw();
   }
 
   zoomIntoSpaceRaf: number | null = null;
+  onBringRowIntoView(space: [number, number]) {
+    if (this.zoomIntoSpaceRaf !== null) {
+      window.cancelAnimationFrame(this.zoomIntoSpaceRaf);
+      this.zoomIntoSpaceRaf = null;
+    }
+
+    if (space[0] - this.to_origin > this.trace_view.x) {
+      this.onZoomIntoSpace([
+        space[0] + space[1] / 2 - this.trace_view.width / 2,
+        this.trace_view.width,
+      ]);
+    } else if (space[0] - this.to_origin < this.trace_view.x) {
+      this.onZoomIntoSpace([
+        space[0] + space[1] / 2 - this.trace_view.width / 2,
+        this.trace_view.width,
+      ]);
+    }
+  }
+
   onZoomIntoSpace(space: [number, number]) {
     const distance_x = space[0] - this.to_origin - this.trace_view.x;
     const distance_width = this.trace_view.width - space[1];
@@ -466,7 +541,7 @@ export class VirtualizedViewManager {
     const start = performance.now();
     const rafCallback = (now: number) => {
       const elapsed = now - start;
-      if (elapsed > 16) {
+      if (elapsed > 150) {
         this.onWheelEnd();
       } else {
         this.onWheelEndRaf = window.requestAnimationFrame(rafCallback);
@@ -523,11 +598,16 @@ export class VirtualizedViewManager {
 
     this.trace_view.x = clamp(x, 0, this.trace_space.width - width);
     this.trace_view.width = clamp(width, 0, this.trace_space.width - this.trace_view.x);
+
+    this.recomputeTimelineIntervals();
     this.recomputeSpanToPxMatrix();
   }
 
   scrollSyncRaf: number | null = null;
   onSyncedScrollbarScroll(event: WheelEvent) {
+    if (this.isScrolling) {
+      return;
+    }
     if (this.bringRowIntoViewAnimation !== null) {
       window.cancelAnimationFrame(this.bringRowIntoViewAnimation);
       this.bringRowIntoViewAnimation = null;
@@ -542,24 +622,18 @@ export class VirtualizedViewManager {
       0
     );
 
-    for (let i = 0; i < this.columns.list.column_refs.length; i++) {
-      const list = this.columns.list.column_refs[i];
-      if (list?.children?.[0]) {
-        (list.children[0] as HTMLElement).style.transform =
-          `translateX(${this.columns.list.translate[0]}px)`;
-      }
-    }
-
-    // Eventually sync the column translation to the container
     if (this.scrollSyncRaf) {
       window.cancelAnimationFrame(this.scrollSyncRaf);
     }
+
     this.scrollSyncRaf = window.requestAnimationFrame(() => {
-      // @TODO if user is outside of the container, scroll the container to the left
-      this.container?.style.setProperty(
-        '--column-translate-x',
-        this.columns.list.translate[0] + 'px'
-      );
+      for (let i = 0; i < this.columns.list.column_refs.length; i++) {
+        const list = this.columns.list.column_refs[i];
+        if (list?.children?.[0]) {
+          (list.children[0] as HTMLElement).style.transform =
+            `translateX(${this.columns.list.translate[0]}px)`;
+        }
+      }
     });
   }
 
@@ -590,10 +664,7 @@ export class VirtualizedViewManager {
     let max = Number.NEGATIVE_INFINITY;
     let innerMostNode: TraceTreeNode<any> | undefined;
 
-    const offset = this.list?.Grid?.props.overscanRowCount ?? 0;
-    const renderCount = this.columns.span_list.column_refs.length;
-
-    for (let i = offset + 1; i < renderCount - offset; i++) {
+    for (let i = 0; i < this.columns.span_list.column_refs.length; i++) {
       const width = this.row_measurer.cache.get(this.columns.list.column_nodes[i]);
       if (width === undefined) {
         // this is unlikely to happen, but we should trigger a sync measure event if it does
@@ -664,9 +735,6 @@ export class VirtualizedViewManager {
     }
 
     this.container = container;
-    this.container.addEventListener('wheel', onPreventBackForwardNavigation, {
-      passive: false,
-    });
 
     this.resize_observer = new ResizeObserver(entries => {
       const entry = entries[0];
@@ -691,20 +759,35 @@ export class VirtualizedViewManager {
     );
   }
 
+  recomputeTimelineIntervals() {
+    const tracePhysicalToView = this.trace_physical_space.between(this.trace_view);
+    const time_at_100 =
+      tracePhysicalToView[0] * (100 * window.devicePixelRatio) +
+      tracePhysicalToView[6] -
+      this.trace_view.x;
+
+    computeTimelineIntervals(this.trace_view, time_at_100, this.intervals);
+  }
+
+  readonly span_matrix: [number, number, number, number, number, number] = [
+    1, 0, 0, 1, 0, 0,
+  ];
+
   computeSpanCSSMatrixTransform(
     space: [number, number]
   ): [number, number, number, number, number, number] {
     const scale = space[1] / this.trace_view.width;
 
-    return [
-      Math.max(scale, (1 * this.span_to_px[0]) / this.trace_view.width),
-      0,
-      0,
-      1,
+    this.span_matrix[0] = Math.max(
+      scale,
+      (1 * this.span_to_px[0]) / this.trace_view.width
+    );
+    this.span_matrix[3] = 1;
+    this.span_matrix[4] =
       (space[0] - this.to_origin) / this.span_to_px[0] -
-        this.trace_view.x / this.span_to_px[0],
-      0,
-    ];
+      this.trace_view.x / this.span_to_px[0];
+
+    return this.span_matrix;
   }
 
   scrollToPath(
@@ -747,7 +830,11 @@ export class VirtualizedViewManager {
 
       if (isTransactionNode(current)) {
         const nextSegment = segments[segments.length - 1];
-        if (nextSegment?.startsWith('span:') || nextSegment?.startsWith('ag:')) {
+        if (
+          nextSegment?.startsWith('span:') ||
+          nextSegment?.startsWith('ag:') ||
+          nextSegment?.startsWith('ms:')
+        ) {
           await tree.zoomIn(current, true, {
             api,
             organization,
@@ -901,12 +988,9 @@ export class VirtualizedViewManager {
     // allowing us to store negative indices. This sometimes happens as the list
     // virtualizes the rows and we end up with a negative index as they are being
     // rendered off screen.
-    const overscroll = this.list?.props.overscanRowCount ?? 0;
-    const start = -overscroll;
-    const end = this.columns.list.column_refs.length + overscroll;
-
-    for (let i = start; i < end; i++) {
-      while (this.span_bars[i] === undefined && i < end) i++;
+    for (let i = 0; i < this.columns.list.column_refs.length; i++) {
+      while (this.span_bars[i] === undefined && i < this.columns.list.column_refs.length)
+        i++;
 
       const list = this.columns.list.column_refs[i];
       if (list) list.style.width = listWidth;
@@ -914,6 +998,8 @@ export class VirtualizedViewManager {
       if (span) span.style.width = spanWidth;
 
       const span_bar = this.span_bars[i];
+      const span_arrow = this.span_arrows[i];
+
       if (span_bar) {
         const span_transform = this.computeSpanCSSMatrixTransform(span_bar.space);
         span_bar.ref.style.transform = `matrix(${span_transform.join(',')}`;
@@ -931,6 +1017,24 @@ export class VirtualizedViewManager {
 
         span_text.ref.style.color = inside ? 'white' : '';
         span_text.ref.style.transform = `translateX(${text_transform}px)`;
+        if (span_arrow && span_bar) {
+          const outside_left =
+            span_bar.space[0] - this.to_origin + span_bar.space[1] < this.trace_view.x;
+          const outside_right =
+            span_bar.space[0] - this.to_origin > this.trace_view.right;
+          const visible = outside_left || outside_right;
+
+          if (visible !== span_arrow.visible) {
+            span_arrow.visible = visible;
+            span_arrow.position = outside_left ? 0 : 1;
+
+            if (visible) {
+              span_arrow.ref.className = `TraceArrow Visible ${span_arrow.position === 0 ? 'Left' : 'Right'}`;
+            } else {
+              span_arrow.ref.className = 'TraceArrow';
+            }
+          }
+        }
       }
     }
 
@@ -1023,12 +1127,31 @@ export class VirtualizedViewManager {
       entry.ref.style.zIndex = i === start_indicator || i === end_indicator ? '1' : '2';
       entry.ref.style.transform = `translate(${clamped_transform}px, 0)`;
     }
+
+    for (let i = 0; i < this.timeline_indicators.length; i++) {
+      const indicator = this.timeline_indicators[i];
+      const interval = this.intervals[i];
+
+      if (indicator) {
+        if (interval === undefined) {
+          indicator.style.opacity = '0';
+          continue;
+        }
+
+        const placement = this.computeTransformXFromTimestamp(this.to_origin + interval);
+
+        indicator.style.opacity = '1';
+        indicator.style.transform = `translateX(${placement}px)`;
+        const label = indicator.children[0] as HTMLElement | undefined;
+
+        if (label) {
+          label.innerHTML = getDuration(interval / 1000, 2, true);
+        }
+      }
+    }
   }
 
   teardown() {
-    if (this.container) {
-      this.container.removeEventListener('wheel', onPreventBackForwardNavigation);
-    }
     if (this.resize_observer) {
       this.resize_observer.disconnect();
     }
@@ -1171,6 +1294,368 @@ class TextMeasurer {
   }
 }
 
+export class VirtualizedList {
+  container: HTMLElement | null = null;
+
+  scrollHeight: number = 0;
+  scrollTop: number = 0;
+
+  scrollToRow(index: number, rowHeight: number = 24) {
+    if (!this.container) {
+      return;
+    }
+
+    const top = this.container.scrollTop;
+    const height = this.scrollHeight;
+    const position = index * rowHeight;
+
+    if (position < top) {
+      // above view
+    } else if (position > top + height) {
+      // under view
+    } else {
+      return;
+    }
+
+    this.container.scrollTop = index * rowHeight;
+  }
+}
+
+interface UseVirtualizedListProps {
+  container: HTMLElement | null;
+  items: ReadonlyArray<TraceTreeNode<TraceTree.NodeValue>>;
+  manager: VirtualizedViewManager;
+  render: (item: VirtualizedRow) => React.ReactNode;
+}
+interface UseVirtualizedListResult {
+  list: VirtualizedList;
+  rendered: React.ReactNode[];
+  virtualized: VirtualizedRow[];
+}
+
+export const useVirtualizedList = (
+  props: UseVirtualizedListProps
+): UseVirtualizedListResult => {
+  const list = useRef<VirtualizedList | null>();
+
+  const scrollTopRef = useRef<number>(0);
+  const scrollHeightRef = useRef<number>(0);
+  const scrollContainerRef = useRef<HTMLElement | null>(null);
+
+  const renderCache = useRef<Map<number, React.ReactNode>>();
+  const styleCache = useRef<Map<number, React.CSSProperties>>();
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
+
+  if (!styleCache.current) {
+    styleCache.current = new Map();
+  }
+  if (!renderCache.current) {
+    renderCache.current = new Map();
+  }
+
+  const [items, setItems] = useState<{
+    rendered: React.ReactNode[];
+    virtualized: VirtualizedRow[];
+  }>({rendered: [], virtualized: []});
+
+  if (!list.current) {
+    list.current = new VirtualizedList();
+    props.manager.registerList(list.current);
+  }
+
+  const renderRef = useRef<(item: VirtualizedRow) => React.ReactNode>(props.render);
+  renderRef.current = props.render;
+  const itemsRef = useRef<ReadonlyArray<TraceTreeNode<TraceTree.NodeValue>>>(props.items);
+  itemsRef.current = props.items;
+  const managerRef = useRef<VirtualizedViewManager>(props.manager);
+  managerRef.current = props.manager;
+
+  useLayoutEffect(() => {
+    if (!props.container) {
+      return;
+    }
+    const scrollContainer = props.container.children[0] as HTMLElement | null;
+    if (!scrollContainer) {
+      throw new Error(
+        'Virtualized list container has to render a scroll container as its first child.'
+      );
+    }
+  }, [props.container, props.items.length]);
+
+  useLayoutEffect(() => {
+    if (!props.container || !list.current) {
+      return;
+    }
+
+    list.current.container = props.container;
+
+    if (resizeObserverRef.current) {
+      resizeObserverRef.current.disconnect();
+    }
+
+    const resizeObserver = new ResizeObserver(elements => {
+      // We only care about changes to the height of the scroll container,
+      // if it has not changed then do not update the scroll height.
+      styleCache.current?.clear();
+      renderCache.current?.clear();
+
+      scrollHeightRef.current = elements[0].contentRect.height;
+      if (list.current) {
+        list.current.scrollHeight = scrollHeightRef.current;
+      }
+
+      const recomputedItems = findRenderedItems({
+        scrollTop: scrollTopRef.current,
+        items: itemsRef.current,
+        overscroll: 5,
+        rowHeight: 24,
+        scrollHeight: scrollHeightRef.current,
+        styleCache: styleCache.current!,
+        renderCache: renderCache.current!,
+        render: renderRef.current,
+        manager: managerRef.current,
+      });
+      setItems(recomputedItems);
+    });
+
+    resizeObserver.observe(props.container);
+    resizeObserverRef.current = resizeObserver;
+  }, [props.container]);
+
+  const rafId = useRef<number | null>(null);
+  const pointerEventsRaf = useRef<{id: number} | null>(null);
+
+  useLayoutEffect(() => {
+    if (!list.current || !props.container) {
+      return undefined;
+    }
+
+    if (props.container && !scrollContainerRef.current) {
+      scrollContainerRef.current = props.container.children[0] as HTMLElement | null;
+    }
+
+    props.container.style.height = '100%';
+    props.container.style.overflow = 'auto';
+    props.container.style.position = 'relative';
+    props.container.style.willChange = 'transform';
+    props.container.style.overscrollBehavior = 'none';
+
+    scrollContainerRef.current!.style.overflow = 'hidden';
+    scrollContainerRef.current!.style.position = 'relative';
+    scrollContainerRef.current!.style.willChange = 'transform';
+    scrollContainerRef.current!.style.height = `${props.items.length * 24}px`;
+
+    const onScroll = event => {
+      if (!list.current) {
+        return;
+      }
+
+      if (rafId.current !== null) {
+        window.cancelAnimationFrame(rafId.current);
+      }
+
+      managerRef.current.isScrolling = true;
+
+      rafId.current = window.requestAnimationFrame(() => {
+        scrollTopRef.current = Math.max(0, event.target?.scrollTop ?? 0);
+
+        const recomputedItems = findRenderedItems({
+          scrollTop: scrollTopRef.current,
+          items: props.items,
+          overscroll: 5,
+          rowHeight: 24,
+          scrollHeight: scrollHeightRef.current,
+          styleCache: styleCache.current!,
+          renderCache: renderCache.current!,
+          render: renderRef.current,
+          manager: managerRef.current,
+        });
+        setItems(recomputedItems);
+      });
+
+      if (!pointerEventsRaf.current && scrollContainerRef.current) {
+        scrollContainerRef.current.style.pointerEvents = 'none';
+      }
+
+      if (pointerEventsRaf.current) {
+        window.cancelAnimationFrame(pointerEventsRaf.current.id);
+      }
+
+      pointerEventsRaf.current = requestAnimationTimeout(() => {
+        styleCache.current?.clear();
+        renderCache.current?.clear();
+        managerRef.current.isScrolling = false;
+
+        const recomputedItems = findRenderedItems({
+          scrollTop: scrollTopRef.current,
+          items: props.items,
+          overscroll: 5,
+          rowHeight: 24,
+          scrollHeight: scrollHeightRef.current,
+          styleCache: styleCache.current!,
+          renderCache: renderCache.current!,
+          render: renderRef.current,
+          manager: managerRef.current,
+        });
+        setItems(recomputedItems);
+
+        if (list.current && scrollContainerRef.current) {
+          scrollContainerRef.current.style.pointerEvents = 'auto';
+          pointerEventsRaf.current = null;
+        }
+      }, 150);
+    };
+    props.container.addEventListener('scroll', onScroll, {passive: false});
+
+    return () => {
+      props.container?.removeEventListener('scroll', onScroll);
+    };
+  }, [props.container, props.items, props.items.length]);
+
+  useLayoutEffect(() => {
+    if (!list.current || !styleCache.current || !renderCache.current) {
+      return;
+    }
+
+    styleCache.current.clear();
+    renderCache.current.clear();
+
+    const recomputedItems = findRenderedItems({
+      scrollTop: scrollTopRef.current,
+      items: props.items,
+      overscroll: 5,
+      rowHeight: 24,
+      scrollHeight: scrollHeightRef.current,
+      styleCache: styleCache.current!,
+      renderCache: renderCache.current,
+      render: renderRef.current,
+      manager: managerRef.current,
+    });
+
+    setItems(recomputedItems);
+  }, [props.items, props.items.length, props.render]);
+
+  return {
+    virtualized: items.virtualized,
+    rendered: items.rendered,
+    list: list.current!,
+  };
+};
+
+export interface VirtualizedRow {
+  index: number;
+  item: TraceTreeNode<TraceTree.NodeValue>;
+  key: number;
+  style: React.CSSProperties;
+}
+
+function findRenderedItems({
+  items,
+  overscroll,
+  rowHeight,
+  scrollHeight,
+  scrollTop,
+  styleCache,
+  renderCache,
+  render,
+  manager,
+}: {
+  items: ReadonlyArray<TraceTreeNode<TraceTree.NodeValue>>;
+  manager: VirtualizedViewManager;
+  overscroll: number;
+  render: (arg: VirtualizedRow) => React.ReactNode;
+  renderCache: Map<number, React.ReactNode>;
+  rowHeight: number;
+  scrollHeight: number;
+  scrollTop: number;
+  styleCache: Map<number, React.CSSProperties>;
+}): {rendered: React.ReactNode[]; virtualized: VirtualizedRow[]} {
+  // This is overscroll height for single direction, when computing the total,
+  // we need to multiply this by 2 because we overscroll in both directions.
+  const OVERSCROLL_HEIGHT = overscroll * rowHeight;
+  const virtualized: VirtualizedRow[] = [];
+  const rendered: React.ReactNode[] = [];
+
+  // Clamp viewport to scrollHeight bounds [0, length * rowHeight] because some browsers may fire
+  // scrollTop with negative values when the user scrolls up past the top of the list (overscroll behavior)
+  const viewport = {
+    top: Math.max(scrollTop - OVERSCROLL_HEIGHT, 0),
+    bottom: Math.min(
+      scrollTop + scrollHeight + OVERSCROLL_HEIGHT,
+      items.length * rowHeight
+    ),
+  };
+
+  // Points to the position inside the visible array
+  let visibleItemIndex = 0;
+  // Points to the currently iterated item
+  let indexPointer = findOptimisticStartIndex({
+    items,
+    viewport,
+    scrollTop,
+    rowHeight,
+    overscroll,
+  });
+
+  manager.start_virtualized_index = indexPointer;
+
+  // Max number of visible items in our list
+  const MAX_VISIBLE_ITEMS = Math.ceil((scrollHeight + OVERSCROLL_HEIGHT * 2) / rowHeight);
+  const ALL_ITEMS = items.length;
+
+  // While number of visible items is less than max visible items, and we haven't reached the end of the list
+  while (visibleItemIndex < MAX_VISIBLE_ITEMS && indexPointer < ALL_ITEMS) {
+    const elementTop = indexPointer * rowHeight;
+    const elementBottom = elementTop + rowHeight;
+
+    // An element is inside a viewport if the top of the element is below the top of the viewport
+    // and the bottom of the element is above the bottom of the viewport
+    if (elementTop >= viewport.top && elementBottom <= viewport.bottom) {
+      let style = styleCache.get(indexPointer);
+      if (!style) {
+        style = {position: 'absolute', top: elementTop};
+        styleCache.set(indexPointer, style);
+      }
+
+      const virtualizedRow: VirtualizedRow = {
+        key: indexPointer,
+        style,
+        index: indexPointer,
+        item: items[indexPointer],
+      };
+
+      virtualized[visibleItemIndex] = virtualizedRow;
+
+      const renderedRow = renderCache.get(indexPointer) || render(virtualizedRow);
+      rendered[visibleItemIndex] = renderedRow;
+      renderCache.set(indexPointer, renderedRow);
+      visibleItemIndex++;
+    }
+    indexPointer++;
+  }
+
+  return {rendered, virtualized};
+}
+
+export function findOptimisticStartIndex({
+  items,
+  overscroll,
+  rowHeight,
+  scrollTop,
+  viewport,
+}: {
+  items: ReadonlyArray<TraceTreeNode<TraceTree.NodeValue>>;
+  overscroll: number;
+  rowHeight: number;
+  scrollTop: number;
+  viewport: {bottom: number; top: number};
+}): number {
+  if (!items.length || viewport.top === 0) {
+    return 0;
+  }
+  return Math.max(Math.floor(scrollTop / rowHeight) - overscroll, 0);
+}
+
 function findInTreeFromSegment(
   start: TraceTreeNode<TraceTree.NodeValue>,
   segment: TraceTree.NodePath
@@ -1200,6 +1685,14 @@ function findInTreeFromSegment(
           return child.value.span_id === id;
         }
       }
+    }
+
+    if (type === 'ms' && isMissingInstrumentationNode(node)) {
+      return node.previous.value.span_id === id || node.next.value.span_id === id;
+    }
+
+    if (type === 'error' && isTraceErrorNode(node)) {
+      return node.value.event_id === id;
     }
 
     return false;

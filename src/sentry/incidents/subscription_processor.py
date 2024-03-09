@@ -22,10 +22,14 @@ from sentry.incidents.logic import (
     deduplicate_trigger_actions,
     update_incident_status,
 )
-from sentry.incidents.models import (
+from sentry.incidents.models.alert_rule import (
     AlertRule,
+    AlertRuleMonitorType,
     AlertRuleThresholdType,
     AlertRuleTrigger,
+    invoke_alert_subscription_callback,
+)
+from sentry.incidents.models.incident import (
     Incident,
     IncidentActivity,
     IncidentStatus,
@@ -444,9 +448,10 @@ class SubscriptionProcessor:
             # TODO: Delete subscription here.
             return
 
-        # TODO:
-        # if AlertRule.monitor_type === ACTIVATED and AlertRule.is_expired():
-        #       delete query in snuba
+        # Trigger callbacks for any AlertRules that may need to know about the subscription update
+        invoke_alert_subscription_callback(
+            AlertRuleMonitorType(self.alert_rule.monitor_type), self.subscription
+        )
 
         if subscription_update["timestamp"] <= self.last_update:
             metrics.incr("incidents.alert_rules.skipping_already_processed_update")
@@ -899,4 +904,4 @@ def update_alert_rule_stats(
 
 def get_redis_client() -> RetryingRedisCluster:
     cluster_key = settings.SENTRY_INCIDENT_RULES_REDIS_CLUSTER
-    return redis.redis_clusters.get(cluster_key)
+    return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]

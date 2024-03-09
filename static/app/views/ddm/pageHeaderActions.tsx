@@ -42,6 +42,7 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
     widgets,
     showQuerySymbols,
     selectedWidgetIndex,
+    isMultiChartMode,
   } = useDDMContext();
 
   const handleToggleDefaultQuery = useCallback(() => {
@@ -119,7 +120,8 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
                   <QuerySymbol
                     key="icon"
                     queryId={widget.id}
-                    isSelected={index === selectedWidgetIndex}
+                    isHidden={widget.isHidden}
+                    isSelected={index === selectedWidgetIndex && isMultiChartMode}
                   />,
                 ]
               : [],
@@ -140,7 +142,7 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
             },
           };
         }),
-    [organization, selectedWidgetIndex, showQuerySymbols, widgets]
+    [isMultiChartMode, organization, selectedWidgetIndex, showQuerySymbols, widgets]
   );
 
   return (

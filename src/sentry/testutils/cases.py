@@ -62,8 +62,7 @@ from sentry.auth.superuser import COOKIE_NAME as SU_COOKIE_NAME
 from sentry.auth.superuser import COOKIE_PATH as SU_COOKIE_PATH
 from sentry.auth.superuser import COOKIE_SALT as SU_COOKIE_SALT
 from sentry.auth.superuser import COOKIE_SECURE as SU_COOKIE_SECURE
-from sentry.auth.superuser import ORG_ID as SU_ORG_ID
-from sentry.auth.superuser import Superuser
+from sentry.auth.superuser import SUPERUSER_ORG_ID, Superuser
 from sentry.event_manager import EventManager
 from sentry.eventstore.models import Event
 from sentry.eventstream.snuba import SnubaEventStream
@@ -331,11 +330,11 @@ class BaseTestCase(Fixtures):
         else:
             organization_ids = set(organization_ids)
         if superuser and superuser_sso is not False:
-            if SU_ORG_ID:
-                organization_ids.add(SU_ORG_ID)
+            if SUPERUSER_ORG_ID:
+                organization_ids.add(SUPERUSER_ORG_ID)
         if staff and staff_sso is not False:
             if STAFF_ORG_ID:
-                organization_ids.add(SU_ORG_ID)
+                organization_ids.add(SUPERUSER_ORG_ID)
         if organization_id:
             organization_ids.add(organization_id)
 
@@ -637,8 +636,12 @@ class PerformanceIssueTestCase(BaseTestCase):
         perf_event_manager = EventManager(event_data)
         perf_event_manager.normalize()
 
-        def detect_performance_problems_interceptor(data: Event, project: Project):
-            perf_problems = detect_performance_problems(data, project)
+        def detect_performance_problems_interceptor(
+            data: Event, project: Project, is_standalone_spans: bool = False
+        ):
+            perf_problems = detect_performance_problems(
+                data, project, is_standalone_spans=is_standalone_spans
+            )
             if fingerprint:
                 for perf_problem in perf_problems:
                     perf_problem.fingerprint = fingerprint
@@ -700,13 +703,13 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
         :returns Response object
         """
         url = reverse(self.endpoint, args=args)
-        # In some cases we want to pass querystring params to put/post, handle
-        # this here.
+        # In some cases we want to pass querystring params to put/post, handle this here.
         if "qs_params" in params:
             query_string = urlencode(params.pop("qs_params"), doseq=True)
             url = f"{url}?{query_string}"
 
         headers = params.pop("extra_headers", {})
+        format = params.pop("format", "json")
         raw_data = params.pop("raw_data", None)
         if raw_data and isinstance(raw_data, bytes):
             raw_data = raw_data.decode("utf-8")
@@ -715,7 +718,7 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
         data = raw_data or params
         method = params.pop("method", self.method).lower()
 
-        return getattr(self.client, method)(url, format="json", data=data, **headers)
+        return getattr(self.client, method)(url, format=format, data=data, **headers)
 
     def get_success_response(self, *args, **params):
         """
@@ -1521,6 +1524,7 @@ class BaseSpansTestCase(SnubaTestCase):
         transaction: str | None = None,
         op: str | None = None,
         duration: int = 10,
+        exclusive_time: int = 5,
         tags: Mapping[str, Any] | None = None,
         measurements: Mapping[str, int | float] | None = None,
         timestamp: datetime | None = None,
@@ -1538,7 +1542,7 @@ class BaseSpansTestCase(SnubaTestCase):
             "span_id": span_id,
             "trace_id": trace_id,
             "duration_ms": int(duration),
-            "exclusive_time_ms": 5,
+            "exclusive_time_ms": exclusive_time,
             "is_segment": False,
             "received": datetime.now(tz=timezone.utc).timestamp(),
             "start_timestamp_ms": int(timestamp.timestamp() * 1000),
@@ -2028,12 +2032,14 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         "measurements.score.fid": "metrics_distributions",
         "measurements.score.cls": "metrics_distributions",
         "measurements.score.ttfb": "metrics_distributions",
+        "measurements.score.inp": "metrics_distributions",
         "measurements.score.total": "metrics_distributions",
         "measurements.score.weight.lcp": "metrics_distributions",
         "measurements.score.weight.fcp": "metrics_distributions",
         "measurements.score.weight.fid": "metrics_distributions",
         "measurements.score.weight.cls": "metrics_distributions",
         "measurements.score.weight.ttfb": "metrics_distributions",
+        "measurements.score.weight.inp": "metrics_distributions",
         "measurements.app_start_cold": "metrics_distributions",
         "measurements.app_start_warm": "metrics_distributions",
         "spans.http": "metrics_distributions",
@@ -3079,7 +3085,7 @@ class MonitorTestCase(APITestCase):
             monitor=monitor, environment_id=environment.id, **monitorenvironment_defaults
         )
 
-    def _create_issue_alert_rule(self, monitor):
+    def _create_issue_alert_rule(self, monitor, exclude_slug_filter=False):
         conditions = [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
@@ -3087,13 +3093,16 @@ class MonitorTestCase(APITestCase):
             {
                 "id": "sentry.rules.conditions.regression_event.RegressionEventCondition",
             },
-            {
-                "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
-                "key": "monitor.slug",
-                "match": "eq",
-                "value": monitor.slug,
-            },
         ]
+        if not exclude_slug_filter:
+            conditions.append(
+                {
+                    "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+                    "key": "monitor.slug",
+                    "match": "eq",
+                    "value": monitor.slug,
+                },
+            )
         actions = [
             {
                 "id": "sentry.mail.actions.NotifyEmailAction",

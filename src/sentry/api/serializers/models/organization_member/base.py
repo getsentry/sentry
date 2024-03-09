@@ -2,13 +2,10 @@ from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
-from django.db.models import Prefetch, prefetch_related_objects
-
 from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -30,16 +27,6 @@ class OrganizationMemberSerializer(Serializer):
         the organization_members in `item_list`.
         TODO(dcramer): assert on relations
         """
-
-        # Preload to avoid fetching each team individually
-        prefetch_related_objects(
-            item_list,
-            Prefetch(
-                "teams",
-                queryset=Team.objects.all().exclude(org_role=None),
-                to_attr="team_role_prefetch",
-            ),
-        )
 
         # Bulk load users
         users_set = sorted(

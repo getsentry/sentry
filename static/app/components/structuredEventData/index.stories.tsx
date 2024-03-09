@@ -18,8 +18,8 @@ export default storyBook(StructuredEventData, story => {
         <StructuredEventData data={100} />
         <StructuredEventData data={null} />
         <StructuredEventData data={false} />
-        <StructuredEventData data={{foo: 'bar'}} />
-        <StructuredEventData data={['one', 2, {three: {four: 'five'}}]} />
+        <StructuredEventData data={{foo: 'bar', arr: [1, 2, 3, 4, 5, 6]}} />
+        <StructuredEventData data={['one', 2, null]} />
       </Fragment>
     );
   });

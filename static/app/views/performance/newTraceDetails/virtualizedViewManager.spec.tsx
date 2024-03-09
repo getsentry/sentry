@@ -1,4 +1,3 @@
-import type {List} from 'react-virtualized';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
@@ -7,7 +6,10 @@ import type {
   TraceFullDetailed,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
-import {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/virtualizedViewManager';
+import {
+  type VirtualizedList,
+  VirtualizedViewManager,
+} from 'sentry/views/performance/newTraceDetails/virtualizedViewManager';
 
 import {TraceTree} from './traceTree';
 
@@ -93,10 +95,10 @@ function makeSingleTransactionTree(): TraceTree {
   );
 }
 
-function makeList(): List {
+function makeList(): VirtualizedList {
   return {
     scrollToRow: jest.fn(),
-  } as unknown as List;
+  } as unknown as VirtualizedList;
 }
 
 describe('VirtualizedViewManger', () => {
@@ -551,9 +553,116 @@ describe('VirtualizedViewManger', () => {
         expect(result).toBeTruthy();
         expect(manager.list.scrollToRow).toHaveBeenCalledWith(4);
       });
+    });
 
-      it.todo('scrolls to orphan transactions');
-      it.todo('scrolls to orphan transactions child span');
+    describe('missing instrumentation', () => {
+      it('scrolls to missing instrumentation via previous span_id', async () => {
+        manager.list = makeList();
+        const tree = makeSingleTransactionTree();
+
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events/project:event_id/',
+          method: 'GET',
+          body: makeEvent({}, [
+            makeSpan({
+              description: 'span',
+              op: 'db',
+              start_timestamp: 0,
+              timestamp: 0.5,
+              span_id: 'first_span',
+            }),
+            makeSpan({
+              description: 'span',
+              op: 'db',
+              start_timestamp: 0.7,
+              timestamp: 1,
+              span_id: 'middle_span',
+            }),
+          ]),
+        });
+
+        const result = await manager.scrollToPath(
+          tree,
+          ['ms:first_span', 'txn:event_id'],
+          () => void 0,
+          {
+            api: api,
+            organization,
+          }
+        );
+
+        expect(result).toBeTruthy();
+        expect(manager.list.scrollToRow).toHaveBeenCalledWith(3);
+      });
+      it('scrolls to missing instrumentation via next span_id', async () => {
+        manager.list = makeList();
+        const tree = makeSingleTransactionTree();
+
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events/project:event_id/',
+          method: 'GET',
+          body: makeEvent({}, [
+            makeSpan({
+              description: 'span',
+              op: 'db',
+              start_timestamp: 0,
+              timestamp: 0.5,
+              span_id: 'first_span',
+            }),
+            makeSpan({
+              description: 'span',
+              op: 'db',
+              start_timestamp: 0.7,
+              timestamp: 1,
+              span_id: 'second_span',
+            }),
+          ]),
+        });
+
+        const result = await manager.scrollToPath(
+          tree,
+          ['ms:second_span', 'txn:event_id'],
+          () => void 0,
+          {
+            api: api,
+            organization,
+          }
+        );
+
+        expect(result).toBeTruthy();
+        expect(manager.list.scrollToRow).toHaveBeenCalledWith(3);
+      });
+    });
+
+    describe('scrolls to orphan error', () => {
+      it('scrolls to orphan error', async () => {
+        manager.list = makeList();
+        const tree = TraceTree.FromTrace(
+          makeTrace({
+            transactions: [makeTransaction()],
+            orphan_errors: [
+              {
+                event_id: 'ded',
+                project_slug: 'project_slug',
+                project_id: 1,
+                issue: 'whoa rusty',
+                issue_id: 0,
+                span: '',
+                level: 'error',
+                title: 'ded fo good',
+              },
+            ],
+          })
+        );
+
+        const result = await manager.scrollToPath(tree, ['error:ded'], () => void 0, {
+          api: api,
+          organization,
+        });
+
+        expect(result?.node).toBe(tree.list[2]);
+        expect(manager.list.scrollToRow).toHaveBeenCalledWith(2);
+      });
     });
   });
 });

@@ -360,14 +360,6 @@ export function isFormattedMQL(mql: string) {
   return true;
 }
 
-export function getWidgetTitle(queries: MetricsQuery[]) {
-  if (queries.length === 1) {
-    return getFormattedMQL(queries[0]);
-  }
-
-  return queries.map(({mri, op}) => formatMRIField(MRIToField(mri, op ?? ''))).join(', ');
-}
-
 // TODO: consider moving this to utils/dates.tsx
 export function getAbsoluteDateTimeRange(params: PageFilters['datetime']) {
   const {start, end, statsPeriod, utc} = normalizeDateTimeParams(params, {
