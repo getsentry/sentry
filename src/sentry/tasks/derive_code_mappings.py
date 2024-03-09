@@ -130,7 +130,6 @@ def derive_code_mappings(
     except UnableToAcquireLock as error:
         extra["error"] = error
         logger.warning("derive_code_mappings.getting_lock_failed", extra=extra)
-        # This will cause the auto-retry logic to try again
         return
     except Exception:
         logger.exception("Unexpected error type while calling `get_trees_for_org()`.", extra=extra)
