@@ -471,6 +471,10 @@ export class VirtualizedViewManager {
         width: newView[2],
       });
     } else {
+      // Browsers do not implement scroll railing consistently, so we need to
+      // implement it ourselves. We do this by checking that deltaY does not exceed
+      // deltaX. If that happens, we return and allow the scroll handler on the virtualized
+      // container to handle the scroll event.
       if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
         return;
       }
