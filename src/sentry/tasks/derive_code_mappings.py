@@ -106,14 +106,17 @@ def derive_code_mappings(
     if data["platform"].startswith("php") and not features.has(
         "organizations:derive-code-mappings-php", org
     ):
+        logger.info("Php automatic code mappings are not open access", extra=extra)
         return
 
     stacktrace_paths: list[str] = identify_stacktrace_paths(data)
     if not stacktrace_paths:
+        logger.info("No stacktrace paths found.", extra=extra)
         return
 
     installation, organization_integration = get_installation(org)
     if not installation or not organization_integration:
+        logger.info("No installation or organization integration found.", extra=extra)
         return
 
     trees = {}
