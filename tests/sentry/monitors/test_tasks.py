@@ -737,7 +737,7 @@ class MonitorTaskCheckTimeoutTest(TestCase):
             timeout_at=checkin1_start + timedelta(minutes=90),
         )
 
-        # Second check in was started now, giving us the the overlapping
+        # Second check in was started now, giving us the overlapping
         # "concurrent" checkin scenario.
         checkin2 = MonitorCheckIn.objects.create(
             monitor=monitor,

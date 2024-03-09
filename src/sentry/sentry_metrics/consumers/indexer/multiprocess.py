@@ -72,7 +72,7 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
 
     def submit(self, message: Message[KafkaPayload | FilteredPayload]) -> None:
         if isinstance(message.payload, FilteredPayload):
-            # FilteredPayload will not be commited, this may cause the the indexer to consume
+            # FilteredPayload will not be commited, this may cause the indexer to consume
             # and produce invalid message to the DLQ twice if the last messages it consume
             # are invalid and is then shutdown. But it will never produce valid messages
             # twice to snuba
