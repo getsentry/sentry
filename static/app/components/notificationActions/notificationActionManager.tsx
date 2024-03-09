@@ -29,15 +29,15 @@ type NotificationActionManagerProps = {
    * TODO(enterprise): refactor to account for multiple projects
    */
   project: Project;
-  /**
-   * Updates the notification alert count for this project
-   */
-  updateAlertCount: (projectId: number, alertCount: number) => void;
   disabled?: boolean;
   /**
    * Optional list of roles to display as recipients of Sentry notifications
    */
   recipientRoles?: string[];
+  /**
+   * Updates the notification alert count for this project
+   */
+  updateAlertCount?: (projectId: number, alertCount: number) => void;
 };
 
 function NotificationActionManager({
@@ -45,7 +45,6 @@ function NotificationActionManager({
   availableActions,
   recipientRoles,
   project,
-  updateAlertCount = () => {},
   disabled = false,
 }: NotificationActionManagerProps) {
   const [notificationActions, setNotificationActions] =
@@ -56,7 +55,6 @@ function NotificationActionManager({
     const updatedActions = [...notificationActions];
     updatedActions.splice(index, 1);
     setNotificationActions(updatedActions);
-    updateAlertCount(parseInt(project.id, 10), updatedActions.length);
   };
 
   const updateNotificationAction = (index: number, updatedAction: NotificationAction) => {
@@ -207,12 +205,11 @@ function NotificationActionManager({
           // Add notification action
           const updatedActions = [...notificationActions, validActions[0].action];
           setNotificationActions(updatedActions);
-          updateAlertCount(parseInt(project.id, 10), updatedActions.length);
         },
       });
     });
     return dropdownMenuItems;
-  }, [actionsMap, availableServices, notificationActions, project, updateAlertCount]);
+  }, [actionsMap, availableServices, notificationActions]);
 
   let toolTipText: undefined | string = undefined;
   if (disabled) {
