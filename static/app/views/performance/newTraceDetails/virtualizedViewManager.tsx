@@ -379,7 +379,7 @@ export class VirtualizedViewManager {
         if (scrollableElement) {
           scrollableElement.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
           this.row_measurer.measure(node, scrollableElement as HTMLElement);
-          ref.addEventListener('wheel', this.onSyncedScrollbarScroll, {passive: true});
+          ref.addEventListener('wheel', this.onSyncedScrollbarScroll, {passive: false});
         }
       }
     }
@@ -622,6 +622,14 @@ export class VirtualizedViewManager {
     if (this.isScrolling) {
       return;
     }
+
+    const scrollingHorizontally = Math.abs(event.deltaX) >= Math.abs(event.deltaY);
+    if (event.deltaX !== 0 && event.deltaX !== -0 && scrollingHorizontally) {
+      event.preventDefault();
+    } else {
+      return;
+    }
+
     if (this.bringRowIntoViewAnimation !== null) {
       window.cancelAnimationFrame(this.bringRowIntoViewAnimation);
       this.bringRowIntoViewAnimation = null;
@@ -1494,6 +1502,7 @@ export const useVirtualizedList = (
       pointerEventsRaf.current = requestAnimationTimeout(() => {
         styleCache.current?.clear();
         renderCache.current?.clear();
+
         managerRef.current.isScrolling = false;
 
         const recomputedItems = findRenderedItems({
