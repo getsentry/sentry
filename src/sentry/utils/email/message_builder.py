@@ -201,11 +201,14 @@ class MessageBuilder:
         to: Iterable[str] | None = None,
         cc: Sequence[str] | None = None,
         bcc: Sequence[str] | None = None,
+        reply_to: Iterable[str] | None = None,
     ) -> Sequence[EmailMultiAlternatives]:
         send_to = set(to or ())
         send_to.update(self._send_to)
         results = [
-            self.build(to=email, reply_to=send_to, cc=cc, bcc=bcc) for email in send_to if email
+            self.build(to=email, cc=cc, bcc=bcc, reply_to=reply_to if reply_to else send_to)
+            for email in send_to
+            if email
         ]
         if not results:
             logger.debug("Did not build any messages, no users to send to.")
@@ -234,11 +237,12 @@ class MessageBuilder:
         to: Iterable[str] | None = None,
         cc: Sequence[str] | None = None,
         bcc: Sequence[str] | None = None,
+        reply_to: Iterable[str] | None = None,
     ) -> None:
         from sentry.tasks.email import send_email, send_email_control
 
         fmt = options.get("system.logging-format")
-        messages = self.get_built_messages(to, cc=cc, bcc=bcc)
+        messages = self.get_built_messages(to, cc=cc, bcc=bcc, reply_to=reply_to)
         extra: MutableMapping[str, str | tuple[str]] = {"message_type": self.type}
         loggable = [v for k, v in self.context.items() if hasattr(v, "id")]
         for context in loggable:
