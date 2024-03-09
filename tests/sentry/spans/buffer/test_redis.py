@@ -11,7 +11,7 @@ class TestRedisSpansBuffer:
                 ("segment:foo:bar:process-segment", ["span data"])
             ]
             assert buffer.client.ttl("segment:foo:bar:process-segment") == 300
-            assert buffer._read_key("unprocessed-segments") == [
+            assert buffer._read_key("performance-issues:unprocessed-segments") == [
                 '[946684800.0,"segment:foo:bar:process-segment"]'
             ]
 
@@ -20,7 +20,7 @@ class TestRedisSpansBuffer:
         with freeze_time("2000-01-01"):
             buffer.write_span("bar", "foo", b"span data")
             buffer.write_span("bar", "foo", b"other span data")
-            assert buffer._read_key("unprocessed-segments") == [
+            assert buffer._read_key("performance-issues:unprocessed-segments") == [
                 '[946684800.0,"segment:foo:bar:process-segment"]'
             ]
 
@@ -33,7 +33,7 @@ class TestRedisSpansBuffer:
             frozen_time.shift(120)
             buffer.write_span("bar", "span3", b"other span data")
 
-            assert buffer._read_key("unprocessed-segments") == [
+            assert buffer._read_key("performance-issues:unprocessed-segments") == [
                 '[946684800.0,"segment:span1:bar:process-segment"]',
                 '[946684810.0,"segment:span2:bar:process-segment"]',
                 '[946684930.0,"segment:span3:bar:process-segment"]',
@@ -46,6 +46,6 @@ class TestRedisSpansBuffer:
                 (946684810.0, "segment:span2:bar:process-segment"),
             ]
 
-            assert buffer._read_key("unprocessed-segments") == [
+            assert buffer._read_key("performance-issues:unprocessed-segments") == [
                 '[946684930.0,"segment:span3:bar:process-segment"]',
             ]

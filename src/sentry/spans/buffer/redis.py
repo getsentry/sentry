@@ -23,7 +23,7 @@ def get_segment_key(project_id: str | int, segment_id: str) -> str:
 
 
 def get_unprocessed_segments_key() -> str:
-    return "unprocessed-segments"
+    return "performance-issues:unprocessed-segments"
 
 
 def rounded_down_to_nearest_ten_seconds(value: datetime) -> datetime:
