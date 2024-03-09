@@ -471,8 +471,12 @@ export class VirtualizedViewManager {
         width: newView[2],
       });
     } else {
+      if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
+        return;
+      }
       const physical_delta_pct = event.deltaX / this.trace_physical_space.width;
       const view_delta = physical_delta_pct * this.trace_view.width;
+
       this.setTraceView({
         x: this.trace_view.x + view_delta,
       });
