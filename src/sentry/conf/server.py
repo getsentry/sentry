@@ -1236,7 +1236,7 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "standalone-spans-run-performance-issue-detection": {
         "task": "sentry.tasks.spans.run_performnance_issue_detection",
-        "schedule": timedelta(seconds=5),
+        "schedule": timedelta(seconds=1),
         "options": {"expires": 5},
     },
 }

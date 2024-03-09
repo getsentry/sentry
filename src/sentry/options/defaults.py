@@ -2111,13 +2111,13 @@ register(
 register(
     "standalone-spans.process-segments.batch-size",
     type=Int,
-    default=100,
+    default=50,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "standalone-spans.process-segments.max-batches",
     type=Int,
-    default=1000,
+    default=400,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(

@@ -209,7 +209,7 @@ def _process_segments(keys):
 @instrumented_task(
     name="sentry.tasks.spans.process_segments",
     queue="spans.process_segments",
-    soft_time_limit=5,
+    soft_time_limit=1,
     max_retries=0,
 )
 def process_segments(keys):
