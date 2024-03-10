@@ -262,22 +262,6 @@ function TraceViewContent(props: TraceViewContentProps) {
     [tree]
   );
 
-  const previousResultIndexRef = useRef<number | undefined>(searchState.resultIndex);
-  useLayoutEffect(() => {
-    if (previousResultIndexRef.current === searchState.resultIndex) {
-      return;
-    }
-    if (!viewManager.list) {
-      return;
-    }
-
-    if (typeof searchState.resultIndex !== 'number') {
-      return;
-    }
-    viewManager.list.scrollToRow(searchState.resultIndex);
-    previousResultIndexRef.current = searchState.resultIndex;
-  }, [searchState.resultIndex, viewManager.list]);
-
   const onSearchChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       if (!event.currentTarget.value) {
@@ -388,7 +372,6 @@ function TraceViewContent(props: TraceViewContentProps) {
             setDetailNode={onSetDetailNode}
             searchResultsIteratorIndex={searchState.resultIndex}
             searchResultsMap={searchState.resultsLookup}
-            previousResultIndexRef={previousResultIndexRef}
             onTraceSearch={onTraceSearch}
             manager={viewManager}
           />
