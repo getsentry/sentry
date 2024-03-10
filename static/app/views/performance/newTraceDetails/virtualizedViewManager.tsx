@@ -167,7 +167,11 @@ export class VirtualizedViewManager {
   indicator_container: HTMLElement | null = null;
 
   intervals: number[] = [];
-  interval_bars = new Array(10).fill(0);
+  // We want to render an indicator every 100px, but because we dont track resizing
+  // of the container, we need to precompute the number of intervals we need to render.
+  // We'll oversize the count by 3x, assuming no user will ever resize the window to 3x the
+  // original size.
+  interval_bars = new Array(Math.ceil(window.innerWidth / 100) * 3).fill(0);
   indicators: ({indicator: TraceTree['indicators'][0]; ref: HTMLElement} | undefined)[] =
     [];
   timeline_indicators: (HTMLElement | undefined)[] = [];
@@ -259,8 +263,8 @@ export class VirtualizedViewManager {
     this.previousDividerClientVec = [event.clientX, event.clientY];
     this.container.style.userSelect = 'none';
 
-    this.container.addEventListener('mouseup', this.onDividerMouseUp, {passive: true});
-    this.container.addEventListener('mousemove', this.onDividerMouseMove, {
+    document.addEventListener('mouseup', this.onDividerMouseUp, {passive: true});
+    document.addEventListener('mousemove', this.onDividerMouseMove, {
       passive: true,
     });
   }
@@ -282,8 +286,8 @@ export class VirtualizedViewManager {
     this.dividerStartVec = null;
     this.previousDividerClientVec = null;
 
-    this.container.removeEventListener('mouseup', this.onDividerMouseUp);
-    this.container.removeEventListener('mousemove', this.onDividerMouseMove);
+    document.removeEventListener('mouseup', this.onDividerMouseUp);
+    document.removeEventListener('mousemove', this.onDividerMouseMove);
   }
 
   onDividerMouseMove(event: MouseEvent) {
@@ -311,7 +315,7 @@ export class VirtualizedViewManager {
         width: this.trace_view.width + config_distance,
       });
     }
-
+    this.recomputeTimelineIntervals();
     this.draw({
       list: this.columns.list.width + distancePercentage,
       span_list: this.columns.span_list.width - distancePercentage,
