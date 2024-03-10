@@ -29,6 +29,7 @@ def run_procs(
                 subprocess.Popen(
                     cmd,
                     stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
                     env={
                         **constants.user_environ,
                         **proc.base_env,
@@ -43,13 +44,10 @@ def run_procs(
 
     all_good = True
     for name, final_cmd, p in procs:
-        p.wait()
+        out, _ = p.communicate()
         if p.returncode != 0:
             all_good = False
-            if p.stdout is None:
-                out = ""
-            else:
-                out = p.stdout.read().decode()
+            out = "" if out is None else out.decode()
             print(
                 f"""
 ❌ {name}
