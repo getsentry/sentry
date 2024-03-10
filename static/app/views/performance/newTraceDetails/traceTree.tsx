@@ -231,10 +231,24 @@ export class TraceTree {
     return tree;
   }
 
-  static Loading(metadata: TraceTree.Metadata): TraceTree {
-    const tree = makeExampleTrace(metadata);
-    tree.type = 'loading';
-    return tree;
+  static Loading(metadata: TraceTree.Metadata, tree?: TraceTree | null): TraceTree {
+    const t = tree ? TraceTree.FromTree(tree) : makeExampleTrace(metadata);
+    t.type = 'loading';
+    return t;
+  }
+
+  static Error(metadata: TraceTree.Metadata, tree?: TraceTree | null): TraceTree {
+    const t = tree ? TraceTree.FromTree(tree) : makeExampleTrace(metadata);
+    t.type = 'error';
+    return t;
+  }
+
+  static FromTree(tree: TraceTree): TraceTree {
+    const newTree = new TraceTree();
+    newTree.root = tree.root.cloneDeep() as TraceTreeNode<null>;
+    newTree.indicators = tree.indicators;
+    newTree._list = tree._list;
+    return newTree;
   }
 
   static FromTrace(trace: TraceTree.Trace, event?: EventTransaction): TraceTree {

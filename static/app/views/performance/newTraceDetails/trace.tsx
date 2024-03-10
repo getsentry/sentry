@@ -6,6 +6,7 @@ import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 import * as qs from 'query-string';
 
+import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
@@ -181,7 +182,7 @@ function Trace({
     if (loadedRef.current) {
       return;
     }
-    if (trace.type === 'loading' || !manager) {
+    if (trace.type !== 'trace' || !manager) {
       return;
     }
 
@@ -452,7 +453,7 @@ function Trace({
 
   const render = useCallback(
     (n: VirtualizedRow) => {
-      return trace.type === 'loading' ? (
+      return trace.type !== 'trace' ? (
         <RenderPlaceholderRow
           key={n.key}
           index={n.index}
@@ -518,7 +519,7 @@ function Trace({
         containerRef.current = r;
         manager.onContainerRef(r);
       }}
-      className={`${trace.indicators.length > 0 ? 'WithIndicators' : ''} ${trace.type === 'loading' ? 'Loading' : ''}`}
+      className={`${trace.indicators.length > 0 ? 'WithIndicators' : ''} ${trace.type !== 'trace' ? 'Loading' : ''}`}
     >
       <div className="TraceDivider" ref={r => manager?.registerDividerRef(r)} />
       {trace.type === 'loading' ? (
@@ -551,7 +552,7 @@ function Trace({
           const indicatorTimestamp = manager.intervals[i];
           const timestamp = manager.to_origin + indicatorTimestamp ?? 0;
 
-          if (trace.type === 'loading') {
+          if (trace.type !== 'trace') {
             return null;
           }
 
@@ -2006,14 +2007,13 @@ const TraceStylingWrapper = styled('div')`
   }
 `;
 
-const LoadingContainer = styled('div')`
+const LoadingContainer = styled('div')<{animate: boolean; error?: boolean}>`
   display: flex;
   justify-content: center;
   align-items: center;
   flex-direction: column;
   left: 50%;
   top: 50%;
-  transform: translate(-50%, -50%);
   position: absolute;
   height: auto;
   font-size: ${p => p.theme.fontSizeMedium};
@@ -2023,11 +2023,44 @@ const LoadingContainer = styled('div')`
   background-color: ${p => p.theme.background};
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.border};
+  transform-origin: 50% 50%;
+  transform: translate(-50%, -50%);
+  animation: ${p =>
+    p.animate
+      ? `${p.error ? 'showLoadingContainerShake' : 'showLoadingContainer'} 300ms cubic-bezier(0.61, 1, 0.88, 1) forwards`
+      : 'none'};
+
+  @keyframes showLoadingContainer {
+    from {
+      opacity: 0.6;
+      transform: scale(0.99) translate(-50%, -50%);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translate(-50%, -50%);
+    }
+  }
+
+  @keyframes showLoadingContainerShake {
+    0% {
+      transform: translate(-50%, -50%);
+    }
+    25% {
+      transform: translate(-51%, -50%);
+    }
+    75% {
+      transform: translate(-49%, -50%);
+    }
+    100% {
+      transform: translate(-50%, -50%);
+    }
+  }
 `;
 
 function TraceLoading() {
   return (
-    <LoadingContainer>
+    // Dont flash the animation on load because it's annoying
+    <LoadingContainer animate={false}>
       <NoMarginIndicator size={24}>
         <div>{t('Assembling the trace')}</div>
       </NoMarginIndicator>
@@ -2036,20 +2069,46 @@ function TraceLoading() {
 }
 
 function TraceError() {
+  const linkref = useRef<HTMLAnchorElement>(null);
+  const feedback = useFeedbackWidget({buttonRef: linkref});
   return (
-    <LoadingContainer>
-      <NoMarginIndicator size={24}>
-        <div>{t('Failed to load trace')}</div>
-      </NoMarginIndicator>
+    <LoadingContainer animate error>
+      <div>{t('Ughhhhh, we failed to load your trace...')}</div>
+      <div>
+        {t('Seeing this often? Send us ')}
+        {feedback ? (
+          <a href="#" ref={linkref}>
+            {t('feedback')}
+          </a>
+        ) : (
+          <a href="mailto:support@sentry.io?subject=Trace%20fails%20to%20load">
+            {t('feedback')}
+          </a>
+        )}
+      </div>
     </LoadingContainer>
   );
 }
 
 function TraceEmpty() {
+  const linkref = useRef<HTMLAnchorElement>(null);
+  const feedback = useFeedbackWidget({buttonRef: linkref});
   return (
-    <LoadingContainer>
+    <LoadingContainer animate>
       <NoMarginIndicator size={24}>
         <div>{t('This trace does not contain any data?!')}</div>
+        <div>
+          {t('Seeing this often? Send us ')}
+          {feedback ? (
+            <a href="#" ref={linkref}>
+              {t('feedback')}
+            </a>
+          ) : (
+            <a href="mailto:support@sentry.io?subject=Trace%20does%20not%20contain%20data">
+              {t('feedback')}
+            </a>
+          )}
+        </div>
       </NoMarginIndicator>
     </LoadingContainer>
   );

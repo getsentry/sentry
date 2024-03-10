@@ -158,15 +158,36 @@ function TraceViewContent(props: TraceViewContentProps) {
     });
   }, []);
 
+  const loadingTraceRef = useRef<TraceTree | null>(null);
+
   const tree = useMemo(() => {
-    if (props.status === 'pending' || rootEvent.status !== 'success') {
-      return TraceTree.Loading({
-        project_slug: projects?.[0]?.slug ?? '',
-        event_id: props.traceSlug,
-      });
+    if (props.status === 'error') {
+      const errorTree = TraceTree.Error(
+        {
+          project_slug: projects?.[0]?.slug ?? '',
+          event_id: props.traceSlug,
+        },
+        loadingTraceRef.current
+      );
+      return errorTree;
     }
 
-    if (props.trace) {
+    if (props.status === 'pending' || rootEvent.status === 'loading') {
+      const loadingTrace =
+        loadingTraceRef.current ??
+        TraceTree.Loading(
+          {
+            project_slug: projects?.[0]?.slug ?? '',
+            event_id: props.traceSlug,
+          },
+          loadingTraceRef.current
+        );
+
+      loadingTraceRef.current = loadingTrace;
+      return loadingTrace;
+    }
+
+    if (props.trace && rootEvent.status === 'success') {
       return TraceTree.FromTrace(props.trace, rootEvent.data);
     }
 
