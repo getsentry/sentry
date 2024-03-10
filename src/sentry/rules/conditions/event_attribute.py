@@ -116,6 +116,7 @@ class EventAttributeCondition(EventCondition):
             return []
 
         elif path[0] == "exception":
+
             if path[1] not in ("type", "value"):
                 return []
 
@@ -132,8 +133,7 @@ class EventAttributeCondition(EventCondition):
 
             return [
                 e.mechanism.handled != negate
-                for e in event.interfaces["exception"].values
-                if e.mechanism is not None and getattr(e.mechanism, "handled") is not None
+                for e in event.interfaces["exception"].values if e is not None and e.mechanism is not None and getattr(e.mechanism, "handled") is not None
             ]
 
         elif path[0] == "user":
@@ -150,6 +150,7 @@ class EventAttributeCondition(EventCondition):
                 if response is None:
                     response = {}
                 return [response.get(path[1])]
+
 
             return []
 
