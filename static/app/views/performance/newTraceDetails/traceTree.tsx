@@ -218,7 +218,7 @@ function maybeInsertMissingInstrumentationSpan(
 // cls is not included as it is a cumulative layout shift and not a single point in time
 const RENDERABLE_MEASUREMENTS = ['fcp', 'fp', 'lcp', 'ttfb'];
 export class TraceTree {
-  type: 'loading' | 'empty' | 'trace' = 'trace';
+  type: 'loading' | 'empty' | 'error' | 'trace' = 'trace';
   root: TraceTreeNode<null> = TraceTreeNode.Root();
   indicators: TraceTree.Indicator[] = [];
 
@@ -323,8 +323,8 @@ export class TraceTree {
     return tree.build();
   }
 
-  static GetTraceType(root: TraceTreeNode<null>): TraceType {
-    const trace = root.children[0];
+  get shape(): TraceType {
+    const trace = this.root.children[0];
     if (!trace || !isTraceNode(trace)) {
       throw new TypeError('Not trace node');
     }

@@ -521,7 +521,13 @@ function Trace({
       className={`${trace.indicators.length > 0 ? 'WithIndicators' : ''} ${trace.type === 'loading' ? 'Loading' : ''}`}
     >
       <div className="TraceDivider" ref={r => manager?.registerDividerRef(r)} />
-      {trace.type === 'loading' ? <TraceLoading /> : null}
+      {trace.type === 'loading' ? (
+        <TraceLoading />
+      ) : trace.type === 'error' ? (
+        <TraceError />
+      ) : trace.type === 'empty' ? (
+        <TraceEmpty />
+      ) : null}
       <div
         className="TraceIndicatorContainer"
         ref={r => manager.registerIndicatorContainerRef(r)}
@@ -2024,6 +2030,26 @@ function TraceLoading() {
     <LoadingContainer>
       <NoMarginIndicator size={24}>
         <div>{t('Assembling the trace')}</div>
+      </NoMarginIndicator>
+    </LoadingContainer>
+  );
+}
+
+function TraceError() {
+  return (
+    <LoadingContainer>
+      <NoMarginIndicator size={24}>
+        <div>{t('Failed to load trace')}</div>
+      </NoMarginIndicator>
+    </LoadingContainer>
+  );
+}
+
+function TraceEmpty() {
+  return (
+    <LoadingContainer>
+      <NoMarginIndicator size={24}>
+        <div>{t('This trace does not contain any data?!')}</div>
       </NoMarginIndicator>
     </LoadingContainer>
   );

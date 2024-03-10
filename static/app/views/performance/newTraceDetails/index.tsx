@@ -184,7 +184,7 @@ function TraceViewContent(props: TraceViewContentProps) {
     if (props.status !== 'resolved' || !tree) {
       return null;
     }
-    return TraceTree.GetTraceType(tree.root);
+    return tree.shape;
   }, [props.status, tree]);
 
   const [rovingTabIndexState, rovingTabIndexDispatch] = useReducer(

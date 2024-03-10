@@ -748,7 +748,7 @@ describe('TraceTree', () => {
       })
     );
 
-    expect(TraceTree.GetTraceType(tree.root)).toBe(TraceType.EMPTY_TRACE);
+    expect(tree.shape).toBe(TraceType.EMPTY_TRACE);
 
     tree = TraceTree.FromTrace(
       makeTrace({
@@ -764,7 +764,7 @@ describe('TraceTree', () => {
       })
     );
 
-    expect(TraceTree.GetTraceType(tree.root)).toBe(TraceType.NO_ROOT);
+    expect(tree.shape).toBe(TraceType.NO_ROOT);
 
     tree = TraceTree.FromTrace(
       makeTrace({
@@ -778,7 +778,7 @@ describe('TraceTree', () => {
       })
     );
 
-    expect(TraceTree.GetTraceType(tree.root)).toBe(TraceType.ONE_ROOT);
+    expect(tree.shape).toBe(TraceType.ONE_ROOT);
 
     tree = TraceTree.FromTrace(
       makeTrace({
@@ -795,7 +795,7 @@ describe('TraceTree', () => {
       })
     );
 
-    expect(TraceTree.GetTraceType(tree.root)).toBe(TraceType.BROKEN_SUBTRACES);
+    expect(tree.shape).toBe(TraceType.BROKEN_SUBTRACES);
 
     tree = TraceTree.FromTrace(
       makeTrace({
@@ -813,7 +813,7 @@ describe('TraceTree', () => {
       })
     );
 
-    expect(TraceTree.GetTraceType(tree.root)).toBe(TraceType.MULTIPLE_ROOTS);
+    expect(tree.shape).toBe(TraceType.MULTIPLE_ROOTS);
 
     tree = TraceTree.FromTrace(
       makeTrace({
@@ -822,7 +822,7 @@ describe('TraceTree', () => {
       })
     );
 
-    expect(TraceTree.GetTraceType(tree.root)).toBe(TraceType.ONLY_ERRORS);
+    expect(tree.shape).toBe(TraceType.ONLY_ERRORS);
   });
 
   it('builds from spans when root is a transaction node', () => {
