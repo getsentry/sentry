@@ -282,6 +282,7 @@ export class VirtualizedViewManager {
     this.dividerStartVec = null;
     this.previousDividerClientVec = null;
 
+    this.enqueueOnScrollEndOutOfBoundsCheck();
     this.container.removeEventListener('mouseup', this.onDividerMouseUp);
     this.container.removeEventListener('mousemove', this.onDividerMouseMove);
   }
@@ -664,7 +665,7 @@ export class VirtualizedViewManager {
     let max = Number.NEGATIVE_INFINITY;
     let innerMostNode: TraceTreeNode<any> | undefined;
 
-    for (let i = 0; i < this.columns.span_list.column_refs.length; i++) {
+    for (let i = 5; i < this.columns.span_list.column_refs.length - 5; i++) {
       const width = this.row_measurer.cache.get(this.columns.list.column_nodes[i]);
       if (width === undefined) {
         // this is unlikely to happen, but we should trigger a sync measure event if it does
