@@ -47,7 +47,7 @@ def run_procs(
         out, _ = p.communicate()
         if p.returncode != 0:
             all_good = False
-            out = "" if out is None else out.decode()
+            out_str = "" if out is None else out.decode()
             print(
                 f"""
 ❌ {name}
@@ -56,7 +56,7 @@ failed command (code p.returncode):
     {proc.quote(final_cmd)}
 
 Output:
-{out}
+{out_str}
 
 """
             )
