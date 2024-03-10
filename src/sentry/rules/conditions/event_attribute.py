@@ -152,7 +152,6 @@ class EventAttributeCondition(EventCondition):
                     response = {}
                 return [response.get(path[1])]
 
-
             return []
 
         elif path[0] == "sdk":
