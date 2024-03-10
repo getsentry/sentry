@@ -1143,9 +1143,9 @@ export class VirtualizedViewManager {
         indicator.style.opacity = '1';
         indicator.style.transform = `translateX(${placement}px)`;
         const label = indicator.children[0] as HTMLElement | undefined;
-
-        if (label) {
-          label.innerHTML = getDuration(interval / 1000, 2, true);
+        const duration = getDuration(interval / 1000, 2, true);
+        if (label && label?.innerHTML !== duration) {
+          label.innerHTML = duration;
         }
       }
     }
