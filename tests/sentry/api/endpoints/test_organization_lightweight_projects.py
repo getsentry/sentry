@@ -16,6 +16,7 @@ class OrganizationProjectsTestBase(APITestCase):
         self.create_environment(project=project2, name="staging")
 
         response = self.get_success_response(self.organization.slug)
+        assert response.headers["X-Hits"] == "2"
         assert sorted(response.data, key=lambda x: x["id"]) == [
             {
                 "environments": ["production"],

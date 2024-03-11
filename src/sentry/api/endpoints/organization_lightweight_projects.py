@@ -34,6 +34,7 @@ class OrganizationLightweightProjectsEndpoint(OrganizationEndpoint, EnvironmentM
         return self.paginate(
             request=request,
             queryset=queryset,
+            count_hits=True,
             on_results=serialize_on_result,
             paginator_cls=OffsetPaginator,
         )
