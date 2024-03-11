@@ -5,7 +5,6 @@ import responses
 from django.utils import timezone
 
 from sentry.models.group import Group, GroupStatus
-from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.pullrequest import CommentType, PullRequest, PullRequestComment
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.integrations.github.constants import STACKFRAME_COUNT
@@ -1151,22 +1150,6 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         mock_metrics.incr.assert_called_with(
             "github_open_pr_comment.error", tags={"type": "missing_org"}
         )
-
-    def test_comment_workflow_missing_org_option(
-        self,
-        mock_metrics,
-        mock_safe_for_comment,
-        mock_issues,
-        mock_function_names,
-        mock_reverse_codemappings,
-        mock_pr_filenames,
-    ):
-        OrganizationOption.objects.set_value(
-            organization=self.organization, key="sentry:github_open_pr_bot", value=False
-        )
-        open_pr_comment_workflow(self.pr.id)
-
-        assert not mock_pr_filenames.called
 
     @patch("sentry.tasks.integrations.github.open_pr_comment.metrics")
     def test_comment_workflow_missing_repo(
