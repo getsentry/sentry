@@ -9,7 +9,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
  */
 type FieldTypes = {
   id: string;
-  profile_id: string | undefined;
+  'profile.id': string | undefined;
   project: string;
   'project.id': number;
   'span.description': string;
@@ -18,6 +18,7 @@ type FieldTypes = {
   'span.self_time': number;
   timestamp: DateString;
   trace: string;
+  transaction: string;
   'transaction.id': string;
 };
 

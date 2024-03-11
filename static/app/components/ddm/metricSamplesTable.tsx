@@ -4,16 +4,20 @@ import type {LocationDescriptorObject} from 'history';
 import debounce from 'lodash/debounce';
 
 import {Button, LinkButton} from 'sentry/components/button';
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnOrder,
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
+import {Hovercard} from 'sentry/components/hovercard';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import PerformanceDuration from 'sentry/components/performanceDuration';
+import {Flex} from 'sentry/components/profiling/flex';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -38,8 +42,11 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
 import type {SelectionRange} from 'sentry/views/ddm/chart/types';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
+import ColorBar from 'sentry/views/performance/vitalDetail/colorBar';
 
 const fields: SelectedField[] = [
   'project',
@@ -50,8 +57,9 @@ const fields: SelectedField[] = [
   'span.self_time',
   'timestamp',
   'trace',
+  'transaction',
   'transaction.id',
-  'profile_id',
+  'profile.id',
 ];
 
 export type Field = (typeof fields)[number];
@@ -169,8 +177,20 @@ export function MetricSamplesTable({
     }
     const direction: 'asc' | 'desc' = value[0] === '-' ? 'desc' : 'asc';
     const key = direction === 'asc' ? value : value.substring(1);
-    return {key, direction};
-  }, [location.query, sortKey]);
+
+    if (ALWAYS_SORTABLE_COLUMNS.has(key as ResultField)) {
+      return {key, direction};
+    }
+
+    if (OPTIONALLY_SORTABLE_COLUMNS.has(key as ResultField)) {
+      const column = getColumnForMRI(parsedMRI);
+      if (column.key === key) {
+        return {key, direction};
+      }
+    }
+
+    return undefined;
+  }, [location.query, parsedMRI, sortKey]);
 
   const sortQuery = useMemo(() => {
     if (!defined(currentSort)) {
@@ -315,19 +335,21 @@ export function MetricSamplesTable({
   );
 }
 
+function getColumnForMRI(parsedMRI?: ParsedMRI | null): GridColumnOrder<ResultField> {
+  return parsedMRI?.useCase === 'spans' && parsedMRI?.name === 'span.self_time'
+    ? {key: 'span.self_time', width: COL_WIDTH_UNDEFINED, name: 'Self Time'}
+    : parsedMRI?.useCase === 'transactions' && parsedMRI?.name === 'transaction.duration'
+      ? {key: 'span.duration', width: COL_WIDTH_UNDEFINED, name: 'Duration'}
+      : {key: 'summary', width: COL_WIDTH_UNDEFINED, name: parsedMRI?.name ?? 'Summary'};
+}
+
 function getColumnOrder(parsedMRI?: ParsedMRI | null): GridColumnOrder<ResultField>[] {
   const orders: (GridColumnOrder<ResultField> | undefined)[] = [
-    {key: 'id', width: COL_WIDTH_UNDEFINED, name: 'Span ID'},
-    {key: 'span.op', width: COL_WIDTH_UNDEFINED, name: 'Op'},
     {key: 'span.description', width: COL_WIDTH_UNDEFINED, name: 'Description'},
-    {key: 'span.self_time', width: COL_WIDTH_UNDEFINED, name: 'Self Time'},
-    {key: 'span.duration', width: COL_WIDTH_UNDEFINED, name: 'Duration'},
-    parsedMRI?.useCase === 'custom'
-      ? {key: 'summary', width: COL_WIDTH_UNDEFINED, name: parsedMRI?.name ?? 'Summary'}
-      : undefined,
+    {key: 'span.op', width: COL_WIDTH_UNDEFINED, name: 'Operation'},
+    getColumnForMRI(parsedMRI),
     {key: 'timestamp', width: COL_WIDTH_UNDEFINED, name: 'Timestamp'},
-    {key: 'trace', width: COL_WIDTH_UNDEFINED, name: 'Trace'},
-    {key: 'profile_id', width: COL_WIDTH_UNDEFINED, name: 'Profile'},
+    {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: 'Profile'},
   ];
 
   return orders.filter(
@@ -342,7 +364,19 @@ const RIGHT_ALIGNED_COLUMNS = new Set<ResultField>([
   'span.self_time',
   'summary',
 ]);
-const SORTABLE_COLUMNS = new Set<ResultField>(['span.duration', 'timestamp']);
+
+const ALWAYS_SORTABLE_COLUMNS = new Set<ResultField>(['timestamp']);
+
+const OPTIONALLY_SORTABLE_COLUMNS = new Set<ResultField>([
+  'summary',
+  'span.self_time',
+  'span.duration',
+]);
+
+const SORTABLE_COLUMNS: Set<ResultField> = new Set([
+  ...ALWAYS_SORTABLE_COLUMNS,
+  ...OPTIONALLY_SORTABLE_COLUMNS,
+]);
 
 const prependColumnWidths = ['40px'];
 
@@ -381,11 +415,15 @@ function renderBodyCell(op?: string, unit?: string) {
     col: GridColumnOrder<ResultField>,
     dataRow: MetricsSamplesResults<SelectedField>['data'][number]
   ) {
-    if (col.key === 'id') {
+    if (col.key === 'span.description') {
       return (
-        <SpanId
+        <SpanDescription
+          description={dataRow['span.description']}
           project={dataRow.project}
+          selfTime={dataRow['span.self_time']}
+          duration={dataRow['span.duration']}
           spanId={dataRow.id}
+          transaction={dataRow.transaction}
           transactionId={dataRow['transaction.id']}
         />
       );
@@ -407,8 +445,10 @@ function renderBodyCell(op?: string, unit?: string) {
       return <TraceId traceId={dataRow.trace} />;
     }
 
-    if (col.key === 'profile_id') {
-      return <ProfileId projectSlug={dataRow.project} profileId={dataRow.profile_id} />;
+    if (col.key === 'profile.id') {
+      return (
+        <ProfileId projectSlug={dataRow.project} profileId={dataRow['profile.id']} />
+      );
     }
 
     return <Container>{dataRow[col.key]}</Container>;
@@ -436,26 +476,96 @@ function ProjectRenderer({projectSlug}: {projectSlug: string}) {
   );
 }
 
-function SpanId({
+function SpanDescription({
+  description,
+  duration,
   project,
+  selfTime,
   spanId,
+  transaction,
   transactionId,
+  selfTimeColor = '#694D99',
+  durationColor = 'gray100',
 }: {
+  description: string;
+  duration: number;
   project: string;
+  selfTime: number;
   spanId: string;
+  transaction: string;
   transactionId: string;
+  durationColor?: string;
+  selfTimeColor?: string;
 }) {
+  const location = useLocation();
   const organization = useOrganization();
-  const target = getTransactionDetailsUrl(
+  const {projects} = useProjects({slugs: [project]});
+  const transactionDetailsTarget = getTransactionDetailsUrl(
     organization.slug,
     `${project}:${transactionId}`,
     undefined,
     undefined,
     spanId
   );
+
+  const colorStops = useMemo(() => {
+    const percentage = selfTime / duration;
+    return [
+      {color: selfTimeColor, percent: percentage},
+      {color: durationColor, percent: 1 - percentage},
+    ];
+  }, [duration, selfTime, durationColor, selfTimeColor]);
+
+  const transactionSummaryTarget = transactionSummaryRouteWithQuery({
+    orgSlug: organization.slug,
+    transaction,
+    query: {
+      ...location.query,
+      query: undefined,
+    },
+    projectID: String(projects[0]?.id ?? ''),
+  });
+
   return (
     <Container>
-      <Link to={target}>{getShortEventId(spanId)}</Link>
+      <StyledHovercard
+        header={
+          <Flex justify="space-between" align="center">
+            {t('Span ID')}
+            <SpanIdWrapper>
+              {getShortEventId(spanId)}
+              <CopyToClipboardButton borderless iconSize="xs" size="zero" text={spanId} />
+            </SpanIdWrapper>
+          </Flex>
+        }
+        body={
+          <Flex gap={space(0.75)} column>
+            <SectionTitle>{t('Duration')}</SectionTitle>
+            <ColorBar colorStops={colorStops} />
+            <Flex justify="space-between" align="center">
+              <Flex justify="space-between" align="center" gap={space(0.5)}>
+                <LegendDot color={selfTimeColor} />
+                {t('Self Time: ')}
+                <PerformanceDuration milliseconds={selfTime} abbreviation />
+              </Flex>
+              <Flex justify="space-between" align="center" gap={space(0.5)}>
+                <LegendDot color={durationColor} />
+                {t('Duration: ')}
+                <PerformanceDuration milliseconds={duration} abbreviation />
+              </Flex>
+            </Flex>
+            <SectionTitle>{t('Transaction')}</SectionTitle>
+            <Tooltip containerDisplayMode="inline" showOnlyOnOverflow title={transaction}>
+              <Link to={transactionSummaryTarget}>
+                <TextOverflow>{transaction}</TextOverflow>
+              </Link>
+            </Tooltip>
+          </Flex>
+        }
+        showUnderline
+      >
+        <Link to={transactionDetailsTarget}>{description}</Link>
+      </StyledHovercard>
     </Container>
   );
 }
@@ -551,4 +661,29 @@ function ProfileId({projectSlug, profileId}: {projectSlug: string; profileId?: s
 
 const SearchBar = styled(SmartSearchBar)`
   margin-bottom: ${space(2)};
+`;
+
+const StyledHovercard = styled(Hovercard)`
+  width: 350px;
+`;
+
+const SpanIdWrapper = styled('span')`
+  font-weight: 400;
+`;
+
+const SectionTitle = styled('h6')`
+  color: ${p => p.theme.subText};
+  margin-bottom: 0;
+`;
+
+const TextOverflow = styled('span')`
+  ${p => p.theme.overflowEllipsis};
+`;
+
+const LegendDot = styled('div')<{color: string}>`
+  display: block;
+  width: ${space(1)};
+  height: ${space(1)};
+  border-radius: 100%;
+  background-color: ${p => p.theme[p.color] ?? p.color};
 `;
