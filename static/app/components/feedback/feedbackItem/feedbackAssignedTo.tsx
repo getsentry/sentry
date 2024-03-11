@@ -53,7 +53,7 @@ export default function FeedbackAssignedTo({
 
   const owners = getOwnerList([], eventOwners ?? null, feedbackIssue.assignedTo);
 
-  // A new `key` will make the component re-render when shwoActor changes
+  // A new `key` will make the component re-render when showActorName changes
   const key = showActorName ? 'showActor' : 'hideActor';
 
   return (
