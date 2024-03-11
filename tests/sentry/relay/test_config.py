@@ -939,7 +939,7 @@ def test_project_config_cardinality_limits(default_project, insta_snapshot, pass
 
     if passive:
         options["relay.cardinality-limiter.passive-limits-by-org"] = {
-            default_project.organization.id: [
+            str(default_project.organization.id): [
                 "sessions",
                 "transactions",
                 "spans",

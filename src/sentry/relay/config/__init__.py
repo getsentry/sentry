@@ -251,7 +251,7 @@ def get_metrics_config(project: Project) -> Mapping[str, Any] | None:
 
     if features.has("organizations:relay-cardinality-limiter", project.organization):
         passive_limits = options.get("relay.cardinality-limiter.passive-limits-by-org").get(
-            project.organization.id, []
+            str(project.organization.id), []
         )
 
         cardinality_limits: list[CardinalityLimit] = []
