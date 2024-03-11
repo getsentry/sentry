@@ -1069,7 +1069,7 @@ class SharedProjectSerializer(Serializer):
         }
 
 
-class LightWeightProjectSerializer(Serializer):
+class MinimalProjectSerializer(Serializer):
     def get_attrs(self, item_list: Sequence[Project], user: User, **kwargs: Any):
         environments_by_project = get_environments_by_projects(item_list)
         memberships_by_project = get_access_by_project(item_list, user)

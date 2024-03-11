@@ -7,12 +7,12 @@ from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationAndStaffPermission, OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.project import LightWeightProjectSerializer
+from sentry.api.serializers.models.project import MinimalProjectSerializer
 from sentry.models.project import Project
 
 
 @region_silo_endpoint
-class OrganizationLightweightProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
+class OrganizationMinimalProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
     # this is for the UI only
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -28,7 +28,7 @@ class OrganizationLightweightProjectsEndpoint(OrganizationEndpoint, EnvironmentM
         queryset = Project.objects.filter(organization=organization)
 
         def serialize_on_result(result):
-            serializer = LightWeightProjectSerializer()
+            serializer = MinimalProjectSerializer()
             return serialize(result, request.user, serializer)
 
         return self.paginate(
