@@ -826,7 +826,7 @@ register("relay.cardinality-limiter.mode", default="enabled", flags=FLAG_AUTOMAT
 #
 # In passive mode Relay's cardinality limiter is active but it does not enforce the limits.
 #
-# Example: `{1: ["transactions"]}`
+# Example: `{'1': ["transactions"]}`
 # Forces the `transactions` cardinality limit into passive mode for the organization with id `1` (Sentry).
 register(
     "relay.cardinality-limiter.passive-limits-by-org", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE
