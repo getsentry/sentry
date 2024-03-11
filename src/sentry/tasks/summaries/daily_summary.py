@@ -232,7 +232,7 @@ def build_summary_data(
             for activity_type, groups in deduped_groups_by_activity_type.items():
                 for group in list(groups):
                     if (
-                        activity_type == ActivityType.SET_REGRESSION.value
+                        activity_type == ActivityType.SET_REGRESSION
                         and len(project_ctx.regressed_today) < 4
                     ):
                         project_ctx.regressed_today.append(group)
