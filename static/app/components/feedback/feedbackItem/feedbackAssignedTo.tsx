@@ -19,14 +19,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 interface Props {
   feedbackEvent: FeedbackEvent | undefined;
   feedbackIssue: FeedbackIssue;
-  showActorName: boolean;
 }
 
-export default function FeedbackAssignedTo({
-  feedbackIssue,
-  feedbackEvent,
-  showActorName,
-}: Props) {
+export default function FeedbackAssignedTo({feedbackIssue, feedbackEvent}: Props) {
   const organization = useOrganization();
   const api = useApi();
   const project = feedbackIssue.project;
@@ -53,12 +48,8 @@ export default function FeedbackAssignedTo({
 
   const owners = getOwnerList([], eventOwners ?? null, feedbackIssue.assignedTo);
 
-  // A new `key` will make the component re-render when showActorName changes
-  const key = showActorName ? 'showActor' : 'hideActor';
-
-  return (
+  const dropdown = (
     <AssigneeSelectorDropdown
-      key={key}
       organization={organization}
       disabled={false}
       id={feedbackIssue.id}
@@ -85,17 +76,17 @@ export default function FeedbackAssignedTo({
                 size={16}
               />
             )}
-            {showActorName ? (
-              <ActorName>
-                {getAssignedToDisplayName(feedbackIssue) ?? t('Unassigned')}
-              </ActorName>
-            ) : null}
+            <ActorName>
+              {getAssignedToDisplayName(feedbackIssue) ?? t('Unassigned')}
+            </ActorName>
             <IconChevron direction={isOpen ? 'up' : 'down'} size="sm" />
           </ActorWrapper>
         </Button>
       )}
     </AssigneeSelectorDropdown>
   );
+
+  return dropdown;
 }
 
 const ActorWrapper = styled('div')`
