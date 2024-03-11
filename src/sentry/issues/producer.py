@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import sys
 from collections.abc import MutableMapping
 from typing import Any, cast
 
@@ -77,9 +76,9 @@ def produce_occurrence_to_kafka(
         logger.exception(
             "Failed to send occurrence to issue platform",
             extra={
-                "total_payload_size": sys.getsizeof(payload),
-                "total_payload_data_size": sys.getsizeof(payload_data),
-                "payload_data_key_sizes": {k: sys.getsizeof(v) for k, v in payload_data.items()},
+                "id": payload_data["id"],
+                "type": payload_data["type"],
+                "issue_title": payload_data["issue_title"],
             },
         )
 
