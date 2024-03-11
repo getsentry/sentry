@@ -76,7 +76,7 @@ interface DropdownMenuProps
    */
   className?: string;
   /**
-   * `overlayProps` will be passed on to the usecomponent.
+   * Optionally add more props to be passed on to the useOverlay hook.
    */
   dropdownOverlayProps?: UseOverlayProps;
   /**
