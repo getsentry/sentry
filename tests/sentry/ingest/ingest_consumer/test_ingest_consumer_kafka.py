@@ -76,7 +76,7 @@ def get_test_message(default_project):
         normalized_event = dict(em.get_data())
         message = {
             "type": "event",
-            "start_time": time.time(),
+            "start_time": int(time.time()),
             "event_id": event_id,
             "project_id": int(project_id),
             "payload": json.dumps(normalized_event),
