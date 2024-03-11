@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -82,7 +82,7 @@ describe('PageOverview', function () {
     );
   });
 
-  it('renders pageload and interaction switcher', async () => {
+  it('renders interaction samples', async () => {
     const organizationWithInp = OrganizationFixture({
       features: [
         'starfish-browser-webvitals',
@@ -94,17 +94,15 @@ describe('PageOverview', function () {
     jest.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
-      query: {useStoredScores: 'true', transaction: '/'},
+      query: {useStoredScores: 'true', transaction: '/', type: 'interactions'},
       hash: '',
       state: undefined,
       action: 'PUSH',
       key: '',
     });
     render(<PageOverview />);
-    await screen.findAllByText('Interactions');
-    await userEvent.click(screen.getAllByText('Interactions')[0]);
     await waitFor(() =>
-      expect(eventsMock).toHaveBeenLastCalledWith(
+      expect(eventsMock).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
         expect.objectContaining({
           query: expect.objectContaining({

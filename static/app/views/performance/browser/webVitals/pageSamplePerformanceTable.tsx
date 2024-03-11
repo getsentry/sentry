@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useMemo} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -79,10 +79,12 @@ const INTERACTION_SAMPLES_COLUMN_ORDER: GridColumnOrder<
   {key: 'inpScore', width: COL_WIDTH_UNDEFINED, name: t('Score')},
 ];
 
-enum Dataset {
+enum Datatype {
   PAGELOADS = 'pageloads',
   INTERACTIONS = 'interactions',
 }
+
+const DATATYPE_KEY = 'type';
 
 type Props = {
   transaction: string;
@@ -100,7 +102,14 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
   const shouldUseStoredScores = useStoredScoresSetting();
   const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
 
-  const [dataset, setDataset] = useState(Dataset.PAGELOADS);
+  let datatype = Datatype.PAGELOADS;
+  switch (decodeScalar(location.query[DATATYPE_KEY], 'pageloads')) {
+    case 'interactions':
+      datatype = Datatype.INTERACTIONS;
+      break;
+    default:
+      datatype = Datatype.PAGELOADS;
+  }
 
   const samplesColumnOrder = useMemo(() => {
     if (shouldReplaceFidWithInp) {
@@ -141,7 +150,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     transaction,
     query: search,
     withProfiles: true,
-    enabled: dataset === Dataset.PAGELOADS,
+    enabled: datatype === Datatype.PAGELOADS,
   });
 
   const {
@@ -150,7 +159,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     pageLinks: interactionsPageLinks,
   } = useInpSpanSamplesWebVitalsQuery({
     transaction,
-    enabled: dataset === Dataset.INTERACTIONS,
+    enabled: datatype === Datatype.INTERACTIONS,
     limit: 9,
   });
 
@@ -341,7 +350,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
             replayId: row[key],
             id: '', // id doesn't get used in replayLinkGenerator. This is just to satisfy the type.
             'transaction.duration':
-              dataset === Dataset.INTERACTIONS
+              datatype === Datatype.INTERACTIONS
                 ? row[SpanIndexedField.SPAN_SELF_TIME]
                 : row['transaction.duration'],
             timestamp: row.timestamp,
@@ -394,20 +403,24 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
         {shouldReplaceFidWithInp && (
           <SegmentedControl
             size="md"
-            value={dataset}
+            value={datatype}
             onChange={newDataSet => {
-              // Reset pagination and sort when switching datasets
+              // Reset pagination and sort when switching datatypes
               router.replace({
                 ...location,
-                query: {...location.query, sort: undefined, cursor: undefined},
+                query: {
+                  ...location.query,
+                  sort: undefined,
+                  cursor: undefined,
+                  [DATATYPE_KEY]: newDataSet,
+                },
               });
-              setDataset(newDataSet);
             }}
           >
-            <SegmentedControl.Item key={Dataset.PAGELOADS}>
+            <SegmentedControl.Item key={Datatype.PAGELOADS}>
               {t('Pageloads')}
             </SegmentedControl.Item>
-            <SegmentedControl.Item key={Dataset.INTERACTIONS}>
+            <SegmentedControl.Item key={Datatype.INTERACTIONS}>
               {t('Interactions')}
             </SegmentedControl.Item>
           </SegmentedControl>
@@ -424,14 +437,18 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
           }
         />
         <StyledPagination
-          pageLinks={dataset === Dataset.INTERACTIONS ? interactionsPageLinks : pageLinks}
-          disabled={dataset === Dataset.INTERACTIONS ? isInteractionsLoading : isLoading}
+          pageLinks={
+            datatype === Datatype.INTERACTIONS ? interactionsPageLinks : pageLinks
+          }
+          disabled={
+            datatype === Datatype.INTERACTIONS ? isInteractionsLoading : isLoading
+          }
           size="md"
         />
         {/* The Pagination component disappears if pageLinks is not defined,
         which happens any time the table data is loading. So we render a
         disabled button bar if pageLinks is not defined to minimize ui shifting */}
-        {!(dataset === Dataset.INTERACTIONS ? interactionsPageLinks : pageLinks) && (
+        {!(datatype === Datatype.INTERACTIONS ? interactionsPageLinks : pageLinks) && (
           <Wrapper>
             <ButtonBar merged>
               <Button
@@ -449,7 +466,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
         )}
       </SearchBarContainer>
       <GridContainer>
-        {dataset === Dataset.PAGELOADS && (
+        {datatype === Datatype.PAGELOADS && (
           <GridEditable
             isLoading={isLoading}
             columnOrder={samplesColumnOrder}
@@ -463,7 +480,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
             minimumColWidth={70}
           />
         )}
-        {dataset === Dataset.INTERACTIONS && (
+        {datatype === Datatype.INTERACTIONS && (
           <GridEditable
             isLoading={isInteractionsLoading}
             columnOrder={INTERACTION_SAMPLES_COLUMN_ORDER}
