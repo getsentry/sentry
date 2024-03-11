@@ -39,7 +39,7 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_forma
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.group import GroupSubStatus
-from sentry.utils.dates import floor_to_utc_day, to_timestamp
+from sentry.utils.dates import floor_to_utc_day
 from sentry.utils.outcomes import Outcome
 
 DISABLED_ORGANIZATIONS_USER_OPTION_KEY = "reports:disabled-organizations"
@@ -566,7 +566,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         two_days_ago = now - timedelta(days=2)
         three_days_ago = now - timedelta(days=3)
 
-        timestamp = to_timestamp(floor_to_utc_day(now))
+        timestamp = floor_to_utc_day(now).timestamp()
 
         for outcome, category, num in [
             (Outcome.ACCEPTED, DataCategory.ERROR, 1),
@@ -657,7 +657,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
     def test_message_builder_replays(self, message_builder):
         now = django_timezone.now()
         two_days_ago = now - timedelta(days=2)
-        timestamp = to_timestamp(floor_to_utc_day(now))
+        timestamp = floor_to_utc_day(now).timestamp()
 
         for outcome, category, num in [
             (Outcome.ACCEPTED, DataCategory.REPLAY, 6),
@@ -717,7 +717,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
     def test_email_override_simple(self, message_builder, record):
         now = django_timezone.now()
         two_days_ago = now - timedelta(days=2)
-        timestamp = to_timestamp(floor_to_utc_day(now))
+        timestamp = floor_to_utc_day(now).timestamp()
 
         user = self.create_user(email="itwasme@dio.xyz")
         self.create_member(teams=[self.team], user=user, organization=self.organization)
@@ -772,7 +772,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
     def test_email_override_no_target_user(self, message_builder, record):
         now = django_timezone.now()
         two_days_ago = now - timedelta(days=2)
-        timestamp = to_timestamp(floor_to_utc_day(now))
+        timestamp = floor_to_utc_day(now).timestamp()
 
         # create some extra projects; we expect to receive a report with all projects included
         self.create_project(organization=self.organization)
@@ -822,7 +822,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
     def test_email_override_invalid_target_user(self, logger):
         now = django_timezone.now()
         two_days_ago = now - timedelta(days=2)
-        timestamp = to_timestamp(floor_to_utc_day(now))
+        timestamp = floor_to_utc_day(now).timestamp()
         org = self.create_organization()
         proj = self.create_project(organization=org)
 
@@ -862,7 +862,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
     def test_dry_run_simple(self, message_builder, record):
         now = django_timezone.now()
         two_days_ago = now - timedelta(days=2)
-        timestamp = to_timestamp(floor_to_utc_day(now))
+        timestamp = floor_to_utc_day(now).timestamp()
         org = self.create_organization()
         proj = self.create_project(organization=org)
 

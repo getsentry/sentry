@@ -62,7 +62,7 @@ from sentry.testutils.helpers.notifications import (  # NOQA:S007
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json, loremipsum
 from sentry.utils.auth import AuthenticatedHttpRequest
-from sentry.utils.dates import to_datetime, to_timestamp
+from sentry.utils.dates import to_datetime
 from sentry.utils.email import MessageBuilder, inline_css
 from sentry.utils.http import absolute_uri
 from sentry.utils.samples import load_data
@@ -144,7 +144,7 @@ def make_group_metadata(random: Random) -> dict[str, Any]:
 
 
 def make_group_generator(random: Random, project: Project) -> Generator[Group, None, None]:
-    epoch = int(to_timestamp(datetime(2016, 6, 1, 0, 0, 0, tzinfo=timezone.utc)))
+    epoch = int(datetime(2016, 6, 1, 0, 0, 0, tzinfo=timezone.utc).timestamp())
     for id in itertools.count(1):
         first_seen = epoch + random.randint(0, 60 * 60 * 24 * 30)
         last_seen = random.randint(first_seen, first_seen + (60 * 60 * 24 * 30))
@@ -547,7 +547,7 @@ def digest(request):
                     notification_uuid,
                 ),
                 # this is required for acceptance tests to pass as the EventManager won't accept a timestamp in the past
-                to_timestamp(datetime(2016, 6, 22, 16, 16, 0, tzinfo=timezone.utc)),
+                datetime(2016, 6, 22, 16, 16, 0, tzinfo=timezone.utc).timestamp(),
             )
         )
         state["groups"][perf_group.id] = perf_group
@@ -571,7 +571,7 @@ def digest(request):
                     notification_uuid,
                 ),
                 # this is required for acceptance tests to pass as the EventManager won't accept a timestamp in the past
-                to_timestamp(datetime(2016, 6, 22, 16, 16, 0, tzinfo=timezone.utc)),
+                datetime(2016, 6, 22, 16, 16, 0, tzinfo=timezone.utc).timestamp(),
             )
         )
         state["groups"][generic_group.id] = generic_group

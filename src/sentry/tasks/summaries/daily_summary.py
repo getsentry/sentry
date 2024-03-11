@@ -41,7 +41,7 @@ from sentry.tasks.summaries.utils import (
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from sentry.types.integrations import ExternalProviders
-from sentry.utils.dates import to_datetime, to_timestamp
+from sentry.utils.dates import to_datetime
 from sentry.utils.outcomes import Outcome
 from sentry.utils.query import RangeQuerySetWrapper
 
@@ -62,7 +62,7 @@ HOUR_TO_SEND_REPORT = 16
 def schedule_organizations(timestamp: float | None = None, duration: int | None = None) -> None:
     if timestamp is None:
         # The time that the report was generated
-        timestamp = to_timestamp(timezone.now())
+        timestamp = timezone.now().timestamp()
 
     if duration is None:
         # The total timespan that the task covers
