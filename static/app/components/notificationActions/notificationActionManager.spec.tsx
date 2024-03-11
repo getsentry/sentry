@@ -78,6 +78,7 @@ describe('Adds, deletes, and updates notification actions', function () {
     });
     render(
       <NotificationActionManager
+        updateAlertCount={jest.fn()}
         actions={notificationActions}
         availableActions={availableActions}
         recipientRoles={['owner', 'manager']}
@@ -116,6 +117,7 @@ describe('Adds, deletes, and updates notification actions', function () {
     });
     render(
       <NotificationActionManager
+        updateAlertCount={jest.fn()}
         actions={[]}
         availableActions={availableActions}
         recipientRoles={['owner', 'manager']}
@@ -167,6 +169,7 @@ describe('Adds, deletes, and updates notification actions', function () {
     });
     render(
       <NotificationActionManager
+        updateAlertCount={jest.fn()}
         actions={[notificationActions[0]]}
         availableActions={availableActions}
         recipientRoles={['owner', 'manager']}
@@ -191,6 +194,7 @@ describe('Adds, deletes, and updates notification actions', function () {
     });
     render(
       <NotificationActionManager
+        updateAlertCount={jest.fn()}
         actions={[]}
         availableActions={availableActions}
         recipientRoles={['owner', 'manager']}
@@ -239,6 +243,7 @@ describe('Adds, deletes, and updates notification actions', function () {
     });
     render(
       <NotificationActionManager
+        updateAlertCount={jest.fn()}
         actions={[notificationActions[1]]}
         availableActions={availableActions}
         recipientRoles={['owner', 'manager']}
@@ -276,6 +281,7 @@ describe('Adds, deletes, and updates notification actions', function () {
     });
     render(
       <NotificationActionManager
+        updateAlertCount={jest.fn()}
         actions={[notificationActions[1]]}
         availableActions={availableActions}
         recipientRoles={['owner', 'manager']}
@@ -386,6 +392,7 @@ describe('Adds, deletes, and updates notification actions', function () {
     });
     render(
       <NotificationActionManager
+        updateAlertCount={jest.fn()}
         actions={[notificationActions[2]]}
         availableActions={availableActions}
         recipientRoles={['owner', 'manager']}
@@ -427,6 +434,7 @@ describe('Adds, deletes, and updates notification actions', function () {
     });
     render(
       <NotificationActionManager
+        updateAlertCount={jest.fn()}
         actions={[]}
         availableActions={availableActions}
         recipientRoles={['owner', 'manager']}
@@ -489,6 +497,7 @@ describe('Adds, deletes, and updates notification actions', function () {
     });
     render(
       <NotificationActionManager
+        updateAlertCount={jest.fn()}
         actions={[notificationActions[3]]}
         availableActions={availableActions}
         recipientRoles={['owner', 'manager']}
