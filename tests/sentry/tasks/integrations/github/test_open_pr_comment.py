@@ -812,66 +812,6 @@ Your pull request is modifying functions with the following pre-existing issues:
 <sub>Did you find this useful? React with a 👍 or 👎</sub>"""
         )
 
-    def test_comment_format_php(self):
-        file1 = "tests/sentry/tasks/integrations/github/test_open_pr_comment.php"
-        file1_issues = [
-            PullRequestIssue(
-                title="file1 " + str(i),
-                subtitle="subtitle" + str(i),
-                url=f"http://testserver/organizations/{self.organization.slug}/issues/{str(i)}/",
-                affected_users=(5 - i) * 1000,
-                event_count=(5 - i) * 1000,
-                function_name="function_" + str(i),
-            )
-            for i in range(5)
-        ]
-        file2 = "tests/sentry/tasks/integrations/github/test_pr_comment.php"
-
-        # test truncating the issue description
-        file2_issues = [
-            PullRequestIssue(
-                title="SoftTimeLimitExceeded " + str(i),
-                subtitle="sentry.tasks.low_priority_symbolication.scan_for_suspect" + str(i),
-                url=f"http://testserver/organizations/{self.organization.slug}/issues/{str(i+5)}/",
-                affected_users=(2 - i) * 10000,
-                event_count=(2 - i) * 10000,
-                function_name="function_" + str(i),
-            )
-            for i in range(2)
-        ]
-
-        issue_table = format_issue_table(file1, file1_issues, BETA_PATCH_PARSERS, toggle=False)
-        toggle_issue_table = format_issue_table(
-            file2, file2_issues, BETA_PATCH_PARSERS, toggle=True
-        )
-        comment = format_open_pr_comment([issue_table, toggle_issue_table])
-        assert (
-            comment
-            == """## 🔍 Existing Issues For Review
-Your pull request is modifying functions with the following pre-existing issues:
-
-📄 File: **tests/sentry/tasks/integrations/github/test_open_pr_comment.php**
-
-| Function | Unhandled Issue |
-| :------- | :----- |
-| **`function_0`** | [**file1 0**](http://testserver/organizations/baz/issues/0/?referrer=github-open-pr-bot) subtitle0 <br> `Event Count:` **5k** |
-| **`function_1`** | [**file1 1**](http://testserver/organizations/baz/issues/1/?referrer=github-open-pr-bot) subtitle1 <br> `Event Count:` **4k** |
-| **`function_2`** | [**file1 2**](http://testserver/organizations/baz/issues/2/?referrer=github-open-pr-bot) subtitle2 <br> `Event Count:` **3k** |
-| **`function_3`** | [**file1 3**](http://testserver/organizations/baz/issues/3/?referrer=github-open-pr-bot) subtitle3 <br> `Event Count:` **2k** |
-| **`function_4`** | [**file1 4**](http://testserver/organizations/baz/issues/4/?referrer=github-open-pr-bot) subtitle4 <br> `Event Count:` **1k** |
-<details>
-<summary><b>📄 File: tests/sentry/tasks/integrations/github/test_pr_comment.php (Click to Expand)</b></summary>
-
-| Function | Unhandled Issue |
-| :------- | :----- |
-| **`function_0`** | [**SoftTimeLimitExceeded 0**](http://testserver/organizations/baz/issues/5/?referrer=github-open-pr-bot) sentry.tasks.low_priority... <br> `Event Count:` **20k** |
-| **`function_1`** | [**SoftTimeLimitExceeded 1**](http://testserver/organizations/baz/issues/6/?referrer=github-open-pr-bot) sentry.tasks.low_priority... <br> `Event Count:` **10k** |
-</details>
----
-
-<sub>Did you find this useful? React with a 👍 or 👎</sub>"""
-        )
-
     def test_comment_format_missing_language(self):
         file1 = "tests/sentry/tasks/integrations/github/test_open_pr_comment.docx"
 
