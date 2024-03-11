@@ -622,25 +622,14 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         self,
         args: Mapping[str, str | Column | SelectType | int | float],
         alias: str | None = None,
-        extra_condition: Function | None = None,
     ) -> SelectType:
-        base_condition = Function(
+        condition = Function(
             "startsWith",
             [
                 self.builder.column("span.status_code"),
                 args["code"],
             ],
         )
-        if extra_condition:
-            condition = Function(
-                "and",
-                [
-                    base_condition,
-                    extra_condition,
-                ],
-            )
-        else:
-            condition = base_condition
 
         return self._resolve_count_if(
             Function(
