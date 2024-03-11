@@ -1692,7 +1692,7 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-projects",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/lightweight-projects/$",
+        r"^(?P<organization_slug>[^\/]+)/projects/options/$",
         OrganizationLightweightProjectsEndpoint.as_view(),
         name="sentry-api-0-organization-lightweight-projects",
     ),
