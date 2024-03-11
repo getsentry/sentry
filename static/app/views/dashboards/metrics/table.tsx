@@ -19,7 +19,7 @@ import {LoadingScreen} from 'sentry/views/starfish/components/chart';
 
 interface MetricTableContainerProps {
   isLoading: boolean;
-  metricQueries: MetricsQueryApiRequestQuery[];
+  metricQueries: MetricsQueryApiQueryParams[];
   timeseriesData?: MetricsQueryApiResponse;
 }
 
