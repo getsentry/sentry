@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from functools import cached_property
 from typing import Any
 
@@ -324,6 +324,23 @@ class _ClientConfig:
             user_details["isSuperuser"] = self.user.is_superuser
         return user_details
 
+    @cached_property
+    def _member_region_names(self) -> frozenset[str]:
+        # If the user is not authenticated they have no region membership
+        if not self.user or not self.user.id:
+            return frozenset()
+
+        region_names = user_service.get_member_region_names(user_id=self.user.id)
+        return frozenset(region_names)
+
+    @staticmethod
+    def _serialize_regions(
+        region_names: Iterable[str], display_order: Callable[[Region], Any]
+    ) -> list[Mapping[str, Any]]:
+        regions = [get_region_by_name(name) for name in region_names]
+        regions.sort(key=display_order)
+        return [region.api_serialize() for region in regions]
+
     @property
     def regions(self) -> list[Mapping[str, Any]]:
         """
@@ -350,8 +367,7 @@ class _ClientConfig:
 
         # Ensure all regions the current user is in are included as there
         # could be single tenants or hidden regions
-        member_region_names = user_service.get_member_region_names(user_id=user.id)
-        unique_regions = set(region_names) | set(member_region_names)
+        unique_regions = set(region_names) | self._member_region_names
 
         def region_display_order(region: Region) -> tuple[bool, bool, str]:
             return (
@@ -360,24 +376,14 @@ class _ClientConfig:
                 region.name,  # then sort alphabetically
             )
 
-        regions = [get_region_by_name(name) for name in unique_regions]
-        regions.sort(key=region_display_order)
-        return [region.api_serialize() for region in regions]
+        return self._serialize_regions(unique_regions, region_display_order)
 
     @property
     def member_regions(self) -> list[Mapping[str, Any]]:
         """
         The regions the user has membership in. Includes single-tenant regions.
         """
-        user = self.user
-        # If the user is not authenticated they have no region membership
-        if not user or not user.id:
-            return []
-
-        region_names = user_service.get_member_region_names(user_id=user.id)
-        regions = [get_region_by_name(name) for name in region_names]
-        regions.sort(key=lambda r: r.name)
-        return [r.api_serialize() for r in regions]
+        return self._serialize_regions(self._member_region_names, lambda r: r.name)
 
     def get_context(self) -> Mapping[str, Any]:
         return {
