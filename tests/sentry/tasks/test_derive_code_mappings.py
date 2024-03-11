@@ -4,7 +4,6 @@ from copy import deepcopy
 from typing import Any
 from unittest.mock import patch
 
-import pytest
 import responses
 
 from sentry.db.models.fields.node import NodeData
@@ -80,9 +79,8 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
                 "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org",
                 side_effect=UnableToAcquireLock,
             ):
-                # We should raise an exception since the request will be retried
-                with pytest.raises(UnableToAcquireLock):
-                    derive_code_mappings(self.project.id, self.event_data)
+                derive_code_mappings(self.project.id, self.event_data)
+                assert not RepositoryProjectPathConfig.objects.exists()
 
     @patch("sentry.tasks.derive_code_mappings.logger")
     def test_raises_generic_errors(self, mock_logger):
