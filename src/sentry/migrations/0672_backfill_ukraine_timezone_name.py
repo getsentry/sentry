@@ -5,8 +5,8 @@ from django.db import migrations
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
-OLD_NAME = "Kiev"
-NEW_NAME = "Kyiv"
+OLD_NAME = '"Europe/Kiev"'
+NEW_NAME = '"Europe/Kyiv"'
 
 
 def backfill_ukraine_timezone_name(apps, schema_editor):
@@ -32,7 +32,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0668_add_active_monitor_incident_index"),
+        ("sentry", "0671_enforce_unqiue_active_incidents"),
     ]
 
     operations = [
