@@ -25,7 +25,6 @@ from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics, redis
 from sentry.utils.arroyo_producer import SingletonProducer
-from sentry.utils.iterators import chunked
 from sentry.utils.kafka_config import (
     get_kafka_admin_cluster_options,
     get_kafka_producer_cluster_options,
@@ -428,12 +427,10 @@ def detect_broken_monitor_envs():
         # TODO(davidenwang): When we want to email users, remove this filter
         monitorenvbrokendetection__isnull=True,
     )
-    for open_incidents in chunked(
-        RangeQuerySetWrapper(
-            open_incidents_qs,
-            step=1000,
-        ),
-        1000,
+    for open_incidents in RangeQuerySetWrapper(
+        open_incidents_qs,
+        order_by="starting_timestamp",
+        step=1000,
     ):
         for open_incident in open_incidents:
             try:
