@@ -21,7 +21,15 @@ import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import Tags from 'sentry/views/discover/tags';
 
-import {getTraceInfo} from '../traceDetails/utils';
+import {getTraceInfo} from '../../../traceDetails/utils';
+
+const WEB_VITALS = [
+  WEB_VITAL_DETAILS['measurements.cls'],
+  WEB_VITAL_DETAILS['measurements.lcp'],
+  WEB_VITAL_DETAILS['measurements.ttfb'],
+  WEB_VITAL_DETAILS['measurements.fcp'],
+  WEB_VITAL_DETAILS['measurements.fid'],
+];
 
 type TraceFooterProps = {
   location: Location;
@@ -36,13 +44,7 @@ function NoWebVitals() {
     <div style={{flex: 1}}>
       <SectionHeading>{t('WebVitals')}</SectionHeading>
       <WebVitalsWrapper>
-        {[
-          WEB_VITAL_DETAILS['measurements.cls'],
-          WEB_VITAL_DETAILS['measurements.lcp'],
-          WEB_VITAL_DETAILS['measurements.ttfb'],
-          WEB_VITAL_DETAILS['measurements.fcp'],
-          WEB_VITAL_DETAILS['measurements.fid'],
-        ].map(detail => (
+        {WEB_VITALS.map(detail => (
           <StyledPanel key={detail.name}>
             <div>{detail.name}</div>
             <div>{' \u2014 '}</div>
@@ -53,7 +55,7 @@ function NoWebVitals() {
   );
 }
 
-function TraceFooterLoading() {
+function TraceDataLoading() {
   return (
     <TraceFooterWrapper>
       <div style={{flex: 1}}>
@@ -81,9 +83,9 @@ function TraceFooterLoading() {
   );
 }
 
-export function TraceFooter(props: TraceFooterProps) {
+export function TraceLevelDetails(props: TraceFooterProps) {
   if (!props.traces) {
-    return <TraceFooterLoading />;
+    return <TraceDataLoading />;
   }
 
   const {data: rootEvent} = props.rootEventResults;
@@ -131,7 +133,6 @@ export function TraceFooter(props: TraceFooterProps) {
 const TraceFooterWrapper = styled('div')`
   display: flex;
   gap: ${space(2)};
-  margin-top: ${space(2)};
 `;
 
 const StyledPlaceholderTag = styled(Placeholder)`

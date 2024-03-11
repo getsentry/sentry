@@ -20,18 +20,9 @@ import {EventExtraData} from 'sentry/components/events/eventExtraData';
 import {EventSdk} from 'sentry/components/events/eventSdk';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {Breadcrumbs} from 'sentry/components/events/interfaces/breadcrumbs';
-import NewTraceDetailsSpanDetail, {
-  SpanDetailContainer,
-  SpanDetails,
-} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
-import {
-  getFormattedTimeRangeWithLeadingAndTrailingZero,
-  getSpanOperation,
-  parseTrace,
-} from 'sentry/components/events/interfaces/spans/utils';
+import {getFormattedTimeRangeWithLeadingAndTrailingZero} from 'sentry/components/events/interfaces/spans/utils';
 import {generateStats} from 'sentry/components/events/opsBreakdown';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
-import {DataSection} from 'sentry/components/events/styles';
 import FileSize from 'sentry/components/fileSize';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
@@ -51,38 +42,28 @@ import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconChevron, IconOpen} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EntryBreadcrumbs, EventTransaction, Organization} from 'sentry/types';
-import {EntryType} from 'sentry/types';
+import {
+  type EntryBreadcrumbs,
+  EntryType,
+  type EventTransaction,
+  type Organization,
+} from 'sentry/types';
 import {objectIsEmpty} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import {CustomMetricsEventData} from 'sentry/views/ddm/customMetricsEventData';
-import {
-  isSpanNode,
-  isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/guards';
-import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
-import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
-import DetailPanel from 'sentry/views/starfish/components/detailPanel';
+import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/virtualizedViewManager';
+import {Row, Tags} from 'sentry/views/performance/traceDetails/styles';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
-import {Row, Tags} from '../traceDetails/styles';
-import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
+import type {TraceTree, TraceTreeNode} from '../../traceTree';
 
-import type {TraceTree, TraceTreeNode} from './traceTree';
-
-type EventDetailProps = {
-  location: Location;
-  node: TraceTreeNode<TraceTree.Transaction>;
-  organization: Organization;
-};
+import {TraceDrawerComponents} from './styles';
 
 function OpsBreakdown({event}: {event: EventTransaction}) {
   const [showingAll, setShowingAll] = useState(false);
@@ -97,13 +78,13 @@ function OpsBreakdown({event}: {event: EventTransaction}) {
     breakdown && (
       <Row
         title={
-          <FlexBox style={{gap: '5px'}}>
+          <TraceDrawerComponents.FlexBox style={{gap: '5px'}}>
             {t('Ops Breakdown')}
             <QuestionTooltip
               title={t('Applicable to the children of this event only')}
               size="xs"
             />
-          </FlexBox>
+          </TraceDrawerComponents.FlexBox>
         }
       >
         <div style={{display: 'flex', flexDirection: 'column', gap: space(0.25)}}>
@@ -183,7 +164,21 @@ function BreadCrumbsSection({
     </Fragment>
   );
 }
-function EventDetails({node, organization, location}: EventDetailProps) {
+
+type TransactionDetailProps = {
+  location: Location;
+  manager: VirtualizedViewManager;
+  node: TraceTreeNode<TraceTree.Transaction>;
+  organization: Organization;
+  scrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
+};
+
+export function TransactionNodeDetails({
+  node,
+  organization,
+  location,
+  scrollToNode,
+}: TransactionDetailProps) {
   const {projects} = useProjects();
   const {data: event} = useApiQuery<EventTransaction>(
     [
@@ -273,43 +268,50 @@ function EventDetails({node, organization, location}: EventDetailProps) {
     }
 
     return (
-      <StyledButton size="xs" to={target} onClick={handleOnClick}>
+      <TraceDrawerComponents.Button size="xs" to={target} onClick={handleOnClick}>
         {t('View Profile')}
-      </StyledButton>
+      </TraceDrawerComponents.Button>
     );
   };
 
   return (
-    <Wrapper>
-      <Actions>
-        <Button
-          size="sm"
-          icon={<IconOpen />}
-          href={eventJsonUrl}
-          external
-          onClick={() =>
-            trackAnalytics('performance_views.event_details.json_button_click', {
-              organization,
-            })
-          }
-        >
-          {t('JSON')} (<FileSize bytes={event?.size} />)
-        </Button>
-      </Actions>
-
-      <Title>
-        <Tooltip title={node.value.project_slug}>
-          <ProjectBadge
-            project={project ? project : {slug: node.value.project_slug}}
-            avatarSize={50}
-            hideName
-          />
-        </Tooltip>
-        <div>
-          <div>{t('Event')}</div>
-          <TransactionOp> {node.value['transaction.op']}</TransactionOp>
-        </div>
-      </Title>
+    <TraceDrawerComponents.DetailContainer>
+      <TraceDrawerComponents.HeaderContainer>
+        <TraceDrawerComponents.Title>
+          <Tooltip title={node.value.project_slug}>
+            <ProjectBadge
+              project={project ? project : {slug: node.value.project_slug}}
+              avatarSize={30}
+              hideName
+            />
+          </Tooltip>
+          <div>
+            <div>{t('transaction')}</div>
+            <TraceDrawerComponents.TitleOp>
+              {' '}
+              {node.value['transaction.op']}
+            </TraceDrawerComponents.TitleOp>
+          </div>
+        </TraceDrawerComponents.Title>
+        <TraceDrawerComponents.Actions>
+          <Button size="xs" onClick={_e => scrollToNode(node)}>
+            {t('Show in view')}
+          </Button>
+          <Button
+            size="xs"
+            icon={<IconOpen />}
+            href={eventJsonUrl}
+            external
+            onClick={() =>
+              trackAnalytics('performance_views.event_details.json_button_click', {
+                organization,
+              })
+            }
+          >
+            {t('JSON')} (<FileSize bytes={event?.size} />)
+          </Button>
+        </TraceDrawerComponents.Actions>
+      </TraceDrawerComponents.HeaderContainer>
 
       {hasIssues && (
         <Alert
@@ -338,9 +340,9 @@ function EventDetails({node, organization, location}: EventDetailProps) {
         </Alert>
       )}
 
-      <StyledTable className="table key-value">
+      <TraceDrawerComponents.Table className="table key-value">
         <tbody>
-          <Row title={<TransactionIdTitle>{t('Event ID')}</TransactionIdTitle>}>
+          <Row title={t('Event ID')}>
             {node.value.event_id}
             <CopyToClipboardButton
               borderless
@@ -427,7 +429,7 @@ function EventDetails({node, organization, location}: EventDetailProps) {
             </tr>
           )}
         </tbody>
-      </StyledTable>
+      </TraceDrawerComponents.Table>
       {project && <EventEvidence event={event} project={project} />}
       {projectSlug && (
         <Entries
@@ -478,150 +480,9 @@ function EventDetails({node, organization, location}: EventDetailProps) {
           projectSlug={projectSlug}
         />
       )}
-    </Wrapper>
+    </TraceDrawerComponents.DetailContainer>
   );
 }
-
-function SpanDetailsBody({
-  node,
-  organization,
-}: {
-  node: TraceTreeNode<TraceTree.Span>;
-  organization: Organization;
-}) {
-  const {projects} = useProjects();
-  const {event, relatedErrors, childTxn, ...span} = node.value;
-  const project = projects.find(proj => proj.slug === event?.projectSlug);
-  const profileId = event?.contexts?.profile?.profile_id ?? null;
-
-  return (
-    <Wrapper>
-      <Title>
-        <Tooltip title={event.projectSlug}>
-          <ProjectBadge
-            project={project ? project : {slug: event.projectSlug || ''}}
-            avatarSize={50}
-            hideName
-          />
-        </Tooltip>
-        <div>
-          <div>{t('Span')}</div>
-          <TransactionOp> {getSpanOperation(span)}</TransactionOp>
-        </div>
-      </Title>
-      {event.projectSlug && (
-        <ProfilesProvider
-          orgSlug={organization.slug}
-          projectSlug={event.projectSlug}
-          profileId={profileId || ''}
-        >
-          <ProfileContext.Consumer>
-            {profiles => (
-              <ProfileGroupProvider
-                type="flamechart"
-                input={profiles?.type === 'resolved' ? profiles.data : null}
-                traceID={profileId || ''}
-              >
-                <NewTraceDetailsSpanDetail
-                  relatedErrors={relatedErrors}
-                  childTransactions={childTxn ? [childTxn] : []}
-                  event={event}
-                  openPanel="open"
-                  organization={organization}
-                  span={span}
-                  trace={parseTrace(event)}
-                />
-              </ProfileGroupProvider>
-            )}
-          </ProfileContext.Consumer>
-        </ProfilesProvider>
-      )}
-    </Wrapper>
-  );
-}
-
-interface TraceDetailPanelProps {
-  node: TraceTreeNode<TraceTree.NodeValue> | null;
-  onClose: () => void;
-}
-
-function TraceDetailPanel(props: TraceDetailPanelProps) {
-  const location = useLocation();
-  const organization = useOrganization();
-
-  if (props.node && !(isTransactionNode(props.node) || isSpanNode(props.node))) {
-    return null;
-  }
-
-  return (
-    <PageAlertProvider>
-      <DetailPanel
-        detailKey={props.node ? 'open' : undefined}
-        onClose={props.onClose}
-        skipCloseOnOutsideClick
-        startingPositionOnLoad="bottom"
-      >
-        {props.node &&
-          (isTransactionNode(props.node) ? (
-            <EventDetails
-              location={location}
-              organization={organization}
-              node={props.node}
-            />
-          ) : (
-            <SpanDetailsBody organization={organization} node={props.node} />
-          ))}
-      </DetailPanel>
-    </PageAlertProvider>
-  );
-}
-
-const Wrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-
-  ${DataSection} {
-    padding: 0;
-  }
-
-  ${SpanDetails} {
-    padding: 0;
-  }
-
-  ${SpanDetailContainer} {
-    border-bottom: none;
-  }
-`;
-
-const FlexBox = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-const Actions = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-`;
-
-const Title = styled(FlexBox)`
-  gap: ${space(2)};
-`;
-
-const TransactionOp = styled('div')`
-  font-size: 25px;
-  font-weight: bold;
-  max-width: 600px;
-  ${p => p.theme.overflowEllipsis}
-`;
-
-const TransactionIdTitle = styled('a')`
-  display: flex;
-  color: ${p => p.theme.textColor};
-  :hover {
-    color: ${p => p.theme.textColor};
-  }
-`;
 
 const Measurements = styled('div')`
   display: flex;
@@ -629,15 +490,3 @@ const Measurements = styled('div')`
   gap: ${space(1)};
   padding-top: 10px;
 `;
-
-const StyledButton = styled(Button)`
-  position: absolute;
-  top: ${space(0.75)};
-  right: ${space(0.5)};
-`;
-
-const StyledTable = styled('table')`
-  margin-bottom: 0 !important;
-`;
-
-export default TraceDetailPanel;

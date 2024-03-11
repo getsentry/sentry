@@ -101,7 +101,7 @@ const INDEXED_SPAN_SORT = {
   kind: 'desc' as const,
 };
 
-const Frame = styled('div')`
+export const Frame = styled('div')`
   border: solid 1px ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;

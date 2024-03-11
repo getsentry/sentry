@@ -25,7 +25,6 @@ import {t} from 'sentry/locale';
 import type {Organization, PlatformKey, Project} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
 import useApi from 'sentry/utils/useApi';
-import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {
@@ -130,13 +129,14 @@ function maybeFocusRow(
 interface TraceProps {
   manager: VirtualizedViewManager;
   onTraceSearch: (query: string) => void;
+  previouslyFocusedIndexRef: React.MutableRefObject<number | null>;
   roving_dispatch: React.Dispatch<RovingTabIndexAction>;
   roving_state: RovingTabIndexState;
   searchResultsIteratorIndex: number | undefined;
   searchResultsMap: Map<TraceTreeNode<TraceTree.NodeValue>, number>;
   search_dispatch: React.Dispatch<TraceSearchAction>;
   search_state: TraceSearchState;
-  setDetailNode: (node: TraceTreeNode<TraceTree.NodeValue> | null) => void;
+  setClickedNode: (node: TraceTreeNode<TraceTree.NodeValue> | null) => void;
   trace: TraceTree;
   trace_id: string;
 }
@@ -148,10 +148,11 @@ function Trace({
   roving_dispatch,
   search_state,
   search_dispatch,
-  setDetailNode,
+  setClickedNode: setDetailNode,
   manager,
   searchResultsIteratorIndex,
   searchResultsMap,
+  previouslyFocusedIndexRef,
   onTraceSearch,
 }: TraceProps) {
   const theme = useTheme();
@@ -162,7 +163,6 @@ function Trace({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [_rerender, setRender] = useState(0);
 
-  const previouslyFocusedIndexRef = useRef<number | null>(null);
   const treePromiseStatusRef =
     useRef<Map<TraceTreeNode<TraceTree.NodeValue>, 'loading' | 'error' | 'success'>>();
 
@@ -392,21 +392,10 @@ function Trace({
       setDetailNode,
       search_state,
       search_dispatch,
+      previouslyFocusedIndexRef,
       previousSearchResultIndexRef,
     ]
   );
-
-  const onOutsideClick = useCallback(() => {
-    const {node: _node, ...queryParamsWithoutNode} = qs.parse(location.search);
-
-    browserHistory.push({
-      pathname: location.pathname,
-      query: queryParamsWithoutNode,
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useOnClickOutside(containerRef.current, onOutsideClick);
 
   const onRowKeyDown = useCallback(
     (
@@ -1199,18 +1188,6 @@ function RenderRow(props: {
           >
             <div className="TraceChildrenCountWrapper">
               <Connectors node={props.node} manager={props.manager} />
-              {props.node.children.length > 0 || props.node.canFetch ? (
-                <ChildrenButton
-                  icon={''}
-                  status={props.node.fetchStatus}
-                  expanded={props.node.expanded || props.node.zoomedIn}
-                  onClick={e => props.onExpand(e, props.node, !props.node.expanded)}
-                >
-                  {props.node.children.length > 0
-                    ? COUNT_FORMATTER.format(props.node.children.length)
-                    : null}
-                </ChildrenButton>
-              ) : null}
             </div>
             <PlatformIcon
               platform={props.projects[props.node.value.project_slug] ?? 'default'}
@@ -1240,18 +1217,17 @@ function RenderRow(props: {
             props.manager.onZoomIntoSpace(props.node.space!);
           }}
         >
-          {typeof props.node.value.timestamp === 'number' ? (
-            <div
-              className="ErrorIconBorder"
-              style={{
-                transform: `translateX(${props.manager.computeTransformXFromTimestamp(
-                  props.node.value.timestamp * 1000
-                )}px)`,
-              }}
-            >
-              <IconFire color="errorText" size="xs" />
-            </div>
-          ) : null}
+          <InvisibleTraceBar
+            node_space={props.node.space}
+            manager={props.manager}
+            virtualizedIndex={virtualized_index}
+          >
+            {typeof props.node.value.timestamp === 'number' ? (
+              <div className="TraceError">
+                <IconFire color="errorText" size="xs" />
+              </div>
+            ) : null}
+          </InvisibleTraceBar>
         </div>
       </div>
     );
@@ -1461,6 +1437,42 @@ function TraceBar(props: TraceBarProps) {
         {duration}
       </div>
     </Fragment>
+  );
+}
+
+interface InvisibleTraceBarProps {
+  children: React.ReactNode;
+  manager: VirtualizedViewManager;
+  node_space: [number, number] | null;
+  virtualizedIndex: number;
+}
+
+function InvisibleTraceBar(props: InvisibleTraceBarProps) {
+  if (!props.node_space || !props.children) {
+    return null;
+  }
+
+  const transform = `translateX(${props.manager.computeTransformXFromTimestamp(props.node_space[0])}px)`;
+  return (
+    <div
+      ref={r =>
+        props.manager.registerInvisibleBarRef(
+          r,
+          props.node_space!,
+          props.virtualizedIndex
+        )
+      }
+      className="TraceBar Invisible"
+      style={{
+        transform,
+      }}
+      onDoubleClick={e => {
+        e.stopPropagation();
+        props.manager.onZoomIntoSpace(props.node_space!);
+      }}
+    >
+      {props.children}
+    </div>
   );
 }
 
@@ -1719,24 +1731,21 @@ const TraceStylingWrapper = styled('div')`
       color: ${p => p.theme.error};
     }
 
-    .Link {
-      &:hover {
-        color: ${p => p.theme.blue300};
-      }
-    }
-
-    .ErrorIconBorder {
+    .TraceError {
       position: absolute;
-      margin: 2px;
-      left: -12px;
+      transform: translate(-50%, 0);
       background: ${p => p.theme.background};
-      width: 20px;
-      height: 20px;
-      border: 1px solid ${p => p.theme.error};
+      width: 16px !important;
+      height: 16px !important;
+      background-color: ${p => p.theme.error};
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
+
+      svg {
+        fill: ${p => p.theme.white};
+      }
     }
 
     .TraceRightColumn.Odd {

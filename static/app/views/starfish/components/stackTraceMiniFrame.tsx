@@ -71,7 +71,7 @@ export function MissingFrame() {
   );
 }
 
-const FrameContainer = styled('div')`
+export const FrameContainer = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
