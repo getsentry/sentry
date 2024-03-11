@@ -6,6 +6,7 @@ import * as qs from 'query-string';
 
 import Alert from 'sentry/components/alert';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -155,6 +156,11 @@ function SimilarStackTrace({params, location, project}: Props) {
     (hasSimilarityFeature || hasSimilarityEmbeddingsFeature) &&
     (items.similar.length > 0 || items.filtered.length > 0);
 
+  const DataConsentBanner = HookOrDefault({
+    hookName: 'component:data-consent-banner',
+    defaultComponent: null,
+  });
+
   return (
     <Fragment>
       {hasSimilarityEmbeddingsFeature && (
@@ -181,6 +187,7 @@ function SimilarStackTrace({params, location, project}: Props) {
               )}
             </small>
           </HeaderWrapper>
+          <DataConsentBanner source="grouping" />
           {status === 'loading' && <LoadingIndicator />}
           {status === 'error' && (
             <LoadingError
