@@ -212,7 +212,12 @@ def build_summary_data(
                 ActivityType.SET_REGRESSION.value: set(),
                 ActivityType.SET_ESCALATING.value: set(),
             }
+
             for activity in regressed_or_escalated_groups_today:
+                deduped_groups_by_activity_type.setdefault(activity.type, set()).add(
+                    activity.group
+                )  # still need to remove from regressed
+
                 if activity.type == ActivityType.SET_ESCALATING.value:
                     # if a group is already in the regressed set but we now see it in escalating, remove from regressed and add to escalating
                     # this means the group regressed and then later escalated, and we only want to list it once
@@ -223,24 +228,15 @@ def build_summary_data(
                         deduped_groups_by_activity_type[ActivityType.SET_REGRESSION.value].remove(
                             activity.group
                         )
-                    deduped_groups_by_activity_type[ActivityType.SET_ESCALATING.value].add(
-                        activity.group
-                    )
-                elif (
-                    activity.type == ActivityType.SET_REGRESSION.value
-                    and activity.group
-                    not in deduped_groups_by_activity_type[ActivityType.SET_ESCALATING.value]
-                ):
-                    deduped_groups_by_activity_type[ActivityType.SET_REGRESSION.value].add(
-                        activity.group
-                    )
 
             for activity_type, groups in deduped_groups_by_activity_type.items():
-                if activity_type == ActivityType.SET_REGRESSION.value:
-                    for group in list(groups)[:4]:
+                for group in list(groups):
+                    if (
+                        activity_type == ActivityType.SET_REGRESSION.value
+                        and len(project_ctx.regressed_today) < 4
+                    ):
                         project_ctx.regressed_today.append(group)
-                else:
-                    for group in list(groups)[:4]:
+                    elif len(project_ctx.escalated_today) < 4:
                         project_ctx.escalated_today.append(group)
 
             # The project's releases and the (max) top 3 new errors e.g. release - group1, group2
