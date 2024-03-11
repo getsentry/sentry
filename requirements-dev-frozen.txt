@@ -67,8 +67,8 @@ google-cloud-spanner==3.40.1
 google-cloud-storage==2.14.0
 google-crc32c==1.5.0
 google-resumable-media==2.7.0
-googleapis-common-protos==1.62.0
-grpc-google-iam-v1==0.12.4
+googleapis-common-protos==1.63.0
+grpc-google-iam-v1==0.13.0
 grpcio==1.60.1
 grpcio-status==1.60.1
 h11==0.13.0
@@ -177,7 +177,7 @@ sentry-cli==2.16.0
 sentry-devenv==1.2.3
 sentry-forked-django-stubs==4.2.7.post3
 sentry-forked-djangorestframework-stubs==3.14.5.post1
-sentry-kafka-schemas==0.1.58
+sentry-kafka-schemas==0.1.60
 sentry-ophio==0.1.5
 sentry-redis-tools==0.1.7
 sentry-relay==0.8.49

@@ -1,10 +1,11 @@
 import logging
 import time
-from datetime import datetime, timedelta
+from datetime import timedelta
 from unittest.mock import Mock, patch
 
 import pytest
 from django.conf import settings
+from django.utils import timezone
 from snuba_sdk import Column, Condition, Entity, Op, Query, Request
 
 from sentry import nodestore
@@ -100,7 +101,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
     @patch("sentry.eventstream.backend.insert", autospec=True)
     def test(self, mock_eventstream_insert):
-        now = datetime.utcnow()
+        now = timezone.now()
 
         event = self.__build_event(now)
 
@@ -137,7 +138,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
     @patch("sentry.eventstream.backend.insert", autospec=True)
     def test_issueless(self, mock_eventstream_insert):
-        now = datetime.utcnow()
+        now = timezone.now()
         event = self.__build_transaction_event()
         event.group_id = None
         insert_args = ()
@@ -165,7 +166,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
     @patch("sentry.eventstream.backend.insert", autospec=True)
     def test_multiple_groups(self, mock_eventstream_insert):
-        now = datetime.utcnow()
+        now = timezone.now()
         event = self.__build_transaction_event()
         event.group_id = None
         event.groups = [self.group]
@@ -221,7 +222,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
     @patch("sentry.eventstream.backend.insert", autospec=True)
     def test_groupevent_occurrence_passed(self, mock_eventstream_insert):
-        now = datetime.utcnow()
+        now = timezone.now()
         event = self.__build_transaction_event()
         event.group_id = self.group.id
         group_event = event.for_group(self.group)
@@ -283,7 +284,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
     @patch("sentry.eventstream.backend.insert", autospec=True)
     def test_error_queue(self, mock_eventstream_insert):
-        now = datetime.utcnow()
+        now = timezone.now()
 
         event = self.__build_event(now)
 
@@ -376,7 +377,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         event_data = {
             **profile_message["event"],
             "user": {"geo": geo_interface},
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": timezone.now().isoformat(),
         }
 
         project_id = event_data.get("project_id", self.project.id)
