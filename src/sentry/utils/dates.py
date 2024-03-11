@@ -26,14 +26,6 @@ def ensure_aware(value: datetime) -> datetime:
     return make_aware(value)
 
 
-def to_timestamp(value: datetime) -> float:
-    """
-    Convert a time zone aware datetime to a POSIX timestamp (with fractional
-    component.)
-    """
-    return (value - epoch).total_seconds()
-
-
 def to_timestamp_from_iso_format(value: str) -> float:
     """
     Convert a str representation of datetime in iso format to
