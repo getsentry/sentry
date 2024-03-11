@@ -208,13 +208,13 @@ def build_summary_data(
                 type__in=(ActivityType.SET_REGRESSION.value, ActivityType.SET_ESCALATING.value),
             )
 
-            deduped_groups_by_activity_type: dict[int, set] = {
-                ActivityType.SET_REGRESSION.value: set(),
-                ActivityType.SET_ESCALATING.value: set(),
+            deduped_groups_by_activity_type: dict[ActivityType, set] = {
+                ActivityType.SET_REGRESSION: set(),
+                ActivityType.SET_ESCALATING: set(),
             }
 
             for activity in regressed_or_escalated_groups_today:
-                deduped_groups_by_activity_type.setdefault(activity.type, set()).add(
+                deduped_groups_by_activity_type.setdefault(ActivityType(activity.type), set()).add(
                     activity.group
                 )  # still need to remove from regressed
 
@@ -223,9 +223,9 @@ def build_summary_data(
                     # this means the group regressed and then later escalated, and we only want to list it once
                     if (
                         activity.group
-                        in deduped_groups_by_activity_type[ActivityType.SET_REGRESSION.value]
+                        in deduped_groups_by_activity_type[ActivityType.SET_REGRESSION]
                     ):
-                        deduped_groups_by_activity_type[ActivityType.SET_REGRESSION.value].remove(
+                        deduped_groups_by_activity_type[ActivityType.SET_REGRESSION].remove(
                             activity.group
                         )
 
