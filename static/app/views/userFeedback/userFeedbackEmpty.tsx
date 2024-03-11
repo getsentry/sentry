@@ -17,11 +17,11 @@ import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 
 type Props = {
-  issueTab: boolean;
+  issueTab?: boolean;
   projectIds?: string[];
 };
 
-export function UserFeedbackEmpty({projectIds, issueTab}: Props) {
+export function UserFeedbackEmpty({projectIds, issueTab = false}: Props) {
   const {projects, initiallyLoaded} = useProjects();
   const loadingProjects = !initiallyLoaded;
   const organization = useOrganization();
