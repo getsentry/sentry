@@ -105,6 +105,7 @@ describe('useSpanMetricsSeries', () => {
             transaction: '/api/details',
             release: '0.0.1',
             'resource.render_blocking_status': 'blocking' as const,
+            environment: undefined,
           },
           yAxis: ['spm()'] as MetricsProperty[],
         },

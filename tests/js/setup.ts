@@ -152,12 +152,10 @@ declare global {
   /**
    * Generates a promise that resolves on the next macro-task
    */
-  // biome-ignore lint/style/noVar: Not required
   var tick: () => Promise<void>;
   /**
    * Used to mock API requests
    */
-  // biome-ignore lint/style/noVar: Not required
   var MockApiClient: typeof Client;
 }
 

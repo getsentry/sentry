@@ -9,6 +9,7 @@ import type {
   GridColumnSortBy,
 } from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
@@ -25,6 +26,7 @@ import {useRoutes} from 'sentry/utils/useRoutes';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
 import {WebVitalDetailHeader} from 'sentry/views/performance/browser/webVitals/components/webVitalDescription';
 import {WebVitalStatusLineChart} from 'sentry/views/performance/browser/webVitals/components/webVitalStatusLineChart';
+import useProfileExists from 'sentry/views/performance/browser/webVitals/utils/profiling/useProfileExists';
 import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
 import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
@@ -53,6 +55,11 @@ const columnOrder: GridColumnOrder[] = [
 ];
 
 const inpColumnOrder: GridColumnOrder[] = [
+  {
+    key: SpanIndexedField.SPAN_DESCRIPTION,
+    width: COL_WIDTH_UNDEFINED,
+    name: t('Interaction Target'),
+  },
   {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: t('Profile')},
   {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: t('Replay')},
   {key: 'webVital', width: COL_WIDTH_UNDEFINED, name: t('Inp')},
@@ -121,6 +128,10 @@ export function PageOverviewWebVitalsDetailPanel({
       transaction: transaction ?? '',
       enabled: Boolean(webVital) && isInp,
     });
+
+  const {profileExists} = useProfileExists(
+    inpTableData.filter(row => row['profile.id']).map(row => row['profile.id'])
+  );
 
   const {data: timeseriesData, isLoading: isTimeseriesLoading} =
     useProjectRawWebVitalsValuesTimeseriesQuery({transaction});
@@ -300,7 +311,11 @@ export function PageOverviewWebVitalsDetailPanel({
       );
     }
     if (key === 'profile.id') {
-      if (!defined(project) || !defined(row['profile.id'])) {
+      if (
+        !defined(project) ||
+        !defined(row['profile.id']) ||
+        !profileExists(row['profile.id'])
+      ) {
         return (
           <AlignCenter>
             <NoValue>{t('(no value)')}</NoValue>
@@ -317,6 +332,13 @@ export function PageOverviewWebVitalsDetailPanel({
         <AlignCenter>
           <Link to={target}>{getShortEventId(row['profile.id'])}</Link>
         </AlignCenter>
+      );
+    }
+    if (key === SpanIndexedField.SPAN_DESCRIPTION) {
+      return (
+        <NoOverflow>
+          <Tooltip title={row[key]}>{row[key]}</Tooltip>
+        </NoOverflow>
       );
     }
     return <AlignRight>{row[key]}</AlignRight>;
@@ -382,6 +404,7 @@ export function PageOverviewWebVitalsDetailPanel({
 const NoOverflow = styled('span')`
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 const AlignRight = styled('span')<{color?: string}>`

@@ -181,18 +181,6 @@ _parameterization_regex_experiments = [
             """
         ),
     ),
-    ParameterizationExperiment(
-        name="json_str_val",
-        regex=re.compile(
-            _parameterization_regex_str
-            + r"""|
-                (?P<json_str_val>
-                    :\s?'([^']+)' |
-                    :\s?"([^"]+)"
-                )
-            """
-        ),
-    ),
 ]
 
 
@@ -224,8 +212,6 @@ def normalize_message_for_grouping(message: str, event: Event, share_analytics: 
                 # in contexts other than key-value pairs
                 if key in ["quoted_str", "bool"]:
                     return f"=<{key}>"
-                elif key == "json_str_val":
-                    return f": <{key}>"
                 else:
                     return f"<{key}>"
         return ""

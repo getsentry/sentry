@@ -204,8 +204,9 @@ def clock_pulse(current_datetime=None):
     # We create a clock-pulse (heart-beat) for EACH available partition in the
     # topic. This is a requirement to ensure that none of the partitions stall,
     # since the global clock is tied to the slowest partition.
+    topic = ArroyoTopic(get_topic_definition(Topic.INGEST_MONITORS)["real_topic_name"])
     for partition in _get_partitions().values():
-        dest = Partition(ArroyoTopic(settings.KAFKA_INGEST_MONITORS), partition.id)
+        dest = Partition(topic, partition.id)
         _checkin_producer.produce(dest, payload)
 
 
