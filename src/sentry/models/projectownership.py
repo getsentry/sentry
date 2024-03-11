@@ -236,7 +236,7 @@ class ProjectOwnership(Model):
         group: Group | None = None,
         organization_id: int | None = None,
         force_autoassign: bool = False,
-        logging_extra: dict[str, str] | None = None,
+        logging_extra: dict[str, str | bool] | None = None,
     ):
         """
         Get the auto-assign owner for a project if there are any.
