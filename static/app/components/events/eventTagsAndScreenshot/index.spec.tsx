@@ -594,5 +594,72 @@ describe('EventTagsAndScreenshot', function () {
       });
       assertFlagAndQueryParamWork();
     });
+
+    it("allows filtering with 'event-tags-new-ui' flag", async function () {
+      MockApiClient.addMockResponse({
+        url: `/projects/${featuredOrganization.slug}/${project.slug}/events/${event.id}/attachments/`,
+        body: [],
+      });
+      const applicationTags = [
+        {key: 'app', value: 'Sentry'},
+        {key: 'app.app_start_time', value: '2008-05-08T00:00:00.000Z'},
+        {key: 'app.app_name', value: 'com.sentry.app'},
+        {key: 'app.app_version', value: '0.0.2'},
+      ];
+      const customTags = [
+        {key: 'custom', value: 'some-value'},
+        {key: 'custom.nested', value: 'some-other-value'},
+      ];
+      const allTags = applicationTags.concat(customTags);
+      const testEvent = EventFixture({tags: allTags});
+      render(<EventTagsAndScreenshot projectSlug={project.slug} event={testEvent} />, {
+        organization: featuredOrganization,
+      });
+      let rows = screen.queryAllByTestId('tag-tree-row');
+      expect(rows).toHaveLength(allTags.length);
+
+      await userEvent.click(screen.getByTestId(TagFilter.APPLICATION));
+      rows = screen.queryAllByTestId('tag-tree-row');
+      expect(rows).toHaveLength(applicationTags.length);
+
+      // Hide categories that don't have tags for this event
+      expect(screen.queryByTestId(TagFilter.CLIENT)).not.toBeInTheDocument();
+      expect(screen.queryByTestId(TagFilter.OTHER)).not.toBeInTheDocument();
+
+      // Always show 'Custom' and 'All' selectors though
+      await userEvent.click(screen.getByTestId(TagFilter.CUSTOM));
+      rows = screen.queryAllByTestId('tag-tree-row');
+      expect(rows).toHaveLength(customTags.length);
+
+      await userEvent.click(screen.getByTestId(TagFilter.ALL));
+      rows = screen.queryAllByTestId('tag-tree-row');
+      expect(rows).toHaveLength(allTags.length);
+    });
+
+    it("promotes custom tags with 'event-tags-new-ui' flag", async function () {
+      MockApiClient.addMockResponse({
+        url: `/projects/${featuredOrganization.slug}/${project.slug}/events/${event.id}/attachments/`,
+        body: [],
+      });
+      const applicationTags = [
+        {key: 'app', value: 'Sentry'},
+        {key: 'app.app_start_time', value: '2008-05-08T00:00:00.000Z'},
+        {key: 'app.app_name', value: 'com.sentry.app'},
+        {key: 'app.app_version', value: '0.0.2'},
+      ];
+      const testEvent = EventFixture({tags: applicationTags});
+      render(<EventTagsAndScreenshot projectSlug={project.slug} event={testEvent} />, {
+        organization: featuredOrganization,
+      });
+      const rows = screen.queryAllByTestId('tag-tree-row');
+      expect(rows).toHaveLength(applicationTags.length);
+
+      expect(screen.queryByTestId(TagFilter.CLIENT)).not.toBeInTheDocument();
+      expect(screen.queryByTestId(TagFilter.OTHER)).not.toBeInTheDocument();
+
+      // Even without custom tags, show the banner when category is selected
+      await userEvent.click(screen.getByTestId(TagFilter.CUSTOM));
+      expect(screen.getByTestId('event-tags-custom-banner')).toBeInTheDocument();
+    });
   });
 });

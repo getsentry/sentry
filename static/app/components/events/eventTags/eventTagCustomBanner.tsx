@@ -11,7 +11,7 @@ import {space} from 'sentry/styles/space';
 
 export default function EventTagCustomBanner() {
   return (
-    <Wrapper>
+    <Wrapper data-test-id="event-tags-custom-banner">
       <Body>
         <div>
           <Title>{t('Debug better with custom tags')}</Title>
