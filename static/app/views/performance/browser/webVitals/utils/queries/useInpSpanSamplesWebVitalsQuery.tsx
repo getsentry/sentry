@@ -1,4 +1,9 @@
-import type {InteractionSpanSampleRowWithScore} from 'sentry/views/performance/browser/webVitals/utils/types';
+import {
+  DEFAULT_INDEXED_INTERACTION_SORT,
+  type InteractionSpanSampleRowWithScore,
+  SORTABLE_INDEXED_INTERACTION_FIELDS,
+} from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 import {
   type Filters,
   useIndexedSpans,
@@ -10,12 +15,20 @@ export function useInpSpanSamplesWebVitalsQuery({
   limit,
   enabled,
   filters = {},
+  sortName,
 }: {
   limit: number;
   enabled?: boolean;
   filters?: Filters;
+  sortName?: string;
   transaction?: string;
 }) {
+  const filteredSortableFields = SORTABLE_INDEXED_INTERACTION_FIELDS;
+  const sort = useWebVitalsSort({
+    sortName,
+    defaultSort: DEFAULT_INDEXED_INTERACTION_SORT,
+    sortableFields: filteredSortableFields as unknown as string[],
+  });
   const {data, isLoading, ...rest} = useIndexedSpans({
     filters: {
       'span.op': 'ui.interaction.click',
@@ -25,7 +38,7 @@ export function useInpSpanSamplesWebVitalsQuery({
         : {}),
       ...filters,
     },
-    sorts: [{field: SpanIndexedField.TIMESTAMP, kind: 'desc'}],
+    sorts: [sort],
     fields: [
       SpanIndexedField.INP,
       SpanIndexedField.INP_SCORE,
