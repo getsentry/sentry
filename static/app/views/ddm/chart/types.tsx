@@ -13,6 +13,7 @@ export type Series = {
   paddingIndices?: Set<number>;
   release?: string;
   scalingFactor?: number;
+  stack?: string;
   transaction?: string;
 };
 

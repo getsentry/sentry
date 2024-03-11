@@ -2,6 +2,10 @@ import type {RefObject} from 'react';
 import moment from 'moment';
 
 import type {ReactEchartsRef} from 'sentry/types/echarts';
+import {
+  SAMPLES_X_AXIS_ID,
+  SAMPLES_Y_AXIS_ID,
+} from 'sentry/views/ddm/chart/useMetricChartSamples';
 
 export type ValueRect = {
   xMax: number;
@@ -35,7 +39,7 @@ export function getValueRect(chartRef?: RefObject<ReactEchartsRef>): ValueRect {
     return DEFAULT_VALUE_RECT;
   }
 
-  const finder = {xAxisId: 'xAxis', yAxisId: 'yAxis'};
+  const finder = {xAxisId: SAMPLES_X_AXIS_ID, yAxisId: SAMPLES_Y_AXIS_ID};
 
   const topLeft = chartInstance.convertFromPixel(finder, [0, 0]);
   const bottomRight = chartInstance.convertFromPixel(finder, [

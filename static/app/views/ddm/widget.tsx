@@ -393,9 +393,8 @@ const MetricWidgetBody = memo(
       [router]
     );
 
-    const hasCumulativeOp = queries.some(
-      q => !isMetricFormula(q) && isCumulativeOp(q.op)
-    );
+    const isCumulativeSamplesOp =
+      queries[0] && !isMetricFormula(queries[0]) && isCumulativeOp(queries[0].op);
     const firstScalingFactor = chartSeries.find(s => !s.hidden)?.scalingFactor || 1;
 
     const focusArea = useFocusArea({
@@ -405,7 +404,7 @@ const MetricWidgetBody = memo(
       opts: {
         widgetIndex,
         isDisabled: !focusAreaProps.onAdd,
-        useFullYAxis: hasCumulativeOp,
+        useFullYAxis: isCumulativeSamplesOp,
       },
       onZoom: handleZoom,
     });
