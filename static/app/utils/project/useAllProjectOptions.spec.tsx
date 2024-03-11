@@ -1,12 +1,12 @@
 import type {ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {ProjectOptionFixture} from 'sentry-fixture/projectOptionFixture';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
-import projectToProjectVisibility from 'sentry/utils/project/projectToProjectVisibility';
-import useAllProjectVisibility from 'sentry/utils/project/useAllProjectVisibility';
+import useAllProjectOptions from 'sentry/utils/project/useAllProjectOptions';
 import type {QueryClient} from 'sentry/utils/queryClient';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -20,7 +20,7 @@ function makeWrapper(queryClient: QueryClient) {
   };
 }
 
-describe('useAllProjectVisibility', () => {
+describe('useAllProjectOptions', () => {
   const mockOrg = OrganizationFixture();
   jest.mocked(useOrganization).mockReturnValue(mockOrg);
 
@@ -30,10 +30,10 @@ describe('useAllProjectVisibility', () => {
   const project11 = ProjectFixture({id: '11', slug: 'eleven'});
   const project20 = ProjectFixture({id: '20', slug: 'twenty'});
   const project21 = ProjectFixture({id: '21', slug: 'twenty one'});
-  const project10Vis = projectToProjectVisibility(project10);
-  const project11Vis = projectToProjectVisibility(project11);
-  const project20Vis = projectToProjectVisibility(project20);
-  const project21Vis = projectToProjectVisibility(project21);
+  const project10Option = ProjectOptionFixture(project10);
+  const project11Option = ProjectOptionFixture(project11);
+  const project20Option = ProjectOptionFixture(project20);
+  const project21Option = ProjectOptionFixture(project21);
 
   it('should return a list of all projects', async () => {
     const firstPage = MockApiClient.addMockResponse({
@@ -49,7 +49,7 @@ describe('useAllProjectVisibility', () => {
       headers: {Link: getPaginationPageLink({numRows: 130, pageSize: 100, offset: 100})},
     });
 
-    const {result, waitFor} = reactHooks.renderHook(useAllProjectVisibility, {
+    const {result, waitFor} = reactHooks.renderHook(useAllProjectOptions, {
       wrapper: makeWrapper(makeTestQueryClient()),
       initialProps: {},
     });
@@ -59,10 +59,10 @@ describe('useAllProjectVisibility', () => {
 
     await waitFor(() => expect(result.current.isFetching).toBeFalsy());
     expect(result.current.projects).toEqual([
-      project10Vis,
-      project11Vis,
-      project20Vis,
-      project21Vis,
+      project10Option,
+      project11Option,
+      project20Option,
+      project21Option,
     ]);
     expect(firstPage).toHaveBeenCalled();
     expect(secondPage).toHaveBeenCalled();
@@ -82,21 +82,21 @@ describe('useAllProjectVisibility', () => {
       headers: {Link: getPaginationPageLink({numRows: 130, pageSize: 100, offset: 100})},
     });
 
-    const {result, waitFor} = reactHooks.renderHook(useAllProjectVisibility, {
+    const {result, waitFor} = reactHooks.renderHook(useAllProjectOptions, {
       wrapper: makeWrapper(makeTestQueryClient()),
       initialProps: {},
     });
 
     await waitFor(() => expect(result.current.isFetching).toBeFalsy());
 
-    expect(result.current.getById('10')).toEqual(project10Vis);
-    expect(result.current.getById('11')).toEqual(project11Vis);
-    expect(result.current.getById('20')).toEqual(project20Vis);
-    expect(result.current.getById('21')).toEqual(project21Vis);
+    expect(result.current.getById('10')).toEqual(project10Option);
+    expect(result.current.getById('11')).toEqual(project11Option);
+    expect(result.current.getById('20')).toEqual(project20Option);
+    expect(result.current.getById('21')).toEqual(project21Option);
 
-    expect(result.current.getBySlug('ten')).toEqual(project10Vis);
-    expect(result.current.getBySlug('eleven')).toEqual(project11Vis);
-    expect(result.current.getBySlug('twenty')).toEqual(project20Vis);
-    expect(result.current.getBySlug('twenty one')).toEqual(project21Vis);
+    expect(result.current.getBySlug('ten')).toEqual(project10Option);
+    expect(result.current.getBySlug('eleven')).toEqual(project11Option);
+    expect(result.current.getBySlug('twenty')).toEqual(project20Option);
+    expect(result.current.getBySlug('twenty one')).toEqual(project21Option);
   });
 });

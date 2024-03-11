@@ -1,20 +1,20 @@
 import type {ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {ProjectOptionFixture} from 'sentry-fixture/projectOptionFixture';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import type {Project} from 'sentry/types';
-import projectToProjectVisibility from 'sentry/utils/project/projectToProjectVisibility';
-import useAllProjectVisibility from 'sentry/utils/project/useAllProjectVisibility';
+import useAllProjectOptions from 'sentry/utils/project/useAllProjectOptions';
 import useProject from 'sentry/utils/project/useProject';
 import type {QueryClient} from 'sentry/utils/queryClient';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 jest.mock('sentry/utils/useOrganization');
-jest.mock('sentry/utils/project/useAllProjectVisibility');
+jest.mock('sentry/utils/project/useAllProjectOptions');
 
 function makeWrapper(queryClient: QueryClient) {
   return function wrapper({children}: {children?: ReactNode}) {
@@ -22,16 +22,16 @@ function makeWrapper(queryClient: QueryClient) {
   };
 }
 
-function mockAllProjectVisibility(projects: Project[]) {
-  jest.mocked(useAllProjectVisibility).mockReturnValue({
-    projects: projects.map(projectToProjectVisibility),
+function mockAllProjectOptions(projects: Project[]) {
+  jest.mocked(useAllProjectOptions).mockReturnValue({
+    projects: projects.map(ProjectOptionFixture),
     getById: jest.fn(),
     getBySlug: jest
       .fn()
       .mockImplementation(
         slug =>
           Object.fromEntries(
-            projects.map(project => [project.slug, projectToProjectVisibility(project)])
+            projects.map(project => [project.slug, ProjectOptionFixture(project)])
           )[slug]
       ),
     isFetching: false,
@@ -49,7 +49,7 @@ describe('useProject', () => {
   const project20 = ProjectFixture({id: '20', slug: 'twenty'});
 
   it('should fetch by id when an id is passed in', async () => {
-    mockAllProjectVisibility([]);
+    mockAllProjectOptions([]);
     const mockResponse = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [project10],
@@ -69,7 +69,7 @@ describe('useProject', () => {
   });
 
   it('should batch and fetch by id when an id is passed in', async () => {
-    mockAllProjectVisibility([]);
+    mockAllProjectOptions([]);
     const mockResponse = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/projects/`,
       body: [project10, project20],
@@ -94,7 +94,7 @@ describe('useProject', () => {
   });
 
   it('should fetch by slug when a slug is passed in', async () => {
-    mockAllProjectVisibility([]);
+    mockAllProjectOptions([]);
     const mockResponse = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [project10],
@@ -114,7 +114,7 @@ describe('useProject', () => {
   });
 
   it('should fetch id if the useAllProjectsVisibility is loaded and a slug is passed in', async () => {
-    mockAllProjectVisibility([project10, project20]);
+    mockAllProjectOptions([project10, project20]);
     const mockResponse = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [project10],
@@ -134,7 +134,7 @@ describe('useProject', () => {
   });
 
   it('should re-fetch projects by slug if it was fetching that way before (ie: was fetched before useAllProjectsVisibility was ready)', async () => {
-    mockAllProjectVisibility([]);
+    mockAllProjectOptions([]);
     const mockResponse = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [project10],
@@ -148,7 +148,7 @@ describe('useProject', () => {
 
     await waitFor(() => expect(mockResponse).toHaveBeenCalled());
 
-    mockAllProjectVisibility([project10, project20]);
+    mockAllProjectOptions([project10, project20]);
     rerender({slug: project10.slug});
 
     await waitFor(() => expect(mockResponse).toHaveBeenCalledTimes(2));
@@ -165,7 +165,7 @@ describe('useProject', () => {
   });
 
   it('should return projects by id if they are in the cache', async () => {
-    mockAllProjectVisibility([]);
+    mockAllProjectOptions([]);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [project10],
@@ -183,7 +183,7 @@ describe('useProject', () => {
   });
 
   it('should return projects by slug if they are in the cache', async () => {
-    mockAllProjectVisibility([]);
+    mockAllProjectOptions([]);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [project10],
@@ -201,7 +201,7 @@ describe('useProject', () => {
   });
 
   it('should return projects by id if the slug is passed, and in the lookup map, and the id is fetched', async () => {
-    mockAllProjectVisibility([project10]);
+    mockAllProjectOptions([project10]);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [project10],

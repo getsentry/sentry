@@ -3,13 +3,13 @@ import {useCallback, useEffect, useMemo} from 'react';
 import type {ApiResult} from 'sentry/api';
 import type {Project} from 'sentry/types';
 import useAggregatedQueryKeys from 'sentry/utils/api/useAggregatedQueryKeys';
-import useAllProjectVisibility from 'sentry/utils/project/useAllProjectVisibility';
+import useAllProjectOptions from 'sentry/utils/project/useAllProjectOptions';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type Props =
-  | {slug: string | undefined; id?: undefined}
-  | {id: string | undefined; slug?: undefined};
+  | {slug: string | undefined; id?: never}
+  | {id: string | undefined; slug?: never};
 
 type AggQueryKey = string;
 
@@ -28,7 +28,7 @@ function makeResponseReducer(fieldName: string) {
 
 export default function useProject({slug, id}: Props) {
   const organiation = useOrganization();
-  const {getBySlug} = useAllProjectVisibility({});
+  const {getBySlug} = useAllProjectOptions({});
 
   const getQueryKey = useCallback(
     (ids: readonly AggQueryKey[]): ApiQueryKey => [

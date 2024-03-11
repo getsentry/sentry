@@ -7,6 +7,9 @@ import type {DynamicSamplingBias} from './sampling';
 
 /**
  * Minimal project representation for use with avatars.
+ *
+ * Convert to ProjectOption instead.
+ *
  * @deprecated
  */
 export type AvatarProject = {
@@ -18,7 +21,7 @@ export type AvatarProject = {
 /**
  * Minimal project representation for use with avatars, project selector, etc.
  */
-export interface ProjectVisibility {
+export interface ProjectOption {
   environments: string[];
   id: string;
   isMember: boolean;
@@ -37,10 +40,15 @@ export type Project = {
   digestsMinDelay: number;
   dynamicSamplingBiases: DynamicSamplingBias[] | null;
   environments: string[];
-  // @deprecated
+  /**
+   * @deprecated
+   */
   eventProcessing: {
     symbolicationDegraded: boolean;
   };
+  /**
+   * @deprecated
+   */
   features: string[];
   firstEvent: string | null;
   firstTransactionEvent: boolean;
@@ -78,7 +86,10 @@ export type Project = {
   builtinSymbolSources?: string[];
   defaultEnvironment?: string;
   hasUserReports?: boolean;
-  latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null; // @deprecated
+  /**
+   * @deprecated
+   */
+  latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   latestRelease?: {version: string} | null;
   options?: Record<string, boolean | string>;
   platform?: PlatformKey;

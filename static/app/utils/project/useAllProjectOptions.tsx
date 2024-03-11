@@ -1,8 +1,7 @@
 import {useCallback, useMemo} from 'react';
 
-import type {Project, ProjectVisibility} from 'sentry/types';
+import type {Project, ProjectOption} from 'sentry/types';
 import useFetchSequentialPages from 'sentry/utils/api/useFetchSequentialPages';
-import projectToProjectVisibility from 'sentry/utils/project/projectToProjectVisibility';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -12,11 +11,29 @@ interface Props {
   perPage?: number;
 }
 
-export default function useAllProjectsVisibility({
-  enabled,
-  initialCursor,
-  perPage,
-}: Props) {
+/**
+ * Temporary converter until https://github.com/getsentry/sentry/pull/66290 lands
+ * and we can fetch only the data we need directly.
+ *
+ * @deprecated
+ */
+function projectToProjectOption({
+  id,
+  slug,
+  isMember,
+  environments,
+  platform,
+}: Project): ProjectOption {
+  return {
+    id,
+    slug,
+    isMember,
+    environments,
+    platform: platform || 'other', // Use `||` to account for `null` or `""`
+  };
+}
+
+export default function useAllProjectsOptions({enabled, initialCursor, perPage}: Props) {
   const organiation = useOrganization();
   const {pages, isFetching, getLastResponseHeader, isError, error} =
     useFetchSequentialPages<Project[]>({
@@ -39,25 +56,18 @@ export default function useAllProjectsVisibility({
     });
 
   const projects = useMemo(
-    () =>
-      pages.flatMap((items): ProjectVisibility[] =>
-        items.map(projectToProjectVisibility)
-      ),
+    () => pages.flatMap((items): ProjectOption[] => items.map(projectToProjectOption)),
     [pages]
   );
 
   const getBySlug = useCallback(
-    (slug: string | undefined): ProjectVisibility | undefined =>
-      slug
-        ? Object.fromEntries(projects.map(project => [project.slug, project]))[slug]
-        : undefined,
+    (slug: string | undefined): ProjectOption | undefined =>
+      slug ? projects.find(project => project.slug === slug) : undefined,
     [projects]
   );
   const getById = useCallback(
-    (id: string | undefined): ProjectVisibility | undefined =>
-      id
-        ? Object.fromEntries(projects.map(project => [project.id, project]))[id]
-        : undefined,
+    (id: string | undefined): ProjectOption | undefined =>
+      id ? projects.find(project => project.id === id) : undefined,
     [projects]
   );
 
