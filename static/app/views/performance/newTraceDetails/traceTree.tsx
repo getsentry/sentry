@@ -218,7 +218,7 @@ function maybeInsertMissingInstrumentationSpan(
 // cls is not included as it is a cumulative layout shift and not a single point in time
 const RENDERABLE_MEASUREMENTS = ['fcp', 'fp', 'lcp', 'ttfb'];
 export class TraceTree {
-  type: 'loading' | 'empty' | 'trace' = 'trace';
+  type: 'loading' | 'empty' | 'error' | 'trace' = 'trace';
   root: TraceTreeNode<null> = TraceTreeNode.Root();
   indicators: TraceTree.Indicator[] = [];
 
@@ -231,10 +231,24 @@ export class TraceTree {
     return tree;
   }
 
-  static Loading(metadata: TraceTree.Metadata): TraceTree {
-    const tree = makeExampleTrace(metadata);
-    tree.type = 'loading';
-    return tree;
+  static Loading(metadata: TraceTree.Metadata, tree?: TraceTree | null): TraceTree {
+    const t = tree ? TraceTree.FromTree(tree) : makeExampleTrace(metadata);
+    t.type = 'loading';
+    return t;
+  }
+
+  static Error(metadata: TraceTree.Metadata, tree?: TraceTree | null): TraceTree {
+    const t = tree ? TraceTree.FromTree(tree) : makeExampleTrace(metadata);
+    t.type = 'error';
+    return t;
+  }
+
+  static FromTree(tree: TraceTree): TraceTree {
+    const newTree = new TraceTree();
+    newTree.root = tree.root.cloneDeep() as TraceTreeNode<null>;
+    newTree.indicators = tree.indicators;
+    newTree._list = tree._list;
+    return newTree;
   }
 
   static FromTrace(trace: TraceTree.Trace, event?: EventTransaction): TraceTree {
@@ -323,8 +337,8 @@ export class TraceTree {
     return tree.build();
   }
 
-  static GetTraceType(root: TraceTreeNode<null>): TraceType {
-    const trace = root.children[0];
+  get shape(): TraceType {
+    const trace = this.root.children[0];
     if (!trace || !isTraceNode(trace)) {
       throw new TypeError('Not trace node');
     }
