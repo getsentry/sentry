@@ -22,7 +22,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   project: Project;
 };
 
-class ProjectUserFeedbackSettings extends DeprecatedAsyncView<Props> {
+class ProjectReplaySettings extends DeprecatedAsyncView<Props> {
   submitTimeout: number | undefined = undefined;
 
   getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
@@ -71,7 +71,7 @@ class ProjectUserFeedbackSettings extends DeprecatedAsyncView<Props> {
   }
 }
 
-export default ProjectUserFeedbackSettings;
+export default ProjectReplaySettings;
 
 const ButtonList = styled('div')`
   display: inline-grid;
