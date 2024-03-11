@@ -151,6 +151,7 @@ def bulk_get_groups_from_fingerprints(
                 "project_id": project_id,
                 "fingerprint": fingerprint,
             },
+            stack_info=True,
         )
 
     return result
