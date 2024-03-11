@@ -117,27 +117,47 @@ describe('EventTagsTree', function () {
     await assertNewTagsView();
   });
 
-  it('renders unique tag itmes', async function () {
+  it('renders release tag differently', async function () {
     const releaseVersion = 'v1.0';
-    MockApiClient.addMockResponse({
+    const featuredOrganization = OrganizationFixture({features: ['event-tags-tree-ui']});
+
+    const reposRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/repos/`,
       body: [],
     });
-    MockApiClient.addMockResponse({
+    const releasesRequest = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/releases/${releaseVersion}/`,
       body: [],
     });
-    MockApiClient.addMockResponse({
+    const deploysRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/releases/${releaseVersion}/deploys/`,
       body: [],
     });
 
+    const releaseEvent = EventFixture({
+      tags: [{key: 'release', value: releaseVersion}],
+    });
+    render(<EventTags projectSlug={project.slug} event={releaseEvent} />, {
+      organization: featuredOrganization,
+    });
+    const versionText = screen.getByText<
+      HTMLElement & {parentElement: HTMLAnchorElement}
+    >(releaseVersion);
+    const anchorLink = versionText.parentElement;
+    expect(anchorLink.href).toContain(
+      `/organizations/${organization.slug}/releases/${releaseVersion}/`
+    );
+    expect(reposRequest).toHaveBeenCalled();
+    expect(releasesRequest).toHaveBeenCalled();
+    expect(deploysRequest).toHaveBeenCalled();
+    const dropdown = screen.getByLabelText('Tag Actions Menu');
+    await userEvent.click(dropdown);
+    expect(screen.getByLabelText('View this release')).toBeInTheDocument();
+  });
+
+  it('renders unique links for specific tags', async function () {
     const featuredOrganization = OrganizationFixture({features: ['event-tags-tree-ui']});
-    const uniqueTagsData = [
-      {
-        tag: {key: 'release', value: releaseVersion},
-        labelText: 'View this release',
-      },
+    const specificTagsData = [
       {
         tag: {key: 'transaction', value: 'abc123'},
         labelText: 'View this transaction',
@@ -151,7 +171,7 @@ describe('EventTagsTree', function () {
         labelText: 'Visit this external link',
       },
     ];
-    for (const {tag, labelText} of uniqueTagsData) {
+    for (const {tag, labelText} of specificTagsData) {
       const uniqueTagsEvent = EventFixture({tags: [tag]});
       const {unmount} = render(
         <EventTags projectSlug={project.slug} event={uniqueTagsEvent} />,
