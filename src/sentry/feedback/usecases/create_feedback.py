@@ -303,6 +303,12 @@ def shim_to_feedback(
             feedback_event["tags"] = [list(item) for item in event.tags]
 
         else:
+            metrics.incr(
+                "feedback.user_report.missing_event",
+                sample_rate=1.0,
+                tags={"project_id": project.id},
+            )
+
             feedback_event["timestamp"] = datetime.utcnow().timestamp()
             feedback_event["platform"] = "other"
             feedback_event["level"] = report.get("level", "info")
