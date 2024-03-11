@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 
 import DropdownButton from 'sentry/components/dropdownButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -50,6 +50,10 @@ function NotificationActionManager({
 }: NotificationActionManagerProps) {
   const [notificationActions, setNotificationActions] =
     useState<Partial<NotificationAction>[]>(actions);
+
+  useEffect(() => {
+    setNotificationActions(actions);
+  }, [actions]);
 
   const removeNotificationAction = (index: number) => {
     // Removes notif action from state using the index
