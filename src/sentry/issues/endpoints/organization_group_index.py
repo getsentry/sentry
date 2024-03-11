@@ -148,24 +148,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationEventPermission,)
     enforce_rate_limit = True
 
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(10, 1),
-            RateLimitCategory.USER: RateLimit(10, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(10, 1),
-        },
-        "PUT": {
-            RateLimitCategory.IP: RateLimit(5, 5),
-            RateLimitCategory.USER: RateLimit(5, 5),
-            RateLimitCategory.ORGANIZATION: RateLimit(5, 5),
-        },
-        "DELETE": {
-            RateLimitCategory.IP: RateLimit(5, 5),
-            RateLimitCategory.USER: RateLimit(5, 5),
-            RateLimitCategory.ORGANIZATION: RateLimit(5, 5),
-        },
-    }
-
     def _search(
         self, request: Request, organization, projects, environments, extra_query_kwargs=None
     ):
