@@ -13,9 +13,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   isAllowedOp,
   isCustomMetric,
-  isMeasurement,
-  isSpanMetric,
+  isSpanMeasurement,
+  isSpanSelfTime,
   isTransactionDuration,
+  isTransactionMeasurement,
 } from 'sentry/utils/metrics';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import {formatMRI} from 'sentry/utils/metrics/mri';
@@ -36,11 +37,16 @@ type QueryBuilderProps = {
   projects: number[];
 };
 
+const isVisibleTransactionMetric = (metric: MetricMeta) =>
+  isTransactionDuration(metric) || isTransactionMeasurement(metric);
+
+const isVisibleSpanMetric = (metric: MetricMeta) =>
+  isSpanSelfTime(metric) || isSpanMeasurement(metric);
+
 const isShownByDefault = (metric: MetricMeta) =>
   isCustomMetric(metric) ||
-  isTransactionDuration(metric) ||
-  isMeasurement(metric) ||
-  isSpanMetric(metric);
+  isVisibleTransactionMetric(metric) ||
+  isVisibleSpanMetric(metric);
 
 function getOpsForMRI(mri: MRI, meta: MetricMeta[]) {
   return meta.find(metric => metric.mri === mri)?.operations.filter(isAllowedOp) ?? [];

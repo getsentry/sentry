@@ -29,7 +29,7 @@ import type {
   UseCase,
 } from 'sentry/types/metrics';
 import {statsPeriodToDays} from 'sentry/utils/dates';
-import {isMeasurement as isMeasurementName} from 'sentry/utils/discover/fields';
+import {isMeasurement} from 'sentry/utils/discover/fields';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {formatMRI, formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
@@ -284,20 +284,41 @@ export function groupByOp(metrics: MetricMeta[]): Record<string, MetricMeta[]> {
   return groupedByOp;
 }
 
-export function isMeasurement({mri}: {mri: MRI}) {
+export function isTransactionMeasurement({mri}: {mri: MRI}) {
   const {name} = parseMRI(mri) ?? {name: ''};
-  return isMeasurementName(name);
+  return isMeasurement(name);
+}
+
+export function isSpanMeasurement({mri}: {mri: MRI}) {
+  if (
+    mri === 'd:spans/http.response_content_length@byte' ||
+    mri === 'd:spans/http.decoded_response_content_length@byte' ||
+    mri === 'd:spans/http.response_transfer_size@byte'
+  ) {
+    return true;
+  }
+
+  const parsedMRI = parseMRI(mri);
+  if (
+    parsedMRI &&
+    parsedMRI.useCase === 'spans' &&
+    parsedMRI.name.startsWith('webvital.')
+  ) {
+    return true;
+  }
+
+  return false;
 }
 
 export function isCustomMeasurement({mri}: {mri: MRI}) {
   const DEFINED_MEASUREMENTS = new Set(Object.keys(getMeasurements()));
 
   const {name} = parseMRI(mri) ?? {name: ''};
-  return !DEFINED_MEASUREMENTS.has(name) && isMeasurementName(name);
+  return !DEFINED_MEASUREMENTS.has(name) && isMeasurement(name);
 }
 
 export function isStandardMeasurement({mri}: {mri: MRI}) {
-  return isMeasurement({mri}) && !isCustomMeasurement({mri});
+  return isTransactionMeasurement({mri}) && !isCustomMeasurement({mri});
 }
 
 export function isTransactionDuration({mri}: {mri: MRI}) {
@@ -308,8 +329,8 @@ export function isCustomMetric({mri}: {mri: MRI}) {
   return mri.includes(':custom/');
 }
 
-export function isSpanMetric({mri}: {mri: MRI}) {
-  return mri.includes(':spans/');
+export function isSpanSelfTime({mri}: {mri: MRI}) {
+  return mri === 'd:spans/exclusive_time@millisecond';
 }
 
 export function getFieldFromMetricsQuery(metricsQuery: MetricsQuery) {
