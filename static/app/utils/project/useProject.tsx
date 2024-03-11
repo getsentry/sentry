@@ -27,30 +27,30 @@ function makeResponseReducer(fieldName: string) {
 }
 
 export default function useProject({slug, id}: Props) {
-  const organiation = useOrganization();
+  const organization = useOrganization();
   const {getBySlug} = useAllProjectOptions({});
 
   const getQueryKey = useCallback(
     (ids: readonly AggQueryKey[]): ApiQueryKey => [
-      `/organizations/${organiation.slug}/projects/`,
+      `/organizations/${organization.slug}/projects/`,
       {
         query: {
           query: ids.join(' '),
         },
       },
     ],
-    [organiation.slug]
+    [organization.slug]
   );
 
   const byIdCache = useAggregatedQueryKeys<AggQueryKey, ProjectStore>({
-    cacheKey: `/organizations/${organiation.slug}/projects/#project-by-id`,
+    cacheKey: `/organizations/${organization.slug}/projects/#project-by-id`,
     bufferLimit: 5,
     getQueryKey,
     responseReducer: useMemo(() => makeResponseReducer('id'), []),
   });
 
   const bySlugCache = useAggregatedQueryKeys<AggQueryKey, ProjectStore>({
-    cacheKey: `/organizations/${organiation.slug}/projects/#project-by-slug`,
+    cacheKey: `/organizations/${organization.slug}/projects/#project-by-slug`,
     bufferLimit: 5,
     getQueryKey,
     responseReducer: useMemo(() => makeResponseReducer('slug'), []),
