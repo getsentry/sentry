@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import ButtonBar from 'sentry/components/buttonBar';
 import EventContextSummary from 'sentry/components/events/contextSummary';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
+import EventTagCustomBanner from 'sentry/components/events/eventTags/eventTagCustomBanner';
 import {
   SentryDefaultTags,
   TagFilter,
@@ -48,6 +49,9 @@ function Tags({event, projectSlug}: Props) {
   );
 
   const hasNewTagsUI = useHasNewTagsUI();
+  const hasCustomTagsBanner =
+    hasNewTagsUI && tagFilter === TagFilter.CUSTOM && tags.length === 0;
+
   const availableFilters = Object.keys(TagFilterData).filter(filter => {
     return event.tags.some(tag => TagFilterData[filter].has(tag.key));
   });
@@ -80,12 +84,8 @@ function Tags({event, projectSlug}: Props) {
       type="tags"
     >
       {!hasNewTagsUI && <EventContextSummary event={event} />}
-      <EventTags
-        event={event}
-        projectSlug={projectSlug}
-        tagFilter={tagFilter}
-        filteredTags={tags ?? []}
-      />
+      {hasCustomTagsBanner && <EventTagCustomBanner />}
+      <EventTags event={{...event, tags}} projectSlug={projectSlug} />
     </StyledEventDataSection>
   );
 }

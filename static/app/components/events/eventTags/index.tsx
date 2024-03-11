@@ -4,9 +4,9 @@ import * as Sentry from '@sentry/react';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import EventTagsTree from 'sentry/components/events/eventTags/eventTagsTree';
-import {TagFilter, useHasNewTagsUI} from 'sentry/components/events/eventTags/util';
+import {useHasNewTagsUI} from 'sentry/components/events/eventTags/util';
 import Pills from 'sentry/components/pills';
-import type {Event, EventTag} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform} from 'sentry/utils/platform';
@@ -20,38 +20,29 @@ import EventTagsPill from './eventTagsPill';
 type Props = {
   event: Event;
   projectSlug: string;
-  filteredTags?: EventTag[];
-  tagFilter?: TagFilter;
 };
 
 const IOS_DEVICE_FAMILIES = ['iPhone', 'iOS', 'iOS-Device'];
 
-export function EventTags({
-  event,
-  filteredTags,
-  projectSlug,
-  tagFilter = TagFilter.ALL,
-}: Props) {
+export function EventTags({event, projectSlug}: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const hasNewTagsUI = useHasNewTagsUI();
   const meta = event._meta?.tags;
   const projectId = event.projectID;
 
-  const tagsSource = defined(filteredTags) ? filteredTags : event.tags;
-
   const tags = !organization.features.includes('device-classification')
-    ? tagsSource?.filter(tag => tag.key !== 'device.class')
-    : tagsSource;
+    ? event.tags?.filter(tag => tag.key !== 'device.class')
+    : event.tags;
 
   useEffect(() => {
     if (
       organization.features.includes('device-classification') &&
       isMobilePlatform(event.platform)
     ) {
-      const deviceClass = tagsSource.find(tag => tag.key === 'device.class')?.value;
-      const deviceFamily = tagsSource.find(tag => tag.key === 'device.family')?.value;
-      const deviceModel = tagsSource.find(tag => tag.key === 'device.model')?.value;
+      const deviceClass = event.tags.find(tag => tag.key === 'device.class')?.value;
+      const deviceFamily = event.tags.find(tag => tag.key === 'device.family')?.value;
+      const deviceModel = event.tags.find(tag => tag.key === 'device.model')?.value;
       if (deviceFamily && IOS_DEVICE_FAMILIES.includes(deviceFamily)) {
         // iOS device missing classification, this probably indicates a new iOS device which we
         // haven't yet classified.
@@ -63,11 +54,11 @@ export function EventTags({
         }
       } else {
         const deviceProcessorCount = parseInt(
-          tagsSource.find(tag => tag.key === 'device.processor_count')?.value ?? '',
+          event.tags.find(tag => tag.key === 'device.processor_count')?.value ?? '',
           10
         );
         const deviceProcessorFrequency = parseInt(
-          tagsSource.find(tag => tag.key === 'device.processor_frequency')?.value ?? '',
+          event.tags.find(tag => tag.key === 'device.processor_frequency')?.value ?? '',
           10
         );
         // Android device specs significantly higher than current high end devices.
@@ -87,34 +78,28 @@ export function EventTags({
         }
       }
     }
-  }, [event, tagsSource, organization]);
+  }, [event, organization]);
 
   useEffect(() => {
-    const mechanism = filteredTags?.find(tag => tag.key === 'mechanism')?.value;
+    const mechanism = event.tags?.find(tag => tag.key === 'mechanism')?.value;
     const transaction = Sentry.getCurrentHub().getScope()?.getTransaction();
     if (mechanism && transaction) {
       transaction.tags.hasMechanism = mechanism;
     }
-  }, [filteredTags]);
+  }, [event]);
 
-  if (!!meta?.[''] && !filteredTags) {
-    return <AnnotatedText value={filteredTags} meta={meta?.['']} />;
+  if (!!meta?.[''] && !event.tags) {
+    return <AnnotatedText value={event.tags} meta={meta?.['']} />;
   }
 
-  if (!(filteredTags ?? []).length) {
+  if (!(event.tags ?? []).length) {
     return null;
   }
 
   return (
     <StyledClippedBox clipHeight={150}>
       {hasNewTagsUI ? (
-        <EventTagsTree
-          event={event}
-          tags={tags}
-          meta={meta}
-          projectSlug={projectSlug}
-          tagFilter={tagFilter}
-        />
+        <EventTagsTree event={event} tags={tags} meta={meta} projectSlug={projectSlug} />
       ) : (
         <Pills>
           {tags.map((tag, index) => (
