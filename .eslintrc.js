@@ -26,10 +26,6 @@ module.exports = {
     jest: true,
   },
   rules: {
-    'react-hooks/exhaustive-deps': [
-      'warn',
-      {additionalHooks: ADDITIONAL_HOOKS_TO_CHECK_DEPS_FOR},
-    ],
     ...(!isRelaxed && !isCi ? strictRulesNotCi : {}),
 
     // TODO(@anonrig): Remove this from eslint-sentry-config
