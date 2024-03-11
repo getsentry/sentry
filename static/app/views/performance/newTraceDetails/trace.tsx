@@ -1553,7 +1553,7 @@ const TraceStylingWrapper = styled('div')`
   height: 70vh;
   width: 100%;
   margin: auto;
-  overflow: hidden;
+  overscroll-behavior: none;
   position: relative;
   box-shadow: 0 0 0 1px ${p => p.theme.border};
   border-radius: 4px;

@@ -213,6 +213,8 @@ export class VirtualizedViewManager {
     this.onDividerMouseMove = this.onDividerMouseMove.bind(this);
     this.onSyncedScrollbarScroll = this.onSyncedScrollbarScroll.bind(this);
     this.onWheelZoom = this.onWheelZoom.bind(this);
+    this.onWheelEnd = this.onWheelEnd.bind(this);
+    this.onWheelStart = this.onWheelStart.bind(this);
   }
 
   initializeTraceSpace(space: [x: number, y: number, width: number, height: number]) {
@@ -378,7 +380,7 @@ export class VirtualizedViewManager {
         if (scrollableElement) {
           scrollableElement.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
           this.row_measurer.measure(node, scrollableElement as HTMLElement);
-          ref.addEventListener('wheel', this.onSyncedScrollbarScroll, {passive: true});
+          ref.addEventListener('wheel', this.onSyncedScrollbarScroll, {passive: false});
         }
       }
     }
@@ -442,12 +444,10 @@ export class VirtualizedViewManager {
   onWheelZoom(event: WheelEvent) {
     if (event.metaKey) {
       event.preventDefault();
-
       if (!this.onWheelEndRaf) {
         this.onWheelStart();
-        this.enqueueOnWheelEndRaf();
-        return;
       }
+      this.enqueueOnWheelEndRaf();
 
       const scale = 1 - event.deltaY * 0.01 * -1;
       const configSpaceCursor = this.getConfigSpaceCursor({
@@ -471,14 +471,28 @@ export class VirtualizedViewManager {
         x: newView[0],
         width: newView[2],
       });
+      this.draw();
     } else {
-      const physical_delta_pct = event.deltaX / this.trace_physical_space.width;
-      const view_delta = physical_delta_pct * this.trace_view.width;
-      this.setTraceView({
-        x: this.trace_view.x + view_delta,
-      });
+      if (!this.onWheelEndRaf) {
+        this.onWheelStart();
+      }
+      this.enqueueOnWheelEndRaf();
+      const scrollingHorizontally = Math.abs(event.deltaX) >= Math.abs(event.deltaY);
+
+      if (event.deltaX !== 0 && event.deltaX !== -0 && scrollingHorizontally) {
+        event.preventDefault();
+      }
+
+      if (scrollingHorizontally) {
+        const physical_delta_pct = event.deltaX / this.trace_physical_space.width;
+        const view_delta = physical_delta_pct * this.trace_view.width;
+
+        this.setTraceView({
+          x: this.trace_view.x + view_delta,
+        });
+        this.draw();
+      }
     }
-    this.draw();
   }
 
   zoomIntoSpaceRaf: number | null = null;
@@ -542,7 +556,7 @@ export class VirtualizedViewManager {
     const start = performance.now();
     const rafCallback = (now: number) => {
       const elapsed = now - start;
-      if (elapsed > 150) {
+      if (elapsed > 200) {
         this.onWheelEnd();
       } else {
         this.onWheelEndRaf = window.requestAnimationFrame(rafCallback);
@@ -609,6 +623,14 @@ export class VirtualizedViewManager {
     if (this.isScrolling) {
       return;
     }
+
+    const scrollingHorizontally = Math.abs(event.deltaX) >= Math.abs(event.deltaY);
+    if (event.deltaX !== 0 && event.deltaX !== -0 && scrollingHorizontally) {
+      event.preventDefault();
+    } else {
+      return;
+    }
+
     if (this.bringRowIntoViewAnimation !== null) {
       window.cancelAnimationFrame(this.bringRowIntoViewAnimation);
       this.bringRowIntoViewAnimation = null;
@@ -1016,10 +1038,6 @@ export class VirtualizedViewManager {
     const listWidth = list_width * 100 + '%';
     const spanWidth = span_list_width * 100 + '%';
 
-    // JavaScript "arrays" are nice in the sense that they are really just dicts,
-    // allowing us to store negative indices. This sometimes happens as the list
-    // virtualizes the rows and we end up with a negative index as they are being
-    // rendered off screen.
     for (let i = 0; i < this.columns.list.column_refs.length; i++) {
       while (this.span_bars[i] === undefined && i < this.columns.list.column_refs.length)
         i++;
@@ -1516,6 +1534,7 @@ export const useVirtualizedList = (
       pointerEventsRaf.current = requestAnimationTimeout(() => {
         styleCache.current?.clear();
         renderCache.current?.clear();
+
         managerRef.current.isScrolling = false;
 
         const recomputedItems = findRenderedItems({
@@ -1535,7 +1554,7 @@ export const useVirtualizedList = (
           scrollContainerRef.current.style.pointerEvents = 'auto';
           pointerEventsRaf.current = null;
         }
-      }, 150);
+      }, 50);
     };
     props.container.addEventListener('scroll', onScroll, {passive: false});
 
