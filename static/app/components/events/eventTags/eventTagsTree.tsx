@@ -220,7 +220,7 @@ function TagTreeRow({
               onAction: () => {
                 const replayQuery = qs.stringify({referrer});
                 navigateTo(
-                  `/replays/${encodeURIComponent(content.value)}/?${replayQuery}`,
+                  `/organizations/${organization.slug}/replays/${encodeURIComponent(content.value)}/?${replayQuery}`,
                   router
                 );
               },
