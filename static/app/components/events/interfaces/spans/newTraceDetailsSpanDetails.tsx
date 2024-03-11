@@ -44,6 +44,7 @@ import {CustomMetricsEventData} from 'sentry/views/ddm/customMetricsEventData';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils';
+import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
 
 import {OpsDot} from '../../opsBreakdown';
 
@@ -468,7 +469,11 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                 </Row>
               )}
               <Row title={t('Description')} extra={renderSpanDetailActions()}>
-                {span?.description ?? ''}
+                <SpanDescription
+                  groupId={span.sentry_tags?.group ?? ''}
+                  op={span.op ?? ''}
+                  preliminaryDescription={span.description}
+                />
               </Row>
               <Row title={t('Status')}>{span.status || ''}</Row>
               <Row title={t('Duration')}>{durationString}</Row>

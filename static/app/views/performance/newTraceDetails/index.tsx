@@ -237,7 +237,7 @@ function TraceViewContent(props: TraceViewContentProps) {
   const onSetClickedNode = useCallback(
     (node: TraceTreeNode<TraceTree.NodeValue> | null) => {
       setActiveTab(node && !isTraceNode(node ?? null) ? 'node' : 'trace');
-      setClickedNode(node ? [node] : []);
+      setClickedNode(node && !isTraceNode(node) ? [node] : []);
       maybeFocusRow();
     },
     []
@@ -369,6 +369,7 @@ function TraceViewContent(props: TraceViewContentProps) {
           if (searchState.query) {
             onTraceSearch(searchState.query);
           }
+          maybeFocusRow();
         });
     },
     [api, props.organization, tree, viewManager, searchState, onTraceSearch]

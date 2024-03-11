@@ -50,7 +50,7 @@ export function SpanNodeDetails({
           </div>
         </TraceDrawerComponents.Title>
         <Button size="xs" onClick={_e => scrollToNode(node)}>
-          {t('Scroll in view')}
+          {t('Show in view')}
         </Button>
       </TraceDrawerComponents.HeaderContainer>
       {event.projectSlug && (

@@ -295,7 +295,7 @@ export function TransactionNodeDetails({
         </TraceDrawerComponents.Title>
         <TraceDrawerComponents.Actions>
           <Button size="xs" onClick={_e => scrollToNode(node)}>
-            {t('Scroll in view')}
+            {t('Show in view')}
           </Button>
           <Button
             size="xs"
