@@ -62,6 +62,7 @@ interface DropdownMenuProps
       | 'shouldCloseOnBlur'
       | 'shouldCloseOnInteractOutside'
       | 'onInteractOutside'
+      | 'onOpenChange'
       | 'preventOverflowOptions'
       | 'flipOptions'
     > {
@@ -75,10 +76,6 @@ interface DropdownMenuProps
    * Pass class name to the outer wrap
    */
   className?: string;
-  /**
-   * Optionally add more props to be passed on to the useOverlay hook.
-   */
-  dropdownOverlayProps?: UseOverlayProps;
   /**
    * Whether the trigger is disabled.
    */
@@ -135,7 +132,6 @@ function DropdownMenu({
   trigger,
   triggerLabel,
   triggerProps = {},
-  dropdownOverlayProps = {},
   isDisabled: disabledProp,
   isOpen: isOpenProp,
   renderWrapAs = 'div',
@@ -150,6 +146,7 @@ function DropdownMenu({
   shouldCloseOnBlur = true,
   shouldCloseOnInteractOutside,
   onInteractOutside,
+  onOpenChange,
   preventOverflowOptions,
   flipOptions,
   ...props
@@ -174,7 +171,7 @@ function DropdownMenu({
     onInteractOutside,
     preventOverflowOptions,
     flipOptions,
-    ...dropdownOverlayProps,
+    onOpenChange,
   });
 
   const {menuTriggerProps, menuProps} = useMenuTrigger(

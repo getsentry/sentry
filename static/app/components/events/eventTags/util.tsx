@@ -127,6 +127,7 @@ export const TagFilterData = {
     'main_thread',
     'app_start_type',
     'replay_id',
+    'replayId',
     /* CommonTag in Relay */
     'transaction.status',
     'http.method',
@@ -138,12 +139,14 @@ export const TagFilterData = {
 /**
  * Combines all of the above into a single set to determine if a tag is custom
  */
-export const SentryDefaultTags = Object.values(TagFilterData).reduce(
-  // TODO: result.union(s) when Set.prototype.union is Baseline
-  // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set/union
-  (result, s) => new Set([...result, ...s]),
-  new Set([])
-);
+export function getSentryDefaultTags() {
+  return Object.values(TagFilterData).reduce(
+    // TODO: result.union(s) when Set.prototype.union is Baseline
+    // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set/union
+    (result, s) => new Set([...result, ...s]),
+    new Set([])
+  );
+}
 
 export function useHasNewTagsUI() {
   const location = useLocation();

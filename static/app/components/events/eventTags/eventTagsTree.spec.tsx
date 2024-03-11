@@ -155,34 +155,31 @@ describe('EventTagsTree', function () {
     expect(screen.getByLabelText('View this release')).toBeInTheDocument();
   });
 
-  it('renders unique links for specific tags', async function () {
+  it.each([
+    {
+      tag: {key: 'transaction', value: 'abc123'},
+      labelText: 'View this transaction',
+    },
+    {
+      tag: {key: 'replay_id', value: 'def456'},
+      labelText: 'View this replay',
+    },
+    {
+      tag: {key: 'replayId', value: 'ghi789'},
+      labelText: 'View this replay',
+    },
+    {
+      tag: {key: 'external-link', value: 'https://example.com'},
+      labelText: 'Visit this external link',
+    },
+  ])("renders unique links for '$tag.key' tag", async ({tag, labelText}) => {
     const featuredOrganization = OrganizationFixture({features: ['event-tags-tree-ui']});
-    const specificTagsData = [
-      {
-        tag: {key: 'transaction', value: 'abc123'},
-        labelText: 'View this transaction',
-      },
-      {
-        tag: {key: 'replay_id', value: 'def456'},
-        labelText: 'View this replay',
-      },
-      {
-        tag: {key: 'anything', value: 'https://example.com'},
-        labelText: 'Visit this external link',
-      },
-    ];
-    for (const {tag, labelText} of specificTagsData) {
-      const uniqueTagsEvent = EventFixture({tags: [tag]});
-      const {unmount} = render(
-        <EventTags projectSlug={project.slug} event={uniqueTagsEvent} />,
-        {
-          organization: featuredOrganization,
-        }
-      );
-      const dropdown = screen.getByLabelText('Tag Actions Menu');
-      await userEvent.click(dropdown);
-      expect(screen.getByLabelText(labelText)).toBeInTheDocument();
-      unmount();
-    }
+    const uniqueTagsEvent = EventFixture({tags: [tag]});
+    render(<EventTags projectSlug={project.slug} event={uniqueTagsEvent} />, {
+      organization: featuredOrganization,
+    });
+    const dropdown = screen.getByLabelText('Tag Actions Menu');
+    await userEvent.click(dropdown);
+    expect(screen.getByLabelText(labelText)).toBeInTheDocument();
   });
 });

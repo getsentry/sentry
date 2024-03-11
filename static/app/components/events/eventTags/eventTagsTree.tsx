@@ -152,9 +152,9 @@ function TagTreeRow({
         </TreeValue>
         <TreeValueDropdown
           preventOverflowOptions={{padding: 4}}
-          className={!isVisible ? 'invisible' : ''}
+          className={isVisible ? '' : 'invisible'}
           position="bottom-start"
-          dropdownOverlayProps={{onOpenChange: isOpen => setIsVisible(isOpen)}}
+          onOpenChange={isOpen => setIsVisible(isOpen)}
           triggerProps={{
             'aria-label': t('Tag Actions Menu'),
             icon: <IconEllipsis />,
@@ -216,7 +216,7 @@ function TagTreeRow({
             {
               key: 'replay',
               label: t('View this replay'),
-              hidden: originalTag.key !== 'replay_id',
+              hidden: originalTag.key !== 'replay_id' && originalTag.key !== 'replayId',
               onAction: () => {
                 const replayQuery = qs.stringify({referrer});
                 navigateTo(
@@ -359,7 +359,7 @@ const TreeColumn = styled('div')`
 
 const TreeRow = styled('div')`
   border-radius: ${space(0.5)};
-  padding: 0 0 0 ${space(1)};
+  padding-left: ${space(1)};
   display: grid;
   grid-column: span 2;
   grid-template-columns: subgrid;
@@ -402,7 +402,7 @@ const TreeKeyTrunk = styled('div')<{spacerCount: number}>`
 const TreeValueTrunk = styled('div')`
   grid-column: 2 / 3;
   display: grid;
-  grid-template-columns: 1fr 25px;
+  grid-template-columns: 1fr auto;
   grid-column-gap: ${space(0.5)};
 `;
 
@@ -417,7 +417,6 @@ const TreeKey = styled(TreeValue)`
 `;
 
 const TreeValueDropdown = styled(DropdownMenu)`
-  justify-self: end;
   margin: 1px;
   height: 20px;
   .tag-button {

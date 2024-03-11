@@ -615,11 +615,11 @@ describe('EventTagsAndScreenshot', function () {
       render(<EventTagsAndScreenshot projectSlug={project.slug} event={testEvent} />, {
         organization: featuredOrganization,
       });
-      let rows = screen.queryAllByTestId('tag-tree-row');
+      let rows = screen.getAllByTestId('tag-tree-row');
       expect(rows).toHaveLength(allTags.length);
 
       await userEvent.click(screen.getByTestId(TagFilter.APPLICATION));
-      rows = screen.queryAllByTestId('tag-tree-row');
+      rows = screen.getAllByTestId('tag-tree-row');
       expect(rows).toHaveLength(applicationTags.length);
 
       // Hide categories that don't have tags for this event
@@ -628,11 +628,11 @@ describe('EventTagsAndScreenshot', function () {
 
       // Always show 'Custom' and 'All' selectors though
       await userEvent.click(screen.getByTestId(TagFilter.CUSTOM));
-      rows = screen.queryAllByTestId('tag-tree-row');
+      rows = screen.getAllByTestId('tag-tree-row');
       expect(rows).toHaveLength(customTags.length);
 
       await userEvent.click(screen.getByTestId(TagFilter.ALL));
-      rows = screen.queryAllByTestId('tag-tree-row');
+      rows = screen.getAllByTestId('tag-tree-row');
       expect(rows).toHaveLength(allTags.length);
     });
 
@@ -651,7 +651,7 @@ describe('EventTagsAndScreenshot', function () {
       render(<EventTagsAndScreenshot projectSlug={project.slug} event={testEvent} />, {
         organization: featuredOrganization,
       });
-      const rows = screen.queryAllByTestId('tag-tree-row');
+      const rows = screen.getAllByTestId('tag-tree-row');
       expect(rows).toHaveLength(applicationTags.length);
 
       expect(screen.queryByTestId(TagFilter.CLIENT)).not.toBeInTheDocument();
