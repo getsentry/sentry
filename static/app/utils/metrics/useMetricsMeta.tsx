@@ -1,14 +1,15 @@
+import {useMemo} from 'react';
+
 import type {PageFilters} from 'sentry/types';
 import {formatMRI, getUseCaseFromMRI} from 'sentry/utils/metrics/mri';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQueries} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import type {MetricMeta, MRI, UseCase} from '../../types/metrics';
 
 import {getMetaDateTimeParams} from './index';
 
-const EMPTY_ARRAY: MetricMeta[] = [];
 const DEFAULT_USE_CASES: UseCase[] = ['sessions', 'transactions', 'custom', 'spans'];
 
 export function getMetricsMetaQueryKey(
@@ -30,20 +31,34 @@ export function useMetricsMeta(
 ): {data: MetricMeta[]; isLoading: boolean} {
   const {slug} = useOrganization();
 
-  const {data, isLoading} = useApiQuery<MetricMeta[]>(
-    getMetricsMetaQueryKey(slug, pageFilters, useCases),
-    {
-      enabled,
-      refetchInterval: 60000,
-      staleTime: 2000, // 2 seconds to cover page load
+  const queryKeys = useMemo(() => {
+    return useCases.map(useCase => getMetricsMetaQueryKey(slug, pageFilters, [useCase]));
+  }, [slug, pageFilters, useCases]);
+
+  const results = useApiQueries<MetricMeta[]>(queryKeys, {
+    enabled,
+    refetchInterval: 60000,
+    staleTime: 2000, // 2 seconds to cover page load
+  });
+
+  const {data, isLoading} = useMemo(() => {
+    const mergedResult: {
+      data: MetricMeta[];
+      isLoading: boolean;
+    } = {data: [], isLoading: false};
+
+    for (const useCaseResult of results) {
+      mergedResult.isLoading ||= useCaseResult.isLoading;
+      const useCaseData = useCaseResult.data ?? [];
+      mergedResult.data.push(...useCaseData);
     }
+
+    return mergedResult;
+  }, [results]);
+
+  const meta = (data ?? []).sort((a, b) =>
+    formatMRI(a.mri).localeCompare(formatMRI(b.mri))
   );
-
-  if (!data) {
-    return {data: EMPTY_ARRAY, isLoading};
-  }
-
-  const meta = data.sort((a, b) => formatMRI(a.mri).localeCompare(formatMRI(b.mri)));
 
   if (!filterBlockedMetrics) {
     return {data: meta, isLoading};
