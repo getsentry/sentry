@@ -216,7 +216,7 @@ def build_summary_data(
             for activity in regressed_or_escalated_groups_today:
                 deduped_groups_by_activity_type.setdefault(ActivityType(activity.type), set()).add(
                     activity.group
-                )  # still need to remove from regressed
+                )
 
                 if activity.type == ActivityType.SET_ESCALATING.value:
                     # if a group is already in the regressed set but we now see it in escalating, remove from regressed and add to escalating
