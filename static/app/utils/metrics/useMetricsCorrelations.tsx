@@ -48,7 +48,8 @@ function useMetricsCorrelations(
 
   const queryInfo = useApiQuery<ApiResponse>(
     [
-      `/organizations/${organization.slug}/ddm/meta/`,
+      // TODO(ddm): Clean up this endpoint
+      `/organizations/${organization.slug}/metrics/metadata/`,
       {
         query: {
           metric: mri,
