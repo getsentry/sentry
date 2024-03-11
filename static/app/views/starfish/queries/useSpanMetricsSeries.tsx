@@ -35,15 +35,11 @@ export const useSpanMetricsSeries = <Fields extends MetricsProperty[]>(
 
   const eventView = getEventView(filters, pageFilters.selection, yAxis);
 
-  // TODO: Checking that every filter has a value might not be a good choice, since this API is not convenient. Instead, it's probably fine to omit keys with blank values
-  const enabled =
-    options.enabled && Object.values(filters).every(value => Boolean(value));
-
   const result = useWrappedDiscoverTimeseriesQuery<SpanMetricTimeseriesRow[]>({
     eventView,
     initialData: [],
     referrer,
-    enabled,
+    enabled: options.enabled,
   });
 
   const parsedData = keyBy(

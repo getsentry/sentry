@@ -123,6 +123,7 @@ describe('PageOverview', function () {
               'project',
               'browser.name',
               'span.self_time',
+              'span.description',
             ],
             query:
               'span.op:ui.interaction.click measurements.score.weight.inp:>0 origin.transaction:/',

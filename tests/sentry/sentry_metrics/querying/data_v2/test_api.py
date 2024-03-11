@@ -8,9 +8,11 @@ from django.utils import timezone as django_timezone
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.data_v2 import run_metrics_queries_plan
-from sentry.sentry_metrics.querying.data_v2.plan import MetricsQueriesPlan
-from sentry.sentry_metrics.querying.data_v2.transformation import MetricsAPIQueryTransformer
+from sentry.sentry_metrics.querying.data_v2 import (
+    MetricsAPIQueryTransformer,
+    MetricsQueriesPlan,
+    run_metrics_queries_plan,
+)
 from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
     MetricsQueryExecutionError,
@@ -1349,6 +1351,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         for formula, expected_result, expected_unit_family in (
             # (($query_2 * 1000) + 10000.0)
             ("($query_2 + 10)", 30000.0, UnitFamily.DURATION.value),
+            # (($query_2 * 1000) + (10 * 2) * 1000)
+            ("($query_2 + (10 * 2))", 40000.0, UnitFamily.DURATION.value),
             # (10000.0 + ($query_2 * 1000))
             ("(10 + $query_2)", 30000.0, UnitFamily.DURATION.value),
             # (($query_2 + 1000) + (10000.0 + 20000.0))
@@ -1531,7 +1535,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert meta[0][1]["scaling_factor"] is None
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
-    def test_query_with_basic_formula_and_unitless_formula_functions(self):
+    def test_query_with_basic_formula_and_coefficient_operators(self):
         mri_1 = "d:custom/page_load@nanosecond"
         mri_2 = "d:custom/load_time@microsecond"
         for mri, value in ((mri_1, 20), (mri_2, 15)):
@@ -1551,7 +1555,10 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             ("$query_1 * $query_2 + 25", 325.0, None, None),
             ("$query_1 * $query_2 / 1", 300.0, None, None),
             ("$query_1 * 2", 40.0, UnitFamily.DURATION.value, "nanosecond"),
+            ("$query_2 * 2", 30000.0, UnitFamily.DURATION.value, "nanosecond"),
             ("$query_1 / 2", 10.0, UnitFamily.DURATION.value, "nanosecond"),
+            ("$query_2 / 2", 7500.0, UnitFamily.DURATION.value, "nanosecond"),
+            ("$query_2 * (2 + 1)", 45000.0, UnitFamily.DURATION.value, "nanosecond"),
         ):
             query_1 = self.mql("avg", mri_1)
             query_2 = self.mql("sum", mri_2)

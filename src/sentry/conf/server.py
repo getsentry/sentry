@@ -1621,6 +1621,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
+    # Enables the UI for Autofix in issue details
+    "organizations:issue-details-autofix-ui": False,
     # Enables the inline replay viewer on the issue details page
     "organizations:issue-details-inline-replay-viewer": False,
     # Enables a toggle for entering the new issue details UI
@@ -1704,6 +1706,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:org-subdomains": False,
     # Enable views for anomaly detection
     "organizations:performance-anomaly-detection-ui": False,
+    # Enable mobile performance score calculation for transactions in relay
+    "organizations:performance-calculate-mobile-perf-score-relay": False,
     # Enable performance score calculation for transactions in relay
     "organizations:performance-calculate-score-relay": False,
     # Deprecate fid from performance score calculation
@@ -1746,6 +1750,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-mep-reintroduce-histograms": False,
     # Enable metrics-backed transaction summary view
     "organizations:performance-metrics-backed-transaction-summary": False,
+    # Enable the UI for displaying mobile performance score
+    "organizations:performance-mobile-perf-score-ui": False,
     # Enable N+1 API Calls performance issue type
     "organizations:performance-n-plus-one-api-calls-detector": False,
     # Enable new trends
@@ -1917,6 +1923,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:starfish-browser-webvitals-replace-fid-with-inp": False,
     # Enable mobile starfish app start module view
     "organizations:starfish-mobile-appstart": False,
+    # Enable mobile starfish ui module view
+    "organizations:starfish-mobile-ui-module": False,
     # Enable starfish endpoint that's used for regressing testing purposes
     "organizations:starfish-test-endpoint": False,
     # Enable the new experimental starfish view
@@ -3312,6 +3320,13 @@ SENTRY_BUILTIN_SOURCES = {
         "filters": {"filetypes": ["pe", "pdb"]},
         "url": "https://driver-symbols.nvidia.com/",
         "is_public": True,
+        # This tells Symbolicator to accept invalid SSL certs
+        # when connecting to this source. Currently Symbolicator can't deal
+        # with this source's certs because the `openssl` version we use
+        # lacks support for Authority Information Access (AIA),
+        # so we ignore the certs for now.
+        # TODO: Remove this once we can support AIA.
+        "accept_invalid_certs": True,
     },
     "chromium": {
         "type": "http",
@@ -3787,7 +3802,7 @@ DEVSERVER_REQUEST_LOG_EXCLUDES: list[str] = []
 LOG_API_ACCESS = not IS_DEV or os.environ.get("SENTRY_LOG_API_ACCESS")
 
 VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = True
-DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = False
+DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = DISABLE_SU_STAFF_FORM_U2F_CHECK_FOR_LOCAL = False
 
 # determines if we enable analytics or not
 ENABLE_ANALYTICS = False
