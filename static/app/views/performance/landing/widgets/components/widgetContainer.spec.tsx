@@ -962,7 +962,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
             'count_web_vitals(measurements.ttfb, any)',
             'count()',
           ],
-          query: 'transaction.op:[pageload,""]',
+          query: 'transaction.op:[pageload,""] span.op:[ui.interaction.click,""]',
         }),
       })
     );

@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 
 import {CommitRow} from 'sentry/components/commitRow';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
@@ -39,7 +38,6 @@ import {SuspectCommits} from './suspectCommits';
 import {EventUserFeedback} from './userFeedback';
 
 type Props = {
-  location: Location;
   /**
    * The organization can be the shared view on a public issue view.
    */
@@ -55,7 +53,6 @@ type Props = {
 function EventEntries({
   organization,
   project,
-  location,
   event,
   group,
   className,
@@ -106,9 +103,7 @@ function EventEntries({
       {showTagSummary && (
         <EventTagsAndScreenshot
           event={event}
-          organization={organization as Organization}
           projectSlug={projectSlug}
-          location={location}
           isShare={isShare}
         />
       )}

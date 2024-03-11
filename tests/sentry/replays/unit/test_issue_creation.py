@@ -5,11 +5,11 @@ import pytest
 
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.group import Group
+from sentry.replays.testutils import mock_replay_event
 from sentry.replays.usecases.ingest.issue_creation import report_rage_click_issue_with_replay_event
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
-from tests.sentry.replays.unit.test_ingest_dom_index import mock_replay_event
 
 pytestmark = [requires_snuba]
 
@@ -54,12 +54,34 @@ def test_report_rage_click_issue_with_replay_event(mock_new_issue_occurrence, de
     )
 
     assert issue_occurence_call["extra_event_data"] == {
-        "contexts": {"replay": {"replay_id": "b58a67446c914f44a4e329763420047b"}},
+        "contexts": {
+            "browser": {"name": "Chrome", "version": "103.0.38"},
+            "device": {
+                "brand": "Apple",
+                "family": "iPhone",
+                "model": "13 Pro",
+                "name": "iPhone 13 Pro",
+            },
+            "os": {"name": "iOS", "version": "16.2"},
+            "replay": {"replay_id": "b58a67446c914f44a4e329763420047b"},
+            "trace": {
+                "trace_id": "4491657243ba4dbebd2f6bd62b733080",
+            },
+        },
+        "dist": "abc123",
         "level": "error",
-        "tags": {"replayId": "b58a67446c914f44a4e329763420047b", "url": "https://www.sentry.io"},
+        "release": "version@1.3",
+        "sdk": {"name": "sentry.javascript.react", "version": "6.18.1"},
+        "tags": {
+            "replayId": "b58a67446c914f44a4e329763420047b",
+            "transaction": "Title",
+            "url": "https://www.sentry.io",
+        },
         "user": {
-            "id": "1",
             "email": "test@test.com",
+            "id": "1",
+            "ip_address": "127.0.0.1",
+            "username": "username",
         },
     }
 
@@ -111,5 +133,28 @@ def test_report_rage_click_no_environment(default_project):
             replay_event=mock_replay_event(),
         )
 
-    # test that the Issue gets created with the truncated url
+    assert Group.objects.get(message__contains="div.xyz > a")
+
+
+@pytest.mark.snuba
+@django_db_all
+def test_report_rage_click_no_trace(default_project):
+    replay_id = "b58a67446c914f44a4e329763420047b"
+    seq1_timestamp = datetime.now() - timedelta(minutes=10, seconds=52)
+    with Feature(
+        {
+            "organizations:replay-click-rage-ingest": True,
+        }
+    ):
+        report_rage_click_issue_with_replay_event(
+            project_id=default_project.id,
+            replay_id=replay_id,
+            selector="div.xyz > a",
+            timestamp=seq1_timestamp.timestamp(),
+            url="https://www.sentry.io",
+            node={"tagName": "a"},
+            replay_event=mock_replay_event(trace_ids=[]),
+        )
+
+    # test that the Issue gets created
     assert Group.objects.get(message__contains="div.xyz > a")
