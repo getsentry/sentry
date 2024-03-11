@@ -1198,7 +1198,7 @@ export class VirtualizedViewManager {
         indicator.style.transform = `translateX(${placement}px)`;
         const label = indicator.children[0] as HTMLElement | undefined;
         const duration = getDuration(interval / 1000, 2, true);
-        
+
         if (label && label?.textContent !== duration) {
           label.textContent = duration;
         }
