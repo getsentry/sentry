@@ -996,7 +996,7 @@ class MonitorTaskCheckTimeoutTest(TestCase):
         ).exists()
 
 
-@override_settings(KAFKA_INGEST_MONITORS="monitors-test-topic")
+@override_settings(KAFKA_TOPIC_OVERRIDES={"ingest-monitors": "monitors-test-topic"})
 @override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
 @mock.patch("sentry.monitors.tasks._checkin_producer")
 def test_clock_pulse(checkin_producer_mock):

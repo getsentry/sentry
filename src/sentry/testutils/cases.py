@@ -130,7 +130,6 @@ from sentry.testutils.pytest.selenium import Browser
 from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
 from sentry.utils import json
 from sentry.utils.auth import SsoSession
-from sentry.utils.dates import to_timestamp
 from sentry.utils.json import dumps_htmlsafe
 from sentry.utils.performance_issues.performance_detection import detect_performance_problems
 from sentry.utils.retries import TimedRetryPolicy
@@ -1608,7 +1607,7 @@ class BaseMetricsTestCase(SnubaTestCase):
                 int(
                     session["started"]
                     if isinstance(session["started"], (int, float))
-                    else to_timestamp(session["started"])
+                    else session["started"].timestamp()
                 ),
                 value,
                 use_case_id=UseCaseID.SESSIONS,
