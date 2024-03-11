@@ -44,7 +44,8 @@ import {CustomMetricsEventData} from 'sentry/views/ddm/customMetricsEventData';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils';
-import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
+import {Frame, SpanDescription} from 'sentry/views/starfish/components/spanDescription';
+import {FrameContainer} from 'sentry/views/starfish/components/stackTraceMiniFrame';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {resolveSpanModule} from 'sentry/views/starfish/utils/resolveSpanModule';
 
@@ -474,7 +475,14 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                   {profileId}
                 </Row>
               )}
-              <Row title={t('Description')} extra={renderSpanDetailActions()}>
+              <Row
+                title={
+                  resolvedModule === ModuleName.DB && span.op?.startsWith('db')
+                    ? t('Database Query')
+                    : t('Description')
+                }
+                extra={renderSpanDetailActions()}
+              >
                 {resolvedModule === ModuleName.DB ? (
                   <SpanDescription
                     groupId={span.sentry_tags?.group ?? ''}
@@ -752,6 +760,11 @@ const ValueRow = styled('div')`
   border-radius: 4px;
   background-color: ${p => p.theme.surface200};
   margin: 2px;
+
+  ${Frame}, ${FrameContainer}, pre {
+    border: none;
+    padding: 0 ${space(0.25)} !important;
+  }
 `;
 
 const StyledPre = styled('pre')`
