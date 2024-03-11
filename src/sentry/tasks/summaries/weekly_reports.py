@@ -460,7 +460,7 @@ def render_template_context(ctx, user_id):
         # Calculate series
         series = []
         for i in range(0, 7):
-            t = int(to_timestamp(ctx.start)) + ONE_DAY * i
+            t = int(ctx.start.timestamp()) + ONE_DAY * i
             project_series = [
                 {
                     "color": project_breakdown_colors[i],

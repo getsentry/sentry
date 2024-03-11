@@ -506,7 +506,7 @@ def digest(request):
             data = event_manager.get_data()
 
             data["timestamp"] = random.randint(
-                int(to_timestamp(group.first_seen)), int(to_timestamp(group.last_seen))
+                int(group.first_seen.timestamp()), int(group.last_seen.timestamp())
             )
 
             event = eventstore.backend.create_event(
@@ -522,7 +522,7 @@ def digest(request):
                         ),
                         notification_uuid,
                     ),
-                    to_timestamp(event.datetime),
+                    event.datetime.timestamp(),
                 )
             )
 

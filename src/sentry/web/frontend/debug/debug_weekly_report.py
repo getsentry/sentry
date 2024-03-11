@@ -40,7 +40,7 @@ class DebugWeeklyReportView(MailPreviewView):
         ctx = OrganizationReportContext(timestamp, duration, organization)
         ctx.projects_context_map.clear()
 
-        start_timestamp = to_timestamp(ctx.start)
+        start_timestamp = ctx.start.timestamp()
 
         daily_maximum = random.randint(1000, 10000)
 

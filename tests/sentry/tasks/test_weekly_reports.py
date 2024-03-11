@@ -67,7 +67,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         member_set = set(project.teams.first().member_set.all())
 
         with self.tasks():
-            schedule_organizations(timestamp=to_timestamp(now))
+            schedule_organizations(timestamp=now.timestamp())
             assert len(mail.outbox) == len(member_set) == 1
 
             message = mail.outbox[0]
@@ -89,7 +89,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             )
 
         with self.tasks():
-            schedule_organizations(timestamp=to_timestamp(now))
+            schedule_organizations(timestamp=now.timestamp())
             assert len(mail.outbox) == len(member_set) == 1
 
             message = mail.outbox[0]
@@ -113,7 +113,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             project_id=project.id,
         )
         with self.tasks():
-            schedule_organizations(timestamp=to_timestamp(now))
+            schedule_organizations(timestamp=now.timestamp())
             assert len(mail.outbox) == 1
 
             message = mail.outbox[0]
@@ -233,7 +233,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         )
         project.transfer_to(organization=self.create_organization())
 
-        prepare_organization_report(to_timestamp(now), ONE_DAY * 7, self.organization.id)
+        prepare_organization_report(now.timestamp(), ONE_DAY * 7, self.organization.id)
         assert message_builder.call_count == 1
 
     @with_feature("organizations:escalating-issues")
@@ -268,7 +268,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         )
         event2.group.substatus = GroupSubStatus.NEW
         event2.group.save()
-        timestamp = to_timestamp(now)
+        timestamp = now.timestamp()
 
         ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
         organization_project_issue_substatus_summaries(ctx)
@@ -354,7 +354,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
 
         # store a crons issue just to make sure it's not counted in key_performance_issues
         self.create_group(type=MonitorCheckInFailure.type_id)
-        prepare_organization_report(to_timestamp(now), ONE_DAY * 7, self.organization.id)
+        prepare_organization_report(now.timestamp(), ONE_DAY * 7, self.organization.id)
 
         for call_args in message_builder.call_args_list:
             message_params = call_args.kwargs
@@ -463,10 +463,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             side_effect=ValueError("oh no!"),
         ), mock.patch("sentry.tasks.summaries.weekly_reports.send_email") as mock_send_email:
             with pytest.raises(Exception):
-                prepare_organization_report(to_timestamp(now), ONE_DAY * 7, self.organization.id)
+                prepare_organization_report(now.timestamp(), ONE_DAY * 7, self.organization.id)
                 mock_send_email.assert_not_called()
 
-        prepare_organization_report(to_timestamp(now), ONE_DAY * 7, self.organization.id)
+        prepare_organization_report(now.timestamp(), ONE_DAY * 7, self.organization.id)
         for call_args in message_builder.call_args_list:
             message_params = call_args.kwargs
             context = message_params["context"]
@@ -542,7 +542,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         group2.substatus = GroupSubStatus.ONGOING
         group2.save()
 
-        prepare_organization_report(to_timestamp(now), ONE_DAY * 7, self.organization.id)
+        prepare_organization_report(now.timestamp(), ONE_DAY * 7, self.organization.id)
 
         for call_args in message_builder.call_args_list:
             message_params = call_args.kwargs
@@ -648,7 +648,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             project_id=self.project.id,
         )
 
-        prepare_organization_report(to_timestamp(now), ONE_DAY * 7, self.organization.id)
+        prepare_organization_report(now.timestamp(), ONE_DAY * 7, self.organization.id)
         assert mock_send_email.call_count == 0
 
     @with_feature("organizations:session-replay")

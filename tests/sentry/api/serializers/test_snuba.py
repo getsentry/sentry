@@ -10,7 +10,7 @@ from sentry.utils.dates import to_timestamp
 class ZeroFillTest(unittest.TestCase):
     def run_test(self, filled_buckets, irregular_buckets, start, end, rollup, zerofilled_buckets):
         filled_buckets = [(start + (rollup * bucket), val) for bucket, val in filled_buckets]
-        buckets = [(to_timestamp(date), val) for date, val in filled_buckets + irregular_buckets]
+        buckets = [(date.timestamp(), val) for date, val in filled_buckets + irregular_buckets]
         sort_key = lambda row: row[0]
         buckets.sort(key=sort_key)
         zerofilled_buckets = [

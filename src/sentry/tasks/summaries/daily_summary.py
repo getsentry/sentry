@@ -154,7 +154,7 @@ def build_summary_data(
         user_project_ownership(ctx)
 
     # build 'Today's Event Count vs. 14 day average'. we need 15 days of data for this
-    start = to_datetime(to_timestamp(ctx.end) - comparison_offset)
+    start = to_datetime(ctx.end.timestamp() - comparison_offset)
     with sentry_sdk.start_span(op="daily_summary.project_event_counts_for_organization"):
         event_counts = project_event_counts_for_organization(
             start=start, end=ctx.end, ctx=ctx, referrer=Referrer.DAILY_SUMMARY_OUTCOMES.value
