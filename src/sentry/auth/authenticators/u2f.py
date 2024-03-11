@@ -28,6 +28,9 @@ from .base import ActivationChallengeResult, AuthenticatorInterface
 
 logger = logging.getLogger("sentry.auth.u2f")
 
+# The maximum time the staff auth flow flag can stay alive on the request session
+STAFF_AUTH_FLOW_MAX_AGE = timedelta(minutes=2)
+
 
 def decode_credential_id(device):
     return urlsafe_b64encode(device["binding"].credential_data.credential_id).decode("ascii")
@@ -44,7 +47,7 @@ def _get_url_prefix() -> str:
     return options.get("system.url-prefix")
 
 
-def _valid_staff_timestamp(request, limit: timedelta) -> bool:
+def _valid_staff_timestamp(request, limit: timedelta = STAFF_AUTH_FLOW_MAX_AGE) -> bool:
     """
     Returns whether or not the staff timestamp exists and is valid within the
     timedelta. If the timestamp is invalid, it is removed from the session.
@@ -234,7 +237,11 @@ class U2fInterface(AuthenticatorInterface):
                 ),
             },
         )
-        if _valid_staff_timestamp(request, timedelta(minutes=2)):
+        # It is an intentional decision to not check whether or not the staff
+        # timestamp is valid here if it exists. The reason for this is we prefer
+        # the failure to occur and present itself when tapping the U2F device,
+        # not immediately upon generating the challenge/response.
+        if request.session.get("staff_auth_flow"):
             request.session["staff_webauthn_authentication_state"] = state
         else:
             request.session["webauthn_authentication_state"] = state
@@ -271,7 +278,7 @@ class U2fInterface(AuthenticatorInterface):
                         "has_staff_state": "staff_webauthn_authentication_state" in request.session,
                     },
                 )
-            if _valid_staff_timestamp(request, timedelta(minutes=2)):
+            if _valid_staff_timestamp(request):
                 state = request.session.get("staff_webauthn_authentication_state")
             else:
                 state = request.session.get("webauthn_authentication_state")
