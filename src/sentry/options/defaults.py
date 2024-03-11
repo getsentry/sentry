@@ -2070,11 +2070,6 @@ register(
     default=0.0,
     flags=FLAG_ADMIN_MODIFIABLE | FLAG_AUTOMATOR_MODIFIABLE | FLAG_RATE,
 )
-register(
-    "grouping.experiments.parameterization.json_str_val",
-    default=0.0,
-    flags=FLAG_ADMIN_MODIFIABLE | FLAG_AUTOMATOR_MODIFIABLE | FLAG_RATE,
-)
 
 # Sample rate for double writing to experimental dsn
 register(
