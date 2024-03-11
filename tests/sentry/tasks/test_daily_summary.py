@@ -34,7 +34,6 @@ from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from sentry.types.integrations import ExternalProviders
-from sentry.utils.dates import to_timestamp
 from sentry.utils.outcomes import Outcome
 
 
@@ -191,22 +190,39 @@ class DailySummaryTest(
         self.create_member(teams=[self.team], user=user2, organization=self.organization)
 
         with self.tasks():
-            schedule_organizations(timestamp=to_timestamp(self.now))
+            schedule_organizations(timestamp=self.now.timestamp())
 
         # user2's local timezone is UTC and therefore it isn't sent now
         assert mock_prepare_summary_data.delay.call_count == 1
         for call_args in mock_prepare_summary_data.delay.call_args_list:
             assert call_args.args == (
-                to_timestamp(self.now),
+                self.now.timestamp(),
                 ONE_DAY,
                 self.organization.id,
                 [self.user.id],
             )
 
+    @with_feature("organizations:daily-summary")
+    @mock.patch("sentry.tasks.summaries.daily_summary.prepare_summary_data")
+    def test_schedule_organizations_timing(self, mock_prepare_summary_data):
+        with self.tasks(), freeze_time("2024-03-06 23:15:00"):  # 3:15PM PST
+            schedule_organizations()
+        assert mock_prepare_summary_data.delay.call_count == 0
+
+        with self.tasks(), freeze_time("2024-03-07 00:00:00"):  # 4PM PST
+            schedule_organizations()
+        assert mock_prepare_summary_data.delay.call_count == 1
+
+        with self.tasks(), freeze_time("2024-03-07 01:00:00"):  # 5PM PST
+            schedule_organizations()
+        assert (
+            mock_prepare_summary_data.delay.call_count == 1
+        )  # note this didn't fire again, it just didn't increase from before
+
     def test_build_summary_data(self):
         self.populate_event_data()
         summary = build_summary_data(
-            timestamp=to_timestamp(self.now),
+            timestamp=self.now.timestamp(),
             duration=ONE_DAY,
             organization=self.organization,
             daily=True,
@@ -247,7 +263,7 @@ class DailySummaryTest(
         self.populate_event_data()
         with self.tasks():
             prepare_summary_data(
-                to_timestamp(self.now), ONE_DAY, self.organization.id, [self.user.id]
+                self.now.timestamp(), ONE_DAY, self.organization.id, [self.user.id]
             )
 
         assert mock_deliver_summary.call_count == 1
@@ -257,7 +273,7 @@ class DailySummaryTest(
         """Test that if the summary has no data in it, we don't even try to send it"""
         with self.tasks():
             prepare_summary_data(
-                to_timestamp(self.now), ONE_DAY, self.organization.id, [self.user.id]
+                self.now.timestamp(), ONE_DAY, self.organization.id, [self.user.id]
             )
 
         assert mock_deliver_summary.call_count == 0
@@ -266,7 +282,7 @@ class DailySummaryTest(
     def test_deliver_summary(self, mock_send):
         self.populate_event_data()
         summary = build_summary_data(
-            timestamp=to_timestamp(self.now),
+            timestamp=self.now.timestamp(),
             duration=ONE_DAY,
             organization=self.organization,
             daily=True,
@@ -290,7 +306,7 @@ class DailySummaryTest(
                 category=DataCategory.ERROR,
             )
         context = build_summary_data(
-            timestamp=to_timestamp(self.now),
+            timestamp=self.now.timestamp(),
             duration=ONE_DAY,
             organization=self.organization,
             daily=True,
@@ -325,7 +341,7 @@ class DailySummaryTest(
         user2 = self.create_user()
         self.create_member(teams=[self.team], user=user2, organization=self.organization)
         context = build_summary_data(
-            timestamp=to_timestamp(self.now),
+            timestamp=self.now.timestamp(),
             duration=ONE_DAY,
             organization=self.organization,
             daily=True,
@@ -338,7 +354,7 @@ class DailySummaryTest(
     def test_slack_notification_contents(self):
         self.populate_event_data()
         ctx = build_summary_data(
-            timestamp=to_timestamp(self.now),
+            timestamp=self.now.timestamp(),
             duration=ONE_DAY,
             organization=self.organization,
             daily=True,
@@ -405,7 +421,7 @@ class DailySummaryTest(
                 category=DataCategory.ERROR,
             )
         context = build_summary_data(
-            timestamp=to_timestamp(self.now),
+            timestamp=self.now.timestamp(),
             duration=ONE_DAY,
             organization=self.organization,
             daily=True,
@@ -429,7 +445,7 @@ class DailySummaryTest(
         """
         self.populate_event_data(use_release=False)
         ctx = build_summary_data(
-            timestamp=to_timestamp(self.now),
+            timestamp=self.now.timestamp(),
             duration=ONE_DAY,
             organization=self.organization,
             daily=True,
@@ -457,7 +473,7 @@ class DailySummaryTest(
         """
         self.populate_event_data(performance_issues=False)
         ctx = build_summary_data(
-            timestamp=to_timestamp(self.now),
+            timestamp=self.now.timestamp(),
             duration=ONE_DAY,
             organization=self.organization,
             daily=True,
@@ -504,7 +520,7 @@ class DailySummaryTest(
         """
         self.populate_event_data(regressed_issue=False, escalated_issue=False)
         ctx = build_summary_data(
-            timestamp=to_timestamp(self.now),
+            timestamp=self.now.timestamp(),
             duration=ONE_DAY,
             organization=self.organization,
             daily=True,

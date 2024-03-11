@@ -1,6 +1,5 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useMemo} from 'react';
 import type {Location} from 'history';
-import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
@@ -10,8 +9,8 @@ import type {
   TraceFullDetailed,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
+import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -37,7 +36,13 @@ export function getTraceQueryParams(
   query: Location['query'],
   filters: Partial<PageFilters> = {},
   options: {limit?: number} = {}
-) {
+): {
+  limit: number;
+  project: string;
+  statsPeriod: string | undefined;
+  timestamp: string | undefined;
+  useSpans: number;
+} {
   const normalizedParams = normalizeDateTimeParams(query, {
     allowAbsolutePageDatetime: true,
   });
@@ -70,71 +75,28 @@ type UseTraceParams = {
   limit?: number;
 };
 
-type RequestState<T> = {
-  data: T | null;
-  status: 'resolved' | 'pending' | 'error' | 'initial';
-  error?: Error | null;
-};
-
 const DEFAULT_OPTIONS = {};
 export function useTrace(
   options: Partial<UseTraceParams> = DEFAULT_OPTIONS
-): RequestState<TraceSplitResults<TraceFullDetailed> | null> {
-  const api = useApi();
+): UseApiQueryResult<TraceSplitResults<TraceFullDetailed>, any> {
   const filters = usePageFilters();
   const location = useLocation();
   const organization = useOrganization();
   const params = useParams<{traceSlug?: string}>();
-
-  const [trace, setTrace] = useState<
-    RequestState<TraceSplitResults<TraceFullDetailed> | null>
-  >({
-    status: 'initial',
-    data: null,
-  });
 
   const queryParams = useMemo(() => {
     return getTraceQueryParams(location.query, filters.selection, options);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options]);
 
-  useEffect(() => {
-    if (!params.traceSlug) {
-      return undefined;
+  return useApiQuery(
+    [
+      `/organizations/${organization.slug}/events-trace/${params.traceSlug ?? ''}/`,
+      {query: queryParams},
+    ],
+    {
+      staleTime: Infinity,
+      enabled: !!params.traceSlug && !!organization.slug,
     }
-
-    let unmounted = false;
-
-    setTrace({
-      status: 'pending',
-      data: null,
-    });
-
-    fetchTrace(api, {
-      traceId: params.traceSlug,
-      orgSlug: organization.slug,
-      query: qs.stringify(queryParams),
-    })
-      .then(resp => {
-        if (unmounted) return;
-        setTrace({
-          status: 'resolved',
-          data: resp,
-        });
-      })
-      .catch(e => {
-        if (unmounted) return;
-        setTrace({
-          status: 'error',
-          data: null,
-          error: e,
-        });
-      });
-
-    return () => {
-      unmounted = true;
-    };
-  }, [api, organization.slug, params.traceSlug, queryParams]);
-
-  return trace;
+  );
 }

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -58,7 +58,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
         project = self.create_project()
         event1 = self.store_event(
             data={
-                "timestamp": iso_format(datetime.utcnow()),
+                "timestamp": timezone.now().isoformat(),
                 "event_id": "a" * 32,
                 "message": "something went wrong",
             },
@@ -67,7 +67,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
         group = event1.group
         event2 = self.store_event(
             data={
-                "timestamp": iso_format(datetime.utcnow()),
+                "timestamp": timezone.now().isoformat(),
                 "event_id": "c" * 32,
                 "message": "testing",
             },
@@ -130,7 +130,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
         project = self.create_project()
         event = self.store_event(
             data={
-                "timestamp": iso_format(datetime.utcnow()),
+                "timestamp": timezone.now().isoformat(),
                 "event_id": "a" * 32,
                 "message": "testing",
             },

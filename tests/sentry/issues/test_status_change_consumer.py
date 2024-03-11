@@ -236,6 +236,7 @@ class StatusChangeBulkGetGroupsFromFingerprintsTest(IssueOccurrenceTestBase):
                 "project_id": project2.id,
                 "fingerprint": self.occurrence.fingerprint[0],
             },
+            stack_info=True,
         )
 
     def test_bulk_get_same_fingerprint(self) -> None:

@@ -1,5 +1,5 @@
 import unittest
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from django.urls import reverse
 
@@ -126,7 +126,7 @@ class UpdateReleaseDetailsTest(APITestCase):
                 "version": release.version,
             },
         )
-        response = self.client.put(url, data={"dateReleased": datetime.utcnow().isoformat() + "Z"})
+        response = self.client.put(url, data={"dateReleased": datetime.now(UTC).isoformat()})
 
         assert response.status_code == 200, (response.status_code, response.content)
 
@@ -156,7 +156,7 @@ class UpdateReleaseDetailsTest(APITestCase):
                 "version": release.version,
             },
         )
-        response = self.client.put(url, data={"dateReleased": datetime.utcnow().isoformat() + "Z"})
+        response = self.client.put(url, data={"dateReleased": datetime.now(UTC).isoformat()})
 
         assert response.status_code == 200, (response.status_code, response.content)
 
@@ -287,7 +287,7 @@ class ReleaseSerializerTest(unittest.TestCase):
         result = serializer.validated_data
         assert result["ref"] == self.ref
         assert result["url"] == self.url
-        assert result["dateReleased"] == datetime(1000, 10, 10, 6, 6, tzinfo=timezone.utc)
+        assert result["dateReleased"] == datetime(1000, 10, 10, 6, 6, tzinfo=UTC)
         assert result["commits"] == self.commits
 
     def test_fields_not_required(self):
