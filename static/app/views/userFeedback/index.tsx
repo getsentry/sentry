@@ -80,7 +80,7 @@ function OrganizationUserFeedback({location: {search, pathname, query}, router}:
       );
     }
     if (!reportList?.length) {
-      return <UserFeedbackEmpty projectIds={getProjectIds()} />;
+      return <UserFeedbackEmpty projectIds={getProjectIds()} issueTab={false} />;
     }
     return (
       <Panel className="issue-list" data-test-id="user-feedback-list">
