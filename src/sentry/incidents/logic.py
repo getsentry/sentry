@@ -20,7 +20,6 @@ from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, ObjectStatus
 from sentry.incidents import tasks
 from sentry.incidents.models.alert_rule import (
     AlertRule,
-    AlertRuleActivationCondition,
     AlertRuleActivity,
     AlertRuleActivityType,
     AlertRuleExcludedProjects,
@@ -30,6 +29,10 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTrigger,
     AlertRuleTriggerAction,
     AlertRuleTriggerExclusion,
+)
+from sentry.incidents.models.alert_rule_activations import (
+    AlertRuleActivationCondition,
+    AlertRuleActivations,
 )
 from sentry.incidents.models.incident import (
     Incident,
@@ -944,6 +947,21 @@ def create_alert_rule_activation_condition(
         )
 
     return condition
+
+
+def create_alert_rule_activation(
+    alert_rule: AlertRule,
+    metric_value: int | None = None,
+    finished_at: datetime | None = None,
+):
+    with transaction.atomic(router.db_for_write(AlertRuleActivations)):
+        activation = AlertRuleActivations.objects.create(
+            alert_rule=alert_rule,
+            metric_value=metric_value,
+            finished_at=finished_at,
+        )
+
+    return activation
 
 
 def create_alert_rule_trigger(alert_rule, label, alert_threshold, excluded_projects=None):

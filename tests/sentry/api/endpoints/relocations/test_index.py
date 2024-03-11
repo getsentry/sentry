@@ -22,6 +22,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.backups import generate_rsa_key_pair
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
@@ -43,6 +44,7 @@ class GetRelocationsTest(APITestCase):
             email="owner", is_superuser=False, is_staff=False, is_active=True
         )
         self.superuser = self.create_user(is_superuser=True)
+        self.staff_user = self.create_user(is_staff=True)
 
         # Add 1 relocation of each status.
         common = {
@@ -103,6 +105,13 @@ class GetRelocationsTest(APITestCase):
         )
 
         self.success_uuid = Relocation.objects.get(status=Relocation.Status.SUCCESS.value)
+
+    @with_feature("auth:enterprise-staff-cookie")
+    def test_good_staff_simple(self):
+        self.login_as(user=self.staff_user, staff=True)
+        response = self.get_success_response(status_code=200)
+
+        assert len(response.data) == 4
 
     def test_good_superuser_simple(self):
         self.login_as(user=self.superuser, superuser=True)
@@ -277,6 +286,7 @@ class PostRelocationsTest(APITestCase):
             email="owner", is_superuser=False, is_staff=False, is_active=True
         )
         self.superuser = self.create_user(is_superuser=True)
+        self.staff_user = self.create_user(is_staff=True)
 
     def tmp_keys(self, tmp_dir: str) -> tuple[Path, Path]:
         (priv_key_pem, pub_key_pem) = generate_rsa_key_pair()
@@ -507,6 +517,68 @@ class PostRelocationsTest(APITestCase):
         assert response.data["scheduledPauseAtStep"] is None
 
         assert uploading_complete_mock.call_count == 1
+        assert analytics_record_mock.call_count == 1
+        analytics_record_mock.assert_called_with(
+            "relocation.created",
+            creator_id=int(response.data["creatorId"]),
+            owner_id=int(response.data["ownerId"]),
+            uuid=response.data["uuid"],
+        )
+
+        assert relocation_link_promo_code_signal_mock.call_count == 1
+        relocation_link_promo_code_signal_mock.assert_called_with(
+            relocation_uuid=UUID(response.data["uuid"]),
+            promo_code=None,
+            sender=RelocationIndexEndpoint,
+        )
+
+    @override_options({"relocation.enabled": False, "relocation.daily-limit.small": 1})
+    @patch("sentry.tasks.relocation.uploading_complete.delay")
+    @with_feature("auth:enterprise-staff-cookie")
+    def test_good_staff_when_feature_disabled(
+        self,
+        uploading_complete_mock: Mock,
+        relocation_link_promo_code_signal_mock: Mock,
+        analytics_record_mock: Mock,
+    ):
+        self.login_as(user=self.staff_user, staff=True)
+        relocation_count = Relocation.objects.count()
+        relocation_file_count = RelocationFile.objects.count()
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
+            with open(FRESH_INSTALL_PATH) as f:
+                data = json.load(f)
+                with open(tmp_pub_key_path, "rb") as p:
+                    response = self.get_success_response(
+                        owner=self.owner.username,
+                        file=SimpleUploadedFile(
+                            "export.tar",
+                            create_encrypted_export_tarball(data, LocalFileEncryptor(p)).getvalue(),
+                            content_type="application/tar",
+                        ),
+                        orgs="testing",
+                        format="multipart",
+                        status_code=201,
+                    )
+
+        assert response.data["status"] == Relocation.Status.IN_PROGRESS.name
+        assert response.data["step"] == Relocation.Step.UPLOADING.name
+        assert response.data["creatorId"] == str(self.staff_user.id)
+        assert response.data["creatorEmail"] == str(self.staff_user.email)
+        assert response.data["creatorUsername"] == str(self.staff_user.username)
+        assert response.data["ownerId"] == str(self.owner.id)
+        assert response.data["ownerEmail"] == str(self.owner.email)
+        assert response.data["ownerUsername"] == str(self.owner.username)
+
+        relocation: Relocation = Relocation.objects.get(owner_id=self.owner.id)
+        assert str(relocation.uuid) == response.data["uuid"]
+        assert relocation.want_org_slugs == ["testing"]
+        assert Relocation.objects.count() == relocation_count + 1
+        assert RelocationFile.objects.count() == relocation_file_count + 1
+
+        assert uploading_complete_mock.call_count == 1
+
         assert analytics_record_mock.call_count == 1
         analytics_record_mock.assert_called_with(
             "relocation.created",
@@ -880,6 +952,38 @@ class PostRelocationsTest(APITestCase):
         assert relocation_link_promo_code_signal_mock.call_count == 0
 
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
+    @with_feature("auth:enterprise-staff-cookie")
+    def test_bad_staff_nonexistent_owner(
+        self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
+    ):
+        self.login_as(user=self.staff_user, staff=True)
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
+            with open(FRESH_INSTALL_PATH) as f:
+                data = json.load(f)
+                with open(tmp_pub_key_path, "rb") as p:
+                    response = self.get_error_response(
+                        owner="doesnotexist",
+                        file=SimpleUploadedFile(
+                            "export.tar",
+                            create_encrypted_export_tarball(data, LocalFileEncryptor(p)).getvalue(),
+                            content_type="application/tar",
+                        ),
+                        orgs="testing, foo",
+                        format="multipart",
+                        status_code=400,
+                    )
+
+        assert response.data.get("detail") is not None
+        assert response.data.get("detail") == ERR_OWNER_NOT_FOUND.substitute(
+            owner_username="doesnotexist"
+        )
+
+        analytics_record_mock.assert_not_called()
+
+        assert relocation_link_promo_code_signal_mock.call_count == 0
+
+    @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
     def test_bad_superuser_nonexistent_owner(
         self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
     ):
@@ -1047,6 +1151,90 @@ class PostRelocationsTest(APITestCase):
             relocation_uuid=UUID(initial_response.data["uuid"]),
             promo_code=None,
             sender=RelocationIndexEndpoint,
+        )
+
+    @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
+    @with_feature("auth:enterprise-staff-cookie")
+    def test_good_no_throttle_for_staff(
+        self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
+    ):
+        self.login_as(user=self.staff_user, staff=True)
+        relocation_count = Relocation.objects.count()
+        relocation_file_count = RelocationFile.objects.count()
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
+            with open(FRESH_INSTALL_PATH) as f:
+                data = json.load(f)
+                with open(tmp_pub_key_path, "rb") as p:
+                    initial_response = self.get_success_response(
+                        owner=self.owner.username,
+                        file=SimpleUploadedFile(
+                            "export.tar",
+                            create_encrypted_export_tarball(data, LocalFileEncryptor(p)).getvalue(),
+                            content_type="application/tar",
+                        ),
+                        orgs="testing, foo",
+                        format="multipart",
+                        status_code=201,
+                    )
+
+                    # Simulate completion of relocation job
+                    relocation = Relocation.objects.all()[0]
+                    relocation.status = Relocation.Status.SUCCESS.value
+                    relocation.save()
+                    relocation.refresh_from_db()
+
+                with open(tmp_pub_key_path, "rb") as p:
+                    unthrottled_response = self.get_success_response(
+                        owner=self.owner.username,
+                        file=SimpleUploadedFile(
+                            "export.tar",
+                            create_encrypted_export_tarball(data, LocalFileEncryptor(p)).getvalue(),
+                            content_type="application/tar",
+                        ),
+                        orgs="testing, foo",
+                        format="multipart",
+                        status_code=201,
+                    )
+
+        assert initial_response.status_code == status.HTTP_201_CREATED
+        assert unthrottled_response.status_code == status.HTTP_201_CREATED
+        assert Relocation.objects.count() == relocation_count + 2
+        assert RelocationFile.objects.count() == relocation_file_count + 2
+
+        assert analytics_record_mock.call_count == 2
+        analytics_record_mock.assert_has_calls(
+            [
+                call(
+                    "relocation.created",
+                    creator_id=int(initial_response.data["creatorId"]),
+                    owner_id=int(initial_response.data["ownerId"]),
+                    uuid=initial_response.data["uuid"],
+                ),
+                call(
+                    "relocation.created",
+                    creator_id=int(unthrottled_response.data["creatorId"]),
+                    owner_id=int(unthrottled_response.data["ownerId"]),
+                    uuid=unthrottled_response.data["uuid"],
+                ),
+            ]
+        )
+
+        assert relocation_link_promo_code_signal_mock.call_count == 2
+        relocation_link_promo_code_signal_mock.assert_has_calls(
+            [
+                call(
+                    relocation_uuid=UUID(initial_response.data["uuid"]),
+                    promo_code=None,
+                    sender=RelocationIndexEndpoint,
+                ),
+                call(
+                    relocation_uuid=UUID(unthrottled_response.data["uuid"]),
+                    promo_code=None,
+                    sender=RelocationIndexEndpoint,
+                ),
+            ]
         )
 
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})

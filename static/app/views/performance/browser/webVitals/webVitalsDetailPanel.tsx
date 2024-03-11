@@ -70,7 +70,7 @@ export function WebVitalsDetailPanel({
     : calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
   const {data, isLoading} = useTransactionWebVitalsQuery({
     limit: 100,
-    opportunityWebVital: webVital ?? 'total',
+    webVital: webVital ?? 'total',
     ...(webVital
       ? shouldUseStoredScores
         ? {

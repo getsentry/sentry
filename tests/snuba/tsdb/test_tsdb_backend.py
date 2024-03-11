@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
 from snuba_sdk import Limit
@@ -9,7 +9,7 @@ from sentry.models.group import Group
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.release import Release
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import iso_format
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.tsdb.base import TSDBModel
 from sentry.tsdb.snuba import SnubaTSDB
@@ -59,9 +59,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
         super().setUp()
 
         self.db = SnubaTSDB()
-        self.now = (datetime.utcnow() - timedelta(hours=4)).replace(
-            hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc
-        )
+        self.now = before_now(hours=4).replace(hour=0, minute=0, second=0, microsecond=0)
         self.proj1 = self.create_project()
         env1 = "test"
         env2 = "dev"
@@ -631,9 +629,7 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
         super().setUp()
 
         self.db = SnubaTSDB()
-        self.now = (datetime.utcnow() - timedelta(hours=4)).replace(
-            hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc
-        )
+        self.now = before_now(hours=4).replace(hour=0, minute=0, second=0, microsecond=0)
         self.proj1 = self.create_project()
 
         self.env1 = Environment.objects.get_or_create(
@@ -676,9 +672,7 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
             (60 * 60 * 24, timedelta(days=1), 15),
         ]
 
-        start = (datetime.now(timezone.utc) - timedelta(days=15)).replace(
-            hour=0, minute=0, second=0
-        )
+        start = before_now(days=15).replace(hour=0, minute=0, second=0)
 
         for step, delta, times in GRANULARITIES:
             series = [start + (delta * i) for i in range(times)]
@@ -711,9 +705,7 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
             ) == {group_info.group.id: [(ts, 1) for ts in series_ts]}
 
     def test_range_groups_mult(self):
-        now = (datetime.utcnow() - timedelta(days=1)).replace(
-            hour=10, minute=0, second=0, microsecond=0, tzinfo=timezone.utc
-        )
+        now = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
         dts = [now + timedelta(hours=i) for i in range(4)]
         project = self.create_project()
         group_fingerprint = f"{ProfileFileIOGroupType.type_id}-group4"
@@ -748,9 +740,7 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
 
     def test_range_groups_simple(self):
         project = self.create_project()
-        now = (datetime.utcnow() - timedelta(days=1)).replace(
-            hour=10, minute=0, second=0, microsecond=0, tzinfo=timezone.utc
-        )
+        now = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
         group_fingerprint = f"{ProfileFileIOGroupType.type_id}-group5"
         ids = [1, 2, 3, 4, 5]
         groups = []
@@ -907,42 +897,41 @@ class AddJitterToSeriesTest(TestCase):
         self.db = SnubaTSDB()
 
     def run_test(self, end, interval, jitter, expected_start, expected_end):
-        end = end.replace(tzinfo=timezone.utc)
         start = end - interval
         rollup, rollup_series = self.db.get_optimal_rollup_series(start, end)
         series = self.db._add_jitter_to_series(rollup_series, start, rollup, jitter)
-        assert to_datetime(series[0]) == expected_start.replace(tzinfo=timezone.utc)
-        assert to_datetime(series[-1]) == expected_end.replace(tzinfo=timezone.utc)
+        assert to_datetime(series[0]) == expected_start
+        assert to_datetime(series[-1]) == expected_end
 
     def test(self):
         self.run_test(
-            end=datetime(2022, 5, 18, 10, 23, 4),
+            end=datetime(2022, 5, 18, 10, 23, 4, tzinfo=UTC),
             interval=timedelta(hours=1),
             jitter=5,
-            expected_start=datetime(2022, 5, 18, 9, 22, 55),
-            expected_end=datetime(2022, 5, 18, 10, 22, 55),
+            expected_start=datetime(2022, 5, 18, 9, 22, 55, tzinfo=UTC),
+            expected_end=datetime(2022, 5, 18, 10, 22, 55, tzinfo=UTC),
         )
         self.run_test(
-            end=datetime(2022, 5, 18, 10, 23, 8),
+            end=datetime(2022, 5, 18, 10, 23, 8, tzinfo=UTC),
             interval=timedelta(hours=1),
             jitter=5,
-            expected_start=datetime(2022, 5, 18, 9, 23, 5),
-            expected_end=datetime(2022, 5, 18, 10, 23, 5),
+            expected_start=datetime(2022, 5, 18, 9, 23, 5, tzinfo=UTC),
+            expected_end=datetime(2022, 5, 18, 10, 23, 5, tzinfo=UTC),
         )
         # Jitter should be the same
         self.run_test(
-            end=datetime(2022, 5, 18, 10, 23, 8),
+            end=datetime(2022, 5, 18, 10, 23, 8, tzinfo=UTC),
             interval=timedelta(hours=1),
             jitter=55,
-            expected_start=datetime(2022, 5, 18, 9, 23, 5),
-            expected_end=datetime(2022, 5, 18, 10, 23, 5),
+            expected_start=datetime(2022, 5, 18, 9, 23, 5, tzinfo=UTC),
+            expected_end=datetime(2022, 5, 18, 10, 23, 5, tzinfo=UTC),
         )
         self.run_test(
-            end=datetime(2022, 5, 18, 22, 33, 2),
+            end=datetime(2022, 5, 18, 22, 33, 2, tzinfo=UTC),
             interval=timedelta(minutes=1),
             jitter=3,
-            expected_start=datetime(2022, 5, 18, 22, 31, 53),
-            expected_end=datetime(2022, 5, 18, 22, 32, 53),
+            expected_start=datetime(2022, 5, 18, 22, 31, 53, tzinfo=UTC),
+            expected_end=datetime(2022, 5, 18, 22, 32, 53, tzinfo=UTC),
         )
 
     def test_empty_series(self):

@@ -84,6 +84,7 @@ describe('AiAutofix', () => {
                 description: 'This is a description',
                 pr_url: 'https://github.com/pulls/1234',
                 repo_name: 'getsentry/sentry',
+                diff: [],
               },
               steps: [],
             },
@@ -128,7 +129,7 @@ describe('AiAutofix', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Toggle log details'}));
 
-    expect(screen.getByText('1. I am processing')).toBeInTheDocument();
+    expect(screen.getByText('I am processing')).toBeInTheDocument();
     expect(screen.getByText('oh yes I am')).toBeInTheDocument();
   });
 });
