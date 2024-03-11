@@ -40,7 +40,6 @@ describe('ProjectUserFeedbackProcessing', function () {
       method: 'PUT',
     });
 
-    // Click Regenerate Token
     await userEvent.click(screen.getByRole('checkbox', {name: 'Enable Spam Detection'}));
 
     expect(mock).toHaveBeenCalledWith(
