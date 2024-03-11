@@ -113,7 +113,7 @@ describe('useProject', () => {
     );
   });
 
-  it('should fetch id if the useAllProjectsVisibility is loaded and a slug is passed in', async () => {
+  it('should fetch id if the useAllProjectsOptions is loaded and a slug is passed in', async () => {
     mockAllProjectOptions([project10, project20]);
     const mockResponse = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -133,7 +133,7 @@ describe('useProject', () => {
     );
   });
 
-  it('should re-fetch projects by slug if it was fetching that way before (ie: was fetched before useAllProjectsVisibility was ready)', async () => {
+  it('should re-fetch projects by slug if it was fetching that way before (ie: was fetched before useAllProjectsOptions was ready)', async () => {
     mockAllProjectOptions([]);
     const mockResponse = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
