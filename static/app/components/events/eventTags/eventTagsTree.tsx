@@ -18,7 +18,7 @@ import useRouter from 'sentry/utils/useRouter';
 
 const MAX_TREE_DEPTH = 4;
 const INVALID_BRANCH_REGEX = /\.{2,}/;
-const COLUMN_COUNT = 2;
+export const COLUMN_COUNT = 2;
 
 interface TagTree {
   [key: string]: TagTreeContent;
@@ -104,7 +104,7 @@ function TagTreeRow({
 
   if (!originalTag) {
     return (
-      <TreeRow>
+      <TreeRow data-test-id="tag-tree-row">
         <TreeKeyTrunk spacerCount={spacerCount}>
           {spacerCount > 0 && (
             <Fragment>
@@ -124,7 +124,7 @@ function TagTreeRow({
   const searchQuery = `?${qs.stringify(query)}`;
 
   return (
-    <TreeRow>
+    <TreeRow data-test-id="tag-tree-row">
       <TreeKeyTrunk spacerCount={spacerCount}>
         {spacerCount > 0 && (
           <Fragment>
@@ -299,7 +299,7 @@ function TagTreeColumns({meta, tags, ...props}: EventTagsTreeProps) {
         // If it's the last entry, create a column with the remaining rows
         if (index === tagTreeRowGroups.length - 1) {
           columns.push(
-            <TreeColumn key={columns.length}>
+            <TreeColumn key={columns.length} data-test-id="tag-tree-column">
               {tagTreeRowGroups.slice(startIndex)}
             </TreeColumn>
           );
@@ -308,7 +308,7 @@ function TagTreeColumns({meta, tags, ...props}: EventTagsTreeProps) {
         // If we reach the goal column size, wrap rows in a TreeColumn.
         if (runningTotal >= columnRowGoal) {
           columns.push(
-            <TreeColumn key={columns.length}>
+            <TreeColumn key={columns.length} data-test-id="tag-tree-column">
               {tagTreeRowGroups.slice(startIndex, index)}
             </TreeColumn>
           );
