@@ -54,6 +54,7 @@ EVENT_DATA_ALLOWLIST = {
                     "image_addr": Allow.SIMPLE_TYPE,
                     "package": Allow.SIMPLE_TYPE,
                     "platform": Allow.SIMPLE_TYPE,
+                    "lineno": Allow.SIMPLE_TYPE,
                 }
             },
             "value": Allow.NEVER.with_explanation("The exception value could contain PII."),

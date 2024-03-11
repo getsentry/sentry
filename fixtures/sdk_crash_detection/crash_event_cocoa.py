@@ -92,6 +92,7 @@ def get_frames(
             "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
             "platform": "platform",
             "post_context": ["should_be_removed"],
+            "lineno": 143,
         },
     ]
 

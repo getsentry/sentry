@@ -236,6 +236,7 @@ def test_strip_event_data_keeps_exception_stacktrace(store_and_strip_event):
         "image_addr": "0x1a4e8f000",
         "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
         "platform": "platform",
+        "lineno": 143,
     }
 
 
