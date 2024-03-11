@@ -263,12 +263,9 @@ export function Provider({
       videoAttachments?.length
   );
 
-  const forceDimensions = useCallback(
-    (dimension: Dimensions) => {
-      setDimensions(dimension);
-    },
-    [setDimensions]
-  );
+  const forceDimensions = (dimension: Dimensions) => {
+    setDimensions(dimension);
+  };
   const onFastForwardStart = (e: {speed: number}) => {
     setFFSpeed(e.speed);
   };
@@ -404,7 +401,7 @@ export function Provider({
           start: startTimestampMs,
           onFinished: setReplayFinished,
           onLoaded: event => {
-            forceDimensions({
+            setDimensions({
               height: event.target.videoHeight,
               width: event.target.videoWidth,
             });
@@ -454,7 +451,6 @@ export function Provider({
     [
       applyInitialOffset,
       events,
-      forceDimensions,
       hasNewEvents,
       isFetching,
       isVideoReplay,
