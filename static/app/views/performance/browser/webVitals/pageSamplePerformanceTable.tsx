@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useMemo} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -84,6 +84,8 @@ enum Dataset {
   INTERACTIONS = 'interactions',
 }
 
+const DATESET_KEY = 'dataset';
+
 type Props = {
   transaction: string;
   limit?: number;
@@ -100,7 +102,14 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
   const shouldUseStoredScores = useStoredScoresSetting();
   const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
 
-  const [dataset, setDataset] = useState(Dataset.PAGELOADS);
+  let dataset = Dataset.PAGELOADS;
+  switch (decodeScalar(location.query[DATESET_KEY], 'pageloads')) {
+    case 'interactions':
+      dataset = Dataset.INTERACTIONS;
+      break;
+    default:
+      dataset = Dataset.PAGELOADS;
+  }
 
   const samplesColumnOrder = useMemo(() => {
     if (shouldReplaceFidWithInp) {
@@ -399,9 +408,13 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
               // Reset pagination and sort when switching datasets
               router.replace({
                 ...location,
-                query: {...location.query, sort: undefined, cursor: undefined},
+                query: {
+                  ...location.query,
+                  sort: undefined,
+                  cursor: undefined,
+                  [DATESET_KEY]: newDataSet,
+                },
               });
-              setDataset(newDataSet);
             }}
           >
             <SegmentedControl.Item key={Dataset.PAGELOADS}>
