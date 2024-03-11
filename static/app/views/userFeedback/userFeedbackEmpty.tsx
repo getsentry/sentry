@@ -17,10 +17,11 @@ import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 
 type Props = {
+  issueTab: boolean;
   projectIds?: string[];
 };
 
-export function UserFeedbackEmpty({projectIds}: Props) {
+export function UserFeedbackEmpty({projectIds, issueTab}: Props) {
   const {projects, initiallyLoaded} = useProjects();
   const loadingProjects = !initiallyLoaded;
   const organization = useOrganization();
@@ -44,7 +45,9 @@ export function UserFeedbackEmpty({projectIds}: Props) {
   }, [location.hash, location.query, location.pathname, projectIds, router]);
 
   useEffect(() => {
-    setProjId();
+    if (issueTab) {
+      setProjId();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
