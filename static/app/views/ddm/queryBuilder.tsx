@@ -1,4 +1,4 @@
-import {Fragment, memo, useCallback, useMemo} from 'react';
+import {Fragment, memo, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
@@ -25,6 +25,7 @@ import {useIncrementQueryMetric} from 'sentry/utils/metrics/useIncrementQueryMet
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import {middleEllipsis} from 'sentry/utils/middleEllipsis';
+import useKeyPress from 'sentry/utils/useKeyPress';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {MetricSearchBar} from 'sentry/views/ddm/metricSearchBar';
@@ -45,6 +46,20 @@ function getOpsForMRI(mri: MRI, meta: MetricMeta[]) {
   return meta.find(metric => metric.mri === mri)?.operations.filter(isAllowedOp) ?? [];
 }
 
+function useMriMode() {
+  const [mriMode, setMriMode] = useState(false);
+  const mriModeKeyPressed = useKeyPress('`', undefined, true);
+
+  useEffect(() => {
+    if (mriModeKeyPressed) {
+      setMriMode(value => !value);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mriModeKeyPressed]);
+
+  return mriMode;
+}
+
 export const QueryBuilder = memo(function QueryBuilder({
   metricsQuery,
   projects,
@@ -54,6 +69,7 @@ export const QueryBuilder = memo(function QueryBuilder({
   const pageFilters = usePageFilters();
   const {data: meta} = useMetricsMeta(pageFilters.selection);
   const breakpoints = useBreakpoints();
+  const mriMode = useMriMode();
 
   const {data: tagsData = [], isLoading: tagsIsLoading} = useMetricsTags(
     metricsQuery.mri,
@@ -139,18 +155,18 @@ export const QueryBuilder = memo(function QueryBuilder({
   const mriOptions = useMemo(
     () =>
       displayedMetrics.map<SelectOption<MRI>>(metric => ({
-        label: formatMRI(metric.mri),
+        label: mriMode ? metric.mri : formatMRI(metric.mri),
         // enable search by mri, name, unit (millisecond), type (c:), and readable type (counter)
         textValue: `${metric.mri}${getReadableMetricType(metric.type)}`,
         value: metric.mri,
-        trailingItems: (
+        trailingItems: mriMode ? undefined : (
           <Fragment>
             <Tag tooltipText={t('Type')}>{getReadableMetricType(metric.type)}</Tag>
             <Tag tooltipText={t('Unit')}>{metric.unit}</Tag>
           </Fragment>
         ),
       })),
-    [displayedMetrics]
+    [displayedMetrics, mriMode]
   );
 
   return (
