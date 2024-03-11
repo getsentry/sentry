@@ -44,14 +44,15 @@ export const renderLinksInText = ({
   //    The {1,256} specifies that these characters can occur anywhere from 1 to 256 times, which covers the range of typical domain name lengths
   // \.: Matches the dot before the top-level domain (like ".com")
   // [a-zA-Z0-9]{1,6}: Matches the top-level domain (like "com" or "org"). It's limited to letters and digits and can be between 1 and 6 characters long
-  // \b: Marks the end of the domain part of the URL
-  // (?:[-a-zA-Z0-9@:%_\+.~#?&\/=,\[\]]*): Matches the path or query parameters that can follow the domain in a URL
-  //    It includes a wide range of characters typically found in paths and query strings
+  // (?:[-a-zA-Z0-9@:%_\+~#?&\/=,\[\].]*[-a-zA-Z0-9@:%_\+~#?&\/=,\[\]])?: Matches the path, query parameters, or fragments that can follow the domain in a URL
+  //    It now includes periods within the character set to allow for file extensions (e.g., ".html") and other period-containing segments in the URL path
+  //    This pattern matches a wide range of characters typically found in paths, query strings, and fragments, including periods
+  //    The final character set ensures that the URL ends with a character typically allowed in a path, query string, or fragment, excluding special characters like a trailing period not part of the URL
   // /gi: The regex will match all occurrences in the string, not just the first one
-  //    i makes the regex match both upper and lower case characters
+  //    The "i" modifier makes the regex match both upper and lower case characters
 
   const urlRegex =
-    /https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9]{1,6}(?:[-a-zA-Z0-9@:%_\+~#?&\/=,\[\]]*[-a-zA-Z0-9@:%_\+~#?&\/=,\[\]])?/gi;
+    /https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9]{1,6}(?:[-a-zA-Z0-9@:%_\+~#?&\/=,\[\].]*[-a-zA-Z0-9@:%_\+~#?&\/=,\[\]])?/gi;
 
   const parts = exceptionText.split(urlRegex);
   const urls = exceptionText.match(urlRegex) || [];
