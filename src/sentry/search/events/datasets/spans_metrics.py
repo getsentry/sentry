@@ -332,12 +332,12 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     default_result_type="percentage",
                 ),
                 fields.MetricsFunction(
-                    "http_response_code_rate",
+                    "http_response_rate",
                     required_args=[
                         SnQLStringArg("code"),
                     ],
                     snql_distribution=lambda args, alias: function_aliases.resolve_division(
-                        self._resolve_http_response_code_count(args),
+                        self._resolve_http_response_count(args),
                         Function(
                             "countIf",
                             [
@@ -377,11 +377,11 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     default_result_type="percentage",
                 ),
                 fields.MetricsFunction(
-                    "http_response_code_count",
+                    "http_response_count",
                     required_args=[
                         SnQLStringArg("code"),
                     ],
-                    snql_distribution=self._resolve_http_response_code_count,
+                    snql_distribution=self._resolve_http_response_count,
                     default_result_type="integer",
                 ),
                 fields.MetricsFunction(
@@ -618,7 +618,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
-    def _resolve_http_response_code_count(
+    def _resolve_http_response_count(
         self,
         args: Mapping[str, str | Column | SelectType | int | float],
         alias: str | None = None,
