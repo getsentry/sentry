@@ -692,9 +692,31 @@ export class VirtualizedViewManager {
     }
   }
 
-  scrollRowIntoViewHorizontally(node: TraceTreeNode<any>, duration: number = 600) {
+  isOutsideOfViewOnKeyDown(node: TraceTreeNode<any>, offset_px: number): boolean {
+    const width = this.row_measurer.cache.get(node);
+    if (width === undefined) {
+      // this is unlikely to happen, but we should trigger a sync measure event if it does
+      return false;
+    }
+    const translation = this.columns.list.translate[0];
+
+    return (
+      translation + node.depth * this.row_depth_padding < 0 ||
+      translation + node.depth * this.row_depth_padding + offset_px >
+        this.columns.list.width * this.container_physical_space.width
+    );
+  }
+
+  scrollRowIntoViewHorizontally(
+    node: TraceTreeNode<any>,
+    duration: number = 600,
+    offset_px: number = 0
+  ) {
     const VISUAL_OFFSET = this.row_depth_padding / 2;
-    const target = Math.min(-node.depth * this.row_depth_padding + VISUAL_OFFSET, 0);
+    const target = Math.min(
+      -node.depth * this.row_depth_padding + VISUAL_OFFSET + offset_px,
+      0
+    );
     this.animateScrollColumnTo(target, duration);
   }
 
@@ -806,7 +828,7 @@ export class VirtualizedViewManager {
 
     if (segments.length === 1 && segments[0] === 'trace:root') {
       rerender();
-      list.scrollToRow(0);
+      this.scrollToRow(0);
       return Promise.resolve({index: 0, node: tree.root.children[0]});
     }
 
@@ -826,7 +848,9 @@ export class VirtualizedViewManager {
         return null;
       }
 
-      // Reassing the parent to the current node
+      // Reassing the parent to the current node so that
+      // searching narrows down to the current level
+      // and we dont need to search the entire tree each time
       parent = current;
 
       if (isTransactionNode(current)) {
@@ -861,11 +885,18 @@ export class VirtualizedViewManager {
       }
 
       rerender();
-      list.scrollToRow(index);
+      this.scrollToRow(index);
       return {index, node: current};
     };
 
     return scrollToRow();
+  }
+
+  scrollToRow(index: number) {
+    if (!this.list) {
+      return;
+    }
+    this.list.scrollToRow(index);
   }
 
   computeTransformXFromTimestamp(timestamp: number): number {
