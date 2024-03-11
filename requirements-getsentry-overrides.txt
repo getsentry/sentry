@@ -7,3 +7,6 @@
 # the format is:
 # # comment explaining what you're doing
 # library-name @ https://github.com/getsentry/<repo>/archive/<40 char sha>.zip
+
+# DO NOT MERGE: CI testing for pytest-sentry
+pytest-sentry @ https://github.com/getsentry/pytest-sentry/archive/448db6d50a0dc45154f2c29c56e2a611c6abb082.zip
