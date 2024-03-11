@@ -13,12 +13,12 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.tsdb.base import TSDBModel
 from sentry.tsdb.snuba import SnubaTSDB
-from sentry.utils.dates import to_datetime, to_timestamp
+from sentry.utils.dates import to_datetime
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
 def timestamp(d):
-    t = int(to_timestamp(d))
+    t = int(d.timestamp())
     return t - (t % 3600)
 
 
@@ -338,7 +338,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
         # Minutely
         dts = [self.now + timedelta(minutes=i) for i in range(120)]
         # Expect every 10th minute to have a 1, else 0
-        expected = [(to_timestamp(d), 1 if i % 10 == 0 else 0) for i, d in enumerate(dts)]
+        expected = [(d.timestamp(), 1 if i % 10 == 0 else 0) for i, d in enumerate(dts)]
 
         assert self.db.get_range(
             TSDBModel.project,
@@ -676,7 +676,7 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
 
         for step, delta, times in GRANULARITIES:
             series = [start + (delta * i) for i in range(times)]
-            series_ts = [int(to_timestamp(ts)) for ts in series]
+            series_ts = [int(ts.timestamp()) for ts in series]
 
             assert self.db.get_optimal_rollup(series[0], series[-1]) == step
 

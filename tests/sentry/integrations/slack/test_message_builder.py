@@ -53,7 +53,6 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import GroupSubStatus
-from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -262,7 +261,7 @@ def build_test_message(
         "title": title,
         "fields": [],
         "footer": f"{project.slug.upper()}-1",
-        "ts": to_timestamp(timestamp),
+        "ts": timestamp.timestamp(),
         "title_link": title_link,
         "callback_id": '{"issue":' + str(group.id) + "}",
         "fallback": f"[{project.slug}] {title}",
@@ -1077,7 +1076,7 @@ class BuildIncidentAttachmentTest(TestCase):
         )
         title = f"Resolved: {alert_rule.name}"
         timestamp = "<!date^{:.0f}^Started {} at {} | Sentry Incident>".format(
-            to_timestamp(incident.date_started), "{date_pretty}", "{time}"
+            incident.date_started.timestamp(), "{date_pretty}", "{time}"
         )
         link = (
             absolute_uri(
@@ -1117,7 +1116,7 @@ class BuildIncidentAttachmentTest(TestCase):
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
         timestamp = "<!date^{:.0f}^Started {} at {} | Sentry Incident>".format(
-            to_timestamp(incident.date_started), "{date_pretty}", "{time}"
+            incident.date_started.timestamp(), "{date_pretty}", "{time}"
         )
         link = (
             absolute_uri(
@@ -1157,7 +1156,7 @@ class BuildIncidentAttachmentTest(TestCase):
         )
         title = f"Resolved: {alert_rule.name}"
         timestamp = "<!date^{:.0f}^Started {} at {} | Sentry Incident>".format(
-            to_timestamp(incident.date_started), "{date_pretty}", "{time}"
+            incident.date_started.timestamp(), "{date_pretty}", "{time}"
         )
         link = (
             absolute_uri(

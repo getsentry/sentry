@@ -42,7 +42,6 @@ from sentry.tagstore.exceptions import (
 )
 from sentry.tagstore.types import GroupTagKey, GroupTagValue, TagKey, TagValue
 from sentry.utils import metrics, snuba
-from sentry.utils.dates import to_timestamp
 from sentry.utils.hashlib import md5_text
 from sentry.utils.snuba import (
     _prepare_start_end,
@@ -1395,7 +1394,7 @@ class SnubaTagStorage(TagStorage):
             if score_field == "times_seen":
                 # times_seen already an int
                 return int(getattr(tv, score_field))
-            return int(to_timestamp(getattr(tv, score_field)) * 1000)
+            return int(getattr(tv, score_field).timestamp() * 1000)
 
         return SequencePaginator(
             [(score_field_to_int(tv), tv) for tv in tag_values],
@@ -1474,10 +1473,7 @@ class SnubaTagStorage(TagStorage):
             )
 
         return SequencePaginator(
-            [
-                (int(to_timestamp(getattr(gtv, score_field)) * 1000), gtv)
-                for gtv in group_tag_values
-            ],
+            [(int(getattr(gtv, score_field).timestamp() * 1000), gtv) for gtv in group_tag_values],
             reverse=desc,
         )
 

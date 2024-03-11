@@ -51,7 +51,7 @@ from sentry.snuba.entity_subscription import (
 from sentry.snuba.models import QuerySubscription
 from sentry.snuba.tasks import build_query_builder
 from sentry.utils import metrics, redis
-from sentry.utils.dates import to_datetime, to_timestamp
+from sentry.utils.dates import to_datetime
 
 logger = logging.getLogger(__name__)
 REDIS_TTL = int(timedelta(days=7).total_seconds())
@@ -898,7 +898,7 @@ def update_alert_rule_stats(
             )
 
     last_update_key = build_alert_rule_stat_keys(alert_rule, subscription)[0]
-    pipeline.set(last_update_key, int(to_timestamp(last_update)), ex=REDIS_TTL)
+    pipeline.set(last_update_key, int(last_update.timestamp()), ex=REDIS_TTL)
     pipeline.execute()
 
 

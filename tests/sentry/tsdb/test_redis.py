@@ -8,7 +8,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.tsdb.base import ONE_DAY, ONE_HOUR, ONE_MINUTE, TSDBModel
 from sentry.tsdb.redis import CountMinScript, RedisTSDB, SuppressionWrapper
-from sentry.utils.dates import to_datetime, to_timestamp
+from sentry.utils.dates import to_datetime
 
 
 def test_suppression_wrapper():
@@ -85,7 +85,7 @@ class RedisTSDBTest(TestCase):
         dts = [now + timedelta(hours=i) for i in range(4)]
 
         def timestamp(d):
-            t = int(to_timestamp(d))
+            t = int(d.timestamp())
             return t - (t % 3600)
 
         self.db.incr(TSDBModel.project, 1, dts[0])
@@ -195,7 +195,7 @@ class RedisTSDBTest(TestCase):
         model = TSDBModel.users_affected_by_group
 
         def timestamp(d):
-            t = int(to_timestamp(d))
+            t = int(d.timestamp())
             return t - (t % 3600)
 
         self.db.record(model, 1, ("foo", "bar"), dts[0])
@@ -420,7 +420,7 @@ class RedisTSDBTest(TestCase):
             environment_id=0,
         ) == {"organization:1": [], "organization:2": []}
 
-        timestamp = int(to_timestamp(now) // rollup) * rollup
+        timestamp = int(now.timestamp() // rollup) * rollup
 
         assert self.db.get_most_frequent_series(
             model,

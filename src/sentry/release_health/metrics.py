@@ -46,7 +46,7 @@ from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.sessions import _make_stats, get_rollup_starts_and_buckets
 from sentry.snuba.sessions_v2 import QueryDefinition
 from sentry.utils import json
-from sentry.utils.dates import to_datetime, to_timestamp
+from sentry.utils.dates import to_datetime
 from sentry.utils.safe import get_path
 from sentry.utils.snuba import QueryOutsideRetentionError
 
@@ -1400,13 +1400,13 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         projects, org_id = self._get_projects_and_org_id([project_id])
 
-        start = to_datetime((to_timestamp(start) // rollup + 1) * rollup)
+        start = to_datetime((start.timestamp() // rollup + 1) * rollup)
 
         # since snuba end queries are exclusive of the time and we're bucketing to
         # 10 seconds, we need to round to the next 10 seconds since snuba is
         # exclusive on the end.
         end = to_datetime(
-            (to_timestamp(end) // SMALLEST_METRICS_BUCKET + 1) * SMALLEST_METRICS_BUCKET
+            (end.timestamp() // SMALLEST_METRICS_BUCKET + 1) * SMALLEST_METRICS_BUCKET
         )
 
         where = [

@@ -71,7 +71,7 @@ from sentry.search.events.types import (
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.utils import MetricMeta
-from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
+from sentry.utils.dates import outside_retention_with_modified_start
 from sentry.utils.snuba import (
     QueryOutsideRetentionError,
     is_duration_measurement,
@@ -1173,9 +1173,7 @@ class BaseQueryBuilder:
             value = self.resolve_measurement_value(unit, value)
 
         value = (
-            int(to_timestamp(value))
-            if isinstance(value, datetime) and name != "timestamp"
-            else value
+            int(value.timestamp()) if isinstance(value, datetime) and name != "timestamp" else value
         )
 
         if aggregate_filter.operator in {"=", "!="} and value == "":
@@ -1249,7 +1247,7 @@ class BaseQueryBuilder:
         # timestamp{,.to_{hour,day}} need a datetime string
         # last_seen needs an integer
         if isinstance(value, datetime) and name not in constants.TIMESTAMP_FIELDS:
-            value = int(to_timestamp(value)) * 1000
+            value = int(value.timestamp()) * 1000
 
         # Tags are never null, but promoted tags are columns and so can be null.
         # To handle both cases, use `ifNull` to convert to an empty string and

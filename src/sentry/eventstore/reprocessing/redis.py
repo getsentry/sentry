@@ -7,7 +7,7 @@ import redis
 from django.conf import settings
 
 from sentry.utils import json
-from sentry.utils.dates import to_datetime, to_timestamp
+from sentry.utils.dates import to_datetime
 from sentry.utils.redis import redis_clusters
 
 from .base import ReprocessingStore
@@ -99,7 +99,7 @@ class RedisReprocessingStore(ReprocessingStore):
         old_primary_hash: str,
     ) -> None:
         event_key = _get_old_primary_hash_subset_key(project_id, group_id, old_primary_hash)
-        self.redis.lpush(event_key, f"{to_timestamp(date_val)};{event_id}")
+        self.redis.lpush(event_key, f"{date_val.timestamp()};{event_id}")
         self.redis.expire(event_key, settings.SENTRY_REPROCESSING_TOMBSTONES_TTL)
 
     def add_hash(self, project_id: int, group_id: int, hash: str) -> None:
@@ -118,10 +118,7 @@ class RedisReprocessingStore(ReprocessingStore):
         if datetime_to_event:
             llen = self.redis.lpush(
                 key,
-                *(
-                    f"{to_timestamp(datetime)};{event_id}"
-                    for datetime, event_id in datetime_to_event
-                ),
+                *(f"{datetime.timestamp()};{event_id}" for datetime, event_id in datetime_to_event),
             )
             self.redis.expire(key, settings.SENTRY_REPROCESSING_SYNC_TTL)
         else:

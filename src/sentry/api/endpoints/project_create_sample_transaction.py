@@ -13,7 +13,6 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.serializers import serialize
 from sentry.constants import DATA_ROOT
 from sentry.utils import json
-from sentry.utils.dates import to_timestamp
 from sentry.utils.samples import create_sample_event_basic
 
 base_platforms_with_transactions = ["javascript", "python", "apple-ios"]
@@ -38,10 +37,10 @@ def fix_event_data(data):
     """
     timestamp = datetime.now(timezone.utc) - timedelta(minutes=1)
     timestamp = timestamp - timedelta(microseconds=timestamp.microsecond % 1000)
-    data["timestamp"] = to_timestamp(timestamp)
+    data["timestamp"] = timestamp.timestamp()
 
     start_timestamp = timestamp - timedelta(seconds=3)
-    data["start_timestamp"] = to_timestamp(start_timestamp)
+    data["start_timestamp"] = start_timestamp.timestamp()
 
     trace = uuid4().hex
     span_id = uuid4().hex[:16]

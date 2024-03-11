@@ -6,7 +6,7 @@ from typing import Any, TypedDict
 from django.conf import settings
 from django.utils import timezone
 
-from sentry.utils.dates import to_datetime, to_timestamp
+from sentry.utils.dates import to_datetime
 from sentry.utils.services import Service
 
 ONE_MINUTE = 60
@@ -204,7 +204,7 @@ class BaseTSDB(Service):
         i.e. if the rollup is minutes, the resulting timestamp would have
         the seconds and microseconds rounded down.
         """
-        epoch = int(to_timestamp(timestamp))
+        epoch = int(timestamp.timestamp())
         return epoch - (epoch % seconds)
 
     def normalize_ts_to_epoch(self, epoch: int, seconds: int) -> int:
@@ -218,7 +218,7 @@ class BaseTSDB(Service):
         Given a ``timestamp`` (datetime object) normalize to an epoch rollup.
         """
         if isinstance(timestamp, datetime):
-            epoch = int(to_timestamp(timestamp))
+            epoch = int(timestamp.timestamp())
         else:
             epoch = int(timestamp)
         return int(epoch / seconds)
@@ -234,7 +234,7 @@ class BaseTSDB(Service):
         Identify the lowest granularity rollup available within the given time
         range.
         """
-        num_seconds = int(to_timestamp(end_timestamp)) - int(to_timestamp(start_timestamp))
+        num_seconds = int(end_timestamp.timestamp()) - int(start_timestamp.timestamp())
 
         # This loop attempts to find the smallest possible rollup that will
         # contain both the start and end timestamps. ``self.rollups`` is
