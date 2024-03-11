@@ -215,7 +215,8 @@ export async function fetchOrganizationDetails(
  * from /organizations can vary based on query parameters
  */
 export async function fetchOrganizations(api: Client, query?: Record<string, any>) {
-  const regions = ConfigStore.get('regions');
+  // TODO(mark) Remove coalesce after memberRegions
+  const regions = ConfigStore.get('memberRegions') ?? ConfigStore.get('regions');
   const results = await Promise.all(
     regions.map(region =>
       api.requestPromise(`/organizations/`, {

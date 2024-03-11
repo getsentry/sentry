@@ -115,7 +115,7 @@ describe('ApiSource', function () {
     const mock = jest.fn().mockReturnValue(null);
     ConfigStore.loadInitialData({
       ...configState,
-      regions: [
+      memberRegions: [
         {name: 'us', url: 'https://us.sentry.io'},
         {name: 'de', url: 'https://de.sentry.io'},
       ],

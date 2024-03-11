@@ -64,6 +64,7 @@ export function ConfigFixture(params: Partial<Config> = {}): Config {
       organizationUrl: 'https://foobar.sentry.io',
       regionUrl: 'https://us.sentry.io',
     },
+    memberRegions: [{name: 'us', url: 'https://sentry.io'}],
     regions: [{name: 'us', url: 'https://sentry.io'}],
     ...params,
   };
