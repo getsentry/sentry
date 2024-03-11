@@ -1,12 +1,6 @@
 import datetime
 
-from sentry.utils.dates import date_to_utc_datetime, parse_stats_period, to_datetime, to_timestamp
-
-
-def test_timestamp_conversions():
-    value = datetime.datetime(2015, 10, 1, 21, 19, 5, 648517, tzinfo=datetime.UTC)
-    assert int(to_timestamp(value)) == int(value.strftime("%s"))
-    assert to_datetime(to_timestamp(value)) == value
+from sentry.utils.dates import date_to_utc_datetime, parse_stats_period
 
 
 def test_parse_stats_period():
