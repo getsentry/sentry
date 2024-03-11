@@ -1,6 +1,5 @@
 import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -67,7 +66,7 @@ export default function FeedbackShortId({className, feedbackItem, style}: Props)
           size={12}
           title={feedbackItem.project.slug}
         />
-        <ShortId>{feedbackItem.shortId}</ShortId>
+        <TextOverflow>{feedbackItem.shortId}</TextOverflow>
       </Flex>
       <DropdownMenu
         triggerProps={{
@@ -95,8 +94,3 @@ export default function FeedbackShortId({className, feedbackItem, style}: Props)
     </Flex>
   );
 }
-
-const ShortId = styled(TextOverflow)`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
-`;
