@@ -47,32 +47,15 @@ describe('EventTagsTree', function () {
   const event = EventFixture({tags});
 
   it('avoids tag tree without query param', function () {
-    render(
-      <EventTags
-        organization={organization}
-        projectSlug={project.slug}
-        location={router.location}
-        event={event}
-      />,
-      {organization}
-    );
+    render(<EventTags projectSlug={project.slug} event={event} />, {organization});
     tags.forEach(({key: fullTagKey, value}) => {
       expect(screen.getByText(fullTagKey)).toBeInTheDocument();
       expect(screen.getByText(value)).toBeInTheDocument();
     });
   });
 
-  it('renders tag tree with query param', function () {
-    render(
-      <EventTags
-        organization={organization}
-        projectSlug={project.slug}
-        location={{...router.location, query: {tagsTree: '1'}}}
-        event={event}
-      />,
-      {organization}
-    );
-
+  /** Asserts that new tags view is rendering the appropriate data. Requires render() call prior. */
+  function assertNewTagsView() {
     tags.forEach(({value}) => {
       expect(screen.getByText(value)).toBeInTheDocument();
     });
@@ -84,30 +67,24 @@ describe('EventTagsTree', function () {
     treeBranchTags.forEach(tag => {
       expect(screen.getByText(tag)).toBeInTheDocument();
     });
+  }
+
+  it('renders tag tree with query param', function () {
+    router.location.query.tagsTree = '1';
+    render(<EventTags projectSlug={project.slug} event={event} />, {
+      organization,
+      router,
+    });
+
+    assertNewTagsView();
   });
 
   it("renders tag tree with the 'event-tags-tree-ui' feature", function () {
     const featuredOrganization = OrganizationFixture({features: ['event-tags-tree-ui']});
-    render(
-      <EventTags
-        organization={featuredOrganization}
-        projectSlug={project.slug}
-        location={router.location}
-        event={event}
-      />,
-      {organization: featuredOrganization}
-    );
-
-    tags.forEach(({value}) => {
-      expect(screen.getByText(value)).toBeInTheDocument();
+    render(<EventTags projectSlug={project.slug} event={event} />, {
+      organization: featuredOrganization,
     });
 
-    pillOnlyTags.forEach(tag => {
-      expect(screen.queryByText(tag)).not.toBeInTheDocument();
-    });
-
-    treeBranchTags.forEach(tag => {
-      expect(screen.getByText(tag)).toBeInTheDocument();
-    });
+    assertNewTagsView();
   });
 });

@@ -11,7 +11,7 @@ croniter>=1.3.10
 cssselect>=1.0.3
 datadog>=0.44
 django-crispy-forms>=1.14.0
-django-csp>=3.7
+django-csp>=3.8
 django-pg-zero-downtime-migrations>=0.13
 Django>=5.0.2,<6
 djangorestframework>=3.14.0
@@ -65,7 +65,7 @@ sentry-arroyo>=2.16.2
 sentry-kafka-schemas>=0.1.58
 sentry-ophio==0.1.5
 sentry-redis-tools>=0.1.7
-sentry-relay>=0.8.48
+sentry-relay>=0.8.49
 sentry-sdk==2.0.0a2
 snuba-sdk>=2.0.29
 simplejson>=3.17.6

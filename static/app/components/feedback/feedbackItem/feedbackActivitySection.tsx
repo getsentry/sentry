@@ -110,7 +110,7 @@ function FeedbackActivitySection(props: Props) {
       onCreate={handleCreate}
       onUpdate={handleUpdate}
       placeholderText={t(
-        'Add details or updates to this feedback. \nTag users with @, or teams with #'
+        'Add details or updates to this feedback, visible only to your organization. \nTag users with @, or teams with #'
       )}
     />
   );

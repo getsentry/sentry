@@ -7,10 +7,10 @@ import type {
   AutofixData,
   AutofixProgressItem,
   AutofixStep,
-} from 'sentry/components/events/aiAutofix/types';
+} from 'sentry/components/events/autofix/types';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
-import {IconChevron, IconClose, IconFatal} from 'sentry/icons';
+import {IconCheckmark, IconChevron, IconClose, IconFatal} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
@@ -27,6 +27,7 @@ function StepIcon({status}: StepIconProps) {
     case 'ERROR':
       return <IconFatal size="sm" color="red300" />;
     case 'COMPLETED':
+      return <IconCheckmark size="sm" color="green300" isCircled />;
     default:
       return null;
   }
@@ -65,14 +66,14 @@ function Progress({progress}: {progress: AutofixProgressItem | AutofixStep}) {
   );
 }
 
-export function Step({step, isChild, stepNumber}: StepProps) {
+export function Step({step, isChild}: StepProps) {
   const isActive = step.status !== 'PENDING' && step.status !== 'CANCELLED';
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const logs = step.progress.filter(isProgressLog);
+  const logs = step.progress?.filter(isProgressLog) ?? [];
 
   const activeLog = step.completedMessage ?? logs.at(-1)?.message ?? null;
-  const hasContent = step.completedMessage || step.progress.length;
+  const hasContent = step.completedMessage || step.progress?.length;
 
   return (
     <StepCard active={isActive}>
@@ -85,31 +86,31 @@ export function Step({step, isChild, stepNumber}: StepProps) {
           }
         }}
       >
-        <StepTitle>
-          {stepNumber ? `${stepNumber}. ` : null}
-          {step.title}
-        </StepTitle>
-        {activeLog && !isExpanded && (
-          <StepHeaderDescription>{activeLog}</StepHeaderDescription>
-        )}
+        <StepHeaderLeft>
+          <StepIconContainer>
+            <StepIcon status={step.status} />
+          </StepIconContainer>
+          <StepTitle>{step.title}</StepTitle>
+          {activeLog && !isExpanded && (
+            <StepHeaderDescription>{activeLog}</StepHeaderDescription>
+          )}
+        </StepHeaderLeft>
         <StepHeaderRight>
-          <StepIcon status={step.status} />
-          {isActive && (
+          {isActive && hasContent ? (
             <Button
               icon={<IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />}
               aria-label={t('Toggle step details')}
               aria-expanded={isExpanded}
               size="zero"
               borderless
-              disabled={!hasContent}
             />
-          )}
+          ) : null}
         </StepHeaderRight>
       </StepHeader>
       {isExpanded && (
         <Fragment>
           {step.completedMessage && <StepBody>{step.completedMessage}</StepBody>}
-          {step.progress.length > 0 ? (
+          {step.progress && step.progress.length > 0 ? (
             <ProgressContainer>
               {step.progress.map((progress, i) => (
                 <Progress progress={progress} key={i} />
@@ -142,9 +143,8 @@ const StepCard = styled(Panel)<{active?: boolean}>`
 `;
 
 const StepHeader = styled('div')<{isActive: boolean; isChild?: boolean}>`
-  display: grid;
+  display: flex;
   justify-content: space-between;
-  grid-template-columns: auto 1fr auto;
   align-items: center;
   padding: ${space(2)};
   font-size: ${p => p.theme.fontSizeMedium};
@@ -156,24 +156,41 @@ const StepHeader = styled('div')<{isActive: boolean; isChild?: boolean}>`
   }
 `;
 
+const StepHeaderLeft = styled('div')`
+  display: flex;
+  align-items: center;
+  flex: 1;
+`;
+
 const StepHeaderDescription = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
   padding: 0 ${space(2)} 0 ${space(1)};
   margin-left: ${space(1)};
   border-left: 1px solid ${p => p.theme.border};
+  flex-grow: 1;
   ${p => p.theme.overflowEllipsis};
+`;
+
+const StepIconContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  margin-right: ${space(1)};
 `;
 
 const StepHeaderRight = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  grid-column: -1;
 `;
 
 const StepTitle = styled('div')`
   font-weight: bold;
+  white-space: nowrap;
+  display: flex;
+  flex-shrink: 1;
+  align-items: center;
+  flex-grow: 0;
 
   span {
     margin-right: ${space(1)};

@@ -875,7 +875,7 @@ register(
 register("reprocessing2.drop-delete-old-primary-hash", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Switch to use service wrapper for reprocessing redis operations
-register("reprocessing.use_store", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("reprocessing.use_store", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # BEGIN ABUSE QUOTAS
 
@@ -1238,6 +1238,13 @@ register(
 )
 register(
     "sentry-metrics.cardinality-limiter.limits.custom.per-org",
+    default=[
+        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
+    ],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "sentry-metrics.cardinality-limiter.limits.profiles.per-org",
     default=[
         {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
     ],

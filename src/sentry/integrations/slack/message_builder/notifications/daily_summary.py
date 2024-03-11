@@ -59,11 +59,34 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
             except Project.DoesNotExist:
                 continue
 
+            if context.check_if_project_is_empty():
+                continue
+
             project_text = f"Here's what happened in the *{project.slug}* project today:"
             blocks.append(self.get_markdown_block(project_text))
 
+            # Calculate today's event count percentage against 14 day avg
+            if context.comparison_period_avg > 0:  # avoid a zerodivisionerror
+                fields = []
+                event_count_text = f"*Today’s Event Count*: {context.total_today}"
+                fields.append(self.make_field(event_count_text))
+                percentage_diff = context.total_today / context.comparison_period_avg
+                if context.total_today > context.comparison_period_avg:
+                    percentage_diff_text = (
+                        f":warning: {percentage_diff:.0%} higher than last {COMPARISON_PERIOD}d avg"
+                    )
+                    fields.append(self.make_field(percentage_diff_text))
+                else:
+                    percentage_diff_text = (
+                        f" :tada: {percentage_diff:.0%} lower than last {COMPARISON_PERIOD}d avg"
+                    )
+                    fields.append(self.make_field(percentage_diff_text))
+
+                blocks.append(self.get_section_fields_block(fields))
+
             # Add release info if we have it
             if context.new_in_release:
+                fields = []
                 for release_id, errors in context.new_in_release.items():
                     try:
                         release = Release.objects.get(id=release_id)
@@ -72,30 +95,19 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
 
                     release_text = self.linkify_release(release, project.organization)
                     for error in errors[0:3]:
-                        linked_title = self.linkify_error_title(error)
-                        release_text += f"• :new: {linked_title}\n"
-                blocks.append(self.get_markdown_block(release_text))
-
-            # Calculate today's event count percentage against 14 day avg
-            if context.comparison_period_avg > 0:  # avoid a zerodivisionerror
-                event_count_text = f"*Today’s Event Count*: {context.total_today}\n"
-                percentage_diff = context.total_today / context.comparison_period_avg
-                if context.total_today > context.comparison_period_avg:
-                    event_count_text += f"\n:warning: {percentage_diff:.0%} higher than last {COMPARISON_PERIOD}d avg"
-                else:
-                    event_count_text += (
-                        f"\n:tada: {percentage_diff:.0%} lower than last {COMPARISON_PERIOD}d avg"
-                    )
-
-                blocks.append(self.get_markdown_block(event_count_text))
+                        linked_issue_title = self.linkify_error_title(error)
+                        release_text += f"• :new: {linked_issue_title}\n"
+                        fields.append(self.make_field(release_text))
+                blocks.append(self.get_section_fields_block(fields))
 
             # Add Top 3 Error Issues
+            error_issue_fields = []
             if context.key_errors:
                 top_errors_text = "*Today's Top 3 Error Issues*\n"
                 for error in context.key_errors:
                     linked_title = self.linkify_error_title(error[0])
                     top_errors_text += f"• {linked_title}\n"
-                blocks.append(self.get_markdown_block(top_errors_text))
+                error_issue_fields.append(self.make_field(top_errors_text))
 
             # Add escalated/regressed issues
             if context.escalated_today or context.regressed_today:
@@ -106,10 +118,14 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
                         issue_state_text += f"• :point_up: {linked_title}\n"
 
                 if context.regressed_today:
+                    if not context.escalated_today:
+                        issue_state_text = "*Issues that escalated or regressed today*\n"
                     for regressed_issue in context.regressed_today:
                         linked_title = self.linkify_error_title(regressed_issue)
                         issue_state_text += f"• :recycle: {linked_title}\n"
-                blocks.append(self.get_markdown_block(issue_state_text))
+
+                error_issue_fields.append(self.make_field(issue_state_text))
+            blocks.append(self.get_section_fields_block(error_issue_fields))
 
             # Add performance data
             if context.key_performance_issues:

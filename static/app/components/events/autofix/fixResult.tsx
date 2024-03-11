@@ -3,7 +3,8 @@ import styled from '@emotion/styled';
 
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import type {AutofixData} from 'sentry/components/events/aiAutofix/types';
+import {AutofixDiff} from 'sentry/components/events/autofix/autofixDiff';
+import type {AutofixData} from 'sentry/components/events/autofix/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
 import {IconOpen} from 'sentry/icons';
@@ -59,6 +60,7 @@ function AutofixResultContent({autofixData, onRetry}: Props) {
 
   return (
     <Content>
+      <AutofixDiff fix={autofixData.fix} />
       <PreviewContent>
         <PrefixText>
           {tct('Pull request #[prNumber] created in [repository]', {
@@ -113,6 +115,7 @@ const PreviewContent = styled('div')`
   display: flex;
   flex-direction: column;
   color: ${p => p.theme.textColor};
+  margin-top: ${space(2)};
 `;
 
 const PrefixText = styled('span')``;

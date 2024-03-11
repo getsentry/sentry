@@ -237,6 +237,24 @@ def test_client_config_links_regionurl():
         assert result["links"]["regionUrl"] == "http://eu.testserver"
 
 
+@control_silo_test(
+    regions=create_test_regions("us", "eu", "acme", "de", "apac", single_tenants=["acme"]),
+    include_monolith_run=True,
+)
+@django_db_all
+def test_client_config_region_display_order():
+    request, user = make_user_request_from_org()
+    request.user = user
+
+    Factories.create_organization(slug="acme-co", owner=user)
+    mapping = OrganizationMapping.objects.get(slug="acme-co")
+    mapping.update(region_name="acme")
+
+    result = get_client_config(request)
+    region_names = [region["name"] for region in result["regions"]]
+    assert region_names == ["us", "apac", "de", "eu", "acme"]
+
+
 @multiregion_client_config_test
 @django_db_all
 def test_client_config_links_with_priority_org():

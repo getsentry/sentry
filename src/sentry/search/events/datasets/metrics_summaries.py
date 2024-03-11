@@ -8,7 +8,7 @@ from sentry.api.event_search import SearchFilter
 from sentry.search.events import builder, constants
 from sentry.search.events.datasets import field_aliases, filter_aliases, function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
-from sentry.search.events.fields import IntervalDefault, SnQLFunction
+from sentry.search.events.fields import IntervalDefault, NumberRange, SnQLFunction, with_default
 from sentry.search.events.types import SelectType, WhereType
 
 
@@ -40,8 +40,9 @@ class MetricsSummariesDatasetConfig(DatasetConfig):
             function.name: function
             for function in [
                 SnQLFunction(
-                    "example",
-                    snql_aggregate=self._resolve_random_sample,
+                    "examples",
+                    snql_aggregate=self._resolve_random_samples,
+                    optional_args=[with_default(1, NumberRange("count", 1, None))],
                     private=True,
                 ),
                 SnQLFunction(
@@ -89,24 +90,30 @@ class MetricsSummariesDatasetConfig(DatasetConfig):
             alias,
         )
 
-    def _resolve_random_sample(
+    def _resolve_random_samples(
         self,
         args: Mapping[str, str | Column | SelectType | int | float],
         alias: str,
     ) -> SelectType:
         offset = 0 if self.builder.offset is None else self.builder.offset.offset
         limit = 0 if self.builder.limit is None else self.builder.limit.limit
-        return function_aliases.resolve_random_sample(
+        return function_aliases.resolve_random_samples(
             [
-                "group",
-                "end_timestamp",
-                "span_id",
-                "min",
-                "max",
-                "sum",
-                "count",
+                # DO NOT change the order of these columns as it
+                # changes the order of the tuple in the response
+                # which WILL cause errors where it assumes this
+                # order
+                self.builder.resolve_column("span.group"),
+                self.builder.resolve_column("timestamp"),
+                self.builder.resolve_column("id"),
+                self.builder.resolve_column("min_metric"),
+                self.builder.resolve_column("max_metric"),
+                self.builder.resolve_column("sum_metric"),
+                self.builder.resolve_column("count_metric"),
+                self.builder.resolve_column("avg_metric"),
             ],
             alias,
             offset,
             limit,
+            size=int(args["count"]),
         )

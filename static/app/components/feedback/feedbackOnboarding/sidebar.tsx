@@ -194,7 +194,10 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     cdn,
     isProjKeysLoading,
   } = useLoadFeedbackOnboardingDoc({
-    platform: showJsFrameworkInstructions ? getJsFramework() : currentPlatform,
+    platform:
+      showJsFrameworkInstructions && !crashReportOnboarding
+        ? getJsFramework()
+        : currentPlatform,
     organization,
     projectSlug: currentProject.slug,
   });
@@ -251,6 +254,8 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           ]}
           value={setupMode()}
           onChange={setSetupMode}
+          disabledChoices={[['jsLoader', t('Coming soon!')]]}
+          tooltipPosition={'top-start'}
         />
       ) : (
         newDocs?.platformOptions &&

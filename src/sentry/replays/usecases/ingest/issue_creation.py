@@ -1,6 +1,7 @@
 import datetime
 import logging
 from typing import Any
+from uuid import UUID
 
 from sentry.constants import MAX_CULPRIT_LENGTH
 from sentry.issues.grouptype import ReplayRageClickType
@@ -40,7 +41,7 @@ def report_rage_click_issue_with_replay_event(
         fingerprint=[selector],
         issue_type=ReplayRageClickType,
         level=RAGE_CLICK_LEVEL,
-        platform="javascript",
+        platform=replay_event["platform"],
         project_id=project_id,
         subtitle=selector,
         timestamp=timestamp_utc,
@@ -56,9 +57,38 @@ def report_rage_click_issue_with_replay_event(
             IssueEvidence(name="Selector Path", value=selector, important=True),
         ],
         extra_event_data={
-            "contexts": {"replay": {"replay_id": replay_id}},
+            "contexts": _make_contexts(replay_id, replay_event),
             "level": RAGE_CLICK_LEVEL,
-            "tags": {"replayId": replay_id, "url": url},
+            "tags": _make_tags(replay_id, url, replay_event),
             "user": replay_event["user"],
+            "release": replay_event.get("release"),
+            "sdk": replay_event.get("sdk"),
+            "dist": replay_event.get("dist"),
         },
     )
+
+
+def _make_contexts(replay_id, replay_event):
+    contexts = {"replay": {"replay_id": replay_id}}
+
+    if replay_event.get("trace_ids"):
+        if len(replay_event["trace_ids"]) > 0:
+            trace_id = replay_event["trace_ids"][0]
+            trace_id_hex = UUID(trace_id).hex
+            # there could in theory be multiple traces, but generally
+            # lets just use the first one. can adjust if this is not ideal
+            trace_context = {"trace_id": trace_id_hex}
+            contexts.update({"trace": trace_context})
+
+    if replay_event.get("contexts"):
+        contexts.update(replay_event["contexts"])
+
+    return contexts
+
+
+def _make_tags(replay_id, url, replay_event):
+    tags = {"replayId": replay_id, "url": url}
+    if replay_event.get("tags"):
+        tags.update(replay_event["tags"])
+
+    return tags

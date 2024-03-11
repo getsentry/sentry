@@ -8,6 +8,7 @@ import FeedbackItemHeader from 'sentry/components/feedback/feedbackItem/feedback
 import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
 import FeedbackReplay from 'sentry/components/feedback/feedbackItem/feedbackReplay';
 import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
+import {ScreenshotSection} from 'sentry/components/feedback/feedbackItem/screenshotSection';
 import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
@@ -54,6 +55,14 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
           </Blockquote>
         </Section>
 
+        {eventData && (
+          <ScreenshotSection
+            event={eventData}
+            organization={organization}
+            projectSlug={feedbackItem.project.slug}
+          />
+        )}
+
         {!crashReportId || (crashReportId && url) ? (
           <Section icon={<IconLink size="xs" />} title={t('URL')}>
             <TextCopyInput size="sm">
@@ -90,7 +99,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
           icon={<IconChat size="xs" />}
           title={
             <Fragment>
-              {t('Activity')}
+              {t('Internal Activity')}
               <QuestionTooltip
                 size="xs"
                 title={t(
