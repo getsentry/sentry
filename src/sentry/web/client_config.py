@@ -348,11 +348,10 @@ class _ClientConfig:
         if not user or not user.id:
             return [get_region_by_name(name).api_serialize() for name in region_names]
 
-        # TODO(hybridcloud) Have a an RPC for regionmembership for efficiency
         # Ensure all regions the current user is in are included as there
         # could be single tenants or hidden regions
-        memberships = user_service.get_organizations(user_id=user.id)
-        unique_regions = set(region_names) | {membership.region_name for membership in memberships}
+        member_region_names = user_service.get_member_region_names(user_id=user.id)
+        unique_regions = set(region_names) | set(member_region_names)
 
         def region_display_order(region: Region) -> tuple[bool, bool, str]:
             return (
