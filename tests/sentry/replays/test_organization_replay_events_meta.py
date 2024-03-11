@@ -95,6 +95,7 @@ class OrganizationEventsMetaTest(APITestCase, SnubaTestCase, OccurrenceTestMixin
         with self.feature(self.features):
             response = self.client.get(self.url, query, format="json")
 
+        assert group_info is not None
         expected = [
             {
                 "error.type": "",
