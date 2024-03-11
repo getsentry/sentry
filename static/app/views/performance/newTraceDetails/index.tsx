@@ -31,7 +31,7 @@ import type {
   TraceFullDetailed,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -121,7 +121,7 @@ export function TraceView() {
             {metaResults => (
               <TraceViewContent
                 status={trace.status}
-                trace={trace.data}
+                trace={trace.data ?? null}
                 traceSlug={traceSlug}
                 organization={organization}
                 location={location}
@@ -140,7 +140,7 @@ type TraceViewContentProps = {
   location: Location;
   metaResults: TraceMetaQueryChildrenProps;
   organization: Organization;
-  status: 'pending' | 'resolved' | 'error' | 'initial';
+  status: UseApiQueryResult<any, any>['status'];
   trace: TraceSplitResults<TraceFullDetailed> | null;
   traceEventView: EventView;
   traceSlug: string;
@@ -172,7 +172,7 @@ function TraceViewContent(props: TraceViewContentProps) {
       return errorTree;
     }
 
-    if (props.status === 'pending' || rootEvent.status === 'loading') {
+    if (props.status === 'loading' || rootEvent.status === 'loading') {
       const loadingTrace =
         loadingTraceRef.current ??
         TraceTree.Loading(
@@ -202,7 +202,7 @@ function TraceViewContent(props: TraceViewContentProps) {
   ]);
 
   const traceType = useMemo(() => {
-    if (props.status !== 'resolved' || !tree) {
+    if (props.status !== 'success' || !tree) {
       return null;
     }
     return tree.shape;
