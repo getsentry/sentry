@@ -40,7 +40,6 @@ from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.search.snuba.backend import assigned_or_suggested_filter
 from sentry.search.snuba.executors import get_search_filter
 from sentry.snuba import discover
-from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.validators import normalize_event_id
 
