@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import sentry_sdk
+from functools import lru_cache
 
-from sentry.sentry_metrics.visibility import get_metrics_blocking_state
+import sentry_sdk
 
 """
 Module that gets both metadata and time series from Snuba.
@@ -29,12 +29,14 @@ from datetime import datetime
 from operator import itemgetter
 from typing import Any, cast
 
-from snuba_sdk import Column, Condition, Function, Op, Query, Request
+from snuba_sdk import And, Column, Condition, Function, Op, Or, Query, Request
 from snuba_sdk.conditions import ConditionGroup
 
 from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.indexer.strings import PREFIX as SHARED_STRINGS_PREFIX
+from sentry.sentry_metrics.indexer.strings import SHARED_STRINGS
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import (
     MetricIndexNotFound,
@@ -42,6 +44,7 @@ from sentry.sentry_metrics.utils import (
     bulk_reverse_resolve_tag_value,
     resolve_tag_key,
 )
+from sentry.sentry_metrics.visibility import get_metrics_blocking_state
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.fields import run_metrics_query
 from sentry.snuba.metrics.fields.base import (
@@ -121,17 +124,101 @@ def _get_metrics_by_project_for_entity_query(
     start: datetime | None = None,
     end: datetime | None = None,
 ) -> Request:
+    where = [Condition(Column("use_case_id"), Op.EQ, use_case_id.value)]
+    where.extend(_get_mri_constraints_for_use_case(entity_key, use_case_id))
+
     return build_metrics_query(
         entity_key=entity_key,
         select=[Column("project_id"), Column("metric_id")],
         groupby=[Column("project_id"), Column("metric_id")],
-        where=[Condition(Column("use_case_id"), Op.EQ, use_case_id.value)],
+        where=where,
         project_ids=project_ids,
         org_id=org_id,
         use_case_id=use_case_id,
         start=start,
         end=end,
     )
+
+
+@lru_cache(maxsize=len(EntityKey) * len(UseCaseID))
+def _get_mri_constraints_for_use_case(entity_key: EntityKey, use_case_id: UseCaseID):
+    # Sessions exist on a different infrastructure that works differently,
+    # thus this optimization does not apply.
+    if use_case_id == UseCaseID.SESSIONS:
+        return []
+
+    conditions = []
+
+    # Look for the min/max of the metric id range for the given use case id to
+    # constrain the search ClickHouse must do otherwise, it'll attempt a full scan.
+    #
+    # This assumes that metric ids are divided into non-overlapping ranges by the
+    # use case id, so we can focus on a particular range for better performance.
+    min_metric_id = SHARED_STRINGS_PREFIX << 1  # larger than possible metric ids
+    max_metric_id = 0
+
+    for mri, id in SHARED_STRINGS.items():
+        parsed_mri = parse_mri(mri)
+        if parsed_mri is not None and parsed_mri.namespace == use_case_id.value:
+            min_metric_id = min(id, min_metric_id)
+            max_metric_id = max(id, max_metric_id)
+
+    # It's possible that there's a metric id within the use case that is not
+    # hard coded so we should always check the range of custom metric ids.
+    condition = Condition(Column("metric_id"), Op.LT, SHARED_STRINGS_PREFIX)
+
+    # If we find a valid range, we extend the condition to check it as well.
+    if min_metric_id <= max_metric_id:
+        condition = Or(
+            [
+                condition,
+                # Expand the search to include the range of the hard coded
+                # metric ids if a valid range was found.
+                And(
+                    [
+                        Condition(Column("metric_id"), Op.GTE, min_metric_id),
+                        Condition(Column("metric_id"), Op.LTE, max_metric_id),
+                    ]
+                ),
+            ]
+        )
+
+    conditions.append(condition)
+
+    # This is added to every use case id because the MRI is the primary ORDER BY
+    # on the table, and without it, these granules will be scanned no matter what
+    # the use case id is.
+    excluded_mris = []
+
+    if use_case_id == UseCaseID.TRANSACTIONS:
+        # This on_demand MRI takes up the majority of dataset and makes the query slow
+        # because ClickHouse ends up scanning the whole table.
+        #
+        # These are used for on demand metrics extraction and end users should not
+        # need to know about these metrics.
+        #
+        # As an optimization, we explicitly exclude these MRIs in the query to allow
+        # Clickhouse to skip the granules containing strictly these MRIs.
+        if entity_key == EntityKey.GenericMetricsCounters:
+            excluded_mris.append("c:transactions/on_demand@none")
+        elif entity_key == EntityKey.GenericMetricsDistributions:
+            excluded_mris.append("d:transactions/on_demand@none")
+        elif entity_key == EntityKey.GenericMetricsSets:
+            excluded_mris.append("s:transactions/on_demand@none")
+        elif entity_key == EntityKey.GenericMetricsGauges:
+            excluded_mris.append("g:transactions/on_demand@none")
+
+    if excluded_mris:
+        conditions.append(
+            Condition(
+                Column("metric_id"),
+                Op.NOT_IN,
+                # these are shared strings, so just using org id 0 as a placeholder
+                [indexer.resolve(use_case_id, 0, mri) for mri in excluded_mris],
+            )
+        )
+
+    return conditions
 
 
 def _get_metrics_by_project_for_entity(
