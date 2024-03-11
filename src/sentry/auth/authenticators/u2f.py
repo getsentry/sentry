@@ -281,7 +281,7 @@ class U2fInterface(AuthenticatorInterface):
             if _valid_staff_timestamp(request):
                 state = request.session["staff_webauthn_authentication_state"]
             else:
-                state = request.session.get["webauthn_authentication_state"]
+                state = request.session["webauthn_authentication_state"]
             if request.session.get("staff_webauthn_authentication_state") and request.session.get(
                 "webauthn_authentication_state"
             ):
