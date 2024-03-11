@@ -1,10 +1,12 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import qs from 'qs';
+import * as qs from 'query-string';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import EventTagCustomBanner from 'sentry/components/events/eventTags/eventTagCustomBanner';
+import {TagFilter} from 'sentry/components/events/eventTags/util';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {IconEllipsis} from 'sentry/icons';
@@ -52,6 +54,7 @@ interface EventTagsTreeProps {
   projectSlug: string;
   tags: EventTag[];
   meta?: Record<any, any>;
+  tagFilter?: TagFilter;
 }
 
 function addToTagTree(
@@ -327,11 +330,14 @@ function TagTreeColumns({meta, tags, ...props}: EventTagsTreeProps) {
 }
 
 function EventTagsTree(props: EventTagsTreeProps) {
+  const hasCustomTagsBanner =
+    props.tagFilter === TagFilter.CUSTOM && props.tags.length === 0;
   return (
     <TreeContainer>
       <TreeGarden columnCount={COLUMN_COUNT}>
         <TagTreeColumns {...props} />
       </TreeGarden>
+      {hasCustomTagsBanner && <EventTagCustomBanner />}
     </TreeContainer>
   );
 }
