@@ -289,7 +289,6 @@ export function ReplayCell({
   referrer_table,
   isWidget,
   className,
-  handleClick,
   isPlaying,
   extraButton,
 }: Props & {
@@ -298,7 +297,6 @@ export function ReplayCell({
   referrer: string;
   className?: string;
   extraButton?: React.ReactNode;
-  handleClick?: () => void;
   isPlaying?: boolean;
   isWidget?: boolean;
   referrer_table?: ReferrerTableType;
@@ -378,7 +376,7 @@ export function ReplayCell({
   );
 
   return (
-    <Item isWidget={isWidget} isReplayCell className={className} onClick={handleClick}>
+    <Item isWidget={isWidget} isReplayCell className={className}>
       {extraButton}
       <UserBadge
         avatarSize={24}

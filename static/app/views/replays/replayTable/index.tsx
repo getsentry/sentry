@@ -11,7 +11,6 @@ import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
-// import {getAnalyticsDataForEvent, getAnalyticsDataForGroup} from 'sentry/utils/events';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -46,6 +45,7 @@ type Props = {
   showDropdownFilters?: boolean;
 };
 
+// Memoizing this component to avoid unnecessary re-renders
 const ReplayTable = memo(
   ({
     fetchError,
