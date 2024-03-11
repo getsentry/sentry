@@ -375,9 +375,7 @@ class _ClientConfig:
         if not user or not user.id:
             return []
 
-        # TODO(hybridcloud) Have a an RPC for regionmembership for efficiency
-        memberships = user_service.get_organizations(user_id=user.id)
-        region_names = {membership.region_name for membership in memberships}
+        region_names = user_service.get_member_region_names(user_id=user.id)
         regions = [get_region_by_name(name) for name in region_names]
         regions.sort(key=lambda r: r.name)
         return [r.api_serialize() for r in regions]
