@@ -4,6 +4,7 @@ from unittest import mock
 
 import pytest
 import responses
+from django.utils import timezone
 
 from fixtures.github import COMPARE_COMMITS_EXAMPLE, GET_COMMIT_EXAMPLE, GET_LAST_COMMITS_EXAMPLE
 from sentry.integrations.github.repository import GitHubRepositoryProvider
@@ -21,7 +22,7 @@ from sentry.utils import json
 class GitHubAppsProviderTest(TestCase):
     def setUp(self):
         super().setUp()
-        ten_hours = datetime.datetime.utcnow() + datetime.timedelta(hours=10)
+        ten_hours = timezone.now() + datetime.timedelta(hours=10)
         self.integration = self.create_integration(
             organization=self.organization,
             provider="github",

@@ -20,7 +20,7 @@ class TestAppStoreConnectConfig:
     @pytest.fixture
     def now(self) -> datetime:
         # Fixture so we can have one "now" for the entire test and its fixtures.
-        return datetime.utcnow()
+        return timezone.now()
 
     @pytest.fixture
     def data(self, now: datetime) -> json.JSONData:

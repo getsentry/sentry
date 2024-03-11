@@ -1,12 +1,13 @@
 import re
 from dataclasses import asdict
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest import mock
 
 import pytest
 import responses
 from django.core import mail
 from django.test import override_settings
+from django.utils import timezone
 from requests import Request
 from responses import matchers
 
@@ -40,7 +41,7 @@ GITHUB_CODEOWNERS = {
 class GitHubAppsClientTest(TestCase):
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     def setUp(self, get_jwt):
-        ten_days = datetime.utcnow() + timedelta(days=10)
+        ten_days = timezone.now() + timedelta(days=10)
         self.integration = self.create_integration(
             organization=self.organization,
             provider="github",
@@ -618,7 +619,7 @@ class GitHubClientFileBlameBase(TestCase):
 class GitHubClientFileBlameIntegrationDisableTest(TestCase):
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     def setUp(self, get_jwt):
-        ten_days = datetime.utcnow() + timedelta(days=10)
+        ten_days = timezone.now() + timedelta(days=10)
         self.integration = self.create_integration(
             organization=self.organization,
             provider="github",
@@ -1248,7 +1249,7 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
                         commitAuthorName="foo1",
                         commitAuthorEmail="foo1@example.com",
                         commitMessage="hello",
-                        committedDate=datetime(2022, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+                        committedDate=datetime(2022, 1, 1, 0, 0, 0, tzinfo=UTC),
                     ),
                 ),
                 FileBlameInfo(
@@ -1258,7 +1259,7 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
                         commitAuthorName="foo2",
                         commitAuthorEmail="foo2@example.com",
                         commitMessage="hello",
-                        committedDate=datetime(2021, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+                        committedDate=datetime(2021, 1, 1, 0, 0, 0, tzinfo=UTC),
                     ),
                 ),
                 FileBlameInfo(
@@ -1268,7 +1269,7 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
                         commitAuthorName="foo3",
                         commitAuthorEmail="foo3@example.com",
                         commitMessage="hello",
-                        committedDate=datetime(2020, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+                        committedDate=datetime(2020, 1, 1, 0, 0, 0, tzinfo=UTC),
                     ),
                 ),
             ],
@@ -1308,7 +1309,7 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
                         commitAuthorName="foo1",
                         commitAuthorEmail="foo1@example.com",
                         commitMessage="hello",
-                        committedDate=datetime(2022, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+                        committedDate=datetime(2022, 1, 1, 0, 0, 0, tzinfo=UTC),
                     ),
                 ),
                 FileBlameInfo(
@@ -1318,7 +1319,7 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
                         commitAuthorName="foo2",
                         commitAuthorEmail="foo2@example.com",
                         commitMessage="hello",
-                        committedDate=datetime(2021, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+                        committedDate=datetime(2021, 1, 1, 0, 0, 0, tzinfo=UTC),
                     ),
                 ),
                 FileBlameInfo(
@@ -1328,7 +1329,7 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
                         commitAuthorName="foo3",
                         commitAuthorEmail="foo3@example.com",
                         commitMessage="hello",
-                        committedDate=datetime(2020, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+                        committedDate=datetime(2020, 1, 1, 0, 0, 0, tzinfo=UTC),
                     ),
                 ),
             ],
@@ -1430,7 +1431,7 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
                         commitAuthorName=None,
                         commitAuthorEmail=None,
                         commitMessage=None,
-                        committedDate=datetime(2022, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+                        committedDate=datetime(2022, 1, 1, 0, 0, 0, tzinfo=UTC),
                     ),
                 ),
             ],
