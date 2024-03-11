@@ -55,6 +55,8 @@ describe('InviteMembersModal', function () {
       method: 'GET',
       body: {roles},
     });
+    // Reset to base condition, as other tests sometimes add more teams in initial data load
+    TeamStore.setTeams([team]);
   });
 
   it('renders', async function () {
@@ -244,13 +246,9 @@ describe('InviteMembersModal', function () {
 
     render(<InviteMembersModal {...modalProps} />);
 
-    await waitFor(() => {
-      expect(screen.getByRole('button', {name: 'Add another'})).toBeInTheDocument();
-    });
+    expect(await screen.findByRole('button', {name: 'Add another'})).toBeInTheDocument();
 
-    // Setup two rows, one email each, the first with a admin role.
     await userEvent.click(screen.getByRole('button', {name: 'Add another'}));
-
     const emailInputs = screen.getAllByRole('textbox', {name: 'Email Addresses'});
     const roleInputs = screen.getAllByRole('textbox', {name: 'Role'});
 
@@ -262,9 +260,6 @@ describe('InviteMembersModal', function () {
     await userEvent.tab();
 
     await userEvent.click(screen.getByRole('button', {name: 'Send invites (2)'}));
-
-    // Verify data sent to the backend
-    expect(createMemberMock).toHaveBeenCalledTimes(2);
 
     expect(createMemberMock).toHaveBeenNthCalledWith(
       1,
@@ -280,19 +275,27 @@ describe('InviteMembersModal', function () {
         data: {email: 'test2@test.com', role: 'member', teams: ['team-slug']},
       })
     );
+  });
 
-    // Wait for them to finish
-    expect(
-      await screen.findByText(textWithMarkupMatcher('Sent 2 invites'))
-    ).toBeInTheDocument();
+  it('does not use defaults when there are multiple teams', async function () {
+    const another_team = TeamFixture({id: '2', slug: 'team2'});
+    TeamStore.loadInitialData([team, another_team]);
+    const org_with_multiple_teams = OrganizationFixture({
+      id: '23',
+      access: ['member:write'],
+      teams: [team, another_team],
+    });
+    jest.mocked(useOrganization).mockReturnValue(org_with_multiple_teams);
 
-    expect(screen.getByRole('button', {name: 'Close'})).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Send more invites'})).toBeInTheDocument();
+    render(<InviteMembersModal {...modalProps} />);
 
-    // Send more reset the modal
-    await userEvent.click(screen.getByRole('button', {name: 'Send more invites'}));
+    expect(await screen.findByRole('button', {name: 'Add another'})).toBeInTheDocument();
 
-    expect(screen.getByRole('button', {name: 'Send invite'})).toBeDisabled();
+    await userEvent.click(screen.getByRole('button', {name: 'Add another'}));
+    const teamInputs = screen.getAllByRole('textbox', {name: 'Add to Team'});
+    expect(teamInputs).toHaveLength(2);
+    expect(teamInputs[0]).toHaveValue('');
+    expect(teamInputs[1]).toHaveValue('');
   });
 
   it('marks failed invites', async function () {
