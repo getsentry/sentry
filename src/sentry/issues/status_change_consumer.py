@@ -141,9 +141,9 @@ def bulk_get_groups_from_fingerprints(
     }
 
     found_projects = {project_id for project_id, _ in result.keys()}
-    requested_project = set(fingerprints_by_project.keys())
+    requested_projects = set(fingerprints_by_project.keys())
 
-    for project_id in requested_project - found_projects:
+    for project_id in requested_projects - found_projects:
         logger.error(
             "grouphash.not_found",
             extra={
