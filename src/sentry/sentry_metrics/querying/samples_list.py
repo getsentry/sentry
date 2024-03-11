@@ -152,7 +152,7 @@ class AbstractSamplesListExecutor(ABC):
 
 
 class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
-    sortable_columns = {"timestamp", "span.duration"}
+    sortable_columns = {"timestamp", "span.duration", "summary"}
 
     SORT_MAPPING = {
         "span.duration": "transaction.duration",
@@ -165,13 +165,21 @@ class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
         raise NotImplementedError
 
     @classmethod
-    def convert_sort(cls, sort: str) -> tuple[Literal["", "-"], str] | None:
+    def convert_sort(cls, sort: str, mri: str) -> tuple[Literal["", "-"], str] | None:
         direction: Literal["", "-"] = ""
+
         if sort.startswith("-"):
             direction = "-"
             sort = sort[1:]
+
         if sort in cls.SORT_MAPPING:
             return direction, cls.SORT_MAPPING[sort]
+
+        if sort == "summary":
+            column = cls.mri_to_column(mri)
+            if column is not None:
+                return direction, column
+
         return None
 
     @classmethod
@@ -224,7 +232,7 @@ class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
         may not contain all the necessary data.
         """
         assert self.sort
-        sort = self.convert_sort(self.sort)
+        sort = self.convert_sort(self.sort, self.mri)
         assert sort is not None
         direction, sort_column = sort
 
@@ -426,12 +434,30 @@ class TransactionMeasurementsSamplesListExecutor(SegmentsSamplesListExecutor):
 
 
 class SpansSamplesListExecutor(AbstractSamplesListExecutor):
-    sortable_columns = {"timestamp", "span.duration", "span.self_time"}
+    sortable_columns = {"timestamp", "span.duration", "span.self_time", "summary"}
 
     @classmethod
     @abstractmethod
     def mri_to_column(cls, mri) -> str | None:
         raise NotImplementedError
+
+    @classmethod
+    def convert_sort(cls, sort: str, mri: str) -> tuple[Literal["", "-"], str] | None:
+        direction: Literal["", "-"] = ""
+
+        if sort.startswith("-"):
+            direction = "-"
+            sort = sort[1:]
+
+        if sort == "summary":
+            column = cls.mri_to_column(mri)
+            if column is not None:
+                return direction, column
+
+        if sort in cls.sortable_columns:
+            return direction, sort
+
+        return None
 
     @classmethod
     def supports_mri(cls, mri: str) -> bool:
@@ -443,7 +469,14 @@ class SpansSamplesListExecutor(AbstractSamplesListExecutor):
         there's no reason to split this into 2 queries. We can go ahead and
         just do it all in a single query.
         """
+        assert self.sort
+        sort = self.convert_sort(self.sort, self.mri)
+        assert sort is not None
+        direction, sort_column = sort
+
         fields = self.fields[:]
+        if sort_column not in fields:
+            fields.append(sort_column)
 
         column = self.mri_to_column(self.mri)
         assert column is not None
@@ -455,7 +488,7 @@ class SpansSamplesListExecutor(AbstractSamplesListExecutor):
             self.params,
             snuba_params=self.snuba_params,
             selected_columns=fields,
-            orderby=self.sort,
+            orderby=f"{direction}{sort_column}",
             limit=limit,
             offset=0,
         )
