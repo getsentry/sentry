@@ -126,6 +126,7 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
         group_id=random_group_id,
         auto_offset_reset="earliest",
         strict_offset_reset=False,
+        enforce_schema=True,
     )
 
     with task_runner():
@@ -191,6 +192,7 @@ def test_ingest_consumer_gets_event_unstuck(
         group_id=random_group_id,
         auto_offset_reset="earliest",
         strict_offset_reset=False,
+        enforce_schema=True,
     )
 
     with task_runner():

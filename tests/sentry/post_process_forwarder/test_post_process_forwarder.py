@@ -100,7 +100,7 @@ class PostProcessForwarderTest(TestCase):
             max_poll_interval_ms=None,
             enable_dlq=False,
             healthcheck_file_path=None,
-            validate_schema=False,
+            enforce_schema=True,
         )
 
     def run_post_process_forwarder_streaming_consumer(self, ppf_mode: str) -> None:
