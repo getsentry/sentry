@@ -14,7 +14,6 @@ import {space} from 'sentry/styles/space';
 import type {DateString} from 'sentry/types';
 import type {EChartBrushEndHandler, ReactEchartsRef} from 'sentry/types/echarts';
 import mergeRefs from 'sentry/utils/mergeRefs';
-import {MAIN_X_AXIS_ID, MAIN_Y_AXIS_ID} from 'sentry/views/ddm/chart/chart';
 import type {ValueRect} from 'sentry/views/ddm/chart/chartUtils';
 import {getValueRect} from 'sentry/views/ddm/chart/chartUtils';
 import type {
@@ -22,6 +21,10 @@ import type {
   FocusAreaSelection,
   SelectionRange,
 } from 'sentry/views/ddm/chart/types';
+import {
+  SAMPLES_X_AXIS_ID,
+  SAMPLES_Y_AXIS_ID,
+} from 'sentry/views/ddm/chart/useMetricChartSamples';
 import {CHART_HEIGHT} from 'sentry/views/ddm/constants';
 import type {FocusAreaProps} from 'sentry/views/ddm/context';
 
@@ -52,7 +55,6 @@ type BrushEndResult = Parameters<EChartBrushEndHandler>[0];
 export function useFocusArea({
   selection: selection,
   opts: {widgetIndex, isDisabled, useFullYAxis},
-  scalingFactor,
   onAdd,
   onDraw,
   onRemove,
@@ -109,13 +111,7 @@ export function useFocusArea({
       if (!rect) {
         return;
       }
-
-      const range = getSelectionRange(
-        brushEnd,
-        !!useFullYAxis,
-        getValueRect(chartRef),
-        scalingFactor
-      );
+      const range = getSelectionRange(brushEnd, !!useFullYAxis, getValueRect(chartRef));
       onAdd?.({
         widgetIndex,
         range,
@@ -131,7 +127,7 @@ export function useFocusArea({
       });
       isDrawingRef.current = false;
     },
-    [isDisabled, useFullYAxis, scalingFactor, onAdd, widgetIndex]
+    [isDisabled, useFullYAxis, onAdd, widgetIndex]
   );
 
   const handleRemove = useCallback(() => {
@@ -178,7 +174,12 @@ export function useFocusArea({
         },
         brush: {
           toolbox: ['rect'],
-          xAxisIndex: 0,
+          xAxisIndex: Array.isArray(baseProps.xAxes)
+            ? baseProps.xAxes.findIndex(a => a?.id === SAMPLES_X_AXIS_ID)
+            : 0,
+          yAxisIndex: Array.isArray(baseProps.yAxes)
+            ? baseProps.yAxes.findIndex(a => a?.id === SAMPLES_Y_AXIS_ID)
+            : 0,
           brushStyle: {
             borderWidth: 2,
             borderColor: theme.gray500,
@@ -207,19 +208,10 @@ export function useFocusArea({
           onZoom={handleZoomIn}
           chartRef={chartRef}
           useFullYAxis={!!useFullYAxis}
-          scalingFactor={scalingFactor}
         />
       ) : null,
     }),
-    [
-      applyChartProps,
-      handleRemove,
-      handleZoomIn,
-      hasFocusArea,
-      scalingFactor,
-      selection,
-      useFullYAxis,
-    ]
+    [applyChartProps, handleRemove, handleZoomIn, hasFocusArea, selection, useFullYAxis]
   );
 }
 
@@ -230,7 +222,6 @@ type FocusAreaOverlayProps = {
   onRemove: () => void;
   onZoom: () => void;
   rect: FocusAreaSelection | null;
-  scalingFactor: number;
   useFullYAxis: boolean;
 };
 
@@ -240,7 +231,6 @@ function FocusAreaOverlay({
   onRemove,
   useFullYAxis,
   chartRef,
-  scalingFactor,
 }: FocusAreaOverlayProps) {
   const [position, setPosition] = useState<AbsolutePosition | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -266,10 +256,10 @@ function FocusAreaOverlay({
     ) {
       return;
     }
-    const finder = {xAxisId: MAIN_X_AXIS_ID, yAxisId: MAIN_Y_AXIS_ID};
+    const finder = {xAxisId: SAMPLES_X_AXIS_ID, yAxisId: SAMPLES_Y_AXIS_ID};
 
-    const max = rect.range.max * scalingFactor;
-    const min = rect.range.min * scalingFactor;
+    const max = rect.range.max;
+    const min = rect.range.min;
 
     const topLeft = chartInstance.convertToPixel(finder, [
       getTimestamp(rect.range.start),
@@ -306,7 +296,7 @@ function FocusAreaOverlay({
     if (!isEqual(newPosition, position)) {
       setPosition(newPosition);
     }
-  }, [chartRef, rect, scalingFactor, useFullYAxis, position]);
+  }, [chartRef, rect, useFullYAxis, position]);
 
   useEffect(() => {
     updatePosition();
@@ -343,8 +333,7 @@ const getTimestamp = (date: DateString) => moment.utc(date).valueOf();
 const getSelectionRange = (
   params: BrushEndResult,
   useFullYAxis: boolean,
-  boundingRect: ValueRect,
-  scalingFactor: number
+  boundingRect: ValueRect
 ): SelectionRange => {
   const rect = params.areas[0];
 
@@ -354,8 +343,8 @@ const getSelectionRange = (
   const startDate = getDateString(Math.max(startTimestamp, boundingRect.xMin));
   const endDate = getDateString(Math.min(endTimestamp, boundingRect.xMax));
 
-  const min = useFullYAxis ? NaN : Math.min(...rect.coordRange[1]) / scalingFactor;
-  const max = useFullYAxis ? NaN : Math.max(...rect.coordRange[1]) / scalingFactor;
+  const min = useFullYAxis ? NaN : Math.min(...rect.coordRange[1]);
+  const max = useFullYAxis ? NaN : Math.max(...rect.coordRange[1]);
 
   return {
     start: startDate,

@@ -1,5 +1,13 @@
 import type React from 'react';
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {browserHistory} from 'react-router';
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -122,7 +130,6 @@ function maybeFocusRow(
 interface TraceProps {
   manager: VirtualizedViewManager;
   onTraceSearch: (query: string) => void;
-  previousResultIndexRef: React.MutableRefObject<number | undefined>;
   roving_dispatch: React.Dispatch<RovingTabIndexAction>;
   roving_state: RovingTabIndexState;
   searchResultsIteratorIndex: number | undefined;
@@ -146,7 +153,6 @@ function Trace({
   searchResultsIteratorIndex,
   searchResultsMap,
   onTraceSearch,
-  previousResultIndexRef,
 }: TraceProps) {
   const theme = useTheme();
   const api = useApi();
@@ -215,6 +221,8 @@ function Trace({
           node: maybeNode.node,
         });
 
+        manager.scrollRowIntoViewHorizontally(maybeNode.node);
+
         if (search_state.query) {
           onTraceSearch(search_state.query);
         }
@@ -230,6 +238,50 @@ function Trace({
     setDetailNode,
     roving_dispatch,
   ]);
+
+  const previousSearchResultIndexRef = useRef<number | undefined>(
+    search_state.resultIndex
+  );
+  useLayoutEffect(() => {
+    if (previousSearchResultIndexRef.current === search_state.resultIndex) {
+      return;
+    }
+    if (!manager.list) {
+      return;
+    }
+
+    if (typeof search_state.resultIndex !== 'number') {
+      return;
+    }
+
+    manager.scrollToRow(search_state.resultIndex);
+
+    if (previousSearchResultIndexRef.current === undefined) {
+      return;
+    }
+
+    const previousNode = treeRef.current.list[previousSearchResultIndexRef.current!];
+    previousSearchResultIndexRef.current = search_state.resultIndex;
+
+    if (previousNode) {
+      const nextNode = treeRef.current.list[search_state.resultIndex];
+      const offset =
+        nextNode.depth >= previousNode.depth ? manager.trace_physical_space.width / 2 : 0;
+
+      if (
+        manager.isOutsideOfViewOnKeyDown(
+          treeRef.current.list[search_state.resultIndex],
+          offset
+        )
+      ) {
+        manager.scrollRowIntoViewHorizontally(
+          treeRef.current.list[search_state.resultIndex],
+          0,
+          offset
+        );
+      }
+    }
+  }, [search_state.resultIndex, manager]);
 
   const handleZoomIn = useCallback(
     (
@@ -311,7 +363,7 @@ function Trace({
       index: number,
       node: TraceTreeNode<TraceTree.NodeValue>
     ) => {
-      previousResultIndexRef.current = index;
+      previousSearchResultIndexRef.current = index;
       previouslyFocusedIndexRef.current = index;
       browserHistory.push({
         pathname: location.pathname,
@@ -340,7 +392,7 @@ function Trace({
       setDetailNode,
       search_state,
       search_dispatch,
-      previousResultIndexRef,
+      previousSearchResultIndexRef,
     ]
   );
 
@@ -373,8 +425,16 @@ function Trace({
           action,
           treeRef.current.list.length - 1
         );
-        manager.list.scrollToRow(nextIndex);
+        manager.scrollToRow(nextIndex);
         roving_dispatch({type: 'set index', index: nextIndex, node});
+
+        const nextNode = treeRef.current.list[nextIndex];
+        const offset =
+          nextNode.depth >= node.depth ? manager.trace_physical_space.width / 2 : 0;
+
+        if (manager.isOutsideOfViewOnKeyDown(trace.list[nextIndex], offset)) {
+          manager.scrollRowIntoViewHorizontally(trace.list[nextIndex], 0, offset);
+        }
 
         if (search_state.resultsLookup.has(trace.list[nextIndex])) {
           const idx = search_state.resultsLookup.get(trace.list[nextIndex])!;
@@ -389,7 +449,7 @@ function Trace({
         }
       }
     },
-    [manager.list, roving_dispatch, search_state, search_dispatch, trace.list]
+    [manager, roving_dispatch, search_state, search_dispatch, trace.list]
   );
 
   // @TODO this is the implementation of infinite scroll. Once the user
@@ -1500,7 +1560,7 @@ const TraceStylingWrapper = styled('div')`
   height: 70vh;
   width: 100%;
   margin: auto;
-  overflow: hidden;
+  overscroll-behavior: none;
   position: relative;
   box-shadow: 0 0 0 1px ${p => p.theme.border};
   border-radius: 4px;

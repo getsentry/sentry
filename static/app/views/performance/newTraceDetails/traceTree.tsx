@@ -822,7 +822,9 @@ export class TraceTree {
         const index = this._list.indexOf(node);
         if (node.expanded) {
           const childrenCount = node.getVisibleChildrenCount();
-          this._list.splice(index + 1, childrenCount);
+          if (childrenCount > 0) {
+            this._list.splice(index + 1, childrenCount);
+          }
         }
 
         // Api response is not sorted
@@ -965,13 +967,19 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     if (isParentAutogroupedNode(node)) {
       node.head = node.head.cloneDeep() as TraceTreeNode<TraceTree.Span>;
       node.tail = node.tail.cloneDeep() as TraceTreeNode<TraceTree.Span>;
+      node.head.parent = node;
 
-      for (const child of node.head.children) {
-        child.parent = node;
-      }
-
-      for (const child of node.tail.children) {
-        child.parent = node;
+      // If the node is not expanded, the parent of the tail points to the
+      // autogrouped node. If the node is expanded, the parent of the children
+      // of the tail points to the autogrouped node.
+      if (!node.expanded) {
+        for (const c of node.tail.children) {
+          c.parent = node;
+        }
+      } else {
+        for (const c of node.children) {
+          c.parent = node.tail;
+        }
       }
 
       node.head.parent = node;
