@@ -2,12 +2,14 @@ from datetime import datetime
 from unittest import mock
 
 from arroyo.backends.kafka import KafkaPayload
-from arroyo.types import BrokerValue, Message, Partition, Topic
-from django.conf import settings
+from arroyo.types import BrokerValue, Message, Partition
+from arroyo.types import Topic as ArroyoTopic
 
+from sentry.conf.types.kafka_definition import Topic
 from sentry.spans.buffer.redis import get_redis_client
 from sentry.spans.consumers.process.factory import ProcessSpansStrategyFactory
 from sentry.utils import json
+from sentry.utils.kafka_config import get_topic_definition
 
 
 def build_mock_span(**kwargs):
@@ -52,7 +54,7 @@ def build_mock_message(data, topic=None):
 def test_consumer_pushes_to_redis_and_schedules_task(process_segment):
     redis_client = get_redis_client()
 
-    topic = Topic(settings.KAFKA_SNUBA_SPANS)
+    topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_SPANS)["real_topic_name"])
     partition = Partition(topic, 0)
     strategy = ProcessSpansStrategyFactory().create_with_partitions(
         commit=mock.Mock(),
@@ -86,7 +88,7 @@ def test_consumer_pushes_to_redis_and_schedules_task(process_segment):
 def test_second_span_in_segment_does_not_queue_task(process_segment):
     redis_client = get_redis_client()
 
-    topic = Topic(settings.KAFKA_SNUBA_SPANS)
+    topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_SPANS)["real_topic_name"])
     partition = Partition(topic, 0)
     strategy = ProcessSpansStrategyFactory().create_with_partitions(
         commit=mock.Mock(),

@@ -6,7 +6,6 @@ from arroyo.types import BrokerValue, Message, Partition, Topic
 
 from sentry.conf.server import (
     KAFKA_CLUSTERS,
-    KAFKA_SNUBA_GENERIC_METRICS,
     SENTRY_SLICING_CONFIG,
     SENTRY_SLICING_LOGICAL_PARTITION_COUNT,
     SLICED_KAFKA_TOPICS,
@@ -19,6 +18,8 @@ from sentry.sentry_metrics.consumers.indexer.slicing_router import (
     _validate_slicing_config,
     _validate_slicing_consumer_config,
 )
+
+KAFKA_SNUBA_GENERIC_METRICS = "snuba-generic-metrics"
 
 
 @pytest.fixture
