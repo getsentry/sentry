@@ -45,6 +45,8 @@ import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSum
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils';
 import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
+import {ModuleName} from 'sentry/views/starfish/types';
+import {resolveSpanModule} from 'sentry/views/starfish/utils/resolveSpanModule';
 
 import {OpsDot} from '../../opsBreakdown';
 
@@ -102,6 +104,10 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   const profileId = props.event.contexts.profile?.profile_id || '';
   const {projects} = useProjects();
   const project = projects.find(p => p.id === props.event.projectID);
+  const resolvedModule: ModuleName = resolveSpanModule(
+    props.span.sentry_tags?.op,
+    props.span.sentry_tags?.category
+  );
 
   useEffect(() => {
     // Run on mount.
@@ -469,11 +475,15 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                 </Row>
               )}
               <Row title={t('Description')} extra={renderSpanDetailActions()}>
-                <SpanDescription
-                  groupId={span.sentry_tags?.group ?? ''}
-                  op={span.op ?? ''}
-                  preliminaryDescription={span.description}
-                />
+                {resolvedModule === ModuleName.DB ? (
+                  <SpanDescription
+                    groupId={span.sentry_tags?.group ?? ''}
+                    op={span.op ?? ''}
+                    preliminaryDescription={span.description}
+                  />
+                ) : (
+                  span.description
+                )}
               </Row>
               <Row title={t('Status')}>{span.status || ''}</Row>
               <Row title={t('Duration')}>{durationString}</Row>
