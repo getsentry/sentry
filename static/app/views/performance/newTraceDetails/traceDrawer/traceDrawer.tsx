@@ -90,6 +90,12 @@ function TraceDrawer(props: TraceDrawerProps) {
     <PanelWrapper ref={panelRef}>
       <ResizeableHandle onMouseDown={onMouseDown} />
       <TabsContainer>
+        <Tab
+          active={props.activeTab === 'trace'}
+          onClick={() => props.setActiveTab('trace')}
+        >
+          <TabButton>{t('Trace')}</TabButton>
+        </Tab>
         {props.nodes.map((node, index) => {
           const title = getTabTitle(node);
           return (
@@ -102,12 +108,6 @@ function TraceDrawer(props: TraceDrawerProps) {
             </Tab>
           );
         })}
-        <Tab
-          active={props.activeTab === 'trace'}
-          onClick={() => props.setActiveTab('trace')}
-        >
-          <TabButton>{t('Trace')}</TabButton>
-        </Tab>
       </TabsContainer>
       <Content>
         {props.activeTab === 'trace' ? (
