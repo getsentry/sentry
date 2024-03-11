@@ -277,6 +277,8 @@ class BaseApiClient(TrackResponseMixin):
 
             self.track_response_data(error_resp.status_code, e, extra=extra)
             self.record_error(e)
+            error_details = {'http_status': error_resp.status_code, 'method': method, 'path': full_url}
+            self.logger.error('HTTP error encountered', extra={'error_details': error_details})
             raise ApiError.from_response(error_resp, url=full_url) from e
 
         except Exception as e:
