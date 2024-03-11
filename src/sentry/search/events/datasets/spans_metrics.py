@@ -355,6 +355,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     ),
                     default_result_type="percentage",
                 ),
+                # TODO: Deprecated, use `http_response_rate(5)` instead
                 fields.MetricsFunction(
                     "http_error_rate",
                     snql_distribution=lambda args, alias: function_aliases.resolve_division(
@@ -384,6 +385,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     snql_distribution=self._resolve_http_response_count,
                     default_result_type="integer",
                 ),
+                # TODO: Deprecated, use `http_response_count(5)` instead
                 fields.MetricsFunction(
                     "http_error_count",
                     snql_distribution=self._resolve_http_error_count,
