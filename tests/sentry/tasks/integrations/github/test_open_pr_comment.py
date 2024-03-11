@@ -22,6 +22,7 @@ from sentry.tasks.integrations.github.open_pr_comment import (
 from sentry.tasks.integrations.github.utils import PullRequestFile, PullRequestIssue
 from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.json import JSONData
@@ -101,6 +102,7 @@ class TestSafeForComment(GithubCommentTestCase):
             {"filename": "baz.py", "changes": 100, "status": "added"},
             {"filename": "bee.py", "changes": 100, "status": "deleted"},
             {"filename": "boo.js", "changes": 0, "status": "renamed"},
+            {"filename": "bop.php", "changes": 100, "status": "modified"},
         ]
         responses.add(
             responses.GET,
@@ -113,6 +115,31 @@ class TestSafeForComment(GithubCommentTestCase):
         assert pr_files == [
             {"filename": "foo.py", "changes": 100, "status": "modified"},
             {"filename": "bar.js", "changes": 100, "status": "modified"},
+        ]
+
+    @responses.activate
+    @with_feature("organizations:integrations-open-pr-comment-beta-langs")
+    def test_simple_with_php(self):
+        data = [
+            {"filename": "foo.py", "changes": 100, "status": "modified"},
+            {"filename": "bar.js", "changes": 100, "status": "modified"},
+            {"filename": "baz.py", "changes": 100, "status": "added"},
+            {"filename": "bee.py", "changes": 100, "status": "deleted"},
+            {"filename": "boo.js", "changes": 0, "status": "renamed"},
+            {"filename": "bop.php", "changes": 100, "status": "modified"},
+        ]
+        responses.add(
+            responses.GET,
+            self.gh_path.format(pull_number=self.pr.key),
+            status=200,
+            json=data,
+        )
+
+        pr_files = safe_for_comment(self.gh_client, self.gh_repo, self.pr)
+        assert pr_files == [
+            {"filename": "foo.py", "changes": 100, "status": "modified"},
+            {"filename": "bar.js", "changes": 100, "status": "modified"},
+            {"filename": "bop.php", "changes": 100, "status": "modified"},
         ]
 
     @responses.activate
@@ -401,6 +428,33 @@ class TestGetCommentIssues(CreateEventTestCase):
         function_names = [issue["function_name"] for issue in top_5_issues]
         assert top_5_issue_ids == [group_id_1, group_id_2]
         assert function_names == ["other.planet", "world"]
+
+    @with_feature("organizations:integrations-open-pr-comment-beta-langs")
+    def test_php_simple(self):
+        # should match function name exactly or namespace::functionName
+        group_id_1 = [
+            self._create_event(
+                function_names=["namespace/other/test::planet", "test/component::blue"],
+                filenames=["baz.php", "foo.php"],
+                user_id=str(i),
+            )
+            for i in range(7)
+        ][0].group.id
+        group_id_2 = [
+            self._create_event(
+                function_names=["test/component::blue", "world"],
+                filenames=["foo.php", "baz.php"],
+                user_id=str(i),
+            )
+            for i in range(6)
+        ][0].group.id
+        top_5_issues = get_top_5_issues_by_count_for_file(
+            [self.project], ["baz.php"], ["world", "planet"]
+        )
+        top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
+        function_names = [issue["function_name"] for issue in top_5_issues]
+        assert top_5_issue_ids == [group_id_1, group_id_2]
+        assert function_names == ["namespace/other/test::planet", "world"]
 
     def test_filters_resolved_issue(self):
         group = Group.objects.all()[0]
@@ -1077,6 +1131,27 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         )
 
     @patch("sentry.tasks.integrations.github.open_pr_comment.metrics")
+    def test_comment_workflow_missing_org(
+        self,
+        mock_metrics,
+        _,
+        mock_safe_for_comment,
+        mock_issues,
+        mock_function_names,
+        mock_reverse_codemappings,
+        mock_pr_filenames,
+    ):
+        self.pr.organization_id = 0
+        self.pr.save()
+
+        open_pr_comment_workflow(self.pr.id)
+
+        assert not mock_pr_filenames.called
+        mock_metrics.incr.assert_called_with(
+            "github_open_pr_comment.error", tags={"type": "missing_org"}
+        )
+
+    @patch("sentry.tasks.integrations.github.open_pr_comment.metrics")
     def test_comment_workflow_missing_repo(
         self,
         mock_metrics,
@@ -1137,3 +1212,31 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         mock_metrics.incr.assert_called_with(
             "github_open_pr_comment.error", tags={"type": "unsafe_for_comment"}
         )
+
+    @patch("sentry.tasks.integrations.github.open_pr_comment.metrics")
+    def test_comment_workflow_missing_php_feature_flag(
+        self,
+        mock_metrics,
+        _,
+        mock_safe_for_comment,
+        mock_issues,
+        mock_function_names,
+        mock_reverse_codemappings,
+        mock_pr_filenames,
+    ):
+        mock_safe_for_comment.return_value = [{"filename": "hello.php", "patch": "a"}]
+        mock_reverse_codemappings.return_value = ([self.project], ["hello.php"])
+        mock_pr_filenames.return_value = [PullRequestFile(filename="hello.php", patch="a")]
+
+        open_pr_comment_workflow(self.pr.id)
+
+        # mock safe for comment should filter out php if the org doesn't have
+        # the feature flag, but we also have a check in open_pr_comment_workflow
+
+        assert not mock_issues.called
+        # this metric is emitted inside a for loop
+        mock_metrics.incr.assert_any_call(
+            "github_open_pr_comment.missing_parser", tags={"extension": "php"}
+        )
+        # this metric is emitted in the early return after the for loop
+        mock_metrics.incr.assert_called_with("github_open_pr_comment.no_issues")
