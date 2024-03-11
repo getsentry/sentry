@@ -1498,7 +1498,7 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
  * the scrolling to flicker.
  */
 const TraceStylingWrapper = styled('div')`
-  height: 70vh;
+  flex-grow: 1;
   width: 100%;
   margin: auto;
   overflow: hidden;

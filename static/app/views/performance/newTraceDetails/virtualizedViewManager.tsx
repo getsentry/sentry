@@ -1421,6 +1421,7 @@ export const useVirtualizedList = (
       renderCache.current?.clear();
 
       scrollHeightRef.current = elements[0].contentRect.height;
+      console.log('resize', elements);
       if (list.current) {
         list.current.scrollHeight = scrollHeightRef.current;
       }

@@ -149,7 +149,7 @@ const PanelWrapper = styled('div')`
   display: flex;
   flex-direction: column;
   width: 100%;
-  position: sticky;
+  position: relative;
   border-top: 1px solid ${p => p.theme.border};
   bottom: 0;
   right: 0;

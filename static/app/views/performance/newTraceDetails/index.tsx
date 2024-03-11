@@ -111,30 +111,28 @@ export function TraceView() {
 
   return (
     <SentryDocumentTitle title={DOCUMENT_TITLE} orgSlug={organization.slug}>
-      <Layout.Page>
-        <NoProjectMessage organization={organization}>
-          <TraceMetaQuery
-            location={location}
-            orgSlug={organization.slug}
-            traceId={traceSlug}
-            start={queryParams.start}
-            end={queryParams.end}
-            statsPeriod={queryParams.statsPeriod}
-          >
-            {metaResults => (
-              <TraceViewContent
-                status={trace.status}
-                trace={trace.data}
-                traceSlug={traceSlug}
-                organization={organization}
-                location={location}
-                traceEventView={traceEventView}
-                metaResults={metaResults}
-              />
-            )}
-          </TraceMetaQuery>
-        </NoProjectMessage>
-      </Layout.Page>
+      <NoProjectMessage organization={organization}>
+        <TraceMetaQuery
+          location={location}
+          orgSlug={organization.slug}
+          traceId={traceSlug}
+          start={queryParams.start}
+          end={queryParams.end}
+          statsPeriod={queryParams.statsPeriod}
+        >
+          {metaResults => (
+            <TraceViewContent
+              status={trace.status}
+              trace={trace.data}
+              traceSlug={traceSlug}
+              organization={organization}
+              location={location}
+              traceEventView={traceEventView}
+              metaResults={metaResults}
+            />
+          )}
+        </TraceMetaQuery>
+      </NoProjectMessage>
     </SentryDocumentTitle>
   );
 }
@@ -401,27 +399,31 @@ function TraceViewContent(props: TraceViewContentProps) {
           </ButtonBar>
         </Layout.HeaderActions>
       </Layout.Header>
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          {traceType ? <TraceWarnings type={traceType} /> : null}
+      <TraceLayout>
+        {traceType ? <TraceWarnings type={traceType} /> : null}
+        <TraceTop>
           <TraceHeader
             rootEventResults={rootEvent}
             metaResults={props.metaResults}
             organization={props.organization}
             traces={props.trace}
           />
-          <TraceSearchInput
-            query={searchState.query}
-            status={searchState.status}
-            onChange={onSearchChange}
-            onSearchClear={onSearchClear}
-            onKeyDown={onSearchKeyDown}
-            onNextSearchClick={onNextSearchClick}
-            onPreviousSearchClick={onPreviousSearchClick}
-            resultCount={searchState.results?.length}
-            resultIteratorIndex={searchState.resultIteratorIndex}
-          />
-          <TraceContainer ref={r => (traceContainerRef.current = r)}>
+          <TraceToolbar>
+            <TraceSearchInput
+              query={searchState.query}
+              status={searchState.status}
+              onChange={onSearchChange}
+              onSearchClear={onSearchClear}
+              onKeyDown={onSearchKeyDown}
+              onNextSearchClick={onNextSearchClick}
+              onPreviousSearchClick={onPreviousSearchClick}
+              resultCount={searchState.results?.length}
+              resultIteratorIndex={searchState.resultIteratorIndex}
+            />
+          </TraceToolbar>
+        </TraceTop>
+        <TraceContainer ref={r => (traceContainerRef.current = r)}>
+          <TraceGrid>
             <Trace
               trace={tree}
               trace_id={props.traceSlug}
@@ -448,9 +450,9 @@ function TraceViewContent(props: TraceViewContentProps) {
               traces={props.trace}
               traceEventView={props.traceEventView}
             />
-          </TraceContainer>
-        </Layout.Main>
-      </Layout.Body>
+          </TraceGrid>
+        </TraceContainer>
+      </TraceLayout>
     </Fragment>
   );
 }
@@ -510,6 +512,50 @@ function useRootEvent(trace: TraceSplitResults<TraceFullDetailed> | null) {
   );
 }
 
+const TraceBody = styled('div')`
+  padding-bottom: 0 !important;
+  padding-left: 24px;
+  padding-right: 24px;
+  padding-top: 24px;
+  background-color: ${p => p.theme.background};
+
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 100%;
+  border-bottom: 2px solid red;
+`;
+
+const TraceTop = styled('div')`
+  display: flex;
+  flex-direction: column;
+`;
+
+const TraceLayout = styled('div')`
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 100%;
+  border-bottom: 2px solid green;
+
+  ~ footer {
+    display: none;
+  }
+`;
+
 const TraceContainer = styled('div')`
+  display: flex;
+  flex: 1 1 100%;
   box-shadow: 0 0 0 1px ${p => p.theme.border};
+  border-bottom: 2px solid red;
+`;
+
+const TraceToolbar = styled('div')`
+  flex-grow: 0;
+  position: relative;
+`;
+
+const TraceGrid = styled('div')`
+  display: grid;
+  width: 100%;
+  grid-template-rows: 1fr min-content;
+  grid-template-columns: 100%;
 `;
