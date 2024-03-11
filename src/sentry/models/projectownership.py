@@ -236,7 +236,7 @@ class ProjectOwnership(Model):
         group: Group | None = None,
         organization_id: int | None = None,
         force_autoassign: bool = False,
-        logging_extra: dict[str, str] | None = None,
+        logging_extra: dict[str, str | bool] | None = None,
     ):
         """
         Get the auto-assign owner for a project if there are any.
@@ -283,10 +283,12 @@ class ProjectOwnership(Model):
                 issue_owner = GroupOwner.get_autoassigned_owner_no_cache(
                     group.id, project_id, autoassignment_types
                 )
+                logging_extra["use_groupowner_cache"] = False
             else:
                 issue_owner = GroupOwner.get_autoassigned_owner_cached(
                     group.id, project_id, autoassignment_types
                 )
+                logging_extra["use_groupowner_cache"] = True
 
             if issue_owner is False:
                 logger.info("handle_auto_assignment.no_issue_owner", extra=logging_extra)
