@@ -37,7 +37,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
 from sentry.snuba.referrer import validate_referrer
 from sentry.utils import json, metrics
-from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
+from sentry.utils.dates import outside_retention_with_modified_start
 
 logger = logging.getLogger(__name__)
 
@@ -1573,7 +1573,7 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
     reverse = compose(
         reverse,
         lambda row: (
-            replace(row, "time", int(to_timestamp(parse_datetime(row["time"]))))
+            replace(row, "time", int(parse_datetime(row["time"]).timestamp()))
             if "time" in row
             else row
         ),
@@ -1582,7 +1582,7 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
     reverse = compose(
         reverse,
         lambda row: (
-            replace(row, "bucketed_end", int(to_timestamp(parse_datetime(row["bucketed_end"]))))
+            replace(row, "bucketed_end", int(parse_datetime(row["bucketed_end"]).timestamp()))
             if "bucketed_end" in row
             else row
         ),
