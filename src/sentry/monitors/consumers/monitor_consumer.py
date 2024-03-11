@@ -718,7 +718,7 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
             # 04
             # Update monitor status
             if check_in.status == CheckInStatus.ERROR:
-                mark_failed(check_in, ts=start_time)
+                mark_failed(check_in, ts=start_time, received=item.ts)
             else:
                 mark_ok(check_in, ts=start_time)
 
