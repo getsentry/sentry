@@ -203,6 +203,23 @@ class DailySummaryTest(
                 [self.user.id],
             )
 
+    @with_feature("organizations:daily-summary")
+    @mock.patch("sentry.tasks.summaries.daily_summary.prepare_summary_data")
+    def test_schedule_organizations_timing(self, mock_prepare_summary_data):
+        with self.tasks(), freeze_time("2024-03-06 23:15:00"):  # 3:15PM PST
+            schedule_organizations()
+        assert mock_prepare_summary_data.delay.call_count == 0
+
+        with self.tasks(), freeze_time("2024-03-07 00:00:00"):  # 4PM PST
+            schedule_organizations()
+        assert mock_prepare_summary_data.delay.call_count == 1
+
+        with self.tasks(), freeze_time("2024-03-07 01:00:00"):  # 5PM PST
+            schedule_organizations()
+        assert (
+            mock_prepare_summary_data.delay.call_count == 1
+        )  # note this didn't fire again, it just didn't increase from before
+
     def test_build_summary_data(self):
         self.populate_event_data()
         summary = build_summary_data(
