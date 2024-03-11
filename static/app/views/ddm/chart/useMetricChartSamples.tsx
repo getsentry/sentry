@@ -193,8 +193,6 @@ export function useMetricChartSamples({
             symbol,
             symbolRotate,
             color: theme.purple400,
-            // TODO: for now we just pass these ids through, but we should probably index
-            // samples by an id and then just pass that reference
             itemStyle: {
               color: theme.purple400,
               opacity: 1,
