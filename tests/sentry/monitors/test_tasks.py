@@ -104,7 +104,7 @@ class MonitorTaskCheckMissingTest(TestCase):
 
         # Monitor status is updated
         monitor_environment = MonitorEnvironment.objects.get(
-            id=monitor_environment.id, status=MonitorStatus.MISSED_CHECKIN
+            id=monitor_environment.id, status=MonitorStatus.ERROR
         )
 
         # last_checkin was NOT updated. We only update this for real user check-ins.
@@ -226,7 +226,7 @@ class MonitorTaskCheckMissingTest(TestCase):
 
         assert not MonitorEnvironment.objects.filter(
             id=monitor_environment.id,
-            status=MonitorStatus.MISSED_CHECKIN,
+            status=MonitorStatus.ERROR,
         ).exists()
 
         assert not MonitorCheckIn.objects.filter(
@@ -250,7 +250,7 @@ class MonitorTaskCheckMissingTest(TestCase):
         )
 
         monitor_environment = MonitorEnvironment.objects.get(
-            id=monitor_environment.id, status=MonitorStatus.MISSED_CHECKIN
+            id=monitor_environment.id, status=MonitorStatus.ERROR
         )
 
         missed_checkin = MonitorCheckIn.objects.filter(
@@ -357,7 +357,7 @@ class MonitorTaskCheckMissingTest(TestCase):
 
         monitor_env = MonitorEnvironment.objects.get(
             id=monitor_environment.id,
-            status=MonitorStatus.MISSED_CHECKIN,
+            status=MonitorStatus.ERROR,
         )
 
         # The next checkin is at the 10 minute mark now
@@ -610,9 +610,9 @@ class MonitorTaskCheckMissingTest(TestCase):
         # assert regular monitor works
         mark_environment_missing(successful_monitor_environment.id, sub_task_run_ts)
 
-        # We still marked a monitor as missed
+        # We still put the monitor in an error state
         assert MonitorEnvironment.objects.filter(
-            id=successful_monitor_environment.id, status=MonitorStatus.MISSED_CHECKIN
+            id=successful_monitor_environment.id, status=MonitorStatus.ERROR
         ).exists()
         assert MonitorCheckIn.objects.filter(
             monitor_environment=successful_monitor_environment.id, status=CheckInStatus.MISSED
@@ -681,10 +681,10 @@ class MonitorTaskCheckTimeoutTest(TestCase):
         # Check in is marked as timed out
         assert MonitorCheckIn.objects.filter(id=checkin.id, status=CheckInStatus.TIMEOUT).exists()
 
-        # Monitor is marked as timed out
+        # Monitor is in an error state
         monitor_env = MonitorEnvironment.objects.filter(
             id=monitor_environment.id,
-            status=MonitorStatus.TIMEOUT,
+            status=MonitorStatus.ERROR,
         )
         assert monitor_env.exists()
 
@@ -845,10 +845,9 @@ class MonitorTaskCheckTimeoutTest(TestCase):
         # First checkin is marked as timed out
         assert MonitorCheckIn.objects.filter(id=checkin.id, status=CheckInStatus.TIMEOUT).exists()
 
-        # Monitor was marked as timed out
+        # Monitor is in an error state
         monitor_env = MonitorEnvironment.objects.filter(
-            id=monitor_environment.id,
-            status=MonitorStatus.TIMEOUT,
+            id=monitor_environment.id, status=MonitorStatus.ERROR
         )
         assert monitor_env.exists()
 
@@ -908,10 +907,10 @@ class MonitorTaskCheckTimeoutTest(TestCase):
         # Check in is marked as timed out
         assert MonitorCheckIn.objects.filter(id=checkin.id, status=CheckInStatus.TIMEOUT).exists()
 
-        # Monitor is marked as timed out
+        # Monitor is in an error state
         monitor_env = MonitorEnvironment.objects.filter(
             id=monitor_environment.id,
-            status=MonitorStatus.TIMEOUT,
+            status=MonitorStatus.ERROR,
         )
         assert monitor_env.exists()
 
