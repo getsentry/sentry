@@ -353,7 +353,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         ),
                         alias,
                     ),
-                    default_result_type="integer",
+                    default_result_type="percentage",
                 ),
                 fields.MetricsFunction(
                     "http_error_rate",

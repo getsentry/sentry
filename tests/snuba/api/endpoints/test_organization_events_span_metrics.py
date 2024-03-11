@@ -1077,6 +1077,10 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0]["http_response_code_rate(4)"] == 0.2
         assert data[0]["http_response_code_rate(5)"] == 0.4
 
+        meta = response.data["meta"]
+        assert meta["dataset"] == "spansMetrics"
+        assert meta["fields"]["http_response_code_rate(200)"] == "percentage"
+
 
 @region_silo_test
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
