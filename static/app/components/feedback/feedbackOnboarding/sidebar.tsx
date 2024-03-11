@@ -57,7 +57,7 @@ function FeedbackOnboardingSidebar(props: CommonSidebarProps) {
     // this tracks clicks from any source: feedback index, issue details feedback tab, banner callout, etc
     trackAnalytics('feedback.list-view-setup-sidebar', {
       organization,
-      platform: currentProject?.platform ?? 'other',
+      platform: currentProject?.platform ?? 'unknown',
     });
   }, [organization, currentProject]);
 

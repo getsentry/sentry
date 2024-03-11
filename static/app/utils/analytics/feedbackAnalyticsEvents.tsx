@@ -1,12 +1,10 @@
-import type {PlatformKey} from 'sentry/types';
-
 export type FeedbackEventParameters = {
   'feedback.details-integration-issue-clicked': {
     integration_key: string;
   };
   'feedback.index-setup-viewed': {};
   'feedback.list-item-selected': {};
-  'feedback.list-view-setup-sidebar': {platform: PlatformKey};
+  'feedback.list-view-setup-sidebar': {platform: string};
   'feedback.mark-spam-clicked': {type: 'bulk' | 'details'};
   'feedback.whats-new-banner-dismissed': {};
   'feedback.whats-new-banner-viewed': {};
