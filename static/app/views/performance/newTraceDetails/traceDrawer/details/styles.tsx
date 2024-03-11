@@ -32,6 +32,10 @@ const FlexBox = styled('div')`
   align-items: center;
 `;
 
+const Actions = styled(FlexBox)`
+  gap: ${space(0.5)};
+`;
+
 const Title = styled(FlexBox)`
   gap: ${space(1)};
 `;
@@ -78,12 +82,18 @@ const Button = styled(CommonButton)`
   right: ${space(0.5)};
 `;
 
+const HeaderContainer = styled(Title)`
+  justify-content: space-between;
+`;
+
 const TraceDrawerComponents = {
   DetailContainer,
   FlexBox,
   Title,
   Type,
   TitleOp,
+  HeaderContainer,
+  Actions,
   Table,
   IconTitleWrapper,
   IconBorder,

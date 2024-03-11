@@ -810,7 +810,11 @@ def get_default_comparators():
             "sentry.sentryappinstallation": [DateUpdatedComparator("date_updated")],
             "sentry.servicehook": [HashObfuscatingComparator("secret")],
             # TODO(hybrid-cloud): actor refactor. Remove this entry when done.
-            "sentry.team": [ForeignKeyComparator({"actor": Actor, "organization": Organization})],
+            "sentry.team": [
+                ForeignKeyComparator({"actor": Actor, "organization": Organization}),
+                # TODO(getsentry/sentry#66247): Remove once self-hosted 24.4.0 is released.
+                IgnoredComparator("org_role"),
+            ],
             "sentry.user": [
                 AutoSuffixComparator("username"),
                 DateUpdatedComparator("last_active", "last_password_change"),

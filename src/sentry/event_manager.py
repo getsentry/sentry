@@ -1492,12 +1492,10 @@ def _save_aggregate(
         ):
             raise HashDiscarded("Load shedding group creation", reason="load_shed")
 
-        with sentry_sdk.start_span(
-            op="event_manager.create_group_transaction"
-        ) as span, metrics.timer(
-            "event_manager.create_group_transaction"
-        ) as metric_tags, transaction.atomic(
-            router.db_for_write(GroupHash)
+        with (
+            sentry_sdk.start_span(op="event_manager.create_group_transaction") as span,
+            metrics.timer("event_manager.create_group_transaction") as metric_tags,
+            transaction.atomic(router.db_for_write(GroupHash)),
         ):
             span.set_tag("create_group_transaction.outcome", "no_group")
             metric_tags["create_group_transaction.outcome"] = "no_group"
@@ -2696,10 +2694,12 @@ def _calculate_span_grouping(jobs: Sequence[Job], projects: ProjectsMapping) -> 
 
 
 @metrics.wraps("save_event.detect_performance_problems")
-def _detect_performance_problems(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
+def _detect_performance_problems(
+    jobs: Sequence[Job], projects: ProjectsMapping, is_standalone_spans: bool = False
+) -> None:
     for job in jobs:
         job["performance_problems"] = detect_performance_problems(
-            job["data"], projects[job["project_id"]]
+            job["data"], projects[job["project_id"]], is_standalone_spans=is_standalone_spans
         )
 
 

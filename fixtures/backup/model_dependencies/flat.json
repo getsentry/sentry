@@ -57,6 +57,9 @@
   "sentry.alertruleactivationcondition": [
     "sentry.alertrule"
   ],
+  "sentry.alertruleactivations": [
+    "sentry.alertrule"
+  ],
   "sentry.alertruleactivity": [
     "sentry.alertrule",
     "sentry.user"
@@ -448,6 +451,9 @@
     "sentry.monitorenvironment",
     "sentry.monitorlocation",
     "sentry.project"
+  ],
+  "sentry.monitorenvbrokendetection": [
+    "sentry.monitorincident"
   ],
   "sentry.monitorenvironment": [
     "sentry.environment",

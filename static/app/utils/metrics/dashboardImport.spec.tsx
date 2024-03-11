@@ -47,6 +47,7 @@ const mockAvailableMetrics = (mris: MRI[]): MetricMeta[] => {
     mri,
     operations: [],
     blockingStatus: [],
+    projectIds: [],
   })) as MetricMeta[];
 };
 
@@ -90,7 +91,7 @@ describe('WidgetParser', () => {
           conditions: 'foo:bar',
           columns: ['baz'],
           name: '',
-          orderby: '',
+          orderby: undefined,
         },
       ],
       title: 'Test widget',
@@ -125,7 +126,7 @@ describe('WidgetParser', () => {
           columns: ['baz'],
           fields: ['sum(c:custom/sentry.foo.bar@none)'],
           conditions: 'foo:bar',
-          orderby: '',
+          orderby: undefined,
         },
         {
           name: '',
@@ -133,7 +134,7 @@ describe('WidgetParser', () => {
           columns: [],
           fields: ['sum(c:custom/sentry.bar.baz@none)'],
           conditions: '',
-          orderby: '',
+          orderby: undefined,
         },
       ],
     });
@@ -158,7 +159,7 @@ describe('WidgetParser', () => {
           conditions: 'foo:bar',
           columns: ['baz'],
           name: '',
-          orderby: '',
+          orderby: undefined,
         },
       ],
       title: 'Test widget',

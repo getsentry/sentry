@@ -1413,7 +1413,7 @@ export function makeExampleTrace(metadata: TraceTree.Metadata): TraceTree {
 
   trace.transactions.push(root);
 
-  for (let i = 0; i < 25; i++) {
+  for (let i = 0; i < 50; i++) {
     const end = start + randomBetween(100, 200);
     const nest = i > 0 && Math.random() > 0.33;
 

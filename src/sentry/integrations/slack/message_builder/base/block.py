@@ -161,6 +161,20 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         }
 
     @staticmethod
+    def make_field(text: str) -> dict[str, str]:
+        return {
+            "type": "mrkdwn",
+            "text": text,
+        }
+
+    @staticmethod
+    def get_section_fields_block(fields: list[dict[str, str]]) -> SlackBlock:
+        return {
+            "type": "section",
+            "fields": fields,
+        }
+
+    @staticmethod
     def _build_blocks(
         *args: SlackBlock,
         fallback_text: str | None = None,

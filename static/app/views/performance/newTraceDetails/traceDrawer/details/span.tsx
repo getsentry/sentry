@@ -1,3 +1,4 @@
+import {Button} from 'sentry/components/button';
 import NewTraceDetailsSpanDetail from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
 import {
   getSpanOperation,
@@ -31,23 +32,27 @@ export function SpanNodeDetails({
 
   return (
     <TraceDrawerComponents.DetailContainer>
-      <TraceDrawerComponents.Title>
-        <Tooltip title={event.projectSlug}>
-          <ProjectBadge
-            project={project ? project : {slug: event.projectSlug || ''}}
-            avatarSize={30}
-            hideName
-          />
-        </Tooltip>
-        <div>
-          <div>{t('span')}</div>
-          <TraceDrawerComponents.TitleOp>
-            {' '}
-            {getSpanOperation(span)}
-          </TraceDrawerComponents.TitleOp>
-        </div>
-      </TraceDrawerComponents.Title>
-      <button onClick={_e => scrollToNode(node)}>Go to row</button>
+      <TraceDrawerComponents.HeaderContainer>
+        <TraceDrawerComponents.Title>
+          <Tooltip title={event.projectSlug}>
+            <ProjectBadge
+              project={project ? project : {slug: event.projectSlug || ''}}
+              avatarSize={30}
+              hideName
+            />
+          </Tooltip>
+          <div>
+            <div>{t('span')}</div>
+            <TraceDrawerComponents.TitleOp>
+              {' '}
+              {getSpanOperation(span)}
+            </TraceDrawerComponents.TitleOp>
+          </div>
+        </TraceDrawerComponents.Title>
+        <Button size="xs" onClick={_e => scrollToNode(node)}>
+          {t('Scroll in view')}
+        </Button>
+      </TraceDrawerComponents.HeaderContainer>
       {event.projectSlug && (
         <ProfilesProvider
           orgSlug={organization.slug}

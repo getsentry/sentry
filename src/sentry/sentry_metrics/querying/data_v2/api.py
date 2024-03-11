@@ -11,11 +11,14 @@ from sentry.models.project import Project
 from sentry.sentry_metrics.querying.data_v2.execution import QueryExecutor, QueryResult
 from sentry.sentry_metrics.querying.data_v2.parsing import QueryParser
 from sentry.sentry_metrics.querying.data_v2.plan import MetricsQueriesPlan, MetricsQueriesPlanResult
-from sentry.sentry_metrics.querying.data_v2.preparation import (
+from sentry.sentry_metrics.querying.data_v2.preparation.base import (
     IntermediateQuery,
-    UnitNormalizationStep,
     run_preparation_steps,
 )
+from sentry.sentry_metrics.querying.data_v2.preparation.units_normalization import (
+    UnitNormalizationStep,
+)
+from sentry.sentry_metrics.querying.types import QueryType
 from sentry.utils import metrics
 
 
@@ -52,6 +55,7 @@ def run_metrics_queries_plan(
     projects: Sequence[Project],
     environments: Sequence[Environment],
     referrer: str,
+    query_type: QueryType = QueryType.TOTALS_AND_SERIES,
 ) -> MetricsQueriesPlanResult:
     metrics.incr(
         key="ddm.metrics_api.queried_time_range",
@@ -102,7 +106,7 @@ def run_metrics_queries_plan(
     # We prepare the executor, that will be responsible for scheduling the execution of multiple queries.
     executor = QueryExecutor(organization=organization, projects=projects, referrer=referrer)
     for intermediate_query in intermediate_queries:
-        executor.schedule(intermediate_query)
+        executor.schedule(intermediate_query=intermediate_query, query_type=query_type)
 
     results = executor.execute()
 

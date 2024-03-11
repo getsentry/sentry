@@ -428,7 +428,6 @@ function BaseGroupRow({
           organization={organization}
           data={group}
           query={query}
-          size="normal"
           source={referrer}
         />
         <EventOrGroupExtraDetails data={group} />
@@ -612,7 +611,7 @@ const EventCountsWrapper = styled('div')`
 `;
 
 const PriorityWrapper = styled('div')<{narrowGroups: boolean}>`
-  width: 85px;
+  width: 70px;
   margin: 0 ${space(2)};
   align-self: center;
   display: flex;

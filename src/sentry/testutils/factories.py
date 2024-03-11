@@ -30,15 +30,18 @@ from sentry.event_manager import EventManager
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.incidents.logic import (
     create_alert_rule,
+    create_alert_rule_activation,
     create_alert_rule_activation_condition,
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
     query_datasets_to_type,
 )
-from sentry.incidents.models import (
+from sentry.incidents.models.alert_rule import (
     AlertRuleMonitorType,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
+)
+from sentry.incidents.models.incident import (
     Incident,
     IncidentActivity,
     IncidentProject,
@@ -804,16 +807,15 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_user(email=None, **kwargs):
+    def create_user(email=None, is_superuser=False, is_staff=False, is_active=True, **kwargs):
         if email is None:
             email = uuid4().hex + "@example.com"
 
         kwargs.setdefault("username", email)
-        kwargs.setdefault("is_staff", True)
-        kwargs.setdefault("is_active", True)
-        kwargs.setdefault("is_superuser", False)
 
-        user = User(email=email, **kwargs)
+        user = User(
+            email=email, is_superuser=is_superuser, is_staff=is_staff, is_active=is_active, **kwargs
+        )
         if kwargs.get("password") is None:
             user.set_password("admin")
         user.save()
@@ -1530,6 +1532,15 @@ class Factories:
             label = petname.generate(2, " ", letters=10).title()
 
         return create_alert_rule_activation_condition(alert_rule, label, condition_type)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_alert_rule_activation(
+        alert_rule,
+        **kwargs,
+    ):
+
+        return create_alert_rule_activation(alert_rule, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)

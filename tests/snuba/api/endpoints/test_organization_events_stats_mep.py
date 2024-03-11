@@ -2027,3 +2027,42 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
         )
 
         assert response.status_code == 400, response.content
+
+    def test_top_events_with_tag(self):
+        query = "transaction.duration:>=100"
+        yAxis = ["count()"]
+        field = "count()"
+        groupbys = ["some-field"]
+        spec = OnDemandMetricSpec(
+            field=field, groupbys=groupbys, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY
+        )
+        self.store_on_demand_metric(
+            1,
+            spec=spec,
+            additional_tags={
+                "some-field": "bar",
+                "environment": "production",
+            },
+            timestamp=self.day_ago,
+        )
+        response = self.do_request(
+            data={
+                "project": self.project.id,
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "orderby": ["-count()"],
+                "environment": "production",
+                "query": query,
+                "yAxis": yAxis,
+                "field": [
+                    "some-field",
+                    "count()",
+                ],
+                "topEvents": 5,
+                "dataset": "metrics",
+                "useOnDemandMetrics": "true",
+            },
+        )
+
+        assert response.status_code == 200, response.content

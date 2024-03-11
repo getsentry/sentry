@@ -27,7 +27,7 @@ from sentry.monitors.validators import MonitorCheckInValidator
 
 from ... import features
 from ...api.exceptions import ResourceDoesNotExist
-from .base import MonitorIngestEndpoint
+from .base import DEPRECATED_INGEST_API_MESSAGE, MonitorIngestEndpoint
 
 
 @region_silo_endpoint
@@ -72,7 +72,7 @@ class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
         the most recent (by creation date) check-in which is still mutable (not marked as finished).
         """
         if features.has("organizations:crons-disable-ingest-endpoints", project.organization):
-            raise ResourceDoesNotExist
+            raise ResourceDoesNotExist(detail=DEPRECATED_INGEST_API_MESSAGE)
 
         if checkin.status in CheckInStatus.FINISHED_VALUES:
             return self.respond(status=400)

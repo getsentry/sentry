@@ -437,6 +437,7 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /tests/apidocs/                       @getsentry/owners-api
 /.github/workflows/openapi.yml        @getsentry/owners-api
 /.github/workflows/openapi-diff.yml   @getsentry/owners-api
+/src/sentry/conf/api_pagination_allowlist_do_not_modify.py  @getsentry/owners-api
 ## End of APIs
 
 

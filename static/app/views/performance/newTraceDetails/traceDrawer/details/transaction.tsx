@@ -37,7 +37,6 @@ import {
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
-import {Title} from 'sentry/components/sidebarSection';
 import {Tooltip} from 'sentry/components/tooltip';
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconChevron, IconOpen} from 'sentry/icons';
@@ -277,7 +276,7 @@ export function TransactionNodeDetails({
 
   return (
     <TraceDrawerComponents.DetailContainer>
-      <TransactioNodeDetailHeader>
+      <TraceDrawerComponents.HeaderContainer>
         <TraceDrawerComponents.Title>
           <Tooltip title={node.value.project_slug}>
             <ProjectBadge
@@ -287,7 +286,6 @@ export function TransactionNodeDetails({
             />
           </Tooltip>
           <div>
-            <button onClick={_e => scrollToNode(node)}>Go to row</button>
             <div>{t('transaction')}</div>
             <TraceDrawerComponents.TitleOp>
               {' '}
@@ -295,20 +293,25 @@ export function TransactionNodeDetails({
             </TraceDrawerComponents.TitleOp>
           </div>
         </TraceDrawerComponents.Title>
-        <Button
-          size="xs"
-          icon={<IconOpen />}
-          href={eventJsonUrl}
-          external
-          onClick={() =>
-            trackAnalytics('performance_views.event_details.json_button_click', {
-              organization,
-            })
-          }
-        >
-          {t('JSON')} (<FileSize bytes={event?.size} />)
-        </Button>
-      </TransactioNodeDetailHeader>
+        <TraceDrawerComponents.Actions>
+          <Button size="xs" onClick={_e => scrollToNode(node)}>
+            {t('Scroll in view')}
+          </Button>
+          <Button
+            size="xs"
+            icon={<IconOpen />}
+            href={eventJsonUrl}
+            external
+            onClick={() =>
+              trackAnalytics('performance_views.event_details.json_button_click', {
+                organization,
+              })
+            }
+          >
+            {t('JSON')} (<FileSize bytes={event?.size} />)
+          </Button>
+        </TraceDrawerComponents.Actions>
+      </TraceDrawerComponents.HeaderContainer>
 
       {hasIssues && (
         <Alert
@@ -480,10 +483,6 @@ export function TransactionNodeDetails({
     </TraceDrawerComponents.DetailContainer>
   );
 }
-
-const TransactioNodeDetailHeader = styled(Title)`
-  justify-content: space-between;
-`;
 
 const Measurements = styled('div')`
   display: flex;

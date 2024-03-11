@@ -16,19 +16,21 @@ from sentry.incidents.logic import (
     create_alert_rule_trigger_action,
     update_alert_rule,
 )
-from sentry.incidents.models import (
+from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleMonitorType,
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
+    alert_subscription_callback_registry,
+)
+from sentry.incidents.models.incident import (
     Incident,
     IncidentActivity,
     IncidentStatus,
     IncidentTrigger,
     IncidentType,
     TriggerStatus,
-    alert_subscription_callback_registry,
 )
 from sentry.incidents.subscription_processor import (
     SubscriptionProcessor,
@@ -280,9 +282,10 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             subscription = self.sub
         processor = SubscriptionProcessor(subscription)
         message = self.build_subscription_update(subscription, value=value, time_delta=time_delta)
-        with self.feature(
-            ["organizations:incidents", "organizations:performance-view"]
-        ), self.capture_on_commit_callbacks(execute=True):
+        with (
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.capture_on_commit_callbacks(execute=True),
+        ):
             processor.process_update(message)
         return processor
 
@@ -2272,9 +2275,10 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
             timestamp = django_timezone.now()
         timestamp = timestamp.replace(tzinfo=timezone.utc, microsecond=0)
 
-        with self.feature(
-            ["organizations:incidents", "organizations:performance-view"]
-        ), self.capture_on_commit_callbacks(execute=True):
+        with (
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.capture_on_commit_callbacks(execute=True),
+        ):
             if value is None:
                 numerator, denominator = 0, 0
             else:
@@ -2286,9 +2290,9 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
             processor.process_update(
                 {
                     "entity": "entity",
-                    "subscription_id": subscription.subscription_id
-                    if subscription
-                    else uuid4().hex,
+                    "subscription_id": (
+                        subscription.subscription_id if subscription else uuid4().hex
+                    ),
                     "values": {
                         "data": [
                             {
@@ -2781,9 +2785,10 @@ class MetricsCrashRateAlertProcessUpdateV1Test(MetricsCrashRateAlertProcessUpdat
             timestamp = django_timezone.now()
         timestamp = timestamp.replace(tzinfo=timezone.utc, microsecond=0)
 
-        with self.feature(
-            ["organizations:incidents", "organizations:performance-view"]
-        ), self.capture_on_commit_callbacks(execute=True):
+        with (
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.capture_on_commit_callbacks(execute=True),
+        ):
             if value is None:
                 numerator, denominator = 0, 0
             else:
@@ -2798,9 +2803,9 @@ class MetricsCrashRateAlertProcessUpdateV1Test(MetricsCrashRateAlertProcessUpdat
             processor.process_update(
                 {
                     "entity": "entity",
-                    "subscription_id": subscription.subscription_id
-                    if subscription
-                    else uuid4().hex,
+                    "subscription_id": (
+                        subscription.subscription_id if subscription else uuid4().hex
+                    ),
                     "values": {
                         "data": [
                             {"project_id": 8, session_status: tag_value_init, "value": denominator},

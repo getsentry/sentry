@@ -27,10 +27,11 @@ from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.data import run_metrics_query
-from sentry.sentry_metrics.querying.data_v2 import run_metrics_queries_plan
-from sentry.sentry_metrics.querying.data_v2.plan import MetricsQueriesPlan
-from sentry.sentry_metrics.querying.data_v2.transformation import MetricsAPIQueryTransformer
+from sentry.sentry_metrics.querying.data_v2 import (
+    MetricsAPIQueryTransformer,
+    MetricsQueriesPlan,
+    run_metrics_queries_plan,
+)
 from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
     LatestReleaseNotFoundError,
@@ -38,7 +39,7 @@ from sentry.sentry_metrics.querying.errors import (
 )
 from sentry.sentry_metrics.querying.metadata import MetricCodeLocations, get_metric_code_locations
 from sentry.sentry_metrics.querying.samples_list import get_sample_list_executor_cls
-from sentry.sentry_metrics.querying.types import QueryOrder
+from sentry.sentry_metrics.querying.types import QueryOrder, QueryType
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import string_to_use_case_id
 from sentry.snuba.metrics import (
@@ -259,53 +260,8 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
 
     # Number of groups returned for each page (applies to old endpoint).
     default_per_page = 50
-    # Number of groups returned (applies to new endpoint).
-    default_limit = 20
 
-    def _new_get(self, request: Request, organization) -> Response:
-        # We first parse the interval and date, since this is dependent on the query params.
-        interval = parse_stats_period(request.GET.get("interval", "1h"))
-        interval = int(3600 if interval is None else interval.total_seconds())
-        start, end = get_date_range_from_params(request.GET)
-
-        limit = request.GET.get("limit")
-        if not limit:
-            limit = self.default_limit
-        else:
-            try:
-                limit = int(limit)
-            except ValueError:
-                return Response(
-                    status=400,
-                    data={"detail": "The provided `limit` is invalid, an integer is required"},
-                )
-
-        try:
-            results = run_metrics_query(
-                fields=request.GET.getlist("field", []),
-                interval=interval,
-                start=start,
-                end=end,
-                organization=organization,
-                projects=self.get_projects(request, organization),
-                environments=self.get_environments(request, organization),
-                referrer=Referrer.API_ORGANIZATION_METRICS_DATA.value,
-                # Optional parameters.
-                query=request.GET.get("query"),
-                group_bys=request.GET.getlist("groupBy"),
-                order_by=request.GET.get("orderBy"),
-                limit=limit,
-            )
-        except InvalidMetricsQueryError as e:
-            return Response(status=400, data={"detail": str(e)})
-        except LatestReleaseNotFoundError as e:
-            return Response(status=404, data={"detail": str(e)})
-        except MetricsQueryExecutionError as e:
-            return Response(status=500, data={"detail": str(e)})
-
-        return Response(status=200, data=results)
-
-    def _old_get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization) -> Response:
         projects = self.get_projects(request, organization)
 
         def data_fn(offset: int, limit: int):
@@ -336,13 +292,6 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
             default_per_page=self.default_per_page,
             max_per_page=100,
         )
-
-    def get(self, request: Request, organization) -> Response:
-        use_new_metrics_layer = request.GET.get("useNewMetricsLayer", "false") == "true"
-        if use_new_metrics_layer:
-            return self._new_get(request, organization)
-        else:
-            return self._old_get(request, organization)
 
 
 class MetricsDataSeriesPaginator(GenericOffsetPaginator):
@@ -443,6 +392,13 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
 
         return metrics_queries_plan
 
+    def _get_query_type_from_request(self, request: Request) -> QueryType:
+        include_series = (request.GET.get("includeSeries") or "true") == "true"
+        if include_series:
+            return QueryType.TOTALS_AND_SERIES
+
+        return QueryType.TOTALS
+
     def post(self, request: Request, organization) -> Response:
         try:
             start, end = get_date_range_from_params(request.GET)
@@ -458,6 +414,7 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
                 projects=self.get_projects(request, organization),
                 environments=self.get_environments(request, organization),
                 referrer=Referrer.API_ORGANIZATION_METRICS_QUERY.value,
+                query_type=self._get_query_type_from_request(request),
             ).apply_transformer(MetricsAPIQueryTransformer())
         except InvalidMetricsQueryError as e:
             return Response(status=400, data={"detail": str(e)})
@@ -474,6 +431,7 @@ class MetricsSamplesSerializer(serializers.Serializer):
     field = serializers.ListField(required=True, allow_empty=False, child=serializers.CharField())
     max = serializers.FloatField(required=False)
     min = serializers.FloatField(required=False)
+    operation = serializers.CharField(required=False)
     query = serializers.CharField(required=False)
     referrer = serializers.CharField(required=False)
     sort = serializers.CharField(required=False)
@@ -532,6 +490,7 @@ class OrganizationMetricsSamplesEndpoint(OrganizationEventsV2EndpointBase):
             params,
             snuba_params,
             serialized["field"],
+            serialized.get("operation"),
             serialized.get("query", ""),
             serialized.get("min"),
             serialized.get("max"),

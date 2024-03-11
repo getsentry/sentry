@@ -57,6 +57,7 @@ function getSentryIntegrations(routes?: Function) {
       _experiments: {
         enableInteractions: true,
       },
+      enableInp: true,
     }),
     new Sentry.BrowserProfilingIntegration(),
   ];

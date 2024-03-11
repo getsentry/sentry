@@ -1,8 +1,8 @@
-import selectEvent from 'react-select-event';
 import {NotificationDefaultsFixture} from 'sentry-fixture/notificationDefaults';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization as TOrganization} from 'sentry/types';
