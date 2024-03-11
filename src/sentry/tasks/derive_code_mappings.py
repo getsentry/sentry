@@ -40,7 +40,7 @@ def process_error(error: ApiError, extra: dict[str, str]) -> None:
     extra["error"] = msg
 
     if msg is None:
-        logger.warning("Unexpected json format in API error response.", extra=extra)
+        logger.warning("No message found in ApiError.", extra=extra)
         return
     elif msg == "Not Found":
         logger.warning("The org has uninstalled the Sentry App.", extra=extra)
@@ -106,7 +106,6 @@ def derive_code_mappings(
     if data["platform"].startswith("php") and not features.has(
         "organizations:derive-code-mappings-php", org
     ):
-        logger.info("Php automatic code mappings are not open access", extra=extra)
         return
 
     stacktrace_paths: list[str] = identify_stacktrace_paths(data)
