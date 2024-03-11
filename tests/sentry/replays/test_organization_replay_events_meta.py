@@ -1,15 +1,19 @@
+from datetime import datetime
+
 import pytest
 from django.urls import reverse
 
+from sentry.issues.grouptype import ReplayRageClickType
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 pytestmark = pytest.mark.sentry_metrics
 
 
 @region_silo_test
-class OrganizationEventsMetaTest(APITestCase, SnubaTestCase):
+class OrganizationEventsMetaTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     def setUp(self):
         super().setUp()
         self.min_ago = before_now(minutes=1)
@@ -62,6 +66,47 @@ class OrganizationEventsMetaTest(APITestCase, SnubaTestCase):
                 "timestamp": iso_format(self.min_ago) + "+00:00",
                 "title": "<unlabeled event>",
             },
+        ]
+
+        assert response.status_code == 200, response.content
+        assert sorted(response.data["data"], key=lambda v: v["id"]) == expected
+
+    def test_rage_clicks(self):
+        event_id_a = "a" * 32
+
+        _, group_info = self.process_occurrence(
+            **{
+                "project_id": self.project.id,
+                "event_id": event_id_a,
+                "fingerprint": ["c" * 32],
+                "issue_title": "Rage Click",
+                "type": ReplayRageClickType.type_id,
+                "detection_time": datetime.now().timestamp(),
+                "level": "info",
+            },
+            event_data={
+                "platform": "javascript",
+                "timestamp": iso_format(self.min_ago),
+                "received": iso_format(self.min_ago),
+            },
+        )
+
+        query = {"query": f"id:[{event_id_a}]", "dataset": "issuePlatform"}
+        with self.feature(self.features):
+            response = self.client.get(self.url, query, format="json")
+
+        assert group_info is not None
+        expected = [
+            {
+                "error.type": "",
+                "error.value": "",
+                "id": event_id_a,
+                "issue.id": group_info.group.id,
+                "issue": group_info.group.qualified_short_id,
+                "project.name": self.project.slug,
+                "timestamp": iso_format(self.min_ago) + "+00:00",
+                "title": "Rage Click",
+            }
         ]
 
         assert response.status_code == 200, response.content

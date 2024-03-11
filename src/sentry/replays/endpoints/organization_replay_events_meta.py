@@ -10,7 +10,6 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.models.organization import Organization
-from sentry.snuba import discover
 
 
 @region_silo_endpoint
@@ -50,6 +49,8 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
         except NoProjects:
             return Response({"count": 0})
 
+        dataset = self.get_dataset(request)
+
         def data_fn(offset, limit):
             query_details = {
                 "selected_columns": self.get_field_list(organization, request),
@@ -67,7 +68,7 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
                 "transform_alias_to_input_format": True,
             }
 
-            return discover.query(**query_details)
+            return dataset.query(**query_details)
 
         return self.paginate(
             request=request,
