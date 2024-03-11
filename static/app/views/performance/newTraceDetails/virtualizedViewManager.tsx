@@ -1145,7 +1145,7 @@ export class VirtualizedViewManager {
         const label = indicator.children[0] as HTMLElement | undefined;
 
         if (label) {
-          label.innerHTML = getDuration(interval / 1000, 2, true);
+          label.textContent = getDuration(interval / 1000, 2, true);
         }
       }
     }
