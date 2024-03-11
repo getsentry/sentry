@@ -226,7 +226,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                 ? t('Only available in SDK version 7.x and above')
                 : data.dynamicSdkLoaderOptions.hasReplay
                   ? tct(
-                      'When using Replay, the loader will load the ES6 bundle instead of the ES5 bundle. The default configurations are [codeReplay:replaysSessionSampleRate: 0.1] and [codeError:replaysOnErrorSampleRate: 1]. To learn how to configure this, click [configDocs:here].',
+                      'When using Replay, the loader will load the ES6 bundle instead of the ES5 bundle. The default configurations are [codeReplay:replaysSessionSampleRate: 0.1] and [codeError:replaysOnErrorSampleRate: 1]. [configDocs:Read the docs] to learn how to configure this.',
                       {
                         codeReplay: <code />,
                         codeError: <code />,
