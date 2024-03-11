@@ -36,7 +36,6 @@ describe('ProjectReplays', function () {
       method: 'PUT',
     });
 
-    // Click Regenerate Token
     await userEvent.click(
       screen.getByRole('checkbox', {name: 'Create Rage Click Issues'})
     );
