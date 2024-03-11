@@ -6,6 +6,7 @@ import omit from 'lodash/omit';
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -66,6 +67,7 @@ export default function InitializationModule() {
             </Layout.Header>
 
             <Layout.Body>
+              <FloatingFeedbackWidget />
               <Layout.Main fullWidth>
                 <PageAlert />
                 <PageFiltersContainer>

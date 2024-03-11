@@ -209,14 +209,14 @@ export const MetricWidget = memo(
     return (
       <MetricWidgetPanel
         // show the selection border only if we have more widgets than one
-        isHighlighted={isSelected && !!hasSiblings}
-        isHighlightable={!!hasSiblings}
+        isHighlighted={isSelected && hasSiblings}
+        isHighlightable={hasSiblings}
         onClick={() => onSelect?.(index)}
       >
         <PanelBody>
           <MetricWidgetHeader>
             {showQuerySymbols && queryId !== undefined && (
-              <QuerySymbol queryId={queryId} isSelected={isSelected} />
+              <QuerySymbol queryId={queryId} isSelected={isSelected && hasSiblings} />
             )}
             <WidgetTitle>
               <StyledTooltip
@@ -247,8 +247,8 @@ export const MetricWidget = memo(
                   getChartPalette={getChartPalette}
                   onChange={handleChange}
                   focusAreaProps={focusAreaProps}
-                  samples={samples}
-                  samplesV2={samplesV2}
+                  samples={isSelected ? samples : undefined}
+                  samplesV2={isSelected ? samplesV2 : undefined}
                   chartHeight={chartHeight}
                   chartGroup={DDM_CHART_GROUP}
                   queries={queries}
@@ -326,12 +326,25 @@ const MetricWidgetBody = memo(
     context,
   }: MetricWidgetBodyProps) => {
     const router = useRouter();
+
+    const orderedQueries = useMemo(() => {
+      return queries.map(q => {
+        if (isMetricFormula(q)) {
+          return q;
+        }
+        return {
+          ...q,
+          orderBy: q.orderBy ? q.orderBy : q.groupBy?.length ? 'desc' : undefined,
+        };
+      });
+    }, [queries]);
+
     const {
       data: timeseriesData,
       isLoading,
       isError,
       error,
-    } = useMetricsQuery(queries, filters, {
+    } = useMetricsQuery(orderedQueries, filters, {
       intervalLadder: displayType === MetricDisplayType.BAR ? 'bar' : context,
     });
 

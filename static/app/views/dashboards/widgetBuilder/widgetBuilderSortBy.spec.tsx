@@ -1,4 +1,3 @@
-import selectEvent from 'react-select-event';
 import {urlEncode} from '@sentry/utils';
 import {MetricsFieldFixture} from 'sentry-fixture/metrics';
 import {SessionsFieldFixture} from 'sentry-fixture/sessions';
@@ -6,6 +5,7 @@ import {TagsFixture} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
@@ -553,7 +553,7 @@ describe('WidgetBuilder', function () {
       await selectEvent.select(await screen.findByText('Select group'), 'project');
       expect(screen.getAllByText('count()')).toHaveLength(2);
       await selectEvent.select(screen.getAllByText('count()')[1], 'Custom Equation');
-      selectEvent.openMenu(screen.getByPlaceholderText('Enter Equation'));
+      await selectEvent.openMenu(screen.getByPlaceholderText('Enter Equation'));
 
       await userEvent.click(screen.getByPlaceholderText('Enter Equation'));
 

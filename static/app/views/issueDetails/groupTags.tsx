@@ -4,6 +4,7 @@ import {useFetchIssueTags} from 'sentry/actionCreators/group';
 import {Alert} from 'sentry/components/alert';
 import Count from 'sentry/components/count';
 import {DeviceName} from 'sentry/components/deviceName';
+import {TAGS_DOCS_LINK} from 'sentry/components/events/eventTags/util';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -82,9 +83,7 @@ function GroupTags({group, baseUrl, environments}: GroupTagsProps) {
           {tct(
             'Tags are automatically indexed for searching and breakdown charts. Learn how to [link: add custom tags to issues]',
             {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=/enriching-events/tags" />
-              ),
+              link: <ExternalLink href={TAGS_DOCS_LINK} />,
             }
           )}
         </Alert>

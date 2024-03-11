@@ -128,12 +128,6 @@ register(
     default=10 * 1024 * 1024,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "releasefile.cache-max-archive-size",
-    type=Int,
-    default=1024 * 1024 * 1024,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 
 # Mail
@@ -541,28 +535,6 @@ register(
 register("kafka-publisher.raw-event-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("kafka-publisher.max-event-size", default=100000, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# Ingest refactor
-register(
-    "store.projects-normalize-in-rust-opt-in",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)  # unused
-register(
-    "store.projects-normalize-in-rust-opt-out",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)  # unused
-# positive value means stable opt-in in the range 0.0 to 1.0, negative value
-# means random opt-in with the same range.
-register(
-    "store.projects-normalize-in-rust-percent-opt-in", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)  # unused
-
-# From 0.0 to 1.0: Randomly disable normalization code in interfaces when loading from db
-register("store.empty-interface-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
 # Enable multiple topics for eventstream. It allows specific event types to be sent
 # to specific topic.
 register(
@@ -570,14 +542,6 @@ register(
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-# if this is turned to `True` sentry will behave like relay would do with
-# regards to filter responses.
-register("store.lie-about-filter-status", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# Toggles between processing transactions directly in the ingest consumer
-# (``False``) and spawning a save_event task (``True``).
-register("store.transactions-celery", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)  # unused
 
 # The fraction of prooguard events that will be routed to the
 # separate `store.process_event_proguard` queue
@@ -587,35 +551,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_MODIFIABLE_RATE,
 )
 
-# Symbolicator refactors
-# - Disabling minidump stackwalking in endpoints
-register(
-    "symbolicator.minidump-refactor-projects-opt-in",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)  # unused
-register(
-    "symbolicator.minidump-refactor-projects-opt-out",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)  # unused
-register(
-    "symbolicator.minidump-refactor-random-sampling", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)  # unused
-
-# Enable use of Symbolicator Source Maps processing for specific projects.
-register(
-    "symbolicator.sourcemaps-processing-projects",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Enable use of Symbolicator Source Maps processing for fraction of projects.
-register(
-    "symbolicator.sourcemaps-processing-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
 # Query and supply Bundle Indexes to Symbolicator SourceMap processing
 register(
     "symbolicator.sourcemaps-bundle-index-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
@@ -626,23 +561,6 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-# Percentage of events that generate a random `worker_id` for symbolicator load balancing
-register(
-    "symbolicator.worker-id-randomization-sample-rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Normalization after processors
-register("store.normalize-after-processing", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)  # unused
-register(
-    "store.disable-trim-in-renormalization", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)  # unused
-
-# Data scrubbing in Rust
-register("store.sample-rust-data-scrubber", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)  # unused
-register("store.use-rust-data-scrubber", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)  # unused
 
 # Post Process Error Hook Sampling
 register(
@@ -677,13 +595,6 @@ register(
 )
 register(
     "nodedata.cache-on-save", default=False, flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE
-)
-
-# Use nodestore for eventstore.get_events
-register(
-    "eventstore.use-nodestore",
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Alerts / Workflow incremental rollout rate. Tied to feature handlers in getsentry
@@ -877,19 +788,9 @@ register("store.background-grouping-config-id", default=None, flags=FLAG_AUTOMAT
 # Fraction of events that will pass through background grouping
 register("store.background-grouping-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# Store release files bundled as zip files
-register(
-    "processing.save-release-archives", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
-)  # unused
-
 # Minimum number of files in an archive. Archives with fewer files are extracted and have their
 # contents stored as separate release files.
 register("processing.release-archive-min-files", default=10, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# Try to read release artifacts from zip archives
-register(
-    "processing.use-release-archives-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)  # unused
 
 # Whether to use `zstd` instead of `zlib` for the attachment cache.
 register("attachment-cache.use-zstd", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -921,6 +822,15 @@ register("relay.span-usage-metric", default=False, flags=FLAG_AUTOMATOR_MODIFIAB
 # Note: To fully enable the cardinality limiter the feature `organizations:relay-cardinality-limiter`
 # needs to be rolled out as well.
 register("relay.cardinality-limiter.mode", default="enabled", flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Override to set a list of limits into passive mode by organization.
+#
+# In passive mode Relay's cardinality limiter is active but it does not enforce the limits.
+#
+# Example: `{1: ["transactions"]}`
+# Forces the `transactions` cardinality limit into passive mode for the organization with id `1` (Sentry).
+register(
+    "relay.cardinality-limiter.passive-limits-by-org", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
 # Sample rate for Cardinality Limiter Sentry errors.
 #
 # Rate needs to be between `0.0` and `1.0`.
@@ -965,7 +875,7 @@ register(
 register("reprocessing2.drop-delete-old-primary-hash", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Switch to use service wrapper for reprocessing redis operations
-register("reprocessing.use_store", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("reprocessing.use_store", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # BEGIN ABUSE QUOTAS
 
@@ -1328,6 +1238,13 @@ register(
 )
 register(
     "sentry-metrics.cardinality-limiter.limits.custom.per-org",
+    default=[
+        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
+    ],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "sentry-metrics.cardinality-limiter.limits.profiles.per-org",
     default=[
         {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
     ],

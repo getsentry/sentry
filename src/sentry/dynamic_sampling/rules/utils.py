@@ -99,6 +99,26 @@ class EqCondition(TypedDict):
     options: EqConditionOptions
 
 
+class GteCondition(TypedDict):
+    name: str
+    value: list[str] | None
+
+
+class GtCondition(TypedDict):
+    name: str
+    value: list[str] | None
+
+
+class LteCondition(TypedDict):
+    name: str
+    value: list[str] | None
+
+
+class LtCondition(TypedDict):
+    name: str
+    value: list[str] | None
+
+
 class GlobCondition(TypedDict):
     op: Literal["glob"]
     name: str
@@ -107,13 +127,29 @@ class GlobCondition(TypedDict):
 
 class Condition(TypedDict):
     op: Literal["and", "or", "not"]
-    inner: EqCondition | GlobCondition | list[EqCondition | GlobCondition]
+    inner: (
+        EqCondition
+        | GteCondition
+        | GtCondition
+        | LteCondition
+        | LtCondition
+        | GlobCondition
+        | list[EqCondition | GlobCondition]
+    )
 
 
 class Rule(TypedDict):
     samplingValue: SamplingValue
     type: str
-    condition: Condition | GlobCondition | EqCondition
+    condition: (
+        Condition
+        | EqCondition
+        | GteCondition
+        | GtCondition
+        | LteCondition
+        | LtCondition
+        | GlobCondition
+    )
     id: int
 
 
