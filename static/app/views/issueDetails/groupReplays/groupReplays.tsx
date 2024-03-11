@@ -1,8 +1,10 @@
-import {useEffect, useMemo} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import * as Layout from 'sentry/components/layouts/thirds';
+import {StaticReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
+import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -11,8 +13,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
 import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
+import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import ReplayTableWrapper from 'sentry/views/issueDetails/groupReplays/replayTableWrapper';
 import useReplaysFromIssue from 'sentry/views/issueDetails/groupReplays/useReplaysFromIssue';
 import ReplayTable from 'sentry/views/replays/replayTable';
 import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
@@ -76,10 +80,50 @@ function GroupReplays({group}: Props) {
   );
 }
 
+function GroupReplaysTableInner({
+  organization,
+  group,
+  replaySlug,
+  ...props
+}: {
+  organization: Organization;
+  pageLinks: string | null;
+  replaySlug: string;
+  selectedReplayIndex: number;
+  setSelectedReplayIndex: (index: number | undefined) => void;
+  visibleColumns: ReplayColumn[];
+  group?: Group;
+  nextReplayText?: string;
+} & ReturnType<typeof useReplayList>) {
+  const orgSlug = organization.slug;
+  const replayContext = useReplayReader({
+    orgSlug,
+    replaySlug,
+    group,
+  });
+  const {fetching, replay} = replayContext;
+
+  return (
+    <ReplayContextProvider
+      analyticsContext="replay_tab"
+      isFetching={fetching}
+      prefsStrategy={StaticReplayPreferences}
+      replay={replay}
+      autoStart
+    >
+      <ReplayTableWrapper
+        orgSlug={orgSlug}
+        replaySlug={replaySlug}
+        sort={undefined}
+        {...props}
+      />
+    </ReplayContextProvider>
+  );
+}
+
 function GroupReplaysTable({
   eventView,
   organization,
-  visibleColumns,
   group,
 }: {
   eventView: EventView;
@@ -91,12 +135,47 @@ function GroupReplaysTable({
   const location = useMemo(() => ({query: {}}) as Location<ReplayListLocationQuery>, []);
   const {getReplayCountForIssue} = useReplayCountForIssues();
 
-  const {replays, isFetching, fetchError} = useReplayList({
+  const replayListData = useReplayList({
     eventView,
     location,
     organization,
     queryReferrer: 'issueReplays',
   });
+  const {replays} = replayListData;
+
+  const [selectedReplayIndex, setSelectedReplayIndex] = useState<number | undefined>(0);
+  const selectedReplay =
+    selectedReplayIndex !== undefined ? replays?.[selectedReplayIndex] : undefined;
+
+  const nextReplay =
+    selectedReplayIndex !== undefined ? replays?.[selectedReplayIndex + 1] : undefined;
+  const nextReplayText = nextReplay?.id
+    ? `${nextReplay.user.display_name || t('Anonymous User')}`
+    : undefined;
+
+  const hasFeature = organization.features.includes('replay-play-from-replay-tab');
+
+  const inner =
+    hasFeature && selectedReplay && selectedReplayIndex !== undefined ? (
+      <GroupReplaysTableInner
+        setSelectedReplayIndex={setSelectedReplayIndex}
+        selectedReplayIndex={selectedReplayIndex}
+        nextReplayText={nextReplayText}
+        visibleColumns={VISIBLE_COLUMNS}
+        organization={organization}
+        group={group}
+        replaySlug={selectedReplay.id}
+        {...replayListData}
+      />
+    ) : (
+      <ReplayTable
+        {...replayListData}
+        sort={undefined}
+        visibleColumns={VISIBLE_COLUMNS}
+        showDropdownFilters={false}
+        onClickPlay={hasFeature ? setSelectedReplayIndex : undefined}
+      />
+    );
 
   return (
     <StyledLayoutPage withPadding>
@@ -108,16 +187,7 @@ function GroupReplaysTable({
           group.count
         )}
       </ReplayCountHeader>
-      <ReplayTable
-        fetchError={fetchError}
-        isFetching={isFetching}
-        replays={replays}
-        sort={undefined}
-        visibleColumns={visibleColumns}
-        showDropdownFilters={false}
-        group={group}
-        showReplayPlayer={organization.features.includes('replay-play-from-replay-tab')}
-      />
+      {inner}
     </StyledLayoutPage>
   );
 }

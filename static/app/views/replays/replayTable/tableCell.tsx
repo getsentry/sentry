@@ -290,14 +290,16 @@ export function ReplayCell({
   isWidget,
   className,
   handleClick,
-  hasCurrentlyPlayingTag,
+  isPlaying,
+  extraButton,
 }: Props & {
   eventView: EventView;
   organization: Organization;
   referrer: string;
   className?: string;
+  extraButton?: React.ReactNode;
   handleClick?: () => void;
-  hasCurrentlyPlayingTag?: boolean;
+  isPlaying?: boolean;
   isWidget?: boolean;
   referrer_table?: ReferrerTableType;
 }) {
@@ -377,6 +379,7 @@ export function ReplayCell({
 
   return (
     <Item isWidget={isWidget} isReplayCell className={className} onClick={handleClick}>
+      {extraButton}
       <UserBadge
         avatarSize={24}
         displayName={
@@ -392,7 +395,7 @@ export function ReplayCell({
         // this is the subheading for the avatar, so displayEmail in this case is a misnomer
         displayEmail={subText}
       />
-      {hasCurrentlyPlayingTag && <Tag type="highlight">{t('Currently Playing')}</Tag>}
+      {isPlaying && <Tag type="highlight">{t('Currently Playing')}</Tag>}
     </Item>
   );
 }

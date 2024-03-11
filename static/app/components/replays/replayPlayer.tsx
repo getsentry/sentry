@@ -20,6 +20,7 @@ type Dimensions = ReturnType<typeof useReplayContext>['dimensions'];
 interface Props {
   className?: string;
   isPreview?: boolean;
+  onClickNextReplay?: () => void;
   overlayText?: string;
 }
 
@@ -61,7 +62,12 @@ function useVideoSizeLogger({
   }, [organization, windowDimensions, videoDimensions, didLog, analyticsContext]);
 }
 
-function BasePlayerRoot({className, overlayText, isPreview = false}: Props) {
+function BasePlayerRoot({
+  className,
+  overlayText,
+  onClickNextReplay,
+  isPreview = false,
+}: Props) {
   const {
     dimensions: videoDimensions,
     fastForwardSpeed,
@@ -128,7 +134,9 @@ function BasePlayerRoot({className, overlayText, isPreview = false}: Props) {
           <OverlayInnerWrapper>
             <UpNext>{t('Up Next')}</UpNext>
             <OverlayText>{overlayText}</OverlayText>
-            <Button icon={<IconPlay size="md" />}>{t('Play Now')}</Button>
+            <Button onClick={onClickNextReplay} icon={<IconPlay size="md" />}>
+              {t('Play Now')}
+            </Button>
           </OverlayInnerWrapper>
         </Overlay>
       )}
