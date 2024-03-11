@@ -2876,21 +2876,19 @@ class SlackActivityNotificationTest(ActivityTestCase):
         issue_link = f"http://testserver/organizations/{org_slug}/issues/{group.id}/?referrer={referrer}&notification_uuid={notification_uuid}"
         if issue_link_extra_params is not None:
             issue_link += issue_link_extra_params
-        assert blocks[1]["text"]["text"] == f":chart_with_upwards_trend: <{issue_link}|*N+1 Query*>"
+        assert (
+            blocks[1]["text"]["text"]
+            == f":large_blue_circle: :chart_with_upwards_trend: <{issue_link}|*N+1 Query*>"
+        )
         assert (
             blocks[2]["text"]["text"]
             == "```db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21```"
         )
         assert (
-            blocks[3]["text"]["text"]
-            == "environment: `production`  release: `<http://testserver/releases/0.1/|0.1>`  "
+            blocks[3]["elements"][0]["text"] == "State: *Ongoing*   First Seen: *10\xa0minutes ago*"
         )
         assert (
             blocks[4]["elements"][0]["text"]
-            == "Events: *1*   State: *Ongoing*   First Seen: *10\xa0minutes ago*"
-        )
-        assert (
-            blocks[5]["elements"][0]["text"]
             == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
@@ -2921,14 +2919,15 @@ class SlackActivityNotificationTest(ActivityTestCase):
             issue_link += issue_link_extra_params
         assert (
             blocks[1]["text"]["text"]
-            == f":exclamation: <{issue_link}|*{TEST_ISSUE_OCCURRENCE.issue_title}*>"
+            == f":red_circle: <{issue_link}|*{TEST_ISSUE_OCCURRENCE.issue_title}*>"
         )
         assert (
             blocks[2]["text"]["text"]
             == "```" + TEST_ISSUE_OCCURRENCE.evidence_display[0].value + "```"
         )
+
         assert (
-            blocks[5]["elements"][0]["text"]
+            blocks[-2]["elements"][0]["text"]
             == f"{project_slug} | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
