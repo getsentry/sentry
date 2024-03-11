@@ -649,7 +649,7 @@ def single_exception(
                     ns_error_component is not None and ns_error_component.contributes
                 )
                 normalized = normalize_message_for_grouping(
-                    raw, event, share_analytics=favors_other_component
+                    raw, event, share_analytics=(not favors_other_component)
                 )
                 hint = "stripped event-specific values" if raw != normalized else None
                 if normalized:
