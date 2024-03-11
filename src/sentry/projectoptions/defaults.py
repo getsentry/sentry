@@ -143,7 +143,7 @@ register(
 
 register(
     key="sentry:feedback_ai_spam_detection",
-    default=False,
+    default=True,
 )
 
 
