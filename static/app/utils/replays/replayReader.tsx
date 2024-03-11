@@ -421,15 +421,16 @@ export default class ReplayReader {
   getLPCFrames = memoize(() => this._sortedSpanFrames.filter(isLCPFrame));
 
   getVideoAttachments = memoize(() =>
-    (
-      this._sortedRRWebEvents.filter(
-        event => event.type === EventType.Custom && event.data.tag === 'video'
-      ) as VideoFrameEvent[]
-    ).map(event => ({
-      duration: event.data.payload.duration,
-      id: event.data.payload.segmentId,
-      timestamp: event.timestamp,
-    }))
+    this._sortedRRWebEvents
+      .filter(
+        (event): event is VideoFrameEvent =>
+          event.type === EventType.Custom && event.data.tag === 'video'
+      )
+      .map(event => ({
+        duration: event.data.payload.duration,
+        id: event.data.payload.segmentId,
+        timestamp: event.timestamp,
+      }))
   );
 
   getPaintFrames = memoize(() => this._sortedSpanFrames.filter(isPaintFrame));
