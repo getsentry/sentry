@@ -30,8 +30,9 @@ from sentry.digests.notifications import Notification, build_digest
 from sentry.digests.utils import get_digest_metadata
 from sentry.event_manager import EventManager, get_event_type
 from sentry.http import get_server_hostname
-from sentry.issues.grouptype import NoiseConfig, PerformanceNPlusOneGroupType
+from sentry.issues.grouptype import NoiseConfig
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
+from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.mail.notifications import get_builder_args
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
@@ -203,19 +204,22 @@ def make_performance_event(project: Project, sample_name: str):
     timestamp = datetime(2017, 9, 6, 0, 0)
     start_timestamp = timestamp - timedelta(seconds=3)
     event_id = "44f1419e73884cd2b45c79918f4b6dc4"
-    occurrence_data = SAMPLE_TO_OCCURRENCE_MAP[sample_name].to_dict()
+    mock_occurrence = SAMPLE_TO_OCCURRENCE_MAP[sample_name]
+    occurrence_data = mock_occurrence.to_dict()
     occurrence_data["event_id"] = event_id
     perf_data = dict(load_data(sample_name, start_timestamp=start_timestamp, timestamp=timestamp))
     perf_data["event_id"] = event_id
     perf_data["project_id"] = project.id
 
     with mock.patch.object(
-        PerformanceNPlusOneGroupType, "noise_config", new=NoiseConfig(0, timedelta(minutes=1))
+        mock_occurrence.type, "noise_config", new=NoiseConfig(0, timedelta(minutes=1))
     ):
         occurrence, group_info = process_event_and_issue_occurrence(
             occurrence_data,
             perf_data,
         )
+        produce_occurrence_to_kafka(payload_type=PayloadType.OCCURRENCE, occurrence=occurrence)
+
     assert group_info is not None
     generic_group = group_info.group
     group_event = generic_group.get_latest_event()
