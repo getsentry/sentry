@@ -1,18 +1,10 @@
 /* eslint-env node */
 
 const isRelaxed = !!process.env.SENTRY_ESLINT_RELAXED;
-const isCi = !!process.env.CI;
 
 // Strict ruleset that runs on pre-commit and in local environments
 const ADDITIONAL_HOOKS_TO_CHECK_DEPS_FOR =
   '(useEffectAfterFirstRender|useMemoWithPrevious)';
-
-const strictRulesNotCi = {
-  'react-hooks/exhaustive-deps': [
-    'error',
-    {additionalHooks: ADDITIONAL_HOOKS_TO_CHECK_DEPS_FOR},
-  ],
-};
 
 module.exports = {
   root: true,
@@ -26,7 +18,10 @@ module.exports = {
     jest: true,
   },
   rules: {
-    ...(!isRelaxed && !isCi ? strictRulesNotCi : {}),
+    'react-hooks/exhaustive-deps': [
+      'error',
+      {additionalHooks: ADDITIONAL_HOOKS_TO_CHECK_DEPS_FOR},
+    ],
 
     // TODO(@anonrig): Remove this from eslint-sentry-config
     'space-infix-ops': 'off',
