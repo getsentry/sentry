@@ -269,8 +269,6 @@ def configure_sdk():
     """
     Setup and initialize the Sentry SDK.
     """
-    assert sentry_sdk.Hub.main.client is None
-
     sdk_options, dsns = _get_sdk_options()
 
     internal_project_key = get_project_key()
