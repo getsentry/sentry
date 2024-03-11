@@ -1,11 +1,13 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import ButtonBar from 'sentry/components/buttonBar';
 import EventContextSummary from 'sentry/components/events/contextSummary';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {
+  getSentryDefaultTags,
   TagFilter,
+  TagFilterData,
   TAGS_DOCS_LINK,
   useHasNewTagsUI,
 } from 'sentry/components/events/eventTags/util';
@@ -24,12 +26,30 @@ type Props = {
 };
 
 function Tags({event, projectSlug}: Props) {
+  const sentryTags = getSentryDefaultTags();
+
   const [tagFilter, setTagFilter] = useState<TagFilter>(TagFilter.ALL);
+  const hasNewTagsUI = useHasNewTagsUI();
   const handleTagFilterChange = useCallback((value: TagFilter) => {
     setTagFilter(value);
   }, []);
+  const tags = useMemo(() => {
+    switch (tagFilter) {
+      case TagFilter.ALL:
+        return event.tags;
+      case TagFilter.CUSTOM:
+        return event.tags.filter(tag => !sentryTags.has(tag.key));
+      default:
+        return event.tags.filter(tag => TagFilterData[tagFilter].has(tag.key));
+    }
+  }, [tagFilter, event.tags, sentryTags]);
 
-  const hasNewTagsUI = useHasNewTagsUI();
+  const availableFilters = useMemo(() => {
+    return Object.keys(TagFilterData).filter(filter => {
+      return event.tags.some(tag => TagFilterData[filter].has(tag.key));
+    });
+  }, [event.tags]);
+
   const actions = !hasNewTagsUI ? null : (
     <ButtonBar gap={1}>
       <SegmentedControl
@@ -38,7 +58,7 @@ function Tags({event, projectSlug}: Props) {
         value={tagFilter}
         onChange={handleTagFilterChange}
       >
-        {Object.values(TagFilter).map(v => (
+        {[TagFilter.ALL, TagFilter.CUSTOM, ...availableFilters].map(v => (
           <SegmentedControl.Item key={v}>{`${v}`}</SegmentedControl.Item>
         ))}
       </SegmentedControl>
@@ -58,7 +78,12 @@ function Tags({event, projectSlug}: Props) {
       type="tags"
     >
       {!hasNewTagsUI && <EventContextSummary event={event} />}
-      <EventTags event={event} projectSlug={projectSlug} tagFilter={tagFilter} />
+      <EventTags
+        event={event}
+        projectSlug={projectSlug}
+        tagFilter={tagFilter}
+        filteredTags={tags ?? []}
+      />
     </StyledEventDataSection>
   );
 }

@@ -62,6 +62,7 @@ interface DropdownMenuProps
       | 'shouldCloseOnBlur'
       | 'shouldCloseOnInteractOutside'
       | 'onInteractOutside'
+      | 'onOpenChange'
       | 'preventOverflowOptions'
       | 'flipOptions'
     > {
@@ -145,6 +146,7 @@ function DropdownMenu({
   shouldCloseOnBlur = true,
   shouldCloseOnInteractOutside,
   onInteractOutside,
+  onOpenChange,
   preventOverflowOptions,
   flipOptions,
   ...props
@@ -169,6 +171,7 @@ function DropdownMenu({
     onInteractOutside,
     preventOverflowOptions,
     flipOptions,
+    onOpenChange,
   });
 
   const {menuTriggerProps, menuProps} = useMenuTrigger(
@@ -193,9 +196,9 @@ function DropdownMenu({
       <DropdownButton
         size={size}
         isOpen={isOpen}
-        {...triggerProps}
-        {...overlayTriggerProps}
         {...buttonProps}
+        {...overlayTriggerProps}
+        {...triggerProps}
       >
         {triggerLabel}
       </DropdownButton>
