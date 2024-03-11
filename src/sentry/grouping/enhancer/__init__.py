@@ -353,10 +353,12 @@ class Enhancements:
     def assemble_stacktrace_component(
         self, components, frames, platform, exception_data=None, **kw
     ):
-        """This assembles a stacktrace grouping component out of the given
-        frame components and source frames.  Internally this invokes the
-        `update_frame_components_contributions` method but also handles cases
-        where the entire stacktrace should be discarded.
+        """
+        This assembles a `stacktrace` grouping component out of the given
+        `frame` components and source frames.
+
+        Internally this invokes the `update_frame_components_contributions` method
+        but also handles cases where the entire stacktrace should be discarded.
         """
         hint = None
         contributes = None

@@ -464,16 +464,15 @@ def test_range_matching_direct():
 @pytest.mark.parametrize("action", ["+", "-"])
 @pytest.mark.parametrize("type", ["prefix", "sentinel"])
 def test_sentinel_and_prefix(action, type):
-    rule = Enhancements.from_config_string(f"function:foo {action}{type}").rules[0]
+    enhancements = Enhancements.from_config_string(f"function:foo {action}{type}")
 
     frames = [{"function": "foo"}]
-    actions = _get_matching_frame_actions(rule, frames, "whatever")
-    assert len(actions) == 1
-
     component = GroupingComponent(id=None)
     assert not getattr(component, f"is_{type}_frame")
+    frame_components = [component]
 
-    actions[0][1].update_frame_components_contributions([component], frames, 0)
+    enhancements.assemble_stacktrace_component(frame_components, frames, "whatever")
+
     expected = action == "+"
     assert getattr(component, f"is_{type}_frame") is expected
 
