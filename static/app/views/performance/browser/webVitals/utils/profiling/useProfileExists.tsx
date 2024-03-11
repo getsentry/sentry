@@ -33,12 +33,12 @@ export default function useProfileExists(ids: string[]) {
       enabled: !!ids.length,
     },
   });
-  if (!ids.length) {
-    return {profileExists: () => false};
-  }
 
   const profileExists = (id: string) => {
-    return data?.data?.find(row => row['profile.id'] === id);
+    if (!ids.length) {
+      return false;
+    }
+    return !!data?.data?.some(row => row['profile.id'] === id);
   };
   return {profileExists};
 }
