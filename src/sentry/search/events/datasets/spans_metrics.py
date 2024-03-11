@@ -10,6 +10,7 @@ from sentry.exceptions import IncompatibleMetricsQuery
 from sentry.search.events import builder, constants, fields
 from sentry.search.events.datasets import field_aliases, filter_aliases, function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
+from sentry.search.events.fields import SnQLStringArg
 from sentry.search.events.types import SelectType, WhereType
 from sentry.search.utils import DEVICE_CLASS
 from sentry.snuba.metrics.naming_layer.mri import SpanMRI
@@ -352,6 +353,14 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     default_result_type="percentage",
                 ),
                 fields.MetricsFunction(
+                    "http_response_code_count",
+                    required_args=[
+                        SnQLStringArg("code"),
+                    ],
+                    snql_distribution=self._resolve_http_response_code_count,
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
                     "http_error_count",
                     snql_distribution=self._resolve_http_error_count,
                     default_result_type="integer",
@@ -582,6 +591,42 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 ],
             ),
             total_time,
+            alias,
+        )
+
+    def _resolve_http_response_code_count(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+        extra_condition: Function | None = None,
+    ) -> SelectType:
+        base_condition = Function(
+            "startsWith",
+            [
+                self.builder.column("span.status_code"),
+                args["code"],
+            ],
+        )
+        if extra_condition:
+            condition = Function(
+                "and",
+                [
+                    base_condition,
+                    extra_condition,
+                ],
+            )
+        else:
+            condition = base_condition
+
+        return self._resolve_count_if(
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    self.resolve_metric("span.self_time"),
+                ],
+            ),
+            condition,
             alias,
         )
 
