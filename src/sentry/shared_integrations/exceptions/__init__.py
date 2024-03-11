@@ -181,3 +181,15 @@ class ClientError(RequestException):
     def __init__(self, status_code: str, url: str, response: Response | None = None) -> None:
         http_error_msg = f"{status_code} Client Error: for url: {url}"
         super().__init__(http_error_msg, response=response)
+
+class ApiServerError(ApiError):
+    """5xx Server Error Occurred"""
+
+    def __init__(self, status_code: str, url: str) -> None:
+        super().__init__(f"{status_code} Server Error: for url: {url}", code=status_code, url=url)
+
+class ApiClientError(ApiError):
+    """4xx Client Error Occurred"""
+
+    def __init__(self, status_code: str, url: str) -> None:
+        super().__init__(f"{status_code} Client Error: for url: {url}", code=status_code, url=url)
