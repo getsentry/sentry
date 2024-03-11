@@ -282,7 +282,7 @@ class DailySummaryTest(
             },
         )
         summary = build_summary_data(
-            timestamp=to_timestamp(self.now),
+            timestamp=self.now.timestamp(),
             duration=ONE_DAY,
             organization=self.organization,
             daily=True,
@@ -310,7 +310,7 @@ class DailySummaryTest(
         self.group2.substatus = GroupSubStatus.ESCALATING
         self.group2.save()
         summary = build_summary_data(
-            timestamp=to_timestamp(self.now),
+            timestamp=self.now.timestamp(),
             duration=ONE_DAY,
             organization=self.organization,
             daily=True,
@@ -353,7 +353,7 @@ class DailySummaryTest(
         self.group2.substatus = GroupSubStatus.ESCALATING
         self.group2.save()
         summary = build_summary_data(
-            timestamp=to_timestamp(self.now),
+            timestamp=self.now.timestamp(),
             duration=ONE_DAY,
             organization=self.organization,
             daily=True,
