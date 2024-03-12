@@ -1,6 +1,7 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
+import * as qs from 'query-string';
 
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
@@ -38,6 +39,7 @@ import type {
   TraceErrorOrIssue,
   TraceFullDetailed,
 } from 'sentry/utils/performance/quickTrace/types';
+import {safeURL} from 'sentry/utils/url/safeURL';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {CustomMetricsEventData} from 'sentry/views/ddm/customMetricsEventData';
@@ -474,6 +476,9 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                   {profileId}
                 </Row>
               )}
+              <Row title={t('Status')}>{span.status || ''}</Row>
+              <Row title={t('Duration')}>{durationString}</Row>
+              <SpanHTTPInfo span={props.span} />
               <Row
                 title={
                   resolvedModule === ModuleName.DB && span.op?.startsWith('db')
@@ -492,8 +497,6 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                   span.description
                 )}
               </Row>
-              <Row title={t('Status')}>{span.status || ''}</Row>
-              <Row title={t('Duration')}>{durationString}</Row>
               <Row title={t('Date Range')}>
                 {getDynamicText({
                   fixed: 'Mar 16, 2020 9:10:12 AM UTC',
@@ -597,6 +600,31 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
       {renderSpanDetails()}
     </SpanDetailContainer>
   );
+}
+
+function SpanHTTPInfo({span}: {span: RawSpanType}) {
+  if (span.op === 'http.client' && span.description) {
+    const [method, url] = span.description.split(' ');
+
+    const parsedURL = safeURL(url);
+    const queryString = qs.parse(parsedURL?.search ?? '');
+
+    return parsedURL ? (
+      <Fragment>
+        <Row title={t('HTTP Method')}>{method}</Row>
+        <Row title={t('URL')}>
+          {parsedURL ? parsedURL?.origin + parsedURL?.pathname : 'failed to parse URL'}
+        </Row>
+        <Row title={t('Query')}>
+          {parsedURL
+            ? JSON.stringify(queryString, null, 2)
+            : 'failed to parse query string'}
+        </Row>
+      </Fragment>
+    ) : null;
+  }
+
+  return null;
 }
 
 function RowTimingPrefix({timing}: {timing: SubTimingInfo}) {

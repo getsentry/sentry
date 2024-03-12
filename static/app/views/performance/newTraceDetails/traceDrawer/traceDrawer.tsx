@@ -33,12 +33,18 @@ const DEFAULT_PANEL_HEIGHT = 200;
 function getTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
   if (isTransactionNode(node)) {
     return (
-      t('Transaction: ') + node.value['transaction.op'] + ' - ' + node.value.transaction
+      t('Transaction: ') +
+      node.value['transaction.op'] +
+      (node.value.transaction ? ' - ' + node.value.transaction : '')
     );
   }
 
   if (isSpanNode(node)) {
-    return t('Span: ') + node.value.op + ' - ' + node.value.description;
+    return (
+      t('Span: ') +
+      node.value.op +
+      (node.value.description ? ' - ' + node.value.description : '')
+    );
   }
 
   if (isAutogroupedNode(node)) {
@@ -50,7 +56,7 @@ function getTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
   }
 
   if (isTraceErrorNode(node)) {
-    return node.value.title;
+    return node.value.title || 'Error';
   }
 
   return t('Detail');
@@ -65,6 +71,7 @@ type TraceDrawerProps = {
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
   scrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   setActiveTab: (tab: 'trace' | 'node') => void;
+  trace: TraceTree;
   traceEventView: EventView;
   traces: TraceSplitResults<TraceFullDetailed> | null;
 };
@@ -114,6 +121,7 @@ function TraceDrawer(props: TraceDrawerProps) {
       <Content>
         {props.activeTab === 'trace' ? (
           <TraceLevelDetails
+            tree={props.trace}
             rootEventResults={props.rootEventResults}
             organization={props.organization}
             location={props.location}
@@ -139,10 +147,10 @@ function TraceDrawer(props: TraceDrawerProps) {
 
 const ResizeableHandle = styled('div')`
   width: 100%;
-  height: 8px;
+  height: 12px;
   cursor: ns-resize;
   position: absolute;
-  top: -4px;
+  top: -6px;
   left: 0;
   z-index: 1;
 `;
