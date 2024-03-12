@@ -425,6 +425,7 @@ def query_trace_data(
     trace_id: str,
     params: Mapping[str, str],
     limit: int,
+    event_id: str,
 ) -> tuple[Sequence[SnubaTransaction], Sequence[SnubaError]]:
     transaction_query = QueryBuilder(
         Dataset.Transactions,
@@ -444,10 +445,13 @@ def query_trace_data(
             "trace.span",
             "trace.parent_span",
             'to_other(trace.parent_span, "", 0, 1) AS root',
+            f'to_other(id, "{event_id}", 0, 1) AS target',
         ],
         # We want to guarantee at least getting the root, and hopefully events near it with timestamp
         # id is just for consistent results
-        orderby=["-root", "timestamp", "id"],
+        # Target is the event_id the frontend plans to render, we try to sort it to the top so it loads even if its not
+        # within the query limit
+        orderby=["-target", "-root", "timestamp", "id"],
         limit=limit,
     )
     occurrence_query = QueryBuilder(
@@ -789,7 +793,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
         if detailed and use_spans:
             raise ParseError("Cannot return a detailed response while using spans")
         limit: int = min(int(request.GET.get("limit", MAX_TRACE_SIZE)), 10_000)
-        event_id: str | None = request.GET.get("event_id")
+        event_id: str | None = request.GET.get("event_id") or request.GET.get("eventId")
 
         # Only need to validate event_id as trace_id is validated in the URL
         if event_id and not is_event_id(event_id):
@@ -801,7 +805,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             actor=request.user,
         )
         with handle_query_errors():
-            transactions, errors = query_trace_data(trace_id, params, limit)
+            transactions, errors = query_trace_data(trace_id, params, limit, event_id)
             if use_spans:
                 transactions = augment_transactions_with_spans(
                     transactions, errors, trace_id, params
