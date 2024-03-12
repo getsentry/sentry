@@ -319,17 +319,10 @@ class UserAuthTokenAuthentication(StandardAuthentication):
             except ApiTokenReplica.DoesNotExist:
                 try:
                     # If we can't find it by hash, use the plaintext string
-                    api_token_replica = ApiTokenReplica.objects.get(token=token_str)
+                    return ApiTokenReplica.objects.get(token=token_str)
                 except ApiTokenReplica.DoesNotExist:
                     # If the token does not exist by plaintext either, it is not a valid token
                     raise AuthenticationFailed("Invalid token")
-                else:
-                    # If found by plaintext, update the ApiToken with the hashed value
-                    # which will replicate back to the region
-                    api_token = ApiToken.objects.get(token=token_str)
-                    api_token.hashed_token = hashed_token
-                    api_token.save(update_fields=["hashed_token"])
-                    return api_token_replica
         else:
             try:
                 # Try to find the token by its hashed value first
