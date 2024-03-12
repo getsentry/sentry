@@ -300,12 +300,36 @@ export class TraceTree {
     // Trace is always expanded by default
     tree.root.children.push(traceNode);
 
-    for (const transaction of trace.transactions) {
-      visit(traceNode, transaction);
-    }
+    const transactionQueue = trace.transactions ?? [];
+    const orphanErrorsQueue = trace.orphan_errors ?? [];
 
-    for (const trace_error of trace.orphan_errors) {
-      visit(traceNode, trace_error);
+    let tIdx = 0;
+    let oIdx = 0;
+    const tLen = transactionQueue.length;
+    const oLen = orphanErrorsQueue.length;
+
+    while (tIdx < tLen || oIdx < oLen) {
+      const transaction = transactionQueue[tIdx];
+      const orphan = orphanErrorsQueue[oIdx];
+
+      if (transaction && orphan) {
+        if (
+          typeof orphan.timestamp === 'number' &&
+          transaction.start_timestamp <= orphan.timestamp
+        ) {
+          visit(traceNode, transaction);
+          tIdx++;
+        } else {
+          visit(traceNode, orphan);
+          oIdx++;
+        }
+      } else if (transaction) {
+        visit(traceNode, transaction);
+        tIdx++;
+      } else if (orphan) {
+        visit(traceNode, orphan);
+        oIdx++;
+      }
     }
 
     if (event?.measurements) {
@@ -1635,7 +1659,7 @@ function printNode(t: TraceTreeNode<TraceTree.NodeValue>, offset: number): strin
   }
 
   if (isTraceErrorNode(t)) {
-    return padding + t.value.event_id || 'unknown trace error';
+    return padding + (t.value.event_id || t.value.level) || 'unknown trace error';
   }
 
   return 'unknown node';

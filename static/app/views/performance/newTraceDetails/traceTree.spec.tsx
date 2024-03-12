@@ -15,6 +15,7 @@ import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
   isSpanNode,
+  isTraceErrorNode,
   isTransactionNode,
 } from './guards';
 import {
@@ -110,6 +111,14 @@ function assertMissingInstrumentationNode(
 ): asserts node is TraceTreeNode<TraceTree.MissingInstrumentationSpan> {
   if (!isMissingInstrumentationNode(node)) {
     throw new Error('node is not a missing instrumentation node');
+  }
+}
+
+function assertTraceErrorNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): asserts node is TraceTreeNode<TraceTree.TraceError> {
+  if (!isTraceErrorNode(node)) {
+    throw new Error('node is not a trace error node');
   }
 }
 
@@ -666,9 +675,6 @@ describe('TreeNode', () => {
         expect(tree.list[tree.list.length - 1].path).toEqual(['span:6', 'txn:event_id']);
       });
     });
-
-    it.todo('sibling autogrouped node paths');
-    it.todo('nested transactions autogrouped node paths');
   });
 });
 
@@ -693,7 +699,7 @@ describe('TraceTree', () => {
     expect(tree.list).toHaveLength(3);
   });
 
-  it('builds orphan errors as well', () => {
+  it('builds orphan errors', () => {
     const tree = TraceTree.FromTrace(
       makeTrace({
         transactions: [
@@ -709,6 +715,48 @@ describe('TraceTree', () => {
     );
 
     expect(tree.list).toHaveLength(4);
+  });
+
+  it('processes orphan errors without timestamps', () => {
+    const tree = TraceTree.FromTrace(
+      makeTrace({
+        transactions: [
+          makeTransaction({
+            children: [],
+          }),
+        ],
+        orphan_errors: [
+          {
+            level: 'error',
+            title: 'Error',
+            event_type: 'error',
+          } as TraceTree.TraceError,
+        ],
+      })
+    );
+
+    expect(tree.list).toHaveLength(3);
+  });
+
+  it('sorts orphan errors', () => {
+    const tree = TraceTree.FromTrace(
+      makeTrace({
+        transactions: [
+          makeTransaction({
+            start_timestamp: 0,
+            timestamp: 1,
+          }),
+          makeTransaction({
+            start_timestamp: 2,
+            timestamp: 3,
+          }),
+        ],
+        orphan_errors: [makeTraceError({timestamp: 1, level: 'error'})],
+      })
+    );
+
+    expect(tree.list).toHaveLength(4);
+    assertTraceErrorNode(tree.list[2]);
   });
 
   it('adjusts trace bounds by orphan error timestamp as well', () => {
