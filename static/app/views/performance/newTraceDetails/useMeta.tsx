@@ -19,7 +19,6 @@ function getMetaQueryParams(
   project: string;
   statsPeriod: string | undefined;
   timestamp: string | undefined;
-  useSpans: number;
 } {
   const normalizedParams = normalizeDateTimeParams(query, {
     allowAbsolutePageDatetime: true,
@@ -32,7 +31,7 @@ function getMetaQueryParams(
     statsPeriod = filters.datetime.period;
   }
 
-  return {statsPeriod, project, timestamp, useSpans: 1};
+  return {statsPeriod, project, timestamp};
 }
 
 export function useMeta(): UseApiQueryResult<TraceMeta | null, any> {
