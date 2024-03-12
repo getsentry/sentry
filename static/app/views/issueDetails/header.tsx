@@ -262,7 +262,7 @@ function GroupHeader({
           <TitleWrapper>
             <TitleHeading>
               {group.issueCategory === IssueCategory.REPLAY && (
-                <FeatureBadge type="new" />
+                <StyledFeatureBadge type="new" />
               )}
               <h3>
                 <StyledEventOrGroupTitle data={group} />
@@ -380,4 +380,8 @@ const StyledTabList = styled(TabList)`
 const PriorityContainer = styled('div')`
   /* Ensures that the layout doesn't shift when changing priority */
   min-width: 80px;
+`;
+
+const StyledFeatureBadge = styled(FeatureBadge)`
+  align-items: flex-start;
 `;
