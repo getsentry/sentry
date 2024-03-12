@@ -622,6 +622,54 @@ describe('TreeNode', () => {
       });
     });
 
+    describe('collapses some node by default', () => {
+      it('android okhttp', async () => {
+        const tree = TraceTree.FromTrace(
+          makeTrace({
+            transactions: [
+              makeTransaction({
+                transaction: '/',
+                project_slug: 'project',
+                event_id: 'event_id',
+              }),
+            ],
+          })
+        );
+
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events/project:event_id/',
+          method: 'GET',
+          body: makeEvent({}, [
+            makeSpan({
+              description: 'span',
+              span_id: '2',
+              op: 'http.client',
+              origin: 'auto.http.okhttp',
+            }),
+            makeSpan({
+              description: 'span',
+              op: 'http.client.tls',
+              span_id: '3',
+              parent_span_id: '2',
+            }),
+          ]),
+        });
+
+        tree.zoomIn(tree.list[1], true, {
+          api: new MockApiClient(),
+          organization: OrganizationFixture(),
+        });
+
+        await waitFor(() => {
+          // trace
+          //  - transaction
+          //   - http.client
+          //    ^ child of http.client is not visible
+          expect(tree.list.length).toBe(3);
+        });
+      });
+    });
+
     describe('non expanded direct children autogrouped path', () => {
       const tree = TraceTree.FromTrace(
         makeTrace({
