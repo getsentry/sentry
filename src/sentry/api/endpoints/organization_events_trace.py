@@ -210,19 +210,16 @@ class TraceEvent:
                     for problem in self.event["issue_occurrences"]:
                         offender_span_ids = problem.evidence_data.get("offender_span_ids", [])
                         if event_span.get("span_id") in offender_span_ids:
-                            try:
-                                start_timestamp = float(event_span.get("precise.start_ts"))
-                                if start is None:
-                                    start = start_timestamp
-                                else:
-                                    start = min(start, start_timestamp)
-                                end_timestamp = float(event_span.get("precise.finish_ts"))
-                                if end is None:
-                                    end = end_timestamp
-                                else:
-                                    end = max(end, end_timestamp)
-                            except ValueError:
-                                pass
+                            start_timestamp = float(event_span.get("precise.start_ts"))
+                            if start is None:
+                                start = start_timestamp
+                            else:
+                                start = min(start, start_timestamp)
+                            end_timestamp = float(event_span.get("precise.finish_ts"))
+                            if end is None:
+                                end = end_timestamp
+                            else:
+                                end = max(end, end_timestamp)
                             suspect_spans.append(event_span.get("span_id"))
             else:
                 if self.nodestore_event is not None or self.span_serialized:
@@ -548,6 +545,12 @@ def build_span_query(trace_id, spans_params, query_spans):
     return parents_query
 
 
+def pad_span_id(span):
+    """Snuba might return the span id without leading 0s since they're stored as UInt64
+    which means a span like 0011 gets converted to an int, then back so we'll get `11` instead"""
+    return span.rjust(16, "0")
+
+
 def augment_transactions_with_spans(
     transactions: Sequence[SnubaTransaction],
     errors: Sequence[SnubaError],
@@ -561,8 +564,13 @@ def augment_transactions_with_spans(
         problem_project_map = {}
         issue_occurrences = []
         occurrence_spans = set()
-        error_spans = {e["trace.span"] for e in errors if e["trace.span"]}
-        projects = {e["project.id"] for e in errors if e["trace.span"]}
+        error_spans = set()
+        projects = set()
+        for error in errors:
+            if "trace.span" in error:
+                error["trace.span"] = pad_span_id(error["trace.span"])
+                error_spans.add(error["trace.span"])
+            projects.add(error["project.id"])
         ts_params = find_timestamp_params(transactions)
         if ts_params["min"]:
             params["start"] = ts_params["min"] - timedelta(hours=1)
@@ -584,19 +592,10 @@ def augment_transactions_with_spans(
             if transaction["occurrence_id"] is not None:
                 problem_project_map[project].append(transaction["occurrence_id"])
 
-            # Need to strip the leading "0"s to match our query to the spans table
-            # This is cause spans are stored as UInt64, so a span like 0011
-            # converted to an int then converted to a hex will become 11
-            # so when we query snuba we need to remove the 00s ourselves as well
             if not transaction["trace.parent_span"]:
                 continue
-            transaction["trace.parent_span.stripped"] = (
-                str(hex(int(transaction["trace.parent_span"], 16))).lstrip("0x")
-                if transaction["trace.parent_span"].startswith("00")
-                else transaction["trace.parent_span"]
-            )
             # parent span ids of the segment spans
-            trace_parent_spans.add(transaction["trace.parent_span.stripped"])
+            trace_parent_spans.add(transaction["trace.parent_span"])
 
     with sentry_sdk.start_span(op="augment.transactions", description="get perf issue span ids"):
         for project, occurrences in problem_project_map.items():
@@ -652,18 +651,19 @@ def augment_transactions_with_spans(
             referrer=Referrer.API_TRACE_VIEW_GET_PARENTS.value
         )
 
+    parent_map = {}
     if "data" in parents_results:
-        parent_map = {parent["span_id"]: parent for parent in parents_results["data"]}
-    else:
-        parent_map = {}
+        for parent in parents_results["data"]:
+            parent["span_id"] = pad_span_id(parent["span_id"])
+            parent_map[parent["span_id"]] = parent
 
     with sentry_sdk.start_span(op="augment.transactions", description="linking transactions"):
         for transaction in transactions:
             # For a given transaction, if parent span id exists in the tranaction (so this is
             # not a root span), see if the indexed spans data can tell us what the parent
             # transaction id is.
-            if "trace.parent_span.stripped" in transaction:
-                parent = parent_map.get(transaction["trace.parent_span.stripped"])
+            if "trace.parent_span" in transaction:
+                parent = parent_map.get(transaction["trace.parent_span"])
                 if parent is not None:
                     transaction["trace.parent_transaction"] = parent["transaction.id"]
     with sentry_sdk.start_span(op="augment.transactions", description="linking perf issues"):
