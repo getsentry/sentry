@@ -232,7 +232,11 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         rule_data_before = dict(rule.data)
         if rule.environment_id:
             rule_data_before["environment_id"] = rule.environment_id
+        if rule.owner:
+            rule_data_before["owner"] = rule.owner
         rule_data_before["label"] = rule.label
+        rule_data_before["action_match"] = rule.data.get("action_match")
+        rule_data_before["filter_match"] = rule.data.get("filter_match")
 
         serializer = DrfRuleSerializer(
             context={"project": project, "organization": project.organization},
@@ -376,7 +380,12 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                 rule_data = dict(rule.data)
                 if rule.environment_id:
                     rule_data["environment_id"] = rule.environment_id
+                if rule.owner:
+                    rule_data["owner"] = rule.owner
                 rule_data["label"] = rule.label
+                rule_data["action_match"] = rule.data.get("action_match")
+                rule_data["filter_match"] = rule.data.get("filter_match")
+
                 changed_data = get_changed_data(rule, rule_data, rule_data_before)
                 send_confirmation_notification(rule=rule, new=False, changed=changed_data)
             return Response(serialize(updated_rule, request.user))

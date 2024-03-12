@@ -63,6 +63,29 @@ def get_changed_data(
             f"Changed rule name from *{old_label}* to *{new_label}*"
         )
 
-    # TODO add actionMatch, filterMatch, and owner changes
+    if rule_data_before.get("action_match") != rule_data.get("action_match"):
+        old_action_match = rule_data_before.get("action_match")
+        new_action_match = rule_data.get("action_match")
+        action_match_text = f"Changed trigger from *{old_action_match}* to *{new_action_match}*"
+        changed_data["action_match"].append(action_match_text)
+
+    if rule_data_before.get("filter_match") != rule_data.get("filter_match"):
+        old_action_match = rule_data_before.get("filter_match")
+        new_action_match = rule_data.get("filter_match")
+        action_match_text = f"Changed filter from *{old_action_match}* to *{new_action_match}*"
+        changed_data["filter_match"].append(action_match_text)
+
+    if rule_data_before.get("owner") != rule_data.get("owner"):
+        old_owner = rule_data_before.get("owner")
+        old_actor = "Unassigned"
+        if old_owner:
+            old_actor = old_owner.resolve()
+
+        new_owner = rule_data.get("owner")
+        new_actor = "Unassigned"
+        if new_owner:
+            new_actor = new_owner.resolve()
+        owner_changed_text = f"Changed owner from *{old_actor}* to *{new_actor}*"
+        changed_data["owner"].append(owner_changed_text)
 
     return changed_data
