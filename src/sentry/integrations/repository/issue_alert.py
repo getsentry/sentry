@@ -12,7 +12,7 @@ _default_logger: Logger = getLogger(__name__)
 
 @dataclass(frozen=True)
 class IssueAlertNotificationMessage(BaseNotificationMessage):
-    # TODO(Yash): do we really need this entire model, or can we whittle it down to what we need?
+    # TODO: https://github.com/getsentry/sentry/issues/66751
     rule_fire_history: RuleFireHistory | None = None
     rule_action_uuid: str | None = None
 
