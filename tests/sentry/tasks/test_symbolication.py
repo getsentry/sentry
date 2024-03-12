@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 from django.test import override_settings
 
-from sentry.lang.native.symbolicator import SymbolicatorTaskKind
+from sentry.lang.native.symbolicator import SymbolicatorPlatform, SymbolicatorTaskKind
 from sentry.plugins.base.v2 import Plugin2
 from sentry.tasks.store import preprocess_event
 from sentry.tasks.symbolication import (
@@ -262,7 +262,9 @@ def test_submit_symbolicate_queue_switch(
     is_low_priority = mock_should_demote_symbolication(default_project.id)
     assert is_low_priority
     with TaskRunner():
-        task_kind = SymbolicatorTaskKind(is_low_priority=is_low_priority)
+        task_kind = SymbolicatorTaskKind(
+            platform=SymbolicatorPlatform.native, is_low_priority=is_low_priority
+        )
         mock_submit_symbolicate(
             task_kind,
             cache_key="e:1",

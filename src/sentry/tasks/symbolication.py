@@ -108,9 +108,9 @@ def get_symbolication_function(
     if data["platform"] in ("javascript", "node"):
         return SymbolicatorPlatform.js, process_js_stacktraces
     # elif data["platform"] == "java" and should_use_symbolicator_for_proguard(data.get("project")):
-    #     return SymbolicatorPlatform.jvm.value, process_jvm_stacktraces
+    #     return SymbolicatorPlatform.jvm, process_jvm_stacktraces
     else:
-        return SymbolicatorPlatform.native.value, get_native_symbolication_function(data)
+        return SymbolicatorPlatform.native, get_native_symbolication_function(data)
 
 
 class SymbolicationTimeout(Exception):
@@ -190,6 +190,7 @@ def _do_symbolicate_event(
             has_attachments=has_attachments,
         )
 
+    symbolication_function: Callable[[Symbolicator, Any], Any] | None = None
     if task_kind.platform == SymbolicatorPlatform.js:
         symbolication_function = process_js_stacktraces
     elif task_kind.platform == SymbolicatorPlatform.jvm:

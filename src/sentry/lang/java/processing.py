@@ -170,8 +170,9 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         exceptions=exceptions,
         stacktraces=stacktraces,
         modules=modules,
-        release=data.get("release"),
-        dist=data.get("dist"),
+        # TODO:
+        release_package=None,
+        # release_package=data.get("release"),
     )
 
     if not _handle_response_status(data, response):
