@@ -128,6 +128,14 @@ export function computeTimelineIntervals(
   }
 }
 
+type ArgumentTypes<F> = F extends (...args: infer A) => any ? A : never;
+type EventStore = {
+  [K in keyof VirtualizedViewManagerEvents]: Set<VirtualizedViewManagerEvents[K]>;
+};
+interface VirtualizedViewManagerEvents {
+  ['divider resize end']: (list_width: number) => void;
+}
+
 /**
  * Tracks the state of the virtualized view and manages the resizing of the columns.
  * Children components should call the appropriate register*Ref methods to register their
@@ -147,6 +155,10 @@ export class VirtualizedViewManager {
   // pixel space would be [0, 1000]
   trace_physical_space: View = View.Empty();
   container_physical_space: View = View.Empty();
+
+  events: EventStore = {
+    ['divider resize end']: new Set<VirtualizedViewManagerEvents['divider resize end']>(),
+  };
 
   row_measurer: DOMWidthMeasurer<TraceTreeNode<TraceTree.NodeValue>> =
     new DOMWidthMeasurer();
@@ -222,6 +234,38 @@ export class VirtualizedViewManager {
     this.onWheelStart = this.onWheelStart.bind(this);
   }
 
+  on<K extends keyof VirtualizedViewManagerEvents>(
+    eventName: K,
+    cb: VirtualizedViewManagerEvents[K]
+  ): void {
+    const set = this.events[eventName] as unknown as Set<VirtualizedViewManagerEvents[K]>;
+    if (set.has(cb)) {
+      return;
+    }
+    set.add(cb);
+  }
+
+  off<K extends keyof VirtualizedViewManagerEvents>(
+    eventName: K,
+    cb: VirtualizedViewManagerEvents[K]
+  ): void {
+    const set = this.events[eventName] as unknown as Set<VirtualizedViewManagerEvents[K]>;
+
+    if (set.has(cb)) {
+      set.delete(cb);
+    }
+  }
+
+  dispatch<K extends keyof VirtualizedViewManagerEvents>(
+    event: K,
+    ...args: ArgumentTypes<VirtualizedViewManagerEvents[K]>
+  ): void {
+    for (const handler of this.events[event]) {
+      // @ts-expect-error
+      handler(...args);
+    }
+  }
+
   initializeTraceSpace(space: [x: number, y: number, width: number, height: number]) {
     this.to_origin = space[0];
 
@@ -292,6 +336,8 @@ export class VirtualizedViewManager {
     this.enqueueOnScrollEndOutOfBoundsCheck();
     document.removeEventListener('mouseup', this.onDividerMouseUp);
     document.removeEventListener('mousemove', this.onDividerMouseMove);
+
+    this.dispatch('divider resize end', this.columns.list.width);
   }
 
   onDividerMouseMove(event: MouseEvent) {
