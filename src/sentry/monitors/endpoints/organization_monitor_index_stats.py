@@ -16,7 +16,6 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.models.environment import Environment
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorEnvironment
-from sentry.utils.dates import to_timestamp
 
 
 def normalize_to_epoch(timestamp: datetime, seconds: int):
@@ -26,7 +25,7 @@ def normalize_to_epoch(timestamp: datetime, seconds: int):
     i.e. if the rollup is minutes, the resulting timestamp would have
     the seconds and microseconds rounded down.
     """
-    epoch = int(to_timestamp(timestamp))
+    epoch = int(timestamp.timestamp())
     return epoch - (epoch % seconds)
 
 
