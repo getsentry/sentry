@@ -7,7 +7,7 @@
 
   <p>
     <strong>{{ provider.name }}</strong> Single Sign-On has been disabled for the
-    <strong>{{ organization.name }}</strong> organization.
+    <strong>{{ organization.name|sanitize_periods }}</strong> organization.
   </p>
 
   {% if has_password %}

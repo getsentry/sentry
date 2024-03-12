@@ -318,3 +318,16 @@ def random_int(a, b=None):
 @register.filter
 def get_item(dictionary, key):
     return dictionary.get(key, "")
+
+
+@register.filter
+def sanitize_periods(value):
+    """
+    Primarily used in email templates when a field may contain a domain name to prevent
+    email clients from creating a clickable link to the domain.
+    """
+    word_joiner = "\u2060"
+
+    # Adding the Unicode character before every period
+    output_string = value.replace(".", word_joiner + ".")
+    return output_string
