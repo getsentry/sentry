@@ -51,13 +51,13 @@ _parameterization_regex_str = r"""(?x)
         )
     ) |
     (?P<uuid>
-        \b
+        (\b|_)
             [0-9a-fA-F]{8}-
             [0-9a-fA-F]{4}-
             [0-9a-fA-F]{4}-
             [0-9a-fA-F]{4}-
             [0-9a-fA-F]{12}
-        \b
+        (\b|_)
     ) |
     (?P<sha1>
         \b[0-9a-fA-F]{40}\b
@@ -159,29 +159,8 @@ class ParameterizationExperiment:
 
 
 # Note that experiments are run AFTER the initial replacements. Which means they MUST not catch replacements made
-# in the primary parameterization regex. E.g. "md5" might be caught by the "uniq_id" experiment, so it is explicitly excluded
-_parameterization_regex_experiments = [
-    ParameterizationExperiment(
-        name="uniq_id",
-        regex=re.compile(
-            _parameterization_regex_str
-            + r"""|
-                (?P<uniq_id>
-                    \b
-                    (?!(md5|sha1)) # TODO: remove this line after experiment is done
-                    (?!\w*?[\.:\-]\w*?\b) # No colons, dots, or dashes
-                    # Interleaved numbers and letters
-                    (?=
-                        (\w*?[0-9]\w*?[a-zA-Z]\w*?[0-9]\b)
-                        | (\w*?[a-zA-Z]\w*?[0-9]\w*?[a-zA-Z]\b)
-                    )
-                    [\w_]+?
-                    \b
-                )
-            """
-        ),
-    ),
-]
+# in the primary parameterization regex.
+_parameterization_regex_experiments = []
 
 
 def normalize_message_for_grouping(message: str, event: Event, share_analytics: bool = True) -> str:
