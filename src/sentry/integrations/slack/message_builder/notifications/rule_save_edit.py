@@ -42,43 +42,20 @@ class SlackRuleSaveEditMessageBuilder(BlockSlackMessageBuilder):
         rule_url = self.linkify_rule()
         project = self.rule.project.slug
         if self.new:
-            rule_text = f"{rule_url} was created in the *{project}* project and will send notifications here."
+            rule_text = f"Alert rule {rule_url} was created in the *{project}* project and will send notifications here."
         else:
-            rule_text = f"{rule_url} in the *{project}* project was updated."
+            rule_text = f"Alert rule {rule_url} in the *{project}* project was updated."
+            # TODO potentially use old name if it's changed?
 
         blocks.append(self.get_markdown_block(rule_text))
 
         if not self.new and self.changed:
-            new = []
-            removed = []
-            fields = []
+            changes_text = "*Changes*\n"
             for label, changes in self.changed.items():
-                if label.startswith("new"):
-                    for change in changes:
-                        new.append(change)
-                elif label.startswith("removed"):
-                    for change in changes:
-                        removed.append(change)
-                elif label == "changed_label":
-                    if changes:
-                        print("what the heck")
-                        print(changes)
-                        blocks.append(self.get_markdown_block(changes))
+                for change in changes:
+                    changes_text += f"• {change}\n"
 
-
-            if new:
-                new_text = f"*Added*\n"
-                for new_change in new:
-                    new_text += f"•{new_change}\n"
-                fields.append(self.make_field(new_text))
-
-            if removed:
-                removed_text = "*Removed*\n"
-                for removed_change in removed:
-                    removed_text += f"•{removed_change}\n"
-                fields.append(self.make_field(removed_text))
-
-            blocks.append(self.get_section_fields_block(fields))
+            blocks.append(self.get_markdown_block(changes_text))
 
         settings_link = self.get_settings_url()
         blocks.append(self.get_context_block(settings_link))

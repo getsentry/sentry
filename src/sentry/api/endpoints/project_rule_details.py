@@ -14,7 +14,7 @@ from sentry.api.bases.rule import RuleEndpoint
 from sentry.api.endpoints.project_rules import find_duplicate_rule, send_confirmation_notification
 from sentry.api.fields.actor import ActorField
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.rule import RuleSerializer, generate_rule_label
+from sentry.api.serializers.models.rule import RuleSerializer
 from sentry.api.serializers.rest_framework.rule import RuleNodeField
 from sentry.api.serializers.rest_framework.rule import RuleSerializer as DrfRuleSerializer
 from sentry.apidocs.constants import (
@@ -42,6 +42,7 @@ from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
+from sentry.rules.actions.utils import get_changed_data
 from sentry.signals import alert_rule_edited
 from sentry.tasks.integrations.slack import find_channel_id_for_rule
 
@@ -229,10 +230,10 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         - Actions - specify what should happen when the trigger conditions are met and the filters match.
         """
         rule_data_before = dict(rule.data)
-        rule_env_before = None
         if rule.environment_id:
-            rule_env_before = rule.environment_id.copy()
-        rule_label_before = rule.label
+            rule_data_before["environment_id"] = rule.environment_id
+        rule_data_before["label"] = rule.label
+
         serializer = DrfRuleSerializer(
             context={"project": project, "organization": project.organization},
             data=request.data,
@@ -372,54 +373,11 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
             if features.has(
                 "organizations:rule-create-edit-confirm-notification", project.organization
             ):
-                # find what changed between rule_data_before and rule.data and store
-                changed_data = {
-                    "new_conditions": [],
-                    "removed_conditions": [],
-                    "new_actions": [],
-                    "removed_actions": [],
-                    "new_environments": [],
-                    "removed_environments": [],
-                    "changed_label": "",
-                }
-                # TODO decide if I want to bucket these by type (action/condition/etc)
-                # if not these dict keys can just be "new", "removed", and "changed_label"
-
-                # also TODO move this into a function
-                for condition in rule.data.get("conditions", []):
-                    if condition not in rule_data_before["conditions"]:
-                        label = generate_rule_label(rule.project, rule, condition)
-                        changed_data["new_conditions"].append(label)
-                
-                for condition in rule_data_before["conditions"]:
-                    if condition not in rule.data["conditions"]:
-                        label = generate_rule_label(rule.project, rule, condition)
-                        changed_data["removed_conditions"].append(label)
-
-                for action in rule.data.get("actions", []):
-                    if action not in rule_data_before["actions"]:
-                        label = generate_rule_label(rule.project, rule, action)
-                        changed_data["new_actions"].append(label)
-
-                for action in rule_data_before["actions"]:
-                    if action not in rule.data.get("actions", []):
-                        label = generate_rule_label(rule.project, rule, action)
-                        changed_data["removed_actions"].append(label)
-
-                if rule.environment_id and not rule_env_before:
-                    # convert to environment label/name
-                    changed_data["new_environments"].append(rule.environment_id)
-
-                if rule_env_before and not rule.environment_id:
-                    # convert to environment label/name
-                    changed_data["removed_environments"].append(rule_env_before)
-
-                if rule_label_before != rule.label:
-                    changed_data["changed_label"] = f"Rule name changed from {rule_label_before} to {rule.label}"
-
-                # TODO add changed action interval
-
-
+                rule_data = dict(rule.data)
+                if rule.environment_id:
+                    rule_data["environment_id"] = rule.environment_id
+                rule_data["label"] = rule.label
+                changed_data = get_changed_data(rule, rule_data, rule_data_before)
                 send_confirmation_notification(rule=rule, new=False, changed=changed_data)
             return Response(serialize(updated_rule, request.user))
 
