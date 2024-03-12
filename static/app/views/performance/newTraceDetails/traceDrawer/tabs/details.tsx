@@ -55,7 +55,14 @@ export default function NodeDetail({
   }
 
   if (isTraceErrorNode(node)) {
-    return <ErrorNodeDetails node={node} organization={organization} />;
+    return (
+      <ErrorNodeDetails
+        node={node}
+        organization={organization}
+        location={location}
+        scrollToNode={scrollToNode}
+      />
+    );
   }
 
   if (isParentAutogroupedNode(node)) {

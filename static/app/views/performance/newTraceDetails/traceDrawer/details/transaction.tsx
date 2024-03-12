@@ -401,7 +401,8 @@ export function TransactionNodeDetails({
             enableHiding
             location={location}
             organization={organization}
-            transaction={node.value}
+            tags={event.tags}
+            event={node.value}
           />
 
           {measurementNames.length > 0 && (

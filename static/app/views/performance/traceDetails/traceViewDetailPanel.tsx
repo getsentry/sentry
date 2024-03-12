@@ -400,7 +400,8 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
             enableHiding
             location={location}
             organization={organization}
-            transaction={detail.traceFullDetailedEvent}
+            tags={detail.traceFullDetailedEvent.tags ?? []}
+            event={detail.traceFullDetailedEvent}
           />
 
           {measurementNames.length > 0 && (
