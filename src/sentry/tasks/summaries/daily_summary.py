@@ -2,7 +2,7 @@ import logging
 import math
 from collections import defaultdict
 from datetime import datetime
-from typing import cast
+from typing import DefaultDict, cast
 
 import pytz
 import sentry_sdk
@@ -208,35 +208,27 @@ def build_summary_data(
                 type__in=(ActivityType.SET_REGRESSION.value, ActivityType.SET_ESCALATING.value),
             )
 
-            deduped_groups_by_activity_type: dict[ActivityType, set] = {
-                ActivityType.SET_REGRESSION: set(),
-                ActivityType.SET_ESCALATING: set(),
-            }
+            deduped_groups_by_activity_type: DefaultDict[ActivityType, set] = defaultdict(set)
 
             for activity in regressed_or_escalated_groups_today:
-                deduped_groups_by_activity_type.setdefault(ActivityType(activity.type), set()).add(
-                    activity.group
-                )
+                deduped_groups_by_activity_type[ActivityType(activity.type)].add(activity.group)
 
-                if activity.type == ActivityType.SET_ESCALATING.value:
+                if (
+                    activity.type == ActivityType.SET_ESCALATING.value
+                    and activity.group
+                    in deduped_groups_by_activity_type[ActivityType.SET_REGRESSION]
+                ):
                     # if a group is already in the regressed set but we now see it in escalating, remove from regressed and add to escalating
                     # this means the group regressed and then later escalated, and we only want to list it once
-                    if (
+                    deduped_groups_by_activity_type[ActivityType.SET_REGRESSION].remove(
                         activity.group
-                        in deduped_groups_by_activity_type[ActivityType.SET_REGRESSION]
-                    ):
-                        deduped_groups_by_activity_type[ActivityType.SET_REGRESSION].remove(
-                            activity.group
-                        )
+                    )
 
             for activity_type, groups in deduped_groups_by_activity_type.items():
-                for group in list(groups):
-                    if (
-                        activity_type == ActivityType.SET_REGRESSION
-                        and len(project_ctx.regressed_today) < 4
-                    ):
+                for group in list(groups)[:4]:
+                    if activity_type == ActivityType.SET_REGRESSION:
                         project_ctx.regressed_today.append(group)
-                    elif len(project_ctx.escalated_today) < 4:
+                    else:
                         project_ctx.escalated_today.append(group)
 
             # The project's releases and the (max) top 3 new errors e.g. release - group1, group2
