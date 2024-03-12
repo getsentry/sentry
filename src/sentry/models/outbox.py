@@ -611,6 +611,7 @@ class OutboxBase(Model):
             # meaning that failures during deletion could leave an old, staler outbox
             # alive.
             if not self.should_skip_shard():
+                deleted_count += 1
                 coalesced.delete()
 
             metrics.incr("outbox.processed", deleted_count, tags=tags)
