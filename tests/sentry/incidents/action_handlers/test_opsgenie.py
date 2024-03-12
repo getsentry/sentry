@@ -97,7 +97,10 @@ class OpsgenieActionHandlerTest(FireTest):
 
     @responses.activate
     def run_test(self, incident, method):
-        from sentry.integrations.opsgenie.utils import build_incident_attachment
+        from sentry.integrations.opsgenie.utils import (
+            attach_custom_priority,
+            build_incident_attachment,
+        )
 
         alias = f"incident_{incident.organization_id}_{incident.identifier}"
 
@@ -122,6 +125,8 @@ class OpsgenieActionHandlerTest(FireTest):
             expected_payload = build_incident_attachment(
                 incident, IncidentStatus(incident.status), metric_value=1000
             )
+            expected_payload = attach_custom_priority(expected_payload, self.action)
+
         handler = OpsgenieActionHandler(self.action, incident, self.project)
         metric_value = 1000
         with self.tasks():
@@ -220,3 +225,10 @@ class OpsgenieActionHandlerTest(FireTest):
             external_id=str(self.action.target_identifier),
             notification_uuid="",
         )
+
+    @responses.activate
+    def test_custom_priority(self):
+        # default critical incident priority is P1, custom set to P3
+        self.action.update(sentry_app_config={"priority": "P3"})
+
+        self.run_fire_test()
