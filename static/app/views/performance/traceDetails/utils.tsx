@@ -19,7 +19,8 @@ export function getTraceDetailsUrl(
   traceSlug: string,
   dateSelection,
   query: Query,
-  timestamp?: string | number
+  timestamp?: string | number,
+  eventId?: string
 ): LocationDescriptorObject {
   const {start, end, statsPeriod} = dateSelection;
 
@@ -36,6 +37,7 @@ export function getTraceDetailsUrl(
       query: {
         ...queryParams,
         timestamp,
+        eventId,
       },
     };
   }

@@ -344,7 +344,8 @@ function TableView(props: TableViewProps) {
           String(dataRow.trace),
           dateSelection,
           {},
-          dataRow.timestamp
+          dataRow.timestamp,
+          dataRow.id
         );
 
         cell = (

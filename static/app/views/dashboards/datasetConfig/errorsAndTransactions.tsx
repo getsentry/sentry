@@ -428,7 +428,8 @@ function renderTraceAsLinkable(
     String(data.trace),
     dateSelection,
     {},
-    data.timestamp
+    data.timestamp,
+    data.id || data.eventID
   );
 
   return (

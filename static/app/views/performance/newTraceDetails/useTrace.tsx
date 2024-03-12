@@ -37,7 +37,7 @@ export function getTraceQueryParams(
   filters: Partial<PageFilters> = {},
   options: {limit?: number} = {}
 ): {
-  event_id: string | undefined;
+  eventId: string | undefined;
   limit: number;
   project: string;
   timestamp: string | undefined;
@@ -59,7 +59,7 @@ export function getTraceQueryParams(
     decodedLimit = parseInt(decodedLimit, 10);
   }
 
-  const event_id = decodeScalar(normalizedParams.event_id);
+  const eventId = decodeScalar(normalizedParams.eventId);
 
   if (timestamp) {
     decodedLimit = decodedLimit ?? DEFAULT_TIMESTAMP_LIMIT;
@@ -82,7 +82,7 @@ export function getTraceQueryParams(
     }
   }
 
-  return {...otherParams, limit, project, timestamp, event_id, useSpans: 1};
+  return {...otherParams, limit, project, timestamp, eventId, useSpans: 1};
 }
 
 type UseTraceParams = {

@@ -483,7 +483,8 @@ export function handleTraceDetailsRouting(
       traceId,
       event.title,
       location.query,
-      getEventTimestamp(event)
+      getEventTimestamp(event),
+      event.eventID
     );
 
     browserHistory.replace({

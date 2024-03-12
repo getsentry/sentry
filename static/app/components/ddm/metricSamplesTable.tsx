@@ -442,7 +442,13 @@ function renderBodyCell(op?: string, unit?: string) {
     }
 
     if (col.key === 'trace') {
-      return <TraceId traceId={dataRow.trace} timestamp={dataRow.timestamp} />;
+      return (
+        <TraceId
+          traceId={dataRow.trace}
+          timestamp={dataRow.timestamp}
+          eventId={dataRow.id}
+        />
+      );
     }
 
     if (col.key === 'profile.id') {
@@ -611,7 +617,15 @@ function TimestampRenderer({timestamp}: {timestamp: DateString}) {
   );
 }
 
-function TraceId({traceId, timestamp}: {traceId: string; timestamp?: DateString}) {
+function TraceId({
+  traceId,
+  timestamp,
+  eventId,
+}: {
+  traceId: string;
+  eventId?: string;
+  timestamp?: DateString;
+}) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const stringOrNumberTimestamp =
@@ -625,7 +639,8 @@ function TraceId({traceId, timestamp}: {traceId: string; timestamp?: DateString}
       statsPeriod: selection.datetime.period,
     },
     {},
-    stringOrNumberTimestamp
+    stringOrNumberTimestamp,
+    eventId
   );
   return (
     <Container>

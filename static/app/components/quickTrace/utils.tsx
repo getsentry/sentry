@@ -144,9 +144,9 @@ export function generateMultiTransactionsTarget(
   return traceEventView.getResultsViewUrlTarget(organization.slug);
 }
 
-const timestampsKeyCandidates = ['startTimestamp', 'timestamp', 'endTimestamp'];
+const timestampsFieldCandidates = ['startTimestamp', 'timestamp', 'endTimestamp'];
 export function getEventTimestamp(event: Event): string | number | undefined {
-  for (const key of timestampsKeyCandidates) {
+  for (const key of timestampsFieldCandidates) {
     if (
       key in event &&
       (typeof event[key] === 'string' || typeof event[key] === 'number')
@@ -173,7 +173,8 @@ export function generateTraceTarget(
       traceId,
       dateSelection,
       {},
-      getEventTimestamp(event)
+      getEventTimestamp(event),
+      event.eventID
     );
   }
 
