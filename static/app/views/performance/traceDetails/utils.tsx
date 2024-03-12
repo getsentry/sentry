@@ -18,7 +18,9 @@ export function getTraceDetailsUrl(
   organization: OrganizationSummary,
   traceSlug: string,
   dateSelection,
-  query: Query
+  query: Query,
+  timestamp?: string | number,
+  eventId?: string
 ): LocationDescriptorObject {
   const {start, end, statsPeriod} = dateSelection;
 
@@ -28,6 +30,17 @@ export function getTraceDetailsUrl(
     [PAGE_URL_PARAM.PAGE_START]: start,
     [PAGE_URL_PARAM.PAGE_END]: end,
   };
+
+  if (organization.features.includes('trace-view-v1')) {
+    return {
+      pathname: `/organizations/${organization.slug}/performance/trace/${traceSlug}/`,
+      query: {
+        ...queryParams,
+        timestamp,
+        eventId,
+      },
+    };
+  }
 
   if (organization.features.includes('trace-view-load-more')) {
     queryParams.limit = DEFAULT_TRACE_ROWS_LIMIT;
