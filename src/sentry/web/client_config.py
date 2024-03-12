@@ -360,15 +360,6 @@ class _ClientConfig:
         if not region_names:
             return [{"name": "default", "url": options.get("system.url-prefix")}]
 
-        # Show all visible multi-tenant regions to unauthenticated users as they could
-        # create a new account
-        if not user or not user.id:
-            return [get_region_by_name(name).api_serialize() for name in region_names]
-
-        # Ensure all regions the current user is in are included as there
-        # could be single tenants or hidden regions
-        unique_regions = set(region_names) | self._member_region_names
-
         def region_display_order(region: Region) -> tuple[bool, bool, str]:
             return (
                 not region.is_historic_monolith_region(),  # default region comes first
@@ -376,6 +367,14 @@ class _ClientConfig:
                 region.name,  # then sort alphabetically
             )
 
+        # Show all visible multi-tenant regions to unauthenticated users as they could
+        # create a new account
+        if not user or not user.id:
+            return self._serialize_regions(region_names, region_display_order)
+
+        # Ensure all regions the current user is in are included as there
+        # could be single tenants or hidden regions
+        unique_regions = set(region_names) | self._member_region_names
         return self._serialize_regions(unique_regions, region_display_order)
 
     @property
