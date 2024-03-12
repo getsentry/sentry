@@ -1176,69 +1176,20 @@ function buildRoutes() {
     </Route>
   );
 
-  const dashboardWidgetRoutes = (
-    <Fragment>
-      <Route
-        path="widget/:widgetIndex/edit/"
-        component={make(() => import('sentry/views/dashboards/widgetBuilder'))}
-      />
-      <Route
-        path="widget/new/"
-        component={make(() => import('sentry/views/dashboards/widgetBuilder'))}
-      />
-      <Route
-        path="widget/:widgetId/"
-        component={make(() => import('sentry/views/dashboards/view'))}
-      />
-    </Fragment>
-  );
   const dashboardRoutes = (
     <Fragment>
-      <Fragment>
-        {USING_CUSTOMER_DOMAIN && (
-          <Route
-            path="/dashboards/"
-            component={withDomainRequired(make(() => import('sentry/views/dashboards')))}
-            key="orgless-dashboards-route"
-          >
-            <IndexRoute
-              component={make(() => import('sentry/views/dashboards/manage'))}
-            />
-          </Route>
-        )}
+      <Route
+        path="/dashboards/"
+        component={make(() => import('sentry/views/dashboards'))}
+        withOrgPath
+      >
+        <IndexRoute component={make(() => import('sentry/views/dashboards/manage'))} />
         <Route
-          path="/organizations/:orgId/dashboards/"
-          component={withDomainRedirect(make(() => import('sentry/views/dashboards')))}
-          key="org-dashboards"
-        >
-          <IndexRoute component={make(() => import('sentry/views/dashboards/manage'))} />
-        </Route>
-      </Fragment>
-      <Fragment>
-        {USING_CUSTOMER_DOMAIN && (
-          <Route
-            path="/dashboards/new/"
-            component={withDomainRequired(
-              make(() => import('sentry/views/dashboards/create'))
-            )}
-            key="orgless-dashboards-new-route"
-          >
-            <Route
-              path="widget/:widgetIndex/edit/"
-              component={make(() => import('sentry/views/dashboards/widgetBuilder'))}
-            />
-            <Route
-              path="widget/new/"
-              component={make(() => import('sentry/views/dashboards/widgetBuilder'))}
-            />
-          </Route>
-        )}
-        <Route
-          path="/organizations/:orgId/dashboards/new/"
-          component={withDomainRedirect(
+          path="new/"
+          component={withDomainRequired(
             make(() => import('sentry/views/dashboards/create'))
           )}
-          key="org-dashboards-new"
+          key="orgless-dashboards-new-route"
         >
           <Route
             path="widget/:widgetIndex/edit/"
@@ -1248,36 +1199,31 @@ function buildRoutes() {
             path="widget/new/"
             component={make(() => import('sentry/views/dashboards/widgetBuilder'))}
           />
-        </Route>
-      </Fragment>
-      <Fragment>
-        {USING_CUSTOMER_DOMAIN && (
           <Route
-            path="/dashboards/new/:templateId"
-            component={withDomainRequired(
-              make(() => import('sentry/views/dashboards/create'))
-            )}
-            key="orgless-dashboards-new-template-route"
-          >
-            <Route
-              path="widget/:widgetId/"
-              component={make(() => import('sentry/views/dashboards/create'))}
-            />
-          </Route>
-        )}
-        <Route
-          path="/organizations/:orgId/dashboards/new/:templateId"
-          component={withDomainRedirect(
-            make(() => import('sentry/views/dashboards/create'))
-          )}
-          key="org-dashboards-new-template"
-        >
-          <Route
-            path="widget/:widgetId/"
+            path=":templateId/widget/:widgetId/"
             component={make(() => import('sentry/views/dashboards/create'))}
           />
         </Route>
-      </Fragment>
+      </Route>
+      <Route
+        path="/dashboard/:dashboardId/"
+        component={make(() => import('sentry/views/dashboards/view'))}
+        withOrgPath
+      >
+        <Route
+          path="widget/:widgetIndex/edit/"
+          component={make(() => import('sentry/views/dashboards/widgetBuilder'))}
+        />
+        <Route
+          path="widget/new/"
+          component={make(() => import('sentry/views/dashboards/widgetBuilder'))}
+        />
+        <Route
+          path="widget/:widgetId/"
+          component={make(() => import('sentry/views/dashboards/view'))}
+        />
+      </Route>
+
       <Redirect
         from="/organizations/:orgId/dashboards/:dashboardId/"
         to="/organizations/:orgId/dashboard/:dashboardId/"
@@ -1285,28 +1231,6 @@ function buildRoutes() {
       {USING_CUSTOMER_DOMAIN && (
         <Redirect from="/dashboards/:dashboardId/" to="/dashboard/:dashboardId/" />
       )}
-      <Fragment>
-        {USING_CUSTOMER_DOMAIN && (
-          <Route
-            path="/dashboard/:dashboardId/"
-            component={withDomainRequired(
-              make(() => import('sentry/views/dashboards/view'))
-            )}
-            key="orgless-dashboards-dashboard-id-route"
-          >
-            {dashboardWidgetRoutes}
-          </Route>
-        )}
-        <Route
-          path="/organizations/:orgId/dashboard/:dashboardId/"
-          component={withDomainRedirect(
-            make(() => import('sentry/views/dashboards/view'))
-          )}
-          key="org-dashboards-dashboard-id"
-        >
-          {dashboardWidgetRoutes}
-        </Route>
-      </Fragment>
     </Fragment>
   );
 
