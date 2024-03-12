@@ -8,7 +8,6 @@ from sentry.issues.issue_velocity import (
     DEFAULT_TTL,
     FALLBACK_TTL,
     STALE_DATE_KEY,
-    STRING_TO_DATETIME,
     THRESHOLD_KEY,
     TIME_TO_USE_EXISTING_THRESHOLD,
     calculate_threshold,
@@ -246,11 +245,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
         stored_date = redis_client.get("date-key")
         assert isinstance(stored_date, str)
         # self.utcnow and the datetime.utcnow() used in the update method may vary in milliseconds so we can't do a direct comparison
-        assert (
-            0
-            <= (datetime.strptime(stored_date, STRING_TO_DATETIME) - self.utcnow).total_seconds()
-            < 1
-        )
+        assert 0 <= (datetime.fromisoformat(stored_date) - self.utcnow).total_seconds() < 1
         assert redis_client.ttl("threshold-key") == DEFAULT_TTL
         assert redis_client.ttl("date-key") == DEFAULT_TTL
 
@@ -285,11 +280,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
         assert redis_client.get("threshold-key") == "0"
         stored_date = redis_client.get("date-key")
         assert isinstance(stored_date, str)
-        assert (
-            0
-            <= (datetime.strptime(stored_date, STRING_TO_DATETIME) - self.utcnow).total_seconds()
-            < 1
-        )
+        assert 0 <= (datetime.fromisoformat(stored_date) - self.utcnow).total_seconds() < 1
         assert redis_client.ttl("threshold-key") == DEFAULT_TTL
 
     def test_fallback_to_stale(self):
@@ -307,7 +298,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
         assert (
             0
             <= (
-                datetime.strptime(stored_date, STRING_TO_DATETIME)
+                datetime.fromisoformat(stored_date)
                 - (
                     self.utcnow
                     - timedelta(seconds=TIME_TO_USE_EXISTING_THRESHOLD)
@@ -333,7 +324,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
         assert (
             0
             <= (
-                datetime.strptime(stored_date, STRING_TO_DATETIME)
+                datetime.fromisoformat(stored_date)
                 - (
                     self.utcnow
                     - timedelta(seconds=TIME_TO_USE_EXISTING_THRESHOLD)
@@ -358,7 +349,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
         assert (
             0
             <= (
-                datetime.strptime(stored_date, STRING_TO_DATETIME)
+                datetime.fromisoformat(stored_date)
                 - (
                     self.utcnow
                     - timedelta(seconds=TIME_TO_USE_EXISTING_THRESHOLD)

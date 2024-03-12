@@ -46,7 +46,6 @@ DEFAULT_TTL = 48 * 60 * 60  # 2 days
 FALLBACK_TTL = 10 * 60  # 10 minutes; TTL for storing temporary values while we can't query Snuba
 THRESHOLD_KEY = "new-issue-escalation-threshold:{project_id}"
 STALE_DATE_KEY = "new-issue-escalation-threshold-stale-date:v2:{project_id}"
-STRING_TO_DATETIME = "%Y-%m-%d %H:%M:%S.%f"
 TIME_TO_USE_EXISTING_THRESHOLD = 24 * 60 * 60  # 1 day
 
 
@@ -223,7 +222,7 @@ def get_latest_threshold(project: Project) -> float:
     threshold = cache_results[0]
     stale_date = None
     if cache_results[1] is not None:
-        stale_date = datetime.strptime(cache_results[1], STRING_TO_DATETIME)
+        stale_date = datetime.fromisoformat(cache_results[1])
     now = datetime.utcnow()
     if (
         stale_date is None
