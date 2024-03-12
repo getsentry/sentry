@@ -15,11 +15,9 @@ import {PlatformIcon} from 'platformicons';
 import * as qs from 'query-string';
 
 import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
-import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import Placeholder from 'sentry/components/placeholder';
-import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization, PlatformKey, Project} from 'sentry/types';
@@ -1206,16 +1204,9 @@ function RenderRow(props: {
             <PlatformIcon
               platform={props.projects[props.node.value.project_slug] ?? 'default'}
             />
-            ;
-            <Link
-              className="Errored Link"
-              onClick={e => e.stopPropagation()}
-              to={generateIssueEventTarget(props.node.value, props.organization)}
-            >
-              <span className="TraceOperation">{t('Error')}</span>
-              <strong className="TraceEmDash"> — </strong>
-              <span className="TraceDescription">{props.node.value.title}</span>
-            </Link>
+            ;<span className="TraceOperation Errored">{t('Error')}</span>
+            <strong className="TraceEmDash Errored"> — </strong>
+            <span className="TraceDescription Errored">{props.node.value.title}</span>
           </div>
         </div>
         <div
@@ -2178,21 +2169,19 @@ function TraceEmpty() {
   const feedback = useFeedbackWidget({buttonRef: linkref});
   return (
     <LoadingContainer animate>
-      <NoMarginIndicator size={24}>
-        <div>{t('This trace does not contain any data?!')}</div>
-        <div>
-          {t('Seeing this often? Send us ')}
-          {feedback ? (
-            <a href="#" ref={linkref}>
-              {t('feedback')}
-            </a>
-          ) : (
-            <a href="mailto:support@sentry.io?subject=Trace%20does%20not%20contain%20data">
-              {t('feedback')}
-            </a>
-          )}
-        </div>
-      </NoMarginIndicator>
+      <div>{t('This trace does not contain any data?!')}</div>
+      <div>
+        {t('Seeing this often? Send us ')}
+        {feedback ? (
+          <a href="#" ref={linkref}>
+            {t('feedback')}
+          </a>
+        ) : (
+          <a href="mailto:support@sentry.io?subject=Trace%20does%20not%20contain%20data">
+            {t('feedback')}
+          </a>
+        )}
+      </div>
     </LoadingContainer>
   );
 }

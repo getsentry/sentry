@@ -150,6 +150,7 @@ const timestampsFieldCandidates = [
   'timestamp',
   'endTimestamp',
 ];
+
 export function getEventTimestamp(event: Event): string | number | undefined {
   for (const key of timestampsFieldCandidates) {
     if (
