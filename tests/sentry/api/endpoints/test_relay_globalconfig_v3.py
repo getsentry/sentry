@@ -38,15 +38,11 @@ def test_global_config():
     config["options"]["profiling.profile_metrics.unsampled_profiles.enabled"] = True
     config["options"]["profiling.profile_metrics.unsampled_profiles.platforms"] = ["fake-platform"]
     config["options"]["profiling.profile_metrics.unsampled_profiles.sample_rate"] = 1.0
-    config["options"]["relay.metric-bucket-encodings"] = {
-        "sessions": "array",
-        "transactions": "array",
-        "spans": "array",
-        "custom": "array",
-        "unsupported": "array",
-    }
+
     config["options"]["relay.span-usage-metric"] = True
     config["options"]["relay.cardinality-limiter.mode"] = "passive"
+
+    config["options"]["profiling.generic_metrics.functions_ingestion.enabled"] = True
 
     normalized = normalize_global_config(config)
     assert normalized == config

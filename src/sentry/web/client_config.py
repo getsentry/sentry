@@ -32,7 +32,12 @@ from sentry.services.hybrid_cloud.user import UserSerializeType
 from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo.base import SiloMode
-from sentry.types.region import find_all_multitenant_region_names, get_region_by_name
+from sentry.types.region import (
+    Region,
+    RegionCategory,
+    find_all_multitenant_region_names,
+    get_region_by_name,
+)
 from sentry.utils import auth, json
 from sentry.utils.assets import get_frontend_dist_prefix
 from sentry.utils.email import is_smtp_enabled
@@ -324,7 +329,7 @@ class _ClientConfig:
         """
         The regions available to the current user.
 
-        This will include *all* multi-tenant regions, and if the customer
+        This will include *all* multi-tenant regions, and if the user
         has membership on any single-tenant regions those will also be included.
         """
         user = self.user
@@ -343,12 +348,39 @@ class _ClientConfig:
         if not user or not user.id:
             return [get_region_by_name(name).api_serialize() for name in region_names]
 
+        # TODO(hybridcloud) Have a an RPC for regionmembership for efficiency
         # Ensure all regions the current user is in are included as there
         # could be single tenants or hidden regions
         memberships = user_service.get_organizations(user_id=user.id)
         unique_regions = set(region_names) | {membership.region_name for membership in memberships}
 
-        return [get_region_by_name(name).api_serialize() for name in unique_regions]
+        def region_display_order(region: Region) -> tuple[bool, bool, str]:
+            return (
+                not region.is_historic_monolith_region(),  # default region comes first
+                region.category != RegionCategory.MULTI_TENANT,  # multi-tenants before single
+                region.name,  # then sort alphabetically
+            )
+
+        regions = [get_region_by_name(name) for name in unique_regions]
+        regions.sort(key=region_display_order)
+        return [region.api_serialize() for region in regions]
+
+    @property
+    def member_regions(self) -> list[Mapping[str, Any]]:
+        """
+        The regions the user has membership in. Includes single-tenant regions.
+        """
+        user = self.user
+        # If the user is not authenticated they have no region membership
+        if not user or not user.id:
+            return []
+
+        # TODO(hybridcloud) Have a an RPC for regionmembership for efficiency
+        memberships = user_service.get_organizations(user_id=user.id)
+        region_names = {membership.region_name for membership in memberships}
+        regions = [get_region_by_name(name) for name in region_names]
+        regions.sort(key=lambda r: r.name)
+        return [r.api_serialize() for r in regions]
 
     def get_context(self) -> Mapping[str, Any]:
         return {
@@ -397,6 +429,7 @@ class _ClientConfig:
                 "allowUrls": self.allow_list,
                 "tracePropagationTargets": settings.SENTRY_FRONTEND_TRACE_PROPAGATION_TARGETS or [],
             },
+            "memberRegions": self.member_regions,
             "regions": self.regions,
             "relocationConfig": {"selectableRegions": options.get("relocation.selectable-regions")},
             "demoMode": settings.DEMO_MODE,

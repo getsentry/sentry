@@ -12,6 +12,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   ORDER,
   ORDER_WITH_INP,
+  ORDER_WITH_INP_WITHOUT_FID,
 } from 'sentry/views/performance/browser/webVitals/performanceScoreChart';
 import {PERFORMANCE_SCORE_WEIGHTS} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import type {WebVitalsScoreBreakdown} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsTimeseriesQuery';
@@ -25,6 +26,7 @@ import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals
 import Chart from 'sentry/views/starfish/components/chart';
 
 export const SCORE_MIGRATION_TIMESTAMP = 1702771200000;
+export const FID_DEPRECATION_DATE = 1710259200000;
 
 type Props = {
   transaction?: string;
@@ -91,7 +93,15 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
   const period = pageFilters.selection.datetime.period;
   const performanceScoreSubtext = (period && DEFAULT_RELATIVE_PERIODS[period]) ?? '';
 
-  const chartSeriesOrder = shouldReplaceFidWithInp ? ORDER_WITH_INP : ORDER;
+  const hasFid =
+    timeseriesData?.fid?.find(({value}) => value > 0) !== undefined ||
+    preMigrationTimeseriesData?.fid?.find(({value}) => value > 0) !== undefined;
+
+  const chartSeriesOrder = shouldReplaceFidWithInp
+    ? hasFid
+      ? ORDER_WITH_INP
+      : ORDER_WITH_INP_WITHOUT_FID
+    : ORDER;
 
   const preMigrationWeightedTimeseries = formatTimeSeriesResultsToChartData(
     preMigrationTimeseriesData,

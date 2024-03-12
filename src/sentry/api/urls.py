@@ -389,9 +389,9 @@ from .endpoints.organization_member_unreleased_commits import (
 )
 from .endpoints.organization_metrics import (
     OrganizationMetricDetailsEndpoint,
+    OrganizationMetricsCodeLocationsEndpoint,
     OrganizationMetricsDataEndpoint,
     OrganizationMetricsDetailsEndpoint,
-    OrganizationMetricsMetadataEndpoint,
     OrganizationMetricsQueryEndpoint,
     OrganizationMetricsSamplesEndpoint,
     OrganizationMetricsTagDetailsEndpoint,
@@ -1984,9 +1984,9 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-ddm-meta",
     ),
     re_path(
-        r"^(?P<organization_slug>[^/]+)/metrics/metadata/$",
-        OrganizationMetricsMetadataEndpoint.as_view(),
-        name="sentry-api-0-organization-metrics-metadata",
+        r"^(?P<organization_slug>[^/]+)/metrics/code-locations/$",
+        OrganizationMetricsCodeLocationsEndpoint.as_view(),
+        name="sentry-api-0-organization-metrics-code-locations",
     ),
     re_path(
         r"^(?P<organization_slug>[^/]+)/metrics/meta/$",

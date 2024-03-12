@@ -8,6 +8,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   type MetricFormulaWidgetParams,
   MetricQueryType,
@@ -15,6 +16,7 @@ import {
   type MetricsQuery,
   type MetricWidgetQueryParams,
 } from 'sentry/utils/metrics/types';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DDM_CHART_GROUP} from 'sentry/views/ddm/constants';
 import {useDDMContext} from 'sentry/views/ddm/context';
@@ -37,6 +39,7 @@ export function Queries() {
     toggleWidgetVisibility,
   } = useDDMContext();
 
+  const organization = useOrganization();
   const {selection} = usePageFilters();
 
   // Make sure all charts are connected to the same group whenever the widgets definition changes
@@ -49,6 +52,17 @@ export function Queries() {
       updateWidget(index, widget);
     },
     [updateWidget]
+  );
+
+  const handleAddWidget = useCallback(
+    (type: MetricQueryType) => {
+      trackAnalytics('ddm.widget.add', {
+        organization,
+        type: type === MetricQueryType.QUERY ? 'query' : 'equation',
+      });
+      addWidget(type);
+    },
+    [addWidget, organization]
   );
 
   const [querySymbols, formulaSymbols] = useMemo(() => {
@@ -80,7 +94,7 @@ export function Queries() {
                 index={index}
                 projects={selection.projects}
                 showQuerySymbols={showQuerySymbols}
-                isSelected={index === selectedWidgetIndex}
+                isSelected={isMultiChartMode && index === selectedWidgetIndex}
                 canBeHidden={visibleWidgets.length > 1}
               />
             ) : (
@@ -92,7 +106,7 @@ export function Queries() {
                 index={index}
                 widget={widget}
                 showQuerySymbols={showQuerySymbols}
-                isSelected={index === selectedWidgetIndex}
+                isSelected={isMultiChartMode && index === selectedWidgetIndex}
                 canBeHidden={visibleWidgets.length > 1}
               />
             )}
@@ -103,14 +117,14 @@ export function Queries() {
         <Button
           size="sm"
           icon={<IconAdd isCircled />}
-          onClick={() => addWidget(MetricQueryType.QUERY)}
+          onClick={() => handleAddWidget(MetricQueryType.QUERY)}
         >
           {t('Add query')}
         </Button>
         <Button
           size="sm"
           icon={<IconAdd isCircled />}
-          onClick={() => addWidget(MetricQueryType.FORMULA)}
+          onClick={() => handleAddWidget(MetricQueryType.FORMULA)}
         >
           {t('Add equation')}
         </Button>

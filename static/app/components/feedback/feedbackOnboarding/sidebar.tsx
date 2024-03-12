@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
@@ -34,6 +34,7 @@ import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project, SelectValue} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 import useUrlParams from 'sentry/utils/useUrlParams';
@@ -51,6 +52,14 @@ function FeedbackOnboardingSidebar(props: CommonSidebarProps) {
     onboardingPlatforms: feedbackOnboardingPlatforms,
     allPlatforms: feedbackOnboardingPlatforms,
   });
+
+  useEffect(() => {
+    // this tracks clicks from any source: feedback index, issue details feedback tab, banner callout, etc
+    trackAnalytics('feedback.list-view-setup-sidebar', {
+      organization,
+      platform: currentProject?.platform ?? 'unknown',
+    });
+  }, [organization, currentProject]);
 
   const projectSelectOptions = useMemo(() => {
     const supportedProjectItems: SelectValue<string>[] = allProjects
@@ -254,6 +263,8 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           ]}
           value={setupMode()}
           onChange={setSetupMode}
+          disabledChoices={[['jsLoader', t('Coming soon!')]]}
+          tooltipPosition={'top-start'}
         />
       ) : (
         newDocs?.platformOptions &&
