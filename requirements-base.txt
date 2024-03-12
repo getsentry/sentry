@@ -67,7 +67,7 @@ sentry-ophio==0.1.5
 sentry-redis-tools>=0.1.7
 sentry-relay>=0.8.49
 sentry-sdk>=1.40.6
-snuba-sdk>=2.0.29
+snuba-sdk>=2.0.30
 simplejson>=3.17.6
 sqlparse>=0.4.4
 statsd>=3.3
