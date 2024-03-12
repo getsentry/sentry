@@ -2,7 +2,7 @@ import logging
 import math
 from collections import defaultdict
 from datetime import datetime
-from typing import cast
+from typing import DefaultDict, cast
 
 import pytz
 import sentry_sdk
@@ -207,12 +207,29 @@ def build_summary_data(
                 group__in=([group for group in regressed_or_escalated_groups]),
                 type__in=(ActivityType.SET_REGRESSION.value, ActivityType.SET_ESCALATING.value),
             )
-            if regressed_or_escalated_groups_today:
-                for activity in regressed_or_escalated_groups_today[:4]:
-                    if activity.type == ActivityType.SET_REGRESSION.value:
-                        project_ctx.regressed_today.append(activity.group)
+
+            deduped_groups_by_activity_type: DefaultDict[ActivityType, set] = defaultdict(set)
+
+            for activity in regressed_or_escalated_groups_today:
+                deduped_groups_by_activity_type[ActivityType(activity.type)].add(activity.group)
+
+                if (
+                    activity.type == ActivityType.SET_ESCALATING.value
+                    and activity.group
+                    in deduped_groups_by_activity_type[ActivityType.SET_REGRESSION]
+                ):
+                    # if a group is already in the regressed set but we now see it in escalating, remove from regressed and add to escalating
+                    # this means the group regressed and then later escalated, and we only want to list it once
+                    deduped_groups_by_activity_type[ActivityType.SET_REGRESSION].remove(
+                        activity.group
+                    )
+
+            for activity_type, groups in deduped_groups_by_activity_type.items():
+                for group in list(groups)[:4]:
+                    if activity_type == ActivityType.SET_REGRESSION:
+                        project_ctx.regressed_today.append(group)
                     else:
-                        project_ctx.escalated_today.append(activity.group)
+                        project_ctx.escalated_today.append(group)
 
             # The project's releases and the (max) top 3 new errors e.g. release - group1, group2
             release_projects = ReleaseProject.objects.filter(project_id=project_id).values_list(
