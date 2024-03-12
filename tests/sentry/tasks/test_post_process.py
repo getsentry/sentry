@@ -2849,7 +2849,6 @@ class PostProcessGroupFeedbackTest(
                 event=event,
                 cache_key="total_rubbish",
             )
-        # assert mock_process_rules is not called
         assert mock_process_func.call_count == 1
 
     def test_ran_if_crash_feedback_envelope(self):
