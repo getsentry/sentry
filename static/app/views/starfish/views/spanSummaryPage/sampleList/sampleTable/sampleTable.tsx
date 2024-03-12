@@ -21,7 +21,7 @@ import {SpanMetricsField} from 'sentry/views/starfish/types';
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 
 const SpanSamplesTableContainer = styled('div')`
-  padding-bottom: ${space(2)};
+  padding-top: ${space(2)};
 `;
 
 type Props = {
