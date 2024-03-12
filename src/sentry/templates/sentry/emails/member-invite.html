@@ -5,7 +5,7 @@
 
 {% block main %}
     <h3>You've been invited to Sentry</h3>
-    <p>Your teammates at <strong>{{ organization.name|sanitize_periods|sanitize_periods }}</strong> are using Sentry to track and debug software errors.</p>
+    <p>Your teammates at <strong>{{ organization.name|sanitize_periods }}</strong> are using Sentry to track and debug software errors.</p>
 
     <p><a href="{{ url }}" class="btn">Join your team</a></p>
 
