@@ -1,6 +1,6 @@
 import sentry_sdk
 
-from sentry.lang.java.processing import deobfuscate_exception_value
+from sentry.lang.java.processing import deobfuscate_exception_value, process_jvm_stacktraces
 from sentry.lang.java.proguard import open_proguard_mapper
 from sentry.lang.java.utils import (
     deobfuscate_view_hierarchy,
@@ -292,6 +292,7 @@ class JavaPlugin(Plugin2):
 
     def get_stacktrace_processors(self, data, stacktrace_infos, platforms, **kwargs):
         if should_use_symbolicator_for_proguard(data.get("project")):
+            process_jvm_stacktraces(data)
             return []
 
         if "java" in platforms:

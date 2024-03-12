@@ -102,13 +102,13 @@ def get_native_symbolication_function(data: Any) -> Callable[[Symbolicator, Any]
 def get_symbolication_function(
     data: Any,
 ) -> tuple[SymbolicatorPlatform, Callable[[Symbolicator, Any], Any] | None]:
-    from sentry.lang.java.processing import process_jvm_stacktraces
-    from sentry.lang.java.utils import should_use_symbolicator_for_proguard
+    # from sentry.lang.java.processing import process_jvm_stacktraces
+    # from sentry.lang.java.utils import should_use_symbolicator_for_proguard
 
     if data["platform"] in ("javascript", "node"):
         return SymbolicatorPlatform.js, process_js_stacktraces
-    elif data["platform"] == "java" and should_use_symbolicator_for_proguard(data.get("project")):
-        return SymbolicatorPlatform.jvm.value, process_jvm_stacktraces
+    # elif data["platform"] == "java" and should_use_symbolicator_for_proguard(data.get("project")):
+    #     return SymbolicatorPlatform.jvm.value, process_jvm_stacktraces
     else:
         return SymbolicatorPlatform.native.value, get_native_symbolication_function(data)
 
