@@ -194,12 +194,12 @@ function GroupReplaysTable({
 const StyledLayoutPage = styled(Layout.Page)`
   box-shadow: 0px 0px 1px ${p => p.theme.gray200};
   background-color: ${p => p.theme.background};
+  gap: ${space(2)};
 `;
 
 const ReplayCountHeader = styled('div')`
   display: flex;
   align-items: center;
-  padding-bottom: ${p => 2 * p.theme.grid}px;
   gap: ${space(1)};
 `;
 
