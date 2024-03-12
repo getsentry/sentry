@@ -366,12 +366,15 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         application_is_inactive = False
 
         if not token:
-            at = token = self._find_or_update_token_by_hash(token_str)
 
             if SiloMode.get_current_mode() == SiloMode.REGION:
-                user = user_service.get_user(user_id=at.user_id)
-                application_is_inactive = not at.application_is_active
+                atr: ApiTokenReplica = self._find_or_update_token_by_hash(token_str)
+                token = atr
+                user = user_service.get_user(user_id=atr.user_id)
+                application_is_inactive = not atr.application_is_active
             else:
+                at: ApiToken = self._find_or_update_token_by_hash(token_str)
+                token = at
                 user = at.user
                 application_is_inactive = (
                     at.application is not None and not at.application.is_active
