@@ -277,6 +277,31 @@ class ControlOutboxTest(TestCase):
 
 @region_silo_test
 class OutboxDrainTest(TransactionTestCase):
+    @patch("sentry.models.outbox.process_region_outbox.send")
+    def test_draining_with_disabled_shards(self, mock_send):
+        outbox1 = Organization(id=1).outbox_for_update()
+        outbox2 = Organization(id=1).outbox_for_update()
+        outbox3 = Organization(id=2).outbox_for_update()
+
+        with outbox_context(flush=False):
+            outbox1.save()
+            outbox2.save()
+            outbox3.save()
+
+        with self.options({"hybrid_cloud.authentication.disabled_organization_shards": [1]}):
+            outbox1.drain_shard()
+            with pytest.raises(RegionOutbox.DoesNotExist):
+                outbox1.refresh_from_db()
+            outbox2.refresh_from_db()  # still exists
+
+            assert mock_send.call_count == 0
+
+            outbox3.drain_shard()
+            with pytest.raises(RegionOutbox.DoesNotExist):
+                outbox3.refresh_from_db()
+
+            assert mock_send.call_count == 1
+
     def test_drain_shard_not_flush_all__upper_bound(self):
         outbox1 = Organization(id=1).outbox_for_update()
         outbox2 = Organization(id=1).outbox_for_update()
