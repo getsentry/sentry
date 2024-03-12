@@ -111,11 +111,13 @@ class OrganizationMetricsMetadataTest(APITestCase, BaseSpansTestCase):
 
         assert len(code_locations) == 2
 
+        assert code_locations[0]["projectId"] == projects[0].id
         assert code_locations[0]["mri"] == mris[0]
         assert code_locations[0]["timestamp"] == self._round_to_day(
             self.current_time - timedelta(days=1)
         )
 
+        assert code_locations[1]["projectId"] == projects[0].id
         assert code_locations[1]["mri"] == mris[0]
         assert code_locations[1]["timestamp"] == self._round_to_day(self.current_time)
 
@@ -128,6 +130,29 @@ class OrganizationMetricsMetadataTest(APITestCase, BaseSpansTestCase):
         assert len(frames) == 2
         for index, filename in enumerate(("main.py", "script.py")):
             assert frames[index]["filename"] == filename
+
+    def test_get_locations_with_all_projects(self):
+        projects = [
+            self.create_project(organization=self.organization, name="project_1"),
+            self.create_project(organization=self.organization, name="project_2"),
+            self.create_project(organization=self.organization, name="project_3"),
+        ]
+        mris = [
+            "d:custom/sentry.process_profile.track_outcome@second",
+        ]
+
+        self._store_code_locations(self.organization, projects, mris, 2)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=mris,
+            project="-1",
+            statsPeriod="1d",
+            codeLocations="true",
+        )
+        code_locations = response.data["codeLocations"]
+
+        assert len(code_locations) == 6
 
     def test_get_locations_with_start_and_end(self):
         projects = [self.create_project(name="project_1")]
@@ -151,6 +176,7 @@ class OrganizationMetricsMetadataTest(APITestCase, BaseSpansTestCase):
 
         assert len(code_locations) == 1
 
+        assert code_locations[0]["projectId"] == projects[0].id
         assert code_locations[0]["mri"] == mris[0]
         assert code_locations[0]["timestamp"] == self._round_to_day(
             self.current_time - timedelta(days=1)
