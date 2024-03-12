@@ -108,7 +108,10 @@ function PriorityChangeActor({
 
 function GroupPriorityFeedback() {
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const feedback = useFeedbackWidget({buttonRef});
+  const feedback = useFeedbackWidget({
+    buttonRef,
+    messagePlaceholder: t('How can we make priority better for you?'),
+  });
 
   if (!feedback) {
     return null;
@@ -171,6 +174,10 @@ export function GroupPriorityDropdown({
             })}
           </div>
         </DropdownMenuFooter>
+      }
+      shouldCloseOnInteractOutside={target =>
+        // Since this can open a feedback modal, we want to ignore interactions with it
+        !document.getElementById('sentry-feedback')?.contains(target)
       }
       position="bottom-end"
     />
