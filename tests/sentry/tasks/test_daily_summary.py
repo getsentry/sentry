@@ -34,7 +34,6 @@ from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from sentry.types.integrations import ExternalProviders
-from sentry.utils.dates import to_timestamp
 from sentry.utils.outcomes import Outcome
 
 
@@ -191,22 +190,39 @@ class DailySummaryTest(
         self.create_member(teams=[self.team], user=user2, organization=self.organization)
 
         with self.tasks():
-            schedule_organizations(timestamp=to_timestamp(self.now))
+            schedule_organizations(timestamp=self.now.timestamp())
 
         # user2's local timezone is UTC and therefore it isn't sent now
         assert mock_prepare_summary_data.delay.call_count == 1
         for call_args in mock_prepare_summary_data.delay.call_args_list:
             assert call_args.args == (
-                to_timestamp(self.now),
+                self.now.timestamp(),
                 ONE_DAY,
                 self.organization.id,
                 [self.user.id],
             )
 
+    @with_feature("organizations:daily-summary")
+    @mock.patch("sentry.tasks.summaries.daily_summary.prepare_summary_data")
+    def test_schedule_organizations_timing(self, mock_prepare_summary_data):
+        with self.tasks(), freeze_time("2024-03-06 23:15:00"):  # 3:15PM PST
+            schedule_organizations()
+        assert mock_prepare_summary_data.delay.call_count == 0
+
+        with self.tasks(), freeze_time("2024-03-07 00:00:00"):  # 4PM PST
+            schedule_organizations()
+        assert mock_prepare_summary_data.delay.call_count == 1
+
+        with self.tasks(), freeze_time("2024-03-07 01:00:00"):  # 5PM PST
+            schedule_organizations()
+        assert (
+            mock_prepare_summary_data.delay.call_count == 1
+        )  # note this didn't fire again, it just didn't increase from before
+
     def test_build_summary_data(self):
         self.populate_event_data()
         summary = build_summary_data(
-            timestamp=to_timestamp(self.now),
+            timestamp=self.now.timestamp(),
             duration=ONE_DAY,
             organization=self.organization,
             daily=True,
@@ -247,7 +263,7 @@ class DailySummaryTest(
         self.populate_event_data()
         with self.tasks():
             prepare_summary_data(
-                to_timestamp(self.now), ONE_DAY, self.organization.id, [self.user.id]
+                self.now.timestamp(), ONE_DAY, self.organization.id, [self.user.id]
             )
 
         assert mock_deliver_summary.call_count == 1
@@ -257,7 +273,7 @@ class DailySummaryTest(
         """Test that if the summary has no data in it, we don't even try to send it"""
         with self.tasks():
             prepare_summary_data(
-                to_timestamp(self.now), ONE_DAY, self.organization.id, [self.user.id]
+                self.now.timestamp(), ONE_DAY, self.organization.id, [self.user.id]
             )
 
         assert mock_deliver_summary.call_count == 0
@@ -266,7 +282,7 @@ class DailySummaryTest(
     def test_deliver_summary(self, mock_send):
         self.populate_event_data()
         summary = build_summary_data(
-            timestamp=to_timestamp(self.now),
+            timestamp=self.now.timestamp(),
             duration=ONE_DAY,
             organization=self.organization,
             daily=True,
@@ -290,7 +306,7 @@ class DailySummaryTest(
                 category=DataCategory.ERROR,
             )
         context = build_summary_data(
-            timestamp=to_timestamp(self.now),
+            timestamp=self.now.timestamp(),
             duration=ONE_DAY,
             organization=self.organization,
             daily=True,
@@ -325,7 +341,7 @@ class DailySummaryTest(
         user2 = self.create_user()
         self.create_member(teams=[self.team], user=user2, organization=self.organization)
         context = build_summary_data(
-            timestamp=to_timestamp(self.now),
+            timestamp=self.now.timestamp(),
             duration=ONE_DAY,
             organization=self.organization,
             daily=True,
@@ -338,7 +354,7 @@ class DailySummaryTest(
     def test_slack_notification_contents(self):
         self.populate_event_data()
         ctx = build_summary_data(
-            timestamp=to_timestamp(self.now),
+            timestamp=self.now.timestamp(),
             duration=ONE_DAY,
             organization=self.organization,
             daily=True,
@@ -360,33 +376,33 @@ class DailySummaryTest(
             in blocks[0]["text"]["text"]
         )
         assert f"*{self.project.slug}*" in blocks[2]["text"]["text"]
-        # check the new in release section
-        assert ":rocket:" in blocks[3]["text"]["text"]
-        assert self.release.version in blocks[3]["text"]["text"]
-        assert link_text.format(self.group2.id) in blocks[3]["text"]["text"]
-        assert link_text.format(self.group3.id) in blocks[3]["text"]["text"]
         # check the today's event count section
-        assert "*Today’s Event Count*" in blocks[4]["text"]["text"]
-        assert "higher than last 14d avg" in blocks[4]["text"]["text"]
+        assert "*Today’s Event Count*" in blocks[3]["fields"][0]["text"]
+        assert "higher than last 14d avg" in blocks[3]["fields"][1]["text"]
+        # check the new in release section
+        assert ":rocket:" in blocks[4]["fields"][0]["text"]
+        assert self.release.version in blocks[4]["fields"][0]["text"]
+        assert link_text.format(self.group2.id) in blocks[4]["fields"][1]["text"]
+        assert link_text.format(self.group3.id) in blocks[4]["fields"][1]["text"]
         # check error issues
-        assert "*Today's Top 3 Error Issues" in blocks[5]["text"]["text"]
-        assert link_text.format(self.group1.id) in blocks[5]["text"]["text"]
-        assert link_text.format(self.group2.id) in blocks[5]["text"]["text"]
-        assert link_text.format(self.group2.id) in blocks[5]["text"]["text"]
+        assert "*Today's Top 3 Error Issues" in blocks[5]["fields"][0]["text"]
+        assert link_text.format(self.group1.id) in blocks[5]["fields"][0]["text"]
+        assert link_text.format(self.group2.id) in blocks[5]["fields"][0]["text"]
+        assert link_text.format(self.group2.id) in blocks[5]["fields"][0]["text"]
         # check escalated or regressed issues
-        assert "*Issues that escalated or regressed today*" in blocks[6]["text"]["text"]
-        assert link_text.format(self.group2.id) in blocks[6]["text"]["text"]
-        assert link_text.format(self.group3.id) in blocks[6]["text"]["text"]
+        assert "*Issues that escalated or regressed today*" in blocks[5]["fields"][1]["text"]
+        assert link_text.format(self.group2.id) in blocks[5]["fields"][1]["text"]
+        assert link_text.format(self.group3.id) in blocks[5]["fields"][1]["text"]
         # check performance issues
-        assert "*Today's Top 3 Performance Issues*" in blocks[7]["text"]["text"]
-        assert link_text.format(self.perf_event.group.id) in blocks[7]["text"]["text"]
-        assert link_text.format(self.perf_event2.group.id) in blocks[7]["text"]["text"]
+        assert "*Today's Top 3 Performance Issues*" in blocks[6]["text"]["text"]
+        assert link_text.format(self.perf_event.group.id) in blocks[6]["text"]["text"]
+        assert link_text.format(self.perf_event2.group.id) in blocks[6]["text"]["text"]
         # repeat above for second project
-        assert self.project2.slug in blocks[9]["text"]["text"]
-        assert "*Today's Top 3 Error Issues" in blocks[10]["text"]["text"]
-        assert link_text.format(self.group4.id) in blocks[10]["text"]["text"]
+        assert self.project2.slug in blocks[8]["text"]["text"]
+        assert "*Today's Top 3 Error Issues" in blocks[9]["fields"][0]["text"]
+        assert link_text.format(self.group4.id) in blocks[9]["fields"][0]["text"]
         # check footer
-        assert "Getting this at a funky time?" in blocks[12]["elements"][0]["text"]
+        assert "Getting this at a funky time?" in blocks[11]["elements"][0]["text"]
 
     @responses.activate
     @with_feature("organizations:slack-block-kit")
@@ -405,7 +421,7 @@ class DailySummaryTest(
                 category=DataCategory.ERROR,
             )
         context = build_summary_data(
-            timestamp=to_timestamp(self.now),
+            timestamp=self.now.timestamp(),
             duration=ONE_DAY,
             organization=self.organization,
             daily=True,
@@ -419,7 +435,7 @@ class DailySummaryTest(
                 project_context=top_projects_context_map,
             ).send()
         blocks, _ = get_blocks_and_fallback_text()
-        assert len(blocks) == 13
+        assert len(blocks) == 12
 
     @responses.activate
     @with_feature("organizations:slack-block-kit")
@@ -429,7 +445,7 @@ class DailySummaryTest(
         """
         self.populate_event_data(use_release=False)
         ctx = build_summary_data(
-            timestamp=to_timestamp(self.now),
+            timestamp=self.now.timestamp(),
             duration=ONE_DAY,
             organization=self.organization,
             daily=True,
@@ -446,8 +462,8 @@ class DailySummaryTest(
         assert f"*{self.project.slug}*" in blocks[2]["text"]["text"]
         # check that we skip ahead to the today's event count section
         # if we had release data, it would be here instead
-        assert "*Today’s Event Count*" in blocks[3]["text"]["text"]
-        assert "higher than last 14d avg" in blocks[3]["text"]["text"]
+        assert "*Today’s Event Count*" in blocks[3]["fields"][0]["text"]
+        assert "higher than last 14d avg" in blocks[3]["fields"][1]["text"]
 
     @responses.activate
     @with_feature("organizations:slack-block-kit")
@@ -457,7 +473,7 @@ class DailySummaryTest(
         """
         self.populate_event_data(performance_issues=False)
         ctx = build_summary_data(
-            timestamp=to_timestamp(self.now),
+            timestamp=self.now.timestamp(),
             duration=ONE_DAY,
             organization=self.organization,
             daily=True,
@@ -472,29 +488,29 @@ class DailySummaryTest(
             ).send()
         blocks, fallback_text = get_blocks_and_fallback_text()
         link_text = "http://testserver/organizations/baz/issues/{}/?referrer=slack"
-        # check the new in release section
-        assert ":rocket:" in blocks[3]["text"]["text"]
-        assert self.release.version in blocks[3]["text"]["text"]
-        assert link_text.format(self.group2.id) in blocks[3]["text"]["text"]
-        assert link_text.format(self.group3.id) in blocks[3]["text"]["text"]
         # check the today's event count section
-        assert "*Today’s Event Count*" in blocks[4]["text"]["text"]
-        assert "higher than last 14d avg" in blocks[4]["text"]["text"]
+        assert "*Today’s Event Count*" in blocks[3]["fields"][0]["text"]
+        assert "higher than last 14d avg" in blocks[3]["fields"][1]["text"]
+        # check the new in release section
+        assert ":rocket:" in blocks[4]["fields"][0]["text"]
+        assert self.release.version in blocks[4]["fields"][0]["text"]
+        assert link_text.format(self.group2.id) in blocks[4]["fields"][0]["text"]
+        assert link_text.format(self.group3.id) in blocks[4]["fields"][1]["text"]
         # check error issues
-        assert "*Today's Top 3 Error Issues" in blocks[5]["text"]["text"]
-        assert link_text.format(self.group1.id) in blocks[5]["text"]["text"]
-        assert link_text.format(self.group2.id) in blocks[5]["text"]["text"]
-        assert link_text.format(self.group2.id) in blocks[5]["text"]["text"]
+        assert "*Today's Top 3 Error Issues" in blocks[5]["fields"][0]["text"]
+        assert link_text.format(self.group1.id) in blocks[5]["fields"][0]["text"]
+        assert link_text.format(self.group2.id) in blocks[5]["fields"][0]["text"]
+        assert link_text.format(self.group2.id) in blocks[5]["fields"][0]["text"]
         # check escalated or regressed issues
-        assert "*Issues that escalated or regressed today*" in blocks[6]["text"]["text"]
-        assert link_text.format(self.group2.id) in blocks[6]["text"]["text"]
-        assert link_text.format(self.group3.id) in blocks[6]["text"]["text"]
+        assert "*Issues that escalated or regressed today*" in blocks[5]["fields"][1]["text"]
+        assert link_text.format(self.group2.id) in blocks[5]["fields"][1]["text"]
+        assert link_text.format(self.group3.id) in blocks[5]["fields"][1]["text"]
         # repeat above for second project, skipping where performance issue info would be
-        assert self.project2.slug in blocks[8]["text"]["text"]
-        assert "*Today's Top 3 Error Issues" in blocks[9]["text"]["text"]
-        assert link_text.format(self.group4.id) in blocks[9]["text"]["text"]
+        assert self.project2.slug in blocks[7]["text"]["text"]
+        assert "*Today's Top 3 Error Issues" in blocks[8]["fields"][0]["text"]
+        assert link_text.format(self.group4.id) in blocks[8]["fields"][0]["text"]
         # check footer
-        assert "Getting this at a funky time?" in blocks[11]["elements"][0]["text"]
+        assert "Getting this at a funky time?" in blocks[10]["elements"][0]["text"]
 
     @responses.activate
     @with_feature("organizations:slack-block-kit")
@@ -504,7 +520,7 @@ class DailySummaryTest(
         """
         self.populate_event_data(regressed_issue=False, escalated_issue=False)
         ctx = build_summary_data(
-            timestamp=to_timestamp(self.now),
+            timestamp=self.now.timestamp(),
             duration=ONE_DAY,
             organization=self.organization,
             daily=True,
@@ -520,26 +536,26 @@ class DailySummaryTest(
         blocks, fallback_text = get_blocks_and_fallback_text()
         link_text = "http://testserver/organizations/baz/issues/{}/?referrer=slack"
         assert f"*{self.project.slug}*" in blocks[2]["text"]["text"]
-        # check the new in release section
-        assert ":rocket:" in blocks[3]["text"]["text"]
-        assert self.release.version in blocks[3]["text"]["text"]
-        assert link_text.format(self.group2.id) in blocks[3]["text"]["text"]
-        assert link_text.format(self.group3.id) in blocks[3]["text"]["text"]
         # check the today's event count section
-        assert "*Today’s Event Count*" in blocks[4]["text"]["text"]
-        assert "higher than last 14d avg" in blocks[4]["text"]["text"]
+        assert "*Today’s Event Count*" in blocks[3]["fields"][0]["text"]
+        assert "higher than last 14d avg" in blocks[3]["fields"][1]["text"]
+        # check the new in release section
+        assert ":rocket:" in blocks[4]["fields"][0]["text"]
+        assert self.release.version in blocks[4]["fields"][0]["text"]
+        assert link_text.format(self.group2.id) in blocks[4]["fields"][0]["text"]
+        assert link_text.format(self.group3.id) in blocks[4]["fields"][1]["text"]
         # check error issues
-        assert "*Today's Top 3 Error Issues" in blocks[5]["text"]["text"]
-        assert link_text.format(self.group1.id) in blocks[5]["text"]["text"]
-        assert link_text.format(self.group2.id) in blocks[5]["text"]["text"]
-        assert link_text.format(self.group2.id) in blocks[5]["text"]["text"]
+        assert "*Today's Top 3 Error Issues" in blocks[5]["fields"][0]["text"]
+        assert link_text.format(self.group1.id) in blocks[5]["fields"][0]["text"]
+        assert link_text.format(self.group2.id) in blocks[5]["fields"][0]["text"]
+        assert link_text.format(self.group2.id) in blocks[5]["fields"][0]["text"]
         # check performance issues - skipped past escalated or regressed issues
         assert "*Today's Top 3 Performance Issues*" in blocks[6]["text"]["text"]
         assert link_text.format(self.perf_event.group.id) in blocks[6]["text"]["text"]
         assert link_text.format(self.perf_event2.group.id) in blocks[6]["text"]["text"]
         # repeat above for second project
         assert self.project2.slug in blocks[8]["text"]["text"]
-        assert "*Today's Top 3 Error Issues" in blocks[9]["text"]["text"]
-        assert link_text.format(self.group4.id) in blocks[9]["text"]["text"]
+        assert "*Today's Top 3 Error Issues" in blocks[9]["fields"][0]["text"]
+        assert link_text.format(self.group4.id) in blocks[9]["fields"][0]["text"]
         # check footer
         assert "Getting this at a funky time?" in blocks[11]["elements"][0]["text"]

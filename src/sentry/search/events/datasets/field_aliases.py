@@ -135,3 +135,14 @@ def resolve_device_class(builder: builder.QueryBuilder, alias: str) -> SelectTyp
         [builder.column("device.class"), values, keys, "Unknown"],
         alias,
     )
+
+
+def resolve_precise_timestamp(timestamp_column, ms_column, alias: str) -> SelectType:
+    return Function(
+        "plus",
+        [
+            Function("toUnixTimestamp", [timestamp_column]),
+            Function("divide", [ms_column, 1000]),
+        ],
+        alias,
+    )

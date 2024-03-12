@@ -257,7 +257,6 @@ describe('WidgetBuilder', function () {
   afterEach(function () {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
-    jest.useRealTimers();
   });
 
   it('no feature access', function () {
@@ -266,7 +265,7 @@ describe('WidgetBuilder', function () {
     expect(screen.getByText("You don't have access to this feature")).toBeInTheDocument();
   });
 
-  it('widget not found', function () {
+  it('widget not found', async function () {
     const widget: Widget = {
       displayType: DisplayType.AREA,
       interval: '1d',
@@ -303,11 +302,11 @@ describe('WidgetBuilder', function () {
     });
 
     expect(
-      screen.getByText('The widget you want to edit was not found.')
+      await screen.findByText('The widget you want to edit was not found.')
     ).toBeInTheDocument();
   });
 
-  it('renders a widget not found message if the widget index url is not an integer', function () {
+  it('renders a widget not found message if the widget index url is not an integer', async function () {
     const widget: Widget = {
       displayType: DisplayType.AREA,
       interval: '1d',
@@ -336,7 +335,7 @@ describe('WidgetBuilder', function () {
     });
 
     expect(
-      screen.getByText('The widget you want to edit was not found.')
+      await screen.findByText('The widget you want to edit was not found.')
     ).toBeInTheDocument();
   });
 
@@ -1117,7 +1116,6 @@ describe('WidgetBuilder', function () {
   });
 
   it('does not error when query conditions field is blurred', async function () {
-    jest.useFakeTimers();
     const widget: Widget = {
       id: '0',
       title: 'sdk usage',
@@ -1150,7 +1148,7 @@ describe('WidgetBuilder', function () {
     await userEvent.keyboard('{Escape}', {delay: null});
 
     // Run all timers because the handleBlur contains a setTimeout
-    jest.runAllTimers();
+    await act(tick);
   });
 
   it('does not wipe column changes when filters are modified', async function () {
