@@ -80,7 +80,7 @@ instead of group deletion is:
 """
 
 import logging
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Literal, Union
@@ -97,6 +97,7 @@ from sentry.eventstore.processing import event_processing_store
 from sentry.eventstore.reprocessing import reprocessing_store
 from sentry.models.eventattachment import EventAttachment
 from sentry.snuba.dataset import Dataset
+from sentry.types.activity import ActivityType
 from sentry.utils import json, metrics, snuba
 from sentry.utils.safe import get_path, set_path
 
@@ -105,12 +106,12 @@ logger = logging.getLogger("sentry.reprocessing")
 
 # Group-related models are only a few per-group and are migrated at
 # once.
-GROUP_MODELS_TO_MIGRATE = DIRECT_GROUP_RELATED_MODELS + (models.Activity,)
+GROUP_MODELS_TO_MIGRATE_RAW = DIRECT_GROUP_RELATED_MODELS + (models.Activity,)
 
 # If we were to move groupinbox to the new, empty group, inbox would show the
 # empty, unactionable group while it is reprocessing. Let post-process take
 # care of assigning GroupInbox like normally.
-GROUP_MODELS_TO_MIGRATE = tuple(x for x in GROUP_MODELS_TO_MIGRATE if x != models.GroupInbox)
+GROUP_MODELS_TO_MIGRATE = tuple(x for x in GROUP_MODELS_TO_MIGRATE_RAW if x != models.GroupInbox)
 
 # Event attachments and group reports are per-event. This means that:
 #
@@ -142,7 +143,7 @@ class CannotReprocess(Exception):
         Exception.__init__(self, reason)
 
 
-def backup_unprocessed_event(data):
+def backup_unprocessed_event(data: dict[str, Any]) -> None:
     """
     Backup unprocessed event payload into redis. Only call if event should be
     able to be reprocessed.
@@ -161,7 +162,7 @@ class ReprocessableEvent:
     attachments: list[EventAttachment]
 
 
-def pull_event_data(project_id, event_id) -> ReprocessableEvent:
+def pull_event_data(project_id: int, event_id: str) -> ReprocessableEvent:
     from sentry.lang.native.processing import get_required_attachment_types
 
     with sentry_sdk.start_span(op="reprocess_events.eventstore.get"):
@@ -172,7 +173,7 @@ def pull_event_data(project_id, event_id) -> ReprocessableEvent:
 
     with sentry_sdk.start_span(op="reprocess_events.nodestore.get"):
         node_id = Event.generate_node_id(project_id, event_id)
-        data = nodestore.get(node_id, subkey="unprocessed")
+        data = nodestore.backend.get(node_id, subkey="unprocessed")
 
     # Check data after checking presence of event to avoid too many instances.
     if data is None:
@@ -192,7 +193,7 @@ def pull_event_data(project_id, event_id) -> ReprocessableEvent:
     return ReprocessableEvent(event=event, data=data, attachments=attachments)
 
 
-def reprocess_event(project_id, event_id, start_time):
+def reprocess_event(project_id: int, event_id: str, start_time: int) -> None:
     from sentry.ingest.consumer.processors import CACHE_TIMEOUT
     from sentry.tasks.store import preprocess_event_from_reprocessing
 
@@ -239,11 +240,11 @@ def reprocess_event(project_id, event_id, start_time):
     )
 
 
-def get_original_group_id(event):
+def get_original_group_id(event: Event) -> int | None:
     return get_path(event.data, "contexts", "reprocessing", "original_issue_id")
 
 
-def get_original_primary_hash(event):
+def get_original_primary_hash(event: Event) -> str | None:
     return get_path(event.data, "contexts", "reprocessing", "original_primary_hash")
 
 
@@ -252,7 +253,7 @@ def _send_delete_old_primary_hash_messages(
     group_id: int,
     old_primary_hashes: Sequence[str],
     force_flush_batch: bool,
-):
+) -> None:
     # Events for a group are split and bucketed by their primary hashes. If flushing is to be
     # performed on a per-group basis, the event count needs to be summed up across all buckets
     # belonging to a single group.
@@ -285,7 +286,7 @@ def _send_delete_old_primary_hash_messages(
         # events, which means 1 insert per event.
         # The overall performance of this will be marginally better than the unbatched version
         # if a group has a lot of old primary hashes.
-        eventstream.tombstone_events_unsafe(
+        eventstream.backend.tombstone_events_unsafe(
             project_id,
             event_ids,
             old_primary_hash=primary_hash,
@@ -311,14 +312,14 @@ def _send_delete_old_primary_hash_messages(
 
 
 def buffered_delete_old_primary_hash(
-    project_id,
-    group_id,
-    event_id=None,
-    datetime=None,
-    old_primary_hash=None,
-    current_primary_hash=None,
+    project_id: int,
+    group_id: int,
+    event_id: int | None = None,
+    datetime: datetime | None = None,
+    old_primary_hash: str | None = None,
+    current_primary_hash: str | None = None,
     force_flush_batch: bool = False,
-):
+) -> None:
     """
     In case the primary hash changed during reprocessing, we need to tell
     Snuba before reinserting the event. Snuba may then insert a tombstone row
@@ -378,8 +379,8 @@ def buffered_delete_old_primary_hash(
 
 
 def _copy_attachment_into_cache(
-    attachment_id, attachment: EventAttachment, cache_key, cache_timeout
-):
+    attachment_id: int, attachment: EventAttachment, cache_key: str, cache_timeout: int
+) -> CachedAttachment:
     with attachment.getfile() as fp:
         chunk_index = 0
         size = 0
@@ -414,11 +415,11 @@ def _copy_attachment_into_cache(
     )
 
 
-def is_reprocessed_event(data):
+def is_reprocessed_event(data: Mapping[str, Any]) -> bool:
     return bool(_get_original_issue_id(data))
 
 
-def _get_original_issue_id(data):
+def _get_original_issue_id(data: Mapping[str, Any]) -> str | None:
     return get_path(data, "contexts", "reprocessing", "original_issue_id")
 
 
@@ -427,9 +428,9 @@ def buffered_handle_remaining_events(
     old_group_id: int,
     new_group_id: int,
     datetime_to_event: list[tuple[datetime, str]],
-    remaining_events,
+    remaining_events: int,
     force_flush_batch: bool = False,
-):
+) -> None:
     """
     A quick-and-dirty wrapper around `handle_remaining_events` that batches up
     event IDs in Redis. We need this because Snuba cannot handle many tiny
@@ -460,7 +461,7 @@ def buffered_handle_remaining_events(
         )
 
 
-def pop_batched_events_from_redis(key):
+def pop_batched_events_from_redis(key: str) -> tuple[list[str], datetime | None, datetime | None]:
     """
     For redis key pointing to a list of buffered events structured like
     `event id;datetime of event`, returns a list of event IDs, the
@@ -469,7 +470,12 @@ def pop_batched_events_from_redis(key):
     return reprocessing_store.pop_batched_events_by_key(key)
 
 
-def mark_event_reprocessed(data=None, group_id=None, project_id=None, num_events=1):
+def mark_event_reprocessed(
+    data: dict[str, Any] | None = None,
+    group_id: str | None = None,
+    project_id: int | None = None,
+    num_events: int = 1,
+) -> None:
     """
     This function is supposed to be unconditionally called when an event has
     finished reprocessing, regardless of whether it has been saved or not.
@@ -491,8 +497,12 @@ def mark_event_reprocessed(data=None, group_id=None, project_id=None, num_events
 
 
 def start_group_reprocessing(
-    project_id, group_id, remaining_events, max_events=None, acting_user_id=None
-):
+    project_id: int,
+    group_id: int,
+    remaining_events: str,
+    max_events: int | None = None,
+    acting_user_id: int | None = None,
+) -> int:
     from django.db import transaction
 
     with transaction.atomic(router.db_for_write(models.Group)):
@@ -560,7 +570,7 @@ def start_group_reprocessing(
     # Later the activity is migrated to the new group where it is used to serve
     # the success message.
     new_activity = models.Activity.objects.create(
-        type=models.ActivityType.REPROCESS.value,
+        type=ActivityType.REPROCESS.value,
         project=new_group.project,
         ident=str(group_id),
         group_id=group_id,
@@ -576,7 +586,7 @@ def start_group_reprocessing(
     return new_group.id
 
 
-def is_group_finished(group_id):
+def is_group_finished(group_id: int) -> bool:
     """
     Checks whether a group has finished reprocessing.
     """
@@ -585,7 +595,7 @@ def is_group_finished(group_id):
     return pending <= 0
 
 
-def get_progress(group_id, project_id=None):
+def get_progress(group_id: int, project_id: int | None = None) -> tuple[int, Any | None]:
     pending, ttl = reprocessing_store.get_pending(group_id)
     info = reprocessing_store.get_progress(group_id)
     if pending is None:
@@ -610,5 +620,5 @@ def get_progress(group_id, project_id=None):
     # Our internal sync counters are counting over *all* events, but the
     # progressbar in the frontend goes until max_events. Advance progressbar
     # proportionally.
-    pending = int(int(pending) * info["totalEvents"] / float(info.get("syncCount") or 1))
-    return pending, info
+    _pending = int(int(pending) * info["totalEvents"] / float(info.get("syncCount") or 1))
+    return _pending, info
