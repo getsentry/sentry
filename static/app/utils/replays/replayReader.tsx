@@ -29,7 +29,7 @@ import type {
   serializedNodeWithId,
   SlowClickFrame,
   SpanFrame,
-  VideoFrameEvent,
+  VideoEvent,
 } from 'sentry/utils/replays/types';
 import {
   BreadcrumbCategories,
@@ -151,7 +151,7 @@ export default class ReplayReader {
       return archivedReader;
     }
 
-    const {breadcrumbFrames, optionFrame, rrwebFrames, spanFrames} =
+    const {breadcrumbFrames, optionFrame, rrwebFrames, spanFrames, videoFrames} =
       hydrateFrames(attachments);
 
     if (localStorageWrapper.getItem('REPLAY-BACKEND-TIMESTAMPS') !== '1') {
@@ -183,6 +183,7 @@ export default class ReplayReader {
     this._errors = hydrateErrors(replayRecord, errors).sort(sortFrames);
     // RRWeb Events are not sorted here, they are fetched in sorted order.
     this._sortedRRWebEvents = rrwebFrames;
+    this._videoEvents = videoFrames;
     // Breadcrumbs must be sorted. Crumbs like `slowClick` and `multiClick` will
     // have the same timestamp as the click breadcrumb, but will be emitted a
     // few seconds later.
@@ -219,6 +220,7 @@ export default class ReplayReader {
   private _sortedRRWebEvents: RecordingFrame[] = [];
   private _sortedSpanFrames: SpanFrame[] = [];
   private _startOffsetMs = 0;
+  private _videoEvents: VideoEvent[] = [];
 
   private _applyClipWindow = (clipWindow: ClipWindow) => {
     const clipStartTimestampMs = clamp(
@@ -420,18 +422,7 @@ export default class ReplayReader {
 
   getLPCFrames = memoize(() => this._sortedSpanFrames.filter(isLCPFrame));
 
-  getVideoAttachments = memoize(() =>
-    this._sortedRRWebEvents
-      .filter(
-        (event): event is VideoFrameEvent =>
-          event.type === EventType.Custom && event.data.tag === 'video'
-      )
-      .map(event => ({
-        duration: event.data.payload.duration,
-        id: event.data.payload.segmentId,
-        timestamp: event.timestamp,
-      }))
-  );
+  getVideoEvents = memoize(() => this._videoEvents);
 
   getPaintFrames = memoize(() => this._sortedSpanFrames.filter(isPaintFrame));
 
@@ -445,7 +436,7 @@ export default class ReplayReader {
     return Boolean(this._sortedRRWebEvents.filter(findCanvas).length);
   });
 
-  isVideoReplay = memoize(() => this.getVideoAttachments().length > 0);
+  isVideoReplay = memoize(() => this.getVideoEvents().length > 0);
 
   isNetworkDetailsSetup = memoize(() => {
     const sdkOptions = this.getSDKOptions();

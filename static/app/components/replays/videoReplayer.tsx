@@ -1,5 +1,5 @@
 import {Timer} from 'sentry/utils/replays/timer';
-import type {VideoAttachment} from 'sentry/utils/replays/types';
+import type {VideoEvent} from 'sentry/utils/replays/types';
 
 import {findVideoSegmentIndex} from './utils';
 
@@ -32,7 +32,7 @@ interface VideoReplayerConfig {
  * A special replayer that is specific to mobile replays. Should replicate rrweb's player interface.
  */
 export class VideoReplayer {
-  private _attachments: VideoAttachment[];
+  private _attachments: VideoEvent[];
   private _callbacks: Record<string, (args?: any) => unknown>;
   private _currentIndex: number | undefined;
   private _startTimestamp: number;
@@ -48,7 +48,7 @@ export class VideoReplayer {
   public iframe = {};
 
   constructor(
-    attachments: VideoAttachment[],
+    attachments: VideoEvent[],
     {root, start, videoApiPrefix, onFinished, onLoaded}: VideoReplayerOptions
   ) {
     this._attachments = attachments.filter(attachment => attachment.duration > 0);
@@ -72,7 +72,7 @@ export class VideoReplayer {
     this.loadSegment(0);
   }
 
-  private createVideo(segmentData: VideoAttachment, index: number) {
+  private createVideo(segmentData: VideoEvent, index: number) {
     const el = document.createElement('video');
     el.src = `${this._videoApiPrefix}${segmentData.id}/`;
     el.style.display = 'none';
@@ -140,7 +140,7 @@ export class VideoReplayer {
     };
   }
 
-  protected getSegment(index?: number | undefined): VideoAttachment | null {
+  protected getSegment(index?: number | undefined): VideoEvent | null {
     if (typeof index === 'undefined') {
       return null;
     }

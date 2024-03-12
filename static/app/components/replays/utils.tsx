@@ -1,5 +1,5 @@
 import {formatSecondsToClock} from 'sentry/utils/formatters';
-import type {ReplayFrame, SpanFrame, VideoAttachment} from 'sentry/utils/replays/types';
+import type {ReplayFrame, SpanFrame, VideoEvent} from 'sentry/utils/replays/types';
 
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
@@ -192,7 +192,7 @@ export function divide(numerator: number, denominator: number | undefined) {
  */
 export function findVideoSegmentIndex(
   trackList: [ts: number, index: number][],
-  segments: VideoAttachment[],
+  segments: VideoEvent[],
   targetTimestamp: number,
   optionalStart?: number,
   optionalEnd?: number

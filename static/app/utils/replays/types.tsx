@@ -1,4 +1,4 @@
-import type {EventType, eventWithTime as TEventWithTime} from '@sentry-internal/rrweb';
+import {EventType, type eventWithTime as TEventWithTime} from '@sentry-internal/rrweb';
 
 export type {serializedNodeWithId} from '@sentry-internal/rrweb-snapshot';
 export type {fullSnapshotEvent} from '@sentry-internal/rrweb';
@@ -61,6 +61,12 @@ export function isOptionFrameEvent(
   attachment: Record<string, any>
 ): attachment is TOptionFrameEvent {
   return attachment.data?.tag === 'options';
+}
+
+export function isVideoFrameEvent(
+  attachment: Record<string, any>
+): attachment is VideoFrameEvent {
+  return attachment.type === EventType.Custom && attachment.data.tag === 'video';
 }
 
 export function isBreadcrumbFrame(
@@ -304,7 +310,7 @@ export interface VideoFrameEvent {
   type: EventType.Custom;
 }
 
-export interface VideoAttachment {
+export interface VideoEvent {
   duration: number;
   id: number;
   timestamp: number;

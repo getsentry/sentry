@@ -256,11 +256,10 @@ export function Provider({
 
   const durationMs = replay?.getDurationMs() ?? 0;
   const startTimeOffsetMs = replay?.getStartOffsetMs() ?? 0;
-  const videoAttachments = replay?.getVideoAttachments();
+  const videoEvents = replay?.getVideoEvents();
   const startTimestampMs = replay?.getStartTimestampMs();
   const isVideoReplay = Boolean(
-    organization.features.includes('session-replay-mobile-player') &&
-      videoAttachments?.length
+    organization.features.includes('session-replay-mobile-player') && videoEvents?.length
   );
 
   const forceDimensions = (dimension: Dimensions) => {
@@ -392,8 +391,8 @@ export function Provider({
       }
 
       // check if this is a video replay and if we can use the video replayer
-      if (isVideoReplay && videoAttachments && startTimestampMs) {
-        const inst = new VideoReplayer(videoAttachments, {
+      if (isVideoReplay && videoEvents && startTimestampMs) {
+        const inst = new VideoReplayer(videoEvents, {
           videoApiPrefix: `/api/0/projects/${
             organization.slug
           }/${projectSlug}/replays/${replay?.getReplay().id}/videos/`,
@@ -454,7 +453,7 @@ export function Provider({
       hasNewEvents,
       isFetching,
       isVideoReplay,
-      videoAttachments,
+      videoEvents,
       organization.features,
       organization.slug,
       projectSlug,
@@ -522,7 +521,7 @@ export function Provider({
       }
     };
 
-    if (replayerRef.current && (events || videoAttachments)) {
+    if (replayerRef.current && (events || videoEvents)) {
       initRoot(replayerRef.current.wrapper.parentElement as RootElem);
       document.addEventListener('visibilitychange', handleVisibilityChange);
     }
@@ -530,7 +529,7 @@ export function Provider({
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [initRoot, events, videoAttachments, togglePlayPause]);
+  }, [initRoot, events, videoEvents, togglePlayPause]);
 
   const restart = useCallback(() => {
     if (replayerRef.current) {
