@@ -37,7 +37,7 @@ function tryParseStorage<T>(jsonEncodedValue: string): T | null {
 }
 
 function makeTypeExceptionString(instance: string) {
-  return `useLocalStorage: Native serialization of ${instance} is not supported. You are attempting to serialize a ${instance} instance, this data will be lost. For more info, see how ${instance.toLowerCase()}s are serialized https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#examples`;
+  return `useLocalStorage: Native serialization of ${instance} is not supported. You are attempting to serialize a ${instance} instance this data will be lost. For more info, see how ${instance.toLowerCase()}s are serialized https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#examples`;
 }
 
 function strictReplacer<T>(_key: string, value: T): T {
@@ -119,7 +119,7 @@ function initializeStorage<S>(
 export function useLocalStorageState<S>(
   key: string,
   initialState: S | ((value?: unknown, rawValue?: unknown) => S)
-): [S, (value: S | ((prevState: S) => S)) => void] {
+): [S, (value: S) => void] {
   const [value, setValue] = useState(() => {
     return initializeStorage<S>(key, initialState);
   });
@@ -140,32 +140,18 @@ export function useLocalStorageState<S>(
   }, [key]);
 
   const setStoredValue = useCallback(
-    (newValue: S | ((prevState: S) => S)) => {
+    (newValue: S) => {
       if (typeof key !== 'string') {
         throw new TypeError('useLocalStorage: key must be a string');
       }
 
-      if(typeof newValue === 'function') {
-        setValue(p => {
-          // @ts-expect-error S&function is not correct, but nobody
-          // should be storing functions in state...
-          // Not critical and we dont want to block anything after this, so fire microtask
-          // and allow this to eventually be in sync.
-          const newlyComputedValue = newValue(p);
-          scheduleMicroTask(() => {
-            localStorageWrapper.setItem(key, stringifyForStorage(newlyComputedValue));
-          });
-          return newlyComputedValue;
-        })
-      } else {
-        setValue(newValue);
-        // Not critical and we dont want to block anything after this, so fire microtask
-        // and allow this to eventually be in sync.
-        scheduleMicroTask(() => {
-          localStorageWrapper.setItem(key, stringifyForStorage(newValue));
-        });
-      }
+      setValue(newValue);
 
+      // Not critical and we dont want to block anything after this, so fire microtask
+      // and allow this to eventually be in sync.
+      scheduleMicroTask(() => {
+        localStorageWrapper.setItem(key, stringifyForStorage(newValue));
+      });
     },
     [key]
   );
