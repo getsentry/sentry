@@ -1,7 +1,7 @@
 import uuid
 
 from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
-from sentry.spans.consumers.recombine.message import _process_segment
+from sentry.spans.consumers.recombine.message import process_segment
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
 
@@ -77,7 +77,7 @@ class TestSpansTask(TestCase):
         repeating_spans = [repeating_span() for _ in range(7)]
         spans = [segment_span, child_span, cause_span] + repeating_spans
 
-        job = _process_segment(spans)[0]
+        job = process_segment(spans)[0]
 
         assert (
             job["performance_problems"][0].fingerprint

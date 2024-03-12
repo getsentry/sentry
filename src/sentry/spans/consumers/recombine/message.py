@@ -17,7 +17,7 @@ from sentry.event_manager import (
 )
 from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
 from sentry.models.project import Project
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 from sentry.utils.canonical import CanonicalKeyDict
 
 SPAN_SCHEMA: Codec[SpanEvent] = get_codec("snuba-spans")
@@ -151,7 +151,7 @@ def transform_spans_to_event_dict(spans):
     return event
 
 
-def _process_segment(spans: list[str | bytes]):
+def process_segment(spans: list[str | bytes]):
     with sentry_sdk.start_span(op="sentry.tasks.spans.transform_spans_to_event_dict"):
         event = transform_spans_to_event_dict(spans)
 
@@ -180,7 +180,3 @@ def _process_segment(spans: list[str | bytes]):
     _update_occurrence_group_type(jobs, projects)
 
     return jobs
-
-
-def process_segment(payload):
-    _process_segment(json.dumps(payload))

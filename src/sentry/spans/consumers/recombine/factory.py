@@ -8,13 +8,17 @@ from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import BrokerValue, Commit, Message, Partition
 
 from sentry.spans.consumers.recombine.message import process_segment
+from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
 
 def process_message(message: Message[KafkaPayload]):
     assert isinstance(message.value, BrokerValue)
-    process_segment(message.payload.value)
+    try:
+        process_segment(json.loads(message.payload.value))
+    except Exception:
+        logger.exception("Failed to process segment payload")
 
 
 class RecombineSegmentStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):

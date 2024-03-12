@@ -78,4 +78,4 @@ def test_consumer_pushes_to_redis(mock_process_segment):
     strategy.join(1)
     strategy.terminate()
 
-    mock_process_segment.assert_called_once_with(json.dumps(segment_data).encode("utf-8"))
+    mock_process_segment.assert_called_once_with(segment_data)
