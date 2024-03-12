@@ -114,8 +114,10 @@ export function CanvasReplayerPlugin(events: eventWithTime[]) {
           canvases.get(e.data.id) ||
           (source && cloneCanvas(e.data.id, source as HTMLCanvasElement));
 
+        // No canvas found for id... this isn't reliably reproducible and not
+        // exactly sure why it flakes. Saving as metric to keep an eye on it.
         if (!target) {
-          Sentry.captureException(new Error('No canvas found for id'));
+          Sentry.metrics.increment('replay.canvas_player.no_canvas_id');
           return;
         }
 
@@ -125,8 +127,12 @@ export function CanvasReplayerPlugin(events: eventWithTime[]) {
           target: target as HTMLCanvasElement,
           imageMap,
           canvasEventMap,
-          errorHandler: () => {
-            Sentry.captureException(new Error('Error with canvasMutation'));
+          errorHandler: (err: unknown) => {
+            if (err instanceof Error) {
+              Sentry.captureException(err);
+            } else {
+              Sentry.metrics.increment('replay.canvas_player.error_canvas_mutation');
+            }
           },
         });
 
