@@ -7,6 +7,7 @@ import {
 } from 'sentry/actionCreators/events';
 import {openModal} from 'sentry/actionCreators/modal';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
+import {useHasNewTagsUI} from 'sentry/components/events/eventTags/util';
 import {DataSection} from 'sentry/components/events/styles';
 import Link from 'sentry/components/links/link';
 import {t, tn} from 'sentry/locale';
@@ -38,6 +39,7 @@ type Props = React.ComponentProps<typeof Tags> & {
 export function EventTagsAndScreenshot({projectSlug, event, isShare = false}: Props) {
   const location = useLocation();
   const organization = useOrganization();
+  const hasNewTagsUI = useHasNewTagsUI();
   const {tags = []} = event;
   const hasContext = !objectIsEmpty(event.user ?? {}) || !objectIsEmpty(event.contexts);
   const {data: attachments} = useFetchEventAttachments(
@@ -121,7 +123,7 @@ export function EventTagsAndScreenshot({projectSlug, event, isShare = false}: Pr
 
   return (
     <Wrapper showScreenshot={showScreenshot} showTags={showTags}>
-      <TagWrapper>
+      <TagWrapper hasNewTagsUI={hasNewTagsUI}>
         {showTags && <Tags event={event} projectSlug={projectSlug} />}
       </TagWrapper>
       {showScreenshot && (
@@ -187,6 +189,6 @@ const ScreenshotWrapper = styled('div')`
   }
 `;
 
-const TagWrapper = styled('div')`
-  overflow: hidden;
+const TagWrapper = styled('div')<{hasNewTagsUI: boolean}>`
+  overflow: ${p => (p.hasNewTagsUI ? 'visible' : 'hidden')};
 `;

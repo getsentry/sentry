@@ -111,15 +111,10 @@ export function EventTags({
 
   return (
     <Fragment>
-      <StyledClippedBox clipHeight={150}>
-        {hasNewTagsUI ? (
-          <EventTagsTree
-            event={event}
-            tags={tags}
-            meta={meta}
-            projectSlug={projectSlug}
-          />
-        ) : (
+      {hasNewTagsUI ? (
+        <EventTagsTree event={event} tags={tags} meta={meta} projectSlug={projectSlug} />
+      ) : (
+        <StyledClippedBox clipHeight={150}>
           <Pills>
             {tags.map((tag, index) => (
               <EventTagsPill
@@ -137,8 +132,8 @@ export function EventTags({
               />
             ))}
           </Pills>
-        )}
-      </StyledClippedBox>
+        </StyledClippedBox>
+      )}
       {hasCustomTagsBanner && <EventTagCustomBanner />}
     </Fragment>
   );
