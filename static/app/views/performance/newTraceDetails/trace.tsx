@@ -1826,6 +1826,7 @@ const TraceStylingWrapper = styled('div')`
     align-items: center;
     will-change: width;
     z-index: 1;
+    cursor: pointer;
 
     &:hover {
       .TraceArrow.Visible {
