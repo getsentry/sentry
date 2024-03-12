@@ -15,7 +15,7 @@ export function extendQueryWithGroupBys(
       if (!groupBy || Object.keys(groupBy).length === 0) {
         return '';
       }
-      return `${constructQueryString(groupBy)}`;
+      return constructQueryString(groupBy);
     })
     .filter(Boolean)
     .join(` ${BooleanOperator.OR} `);
