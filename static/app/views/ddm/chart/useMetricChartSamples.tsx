@@ -188,14 +188,16 @@ export function useMetricChartSamples({
             id: `${index}_${sample.spanId}`,
             operation: '',
             unit: '',
-            symbolSize: isHighlighted ? 20 : 10,
+            symbolSize: isHighlighted ? 20 : 11,
             animation: false,
             symbol,
             symbolRotate,
             color: theme.purple400,
             itemStyle: {
               color: theme.purple400,
-              opacity: 1,
+              opacity: 0.95,
+              borderColor: theme.white,
+              borderWidth: 1,
             },
             yAxisIndex: newYAxisIndex,
             xAxisIndex: newXAxisIndex,
@@ -212,7 +214,7 @@ export function useMetricChartSamples({
                 value: yPosition,
               },
             ],
-            z: 10,
+            z: timeseries.length + 1,
           };
         });
       }
@@ -263,9 +265,11 @@ export function useMetricChartSamples({
       operation,
       samples,
       theme.purple400,
+      theme.white,
       valueRect,
       xAxis,
       yAxis,
+      timeseries.length,
     ]
   );
 
@@ -390,14 +394,16 @@ export function useMetricChartSamplesV2({
             id: `${index}_${sample.id}`,
             operation: '',
             unit: '',
-            symbolSize: isHighlighted ? 20 : 10,
+            symbolSize: isHighlighted ? 20 : 11,
             animation: false,
             symbol: yPosition === yValue ? 'circle' : 'arrow',
             symbolRotate: yPosition > yValue ? 180 : 0,
             color: theme.purple400,
             itemStyle: {
               color: theme.purple400,
-              opacity: 1,
+              opacity: 0.95,
+              borderColor: theme.white,
+              borderWidth: 1,
             },
             yAxisIndex: newYAxisIndex,
             xAxisIndex: newXAxisIndex,
@@ -414,7 +420,7 @@ export function useMetricChartSamplesV2({
                 value: yPosition,
               },
             ],
-            z: 10,
+            z: timeseries.length + 1,
           };
         });
       }
@@ -465,9 +471,11 @@ export function useMetricChartSamplesV2({
       operation,
       samples,
       theme.purple400,
+      theme.white,
       valueRect,
       xAxis,
       yAxis,
+      timeseries.length,
     ]
   );
 
