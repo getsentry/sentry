@@ -195,7 +195,6 @@ function Trace({
     loadedRef.current = true;
 
     const eventId = qs.parse(location.search)?.eventId;
-
     if (!scrollQueue.current && !scrollQueue.current && !eventId) {
       if (search_state.query) {
         onTraceSearch(search_state.query);

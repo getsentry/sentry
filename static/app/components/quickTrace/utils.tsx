@@ -144,7 +144,12 @@ export function generateMultiTransactionsTarget(
   return traceEventView.getResultsViewUrlTarget(organization.slug);
 }
 
-const timestampsFieldCandidates = ['startTimestamp', 'timestamp', 'endTimestamp'];
+const timestampsFieldCandidates = [
+  'dateCreated',
+  'startTimestamp',
+  'timestamp',
+  'endTimestamp',
+];
 export function getEventTimestamp(event: Event): string | number | undefined {
   for (const key of timestampsFieldCandidates) {
     if (
