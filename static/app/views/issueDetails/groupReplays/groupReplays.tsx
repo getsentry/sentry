@@ -96,12 +96,11 @@ function GroupReplaysTableInner({
   nextReplayText?: string;
 } & ReturnType<typeof useReplayList>) {
   const orgSlug = organization.slug;
-  const replayContext = useReplayReader({
+  const {fetching, replay} = useReplayReader({
     orgSlug,
     replaySlug,
     group,
   });
-  const {fetching, replay} = replayContext;
 
   return (
     <ReplayContextProvider
