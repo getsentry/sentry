@@ -599,6 +599,7 @@ class OrganizationMember(ReplicatedRegionModel):
         Must check if member member has member:admin first before checking
         """
         member_scopes = self.get_scopes()
+        has_team_roles = features.has("organizations:team-roles", self.organization)
 
         # NOTE: We must fetch scopes using self.organization.get_scopes(role) instead of r.scopes
         # because this accounts for the org option that allows/restricts members from having the
@@ -607,6 +608,7 @@ class OrganizationMember(ReplicatedRegionModel):
             r
             for r in organization_roles.get_all()
             if self.organization.get_scopes(r).issubset(member_scopes)
+            and not (has_team_roles and r.is_retired)
         ]
 
     def is_only_owner(self) -> bool:
