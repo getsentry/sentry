@@ -377,7 +377,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                 SnQLFunction(
                     "to_other",
                     required_args=[
-                        ColumnArg("column", allowed_columns=["release", "trace.parent_span"]),
+                        ColumnArg("column", allowed_columns=["release", "trace.parent_span", "id"]),
                         SnQLStringArg("value", unquote=True, unescape_quotes=True),
                     ],
                     optional_args=[
