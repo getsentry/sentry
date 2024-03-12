@@ -129,7 +129,7 @@ class BigtableKVStorage(KVStorage[str, bytes]):
             value = self.__decode_row(row)
 
             # Even though Bigtable in't going to return empty rows, an empty
-            # value may be returned by ``__decode_row`` if the the row has
+            # value may be returned by ``__decode_row`` if the row has
             # outlived its TTL, so we need to check its value here.
             if value is not None:
                 yield row.row_key.decode("utf-8"), value

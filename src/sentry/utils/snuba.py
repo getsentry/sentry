@@ -1481,7 +1481,7 @@ def get_json_type(snuba_type):
 def get_snuba_translators(filter_keys, is_grouprelease=False):
     """
     Some models are stored differently in snuba, eg. as the environment
-    name instead of the the environment ID. Here we create and return forward()
+    name instead of the environment ID. Here we create and return forward()
     and reverse() translation functions that perform all the required changes.
 
     forward() is designed to work on the filter_keys and so should be called

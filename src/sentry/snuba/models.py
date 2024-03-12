@@ -33,7 +33,7 @@ class SnubaQuery(Model):
         CRASH_RATE = 2
 
     environment = FlexibleForeignKey("sentry.Environment", null=True, db_constraint=False)
-    # Possible values are in the the `Type` enum
+    # Possible values are in the `Type` enum
     type = models.SmallIntegerField()
     dataset = models.TextField()
     query = models.TextField()
