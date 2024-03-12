@@ -15,7 +15,9 @@ export type DDMEventParameters = {
     target: 'event-id' | 'transaction' | 'trace-id' | 'profile';
   };
   'ddm.set-default-query': {};
-  'ddm.widget.add': {};
+  'ddm.widget.add': {
+    type: 'query' | 'equation';
+  };
   'ddm.widget.duplicate': {};
   'ddm.widget.filter': {};
   'ddm.widget.group': {};

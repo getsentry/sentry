@@ -81,7 +81,7 @@ class SimilarIssuesEmbeddingsResponse(TypedDict):
 def get_similar_issues_embeddings(
     similar_issues_request: SimilarIssuesEmbeddingsRequest,
 ) -> SimilarIssuesEmbeddingsResponse:
-    """Call /v0/issues/similar-issues endpoint from timeseries-analysis-service."""
+    """Call /v0/issues/similar-issues endpoint from seer."""
     response = seer_staging_connection_pool.urlopen(
         "POST",
         "/v0/issues/similar-issues",

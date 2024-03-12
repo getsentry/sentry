@@ -54,7 +54,7 @@ google-cloud-storage==2.14.0
 google-crc32c==1.5.0
 google-resumable-media==2.7.0
 googleapis-common-protos==1.63.0
-grpc-google-iam-v1==0.12.4
+grpc-google-iam-v1==0.13.0
 grpcio==1.60.1
 grpcio-status==1.60.1
 h11==0.14.0
@@ -119,7 +119,7 @@ rpds-py==0.15.2
 rsa==4.8
 s3transfer==0.10.0
 sentry-arroyo==2.16.2
-sentry-kafka-schemas==0.1.58
+sentry-kafka-schemas==0.1.60
 sentry-ophio==0.1.5
 sentry-redis-tools==0.1.7
 sentry-relay==0.8.49
@@ -128,7 +128,7 @@ sentry-usage-accountant==0.0.10
 simplejson==3.17.6
 six==1.16.0
 sniffio==1.3.0
-snuba-sdk==2.0.29
+snuba-sdk==2.0.30
 soupsieve==2.3.2.post1
 sqlparse==0.4.4
 statsd==3.3.0
