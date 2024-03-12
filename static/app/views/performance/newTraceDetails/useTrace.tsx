@@ -69,20 +69,24 @@ export function getTraceQueryParams(
 
   const limit = decodedLimit;
 
-  const otherParams: Record<string, string> = {};
+  const otherParams: Record<string, string | string[] | undefined | null> = {
+    end: normalizedParams.pageEnd,
+    start: normalizedParams.pageStart,
+    statsPeriod: statsPeriod || filters.datetime?.period,
+  };
 
-  if (statsPeriod === undefined) {
-    if (!timestamp) {
-      if (normalizedParams.start && normalizedParams.end) {
-        otherParams.pageEnd = normalizedParams.end;
-        otherParams.pageStart = normalizedParams.start;
-      } else if (filters.datetime?.period) {
-        otherParams.statsPeriod = filters.datetime.period;
-      }
+  const queryParams = {...otherParams, limit, project, timestamp, eventId, useSpans: 1};
+  for (const key in queryParams) {
+    if (
+      queryParams[key] === '' ||
+      queryParams[key] === null ||
+      queryParams[key] === undefined
+    ) {
+      delete queryParams[key];
     }
   }
 
-  return {...otherParams, limit, project, timestamp, eventId, useSpans: 1};
+  return queryParams;
 }
 
 type UseTraceParams = {

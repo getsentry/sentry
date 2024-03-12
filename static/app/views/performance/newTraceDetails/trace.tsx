@@ -192,38 +192,53 @@ function Trace({
 
     loadedRef.current = true;
 
-    if (!scrollQueue.current) {
+    const eventId = qs.parse(location.search)?.eventId;
+    if (!scrollQueue.current && !scrollQueue.current && !eventId) {
       if (search_state.query) {
         onTraceSearch(search_state.query);
       }
       return;
     }
 
-    manager
-      .scrollToPath(trace, scrollQueue.current, () => setRender(a => (a + 1) % 2), {
-        api,
-        organization,
-      })
-      .then(maybeNode => {
-        scrollQueue.current = null;
+    const promise =
+      eventId && typeof eventId === 'string'
+        ? manager.scrollToEventID(eventId, trace, () => setRender(a => (a + 1) % 2), {
+            api,
+            organization,
+          })
+        : scrollQueue.current
+          ? manager.scrollToPath(
+              trace,
+              scrollQueue.current,
+              () => setRender(a => (a + 1) % 2),
+              {
+                api,
+                organization,
+              }
+            )
+          : Promise.resolve(null);
 
-        if (!maybeNode) {
-          return;
-        }
+    promise.then(maybeNode => {
+      scrollQueue.current = null;
 
-        setDetailNode(maybeNode.node);
-        roving_dispatch({
-          type: 'set index',
-          index: maybeNode.index,
-          node: maybeNode.node,
-        });
+      if (!maybeNode) {
+        return;
+      }
 
-        manager.scrollRowIntoViewHorizontally(maybeNode.node, 0);
-
-        if (search_state.query) {
-          onTraceSearch(search_state.query);
-        }
+      manager.onScrollEndOutOfBoundsCheck();
+      setDetailNode(maybeNode.node);
+      roving_dispatch({
+        type: 'set index',
+        index: maybeNode.index,
+        node: maybeNode.node,
       });
+
+      manager.scrollRowIntoViewHorizontally(maybeNode.node);
+
+      if (search_state.query) {
+        onTraceSearch(search_state.query);
+      }
+    });
   }, [
     api,
     organization,

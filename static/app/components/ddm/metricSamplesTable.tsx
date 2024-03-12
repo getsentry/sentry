@@ -630,6 +630,7 @@ function TraceId({
   const {selection} = usePageFilters();
   const stringOrNumberTimestamp =
     timestamp instanceof Date ? timestamp.toISOString() : timestamp ?? '';
+
   const target = getTraceDetailsUrl(
     organization,
     traceId,
