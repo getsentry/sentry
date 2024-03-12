@@ -299,7 +299,7 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
                 "project_id": group.project_id,
                 "fingerprint": wrong_fingerprint["fingerprint"][0],
             },
-            stack_info=True,
+            exc_info=True,
         )
         assert group.status == initial_status
         assert group.substatus == initial_substatus
