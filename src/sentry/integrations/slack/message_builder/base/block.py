@@ -8,7 +8,6 @@ from typing import Any, TypedDict
 from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
 from sentry.notifications.utils.actions import MessageAction
-from sentry.utils.dates import to_timestamp
 
 MAX_BLOCK_TEXT_LENGTH = 256
 
@@ -146,7 +145,7 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
     def get_context_block(text: str, timestamp: datetime | None = None) -> SlackBlock:
         if timestamp:
             time = "<!date^{:.0f}^{} at {} | Sentry Issue>".format(
-                to_timestamp(timestamp), "{date_pretty}", "{time}"
+                timestamp.timestamp(), "{date_pretty}", "{time}"
             )
             text += f" | {time}"
 

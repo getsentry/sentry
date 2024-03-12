@@ -69,7 +69,6 @@ from sentry.snuba.metrics.query import (
     MetricsQuery,
 )
 from sentry.snuba.metrics.utils import get_num_intervals
-from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import DATASETS, bulk_snql_query, raw_snql_query
 
 
@@ -673,7 +672,7 @@ class MetricsQueryBuilder(QueryBuilder):
         # timestamp{,.to_{hour,day}} need a datetime string
         # last_seen needs an integer
         if isinstance(value, datetime) and name not in constants.TIMESTAMP_FIELDS:
-            value = int(to_timestamp(value)) * 1000
+            value = int(value.timestamp()) * 1000
 
         if name in constants.TIMESTAMP_FIELDS:
             if (
