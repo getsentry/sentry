@@ -5,10 +5,8 @@ from typing import Any
 
 from sentry import features
 from sentry.eventstore.models import GroupEvent
-from sentry.integrations.repository import (
-    IssueAlertNotificationMessageRepository,
-    get_default_issue_alert_repository,
-)
+from sentry.integrations.repository import get_default_issue_alert_repository
+from sentry.integrations.repository.issue_alert import IssueAlertNotificationMessageRepository
 from sentry.integrations.slack.actions.form import SlackNotifyServiceForm
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
