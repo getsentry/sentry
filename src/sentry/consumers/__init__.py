@@ -366,7 +366,7 @@ def get_stream_processor(
     synchronize_commit_group: str | None = None,
     healthcheck_file_path: str | None = None,
     enable_dlq: bool = False,
-    validate_schema: bool = False,
+    enforce_schema: bool = False,
     group_instance_id: str | None = None,
 ) -> StreamProcessor:
     from sentry.utils import kafka_config
@@ -464,12 +464,12 @@ def get_stream_processor(
             "--synchronize_commit_group and --synchronize_commit_log_topic are required arguments for this consumer"
         )
 
-    # Validate schema if "validate_schema" is set
-    validate_schema = consumer_definition.get("validate_schema") or False
+    # Validate schema if enforce_schema is true or "validate_schema" is set
+    validate_schema = enforce_schema or consumer_definition.get("validate_schema") or False
 
     if validate_schema:
         strategy_factory = ValidateSchemaStrategyFactoryWrapper(
-            consumer_topic.value, validate_schema, strategy_factory
+            consumer_topic.value, enforce_schema, strategy_factory
         )
 
     if healthcheck_file_path is not None:

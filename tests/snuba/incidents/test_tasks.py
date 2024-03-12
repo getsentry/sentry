@@ -192,5 +192,6 @@ class HandleSnubaQueryUpdateTest(TestCase):
             group_id="hi",
             strict_offset_reset=True,
             auto_offset_reset="earliest",
+            enforce_schema=True,
         )
         self.run_test(consumer)
