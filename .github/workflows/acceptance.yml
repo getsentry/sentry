@@ -91,6 +91,7 @@ jobs:
         env:
           # this is fine to not have for forks, it shouldn't fail
           SENTRY_WEBPACK_WEBHOOK_SECRET: ${{ secrets.SENTRY_WEBPACK_WEBHOOK_SECRET }}
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: |
           yarn build-acceptance
 
