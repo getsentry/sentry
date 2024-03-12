@@ -568,8 +568,9 @@ def augment_transactions_with_spans(
         error_spans = set()
         projects = set()
         for error in errors:
-            error["trace.span"] = pad_span_id(error["trace.span"])
-            error_spans.add(error["trace.span"])
+            if "trace.span" in error:
+                error["trace.span"] = pad_span_id(error["trace.span"])
+                error_spans.add(error["trace.span"])
             projects.add(error["project.id"])
         ts_params = find_timestamp_params(transactions)
         if ts_params["min"]:
