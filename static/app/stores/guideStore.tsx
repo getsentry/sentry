@@ -81,6 +81,10 @@ const defaultState: GuideStoreState = {
   prevGuide: null,
 };
 
+function isForceEnabled() {
+  return window.location.hash === '#assistant';
+}
+
 interface GuideStoreDefinition extends CommonStoreDefinition<GuideStoreState> {
   browserHistoryListener: null | (() => void);
   closeGuide(dismissed?: boolean): void;
@@ -111,6 +115,7 @@ const storeConfig: GuideStoreDefinition = {
 
     this.state = defaultState;
 
+    this.state.forceShow = isForceEnabled();
     window.addEventListener('load', this.onURLChange, false);
     this.browserHistoryListener = browserHistory.listen(() => this.onURLChange());
 
@@ -143,7 +148,7 @@ const storeConfig: GuideStoreDefinition = {
   },
 
   onURLChange() {
-    this.state.forceShow = window.location.hash === '#assistant';
+    this.state.forceShow = isForceEnabled();
     this.updateCurrentGuide();
   },
 
