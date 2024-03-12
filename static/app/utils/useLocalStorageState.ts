@@ -145,7 +145,7 @@ export function useLocalStorageState<S>(
         throw new TypeError('useLocalStorage: key must be a string');
       }
 
-      if(typeof newValue === 'function') {
+      if (typeof newValue === 'function') {
         setValue(p => {
           // @ts-expect-error S&function is not correct, but nobody
           // should be storing functions in state...
@@ -156,7 +156,7 @@ export function useLocalStorageState<S>(
             localStorageWrapper.setItem(key, stringifyForStorage(newlyComputedValue));
           });
           return newlyComputedValue;
-        })
+        });
       } else {
         setValue(newValue);
         // Not critical and we dont want to block anything after this, so fire microtask
@@ -165,7 +165,6 @@ export function useLocalStorageState<S>(
           localStorageWrapper.setItem(key, stringifyForStorage(newValue));
         });
       }
-
     },
     [key]
   );
