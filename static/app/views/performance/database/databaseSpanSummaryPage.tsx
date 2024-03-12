@@ -233,13 +233,13 @@ function SpanSummaryPage({params}: Props) {
                 />
               </ModuleLayout.Full>
             )}
-
-            <SampleList
-              groupId={span[SpanMetricsField.SPAN_GROUP]}
-              transactionName={transaction}
-              transactionMethod={transactionMethod}
-            />
           </ModuleLayout.Layout>
+
+          <SampleList
+            groupId={span[SpanMetricsField.SPAN_GROUP]}
+            transactionName={transaction}
+            transactionMethod={transactionMethod}
+          />
         </Layout.Main>
       </Layout.Body>
     </ModulePageProviders>

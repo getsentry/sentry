@@ -723,6 +723,13 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "issues.similarity-embeddings-grouping.projects-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # ## sentry.killswitches
 #
 # The following options are documented in sentry.killswitches in more detail
@@ -824,7 +831,7 @@ register("relay.cardinality-limiter.mode", default="enabled", flags=FLAG_AUTOMAT
 #
 # In passive mode Relay's cardinality limiter is active but it does not enforce the limits.
 #
-# Example: `{1: ["transactions"]}`
+# Example: `{'1': ["transactions"]}`
 # Forces the `transactions` cardinality limit into passive mode for the organization with id `1` (Sentry).
 register(
     "relay.cardinality-limiter.passive-limits-by-org", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE
@@ -841,7 +848,8 @@ register(
 # when writing to Kafka.
 #
 # Key is the metric namespace (as used by Relay) and the value is the desired encoding.
-register("relay.metric-bucket-encodings", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("relay.metric-bucket-set-encodings", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("relay.metric-bucket-distribution-encodings", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Write new kafka headers in eventstream
 register("eventstream:kafka-headers", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -2061,6 +2069,7 @@ register(
     default=100_000.0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
 
 # Sample rate for double writing to experimental dsn
 register(

@@ -7,7 +7,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
 interface Props {
-  buttonRef?: RefObject<HTMLButtonElement>;
+  buttonRef?: RefObject<HTMLButtonElement> | RefObject<HTMLAnchorElement>;
 }
 
 export default function useFeedbackWidget({buttonRef}: Props) {

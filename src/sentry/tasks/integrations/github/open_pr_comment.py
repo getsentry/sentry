@@ -21,10 +21,12 @@ from snuba_sdk import (
 )
 from snuba_sdk import Request as SnubaRequest
 
+from sentry import features
 from sentry.constants import EXTENSION_LANGUAGE_MAP
 from sentry.integrations.github.client import GitHubAppsClient
 from sentry.models.group import Group, GroupStatus
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.pullrequest import CommentType, PullRequest
 from sentry.models.repository import Repository
@@ -39,7 +41,7 @@ from sentry.tasks.integrations.github.constants import (
     RATE_LIMITED_MESSAGE,
     STACKFRAME_COUNT,
 )
-from sentry.tasks.integrations.github.language_parsers import PATCH_PARSERS
+from sentry.tasks.integrations.github.language_parsers import BETA_PATCH_PARSERS, PATCH_PARSERS
 from sentry.tasks.integrations.github.pr_comment import format_comment_url
 from sentry.tasks.integrations.github.utils import (
     GithubAPIErrorType,
@@ -192,8 +194,17 @@ def safe_for_comment(
     changed_lines_count = 0
     filtered_pr_files = []
 
+    try:
+        organization = Organization.objects.get_from_cache(id=repository.organization_id)
+    except Organization.DoesNotExist:
+        logger.exception("github.open_pr_comment.org_missing")
+        metrics.incr(OPEN_PR_METRICS_BASE.format(key="error"), tags={"type": "missing_org"})
+        return []
+
     patch_parsers = PATCH_PARSERS
     # NOTE: if we are testing beta patch parsers, add check here
+    if features.has("organizations:integrations-open-pr-comment-beta-langs", organization):
+        patch_parsers = BETA_PATCH_PARSERS
 
     for file in pr_files:
         filename = file["filename"]
@@ -274,8 +285,12 @@ def get_top_5_issues_by_count_for_file(
     if not len(projects):
         return []
 
+    organization = projects[0].organization
+
     patch_parsers = PATCH_PARSERS
     # NOTE: if we are testing beta patch parsers, add check here
+    if features.has("organizations:integrations-open-pr-comment-beta-langs", organization):
+        patch_parsers = BETA_PATCH_PARSERS
 
     # fetches the appropriate parser for formatting the snuba query given the file extension
     # the extension is never replaced in reverse codemapping
@@ -409,7 +424,14 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         metrics.incr(OPEN_PR_METRICS_BASE.format(key="error"), tags={"type": "missing_pr"})
         return
 
+    # check org option
     org_id = pull_request.organization_id
+    try:
+        organization = Organization.objects.get_from_cache(id=org_id)
+    except Organization.DoesNotExist:
+        logger.exception("github.open_pr_comment.org_missing")
+        metrics.incr(OPEN_PR_METRICS_BASE.format(key="error"), tags={"type": "missing_org"})
+        return
 
     # check PR repo exists to get repo name
     try:
@@ -452,6 +474,8 @@ def open_pr_comment_workflow(pr_id: int) -> None:
 
     patch_parsers = PATCH_PARSERS
     # NOTE: if we are testing beta patch parsers, add check here
+    if features.has("organizations:integrations-open-pr-comment-beta-langs", organization):
+        patch_parsers = BETA_PATCH_PARSERS
 
     file_extensions = set()
     # fetch issues related to the files
@@ -496,6 +520,16 @@ def open_pr_comment_workflow(pr_id: int) -> None:
                 },
             )
 
+        if file_extension in ["php"]:
+            logger.info(
+                "github.open_pr_comment.php",
+                extra={
+                    "organization_id": org_id,
+                    "repository_id": repo.id,
+                    "extension": file_extension,
+                    "has_function_names": bool(function_names),
+                },
+            )
         if not len(function_names):
             continue
 

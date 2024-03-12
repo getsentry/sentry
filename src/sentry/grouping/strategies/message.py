@@ -1,5 +1,6 @@
 import dataclasses
 import re
+from collections import defaultdict
 from itertools import islice
 from re import Match
 from typing import Any
@@ -177,15 +178,15 @@ def normalize_message_for_grouping(message: str, event: Event, share_analytics: 
     if trimmed != message:
         trimmed += "..."
 
+    trimmed_value_counter: defaultdict[str, int] = defaultdict(int)
+
     def _handle_match(match: Match[str]) -> str:
         # Find the first (should be only) non-None match entry, and sub in the placeholder. For
         # example, given the groupdict item `('hex', '0x40000015')`, this returns '<hex>' as a
         # replacement for the original value in the string.
         for key, value in match.groupdict().items():
             if value is not None:
-                # `key` can only be one of the keys from `_parameterization_regex`, thus, not a large
-                # cardinality. Tracking the key helps distinguish what kinds of replacements are happening.
-                metrics.incr("grouping.value_trimmed_from_message", tags={"key": key})
+                trimmed_value_counter[key] += 1
                 # For `quoted_str` and `bool` we want to preserve the `=` symbol, which we include in
                 # the match in order not to replace random quoted strings and the words 'true' and 'false'
                 # in contexts other than key-value pairs
@@ -234,6 +235,12 @@ def normalize_message_for_grouping(message: str, event: Event, share_analytics: 
                         event_id=event.event_id,
                     )
                 normalized = experiment_output
+
+    for key, value in trimmed_value_counter.items():
+        # `key` can only be one of the keys from `_parameterization_regex`, thus, not a large
+        # cardinality. Tracking the key helps distinguish what kinds of replacements are happening.
+        metrics.incr("grouping.value_trimmed_from_message", amount=value, tags={"key": key})
+
     return normalized
 
 
