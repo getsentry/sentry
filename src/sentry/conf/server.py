@@ -3514,6 +3514,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "group-attributes": "default",
     "snuba-spans": "default",
     "shared-resources-usage": "default",
+    "buffered-segment": "default",
 }
 
 

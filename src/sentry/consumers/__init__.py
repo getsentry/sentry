@@ -339,6 +339,10 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "topic": Topic.SNUBA_SPANS,
         "strategy_factory": "sentry.spans.consumers.process.factory.ProcessSpansStrategyFactory",
     },
+    "recombine-segment": {
+        "topic": Topic.BUFFERED_SEGMENT,
+        "strategy_factory": "sentry.spans.consumers.recombine.factory.RecombineSegmentStrategyFactory",
+    },
     **settings.SENTRY_KAFKA_CONSUMERS,
 }
 
