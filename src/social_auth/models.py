@@ -53,11 +53,6 @@ class UserSocialAuth(models.Model):
 
         return tokens(instance=self)
 
-    def expiration_datetime(self):
-        from .utils import expiration_datetime
-
-        return expiration_datetime(instance=self)
-
     def revoke_token(self, drop_token=True):
         """Attempts to revoke permissions for provider."""
         if "access_token" in self.tokens:
