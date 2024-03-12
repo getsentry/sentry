@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import colorFn from 'color';
 
-import {LinkButton} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconArrow, IconLightning, IconReleases} from 'sentry/icons';
+import {IconArrow, IconFilter, IconLightning, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -27,18 +27,21 @@ export const SummaryTable = memo(function SummaryTable({
   onSortChange,
   sort = DEFAULT_SORT_STATE as SortState,
   onRowHover,
+  onRowFilter,
 }: {
   onRowClick: (series: FocusedMetricsSeries) => void;
   onSortChange: (sortState: SortState) => void;
   series: Series[];
   onColorDotClick?: (series: FocusedMetricsSeries) => void;
+  onRowFilter?: (series: FocusedMetricsSeries) => void;
   onRowHover?: (seriesName: string) => void;
   sort?: SortState;
 }) {
   const {selection} = usePageFilters();
   const organization = useOrganization();
 
-  const hasActions = series.some(s => s.release || s.transaction);
+  const canFilter = series.length > 1 && !!onRowFilter;
+  const hasActions = series.some(s => s.release || s.transaction) || canFilter;
   const hasMultipleSeries = series.length > 1;
 
   const changeSort = useCallback(
@@ -180,6 +183,7 @@ export const SummaryTable = memo(function SummaryTable({
             min,
             max,
             sum,
+            isEquationSeries,
           }) => {
             return (
               <Fragment key={id}>
@@ -261,6 +265,23 @@ export const SummaryTable = memo(function SummaryTable({
                             </Tooltip>
                           </div>
                         )}
+
+                        <Tooltip title={t('Add to Filter')} disabled={isEquationSeries}>
+                          <Button
+                            disabled={isEquationSeries}
+                            onClick={event => {
+                              event.stopPropagation();
+                              onRowFilter?.({
+                                id,
+                                groupBy,
+                              });
+                            }}
+                            size="zero"
+                            borderless
+                          >
+                            <IconFilter size="sm" />
+                          </Button>
+                        </Tooltip>
                       </ButtonBar>
                     </CenterCell>
                   )}
