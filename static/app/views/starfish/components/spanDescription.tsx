@@ -36,15 +36,15 @@ export function DatabaseSpanDescription({
   groupId,
   preliminaryDescription,
 }: Omit<Props, 'op'>) {
-  // TODO: we're using all SpanIndexedFields here, but maybe we should only use what we need?
-  // Truncate to 20 fields otherwise discover will complain.
-  const fields = Object.values(SpanIndexedField);
-
   const {data: indexedSpans, isFetching: areIndexedSpansLoading} = useIndexedSpans({
     filters: {'span.group': groupId},
     sorts: [INDEXED_SPAN_SORT],
     limit: 1,
-    fields,
+    fields: [
+      SpanIndexedField.PROJECT_ID,
+      SpanIndexedField.TRANSACTION_ID,
+      SpanIndexedField.SPAN_DESCRIPTION,
+    ],
     referrer: 'api.starfish.span-description',
   });
   const indexedSpan = indexedSpans?.[0];
