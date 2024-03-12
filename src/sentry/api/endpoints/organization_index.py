@@ -15,6 +15,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization import BaseOrganizationSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.query import in_iexact
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.projectplatform import ProjectPlatform
@@ -33,6 +34,7 @@ from sentry.signals import org_setup_complete, terms_accepted
 class OrganizationPostSerializer(BaseOrganizationSerializer):
     defaultTeam = serializers.BooleanField(required=False)
     agreeTerms = serializers.BooleanField(required=True)
+    agreeDataConsent = serializers.BooleanField(required=False)
     idempotencyKey = serializers.CharField(max_length=IDEMPOTENCY_KEY_LENGTH, required=False)
 
     def __init__(self, *args, **kwargs):
@@ -269,6 +271,11 @@ class OrganizationIndexEndpoint(Endpoint):
                     organization_id=org.id,
                     ip_address=request.META["REMOTE_ADDR"],
                     sender=type(self),
+                )
+
+            if result.get("agreeDataConsent"):
+                OrganizationOption.objects.set_value(
+                    organization=org, key="sentry:service-data-consent", value=True
                 )
 
             return Response(serialize(org, request.user), status=201)

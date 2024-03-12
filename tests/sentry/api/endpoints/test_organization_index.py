@@ -8,6 +8,7 @@ from django.test import override_settings
 
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models.authenticator import Authenticator
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
@@ -253,6 +254,26 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
 
             data = {"name": "hello world", "agreeTerms": True}
             self.get_success_response(**data)
+
+    def test_service_data_consent(self):
+        data: dict[str, Any] = {"name": "test_no_consent", "agreeDataConsent": False}
+
+        response = self.get_success_response(**data)
+        org = Organization.objects.get(id=response.data["id"])
+        org_options = OrganizationOption.objects.filter(organization=org).values_list(
+            "key", flat=True
+        )
+        assert org.slug == "test-no-consent"
+        assert "sentry:service-data-consent" not in org_options
+
+        data = {"name": "test_consent", "agreeDataConsent": True}
+        response = self.get_success_response(**data)
+        org = Organization.objects.get(id=response.data["id"])
+        org_options = OrganizationOption.objects.filter(organization=org).values_list(
+            "key", flat=True
+        )
+        assert org.slug == "test-consent"
+        assert "sentry:service-data-consent" in org_options
 
     def test_organization_mapping(self):
         data = {"slug": "santry", "name": "SaNtRy", "idempotencyKey": "1234"}
