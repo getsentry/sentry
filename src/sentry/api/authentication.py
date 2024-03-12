@@ -299,7 +299,7 @@ class ClientIdSecretAuthentication(QuietBasicAuthentication):
 class UserAuthTokenAuthentication(StandardAuthentication):
     token_name = b"bearer"
 
-    def _find_or_update_token_by_hash(self, token_str: str) -> ApiToken:
+    def _find_or_update_token_by_hash(self, token_str: str) -> ApiToken | ApiTokenReplica:
         """
         Find token by hash or update token's hash value if only found via plaintext.
         1. Hash provided plaintext token.
