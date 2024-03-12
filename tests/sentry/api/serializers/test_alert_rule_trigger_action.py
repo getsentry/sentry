@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import responses
 
 from sentry.api.serializers import serialize
@@ -22,7 +24,11 @@ class AlertRuleTriggerActionSerializerTest(TestCase):
             result["targetType"]
             == ACTION_TARGET_TYPE_TO_STRING[AlertRuleTriggerAction.TargetType(action.target_type)]
         )
-        assert result["targetIdentifier"] == action.target_identifier
+        assert (
+            result["targetIdentifier"] == action.target_identifier
+            if not action.target_identifier
+            else str(action.target_identifier)
+        )
         assert result["integrationId"] == action.integration_id
         assert result["dateCreated"] == action.date_added
 
@@ -106,3 +112,22 @@ class AlertRuleTriggerActionSerializerTest(TestCase):
         result = serialize(action)
         self.assert_action_serialized(action, result)
         assert result["desc"] == "Send a Discord notification to "
+
+    @patch(
+        "sentry.incidents.logic.get_target_identifier_display_for_integration",
+        return_value=("123", "test"),
+    )
+    def test_priority(self, mock_get):
+        alert_rule = self.create_alert_rule()
+        trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
+        priority = "critical"
+        action = create_alert_rule_trigger_action(
+            trigger,
+            AlertRuleTriggerAction.Type.PAGERDUTY,
+            AlertRuleTriggerAction.TargetType.SPECIFIC,
+            priority=priority,
+            target_identifier="123",
+        )
+        result = serialize(action)
+        self.assert_action_serialized(action, result)
+        assert result["priority"] == priority
