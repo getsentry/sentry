@@ -184,7 +184,7 @@ export function MetricScratchpad() {
             <MultiChartWidgetQueries
               formulaDependencies={formulaDependencies}
               widget={widget}
-              key={widget.id}
+              key={`${widget.type}_${widget.id}`}
             >
               {queries => (
                 <MetricWidget
