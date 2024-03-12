@@ -698,7 +698,7 @@ class MarkFailedTestCase(TestCase):
         monitor_incident = monitor_incidents.first()
         assert monitor_incident.starting_checkin == first_checkin
         assert monitor_incident.starting_timestamp == first_checkin.date_added
-        assert monitor_incident.grouphash == monitor_environment.active_incident
+        assert monitor_incident.grouphash == monitor_environment.active_incident.grouphash
 
         # assert correct number of occurrences was sent
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == failure_issue_threshold
@@ -722,7 +722,7 @@ class MarkFailedTestCase(TestCase):
 
         # check that incident has not changed
         monitor_incident = MonitorIncident.objects.get(id=monitor_incident.id)
-        assert monitor_incident.grouphash == monitor_environment.active_incident
+        assert monitor_incident.grouphash == monitor_environment.active_incident.grouphash
 
         # assert correct number of occurrences was sent
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == failure_issue_threshold + 1
@@ -830,7 +830,7 @@ class MarkFailedTestCase(TestCase):
         monitor_incident = monitor_incidents.first()
         assert monitor_incident.starting_checkin == first_checkin
         assert monitor_incident.starting_timestamp == first_checkin.date_added
-        assert monitor_incident.grouphash == monitor_environment.active_incident
+        assert monitor_incident.grouphash == monitor_environment.active_incident.grouphash
 
         # assert correct number of occurrences was sent
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == failure_issue_threshold
