@@ -152,7 +152,9 @@ def transform_spans_to_event_dict(spans):
 
 
 def process_segment(spans: list[str | bytes]):
-    with sentry_sdk.start_span(op="sentry.tasks.spans.transform_spans_to_event_dict"):
+    with sentry_sdk.start_span(
+        op="sentry.consumers.recombine.process_segment.transform_spans_to_event_dict"
+    ):
         event = transform_spans_to_event_dict(spans)
 
     project_id = event["project_id"]
