@@ -306,8 +306,8 @@ class CaptureExceptionWithScopeCheckTest(TestCase):
 
         for entry in empty_scope.__slots__:
             # _propagation_context is generated on __init__ for tracing without performance
-            # so is different every time.
-            if entry == "_propagation_context":
+            # so is different every time. Same with client in SDK >=2.0.
+            if entry in ("_propagation_context", "client"):
                 continue
             # No new scope data should be passed
             assert getattr(passed_scope, entry) == getattr(empty_scope, entry)
