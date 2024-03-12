@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
 
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Badge from 'sentry/components/badge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import Count from 'sentry/components/count';
@@ -279,12 +280,14 @@ function GroupHeader({
           </TitleWrapper>
           {issueTypeConfig.stats.enabled && (
             <StatsWrapper>
-              <div className="count">
-                <h6 className="nav-header">{t('Events')}</h6>
-                <Link disabled={disableActions} to={eventRoute}>
-                  <Count className="count" value={group.count} />
-                </Link>
-              </div>
+              <GuideAnchor target="issue_header_stats">
+                <div className="count">
+                  <h6 className="nav-header">{t('Events')}</h6>
+                  <Link disabled={disableActions} to={eventRoute}>
+                    <Count className="count" value={group.count} />
+                  </Link>
+                </div>
+              </GuideAnchor>
               <div className="count">
                 <h6 className="nav-header">{t('Users')}</h6>
                 {userCount !== 0 ? (

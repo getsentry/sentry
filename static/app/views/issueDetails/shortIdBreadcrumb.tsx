@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ShortId from 'sentry/components/shortId';
@@ -47,56 +46,54 @@ export function ShortIdBreadrcumb({
   }
 
   return (
-    <GuideAnchor target="issue_number" position="bottom">
-      <Wrapper>
-        <ProjectBadge
-          project={project}
-          avatarSize={16}
-          hideName
-          avatarProps={{hasTooltip: true, tooltip: project.slug}}
+    <Wrapper>
+      <ProjectBadge
+        project={project}
+        avatarSize={16}
+        hideName
+        avatarProps={{hasTooltip: true, tooltip: project.slug}}
+      />
+      <ShortIdCopyable>
+        <Tooltip
+          className="help-link"
+          title={t(
+            'This identifier is unique across your organization, and can be used to reference an issue in various places, like commit messages.'
+          )}
+          position="bottom"
+          delay={1000}
+        >
+          <StyledShortId shortId={group.shortId} />
+        </Tooltip>
+        <DropdownMenu
+          triggerProps={{
+            'aria-label': t('Short-ID copy actions'),
+            icon: <IconChevron direction="down" size="xs" />,
+            size: 'zero',
+            borderless: true,
+            showChevron: false,
+          }}
+          position="bottom"
+          size="xs"
+          items={[
+            {
+              key: 'copy-url',
+              label: t('Copy Issue URL'),
+              onAction: handleCopyUrl,
+            },
+            {
+              key: 'copy-short-id',
+              label: t('Copy Short-ID'),
+              onAction: handleCopyShortId,
+            },
+            {
+              key: 'copy-markdown-link',
+              label: t('Copy Markdown Link'),
+              onAction: handleCopyMarkdown,
+            },
+          ]}
         />
-        <ShortIdCopyable>
-          <Tooltip
-            className="help-link"
-            title={t(
-              'This identifier is unique across your organization, and can be used to reference an issue in various places, like commit messages.'
-            )}
-            position="bottom"
-            delay={1000}
-          >
-            <StyledShortId shortId={group.shortId} />
-          </Tooltip>
-          <DropdownMenu
-            triggerProps={{
-              'aria-label': t('Short-ID copy actions'),
-              icon: <IconChevron direction="down" size="xs" />,
-              size: 'zero',
-              borderless: true,
-              showChevron: false,
-            }}
-            position="bottom"
-            size="xs"
-            items={[
-              {
-                key: 'copy-url',
-                label: t('Copy Issue URL'),
-                onAction: handleCopyUrl,
-              },
-              {
-                key: 'copy-short-id',
-                label: t('Copy Short-ID'),
-                onAction: handleCopyShortId,
-              },
-              {
-                key: 'copy-markdown-link',
-                label: t('Copy Markdown Link'),
-                onAction: handleCopyMarkdown,
-              },
-            ]}
-          />
-        </ShortIdCopyable>
-      </Wrapper>
-    </GuideAnchor>
+      </ShortIdCopyable>
+    </Wrapper>
   );
 }
 
