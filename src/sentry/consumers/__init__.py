@@ -261,7 +261,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         },
     },
     "ingest-feedback-events": {
-        "topic": settings.KAFKA_INGEST_FEEDBACK_EVENTS,
+        "topic": Topic.KAFKA_INGEST_FEEDBACK_EVENTS,
         "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
         "click_options": ingest_events_options(),
         "static_args": {
