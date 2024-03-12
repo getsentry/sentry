@@ -131,7 +131,7 @@ class MarkFailedTestCase(TestCase):
                 "platform": "other",
                 "contexts": {
                     "monitor": {
-                        "status": "timeout",
+                        "status": "error",
                         "type": "cron_job",
                         "config": {
                             "schedule_type": 2,
@@ -187,7 +187,7 @@ class MarkFailedTestCase(TestCase):
 
         monitor.refresh_from_db()
         monitor_environment.refresh_from_db()
-        assert monitor_environment.status == MonitorStatus.MISSED_CHECKIN
+        assert monitor_environment.status == MonitorStatus.ERROR
 
         assert len(mock_insert_data_to_database_legacy.mock_calls) == 1
 
@@ -202,7 +202,7 @@ class MarkFailedTestCase(TestCase):
                 "platform": "other",
                 "contexts": {
                     "monitor": {
-                        "status": "missed_checkin",
+                        "status": "error",
                         "type": "cron_job",
                         "config": {
                             "schedule_type": 2,

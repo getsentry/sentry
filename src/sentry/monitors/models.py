@@ -737,6 +737,7 @@ class MonitorEnvBrokenDetection(Model):
     monitor_incident = FlexibleForeignKey("sentry.MonitorIncident")
     detection_timestamp = models.DateTimeField(auto_now_add=True)
     user_notified_timestamp = models.DateTimeField(null=True, db_index=True)
+    env_muted_timestamp = models.DateTimeField(null=True, db_index=True)
 
     class Meta:
         app_label = "sentry"

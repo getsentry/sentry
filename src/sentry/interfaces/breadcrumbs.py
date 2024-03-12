@@ -1,7 +1,7 @@
 __all__ = ("Breadcrumbs",)
 
 from sentry.interfaces.base import Interface
-from sentry.utils.dates import parse_timestamp, to_datetime, to_timestamp
+from sentry.utils.dates import parse_timestamp, to_datetime
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.safe import get_path
 
@@ -60,7 +60,7 @@ class Breadcrumbs(Interface):
         crumb = dict(crumb)
         ts = parse_timestamp(crumb.get("timestamp"))
         if ts:
-            crumb["timestamp"] = to_timestamp(ts)
+            crumb["timestamp"] = ts.timestamp()
         else:
             crumb["timestamp"] = None
 

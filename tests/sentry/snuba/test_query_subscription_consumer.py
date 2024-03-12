@@ -6,11 +6,12 @@ from unittest import mock
 
 import pytest
 from arroyo.backends.kafka import KafkaPayload
-from arroyo.types import BrokerValue, Message, Partition, Topic
+from arroyo.types import BrokerValue, Message, Partition
+from arroyo.types import Topic as ArroyoTopic
 from dateutil.parser import parse as parse_date
-from django.conf import settings
 from sentry_kafka_schemas import get_codec
 
+from sentry.conf.types.kafka_definition import Topic
 from sentry.runner.commands.run import DEFAULT_BLOCK_SIZE
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
@@ -37,7 +38,7 @@ class BaseQuerySubscriptionTest:
 
     @cached_property
     def topic(self):
-        return settings.KAFKA_METRICS_SUBSCRIPTIONS_RESULTS
+        return Topic.METRICS_SUBSCRIPTIONS_RESULTS.value
 
     @cached_property
     def jsoncodec(self):
@@ -99,7 +100,7 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
         data = self.valid_wrapper
         data["payload"]["subscription_id"] = sub.subscription_id
         commit = mock.Mock()
-        partition = Partition(Topic("test"), 0)
+        partition = Partition(ArroyoTopic("test"), 0)
         strategy = QuerySubscriptionStrategyFactory(
             self.dataset.value,
             1,
