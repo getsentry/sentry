@@ -13,10 +13,12 @@ class SlackRuleSaveEditMessageBuilder(BlockSlackMessageBuilder):
         self,
         rule: Rule,
         new: bool,
+        changed: dict,
     ) -> None:
         super().__init__()
         self.rule = rule
         self.new = new
+        self.changed = changed
 
     def linkify_rule(self):
         org_slug = self.rule.project.organization.slug
@@ -44,8 +46,39 @@ class SlackRuleSaveEditMessageBuilder(BlockSlackMessageBuilder):
         else:
             rule_text = f"{rule_url} in the *{project}* project was updated."
 
-        # TODO add short summary of the trigger & filter conditions
         blocks.append(self.get_markdown_block(rule_text))
+
+        if not self.new and self.changed:
+            new = []
+            removed = []
+            fields = []
+            for label, changes in self.changed.items():
+                if label.startswith("new"):
+                    for change in changes:
+                        new.append(change)
+                elif label.startswith("removed"):
+                    for change in changes:
+                        removed.append(change)
+                elif label == "changed_label":
+                    if changes:
+                        print("what the heck")
+                        print(changes)
+                        blocks.append(self.get_markdown_block(changes))
+
+
+            if new:
+                new_text = f"*Added*\n"
+                for new_change in new:
+                    new_text += f"•{new_change}\n"
+                fields.append(self.make_field(new_text))
+
+            if removed:
+                removed_text = "*Removed*\n"
+                for removed_change in removed:
+                    removed_text += f"•{removed_change}\n"
+                fields.append(self.make_field(removed_text))
+
+            blocks.append(self.get_section_fields_block(fields))
 
         settings_link = self.get_settings_url()
         blocks.append(self.get_context_block(settings_link))

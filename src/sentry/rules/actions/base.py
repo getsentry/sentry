@@ -7,6 +7,7 @@ from collections.abc import Generator
 from sentry.eventstore.models import GroupEvent
 from sentry.models.rule import Rule
 from sentry.rules.base import CallbackFuture, EventState, RuleBase
+from typing import Any
 
 logger = logging.getLogger("sentry.rules")
 
@@ -54,7 +55,7 @@ class EventAction(RuleBase, abc.ABC):
         >>>         print(future)
         """
 
-    def send_confirmation_notification(self, rule: Rule, new: bool):
+    def send_confirmation_notification(self, rule: Rule, new: bool, changed: dict[str, Any]):
         """
         Send a notification confirming that a rule was created or edited
         """
