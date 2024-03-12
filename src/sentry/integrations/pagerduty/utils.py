@@ -28,14 +28,6 @@ PAGERDUTY_CUSTOM_PRIORITIES = {
 }  # known as severities in pagerduty
 
 
-PAGERDUTY_CUSTOM_PRIORITIES = {
-    "critical",
-    "warning",
-    "error",
-    "info",
-}  # known as severities in pagerduty
-
-
 class PagerDutyServiceDict(TypedDict):
     integration_id: int
     integration_key: str
