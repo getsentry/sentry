@@ -80,7 +80,6 @@ export const SPAN_FUNCTIONS = [
   'time_spent_percentage',
   'http_response_rate',
   'http_error_count',
-  'http_error_rate',
 ] as const;
 
 export type SpanFunctions = (typeof SPAN_FUNCTIONS)[number];
@@ -174,7 +173,6 @@ export enum SpanFunction {
   SPM = 'spm',
   TIME_SPENT_PERCENTAGE = 'time_spent_percentage',
   HTTP_ERROR_COUNT = 'http_error_count',
-  HTTP_ERROR_RATE = 'http_error_rate',
   HTTP_RESPONSE_RATE = 'http_response_rate',
 }
 
@@ -208,12 +206,6 @@ export const STARFISH_AGGREGATION_FIELDS: Record<
   [SpanFunction.HTTP_ERROR_COUNT]: {
     desc: t('Count of 5XX http errors'),
     defaultOutputType: 'integer',
-    kind: FieldKind.FUNCTION,
-    valueType: FieldValueType.NUMBER,
-  },
-  [SpanFunction.HTTP_ERROR_RATE]: {
-    desc: t('Rate of 5XX HTTP errors'),
-    defaultOutputType: 'percentage',
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
   },

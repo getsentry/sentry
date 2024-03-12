@@ -26,7 +26,8 @@ type Options = {
 const DEFAULT_SORT_PARAMETER_NAME = 'sort';
 
 const {SPAN_SELF_TIME, HTTP_RESPONSE_CONTENT_LENGTH} = SpanMetricsField;
-const {TIME_SPENT_PERCENTAGE, SPS, SPM, HTTP_ERROR_COUNT, HTTP_ERROR_RATE} = SpanFunction;
+const {TIME_SPENT_PERCENTAGE, SPS, SPM, HTTP_ERROR_COUNT, HTTP_RESPONSE_RATE} =
+  SpanFunction;
 
 export const SORTABLE_FIELDS = new Set([
   `avg(${SPAN_SELF_TIME})`,
@@ -39,7 +40,9 @@ export const SORTABLE_FIELDS = new Set([
   `${SPM}()`,
   `${TIME_SPENT_PERCENTAGE}()`,
   `${HTTP_ERROR_COUNT}()`,
-  `${HTTP_ERROR_RATE}()`,
+  `${HTTP_RESPONSE_RATE}(2)`,
+  `${HTTP_RESPONSE_RATE}(4)`,
+  `${HTTP_RESPONSE_RATE}(5)`,
   `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
 ]);
 
