@@ -186,7 +186,9 @@ def _do_preprocess_event(
 
             is_low_priority = should_demote_symbolication(project_id)
             task_kind = SymbolicatorTaskKind(
-                platform=platform, is_low_priority=is_low_priority, is_reprocessing=from_reprocessing
+                platform=platform,
+                is_low_priority=is_low_priority,
+                is_reprocessing=from_reprocessing,
             )
             submit_symbolicate(
                 task_kind,

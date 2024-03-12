@@ -2,13 +2,13 @@ import logging
 import re
 from typing import Any
 
-from sentry.utils.safe import get_path
-from sentry.utils import metrics
 from sentry.lang.java.utils import get_proguard_images, should_use_symbolicator_for_proguard
 from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.symbolicator import Symbolicator
 from sentry.models.eventerror import EventError
 from sentry.stacktraces.processing import find_stacktraces_in_data
+from sentry.utils import metrics
+from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
 
@@ -179,15 +179,11 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
 
     processing_errors = response.get("errors", [])
     if len(processing_errors) > 0:
-        data.setdefault("errors", []).extend(
-            map_symbolicator_process_jvm_errors(processing_errors)
-        )
+        data.setdefault("errors", []).extend(map_symbolicator_process_jvm_errors(processing_errors))
 
     assert len(stacktraces) == len(response["stacktraces"]), (stacktraces, response)
 
-    for sinfo, complete_stacktrace in zip(
-        stacktrace_infos, response["stacktraces"]
-    ):
+    for sinfo, complete_stacktrace in zip(stacktrace_infos, response["stacktraces"]):
         processed_frame_idx = 0
         new_frames = []
         raw_frames = sinfo.stacktrace["frames"]

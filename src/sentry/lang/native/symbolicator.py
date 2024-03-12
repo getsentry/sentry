@@ -30,9 +30,9 @@ logger = logging.getLogger(__name__)
 
 
 class SymbolicatorPlatform(Enum):
-    jvm: "jvm"
-    js: "js"
-    native: "native"
+    jvm: jvm
+    js: js
+    native: native
 
 
 @dataclass(frozen=True)
