@@ -140,17 +140,17 @@ export class VideoReplayer {
     };
   }
 
-  protected getSegment(index?: number | undefined): VideoEvent | null {
+  protected getSegment(index?: number | undefined): VideoEvent | undefined {
     if (typeof index === 'undefined') {
-      return null;
+      return undefined;
     }
 
     return this._attachments[index];
   }
 
-  protected getVideo(index: number | undefined): HTMLVideoElement | null {
+  protected getVideo(index: number | undefined): HTMLVideoElement | undefined {
     if (typeof index === 'undefined') {
-      return null;
+      return undefined;
     }
 
     return this._videos[index];
@@ -166,7 +166,7 @@ export class VideoReplayer {
     video.style.display = 'none';
   }
 
-  protected showVideo(video: HTMLVideoElement | null): void {
+  protected showVideo(video: HTMLVideoElement | undefined): void {
     if (!video) {
       return;
     }
@@ -174,9 +174,9 @@ export class VideoReplayer {
     video.style.display = 'block';
   }
 
-  protected playVideo(video: HTMLVideoElement | null): Promise<void> | undefined {
+  protected playVideo(video: HTMLVideoElement | undefined): Promise<void> {
     if (!video) {
-      return undefined;
+      return Promise.resolve();
     }
     video.playbackRate = this.config.speed;
     return video.play();
@@ -328,15 +328,13 @@ export class VideoReplayer {
   /**
    * Plays the video segment at a time (offset), e.g. starting at 20 seconds
    */
-  protected async playSegmentAtTime(
-    videoOffsetMs: number = 0
-  ): Promise<void | undefined> {
+  protected async playSegmentAtTime(videoOffsetMs: number = 0): Promise<void> {
     const loadedSegmentIndex = await this.loadSegmentAtTime(videoOffsetMs);
 
     if (loadedSegmentIndex === undefined) {
       // TODO: this shouldn't happen, loadSegment should load the previous
       // segment until it's time to start the next segment
-      return undefined;
+      return Promise.resolve();
     }
 
     return this.playVideo(this.getVideo(loadedSegmentIndex));
@@ -358,7 +356,7 @@ export class VideoReplayer {
   /**
    * @param videoOffsetMs The time within the entire video, to start playing at
    */
-  public play(videoOffsetMs: number): Promise<void> | undefined {
+  public play(videoOffsetMs: number): Promise<void> {
     this._timer.start(videoOffsetMs);
     return this.playSegmentAtTime(videoOffsetMs);
   }
