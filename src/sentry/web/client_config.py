@@ -349,7 +349,6 @@ class _ClientConfig:
         This will include *all* multi-tenant regions, and if the user
         has membership on any single-tenant regions those will also be included.
         """
-        user = self.user
 
         # Only expose visible regions.
         # When new regions are added they can take some work to get working correctly.
@@ -368,12 +367,8 @@ class _ClientConfig:
             )
 
         # Show all visible multi-tenant regions to unauthenticated users as they could
-        # create a new account
-        if not user or not user.id:
-            return self._serialize_regions(region_names, region_display_order)
-
-        # Ensure all regions the current user is in are included as there
-        # could be single tenants or hidden regions
+        # create a new account. Else, ensure all regions the current user is in are
+        # included as there could be single tenants or hidden regions.
         unique_regions = set(region_names) | self._member_region_names
         return self._serialize_regions(unique_regions, region_display_order)
 
