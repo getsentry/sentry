@@ -46,15 +46,16 @@ def process_simple_event_message(
         tags={"consumer": consumer_type},
         unit="byte",
     )
-    message: IngestMessage = msgpack.unpackb(raw_payload, use_list=False)
-
-    message_type = message["type"]
-    project_id = message["project_id"]
-
-    if message_type != "event":
-        raise ValueError(f"Unsupported message type: {message_type}")
 
     try:
+        message: IngestMessage = msgpack.unpackb(raw_payload, use_list=False)
+
+        message_type = message["type"]
+        project_id = message["project_id"]
+
+        if message_type != "event":
+            raise ValueError(f"Unsupported message type: {message_type}")
+
         try:
             with metrics.timer("ingest_consumer.fetch_project"):
                 project = Project.objects.get_from_cache(id=project_id)
