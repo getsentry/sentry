@@ -1204,7 +1204,7 @@ function RenderRow(props: {
             <PlatformIcon
               platform={props.projects[props.node.value.project_slug] ?? 'default'}
             />
-            ;<span className="TraceOperation Errored">{t('Error')}</span>
+            <span className="TraceOperation Errored">{t('Error')}</span>
             <strong className="TraceEmDash Errored"> — </strong>
             <span className="TraceDescription Errored">{props.node.value.title}</span>
           </div>
@@ -1771,7 +1771,9 @@ const TraceStylingWrapper = styled('div')`
       }
     }
 
-    &:focus {
+    &:focus,
+    &[tabindex='0'] {
+      background-color: ${p => p.theme.backgroundTertiary};
       box-shadow: inset 0 0 0 1px ${p => p.theme.blue300} !important;
 
       .TraceLeftColumn {
@@ -1841,6 +1843,7 @@ const TraceStylingWrapper = styled('div')`
     align-items: center;
     will-change: width;
     z-index: 1;
+    cursor: pointer;
 
     &:hover {
       .TraceArrow.Visible {

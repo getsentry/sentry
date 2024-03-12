@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -20,6 +20,8 @@ import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import Tags from 'sentry/views/discover/tags';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceTree';
+import TraceWarnings from 'sentry/views/performance/newTraceDetails/traceWarnings';
 
 import {getTraceInfo} from '../../../traceDetails/utils';
 
@@ -37,6 +39,7 @@ type TraceFooterProps = {
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
   traceEventView: EventView;
   traces: TraceSplitResults<TraceFullDetailed> | null;
+  tree: TraceTree;
 };
 
 function NoWebVitals() {
@@ -84,6 +87,10 @@ function TraceDataLoading() {
 }
 
 export function TraceLevelDetails(props: TraceFooterProps) {
+  const treeType = useMemo(() => {
+    return props.tree.shape;
+  }, [props.tree]);
+
   if (!props.traces) {
     return <TraceDataLoading />;
   }
@@ -99,34 +106,37 @@ export function TraceLevelDetails(props: TraceFooterProps) {
     .sort();
 
   return rootEvent ? (
-    <TraceFooterWrapper>
-      {webVitals.length > 0 ? (
+    <Fragment>
+      {treeType ? <TraceWarnings type={treeType} /> : null}
+      <TraceFooterWrapper>
+        {webVitals.length > 0 ? (
+          <div style={{flex: 1}}>
+            <EventVitals event={rootEvent} />
+          </div>
+        ) : (
+          <NoWebVitals />
+        )}
         <div style={{flex: 1}}>
-          <EventVitals event={rootEvent} />
+          <Tags
+            generateUrl={(key: string, value: string) => {
+              const url = props.traceEventView.getResultsViewUrlTarget(
+                props.organization.slug,
+                false
+              );
+              url.query = generateQueryWithTag(url.query, {
+                key: formatTagKey(key),
+                value,
+              });
+              return url;
+            }}
+            totalValues={totalNumOfEvents}
+            eventView={props.traceEventView}
+            organization={props.organization}
+            location={props.location}
+          />
         </div>
-      ) : (
-        <NoWebVitals />
-      )}
-      <div style={{flex: 1}}>
-        <Tags
-          generateUrl={(key: string, value: string) => {
-            const url = props.traceEventView.getResultsViewUrlTarget(
-              props.organization.slug,
-              false
-            );
-            url.query = generateQueryWithTag(url.query, {
-              key: formatTagKey(key),
-              value,
-            });
-            return url;
-          }}
-          totalValues={totalNumOfEvents}
-          eventView={props.traceEventView}
-          organization={props.organization}
-          location={props.location}
-        />
-      </div>
-    </TraceFooterWrapper>
+      </TraceFooterWrapper>
+    </Fragment>
   ) : null;
 }
 
