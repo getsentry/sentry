@@ -2,8 +2,8 @@
 
 from django.db import migrations
 
-from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 
 def clear_missed_timeout_as_error(apps, schema_editor):
