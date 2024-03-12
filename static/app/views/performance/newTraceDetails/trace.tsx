@@ -213,7 +213,6 @@ function Trace({
           return;
         }
 
-        manager.onScrollEndOutOfBoundsCheck();
         setDetailNode(maybeNode.node);
         roving_dispatch({
           type: 'set index',
@@ -221,7 +220,7 @@ function Trace({
           node: maybeNode.node,
         });
 
-        manager.scrollRowIntoViewHorizontally(maybeNode.node);
+        manager.scrollRowIntoViewHorizontally(maybeNode.node, 0);
 
         if (search_state.query) {
           onTraceSearch(search_state.query);
@@ -2164,21 +2163,19 @@ function TraceEmpty() {
   const feedback = useFeedbackWidget({buttonRef: linkref});
   return (
     <LoadingContainer animate>
-      <NoMarginIndicator size={24}>
-        <div>{t('This trace does not contain any data?!')}</div>
-        <div>
-          {t('Seeing this often? Send us ')}
-          {feedback ? (
-            <a href="#" ref={linkref}>
-              {t('feedback')}
-            </a>
-          ) : (
-            <a href="mailto:support@sentry.io?subject=Trace%20does%20not%20contain%20data">
-              {t('feedback')}
-            </a>
-          )}
-        </div>
-      </NoMarginIndicator>
+      <div>{t('This trace does not contain any data?!')}</div>
+      <div>
+        {t('Seeing this often? Send us ')}
+        {feedback ? (
+          <a href="#" ref={linkref}>
+            {t('feedback')}
+          </a>
+        ) : (
+          <a href="mailto:support@sentry.io?subject=Trace%20does%20not%20contain%20data">
+            {t('feedback')}
+          </a>
+        )}
+      </div>
     </LoadingContainer>
   );
 }
