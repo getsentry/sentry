@@ -101,13 +101,14 @@ class CodeLocationsFetcher:
         self._has_more = False
 
         index = 0
-        supports_pagination = self._offset is not None and self._limit is not None
         for project in self._projects:
             for metric_mri in self._metric_mris:
                 for timestamp in self._timestamps:
                     # We want to emit the code location query in the interval [offset, offset + limit).
-                    if (not supports_pagination) or (
-                        self._offset <= index < self._offset + self._limit
+                    if (
+                        self._offset is None
+                        or self._limit is None
+                        or self._offset <= index < self._offset + self._limit
                     ):
                         yield CodeLocationQuery(
                             organization_id=self._organization.id,
@@ -115,7 +116,11 @@ class CodeLocationsFetcher:
                             metric_mri=metric_mri,
                             timestamp=timestamp,
                         )
-                    elif index >= self._offset + self._limit:
+                    elif (
+                        self._offset is not None
+                        and self._limit is not None
+                        and index >= self._offset + self._limit
+                    ):
                         self._has_more = True
                         break
 
