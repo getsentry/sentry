@@ -1223,7 +1223,7 @@ def create_alert_rule_trigger_action(
         )
 
     # store priority in the json sentry_app_config
-    if priority is not None:
+    if priority is not None and type in [ActionService.PAGERDUTY, ActionService.OPSGENIE]:
         if sentry_app_config:
             sentry_app_config.update({"priority": priority})
         else:
@@ -1308,7 +1308,7 @@ def update_alert_rule_trigger_action(
         updated_fields["target_identifier"] = target_identifier
 
     # store priority in the json sentry_app_config
-    if priority is not None:
+    if priority is not None and type in [ActionService.PAGERDUTY, ActionService.OPSGENIE]:
         if updated_fields.get("sentry_app_config"):
             updated_fields["sentry_app_config"].update({"priority": priority})
         else:
