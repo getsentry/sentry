@@ -140,7 +140,7 @@ def get_organization_id_from_token(token_id: int) -> int | None:
     installation = installations[0] if installations else None
 
     # Return None to avoid collisions caused by tokens not being associated with
-    # a SentryAppInstallation. We fall back on IP address rate limiting in this case.
+    # a SentryAppInstallation. We fallback to IP address rate limiting in this case.
     if not installation:
         logger.info("installation.not_found", extra={"token_id": token_id})
         return None
