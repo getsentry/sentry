@@ -123,6 +123,7 @@ function InviteRowControl({
         placeholder={t('None')}
         value={teams}
         onChange={onChangeTeams}
+        useTeamDefaultIfOnlyOne
         multiple
         clearable
       />
