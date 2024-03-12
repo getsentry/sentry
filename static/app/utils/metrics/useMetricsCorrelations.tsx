@@ -31,6 +31,7 @@ function useDateTimeParams(options: MetricCorrelationOpts) {
     : getDateTimeParams(selection.datetime);
 }
 
+// TODO(ddm): remove this once samplesV2 are enabled for everyone
 function useMetricsCorrelations(
   mri: MRI | undefined,
   options: MetricCorrelationOpts,
@@ -48,7 +49,6 @@ function useMetricsCorrelations(
 
   const queryInfo = useApiQuery<ApiResponse>(
     [
-      // TODO(ddm): Clean up this endpoint
       `/organizations/${organization.slug}/ddm/meta/`,
       {
         query: {
