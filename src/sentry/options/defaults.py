@@ -756,7 +756,8 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# seer embeddings ratelim
+# seer embeddings ratelimit
+# we will start at 0 and increase to 1, and then in increments of 5, when we can monitor the change
 register(
     "embeddings-grouping.seer.ratelimit",
     type=Int,
