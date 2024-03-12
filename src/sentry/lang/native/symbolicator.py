@@ -30,9 +30,9 @@ logger = logging.getLogger(__name__)
 
 
 class SymbolicatorPlatform(Enum):
-    jvm: jvm
-    js: js
-    native: native
+    jvm = "jvm"
+    js = "js"
+    native = "native"
 
 
 @dataclass(frozen=True)
@@ -66,11 +66,11 @@ class Symbolicator:
         URLS = settings.SYMBOLICATOR_POOL_URLS
         pool = SymbolicatorPools.default.value
         if task_kind.is_low_priority:
-            if task_kind.platform == SymbolicatorPlatform.js:
+            if task_kind.platform == SymbolicatorPlatform.js.value:
                 pool = SymbolicatorPools.lpq_js.value
             else:
                 pool = SymbolicatorPools.lpq.value
-        elif task_kind.platform == SymbolicatorPlatform.js:
+        elif task_kind.platform == SymbolicatorPlatform.js.value:
             pool = SymbolicatorPools.js.value
 
         base_url = (

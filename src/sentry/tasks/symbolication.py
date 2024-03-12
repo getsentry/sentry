@@ -107,10 +107,10 @@ def get_symbolication_function(
 
     if data["platform"] in ("javascript", "node"):
         return SymbolicatorPlatform.js, process_js_stacktraces
-    elif data["platform"] == "java" and should_use_symbolicator_for_proguard(data):
-        return SymbolicatorPlatform.jvm, process_jvm_stacktraces
+    elif data["platform"] == "java" and should_use_symbolicator_for_proguard(data.get("project")):
+        return SymbolicatorPlatform.jvm.value, process_jvm_stacktraces
     else:
-        return SymbolicatorPlatform.native, get_native_symbolication_function(data)
+        return SymbolicatorPlatform.native.value, get_native_symbolication_function(data)
 
 
 class SymbolicationTimeout(Exception):
