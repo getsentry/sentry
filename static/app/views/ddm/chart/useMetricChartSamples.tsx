@@ -172,7 +172,7 @@ export function useMetricChartSamples({
         const newYAxisIndex = Array.isArray(baseProps.yAxes) ? baseProps.yAxes.length : 1;
         const newXAxisIndex = Array.isArray(baseProps.xAxes) ? baseProps.xAxes.length : 1;
 
-        series = Object.values(samples).map(sample => {
+        series = Object.values(samples).map((sample, index) => {
           const isHighlighted = highlightedSampleId === sample.transactionId;
 
           const xValue = moment(sample.timestamp).valueOf();
@@ -185,7 +185,7 @@ export function useMetricChartSamples({
 
           return {
             seriesName: sample.transactionId,
-            id: sample.spanId,
+            id: `${index}_${sample.spanId}`,
             operation: '',
             unit: '',
             symbolSize: isHighlighted ? 20 : 10,
@@ -376,7 +376,7 @@ export function useMetricChartSamplesV2({
       const newXAxisIndex = Array.isArray(baseProps.xAxes) ? baseProps.xAxes.length : 1;
 
       if (!isCumulativeOp(operation)) {
-        series = (samples ?? []).map(sample => {
+        series = (samples ?? []).map((sample, index) => {
           const isHighlighted = highlightedSampleId === sample.id;
 
           const xValue = moment(sample.timestamp).valueOf();
@@ -387,7 +387,7 @@ export function useMetricChartSamplesV2({
 
           return {
             seriesName: sample.id,
-            id: sample.id,
+            id: `${index}_${sample.id}`,
             operation: '',
             unit: '',
             symbolSize: isHighlighted ? 20 : 10,
