@@ -161,8 +161,7 @@ def track_initial_segment_event(
             project=%s
             org_id=%s
             replay_id=%s
-            key_id=%s"
-            repr(project)""",
+            key_id=%s""",
             repr(project),
             org_id,
             replay_id,
