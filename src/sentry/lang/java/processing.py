@@ -205,4 +205,13 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
                 "frames": raw_frames,
             }
 
+    assert len(exceptions) == len(response["exceptions"])
+
+    # NOTE: we are using the `data.exception.values` directory here
+    for exception, complete_exception in zip(
+        get_path(data, "exception", "values", filter=True, default=()), response["exceptions"]
+    ):
+        exception["type"] = complete_exception["type"]
+        exception["module"] = complete_exception["module"]
+
     return data
