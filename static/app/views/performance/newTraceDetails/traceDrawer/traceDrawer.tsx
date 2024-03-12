@@ -65,6 +65,7 @@ type TraceDrawerProps = {
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
   scrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   setActiveTab: (tab: 'trace' | 'node') => void;
+  trace: TraceTree;
   traceEventView: EventView;
   traces: TraceSplitResults<TraceFullDetailed> | null;
 };
@@ -114,6 +115,7 @@ function TraceDrawer(props: TraceDrawerProps) {
       <Content>
         {props.activeTab === 'trace' ? (
           <TraceLevelDetails
+            tree={props.trace}
             rootEventResults={props.rootEventResults}
             organization={props.organization}
             location={props.location}

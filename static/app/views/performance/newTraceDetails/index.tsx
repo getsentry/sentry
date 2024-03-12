@@ -56,7 +56,6 @@ import {isTraceNode} from './guards';
 import Trace from './trace';
 import TraceHeader from './traceHeader';
 import {TraceTree, type TraceTreeNode} from './traceTree';
-import TraceWarnings from './traceWarnings';
 import {useTrace} from './useTrace';
 
 const DOCUMENT_TITLE = [t('Trace Details'), t('Performance')].join(' — ');
@@ -225,13 +224,6 @@ function TraceViewContent(props: TraceViewContentProps) {
     rootEvent.data,
     rootEvent.status,
   ]);
-
-  const traceType = useMemo(() => {
-    if (props.status !== 'success' || !tree) {
-      return null;
-    }
-    return tree.shape;
-  }, [props.status, tree]);
 
   const [rovingTabIndexState, rovingTabIndexDispatch] = useReducer(
     rovingTabIndexReducer,
@@ -431,7 +423,6 @@ function TraceViewContent(props: TraceViewContentProps) {
       </Layout.Header>
       <Layout.Body>
         <Layout.Main fullWidth>
-          {traceType ? <TraceWarnings type={traceType} /> : null}
           <TraceHeader
             rootEventResults={rootEvent}
             metaResults={props.metaResults}
@@ -465,6 +456,7 @@ function TraceViewContent(props: TraceViewContentProps) {
               manager={viewManager}
             />
             <TraceDrawer
+              trace={tree}
               scrollToNode={scrollToNode}
               manager={viewManager}
               activeTab={activeTab}
