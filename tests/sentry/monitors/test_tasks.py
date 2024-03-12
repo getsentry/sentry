@@ -1,3 +1,4 @@
+import uuid
 import zoneinfo
 from collections.abc import MutableMapping
 from datetime import timedelta, timezone
@@ -12,11 +13,14 @@ from django.test import override_settings
 from django.utils import timezone as django_timezone
 
 from sentry.constants import ObjectStatus
+from sentry.grouping.utils import hash_from_values
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
     MonitorCheckIn,
+    MonitorEnvBrokenDetection,
     MonitorEnvironment,
+    MonitorIncident,
     MonitorStatus,
     MonitorType,
     ScheduleType,
@@ -25,11 +29,13 @@ from sentry.monitors.tasks import (
     check_missing,
     check_timeout,
     clock_pulse,
+    detect_broken_monitor_envs,
     mark_checkin_timeout,
     mark_environment_missing,
     try_monitor_tasks_trigger,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 
 
 def make_ref_time(**kwargs):
@@ -737,7 +743,7 @@ class MonitorTaskCheckTimeoutTest(TestCase):
             timeout_at=checkin1_start + timedelta(minutes=90),
         )
 
-        # Second check in was started now, giving us the the overlapping
+        # Second check in was started now, giving us the overlapping
         # "concurrent" checkin scenario.
         checkin2 = MonitorCheckIn.objects.create(
             monitor=monitor,
@@ -1157,3 +1163,153 @@ def test_monitor_task_trigger_partition_tick_skip(dispatch_tasks):
 
     assert dispatch_tasks.call_count == 2
     assert dispatch_tasks.mock_calls[1] == mock.call(now + timedelta(minutes=2))
+
+
+class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
+    def create_monitor_and_env(self):
+        monitor = Monitor.objects.create(
+            name="test monitor",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            type=MonitorType.CRON_JOB,
+            config={
+                "schedule": [1, "day"],
+                "schedule_type": ScheduleType.INTERVAL,
+                "failure_issue_threshold": 1,
+                "max_runtime": None,
+                "checkin_margin": None,
+            },
+        )
+        monitor_environment = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment_id=self.environment.id,
+            status=MonitorStatus.OK,
+        )
+        return (monitor, monitor_environment)
+
+    @with_feature("organizations:crons-broken-monitor-detection")
+    def test_creates_broken_detection_no_duplicates(self):
+        monitor, monitor_environment = self.create_monitor_and_env()
+
+        first_checkin = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            status=CheckInStatus.ERROR,
+            date_added=django_timezone.now() - timedelta(days=14),
+        )
+        incident = MonitorIncident.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            starting_checkin=first_checkin,
+            starting_timestamp=first_checkin.date_added,
+            grouphash=hash_from_values([uuid.uuid4()]),
+        )
+
+        for i in range(3, -1, -1):
+            MonitorCheckIn.objects.create(
+                monitor=monitor,
+                monitor_environment=monitor_environment,
+                project_id=self.project.id,
+                status=CheckInStatus.ERROR,
+                date_added=django_timezone.now() - timedelta(days=i),
+            )
+
+        detect_broken_monitor_envs()
+        assert len(MonitorEnvBrokenDetection.objects.filter(monitor_incident=incident)) == 1
+
+        # running the task again shouldn't create duplicates
+        detect_broken_monitor_envs()
+        assert len(MonitorEnvBrokenDetection.objects.filter(monitor_incident=incident)) == 1
+
+    @with_feature("organizations:crons-broken-monitor-detection")
+    def test_does_not_create_broken_detection_insufficient_duration(self):
+        monitor, monitor_environment = self.create_monitor_and_env()
+
+        first_checkin = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            status=CheckInStatus.ERROR,
+            date_added=django_timezone.now() - timedelta(days=10),
+        )
+        incident = MonitorIncident.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            starting_checkin=first_checkin,
+            starting_timestamp=first_checkin.date_added,
+            grouphash=hash_from_values([uuid.uuid4()]),
+        )
+
+        for i in range(4):
+            MonitorCheckIn.objects.create(
+                monitor=monitor,
+                monitor_environment=monitor_environment,
+                project_id=self.project.id,
+                status=CheckInStatus.ERROR,
+                date_added=django_timezone.now() - timedelta(days=1),
+            )
+
+        detect_broken_monitor_envs()
+        assert len(MonitorEnvBrokenDetection.objects.filter(monitor_incident=incident)) == 0
+
+    @with_feature("organizations:crons-broken-monitor-detection")
+    def test_does_not_create_broken_detection_insufficient_checkins(self):
+        monitor, monitor_environment = self.create_monitor_and_env()
+
+        first_checkin = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            status=CheckInStatus.ERROR,
+            date_added=django_timezone.now() - timedelta(days=14),
+        )
+        incident = MonitorIncident.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            starting_checkin=first_checkin,
+            starting_timestamp=first_checkin.date_added,
+            grouphash=hash_from_values([uuid.uuid4()]),
+        )
+
+        for i in range(1, -1, -1):
+            MonitorCheckIn.objects.create(
+                monitor=monitor,
+                monitor_environment=monitor_environment,
+                project_id=self.project.id,
+                status=CheckInStatus.ERROR,
+                date_added=django_timezone.now() - timedelta(days=i),
+            )
+
+        detect_broken_monitor_envs()
+        assert len(MonitorEnvBrokenDetection.objects.filter(monitor_incident=incident)) == 0
+
+    def test_does_not_create_broken_detection_no_feature(self):
+        monitor, monitor_environment = self.create_monitor_and_env()
+
+        first_checkin = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            status=CheckInStatus.ERROR,
+            date_added=django_timezone.now() - timedelta(days=14),
+        )
+        incident = MonitorIncident.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            starting_checkin=first_checkin,
+            starting_timestamp=first_checkin.date_added,
+            grouphash=hash_from_values([uuid.uuid4()]),
+        )
+
+        for i in range(3, -1, -1):
+            MonitorCheckIn.objects.create(
+                monitor=monitor,
+                monitor_environment=monitor_environment,
+                project_id=self.project.id,
+                status=CheckInStatus.ERROR,
+                date_added=django_timezone.now() - timedelta(days=i),
+            )
+
+        detect_broken_monitor_envs()
+        assert len(MonitorEnvBrokenDetection.objects.filter(monitor_incident=incident)) == 0

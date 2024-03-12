@@ -29,7 +29,7 @@ CLOSED_STATUSES = RESOLVED_STATUSES + (GroupHistoryStatus.IGNORED,)
 
 
 def calculate_unresolved_counts(team, project_list, start, end, environment_id):
-    # Get the current number of unresolved issues. We can use this value for the the most recent bucket.
+    # Get the current number of unresolved issues. We can use this value for the most recent bucket.
     group_environment_filter = (
         Q(groupenvironment__environment_id=environment_id) if environment_id else Q()
     )
