@@ -13,6 +13,7 @@ export type Series = {
   paddingIndices?: Set<number>;
   release?: string;
   scalingFactor?: number;
+  stack?: string;
   transaction?: string;
 };
 
@@ -29,6 +30,7 @@ export interface ScatterSeries extends Series {
 export interface CombinedMetricChartProps extends BaseChartProps {
   displayType: MetricDisplayType;
   series: Series[];
+  enableZoom?: boolean;
   scatterSeries?: ScatterSeries[];
 }
 

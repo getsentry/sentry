@@ -1,3 +1,4 @@
+import logging
 from base64 import urlsafe_b64encode
 from functools import cached_property
 from time import time
@@ -13,7 +14,6 @@ from fido2.ctap2 import AuthenticatorData, base
 from fido2.server import Fido2Server, U2FFido2Server
 from fido2.utils import websafe_decode
 from fido2.webauthn import PublicKeyCredentialRpEntity
-from rest_framework.request import Request
 from u2flib_server.model import DeviceRegistration
 
 from sentry import options
@@ -24,6 +24,8 @@ from sentry.utils.decorators import classproperty
 from sentry.utils.http import absolute_uri
 
 from .base import ActivationChallengeResult, AuthenticatorInterface
+
+logger = logging.getLogger("sentry.auth.u2f")
 
 
 def decode_credential_id(device):
@@ -203,15 +205,56 @@ class U2fInterface(AuthenticatorInterface):
         challenge, state = self.webauthn_authentication_server.authenticate_begin(
             credentials=credentials
         )
-        request.session["webauthn_authentication_state"] = state
+        logger.info(
+            "U2F activate",
+            extra={
+                "user": request.user.id,
+                "staff_flag": request.session.get("staff_auth_flow", "missing"),
+            },
+        )
+        if request.session.get("staff_auth_flow", False):
+            request.session["staff_webauthn_authentication_state"] = state
+            # Remove the staff U2F flag in case we don't validate the generated
+            # challenge/response and want to next use a non-staff U2F flow
+            del request.session["staff_auth_flow"]
+        else:
+            request.session["webauthn_authentication_state"] = state
+        logger.info(
+            "U2F activate after setting state",
+            extra={
+                "user": request.user.id,
+                "staff_flag": request.session.get("staff_auth_flow", "missing"),
+                "has_state": "webauthn_authentication_state" in request.session,
+                "has_staff_state": "staff_webauthn_authentication_state" in request.session,
+            },
+        )
 
         return ActivationChallengeResult(challenge=cbor.encode(challenge["publicKey"]))
 
-    def validate_response(self, request: Request, challenge, response):
+    def validate_response(self, request: HttpRequest, challenge, response):
         try:
             credentials = self.credentials()
+
+            if hasattr(request, "user") and request.user.is_staff:
+                logger.info(
+                    "Validating U2F for staff",
+                    extra={
+                        "user": request.user.id,
+                        "staff_flag": request.session.get("staff_auth_flow", "missing"),
+                        "has_state": "webauthn_authentication_state" in request.session,
+                        "has_staff_state": "staff_webauthn_authentication_state" in request.session,
+                    },
+                )
+
+            # Only 1 U2F state should be set at a time
+            default_state = request.session.get("webauthn_authentication_state")
+            staff_state = request.session.get("staff_webauthn_authentication_state")
+            if default_state and staff_state:
+                logger.info(
+                    "Both staff and non-staff U2F states are set", extra={"user": request.user.id}
+                )
             self.webauthn_authentication_server.authenticate_complete(
-                state=request.session["webauthn_authentication_state"],
+                state=default_state or staff_state,
                 credentials=credentials,
                 credential_id=websafe_decode(response["keyHandle"]),
                 client_data=ClientData(websafe_decode(response["clientData"])),
@@ -220,4 +263,8 @@ class U2fInterface(AuthenticatorInterface):
             )
         except (InvalidSignature, InvalidKey, StopIteration):
             return False
+        finally:
+            # Cleanup the U2F state from the session
+            request.session.pop("webauthn_authentication_state", None)
+            request.session.pop("staff_webauthn_authentication_state", None)
         return True

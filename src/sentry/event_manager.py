@@ -118,7 +118,7 @@ from sentry.usage_accountant import record
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
-from sentry.utils.dates import to_datetime, to_timestamp
+from sentry.utils.dates import to_datetime
 from sentry.utils.event import has_event_minified_stack_trace, has_stacktrace, is_handled
 from sentry.utils.eventuser import EventUser
 from sentry.utils.metrics import MutableTags
@@ -292,7 +292,7 @@ class ScoreClause(Func):
         if has_values:
             sql = "log(times_seen + %d) * 600 + %d" % (
                 self.times_seen,
-                to_timestamp(self.last_seen),
+                self.last_seen.timestamp(),
             )
         else:
             sql = "log(times_seen) * 600 + last_seen::abstime::int"

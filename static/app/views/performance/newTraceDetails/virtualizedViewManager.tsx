@@ -167,11 +167,16 @@ export class VirtualizedViewManager {
   indicator_container: HTMLElement | null = null;
 
   intervals: number[] = [];
-  interval_bars = new Array(10).fill(0);
+  // We want to render an indicator every 100px, but because we dont track resizing
+  // of the container, we need to precompute the number of intervals we need to render.
+  // We'll oversize the count by 3x, assuming no user will ever resize the window to 3x the
+  // original size.
+  interval_bars = new Array(Math.ceil(window.innerWidth / 100) * 3).fill(0);
   indicators: ({indicator: TraceTree['indicators'][0]; ref: HTMLElement} | undefined)[] =
     [];
   timeline_indicators: (HTMLElement | undefined)[] = [];
   span_bars: ({ref: HTMLElement; space: [number, number]} | undefined)[] = [];
+  invisible_bars: ({ref: HTMLElement; space: [number, number]} | undefined)[] = [];
   span_arrows: (
     | {
         position: 0 | 1;
@@ -213,6 +218,8 @@ export class VirtualizedViewManager {
     this.onDividerMouseMove = this.onDividerMouseMove.bind(this);
     this.onSyncedScrollbarScroll = this.onSyncedScrollbarScroll.bind(this);
     this.onWheelZoom = this.onWheelZoom.bind(this);
+    this.onWheelEnd = this.onWheelEnd.bind(this);
+    this.onWheelStart = this.onWheelStart.bind(this);
   }
 
   initializeTraceSpace(space: [x: number, y: number, width: number, height: number]) {
@@ -259,8 +266,8 @@ export class VirtualizedViewManager {
     this.previousDividerClientVec = [event.clientX, event.clientY];
     this.container.style.userSelect = 'none';
 
-    this.container.addEventListener('mouseup', this.onDividerMouseUp, {passive: true});
-    this.container.addEventListener('mousemove', this.onDividerMouseMove, {
+    document.addEventListener('mouseup', this.onDividerMouseUp, {passive: true});
+    document.addEventListener('mousemove', this.onDividerMouseMove, {
       passive: true,
     });
   }
@@ -282,8 +289,9 @@ export class VirtualizedViewManager {
     this.dividerStartVec = null;
     this.previousDividerClientVec = null;
 
-    this.container.removeEventListener('mouseup', this.onDividerMouseUp);
-    this.container.removeEventListener('mousemove', this.onDividerMouseMove);
+    this.enqueueOnScrollEndOutOfBoundsCheck();
+    document.removeEventListener('mouseup', this.onDividerMouseUp);
+    document.removeEventListener('mousemove', this.onDividerMouseMove);
   }
 
   onDividerMouseMove(event: MouseEvent) {
@@ -311,7 +319,7 @@ export class VirtualizedViewManager {
         width: this.trace_view.width + config_distance,
       });
     }
-
+    this.recomputeTimelineIntervals();
     this.draw({
       list: this.columns.list.width + distancePercentage,
       span_list: this.columns.span_list.width - distancePercentage,
@@ -349,6 +357,13 @@ export class VirtualizedViewManager {
     this.span_bars[index] = ref ? {ref, space} : undefined;
   }
 
+  registerInvisibleBarRef(
+    ref: HTMLElement | null,
+    space: [number, number],
+    index: number
+  ) {
+    this.invisible_bars[index] = ref ? {ref, space} : undefined;
+  }
   registerArrowRef(ref: HTMLElement | null, space: [number, number], index: number) {
     this.span_arrows[index] = ref ? {ref, space, visible: false, position: 0} : undefined;
   }
@@ -377,7 +392,7 @@ export class VirtualizedViewManager {
         if (scrollableElement) {
           scrollableElement.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
           this.row_measurer.measure(node, scrollableElement as HTMLElement);
-          ref.addEventListener('wheel', this.onSyncedScrollbarScroll, {passive: true});
+          ref.addEventListener('wheel', this.onSyncedScrollbarScroll, {passive: false});
         }
       }
     }
@@ -441,12 +456,10 @@ export class VirtualizedViewManager {
   onWheelZoom(event: WheelEvent) {
     if (event.metaKey) {
       event.preventDefault();
-
       if (!this.onWheelEndRaf) {
         this.onWheelStart();
-        this.enqueueOnWheelEndRaf();
-        return;
       }
+      this.enqueueOnWheelEndRaf();
 
       const scale = 1 - event.deltaY * 0.01 * -1;
       const configSpaceCursor = this.getConfigSpaceCursor({
@@ -470,14 +483,28 @@ export class VirtualizedViewManager {
         x: newView[0],
         width: newView[2],
       });
+      this.draw();
     } else {
-      const physical_delta_pct = event.deltaX / this.trace_physical_space.width;
-      const view_delta = physical_delta_pct * this.trace_view.width;
-      this.setTraceView({
-        x: this.trace_view.x + view_delta,
-      });
+      if (!this.onWheelEndRaf) {
+        this.onWheelStart();
+      }
+      this.enqueueOnWheelEndRaf();
+      const scrollingHorizontally = Math.abs(event.deltaX) >= Math.abs(event.deltaY);
+
+      if (event.deltaX !== 0 && event.deltaX !== -0 && scrollingHorizontally) {
+        event.preventDefault();
+      }
+
+      if (scrollingHorizontally) {
+        const physical_delta_pct = event.deltaX / this.trace_physical_space.width;
+        const view_delta = physical_delta_pct * this.trace_view.width;
+
+        this.setTraceView({
+          x: this.trace_view.x + view_delta,
+        });
+        this.draw();
+      }
     }
-    this.draw();
   }
 
   zoomIntoSpaceRaf: number | null = null;
@@ -501,6 +528,11 @@ export class VirtualizedViewManager {
   }
 
   onZoomIntoSpace(space: [number, number]) {
+    if (space[1] <= 0) {
+      // @TODO implement scrolling to 0 width spaces
+      return;
+    }
+
     const distance_x = space[0] - this.to_origin - this.trace_view.x;
     const distance_width = this.trace_view.width - space[1];
 
@@ -541,7 +573,7 @@ export class VirtualizedViewManager {
     const start = performance.now();
     const rafCallback = (now: number) => {
       const elapsed = now - start;
-      if (elapsed > 150) {
+      if (elapsed > 200) {
         this.onWheelEnd();
       } else {
         this.onWheelEndRaf = window.requestAnimationFrame(rafCallback);
@@ -608,6 +640,14 @@ export class VirtualizedViewManager {
     if (this.isScrolling) {
       return;
     }
+
+    const scrollingHorizontally = Math.abs(event.deltaX) >= Math.abs(event.deltaY);
+    if (event.deltaX !== 0 && event.deltaX !== -0 && scrollingHorizontally) {
+      event.preventDefault();
+    } else {
+      return;
+    }
+
     if (this.bringRowIntoViewAnimation !== null) {
       window.cancelAnimationFrame(this.bringRowIntoViewAnimation);
       this.bringRowIntoViewAnimation = null;
@@ -664,7 +704,7 @@ export class VirtualizedViewManager {
     let max = Number.NEGATIVE_INFINITY;
     let innerMostNode: TraceTreeNode<any> | undefined;
 
-    for (let i = 0; i < this.columns.span_list.column_refs.length; i++) {
+    for (let i = 5; i < this.columns.span_list.column_refs.length - 5; i++) {
       const width = this.row_measurer.cache.get(this.columns.list.column_nodes[i]);
       if (width === undefined) {
         // this is unlikely to happen, but we should trigger a sync measure event if it does
@@ -691,9 +731,31 @@ export class VirtualizedViewManager {
     }
   }
 
-  scrollRowIntoViewHorizontally(node: TraceTreeNode<any>, duration: number = 600) {
+  isOutsideOfViewOnKeyDown(node: TraceTreeNode<any>, offset_px: number): boolean {
+    const width = this.row_measurer.cache.get(node);
+    if (width === undefined) {
+      // this is unlikely to happen, but we should trigger a sync measure event if it does
+      return false;
+    }
+    const translation = this.columns.list.translate[0];
+
+    return (
+      translation + node.depth * this.row_depth_padding < 0 ||
+      translation + node.depth * this.row_depth_padding + offset_px >
+        this.columns.list.width * this.container_physical_space.width
+    );
+  }
+
+  scrollRowIntoViewHorizontally(
+    node: TraceTreeNode<any>,
+    duration: number = 600,
+    offset_px: number = 0
+  ) {
     const VISUAL_OFFSET = this.row_depth_padding / 2;
-    const target = Math.min(-node.depth * this.row_depth_padding + VISUAL_OFFSET, 0);
+    const target = Math.min(
+      -node.depth * this.row_depth_padding + VISUAL_OFFSET + offset_px,
+      0
+    );
     this.animateScrollColumnTo(target, duration);
   }
 
@@ -805,7 +867,7 @@ export class VirtualizedViewManager {
 
     if (segments.length === 1 && segments[0] === 'trace:root') {
       rerender();
-      list.scrollToRow(0);
+      this.scrollToRow(0);
       return Promise.resolve({index: 0, node: tree.root.children[0]});
     }
 
@@ -825,7 +887,9 @@ export class VirtualizedViewManager {
         return null;
       }
 
-      // Reassing the parent to the current node
+      // Reassing the parent to the current node so that
+      // searching narrows down to the current level
+      // and we dont need to search the entire tree each time
       parent = current;
 
       if (isTransactionNode(current)) {
@@ -860,11 +924,18 @@ export class VirtualizedViewManager {
       }
 
       rerender();
-      list.scrollToRow(index);
+      this.scrollToRow(index);
       return {index, node: current};
     };
 
     return scrollToRow();
+  }
+
+  scrollToRow(index: number) {
+    if (!this.list) {
+      return;
+    }
+    this.list.scrollToRow(index);
   }
 
   computeTransformXFromTimestamp(timestamp: number): number {
@@ -984,10 +1055,6 @@ export class VirtualizedViewManager {
     const listWidth = list_width * 100 + '%';
     const spanWidth = span_list_width * 100 + '%';
 
-    // JavaScript "arrays" are nice in the sense that they are really just dicts,
-    // allowing us to store negative indices. This sometimes happens as the list
-    // virtualizes the rows and we end up with a negative index as they are being
-    // rendered off screen.
     for (let i = 0; i < this.columns.list.column_refs.length; i++) {
       while (this.span_bars[i] === undefined && i < this.columns.list.column_refs.length)
         i++;
@@ -1035,6 +1102,13 @@ export class VirtualizedViewManager {
             }
           }
         }
+      }
+    }
+
+    for (let i = 0; i < this.invisible_bars.length; i++) {
+      const invisible_bar = this.invisible_bars[i];
+      if (invisible_bar) {
+        invisible_bar.ref.style.transform = `translateX(${this.computeTransformXFromTimestamp(invisible_bar.space[0])}px)`;
       }
     }
 
@@ -1143,9 +1217,10 @@ export class VirtualizedViewManager {
         indicator.style.opacity = '1';
         indicator.style.transform = `translateX(${placement}px)`;
         const label = indicator.children[0] as HTMLElement | undefined;
+        const duration = getDuration(interval / 1000, 2, true);
 
-        if (label) {
-          label.innerHTML = getDuration(interval / 1000, 2, true);
+        if (label && label?.textContent !== duration) {
+          label.textContent = duration;
         }
       }
     }
@@ -1484,6 +1559,7 @@ export const useVirtualizedList = (
       pointerEventsRaf.current = requestAnimationTimeout(() => {
         styleCache.current?.clear();
         renderCache.current?.clear();
+
         managerRef.current.isScrolling = false;
 
         const recomputedItems = findRenderedItems({
@@ -1503,7 +1579,7 @@ export const useVirtualizedList = (
           scrollContainerRef.current.style.pointerEvents = 'auto';
           pointerEventsRaf.current = null;
         }
-      }, 150);
+      }, 50);
     };
     props.container.addEventListener('scroll', onScroll, {passive: false});
 

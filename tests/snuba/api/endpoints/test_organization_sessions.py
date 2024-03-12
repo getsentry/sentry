@@ -15,7 +15,6 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.link_header import parse_link_header
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.cursors import Cursor
-from sentry.utils.dates import to_timestamp
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -38,7 +37,7 @@ MOCK_DATETIME_PLUS_ONE_HOUR = MOCK_DATETIME + datetime.timedelta(hours=1)
 SNUBA_TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 MOCK_DATETIME_START_OF_DAY = MOCK_DATETIME.replace(hour=0, minute=0, second=0)
 
-TIMESTAMP = to_timestamp(MOCK_DATETIME)
+TIMESTAMP = MOCK_DATETIME.timestamp()
 RECEIVED = TIMESTAMP
 SESSION_STARTED = TIMESTAMP // 3600 * 3600  # round to the hour
 

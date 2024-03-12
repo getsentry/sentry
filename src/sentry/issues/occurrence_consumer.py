@@ -219,10 +219,11 @@ def process_occurrence_message(
     with metrics.timer("occurrence_consumer._process_message._get_kwargs"):
         kwargs = _get_kwargs(message)
     occurrence_data = kwargs["occurrence_data"]
+    metric_tags = {"occurrence_type": occurrence_data["type"]}
     metrics.incr(
         "occurrence_ingest.messages",
         sample_rate=1.0,
-        tags={"occurrence_type": occurrence_data["type"]},
+        tags=metric_tags,
     )
     txn.set_tag("occurrence_type", occurrence_data["type"])
 
@@ -239,7 +240,7 @@ def process_occurrence_message(
         metrics.incr(
             "occurrence_ingest.dropped_feature_disabled",
             sample_rate=1.0,
-            tags={"occurrence_type": occurrence_data["type"]},
+            tags=metric_tags,
         )
         txn.set_tag("result", "dropped_feature_disabled")
         return None
@@ -247,7 +248,8 @@ def process_occurrence_message(
     if "event_data" in kwargs:
         txn.set_tag("result", "success")
         with metrics.timer(
-            "occurrence_consumer._process_message.process_event_and_issue_occurrence"
+            "occurrence_consumer._process_message.process_event_and_issue_occurrence",
+            tags=metric_tags,
         ):
             return process_event_and_issue_occurrence(
                 kwargs["occurrence_data"], kwargs["event_data"]
@@ -255,7 +257,8 @@ def process_occurrence_message(
     else:
         txn.set_tag("result", "success")
         with metrics.timer(
-            "occurrence_consumer._process_message.lookup_event_and_process_issue_occurrence"
+            "occurrence_consumer._process_message.lookup_event_and_process_issue_occurrence",
+            tags=metric_tags,
         ):
             return lookup_event_and_process_issue_occurrence(kwargs["occurrence_data"])
 

@@ -1230,6 +1230,14 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.tasks.on_demand_metrics.schedule_on_demand_check",
         "schedule": crontab(minute="*/5"),
     },
+    "detect_broken_monitor_envs": {
+        "task": "sentry.monitors.tasks.detect_broken_monitor_envs",
+        "schedule": crontab(
+            minute="0",
+            hour="12",  # 05:00 PDT, 09:00 EDT, 12:00 UTC
+        ),
+        "options": {"expires": 15 * 60},
+    },
 }
 
 # Assign the configuration keys celery uses based on our silo mode.
@@ -1608,6 +1616,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable interface functionality to synchronize groups between sentry and
     # issues on external services.
     "organizations:integrations-issue-sync": True,
+    # Enable comments of related issues on open PRs for beta languages
+    "organizations:integrations-open-pr-comment-beta-langs": False,
     # Enable Opsgenie integration
     "organizations:integrations-opsgenie": True,
     # Enable stacktrace linking
@@ -1894,8 +1904,10 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:slack-block-kit": False,
     # Improvements to Slack messages using Block Kit
     "organizations:slack-block-kit-improvements": False,
-    # Send Slack notifications to threads
+    # Send Slack notifications to threads for Metric Alerts
     "organizations:slack-thread": False,
+    # Send Slack notifications to threads for Issue Alerts
+    "organizations:slack-thread-issue-alert": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -3460,51 +3472,9 @@ KAFKA_CLUSTERS: dict[str, dict[str, Any]] = {
     }
 }
 
-# START DEPRECATED SECTION
-KAFKA_EVENTS = "events"
-KAFKA_EVENTS_COMMIT_LOG = "snuba-commit-log"
-KAFKA_TRANSACTIONS = "transactions"
-KAFKA_TRANSACTIONS_COMMIT_LOG = "snuba-transactions-commit-log"
-KAFKA_OUTCOMES = "outcomes"
-KAFKA_OUTCOMES_BILLING = "outcomes-billing"
-KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS = "events-subscription-results"
-KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS = "transactions-subscription-results"
-KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS = "generic-metrics-subscription-results"
-
-KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS = "sessions-subscription-results"
-KAFKA_METRICS_SUBSCRIPTIONS_RESULTS = "metrics-subscription-results"
-KAFKA_INGEST_EVENTS = "ingest-events"
-KAFKA_INGEST_EVENTS_DLQ = "ingest-events-dlq"
-KAFKA_INGEST_ATTACHMENTS = "ingest-attachments"
-KAFKA_INGEST_TRANSACTIONS = "ingest-transactions"
-KAFKA_INGEST_METRICS = "ingest-metrics"
-KAFKA_INGEST_METRICS_DLQ = "ingest-metrics-dlq"
-KAFKA_SNUBA_METRICS = "snuba-metrics"
-KAFKA_PROFILES = "profiles"
-KAFKA_INGEST_PERFORMANCE_METRICS = "ingest-performance-metrics"
-KAFKA_INGEST_GENERIC_METRICS_DLQ = "ingest-generic-metrics-dlq"
-KAFKA_SNUBA_GENERIC_METRICS = "snuba-generic-metrics"
-KAFKA_INGEST_REPLAY_EVENTS = "ingest-replay-events"
-KAFKA_INGEST_REPLAYS_RECORDINGS = "ingest-replay-recordings"
-KAFKA_INGEST_OCCURRENCES = "ingest-occurrences"
-KAFKA_INGEST_MONITORS = "ingest-monitors"
-KAFKA_EVENTSTREAM_GENERIC = "generic-events"
-KAFKA_GENERIC_EVENTS_COMMIT_LOG = "snuba-generic-events-commit-log"
-KAFKA_GROUP_ATTRIBUTES = "group-attributes"
-KAFKA_SHARED_RESOURCES_USAGE = "shared-resources-usage"
-
-# spans
-KAFKA_SNUBA_SPANS = "snuba-spans"
-# END DEPRECATED SECTION
-
 
 # Mapping of default Kafka topic name to custom names
-KAFKA_TOPIC_OVERRIDES: Mapping[str, str] = {
-    # TODO: This is temporary while we migrate between the old and new way of defining overrides.
-    # To be removed once this is defined in prod, along with KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS
-    # variable which will no longer be needed
-    "generic-metrics-subscription-results": KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS
-}
+KAFKA_TOPIC_OVERRIDES: Mapping[str, str] = {}
 
 
 # Mapping of default Kafka topic name to cluster name

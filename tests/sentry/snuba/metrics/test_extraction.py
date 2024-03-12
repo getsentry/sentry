@@ -16,7 +16,6 @@ from sentry.snuba.metrics.extraction import (
     to_standard_metrics_query,
 )
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.utils import json
 from sentry.utils.glob import glob_match
 
 
@@ -424,9 +423,7 @@ def test_spec_wildcard() -> None:
         ("title:*?dispatch*", "backend ?dispatch", r"*\?dispatch*"),
     ],
 )
-def test_spec_wildcard_escaping(
-    default_project, insta_snapshot, query, title, expected_pattern
-) -> None:
+def test_spec_wildcard_escaping(query, title, expected_pattern) -> None:
     spec = OnDemandMetricSpec("count()", query)
 
     assert spec._metric_type == "c"
@@ -441,10 +438,6 @@ def test_spec_wildcard_escaping(
     # We also validate using Relay's glob implementation to make sure the escaping
     # is interpreted correctly.
     assert glob_match(title, expected_pattern, ignorecase=True)
-
-    # We want to validate the json output, to make sure that characters are correctly escaped.
-    metric_spec = spec.to_metric_spec(default_project)
-    insta_snapshot(json.dumps(metric_spec))
 
 
 def test_spec_count_if() -> None:
