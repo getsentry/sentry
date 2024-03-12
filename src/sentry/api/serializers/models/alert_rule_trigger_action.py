@@ -73,7 +73,9 @@ class AlertRuleTriggerActionSerializer(Serializer):
             "dateCreated": obj.date_added,
             "desc": self.human_desc(obj),
             "priority": (
-                obj.sentry_app_config.get("priority", None) if obj.sentry_app_config else None
+                obj.sentry_app_config.get("priority", None)
+                if isinstance(obj.sentry_app_config, dict)
+                else None
             ),
         }
 
