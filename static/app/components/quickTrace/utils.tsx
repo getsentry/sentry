@@ -144,6 +144,20 @@ export function generateMultiTransactionsTarget(
   return traceEventView.getResultsViewUrlTarget(organization.slug);
 }
 
+const timestampsFieldCandidates = ['startTimestamp', 'timestamp', 'endTimestamp'];
+export function getEventTimestamp(event: Event): string | number | undefined {
+  for (const key of timestampsFieldCandidates) {
+    if (
+      key in event &&
+      (typeof event[key] === 'string' || typeof event[key] === 'number')
+    ) {
+      return event[key];
+    }
+  }
+
+  return undefined;
+}
+
 export function generateTraceTarget(
   event: Event,
   organization: OrganizationSummary
@@ -154,7 +168,14 @@ export function generateTraceTarget(
 
   if (organization.features.includes('performance-view')) {
     // TODO(txiao): Should this persist the current query when going to trace view?
-    return getTraceDetailsUrl(organization, traceId, dateSelection, {});
+    return getTraceDetailsUrl(
+      organization,
+      traceId,
+      dateSelection,
+      {},
+      getEventTimestamp(event),
+      event.eventID
+    );
   }
 
   const eventView = EventView.fromSavedQuery({
