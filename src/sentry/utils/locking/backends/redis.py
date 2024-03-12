@@ -53,9 +53,7 @@ class RedisBlasterLockBackend(BaseRedisLockBackend):
             cluster = redis.clusters.get(cluster)
         super().__init__(cluster, prefix=prefix, uuid=uuid)
 
-    def get_client(
-        self, key: str, routing_key: int | str | None = None
-    ) -> rb.clients.LocalClient | rb.Cluster:
+    def get_client(self, key: str, routing_key: int | str | None = None) -> rb.clients.LocalClient:
         # This is a bit of an abstraction leak, but if an integer is provided
         # we use that value to determine placement rather than the cluster
         # router. This leaking allows us us to have more fine-grained control
