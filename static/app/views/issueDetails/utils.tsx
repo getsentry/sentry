@@ -133,6 +133,9 @@ export function getGroupReprocessingStatus(
     case 'reprocessing':
       return ReprocessingStatus.REPROCESSING;
     case 'unresolved': {
+      if (!activities) {
+        return ReprocessingStatus.NO_STATUS;
+      }
       const groupMostRecentActivity =
         mostRecentActivity ?? getGroupMostRecentActivity(activities);
       if (groupMostRecentActivity?.type === 'reprocess') {
