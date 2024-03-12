@@ -10,7 +10,6 @@ from sentry.issues.grouptype import NoiseConfig, PerformanceFileIOMainThreadGrou
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
-from sentry.utils.dates import to_timestamp_from_iso_format
 from sentry.utils.samples import load_data
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
@@ -706,7 +705,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
             "project_slug": self.project.slug,
             "level": "fatal",
             "title": error.title,
-            "timestamp": to_timestamp_from_iso_format(error.timestamp),
+            "timestamp": datetime.fromisoformat(error.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
         } == response.data["orphan_errors"][0]
@@ -1272,7 +1271,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "project_slug": self.gen1_project.slug,
             "level": "fatal",
             "title": error.title,
-            "timestamp": to_timestamp_from_iso_format(error.timestamp),
+            "timestamp": datetime.fromisoformat(error.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
         }
@@ -1284,7 +1283,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "project_slug": self.gen1_project.slug,
             "level": "warning",
             "title": error1.title,
-            "timestamp": to_timestamp_from_iso_format(error1.timestamp),
+            "timestamp": datetime.fromisoformat(error1.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
         }
@@ -1338,7 +1337,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "project_slug": self.project.slug,
             "level": "fatal",
             "title": error.title,
-            "timestamp": to_timestamp_from_iso_format(error.timestamp),
+            "timestamp": datetime.fromisoformat(error.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
         } == response.data["orphan_errors"][1]
@@ -1350,7 +1349,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "project_slug": self.project.slug,
             "level": "warning",
             "title": error1.title,
-            "timestamp": to_timestamp_from_iso_format(error1.timestamp),
+            "timestamp": datetime.fromisoformat(error1.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
         } == response.data["orphan_errors"][0]
@@ -1394,7 +1393,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "project_slug": self.project.slug,
             "level": "fatal",
             "title": error.title,
-            "timestamp": to_timestamp_from_iso_format(error.timestamp),
+            "timestamp": datetime.fromisoformat(error.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
         } in response.data["orphan_errors"]
@@ -1406,7 +1405,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "project_slug": self.project.slug,
             "level": "warning",
             "title": error1.title,
-            "timestamp": to_timestamp_from_iso_format(error1.timestamp),
+            "timestamp": datetime.fromisoformat(error1.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
         } in response.data["orphan_errors"]
@@ -1452,7 +1451,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "project_slug": self.project.slug,
             "level": "fatal",
             "title": error.title,
-            "timestamp": to_timestamp_from_iso_format(error.timestamp),
+            "timestamp": datetime.fromisoformat(error.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
         } in response.data["orphan_errors"]
@@ -1478,7 +1477,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "project_slug": self.gen1_project.slug,
             "level": "debug",
             "title": "this is a log message",
-            "timestamp": to_timestamp_from_iso_format(default_event.timestamp),
+            "timestamp": datetime.fromisoformat(default_event.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
         } in root_event["errors"]
