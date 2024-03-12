@@ -337,7 +337,7 @@ const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)<{isLarge?: b
 const ButtonGrid = styled('div')`
   display: flex;
   align-items: center;
-  gap: 0 ${space(2)};
+  gap: 0 ${space(1)};
   flex-direction: row;
   justify-content: space-between;
 `;
