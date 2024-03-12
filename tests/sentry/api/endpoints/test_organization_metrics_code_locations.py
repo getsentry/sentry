@@ -21,8 +21,8 @@ pytestmark = pytest.mark.sentry_metrics
 
 @region_silo_test
 @freeze_time("2023-11-21T10:30:30.000Z")
-class OrganizationMetricsMetadataTest(APITestCase, BaseSpansTestCase):
-    endpoint = "sentry-api-0-organization-metrics-metadata"
+class OrganizationMetricsCodeLocationsTest(APITestCase, BaseSpansTestCase):
+    endpoint = "sentry-api-0-organization-metrics-code-locations"
 
     def setUp(self):
         super().setUp()
@@ -107,15 +107,17 @@ class OrganizationMetricsMetadataTest(APITestCase, BaseSpansTestCase):
             statsPeriod="1d",
             codeLocations="true",
         )
-        code_locations = response.data["codeLocations"]
+        code_locations = response.data
 
         assert len(code_locations) == 2
 
+        assert code_locations[0]["projectId"] == projects[0].id
         assert code_locations[0]["mri"] == mris[0]
         assert code_locations[0]["timestamp"] == self._round_to_day(
             self.current_time - timedelta(days=1)
         )
 
+        assert code_locations[1]["projectId"] == projects[0].id
         assert code_locations[1]["mri"] == mris[0]
         assert code_locations[1]["timestamp"] == self._round_to_day(self.current_time)
 
@@ -128,6 +130,61 @@ class OrganizationMetricsMetadataTest(APITestCase, BaseSpansTestCase):
         assert len(frames) == 2
         for index, filename in enumerate(("main.py", "script.py")):
             assert frames[index]["filename"] == filename
+
+    def test_get_locations_with_all_projects(self):
+        projects = [
+            self.create_project(organization=self.organization, name="project_1"),
+            self.create_project(organization=self.organization, name="project_2"),
+            self.create_project(organization=self.organization, name="project_3"),
+        ]
+        mris = [
+            "d:custom/sentry.process_profile.track_outcome@second",
+        ]
+
+        self._store_code_locations(self.organization, projects, mris, 2)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=mris,
+            project="-1",
+            statsPeriod="1d",
+            codeLocations="true",
+        )
+        code_locations = response.data
+
+        assert len(code_locations) == 6
+
+    def test_get_locations_with_pagination(self):
+        projects = [
+            self.create_project(organization=self.organization, name="project_1"),
+            self.create_project(organization=self.organization, name="project_2"),
+            self.create_project(organization=self.organization, name="project_3"),
+        ]
+        mris = [
+            "d:custom/sentry.process_profile.track_outcome@second",
+        ]
+
+        self._store_code_locations(self.organization, projects, mris, 2)
+
+        offset = 0
+        for expected_project in projects:
+            response = self.get_success_response(
+                self.organization.slug,
+                metric=mris,
+                project="-1",
+                statsPeriod="1d",
+                codeLocations="true",
+                per_page="2",
+                cursor=f"0:{offset}:0",
+            )
+            code_locations = response.data
+
+            assert len(code_locations) == 2
+            # We expect both code locations to belong to the same project at different timestamps.
+            assert code_locations[0]["projectId"] == expected_project.id
+            assert code_locations[1]["projectId"] == expected_project.id
+
+            offset += 2
 
     def test_get_locations_with_start_and_end(self):
         projects = [self.create_project(name="project_1")]
@@ -147,10 +204,11 @@ class OrganizationMetricsMetadataTest(APITestCase, BaseSpansTestCase):
             end=(self.current_time - timedelta(days=1)).isoformat(),
             codeLocations="true",
         )
-        code_locations = response.data["codeLocations"]
+        code_locations = response.data
 
         assert len(code_locations) == 1
 
+        assert code_locations[0]["projectId"] == projects[0].id
         assert code_locations[0]["mri"] == mris[0]
         assert code_locations[0]["timestamp"] == self._round_to_day(
             self.current_time - timedelta(days=1)
@@ -177,7 +235,7 @@ class OrganizationMetricsMetadataTest(APITestCase, BaseSpansTestCase):
             end=(self.current_time - timedelta(days=2)).isoformat(),
             codeLocations="true",
         )
-        codeLocations = response.data["codeLocations"]
+        codeLocations = response.data
 
         assert len(codeLocations) == 0
 
@@ -225,7 +283,7 @@ class OrganizationMetricsMetadataTest(APITestCase, BaseSpansTestCase):
             statsPeriod="1d",
             codeLocations="true",
         )
-        code_locations = response.data["codeLocations"]
+        code_locations = response.data
 
         assert len(code_locations) == 1
 
@@ -281,7 +339,7 @@ class OrganizationMetricsMetadataTest(APITestCase, BaseSpansTestCase):
             codeLocations="true",
         )
 
-        code_locations = response.data["codeLocations"]
+        code_locations = response.data
 
         frame = code_locations[0]["frames"][0]
         assert frame["preContext"] == ["pre"]
@@ -307,68 +365,8 @@ class OrganizationMetricsMetadataTest(APITestCase, BaseSpansTestCase):
             codeLocations="true",
         )
 
-        code_locations = response.data["codeLocations"]
+        code_locations = response.data
 
         frame = code_locations[0]["frames"][0]
         assert frame["preContext"] == []
         assert frame["postContext"] == []
-
-    @patch(
-        "sentry.sentry_metrics.querying.metadata.metrics_code_locations.CodeLocationsFetcher.MAXIMUM_KEYS",
-        50,
-    )
-    @patch(
-        "sentry.sentry_metrics.querying.metadata.metrics_code_locations.CodeLocationsFetcher._in_batches"
-    )
-    def test_get_locations_with_too_many_combinations(self, _in_batches):
-        project = self.create_project(name="project_1")
-        mri = "d:custom/sentry.process_profile.track_outcome@second"
-
-        self.get_success_response(
-            self.organization.slug,
-            metric=[mri],
-            project=[project.id],
-            statsPeriod="90d",
-            codeLocations="true",
-        )
-
-        args, *_ = _in_batches.call_args
-        assert len(list(args[0])) == 46
-
-    @patch(
-        "sentry.sentry_metrics.querying.metadata.metrics_code_locations.CodeLocationsFetcher.MAX_SET_SIZE",
-        1,
-    )
-    def test_get_locations_with_more_locations_than_limit(self):
-        projects = [self.create_project(name="project_1")]
-        mris = [
-            "d:custom/sentry.process_profile.track_outcome@second",
-        ]
-
-        # We are storing two code locations with a limit of 1.
-        self._store_code_locations(self.organization, projects, mris, 2)
-
-        response = self.get_success_response(
-            self.organization.slug,
-            metric=mris,
-            project=[project.id for project in projects],
-            statsPeriod="1d",
-            codeLocations="true",
-        )
-        code_locations = response.data["codeLocations"]
-
-        assert len(code_locations) == 2
-
-        assert code_locations[0]["mri"] == mris[0]
-        assert code_locations[0]["timestamp"] == self._round_to_day(
-            self.current_time - timedelta(days=1)
-        )
-
-        assert code_locations[1]["mri"] == mris[0]
-        assert code_locations[1]["timestamp"] == self._round_to_day(self.current_time)
-
-        frames = code_locations[0]["frames"]
-        assert len(frames) == 1
-
-        frames = code_locations[0]["frames"]
-        assert len(frames) == 1
