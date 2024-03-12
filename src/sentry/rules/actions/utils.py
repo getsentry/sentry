@@ -9,27 +9,30 @@ from sentry.models.rule import Rule
 def get_changed_data(
     rule: Rule, rule_data: dict[str, list[Any]], rule_data_before: dict[str, list[Any]]
 ) -> dict[str, list[Any]]:
+    """
+    Generate a list per type of issue alert rule data of what changes occurred on edit.
+    """
     changed_data = defaultdict(list)
 
     for condition in rule_data.get("conditions", []):
-        if condition not in rule_data_before["conditions"]:
+        if condition not in rule_data_before.get("conditions", []):
             label = generate_rule_label(rule_data.get("project"), rule, condition)
             changed_data[condition["id"]].append(f"Added condition '{label}'")
 
-    for condition in rule_data_before["conditions"]:
-        if condition not in rule_data["conditions"]:
+    for condition in rule_data_before.get("conditions", []):
+        if condition not in rule_data.get("conditions", []):
             label = generate_rule_label(rule.project, rule, condition)
             changed_data[condition["id"]].append(f"Removed condition '{label}'")
 
     for action in rule_data.get("actions", []):
-        if action not in rule_data_before["actions"]:
+        if action not in rule_data_before.get("actions", []):
             label = generate_rule_label(rule.project, rule, action)
             changed_data[condition["id"]].append(f"Added action '{label}'")
 
-    for action in rule_data_before["actions"]:
+    for action in rule_data_before.get("actions", []):
         if action not in rule_data.get("actions", []):
             label = generate_rule_label(rule.project, rule, action)
-            changed_data[condition["id"]].append(f"Added action '{label}'")
+            changed_data[condition["id"]].append(f"Removed action '{label}'")
 
     if rule_data.get("frequency") != rule_data_before.get("frequency"):
         old_frequency = rule_data_before.get("frequency")
@@ -39,6 +42,7 @@ def get_changed_data(
         )
 
     if rule_data.get("environment_id") and not rule_data_before.get("environment_id"):
+        environment = None
         try:
             environment = Environment.objects.get(id=rule_data.get("environment_id"))
         except Environment.DoesNotExist:
@@ -48,6 +52,7 @@ def get_changed_data(
             changed_data["environment"].append(f"Added *{environment.name}* environment")
 
     if rule_data_before.get("environment_id") and not rule_data.get("environment_id"):
+        environment = None
         try:
             environment = Environment.objects.get(id=rule_data.get("environment_id"))
         except Environment.DoesNotExist:

@@ -13,7 +13,7 @@ class SlackRuleSaveEditMessageBuilder(BlockSlackMessageBuilder):
         self,
         rule: Rule,
         new: bool,
-        changed: dict,
+        changed: dict | None = None,
     ) -> None:
         super().__init__()
         self.rule = rule
