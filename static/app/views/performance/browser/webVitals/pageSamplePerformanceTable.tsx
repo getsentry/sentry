@@ -25,6 +25,7 @@ import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useReplayExists from 'sentry/utils/replayCount/useReplayExists';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -47,6 +48,7 @@ import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webV
 import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
+import type {Filters} from 'sentry/views/starfish/queries/useIndexedSpans';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
 
 type Column = GridColumnHeader<keyof TransactionSampleRowWithScore>;
@@ -144,6 +146,12 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     enabled: datatype === Datatype.PAGELOADS,
   });
 
+  const mutableSearch = new MutableSearch(query ?? '');
+  const filters: Filters = mutableSearch.getFilterKeys().reduce((acc, key) => {
+    acc[key] = mutableSearch.getFilterValues(key);
+    return acc;
+  }, {});
+
   const {
     data: interactionsTableData,
     isFetching: isInteractionsLoading,
@@ -152,6 +160,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     transaction,
     enabled: datatype === Datatype.INTERACTIONS,
     limit,
+    filters,
   });
 
   const {profileExists} = useProfileExists(
