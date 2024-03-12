@@ -26,14 +26,6 @@ def ensure_aware(value: datetime) -> datetime:
     return make_aware(value)
 
 
-def to_timestamp_from_iso_format(value: str) -> float:
-    """
-    Convert a str representation of datetime in iso format to
-    a POSIX timestamp
-    """
-    return datetime.fromisoformat(value).timestamp()
-
-
 @overload
 def to_datetime(value: None) -> None:
     ...

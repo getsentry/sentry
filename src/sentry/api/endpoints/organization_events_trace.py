@@ -28,7 +28,6 @@ from sentry.search.utils import parse_datetime_string
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
-from sentry.utils.dates import to_timestamp_from_iso_format
 from sentry.utils.numbers import base32_encode, format_grouped_length
 from sentry.utils.sdk import set_measurement
 from sentry.utils.snuba import bulk_snql_query
@@ -718,7 +717,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             "project_slug": event["project"],
             "title": event["title"],
             "level": event["tags[level]"],
-            "timestamp": to_timestamp_from_iso_format(event["timestamp"]),
+            "timestamp": datetime.fromisoformat(event["timestamp"]).timestamp(),
             "event_type": "error",
             "generation": 0,
         }
