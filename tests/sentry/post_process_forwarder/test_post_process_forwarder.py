@@ -35,6 +35,8 @@ def kafka_message_payload() -> Any:
             "organization_id": 1,
             "project_id": 1,
             "primary_hash": "311ee66a5b8e697929804ceb1c456ffe",
+            "data": {"received": time.time()},
+            "message": "hello world",
         },
         {
             "is_new": False,
