@@ -570,7 +570,9 @@ class OutboxBase(Model):
 
     @contextlib.contextmanager
     def process_coalesced(
-        self, is_synchronous_flush: bool
+        self,
+        is_synchronous_flush: bool,
+        retain_most_recent: bool = False,
     ) -> Generator[OutboxBase | None, None, None]:
         coalesced: OutboxBase | None = self.select_coalesced_messages().last()
         first_coalesced: OutboxBase | None = self.select_coalesced_messages().first() or coalesced
@@ -599,11 +601,18 @@ class OutboxBase(Model):
             # leads to timeouts.
             while True:
                 batch = self.select_coalesced_messages().values_list("id", flat=True)[:100]
-                delete_ids = [item_id for item_id in batch if item_id <= coalesced.id]
+                delete_ids = [item_id for item_id in batch if item_id < coalesced.id]
                 if not len(delete_ids):
                     break
                 self.objects.filter(id__in=delete_ids).delete()
                 deleted_count += len(delete_ids)
+
+            # Only process the highest id after the others have been batch processed.
+            # It's not guaranteed that the ordering of the batch processing is in order,
+            # meaning that failures during deletion could leave an old, staler outbox
+            # alive.
+            if not retain_most_recent:
+                coalesced.delete()
 
             metrics.incr("outbox.processed", deleted_count, tags=tags)
             metrics.timing(
@@ -628,8 +637,10 @@ class OutboxBase(Model):
         span.set_tag("outbox_scope", OutboxScope(message.shard_scope).name)
 
     def process(self, is_synchronous_flush: bool) -> bool:
-        with self.process_coalesced(is_synchronous_flush=is_synchronous_flush) as coalesced:
-            if coalesced is not None:
+        with self.process_coalesced(
+            is_synchronous_flush=is_synchronous_flush, retain_most_recent=self.should_skip_shard()
+        ) as coalesced:
+            if coalesced is not None and not self.should_skip_shard():
                 with metrics.timer(
                     "outbox.send_signal.duration",
                     tags={
