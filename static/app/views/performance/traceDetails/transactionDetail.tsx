@@ -271,7 +271,8 @@ class TransactionDetail extends Component<Props> {
             <Tags
               location={location}
               organization={organization}
-              transaction={transaction}
+              tags={transaction.tags ?? []}
+              event={transaction}
             />
           </tbody>
         </table>

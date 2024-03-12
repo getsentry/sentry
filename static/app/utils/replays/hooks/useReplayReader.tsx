@@ -47,11 +47,11 @@ export default function useReplayReader({orgSlug, replaySlug, clipWindow, group}
     () =>
       ReplayReader.factory({
         attachments,
+        clipWindow: memoizedClipWindow,
         errors,
         replayRecord,
-        clipWindow: memoizedClipWindow,
       }),
-    [attachments, errors, memoizedClipWindow, replayRecord]
+    [attachments, memoizedClipWindow, errors, replayRecord]
   );
 
   return {

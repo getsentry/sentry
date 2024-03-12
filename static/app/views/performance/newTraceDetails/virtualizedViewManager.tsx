@@ -852,6 +852,21 @@ export class VirtualizedViewManager {
     return this.span_matrix;
   }
 
+  scrollToEventID(
+    eventId: string,
+    tree: TraceTree,
+    rerender: () => void,
+    {api, organization}: {api: Client; organization: Organization}
+  ): Promise<{index: number; node: TraceTreeNode<TraceTree.NodeValue>} | null | null> {
+    const node = findInTreeByEventId(tree.root, eventId);
+
+    if (!node) {
+      return Promise.resolve(null);
+    }
+
+    return this.scrollToPath(tree, node.path, rerender, {api, organization});
+  }
+
   scrollToPath(
     tree: TraceTree,
     scrollQueue: TraceTree.NodePath[],
@@ -1771,6 +1786,21 @@ function findInTreeFromSegment(
       return node.value.event_id === id;
     }
 
+    return false;
+  });
+}
+
+function findInTreeByEventId(start: TraceTreeNode<TraceTree.NodeValue>, eventId: string) {
+  return TraceTreeNode.Find(start, node => {
+    if (isTransactionNode(node)) {
+      return node.value.event_id === eventId;
+    }
+    if (isSpanNode(node)) {
+      return node.value.span_id === eventId;
+    }
+    if (isTraceErrorNode(node)) {
+      return node.value.event_id === eventId;
+    }
     return false;
   });
 }

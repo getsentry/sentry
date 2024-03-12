@@ -7,11 +7,14 @@ from sentry.constants import ObjectStatus
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.metric_alerts import incident_attachment_info
+from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger("sentry.integrations.opsgenie")
+
+OPSGENIE_CUSTOM_PRIORITIES = {"P1", "P2", "P3", "P4", "P5"}
 
 
 def build_incident_attachment(
@@ -42,6 +45,15 @@ def build_incident_attachment(
         },
     }
     return payload
+
+
+def attach_custom_priority(data: dict[str, Any], action: AlertRuleTriggerAction) -> dict[str, Any]:
+    if action.sentry_app_config is None:
+        return data
+
+    priority = action.sentry_app_config.get("priority", OPSGENIE_DEFAULT_PRIORITY)
+    data["priority"] = priority
+    return data
 
 
 def get_team(team_id: str | None, org_integration: RpcOrganizationIntegration | None):
@@ -84,6 +96,8 @@ def send_incident_alert_notification(
     )
     client = install.get_keyring_client(keyid=team["id"])
     attachment = build_incident_attachment(incident, new_status, metric_value, notification_uuid)
+    attachment = attach_custom_priority(attachment, action)
+
     try:
         resp = client.send_notification(attachment)
         logger.info(

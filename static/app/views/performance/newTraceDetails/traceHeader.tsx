@@ -11,9 +11,9 @@ import {space} from 'sentry/styles/space';
 import type {EventTransaction, Organization} from 'sentry/types';
 import {getShortEventId} from 'sentry/utils/events';
 import {getDuration} from 'sentry/utils/formatters';
-import type {TraceMetaQueryChildrenProps} from 'sentry/utils/performance/quickTrace/traceMetaQuery';
 import type {
   TraceFullDetailed,
+  TraceMeta,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
@@ -25,7 +25,7 @@ import {BrowserDisplay} from '../transactionDetails/eventMetas';
 import {MetaData} from '../transactionDetails/styles';
 
 type TraceHeaderProps = {
-  metaResults: TraceMetaQueryChildrenProps;
+  metaResults: UseApiQueryResult<TraceMeta | null, any>;
   organization: Organization;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
   traces: TraceSplitResults<TraceFullDetailed> | null;
@@ -37,8 +37,8 @@ export default function TraceHeader({
   traces,
   organization,
 }: TraceHeaderProps) {
-  const errors = metaResults.meta?.errors || 0;
-  const performanceIssues = metaResults.meta?.performance_issues || 0;
+  const errors = metaResults.data?.errors || 0;
+  const performanceIssues = metaResults.data?.performance_issues || 0;
   const errorsAndIssuesCount = errors + performanceIssues;
   const traceInfo = getTraceInfo(traces?.transactions, traces?.orphan_errors);
 
@@ -113,8 +113,8 @@ export default function TraceHeader({
             bodyText={
               metaResults.isLoading ? (
                 <LoadingIndicator size={20} mini />
-              ) : metaResults.meta ? (
-                metaResults.meta.transactions + metaResults.meta.errors
+              ) : metaResults.data ? (
+                metaResults.data.transactions + metaResults.data.errors
               ) : (
                 '\u2014'
               )
@@ -146,7 +146,7 @@ export default function TraceHeader({
             >
               {metaResults.isLoading ? (
                 <LoadingIndicator size={20} mini />
-              ) : errorsAndIssuesCount > 0 ? (
+              ) : errorsAndIssuesCount >= 0 ? (
                 errorsAndIssuesCount
               ) : (
                 '\u2014'
