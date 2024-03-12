@@ -5,7 +5,11 @@ import * as echarts from 'echarts/core';
 import type {Field} from 'sentry/components/ddm/metricSamplesTable';
 import {space} from 'sentry/styles/space';
 import {getMetricsCorrelationSpanUrl, unescapeMetricsFormula} from 'sentry/utils/metrics';
-import {MetricQueryType, type MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
+import {
+  MetricQueryType,
+  type MetricQueryWidgetParams,
+  type MetricWidgetQueryParams,
+} from 'sentry/utils/metrics/types';
 import type {MetricsQueryApiQueryParams} from 'sentry/utils/metrics/useMetricsQuery';
 import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -14,6 +18,7 @@ import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {DDM_CHART_GROUP, MIN_WIDGET_WIDTH} from 'sentry/views/ddm/constants';
 import {useDDMContext} from 'sentry/views/ddm/context';
+import {getEquationSymbol} from 'sentry/views/ddm/equationSymbol copy';
 import {parseFormula} from 'sentry/views/ddm/formulaParser/parser';
 import {type TokenList, TokenType} from 'sentry/views/ddm/formulaParser/types';
 import {getQuerySymbol} from 'sentry/views/ddm/querySymbol';
@@ -33,7 +38,7 @@ function widgetToQuery(
 ): MetricsQueryApiQueryParams {
   return widget.type === MetricQueryType.FORMULA
     ? {
-        name: getQuerySymbol(widget.id),
+        name: getEquationSymbol(widget.id),
         formula: widget.formula,
       }
     : {
@@ -116,9 +121,11 @@ export function MetricScratchpad() {
       : StyledMetricDashboard;
 
   const queriesLookup = useMemo(() => {
-    const lookup = new Map<string, MetricWidgetQueryParams>();
+    const lookup = new Map<string, MetricQueryWidgetParams>();
     widgets.forEach(widget => {
-      lookup.set(getQuerySymbol(widget.id), widget);
+      if (widget.type === MetricQueryType.QUERY) {
+        lookup.set(getQuerySymbol(widget.id), widget);
+      }
     });
     return lookup;
   }, [widgets]);
@@ -135,12 +142,12 @@ export function MetricScratchpad() {
       }
 
       const dependencies: MetricsQueryApiQueryParams[] = [];
-      let isError: boolean = false;
+      let isError = false;
 
       tokens.forEach(token => {
         if (token.type === TokenType.VARIABLE) {
           const widget = queriesLookup.get(token.content);
-          if (widget && widget.type === MetricQueryType.QUERY) {
+          if (widget) {
             dependencies.push(widgetToQuery(widget, true));
           } else {
             isError = true;
