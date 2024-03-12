@@ -199,7 +199,7 @@ def normalize_message_for_grouping(message: str, event: Event, share_analytics: 
     if trimmed != message:
         trimmed += "..."
 
-    trimmed_value_counter = defaultdict(int)
+    trimmed_value_counter: defaultdict[str, int] = defaultdict(int)
 
     def _handle_match(match: Match[str]) -> str:
         # Find the first (should be only) non-None match entry, and sub in the placeholder. For
