@@ -235,6 +235,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
         )
 
         self.populate_internal_integration_request(request)
+        # Fallback to IP address limit if we can't find the organization
         assert (
             get_rate_limit_key(view, request, rate_limit_group, rate_limit_config)
             == "ip:default:OrganizationGroupIndexEndpoint:GET:684D:1111:222:3333:4444:5555:6:77"
