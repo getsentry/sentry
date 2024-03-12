@@ -51,7 +51,7 @@ export class VideoReplayer {
     attachments: VideoEvent[],
     {root, start, videoApiPrefix, onFinished, onLoaded}: VideoReplayerOptions
   ) {
-    this._attachments = attachments.filter(attachment => attachment.duration > 0);
+    this._attachments = attachments;
     this._startTimestamp = start;
     this._trackList = [];
     this._videoApiPrefix = videoApiPrefix;

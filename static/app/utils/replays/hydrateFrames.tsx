@@ -34,7 +34,7 @@ export default function hydrateFrames(attachments: unknown[]) {
       spanFrames.push(attachment.data.payload);
     } else if (isOptionFrameEvent(attachment)) {
       optionFrame = attachment.data.payload;
-    } else if (isVideoFrameEvent(attachment)) {
+    } else if (isVideoFrameEvent(attachment) && attachment.data.payload.duration > 0) {
       videoFrames.push({
         duration: attachment.data.payload.duration,
         id: attachment.data.payload.segmentId,
