@@ -23,24 +23,35 @@ export default function useReplayReader({orgSlug, replaySlug, clipWindow, group}
   });
 
   // get first error matching our group
-  const firstMatchingError =
-    group && errors.find(error => error['issue.id'].toString() === group.id);
-
-  const errorTime = firstMatchingError
-    ? new Date(firstMatchingError.timestamp)
-    : undefined;
+  const firstMatchingError = useMemo(
+    () => group && errors.find(error => error['issue.id'].toString() === group.id),
+    [errors, group]
+  );
 
   // if we don't have a clip window, we'll use the error time to create a clip window
-  clipWindow =
-    clipWindow ??
-    (errorTime && {
-      startTimestampMs: errorTime.getTime() - 1000 * 5,
-      endTimestampMs: errorTime.getTime() + 1000 * 5,
-    });
+  const memoizedClipWindow = useMemo(() => {
+    const errorTime = firstMatchingError
+      ? new Date(firstMatchingError.timestamp)
+      : undefined;
+
+    return (
+      clipWindow ??
+      (errorTime && {
+        startTimestampMs: errorTime.getTime() - 1000 * 5,
+        endTimestampMs: errorTime.getTime() + 1000 * 5,
+      })
+    );
+  }, [clipWindow, firstMatchingError]);
 
   const replay = useMemo(
-    () => ReplayReader.factory({attachments, errors, replayRecord, clipWindow}),
-    [attachments, clipWindow, errors, replayRecord]
+    () =>
+      ReplayReader.factory({
+        attachments,
+        errors,
+        replayRecord,
+        clipWindow: memoizedClipWindow,
+      }),
+    [attachments, errors, memoizedClipWindow, replayRecord]
   );
 
   return {

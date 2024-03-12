@@ -1,17 +1,19 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment} from 'react';
 
 import ReplayClipPreviewPlayer from 'sentry/components/events/eventReplay/replayClipPreviewPlayer';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
+import type {Group} from 'sentry/types';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import ReplayTable from 'sentry/views/replays/replayTable';
 import type {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 
 type Props = {
+  group: Group;
   orgSlug: string;
   pageLinks: string | null;
   replaySlug: string;
   selectedReplayIndex: number;
-  setSelectedReplayIndex: (index: number | undefined) => void;
+  setSelectedReplayIndex: (index: number) => void;
   visibleColumns: ReplayColumn[];
   nextReplayText?: string;
 } & React.ComponentProps<typeof ReplayTable>;
@@ -21,6 +23,7 @@ function ReplayTableWrapper({
   nextReplayText,
   setSelectedReplayIndex,
   orgSlug,
+  group,
   ...props
 }: Props) {
   const {selectedReplayIndex} = props;
@@ -28,17 +31,9 @@ function ReplayTableWrapper({
   const replayContext = useReplayReader({
     orgSlug,
     replaySlug,
+    group,
   });
   const {isFinished, isPlaying} = useReplayContext();
-
-  const onClickPlay = useCallback(
-    (index: number) => {
-      // cause the component to unmount and remount so that the replay player can reset
-      setSelectedReplayIndex(undefined);
-      setTimeout(() => setSelectedReplayIndex(index), 0);
-    },
-    [setSelectedReplayIndex]
-  );
 
   return (
     <Fragment>
@@ -49,26 +44,21 @@ function ReplayTableWrapper({
         handleForwardClick={
           props.replays && selectedReplayIndex + 1 < props.replays.length
             ? () => {
-                // unselect a replay then set it so we reset state
-                setSelectedReplayIndex(undefined);
-                setTimeout(() => setSelectedReplayIndex(selectedReplayIndex + 1), 0);
+                setSelectedReplayIndex(selectedReplayIndex + 1);
               }
             : undefined
         }
         handleBackClick={
           selectedReplayIndex > 0
             ? () => {
-                setSelectedReplayIndex(undefined);
-                setTimeout(() => setSelectedReplayIndex(selectedReplayIndex - 1), 0);
+                setSelectedReplayIndex(selectedReplayIndex - 1);
               }
             : undefined
         }
         onClickNextReplay={
           nextReplayText
             ? () => {
-                // unselect a replay then set it so we reset state
-                setSelectedReplayIndex(undefined);
-                setTimeout(() => setSelectedReplayIndex(selectedReplayIndex + 1), 0);
+                setSelectedReplayIndex(selectedReplayIndex + 1);
               }
             : undefined
         }
@@ -76,9 +66,14 @@ function ReplayTableWrapper({
         {...replayContext}
       />
       <ReplayTable
-        onClickPlay={onClickPlay}
+        onClickPlay={setSelectedReplayIndex}
         replayPlayButtonPriority={isFinished || isPlaying ? 'primary' : 'default'}
-        {...props}
+        fetchError={props.fetchError}
+        isFetching={props.isFetching}
+        replays={props.replays}
+        sort={props.sort}
+        visibleColumns={props.visibleColumns}
+        selectedReplayIndex={selectedReplayIndex}
       />
     </Fragment>
   );

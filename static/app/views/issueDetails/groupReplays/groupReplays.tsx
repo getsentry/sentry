@@ -1,4 +1,5 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -16,6 +17,7 @@ import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import useUrlParams from 'sentry/utils/useUrlParams';
 import ReplayTableWrapper from 'sentry/views/issueDetails/groupReplays/replayTableWrapper';
 import useReplaysFromIssue from 'sentry/views/issueDetails/groupReplays/useReplaysFromIssue';
 import ReplayTable from 'sentry/views/replays/replayTable';
@@ -86,13 +88,13 @@ function GroupReplaysTableInner({
   replaySlug,
   ...props
 }: {
+  group: Group;
   organization: Organization;
   pageLinks: string | null;
   replaySlug: string;
   selectedReplayIndex: number;
-  setSelectedReplayIndex: (index: number | undefined) => void;
+  setSelectedReplayIndex: (index: number) => void;
   visibleColumns: ReplayColumn[];
-  group?: Group;
   nextReplayText?: string;
 } & ReturnType<typeof useReplayList>) {
   const orgSlug = organization.slug;
@@ -114,7 +116,15 @@ function GroupReplaysTableInner({
         orgSlug={orgSlug}
         replaySlug={replaySlug}
         sort={undefined}
-        {...props}
+        group={group}
+        pageLinks={props.pageLinks}
+        selectedReplayIndex={props.selectedReplayIndex}
+        setSelectedReplayIndex={props.setSelectedReplayIndex}
+        visibleColumns={props.visibleColumns}
+        nextReplayText={props.nextReplayText}
+        replays={props.replays}
+        isFetching={props.isFetching}
+        fetchError={props.fetchError}
       />
     </ReplayContextProvider>
   );
@@ -131,23 +141,57 @@ function GroupReplaysTable({
   pageLinks: string | null;
   visibleColumns: ReplayColumn[];
 }) {
-  const location = useMemo(() => ({query: {}}) as Location<ReplayListLocationQuery>, []);
+  const locationForFetching = useMemo(
+    () => ({query: {}}) as Location<ReplayListLocationQuery>,
+    []
+  );
+  const location = useLocation();
+  const urlParams = useUrlParams();
   const {getReplayCountForIssue} = useReplayCountForIssues();
 
   const replayListData = useReplayList({
     eventView,
-    location,
+    location: locationForFetching,
     organization,
     queryReferrer: 'issueReplays',
   });
   const {replays} = replayListData;
 
-  const [selectedReplayIndex, setSelectedReplayIndex] = useState<number | undefined>(0);
-  const selectedReplay =
-    selectedReplayIndex !== undefined ? replays?.[selectedReplayIndex] : undefined;
+  const rawReplayIndex = urlParams.getParamValue('selected_replay_index');
+  const selectedReplayIndex = parseInt(
+    typeof rawReplayIndex === 'string' ? rawReplayIndex : '',
+    10
+  );
 
-  const nextReplay =
-    selectedReplayIndex !== undefined ? replays?.[selectedReplayIndex + 1] : undefined;
+  const setSelectedReplayIndex = useCallback(
+    (index: number) => {
+      browserHistory.replace({
+        pathname: window.location.pathname,
+        query: {...location.query, selected_replay_index: index},
+      });
+    },
+    [location.query]
+  );
+
+  const selectedReplay = replays?.[selectedReplayIndex];
+  const [previousReplayIndex, setPreviousReplayIndex] =
+    useState<number>(selectedReplayIndex);
+
+  const [forceHideReplay, setForceHideReplay] = useState<boolean>(false);
+  useEffect(() => {
+    if (selectedReplayIndex !== previousReplayIndex) {
+      setPreviousReplayIndex(selectedReplayIndex);
+      setForceHideReplay(true);
+    }
+  }, [selectedReplayIndex, previousReplayIndex]);
+
+  useEffect(() => {
+    if (forceHideReplay) {
+      setForceHideReplay(false);
+    }
+  }, [forceHideReplay]);
+
+  const nextReplay = replays?.[selectedReplayIndex + 1];
   const nextReplayText = nextReplay?.id
     ? `${nextReplay.user.display_name || t('Anonymous User')}`
     : undefined;
@@ -155,7 +199,7 @@ function GroupReplaysTable({
   const hasFeature = organization.features.includes('replay-play-from-replay-tab');
 
   const inner =
-    hasFeature && selectedReplay && selectedReplayIndex !== undefined ? (
+    hasFeature && selectedReplay && !forceHideReplay ? (
       <GroupReplaysTableInner
         setSelectedReplayIndex={setSelectedReplayIndex}
         selectedReplayIndex={selectedReplayIndex}
@@ -164,15 +208,20 @@ function GroupReplaysTable({
         organization={organization}
         group={group}
         replaySlug={selectedReplay.id}
-        {...replayListData}
+        pageLinks={replayListData.pageLinks}
+        fetchError={replayListData.fetchError}
+        isFetching={replayListData.isFetching}
+        replays={replays}
       />
     ) : (
       <ReplayTable
-        {...replayListData}
         sort={undefined}
         visibleColumns={VISIBLE_COLUMNS}
         showDropdownFilters={false}
         onClickPlay={hasFeature ? setSelectedReplayIndex : undefined}
+        fetchError={replayListData.fetchError}
+        isFetching={replayListData.isFetching}
+        replays={replays}
       />
     );
 

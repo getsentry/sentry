@@ -1,4 +1,12 @@
-import {createContext, useCallback, useContext, useEffect, useRef, useState} from 'react';
+import {
+  createContext,
+  memo,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import {useTheme} from '@emotion/react';
 import {Replayer, ReplayerEvents} from '@sentry-internal/rrweb';
 
@@ -215,7 +223,7 @@ function useCurrentTime(callback: () => number) {
   return currentTime;
 }
 
-export function Provider({
+function ProviderNonMemo({
   analyticsContext,
   children,
   initialTimeOffsetMs,
@@ -578,3 +586,5 @@ export function Provider({
 }
 
 export const useReplayContext = () => useContext(ReplayPlayerContext);
+
+export const Provider = memo(ProviderNonMemo);

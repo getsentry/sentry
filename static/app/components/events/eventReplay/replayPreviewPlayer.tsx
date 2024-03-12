@@ -82,7 +82,7 @@ function ReplayPreviewPlayer({
   return (
     <PlayerPanel>
       {replayRecord && (
-        <ReplayCellNoPadding
+        <ReplayCell
           key="session"
           replay={replayRecord}
           eventView={eventView}
@@ -117,10 +117,10 @@ function ReplayPreviewPlayer({
             {showNextAndPrevious && (
               <Button
                 size="sm"
-                title={t('Back')}
+                title={t('Previous Clip')}
                 icon={<IconPrevious />}
                 onClick={() => handleBackClick?.()}
-                aria-label={t('Back')}
+                aria-label={t('Previous Clip')}
                 disabled={!handleBackClick}
               />
             )}
@@ -130,10 +130,10 @@ function ReplayPreviewPlayer({
             {showNextAndPrevious && (
               <Button
                 size="sm"
-                title={t('Next')}
+                title={t('Next Clip')}
                 icon={<IconNext />}
                 onClick={() => handleForwardClick?.()}
-                aria-label={t('Next')}
+                aria-label={t('Next Clip')}
                 disabled={!handleForwardClick}
               />
             )}
@@ -215,10 +215,6 @@ const ContextContainer = styled('div')`
   grid-template-columns: 1fr max-content max-content;
   align-items: center;
   gap: ${space(1)};
-`;
-
-const ReplayCellNoPadding = styled(ReplayCell)`
-  padding: 0 0 ${space(1)};
 `;
 
 export default ReplayPreviewPlayer;
