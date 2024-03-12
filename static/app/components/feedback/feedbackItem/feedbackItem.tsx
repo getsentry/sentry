@@ -34,8 +34,13 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
 
   const overflowRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    overflowRef.current?.scrollTo({top: 0});
-  }, [feedbackItem.id]);
+    setTimeout(() => {
+      overflowRef.current?.scrollTo({
+        top: 0,
+        behavior: 'smooth',
+      });
+    }, 100);
+  }, [feedbackItem.id, overflowRef]);
 
   return (
     <Fragment>
