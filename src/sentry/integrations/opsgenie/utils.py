@@ -47,7 +47,7 @@ def build_incident_attachment(
     return payload
 
 
-def attach_custom_priority(data: dict[str, Any], action: AlertRuleTriggerAction):
+def attach_custom_priority(data: dict[str, Any], action: AlertRuleTriggerAction) -> dict[str, Any]:
     if action.sentry_app_config is None:
         return data
 
