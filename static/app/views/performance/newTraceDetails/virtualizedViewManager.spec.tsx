@@ -634,35 +634,34 @@ describe('VirtualizedViewManger', () => {
       });
     });
 
-    describe('scrolls to orphan error', () => {
-      it('scrolls to orphan error', async () => {
-        manager.list = makeList();
-        const tree = TraceTree.FromTrace(
-          makeTrace({
-            transactions: [makeTransaction()],
-            orphan_errors: [
-              {
-                event_id: 'ded',
-                project_slug: 'project_slug',
-                project_id: 1,
-                issue: 'whoa rusty',
-                issue_id: 0,
-                span: '',
-                level: 'error',
-                title: 'ded fo good',
-              },
-            ],
-          })
-        );
+    it('scrolls to orphan error', async () => {
+      manager.list = makeList();
+      const tree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [makeTransaction()],
+          orphan_errors: [
+            {
+              event_id: 'ded',
+              project_slug: 'project_slug',
+              project_id: 1,
+              issue: 'whoa rusty',
+              issue_id: 0,
+              span: '',
+              level: 'error',
+              title: 'ded fo good',
+              timestamp: 1,
+            },
+          ],
+        })
+      );
 
-        const result = await manager.scrollToPath(tree, ['error:ded'], () => void 0, {
-          api: api,
-          organization,
-        });
-
-        expect(result?.node).toBe(tree.list[2]);
-        expect(manager.list.scrollToRow).toHaveBeenCalledWith(2);
+      const result = await manager.scrollToPath(tree, ['error:ded'], () => void 0, {
+        api: api,
+        organization,
       });
+
+      expect(result?.node).toBe(tree.list[2]);
+      expect(manager.list.scrollToRow).toHaveBeenCalledWith(2);
     });
   });
 });
