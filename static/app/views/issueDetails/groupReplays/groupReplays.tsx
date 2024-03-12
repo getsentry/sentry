@@ -37,6 +37,8 @@ const VISIBLE_COLUMNS = [
   ReplayColumn.ACTIVITY,
 ];
 
+const VISIBLE_COLUMNS_WITH_PLAY = [ReplayColumn.PLAY, ...VISIBLE_COLUMNS];
+
 function GroupReplays({group}: Props) {
   const organization = useOrganization();
   const location = useLocation<ReplayListLocationQuery>();
@@ -94,7 +96,6 @@ function GroupReplaysTableInner({
   replaySlug: string;
   selectedReplayIndex: number;
   setSelectedReplayIndex: (index: number) => void;
-  visibleColumns: ReplayColumn[];
   nextReplayText?: string;
 } & ReturnType<typeof useReplayList>) {
   const orgSlug = organization.slug;
@@ -120,7 +121,7 @@ function GroupReplaysTableInner({
         pageLinks={props.pageLinks}
         selectedReplayIndex={props.selectedReplayIndex}
         setSelectedReplayIndex={props.setSelectedReplayIndex}
-        visibleColumns={props.visibleColumns}
+        visibleColumns={VISIBLE_COLUMNS_WITH_PLAY}
         nextReplayText={props.nextReplayText}
         replays={props.replays}
         isFetching={props.isFetching}
@@ -159,7 +160,7 @@ function GroupReplaysTable({
 
   const rawReplayIndex = urlParams.getParamValue('selected_replay_index');
   const selectedReplayIndex = parseInt(
-    typeof rawReplayIndex === 'string' ? rawReplayIndex : '',
+    typeof rawReplayIndex === 'string' ? rawReplayIndex : '0',
     10
   );
 
@@ -174,9 +175,11 @@ function GroupReplaysTable({
   );
 
   const selectedReplay = replays?.[selectedReplayIndex];
+
+  // If the selected replay changes, we want to force the replay to hide to cause the
+  // replay context to unmount and reset
   const [previousReplayIndex, setPreviousReplayIndex] =
     useState<number>(selectedReplayIndex);
-
   const [forceHideReplay, setForceHideReplay] = useState<boolean>(false);
   useEffect(() => {
     if (selectedReplayIndex !== previousReplayIndex) {
@@ -204,7 +207,6 @@ function GroupReplaysTable({
         setSelectedReplayIndex={setSelectedReplayIndex}
         selectedReplayIndex={selectedReplayIndex}
         nextReplayText={nextReplayText}
-        visibleColumns={VISIBLE_COLUMNS}
         organization={organization}
         group={group}
         replaySlug={selectedReplay.id}

@@ -27,13 +27,12 @@ function ReplayTableWrapper({
   ...props
 }: Props) {
   const {selectedReplayIndex} = props;
-  const {analyticsContext} = useReplayContext();
+  const {analyticsContext, isFinished, isPlaying} = useReplayContext();
   const replayContext = useReplayReader({
     orgSlug,
     replaySlug,
     group,
   });
-  const {isFinished, isPlaying} = useReplayContext();
 
   return (
     <Fragment>
@@ -73,7 +72,6 @@ function ReplayTableWrapper({
         replays={props.replays}
         sort={props.sort}
         visibleColumns={props.visibleColumns}
-        selectedReplayIndex={selectedReplayIndex}
       />
     </Fragment>
   );

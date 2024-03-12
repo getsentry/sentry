@@ -82,7 +82,7 @@ function ReplayPreviewPlayer({
   return (
     <PlayerPanel>
       {replayRecord && (
-        <ReplayCell
+        <StyledReplayCell
           key="session"
           replay={replayRecord}
           eventView={eventView}
@@ -215,6 +215,10 @@ const ContextContainer = styled('div')`
   grid-template-columns: 1fr max-content max-content;
   align-items: center;
   gap: ${space(1)};
+`;
+
+const StyledReplayCell = styled(ReplayCell)`
+  padding: 0 0 ${space(1)};
 `;
 
 export default ReplayPreviewPlayer;

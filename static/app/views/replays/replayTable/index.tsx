@@ -3,11 +3,9 @@ import {Fragment, memo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import type {Button} from 'sentry/components/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelTable from 'sentry/components/panels/panelTable';
-import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
-import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -15,6 +13,7 @@ import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
+import useUrlParams from 'sentry/utils/useUrlParams';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
 import HeaderCell from 'sentry/views/replays/replayTable/headerCell';
 import {
@@ -24,6 +23,7 @@ import {
   DurationCell,
   ErrorCountCell,
   OSCell,
+  PlayCell,
   RageClickCountCell,
   ReplayCell,
   TransactionCell,
@@ -41,7 +41,6 @@ type Props = {
   gridRows?: string;
   onClickPlay?: (index: number) => void;
   replayPlayButtonPriority?: React.ComponentProps<typeof Button>['priority'];
-  selectedReplayIndex?: number;
   showDropdownFilters?: boolean;
 };
 
@@ -56,13 +55,20 @@ const ReplayTable = memo(
     emptyMessage,
     gridRows,
     showDropdownFilters,
-    selectedReplayIndex,
     onClickPlay,
     replayPlayButtonPriority,
   }: Props) => {
     const routes = useRoutes();
     const location = useLocation();
     const organization = useOrganization();
+
+    // we may have a selected replay index in the URLs
+    const urlParams = useUrlParams();
+    const rawReplayIndex = urlParams.getParamValue('selected_replay_index');
+    const selectedReplayIndex = parseInt(
+      typeof rawReplayIndex === 'string' ? rawReplayIndex : '0',
+      10
+    );
 
     const tableHeaders = visibleColumns
       .filter(Boolean)
@@ -106,20 +112,6 @@ const ReplayTable = memo(
         >
           {replays?.map(
             (replay: ReplayListRecord | ReplayListRecordWithTx, index: number) => {
-              const buttonForReplayCell = !onClickPlay ? null : selectedReplayIndex ===
-                index ? (
-                <ReplayPlayPauseButton
-                  iconSize="sm"
-                  priority={replayPlayButtonPriority}
-                />
-              ) : (
-                <Button
-                  title={t('Play')}
-                  aria-label={t('Play')}
-                  icon={<IconPlay size="sm" />}
-                  onClick={() => onClickPlay(index)}
-                />
-              );
               return (
                 <Fragment key={replay.id}>
                   {visibleColumns.map(column => {
@@ -197,7 +189,16 @@ const ReplayTable = memo(
                             referrer={referrer}
                             referrer_table="main"
                             isPlaying={selectedReplayIndex === index}
-                            extraButton={buttonForReplayCell}
+                          />
+                        );
+
+                      case ReplayColumn.PLAY:
+                        return (
+                          <PlayCell
+                            key="play"
+                            isSelected={selectedReplayIndex === index}
+                            handleClick={() => onClickPlay?.(index)}
+                            priority={replayPlayButtonPriority}
                           />
                         );
 

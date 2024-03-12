@@ -9,6 +9,7 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import Link from 'sentry/components/links/link';
 import ContextIcon from 'sentry/components/replays/contextIcon';
+import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
 import {formatTime} from 'sentry/components/replays/utils';
 import ScoreBar from 'sentry/components/scoreBar';
 import Tag from 'sentry/components/tag';
@@ -21,6 +22,7 @@ import {
   IconDelete,
   IconEllipsis,
   IconFire,
+  IconPlay,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {ValidSize} from 'sentry/styles/space';
@@ -290,13 +292,11 @@ export function ReplayCell({
   isWidget,
   className,
   isPlaying,
-  extraButton,
 }: Props & {
   eventView: EventView;
   organization: Organization;
   referrer: string;
   className?: string;
-  extraButton?: React.ReactNode;
   isPlaying?: boolean;
   isWidget?: boolean;
   referrer_table?: ReferrerTableType;
@@ -377,7 +377,6 @@ export function ReplayCell({
 
   return (
     <Item isWidget={isWidget} isReplayCell className={className}>
-      {extraButton}
       <UserBadge
         avatarSize={24}
         displayName={
@@ -618,6 +617,28 @@ export function ActivityCell({replay, showDropdownFilters}: Props) {
       </Container>
     </Item>
   );
+}
+
+export function PlayCell({
+  isSelected,
+  handleClick,
+  priority,
+}: {
+  handleClick: () => void;
+  isSelected: boolean;
+  priority: React.ComponentProps<typeof Button>['priority'];
+}) {
+  const inner = isSelected ? (
+    <ReplayPlayPauseButton iconSize="sm" priority={priority} />
+  ) : (
+    <Button
+      title={t('Play')}
+      aria-label={t('Play')}
+      icon={<IconPlay size="sm" />}
+      onClick={handleClick}
+    />
+  );
+  return <Item>{inner}</Item>;
 }
 
 const Item = styled('div')<{
