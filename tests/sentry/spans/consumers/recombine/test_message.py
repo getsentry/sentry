@@ -1,9 +1,7 @@
 import uuid
-from unittest import mock
 
 from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
-from sentry.spans.buffer.redis import RedisSpansBuffer
-from sentry.tasks.spans import _process_segment
+from sentry.spans.consumers.recombine.message import _process_segment
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
 
@@ -44,8 +42,7 @@ class TestSpansTask(TestCase):
     def setUp(self):
         self.project = self.create_project()
 
-    @mock.patch.object(RedisSpansBuffer, "read_segment")
-    def test_n_plus_one_issue_detection(self, mock_read_segment):
+    def test_n_plus_one_issue_detection(self):
         segment_span = build_mock_span(project_id=self.project.id)
         child_span = build_mock_span(
             project_id=self.project.id,
@@ -80,8 +77,7 @@ class TestSpansTask(TestCase):
         repeating_spans = [repeating_span() for _ in range(7)]
         spans = [segment_span, child_span, cause_span] + repeating_spans
 
-        mock_read_segment.return_value = spans
-        job = _process_segment(self.project.id, "a49b42af9fb69da0")[0]
+        job = _process_segment(spans)[0]
 
         assert (
             job["performance_problems"][0].fingerprint
