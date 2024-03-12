@@ -34,7 +34,7 @@ function getMetaQueryParams(
   return {statsPeriod, project, timestamp};
 }
 
-export function useMeta(): UseApiQueryResult<TraceMeta | null, any> {
+export function useTraceMeta(): UseApiQueryResult<TraceMeta | null, any> {
   const filters = usePageFilters();
   const location = useLocation();
   const organization = useOrganization();

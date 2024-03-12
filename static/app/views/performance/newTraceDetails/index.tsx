@@ -54,8 +54,8 @@ import Trace from './trace';
 import TraceHeader from './traceHeader';
 import {TraceTree, type TraceTreeNode} from './traceTree';
 import TraceWarnings from './traceWarnings';
-import {useMeta} from './useMeta';
 import {useTrace} from './useTrace';
+import {useTraceMeta} from './useTraceMeta';
 
 const DOCUMENT_TITLE = [t('Trace Details'), t('Performance')].join(' — ');
 
@@ -107,7 +107,7 @@ export function TraceView() {
   }, [queryParams, traceSlug]);
 
   const trace = useTrace();
-  const meta = useMeta();
+  const meta = useTraceMeta();
 
   return (
     <SentryDocumentTitle title={DOCUMENT_TITLE} orgSlug={organization.slug}>
