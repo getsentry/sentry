@@ -7,14 +7,14 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import BrokerValue, Commit, Message, Partition
 
-from sentry.tasks.spans import process_segment
+from sentry.spans.consumers.recombine.message import process_segment
 
 logger = logging.getLogger(__name__)
 
 
 def process_message(message: Message[KafkaPayload]):
     assert isinstance(message.value, BrokerValue)
-    process_segment(message.value)
+    process_segment(message.payload.value)
 
 
 class RecombineSegmentStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
