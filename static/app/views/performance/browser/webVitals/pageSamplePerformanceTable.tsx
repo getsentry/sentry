@@ -48,7 +48,6 @@ import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webV
 import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
-import type {Filters} from 'sentry/views/starfish/queries/useIndexedSpans';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
 
 type Column = GridColumnHeader<keyof TransactionSampleRowWithScore>;
@@ -146,12 +145,6 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     enabled: datatype === Datatype.PAGELOADS,
   });
 
-  const mutableSearch = new MutableSearch(query ?? '');
-  const filters: Filters = mutableSearch.getFilterKeys().reduce((acc, key) => {
-    acc[key] = mutableSearch.getFilterValues(key);
-    return acc;
-  }, {});
-
   const {
     data: interactionsTableData,
     isFetching: isInteractionsLoading,
@@ -160,7 +153,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     transaction,
     enabled: datatype === Datatype.INTERACTIONS,
     limit,
-    filters,
+    filters: new MutableSearch(query ?? '').filters,
   });
 
   const {profileExists} = useProfileExists(
