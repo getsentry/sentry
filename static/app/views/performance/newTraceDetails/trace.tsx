@@ -1756,7 +1756,9 @@ const TraceStylingWrapper = styled('div')`
       }
     }
 
-    &:focus {
+    &:focus,
+    &[tabindex='0'] {
+      background-color: ${p => p.theme.backgroundTertiary};
       box-shadow: inset 0 0 0 1px ${p => p.theme.blue300} !important;
 
       .TraceLeftColumn {
