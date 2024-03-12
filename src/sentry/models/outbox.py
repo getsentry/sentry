@@ -572,7 +572,6 @@ class OutboxBase(Model):
     def process_coalesced(
         self,
         is_synchronous_flush: bool,
-        retain_most_recent: bool = False,
     ) -> Generator[OutboxBase | None, None, None]:
         coalesced: OutboxBase | None = self.select_coalesced_messages().last()
         first_coalesced: OutboxBase | None = self.select_coalesced_messages().first() or coalesced
@@ -611,7 +610,7 @@ class OutboxBase(Model):
             # It's not guaranteed that the ordering of the batch processing is in order,
             # meaning that failures during deletion could leave an old, staler outbox
             # alive.
-            if not retain_most_recent:
+            if not self.should_skip_shard():
                 coalesced.delete()
 
             metrics.incr("outbox.processed", deleted_count, tags=tags)
@@ -637,9 +636,7 @@ class OutboxBase(Model):
         span.set_tag("outbox_scope", OutboxScope(message.shard_scope).name)
 
     def process(self, is_synchronous_flush: bool) -> bool:
-        with self.process_coalesced(
-            is_synchronous_flush=is_synchronous_flush, retain_most_recent=self.should_skip_shard()
-        ) as coalesced:
+        with self.process_coalesced(is_synchronous_flush=is_synchronous_flush) as coalesced:
             if coalesced is not None and not self.should_skip_shard():
                 with metrics.timer(
                     "outbox.send_signal.duration",
@@ -689,10 +686,13 @@ class OutboxBase(Model):
                 if _test_processing_barrier:
                     _test_processing_barrier.wait()
 
-                shard_row.process(is_synchronous_flush=not flush_all)
+                processed = shard_row.process(is_synchronous_flush=not flush_all)
 
                 if _test_processing_barrier:
                     _test_processing_barrier.wait()
+
+                if not processed:
+                    break
 
     @classmethod
     def get_shard_depths_descending(cls, limit: int | None = 10) -> list[dict[str, int | str]]:
