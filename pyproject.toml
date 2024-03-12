@@ -477,7 +477,6 @@ module = [
     "sentry.tasks.integrations.sync_status_outbound",
     "sentry.tasks.merge",
     "sentry.tasks.process_buffer",
-    "sentry.tasks.reprocessing2",
     "sentry.tasks.sentry_apps",
     "sentry.tasks.store",
     "sentry.tasks.unmerge",
@@ -631,6 +630,7 @@ module = [
     "sentry.reprocessing2",
     "sentry.relay.config.metric_extraction",
     "sentry.snuba.metrics.extraction",
+    "sentry.tasks.reprocessing2",
     "tests.sentry.tasks.test_on_demand_metrics",
     "tests.sentry.relay.config.test_metric_extraction",
 ]
