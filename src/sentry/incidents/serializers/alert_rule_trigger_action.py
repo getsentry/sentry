@@ -14,6 +14,8 @@ from sentry.incidents.serializers import (
     STRING_TO_ACTION_TARGET_TYPE,
     STRING_TO_ACTION_TYPE,
 )
+from sentry.integrations.opsgenie.utils import OPSGENIE_CUSTOM_PRIORITIES
+from sentry.integrations.pagerduty.utils import PAGERDUTY_CUSTOM_PRIORITIES
 from sentry.integrations.slack.utils import validate_channel_id
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
@@ -38,6 +40,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
 
     integration = serializers.IntegerField(source="integration_id", required=False, allow_null=True)
     sentry_app = serializers.IntegerField(source="sentry_app_id", required=False, allow_null=True)
+    priority = serializers.CharField(required=False, allow_null=True)
 
     class Meta:
         model = AlertRuleTriggerAction
@@ -50,6 +53,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             "sentry_app",
             "sentry_app_config",
             "sentry_app_installation_uuid",
+            "priority",
         ]
         extra_kwargs = {
             "target_identifier": {"required": True},
@@ -99,7 +103,8 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                     }
                 )
 
-        if attrs.get("type") == AlertRuleTriggerAction.Type.EMAIL:
+        action_type = attrs.get("type")
+        if action_type == AlertRuleTriggerAction.Type.EMAIL:
             if target_type == AlertRuleTriggerAction.TargetType.TEAM:
                 try:
                     team = Team.objects.get(id=identifier)
@@ -112,18 +117,18 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                     organization=self.context["organization"], user_id=identifier
                 ).exists():
                     raise serializers.ValidationError("User does not belong to this organization")
-        elif attrs.get("type") == AlertRuleTriggerAction.Type.SLACK:
+        elif action_type == AlertRuleTriggerAction.Type.SLACK:
             if not attrs.get("integration_id"):
                 raise serializers.ValidationError(
                     {"integration": "Integration must be provided for slack"}
                 )
-        elif attrs.get("type") == AlertRuleTriggerAction.Type.DISCORD:
+        elif action_type == AlertRuleTriggerAction.Type.DISCORD:
             if not attrs.get("integration_id"):
                 raise serializers.ValidationError(
                     {"integration": "Integration must be provided for discord"}
                 )
 
-        elif attrs.get("type") == AlertRuleTriggerAction.Type.SENTRY_APP:
+        elif action_type == AlertRuleTriggerAction.Type.SENTRY_APP:
             sentry_app_installation_uuid = attrs.get("sentry_app_installation_uuid")
 
             if not attrs.get("sentry_app_id"):
@@ -142,6 +147,32 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                 }:
                     raise serializers.ValidationError(
                         {"sentry_app": "The installation does not exist."}
+                    )
+
+        if attrs.get("priority"):
+            if action_type not in [
+                AlertRuleTriggerAction.Type.PAGERDUTY,
+                AlertRuleTriggerAction.Type.OPSGENIE,
+            ]:
+                raise serializers.ValidationError(
+                    {"priority": "Can only be set for Pagerduty or Opsgenie"}
+                )
+
+            priority: str = attrs["priority"]
+
+            if action_type == AlertRuleTriggerAction.Type.PAGERDUTY:
+                if priority not in PAGERDUTY_CUSTOM_PRIORITIES:
+                    raise serializers.ValidationError(
+                        {
+                            "priority": f"Allowed priorities for Pagerduty are {str(PAGERDUTY_CUSTOM_PRIORITIES)}"
+                        }
+                    )
+            elif action_type == AlertRuleTriggerAction.Type.OPSGENIE:
+                if priority not in OPSGENIE_CUSTOM_PRIORITIES:
+                    raise serializers.ValidationError(
+                        {
+                            "priority": f"Allowed priorities for Opsgenie are {str(OPSGENIE_CUSTOM_PRIORITIES)}"
+                        }
                     )
 
             # TODO(Ecosystem): Validate fields on schema config if alert-rule-action component exists

@@ -72,6 +72,9 @@ class AlertRuleTriggerActionSerializer(Serializer):
             "sentryAppId": obj.sentry_app_id,
             "dateCreated": obj.date_added,
             "desc": self.human_desc(obj),
+            "priority": (
+                obj.sentry_app_config.get("priority", None) if obj.sentry_app_config else None
+            ),
         }
 
         # Check if action is a Sentry App that has Alert Rule UI Component settings
