@@ -262,6 +262,17 @@ class AcceptOrganizationInvite(Endpoint):
                 data={"details": "unable to accept organization invite"},
             )
         else:
+            if self.request.user.is_authenticated:
+                user_verified_emails = {e.email for e in self.request.user.get_verified_emails()}
+
+                if invite_context.member.email not in user_verified_emails:
+                    return Response(
+                        status=403,
+                        data={
+                            "details": "Your account must have a verified email matching the email the invite was sent to."
+                        },
+                    )
+
             response = Response(status=status.HTTP_204_NO_CONTENT)
 
         helper.accept_invite()
