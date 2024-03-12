@@ -131,25 +131,6 @@ class ChunkUploadTest(APITestCase):
         )
         assert response.data["url"] == options.get("system.url-prefix") + self.url
 
-        # Test region upload URLs with option set
-        with override_options({"hybrid_cloud.use_region_specific_upload_url": True}):
-            # < 1.70.1
-            response = self.client.get(
-                self.url,
-                HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
-                HTTP_USER_AGENT="sentry-cli/1.70.0",
-                format="json",
-            )
-            assert response.data["url"] == generate_region_url() + self.url
-
-            response = self.client.get(
-                self.url,
-                HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
-                HTTP_USER_AGENT="sentry-cli/0.69.3",
-                format="json",
-            )
-            assert response.data["url"] == generate_region_url() + self.url
-
         # user overridden upload url prefix has priority, even when calling from sentry-cli that supports relative urls
         with override_options({"system.upload-url-prefix": "test"}):
             response = self.client.get(
@@ -159,6 +140,41 @@ class ChunkUploadTest(APITestCase):
                 format="json",
             )
             assert response.data["url"] == options.get("system.upload-url-prefix") + self.url
+
+    @override_options({"hybrid_cloud.use_region_specific_upload_url": True})
+    def test_region_upload_urls(self):
+        response = self.client.get(
+            self.url,
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+            HTTP_USER_AGENT="sentry-cli/1.70.1",
+            format="json",
+        )
+        assert response.data["url"] == self.url.lstrip(API_PREFIX)
+
+        response = self.client.get(
+            self.url,
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+            HTTP_USER_AGENT="sentry-cli/0.69.3",
+            format="json",
+        )
+        assert response.data["url"] == generate_region_url() + self.url
+
+        response = self.client.get(
+            self.url,
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+            HTTP_USER_AGENT="sentry-cli/2.29.999",
+            format="json",
+        )
+        assert response.data["url"] == self.url.lstrip(API_PREFIX)
+
+        response = self.client.get(
+            self.url,
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+            HTTP_USER_AGENT="sentry-cli/2.30.0",
+            format="json",
+        )
+
+        assert response.data["url"] == generate_region_url() + self.url
 
     def test_large_uploads(self):
         with self.feature("organizations:large-debug-files"):
