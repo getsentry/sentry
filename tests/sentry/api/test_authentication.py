@@ -424,11 +424,10 @@ class TestAuthTokens(TestCase):
                 assert result is not None
 
                 # check for the expected hash value
-                # it should upsert the hashed_token to ApiToken
                 api_token.refresh_from_db()
                 assert api_token.hashed_token == expected_hash
 
-                # after updating ApiToken, ApiTokenReplica should also be updated
+                # ApiTokenReplica should also be updated
                 api_token_replica.refresh_from_db()
                 assert api_token_replica.hashed_token == expected_hash
 
