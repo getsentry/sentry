@@ -1,6 +1,8 @@
 import logging
+import random
 from collections.abc import Mapping
 
+import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
@@ -16,9 +18,16 @@ logger = logging.getLogger(__name__)
 def process_message(message: Message[KafkaPayload]):
     assert isinstance(message.value, BrokerValue)
     try:
-        process_segment(json.loads(message.payload.value))
+        segments = json.loads(message.payload.value)
     except Exception:
         logger.exception("Failed to process segment payload")
+        return
+
+    try:
+        process_segment(segments)
+    except Exception as e:
+        if random.random() < 0.05:
+            sentry_sdk.capture_exception(e)
 
 
 class RecombineSegmentStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
