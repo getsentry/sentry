@@ -75,10 +75,16 @@ class ControlOutboxTest(TestCase):
 
     def test_skip_shards(self):
         with self.options({"hybrid_cloud.authentication.disabled_user_shards": [100]}):
-            assert User(id=100).outboxes_for_update()[0].should_skip_shard()
-            assert not User(id=101).outboxes_for_update()[0].should_skip_shard()
+            assert ControlOutbox(
+                shard_scope=OutboxScope.USER_SCOPE, shard_identifier=100
+            ).should_skip_shard()
+            assert not ControlOutbox(
+                shard_scope=OutboxScope.USER_SCOPE, shard_identifier=101
+            ).should_skip_shard()
 
-        assert not User(id=100).outboxes_for_update()[0].should_skip_shard()
+        assert not ControlOutbox(
+            shard_scope=OutboxScope.USER_SCOPE, shard_identifier=100
+        ).should_skip_shard()
 
     def test_control_sharding_keys(self):
         request = RequestFactory().get("/extensions/slack/webhook/")
