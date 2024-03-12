@@ -636,22 +636,16 @@ class MonitorEnvironment(Model):
         )
 
     @property
-    def incident_grouphash(self):
+    def active_incident(self) -> MonitorIncident | None:
         """
-        Retrieve the grouphash for the current active incident. If there is no
-        active incident None will be returned.
+        Retrieve the current active incident. If there is no active incident None will be returned.
         """
-        active_incident = (
-            MonitorIncident.objects.filter(
+        try:
+            return MonitorIncident.objects.get(
                 monitor_environment_id=self.id, resolving_checkin__isnull=True
             )
-            .order_by("-date_added")
-            .first()
-        )
-        if active_incident:
-            return active_incident.grouphash
-
-        return None
+        except MonitorIncident.DoesNotExist:
+            return None
 
 
 @receiver(pre_save, sender=MonitorEnvironment)

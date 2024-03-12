@@ -65,6 +65,51 @@ class MarkOkTestCase(TestCase):
         assert monitor_environment.next_checkin_latest == now + timedelta(minutes=2)
         assert monitor_environment.last_checkin == now
 
+    def test_muted_ok(self):
+        now = timezone.now().replace(second=0, microsecond=0)
+
+        monitor = Monitor.objects.create(
+            name="test monitor",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            type=MonitorType.CRON_JOB,
+            config={
+                "schedule": "* * * * *",
+                "schedule_type": ScheduleType.CRONTAB,
+                "max_runtime": None,
+                "checkin_margin": None,
+                "recovery_threshold": None,
+            },
+            is_muted=True,
+        )
+
+        # Start with monitor in an ERROR state
+        monitor_environment = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment_id=self.environment.id,
+            status=MonitorStatus.ERROR,
+            last_checkin=now - timedelta(minutes=1),
+            next_checkin=now,
+            is_muted=True,
+        )
+
+        # OK checkin comes in
+        success_checkin = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            status=CheckInStatus.OK,
+            date_added=now,
+        )
+        mark_ok(success_checkin, ts=now)
+
+        # Monitor has recovered to OK with updated upcoming timestamps
+        monitor_environment.refresh_from_db()
+        assert monitor_environment.status == MonitorStatus.OK
+        assert monitor_environment.next_checkin == now + timedelta(minutes=1)
+        assert monitor_environment.next_checkin_latest == now + timedelta(minutes=2)
+        assert monitor_environment.last_checkin == now
+
     @patch("sentry.issues.producer.produce_occurrence_to_kafka")
     def test_mark_ok_recovery_threshold(self, mock_produce_occurrence_to_kafka):
         now = timezone.now().replace(second=0, microsecond=0)
