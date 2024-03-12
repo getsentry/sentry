@@ -37,16 +37,19 @@ export function getTraceQueryParams(
   filters: Partial<PageFilters> = {},
   options: {limit?: number} = {}
 ): {
+  event_id: string | undefined;
   limit: number;
   project: string;
-  statsPeriod: string | undefined;
   timestamp: string | undefined;
   useSpans: number;
+  pageEnd?: string | undefined;
+  pageStart?: string | undefined;
+  statsPeriod?: string | undefined;
 } {
   const normalizedParams = normalizeDateTimeParams(query, {
     allowAbsolutePageDatetime: true,
   });
-  let statsPeriod = decodeScalar(normalizedParams.statsPeriod);
+  const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
   const project = decodeScalar(normalizedParams.project, ALL_ACCESS_PROJECTS + '');
   const timestamp = decodeScalar(normalizedParams.timestamp);
   let decodedLimit: string | number | undefined =
@@ -56,6 +59,8 @@ export function getTraceQueryParams(
     decodedLimit = parseInt(decodedLimit, 10);
   }
 
+  const event_id = decodeScalar(normalizedParams.event_id);
+
   if (timestamp) {
     decodedLimit = decodedLimit ?? DEFAULT_TIMESTAMP_LIMIT;
   } else {
@@ -64,11 +69,20 @@ export function getTraceQueryParams(
 
   const limit = decodedLimit;
 
-  if (statsPeriod === undefined && !timestamp && filters.datetime?.period) {
-    statsPeriod = filters.datetime.period;
+  const otherParams: Record<string, string> = {};
+
+  if (statsPeriod === undefined) {
+    if (!timestamp) {
+      if (normalizedParams.start && normalizedParams.end) {
+        otherParams.pageEnd = normalizedParams.end;
+        otherParams.pageStart = normalizedParams.start;
+      } else if (filters.datetime?.period) {
+        otherParams.statsPeriod = filters.datetime.period;
+      }
+    }
   }
 
-  return {limit, statsPeriod, project, timestamp, useSpans: 1};
+  return {...otherParams, limit, project, timestamp, event_id, useSpans: 1};
 }
 
 type UseTraceParams = {

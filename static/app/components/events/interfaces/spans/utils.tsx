@@ -7,6 +7,7 @@ import set from 'lodash/set';
 import moment from 'moment';
 
 import {lightenBarColor} from 'sentry/components/performance/waterfall/utils';
+import {getEventTimestamp} from 'sentry/components/quickTrace/utils';
 import type {Organization} from 'sentry/types';
 import type {
   AggregateEntrySpans,
@@ -481,7 +482,8 @@ export function handleTraceDetailsRouting(
       organization,
       traceId,
       event.title,
-      location.query
+      location.query,
+      getEventTimestamp(event)
     );
 
     browserHistory.replace({
