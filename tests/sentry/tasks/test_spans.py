@@ -108,7 +108,7 @@ def test_run_performnance_issue_detection_default(mock_process_segments):
         buffer = RedisSpansBuffer()
         for i in range(20):
             frozen_time.shift(1)
-            buffer.write_span("bar", f"span{i}", b"span data")
+            buffer.write_span_and_get_last_processed_timestamp("bar", f"span{i}", b"span data")
 
         frozen_time.shift(120)
         run_performnance_issue_detection()
@@ -130,7 +130,7 @@ def test_run_performnance_issue_detection_options(mock_process_segments):
         buffer = RedisSpansBuffer()
         for i in range(20):
             frozen_time.shift(1)
-            buffer.write_span("bar", f"span{i}", b"span data")
+            buffer.write_span_and_get_last_processed_timestamp("bar", f"span{i}", b"span data")
 
         frozen_time.shift(120)
         run_performnance_issue_detection()
@@ -168,7 +168,7 @@ def test_run_performnance_issue_detection_with_different_buckets(
         buffer = RedisSpansBuffer()
         for i in range(20):
             frozen_time.shift(1)
-            buffer.write_span("bar", f"span{i}", b"span data")
+            buffer.write_span_and_get_last_processed_timestamp("bar", f"span{i}", b"span data")
 
         frozen_time.shift(120)
 
@@ -197,7 +197,7 @@ def test_run_performnance_issue_detection_drain(
         buffer = RedisSpansBuffer()
         for i in range(20):
             frozen_time.shift(time_shift)
-            buffer.write_span("bar", f"span{i}", b"span data")
+            buffer.write_span_and_get_last_processed_timestamp("bar", f"span{i}", b"span data")
 
         frozen_time.shift(100)
 
@@ -228,7 +228,7 @@ def test_run_performnance_issue_detection_no_segments(mock_process_segments):
         buffer = RedisSpansBuffer()
         for i in range(20):
             frozen_time.shift(1)
-            buffer.write_span("bar", f"span{i}", b"span data")
+            buffer.write_span_and_get_last_processed_timestamp("bar", f"span{i}", b"span data")
 
         run_performnance_issue_detection()
 

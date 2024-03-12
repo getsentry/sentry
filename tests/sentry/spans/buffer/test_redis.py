@@ -6,7 +6,7 @@ class TestRedisSpansBuffer:
     def test_first_span_in_segment_sets_ttl_and_pushes_to_bucket(self):
         buffer = RedisSpansBuffer()
         with freeze_time("2000-01-01"):
-            buffer.write_span("bar", "foo", b"span data")
+            buffer.write_span_and_get_last_processed_timestamp("bar", "foo", b"span data")
             assert buffer.read_many_segments(["segment:foo:bar:process-segment"]) == [
                 ("segment:foo:bar:process-segment", ["span data"])
             ]
@@ -18,8 +18,8 @@ class TestRedisSpansBuffer:
     def test_segment_not_pushed_repeatedly_to_process_bucket(self):
         buffer = RedisSpansBuffer()
         with freeze_time("2000-01-01"):
-            buffer.write_span("bar", "foo", b"span data")
-            buffer.write_span("bar", "foo", b"other span data")
+            buffer.write_span_and_get_last_processed_timestamp("bar", "foo", b"span data")
+            buffer.write_span_and_get_last_processed_timestamp("bar", "foo", b"other span data")
             assert buffer._read_key("performance-issues:unprocessed-segments") == [
                 '[946684800.0,"segment:foo:bar:process-segment"]'
             ]
@@ -27,11 +27,11 @@ class TestRedisSpansBuffer:
     def test_get_segment_keys_and_prune(self):
         buffer = RedisSpansBuffer()
         with freeze_time("2000-01-01") as frozen_time:
-            buffer.write_span("bar", "span1", b"span data")
+            buffer.write_span_and_get_last_processed_timestamp("bar", "span1", b"span data")
             frozen_time.shift(10)
-            buffer.write_span("bar", "span2", b"other span data")
+            buffer.write_span_and_get_last_processed_timestamp("bar", "span2", b"other span data")
             frozen_time.shift(120)
-            buffer.write_span("bar", "span3", b"other span data")
+            buffer.write_span_and_get_last_processed_timestamp("bar", "span3", b"other span data")
 
             assert buffer._read_key("performance-issues:unprocessed-segments") == [
                 '[946684800.0,"segment:span1:bar:process-segment"]',

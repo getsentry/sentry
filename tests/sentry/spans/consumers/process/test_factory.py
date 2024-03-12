@@ -48,8 +48,7 @@ def build_mock_message(data, topic=None):
     return message
 
 
-@mock.patch("sentry.spans.consumers.process.factory.process_segment")
-def test_consumer_pushes_to_redis_and_schedules_task(process_segment):
+def test_consumer_pushes_to_redis_and_schedules_task():
     redis_client = get_redis_client()
 
     topic = Topic(settings.KAFKA_SNUBA_SPANS)
@@ -79,11 +78,9 @@ def test_consumer_pushes_to_redis_and_schedules_task(process_segment):
     assert redis_client.lrange("segment:ace31e54d65652aa:1:process-segment", 0, -1) == [
         message.value()
     ]
-    process_segment.apply_async.assert_called_once_with(args=[1, "ace31e54d65652aa"], countdown=120)
 
 
-@mock.patch("sentry.spans.consumers.process.factory.process_segment")
-def test_second_span_in_segment_does_not_queue_task(process_segment):
+def test_second_span_in_segment_does_not_queue_task():
     redis_client = get_redis_client()
 
     topic = Topic(settings.KAFKA_SNUBA_SPANS)
@@ -125,4 +122,3 @@ def test_second_span_in_segment_does_not_queue_task(process_segment):
         message.value(),
         message.value(),
     ]
-    process_segment.apply_async.assert_called_once_with(args=[1, "ace31e54d65652aa"], countdown=120)
