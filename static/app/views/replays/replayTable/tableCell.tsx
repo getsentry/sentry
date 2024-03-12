@@ -619,7 +619,7 @@ export function ActivityCell({replay, showDropdownFilters}: Props) {
   );
 }
 
-export function PlayCell({
+export function PlayPauseCell({
   isSelected,
   handleClick,
   priority,

@@ -37,7 +37,7 @@ const VISIBLE_COLUMNS = [
   ReplayColumn.ACTIVITY,
 ];
 
-const VISIBLE_COLUMNS_WITH_PLAY = [ReplayColumn.PLAY, ...VISIBLE_COLUMNS];
+const VISIBLE_COLUMNS_WITH_PLAY = [ReplayColumn.PLAY_PAUSE, ...VISIBLE_COLUMNS];
 
 function GroupReplays({group}: Props) {
   const organization = useOrganization();

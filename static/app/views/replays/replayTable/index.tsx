@@ -23,7 +23,7 @@ import {
   DurationCell,
   ErrorCountCell,
   OSCell,
-  PlayCell,
+  PlayPauseCell,
   RageClickCountCell,
   ReplayCell,
   TransactionCell,
@@ -192,9 +192,9 @@ const ReplayTable = memo(
                           />
                         );
 
-                      case ReplayColumn.PLAY:
+                      case ReplayColumn.PLAY_PAUSE:
                         return (
-                          <PlayCell
+                          <PlayPauseCell
                             key="play"
                             isSelected={selectedReplayIndex === index}
                             handleClick={() => onClickPlay?.(index)}
