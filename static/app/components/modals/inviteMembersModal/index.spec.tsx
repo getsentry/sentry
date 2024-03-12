@@ -1,10 +1,10 @@
 import type {ComponentProps} from 'react';
-import selectEvent from 'react-select-event';
 import styled from '@emotion/styled';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {makeCloseButton} from 'sentry/components/globalModal/components';
@@ -206,8 +206,8 @@ describe('InviteMembersModal', function () {
     });
 
     expect(await screen.findByRole('button', {name: 'Add another'})).toBeInTheDocument();
-
     await setupMemberInviteState();
+
     const teamInputs = screen.getAllByRole('textbox', {name: 'Add to Team'});
     await selectEvent.select(teamInputs[0], '#team-slug');
     await selectEvent.select(teamInputs[1], '#team-slug');
@@ -393,9 +393,9 @@ describe('InviteMembersModal', function () {
 
   describe('member invite request mode', function () {
     it('has adjusted wording', async function () {
-      setupView({orgAccess: undefined});
+      setupView({orgAccess: []});
       expect(
-        await screen.findByRole('button', {name: 'Send invite'})
+        await screen.findByRole('button', {name: 'Send invite request'})
       ).toBeInTheDocument();
     });
 
@@ -412,7 +412,7 @@ describe('InviteMembersModal', function () {
       const initialData = [{emails: new Set([initialEmail])}];
 
       const {mocks} = setupView({
-        orgAccess: undefined,
+        orgAccess: [],
         mockApiResponses: [defaultMockOrganizationRoles, createInviteRequestMock],
         modalProps: {
           ...defaultMockModalProps,
@@ -421,7 +421,7 @@ describe('InviteMembersModal', function () {
       });
 
       expect(await screen.findByText(initialEmail)).toBeInTheDocument();
-      await userEvent.click(screen.getByRole('button', {name: 'Send invite'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Send invite request'}));
       const apiMock = mocks[1];
       expect(apiMock).toHaveBeenCalledTimes(1);
     });
