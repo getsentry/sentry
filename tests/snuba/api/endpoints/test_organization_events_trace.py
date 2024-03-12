@@ -10,7 +10,6 @@ from sentry.issues.grouptype import NoiseConfig, PerformanceFileIOMainThreadGrou
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
-from sentry.utils.dates import to_timestamp_from_iso_format
 from sentry.utils.samples import load_data
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
@@ -61,11 +60,13 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase):
         if tags is not None:
             data["tags"] = tags
         if file_io_performance_issue:
-            span = data["spans"][0]
-            if "data" not in span:
-                span["data"] = {}
-            span["op"] = "file.write"
-            span["data"].update({"duration": 1, "blocked_main_thread": True})
+            new_span = data["spans"][0].copy()
+            if "data" not in new_span:
+                new_span["data"] = {}
+            new_span["op"] = "file.write"
+            new_span["data"].update({"duration": 1, "blocked_main_thread": True})
+            new_span["span_id"] = "0012" * 4
+            data["spans"].append(new_span)
         with self.feature(self.FEATURES):
             with mock.patch.object(
                 PerformanceFileIOMainThreadGroupType,
@@ -83,7 +84,9 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase):
                         span.update({"event_id": event.event_id})
                         self.store_span(
                             self.create_span(
-                                span, start_ts=datetime.fromtimestamp(span["start_timestamp"])
+                                span,
+                                start_ts=datetime.fromtimestamp(span["start_timestamp"]),
+                                duration=int(span["timestamp"] - span["start_timestamp"]) * 1000,
                             )
                         )
                 self.store_span(self.convert_event_data_to_span(event))
@@ -171,7 +174,11 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase):
         )
 
         # First Generation
-        self.gen1_span_ids = [uuid4().hex[:16] for _ in range(3)]
+        # TODO: temporary, this is until we deprecate using this endpoint without useSpans
+        if isinstance(self, OrganizationEventsTraceEndpointTestUsingSpans):
+            self.gen1_span_ids = ["0014" * 4, *(uuid4().hex[:16] for _ in range(2))]
+        else:
+            self.gen1_span_ids = [uuid4().hex[:16] for _ in range(3)]
         self.gen1_project = self.create_project(organization=self.organization)
         self.gen1_events = [
             self.create_event(
@@ -704,7 +711,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
             "project_slug": self.project.slug,
             "level": "fatal",
             "title": error.title,
-            "timestamp": to_timestamp_from_iso_format(error.timestamp),
+            "timestamp": datetime.fromisoformat(error.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
         } == response.data["orphan_errors"][0]
@@ -810,7 +817,11 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert root["transaction.duration"] == 3000
         assert len(root["children"]) == 3
         assert len(root["performance_issues"]) == 1
-        assert root["performance_issues"][0]["suspect_spans"][0] == self.root_span_ids[0]
+        # The perf issue is added as the last span
+        perf_issue_span = self.root_event.data["spans"][-1]
+        assert root["performance_issues"][0]["suspect_spans"][0] == perf_issue_span["span_id"]
+        assert root["performance_issues"][0]["start"] == perf_issue_span["start_timestamp"]
+        assert root["performance_issues"][0]["end"] == perf_issue_span["timestamp"]
 
         for i, gen1 in enumerate(root["children"]):
             self.assert_event(gen1, self.gen1_events[i], f"gen1_{i}")
@@ -1266,7 +1277,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "project_slug": self.gen1_project.slug,
             "level": "fatal",
             "title": error.title,
-            "timestamp": to_timestamp_from_iso_format(error.timestamp),
+            "timestamp": datetime.fromisoformat(error.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
         }
@@ -1278,7 +1289,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "project_slug": self.gen1_project.slug,
             "level": "warning",
             "title": error1.title,
-            "timestamp": to_timestamp_from_iso_format(error1.timestamp),
+            "timestamp": datetime.fromisoformat(error1.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
         }
@@ -1332,7 +1343,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "project_slug": self.project.slug,
             "level": "fatal",
             "title": error.title,
-            "timestamp": to_timestamp_from_iso_format(error.timestamp),
+            "timestamp": datetime.fromisoformat(error.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
         } == response.data["orphan_errors"][1]
@@ -1344,7 +1355,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "project_slug": self.project.slug,
             "level": "warning",
             "title": error1.title,
-            "timestamp": to_timestamp_from_iso_format(error1.timestamp),
+            "timestamp": datetime.fromisoformat(error1.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
         } == response.data["orphan_errors"][0]
@@ -1388,7 +1399,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "project_slug": self.project.slug,
             "level": "fatal",
             "title": error.title,
-            "timestamp": to_timestamp_from_iso_format(error.timestamp),
+            "timestamp": datetime.fromisoformat(error.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
         } in response.data["orphan_errors"]
@@ -1400,7 +1411,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "project_slug": self.project.slug,
             "level": "warning",
             "title": error1.title,
-            "timestamp": to_timestamp_from_iso_format(error1.timestamp),
+            "timestamp": datetime.fromisoformat(error1.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
         } in response.data["orphan_errors"]
@@ -1446,7 +1457,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "project_slug": self.project.slug,
             "level": "fatal",
             "title": error.title,
-            "timestamp": to_timestamp_from_iso_format(error.timestamp),
+            "timestamp": datetime.fromisoformat(error.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
         } in response.data["orphan_errors"]
@@ -1472,7 +1483,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "project_slug": self.gen1_project.slug,
             "level": "debug",
             "title": "this is a log message",
-            "timestamp": to_timestamp_from_iso_format(default_event.timestamp),
+            "timestamp": datetime.fromisoformat(default_event.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
         } in root_event["errors"]

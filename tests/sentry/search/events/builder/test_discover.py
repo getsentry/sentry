@@ -440,7 +440,7 @@ class QueryBuilderTest(TestCase):
             "array_join_measurements_key",
         )
         self.assertCountEqual(query.columns, [array_join_column, Function("count", [], "count")])
-        # make sure the the array join columns are present in gropuby
+        # make sure the array join columns are present in gropuby
         self.assertCountEqual(query.groupby, [array_join_column])
 
     def test_retention(self):

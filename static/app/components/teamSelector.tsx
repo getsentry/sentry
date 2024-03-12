@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef} from 'react';
+import {useCallback, useEffect, useMemo, useRef} from 'react';
 import {createFilter} from 'react-select';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -124,6 +124,10 @@ type Props = {
    * Controls whether the value in the dropdown is a team id or team slug
    */
   useId?: boolean;
+  /**
+   * Flag that lets the caller decide to use the team value by default if there is only one option
+   */
+  useTeamDefaultIfOnlyOne?: boolean;
 } & ControlProps;
 
 type TeamActor = {
@@ -143,6 +147,7 @@ function TeamSelector(props: Props) {
     includeUnassigned,
     styles: stylesProp,
     onChange,
+    useTeamDefaultIfOnlyOne = false,
     ...extraProps
   } = props;
   const {teamFilter, organization, project, multiple, value, useId} = props;
@@ -356,6 +361,23 @@ function TeamSelector(props: Props) {
     }),
     [includeUnassigned, multiple, stylesProp]
   );
+
+  useEffect(() => {
+    // Only take action after we've finished loading the teams
+    if (fetching) {
+      return;
+    }
+
+    // If there is only one team, and our flow wants to enable using that team as a default, update the parent state
+    if (options.length === 1 && useTeamDefaultIfOnlyOne) {
+      const castedValue = multiple
+        ? (options as TeamOption[])
+        : (options[0] as TeamOption);
+      handleChange(castedValue);
+    }
+    // We only want to do this once when the component is finished loading for teams and mounted.
+    // If the user decides they do not want the default, we should not add the default value back.
+  }, [fetching, useTeamDefaultIfOnlyOne]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <SelectControl

@@ -1,4 +1,5 @@
-import React, {
+import type React from 'react';
+import {
   Fragment,
   useCallback,
   useEffect,
@@ -9,6 +10,7 @@ import React, {
   useState,
 } from 'react';
 import {browserHistory} from 'react-router';
+import styled from '@emotion/styled';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
@@ -30,9 +32,11 @@ import type {
   TraceFullDetailed,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
+import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
@@ -46,9 +50,9 @@ import {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/v
 
 import Breadcrumb from '../breadcrumb';
 
-import TraceDetailPanel from './newTraceDetailPanel';
+import TraceDrawer from './traceDrawer/traceDrawer';
+import {isTraceNode} from './guards';
 import Trace from './trace';
-import {TraceFooter} from './traceFooter';
 import TraceHeader from './traceHeader';
 import {TraceTree, type TraceTreeNode} from './traceTree';
 import TraceWarnings from './traceWarnings';
@@ -120,7 +124,7 @@ export function TraceView() {
             {metaResults => (
               <TraceViewContent
                 status={trace.status}
-                trace={trace.data}
+                trace={trace.data ?? null}
                 traceSlug={traceSlug}
                 organization={organization}
                 location={location}
@@ -139,16 +143,18 @@ type TraceViewContentProps = {
   location: Location;
   metaResults: TraceMetaQueryChildrenProps;
   organization: Organization;
-  status: 'pending' | 'resolved' | 'error' | 'initial';
+  status: UseApiQueryResult<any, any>['status'];
   trace: TraceSplitResults<TraceFullDetailed> | null;
   traceEventView: EventView;
   traceSlug: string;
 };
 
 function TraceViewContent(props: TraceViewContentProps) {
+  const api = useApi();
+  const [activeTab, setActiveTab] = useState<'trace' | 'node'>('trace');
   const {projects} = useProjects();
 
-  const rootEvent = useRootEvent(props.trace?.transactions);
+  const rootEvent = useRootEvent(props.trace);
 
   const viewManager = useMemo(() => {
     return new VirtualizedViewManager({
@@ -157,15 +163,36 @@ function TraceViewContent(props: TraceViewContentProps) {
     });
   }, []);
 
+  const loadingTraceRef = useRef<TraceTree | null>(null);
+
   const tree = useMemo(() => {
-    if (props.status === 'pending' || rootEvent.status !== 'success') {
-      return TraceTree.Loading({
-        project_slug: projects?.[0]?.slug ?? '',
-        event_id: props.traceSlug,
-      });
+    if (props.status === 'error') {
+      const errorTree = TraceTree.Error(
+        {
+          project_slug: projects?.[0]?.slug ?? '',
+          event_id: props.traceSlug,
+        },
+        loadingTraceRef.current
+      );
+      return errorTree;
     }
 
-    if (props.trace) {
+    if (props.status === 'loading' || rootEvent.status === 'loading') {
+      const loadingTrace =
+        loadingTraceRef.current ??
+        TraceTree.Loading(
+          {
+            project_slug: projects?.[0]?.slug ?? '',
+            event_id: props.traceSlug,
+          },
+          loadingTraceRef.current
+        );
+
+      loadingTraceRef.current = loadingTrace;
+      return loadingTrace;
+    }
+
+    if (props.trace && rootEvent.status === 'success') {
       return TraceTree.FromTrace(props.trace, rootEvent.data);
     }
 
@@ -180,10 +207,10 @@ function TraceViewContent(props: TraceViewContentProps) {
   ]);
 
   const traceType = useMemo(() => {
-    if (props.status !== 'resolved' || !tree) {
+    if (props.status !== 'success' || !tree) {
       return null;
     }
-    return TraceTree.GetTraceType(tree.root);
+    return tree.shape;
   }, [props.status, tree]);
 
   const [rovingTabIndexState, rovingTabIndexDispatch] = useReducer(
@@ -224,20 +251,15 @@ function TraceViewContent(props: TraceViewContentProps) {
     resultsLookup: new Map(),
   });
 
-  const [detailNode, setDetailNode] = useState<TraceTreeNode<TraceTree.NodeValue> | null>(
-    null
+  const [clickedNode, setClickedNode] = useState<TraceTreeNode<TraceTree.NodeValue>[]>(
+    []
   );
 
-  const onDetailClose = useCallback(() => {
-    setDetailNode(null);
-    maybeFocusRow();
-  }, []);
-
-  const onSetDetailNode = useCallback(
+  const onSetClickedNode = useCallback(
     (node: TraceTreeNode<TraceTree.NodeValue> | null) => {
-      setDetailNode(prevNode => {
-        return prevNode === node ? null : node;
-      });
+      // Clicking on trace node defaults to the trace tab
+      setActiveTab(node && !isTraceNode(node ?? null) ? 'node' : 'trace');
+      setClickedNode(node && !isTraceNode(node) ? [node] : []);
       maybeFocusRow();
     },
     []
@@ -260,19 +282,6 @@ function TraceViewContent(props: TraceViewContentProps) {
     },
     [tree]
   );
-
-  const previousIndexRef = React.useRef<number | undefined>(searchState.resultIndex);
-  useLayoutEffect(() => {
-    if (previousIndexRef.current === searchState.resultIndex) {
-      return;
-    }
-    if (!viewManager.list) {
-      return;
-    }
-
-    viewManager.list.scrollToRow(searchState.resultIndex);
-    previousIndexRef.current = searchState.resultIndex;
-  }, [searchState.resultIndex, viewManager.list]);
 
   const onSearchChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -328,6 +337,52 @@ function TraceViewContent(props: TraceViewContentProps) {
 
   useQueryParamSync(syncQuery);
 
+  const onOutsideClick = useCallback(() => {
+    const {node: _node, ...queryParamsWithoutNode} = qs.parse(location.search);
+
+    browserHistory.push({
+      pathname: location.pathname,
+      query: queryParamsWithoutNode,
+    });
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const traceContainerRef = useRef<HTMLElement | null>(null);
+  useOnClickOutside(traceContainerRef, onOutsideClick);
+
+  const previouslyFocusedIndexRef = useRef<number | null>(null);
+  const scrollToNode = useCallback(
+    (node: TraceTreeNode<TraceTree.NodeValue>) => {
+      previouslyFocusedIndexRef.current = null;
+      viewManager
+        .scrollToPath(tree, [...node.path], () => void 0, {
+          api,
+          organization: props.organization,
+        })
+        .then(maybeNode => {
+          if (!maybeNode) {
+            return;
+          }
+
+          viewManager.onScrollEndOutOfBoundsCheck();
+          rovingTabIndexDispatch({
+            type: 'set index',
+            index: maybeNode.index,
+            node: maybeNode.node,
+          });
+
+          if (searchState.query) {
+            onTraceSearch(searchState.query);
+          }
+
+          // Re-focus the row if in view as well
+          maybeFocusRow();
+        });
+    },
+    [api, props.organization, tree, viewManager, searchState, onTraceSearch]
+  );
+
   return (
     <Fragment>
       <Layout.Header>
@@ -374,27 +429,34 @@ function TraceViewContent(props: TraceViewContentProps) {
             resultCount={searchState.results?.length}
             resultIteratorIndex={searchState.resultIteratorIndex}
           />
-          <Trace
-            trace={tree}
-            trace_id={props.traceSlug}
-            roving_dispatch={rovingTabIndexDispatch}
-            roving_state={rovingTabIndexState}
-            search_dispatch={searchDispatch}
-            search_state={searchState}
-            setDetailNode={onSetDetailNode}
-            searchResultsIteratorIndex={searchState.resultIndex}
-            searchResultsMap={searchState.resultsLookup}
-            onTraceSearch={onTraceSearch}
-            manager={viewManager}
-          />
-          <TraceFooter
-            rootEventResults={rootEvent}
-            organization={props.organization}
-            location={props.location}
-            traces={props.trace}
-            traceEventView={props.traceEventView}
-          />
-          {<TraceDetailPanel node={detailNode} onClose={onDetailClose} />}
+          <TraceContainer ref={r => (traceContainerRef.current = r)}>
+            <Trace
+              trace={tree}
+              trace_id={props.traceSlug}
+              roving_dispatch={rovingTabIndexDispatch}
+              roving_state={rovingTabIndexState}
+              search_dispatch={searchDispatch}
+              search_state={searchState}
+              setClickedNode={onSetClickedNode}
+              searchResultsIteratorIndex={searchState.resultIndex}
+              searchResultsMap={searchState.resultsLookup}
+              onTraceSearch={onTraceSearch}
+              previouslyFocusedIndexRef={previouslyFocusedIndexRef}
+              manager={viewManager}
+            />
+            <TraceDrawer
+              scrollToNode={scrollToNode}
+              manager={viewManager}
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              nodes={clickedNode}
+              rootEventResults={rootEvent}
+              organization={props.organization}
+              location={props.location}
+              traces={props.trace}
+              traceEventView={props.traceEventView}
+            />
+          </TraceContainer>
         </Layout.Main>
       </Layout.Body>
     </Fragment>
@@ -436,8 +498,8 @@ function useQueryParamSync(query: Record<string, string | undefined>) {
   }, [query]);
 }
 
-function useRootEvent(trace: TraceFullDetailed[] | undefined) {
-  const root = trace?.[0];
+function useRootEvent(trace: TraceSplitResults<TraceFullDetailed> | null) {
+  const root = trace?.transactions[0] || trace?.orphan_errors[0];
   const organization = useOrganization();
 
   return useApiQuery<EventTransaction>(
@@ -455,3 +517,7 @@ function useRootEvent(trace: TraceFullDetailed[] | undefined) {
     }
   );
 }
+
+const TraceContainer = styled('div')`
+  box-shadow: 0 0 0 1px ${p => p.theme.border};
+`;

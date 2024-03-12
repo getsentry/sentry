@@ -19,6 +19,7 @@ from django.http import HttpRequest
 from django.utils import timezone
 from sentry_sdk.tracing import Span
 
+from sentry import options
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseModel,
@@ -406,6 +407,17 @@ def _ensure_not_null(k: str, v: Any) -> Any:
 class OutboxBase(Model):
     sharding_columns: Iterable[str]
     coalesced_columns: Iterable[str]
+
+    def should_skip_shard(self):
+        if self.shard_scope == OutboxScope.ORGANIZATION_SCOPE:
+            return self.shard_identifier in options.get(
+                "hybrid_cloud.authentication.disabled_organization_shards"
+            )
+        if self.shard_scope == OutboxScope.USER_SCOPE:
+            return self.shard_identifier in options.get(
+                "hybrid_cloud.authentication.disabled_user_shards"
+            )
+        return False
 
     @classmethod
     def from_outbox_name(cls, name: str) -> type[Self]:
