@@ -15,11 +15,9 @@ import {PlatformIcon} from 'platformicons';
 import * as qs from 'query-string';
 
 import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
-import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import Placeholder from 'sentry/components/placeholder';
-import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization, PlatformKey, Project} from 'sentry/types';
@@ -194,39 +192,53 @@ function Trace({
 
     loadedRef.current = true;
 
-    if (!scrollQueue.current) {
+    const eventId = qs.parse(location.search)?.eventId;
+    if (!scrollQueue.current && !scrollQueue.current && !eventId) {
       if (search_state.query) {
         onTraceSearch(search_state.query);
       }
       return;
     }
 
-    manager
-      .scrollToPath(trace, scrollQueue.current, () => setRender(a => (a + 1) % 2), {
-        api,
-        organization,
-      })
-      .then(maybeNode => {
-        scrollQueue.current = null;
+    const promise =
+      eventId && typeof eventId === 'string'
+        ? manager.scrollToEventID(eventId, trace, () => setRender(a => (a + 1) % 2), {
+            api,
+            organization,
+          })
+        : scrollQueue.current
+          ? manager.scrollToPath(
+              trace,
+              scrollQueue.current,
+              () => setRender(a => (a + 1) % 2),
+              {
+                api,
+                organization,
+              }
+            )
+          : Promise.resolve(null);
 
-        if (!maybeNode) {
-          return;
-        }
+    promise.then(maybeNode => {
+      scrollQueue.current = null;
 
-        manager.onScrollEndOutOfBoundsCheck();
-        setDetailNode(maybeNode.node);
-        roving_dispatch({
-          type: 'set index',
-          index: maybeNode.index,
-          node: maybeNode.node,
-        });
+      if (!maybeNode) {
+        return;
+      }
 
-        manager.scrollRowIntoViewHorizontally(maybeNode.node);
-
-        if (search_state.query) {
-          onTraceSearch(search_state.query);
-        }
+      manager.onScrollEndOutOfBoundsCheck();
+      setDetailNode(maybeNode.node);
+      roving_dispatch({
+        type: 'set index',
+        index: maybeNode.index,
+        node: maybeNode.node,
       });
+
+      manager.scrollRowIntoViewHorizontally(maybeNode.node);
+
+      if (search_state.query) {
+        onTraceSearch(search_state.query);
+      }
+    });
   }, [
     api,
     organization,
@@ -1192,16 +1204,9 @@ function RenderRow(props: {
             <PlatformIcon
               platform={props.projects[props.node.value.project_slug] ?? 'default'}
             />
-            ;
-            <Link
-              className="Errored Link"
-              onClick={e => e.stopPropagation()}
-              to={generateIssueEventTarget(props.node.value, props.organization)}
-            >
-              <span className="TraceOperation">{t('Error')}</span>
-              <strong className="TraceEmDash"> — </strong>
-              <span className="TraceDescription">{props.node.value.title}</span>
-            </Link>
+            <span className="TraceOperation Errored">{t('Error')}</span>
+            <strong className="TraceEmDash Errored"> — </strong>
+            <span className="TraceDescription Errored">{props.node.value.title}</span>
           </div>
         </div>
         <div
@@ -1766,7 +1771,9 @@ const TraceStylingWrapper = styled('div')`
       }
     }
 
-    &:focus {
+    &:focus,
+    &[tabindex='0'] {
+      background-color: ${p => p.theme.backgroundTertiary};
       box-shadow: inset 0 0 0 1px ${p => p.theme.blue300} !important;
 
       .TraceLeftColumn {
@@ -1836,6 +1843,7 @@ const TraceStylingWrapper = styled('div')`
     align-items: center;
     will-change: width;
     z-index: 1;
+    cursor: pointer;
 
     &:hover {
       .TraceArrow.Visible {
@@ -2164,21 +2172,19 @@ function TraceEmpty() {
   const feedback = useFeedbackWidget({buttonRef: linkref});
   return (
     <LoadingContainer animate>
-      <NoMarginIndicator size={24}>
-        <div>{t('This trace does not contain any data?!')}</div>
-        <div>
-          {t('Seeing this often? Send us ')}
-          {feedback ? (
-            <a href="#" ref={linkref}>
-              {t('feedback')}
-            </a>
-          ) : (
-            <a href="mailto:support@sentry.io?subject=Trace%20does%20not%20contain%20data">
-              {t('feedback')}
-            </a>
-          )}
-        </div>
-      </NoMarginIndicator>
+      <div>{t('This trace does not contain any data?!')}</div>
+      <div>
+        {t('Seeing this often? Send us ')}
+        {feedback ? (
+          <a href="#" ref={linkref}>
+            {t('feedback')}
+          </a>
+        ) : (
+          <a href="mailto:support@sentry.io?subject=Trace%20does%20not%20contain%20data">
+            {t('feedback')}
+          </a>
+        )}
+      </div>
     </LoadingContainer>
   );
 }

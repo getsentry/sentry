@@ -76,7 +76,7 @@ def get_test_message(default_project):
         normalized_event = dict(em.get_data())
         message = {
             "type": "event",
-            "start_time": time.time(),
+            "start_time": int(time.time()),
             "event_id": event_id,
             "project_id": int(project_id),
             "payload": json.dumps(normalized_event),
@@ -126,6 +126,7 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
         group_id=random_group_id,
         auto_offset_reset="earliest",
         strict_offset_reset=False,
+        enforce_schema=True,
     )
 
     with task_runner():
@@ -191,6 +192,7 @@ def test_ingest_consumer_gets_event_unstuck(
         group_id=random_group_id,
         auto_offset_reset="earliest",
         strict_offset_reset=False,
+        enforce_schema=True,
     )
 
     with task_runner():

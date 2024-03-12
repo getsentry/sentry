@@ -53,14 +53,6 @@ function FeedbackOnboardingSidebar(props: CommonSidebarProps) {
     allPlatforms: feedbackOnboardingPlatforms,
   });
 
-  useEffect(() => {
-    // this tracks clicks from any source: feedback index, issue details feedback tab, banner callout, etc
-    trackAnalytics('feedback.list-view-setup-sidebar', {
-      organization,
-      platform: currentProject?.platform ?? 'unknown',
-    });
-  }, [organization, currentProject]);
-
   const projectSelectOptions = useMemo(() => {
     const supportedProjectItems: SelectValue<string>[] = allProjects
       .sort((aProject, bProject) => {
@@ -88,6 +80,16 @@ function FeedbackOnboardingSidebar(props: CommonSidebarProps) {
       },
     ];
   }, [allProjects]);
+
+  useEffect(() => {
+    if (isActive) {
+      // this tracks clicks from any source: feedback index, issue details feedback tab, banner callout, etc
+      trackAnalytics('feedback.list-view-setup-sidebar', {
+        organization,
+        platform: currentProject?.platform ?? 'unknown',
+      });
+    }
+  }, [organization, currentProject, isActive]);
 
   if (!isActive || !hasProjectAccess || !currentProject) {
     return null;
