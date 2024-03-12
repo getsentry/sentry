@@ -214,7 +214,7 @@ export function useMetricChartSamples({
                 value: yPosition,
               },
             ],
-            z: 21,
+            z: timeseries.length + 1,
           };
         });
       }
@@ -269,6 +269,7 @@ export function useMetricChartSamples({
       valueRect,
       xAxis,
       yAxis,
+      timeseries.length,
     ]
   );
 
@@ -419,7 +420,7 @@ export function useMetricChartSamplesV2({
                 value: yPosition,
               },
             ],
-            z: 21,
+            z: timeseries.length + 1,
           };
         });
       }
@@ -474,6 +475,7 @@ export function useMetricChartSamplesV2({
       valueRect,
       xAxis,
       yAxis,
+      timeseries.length,
     ]
   );
 
