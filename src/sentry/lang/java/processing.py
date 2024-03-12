@@ -2,7 +2,7 @@ import logging
 import re
 from typing import Any
 
-from sentry.lang.java.utils import get_proguard_images, should_use_symbolicator_for_proguard
+from sentry.lang.java.utils import get_proguard_images
 from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.symbolicator import Symbolicator
 from sentry.models.eventerror import EventError
