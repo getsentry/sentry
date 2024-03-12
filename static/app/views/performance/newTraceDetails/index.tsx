@@ -25,11 +25,9 @@ import {t} from 'sentry/locale';
 import type {EventTransaction, Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
-import TraceMetaQuery, {
-  type TraceMetaQueryChildrenProps,
-} from 'sentry/utils/performance/quickTrace/traceMetaQuery';
 import type {
   TraceFullDetailed,
+  TraceMeta,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
@@ -56,6 +54,7 @@ import Trace from './trace';
 import TraceHeader from './traceHeader';
 import {TraceTree, type TraceTreeNode} from './traceTree';
 import TraceWarnings from './traceWarnings';
+import {useMeta} from './useMeta';
 import {useTrace} from './useTrace';
 
 const DOCUMENT_TITLE = [t('Trace Details'), t('Performance')].join(' — ');
@@ -108,31 +107,21 @@ export function TraceView() {
   }, [queryParams, traceSlug]);
 
   const trace = useTrace();
+  const meta = useMeta();
 
   return (
     <SentryDocumentTitle title={DOCUMENT_TITLE} orgSlug={organization.slug}>
       <Layout.Page>
         <NoProjectMessage organization={organization}>
-          <TraceMetaQuery
+          <TraceViewContent
+            status={trace.status}
+            trace={trace.data ?? null}
+            traceSlug={traceSlug}
+            organization={organization}
             location={location}
-            orgSlug={organization.slug}
-            traceId={traceSlug}
-            start={queryParams.start}
-            end={queryParams.end}
-            statsPeriod={queryParams.statsPeriod}
-          >
-            {metaResults => (
-              <TraceViewContent
-                status={trace.status}
-                trace={trace.data ?? null}
-                traceSlug={traceSlug}
-                organization={organization}
-                location={location}
-                traceEventView={traceEventView}
-                metaResults={metaResults}
-              />
-            )}
-          </TraceMetaQuery>
+            traceEventView={traceEventView}
+            metaResults={meta}
+          />
         </NoProjectMessage>
       </Layout.Page>
     </SentryDocumentTitle>
@@ -141,7 +130,7 @@ export function TraceView() {
 
 type TraceViewContentProps = {
   location: Location;
-  metaResults: TraceMetaQueryChildrenProps;
+  metaResults: UseApiQueryResult<TraceMeta | null, any>;
   organization: Organization;
   status: UseApiQueryResult<any, any>['status'];
   trace: TraceSplitResults<TraceFullDetailed> | null;
