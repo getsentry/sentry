@@ -65,6 +65,7 @@ describe('GuideStore', function () {
 
     GuideStore.fetchSucceeded(data);
     window.location.hash = '#assistant';
+    expect(GuideStore.getState().currentGuide?.guide).toEqual('issue');
     window.dispatchEvent(new Event('load'));
     expect(GuideStore.getState().currentGuide?.guide).toEqual('issue');
     GuideStore.closeGuide();
