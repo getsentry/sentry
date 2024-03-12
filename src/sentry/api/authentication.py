@@ -299,7 +299,7 @@ class ClientIdSecretAuthentication(QuietBasicAuthentication):
 class UserAuthTokenAuthentication(StandardAuthentication):
     token_name = b"bearer"
 
-    def _find_or_update_token_by_hash(self, token_str: str) -> ApiToken | ApiTokenReplica:
+    def _find_or_update_token_by_hash(self, token_str: str) -> ApiToken:
         """
         Find token by hash or update token's hash value if only found via plaintext.
         1. Hash provided plaintext token.
@@ -312,37 +312,25 @@ class UserAuthTokenAuthentication(StandardAuthentication):
 
         hashed_token = hashlib.sha256(token_str.encode()).hexdigest()
 
-        if SiloMode.get_current_mode() == SiloMode.REGION:
+        try:
+            # Try to find the token by its hashed value first
+            return ApiToken.objects.select_related("user", "application").get(
+                hashed_token=hashed_token
+            )
+        except ApiToken.DoesNotExist:
             try:
-                # Try to find the token by its hashed value first
-                return ApiTokenReplica.objects.get(hashed_token=hashed_token)
-            except ApiTokenReplica.DoesNotExist:
-                try:
-                    # If we can't find it by hash, use the plaintext string
-                    return ApiTokenReplica.objects.get(token=token_str)
-                except ApiTokenReplica.DoesNotExist:
-                    # If the token does not exist by plaintext either, it is not a valid token
-                    raise AuthenticationFailed("Invalid token")
-        else:
-            try:
-                # Try to find the token by its hashed value first
-                return ApiToken.objects.select_related("user", "application").get(
-                    hashed_token=hashed_token
+                # If we can't find it by hash, use the plaintext string
+                api_token = ApiToken.objects.select_related("user", "application").get(
+                    token=token_str
                 )
             except ApiToken.DoesNotExist:
-                try:
-                    # If we can't find it by hash, use the plaintext string
-                    api_token = ApiToken.objects.select_related("user", "application").get(
-                        token=token_str
-                    )
-                except ApiToken.DoesNotExist:
-                    # If the token does not exist by plaintext either, it is not a valid token
-                    raise AuthenticationFailed("Invalid token")
-                else:
-                    # Update it with the hashed value if found by plaintext
-                    api_token.hashed_token = hashed_token
-                    api_token.save(update_fields=["hashed_token"])
-                    return api_token
+                # If the token does not exist by plaintext either, it is not a valid token
+                raise AuthenticationFailed("Invalid token")
+            else:
+                # Update it with the hashed value if found by plaintext
+                api_token.hashed_token = hashed_token
+                api_token.save(update_fields=["hashed_token"])
+                return api_token
 
     def accepts_auth(self, auth: list[bytes]) -> bool:
         if not super().accepts_auth(auth):
@@ -366,15 +354,23 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         application_is_inactive = False
 
         if not token:
-
             if SiloMode.get_current_mode() == SiloMode.REGION:
-                atr: ApiTokenReplica = self._find_or_update_token_by_hash(token_str)
-                token = atr
-                user = user_service.get_user(user_id=atr.user_id)
-                application_is_inactive = not atr.application_is_active
+                try:
+                    # Try to find the token by its hashed value first
+                    hashed_token = hashlib.sha256(token_str.encode()).hexdigest()
+                    atr = token = ApiTokenReplica.objects.get(hashed_token=hashed_token)
+                except ApiTokenReplica.DoesNotExist:
+                    try:
+                        # If we can't find it by hash, use the plaintext string
+                        atr = token = ApiTokenReplica.objects.get(token=token_str)
+                    except ApiTokenReplica.DoesNotExist:
+                        # If the token does not exist by plaintext either, it is not a valid token
+                        raise AuthenticationFailed("Invalid token")
+                    else:
+                        user = user_service.get_user(user_id=atr.user_id)
+                        application_is_inactive = not atr.application_is_active
             else:
-                at: ApiToken = self._find_or_update_token_by_hash(token_str)
-                token = at
+                at = token = self._find_or_update_token_by_hash(token_str)
                 user = at.user
                 application_is_inactive = (
                     at.application is not None and not at.application.is_active
