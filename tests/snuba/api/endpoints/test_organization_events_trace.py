@@ -60,11 +60,13 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase):
         if tags is not None:
             data["tags"] = tags
         if file_io_performance_issue:
-            span = data["spans"][0]
-            if "data" not in span:
-                span["data"] = {}
-            span["op"] = "file.write"
-            span["data"].update({"duration": 1, "blocked_main_thread": True})
+            new_span = data["spans"][0].copy()
+            if "data" not in new_span:
+                new_span["data"] = {}
+            new_span["op"] = "file.write"
+            new_span["data"].update({"duration": 1, "blocked_main_thread": True})
+            new_span["span_id"] = "0012" * 4
+            data["spans"].append(new_span)
         with self.feature(self.FEATURES):
             with mock.patch.object(
                 PerformanceFileIOMainThreadGroupType,
@@ -172,7 +174,11 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase):
         )
 
         # First Generation
-        self.gen1_span_ids = [uuid4().hex[:16] for _ in range(3)]
+        # TODO: temporary, this is until we deprecate using this endpoint without useSpans
+        if isinstance(self, OrganizationEventsTraceEndpointTestUsingSpans):
+            self.gen1_span_ids = ["0014" * 4, *(uuid4().hex[:16] for _ in range(2))]
+        else:
+            self.gen1_span_ids = [uuid4().hex[:16] for _ in range(3)]
         self.gen1_project = self.create_project(organization=self.organization)
         self.gen1_events = [
             self.create_event(
@@ -811,8 +817,8 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert root["transaction.duration"] == 3000
         assert len(root["children"]) == 3
         assert len(root["performance_issues"]) == 1
-        # The perf issue is put on the first span
-        perf_issue_span = self.root_event.data["spans"][0]
+        # The perf issue is added as the last span
+        perf_issue_span = self.root_event.data["spans"][-1]
         assert root["performance_issues"][0]["suspect_spans"][0] == perf_issue_span["span_id"]
         assert root["performance_issues"][0]["start"] == perf_issue_span["start_timestamp"]
         assert root["performance_issues"][0]["end"] == perf_issue_span["timestamp"]
@@ -1610,20 +1616,6 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
         ) == sorted([p.id for p in mock_query_builder.mock_calls[0].args[1]["project_objects"]])
 
         assert response.status_code == 200, response.content
-
-    def test_simple(self):
-        self.load_trace()
-        with self.feature(self.FEATURES):
-            response = self.client_get(
-                data={"project": -1},
-            )
-        assert response.status_code == 200, response.content
-        trace_transaction = response.data["transactions"][0]
-        self.assert_trace_data(trace_transaction)
-        # We shouldn't have detailed fields here
-        assert "transaction.status" not in trace_transaction
-        assert "tags" not in trace_transaction
-        assert "measurements" not in trace_transaction
 
 
 @region_silo_test
