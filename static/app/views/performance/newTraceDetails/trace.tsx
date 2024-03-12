@@ -1189,7 +1189,7 @@ function RenderRow(props: {
             <PlatformIcon
               platform={props.projects[props.node.value.project_slug] ?? 'default'}
             />
-            ;<span className="TraceOperation Errored">{t('Error')}</span>
+            <span className="TraceOperation Errored">{t('Error')}</span>
             <strong className="TraceEmDash Errored"> — </strong>
             <span className="TraceDescription Errored">{props.node.value.title}</span>
           </div>

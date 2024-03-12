@@ -32,15 +32,19 @@ const DEFAULT_PANEL_HEIGHT = 200;
 
 function getTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
   if (isTransactionNode(node)) {
-    return t('Transaction: ') + node.value['transaction.op'] + node.value.transaction
-      ? ' - ' + node.value.transaction
-      : '';
+    return (
+      t('Transaction: ') +
+      node.value['transaction.op'] +
+      (node.value.transaction ? ' - ' + node.value.transaction : '')
+    );
   }
 
   if (isSpanNode(node)) {
-    return t('Span: ') + node.value.op + node.value.description
-      ? ' - ' + node.value.description
-      : '';
+    return (
+      t('Span: ') +
+      node.value.op +
+      (node.value.description ? ' - ' + node.value.description : '')
+    );
   }
 
   if (isAutogroupedNode(node)) {
@@ -143,10 +147,10 @@ function TraceDrawer(props: TraceDrawerProps) {
 
 const ResizeableHandle = styled('div')`
   width: 100%;
-  height: 8px;
+  height: 12px;
   cursor: ns-resize;
   position: absolute;
-  top: -4px;
+  top: -6px;
   left: 0;
   z-index: 1;
 `;
