@@ -174,6 +174,10 @@ def process_outbox_batch(
         shard_outbox: OutboxBase | None = outbox_model.prepare_next_from_shard(shard_attributes)
         if not shard_outbox:
             continue
+
+        if shard_outbox.should_skip_shard():
+            continue
+
         try:
             processed_count += 1
             shard_outbox.drain_shard(flush_all=True)

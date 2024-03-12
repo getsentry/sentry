@@ -73,6 +73,19 @@ class ControlOutboxTest(TestCase):
     region = Region("eu", 1, "http://eu.testserver", RegionCategory.MULTI_TENANT)
     region_config = (region,)
 
+    def test_skip_shards(self):
+        with self.options({"hybrid_cloud.authentication.disabled_user_shards": [100]}):
+            assert ControlOutbox(
+                shard_scope=OutboxScope.USER_SCOPE, shard_identifier=100
+            ).should_skip_shard()
+            assert not ControlOutbox(
+                shard_scope=OutboxScope.USER_SCOPE, shard_identifier=101
+            ).should_skip_shard()
+
+        assert not ControlOutbox(
+            shard_scope=OutboxScope.USER_SCOPE, shard_identifier=100
+        ).should_skip_shard()
+
     def test_control_sharding_keys(self):
         request = RequestFactory().get("/extensions/slack/webhook/")
         with assume_test_silo_mode(SiloMode.REGION):
@@ -408,6 +421,13 @@ class RegionOutboxTest(TestCase):
             # drain outboxes
             pass
         assert RegionOutbox.objects.count() == 0
+
+    def test_skip_shards(self):
+        with self.options({"hybrid_cloud.authentication.disabled_organization_shards": [100]}):
+            assert Organization(id=100).outbox_for_update().should_skip_shard()
+            assert not Organization(id=101).outbox_for_update().should_skip_shard()
+
+        assert not Organization(id=100).outbox_for_update().should_skip_shard()
 
     @patch("sentry.models.outbox.metrics")
     def test_concurrent_coalesced_object_processing(self, mock_metrics):
