@@ -193,7 +193,7 @@ def pull_event_data(project_id: int, event_id: str) -> ReprocessableEvent:
     return ReprocessableEvent(event=event, data=data, attachments=attachments)
 
 
-def reprocess_event(project_id: int, event_id: str, start_time: int) -> None:
+def reprocess_event(project_id: int, event_id: str, start_time: float) -> None:
     from sentry.ingest.consumer.processors import CACHE_TIMEOUT
     from sentry.tasks.store import preprocess_event_from_reprocessing
 
@@ -428,7 +428,7 @@ def buffered_handle_remaining_events(
     old_group_id: int,
     new_group_id: int,
     datetime_to_event: list[tuple[datetime, str]],
-    remaining_events: int,
+    remaining_events: str,
     force_flush_batch: bool = False,
 ) -> None:
     """

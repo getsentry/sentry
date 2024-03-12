@@ -1,4 +1,7 @@
 import time
+from collections.abc import Sequence
+from datetime import datetime
+from typing import TYPE_CHECKING
 
 import sentry_sdk
 from django.conf import settings
@@ -24,15 +27,15 @@ from sentry.utils.query import celery_run_batch_query
     silo_mode=SiloMode.REGION,
 )
 def reprocess_group(
-    project_id,
-    group_id,
-    remaining_events="delete",
-    new_group_id=None,
-    query_state=None,
-    start_time=None,
-    max_events=None,
-    acting_user_id=None,
-):
+    project_id: int,
+    group_id: int,
+    remaining_events: str = "delete",
+    new_group_id: int | None = None,
+    query_state: str | None = None,
+    start_time: float | None = None,
+    max_events: int | None = None,
+    acting_user_id: int | None = None,
+) -> None:
     sentry_sdk.set_tag("project", project_id)
     sentry_sdk.set_tag("group_id", group_id)
 
@@ -141,17 +144,17 @@ def reprocess_group(
 )
 @retry
 def handle_remaining_events(
-    project_id,
-    new_group_id,
-    remaining_events,
+    project_id: int,
+    new_group_id: str,
+    remaining_events: str,
     # TODO(markus): Should be mandatory arguments.
-    event_ids_redis_key=None,
-    old_group_id=None,
+    event_ids_redis_key: str | None = None,
+    old_group_id: str | None = None,
     # TODO(markus): Deprecated arguments, can remove in next version.
-    event_ids=None,
-    from_timestamp=None,
-    to_timestamp=None,
-):
+    event_ids: Sequence[str] | None = None,
+    from_timestamp: datetime | None = None,
+    to_timestamp: datetime | None = None,
+) -> None:
     """
     Delete or merge/move associated per-event data: nodestore, event
     attachments, user reports. Mark the event as "tombstoned" in Snuba.
@@ -173,6 +176,9 @@ def handle_remaining_events(
     if event_ids_redis_key is not None:
         event_ids, from_timestamp, to_timestamp = pop_batched_events_from_redis(event_ids_redis_key)
 
+    if TYPE_CHECKING:
+        assert event_ids is not None
+
     metrics.distribution(
         "events.reprocessing.handle_remaining_events.batch_size",
         len(event_ids),
@@ -187,10 +193,10 @@ def handle_remaining_events(
 
         # Remove from nodestore
         node_ids = [Event.generate_node_id(project_id, event_id) for event_id in event_ids]
-        nodestore.delete_multi(node_ids)
+        nodestore.backend.delete_multi(node_ids)
 
         # Tell Snuba to delete the event data.
-        eventstream.tombstone_events_unsafe(
+        eventstream.backend.tombstone_events_unsafe(
             project_id, event_ids, from_timestamp=from_timestamp, to_timestamp=to_timestamp
         )
     elif remaining_events == "keep":
@@ -199,7 +205,7 @@ def handle_remaining_events(
                 group_id=new_group_id
             )
 
-        eventstream.replace_group_unsafe(
+        eventstream.backend.replace_group_unsafe(
             project_id,
             event_ids,
             new_group_id=new_group_id,
@@ -225,7 +231,7 @@ def handle_remaining_events(
     time_limit=(60 * 5) + 5,
     soft_time_limit=60 * 5,
 )
-def finish_reprocessing(project_id, group_id):
+def finish_reprocessing(project_id: int, group_id: int) -> None:
     from sentry.models.activity import Activity
     from sentry.models.group import Group
     from sentry.models.groupredirect import GroupRedirect
@@ -263,7 +269,7 @@ def finish_reprocessing(project_id, group_id):
         force_flush_batch=True,
     )
 
-    eventstream.exclude_groups(project_id, [group_id])
+    eventstream.backend.exclude_groups(project_id, [group_id])
 
     from sentry import similarity
 
