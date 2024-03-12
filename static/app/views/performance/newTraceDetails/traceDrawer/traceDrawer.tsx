@@ -38,7 +38,7 @@ function getTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
   }
 
   if (isSpanNode(node)) {
-    return 'Span: ' + node.value.op + ' - ' + node.value.description;
+    return t('Span: ') + node.value.op + ' - ' + node.value.description;
   }
 
   if (isAutogroupedNode(node)) {
