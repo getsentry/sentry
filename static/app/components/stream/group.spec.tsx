@@ -14,10 +14,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 
 jest.mock('sentry/utils/analytics');
 
-describe('StreamGroup', function () {
+describe('StreamGroup', () => {
   let group1;
 
-  beforeEach(function () {
+  beforeEach(() => {
     group1 = GroupFixture({
       id: '1337',
       project: ProjectFixture({
@@ -38,12 +38,12 @@ describe('StreamGroup', function () {
     GroupStore.loadInitialData([group1]);
   });
 
-  afterEach(function () {
+  afterEach(() => {
     (trackAnalytics as jest.Mock).mockClear();
     GroupStore.reset();
   });
 
-  it('renders with anchors', function () {
+  it('renders with anchors', () => {
     const {routerContext, organization} = initializeOrg();
     render(<StreamGroup id="1337" hasGuideAnchor {...routerContext} />, {
       context: routerContext,
@@ -53,7 +53,7 @@ describe('StreamGroup', function () {
     expect(GuideStore.state.anchors).toEqual(new Set(['dynamic_counts', 'issue_stream']));
   });
 
-  it('marks as reviewed', function () {
+  it('marks as reviewed', () => {
     const {routerContext, organization} = initializeOrg();
     render(
       <StreamGroup
@@ -73,7 +73,7 @@ describe('StreamGroup', function () {
     expect(screen.getByTestId('group')).toHaveAttribute('data-test-reviewed', 'true');
   });
 
-  it('marks as resolved', function () {
+  it('marks as resolved', () => {
     const {routerContext, organization} = initializeOrg();
     render(<StreamGroup id="1337" query="is:unresolved" />, {
       context: routerContext,
@@ -90,7 +90,11 @@ describe('StreamGroup', function () {
     expect(screen.getByTestId('resolved-issue')).toBeInTheDocument();
   });
 
-  it('can change priority', async function () {
+  it('can change priority', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/prompts-activity/',
+      body: {data: {dismissed_ts: null}},
+    });
     const mockModifyGroup = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
       method: 'PUT',
@@ -116,7 +120,7 @@ describe('StreamGroup', function () {
     );
   });
 
-  it('tracks clicks from issues stream', async function () {
+  it('tracks clicks from issues stream', async () => {
     const {routerContext, organization} = initializeOrg();
     render(
       <StreamGroup
