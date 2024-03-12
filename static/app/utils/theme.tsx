@@ -506,6 +506,11 @@ const generateBadgeTheme = (colors: BaseColors) => ({
     indicatorColor: colors.yellow300,
     color: colors.gray500,
   },
+  gray: {
+    background: `rgba(43, 34, 51, 0.08)`,
+    indicatorColor: `rgba(43, 34, 51, 0.08)`,
+    color: colors.gray500,
+  },
 });
 
 const generateTagTheme = (colors: BaseColors) => ({
