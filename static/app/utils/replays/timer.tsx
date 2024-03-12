@@ -7,7 +7,7 @@ export class Timer extends EventTarget {
   private _start: number = 0;
   private _time: number = 0;
   private _additionalTime: number = 0;
-  private _callbacks: [offset: number, callback: () => void][] = [];
+  private _callbacks: Map<number, (() => void)[]> = new Map();
 
   constructor() {
     super();
@@ -19,13 +19,15 @@ export class Timer extends EventTarget {
     }
 
     this._time = window.performance.now() - this._start;
-    for (let i = 0; i < this._callbacks.length; i++) {
-      if (this._time >= this._callbacks[i][0]) {
-        this._callbacks[i][1]();
-        // Remove from _callbacks
-        this._callbacks.splice(i, 1);
+    // We don't expect _callbacks to be very large, so we can deal with a
+    // linear search
+    this._callbacks.forEach((value, key, callbacks) => {
+      if (this._time >= key) {
+        // Call every callback and then clear the callbacks at offset
+        value.forEach(callback => callback());
+        callbacks.set(key, []);
       }
-    }
+    });
     this._id = window.requestAnimationFrame(this.step);
   };
 
@@ -71,6 +73,12 @@ export class Timer extends EventTarget {
       return;
     }
 
-    this._callbacks.push([offset, callback]);
+    if (!this._callbacks.has(offset)) {
+      this._callbacks.set(offset, []);
+    }
+
+    const callbacksAtOffset = this._callbacks.get(offset)!;
+    callbacksAtOffset.push(callback);
+    this._callbacks.set(offset, callbacksAtOffset);
   }
 }
