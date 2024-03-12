@@ -422,7 +422,7 @@ export default class ReplayReader {
 
   getLPCFrames = memoize(() => this._sortedSpanFrames.filter(isLCPFrame));
 
-  getVideoEvents = memoize(() => this._videoEvents);
+  getVideoEvents = () => this._videoEvents;
 
   getPaintFrames = memoize(() => this._sortedSpanFrames.filter(isPaintFrame));
 
