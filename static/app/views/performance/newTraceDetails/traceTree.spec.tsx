@@ -717,6 +717,27 @@ describe('TraceTree', () => {
     expect(tree.list).toHaveLength(4);
   });
 
+  it('processes orphan errors without timestamps', () => {
+    const tree = TraceTree.FromTrace(
+      makeTrace({
+        transactions: [
+          makeTransaction({
+            children: [],
+          }),
+        ],
+        orphan_errors: [
+          {
+            level: 'error',
+            title: 'Error',
+            event_type: 'error',
+          } as TraceTree.TraceError,
+        ],
+      })
+    );
+
+    expect(tree.list).toHaveLength(3);
+  });
+
   it('sorts orphan errors', () => {
     const tree = TraceTree.FromTrace(
       makeTrace({
@@ -736,7 +757,6 @@ describe('TraceTree', () => {
 
     expect(tree.list).toHaveLength(4);
     assertTraceErrorNode(tree.list[2]);
-    tree.print();
   });
 
   it('adjusts trace bounds by orphan error timestamp as well', () => {
