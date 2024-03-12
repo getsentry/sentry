@@ -132,6 +132,8 @@ def attach_custom_severity(data: dict[str, Any], action: AlertRuleTriggerAction)
     if severity is not None:
         data["payload"]["severity"] = severity
 
+    return data
+
 
 def send_incident_alert_notification(
     action: AlertRuleTriggerAction,
