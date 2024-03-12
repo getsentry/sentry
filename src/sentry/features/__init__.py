@@ -261,6 +261,7 @@ default_manager.add("organizations:set-grouping-config", OrganizationFeature, Fe
 default_manager.add("organizations:settings-legal-tos-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:slack-block-kit", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:slack-thread", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:slack-thread-issue-alert", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:slack-block-kit-improvements", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:slack-overage-notifications", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:sourcemaps-bundle-flat-file-indexing", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
