@@ -160,6 +160,7 @@ const StepHeaderLeft = styled('div')`
   display: flex;
   align-items: center;
   flex: 1;
+  overflow: hidden;
 `;
 
 const StepHeaderDescription = styled('div')`
