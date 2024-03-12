@@ -80,7 +80,7 @@ def process_simple_event_message(
         codec = sentry_kafka_schemas.get_codec(default_topic)
 
         try:
-            codec.validate(raw_payload)
+            codec.decode(raw_payload, validate=True)
         except Exception:
             raw_value = raw_message.value
             assert isinstance(raw_value, BrokerValue)
