@@ -33,7 +33,7 @@ const DEFAULT_PANEL_HEIGHT = 200;
 function getTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
   if (isTransactionNode(node)) {
     return (
-      'Transaction: ' + node.value['transaction.op'] + ' - ' + node.value.transaction
+      t('Transaction: ') + node.value['transaction.op'] + ' - ' + node.value.transaction
     );
   }
 
