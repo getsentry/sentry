@@ -52,10 +52,10 @@ def post_event_with_sdk(settings, relay_server, wait_for_ingest_consumer):
         wait_for_ingest_consumer = wait_for_ingest_consumer(settings)
 
         def inner(*args, **kwargs):
-            assert Hub.current.client is not None
+            assert not Hub.current.client.is_active()
 
             event_id = hub.capture_event(*args, **kwargs)
-            assert hub.client is not None
+            assert not hub.client.is_active()
             hub.client.flush()
 
             with push_scope():
