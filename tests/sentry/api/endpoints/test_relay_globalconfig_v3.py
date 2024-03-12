@@ -39,14 +39,6 @@ def test_global_config():
     config["options"]["profiling.profile_metrics.unsampled_profiles.platforms"] = ["fake-platform"]
     config["options"]["profiling.profile_metrics.unsampled_profiles.sample_rate"] = 1.0
 
-    config["options"]["relay.metric-bucket-encodings"] = {
-        "sessions": "array",
-        "transactions": "array",
-        "spans": "array",
-        "custom": "array",
-        "profiles": "array",
-        "unsupported": "array",
-    }
     config["options"]["relay.span-usage-metric"] = True
     config["options"]["relay.cardinality-limiter.mode"] = "passive"
 
