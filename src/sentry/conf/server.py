@@ -2022,6 +2022,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:servicehooks": False,
     # Enable similarity embeddings API call
     "projects:similarity-embeddings": False,
+    # Enable similarity embeddings grouping
+    "projects:similarity-embeddings-grouping": False,
     # Starfish: extract metrics from the spans
     "projects:span-metrics-extraction": False,
     "projects:span-metrics-extraction-ga-modules": False,
