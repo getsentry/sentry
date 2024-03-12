@@ -32,19 +32,21 @@ const DEFAULT_PANEL_HEIGHT = 200;
 
 function getTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
   if (isTransactionNode(node)) {
-    return node.value['transaction.op'] + ' - ' + node.value.transaction;
+    return (
+      t('Transaction: ') + node.value['transaction.op'] + ' - ' + node.value.transaction
+    );
   }
 
   if (isSpanNode(node)) {
-    return node.value.op + ' - ' + node.value.description;
+    return t('Span: ') + node.value.op + ' - ' + node.value.description;
   }
 
   if (isAutogroupedNode(node)) {
-    return t('Auto-Group');
+    return t('Autogroup');
   }
 
   if (isMissingInstrumentationNode(node)) {
-    return t('Missing Instrumentation Span');
+    return t('Missing Instrumentation');
   }
 
   if (isTraceErrorNode(node)) {
@@ -185,7 +187,7 @@ const Tab = styled('li')<{active: boolean}>`
 const TabButton = styled('button')`
   height: 100%;
   border: none;
-  max-width: 160px;
+  max-width: 260px;
 
   overflow: hidden;
   text-overflow: ellipsis;
