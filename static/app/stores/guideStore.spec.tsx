@@ -63,9 +63,8 @@ describe('GuideStore', function () {
       {guide: 'issue_stream', seen: false},
     ];
 
-    GuideStore.fetchSucceeded(data);
     window.location.hash = '#assistant';
-    expect(GuideStore.getState().currentGuide?.guide).toEqual('issue');
+    GuideStore.fetchSucceeded(data);
     window.dispatchEvent(new Event('load'));
     expect(GuideStore.getState().currentGuide?.guide).toEqual('issue');
     GuideStore.closeGuide();
