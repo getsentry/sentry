@@ -214,7 +214,7 @@ export function useMetricChartSamples({
                 value: yPosition,
               },
             ],
-            z: 10,
+            z: 21,
           };
         });
       }
@@ -419,7 +419,7 @@ export function useMetricChartSamplesV2({
                 value: yPosition,
               },
             ],
-            z: 10,
+            z: 21,
           };
         });
       }
