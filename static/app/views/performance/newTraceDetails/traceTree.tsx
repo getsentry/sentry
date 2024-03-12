@@ -215,6 +215,17 @@ function maybeInsertMissingInstrumentationSpan(
   parent.spanChildren.push(missingInstrumentationSpan);
 }
 
+function shouldCollapseNodeByDefault(node: TraceTreeNode<TraceTree.NodeValue>) {
+  if (isSpanNode(node)) {
+    // Android creates TCP connection spans which are noisy and not useful in most cases
+    if (node.value.op === 'http.client' && node.value.origin === 'auto.http.okhttp') {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 // cls is not included as it is a cumulative layout shift and not a single point in time
 const RENDERABLE_MEASUREMENTS = ['fcp', 'fp', 'lcp', 'ttfb'];
 export class TraceTree {
@@ -363,7 +374,11 @@ export class TraceTree {
 
   get shape(): TraceType {
     const trace = this.root.children[0];
-    if (!trace || !isTraceNode(trace)) {
+    if (!trace) {
+      return TraceType.EMPTY_TRACE;
+    }
+
+    if (!isTraceNode(trace)) {
       throw new TypeError('Not trace node');
     }
 
@@ -967,6 +982,10 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
 
     if (isTransactionNode(this) || isTraceNode(this) || isSpanNode(this)) {
       this.expanded = true;
+    }
+
+    if (shouldCollapseNodeByDefault(this)) {
+      this.expanded = false;
     }
   }
 
