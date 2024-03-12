@@ -17,9 +17,9 @@ _default_logger: Logger = getLogger(__name__)
 
 @dataclass(frozen=True)
 class MetricAlertNotificationMessage(BaseNotificationMessage):
-    # TODO(Yash): do we really need this entire model, or can we whittle it down to what we need?
+    # TODO: https://github.com/getsentry/sentry/issues/66751
     incident: Incident | None = None
-    # TODO(Yash): do we really need this entire model, or can we whittle it down to what we need?
+    # TODO: https://github.com/getsentry/sentry/issues/66751
     trigger_action: AlertRuleTriggerAction | None = None
 
     @classmethod
