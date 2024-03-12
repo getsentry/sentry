@@ -1,5 +1,6 @@
 import type {MouseEvent as ReactMouseEvent} from 'react';
 import {Fragment} from 'react';
+import type {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
@@ -33,7 +34,7 @@ import UsageChart, {CHART_OPTIONS_DATA_TRANSFORM, ChartDataTransform} from './us
 import UsageStatsPerMin from './usageStatsPerMin';
 import {formatUsageWithUnits, getFormatUsageOptions, isDisplayUtc} from './utils';
 
-export type UsageStatsOrganizationProps = {
+export interface UsageStatsOrganizationProps extends WithRouterProps {
   dataCategory: DataCategoryInfo['plural'];
   dataCategoryName: string;
   dataDatetime: DateTimeObject;
@@ -46,7 +47,7 @@ export type UsageStatsOrganizationProps = {
   organization: Organization;
   projectIds: number[];
   chartTransform?: string;
-} & DeprecatedAsyncComponent['props'];
+}
 
 type UsageStatsOrganizationState = {
   orgStats: UsageSeries | undefined;

@@ -121,7 +121,7 @@ export declare namespace TraceTree {
     };
   }
 
-  interface ChildrenAutogroup {
+  interface ChildrenAutogroup extends RawSpanType {
     autogrouped_by: {
       op: string;
     };
@@ -215,6 +215,17 @@ function maybeInsertMissingInstrumentationSpan(
   parent.spanChildren.push(missingInstrumentationSpan);
 }
 
+function shouldCollapseNodeByDefault(node: TraceTreeNode<TraceTree.NodeValue>) {
+  if (isSpanNode(node)) {
+    // Android creates TCP connection spans which are noisy and not useful in most cases
+    if (node.value.op === 'http.client' && node.value.origin === 'auto.http.okhttp') {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 // cls is not included as it is a cumulative layout shift and not a single point in time
 const RENDERABLE_MEASUREMENTS = ['fcp', 'fp', 'lcp', 'ttfb'];
 export class TraceTree {
@@ -300,12 +311,36 @@ export class TraceTree {
     // Trace is always expanded by default
     tree.root.children.push(traceNode);
 
-    for (const transaction of trace.transactions) {
-      visit(traceNode, transaction);
-    }
+    const transactionQueue = trace.transactions ?? [];
+    const orphanErrorsQueue = trace.orphan_errors ?? [];
 
-    for (const trace_error of trace.orphan_errors) {
-      visit(traceNode, trace_error);
+    let tIdx = 0;
+    let oIdx = 0;
+    const tLen = transactionQueue.length;
+    const oLen = orphanErrorsQueue.length;
+
+    while (tIdx < tLen || oIdx < oLen) {
+      const transaction = transactionQueue[tIdx];
+      const orphan = orphanErrorsQueue[oIdx];
+
+      if (transaction && orphan) {
+        if (
+          typeof orphan.timestamp === 'number' &&
+          transaction.start_timestamp <= orphan.timestamp
+        ) {
+          visit(traceNode, transaction);
+          tIdx++;
+        } else {
+          visit(traceNode, orphan);
+          oIdx++;
+        }
+      } else if (transaction) {
+        visit(traceNode, transaction);
+        tIdx++;
+      } else if (orphan) {
+        visit(traceNode, orphan);
+        oIdx++;
+      }
     }
 
     if (event?.measurements) {
@@ -339,7 +374,11 @@ export class TraceTree {
 
   get shape(): TraceType {
     const trace = this.root.children[0];
-    if (!trace || !isTraceNode(trace)) {
+    if (!trace) {
+      return TraceType.EMPTY_TRACE;
+    }
+
+    if (!isTraceNode(trace)) {
       throw new TypeError('Not trace node');
     }
 
@@ -933,8 +972,20 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
       ];
     }
 
+    if (
+      isTraceErrorNode(this) &&
+      'timestamp' in this.value &&
+      typeof this.value.timestamp === 'number'
+    ) {
+      this.space = [this.value.timestamp * this.multiplier, 0];
+    }
+
     if (isTransactionNode(this) || isTraceNode(this) || isSpanNode(this)) {
       this.expanded = true;
+    }
+
+    if (shouldCollapseNodeByDefault(this)) {
+      this.expanded = false;
     }
   }
 
@@ -1627,7 +1678,7 @@ function printNode(t: TraceTreeNode<TraceTree.NodeValue>, offset: number): strin
   }
 
   if (isTraceErrorNode(t)) {
-    return padding + t.value.event_id || 'unknown trace error';
+    return padding + (t.value.event_id || t.value.level) || 'unknown trace error';
   }
 
   return 'unknown node';

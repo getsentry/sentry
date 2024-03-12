@@ -176,6 +176,7 @@ export class VirtualizedViewManager {
     [];
   timeline_indicators: (HTMLElement | undefined)[] = [];
   span_bars: ({ref: HTMLElement; space: [number, number]} | undefined)[] = [];
+  invisible_bars: ({ref: HTMLElement; space: [number, number]} | undefined)[] = [];
   span_arrows: (
     | {
         position: 0 | 1;
@@ -356,6 +357,13 @@ export class VirtualizedViewManager {
     this.span_bars[index] = ref ? {ref, space} : undefined;
   }
 
+  registerInvisibleBarRef(
+    ref: HTMLElement | null,
+    space: [number, number],
+    index: number
+  ) {
+    this.invisible_bars[index] = ref ? {ref, space} : undefined;
+  }
   registerArrowRef(ref: HTMLElement | null, space: [number, number], index: number) {
     this.span_arrows[index] = ref ? {ref, space, visible: false, position: 0} : undefined;
   }
@@ -520,6 +528,11 @@ export class VirtualizedViewManager {
   }
 
   onZoomIntoSpace(space: [number, number]) {
+    if (space[1] <= 0) {
+      // @TODO implement scrolling to 0 width spaces
+      return;
+    }
+
     const distance_x = space[0] - this.to_origin - this.trace_view.x;
     const distance_width = this.trace_view.width - space[1];
 
@@ -839,6 +852,21 @@ export class VirtualizedViewManager {
     return this.span_matrix;
   }
 
+  scrollToEventID(
+    eventId: string,
+    tree: TraceTree,
+    rerender: () => void,
+    {api, organization}: {api: Client; organization: Organization}
+  ): Promise<{index: number; node: TraceTreeNode<TraceTree.NodeValue>} | null | null> {
+    const node = findInTreeByEventId(tree.root, eventId);
+
+    if (!node) {
+      return Promise.resolve(null);
+    }
+
+    return this.scrollToPath(tree, node.path, rerender, {api, organization});
+  }
+
   scrollToPath(
     tree: TraceTree,
     scrollQueue: TraceTree.NodePath[],
@@ -1089,6 +1117,13 @@ export class VirtualizedViewManager {
             }
           }
         }
+      }
+    }
+
+    for (let i = 0; i < this.invisible_bars.length; i++) {
+      const invisible_bar = this.invisible_bars[i];
+      if (invisible_bar) {
+        invisible_bar.ref.style.transform = `translateX(${this.computeTransformXFromTimestamp(invisible_bar.space[0])}px)`;
       }
     }
 
@@ -1751,6 +1786,21 @@ function findInTreeFromSegment(
       return node.value.event_id === id;
     }
 
+    return false;
+  });
+}
+
+function findInTreeByEventId(start: TraceTreeNode<TraceTree.NodeValue>, eventId: string) {
+  return TraceTreeNode.Find(start, node => {
+    if (isTransactionNode(node)) {
+      return node.value.event_id === eventId;
+    }
+    if (isSpanNode(node)) {
+      return node.value.span_id === eventId;
+    }
+    if (isTraceErrorNode(node)) {
+      return node.value.event_id === eventId;
+    }
     return false;
   });
 }
