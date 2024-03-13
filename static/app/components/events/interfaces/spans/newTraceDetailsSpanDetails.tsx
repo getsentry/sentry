@@ -36,8 +36,10 @@ import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import type {
+  TraceError,
   TraceErrorOrIssue,
   TraceFullDetailed,
+  TracePerformanceIssue,
 } from 'sentry/utils/performance/quickTrace/types';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -71,7 +73,7 @@ import {
   scrollToSpan,
 } from './utils';
 
-const DEFAULT_ERRORS_VISIBLE = 5;
+const MAX_DEFAULT_ERRORS_VISIBLE = 5;
 
 const SIZE_DATA_KEYS = [
   'Encoded Body Size',
@@ -92,10 +94,11 @@ type TransactionResult = {
 
 export type SpanDetailProps = {
   childTransactions: TraceFullDetailed[] | null;
+  errors: TraceError[];
   event: Readonly<EventTransaction>;
   openPanel: string | undefined;
   organization: Organization;
-  relatedErrors: TraceErrorOrIssue[] | null;
+  performanceIssues: TracePerformanceIssue[];
   span: RawSpanType;
   trace: Readonly<ParsedTraceType>;
 };
@@ -295,23 +298,30 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   }
 
   function renderSpanErrorMessage() {
-    const {span, organization, relatedErrors} = props;
+    const {span, organization, errors, performanceIssues} = props;
 
-    if (!relatedErrors || relatedErrors.length <= 0 || isGapSpan(span)) {
+    const hasErrors = errors.length > 0 || performanceIssues.length > 0;
+
+    if (!hasErrors || isGapSpan(span)) {
       return null;
     }
 
+    const totalErrorsCount = errors.length + performanceIssues.length;
+    const allErrors = errors.concat(
+      ...(performanceIssues as any)
+    ) as unknown as TraceErrorOrIssue[];
+
     const visibleErrors = errorsOpened
-      ? relatedErrors
-      : relatedErrors.slice(0, DEFAULT_ERRORS_VISIBLE);
+      ? allErrors
+      : allErrors.slice(0, MAX_DEFAULT_ERRORS_VISIBLE);
 
     return (
-      <Alert type={getCumulativeAlertLevelFromErrors(relatedErrors)} system>
+      <Alert type={getCumulativeAlertLevelFromErrors(allErrors)} system>
         <ErrorMessageTitle>
           {tn(
             '%s error event or performance issue is associated with this span.',
             '%s error events or performance issues are associated with this span.',
-            relatedErrors.length
+            totalErrorsCount
           )}
         </ErrorMessageTitle>
         <Fragment>
@@ -337,7 +347,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
             </ErrorMessageContent>
           ))}
         </Fragment>
-        {relatedErrors.length > DEFAULT_ERRORS_VISIBLE && (
+        {totalErrorsCount > MAX_DEFAULT_ERRORS_VISIBLE && (
           <ErrorToggle size="xs" onClick={toggleErrors}>
             {errorsOpened ? t('Show less') : t('Show more')}
           </ErrorToggle>
