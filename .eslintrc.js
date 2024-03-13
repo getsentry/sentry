@@ -1,21 +1,26 @@
 /* eslint-env node */
 
+const isRelaxed = !!process.env.SENTRY_ESLINT_RELAXED;
+
+// Strict ruleset that runs on pre-commit and in local environments
+const ADDITIONAL_HOOKS_TO_CHECK_DEPS_FOR =
+  '(useEffectAfterFirstRender|useMemoWithPrevious)';
+
 module.exports = {
   root: true,
-  extends: ['sentry-app/strict'],
+  extends: [isRelaxed ? 'sentry-app' : 'sentry-app/strict'],
   globals: {
-    expect: false,
-    jest: true,
-    MockApiClient: true,
     require: false,
+    expect: false,
     sinon: false,
+    MockApiClient: true,
     tick: true,
+    jest: true,
   },
-
   rules: {
     'react-hooks/exhaustive-deps': [
       'error',
-      {additionalHooks: '(useEffectAfterFirstRender|useMemoWithPrevious)'},
+      {additionalHooks: ADDITIONAL_HOOKS_TO_CHECK_DEPS_FOR},
     ],
 
     // TODO(@anonrig): Remove this from eslint-sentry-config
