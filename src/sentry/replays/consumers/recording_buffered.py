@@ -329,6 +329,12 @@ def process_commit(
 
 
 def commit_uploads(upload_events: list[UploadEvent]) -> None:
+    payload = b""
+    for event in upload_events:
+        payload += event["value"]
+
+    storage_kv.set(upload_events[0]["key"], payload)
+
     with sentry_sdk.start_span(op="replays.consumer.recording.upload_segments"):
         # This will run to completion taking potentially an infinite amount of time. However,
         # that outcome is unlikely. In the event of an indefinite backlog the process can be
