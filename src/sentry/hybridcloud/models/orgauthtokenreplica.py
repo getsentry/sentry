@@ -35,6 +35,7 @@ class OrgAuthTokenReplica(Model):
     class Meta:
         app_label = "hybridcloud"
         db_table = "hybridcloud_orgauthtokenreplica"
+        indexes = (models.Index(fields=["token_hashed"]),)
 
     __repr__ = sane_repr("organization_id", "token_hashed")
 

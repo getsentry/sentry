@@ -410,6 +410,7 @@ export const feedbackCrashApiPlatforms: readonly PlatformKey[] = [
   'java-log4j2',
   'java-logback',
   'kotlin',
+  'node-koa',
   'react-native',
   'unity',
   'unreal',
@@ -420,9 +421,9 @@ export const feedbackWebApiPlatforms: readonly PlatformKey[] = [
   'cordova',
   'ruby-rack',
   'ruby',
+  'rust',
   'native',
   'native-qt',
-  'native',
   'node-awslambda',
   'node-azurefunctions',
   'node-connect',
@@ -516,17 +517,17 @@ const customMetricFrontendPlatforms: readonly PlatformKey[] = [
 ];
 
 // These are all the platforms that can set up custom metrics.
-export const customMetricPlatforms: Set<PlatformKey> = new Set([
+export const customMetricPlatforms: readonly PlatformKey[] = [
   ...customMetricFrontendPlatforms,
   ...customMetricBackendPlatforms,
-]);
+];
 
 /**
  * The list of platforms for which we have created onboarding instructions.
  * Should be a subset of the list of `customMetricPlatforms`.
  */
-export const customMetricOnboardingPlatforms = new Set(
-  [...customMetricPlatforms].filter(
+export const customMetricOnboardingPlatforms: readonly PlatformKey[] =
+  customMetricPlatforms.filter(
     p =>
       // Legacy platforms that do not have in-product docs
       ![
@@ -536,5 +537,4 @@ export const customMetricOnboardingPlatforms = new Set(
         'python-pylons',
         'python-tryton',
       ].includes(p)
-  )
-);
+  );

@@ -10,25 +10,27 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Sort} from 'sentry/utils/discover/fields';
+import {DurationUnit, RateUnit, type Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {DurationChart} from 'sentry/views/performance/database/durationChart';
 import {ThroughputChart} from 'sentry/views/performance/database/throughputChart';
 import {useSelectedDurationAggregate} from 'sentry/views/performance/database/useSelectedDurationAggregate';
+import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import {DatabaseSpanDescription} from 'sentry/views/starfish/components/spanDescription';
+import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
+import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 import {useModuleSort} from 'sentry/views/starfish/views/spans/useModuleSort';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
-import {SpanMetricsRibbon} from 'sentry/views/starfish/views/spanSummaryPage/spanMetricsRibbon';
 import {SpanTransactionsTable} from 'sentry/views/starfish/views/spanSummaryPage/spanTransactionsTable';
 
 type Query = {
@@ -59,12 +61,15 @@ function SpanSummaryPage({params}: Props) {
 
   if (endpoint) {
     filters.transaction = endpoint;
+  }
+
+  if (endpointMethod) {
     filters['transaction.method'] = endpointMethod;
   }
 
   const sort = useModuleSort(QueryParameterNames.ENDPOINTS_SORT, DEFAULT_SORT);
 
-  const {data} = useSpanMetrics({
+  const {data, isLoading: areSpanMetricsLoading} = useSpanMetrics({
     filters,
     fields: [
       SpanMetricsField.SPAN_OP,
@@ -78,6 +83,7 @@ function SpanSummaryPage({params}: Props) {
       `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
       `${SpanFunction.HTTP_ERROR_COUNT}()`,
     ],
+    enabled: Boolean(groupId),
     referrer: 'api.starfish.span-summary-page-metrics',
   });
 
@@ -101,6 +107,7 @@ function SpanSummaryPage({params}: Props) {
   } = useSpanMetricsSeries({
     filters,
     yAxis: ['spm()'],
+    enabled: Boolean(groupId),
     referrer: 'api.starfish.span-summary-page-metrics-chart',
   });
 
@@ -111,6 +118,7 @@ function SpanSummaryPage({params}: Props) {
   } = useSpanMetricsSeries({
     filters,
     yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
+    enabled: Boolean(groupId),
     referrer: 'api.starfish.span-summary-page-metrics-chart',
   });
 
@@ -157,7 +165,32 @@ function SpanSummaryPage({params}: Props) {
               <DatePageFilter />
             </PageFilterBar>
 
-            <SpanMetricsRibbon spanMetrics={span} />
+            <MetricsRibbon>
+              <MetricReadout
+                title={getThroughputTitle('db')}
+                value={spanMetrics?.[`${SpanFunction.SPM}()`]}
+                unit={RateUnit.PER_MINUTE}
+                isLoading={areSpanMetricsLoading}
+              />
+
+              <MetricReadout
+                title={DataTitles.avg}
+                value={spanMetrics?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]}
+                unit={DurationUnit.MILLISECOND}
+                isLoading={areSpanMetricsLoading}
+              />
+
+              <MetricReadout
+                title={DataTitles.timeSpent}
+                value={spanMetrics?.['sum(span.self_time)']}
+                unit={DurationUnit.MILLISECOND}
+                tooltip={getTimeSpentExplanation(
+                  spanMetrics?.['time_spent_percentage()'],
+                  'db'
+                )}
+                isLoading={areSpanMetricsLoading}
+              />
+            </MetricsRibbon>
           </HeaderContainer>
 
           <ModuleLayout.Layout>
@@ -200,13 +233,13 @@ function SpanSummaryPage({params}: Props) {
                 />
               </ModuleLayout.Full>
             )}
-
-            <SampleList
-              groupId={span[SpanMetricsField.SPAN_GROUP]}
-              transactionName={transaction}
-              transactionMethod={transactionMethod}
-            />
           </ModuleLayout.Layout>
+
+          <SampleList
+            groupId={span[SpanMetricsField.SPAN_GROUP]}
+            transactionName={transaction}
+            transactionMethod={transactionMethod}
+          />
         </Layout.Main>
       </Layout.Body>
     </ModulePageProviders>
@@ -237,6 +270,12 @@ const HeaderContainer = styled('div')`
 
 const DescriptionContainer = styled(ModuleLayout.Full)`
   line-height: 1.2;
+`;
+
+const MetricsRibbon = styled('div')`
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${space(4)};
 `;
 
 export default SpanSummaryPage;

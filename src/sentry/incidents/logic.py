@@ -18,10 +18,8 @@ from sentry import analytics, audit_log, features, quotas
 from sentry.auth.access import SystemAccess
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, ObjectStatus
 from sentry.incidents import tasks
-from sentry.incidents.models import (
+from sentry.incidents.models.alert_rule import (
     AlertRule,
-    AlertRuleActivationCondition,
-    AlertRuleActivationConditionType,
     AlertRuleActivity,
     AlertRuleActivityType,
     AlertRuleExcludedProjects,
@@ -31,6 +29,12 @@ from sentry.incidents.models import (
     AlertRuleTrigger,
     AlertRuleTriggerAction,
     AlertRuleTriggerExclusion,
+)
+from sentry.incidents.models.alert_rule_activations import (
+    AlertRuleActivationCondition,
+    AlertRuleActivations,
+)
+from sentry.incidents.models.incident import (
     Incident,
     IncidentActivity,
     IncidentActivityType,
@@ -42,9 +46,11 @@ from sentry.incidents.models import (
     IncidentTrigger,
     TriggerStatus,
 )
+from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.models.actor import Actor
 from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.models.project import Project
+from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import is_function, resolve_field
@@ -68,7 +74,6 @@ from sentry.snuba.metrics.extraction import should_use_on_demand_metrics
 from sentry.snuba.metrics.naming_layer.mri import get_available_operations, is_mri, parse_mri
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.subscriptions import (
-    bulk_create_snuba_subscriptions,
     bulk_delete_snuba_subscriptions,
     bulk_disable_snuba_subscriptions,
     bulk_enable_snuba_subscriptions,
@@ -585,8 +590,8 @@ def create_alert_rule(
             AlertRuleProjects.objects.bulk_create(arps)
 
         # NOTE: This constructs the query in snuba
-        # TODO: only construct `CONTINUOUS` monitor type AlertRule queries in snuba
-        subscribe_projects_to_alert_rule(alert_rule, projects)
+        # NOTE: Will only subscribe if AlertRule.monitor_type === 'CONTINUOUS'
+        alert_rule.subscribe_projects(projects=projects)
 
         # Activity is an audit log of what's happened with this alert rule
         AlertRuleActivity.objects.create(
@@ -827,7 +832,7 @@ def update_alert_rule(
             ]
 
         if new_projects:
-            subscribe_projects_to_alert_rule(alert_rule, new_projects)
+            alert_rule.subscribe_projects(projects=new_projects)
 
         if deleted_subs:
             bulk_delete_snuba_subscriptions(deleted_subs)
@@ -845,19 +850,6 @@ def update_alert_rule(
     schedule_update_project_config(alert_rule, projects)
 
     return alert_rule
-
-
-def subscribe_projects_to_alert_rule(alert_rule: AlertRule, projects: list[Project]):
-    """
-    Subscribes a list of projects to an alert rule
-    :return: The list of created subscriptions
-
-    TODO: consolidate `bulk_create_snuba_subscriptions` with this in between method
-    TODO: only create subscription if AlertRule.monitor_type === 'CONTINUOUS'
-    """
-    return bulk_create_snuba_subscriptions(
-        projects, tasks.INCIDENTS_SNUBA_SUBSCRIPTION_TYPE, alert_rule.snuba_query
-    )
 
 
 def enable_alert_rule(alert_rule):
@@ -902,14 +894,15 @@ def delete_alert_rule(alert_rule, user=None, ip_address=None):
 
         incidents = Incident.objects.filter(alert_rule=alert_rule)
         if incidents.exists():
-            alert_rule.update(status=AlertRuleStatus.SNAPSHOT.value)
             AlertRuleActivity.objects.create(
                 alert_rule=alert_rule,
                 user_id=user.id if user else None,
                 type=AlertRuleActivityType.DELETED.value,
             )
         else:
-            alert_rule.delete()
+            RegionScheduledDeletion.schedule(instance=alert_rule, days=0, actor=user)
+
+        alert_rule.update(status=AlertRuleStatus.SNAPSHOT.value)
 
     if alert_rule.id:
         # Change the incident status asynchronously, which could take awhile with many incidents due to snapshot creations.
@@ -954,6 +947,21 @@ def create_alert_rule_activation_condition(
         )
 
     return condition
+
+
+def create_alert_rule_activation(
+    alert_rule: AlertRule,
+    metric_value: int | None = None,
+    finished_at: datetime | None = None,
+):
+    with transaction.atomic(router.db_for_write(AlertRuleActivations)):
+        activation = AlertRuleActivations.objects.create(
+            alert_rule=alert_rule,
+            metric_value=metric_value,
+            finished_at=finished_at,
+        )
+
+    return activation
 
 
 def create_alert_rule_trigger(alert_rule, label, alert_threshold, excluded_projects=None):
@@ -1496,9 +1504,11 @@ def get_alert_rule_trigger_action_sentry_app(organization, sentry_app_id, instal
 
 def delete_alert_rule_trigger_action(trigger_action):
     """
-    Deletes a AlertRuleTriggerAction
+    Schedules a deletion for a AlertRuleTriggerAction, and marks it as pending deletion.
+    Marking it as pending deletion should filter out the object through the manager when querying.
     """
-    trigger_action.delete()
+    RegionScheduledDeletion.schedule(instance=trigger_action, days=0)
+    trigger_action.update(status=ObjectStatus.PENDING_DELETION)
 
 
 def get_actions_for_trigger(trigger):

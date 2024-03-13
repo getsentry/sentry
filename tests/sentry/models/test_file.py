@@ -12,7 +12,6 @@ from sentry.models.files.file import File
 from sentry.models.files.fileblob import FileBlob
 from sentry.models.files.fileblobindex import FileBlobIndex
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import region_silo_test
 
 
@@ -63,12 +62,6 @@ class FileBlobTest(TestCase):
         # blob is still around.
         assert FileBlob.objects.get(id=blob.id)
 
-    @override_options(
-        {
-            "fileblob.upload.use_blobid_cache": True,
-            "fileblob.upload.use_lock": False,
-        }
-    )
     def test_dedupe_works_with_cache(self):
         contents = ContentFile(b"foo bar")
 

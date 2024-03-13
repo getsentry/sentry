@@ -57,6 +57,9 @@
   "sentry.alertruleactivationcondition": [
     "sentry.alertrule"
   ],
+  "sentry.alertruleactivations": [
+    "sentry.alertrule"
+  ],
   "sentry.alertruleactivity": [
     "sentry.alertrule",
     "sentry.user"
@@ -105,9 +108,6 @@
   "sentry.artifactbundle": [
     "sentry.file",
     "sentry.organization"
-  ],
-  "sentry.artifactbundleflatfileindex": [
-    "sentry.project"
   ],
   "sentry.artifactbundleindex": [
     "sentry.artifactbundle",
@@ -291,10 +291,6 @@
     "sentry.fileblob",
     "sentry.organization"
   ],
-  "sentry.flatfileindexstate": [
-    "sentry.artifactbundle",
-    "sentry.artifactbundleflatfileindex"
-  ],
   "sentry.group": [
     "sentry.project",
     "sentry.release"
@@ -455,6 +451,9 @@
     "sentry.monitorenvironment",
     "sentry.monitorlocation",
     "sentry.project"
+  ],
+  "sentry.monitorenvbrokendetection": [
+    "sentry.monitorincident"
   ],
   "sentry.monitorenvironment": [
     "sentry.environment",

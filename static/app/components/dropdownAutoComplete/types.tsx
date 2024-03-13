@@ -1,6 +1,6 @@
 export type Item = {
   index: number;
-  label: ((value: any) => React.ReactNode) | React.ReactNode;
+  label: React.ReactNode;
   value: any;
   'data-test-id'?: string;
   disabled?: boolean;

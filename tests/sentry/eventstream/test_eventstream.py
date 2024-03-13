@@ -1,10 +1,10 @@
 import logging
 import time
-from datetime import datetime, timedelta
+from datetime import timedelta
 from unittest.mock import Mock, patch
 
 import pytest
-from django.conf import settings
+from django.utils import timezone
 from snuba_sdk import Column, Condition, Entity, Op, Query, Request
 
 from sentry import nodestore
@@ -61,13 +61,13 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         produce_args, produce_kwargs = list(producer.produce.call_args)
         assert not produce_args
         if event_type == EventStreamEventType.Transaction:
-            assert produce_kwargs["topic"] == settings.KAFKA_TRANSACTIONS
+            assert produce_kwargs["topic"] == "transactions"
             assert produce_kwargs["key"] is None
         elif event_type == EventStreamEventType.Generic:
-            assert produce_kwargs["topic"] == settings.KAFKA_EVENTSTREAM_GENERIC
+            assert produce_kwargs["topic"] == "generic-events"
             assert produce_kwargs["key"] is None
         else:
-            assert produce_kwargs["topic"] == settings.KAFKA_EVENTS
+            assert produce_kwargs["topic"] == "events"
             assert produce_kwargs["key"] == str(self.project.id).encode("utf-8")
 
         version, type_, payload1, payload2 = json.loads(produce_kwargs["value"])
@@ -100,7 +100,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
     @patch("sentry.eventstream.backend.insert", autospec=True)
     def test(self, mock_eventstream_insert):
-        now = datetime.utcnow()
+        now = timezone.now()
 
         event = self.__build_event(now)
 
@@ -137,7 +137,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
     @patch("sentry.eventstream.backend.insert", autospec=True)
     def test_issueless(self, mock_eventstream_insert):
-        now = datetime.utcnow()
+        now = timezone.now()
         event = self.__build_transaction_event()
         event.group_id = None
         insert_args = ()
@@ -165,7 +165,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
     @patch("sentry.eventstream.backend.insert", autospec=True)
     def test_multiple_groups(self, mock_eventstream_insert):
-        now = datetime.utcnow()
+        now = timezone.now()
         event = self.__build_transaction_event()
         event.group_id = None
         event.groups = [self.group]
@@ -221,7 +221,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
     @patch("sentry.eventstream.backend.insert", autospec=True)
     def test_groupevent_occurrence_passed(self, mock_eventstream_insert):
-        now = datetime.utcnow()
+        now = timezone.now()
         event = self.__build_transaction_event()
         event.group_id = self.group.id
         group_event = event.for_group(self.group)
@@ -242,7 +242,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         producer = self.producer_mock
         produce_args, produce_kwargs = list(producer.produce.call_args)
         version, type_, payload1, payload2 = json.loads(produce_kwargs["value"])
-        assert produce_kwargs["topic"] == settings.KAFKA_EVENTSTREAM_GENERIC
+        assert produce_kwargs["topic"] == "generic-events"
         assert produce_kwargs["key"] is None
         assert version == 2
         assert type_ == "insert"
@@ -283,7 +283,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
     @patch("sentry.eventstream.backend.insert", autospec=True)
     def test_error_queue(self, mock_eventstream_insert):
-        now = datetime.utcnow()
+        now = timezone.now()
 
         event = self.__build_event(now)
 
@@ -376,7 +376,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         event_data = {
             **profile_message["event"],
             "user": {"geo": geo_interface},
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": timezone.now().isoformat(),
         }
 
         project_id = event_data.get("project_id", self.project.id)

@@ -1,4 +1,3 @@
-import type {ReactElement} from 'react';
 import {useMemo} from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -9,7 +8,7 @@ import {useProfileFunctionTrends} from 'sentry/utils/profiling/hooks/useProfileF
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-function TestContext({children}: {children: ReactElement}) {
+function TestContext({children}: {children: React.ReactNode}) {
   const {organization} = useMemo(() => initializeOrg(), []);
 
   return (

@@ -119,27 +119,30 @@ describe('getTableSeries', () => {
     const result = getTableData({data, meta: []}, queries);
 
     expect(result.headers).toEqual([
-      {name: 'consumer_group', type: 'tag'},
-      {name: 'event_type', type: 'tag'},
-      {name: 'p50(d:custom/sentry.event_manager.save@second)', type: 'field'},
-      {name: 'p90(d:custom/sentry.event_manager.save_attachments@second)', type: 'field'},
+      {order: undefined, label: 'consumer_group', name: 'consumer_group', type: 'tag'},
+      {order: undefined, label: 'event_type', name: 'event_type', type: 'tag'},
+      {
+        order: undefined,
+        label: 'p50(d:custom/sentry.event_manager.save@second)',
+        name: 'a',
+        type: 'field',
+      },
+      {
+        order: undefined,
+        label: 'p90(d:custom/sentry.event_manager.save_attachments@second)',
+        name: 'b',
+        type: 'field',
+      },
     ]);
 
     expect(result.rows.length).toEqual(7);
+    const ingestRow = result.rows[2];
 
-    const ingestRow = result.rows.find(
-      row => row.consumer_group === 'ingest-occurrences-0'
-    )!;
+    expect(ingestRow.a.value).toBeDefined();
+    expect(ingestRow.b.value).toBeUndefined();
 
-    expect(ingestRow['p50(d:custom/sentry.event_manager.save@second)']).toBeDefined();
-    expect(
-      ingestRow['p90(d:custom/sentry.event_manager.save_attachments@second)']
-    ).toBeUndefined();
-
-    const defaultRow = result.rows.find(row => row.event_type === 'default')!;
-    expect(defaultRow['p50(d:custom/sentry.event_manager.save@second)']).toBeDefined();
-    expect(
-      defaultRow['p90(d:custom/sentry.event_manager.save_attachments@second)']
-    ).toBeDefined();
+    const defaultRow = result.rows[5];
+    expect(defaultRow.a.value).toBeDefined();
+    expect(defaultRow.b.value).toBeDefined();
   });
 });

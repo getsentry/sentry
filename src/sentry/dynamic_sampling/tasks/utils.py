@@ -1,7 +1,5 @@
 from functools import wraps
 
-import sentry_sdk
-
 from sentry import features
 from sentry.dynamic_sampling.tasks.common import TimeoutException
 from sentry.dynamic_sampling.tasks.logging import log_task_execution, log_task_timeout
@@ -38,12 +36,9 @@ def dynamic_sampling_task_with_context(max_task_execution: int):
                 try:
                     func(context=context)
                 except TimeoutException:
-                    sentry_sdk.set_extra("context-data", context.to_dict())
                     log_task_timeout(context)
                     raise
                 else:
-                    sentry_sdk.set_extra("context-data", context.to_dict())
-                    sentry_sdk.capture_message(f"timing for {task_name}")
                     log_task_execution(context)
 
         return _wrapper

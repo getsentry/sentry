@@ -9,6 +9,7 @@ from django.db import models
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
+from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields import FlexibleForeignKey, JSONField
@@ -235,7 +236,7 @@ class ProjectOwnership(Model):
         group: Group | None = None,
         organization_id: int | None = None,
         force_autoassign: bool = False,
-        logging_extra: dict[str, str] | None = None,
+        logging_extra: dict[str, str | bool] | None = None,
     ):
         """
         Get the auto-assign owner for a project if there are any.
@@ -262,6 +263,7 @@ class ProjectOwnership(Model):
             return
 
         with metrics.timer("projectownership.get_autoassign_owners"):
+
             ownership = cls.get_ownership_cached(project_id)
             if not ownership:
                 ownership = cls(project_id=project_id)
@@ -274,9 +276,20 @@ class ProjectOwnership(Model):
             logging_extra["autoassignment_types"] = autoassignment_types
 
             # Get the most recent GroupOwner that matches the following order: Suspect Committer, then Ownership Rule, then Code Owner
-            issue_owner = GroupOwner.get_autoassigned_owner_cached(
-                group.id, project_id, autoassignment_types
-            )
+            organization = group.project.organization
+            if features.has(
+                "organizations:post-process-skip-groupowner-cache", organization, actor=None
+            ):
+                issue_owner = GroupOwner.get_autoassigned_owner_no_cache(
+                    group.id, project_id, autoassignment_types
+                )
+                logging_extra["use_groupowner_cache"] = False
+            else:
+                issue_owner = GroupOwner.get_autoassigned_owner_cached(
+                    group.id, project_id, autoassignment_types
+                )
+                logging_extra["use_groupowner_cache"] = True
+
             if issue_owner is False:
                 logger.info("handle_auto_assignment.no_issue_owner", extra=logging_extra)
                 return

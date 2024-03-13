@@ -1,8 +1,9 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import PanelTable, {PanelTableHeader} from 'sentry/components/panels/panelTable';
-import {Tooltip} from 'sentry/components/tooltip';
+import TextOverflow from 'sentry/components/textOverflow';
+import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricsQueryApiResponse} from 'sentry/types';
@@ -13,11 +14,12 @@ import {
   type MetricsQueryApiQueryParams,
   type MetricsQueryApiRequestQuery,
 } from 'sentry/utils/metrics/useMetricsQuery';
+import type {Order} from 'sentry/views/dashboards/metrics/types';
 import {LoadingScreen} from 'sentry/views/starfish/components/chart';
 
 interface MetricTableContainerProps {
   isLoading: boolean;
-  metricQueries: MetricsQueryApiRequestQuery[];
+  metricQueries: MetricsQueryApiQueryParams[];
   timeseriesData?: MetricsQueryApiResponse;
 }
 
@@ -43,19 +45,34 @@ export function MetricTableContainer({
 }
 
 interface MetricTableProps {
-  data: {
-    headers: {name: string; type: string}[];
-    rows: any[];
-  };
+  data: TableData;
   isLoading: boolean;
   borderless?: boolean;
+  onOrderChange?: ({name, order}: {name: string; order: string}) => void;
 }
 
-export function MetricTable({isLoading, data, borderless}: MetricTableProps) {
-  function renderRow(row: any, index: number) {
+export function MetricTable({
+  isLoading,
+  data,
+  borderless,
+  onOrderChange,
+}: MetricTableProps) {
+  const handleCellClick = useCallback(
+    column => {
+      if (!onOrderChange) {
+        return;
+      }
+      const {order} = column;
+      const newOrder = order === 'desc' ? 'asc' : 'desc';
+      onOrderChange({...column, order: newOrder});
+    },
+    [onOrderChange]
+  );
+
+  function renderRow(row: Row, index: number) {
     return data.headers.map((column, columnIndex) => {
-      const key = `${index}-${columnIndex}:${column}`;
-      const value = row[column.name];
+      const key = `${index}-${columnIndex}:${column.name}`;
+      const value = row[column.name].formattedValue ?? row[column.name].value;
       if (!value) {
         return (
           <TableCell type={column.type} key={key} noValue>
@@ -75,10 +92,18 @@ export function MetricTable({isLoading, data, borderless}: MetricTableProps) {
     <StyledPanelTable
       borderless={borderless}
       headers={data.headers.map((column, index) => {
-        const header = formatMRIField(column.name);
+        const header = formatMRIField(column.label);
         return (
-          <HeaderCell key={index} type={column.type}>
-            <Tooltip title={header}>{header}</Tooltip>
+          <HeaderCell
+            key={index}
+            type={column.type}
+            onClick={() => handleCellClick(column)}
+            disabled={column.type !== 'field' || !onOrderChange}
+          >
+            {column.order && (
+              <IconArrow direction={column.order === 'asc' ? 'up' : 'down'} size="xs" />
+            )}
+            <TextOverflow>{header}</TextOverflow>
           </HeaderCell>
         );
       })}
@@ -91,7 +116,7 @@ export function MetricTable({isLoading, data, borderless}: MetricTableProps) {
   );
 }
 
-const equalGroupBys = (a: Record<string, any>, b: Record<string, any>) => {
+const equalGroupBys = (a: Record<string, unknown>, b: Record<string, unknown>) => {
   return JSON.stringify(a) === JSON.stringify(b);
 };
 
@@ -118,10 +143,16 @@ function getGroupByCombos(
 
   return uniqueCombos;
 }
-type Row = Record<string, string | undefined>;
+
+type Row = Record<string, {formattedValue?: string; value?: number}>;
 
 interface TableData {
-  headers: {name: string; type: string}[];
+  headers: {
+    label: string;
+    name: string;
+    order: Order;
+    type: string;
+  }[];
   rows: Row[];
 }
 
@@ -133,54 +164,89 @@ export function getTableData(
     query => !isMetricFormula(query)
   ) as MetricsQueryApiRequestQuery[];
 
-  const fields = filteredQueries.map(query => MRIToField(query.mri, query.op));
   const tags = [...new Set(filteredQueries.flatMap(query => query.groupBy ?? []))];
 
   const normalizedResults = filteredQueries.map((query, index) => {
     const queryResults = data.data[index];
-    const metaUnit = data.meta[index]?.[1]?.unit;
+    const meta = data.meta[index];
+    const lastMetaEntry = data.meta[index]?.[meta.length - 1];
+    const metaUnit =
+      (lastMetaEntry && 'unit' in lastMetaEntry && lastMetaEntry.unit) || 'none';
     const normalizedGroupResults = queryResults.map(group => {
       return {
         by: {...getEmptyGroup(tags), ...group.by},
-        totals: formatMetricsUsingUnitAndOp(
+        totals: group.totals,
+        formattedValue: formatMetricsUsingUnitAndOp(
           group.totals,
-          // TODO(ogi): switch to using the meta unit when it's available
           metaUnit ?? parseMRI(query.mri)?.unit!,
           query.op
         ),
       };
     });
 
-    const key = MRIToField(query.mri, query.op);
-    return {field: key, results: normalizedGroupResults};
+    return {name: query.name, results: normalizedGroupResults};
   }, {});
 
   const groupByCombos = getGroupByCombos(filteredQueries, data.data);
 
   const rows: Row[] = groupByCombos.map(combo => {
-    const row: Row = {...combo};
+    const row = Object.entries(combo).reduce((acc, [key, value]) => {
+      acc[key] = {value};
+      return acc;
+    }, {});
 
-    normalizedResults.forEach(({field, results}) => {
+    normalizedResults.forEach(({name, results}) => {
       const entry = results.find(e => equalGroupBys(e.by, combo));
-      row[field] = entry?.totals;
+      row[name] = {value: entry?.totals, formattedValue: entry?.formattedValue};
     });
 
     return row;
   });
 
+  const headers = [
+    ...tags.map(tagName => ({
+      name: tagName,
+      label: tagName,
+      type: 'tag',
+      order: undefined,
+    })),
+    ...filteredQueries.map(query => ({
+      name: query.name,
+      label: MRIToField(query.mri, query.op),
+      type: 'field',
+      order: query.orderBy,
+    })),
+  ];
+
   const tableData = {
-    headers: [
-      ...tags.map(tagName => ({name: tagName, type: 'tag'})),
-      ...fields.map(f => ({name: f, type: 'field'})),
-    ],
-    rows,
+    headers,
+    rows: sortRows(rows, headers),
   };
 
   return tableData;
 }
 
+function sortRows(rows: Row[], headers: TableData['headers']) {
+  const orderedByColumn = headers.find(header => !!header.order);
+  if (!orderedByColumn) {
+    return rows;
+  }
+  const sorted = rows.sort((a, b) => {
+    const aValue = a[orderedByColumn.name]?.value ?? '';
+    const bValue = b[orderedByColumn.name]?.value ?? '';
+    if (orderedByColumn.order === 'asc') {
+      return aValue > bValue ? 1 : -1;
+    }
+
+    return aValue < bValue ? 1 : -1;
+  });
+  return sorted;
+}
+
 const Cell = styled('div')<{type?: string}>`
-  text-align: ${p => (p.type === 'field' ? 'right' : 'left')};
+  display: flex;
+  flex-direction: row;
+  justify-content: ${p => (p.type === 'field' ? ' flex-end' : ' flex-start')};
 `;
 
 const StyledPanelTable = styled(PanelTable)<{borderless?: boolean}>`
@@ -205,8 +271,14 @@ const StyledPanelTable = styled(PanelTable)<{borderless?: boolean}>`
   }
 `;
 
-const HeaderCell = styled(Cell)`
+const HeaderCell = styled('div')<{disabled: boolean; type?: string}>`
   padding: 0 ${space(0.5)};
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: ${space(0.5)};
+  cursor: ${p => (p.disabled ? 'default' : 'pointer')};
+  justify-content: ${p => (p.type === 'field' ? ' flex-end' : ' flex-start')};
 `;
 
 export const TableCell = styled(Cell)<{noValue?: boolean}>`

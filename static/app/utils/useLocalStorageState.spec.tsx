@@ -1,5 +1,3 @@
-import {Component} from 'react';
-
 import {reactHooks, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import localStorageWrapper from 'sentry/utils/localStorage';
@@ -17,25 +15,15 @@ describe('useLocalStorageState', () => {
   it('throws if key is not a string', async () => {
     let errorResult!: TypeError;
 
-    class ErrorBoundary extends Component<{children: any}> {
-      static getDerivedStateFromError(err) {
-        errorResult = err;
-        return null;
-      }
-
-      render() {
-        return !errorResult && this.props.children;
-      }
-    }
-
-    reactHooks.renderHook(
-      () =>
+    reactHooks.renderHook(() => {
+      try {
         // @ts-expect-error force incorrect usage
-        useLocalStorageState({}, 'default value'),
-      {
-        wrapper: ErrorBoundary,
+        // biome-ignore lint/correctness/useHookAtTopLevel: <explanation>
+        useLocalStorageState({}, 'default value');
+      } catch (err) {
+        errorResult = err;
       }
-    );
+    });
 
     await waitFor(() => expect(errorResult).toBeInstanceOf(TypeError));
     expect(errorResult.message).toBe('useLocalStorage: key must be a string');

@@ -488,6 +488,18 @@ With download query argument.
 
   Content-Type application/octet-stream
 
+## Replay Video [/projects/<organization_slug>/<project_slug>/replays/<replay_id>/videos/<segment_id>/]
+
+### Fetch Replay Video [GET]
+
+Returns the bytes of a replay-segment video.
+
+- Response 200
+
+  ```
+  \x00\x00\x00
+  ```
+
 ## Replay Tag Keys [/projects/<organization_slug>/<project_slug>/replays/tags/]
 
 ### Fetch Tag Keys [GET]
