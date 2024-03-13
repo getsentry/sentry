@@ -47,22 +47,17 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
           title: t('Retrace Your Steps'),
           target: 'breadcrumbs',
           description: t(
-            `Not sure how you got here? Sentry automatically captures breadcrumbs for events in web
-                frameworks to lead you straight to your error.`
+            `Not sure how you got here? Sentry automatically captures breadcrumbs for
+              events your user and app took that lead to the error.`
           ),
         },
         {
           title: t('Annoy the Right People'),
           target: 'issue_sidebar_owners',
-          description: tct(
-            `Notification overload makes it tempting to hurl your phone into the ocean.
-                Define who is responsible for what, so alerts reach the right people and your
-                devices stay on dry land. [link:Learn more]`,
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/" />
-              ),
-            }
+          description: t(
+            `Automatically assign issues to the person who introduced the commit,
+              notify them over notification tools like Slack,
+              and triage through issue management tools like Jira. `
           ),
         },
       ],
