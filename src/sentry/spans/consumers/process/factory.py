@@ -1,5 +1,4 @@
 import logging
-import random
 from collections.abc import Mapping
 from typing import Any
 
@@ -28,9 +27,6 @@ def _deserialize_span(value: bytes) -> Mapping[str, Any]:
 
 def process_message(message: Message[KafkaPayload]):
     if not options.get("standalone-spans.process-spans-consumer.enable"):
-        return
-
-    if random.random() >= options.get("standalone-spans.process-spans-consumer.rollout"):
         return
 
     assert isinstance(message.value, BrokerValue)
