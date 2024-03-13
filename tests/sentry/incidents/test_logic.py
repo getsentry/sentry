@@ -2225,7 +2225,8 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         assert action.integration_id == integration.id
         assert action.sentry_app_config["priority"] == priority  # priority stored in config
 
-    def test_unsupported_priority(self):
+    @patch("sentry.integrations.msteams.utils.get_channel_id", return_value="some_id")
+    def test_unsupported_priority(self, mock_get_channel_id):
         integration, _ = self.create_provider_integration_for(
             self.organization, self.user, external_id="1", provider="msteams"
         )
@@ -2247,7 +2248,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         assert action.target_type == target_type.value
         assert action.target_identifier == channel_id
         assert action.target_display == channel_name
-        assert action.integration_id == integration
+        assert action.integration_id == integration.id
         assert action.sentry_app_config is None  # priority is not stored inside
 
 
