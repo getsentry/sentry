@@ -20,6 +20,13 @@ from .client import PagerDutyClient
 
 logger = logging.getLogger("sentry.integrations.pagerduty")
 
+PAGERDUTY_CUSTOM_PRIORITIES = {
+    "critical",
+    "warning",
+    "error",
+    "info",
+}  # known as severities in pagerduty
+
 
 class PagerDutyServiceDict(TypedDict):
     integration_id: int
@@ -85,10 +92,10 @@ def build_incident_attachment(
     integration_key,
     new_status: IncidentStatus,
     metric_value: float | None = None,
-    notfiication_uuid: str | None = None,
+    notfication_uuid: str | None = None,
 ) -> dict[str, Any]:
     data = incident_attachment_info(
-        incident, new_status, metric_value, notfiication_uuid, referrer="metric_alert_pagerduty"
+        incident, new_status, metric_value, notfication_uuid, referrer="metric_alert_pagerduty"
     )
     severity = "info"
     if new_status == IncidentStatus.CRITICAL:
@@ -114,6 +121,20 @@ def build_incident_attachment(
         },
         "links": [{"href": data["title_link"], "text": data["title"]}],
     }
+
+
+def attach_custom_severity(
+    data: dict[str, Any], action: AlertRuleTriggerAction, new_status: IncidentStatus
+) -> dict[str, Any]:
+    # use custom severity (overrides default in build_incident_attachment)
+    if new_status == IncidentStatus.CLOSED or action.sentry_app_config is None:
+        return data
+
+    severity = action.sentry_app_config.get("priority", None)
+    if severity is not None:
+        data["payload"]["severity"] = severity
+
+    return data
 
 
 def send_incident_alert_notification(
@@ -168,6 +189,8 @@ def send_incident_alert_notification(
     attachment = build_incident_attachment(
         incident, integration_key, new_status, metric_value, notification_uuid
     )
+    attachment = attach_custom_severity(attachment, action, new_status)
+
     try:
         client.send_trigger(attachment)
         return True

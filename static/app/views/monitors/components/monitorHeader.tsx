@@ -10,14 +10,14 @@ import MonitorHeaderActions from './monitorHeaderActions';
 interface Props {
   monitor: Monitor;
   onUpdate: (data: Monitor) => void;
-  orgId: string;
+  orgSlug: string;
 }
 
-function MonitorHeader({monitor, orgId, onUpdate}: Props) {
+function MonitorHeader({monitor, orgSlug, onUpdate}: Props) {
   const crumbs = [
     {
       label: t('Crons'),
-      to: `/organizations/${orgId}/crons/`,
+      to: `/organizations/${orgSlug}/crons/`,
       preservePageFilters: true,
     },
     {
@@ -40,7 +40,7 @@ function MonitorHeader({monitor, orgId, onUpdate}: Props) {
         </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
-        <MonitorHeaderActions orgId={orgId} monitor={monitor} onUpdate={onUpdate} />
+        <MonitorHeaderActions orgSlug={orgSlug} monitor={monitor} onUpdate={onUpdate} />
       </Layout.HeaderActions>
     </Layout.Header>
   );
