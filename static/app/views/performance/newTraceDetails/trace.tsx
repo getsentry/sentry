@@ -221,6 +221,9 @@ function Trace({
           : Promise.resolve(null);
 
     promise.then(maybeNode => {
+      // Important to set scrollQueue.current to null and trigger a rerender
+      // after the promise resolves as we show a loading state during scroll,
+      // else the screen could jump around while we fetch span data
       scrollQueue.current = null;
 
       if (!maybeNode) {
@@ -235,6 +238,7 @@ function Trace({
         node: maybeNode.node,
       });
 
+      manager.list?.scrollToRow(maybeNode.index, 'top');
       manager.scrollRowIntoViewHorizontally(maybeNode.node, 0);
 
       if (search_state.query) {
@@ -379,10 +383,11 @@ function Trace({
     ) => {
       previousSearchResultIndexRef.current = index;
       previouslyFocusedIndexRef.current = index;
-      browserHistory.push({
+      const {eventId: _eventId, ...query} = qs.parse(location.search);
+      browserHistory.replace({
         pathname: location.pathname,
         query: {
-          ...qs.parse(location.search),
+          ...query,
           node: node.path,
         },
       });
@@ -516,7 +521,7 @@ function Trace({
 
   const render = useCallback(
     (n: VirtualizedRow) => {
-      return trace.type !== 'trace' ? (
+      return trace.type !== 'trace' || scrollQueue.current ? (
         <RenderPlaceholderRow
           key={n.key}
           index={n.index}
@@ -582,7 +587,7 @@ function Trace({
         containerRef.current = r;
         manager.onContainerRef(r);
       }}
-      className={`${trace.indicators.length > 0 ? 'WithIndicators' : ''} ${trace.type !== 'trace' ? 'Loading' : ''}`}
+      className={`${trace.indicators.length > 0 ? 'WithIndicators' : ''} ${trace.type !== 'trace' || scrollQueue.current ? 'Loading' : ''}`}
     >
       <div className="TraceDivider" ref={r => manager?.registerDividerRef(r)} />
       {trace.type === 'loading' ? (
@@ -591,6 +596,8 @@ function Trace({
         <TraceError />
       ) : trace.type === 'empty' ? (
         <TraceEmpty />
+      ) : scrollQueue.current ? (
+        <TraceLoading />
       ) : null}
       <div
         className="TraceIndicatorContainer"
@@ -1854,6 +1861,14 @@ const TraceStylingWrapper = styled('div')`
       background-color: ${p => p.theme.backgroundSecondary};
     }
 
+    &.Highlight {
+      box-shadow: inset 0 0 0 1px ${p => p.theme.blue200} !important;
+
+      .TraceLeftColumn {
+        box-shadow: inset 0px 0 0px 1px ${p => p.theme.blue200} !important;
+      }
+    }
+
     &.Highlight,
     &:focus {
       outline: none;
@@ -1872,13 +1887,8 @@ const TraceStylingWrapper = styled('div')`
       .TraceLeftColumn {
         box-shadow: inset 0px 0 0px 1px ${p => p.theme.blue300} !important;
       }
-    }
-
-    &.Highlight {
-      box-shadow: inset 0 0 0 1px ${p => p.theme.blue200} !important;
-
-      .TraceLeftColumn {
-        box-shadow: inset 0px 0 0px 1px ${p => p.theme.blue200} !important;
+      .TraceRightColumn.Odd {
+        background-color: transparent !important;
       }
     }
 
@@ -1959,6 +1969,11 @@ const TraceStylingWrapper = styled('div')`
 
       > div {
         height: 100%;
+      }
+
+      .TraceError {
+        top: -1px;
+        transform: translate(-50%, 0);
       }
     }
   }
