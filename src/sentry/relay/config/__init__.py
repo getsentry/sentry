@@ -845,12 +845,12 @@ def _get_project_config(
             ),
         }
 
-    config["performanceScore"] = {
-        "profiles": [
-            *_get_browser_performance_profiles(project.organization),
-            *_get_mobile_performance_profiles(project.organization),
-        ]
-    }
+    performance_score_profiles = [
+        *_get_browser_performance_profiles(project.organization),
+        *_get_mobile_performance_profiles(project.organization),
+    ]
+    if performance_score_profiles:
+        config["performanceScore"] = {"profiles": performance_score_profiles}
 
     with Hub.current.start_span(op="get_filter_settings"):
         if filter_settings := get_filter_settings(project):
