@@ -94,6 +94,7 @@ type GridEditableProps<DataRow, ColumnKey> = {
     ) => React.ReactNode[];
   };
   location: Location;
+  'aria-label'?: string;
   emptyMessage?: React.ReactNode;
   error?: unknown | null;
   /**
@@ -102,13 +103,13 @@ type GridEditableProps<DataRow, ColumnKey> = {
    * in these buttons and updating props to the GridEditable instance.
    */
   headerButtons?: () => React.ReactNode;
-  height?: string | number;
 
+  height?: string | number;
   isLoading?: boolean;
+
   minimumColWidth?: number;
 
   scrollable?: boolean;
-
   stickyHeader?: boolean;
   /**
    * GridEditable (mostly) do not maintain any internal state and relies on the
@@ -431,7 +432,13 @@ class GridEditable<
   }
 
   render() {
-    const {title, headerButtons, scrollable, height} = this.props;
+    const {
+      title,
+      headerButtons,
+      scrollable,
+      height,
+      'aria-label': ariaLabel,
+    } = this.props;
     const showHeader = title || headerButtons;
     return (
       <Fragment>
@@ -446,6 +453,7 @@ class GridEditable<
           )}
           <Body>
             <Grid
+              aria-label={ariaLabel}
               data-test-id="grid-editable"
               scrollable={scrollable}
               height={height}

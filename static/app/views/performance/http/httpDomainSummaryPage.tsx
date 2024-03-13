@@ -9,13 +9,18 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {fromSorts} from 'sentry/utils/discover/eventView';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {DurationChart} from 'sentry/views/performance/database/durationChart';
-import {ThroughputChart} from 'sentry/views/performance/database/throughputChart';
-import {useSelectedDurationAggregate} from 'sentry/views/performance/database/useSelectedDurationAggregate';
+import {
+  DomainTransactionsTable,
+  isAValidSort,
+} from 'sentry/views/performance/http/domainTransactionsTable';
+import {DurationChart} from 'sentry/views/performance/http/durationChart';
+import {ThroughputChart} from 'sentry/views/performance/http/throughputChart';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
@@ -24,6 +29,7 @@ import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
+import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 
 type Query = {
@@ -35,7 +41,9 @@ export function HTTPDomainSummaryPage() {
   const location = useLocation<Query>();
   const organization = useOrganization();
 
-  const [selectedAggregate] = useSelectedDurationAggregate();
+  const sortField = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_SORT]);
+
+  const sort = fromSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
 
   const {domain} = location.query;
 
@@ -43,6 +51,8 @@ export function HTTPDomainSummaryPage() {
     'span.module': ModuleName.HTTP,
     'span.domain': domain,
   };
+
+  const cursor = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_CURSOR]);
 
   const {data: domainMetrics, isLoading: areDomainMetricsLoading} = useSpanMetrics({
     filters,
@@ -74,9 +84,33 @@ export function HTTPDomainSummaryPage() {
     error: durationError,
   } = useSpanMetricsSeries({
     filters,
-    yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
+    yAxis: [`avg(${SpanMetricsField.SPAN_SELF_TIME})`],
     enabled: Boolean(domain),
     referrer: 'api.starfish.http-module-domain-summary-duration-chart',
+  });
+
+  const {
+    isLoading: isTransactionsListLoading,
+    data: transactionsList,
+    meta: transactionsListMeta,
+    error: transactionsListError,
+    pageLinks: transactionsListPageLinks,
+  } = useSpanMetrics({
+    filters,
+    fields: [
+      'transaction',
+      'spm()',
+      'http_response_rate(2)',
+      'http_response_rate(4)',
+      'http_response_rate(5)',
+      'avg(span.self_time)',
+      'sum(span.self_time)',
+      'time_spent_percentage()',
+    ],
+    sorts: [sort],
+    limit: TRANSACTIONS_TABLE_ROW_COUNT,
+    cursor,
+    referrer: 'api.starfish.http-module-domain-summary-transactions-list',
   });
 
   useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
@@ -129,9 +163,7 @@ export function HTTPDomainSummaryPage() {
                   <MetricReadout
                     title={DataTitles.avg}
                     value={
-                      domainMetrics?.[0]?.[
-                        `${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`
-                      ]
+                      domainMetrics?.[0]?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]
                     }
                     unit={DurationUnit.MILLISECOND}
                     isLoading={areDomainMetricsLoading}
@@ -150,19 +182,35 @@ export function HTTPDomainSummaryPage() {
 
             <ModuleLayout.Half>
               <DurationChart
-                series={
-                  durationData[`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`]
-                }
+                series={durationData[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]}
                 isLoading={isDurationDataLoading}
                 error={durationError}
               />
             </ModuleLayout.Half>
+
+            <ModuleLayout.Full>
+              <DomainTransactionsTable
+                data={transactionsList}
+                error={transactionsListError}
+                isLoading={isTransactionsListLoading}
+                meta={transactionsListMeta}
+                pageLinks={transactionsListPageLinks}
+                sort={sort}
+              />
+            </ModuleLayout.Full>
           </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>
     </React.Fragment>
   );
 }
+
+const DEFAULT_SORT = {
+  field: 'time_spent_percentage()' as const,
+  kind: 'desc' as const,
+};
+
+const TRANSACTIONS_TABLE_ROW_COUNT = 20;
 
 const HeaderContainer = styled('div')`
   display: flex;

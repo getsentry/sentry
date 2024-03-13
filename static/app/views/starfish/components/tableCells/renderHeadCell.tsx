@@ -16,11 +16,7 @@ type Options = {
   column: GridColumnHeader<string>;
   location?: Location;
   sort?: Sort;
-  sortParameterName?:
-    | QueryParameterNames.ENDPOINTS_SORT
-    | QueryParameterNames.SPANS_SORT
-    | QueryParameterNames.DOMAINS_SORT
-    | typeof DEFAULT_SORT_PARAMETER_NAME;
+  sortParameterName?: QueryParameterNames | typeof DEFAULT_SORT_PARAMETER_NAME;
 };
 
 const DEFAULT_SORT_PARAMETER_NAME = 'sort';
