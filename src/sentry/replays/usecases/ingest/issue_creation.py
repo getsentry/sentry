@@ -38,11 +38,18 @@ def report_rage_click_issue_with_replay_event(
         IssueEvidence(name="Clicked Element", value=clicked_element, important=True),
         IssueEvidence(name="Selector Path", value=selector, important=True),
     ]
+    evidence_data = {
+        # RRWeb node data of clicked element.
+        "node": node,
+        # CSS selector path to clicked element.
+        "selector": selector,
+    }
 
     if component_name:
         evidence.append(
             IssueEvidence(name="React Component Name", value=component_name, important=True),
         )
+        evidence_data.update({"component_name": component_name})
 
     new_issue_occurrence(
         culprit=url[:MAX_CULPRIT_LENGTH],
@@ -57,12 +64,7 @@ def report_rage_click_issue_with_replay_event(
         subtitle=selector,
         timestamp=timestamp_utc,
         title=RAGE_CLICK_TITLE,
-        evidence_data={
-            # RRWeb node data of clicked element.
-            "node": node,
-            # CSS selector path to clicked element.
-            "selector": selector,
-        },
+        evidence_data=evidence_data,
         evidence_display=evidence,
         extra_event_data={
             "contexts": _make_contexts(replay_id, replay_event),
