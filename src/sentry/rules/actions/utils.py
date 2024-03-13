@@ -23,6 +23,7 @@ def check_value_changed(
         old_value = prior_state.get(key)
         new_value = present_state.get(key)
         return f"Changed {word} from *{old_value}* to *{new_value}*"
+    return None
 
 
 def generate_diff_labels(
