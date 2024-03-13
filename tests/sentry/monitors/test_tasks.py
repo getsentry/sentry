@@ -1313,3 +1313,36 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
 
         detect_broken_monitor_envs()
         assert len(MonitorEnvBrokenDetection.objects.filter(monitor_incident=incident)) == 0
+
+    @with_feature("organizations:crons-broken-monitor-detection")
+    def test_does_not_create_for_disabled_monitor(self):
+        monitor, monitor_environment = self.create_monitor_and_env()
+        monitor.status = ObjectStatus.DISABLED
+        monitor.save()
+
+        first_checkin = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            status=CheckInStatus.ERROR,
+            date_added=django_timezone.now() - timedelta(days=14),
+        )
+        incident = MonitorIncident.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            starting_checkin=first_checkin,
+            starting_timestamp=first_checkin.date_added,
+            grouphash=hash_from_values([uuid.uuid4()]),
+        )
+
+        for i in range(4, -1, -1):
+            MonitorCheckIn.objects.create(
+                monitor=monitor,
+                monitor_environment=monitor_environment,
+                project_id=self.project.id,
+                status=CheckInStatus.ERROR,
+                date_added=django_timezone.now() - timedelta(days=i),
+            )
+
+        detect_broken_monitor_envs()
+        assert len(MonitorEnvBrokenDetection.objects.filter(monitor_incident=incident)) == 0
