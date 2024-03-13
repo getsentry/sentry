@@ -3,11 +3,11 @@ from __future__ import annotations
 import abc
 import logging
 from collections.abc import Generator
+from typing import Any
 
 from sentry.eventstore.models import GroupEvent
 from sentry.models.rule import Rule
 from sentry.rules.base import CallbackFuture, EventState, RuleBase
-from typing import Any
 
 logger = logging.getLogger("sentry.rules")
 
