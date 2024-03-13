@@ -1374,8 +1374,8 @@ function buildRoutes() {
         component={make(() => import('sentry/views/monitors/details'))}
       />
       <Route
-        path=":projectSlug/:monitorSlug/edit"
-        component={make(() => import('sentry/views/monitors/details'))}
+        path=":projectSlug/:monitorSlug/edit/"
+        component={make(() => import('sentry/views/monitors/edit'))}
       />
     </Route>
   );
