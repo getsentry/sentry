@@ -11,7 +11,6 @@ import {type TokenList, TokenType} from 'sentry/views/ddm/formulaParser/types';
 
 interface Props extends Omit<React.ComponentProps<typeof Input>, 'onChange' | 'value'> {
   availableVariables: Set<string>;
-  formulaVariables: Set<string>;
   onChange: (formula: string) => void;
   value: string;
 }
@@ -39,7 +38,6 @@ function equalizeWhitespace(formula: TokenList): TokenList {
 }
 export function FormulaInput({
   availableVariables,
-  formulaVariables,
   value: valueProp,
   onChange,
   ...props
@@ -50,15 +48,12 @@ export function FormulaInput({
 
   const validateVariable = useCallback(
     (variable: string): string | null => {
-      if (formulaVariables.has(variable)) {
-        return t('Equations cannot reference other equations.', variable);
-      }
       if (!availableVariables.has(variable)) {
         return t('Unknown query "%s"', variable);
       }
       return null;
     },
-    [availableVariables, formulaVariables]
+    [availableVariables]
   );
 
   const parseAndValidateFormula = useCallback(

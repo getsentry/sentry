@@ -39,8 +39,6 @@ interface Props {
   removeQuery: (index: number) => void;
 }
 
-const EMPTY_SET = new Set<never>();
-
 export function Queries({
   displayType,
   metricQueries,
@@ -100,7 +98,6 @@ export function Queries({
             onChange={formula => onEquationChange({formula}, index)}
             value={equation.formula}
             availableVariables={availableVariables}
-            formulaVariables={EMPTY_SET}
           />
           <EquationContextMenu removeEquation={removeEquation} equationIndex={index} />
         </QueryWrapper>

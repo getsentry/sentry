@@ -79,6 +79,15 @@ describe('parseMetricWidgetQueryParam', () => {
           isHidden: true,
         },
         {
+          id: 0,
+          type: MetricQueryType.FORMULA,
+          formula: 'a + b',
+          displayType: 'line',
+          sort: {name: 'avg', order: 'desc'},
+          focusedSeries: [],
+          isHidden: true,
+        },
+        {
           id: 1,
           type: MetricQueryType.QUERY,
           mri: 'd:custom/sentry.event_manager.save@second',
@@ -90,15 +99,6 @@ describe('parseMetricWidgetQueryParam', () => {
           focusedSeries: [{id: 'default', groupBy: {event_type: 'default'}}],
           sort: {name: 'sum', order: 'asc'},
           isHidden: false,
-        },
-        {
-          id: 2,
-          type: MetricQueryType.FORMULA,
-          formula: 'a + b',
-          displayType: 'line',
-          sort: {name: 'avg', order: 'desc'},
-          focusedSeries: [],
-          isHidden: true,
         },
       ],
       // RESULT
@@ -129,8 +129,9 @@ describe('parseMetricWidgetQueryParam', () => {
           sort: {name: 'sum', order: 'asc'},
           isHidden: false,
         },
+        // Formulas should always be at the end
         {
-          id: 2,
+          id: 0,
           type: MetricQueryType.FORMULA,
           formula: 'a + b',
           displayType: MetricDisplayType.LINE,
@@ -173,7 +174,7 @@ describe('parseMetricWidgetQueryParam', () => {
           isHidden: false,
         },
         {
-          id: 1,
+          id: 0,
           type: MetricQueryType.FORMULA,
           formula: 'a * 2',
           displayType: MetricDisplayType.LINE,
