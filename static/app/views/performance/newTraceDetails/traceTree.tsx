@@ -538,7 +538,10 @@ export class TraceTree {
         isSpanNode(tail.children[0]) &&
         tail.children[0].value.op === head.value.op
       ) {
-        if (tail.value?.errors.length > 0 || tail.value.performance_issues.length > 0) {
+        if (
+          (isTraceErrorNode(tail) && tail.value.errors.length > 0) ||
+          tail.value.performance_issues.length > 0
+        ) {
           erroredChildren.push(tail);
         }
 
