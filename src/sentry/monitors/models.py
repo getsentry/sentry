@@ -93,8 +93,6 @@ class MonitorStatus:
 
     OK = 4
     ERROR = 5
-    MISSED_CHECKIN = 6
-    TIMEOUT = 7
 
     @classmethod
     def as_choices(cls) -> Sequence[tuple[int, str]]:
@@ -110,8 +108,6 @@ class MonitorStatus:
             (cls.DELETION_IN_PROGRESS, "deletion_in_progress"),
             (cls.OK, "ok"),
             (cls.ERROR, "error"),
-            (cls.MISSED_CHECKIN, "missed_checkin"),
-            (cls.TIMEOUT, "timeout"),
         )
 
 
