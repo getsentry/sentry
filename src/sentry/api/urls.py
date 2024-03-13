@@ -422,6 +422,7 @@ from .endpoints.organization_projects_sent_first_event import (
     OrganizationProjectsSentFirstEventEndpoint,
 )
 from .endpoints.organization_recent_searches import OrganizationRecentSearchesEndpoint
+from .endpoints.organization_related_issues import OrganizationRelatedIssuesEndpoint
 from .endpoints.organization_relay_usage import OrganizationRelayUsage
 from .endpoints.organization_release_assemble import OrganizationReleaseAssembleEndpoint
 from .endpoints.organization_release_commits import OrganizationReleaseCommitsEndpoint
@@ -1327,6 +1328,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/events/$",
         OrganizationEventsEndpoint.as_view(),
         name="sentry-api-0-organization-events",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/related-issues/$",
+        OrganizationRelatedIssuesEndpoint.as_view(),
+        name="sentry-api-0-organization-related-issues",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/events/(?P<project_slug>[^\/]+):(?P<event_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
