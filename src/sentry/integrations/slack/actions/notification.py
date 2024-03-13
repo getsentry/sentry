@@ -139,7 +139,9 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         metrics.incr("notifications.sent", instance="slack.notification", skip_internal=False)
         yield self.future(send_notification, key=key)
 
-    def send_confirmation_notification(self, rule: Rule, new: bool, changed: dict[str, Any]):
+    def send_confirmation_notification(
+        self, rule: Rule, new: bool, changed: dict[str, Any] | None = None
+    ):
         integration = self.get_integration()
         if not integration:
             # Integration removed, rule still active.
