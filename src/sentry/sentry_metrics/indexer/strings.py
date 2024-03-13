@@ -189,6 +189,8 @@ SHARED_TAG_STRINGS = {
     "is_application": PREFIX + 269,
     "platform": PREFIX + 270,
     "os.version": PREFIX + 271,
+    # Performance Score
+    "sentry.score_profile_version": PREFIX + 272,
     # GENERAL/MISC (don't have a category)
     "": PREFIX + 1000,
 }
