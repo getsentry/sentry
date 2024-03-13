@@ -51,7 +51,7 @@ class SlackRuleSaveEditMessageBuilder(BlockSlackMessageBuilder):
 
         if not self.new and self.changed:
             changes_text = "*Changes*\n"
-            for label, changes in self.changed.items():
+            for changes in self.changed.values():
                 for change in changes:
                     changes_text += f"• {change}\n"
 

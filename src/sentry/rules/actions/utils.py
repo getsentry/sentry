@@ -17,29 +17,26 @@ def get_updated_rule_data(rule: Rule) -> dict[str, Any]:
 
 
 def check_value_changed(
-    rule_data: dict[str, Any], rule_data_before: dict[str, Any], key: str, word: str
-) -> str:
-    if rule_data.get(key) != rule_data_before.get(key):
-        old_value = rule_data_before.get(key)
-        new_value = rule_data.get(key)
+    present_state: dict[str, Any], prior_state: dict[str, Any], key: str, word: str
+) -> str | None:
+    if present_state.get(key) != prior_state.get(key):
+        old_value = prior_state.get(key)
+        new_value = present_state.get(key)
         return f"Changed {word} from *{old_value}* to *{new_value}*"
-    return ""
 
 
-def check_added_or_removed(
-    rule_data_after: dict[str, Any],
-    rule_data_before: dict[str, Any],
+def generate_diff_labels(
+    present_state: dict[str, Any],
+    prior_state: dict[str, Any],
     rule: Rule,
     changed_data: DefaultDict[str, list[str]],
     key: str,
-    rule_section_type: str,
-    added: bool,
+    statement: str,
 ) -> DefaultDict[str, list[str]]:
-    verb = "Added" if added else "Removed"
-    for data in rule_data_before.get(key, []):
-        if data not in rule_data_after.get(key, []):
+    for data in prior_state.get(key, []):
+        if data not in present_state.get(key, []):
             label = generate_rule_label(rule.project, rule, data)
-            changed_data[data["id"]].append(f"{verb} {rule_section_type} '{label}'")
+            changed_data[data["id"]].append(statement.format(label))
 
     return changed_data
 
@@ -51,17 +48,17 @@ def get_changed_data(
     Generate a list per type of issue alert rule data of what changes occurred on edit.
     """
     changed_data: DefaultDict[str, list[str]] = defaultdict(list)
-    changed_data = check_added_or_removed(
-        rule_data_before, rule_data, rule, changed_data, "conditions", "condition", added=True
+    changed_data = generate_diff_labels(
+        rule_data_before, rule_data, rule, changed_data, "conditions", "Added condition '{}'"
     )
-    changed_data = check_added_or_removed(
-        rule_data, rule_data_before, rule, changed_data, "conditions", "condition", added=False
+    changed_data = generate_diff_labels(
+        rule_data, rule_data_before, rule, changed_data, "conditions", "Removed condition '{}'"
     )
-    changed_data = check_added_or_removed(
-        rule_data_before, rule_data, rule, changed_data, "actions", "action", added=True
+    changed_data = generate_diff_labels(
+        rule_data_before, rule_data, rule, changed_data, "actions", "Added action '{}'"
     )
-    changed_data = check_added_or_removed(
-        rule_data, rule_data_before, rule, changed_data, "actions", "action", added=False
+    changed_data = generate_diff_labels(
+        rule_data, rule_data_before, rule, changed_data, "actions", "Removed action '{}'"
     )
 
     frequency_text = check_value_changed(rule_data, rule_data_before, "frequency", "frequency")
