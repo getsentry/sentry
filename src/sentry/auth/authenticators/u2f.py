@@ -57,8 +57,18 @@ def _valid_staff_timestamp(request, limit: timedelta = STAFF_AUTH_FLOW_MAX_AGE) 
         return False
 
     flag_datetime = datetime.utcfromtimestamp(timestamp)
-    if datetime.now() - flag_datetime > limit:
-        del request.session["staff_auth_flow"]
+    current_time = datetime.now()
+    time_difference = current_time - flag_datetime
+    logger.info(
+        "Validating staff timestamp",
+        extra={
+            "current_time": current_time,
+            "time_difference": current_time - flag_datetime,
+            "limit": limit,
+            "boolean_check": time_difference > limit,
+        },
+    )
+    if time_difference > limit:
         return False
 
     return True

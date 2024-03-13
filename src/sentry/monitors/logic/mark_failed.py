@@ -159,11 +159,7 @@ def mark_failed_threshold(
         )
         fingerprint = incident.grouphash
 
-    elif monitor_env.status in [
-        MonitorStatus.ERROR,
-        MonitorStatus.MISSED_CHECKIN,
-        MonitorStatus.TIMEOUT,
-    ]:
+    elif monitor_env.status == MonitorStatus.ERROR:
         # if monitor environment has a failed status, use the failed
         # check-in and send occurrence
         previous_checkins = [

@@ -295,7 +295,7 @@ _PREBUILT_DASHBOARDS: list[dict[str, Any]] = [
                         "aggregates": [],
                         "columns": ["assignee", "issue", "title"],
                         "conditions": "assigned_or_suggested:me is:unresolved",
-                        "orderby": "priority",
+                        "orderby": "trends",
                     },
                 ],
                 "widgetType": "issue",

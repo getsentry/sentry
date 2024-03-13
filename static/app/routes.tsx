@@ -1,11 +1,5 @@
 import {Fragment} from 'react';
-import type {IndexRouteProps, PlainRoute, RouteProps} from 'react-router';
-import {
-  IndexRedirect,
-  IndexRoute as BaseIndexRoute,
-  Redirect,
-  Route as BaseRoute,
-} from 'react-router';
+import {IndexRedirect, Redirect} from 'react-router';
 import memoize from 'lodash/memoize';
 
 import LazyLoad from 'sentry/components/lazyLoad';
@@ -29,87 +23,7 @@ import redirectDeprecatedProjectRoute from 'sentry/views/projects/redirectDeprec
 import RouteNotFound from 'sentry/views/routeNotFound';
 import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
 
-type CustomProps = {
-  /**
-   * Human readable route name. This is primarily used in the settings routes.
-   */
-  name?: string;
-  /**
-   * Ensure this route renders two routes, one for the "org" path which
-   * includes the :orgId slug, and one without.
-   *
-   * Setting this to `true` will prefix the provided path of the secondary
-   * route with:
-   *
-   *   /organizations/:orgId
-   *
-   * Setting this will wrap the two routes in withDomainRequired and
-   * withDomainRedirect respectively.
-   */
-  withOrgPath?: boolean;
-};
-
-interface SentryRouteProps extends React.PropsWithChildren<RouteProps & CustomProps> {}
-
-/**
- * Customized React Router Route configuration component.
- */
-const Route = BaseRoute as React.ComponentClass<SentryRouteProps>;
-
-// The original createRouteFromReactElement extracted from the base route. This
-// is not properly typed hence the ts-ignore.
-//
-// @ts-ignore
-const createRouteFromReactElement = BaseRoute.createRouteFromReactElement;
-
-type RouteElement = React.ReactElement<SentryRouteProps>;
-
-// We override the createRouteFromReactElement property to provide support for
-// the withOrgPath property.
-//
-// XXX(epurkhiser): It is important to note! The `Route` component is a
-// CONFIGURATION ONLY COMPONENT. It DOES NOT render! This function is part of
-// the react-router magic internals that are used to build the route tree by
-// traversing the component tree, that is why this logic lives here and not
-// inside a custom Route component.
-//
-// To understand deeper how this works, see [0].
-//
-// When `withOrgPath` is provided to the Route configuration component the
-// react-router router builder will use this function which splits the single
-// Route into two, one for the route with :orgId and one for the new-style
-// route.
-//
-// [0]: https://github.com/remix-run/react-router/blob/850de933444d260bfc5460135d308f9d74b52c97/modules/RouteUtils.js#L15
-//
-// @ts-ignore
-Route.createRouteFromReactElement = function (element: RouteElement): PlainRoute {
-  const {withOrgPath, component, path} = element.props;
-
-  if (!withOrgPath) {
-    return createRouteFromReactElement(element);
-  }
-
-  const childRoutes: PlainRoute[] = [
-    {
-      ...createRouteFromReactElement(element),
-      path: `/organizations/:orgId${path}`,
-      component: withDomainRedirect(component ?? NoOp),
-    },
-  ];
-
-  if (USING_CUSTOMER_DOMAIN) {
-    childRoutes.push({
-      ...createRouteFromReactElement(element),
-      path,
-      component: withDomainRequired(component ?? NoOp),
-    });
-  }
-
-  return {childRoutes};
-};
-
-const IndexRoute = BaseIndexRoute as React.ComponentClass<IndexRouteProps & CustomProps>;
+import {IndexRoute, Route} from './components/route';
 
 const hook = (name: HookName) => HookStore.get(name).map(cb => cb());
 
@@ -1454,6 +1368,14 @@ function buildRoutes() {
       <Route
         path=":monitorSlug/edit/"
         component={make(() => import('sentry/views/monitors/edit'))}
+      />
+      <Route
+        path=":projectSlug/:monitorSlug/"
+        component={make(() => import('sentry/views/monitors/details'))}
+      />
+      <Route
+        path=":projectSlug/:monitorSlug/edit"
+        component={make(() => import('sentry/views/monitors/details'))}
       />
     </Route>
   );

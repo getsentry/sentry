@@ -33,6 +33,7 @@ import type {
   InboxDetails,
   NewQuery,
   Organization,
+  PriorityLevel,
   User,
 } from 'sentry/types';
 import {IssueCategory} from 'sentry/types';
@@ -63,6 +64,7 @@ type Props = {
   index?: number;
   memberList?: User[];
   narrowGroups?: boolean;
+  onPriorityChange?: (newPriority: PriorityLevel) => void;
   query?: string;
   queryFilterDescription?: string;
   showLastTriggered?: boolean;
@@ -93,6 +95,7 @@ function BaseGroupRow({
   useTintRow = true,
   narrowGroups = false,
   showLastTriggered = false,
+  onPriorityChange,
 }: Props) {
   const groups = useLegacyStore(GroupStore);
   const group = groups.find(item => item.id === id) as Group;
@@ -457,7 +460,9 @@ function BaseGroupRow({
           {organization.features.includes('issue-priority-ui') &&
           withColumns.includes('priority') ? (
             <PriorityWrapper narrowGroups={narrowGroups}>
-              {group.priority ? <GroupPriority group={group} /> : null}
+              {group.priority ? (
+                <GroupPriority group={group} onChange={onPriorityChange} />
+              ) : null}
             </PriorityWrapper>
           ) : null}
           {withColumns.includes('assignee') && (
