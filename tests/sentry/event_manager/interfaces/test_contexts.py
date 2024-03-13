@@ -97,3 +97,28 @@ def test_gpu(make_ctx_snapshot):
     make_ctx_snapshot(
         {"gpu": {"name": "AMD Radeon Pro 560", "vendor_name": "Apple", "version": "Metal"}}
     )
+
+
+def test_large_numbers():
+    data = {
+        "large_numbers": {
+            "decimal_number": 123456.789,
+            "number": 123456789,
+            "negative_number": -123456789,
+            "big_decimal_number": 123456789.123456789,
+            "big_number": 123456789123456789,
+            "big_negative_number": -123456789123456789,
+        }
+    }
+    numeric_keys = {"decimal_number", "number", "negative_number"}
+    string_keys = {"big_decimal_number", "big_number", "big_negative_number"}
+
+    mgr = EventManager(data={"contexts": data})
+    mgr.normalize()
+    evt = eventstore.backend.create_event(data=mgr.get_data())
+    interface = evt.interfaces.get("contexts")
+    ctx_data = interface.to_json()["large_numbers"]
+    for key in numeric_keys:
+        assert isinstance(ctx_data[key], (int, float))
+    for key in string_keys:
+        assert isinstance(ctx_data[key], str)
