@@ -8,6 +8,8 @@ from django.urls import reverse
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.useremail import UserEmail
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SlackActivityNotificationTest
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
@@ -114,6 +116,18 @@ class OrganizationInviteRequestCreateTest(
         assert teams[0].team_id == self.team.id
 
         self.assert_org_member_mapping(org_member=member)
+
+    def test_inviter_must_have_verified_email(self):
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            UserEmail.objects.filter(user=self.user).update(is_verified=False)
+
+        self.login_as(user=self.user)
+
+        response = self.client.post(
+            self.url, {"email": "eric@localhost", "role": "member", "teams": [self.team.slug]}
+        )
+
+        assert response.status_code == 401
 
     def test_higher_role(self):
         self.login_as(user=self.user)

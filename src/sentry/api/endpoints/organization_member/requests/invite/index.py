@@ -7,6 +7,7 @@ from sentry import audit_log, roles
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.decorators import email_verification_required
 from sentry.api.endpoints.organization_member.index import OrganizationMemberRequestSerializer
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -54,6 +55,7 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
             paginator_cls=OffsetPaginator,
         )
 
+    @email_verification_required
     def post(self, request: Request, organization) -> Response:
         """
         Add a invite request to Organization
