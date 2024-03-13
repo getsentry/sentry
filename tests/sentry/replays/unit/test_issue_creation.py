@@ -27,8 +27,8 @@ def test_report_rage_click_issue_with_replay_event(mock_new_issue_occurrence, de
         timestamp=seq1_timestamp.timestamp(),
         url="https://www.sentry.io",
         node={"tagName": "a"},
-        replay_event=mock_replay_event(),
         component_name="SmartSearchBar",
+        replay_event=mock_replay_event(),
     )
     issue_occurence_call = mock_new_issue_occurrence.call_args[1]
     assert issue_occurence_call["culprit"] == "https://www.sentry.io"
@@ -48,11 +48,11 @@ def test_report_rage_click_issue_with_replay_event(mock_new_issue_occurrence, de
 
     assert (
         issue_occurence_call["evidence_display"][0].to_dict()
-        == IssueEvidence(name="Clicked Element", value="a", important=True).to_dict()
+        == IssueEvidence(name="Clicked Element", value="a", important=False).to_dict()
     )
     assert (
         issue_occurence_call["evidence_display"][1].to_dict()
-        == IssueEvidence(name="Selector Path", value="div.xyz > a", important=True).to_dict()
+        == IssueEvidence(name="Selector Path", value="div.xyz > a", important=False).to_dict()
     )
     assert (
         issue_occurence_call["evidence_display"][2].to_dict()
@@ -111,8 +111,8 @@ def test_report_rage_click_long_url(default_project):
             timestamp=seq1_timestamp.timestamp(),
             url=f"https://www.sentry.io{'a' * 300}",
             node={"tagName": "a"},
-            replay_event=mock_replay_event(),
             component_name="SmartSearchBar",
+            replay_event=mock_replay_event(),
         )
 
     # test that the Issue gets created with the truncated url
@@ -139,8 +139,8 @@ def test_report_rage_click_no_environment(default_project):
             timestamp=seq1_timestamp.timestamp(),
             url="https://www.sentry.io",
             node={"tagName": "a"},
-            replay_event=mock_replay_event(),
             component_name="SmartSearchBar",
+            replay_event=mock_replay_event(),
         )
 
     assert Group.objects.get(message__contains="div.xyz > a")
@@ -163,8 +163,8 @@ def test_report_rage_click_no_trace(default_project):
             timestamp=seq1_timestamp.timestamp(),
             url="https://www.sentry.io",
             node={"tagName": "a"},
-            replay_event=mock_replay_event(trace_ids=[]),
             component_name="SmartSearchBar",
+            replay_event=mock_replay_event(trace_ids=[]),
         )
 
     # test that the Issue gets created
@@ -188,8 +188,8 @@ def test_report_rage_click_no_component_name(default_project):
             timestamp=seq1_timestamp.timestamp(),
             url="https://www.sentry.io",
             node={"tagName": "a"},
-            replay_event=mock_replay_event(trace_ids=[]),
             component_name=None,
+            replay_event=mock_replay_event(),
         )
 
     # test that the Issue gets created with no component name

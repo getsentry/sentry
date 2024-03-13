@@ -22,8 +22,8 @@ def report_rage_click_issue_with_replay_event(
     selector: str,
     url: str,
     node: dict[str, Any],
-    replay_event: dict[str, Any],
     component_name: str | None,
+    replay_event: dict[str, Any],
 ):
     metrics.incr("replay.rage_click_issue_creation_with_replay_event")
 
@@ -35,8 +35,7 @@ def report_rage_click_issue_with_replay_event(
     clicked_element = selector.split(" > ")[-1]
     component_name = component_name
     evidence = [
-        IssueEvidence(name="Clicked Element", value=clicked_element, important=True),
-        IssueEvidence(name="Selector Path", value=selector, important=True),
+        IssueEvidence(name="Clicked Element", value=clicked_element, important=False),
     ]
     evidence_data = {
         # RRWeb node data of clicked element.
@@ -46,10 +45,19 @@ def report_rage_click_issue_with_replay_event(
     }
 
     if component_name:
-        evidence.append(
-            IssueEvidence(name="React Component Name", value=component_name, important=True),
+        # component name is important
+        evidence.extend(
+            [
+                IssueEvidence(name="Selector Path", value=selector, important=False),
+                IssueEvidence(name="React Component Name", value=component_name, important=True),
+            ],
         )
         evidence_data.update({"component_name": component_name})
+    else:
+        # selector path is important
+        evidence.append(
+            IssueEvidence(name="Selector Path", value=selector, important=True),
+        )
 
     new_issue_occurrence(
         culprit=url[:MAX_CULPRIT_LENGTH],
