@@ -94,7 +94,11 @@ function MonitorDetails({params, location}: Props) {
   return (
     <SentryDocumentTitle title={`Crons — ${monitor.name}`}>
       <Layout.Page>
-        <MonitorHeader monitor={monitor} orgId={organization.slug} onUpdate={onUpdate} />
+        <MonitorHeader
+          monitor={monitor}
+          orgSlug={organization.slug}
+          onUpdate={onUpdate}
+        />
         <Layout.Body>
           <Layout.Main>
             <StyledPageFilterBar condensed>
