@@ -63,6 +63,7 @@ import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transac
 
 import type {TraceTree, TraceTreeNode} from '../../traceTree';
 
+import DurationPill from './durationPill';
 import {TraceDrawerComponents} from './styles';
 
 function OpsBreakdown({event}: {event: EventTransaction}) {
@@ -209,8 +210,7 @@ export function TransactionNodeDetails({
   const endTimestamp = Math.max(node.value.start_timestamp, node.value.timestamp);
   const {start: startTimeWithLeadingZero, end: endTimeWithLeadingZero} =
     getFormattedTimeRangeWithLeadingAndTrailingZero(startTimestamp, endTimestamp);
-  const duration = (endTimestamp - startTimestamp) * 1000;
-  const durationString = `${Number(duration.toFixed(3)).toLocaleString()}ms`;
+  const duration = endTimestamp - startTimestamp;
   const measurementNames = Object.keys(node.value.measurements ?? {})
     .filter(name => isCustomMeasurement(`measurements.${name}`))
     .filter(isNotMarkMeasurement)
@@ -294,11 +294,12 @@ export function TransactionNodeDetails({
           </div>
         </TraceDrawerComponents.Title>
         <TraceDrawerComponents.Actions>
-          <Button size="xs" onClick={_e => scrollToNode(node)}>
+          <DurationPill avgDuration={10} duration={duration} />
+          <Button size="sm" onClick={_e => scrollToNode(node)}>
             {t('Show in view')}
           </Button>
           <Button
-            size="xs"
+            size="sm"
             icon={<IconOpen />}
             href={eventJsonUrl}
             external
@@ -370,7 +371,6 @@ export function TransactionNodeDetails({
               {node.value.profile_id}
             </Row>
           )}
-          <Row title="Duration">{durationString}</Row>
           <Row title="Date Range">
             {getDynamicText({
               fixed: 'Mar 19, 2021 11:06:27 AM UTC',

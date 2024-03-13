@@ -466,8 +466,8 @@ export class TraceTree {
       const spanNodeValue: TraceTree.Span = {
         ...span,
         event: data as EventTransaction,
-        relatedErrors: childTxn
-          ? getSpanErrorsOrIssuesFromTransaction(span, childTxn.value)
+        relatedErrors: isTransactionNode(parent)
+          ? getSpanErrorsOrIssuesFromTransaction(span, parent.value)
           : [],
         childTxn: childTxn?.value,
       };

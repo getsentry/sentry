@@ -14,6 +14,7 @@ import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesP
 
 import type {TraceTree, TraceTreeNode} from '../../traceTree';
 
+import DurationPill from './durationPill';
 import {TraceDrawerComponents} from './styles';
 
 export function SpanNodeDetails({
@@ -49,9 +50,18 @@ export function SpanNodeDetails({
             </TraceDrawerComponents.TitleOp>
           </div>
         </TraceDrawerComponents.Title>
-        <Button size="xs" onClick={_e => scrollToNode(node)}>
-          {t('Show in view')}
-        </Button>
+        <TraceDrawerComponents.Actions>
+          <DurationPill
+            avgDuration={10}
+            duration={node.value.timestamp - node.value.start_timestamp}
+          />
+          {node.value.exclusive_time && (
+            <DurationPill avgDuration={10} duration={node.value.exclusive_time / 1000} />
+          )}
+          <Button size="sm" onClick={_e => scrollToNode(node)}>
+            {t('Show in view')}
+          </Button>
+        </TraceDrawerComponents.Actions>
       </TraceDrawerComponents.HeaderContainer>
       {event.projectSlug && (
         <ProfilesProvider
