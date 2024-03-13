@@ -161,7 +161,7 @@ declare const __LOADER__IS_LAZY__: any;
     if (config.tracesSampleRate && integrationNames.indexOf('BrowserTracing') === -1) {
       if (SDK.browserTracingIntegration) {
         // (Post-)v8 version of the BrowserTracing integration
-        integrations.push(SDK.browserTracingIntegration({ enableInp: true }));
+        integrations.push(SDK.browserTracingIntegration({enableInp: true}));
       } else if (SDK.BrowserTracing) {
         // Pre v8 version of the BrowserTracing integration
         integrations.push(new SDK.BrowserTracing());
