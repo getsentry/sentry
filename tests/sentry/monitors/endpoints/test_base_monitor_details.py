@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 import pytest
@@ -13,7 +13,9 @@ from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
     MonitorCheckIn,
+    MonitorEnvBrokenDetection,
     MonitorEnvironment,
+    MonitorIncident,
     ScheduleType,
 )
 from sentry.monitors.utils import get_timeout_at
@@ -69,6 +71,7 @@ class BaseMonitorDetailsTest(MonitorTestCase):
                 "lastCheckIn": jungle.last_checkin,
                 "nextCheckIn": jungle.next_checkin,
                 "nextCheckInLatest": jungle.next_checkin_latest,
+                "brokenDetection": None,
             },
             {
                 "name": prod_env,
@@ -78,6 +81,7 @@ class BaseMonitorDetailsTest(MonitorTestCase):
                 "lastCheckIn": prod.last_checkin,
                 "nextCheckIn": prod.next_checkin,
                 "nextCheckInLatest": prod.next_checkin_latest,
+                "brokenDetection": None,
             },
         ]
 
@@ -93,6 +97,7 @@ class BaseMonitorDetailsTest(MonitorTestCase):
                 "lastCheckIn": prod.last_checkin,
                 "nextCheckIn": prod.next_checkin,
                 "nextCheckInLatest": prod.next_checkin_latest,
+                "brokenDetection": None,
             }
         ]
 
@@ -107,6 +112,27 @@ class BaseMonitorDetailsTest(MonitorTestCase):
         issue_alert_rule = resp.data["alertRule"]
         assert issue_alert_rule is not None
         assert issue_alert_rule["environment"] is not None
+
+    def test_returns_broken_detection(self):
+        monitor = self._create_monitor()
+        monitor_env = self._create_monitor_environment(monitor)
+
+        resp = self.get_success_response(self.organization.slug, monitor.slug)
+        assert resp.data["environments"][0]["brokenDetection"] is None
+
+        monitor_incident = MonitorIncident.objects.create(
+            monitor=monitor, monitor_environment=monitor_env
+        )
+        detection_timestamp = datetime(2024, 1, 1, tzinfo=timezone.utc)
+        MonitorEnvBrokenDetection.objects.create(
+            monitor_incident=monitor_incident, user_notified_timestamp=detection_timestamp
+        )
+
+        resp = self.get_success_response(self.organization.slug, monitor.slug)
+        assert resp.data["environments"][0]["brokenDetection"] == {
+            "userNotifiedTimestamp": detection_timestamp,
+            "envMutedTimestamp": None,
+        }
 
 
 @freeze_time()

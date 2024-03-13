@@ -11,7 +11,27 @@ from sentry.monitors.utils import fetch_associated_groups
 from sentry.monitors.validators import IntervalNames
 
 from ..models import Environment
-from .models import Monitor, MonitorCheckIn, MonitorEnvironment, MonitorStatus
+from .models import (
+    Monitor,
+    MonitorCheckIn,
+    MonitorEnvBrokenDetection,
+    MonitorEnvironment,
+    MonitorStatus,
+)
+
+
+class MonitorEnvBrokenDetectionSerializerResponse(TypedDict):
+    userNotifiedTimestamp: datetime
+    envMutedTimestamp: datetime
+
+
+@register(MonitorEnvBrokenDetection)
+class MonitorEnvBrokenDetectionSerializer(Serializer):
+    def serialize(self, obj, attrs, user, **kwargs) -> MonitorEnvBrokenDetectionSerializerResponse:
+        return {
+            "userNotifiedTimestamp": obj.user_notified_timestamp,
+            "envMutedTimestamp": obj.env_muted_timestamp,
+        }
 
 
 class MonitorEnvironmentSerializerResponse(TypedDict):
@@ -22,6 +42,7 @@ class MonitorEnvironmentSerializerResponse(TypedDict):
     lastCheckIn: datetime
     nextCheckIn: datetime
     nextCheckInLatest: datetime
+    brokenDetection: MonitorEnvBrokenDetectionSerializerResponse
 
 
 @register(MonitorEnvironment)
@@ -35,7 +56,10 @@ class MonitorEnvironmentSerializer(Serializer):
         environments = {env.id: env for env in Environment.objects.filter(id__in=env_ids)}
 
         return {
-            monitor_env: {"environment": environments[monitor_env.environment_id]}
+            monitor_env: {
+                "environment": environments[monitor_env.environment_id],
+                "open_broken_detection": serialize(monitor_env.open_broken_detection, user),
+            }
             for monitor_env in item_list
         }
 
@@ -48,6 +72,7 @@ class MonitorEnvironmentSerializer(Serializer):
             "lastCheckIn": obj.last_checkin,
             "nextCheckIn": obj.next_checkin,
             "nextCheckInLatest": obj.next_checkin_latest,
+            "brokenDetection": attrs["open_broken_detection"],
         }
 
 

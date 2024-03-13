@@ -652,6 +652,22 @@ class MonitorEnvironment(Model):
         except MonitorIncident.DoesNotExist:
             return None
 
+    @property
+    def open_broken_detection(self) -> MonitorEnvBrokenDetection | None:
+        """
+        Retrieve the current broken detection linked to the active incident.
+        If there is no active incident or the incident hasn't gone on long
+        enough to generate a broken detection, None will be returned.
+        """
+        active_incident = self.active_incident
+        if not active_incident:
+            return None
+
+        try:
+            return MonitorEnvBrokenDetection.objects.get(monitor_incident=active_incident)
+        except MonitorEnvBrokenDetection.DoesNotExist:
+            return None
+
 
 @receiver(pre_save, sender=MonitorEnvironment)
 def check_monitor_environment_limits(sender, instance, **kwargs):
