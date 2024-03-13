@@ -35,7 +35,14 @@ function OrganizationContainer({children}: Props) {
   // organization in context**.
   //
   // TODO(epurkhiser): This scenario desprately should be improved
-  if (error && errorType === ORGANIZATION_FETCH_ERROR_TYPES.ORG_NO_ACCESS) {
+  if (
+    error &&
+    errorType &&
+    [
+      ORGANIZATION_FETCH_ERROR_TYPES.ORG_NO_ACCESS,
+      ORGANIZATION_FETCH_ERROR_TYPES.NO_ORGS,
+    ].includes(errorType)
+  ) {
     return children;
   }
 
