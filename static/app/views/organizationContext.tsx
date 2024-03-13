@@ -105,8 +105,8 @@ export function OrganizationContextProvider({children}: Props) {
     if (organization && organization.slug === orgSlug) {
       return;
     }
-
     if (!orgSlug) {
+      OrganizationStore.setNoOrganization();
       return;
     }
 
