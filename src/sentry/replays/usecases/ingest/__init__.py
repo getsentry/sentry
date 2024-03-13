@@ -124,7 +124,7 @@ def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> Non
 
     # The first segment records an accepted outcome. This is for billing purposes. Subsequent
     # segments are not billed.
-    if headers["segment_id"] == 0:
+    if headers["segment_id"] == 0 and message.replay_video is None:
         track_initial_segment_event(
             message.org_id,
             message.project_id,
