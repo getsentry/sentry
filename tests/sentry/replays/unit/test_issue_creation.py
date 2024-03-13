@@ -189,6 +189,7 @@ def test_report_rage_click_no_component_name(default_project):
             url="https://www.sentry.io",
             node={"tagName": "a"},
             replay_event=mock_replay_event(trace_ids=[]),
+            component_name=None,
         )
 
     # test that the Issue gets created with no component name
