@@ -1407,7 +1407,7 @@ export class VirtualizedList {
   scrollHeight: number = 0;
   scrollTop: number = 0;
 
-  scrollToRow(index: number, anchor = 'top') {
+  scrollToRow(index: number, anchor?: 'top') {
     if (!this.container) {
       return;
     }
@@ -1422,14 +1422,14 @@ export class VirtualizedList {
     const height = this.scrollHeight;
 
     if (position < top) {
-      // above view
+      // Row is above the view
+      this.container.scrollTop = index * 24;
     } else if (position > top + height) {
-      // under view
+      // Row is under the view
+      this.container.scrollTop = index * 24 - height + 24;
     } else {
       return;
     }
-
-    this.container.scrollTop = index * 24;
   }
 }
 

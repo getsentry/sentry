@@ -15,7 +15,6 @@ import * as Sentry from '@sentry/react';
 import {PlatformIcon} from 'platformicons';
 import * as qs from 'query-string';
 
-import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import Placeholder from 'sentry/components/placeholder';
@@ -133,6 +132,7 @@ interface TraceProps {
   previouslyFocusedIndexRef: React.MutableRefObject<number | null>;
   roving_dispatch: React.Dispatch<RovingTabIndexAction>;
   roving_state: RovingTabIndexState;
+  scrollQueueRef: React.MutableRefObject<TraceTree.NodePath[] | null>;
   searchResultsIteratorIndex: number | undefined;
   searchResultsMap: Map<TraceTreeNode<TraceTree.NodeValue>, number>;
   search_dispatch: React.Dispatch<TraceSearchAction>;
@@ -151,6 +151,7 @@ function Trace({
   search_dispatch,
   setClickedNode: setDetailNode,
   manager,
+  scrollQueueRef,
   searchResultsIteratorIndex,
   searchResultsMap,
   previouslyFocusedIndexRef,
@@ -171,7 +172,6 @@ function Trace({
     treePromiseStatusRef.current = new Map();
   }
 
-  const scrollQueue = useRef<TraceTree.NodePath[] | null>(null);
   const treeRef = useRef<TraceTree>(trace);
   treeRef.current = trace;
 
@@ -181,7 +181,7 @@ function Trace({
       trace.root.space[1] !== manager.trace_space.width)
   ) {
     manager.initializeTraceSpace([trace.root.space[0], 0, trace.root.space[1], 1]);
-    scrollQueue.current = decodeScrollQueue(qs.parse(location.search).node);
+    scrollQueueRef.current = decodeScrollQueue(qs.parse(location.search).node);
   }
 
   const loadedRef = useRef(false);
@@ -196,7 +196,7 @@ function Trace({
     loadedRef.current = true;
 
     const eventId = qs.parse(location.search)?.eventId;
-    if (!scrollQueue.current && !scrollQueue.current && !eventId) {
+    if (!scrollQueueRef.current && !scrollQueueRef.current && !eventId) {
       if (search_state.query) {
         onTraceSearch(search_state.query);
       }
@@ -209,10 +209,10 @@ function Trace({
             api,
             organization,
           })
-        : scrollQueue.current
+        : scrollQueueRef.current
           ? manager.scrollToPath(
               trace,
-              scrollQueue.current,
+              scrollQueueRef.current,
               () => setRender(a => (a + 1) % 2),
               {
                 api,
@@ -222,10 +222,10 @@ function Trace({
           : Promise.resolve(null);
 
     promise.then(maybeNode => {
-      // Important to set scrollQueue.current to null and trigger a rerender
+      // Important to set scrollQueueRef.current to null and trigger a rerender
       // after the promise resolves as we show a loading state during scroll,
       // else the screen could jump around while we fetch span data
-      scrollQueue.current = null;
+      scrollQueueRef.current = null;
 
       if (!maybeNode) {
         Sentry.captureMessage('Failled to find and scroll to node in tree');
@@ -253,6 +253,7 @@ function Trace({
     });
   }, [
     api,
+    scrollQueueRef,
     organization,
     trace,
     trace_id,
@@ -527,7 +528,7 @@ function Trace({
 
   const render = useCallback(
     (n: VirtualizedRow) => {
-      return trace.type !== 'trace' || scrollQueue.current ? (
+      return trace.type !== 'trace' || scrollQueueRef.current ? (
         <RenderPlaceholderRow
           key={n.key}
           index={n.index}
@@ -593,18 +594,9 @@ function Trace({
         containerRef.current = r;
         manager.onContainerRef(r);
       }}
-      className={`${trace.indicators.length > 0 ? 'WithIndicators' : ''} ${trace.type !== 'trace' || scrollQueue.current ? 'Loading' : ''}`}
+      className={`${trace.indicators.length > 0 ? 'WithIndicators' : ''} ${trace.type !== 'trace' || scrollQueueRef.current ? 'Loading' : ''}`}
     >
       <div className="TraceDivider" ref={r => manager?.registerDividerRef(r)} />
-      {trace.type === 'loading' ? (
-        <TraceLoading />
-      ) : trace.type === 'error' ? (
-        <TraceError />
-      ) : trace.type === 'empty' ? (
-        <TraceEmpty />
-      ) : scrollQueue.current ? (
-        <TraceLoading />
-      ) : null}
       <div
         className="TraceIndicatorContainer"
         ref={r => manager.registerIndicatorContainerRef(r)}
@@ -1669,13 +1661,15 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
  * the scrolling to flicker.
  */
 const TraceStylingWrapper = styled('div')`
-  height: 70vh;
-  width: 100%;
   margin: auto;
   overscroll-behavior: none;
-  position: relative;
   box-shadow: 0 0 0 1px ${p => p.theme.border};
-  border-radius: 4px;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  grid-area: trace;
 
   padding-top: 22px;
 
@@ -2196,113 +2190,4 @@ const TraceStylingWrapper = styled('div')`
   .TraceDescription {
     white-space: nowrap;
   }
-`;
-
-const LoadingContainer = styled('div')<{animate: boolean; error?: boolean}>`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-direction: column;
-  left: 50%;
-  top: 50%;
-  position: absolute;
-  height: auto;
-  font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray300};
-  z-index: 30;
-  padding: 24px;
-  background-color: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.border};
-  transform-origin: 50% 50%;
-  transform: translate(-50%, -50%);
-  animation: ${p =>
-    p.animate
-      ? `${p.error ? 'showLoadingContainerShake' : 'showLoadingContainer'} 300ms cubic-bezier(0.61, 1, 0.88, 1) forwards`
-      : 'none'};
-
-  @keyframes showLoadingContainer {
-    from {
-      opacity: 0.6;
-      transform: scale(0.99) translate(-50%, -50%);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1) translate(-50%, -50%);
-    }
-  }
-
-  @keyframes showLoadingContainerShake {
-    0% {
-      transform: translate(-50%, -50%);
-    }
-    25% {
-      transform: translate(-51%, -50%);
-    }
-    75% {
-      transform: translate(-49%, -50%);
-    }
-    100% {
-      transform: translate(-50%, -50%);
-    }
-  }
-`;
-
-function TraceLoading() {
-  return (
-    // Dont flash the animation on load because it's annoying
-    <LoadingContainer animate={false}>
-      <NoMarginIndicator size={24}>
-        <div>{t('Assembling the trace')}</div>
-      </NoMarginIndicator>
-    </LoadingContainer>
-  );
-}
-
-function TraceError() {
-  const linkref = useRef<HTMLAnchorElement>(null);
-  const feedback = useFeedbackWidget({buttonRef: linkref});
-  return (
-    <LoadingContainer animate error>
-      <div>{t('Ughhhhh, we failed to load your trace...')}</div>
-      <div>
-        {t('Seeing this often? Send us ')}
-        {feedback ? (
-          <a href="#" ref={linkref}>
-            {t('feedback')}
-          </a>
-        ) : (
-          <a href="mailto:support@sentry.io?subject=Trace%20fails%20to%20load">
-            {t('feedback')}
-          </a>
-        )}
-      </div>
-    </LoadingContainer>
-  );
-}
-
-function TraceEmpty() {
-  const linkref = useRef<HTMLAnchorElement>(null);
-  const feedback = useFeedbackWidget({buttonRef: linkref});
-  return (
-    <LoadingContainer animate>
-      <div>{t('This trace does not contain any data?!')}</div>
-      <div>
-        {t('Seeing this often? Send us ')}
-        {feedback ? (
-          <a href="#" ref={linkref}>
-            {t('feedback')}
-          </a>
-        ) : (
-          <a href="mailto:support@sentry.io?subject=Trace%20does%20not%20contain%20data">
-            {t('feedback')}
-          </a>
-        )}
-      </div>
-    </LoadingContainer>
-  );
-}
-
-const NoMarginIndicator = styled(LoadingIndicator)`
-  margin: 0;
 `;

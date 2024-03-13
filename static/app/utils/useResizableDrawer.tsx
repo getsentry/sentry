@@ -90,6 +90,7 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
 
   const onMouseMove = useCallback(
     (event: MouseEvent) => {
+      event.stopPropagation();
       const isXAxis = options.direction === 'left' || options.direction === 'right';
       const isInverted = options.direction === 'down' || options.direction === 'left';
 
