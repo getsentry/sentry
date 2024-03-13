@@ -876,6 +876,10 @@ export class VirtualizedViewManager {
     );
   }
 
+  computeRelativeLeftPositionFromOrigin(timestamp: number, node_space: [number, number]) {
+    return (timestamp - node_space[0]) / node_space[1];
+  }
+
   recomputeTimelineIntervals() {
     const tracePhysicalToView = this.trace_physical_space.between(this.trace_view);
     const time_at_100 =
@@ -1140,6 +1144,10 @@ export class VirtualizedViewManager {
       if (span_bar) {
         const span_transform = this.computeSpanCSSMatrixTransform(span_bar.space);
         span_bar.ref.style.transform = `matrix(${span_transform.join(',')}`;
+        span_bar.ref.style.setProperty(
+          '--inverse-span-scale',
+          1 / span_transform[0] + ''
+        );
       }
       const span_text = this.span_text[i];
       if (span_text) {
@@ -1445,14 +1453,19 @@ export class VirtualizedList {
   scrollHeight: number = 0;
   scrollTop: number = 0;
 
-  scrollToRow(index: number, rowHeight: number = 24) {
+  scrollToRow(index: number, anchor = 'top') {
     if (!this.container) {
       return;
     }
 
+    if (anchor === 'top') {
+      this.container.scrollTop = index * 24;
+      return;
+    }
+
+    const position = index * 24;
     const top = this.container.scrollTop;
     const height = this.scrollHeight;
-    const position = index * rowHeight;
 
     if (position < top) {
       // above view
@@ -1462,7 +1475,7 @@ export class VirtualizedList {
       return;
     }
 
-    this.container.scrollTop = index * rowHeight;
+    this.container.scrollTop = index * 24;
   }
 }
 
@@ -1600,6 +1613,7 @@ export const useVirtualizedList = (
       }
 
       managerRef.current.isScrolling = true;
+      managerRef.current.enqueueOnScrollEndOutOfBoundsCheck();
 
       rafId.current = window.requestAnimationFrame(() => {
         scrollTopRef.current = Math.max(0, event.target?.scrollTop ?? 0);

@@ -339,7 +339,13 @@ function TraceViewContent(props: TraceViewContentProps) {
   useQueryParamSync(syncQuery);
 
   const onOutsideClick = useCallback(() => {
-    const {node: _node, ...queryParamsWithoutNode} = qs.parse(location.search);
+    // we will drop eventId such that after users clicks outside and shares the URL,
+    // we will no longer scroll to the event or node
+    const {
+      node: _node,
+      eventId: _eventId,
+      ...queryParamsWithoutNode
+    } = qs.parse(location.search);
 
     browserHistory.push({
       pathname: location.pathname,
