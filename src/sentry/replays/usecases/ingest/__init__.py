@@ -159,10 +159,11 @@ def track_initial_segment_event(
         logger.info(
             "Sending first_replay_received signal",
             extra={
-                "project": repr(project),
+                "project_id": project_id,
                 "org_id": org_id,
                 "replay_id": replay_id,
                 "key_id": key_id,
+                "project_details": repr(project),
             },
         )
         first_replay_received.send_robust(project=project, sender=Project)
