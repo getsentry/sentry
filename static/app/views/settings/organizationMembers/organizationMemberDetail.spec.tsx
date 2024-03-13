@@ -1,4 +1,3 @@
-import selectEvent from 'react-select-event';
 import {UserEnrolledAuthenticatorFixture} from 'sentry-fixture/authenticators';
 import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -15,6 +14,7 @@ import {
   userEvent,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import {updateMember} from 'sentry/actionCreators/members';
 import TeamStore from 'sentry/stores/teamStore';
@@ -717,18 +717,18 @@ describe('OrganizationMemberDetail', function () {
       expect(screen.queryAllByText('...').length).toBe(0);
 
       // Dropdown can be opened
-      selectEvent.openMenu(teamRoleSelect);
+      await selectEvent.openMenu(teamRoleSelect);
       expect(screen.queryAllByText('...').length).toBe(2);
 
       // Dropdown value can be changed
-      await selectEvent.select(teamRoleSelect, ['Team Admin']);
+      await userEvent.click(screen.getByLabelText('Team Admin'));
       expect(teamRoleSelect).toHaveTextContent('Team Admin');
     });
 
-    it('overwrite team-roles for org admin/manager/owner', () => {
+    it('overwrite team-roles for org admin/manager/owner', async () => {
       const {routerContext, routerProps} = initializeOrg({organization});
 
-      function testForOrgRole(testMember) {
+      async function testForOrgRole(testMember) {
         cleanup();
         render(
           <OrganizationMemberDetail
@@ -752,12 +752,12 @@ describe('OrganizationMemberDetail', function () {
         expect(screen.queryAllByText('...').length).toBe(0);
 
         // Dropdown cannot be opened
-        selectEvent.openMenu(teamRoleSelect);
+        await selectEvent.openMenu(teamRoleSelect);
         expect(screen.queryAllByText('...').length).toBe(0);
       }
 
       for (const role of [admin, manager, owner]) {
-        testForOrgRole(role);
+        await testForOrgRole(role);
       }
     });
 
@@ -795,7 +795,7 @@ describe('OrganizationMemberDetail', function () {
       expect(screen.queryAllByText('...').length).toBe(0);
 
       // Dropdown cannot be opened
-      selectEvent.openMenu(teamRoleSelect);
+      await selectEvent.openMenu(teamRoleSelect);
       expect(screen.queryAllByText('...').length).toBe(0);
     });
   });

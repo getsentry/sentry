@@ -63,32 +63,6 @@ def kafka_admin(request):
     return inner
 
 
-@pytest.fixture
-def kafka_topics_setter():
-    """
-    Returns a function that given a Django settings objects will setup the
-    kafka topics names to test names.
-
-    :return: a function that given a settings object changes all kafka topic names
-    to "test-<normal_topic_name>"
-    """
-
-    def set_test_kafka_settings(settings):
-        settings.KAFKA_INGEST_EVENTS = "ingest-events"
-        settings.KAFKA_TOPICS[settings.KAFKA_INGEST_EVENTS] = {"cluster": "default"}
-
-        settings.INGEST_TRANSACTIONS = "ingest-transactions"
-        settings.KAFKA_TOPICS[settings.INGEST_TRANSACTIONS] = {"cluster": "default"}
-
-        settings.KAFKA_INGEST_ATTACHMENTS = "ingest-attachments"
-        settings.KAFKA_TOPICS[settings.KAFKA_INGEST_ATTACHMENTS] = {"cluster": "default"}
-
-        settings.KAFKA_OUTCOMES = "outcomes"
-        settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES] = {"cluster": "default"}
-
-    return set_test_kafka_settings
-
-
 @pytest.fixture(scope="session")
 def scope_consumers():
     """

@@ -12,7 +12,7 @@ import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable'
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
-import {getDuration} from 'sentry/utils/formatters';
+import {formatAbbreviatedNumber, getDuration} from 'sentry/utils/formatters';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -31,7 +31,6 @@ import type {
   RowWithScoreAndOpportunity,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webVitals/utils/useReplaceFidWithInpSetting';
 import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 
@@ -39,7 +38,7 @@ type Column = GridColumnHeader;
 
 const columnOrder: GridColumnOrder[] = [
   {key: 'transaction', width: COL_WIDTH_UNDEFINED, name: 'Pages'},
-  {key: 'count()', width: COL_WIDTH_UNDEFINED, name: 'Pageloads'},
+  {key: 'count', width: COL_WIDTH_UNDEFINED, name: 'Pageloads'},
   {key: 'webVital', width: COL_WIDTH_UNDEFINED, name: 'Web Vital'},
   {key: 'score', width: COL_WIDTH_UNDEFINED, name: 'Score'},
   {key: 'opportunity', width: COL_WIDTH_UNDEFINED, name: 'Opportunity'},
@@ -59,14 +58,11 @@ export function WebVitalsDetailPanel({
   const organization = useOrganization();
   const location = useLocation();
   const shouldUseStoredScores = useStoredScoresSetting();
-  const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
-  // TODO: Revert this when INP is queryable in discover.
-  const webVitalFilter = shouldReplaceFidWithInp && webVital === 'inp' ? 'fid' : webVital;
 
   const {data: projectData} = useProjectRawWebVitalsQuery({});
   const {data: projectScoresData} = useProjectWebVitalsScoresQuery({
     enabled: shouldUseStoredScores,
-    weightWebVital: webVitalFilter ?? 'total',
+    weightWebVital: webVital ?? 'total',
   });
 
   const projectScore = shouldUseStoredScores
@@ -74,18 +70,18 @@ export function WebVitalsDetailPanel({
     : calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
   const {data, isLoading} = useTransactionWebVitalsQuery({
     limit: 100,
-    opportunityWebVital: webVitalFilter ?? 'total',
+    webVital: webVital ?? 'total',
     ...(webVital
       ? shouldUseStoredScores
         ? {
-            query: `count_scores(measurements.score.${webVitalFilter}):>0`,
+            query: `count_scores(measurements.score.${webVital}):>0`,
             defaultSort: {
-              field: `opportunity_score(measurements.score.${webVitalFilter})`,
+              field: `opportunity_score(measurements.score.${webVital})`,
               kind: 'desc',
             },
           }
         : {
-            query: `count_web_vitals(measurements.${webVitalFilter},any):>0`,
+            query: `count_web_vitals(measurements.${webVital},any):>0`,
           }
       : {}),
     enabled: webVital !== null,
@@ -97,7 +93,7 @@ export function WebVitalsDetailPanel({
     }
     const count = projectData?.data?.[0]?.['count()'] as number;
     const sumWeights = projectScoresData?.data?.[0]?.[
-      `sum(measurements.score.weight.${webVitalFilter})`
+      `sum(measurements.score.weight.${webVital})`
     ] as number;
     return data
       .map(row => ({
@@ -131,7 +127,6 @@ export function WebVitalsDetailPanel({
     projectScoresData?.data,
     shouldUseStoredScores,
     webVital,
-    webVitalFilter,
   ]);
 
   const {data: timeseriesData, isLoading: isTimeseriesLoading} =
@@ -180,6 +175,11 @@ export function WebVitalsDetailPanel({
           <OpportunityHeader>{col.name}</OpportunityHeader>
         </Tooltip>
       );
+    }
+    if (col.key === 'count') {
+      if (webVital === 'inp') {
+        return <AlignRight>{t('Interactions')}</AlignRight>;
+      }
     }
     return <AlignRight>{col.name}</AlignRight>;
   };
@@ -231,6 +231,11 @@ export function WebVitalsDetailPanel({
           </Link>
         </NoOverflow>
       );
+    }
+    if (key === 'count') {
+      const count =
+        webVital === 'inp' ? row['count_scores(measurements.score.inp)'] : row['count()'];
+      return <AlignRight>{formatAbbreviatedNumber(count)}</AlignRight>;
     }
     return <AlignRight>{row[key]}</AlignRight>;
   };

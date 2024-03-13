@@ -75,7 +75,7 @@ class OrganizationDDMMetaEndpoint(OrganizationEndpoint):
             end=end,
             organization=organization,
             projects=projects,
-        )
+        )[1]
 
     def _get_metric_correlations(
         self,

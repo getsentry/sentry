@@ -7,7 +7,7 @@ import redis
 from django.conf import settings
 
 from sentry.utils import json
-from sentry.utils.dates import to_datetime, to_timestamp
+from sentry.utils.dates import to_datetime
 from sentry.utils.redis import redis_clusters
 
 from .base import ReprocessingStore
@@ -55,10 +55,15 @@ class RedisReprocessingStore(ReprocessingStore):
         `event id;datetime of event`, returns a list of event IDs, the
         earliest datetime, and the latest datetime.
         """
+        key = _get_old_primary_hash_subset_key(project_id, group_id, primary_hash)
+        return self.pop_batched_events_by_key(key)
+
+    def pop_batched_events_by_key(
+        self, key: str
+    ) -> tuple[list[str], datetime | None, datetime | None]:
         event_ids_batch = []
         min_datetime: datetime | None = None
         max_datetime: datetime | None = None
-        key = _get_old_primary_hash_subset_key(project_id, group_id, primary_hash)
 
         for row in self.redis.lrange(key, 0, -1):
             datetime_raw, event_id = row.split(";")
@@ -94,7 +99,7 @@ class RedisReprocessingStore(ReprocessingStore):
         old_primary_hash: str,
     ) -> None:
         event_key = _get_old_primary_hash_subset_key(project_id, group_id, old_primary_hash)
-        self.redis.lpush(event_key, f"{to_timestamp(date_val)};{event_id}")
+        self.redis.lpush(event_key, f"{date_val.timestamp()};{event_id}")
         self.redis.expire(event_key, settings.SENTRY_REPROCESSING_TOMBSTONES_TTL)
 
     def add_hash(self, project_id: int, group_id: int, hash: str) -> None:
@@ -113,10 +118,7 @@ class RedisReprocessingStore(ReprocessingStore):
         if datetime_to_event:
             llen = self.redis.lpush(
                 key,
-                *(
-                    f"{to_timestamp(datetime)};{event_id}"
-                    for datetime, event_id in datetime_to_event
-                ),
+                *(f"{datetime.timestamp()};{event_id}" for datetime, event_id in datetime_to_event),
             )
             self.redis.expire(key, settings.SENTRY_REPROCESSING_SYNC_TTL)
         else:

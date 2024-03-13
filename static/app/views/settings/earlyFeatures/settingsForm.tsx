@@ -8,19 +8,20 @@ import JsonForm from 'sentry/components/forms/jsonForm';
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import type {Organization, OrganizationAuthProvider, Scope} from 'sentry/types';
+import type {OrganizationAuthProvider, Scope} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props extends RouteComponentProps<{}, {}> {
   access: Set<Scope>;
   location: Location;
-  organization: Organization;
 }
 
 type FeatureFlags = Record<string, {description: string; value: boolean}>;
 
-function EarlyFeaturesSettingsForm({organization, access, location}: Props) {
+export default function EarlyFeaturesSettingsForm({access, location}: Props) {
+  const organization = useOrganization();
+
   const {data: authProvider, isLoading: authProviderIsLoading} =
     useApiQuery<OrganizationAuthProvider>(
       [`/organizations/${organization.slug}/auth-provider/`],
@@ -76,5 +77,3 @@ function EarlyFeaturesSettingsForm({organization, access, location}: Props) {
     </Fragment>
   );
 }
-
-export default withOrganization(EarlyFeaturesSettingsForm);

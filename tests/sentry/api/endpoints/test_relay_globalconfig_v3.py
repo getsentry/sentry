@@ -38,15 +38,11 @@ def test_global_config():
     config["options"]["profiling.profile_metrics.unsampled_profiles.enabled"] = True
     config["options"]["profiling.profile_metrics.unsampled_profiles.platforms"] = ["fake-platform"]
     config["options"]["profiling.profile_metrics.unsampled_profiles.sample_rate"] = 1.0
-    config["options"]["relay.metric-bucket-encodings"] = {
-        "sessions": "array",
-        "transactions": "array",
-        "spans": "array",
-        "custom": "array",
-        "unsupported": "array",
-    }
+
     config["options"]["relay.span-usage-metric"] = True
     config["options"]["relay.cardinality-limiter.mode"] = "passive"
+
+    config["options"]["profiling.generic_metrics.functions_ingestion.enabled"] = True
 
     normalized = normalize_global_config(config)
     assert normalized == config
@@ -78,3 +74,29 @@ def test_return_global_config_on_right_version(
         assert "global" not in result
     else:
         assert result.get("global") == {"global_mock_config": True}
+
+
+@patch(
+    "sentry.relay.globalconfig.get_global_generic_filters",
+    lambda *args, **kwargs: {
+        "version": 1,
+        "filters": [
+            {
+                "id": "test-id",
+                "isEnabled": True,
+                "condition": {
+                    "op": "not",
+                    "inner": {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Firefox",
+                    },
+                },
+            }
+        ],
+    },
+)
+@patch("sentry.relay.globalconfig.RELAY_OPTIONS", [])
+def test_global_config_valid_with_generic_filters():
+    config = get_global_config()
+    assert config == normalize_global_config(config)

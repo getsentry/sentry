@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import uuid
 import zoneinfo
 from collections.abc import Sequence
 from datetime import datetime
@@ -635,22 +636,16 @@ class MonitorEnvironment(Model):
         )
 
     @property
-    def incident_grouphash(self):
+    def active_incident(self) -> MonitorIncident | None:
         """
-        Retrieve the grouphash for the current active incident. If there is no
-        active incident None will be returned.
+        Retrieve the current active incident. If there is no active incident None will be returned.
         """
-        active_incident = (
-            MonitorIncident.objects.filter(
+        try:
+            return MonitorIncident.objects.get(
                 monitor_environment_id=self.id, resolving_checkin__isnull=True
             )
-            .order_by("-date_added")
-            .first()
-        )
-        if active_incident:
-            return active_incident.grouphash
-
-        return None
+        except MonitorIncident.DoesNotExist:
+            return None
 
 
 @receiver(pre_save, sender=MonitorEnvironment)
@@ -663,6 +658,13 @@ def check_monitor_environment_limits(sender, instance, **kwargs):
         raise MonitorEnvironmentLimitsExceeded(
             f"You may not exceed {settings.MAX_ENVIRONMENTS_PER_MONITOR} environments per monitor"
         )
+
+
+def default_grouphash():
+    """
+    Generate a unique 32 character grouphash for a monitor incident
+    """
+    return uuid.uuid4().hex
 
 
 @region_silo_only_model
@@ -687,10 +689,50 @@ class MonitorIncident(Model):
     This represents the final OK check-in that we receive
     """
 
-    grouphash = models.CharField(max_length=32)
+    grouphash = models.CharField(max_length=32, default=default_grouphash)
+    """
+    Used for issue occurrences generation. Failed check-ins produce an
+    occurrence associated to this grouphash.
+    """
+
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_monitorincident"
-        indexes = [models.Index(fields=["monitor_environment", "resolving_checkin"])]
+        indexes = [
+            models.Index(fields=["monitor_environment", "resolving_checkin"]),
+            models.Index(
+                fields=["starting_timestamp"],
+                name="active_incident_idx",
+                condition=Q(resolving_checkin__isnull=True),
+            ),
+        ]
+        constraints = [
+            # Only allow for one active incident (no resolved check-in) per
+            # monitor environment
+            models.UniqueConstraint(
+                fields=["monitor_environment_id"],
+                name="unique_active_incident",
+                condition=Q(resolving_checkin__isnull=True),
+            ),
+        ]
+
+
+@region_silo_only_model
+class MonitorEnvBrokenDetection(Model):
+    """
+    Records an instance where we have detected a monitor environment to be
+    broken based on a long duration of failure and consecutive failing check-ins
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    monitor_incident = FlexibleForeignKey("sentry.MonitorIncident")
+    detection_timestamp = models.DateTimeField(auto_now_add=True)
+    user_notified_timestamp = models.DateTimeField(null=True, db_index=True)
+    env_muted_timestamp = models.DateTimeField(null=True, db_index=True)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_monitorenvbrokendetection"

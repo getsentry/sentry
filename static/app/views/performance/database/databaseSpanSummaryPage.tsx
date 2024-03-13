@@ -61,6 +61,9 @@ function SpanSummaryPage({params}: Props) {
 
   if (endpoint) {
     filters.transaction = endpoint;
+  }
+
+  if (endpointMethod) {
     filters['transaction.method'] = endpointMethod;
   }
 
@@ -80,6 +83,7 @@ function SpanSummaryPage({params}: Props) {
       `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
       `${SpanFunction.HTTP_ERROR_COUNT}()`,
     ],
+    enabled: Boolean(groupId),
     referrer: 'api.starfish.span-summary-page-metrics',
   });
 
@@ -103,6 +107,7 @@ function SpanSummaryPage({params}: Props) {
   } = useSpanMetricsSeries({
     filters,
     yAxis: ['spm()'],
+    enabled: Boolean(groupId),
     referrer: 'api.starfish.span-summary-page-metrics-chart',
   });
 
@@ -113,6 +118,7 @@ function SpanSummaryPage({params}: Props) {
   } = useSpanMetricsSeries({
     filters,
     yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
+    enabled: Boolean(groupId),
     referrer: 'api.starfish.span-summary-page-metrics-chart',
   });
 
@@ -227,13 +233,13 @@ function SpanSummaryPage({params}: Props) {
                 />
               </ModuleLayout.Full>
             )}
-
-            <SampleList
-              groupId={span[SpanMetricsField.SPAN_GROUP]}
-              transactionName={transaction}
-              transactionMethod={transactionMethod}
-            />
           </ModuleLayout.Layout>
+
+          <SampleList
+            groupId={span[SpanMetricsField.SPAN_GROUP]}
+            transactionName={transaction}
+            transactionMethod={transactionMethod}
+          />
         </Layout.Main>
       </Layout.Body>
     </ModulePageProviders>
