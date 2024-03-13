@@ -127,4 +127,14 @@ describe('HTTPSummaryPage', function () {
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
   });
+
+  it('renders a list of queries', async function () {
+    render(<HTTPDomainSummaryPage />);
+
+    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+
+    expect(
+      screen.getByRole('table', {name: 'Domain Transactions Table'})
+    ).toBeInTheDocument();
+  });
 });

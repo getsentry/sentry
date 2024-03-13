@@ -16,6 +16,7 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {DurationChart} from 'sentry/views/performance/database/durationChart';
 import {ThroughputChart} from 'sentry/views/performance/database/throughputChart';
 import {useSelectedDurationAggregate} from 'sentry/views/performance/database/useSelectedDurationAggregate';
+import {DomainTransactionsTable} from 'sentry/views/performance/http/domainTransactionsTable';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
@@ -157,6 +158,10 @@ export function HTTPDomainSummaryPage() {
                 error={durationError}
               />
             </ModuleLayout.Half>
+
+            <ModuleLayout.Full>
+              <DomainTransactionsTable />
+            </ModuleLayout.Full>
           </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>
