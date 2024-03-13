@@ -372,7 +372,6 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     },
     "/api/0/organizations/{organization_slug}/onboarding-continuation-email/": {"POST"},
     "/api/0/organizations/{organization_slug}/processingissues/": {"GET"},
-    "/api/0/organizations/{organization_slug}/minimal-projects/": {"GET"},
     "/api/0/organizations/{organization_slug}/experimental/projects/": {"POST"},
     "/api/0/organizations/{organization_slug}/projects-count/": {"GET"},
     "/api/0/organizations/{organization_slug}/sent-first-event/": {"GET"},
