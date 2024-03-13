@@ -1,20 +1,20 @@
+import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 
-import type {GridColumnHeader} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  type GridColumnHeader,
+} from 'sentry/components/gridEditable';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import type {Sort} from 'sentry/utils/discover/fields';
-import {RATE_UNIT_TITLE, RateUnit} from 'sentry/utils/discover/fields';
-import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {RATE_UNIT_TITLE, RateUnit, type Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {DomainCell} from 'sentry/views/performance/http/domainCell';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import type {MetricsResponse} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -22,8 +22,7 @@ import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Row = Pick<
   MetricsResponse,
-  | 'project.id'
-  | 'span.domain'
+  | 'transaction'
   | 'spm()'
   | 'http_response_rate(2)'
   | 'http_response_rate(4)'
@@ -34,7 +33,7 @@ type Row = Pick<
 >;
 
 type Column = GridColumnHeader<
-  | 'span.domain'
+  | 'transaction'
   | 'spm()'
   | 'http_response_rate(2)'
   | 'http_response_rate(4)'
@@ -45,8 +44,8 @@ type Column = GridColumnHeader<
 
 const COLUMN_ORDER: Column[] = [
   {
-    key: 'span.domain',
-    name: t('Domain'),
+    key: 'transaction',
+    name: t('Found In'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
@@ -99,37 +98,38 @@ export function isAValidSort(sort: Sort): sort is ValidSort {
 }
 
 interface Props {
-  response: {
-    data: Row[];
-    isLoading: boolean;
-    error?: Error | null;
-    meta?: EventsMetaType;
-    pageLinks?: string;
-  };
+  data: Row[];
+  isLoading: boolean;
   sort: ValidSort;
+  error?: Error | null;
+  meta?: EventsMetaType;
+  pageLinks?: string;
 }
 
-export function DomainsTable({response, sort}: Props) {
-  const {data, isLoading, meta, pageLinks} = response;
+export function DomainTransactionsTable({
+  data,
+  isLoading,
+  error,
+  meta,
+  pageLinks,
+  sort,
+}: Props) {
   const location = useLocation();
   const organization = useOrganization();
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
     browserHistory.push({
       pathname,
-      query: {...query, [QueryParameterNames.DOMAINS_CURSOR]: newCursor},
+      query: {...query, [QueryParameterNames.TRANSACTIONS_CURSOR]: newCursor},
     });
   };
 
   return (
-    <VisuallyCompleteWithData
-      id="DomainsTable"
-      hasData={data.length > 0}
-      isLoading={isLoading}
-    >
+    <Fragment>
       <GridEditable
+        aria-label={t('Transactions')}
         isLoading={isLoading}
-        error={response.error}
+        error={error}
         data={data}
         columnOrder={COLUMN_ORDER}
         columnSortBy={[
@@ -139,20 +139,21 @@ export function DomainsTable({response, sort}: Props) {
           },
         ]}
         grid={{
-          renderHeadCell: column =>
+          renderHeadCell: col =>
             renderHeadCell({
-              column,
+              column: col,
               sort,
               location,
-              sortParameterName: QueryParameterNames.DOMAINS_SORT,
+              sortParameterName: QueryParameterNames.TRANSACTIONS_SORT,
             }),
           renderBodyCell: (column, row) =>
             renderBodyCell(column, row, meta, location, organization),
         }}
         location={location}
       />
+
       <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
-    </VisuallyCompleteWithData>
+    </Fragment>
   );
 }
 
@@ -163,10 +164,6 @@ function renderBodyCell(
   location: Location,
   organization: Organization
 ) {
-  if (column.key === 'span.domain') {
-    return <DomainCell domain={row['span.domain']} />;
-  }
-
   if (!meta?.fields) {
     return row[column.key];
   }

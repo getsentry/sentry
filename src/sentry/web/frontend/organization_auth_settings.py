@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from django import forms
 from django.contrib import messages
 from django.db import router, transaction
@@ -31,6 +33,8 @@ OK_PROVIDER_DISABLED = _("SSO authentication has been disabled.")
 OK_REMINDERS_SENT = _(
     "A reminder email has been sent to members who have not yet linked their accounts."
 )
+
+logger = logging.getLogger("sentry.saml_setup_error")
 
 
 def auth_provider_settings_form(provider, auth_provider, organization, request):
@@ -239,6 +243,25 @@ class OrganizationAuthSettingsView(OrganizationView):
                 helper.initialize()
 
             if not helper.is_valid():
+                logger.info(
+                    "OrganizationAuthSettingsView",
+                    extra={
+                        "flow": helper.flow,
+                        "signature": helper.signature,
+                        "step_index": helper.step_index,
+                        "config": helper.config,
+                        "organization": helper.organization.slug,
+                        "provide_key": helper.provider.key,
+                        "provider_model_id": (
+                            helper.provider_model.id if helper.provider_model else ""
+                        ),
+                        "request_path": helper.request.path,
+                        "request_content_params": helper.request.content_params or "",
+                        "request_method": helper.request.method or "",
+                        "state_redis_key": helper.state.redis_key,
+                        "state_state": helper.state.get_state() is not None,
+                    },
+                )
                 return helper.error("Something unexpected happened during authentication.")
 
             # render first time setup view

@@ -553,7 +553,6 @@ export class VirtualizedViewManager {
     }
   }
 
-  zoomIntoSpaceRaf: number | null = null;
   onBringRowIntoView(space: [number, number]) {
     if (this.zoomIntoSpaceRaf !== null) {
       window.cancelAnimationFrame(this.zoomIntoSpaceRaf);
@@ -573,6 +572,16 @@ export class VirtualizedViewManager {
     }
   }
 
+  animateViewTo(node_space: [number, number]) {
+    const start = node_space[0];
+    const width = node_space[1] > 0 ? node_space[1] : this.trace_view.width;
+    const margin = 0.2 * width;
+
+    this.setTraceView({x: start - margin - this.to_origin, width: width + margin * 2});
+    this.draw();
+  }
+
+  zoomIntoSpaceRaf: number | null = null;
   onZoomIntoSpace(space: [number, number]) {
     if (space[1] <= 0) {
       // @TODO implement scrolling to 0 width spaces

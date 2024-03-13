@@ -3,9 +3,9 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ProjectUserFeedback from 'sentry/views/settings/project/projectUserFeedback';
+import ProjectReplays from 'sentry/views/settings/project/projectReplays';
 
-describe('ProjectUserFeedback', function () {
+describe('ProjectReplays', function () {
   const {routerProps, organization, project, routerContext} = initializeOrg();
   const url = `/projects/${organization.slug}/${project.slug}/`;
 
@@ -23,13 +23,9 @@ describe('ProjectUserFeedback', function () {
     });
   });
 
-  it('can toggle sentry branding option', async function () {
+  it('can toggle rage click issue creation', async function () {
     render(
-      <ProjectUserFeedback
-        {...routerProps}
-        organization={organization}
-        project={project}
-      />,
+      <ProjectReplays {...routerProps} organization={organization} project={project} />,
       {
         context: routerContext,
       }
@@ -40,14 +36,16 @@ describe('ProjectUserFeedback', function () {
       method: 'PUT',
     });
 
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Show Sentry Branding'}));
+    await userEvent.click(
+      screen.getByRole('checkbox', {name: 'Create Rage Click Issues'})
+    );
 
     expect(mock).toHaveBeenCalledWith(
       url,
       expect.objectContaining({
         method: 'PUT',
         data: {
-          options: {'feedback:branding': true},
+          options: {'sentry:replay_rage_click_issues': true},
         },
       })
     );
