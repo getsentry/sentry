@@ -103,7 +103,7 @@ def assemble_file(task, org_or_project, name, checksum, chunks, file_type) -> As
             org_or_project.id,
             checksum,
             ChunkFileState.ERROR,
-            detail=f"File %{name} exceeds maximum size (%{file_size} > %{max_file_size})",
+            detail=f"File {name} exceeds maximum size ({file_size} > {max_file_size})",
         )
 
         return None
