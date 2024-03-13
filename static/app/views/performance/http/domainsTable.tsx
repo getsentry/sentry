@@ -25,13 +25,22 @@ type Row = Pick<
   | 'project.id'
   | 'span.domain'
   | 'spm()'
+  | 'http_response_rate(2)'
+  | 'http_response_rate(4)'
+  | 'http_response_rate(5)'
   | 'avg(span.self_time)'
   | 'sum(span.self_time)'
   | 'time_spent_percentage()'
 >;
 
 type Column = GridColumnHeader<
-  'span.domain' | 'spm()' | 'avg(span.self_time)' | 'time_spent_percentage()'
+  | 'span.domain'
+  | 'spm()'
+  | 'http_response_rate(2)'
+  | 'http_response_rate(4)'
+  | 'http_response_rate(5)'
+  | 'avg(span.self_time)'
+  | 'time_spent_percentage()'
 >;
 
 const COLUMN_ORDER: Column[] = [
@@ -44,6 +53,21 @@ const COLUMN_ORDER: Column[] = [
     key: 'spm()',
     name: `${t('Requests')} ${RATE_UNIT_TITLE[RateUnit.PER_MINUTE]}`,
     width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: `http_response_rate(2)`,
+    name: t('2XXs'),
+    width: 50,
+  },
+  {
+    key: `http_response_rate(4)`,
+    name: t('4XXs'),
+    width: 50,
+  },
+  {
+    key: `http_response_rate(5)`,
+    name: t('5XXs'),
+    width: 50,
   },
   {
     key: `avg(span.self_time)`,
@@ -60,6 +84,9 @@ const COLUMN_ORDER: Column[] = [
 const SORTABLE_FIELDS = [
   'avg(span.self_time)',
   'spm()',
+  'http_response_rate(2)',
+  'http_response_rate(4)',
+  'http_response_rate(5)',
   'time_spent_percentage()',
 ] as const;
 
