@@ -1,5 +1,6 @@
 from datetime import datetime
-from typing import Any
+from types import TracebackType
+from typing import Any, Self
 from urllib.parse import urlencode, urlparse
 
 import brotli
@@ -8,6 +9,8 @@ import urllib3
 from django.conf import settings
 from django.http import HttpResponse as SentryResponse
 from parsimonious.exceptions import ParseError
+from urllib3.connectionpool import ConnectionPool
+from urllib3.response import BaseHTTPResponse
 from urllib3.response import HTTPResponse as VroomResponse
 
 from sentry.api.event_search import SearchFilter, parse_search_query
@@ -24,8 +27,14 @@ class RetrySkipTimeout(urllib3.Retry):
     """
 
     def increment(
-        self, method=None, url=None, response=None, error=None, _pool=None, _stacktrace=None
-    ):
+        self,
+        method: str | None = None,
+        url: str | None = None,
+        response: BaseHTTPResponse | None = None,
+        error: Any | None = None,
+        _pool: ConnectionPool | None = None,
+        _stacktrace: TracebackType | None = None,
+    ) -> Self:
         """
         Just rely on the parent class unless we have a read timeout. In that case,
         immediately give up. Except when we're inserting a profile to vroom which
@@ -51,7 +60,8 @@ class RetrySkipTimeout(urllib3.Retry):
 
         metrics.incr("profiling.client.retry", tags={"method": method, "path": path})
 
-        return super().increment(
+        # Ref: https://github.com/urllib3/urllib3/issues/3363
+        return super().increment(  # type: ignore[return-value]
             method=method,
             url=url,
             response=response,
@@ -147,7 +157,7 @@ def parse_profile_filters(query: str) -> dict[str, str]:
     try:
         parsed_terms = parse_search_query(query)
     except ParseError as e:
-        raise InvalidSearchQuery(f"Parse error: {e.expr.name} (column {e.column():d})")
+        raise InvalidSearchQuery(f"Parse error: {e.expr.name} (column {e.column():d})")  # type: ignore[union-attr]
 
     profile_filters: dict[str, str] = {}
 
