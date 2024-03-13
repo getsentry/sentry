@@ -232,12 +232,9 @@ class OpsgenieActionHandlerTest(FireTest):
     def test_custom_priority(self):
         # default critical incident priority is P1, custom set to P3
         self.action.update(sentry_app_config={"priority": "P3"})
-
         self.run_fire_test()
 
     @responses.activate
     def test_custom_priority_resolve(self):
-        # default critical incident priority is P1, custom set to P3
         self.action.update(sentry_app_config={"priority": "P3"})
-
         self.run_fire_test("resolve")
