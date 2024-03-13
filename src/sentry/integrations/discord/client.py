@@ -121,9 +121,15 @@ class DiscordClient(ApiClient):
             status.HTTP_202_ACCEPTED,
             status.HTTP_204_NO_CONTENT,
         }
+
+        # These are excluded since they are not actionable from our side
+        # (i.e. user error, Discord api is down, etc)
         include_in_slo = code not in {
-            status.HTTP_429_TOO_MANY_REQUESTS,
-            status.HTTP_403_FORBIDDEN,  # Is user error
+            status.HTTP_429_TOO_MANY_REQUESTS,  # Alert is making too many requests to Discord
+            status.HTTP_403_FORBIDDEN,  # User doesn't have permission (i.e. changed bot permissions)
+            status.HTTP_404_NOT_FOUND,  # Discord resource DNE (i.e. deleted channel)
+            status.HTTP_503_SERVICE_UNAVAILABLE,  # Discord side is not ready to handle request
+            status.HTTP_500_INTERNAL_SERVER_ERROR,  # Unexpected problem on Discord side
         }
 
         metrics.incr(
