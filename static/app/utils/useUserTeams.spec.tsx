@@ -57,7 +57,7 @@ describe('useUserTeams', () => {
 
     await waitFor(() => result.current.teams.length === 1);
     expect(mockapi).toHaveBeenCalledTimes(1);
-    expect(result.current.teams).toEqual(userTeams);
+    await waitFor(() => expect(result.current.teams).toEqual(userTeams));
   });
 
   it('provides only the users teams', function () {

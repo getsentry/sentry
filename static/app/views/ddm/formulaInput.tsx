@@ -4,13 +4,13 @@ import debounce from 'lodash/debounce';
 
 import Input, {inputStyles} from 'sentry/components/input';
 import {t} from 'sentry/locale';
+import {unescapeMetricsFormula} from 'sentry/utils/metrics';
 import {FormularFormatter} from 'sentry/views/ddm/formulaParser/formatter';
 import {joinTokens, parseFormula} from 'sentry/views/ddm/formulaParser/parser';
 import {type TokenList, TokenType} from 'sentry/views/ddm/formulaParser/types';
 
 interface Props extends Omit<React.ComponentProps<typeof Input>, 'onChange' | 'value'> {
   availableVariables: Set<string>;
-  formulaVariables: Set<string>;
   onChange: (formula: string) => void;
   value: string;
 }
@@ -27,10 +27,6 @@ function escapeVariables(tokens: TokenList): TokenList {
   });
 }
 
-function unescapeVariables(formula: string): string {
-  return formula.replaceAll('$', '');
-}
-
 function equalizeWhitespace(formula: TokenList): TokenList {
   return formula.map(token => {
     // Ensure equal spacing
@@ -42,26 +38,22 @@ function equalizeWhitespace(formula: TokenList): TokenList {
 }
 export function FormulaInput({
   availableVariables,
-  formulaVariables,
   value: valueProp,
   onChange,
   ...props
 }: Props) {
   const [errors, setErrors] = useState<any>([]);
   const [showErrors, setIsValidationEnabled] = useState(false);
-  const [value, setValue] = useState<string>(() => unescapeVariables(valueProp));
+  const [value, setValue] = useState<string>(() => unescapeMetricsFormula(valueProp));
 
   const validateVariable = useCallback(
     (variable: string): string | null => {
-      if (formulaVariables.has(variable)) {
-        return t('Formulas cannot reference other formulas.', variable);
-      }
       if (!availableVariables.has(variable)) {
-        return t('Unknown variable "%s"', variable);
+        return t('Unknown query "%s"', variable);
       }
       return null;
     },
-    [availableVariables, formulaVariables]
+    [availableVariables]
   );
 
   const parseAndValidateFormula = useCallback(

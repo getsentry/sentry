@@ -1,8 +1,8 @@
-import selectEvent from 'react-select-event';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AddToDashboardModal from 'sentry/components/modals/widgetBuilder/addToDashboardModal';
@@ -183,7 +183,7 @@ describe('add to dashboard modal', () => {
       expect(screen.getByText('Select Dashboard')).toBeEnabled();
     });
 
-    selectEvent.openMenu(screen.getByText('Select Dashboard'));
+    await selectEvent.openMenu(screen.getByText('Select Dashboard'));
     expect(screen.getByText('+ Create New Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Test Dashboard')).toBeInTheDocument();
   });

@@ -5,7 +5,7 @@ from unittest import mock
 import pytest
 from django.utils import timezone
 
-from sentry.incidents.models import AlertRule
+from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.dashboard_widget import DashboardWidgetQuery, DashboardWidgetQueryOnDemand
 from sentry.models.environment import Environment
 from sentry.models.project import Project
@@ -680,8 +680,11 @@ def test_get_metric_extraction_config_multiple_widgets_not_using_extended_specs(
 def test_get_metric_extraction_config_multiple_widgets_above_extended_max_limit(
     default_project: Project,
 ) -> None:
-    with Feature({ON_DEMAND_METRICS_WIDGETS: True}), override_options(
-        {"on_demand.extended_widget_spec_orgs": [default_project.organization.id]}
+    with (
+        Feature({ON_DEMAND_METRICS_WIDGETS: True}),
+        override_options(
+            {"on_demand.extended_widget_spec_orgs": [default_project.organization.id]}
+        ),
     ):
         create_widget(["count()"], "transaction.duration:>=1100", default_project)
         create_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 2")
@@ -707,8 +710,11 @@ def test_get_metric_extraction_config_multiple_widgets_above_extended_max_limit(
 def test_get_metric_extraction_config_multiple_widgets_under_extended_max_limit(
     default_project: Project,
 ) -> None:
-    with Feature({ON_DEMAND_METRICS_WIDGETS: True}), override_options(
-        {"on_demand.extended_widget_spec_orgs": [default_project.organization.id]}
+    with (
+        Feature({ON_DEMAND_METRICS_WIDGETS: True}),
+        override_options(
+            {"on_demand.extended_widget_spec_orgs": [default_project.organization.id]}
+        ),
     ):
         create_widget(["count()"], "transaction.duration:>=1100", default_project)
         create_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 2")
@@ -1337,9 +1343,12 @@ def test_get_metric_extraction_config_multiple_widgets_with_high_cardinality(
     default_project: Project,
 ) -> None:
     duration = 1000
-    with Feature({ON_DEMAND_METRICS_WIDGETS: True}), mock.patch(
-        "sentry.relay.config.metric_extraction._is_widget_query_low_cardinality"
-    ) as mock_cardinality:
+    with (
+        Feature({ON_DEMAND_METRICS_WIDGETS: True}),
+        mock.patch(
+            "sentry.relay.config.metric_extraction._is_widget_query_low_cardinality"
+        ) as mock_cardinality,
+    ):
         mock_cardinality.side_effect = [True, False, True]
         create_widget(
             ["epm()"],
@@ -1374,11 +1383,15 @@ def test_get_metric_extraction_config_multiple_widgets_with_high_cardinality(
 @override_options({"on_demand.max_widget_cardinality.count": 1})
 def test_get_metric_extraction_config_with_extraction_enabled(default_project: Project) -> None:
     duration = 1000
-    with Feature({ON_DEMAND_METRICS_WIDGETS: True}), mock.patch(
-        "sentry.relay.config.metric_extraction._can_widget_query_use_stateful_extraction"
-    ) as mock_can_use_stateful, mock.patch(
-        "sentry.relay.config.metric_extraction._widget_query_stateful_extraction_enabled"
-    ) as mock_extraction_enabled:
+    with (
+        Feature({ON_DEMAND_METRICS_WIDGETS: True}),
+        mock.patch(
+            "sentry.relay.config.metric_extraction._can_widget_query_use_stateful_extraction"
+        ) as mock_can_use_stateful,
+        mock.patch(
+            "sentry.relay.config.metric_extraction._widget_query_stateful_extraction_enabled"
+        ) as mock_extraction_enabled,
+    ):
         mock_can_use_stateful.return_value = True
         mock_extraction_enabled.return_value = True
         create_widget(
@@ -1404,11 +1417,15 @@ def test_stateful_get_metric_extraction_config_with_extraction_disabled(
     default_project: Project,
 ) -> None:
     duration = 1000
-    with Feature({ON_DEMAND_METRICS_WIDGETS: True}), mock.patch(
-        "sentry.relay.config.metric_extraction._can_widget_query_use_stateful_extraction"
-    ) as mock_can_use_stateful, mock.patch(
-        "sentry.relay.config.metric_extraction._widget_query_stateful_extraction_enabled"
-    ) as mock_extraction_enabled:
+    with (
+        Feature({ON_DEMAND_METRICS_WIDGETS: True}),
+        mock.patch(
+            "sentry.relay.config.metric_extraction._can_widget_query_use_stateful_extraction"
+        ) as mock_can_use_stateful,
+        mock.patch(
+            "sentry.relay.config.metric_extraction._widget_query_stateful_extraction_enabled"
+        ) as mock_extraction_enabled,
+    ):
         mock_can_use_stateful.return_value = True
         mock_extraction_enabled.return_value = False
         create_widget(
@@ -1429,11 +1446,15 @@ def test_stateful_get_metric_extraction_config_multiple_widgets_with_extraction_
     default_project: Project,
 ) -> None:
     duration = 1000
-    with Feature({ON_DEMAND_METRICS_WIDGETS: True}), mock.patch(
-        "sentry.relay.config.metric_extraction._can_widget_query_use_stateful_extraction"
-    ) as mock_can_use_stateful, mock.patch(
-        "sentry.relay.config.metric_extraction._widget_query_stateful_extraction_enabled"
-    ) as mock_extraction_enabled:
+    with (
+        Feature({ON_DEMAND_METRICS_WIDGETS: True}),
+        mock.patch(
+            "sentry.relay.config.metric_extraction._can_widget_query_use_stateful_extraction"
+        ) as mock_can_use_stateful,
+        mock.patch(
+            "sentry.relay.config.metric_extraction._widget_query_stateful_extraction_enabled"
+        ) as mock_extraction_enabled,
+    ):
         mock_can_use_stateful.return_value = True
         mock_extraction_enabled.side_effect = [True, False, True]
         create_widget(

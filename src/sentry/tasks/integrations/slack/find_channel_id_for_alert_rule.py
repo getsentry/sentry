@@ -11,7 +11,7 @@ from sentry.incidents.logic import (
     InvalidTriggerActionError,
     get_slack_channel_ids,
 )
-from sentry.incidents.models import AlertRule
+from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.serializers import AlertRuleSerializer
 from sentry.integrations.slack.utils import SLACK_RATE_LIMITED_MESSAGE, RedisRuleStatus
 from sentry.models.organization import Organization

@@ -83,8 +83,8 @@ class IssueDiff extends Component<Props, State> {
         ]);
 
         const [baseEvent, targetEvent] = await Promise.all([
-          getStacktraceBody(baseEventData),
-          getStacktraceBody(targetEventData),
+          getStacktraceBody(baseEventData, hasSimilarityEmbeddingsFeature),
+          getStacktraceBody(targetEventData, hasSimilarityEmbeddingsFeature),
         ]);
 
         this.setState({

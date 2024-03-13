@@ -953,6 +953,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
             'p75(measurements.cls)',
             'p75(measurements.ttfb)',
             'p75(measurements.fid)',
+            'p75(measurements.inp)',
             'p75(transaction.duration)',
             'count_web_vitals(measurements.lcp, any)',
             'count_web_vitals(measurements.fcp, any)',
@@ -961,7 +962,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
             'count_web_vitals(measurements.ttfb, any)',
             'count()',
           ],
-          query: 'transaction.op:pageload',
+          query: 'transaction.op:[pageload,""] span.op:[ui.interaction.click,""]',
         }),
       })
     );

@@ -21,7 +21,7 @@ import {SpanMetricsField} from 'sentry/views/starfish/types';
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 
 const SpanSamplesTableContainer = styled('div')`
-  padding-bottom: ${space(2)};
+  padding-top: ${space(2)};
 `;
 
 type Props = {
@@ -67,6 +67,9 @@ function SampleTable({
   const {data, isFetching: isFetchingSpanMetrics} = useSpanMetrics({
     filters: {...filters, ...additionalFilters},
     fields: [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
+    enabled: Object.values({...filters, ...additionalFilters}).every(value =>
+      Boolean(value)
+    ),
     referrer: 'api.starfish.span-summary-panel-samples-table-avg',
   });
 

@@ -69,7 +69,8 @@ function StartDurationWidget({additionalFilters, chartHeight}: Props) {
     isLoading: isReleasesLoading,
   } = useReleaseSelection();
 
-  const startType = decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? '';
+  const startType =
+    decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? COLD_START_TYPE;
 
   const query = new MutableSearch([
     ...(startType === COLD_START_TYPE ? COLD_START_CONDITIONS : WARM_START_CONDITIONS),

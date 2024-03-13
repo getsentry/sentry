@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any, TypedDict
 from uuid import uuid4
@@ -17,7 +17,6 @@ from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.project import Project
 from sentry.signals import first_feedback_received, first_new_feedback_received
 from sentry.utils import metrics
-from sentry.utils.dates import ensure_aware
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.safe import get_path
 
@@ -83,9 +82,7 @@ def fix_for_issue_platform(event_data):
     # for event schema, so we need to massage the data a bit
     ret_event: dict[str, Any] = {}
 
-    ret_event["timestamp"] = ensure_aware(
-        datetime.fromtimestamp(event_data["timestamp"])
-    ).isoformat()
+    ret_event["timestamp"] = datetime.fromtimestamp(event_data["timestamp"], UTC).isoformat()
 
     ret_event["received"] = event_data["received"]
 
@@ -175,7 +172,7 @@ def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
     # Note that some of the fields below like title and subtitle
     # are not used by the feedback UI, but are required.
     event["event_id"] = event.get("event_id") or uuid4().hex
-    detection_time = ensure_aware(datetime.fromtimestamp(event["timestamp"]))
+    detection_time = datetime.fromtimestamp(event["timestamp"], UTC)
     evidence_data, evidence_display = make_evidence(event["contexts"]["feedback"], source)
     occurrence = IssueOccurrence(
         id=uuid4().hex,
@@ -306,6 +303,8 @@ def shim_to_feedback(
             feedback_event["tags"] = [list(item) for item in event.tags]
 
         else:
+            metrics.incr("feedback.user_report.missing_event", sample_rate=1.0)
+
             feedback_event["timestamp"] = datetime.utcnow().timestamp()
             feedback_event["platform"] = "other"
             feedback_event["level"] = report.get("level", "info")

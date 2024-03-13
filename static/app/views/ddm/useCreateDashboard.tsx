@@ -16,15 +16,15 @@ export function useCreateDashboard() {
 
   const dashboardWidgets = useMemo(() => {
     // TODO(aknaus): Remove filtering once dashboard supports metrics formulas
-    const supportedWidgets = widgets.filter(
+    const supportedQueries = widgets.filter(
       widget => widget.type === MetricQueryType.QUERY
     ) as MetricQueryWidgetParams[];
-    if (isMultiChartMode) {
-      return [convertToDashboardWidget(supportedWidgets, widgets[0].displayType)];
+    if (!isMultiChartMode) {
+      return [convertToDashboardWidget(supportedQueries, widgets[0].displayType)];
     }
 
-    return supportedWidgets.map(widget =>
-      convertToDashboardWidget([widget], widget.displayType)
+    return supportedQueries.map(query =>
+      convertToDashboardWidget([query], query.displayType)
     );
   }, [widgets, isMultiChartMode]);
 

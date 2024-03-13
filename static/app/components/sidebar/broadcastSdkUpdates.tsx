@@ -7,15 +7,10 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Tag from 'sentry/components/tag';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {
-  Organization,
-  Project,
-  ProjectSdkUpdates,
-  SDKUpdatesSuggestion,
-} from 'sentry/types';
+import type {ProjectSdkUpdates, SDKUpdatesSuggestion} from 'sentry/types';
 import getSdkUpdateSuggestion from 'sentry/utils/getSdkUpdateSuggestion';
-import withOrganization from 'sentry/utils/withOrganization';
-import withProjects from 'sentry/utils/withProjects';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import withSdkUpdates from 'sentry/utils/withSdkUpdates';
 
 import Collapsible from '../collapsible';
@@ -25,8 +20,6 @@ import ListItem from '../list/listItem';
 import SidebarPanelItem from './sidebarPanelItem';
 
 type Props = {
-  organization: Organization;
-  projects: Project[];
   sdkUpdates?: ProjectSdkUpdates[] | null;
 };
 
@@ -36,7 +29,10 @@ const flattenSuggestions = (list: ProjectSdkUpdates[]) =>
     []
   );
 
-function BroadcastSdkUpdates({projects, sdkUpdates, organization}: Props) {
+function BroadcastSdkUpdates({sdkUpdates}: Props) {
+  const organization = useOrganization();
+  const {projects} = useProjects();
+
   if (!sdkUpdates) {
     return null;
   }
@@ -75,7 +71,7 @@ function BroadcastSdkUpdates({projects, sdkUpdates, organization}: Props) {
           return (
             <div key={sdkName}>
               <Header>
-                <SdkProjectBadge project={project} organization={organization} />
+                <SdkProjectBadge project={project} />
                 {isDeprecated && <Tag type="warning">{t('Deprecated')}</Tag>}
               </Header>
               <SdkOutdatedVersion>
@@ -146,7 +142,7 @@ function BroadcastSdkUpdates({projects, sdkUpdates, organization}: Props) {
   );
 }
 
-export default withSdkUpdates(withProjects(withOrganization(BroadcastSdkUpdates)));
+export default withSdkUpdates(BroadcastSdkUpdates);
 
 const UpdatesList = styled('div')`
   margin-top: ${space(3)};

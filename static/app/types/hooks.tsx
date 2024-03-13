@@ -92,6 +92,8 @@ type DisabledMemberTooltipProps = {children: React.ReactNode};
 
 type DashboardHeadersProps = {organization: Organization};
 
+type DDMMetricsSamplesListProps = {children: React.ReactNode; organization: Organization};
+
 type ReplayFeedbackButton = {children: React.ReactNode};
 type ReplayListPageHeaderProps = {children?: React.ReactNode};
 type ReplayOnboardingAlertProps = {children: React.ReactNode};
@@ -182,6 +184,7 @@ export type ComponentHooks = {
   'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;
   'component:crons-list-page-header': () => React.ComponentType<CronsBillingBannerProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
+  'component:ddm-metrics-samples-list': () => React.ComponentType<DDMMetricsSamplesListProps>;
   'component:disabled-app-store-connect-multiple': () => React.ComponentType<DisabledAppStoreConnectMultiple>;
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
   'component:disabled-member': () => React.ComponentType<DisabledMemberViewProps>;
@@ -296,7 +299,7 @@ export type InterfaceChromeHooks = {
  * Onboarding experience hooks
  */
 export type OnboardingHooks = {
-  'onboarding-wizard:skip-help': GenericOrganizationComponentHook;
+  'onboarding-wizard:skip-help': () => React.ComponentType<{}>;
   'onboarding:block-hide-sidebar': () => boolean;
   'onboarding:extra-chrome': GenericComponentHook;
   'onboarding:targeted-onboarding-header': (opts: {source: string}) => React.ReactNode;

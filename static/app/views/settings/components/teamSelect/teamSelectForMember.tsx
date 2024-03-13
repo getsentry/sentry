@@ -138,11 +138,10 @@ function TeamRow({
   organization: Organization;
   team: Team;
 }) {
-  const hasOrgAdmin = organization.access.includes('org:admin');
   const isIdpProvisioned = team.flags['idp:provisioned'];
-  const isRemoveDisabled = disabled || isIdpProvisioned || !hasOrgAdmin;
+  const isRemoveDisabled = disabled || isIdpProvisioned;
 
-  const buttonHelpText = getButtonHelpText(isIdpProvisioned, !hasOrgAdmin);
+  const buttonHelpText = getButtonHelpText(isIdpProvisioned);
 
   return (
     <TeamPanelItem data-test-id="team-row-for-member">

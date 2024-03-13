@@ -1,5 +1,5 @@
 import copy
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import cast
 from unittest import mock
 
@@ -39,7 +39,7 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_forma
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.group import GroupSubStatus
-from sentry.utils.dates import floor_to_utc_day, to_timestamp
+from sentry.utils.dates import floor_to_utc_day
 from sentry.utils.outcomes import Outcome
 
 DISABLED_ORGANIZATIONS_USER_OPTION_KEY = "reports:disabled-organizations"
@@ -52,7 +52,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         with unguarded_write(using=router.db_for_write(Project)):
             Project.objects.all().delete()
 
-        now = datetime.now().replace(tzinfo=timezone.utc)
+        now = datetime.now(UTC)
 
         project = self.create_project(
             organization=self.organization, teams=[self.team], date_added=now - timedelta(days=90)
@@ -67,7 +67,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         member_set = set(project.teams.first().member_set.all())
 
         with self.tasks():
-            schedule_organizations(timestamp=to_timestamp(now))
+            schedule_organizations(timestamp=now.timestamp())
             assert len(mail.outbox) == len(member_set) == 1
 
             message = mail.outbox[0]
@@ -75,7 +75,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
 
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_with_empty_string_user_option(self):
-        now = datetime.now().replace(tzinfo=timezone.utc)
+        now = datetime.now(UTC)
 
         project = self.create_project(
             organization=self.organization, teams=[self.team], date_added=now - timedelta(days=90)
@@ -89,7 +89,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             )
 
         with self.tasks():
-            schedule_organizations(timestamp=to_timestamp(now))
+            schedule_organizations(timestamp=now.timestamp())
             assert len(mail.outbox) == len(member_set) == 1
 
             message = mail.outbox[0]
@@ -101,7 +101,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         with unguarded_write(using=router.db_for_write(Project)):
             Project.objects.all().delete()
 
-        now = datetime.now().replace(tzinfo=timezone.utc)
+        now = datetime.now(UTC)
 
         project = self.create_project(
             organization=self.organization, teams=[self.team], date_added=now - timedelta(days=90)
@@ -113,7 +113,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             project_id=project.id,
         )
         with self.tasks():
-            schedule_organizations(timestamp=to_timestamp(now))
+            schedule_organizations(timestamp=now.timestamp())
             assert len(mail.outbox) == 1
 
             message = mail.outbox[0]
@@ -233,7 +233,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         )
         project.transfer_to(organization=self.create_organization())
 
-        prepare_organization_report(to_timestamp(now), ONE_DAY * 7, self.organization.id)
+        prepare_organization_report(now.timestamp(), ONE_DAY * 7, self.organization.id)
         assert message_builder.call_count == 1
 
     @with_feature("organizations:escalating-issues")
@@ -268,7 +268,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         )
         event2.group.substatus = GroupSubStatus.NEW
         event2.group.save()
-        timestamp = to_timestamp(now)
+        timestamp = now.timestamp()
 
         ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
         organization_project_issue_substatus_summaries(ctx)
@@ -354,7 +354,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
 
         # store a crons issue just to make sure it's not counted in key_performance_issues
         self.create_group(type=MonitorCheckInFailure.type_id)
-        prepare_organization_report(to_timestamp(now), ONE_DAY * 7, self.organization.id)
+        prepare_organization_report(now.timestamp(), ONE_DAY * 7, self.organization.id)
 
         for call_args in message_builder.call_args_list:
             message_params = call_args.kwargs
@@ -463,10 +463,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             side_effect=ValueError("oh no!"),
         ), mock.patch("sentry.tasks.summaries.weekly_reports.send_email") as mock_send_email:
             with pytest.raises(Exception):
-                prepare_organization_report(to_timestamp(now), ONE_DAY * 7, self.organization.id)
+                prepare_organization_report(now.timestamp(), ONE_DAY * 7, self.organization.id)
                 mock_send_email.assert_not_called()
 
-        prepare_organization_report(to_timestamp(now), ONE_DAY * 7, self.organization.id)
+        prepare_organization_report(now.timestamp(), ONE_DAY * 7, self.organization.id)
         for call_args in message_builder.call_args_list:
             message_params = call_args.kwargs
             context = message_params["context"]
@@ -542,7 +542,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         group2.substatus = GroupSubStatus.ONGOING
         group2.save()
 
-        prepare_organization_report(to_timestamp(now), ONE_DAY * 7, self.organization.id)
+        prepare_organization_report(now.timestamp(), ONE_DAY * 7, self.organization.id)
 
         for call_args in message_builder.call_args_list:
             message_params = call_args.kwargs
@@ -566,7 +566,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         two_days_ago = now - timedelta(days=2)
         three_days_ago = now - timedelta(days=3)
 
-        timestamp = to_timestamp(floor_to_utc_day(now))
+        timestamp = floor_to_utc_day(now).timestamp()
 
         for outcome, category, num in [
             (Outcome.ACCEPTED, DataCategory.ERROR, 1),
@@ -648,7 +648,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             project_id=self.project.id,
         )
 
-        prepare_organization_report(to_timestamp(now), ONE_DAY * 7, self.organization.id)
+        prepare_organization_report(now.timestamp(), ONE_DAY * 7, self.organization.id)
         assert mock_send_email.call_count == 0
 
     @with_feature("organizations:session-replay")
@@ -657,7 +657,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
     def test_message_builder_replays(self, message_builder):
         now = django_timezone.now()
         two_days_ago = now - timedelta(days=2)
-        timestamp = to_timestamp(floor_to_utc_day(now))
+        timestamp = floor_to_utc_day(now).timestamp()
 
         for outcome, category, num in [
             (Outcome.ACCEPTED, DataCategory.REPLAY, 6),
@@ -717,7 +717,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
     def test_email_override_simple(self, message_builder, record):
         now = django_timezone.now()
         two_days_ago = now - timedelta(days=2)
-        timestamp = to_timestamp(floor_to_utc_day(now))
+        timestamp = floor_to_utc_day(now).timestamp()
 
         user = self.create_user(email="itwasme@dio.xyz")
         self.create_member(teams=[self.team], user=user, organization=self.organization)
@@ -772,7 +772,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
     def test_email_override_no_target_user(self, message_builder, record):
         now = django_timezone.now()
         two_days_ago = now - timedelta(days=2)
-        timestamp = to_timestamp(floor_to_utc_day(now))
+        timestamp = floor_to_utc_day(now).timestamp()
 
         # create some extra projects; we expect to receive a report with all projects included
         self.create_project(organization=self.organization)
@@ -822,7 +822,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
     def test_email_override_invalid_target_user(self, logger):
         now = django_timezone.now()
         two_days_ago = now - timedelta(days=2)
-        timestamp = to_timestamp(floor_to_utc_day(now))
+        timestamp = floor_to_utc_day(now).timestamp()
         org = self.create_organization()
         proj = self.create_project(organization=org)
 
@@ -862,7 +862,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
     def test_dry_run_simple(self, message_builder, record):
         now = django_timezone.now()
         two_days_ago = now - timedelta(days=2)
-        timestamp = to_timestamp(floor_to_utc_day(now))
+        timestamp = floor_to_utc_day(now).timestamp()
         org = self.create_organization()
         proj = self.create_project(organization=org)
 

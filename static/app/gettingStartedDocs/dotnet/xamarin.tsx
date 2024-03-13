@@ -7,6 +7,11 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  getCrashReportGenericInstallStep,
+  getCrashReportModalConfigDescription,
+  getCrashReportModalIntroduction,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {csharpFeedbackOnboarding} from 'sentry/gettingStartedDocs/dotnet/dotnet';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
@@ -245,9 +250,25 @@ const onboarding: OnboardingConfig = {
   ],
 };
 
+const crashReportOnboarding: OnboardingConfig = {
+  introduction: () => getCrashReportModalIntroduction(),
+  install: (params: Params) => getCrashReportGenericInstallStep(params),
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: getCrashReportModalConfigDescription({
+        link: 'https://docs.sentry.io/platforms/dotnet/guides/xamarin/user-feedback/configuration/#crash-report-modal',
+      }),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi: csharpFeedbackOnboarding,
+  crashReportOnboarding,
 };
 
 export default docs;

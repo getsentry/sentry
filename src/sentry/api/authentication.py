@@ -380,11 +380,12 @@ class OrgAuthTokenAuthentication(StandardAuthentication):
         token_hashed = hash_token(token_str)
 
         if SiloMode.get_current_mode() == SiloMode.REGION:
-            token = OrgAuthTokenReplica.objects.filter(
-                token_hashed=token_hashed,
-                date_deactivated__isnull=True,
-            ).last()
-            if token is None:
+            try:
+                token = OrgAuthTokenReplica.objects.get(
+                    token_hashed=token_hashed,
+                    date_deactivated__isnull=True,
+                )
+            except OrgAuthTokenReplica.DoesNotExist:
                 raise AuthenticationFailed("Invalid org token")
         else:
             try:
