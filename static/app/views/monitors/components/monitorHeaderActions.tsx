@@ -76,7 +76,7 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
         size="sm"
         icon={<IconEdit />}
         to={{
-          pathname: `/organizations/${orgSlug}/crons/${monitor.slug}/edit/`,
+          pathname: `/organizations/${orgSlug}/crons/${monitor.project.slug}/${monitor.slug}/edit/`,
           // TODO(davidenwang): Right now we have to pass the environment
           // through the URL so that when we save the monitor and are
           // redirected back to the details page it queries the backend

@@ -65,7 +65,9 @@ export function TimelineTableRow({
 
   const monitorDetails = singleMonitorView ? null : (
     <DetailsArea>
-      <DetailsLink to={`/organizations/${organization.slug}/crons/${monitor.slug}/`}>
+      <DetailsLink
+        to={`/organizations/${organization.slug}/crons/${monitor.project.slug}/${monitor.slug}/`}
+      >
         <DetailsHeadline>
           <Name>{monitor.name}</Name>
           {isDisabled && <Tag>{t('Disabled')}</Tag>}
@@ -99,7 +101,7 @@ export function TimelineTableRow({
     (env: string) => ({
       label: t('View Environment'),
       key: 'view',
-      to: `/organizations/${organization.slug}/crons/${monitor.slug}/?environment=${env}`,
+      to: `/organizations/${organization.slug}/crons/${monitor.project.slug}/${monitor.slug}/?environment=${env}`,
     }),
     ...(onToggleMuteEnvironment
       ? [

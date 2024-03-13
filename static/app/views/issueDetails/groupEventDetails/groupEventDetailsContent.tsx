@@ -125,7 +125,11 @@ function DefaultGroupEventDetailsContent({
         </EventDataSection>
       )}
       {group.issueCategory === IssueCategory.CRON && (
-        <CronTimelineSection event={event} organization={organization} />
+        <CronTimelineSection
+          event={event}
+          organization={organization}
+          project={project}
+        />
       )}
       {hasNewTagsUI && (
         <EventDataSection
