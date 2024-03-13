@@ -1,23 +1,43 @@
 from django.contrib.sessions.backends.base import SessionBase
 from django.test import RequestFactory
 from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.auth.system import SystemToken
-from sentry.issues.endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from sentry.models.apitoken import ApiToken
 from sentry.models.user import User
 from sentry.ratelimits import get_rate_limit_config, get_rate_limit_key
 from sentry.ratelimits.config import RateLimitConfig
+from sentry.ratelimits.utils import RateLimit, RateLimitCategory
 from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode_of, region_silo_test
+
+CONCURRENT_RATE_LIMIT = 20
+
+
+class APITestEndpoint(Endpoint):
+    permission_classes = (AllowAny,)
+    enforce_rate_limit = True
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(20, 1, CONCURRENT_RATE_LIMIT),
+                RateLimitCategory.USER: RateLimit(20, 1, CONCURRENT_RATE_LIMIT),
+                RateLimitCategory.ORGANIZATION: RateLimit(20, 1, CONCURRENT_RATE_LIMIT),
+            },
+        },
+    )
+
+    def get(self, request):
+        return Response({"ok": True})
 
 
 @region_silo_test
 class GetRateLimitKeyTest(TestCase):
     def setUp(self) -> None:
-        self.view = OrganizationGroupIndexEndpoint.as_view()
+        self.view = APITestEndpoint.as_view()
         self.request = RequestFactory().get("/")
         self.rate_limit_config = get_rate_limit_config(self.view.view_class)
         self.rate_limit_group = (
@@ -29,7 +49,7 @@ class GetRateLimitKeyTest(TestCase):
             get_rate_limit_key(
                 self.view, self.request, self.rate_limit_group, self.rate_limit_config
             )
-            == "ip:default:OrganizationGroupIndexEndpoint:GET:127.0.0.1"
+            == "ip:default:APITestEndpoint:GET:127.0.0.1"
         )
 
     def test_ip_address_missing(self):
@@ -47,7 +67,7 @@ class GetRateLimitKeyTest(TestCase):
             get_rate_limit_key(
                 self.view, self.request, self.rate_limit_group, self.rate_limit_config
             )
-            == "ip:default:OrganizationGroupIndexEndpoint:GET:684D:1111:222:3333:4444:5555:6:77"
+            == "ip:default:APITestEndpoint:GET:684D:1111:222:3333:4444:5555:6:77"
         )
 
     def test_system_token(self):
@@ -67,7 +87,7 @@ class GetRateLimitKeyTest(TestCase):
             get_rate_limit_key(
                 self.view, self.request, self.rate_limit_group, self.rate_limit_config
             )
-            == f"user:default:OrganizationGroupIndexEndpoint:GET:{user.id}"
+            == f"user:default:APITestEndpoint:GET:{user.id}"
         )
 
     def test_organization(self):
@@ -87,7 +107,7 @@ class GetRateLimitKeyTest(TestCase):
             get_rate_limit_key(
                 self.view, self.request, self.rate_limit_group, self.rate_limit_config
             )
-            == f"org:default:OrganizationGroupIndexEndpoint:GET:{install.organization_id}"
+            == f"org:default:APITestEndpoint:GET:{install.organization_id}"
         )
 
     def test_api_token(self):
@@ -99,7 +119,7 @@ class GetRateLimitKeyTest(TestCase):
             get_rate_limit_key(
                 self.view, self.request, self.rate_limit_group, self.rate_limit_config
             )
-            == f"user:default:OrganizationGroupIndexEndpoint:GET:{self.user.id}"
+            == f"user:default:APITestEndpoint:GET:{self.user.id}"
         )
 
     def test_authenticated_token(self):
@@ -114,7 +134,7 @@ class GetRateLimitKeyTest(TestCase):
             get_rate_limit_key(
                 self.view, self.request, self.rate_limit_group, self.rate_limit_config
             )
-            == f"user:default:OrganizationGroupIndexEndpoint:GET:{self.user.id}"
+            == f"user:default:APITestEndpoint:GET:{self.user.id}"
         )
 
 
