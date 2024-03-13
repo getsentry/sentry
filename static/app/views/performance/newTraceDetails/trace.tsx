@@ -235,7 +235,7 @@ function Trace({
         node: maybeNode.node,
       });
 
-      manager.scrollRowIntoViewHorizontally(maybeNode.node);
+      manager.scrollRowIntoViewHorizontally(maybeNode.node, 0);
 
       if (search_state.query) {
         onTraceSearch(search_state.query);
@@ -901,7 +901,9 @@ function RenderRow(props: {
   }
 
   if (isSpanNode(props.node)) {
-    const errored = props.node.value.relatedErrors.length > 0;
+    const errored =
+      props.node.value.errors.length > 0 ||
+      props.node.value.performance_issues.length > 0;
     return (
       <div
         key={props.index}
@@ -995,8 +997,8 @@ function RenderRow(props: {
             manager={props.manager}
             color={pickBarColor(props.node.value.op)}
             node_space={props.node.space}
-            errors={NO_ERRORS}
-            performance_issues={NO_ERRORS}
+            errors={props.node.value.errors}
+            performance_issues={props.node.value.performance_issues}
           />
           <button
             ref={ref =>
@@ -1432,11 +1434,14 @@ function TraceBar(props: TraceBarProps) {
           props.manager.registerSpanBarRef(r, props.node_space!, props.virtualized_index)
         }
         className="TraceBar"
-        style={{
-          transform: `matrix(${spanTransform.join(',')})`,
-          '--inverse-span-scale': 1 / spanTransform[0],
-          backgroundColor: props.color,
-        }}
+        style={
+          {
+            transform: `matrix(${spanTransform.join(',')})`,
+            '--inverse-span-scale': 1 / spanTransform[0],
+            backgroundColor: props.color,
+            // unknown css variables cannot be part of the style object
+          } as React.CSSProperties
+        }
       >
         {props.errors.map((error, _i) => {
           const timestamp = error.timestamp
@@ -1459,6 +1464,39 @@ function TraceBar(props: TraceBarProps) {
               style={{left: left * 100 + '%'}}
             >
               <IconFire color="errorText" size="xs" />
+            </div>
+          );
+        })}
+
+        {props.performance_issues.map((issue, _i) => {
+          const timestamp = issue.start * 1e3;
+          // Clamp the issue timestamp to the span's timestamp
+          const left = props.manager.computeRelativeLeftPositionFromOrigin(
+            clamp(
+              timestamp,
+              props.node_space![0],
+              props.node_space![0] + props.node_space![1]
+            ),
+            props.node_space!
+          );
+
+          const max_width = 100 - left;
+          const issue_duration = (issue.end - issue.start) * 1e3;
+          const width = clamp(
+            (issue_duration / props.node_space![1]) * 100,
+            0,
+            max_width
+          );
+
+          return (
+            <div
+              key={issue.event_id}
+              className="TracePerformanceIssue"
+              style={{left: left * 100 + '%', width: width + '%'}}
+            >
+              <div className="TraceError" style={{left: 0}}>
+                <IconFire color="errorText" size="xs" />
+              </div>
             </div>
           );
         })}
@@ -1798,6 +1836,16 @@ const TraceStylingWrapper = styled('div')`
       }
     }
 
+    .TracePerformanceIssue {
+      position: absolute;
+      top: 0;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      background-color: ${p => p.theme.error};
+      height: 16px;
+    }
+
     .TraceRightColumn.Odd {
       background-color: ${p => p.theme.backgroundSecondary};
     }
@@ -1901,7 +1949,7 @@ const TraceStylingWrapper = styled('div')`
 
   .TraceBar {
     position: absolute;
-    height: 64%;
+    height: 16px;
     width: 100%;
     background-color: black;
     transform-origin: left center;
