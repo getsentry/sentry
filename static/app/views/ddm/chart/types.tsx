@@ -10,7 +10,9 @@ export type Series = {
   unit: string;
   groupBy?: Record<string, string>;
   hidden?: boolean;
+  isEquationSeries?: boolean;
   paddingIndices?: Set<number>;
+  queryIndex?: number;
   release?: string;
   scalingFactor?: number;
   stack?: string;
