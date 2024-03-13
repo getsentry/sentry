@@ -578,6 +578,19 @@ class JavascriptParserTestCase(TestCase):
             "SeeMoreCard",
         }
 
+    def test_arrow_functions(self):
+
+        patch = """
+          "@@ -149,6 +149,12 @@ export const Redacted Redacted\n   // Redacted.\n   // Redacted \n   const redacted = redacted;\n+  const redacted = redacted();\n+  // const redacted = true;\n+  const redacted = redacted()\n+    redacted; // Redacted\nconst \n@@ -165,24 +171,40 @@ export const RedactedRedactedRedactedRedactedRedacted
+
+          // Redacted
+@@44,38@@ var arrow2 = (a, ...b) => 0;
+    """
+
+        assert JavascriptParser.extract_functions_from_patch(patch) == {
+            "arrow2",
+        }
+
 
 class PHPParserTestCase(TestCase):
     def test_php_simple(self):
