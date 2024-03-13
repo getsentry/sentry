@@ -8,6 +8,7 @@ from sentry.api.bases.organization import OrganizationAndStaffPermission, Organi
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import MinimalProjectSerializer
+from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 
 
@@ -25,7 +26,7 @@ class OrganizationMinimalProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin
         Return projects for an organization. Only return a subset of project fields
         that are needed for rendering our application well.
         """
-        queryset = Project.objects.filter(organization=organization)
+        queryset = Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
 
         def serialize_on_result(result):
             serializer = MinimalProjectSerializer()

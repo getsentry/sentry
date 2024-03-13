@@ -1,3 +1,4 @@
+from sentry.constants import ObjectStatus
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.skips import requires_snuba
 
@@ -5,7 +6,7 @@ pytestmark = [requires_snuba]
 
 
 class OrganizationProjectsTestBase(APITestCase):
-    endpoint = "sentry-api-0-organization-lightweight-projects"
+    endpoint = "sentry-api-0-organization-minimal-projects"
 
     def test_simple(self):
         self.login_as(user=self.user)
@@ -33,3 +34,10 @@ class OrganizationProjectsTestBase(APITestCase):
                 "platform": "python",
             },
         ]
+
+    def test_no_pending_deletion(self):
+        self.login_as(user=self.user)
+        project = self.create_project(teams=[self.team], platform="python")
+        project.update(status=ObjectStatus.PENDING_DELETION)
+        response = self.get_success_response(self.organization.slug)
+        assert sorted(response.data) == []
