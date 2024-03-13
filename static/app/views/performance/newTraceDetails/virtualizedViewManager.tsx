@@ -507,7 +507,6 @@ export class VirtualizedViewManager {
     }
   }
 
-  zoomIntoSpaceRaf: number | null = null;
   onBringRowIntoView(space: [number, number]) {
     if (this.zoomIntoSpaceRaf !== null) {
       window.cancelAnimationFrame(this.zoomIntoSpaceRaf);
@@ -527,6 +526,12 @@ export class VirtualizedViewManager {
     }
   }
 
+  animateViewTo(x: number, width: number) {
+    this.setTraceView({x: x - this.to_origin, width: width});
+    this.draw();
+  }
+
+  zoomIntoSpaceRaf: number | null = null;
   onZoomIntoSpace(space: [number, number]) {
     if (space[1] <= 0) {
       // @TODO implement scrolling to 0 width spaces
