@@ -761,6 +761,9 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if rule_id:
             block_id["rule"] = rule_id
 
+        if notification_uuid:
+            block_id["notification_uuid"] = notification_uuid
+
         return self._build_blocks(
             *blocks,
             fallback_text=self.build_fallback_text(obj, project.slug),
