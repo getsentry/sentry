@@ -39,12 +39,6 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
         def get(self):
             return Response({"ok": True})
 
-    class TestEndpointCustomLimits(Endpoint):
-        enforce_rate_limit = True
-
-        def get(self):
-            return Response({"ok": True})
-
     class TestEndpointNoRateLimits(Endpoint):
         enforce_rate_limit = False
 
