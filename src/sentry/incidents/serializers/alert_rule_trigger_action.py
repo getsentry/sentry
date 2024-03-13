@@ -167,8 +167,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                             "priority": f"Allowed priorities for Pagerduty are {str(PAGERDUTY_CUSTOM_PRIORITIES)}"
                         }
                     )
-            elif action_type == AlertRuleTriggerAction.Type.OPSGENIE:
-                if priority not in OPSGENIE_CUSTOM_PRIORITIES:
+            if action_type == AlertRuleTriggerAction.Type.OPSGENIE and priority not in OPSGENIE_CUSTOM_PRIORITIES:
                     raise serializers.ValidationError(
                         {
                             "priority": f"Allowed priorities for Opsgenie are {str(OPSGENIE_CUSTOM_PRIORITIES)}"
