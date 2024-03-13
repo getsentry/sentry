@@ -147,6 +147,7 @@ class SlackRequest:
             "slack_callback_id": _data.get("callback_id"),
             "slack_api_app_id": _data.get("api_app_id"),
         }
+        data["request_data"] = _data
 
         if self._integration:
             data["integration_id"] = self.integration.id

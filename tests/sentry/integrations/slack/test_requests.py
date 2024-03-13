@@ -49,6 +49,13 @@ class SlackRequestTest(TestCase):
             "slack_channel_id": "1",
             "slack_user_id": "2",
             "slack_api_app_id": "S1",
+            "request_data": {
+                "api_app_id": "S1",
+                "channel": {"id": "1"},
+                "team_id": "T001",
+                "type": "foo",
+                "user": {"id": "2"},
+            },
         }
 
     def test_disregards_None_logging_values(self):
@@ -58,6 +65,13 @@ class SlackRequestTest(TestCase):
             "slack_team_id": "T001",
             "slack_channel_id": "1",
             "slack_user_id": "2",
+            "request_data": {
+                "api_app_id": None,
+                "channel": {"id": "1"},
+                "team_id": "T001",
+                "type": "foo",
+                "user": {"id": "2"},
+            },
         }
 
     def test_validate_existence_of_data(self):
@@ -108,6 +122,13 @@ class SlackRequestTest(TestCase):
             "slack_channel_id": "1",
             "slack_user_id": "2",
             "slack_api_app_id": "S1",
+            "request_data": {
+                "api_app_id": "S1",
+                "channel": {"id": "1"},
+                "team": None,
+                "type": "foo",
+                "user": {"id": "2"},
+            },
         }
 
 
