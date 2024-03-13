@@ -136,7 +136,11 @@ class AlertRuleTriggerActionSerializerTest(TestCase):
         assert result["desc"] == "Send a critical level PagerDuty notification to test"
 
     @responses.activate
-    def test_opsgenie_priority(self):
+    @patch(
+        "sentry.incidents.logic.get_alert_rule_trigger_action_opsgenie_team",
+        return_value=("123", "test"),
+    )
+    def test_opsgenie_priority(self, mock_get):
         alert_rule = self.create_alert_rule()
         trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
         priority = "critical"
