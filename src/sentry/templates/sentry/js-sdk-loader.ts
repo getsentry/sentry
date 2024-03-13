@@ -164,7 +164,7 @@ declare const __LOADER__IS_LAZY__: any;
         integrations.push(new SDK.BrowserTracing());
       } else if (SDK.browserTracingIntegration) {
         // (Post-)v8 version of the BrowserTracing integration
-        integrations.push(SDK.browserTracingIntegration());
+        integrations.push(SDK.browserTracingIntegration({ enableInp: true }));
       }
     }
 

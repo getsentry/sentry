@@ -117,7 +117,7 @@
             }
             else if (SDK.browserTracingIntegration) {
                 // (Post-)v8 version of the BrowserTracing integration
-                integrations.push(SDK.browserTracingIntegration());
+                integrations.push(SDK.browserTracingIntegration({ enableInp: true }));
             }
         }
         if ((config.replaysSessionSampleRate || config.replaysOnErrorSampleRate) &&
