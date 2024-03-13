@@ -11,7 +11,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
   return [
     {
       guide: 'issue',
-      requiredTargets: ['issue_header_stats', 'breadcrumbs', 'assigned_to'],
+      requiredTargets: ['issue_header_stats', 'breadcrumbs', 'issue_sidebar_owners'],
       steps: [
         {
           title: t('How bad is it?'),
@@ -53,7 +53,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
         },
         {
           title: t('Annoy the Right People'),
-          target: 'assigned_to',
+          target: 'issue_sidebar_owners',
           description: tct(
             `Notification overload makes it tempting to hurl your phone into the ocean.
                 Define who is responsible for what, so alerts reach the right people and your
