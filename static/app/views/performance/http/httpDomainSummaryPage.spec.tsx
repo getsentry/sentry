@@ -36,7 +36,7 @@ describe('HTTPSummaryPage', function () {
   jest.mocked(useLocation).mockReturnValue({
     pathname: '',
     search: '',
-    query: {domain: '*.sentry.dev', statsPeriod: '10d'},
+    query: {domain: '*.sentry.dev', statsPeriod: '10d', transactionsCursor: '0:20:0'},
     hash: '',
     state: undefined,
     action: 'PUSH',
@@ -145,7 +145,7 @@ describe('HTTPSummaryPage', function () {
           ],
           per_page: 20,
           project: [],
-          cursor: '',
+          cursor: '0:20:0',
           query: 'span.module:http span.domain:"\\*.sentry.dev"',
           referrer: 'api.starfish.http-module-domain-summary-transactions-list',
           statsPeriod: '10d',

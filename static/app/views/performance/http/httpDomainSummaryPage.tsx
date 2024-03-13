@@ -10,6 +10,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -25,6 +26,7 @@ import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
+import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 
 type Query = {
@@ -44,6 +46,8 @@ export function HTTPDomainSummaryPage() {
     'span.module': ModuleName.HTTP,
     'span.domain': domain,
   };
+
+  const cursor = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_CURSOR]);
 
   const {data: domainMetrics, isLoading: areDomainMetricsLoading} = useSpanMetrics({
     filters,
@@ -85,6 +89,7 @@ export function HTTPDomainSummaryPage() {
     data: transactionsList,
     meta: transactionsListMeta,
     error: transactionsListError,
+    pageLinks: transactionsListPageLinks,
   } = useSpanMetrics({
     filters,
     fields: [
@@ -99,7 +104,7 @@ export function HTTPDomainSummaryPage() {
     ],
     sorts: [],
     limit: TRANSACTIONS_TABLE_ROW_COUNT,
-    cursor: '',
+    cursor,
     referrer: 'api.starfish.http-module-domain-summary-transactions-list',
   });
 
@@ -188,6 +193,7 @@ export function HTTPDomainSummaryPage() {
                 error={transactionsListError}
                 isLoading={isTransactionsListLoading}
                 meta={transactionsListMeta}
+                pageLinks={transactionsListPageLinks}
               />
             </ModuleLayout.Full>
           </ModuleLayout.Layout>

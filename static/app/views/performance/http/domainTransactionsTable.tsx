@@ -1,9 +1,13 @@
+import {Fragment} from 'react';
+import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
 } from 'sentry/components/gridEditable';
+import type {CursorHandler} from 'sentry/components/pagination';
+import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -13,6 +17,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import type {MetricsResponse} from 'sentry/views/starfish/types';
+import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Row = Pick<
@@ -80,33 +85,51 @@ interface Props {
   isLoading: boolean;
   error?: Error | null;
   meta?: EventsMetaType;
+  pageLinks?: string;
 }
 
-export function DomainTransactionsTable({data, isLoading, error, meta}: Props) {
+export function DomainTransactionsTable({
+  data,
+  isLoading,
+  error,
+  meta,
+  pageLinks,
+}: Props) {
   const location = useLocation();
   const organization = useOrganization();
 
+  const handleCursor: CursorHandler = (newCursor, pathname, query) => {
+    browserHistory.push({
+      pathname,
+      query: {...query, [QueryParameterNames.TRANSACTIONS_CURSOR]: newCursor},
+    });
+  };
+
   return (
-    <GridEditable
-      aria-label={t('Transactions')}
-      isLoading={isLoading}
-      error={error}
-      data={data}
-      columnOrder={COLUMN_ORDER}
-      columnSortBy={[]}
-      grid={{
-        renderHeadCell: col =>
-          renderHeadCell({
-            column: col,
-            sort: undefined,
-            location,
-            sortParameterName: undefined,
-          }),
-        renderBodyCell: (column, row) =>
-          renderBodyCell(column, row, meta, location, organization),
-      }}
-      location={location}
-    />
+    <Fragment>
+      <GridEditable
+        aria-label={t('Transactions')}
+        isLoading={isLoading}
+        error={error}
+        data={data}
+        columnOrder={COLUMN_ORDER}
+        columnSortBy={[]}
+        grid={{
+          renderHeadCell: col =>
+            renderHeadCell({
+              column: col,
+              sort: undefined,
+              location,
+              sortParameterName: undefined,
+            }),
+          renderBodyCell: (column, row) =>
+            renderBodyCell(column, row, meta, location, organization),
+        }}
+        location={location}
+      />
+
+      <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
+    </Fragment>
   );
 }
 
