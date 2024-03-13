@@ -539,48 +539,65 @@ class SpansSamplesListExecutor(AbstractSamplesListExecutor):
     def get_unsorted_span_keys(self, offset: int, limit: int) -> list[tuple[str, str, str]]:
         column = self.mri_to_column(self.mri)
 
-        builder = SpansIndexedQueryBuilder(
-            Dataset.SpansIndexed,
-            self.params,
-            snuba_params=self.snuba_params,
-            query=self.query,
-            selected_columns=[
-                f"rounded_timestamp({self.rollup})",
-                f"examples({column}, {self.num_samples}) AS examples",
-            ],
-            limit=limit,
-            offset=offset,
-            sample_rate=options.get("metrics.sample-list.sample-rate"),
-            config=QueryBuilderConfig(functions_acl=["rounded_timestamp", "examples"]),
-        )
-
-        additional_conditions = self.get_additional_conditions(builder)
-
-        assert column is not None
-        min_max_conditions = self.get_min_max_conditions(builder.resolve_column(column))
-
-        builder.add_conditions([*additional_conditions, *min_max_conditions])
-
-        query_results = builder.run_query(self.referrer.value)
-        result = builder.process_results(query_results)
-
-        metric_key = lambda example: example[3]  # sort by metric
-        for row in result["data"]:
-            row["examples"] = pick_samples(row["examples"], metric_key=metric_key)
-
-        return [
-            (
-                example[0],  # group
-                example[1],  # timestamp
-                example[2],  # span_id
+        for dataset_segmentation_condition_fn in self.dataset_segmentation_conditions():
+            builder = SpansIndexedQueryBuilder(
+                Dataset.SpansIndexed,
+                self.params,
+                snuba_params=self.snuba_params,
+                query=self.query,
+                selected_columns=[
+                    f"rounded_timestamp({self.rollup})",
+                    f"examples({column}, {self.num_samples}) AS examples",
+                ],
+                limit=limit,
+                offset=offset,
+                sample_rate=options.get("metrics.sample-list.sample-rate"),
+                config=QueryBuilderConfig(functions_acl=["rounded_timestamp", "examples"]),
             )
-            for row in result["data"]
-            for example in row["examples"]
-        ][:limit]
+
+            segmentation_conditions = dataset_segmentation_condition_fn(builder)
+
+            additional_conditions = self.get_additional_conditions(builder)
+
+            assert column is not None
+            min_max_conditions = self.get_min_max_conditions(builder.resolve_column(column))
+
+            builder.add_conditions(
+                [
+                    *segmentation_conditions,
+                    *additional_conditions,
+                    *min_max_conditions,
+                ]
+            )
+
+            query_results = builder.run_query(self.referrer.value)
+            result = builder.process_results(query_results)
+
+            if not result["data"]:
+                continue
+
+            metric_key = lambda example: example[3]  # sort by metric
+            for row in result["data"]:
+                row["examples"] = pick_samples(row["examples"], metric_key=metric_key)
+
+            return [
+                (
+                    example[0],  # group
+                    example[1],  # timestamp
+                    example[2],  # span_id
+                )
+                for row in result["data"]
+                for example in row["examples"]
+            ][:limit]
+
+        return []
 
     @abstractmethod
     def get_additional_conditions(self, builder: QueryBuilder) -> list[Condition]:
         raise NotImplementedError
+
+    def dataset_segmentation_conditions(self) -> list[Callable[[QueryBuilder], list[Condition]]]:
+        return [lambda builder: []]
 
     def get_min_max_conditions(self, column: SelectType) -> list[Condition]:
         conditions = []
@@ -604,14 +621,29 @@ class SpansTimingsSamplesListExecutor(SpansSamplesListExecutor):
         return cls.MRI_MAPPING.get(mri)
 
     def get_additional_conditions(self, builder: QueryBuilder) -> list[Condition]:
+        return []
+
+    def dataset_segmentation_conditions(self) -> list[Callable[[QueryBuilder], list[Condition]]]:
         return [
-            # The `00` group is used for spans not used within the
-            # new starfish experience. It's effectively the group
-            # for other. It is a massive group, so we've chosen
-            # to exclude it here.
+            # This grouping makes the assumption that spans are divided into 2 groups right now.
+            # Those that are classified with a non zero group, and those that are unclassified
+            # with a zero group.
             #
-            # In the future, we will want to look into exposing them
-            Condition(builder.column("span.group"), Op.NEQ, "00")
+            # In the future, if all span groups are classified, this segmentation should change
+            # to reflect that.
+            lambda builder: [
+                # The `00` group is used for spans not used within the
+                # new starfish experience. It's effectively the group
+                # for other. It is a massive group, so we've chosen
+                # to exclude it here.
+                Condition(builder.column("span.group"), Op.NEQ, "00"),
+            ],
+            lambda builder: [
+                # If the previous query contained no results, we'll
+                # have to search the `00` group which is slower but
+                # unfortunately necessary here.
+                Condition(builder.column("span.group"), Op.EQ, "00"),
+            ],
         ]
 
 
