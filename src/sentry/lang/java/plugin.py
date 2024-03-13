@@ -296,8 +296,11 @@ class JavaPlugin(Plugin2):
         return False
 
     def get_stacktrace_processors(self, data, stacktrace_infos, platforms, **kwargs):
-        project = data.get("project")
-        if should_use_symbolicator_for_proguard(project):
+        from sentry.models.project import Project
+
+        project_id = data.get("project")
+        project = Project.objects.get_from_cache(id=project_id)
+        if should_use_symbolicator_for_proguard(project_id):
             symbolication_start_time = time()
 
             def on_symbolicator_request():
