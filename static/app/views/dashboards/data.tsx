@@ -328,7 +328,7 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             aggregates: [],
             columns: ['assignee', 'issue', 'title'],
             conditions: 'assigned_or_suggested:me is:unresolved',
-            orderby: 'priority',
+            orderby: 'trends',
           },
         ],
       },
