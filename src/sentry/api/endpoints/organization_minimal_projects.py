@@ -19,7 +19,7 @@ class OrganizationMinimalProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin
         "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (OrganizationAndStaffPermission,)
-    owner = ApiOwner.ISSUES
+    owner = ApiOwner.UNOWNED
 
     def get(self, request: Request, organization) -> Response:
         """

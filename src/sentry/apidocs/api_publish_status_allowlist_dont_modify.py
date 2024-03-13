@@ -3,6 +3,7 @@
     The goal is to eventually find owners for all and shrink this list.
     DO NOT ADD ANY NEW APIS
 """
+
 API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/relays/": {"GET"},
     "/api/0/relays/register/challenge/": {"POST"},
@@ -371,6 +372,7 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     },
     "/api/0/organizations/{organization_slug}/onboarding-continuation-email/": {"POST"},
     "/api/0/organizations/{organization_slug}/processingissues/": {"GET"},
+    "/api/0/organizations/{organization_slug}/minimal-projects/": {"GET"},
     "/api/0/organizations/{organization_slug}/experimental/projects/": {"POST"},
     "/api/0/organizations/{organization_slug}/projects-count/": {"GET"},
     "/api/0/organizations/{organization_slug}/sent-first-event/": {"GET"},
