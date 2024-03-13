@@ -28,6 +28,7 @@ def test_report_rage_click_issue_with_replay_event(mock_new_issue_occurrence, de
         url="https://www.sentry.io",
         node={"tagName": "a"},
         replay_event=mock_replay_event(),
+        component_name="SmartSearchBar",
     )
     issue_occurence_call = mock_new_issue_occurrence.call_args[1]
     assert issue_occurence_call["culprit"] == "https://www.sentry.io"
@@ -42,6 +43,7 @@ def test_report_rage_click_issue_with_replay_event(mock_new_issue_occurrence, de
     assert issue_occurence_call["evidence_data"] == {
         "node": {"tagName": "a"},
         "selector": "div.xyz > a",
+        "component_name": "SmartSearchBar",
     }
 
     assert (
@@ -51,6 +53,12 @@ def test_report_rage_click_issue_with_replay_event(mock_new_issue_occurrence, de
     assert (
         issue_occurence_call["evidence_display"][1].to_dict()
         == IssueEvidence(name="Selector Path", value="div.xyz > a", important=True).to_dict()
+    )
+    assert (
+        issue_occurence_call["evidence_display"][2].to_dict()
+        == IssueEvidence(
+            name="React Component Name", value="SmartSearchBar", important=True
+        ).to_dict()
     )
 
     assert issue_occurence_call["extra_event_data"] == {
@@ -104,6 +112,7 @@ def test_report_rage_click_long_url(default_project):
             url=f"https://www.sentry.io{'a' * 300}",
             node={"tagName": "a"},
             replay_event=mock_replay_event(),
+            component_name="SmartSearchBar",
         )
 
     # test that the Issue gets created with the truncated url
@@ -131,6 +140,7 @@ def test_report_rage_click_no_environment(default_project):
             url="https://www.sentry.io",
             node={"tagName": "a"},
             replay_event=mock_replay_event(),
+            component_name="SmartSearchBar",
         )
 
     assert Group.objects.get(message__contains="div.xyz > a")
@@ -154,7 +164,32 @@ def test_report_rage_click_no_trace(default_project):
             url="https://www.sentry.io",
             node={"tagName": "a"},
             replay_event=mock_replay_event(trace_ids=[]),
+            component_name="SmartSearchBar",
         )
 
     # test that the Issue gets created
+    assert Group.objects.get(message__contains="div.xyz > a")
+
+
+@pytest.mark.snuba
+@django_db_all
+def test_report_rage_click_no_component_name(default_project):
+    replay_id = "b58a67446c914f44a4e329763420047b"
+    seq1_timestamp = datetime.now() - timedelta(minutes=10, seconds=52)
+    with Feature(
+        {
+            "organizations:replay-click-rage-ingest": True,
+        }
+    ):
+        report_rage_click_issue_with_replay_event(
+            project_id=default_project.id,
+            replay_id=replay_id,
+            selector="div.xyz > a",
+            timestamp=seq1_timestamp.timestamp(),
+            url="https://www.sentry.io",
+            node={"tagName": "a"},
+            replay_event=mock_replay_event(trace_ids=[]),
+        )
+
+    # test that the Issue gets created with no component name
     assert Group.objects.get(message__contains="div.xyz > a")
