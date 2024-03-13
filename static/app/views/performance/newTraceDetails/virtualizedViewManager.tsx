@@ -1089,6 +1089,10 @@ export class VirtualizedViewManager {
       if (span_bar) {
         const span_transform = this.computeSpanCSSMatrixTransform(span_bar.space);
         span_bar.ref.style.transform = `matrix(${span_transform.join(',')}`;
+        span_bar.ref.style.setProperty(
+          '--inverse-span-scale',
+          1 / span_transform[0] + ''
+        );
       }
       const span_text = this.span_text[i];
       if (span_text) {
