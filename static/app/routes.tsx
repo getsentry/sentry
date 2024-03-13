@@ -1370,11 +1370,11 @@ function buildRoutes() {
         component={make(() => import('sentry/views/monitors/edit'))}
       />
       <Route
-        path=":projectSlug/:monitorSlug/"
+        path=":projectId/:monitorSlug/"
         component={make(() => import('sentry/views/monitors/details'))}
       />
       <Route
-        path=":projectSlug/:monitorSlug/edit/"
+        path=":projectId/:monitorSlug/edit/"
         component={make(() => import('sentry/views/monitors/edit'))}
       />
     </Route>
