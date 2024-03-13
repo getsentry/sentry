@@ -109,14 +109,15 @@ class PagerDutyActionHandlerTest(FireTest):
         )
         handler = PagerDutyActionHandler(self.action, incident, self.project)
         metric_value = 1000
+        new_status = IncidentStatus(incident.status)
         with self.tasks():
-            getattr(handler, method)(metric_value, IncidentStatus(incident.status))
+            getattr(handler, method)(metric_value, new_status)
         data = responses.calls[0].request.body
 
         expected_payload = build_incident_attachment(
-            incident, self.service["integration_key"], IncidentStatus(incident.status), metric_value
+            incident, self.service["integration_key"], new_status, metric_value
         )
-        expected_payload = attach_custom_severity(expected_payload, self.action)
+        expected_payload = attach_custom_severity(expected_payload, self.action, new_status)
 
         assert json.loads(data) == expected_payload
 
@@ -192,3 +193,8 @@ class PagerDutyActionHandlerTest(FireTest):
         # default closed incident severity is info, custom set to critical
         self.action.update(sentry_app_config={"priority": "critical"})
         self.run_fire_test()
+
+    @responses.activate
+    def test_custom_severity_resolved(self):
+        self.action.update(sentry_app_config={"priority": "critical"})
+        self.run_fire_test("resolve")

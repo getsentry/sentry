@@ -47,8 +47,10 @@ def build_incident_attachment(
     return payload
 
 
-def attach_custom_priority(data: dict[str, Any], action: AlertRuleTriggerAction) -> dict[str, Any]:
-    if action.sentry_app_config is None:
+def attach_custom_priority(
+    data: dict[str, Any], action: AlertRuleTriggerAction, new_status: IncidentStatus
+) -> dict[str, Any]:
+    if new_status == IncidentStatus.CLOSED or action.sentry_app_config is None:
         return data
 
     priority = action.sentry_app_config.get("priority", OPSGENIE_DEFAULT_PRIORITY)
@@ -96,7 +98,7 @@ def send_incident_alert_notification(
     )
     client = install.get_keyring_client(keyid=team["id"])
     attachment = build_incident_attachment(incident, new_status, metric_value, notification_uuid)
-    attachment = attach_custom_priority(attachment, action)
+    attachment = attach_custom_priority(attachment, action, new_status)
 
     try:
         resp = client.send_notification(attachment)
