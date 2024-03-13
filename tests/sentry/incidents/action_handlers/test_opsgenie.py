@@ -124,10 +124,8 @@ class OpsgenieActionHandlerTest(FireTest):
                 json={},
                 status=202,
             )
-            expected_payload = build_incident_attachment(
-                incident, IncidentStatus(incident.status), metric_value=1000
-            )
-            expected_payload = attach_custom_priority(expected_payload, self.action)
+            expected_payload = build_incident_attachment(incident, new_status, metric_value=1000)
+            expected_payload = attach_custom_priority(expected_payload, self.action, new_status)
 
         handler = OpsgenieActionHandler(self.action, incident, self.project)
         metric_value = 1000
