@@ -28,7 +28,12 @@ import type {
   MetricActionTemplate,
   Trigger,
 } from 'sentry/views/alerts/rules/metric/types';
-import {ActionLabel, TargetLabel} from 'sentry/views/alerts/rules/metric/types';
+import {
+  ActionLabel,
+  DefaultPriorities,
+  PriorityOptions,
+  TargetLabel,
+} from 'sentry/views/alerts/rules/metric/types';
 
 type Props = {
   availableActions: MetricActionTemplate[] | null;
@@ -256,6 +261,21 @@ class ActionsPanel extends PureComponent<Props> {
     onChange(triggerIndex, triggers, replaceAtArrayIndex(actions, index, newAction));
   };
 
+  handleChangePriority = (
+    triggerIndex: number,
+    index: number,
+    value: SelectValue<keyof typeof PriorityOptions>
+  ) => {
+    const {triggers, onChange} = this.props;
+    const {actions} = triggers[triggerIndex];
+    const newAction = {
+      ...actions[index],
+      priority: value.value,
+    };
+
+    onChange(triggerIndex, triggers, replaceAtArrayIndex(actions, index, newAction));
+  };
+
   /**
    * Update the Trigger's Action fields from the SentryAppRuleModal together
    * only after the user clicks "Save Changes".
@@ -436,6 +456,26 @@ class ActionsPanel extends PureComponent<Props> {
                         'inputChannelId'
                       )}
                     />
+                    {availableAction &&
+                    (availableAction.type === 'opsgenie' ||
+                      availableAction.type === 'pagerduty') ? (
+                      <SelectControl
+                        isDisabled={disabled || loading}
+                        value={action.priority}
+                        placeholder={
+                          DefaultPriorities[availableAction.type][triggerIndex]
+                        }
+                        options={PriorityOptions[availableAction.type].map(priority => ({
+                          value: priority,
+                          label: priority,
+                        }))}
+                        onChange={this.handleChangePriority.bind(
+                          this,
+                          triggerIndex,
+                          actionIdx
+                        )}
+                      />
+                    ) : null}
                   </PanelItemSelects>
                   <DeleteActionButton
                     triggerIndex={triggerIndex}
