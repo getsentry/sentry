@@ -96,10 +96,10 @@ class Relocation(DefaultFieldsModel):
     # directory named after this UUID.
     uuid = UUIDField(db_index=True, unique=True, default=default_guid)
 
-    # Possible values are in the the Stage enum.
+    # Possible values are in the Stage enum.
     step = models.SmallIntegerField(choices=Step.get_choices(), default=None)
 
-    # Possible values are in the the Status enum.
+    # Possible values are in the Status enum.
     status = models.SmallIntegerField(
         choices=Status.get_choices(), default=Status.IN_PROGRESS.value
     )
@@ -272,7 +272,7 @@ class RelocationValidation(DefaultFieldsModel):
 
     relocation = FlexibleForeignKey("sentry.Relocation")
 
-    # Possible values are in the the `ValidationStatus` enum. Shows the best result from all of the
+    # Possible values are in the `ValidationStatus` enum. Shows the best result from all of the
     # `RelocationValidationAttempt`s associated with this model.
     status = status = models.SmallIntegerField(
         choices=ValidationStatus.get_choices(), default=ValidationStatus.IN_PROGRESS.value
@@ -298,7 +298,7 @@ class RelocationValidationAttempt(DefaultFieldsModel):
     relocation = FlexibleForeignKey("sentry.Relocation")
     relocation_validation = FlexibleForeignKey("sentry.RelocationValidation")
 
-    # Possible values are in the the `ValidationStatus` enum.
+    # Possible values are in the `ValidationStatus` enum.
     status = status = models.SmallIntegerField(
         choices=ValidationStatus.get_choices(), default=ValidationStatus.IN_PROGRESS.value
     )

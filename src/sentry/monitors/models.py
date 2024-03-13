@@ -93,8 +93,6 @@ class MonitorStatus:
 
     OK = 4
     ERROR = 5
-    MISSED_CHECKIN = 6
-    TIMEOUT = 7
 
     @classmethod
     def as_choices(cls) -> Sequence[tuple[int, str]]:
@@ -110,8 +108,6 @@ class MonitorStatus:
             (cls.DELETION_IN_PROGRESS, "deletion_in_progress"),
             (cls.OK, "ok"),
             (cls.ERROR, "error"),
-            (cls.MISSED_CHECKIN, "missed_checkin"),
-            (cls.TIMEOUT, "timeout"),
         )
 
 
@@ -636,22 +632,16 @@ class MonitorEnvironment(Model):
         )
 
     @property
-    def incident_grouphash(self):
+    def active_incident(self) -> MonitorIncident | None:
         """
-        Retrieve the grouphash for the current active incident. If there is no
-        active incident None will be returned.
+        Retrieve the current active incident. If there is no active incident None will be returned.
         """
-        active_incident = (
-            MonitorIncident.objects.filter(
+        try:
+            return MonitorIncident.objects.get(
                 monitor_environment_id=self.id, resolving_checkin__isnull=True
             )
-            .order_by("-date_added")
-            .first()
-        )
-        if active_incident:
-            return active_incident.grouphash
-
-        return None
+        except MonitorIncident.DoesNotExist:
+            return None
 
 
 @receiver(pre_save, sender=MonitorEnvironment)
@@ -737,6 +727,7 @@ class MonitorEnvBrokenDetection(Model):
     monitor_incident = FlexibleForeignKey("sentry.MonitorIncident")
     detection_timestamp = models.DateTimeField(auto_now_add=True)
     user_notified_timestamp = models.DateTimeField(null=True, db_index=True)
+    env_muted_timestamp = models.DateTimeField(null=True, db_index=True)
 
     class Meta:
         app_label = "sentry"

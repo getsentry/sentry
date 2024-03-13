@@ -423,7 +423,14 @@ function renderTraceAsLinkable(
     return null;
   }
   const dateSelection = eventView.normalizeDateSelection(location);
-  const target = getTraceDetailsUrl(organization, String(data.trace), dateSelection, {});
+  const target = getTraceDetailsUrl(
+    organization,
+    String(data.trace),
+    dateSelection,
+    {},
+    data.timestamp,
+    data.id || data.eventID
+  );
 
   return (
     <Tooltip title={t('View Trace')}>

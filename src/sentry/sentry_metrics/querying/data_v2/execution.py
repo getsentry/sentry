@@ -392,7 +392,7 @@ class QueryResult:
     def scaling_factor(self) -> float | None:
         return self._any_query().scaling_factor
 
-    def align_series_to_totals(self) -> "QueryResult":
+    def align_series_to_totals(self, organization: Organization) -> "QueryResult":
         """
         Aligns the series to the totals of the same query.
 
@@ -413,6 +413,17 @@ class QueryResult:
         for data in self.totals:
             composite_key = _build_composite_key_from_dict(data, alignment_keys)
             indexes = indexed_series.get(composite_key)
+            # It can happen that the groups in series are not matching the groups in totals, due to Snuba bugs or just
+            # limiting taking place in queries. Since this is a problem, we want to keep track of it.
+            if indexes is None:
+                with sentry_sdk.push_scope() as scope:
+                    scope.set_tag("organization_id", organization.id)
+                    scope.set_extra("totals_query", self.totals_query)
+                    scope.set_extra("series_query", self.series_query)
+                    sentry_sdk.capture_message(
+                        "The series groups are not matching the totals groups"
+                    )
+
             for index in indexes or ():
                 aligned_series.append(self.series[index])
 
@@ -568,7 +579,7 @@ class QueryExecutor:
                     first_result = previous_result.to_query_result()
                     second_result = QueryResult.from_scheduled_query(scheduled_query, query_result)
                     merged_result = first_result.merge(second_result)
-                    merged_result.align_series_to_totals()
+                    merged_result.align_series_to_totals(self._organization)
                     self._query_results[query_index] = merged_result
             else:
                 if previous_result is None:
