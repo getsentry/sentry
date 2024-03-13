@@ -11,6 +11,7 @@ import {
 import {browserHistory} from 'react-router';
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import {PlatformIcon} from 'platformicons';
 import * as qs from 'query-string';
 
@@ -227,6 +228,7 @@ function Trace({
       scrollQueue.current = null;
 
       if (!maybeNode) {
+        Sentry.captureMessage('Failled to find and scroll to node in tree');
         return;
       }
 
