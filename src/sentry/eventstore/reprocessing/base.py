@@ -9,6 +9,7 @@ class ReprocessingStore(Service):
     __all__ = (
         "event_count_for_hashes",
         "pop_batched_events",
+        "pop_batched_events_by_key",
         "get_old_primary_hashes",
         "expire_hash",
         "add_hash",
@@ -30,6 +31,11 @@ class ReprocessingStore(Service):
 
     def pop_batched_events(
         self, project_id: int, group_id: int, primary_hash: str
+    ) -> tuple[list[str], datetime | None, datetime | None]:
+        raise NotImplementedError()
+
+    def pop_batched_events_by_key(
+        self, key: str
     ) -> tuple[list[str], datetime | None, datetime | None]:
         raise NotImplementedError()
 

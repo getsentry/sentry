@@ -17,6 +17,9 @@ from typing import Any, Final, Union, overload
 from urllib.parse import urlparse
 
 import sentry
+from sentry.conf.api_pagination_allowlist_do_not_modify import (
+    SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY,
+)
 from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
 from sentry.conf.types.role_dict import RoleDict
@@ -99,6 +102,8 @@ DEBUG = IS_DEV
 DEFAULT_EXCEPTION_REPORTER_FILTER = (
     "sentry.debug.utils.exception_reporter_filter.NoSettingsExceptionReporterFilter"
 )
+
+ENFORCE_PAGINATION = True if DEBUG else False
 
 ADMINS = ()
 
@@ -1225,6 +1230,14 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.tasks.on_demand_metrics.schedule_on_demand_check",
         "schedule": crontab(minute="*/5"),
     },
+    "detect_broken_monitor_envs": {
+        "task": "sentry.monitors.tasks.detect_broken_monitor_envs",
+        "schedule": crontab(
+            minute="0",
+            hour="12",  # 05:00 PDT, 09:00 EDT, 12:00 UTC
+        ),
+        "options": {"expires": 15 * 60},
+    },
 }
 
 # Assign the configuration keys celery uses based on our silo mode.
@@ -1440,7 +1453,6 @@ SENTRY_EARLY_FEATURES = {
     "organizations:performance-span-histogram-view": "Enable histogram view in span details",
     "organizations:performance-transaction-name-only-search-indexed": "Enable transaction name only search on indexed",
     "organizations:profiling-global-suspect-functions": "Enable global suspect functions in profiling",
-    "organizations:source-maps-debugger-blue-thunder-edition": "Enable source maps debugger",
     "organizations:sourcemaps-bundle-flat-file-indexing": "Enable the new flat file indexing system for sourcemaps.",
     "organizations:sourcemaps-upload-release-as-artifact-bundle": "Upload release bundles as artifact bundles",
     "organizations:user-feedback-ui": "Enable User Feedback v2 UI",
@@ -1525,10 +1537,10 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:ddm-dashboard-import": False,
     # Enable the default alert at project creation to be the high priority alert
     "organizations:default-high-priority-alerts": False,
-    # Enable inbound filters to be turned on by default for new Javascript Projects
-    "organizations:default-inbound-filters": False,
     # Enables automatically deriving of code mappings
     "organizations:derive-code-mappings": True,
+    # Enables automatically deriving of PHP code mappings
+    "organizations:derive-code-mappings-php": False,
     # Enable device.class as a selectable column
     "organizations:device-classification": False,
     # Enables synthesis of device.class in ingest
@@ -1604,6 +1616,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable interface functionality to synchronize groups between sentry and
     # issues on external services.
     "organizations:integrations-issue-sync": True,
+    # Enable comments of related issues on open PRs for beta languages
+    "organizations:integrations-open-pr-comment-beta-langs": False,
     # Enable Opsgenie integration
     "organizations:integrations-opsgenie": True,
     # Enable stacktrace linking
@@ -1617,6 +1631,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
+    # Enables the UI for Autofix in issue details
+    "organizations:issue-details-autofix-ui": False,
     # Enables the inline replay viewer on the issue details page
     "organizations:issue-details-inline-replay-viewer": False,
     # Enables a toggle for entering the new issue details UI
@@ -1700,6 +1716,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:org-subdomains": False,
     # Enable views for anomaly detection
     "organizations:performance-anomaly-detection-ui": False,
+    # Enable mobile performance score calculation for transactions in relay
+    "organizations:performance-calculate-mobile-perf-score-relay": False,
     # Enable performance score calculation for transactions in relay
     "organizations:performance-calculate-score-relay": False,
     # Deprecate fid from performance score calculation
@@ -1742,6 +1760,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-mep-reintroduce-histograms": False,
     # Enable metrics-backed transaction summary view
     "organizations:performance-metrics-backed-transaction-summary": False,
+    # Enable the UI for displaying mobile performance score
+    "organizations:performance-mobile-perf-score-ui": False,
     # Enable N+1 API Calls performance issue type
     "organizations:performance-n-plus-one-api-calls-detector": False,
     # Enable new trends
@@ -1758,6 +1778,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-screens-platform-selector": False,
     # Enable API aka HTTP aka Network Performance module
     "organizations:performance-http-view": False,
+    # Skip groupowner cache post processing
+    "organizations:post-process-skip-groupowner-cache": False,
     # Enable column that shows ttid ttfd contributing spans
     "organizations:mobile-ttid-ttfd-contribution": False,
     # Enable slow DB performance issue type
@@ -1824,6 +1846,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:releases-v2-st": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
+    # Enable post create/edit rule confirmation notifications
+    "organizations:rule-create-edit-confirm-notification": False,
     # Enable team member role provisioning through scim
     "organizations:scim-team-roles": False,
     # Enable detecting SDK crashes during event processing
@@ -1848,6 +1872,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-enable-canvas-replayer": False,
     # Enable linking from 'new issue' email notifs to the issue replay list
     "organizations:session-replay-issue-emails": False,
+    # Enable mobile replay player
+    "organizations:session-replay-mobile-player": False,
     # Enable the new event linking columns to be queried
     "organizations:session-replay-new-event-counts": False,
     # Enable Rage Click Issue Creation In Recording Consumer
@@ -1870,8 +1896,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:settings-legal-tos-ui": False,
     # Enable the UI for the overage alert settings
     "organizations:slack-overage-notifications": False,
-    # Enable source maps debugger
-    "organizations:source-maps-debugger-blue-thunder-edition": False,
     # Enable the new flat file indexing system for sourcemaps.
     "organizations:sourcemaps-bundle-flat-file-indexing": False,
     # Upload release bundles as artifact bundles.
@@ -1880,8 +1904,10 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:slack-block-kit": False,
     # Improvements to Slack messages using Block Kit
     "organizations:slack-block-kit-improvements": False,
-    # Send Slack notifications to threads
+    # Send Slack notifications to threads for Metric Alerts
     "organizations:slack-thread": False,
+    # Send Slack notifications to threads for Issue Alerts
+    "organizations:slack-thread-issue-alert": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -1909,6 +1935,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:starfish-browser-webvitals-replace-fid-with-inp": False,
     # Enable mobile starfish app start module view
     "organizations:starfish-mobile-appstart": False,
+    # Enable mobile starfish ui module view
+    "organizations:starfish-mobile-ui-module": False,
     # Enable starfish endpoint that's used for regressing testing purposes
     "organizations:starfish-test-endpoint": False,
     # Enable the new experimental starfish view
@@ -1937,8 +1965,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:transaction-name-normalize": True,
     # Sanitize transaction names in the ingestion pipeline.
     "organizations:transaction-name-sanitization": False,  # DEPRECATED
-    # Enable u2f verification on superuser form
-    "organizations:u2f-superuser-form": False,
     # Enable the metrics layer for alerts queries.
     "organizations:use-metrics-layer-in-alerts": False,
     # Enable User Feedback v2 ingest
@@ -1996,6 +2022,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:servicehooks": False,
     # Enable similarity embeddings API call
     "projects:similarity-embeddings": False,
+    # Enable similarity embeddings grouping
+    "projects:similarity-embeddings-grouping": False,
     # Starfish: extract metrics from the spans
     "projects:span-metrics-extraction": False,
     "projects:span-metrics-extraction-ga-modules": False,
@@ -2402,6 +2430,8 @@ SENTRY_MANAGED_USER_FIELDS = ()
 # Secret key for OpenAI
 OPENAI_API_KEY: str | None = None
 
+SENTRY_API_PAGINATION_ALLOWLIST = SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY
+
 SENTRY_SCOPES = {
     "org:read",
     "org:write",
@@ -2508,6 +2538,8 @@ SENTRY_SCOPE_SETS = (
     ),
     (("email", "Read email address and verification status. Requires openid scope."),),
 )
+
+SENTRY_API_PAGINATION_ALLOWLIST = SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY
 
 SENTRY_DEFAULT_ROLE = "member"
 
@@ -3302,6 +3334,13 @@ SENTRY_BUILTIN_SOURCES = {
         "filters": {"filetypes": ["pe", "pdb"]},
         "url": "https://driver-symbols.nvidia.com/",
         "is_public": True,
+        # This tells Symbolicator to accept invalid SSL certs
+        # when connecting to this source. Currently Symbolicator can't deal
+        # with this source's certs because the `openssl` version we use
+        # lacks support for Authority Information Access (AIA),
+        # so we ignore the certs for now.
+        # TODO: Remove this once we can support AIA.
+        "accept_invalid_certs": True,
     },
     "chromium": {
         "type": "http",
@@ -3433,60 +3472,9 @@ KAFKA_CLUSTERS: dict[str, dict[str, Any]] = {
     }
 }
 
-# These constants define kafka topic names, as well as keys into `KAFKA_TOPICS`
-# which contains cluster mappings for these topics. Follow these steps to
-# override a kafka topic name:
-#
-#  1. Change the value of the `KAFKA_*` constant (e.g. KAFKA_EVENTS).
-#  2. For changes in override files, such as `sentry.conf.py` or in getsentry's
-#     `prod.py`, also override the entirety of `KAFKA_TOPICS` to ensure the keys
-#     pick up the change.
-
-# START DEPRECATED SECTION
-KAFKA_EVENTS = "events"
-KAFKA_EVENTS_COMMIT_LOG = "snuba-commit-log"
-KAFKA_TRANSACTIONS = "transactions"
-KAFKA_TRANSACTIONS_COMMIT_LOG = "snuba-transactions-commit-log"
-KAFKA_OUTCOMES = "outcomes"
-KAFKA_OUTCOMES_BILLING = "outcomes-billing"
-KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS = "events-subscription-results"
-KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS = "transactions-subscription-results"
-KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS = "generic-metrics-subscription-results"
-
-KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS = "sessions-subscription-results"
-KAFKA_METRICS_SUBSCRIPTIONS_RESULTS = "metrics-subscription-results"
-KAFKA_INGEST_EVENTS = "ingest-events"
-KAFKA_INGEST_EVENTS_DLQ = "ingest-events-dlq"
-KAFKA_INGEST_ATTACHMENTS = "ingest-attachments"
-KAFKA_INGEST_TRANSACTIONS = "ingest-transactions"
-KAFKA_INGEST_METRICS = "ingest-metrics"
-KAFKA_INGEST_METRICS_DLQ = "ingest-metrics-dlq"
-KAFKA_SNUBA_METRICS = "snuba-metrics"
-KAFKA_PROFILES = "profiles"
-KAFKA_INGEST_PERFORMANCE_METRICS = "ingest-performance-metrics"
-KAFKA_INGEST_GENERIC_METRICS_DLQ = "ingest-generic-metrics-dlq"
-KAFKA_SNUBA_GENERIC_METRICS = "snuba-generic-metrics"
-KAFKA_INGEST_REPLAY_EVENTS = "ingest-replay-events"
-KAFKA_INGEST_REPLAYS_RECORDINGS = "ingest-replay-recordings"
-KAFKA_INGEST_OCCURRENCES = "ingest-occurrences"
-KAFKA_INGEST_MONITORS = "ingest-monitors"
-KAFKA_EVENTSTREAM_GENERIC = "generic-events"
-KAFKA_GENERIC_EVENTS_COMMIT_LOG = "snuba-generic-events-commit-log"
-KAFKA_GROUP_ATTRIBUTES = "group-attributes"
-KAFKA_SHARED_RESOURCES_USAGE = "shared-resources-usage"
-
-# spans
-KAFKA_SNUBA_SPANS = "snuba-spans"
-# END DEPRECATED SECTION
-
 
 # Mapping of default Kafka topic name to custom names
-KAFKA_TOPIC_OVERRIDES: Mapping[str, str] = {
-    # TODO: This is temporary while we migrate between the old and new way of defining overrides.
-    # To be removed once this is defined in prod, along with KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS
-    # variable which will no longer be needed
-    "generic-metrics-subscription-results": KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS
-}
+KAFKA_TOPIC_OVERRIDES: Mapping[str, str] = {}
 
 
 # Mapping of default Kafka topic name to cluster name
@@ -3528,56 +3516,6 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "shared-resources-usage": "default",
 }
 
-from typing import TypedDict
-
-
-class LegacyTopicDefinition(TypedDict):
-    cluster: str
-
-
-# Cluster configuration for each Kafka topic by name.
-# DEPRECATED
-KAFKA_TOPICS: Mapping[str, LegacyTopicDefinition] = {
-    KAFKA_EVENTS: {"cluster": "default"},
-    KAFKA_EVENTS_COMMIT_LOG: {"cluster": "default"},
-    KAFKA_TRANSACTIONS: {"cluster": "default"},
-    KAFKA_TRANSACTIONS_COMMIT_LOG: {"cluster": "default"},
-    KAFKA_OUTCOMES: {"cluster": "default"},
-    KAFKA_OUTCOMES_BILLING: {"cluster": "default"},
-    KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
-    KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
-    KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
-    KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
-    KAFKA_METRICS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
-    # Topic for receiving simple events (error events without attachments) from Relay
-    KAFKA_INGEST_EVENTS: {"cluster": "default"},
-    # ingest-events DLQ
-    KAFKA_INGEST_EVENTS_DLQ: {"cluster": "default"},
-    # Topic for receiving 'complex' events (error events with attachments) from Relay
-    KAFKA_INGEST_ATTACHMENTS: {"cluster": "default"},
-    # Topic for receiving transaction events (APM events) from Relay
-    KAFKA_INGEST_TRANSACTIONS: {"cluster": "default"},
-    # Topic for receiving metrics from Relay
-    KAFKA_INGEST_METRICS: {"cluster": "default"},
-    # Topic for routing invalid messages from KAFKA_INGEST_METRICS
-    KAFKA_INGEST_METRICS_DLQ: {"cluster": "default"},
-    # Topic for indexer translated metrics
-    KAFKA_SNUBA_METRICS: {"cluster": "default"},
-    # Topic for receiving profiles from Relay
-    KAFKA_PROFILES: {"cluster": "default"},
-    KAFKA_INGEST_PERFORMANCE_METRICS: {"cluster": "default"},
-    KAFKA_SNUBA_GENERIC_METRICS: {"cluster": "default"},
-    KAFKA_INGEST_GENERIC_METRICS_DLQ: {"cluster": "default"},
-    KAFKA_INGEST_REPLAY_EVENTS: {"cluster": "default"},
-    KAFKA_INGEST_REPLAYS_RECORDINGS: {"cluster": "default"},
-    KAFKA_INGEST_OCCURRENCES: {"cluster": "default"},
-    KAFKA_INGEST_MONITORS: {"cluster": "default"},
-    KAFKA_EVENTSTREAM_GENERIC: {"cluster": "default"},
-    KAFKA_GENERIC_EVENTS_COMMIT_LOG: {"cluster": "default"},
-    KAFKA_GROUP_ATTRIBUTES: {"cluster": "default"},
-    KAFKA_SNUBA_SPANS: {"cluster": "default"},
-    KAFKA_SHARED_RESOURCES_USAGE: {"cluster": "default"},
-}
 
 # If True, sentry.utils.arroyo.RunTaskWithMultiprocessing will actually be
 # single-threaded under the hood for performance
@@ -3836,7 +3774,7 @@ DEVSERVER_REQUEST_LOG_EXCLUDES: list[str] = []
 LOG_API_ACCESS = not IS_DEV or os.environ.get("SENTRY_LOG_API_ACCESS")
 
 VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = True
-DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = False
+DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = DISABLE_SU_STAFF_FORM_U2F_CHECK_FOR_LOCAL = False
 
 # determines if we enable analytics or not
 ENABLE_ANALYTICS = False

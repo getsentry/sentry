@@ -35,6 +35,7 @@ CHUNK_UPLOAD_ACCEPT = (
     "il2cpp",  # Il2cpp LineMappingJson files
     "portablepdbs",  # Portable PDB debug file
     "artifact_bundles",  # Artifact Bundles for JavaScript Source Maps
+    "artifact_bundles_v2",  # The `assemble` endpoint will check for missing chunks
 )
 
 
@@ -93,12 +94,6 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
             url = absolute_uri(relative_url, endpoint)
 
         accept = CHUNK_UPLOAD_ACCEPT
-
-        # We introduced the new missing chunks functionality for artifact bundles and in order to synchronize upload
-        # capabilities we need to tell CLI to use the new upload style. This is done since if we have mismatched
-        # versions we might incur into problems like the impossibility for users to upload artifacts.
-        if options.get("sourcemaps.artifact_bundles.assemble_with_missing_chunks") is True:
-            accept += ("artifact_bundles_v2",)
 
         return Response(
             {

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 
 import msgpack
@@ -12,9 +12,12 @@ from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from confluent_kafka.admin import AdminClient, PartitionMetadata
 from django.conf import settings
+from django.utils import timezone as django_timezone
 
+from sentry import features
 from sentry.conf.types.kafka_definition import Topic
 from sentry.constants import ObjectStatus
+from sentry.models.organization import Organization
 from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.schedule import get_prev_schedule
 from sentry.monitors.types import ClockPulseMessage
@@ -27,8 +30,17 @@ from sentry.utils.kafka_config import (
     get_kafka_producer_cluster_options,
     get_topic_definition,
 )
+from sentry.utils.query import RangeQuerySetWrapper
 
-from .models import CheckInStatus, MonitorCheckIn, MonitorEnvironment, MonitorStatus, MonitorType
+from .models import (
+    CheckInStatus,
+    MonitorCheckIn,
+    MonitorEnvBrokenDetection,
+    MonitorEnvironment,
+    MonitorIncident,
+    MonitorStatus,
+    MonitorType,
+)
 
 logger = logging.getLogger("sentry")
 
@@ -49,6 +61,12 @@ MONITOR_TASKS_LAST_TRIGGERED_KEY = "sentry.monitors.last_tasks_ts"
 
 # This key is used to store the hashmap of Mapping[PartitionKey, Timestamp]
 MONITOR_TASKS_PARTITION_CLOCKS = "sentry.monitors.partition_clocks"
+
+# The number of consecutive failing checkins qualifying a monitor env as broken
+NUM_CONSECUTIVE_BROKEN_CHECKINS = 4
+
+# The number of days a monitor env has to be failing to qualify as broken
+NUM_DAYS_BROKEN_PERIOD = 14
 
 
 def _get_producer() -> KafkaProducer:
@@ -204,8 +222,9 @@ def clock_pulse(current_datetime=None):
     # We create a clock-pulse (heart-beat) for EACH available partition in the
     # topic. This is a requirement to ensure that none of the partitions stall,
     # since the global clock is tied to the slowest partition.
+    topic = ArroyoTopic(get_topic_definition(Topic.INGEST_MONITORS)["real_topic_name"])
     for partition in _get_partitions().values():
-        dest = Partition(ArroyoTopic(settings.KAFKA_INGEST_MONITORS), partition.id)
+        dest = Partition(topic, partition.id)
         _checkin_producer.produce(dest, payload)
 
 
@@ -392,3 +411,57 @@ def mark_checkin_timeout(checkin_id: int, ts: datetime, **kwargs):
         )
 
         mark_failed(checkin, ts=most_recent_expected_ts)
+
+
+@instrumented_task(
+    name="sentry.monitors.tasks.detect_broken_monitor_envs",
+    max_retries=0,
+    time_limit=15 * 60,
+    soft_time_limit=10 * 60,
+    record_timing=True,
+)
+def detect_broken_monitor_envs():
+    current_time = django_timezone.now()
+    open_incidents_qs = MonitorIncident.objects.select_related("monitor").filter(
+        resolving_checkin=None,
+        starting_timestamp__lte=(current_time - timedelta(days=NUM_DAYS_BROKEN_PERIOD)),
+        monitor__status=ObjectStatus.ACTIVE,
+        monitor__is_muted=False,
+        monitor_environment__is_muted=False,
+        # TODO(davidenwang): When we want to email users, remove this filter
+        monitorenvbrokendetection__isnull=True,
+    )
+    for open_incident in RangeQuerySetWrapper(
+        open_incidents_qs,
+        order_by="starting_timestamp",
+        step=1000,
+    ):
+        try:
+            organization = Organization.objects.get_from_cache(
+                id=open_incident.monitor.organization_id
+            )
+            if not features.has(
+                "organizations:crons-broken-monitor-detection", organization=organization
+            ):
+                continue
+        except Organization.DoesNotExist:
+            continue
+
+        # verify that the most recent check-ins have been failing
+        recent_checkins = (
+            MonitorCheckIn.objects.filter(monitor_environment=open_incident.monitor_environment)
+            .order_by("-date_added")
+            .values("status")[:NUM_CONSECUTIVE_BROKEN_CHECKINS]
+        )
+        if len(recent_checkins) != NUM_CONSECUTIVE_BROKEN_CHECKINS or not all(
+            checkin["status"] in [CheckInStatus.ERROR, CheckInStatus.TIMEOUT, CheckInStatus.MISSED]
+            for checkin in recent_checkins
+        ):
+            continue
+
+        detection, _ = MonitorEnvBrokenDetection.objects.get_or_create(
+            monitor_incident=open_incident, defaults={"detection_timestamp": current_time}
+        )
+        if not detection.user_notified_timestamp:
+            # TODO(davidenwang): This is where we would implement email sending logic
+            pass

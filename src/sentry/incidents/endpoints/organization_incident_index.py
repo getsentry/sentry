@@ -15,12 +15,8 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.incident import IncidentSerializer
 from sentry.exceptions import InvalidParams
-from sentry.incidents.models import (
-    AlertRuleActivity,
-    AlertRuleActivityType,
-    Incident,
-    IncidentStatus,
-)
+from sentry.incidents.models.alert_rule import AlertRuleActivity, AlertRuleActivityType
+from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.snuba.dataset import Dataset
 from sentry.utils.dates import ensure_aware
 

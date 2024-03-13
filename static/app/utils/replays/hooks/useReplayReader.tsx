@@ -21,7 +21,7 @@ export default function useReplayReader({orgSlug, replaySlug, clipWindow}: Props
   });
 
   const replay = useMemo(
-    () => ReplayReader.factory({attachments, errors, replayRecord, clipWindow}),
+    () => ReplayReader.factory({attachments, clipWindow, errors, replayRecord}),
     [attachments, clipWindow, errors, replayRecord]
   );
 

@@ -8,6 +8,7 @@ import FeedbackItemHeader from 'sentry/components/feedback/feedbackItem/feedback
 import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
 import FeedbackReplay from 'sentry/components/feedback/feedbackItem/feedbackReplay';
 import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
+import {ScreenshotSection} from 'sentry/components/feedback/feedbackItem/screenshotSection';
 import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
@@ -33,8 +34,13 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
 
   const overflowRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    overflowRef.current?.scrollTo({top: 0});
-  }, [feedbackItem.id]);
+    setTimeout(() => {
+      overflowRef.current?.scrollTo({
+        top: 0,
+        behavior: 'smooth',
+      });
+    }, 100);
+  }, [feedbackItem.id, overflowRef]);
 
   return (
     <Fragment>
@@ -53,6 +59,14 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
             <pre>{feedbackItem.metadata.message}</pre>
           </Blockquote>
         </Section>
+
+        {eventData && (
+          <ScreenshotSection
+            event={eventData}
+            organization={organization}
+            projectSlug={feedbackItem.project.slug}
+          />
+        )}
 
         {!crashReportId || (crashReportId && url) ? (
           <Section icon={<IconLink size="xs" />} title={t('URL')}>
@@ -90,7 +104,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
           icon={<IconChat size="xs" />}
           title={
             <Fragment>
-              {t('Activity')}
+              {t('Internal Activity')}
               <QuestionTooltip
                 size="xs"
                 title={t(

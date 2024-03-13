@@ -160,6 +160,7 @@ SentrySdk.CaptureUserFeedback(eventId, "user@example.com", "It broke.", "The Use
 const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi: feedbackOnboarding,
+  crashReportOnboarding: feedbackOnboarding,
 };
 
 export default docs;

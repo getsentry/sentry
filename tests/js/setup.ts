@@ -122,11 +122,9 @@ jest.mock('@sentry/react', function sentryReact() {
       set: jest.fn(),
       distribution: jest.fn(),
     },
+    reactRouterV3BrowserTracingIntegration: jest.fn().mockReturnValue({}),
     BrowserTracing: jest.fn().mockReturnValue({}),
     BrowserProfilingIntegration: jest.fn().mockReturnValue({}),
-    browserTracingIntegration: jest.fn().mockReturnValue({}),
-    reactRouterV3BrowserTracingIntegration: jest.fn().mockReturnValue({}),
-    browserProfilingIntegration: jest.fn().mockReturnValue({}),
     addGlobalEventProcessor: jest.fn(),
     BrowserClient: jest.fn().mockReturnValue({
       captureEvent: jest.fn(),
@@ -152,12 +150,10 @@ declare global {
   /**
    * Generates a promise that resolves on the next macro-task
    */
-  // biome-ignore lint/style/noVar: Not required
   var tick: () => Promise<void>;
   /**
    * Used to mock API requests
    */
-  // biome-ignore lint/style/noVar: Not required
   var MockApiClient: typeof Client;
 }
 

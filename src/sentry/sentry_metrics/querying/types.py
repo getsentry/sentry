@@ -6,30 +6,29 @@ from snuba_sdk import BooleanCondition, Condition, Direction, Formula, Timeserie
 
 from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
 
-# Data V1 types
-
 # Type representing the aggregate value from Snuba, which can be null, int, float or list.
 ResultValue = Optional[Union[int, float, list[Optional[Union[int, float]]]]]
+
 # Type representing a series of values with (`time`, `value`) pairs.
 Series = list[tuple[str, ResultValue]]
-# Type representing a single aggregate value.
-Total = ResultValue
-# Type representing a single group composed of a key and a value.
-Group = tuple[str, str]
-# Type representing a hashable group key as a tuple of tuples ((`key_1`, `value_1`), (`key_2, `value_2), ...)
-GroupKey = tuple[Group, ...]
-# Type representing a sequence of groups [[(`key_1`, `value_1`), (`key_2`, `value_2`), ...], ...]
-GroupsCollection = Sequence[Sequence[Group]]
-# Type representing the possible expressions for a query.
-QueryExpression = Union[Timeseries, Formula, int, float, str]
-# Type representing the possible conditions for a query.
-QueryCondition = Union[BooleanCondition, Condition]
-
-
-# Data V2 types
 
 # Type representing a single aggregate value.
 Totals = ResultValue
+
+# Type representing a single group composed of a key and a value.
+Group = tuple[str, str]
+
+# Type representing a hashable group key as a tuple of tuples ((`key_1`, `value_1`), (`key_2, `value_2), ...)
+GroupKey = tuple[Group, ...]
+
+# Type representing a sequence of groups [[(`key_1`, `value_1`), (`key_2`, `value_2`), ...], ...]
+GroupsCollection = Sequence[Sequence[Group]]
+
+# Type representing the possible expressions for a query.
+QueryExpression = Union[Timeseries, Formula, int, float, str]
+
+# Type representing the possible conditions for a query.
+QueryCondition = Union[BooleanCondition, Condition]
 
 
 class QueryOrder(Enum):
@@ -52,3 +51,8 @@ class QueryOrder(Enum):
             return Direction.DESC
 
         raise InvalidMetricsQueryError(f"Ordering {self} does not exist is snuba")
+
+
+class QueryType(Enum):
+    TOTALS_AND_SERIES = 0
+    TOTALS = 1

@@ -4,7 +4,6 @@ from copy import deepcopy
 from typing import Any
 from unittest.mock import patch
 
-import pytest
 import responses
 
 from sentry.db.models.fields.node import NodeData
@@ -80,9 +79,8 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
                 "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org",
                 side_effect=UnableToAcquireLock,
             ):
-                # We should raise an exception since the request will be retried
-                with pytest.raises(UnableToAcquireLock):
-                    derive_code_mappings(self.project.id, self.event_data)
+                derive_code_mappings(self.project.id, self.event_data)
+                assert not RepositoryProjectPathConfig.objects.exists()
 
     @patch("sentry.tasks.derive_code_mappings.logger")
     def test_raises_generic_errors(self, mock_logger):
@@ -329,6 +327,69 @@ class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.repository.name == repo_name
 
 
+class TestPhpDeriveCodeMappings(BaseDeriveCodeMappings):
+    def setUp(self):
+        super().setUp()
+        self.platform = "php"
+        self.event_data = self.generate_data(
+            [
+                {"in_app": True, "filename": "/sentry/capybara.php"},
+                {"in_app": True, "filename": "/sentry/potato/kangaroo.php"},
+                {
+                    "in_app": False,
+                    "filename": "/sentry/potato/vendor/sentry/sentry/src/functions.php",
+                },
+            ],
+            self.platform,
+        )
+
+    @responses.activate
+    @with_feature({"organizations:derive-code-mappings-php": False})
+    def test_missing_feature_flag(self):
+        repo_name = "php/place"
+        with patch(
+            "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org"
+        ) as mock_get_trees_for_org:
+            mock_get_trees_for_org.return_value = {
+                repo_name: RepoTree(Repo(repo_name, "master"), ["sentry/potato/kangaroo.php"])
+            }
+            derive_code_mappings(self.project.id, self.event_data)
+            # Check to make sure no code mappings were generated
+            assert not RepositoryProjectPathConfig.objects.exists()
+
+    @responses.activate
+    @with_feature({"organizations:derive-code-mappings-php": True})
+    def test_derive_code_mappings_basic_php(self):
+        repo_name = "php/place"
+        with patch(
+            "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org"
+        ) as mock_get_trees_for_org:
+            mock_get_trees_for_org.return_value = {
+                repo_name: RepoTree(Repo(repo_name, "master"), ["sentry/potato/kangaroo.php"])
+            }
+            derive_code_mappings(self.project.id, self.event_data)
+            code_mapping = RepositoryProjectPathConfig.objects.all()[0]
+            assert code_mapping.stack_root == ""
+            assert code_mapping.source_root == ""
+            assert code_mapping.repository.name == repo_name
+
+    @responses.activate
+    @with_feature({"organizations:derive-code-mappings-php": True})
+    def test_derive_code_mappings_different_roots_php(self):
+        repo_name = "php/place"
+        with patch(
+            "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org"
+        ) as mock_get_trees_for_org:
+            mock_get_trees_for_org.return_value = {
+                repo_name: RepoTree(Repo(repo_name, "master"), ["src/sentry/potato/kangaroo.php"])
+            }
+            derive_code_mappings(self.project.id, self.event_data)
+            code_mapping = RepositoryProjectPathConfig.objects.all()[0]
+            assert code_mapping.stack_root == "sentry/"
+            assert code_mapping.source_root == "src/sentry/"
+            assert code_mapping.repository.name == repo_name
+
+
 @region_silo_test
 class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
     def setUp(self):
@@ -369,12 +430,15 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
 
         assert not RepositoryProjectPathConfig.objects.filter(project_id=self.project.id).exists()
 
-        with patch(
-            "sentry.tasks.derive_code_mappings.identify_stacktrace_paths",
-            return_value={
-                self.project: ["sentry/models/release.py", "sentry/tasks.py"],
-            },
-        ) as mock_identify_stacktraces, self.tasks():
+        with (
+            patch(
+                "sentry.tasks.derive_code_mappings.identify_stacktrace_paths",
+                return_value={
+                    self.project: ["sentry/models/release.py", "sentry/tasks.py"],
+                },
+            ) as mock_identify_stacktraces,
+            self.tasks(),
+        ):
             derive_code_mappings(self.project.id, event.data)
 
         assert mock_identify_stacktraces.call_count == 0
@@ -398,10 +462,13 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
 
         assert not RepositoryProjectPathConfig.objects.filter(project_id=self.project.id).exists()
 
-        with patch(
-            "sentry.tasks.derive_code_mappings.identify_stacktrace_paths",
-            return_value=["sentry/models/release.py", "sentry/tasks.py"],
-        ) as mock_identify_stacktraces, self.tasks():
+        with (
+            patch(
+                "sentry.tasks.derive_code_mappings.identify_stacktrace_paths",
+                return_value=["sentry/models/release.py", "sentry/tasks.py"],
+            ) as mock_identify_stacktraces,
+            self.tasks(),
+        ):
             derive_code_mappings(self.project.id, event.data)
 
         assert mock_identify_stacktraces.call_count == 1
@@ -453,10 +520,13 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
 
         assert RepositoryProjectPathConfig.objects.filter(project_id=self.project.id).exists()
 
-        with patch(
-            "sentry.tasks.derive_code_mappings.identify_stacktrace_paths",
-            return_value=["sentry/models/release.py", "sentry/tasks.py"],
-        ) as mock_identify_stacktraces, self.tasks():
+        with (
+            patch(
+                "sentry.tasks.derive_code_mappings.identify_stacktrace_paths",
+                return_value=["sentry/models/release.py", "sentry/tasks.py"],
+            ) as mock_identify_stacktraces,
+            self.tasks(),
+        ):
             derive_code_mappings(self.project.id, event.data)
 
         assert mock_identify_stacktraces.call_count == 1

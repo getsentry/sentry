@@ -1,25 +1,57 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import * as qs from 'query-string';
 
-import EventTagsContent from 'sentry/components/events/eventTags/eventTagContent';
+import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
+import {navigateTo} from 'sentry/actionCreators/navigation';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import Version from 'sentry/components/version';
+import VersionHoverCard from 'sentry/components/versionHoverCard';
+import {IconEllipsis} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTag} from 'sentry/types';
-import {generateQueryWithTag} from 'sentry/utils';
-import {useLocation} from 'sentry/utils/useLocation';
+import type {Event} from 'sentry/types/event';
+import {generateQueryWithTag, isUrl} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
+import useRouter from 'sentry/utils/useRouter';
 
 const MAX_TREE_DEPTH = 4;
 const INVALID_BRANCH_REGEX = /\.{2,}/;
+export const COLUMN_COUNT = 2;
 
 interface TagTree {
   [key: string]: TagTreeContent;
 }
-interface TagTreeContent {
+
+export interface TagTreeContent {
   subtree: TagTree;
   value: string;
   // These will be omitted on pseudo tags (see addToTagTree)
   meta?: Record<any, any>;
   originalTag?: EventTag;
+}
+
+interface TagTreeColumnData {
+  columns: React.ReactNode[];
+  runningTotal: number;
+  startIndex: number;
+}
+
+interface TagTreeRowProps {
+  content: TagTreeContent;
+  event: Event;
+  projectSlug: string;
+  tagKey: string;
+  isLast?: boolean;
+  spacerCount?: number;
+}
+
+interface EventTagsTreeProps {
+  event: Event;
+  projectSlug: string;
+  tags: EventTag[];
+  meta?: Record<any, any>;
 }
 
 function addToTagTree(
@@ -57,31 +89,22 @@ function addToTagTree(
   return tree;
 }
 
-interface TagTreeRowProps {
-  content: TagTreeContent;
-  projectId: string;
-  projectSlug: string;
-  streamPath: string;
-  tagKey: string;
-  isLast?: boolean;
-  spacerCount?: number;
-}
-
 function TagTreeRow({
+  event,
   content,
   tagKey,
   spacerCount = 0,
   isLast = false,
-  ...props
+  projectSlug,
 }: TagTreeRowProps) {
-  const subtreeTags = Object.keys(content.subtree);
   const organization = useOrganization();
-  const location = useLocation();
+  const router = useRouter();
+  const [isVisible, setIsVisible] = useState(false);
   const originalTag = content.originalTag;
 
-  return (
-    <Fragment>
-      <TreeRow>
+  if (!originalTag) {
+    return (
+      <TreeRow data-test-id="tag-tree-row">
         <TreeKeyTrunk spacerCount={spacerCount}>
           {spacerCount > 0 && (
             <Fragment>
@@ -91,102 +114,267 @@ function TagTreeRow({
           )}
           <TreeKey>{tagKey}</TreeKey>
         </TreeKeyTrunk>
-        <TreeValueTrunk>
-          <TreeValue>
-            {originalTag ? (
-              <EventTagsContent
-                tag={originalTag}
-                organization={organization}
-                query={generateQueryWithTag(
-                  {...location.query, referrer: 'event-tags-tree'},
-                  originalTag
-                )}
-                meta={content?.meta ?? {}}
-                {...props}
-              />
-            ) : (
-              content.value
-            )}
-          </TreeValue>
-        </TreeValueTrunk>
+        <TreeValueTrunk />
       </TreeRow>
-      {subtreeTags.map((t, i) => (
-        <TagTreeRow
-          key={`${t}-${i}`}
-          tagKey={t}
-          content={content.subtree[t]}
-          spacerCount={spacerCount + 1}
-          isLast={i === subtreeTags.length - 1}
-          {...props}
+    );
+  }
+
+  const referrer = 'event-tags-tree';
+  const query = generateQueryWithTag({referrer}, originalTag);
+  const searchQuery = `?${qs.stringify(query)}`;
+
+  return (
+    <TreeRow data-test-id="tag-tree-row">
+      <TreeKeyTrunk spacerCount={spacerCount}>
+        {spacerCount > 0 && (
+          <Fragment>
+            <TreeSpacer spacerCount={spacerCount} isLast={isLast} />
+            <TreeBranchIcon />
+          </Fragment>
+        )}
+        <TreeKey>{tagKey}</TreeKey>
+      </TreeKeyTrunk>
+      <TreeValueTrunk>
+        <TreeValue>
+          {originalTag.key === 'release' ? (
+            <VersionHoverCard
+              organization={organization}
+              projectSlug={projectSlug}
+              releaseVersion={content.value}
+              showUnderline
+              underlineColor="linkUnderline"
+            >
+              <Version version={content.value} truncate />
+            </VersionHoverCard>
+          ) : (
+            content.value
+          )}
+        </TreeValue>
+        <TreeValueDropdown
+          preventOverflowOptions={{padding: 4}}
+          className={isVisible ? '' : 'invisible'}
+          position="bottom-end"
+          onOpenChange={isOpen => setIsVisible(isOpen)}
+          triggerProps={{
+            'aria-label': t('Tag Actions Menu'),
+            icon: <IconEllipsis />,
+            showChevron: false,
+            size: 'xs',
+            className: 'tag-button',
+          }}
+          items={[
+            {
+              key: 'view-events',
+              label: t('View other events with this tag value'),
+              hidden: !event.groupID,
+              onAction: () => {
+                navigateTo(
+                  `/organizations/${organization.slug}/issues/${event.groupID}/events/${searchQuery}`,
+                  router
+                );
+              },
+            },
+            {
+              key: 'view-issues',
+              label: t('View issues with this tag value'),
+              onAction: () => {
+                navigateTo(
+                  `/organizations/${organization.slug}/issues/${searchQuery}`,
+                  router
+                );
+              },
+            },
+            {
+              key: 'release',
+              label: t('View this release'),
+              hidden: originalTag.key !== 'release',
+              onAction: () => {
+                navigateTo(
+                  `/organizations/${organization.slug}/releases/${encodeURIComponent(
+                    content.value
+                  )}/`,
+                  router
+                );
+              },
+            },
+            {
+              key: 'transaction',
+              label: t('View this transaction'),
+              hidden: originalTag.key !== 'transaction',
+              onAction: () => {
+                const transactionQuery = qs.stringify({
+                  project: event.projectID,
+                  transaction: content.value,
+                  referrer,
+                });
+                navigateTo(
+                  `/organizations/${organization.slug}/performance/summary/?${transactionQuery}`,
+                  router
+                );
+              },
+            },
+            {
+              key: 'replay',
+              label: t('View this replay'),
+              hidden: originalTag.key !== 'replay_id' && originalTag.key !== 'replayId',
+              onAction: () => {
+                const replayQuery = qs.stringify({referrer});
+                navigateTo(
+                  `/organizations/${organization.slug}/replays/${encodeURIComponent(content.value)}/?${replayQuery}`,
+                  router
+                );
+              },
+            },
+            {
+              key: 'external-link',
+              label: t('Visit this external link'),
+              hidden: !isUrl(content.value),
+              onAction: () => {
+                openNavigateToExternalLinkModal({linkText: content.value});
+              },
+            },
+          ]}
         />
-      ))}
-    </Fragment>
+      </TreeValueTrunk>
+    </TreeRow>
   );
 }
 
-interface EventTagsTreeProps {
-  projectId: string;
-  projectSlug: string;
-  streamPath: string;
-  tags: EventTag[];
-  meta?: Record<any, any>;
+/**
+ * Function to recursively create a flat list of all rows to be rendered for a given TagTree
+ * @param props The props for rendering the root of the TagTree
+ * @returns A list of TagTreeRow components to be rendered in this tree
+ */
+function getTagTreeRows({tagKey, content, spacerCount = 0, ...props}: TagTreeRowProps) {
+  const subtreeTags = Object.keys(content.subtree);
+  const subtreeRows = subtreeTags.reduce((rows, tag, i) => {
+    const branchRows = getTagTreeRows({
+      ...props,
+      tagKey: tag,
+      content: content.subtree[tag],
+      spacerCount: spacerCount + 1,
+      isLast: i === subtreeTags.length - 1,
+    });
+    return rows.concat(branchRows);
+  }, []);
+
+  return [
+    <TagTreeRow
+      key={`${tagKey}-${spacerCount}`}
+      tagKey={tagKey}
+      content={content}
+      spacerCount={spacerCount}
+      {...props}
+    />,
+    ...subtreeRows,
+  ];
 }
 
-function createTagTreeItemData(
-  tags: EventTagsTreeProps['tags'],
-  meta: EventTagsTreeProps['meta']
-): [string, TagTreeContent][] {
-  const tagTree = tags.reduce<TagTree>(
-    (tree, tag, i) => addToTagTree(tree, tag, meta?.[i], tag),
-    {}
-  );
-  return Object.entries(tagTree);
+/**
+ * Component to render proportional columns for event tags. The columns will not separate
+ * branch tags from their roots, and attempt to be as evenly distributed as possible.
+ */
+function TagTreeColumns({meta, tags, ...props}: EventTagsTreeProps) {
+  const assembledColumns = useMemo(() => {
+    // Create the TagTree data structure using all the given tags
+    const tagTree = tags.reduce<TagTree>(
+      (tree, tag, i) => addToTagTree(tree, tag, meta?.[i], tag),
+      {}
+    );
+    // Create a list of TagTreeRow lists, containing every row to be rendered. They are grouped by
+    // root parent so that we do not split up roots/branches when forming columns
+    const tagTreeRowGroups: React.ReactNode[][] = Object.entries(tagTree).map(
+      ([tagKey, content]) => getTagTreeRows({tagKey, content, ...props})
+    );
+    // Get the total number of TagTreeRow components to be rendered, and a goal size for each column
+    const tagTreeRowTotal = tagTreeRowGroups.reduce(
+      (sum, group) => sum + group.length,
+      0
+    );
+    const columnRowGoal = Math.ceil(tagTreeRowTotal / COLUMN_COUNT);
+
+    // Iterate through the row groups, splitting rows into columns when we exceed the goal size
+    const data = tagTreeRowGroups.reduce<TagTreeColumnData>(
+      ({startIndex, runningTotal, columns}, rowList, index) => {
+        // If it's the last entry, create a column with the remaining rows
+        if (index === tagTreeRowGroups.length - 1) {
+          columns.push(
+            <TreeColumn key={columns.length} data-test-id="tag-tree-column">
+              {tagTreeRowGroups.slice(startIndex)}
+            </TreeColumn>
+          );
+          return {startIndex, runningTotal, columns};
+        }
+        // If we reach the goal column size, wrap rows in a TreeColumn.
+        if (runningTotal >= columnRowGoal) {
+          columns.push(
+            <TreeColumn key={columns.length} data-test-id="tag-tree-column">
+              {tagTreeRowGroups.slice(startIndex, index)}
+            </TreeColumn>
+          );
+          runningTotal = 0;
+          startIndex = index;
+        }
+        runningTotal += rowList.length;
+        return {startIndex, runningTotal, columns};
+      },
+      {startIndex: 0, runningTotal: 0, columns: []}
+    );
+    return data.columns;
+  }, [meta, tags, props]);
+
+  return <Fragment>{assembledColumns}</Fragment>;
 }
 
-function EventTagsTree({tags, meta, ...props}: EventTagsTreeProps) {
-  const tagTreeItemData = useMemo(() => createTagTreeItemData(tags, meta), [tags, meta]);
+function EventTagsTree(props: EventTagsTreeProps) {
   return (
     <TreeContainer>
-      <TreeGarden>
-        {tagTreeItemData.map(([tagKey, tagTreeContent]) => (
-          <TreeItem key={tagKey}>
-            <TagTreeRow
-              tagKey={tagKey}
-              content={tagTreeContent}
-              spacerCount={0}
-              {...props}
-            />
-          </TreeItem>
-        ))}
+      <TreeGarden columnCount={COLUMN_COUNT}>
+        <TagTreeColumns {...props} />
       </TreeGarden>
     </TreeContainer>
   );
 }
 
-const TreeContainer = styled('div')``;
-
-const TreeGarden = styled('div')`
-  display: grid;
-  gap: 0 ${space(2)};
-  grid-template-columns: 200px 1fr;
+const TreeContainer = styled('div')`
+  margin-top: ${space(1.5)};
 `;
 
-const TreeItem = styled('div')`
+const TreeGarden = styled('div')<{columnCount: number}>`
   display: grid;
-  grid-column: span 2;
-  grid-template-columns: subgrid;
-  background-color: ${p => p.theme.background};
-  padding: ${space(0.5)} ${space(0.75)};
-  :nth-child(odd) {
-    background-color: ${p => p.theme.backgroundSecondary};
+  gap: 0 ${space(2)};
+  grid-template-columns: repeat(${p => p.columnCount}, 1fr);
+  align-items: start;
+`;
+
+const TreeColumn = styled('div')`
+  display: grid;
+  grid-template-columns: minmax(auto, 150px) 1fr;
+  grid-column-gap: ${space(3)};
+  &:not(:first-child) {
+    border-left: 1px solid ${p => p.theme.gray200};
+    padding-left: ${space(2)};
   }
 `;
 
 const TreeRow = styled('div')`
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${space(0.5)};
+  padding-left: ${space(1)};
   display: grid;
   grid-column: span 2;
   grid-template-columns: subgrid;
+  :nth-child(odd) {
+    background-color: ${p => p.theme.backgroundSecondary};
+  }
+  .invisible {
+    visibility: hidden;
+  }
+  &:hover,
+  &:active {
+    .invisible {
+      visibility: visible;
+    }
+  }
 `;
 
 const TreeSpacer = styled('div')<{isLast: boolean; spacerCount: number}>`
@@ -213,16 +401,31 @@ const TreeKeyTrunk = styled('div')<{spacerCount: number}>`
 
 const TreeValueTrunk = styled('div')`
   grid-column: 2 / 3;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-column-gap: ${space(0.5)};
 `;
 
-const TreeValue = styled('span')`
+const TreeValue = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
   word-break: break-word;
+  grid-column: span 1;
 `;
 
 const TreeKey = styled(TreeValue)`
-  grid-column: span 1;
   color: ${p => p.theme.gray300};
+`;
+
+const TreeValueDropdown = styled(DropdownMenu)`
+  margin: 1px;
+  height: 20px;
+  .tag-button {
+    height: 20px;
+    min-height: 20px;
+    padding: ${space(0)} ${space(0.75)};
+    border-radius: ${space(0.5)};
+    z-index: 0;
+  }
 `;
 
 export default EventTagsTree;

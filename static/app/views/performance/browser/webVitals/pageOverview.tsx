@@ -30,8 +30,8 @@ import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {PageOverviewSidebar} from 'sentry/views/performance/browser/webVitals/components/pageOverviewSidebar';
 import {
+  FID_DEPRECATION_DATE,
   PerformanceScoreBreakdownChart,
-  SCORE_MIGRATION_TIMESTAMP,
 } from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
 import WebVitalMeters from 'sentry/views/performance/browser/webVitals/components/webVitalMeters';
 import {PageOverviewWebVitalsDetailPanel} from 'sentry/views/performance/browser/webVitals/pageOverviewWebVitalsDetailPanel';
@@ -103,7 +103,7 @@ export default function PageOverview() {
   const user = ConfigStore.get('user');
 
   const {dismiss, isDismissed} = useDismissAlert({
-    key: `${organization.slug}-${user.id}:performance-score-migration-message-dismissed`,
+    key: `${organization.slug}-${user.id}:fid-deprecation-message-dismissed`,
   });
 
   const query = decodeScalar(location.query.query);
@@ -138,9 +138,8 @@ export default function PageOverview() {
         ? calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0])
         : calculatePerformanceScoreFromTableDataRow(pageData?.data?.[0]);
 
-  const scoreMigrationTimestampString = moment(SCORE_MIGRATION_TIMESTAMP).format(
-    'DD MMMM YYYY'
-  );
+  const fidDeprecationTimestampString =
+    moment(FID_DEPRECATION_DATE).format('DD MMMM YYYY');
 
   return (
     <ModulePageProviders
@@ -225,16 +224,27 @@ export default function PageOverview() {
                   <DatePageFilter />
                 </PageFilterBar>
               </TopMenuContainer>
-              {shouldUseStoredScores && !isDismissed && (
+              {!isDismissed && (
                 <StyledAlert type="info" showIcon>
                   <AlertContent>
                     <span>
                       {tct(
-                        `We made improvements to how Performance Scores are calculated for your projects. Starting on [scoreMigrationTimestampString], scores are updated to more accurately reflect user experiences. [link:Read more about these improvements].`,
+                        `Starting on [fidDeprecationTimestampString], [inpStrong:INP] (Interaction to Next Paint) will replace [fidStrong:FID] (First Input Delay) in our performance score calculation.`,
                         {
-                          scoreMigrationTimestampString,
+                          fidDeprecationTimestampString,
+                          inpStrong: <strong />,
+                          fidStrong: <strong />,
+                        }
+                      )}
+                      <br />
+                      {tct(
+                        `Users should update their Sentry SDKs to the [link:latest version (7.104.0+)] and [enableInp:enable the INP option] to start receiving updated Performance Scores.`,
+                        {
                           link: (
-                            <ExternalLink href="https://sentry.engineering/blog/how-we-improved-performance-score-accuracy" />
+                            <ExternalLink href="https://github.com/getsentry/sentry-javascript/releases/tag/7.104.0" />
+                          ),
+                          enableInp: (
+                            <ExternalLink href="https://docs.sentry.io/platforms/javascript/performance/instrumentation/automatic-instrumentation/#enableinp" />
                           ),
                         }
                       )}

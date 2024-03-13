@@ -16,19 +16,21 @@ from sentry.incidents.logic import (
     create_alert_rule_trigger_action,
     update_alert_rule,
 )
-from sentry.incidents.models import (
+from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleMonitorType,
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
+    alert_subscription_callback_registry,
+)
+from sentry.incidents.models.incident import (
     Incident,
     IncidentActivity,
     IncidentStatus,
     IncidentTrigger,
     IncidentType,
     TriggerStatus,
-    alert_subscription_callback_registry,
 )
 from sentry.incidents.subscription_processor import (
     SubscriptionProcessor,
@@ -49,7 +51,6 @@ from sentry.testutils.cases import BaseMetricsTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
-from sentry.utils.dates import to_timestamp
 
 EMPTY = object()
 
@@ -280,9 +281,10 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             subscription = self.sub
         processor = SubscriptionProcessor(subscription)
         message = self.build_subscription_update(subscription, value=value, time_delta=time_delta)
-        with self.feature(
-            ["organizations:incidents", "organizations:performance-view"]
-        ), self.capture_on_commit_callbacks(execute=True):
+        with (
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.capture_on_commit_callbacks(execute=True),
+        ):
             processor.process_update(message)
         return processor
 
@@ -2272,9 +2274,10 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
             timestamp = django_timezone.now()
         timestamp = timestamp.replace(tzinfo=timezone.utc, microsecond=0)
 
-        with self.feature(
-            ["organizations:incidents", "organizations:performance-view"]
-        ), self.capture_on_commit_callbacks(execute=True):
+        with (
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.capture_on_commit_callbacks(execute=True),
+        ):
             if value is None:
                 numerator, denominator = 0, 0
             else:
@@ -2286,9 +2289,9 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
             processor.process_update(
                 {
                     "entity": "entity",
-                    "subscription_id": subscription.subscription_id
-                    if subscription
-                    else uuid4().hex,
+                    "subscription_id": (
+                        subscription.subscription_id if subscription else uuid4().hex
+                    ),
                     "values": {
                         "data": [
                             {
@@ -2781,9 +2784,10 @@ class MetricsCrashRateAlertProcessUpdateV1Test(MetricsCrashRateAlertProcessUpdat
             timestamp = django_timezone.now()
         timestamp = timestamp.replace(tzinfo=timezone.utc, microsecond=0)
 
-        with self.feature(
-            ["organizations:incidents", "organizations:performance-view"]
-        ), self.capture_on_commit_callbacks(execute=True):
+        with (
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.capture_on_commit_callbacks(execute=True),
+        ):
             if value is None:
                 numerator, denominator = 0, 0
             else:
@@ -2798,9 +2802,9 @@ class MetricsCrashRateAlertProcessUpdateV1Test(MetricsCrashRateAlertProcessUpdat
             processor.process_update(
                 {
                     "entity": "entity",
-                    "subscription_id": subscription.subscription_id
-                    if subscription
-                    else uuid4().hex,
+                    "subscription_id": (
+                        subscription.subscription_id if subscription else uuid4().hex
+                    ),
                     "values": {
                         "data": [
                             {"project_id": 8, session_status: tag_value_init, "value": denominator},
@@ -2862,7 +2866,7 @@ class TestGetAlertRuleStats(TestCase):
         client = get_redis_client()
         pipeline = client.pipeline()
         timestamp = datetime.now(UTC).replace(microsecond=0)
-        pipeline.set("{alert_rule:1:project:2}:last_update", int(to_timestamp(timestamp)))
+        pipeline.set("{alert_rule:1:project:2}:last_update", int(timestamp.timestamp()))
         pipeline.set("{alert_rule:1:project:2}:resolve_triggered", 20)
         for key, value in [
             ("{alert_rule:1:project:2}:trigger:3:alert_triggered", 1),
@@ -2900,4 +2904,4 @@ class TestUpdateAlertRuleStats(TestCase):
             if v is not None
         ]
 
-        assert results == [int(to_timestamp(date)), 20, 10, 3, 15]
+        assert results == [int(date.timestamp()), 20, 10, 3, 15]
