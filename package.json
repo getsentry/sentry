@@ -227,11 +227,11 @@
     "lint:js": "eslint static/app tests/js --ext .js,.jsx,.ts,.tsx",
     "lint:css": "stylelint 'static/app/**/*.[jt]sx'",
     "lint:biome": "biome check .",
-    "lint:prettier": "prettier \"**/*.md\" \"**/*.yaml\" \"**/*.[jt]s?(x)\" --check",
+    "lint:prettier": "prettier \"**/*.md\" \"**/*.yaml\" \"**/*.[jt]s(x)?\" --check",
     "fix": "yarn fix:biome && yarn fix:prettier && yarn fix:eslint",
     "fix:eslint": "eslint static/app tests/js --ext .js,.jsx,.ts,.tsx --fix",
     "fix:biome": "biome check . --apply",
-    "fix:prettier": "prettier \"**/*.md\" \"**/*.yaml\" \"**/*.[jt]s?(x)\" --write",
+    "fix:prettier": "prettier \"**/*.md\" \"**/*.yaml\" \"**/*.[jt]s(x)?\" --write",
     "dev": "(yarn check --verify-tree || yarn install --check-files) && sentry devserver",
     "dev-ui": "SENTRY_UI_DEV_ONLY=1 SENTRY_WEBPACK_PROXY_PORT=7999 yarn webpack serve",
     "dev-acceptance": "NO_DEV_SERVER=1 NODE_ENV=development yarn webpack --watch",
@@ -266,9 +266,7 @@
       "last 3 iOS major versions",
       "Firefox ESR"
     ],
-    "test": [
-      "current node"
-    ]
+    "test": ["current node"]
   },
   "volta": {
     "extends": ".volta.json"
