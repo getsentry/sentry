@@ -425,6 +425,9 @@ def detect_broken_monitor_envs():
     open_incidents_qs = MonitorIncident.objects.select_related("monitor").filter(
         resolving_checkin=None,
         starting_timestamp__lte=(current_time - timedelta(days=NUM_DAYS_BROKEN_PERIOD)),
+        monitor__status=ObjectStatus.ACTIVE,
+        monitor__is_muted=False,
+        monitor_environment__is_muted=False,
         # TODO(davidenwang): When we want to email users, remove this filter
         monitorenvbrokendetection__isnull=True,
     )
