@@ -151,7 +151,7 @@ def test_second_span_in_segment_does_not_queue_task(process_segment):
 )
 @mock.patch("sentry.spans.consumers.process.factory.RedisSpansBuffer")
 def test_option_disabled(mock_buffer):
-    topic = Topic(Topic.SNUBA_SPANS)
+    topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_SPANS)["real_topic_name"])
     partition = Partition(topic, 0)
     strategy = ProcessSpansStrategyFactory().create_with_partitions(
         commit=mock.Mock(),
@@ -186,7 +186,7 @@ def test_option_disabled(mock_buffer):
 )
 @mock.patch("sentry.spans.consumers.process.factory.RedisSpansBuffer")
 def test_option_project_rollout(mock_buffer):
-    topic = Topic(Topic.SNUBA_SPANS)
+    topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_SPANS)["real_topic_name"])
     partition = Partition(topic, 0)
     strategy = ProcessSpansStrategyFactory().create_with_partitions(
         commit=mock.Mock(),
