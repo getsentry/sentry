@@ -157,13 +157,12 @@ def track_initial_segment_event(
 
     if not project.flags.has_replays:
         logger.info(
-            "Sending first_replay_received signal for project %d",
-            project_id,
+            "Sending first_replay_received signal",
             extra={
+                "project": repr(project),
                 "org_id": org_id,
                 "replay_id": replay_id,
                 "key_id": key_id,
-                "project": repr(project),
             },
         )
         first_replay_received.send_robust(project=project, sender=Project)
