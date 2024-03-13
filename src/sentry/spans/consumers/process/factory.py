@@ -11,6 +11,7 @@ from sentry_kafka_schemas import get_codec
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
 
+from sentry import options
 from sentry.spans.buffer.redis import RedisSpansBuffer
 from sentry.tasks.spans import process_segment
 
@@ -25,6 +26,9 @@ def _deserialize_span(value: bytes) -> Mapping[str, Any]:
 
 
 def process_message(message: Message[KafkaPayload]):
+    if not options.get("standalone-spans.process-spans-consumer.enable"):
+        return
+
     assert isinstance(message.value, BrokerValue)
     try:
         span = _deserialize_span(message.payload.value)
@@ -32,6 +36,9 @@ def process_message(message: Message[KafkaPayload]):
         project_id = span["project_id"]
     except Exception:
         logger.exception("Failed to process span payload")
+        return
+
+    if project_id not in options.get("standalone-spans.process-spans-consumer.project-allowlist"):
         return
 
     client = RedisSpansBuffer()
