@@ -1283,6 +1283,7 @@ class IssueListOverview extends Component<Props, State> {
                     loading={issuesLoading}
                     error={error}
                     refetchGroups={this.fetchData}
+                    onActionTaken={this.onActionTaken}
                   />
                 </VisuallyCompleteWithData>
               </PanelBody>

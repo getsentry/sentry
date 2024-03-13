@@ -10,6 +10,7 @@ import useApi from 'sentry/utils/useApi';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
 import NoGroupsHandler from './noGroupsHandler';
 import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from './utils';
@@ -21,6 +22,7 @@ type GroupListBodyProps = {
   groupStatsPeriod: string;
   loading: boolean;
   memberList: IndexedMembersByProject;
+  onActionTaken: (itemIds: string[], data: IssueUpdateData) => void;
   query: string;
   refetchGroups: () => void;
   selectedProjectIds: number[];
@@ -31,6 +33,7 @@ type GroupListProps = {
   groupIds: string[];
   groupStatsPeriod: string;
   memberList: IndexedMembersByProject;
+  onActionTaken: (itemIds: string[], data: IssueUpdateData) => void;
   query: string;
 };
 
@@ -44,6 +47,7 @@ function GroupListBody({
   error,
   refetchGroups,
   selectedProjectIds,
+  onActionTaken,
 }: GroupListBodyProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -75,6 +79,7 @@ function GroupListBody({
       query={query}
       displayReprocessingLayout={displayReprocessingLayout}
       groupStatsPeriod={groupStatsPeriod}
+      onActionTaken={onActionTaken}
     />
   );
 }
@@ -85,6 +90,7 @@ function GroupList({
   query,
   displayReprocessingLayout,
   groupStatsPeriod,
+  onActionTaken,
 }: GroupListProps) {
   const [isSavedSearchesOpen] = useSyncedLocalStorageState(
     SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
@@ -116,6 +122,7 @@ function GroupList({
             useFilteredStats
             canSelect={canSelect}
             narrowGroups={isSavedSearchesOpen}
+            onPriorityChange={priority => onActionTaken([id], {priority})}
           />
         );
       })}
