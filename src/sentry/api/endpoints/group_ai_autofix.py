@@ -192,7 +192,10 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
 
         if not repos:
             return self._respond_with_error(
-                group, metadata, "Found no Github repositories linked to this project.", 400
+                group,
+                metadata,
+                "Found no Github repositories linked to this project. Please set up the Github Integration and code mappings if you haven't",
+                400,
             )
 
         try:
