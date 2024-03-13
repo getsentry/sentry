@@ -228,7 +228,7 @@ class SlackRequest:
             raise SlackRequestError(status=status_.HTTP_403_FORBIDDEN)
 
     def _log_request(self) -> None:
-        self._info("slack.request")
+        self._info("slack.request", extra=self.request.data)
 
     def _error(self, key: str) -> None:
         logger.error(key, extra={**self.logging_data})
