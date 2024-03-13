@@ -1,0 +1,24 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block main %}
+    <h3>Your Cron Monitors Aren't Working</h3>
+    <p>
+      We've noticed the cron monitors below have not processed a successful check-in for multiple days:
+    </p>
+      <ul>
+        {% for monitor_name, monitor_url, earliest_incident_start_date in broken_monitors %}
+          <li>
+            <a href="{{monitor_url}}">{{monitor_name}}</a> | Failing since {{earliest_incident_start_date|date:"N j, Y, g:i:s a e"}}
+          </li>
+        {% endfor %}
+      </ul>
+    <p>
+      To bring your monitors back to a healthy status, we recommend checking out our <a href="https://docs.sentry.io/product/crons/troubleshooting/">troubleshooting guide and our FAQs</a>
+    </p>
+    <p>
+      Still facing issues? Reach out to our support team or write feedback to crons-feedback@sentry.io
+    </p>
+{% endblock %}
