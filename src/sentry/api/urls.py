@@ -5,6 +5,7 @@ from django.urls import URLPattern, URLResolver, re_path
 
 from sentry.api.endpoints.bundle_analysis import BundleAnalysisEndpoint
 from sentry.api.endpoints.group_event_details import GroupEventDetailsEndpoint
+from sentry.api.endpoints.group_related_issues import GroupRelatedIssuesEndpoint
 from sentry.api.endpoints.group_similar_issues_embeddings import (
     GroupSimilarIssuesEmbeddingsEndpoint,
 )
@@ -341,7 +342,6 @@ from .endpoints.organization_events_has_measurements import (
 from .endpoints.organization_events_histogram import OrganizationEventsHistogramEndpoint
 from .endpoints.organization_events_meta import (
     OrganizationEventsMetaEndpoint,
-    OrganizationEventsRelatedIssuesEndpoint,
     OrganizationSpansSamplesEndpoint,
 )
 from .endpoints.organization_events_span_ops import OrganizationEventsSpanOpsEndpoint
@@ -422,7 +422,6 @@ from .endpoints.organization_projects_sent_first_event import (
     OrganizationProjectsSentFirstEventEndpoint,
 )
 from .endpoints.organization_recent_searches import OrganizationRecentSearchesEndpoint
-from .endpoints.organization_related_issues import OrganizationRelatedIssuesEndpoint
 from .endpoints.organization_relay_usage import OrganizationRelayUsage
 from .endpoints.organization_release_assemble import OrganizationReleaseAssembleEndpoint
 from .endpoints.organization_release_commits import OrganizationReleaseCommitsEndpoint
@@ -635,6 +634,7 @@ from ..monitors.endpoints.project_monitors_details import ProjectMonitorDetailsE
 # to the organization (and queryable via short ID)
 
 
+# NOTE: Start adding to GROUP_URLS instead of here
 def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
     return [
         re_path(
@@ -797,6 +797,14 @@ BROADCAST_URLS = [
     re_path(
         r"^(?P<broadcast_id>[^\/]+)/$",
         BroadcastDetailsEndpoint.as_view(),
+    ),
+]
+
+ISSUES_URLS = [
+    re_path(
+        r"^(?P<issue_id>[^\/]+)/related-issues/$",
+        GroupRelatedIssuesEndpoint.as_view(),
+        name="sentry-api-0-issues-related-issues",
     ),
 ]
 
@@ -1199,11 +1207,6 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-key-transactions-list",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/related-issues/$",
-        OrganizationEventsRelatedIssuesEndpoint.as_view(),
-        name="sentry-api-0-organization-related-issues",
-    ),
-    re_path(
         r"^(?P<organization_slug>[^\/]+)/project-transaction-threshold-override/$",
         ProjectTransactionThresholdOverrideEndpoint.as_view(),
         name="sentry-api-0-organization-project-transaction-threshold-override",
@@ -1328,11 +1331,6 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/events/$",
         OrganizationEventsEndpoint.as_view(),
         name="sentry-api-0-organization-events",
-    ),
-    re_path(
-        r"^(?P<organization_slug>[^\/]+)/related-issues/$",
-        OrganizationRelatedIssuesEndpoint.as_view(),
-        name="sentry-api-0-organization-related-issues",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/events/(?P<project_slug>[^\/]+):(?P<event_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
@@ -2975,6 +2973,10 @@ urlpatterns = [
     re_path(
         r"^(?:issues|groups)/",
         include(create_group_urls("sentry-api-0")),
+    ),
+    re_path(
+        r"^issues/",
+        include(ISSUES_URLS),
     ),
     # Organizations
     re_path(
