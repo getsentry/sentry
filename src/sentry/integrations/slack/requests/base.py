@@ -147,6 +147,7 @@ class SlackRequest:
             "slack_callback_id": _data.get("callback_id"),
             "slack_api_app_id": _data.get("api_app_id"),
         }
+        data["request_data"] = _data
 
         if self._integration:
             data["integration_id"] = self.integration.id
@@ -228,7 +229,7 @@ class SlackRequest:
             raise SlackRequestError(status=status_.HTTP_403_FORBIDDEN)
 
     def _log_request(self) -> None:
-        self._info("slack.request", extra=self.request.data)
+        self._info("slack.request")
 
     def _error(self, key: str) -> None:
         logger.error(key, extra={**self.logging_data})
