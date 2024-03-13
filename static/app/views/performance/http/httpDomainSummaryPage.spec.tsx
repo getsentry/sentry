@@ -198,7 +198,7 @@ describe('HTTPSummaryPage', function () {
 
     expect(screen.getByRole('table', {name: 'Transactions'})).toBeInTheDocument();
 
-    expect(screen.getByRole('columnheader', {name: 'Transaction'})).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Found In'})).toBeInTheDocument();
     expect(
       screen.getByRole('columnheader', {name: 'Requests Per Minute'})
     ).toBeInTheDocument();

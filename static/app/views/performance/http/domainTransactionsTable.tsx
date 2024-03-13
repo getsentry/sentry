@@ -45,7 +45,7 @@ type Column = GridColumnHeader<
 const COLUMN_ORDER: Column[] = [
   {
     key: 'transaction',
-    name: t('Transaction'),
+    name: t('Found In'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
