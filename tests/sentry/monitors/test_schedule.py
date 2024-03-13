@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 
 from sentry.monitors.schedule import get_next_schedule, get_prev_schedule
 from sentry.monitors.types import CrontabSchedule, IntervalSchedule
@@ -21,6 +22,22 @@ def test_get_next_schedule():
 
     # 2 hour interval: 5:42 -> 7:42
     assert get_next_schedule(t(5, 42), IntervalSchedule(interval=2, unit="hour")) == t(7, 42)
+
+    # Uncomment when we fix croniter to support this correctly
+    # assert get_next_schedule(
+    #     datetime(2024, 3, 9, 12, 0, 0, tzinfo=ZoneInfo("America/New_York")),
+    #     CrontabSchedule("0 12 9 * *"),
+    # ) == datetime(2024, 4, 9, 12, 0, 0, tzinfo=ZoneInfo("America/New_York"))
+
+    assert get_next_schedule(
+        datetime(2024, 11, 3, 1, 59, 0, tzinfo=ZoneInfo("America/New_York")),
+        CrontabSchedule("* * * * *"),
+    ) == datetime(2024, 11, 3, 1, 0, 0, tzinfo=ZoneInfo("America/New_York"))
+
+    assert get_next_schedule(
+        datetime(2024, 3, 10, 1, 59, 0, tzinfo=ZoneInfo("America/New_York")),
+        CrontabSchedule("* * * * *"),
+    ) == datetime(2024, 3, 10, 3, 0, 0, tzinfo=ZoneInfo("America/New_York"))
 
 
 def test_get_prev_schedule():

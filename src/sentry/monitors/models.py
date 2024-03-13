@@ -636,22 +636,16 @@ class MonitorEnvironment(Model):
         )
 
     @property
-    def incident_grouphash(self):
+    def active_incident(self) -> MonitorIncident | None:
         """
-        Retrieve the grouphash for the current active incident. If there is no
-        active incident None will be returned.
+        Retrieve the current active incident. If there is no active incident None will be returned.
         """
-        active_incident = (
-            MonitorIncident.objects.filter(
+        try:
+            return MonitorIncident.objects.get(
                 monitor_environment_id=self.id, resolving_checkin__isnull=True
             )
-            .order_by("-date_added")
-            .first()
-        )
-        if active_incident:
-            return active_incident.grouphash
-
-        return None
+        except MonitorIncident.DoesNotExist:
+            return None
 
 
 @receiver(pre_save, sender=MonitorEnvironment)
@@ -706,7 +700,23 @@ class MonitorIncident(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_monitorincident"
-        indexes = [models.Index(fields=["monitor_environment", "resolving_checkin"])]
+        indexes = [
+            models.Index(fields=["monitor_environment", "resolving_checkin"]),
+            models.Index(
+                fields=["starting_timestamp"],
+                name="active_incident_idx",
+                condition=Q(resolving_checkin__isnull=True),
+            ),
+        ]
+        constraints = [
+            # Only allow for one active incident (no resolved check-in) per
+            # monitor environment
+            models.UniqueConstraint(
+                fields=["monitor_environment_id"],
+                name="unique_active_incident",
+                condition=Q(resolving_checkin__isnull=True),
+            ),
+        ]
 
 
 @region_silo_only_model
@@ -721,6 +731,7 @@ class MonitorEnvBrokenDetection(Model):
     monitor_incident = FlexibleForeignKey("sentry.MonitorIncident")
     detection_timestamp = models.DateTimeField(auto_now_add=True)
     user_notified_timestamp = models.DateTimeField(null=True, db_index=True)
+    env_muted_timestamp = models.DateTimeField(null=True, db_index=True)
 
     class Meta:
         app_label = "sentry"

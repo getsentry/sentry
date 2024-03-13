@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
+from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
 from sentry.services.hybrid_cloud.orgauthtoken.service import OrgAuthTokenService
 
 if TYPE_CHECKING:
@@ -24,7 +24,8 @@ class DatabaseBackedOrgAuthTokenService(OrgAuthTokenService):
         if token is None:
             return
 
-        token.update(date_last_used=date_last_used, project_last_used_id=project_last_used_id)
+        with outbox_context(flush=False):
+            token.update(date_last_used=date_last_used, project_last_used_id=project_last_used_id)
 
 
 class OutboxBackedOrgAuthTokenService(OrgAuthTokenService):

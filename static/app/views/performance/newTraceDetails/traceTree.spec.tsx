@@ -15,6 +15,7 @@ import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
   isSpanNode,
+  isTraceErrorNode,
   isTransactionNode,
 } from './guards';
 import {
@@ -110,6 +111,14 @@ function assertMissingInstrumentationNode(
 ): asserts node is TraceTreeNode<TraceTree.MissingInstrumentationSpan> {
   if (!isMissingInstrumentationNode(node)) {
     throw new Error('node is not a missing instrumentation node');
+  }
+}
+
+function assertTraceErrorNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): asserts node is TraceTreeNode<TraceTree.TraceError> {
+  if (!isTraceErrorNode(node)) {
+    throw new Error('node is not a trace error node');
   }
 }
 
@@ -622,6 +631,54 @@ describe('TreeNode', () => {
       });
     });
 
+    describe('collapses some node by default', () => {
+      it('android okhttp', async () => {
+        const tree = TraceTree.FromTrace(
+          makeTrace({
+            transactions: [
+              makeTransaction({
+                transaction: '/',
+                project_slug: 'project',
+                event_id: 'event_id',
+              }),
+            ],
+          })
+        );
+
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events/project:event_id/',
+          method: 'GET',
+          body: makeEvent({}, [
+            makeSpan({
+              description: 'span',
+              span_id: '2',
+              op: 'http.client',
+              origin: 'auto.http.okhttp',
+            }),
+            makeSpan({
+              description: 'span',
+              op: 'http.client.tls',
+              span_id: '3',
+              parent_span_id: '2',
+            }),
+          ]),
+        });
+
+        tree.zoomIn(tree.list[1], true, {
+          api: new MockApiClient(),
+          organization: OrganizationFixture(),
+        });
+
+        await waitFor(() => {
+          // trace
+          //  - transaction
+          //   - http.client
+          //    ^ child of http.client is not visible
+          expect(tree.list.length).toBe(3);
+        });
+      });
+    });
+
     describe('non expanded direct children autogrouped path', () => {
       const tree = TraceTree.FromTrace(
         makeTrace({
@@ -666,9 +723,6 @@ describe('TreeNode', () => {
         expect(tree.list[tree.list.length - 1].path).toEqual(['span:6', 'txn:event_id']);
       });
     });
-
-    it.todo('sibling autogrouped node paths');
-    it.todo('nested transactions autogrouped node paths');
   });
 });
 
@@ -693,7 +747,7 @@ describe('TraceTree', () => {
     expect(tree.list).toHaveLength(3);
   });
 
-  it('builds orphan errors as well', () => {
+  it('builds orphan errors', () => {
     const tree = TraceTree.FromTrace(
       makeTrace({
         transactions: [
@@ -709,6 +763,48 @@ describe('TraceTree', () => {
     );
 
     expect(tree.list).toHaveLength(4);
+  });
+
+  it('processes orphan errors without timestamps', () => {
+    const tree = TraceTree.FromTrace(
+      makeTrace({
+        transactions: [
+          makeTransaction({
+            children: [],
+          }),
+        ],
+        orphan_errors: [
+          {
+            level: 'error',
+            title: 'Error',
+            event_type: 'error',
+          } as TraceTree.TraceError,
+        ],
+      })
+    );
+
+    expect(tree.list).toHaveLength(3);
+  });
+
+  it('sorts orphan errors', () => {
+    const tree = TraceTree.FromTrace(
+      makeTrace({
+        transactions: [
+          makeTransaction({
+            start_timestamp: 0,
+            timestamp: 1,
+          }),
+          makeTransaction({
+            start_timestamp: 2,
+            timestamp: 3,
+          }),
+        ],
+        orphan_errors: [makeTraceError({timestamp: 1, level: 'error'})],
+      })
+    );
+
+    expect(tree.list).toHaveLength(4);
+    assertTraceErrorNode(tree.list[2]);
   });
 
   it('adjusts trace bounds by orphan error timestamp as well', () => {
@@ -748,7 +844,7 @@ describe('TraceTree', () => {
       })
     );
 
-    expect(TraceTree.GetTraceType(tree.root)).toBe(TraceType.EMPTY_TRACE);
+    expect(tree.shape).toBe(TraceType.EMPTY_TRACE);
 
     tree = TraceTree.FromTrace(
       makeTrace({
@@ -764,7 +860,7 @@ describe('TraceTree', () => {
       })
     );
 
-    expect(TraceTree.GetTraceType(tree.root)).toBe(TraceType.NO_ROOT);
+    expect(tree.shape).toBe(TraceType.NO_ROOT);
 
     tree = TraceTree.FromTrace(
       makeTrace({
@@ -778,7 +874,7 @@ describe('TraceTree', () => {
       })
     );
 
-    expect(TraceTree.GetTraceType(tree.root)).toBe(TraceType.ONE_ROOT);
+    expect(tree.shape).toBe(TraceType.ONE_ROOT);
 
     tree = TraceTree.FromTrace(
       makeTrace({
@@ -795,7 +891,7 @@ describe('TraceTree', () => {
       })
     );
 
-    expect(TraceTree.GetTraceType(tree.root)).toBe(TraceType.BROKEN_SUBTRACES);
+    expect(tree.shape).toBe(TraceType.BROKEN_SUBTRACES);
 
     tree = TraceTree.FromTrace(
       makeTrace({
@@ -813,7 +909,7 @@ describe('TraceTree', () => {
       })
     );
 
-    expect(TraceTree.GetTraceType(tree.root)).toBe(TraceType.MULTIPLE_ROOTS);
+    expect(tree.shape).toBe(TraceType.MULTIPLE_ROOTS);
 
     tree = TraceTree.FromTrace(
       makeTrace({
@@ -822,7 +918,7 @@ describe('TraceTree', () => {
       })
     );
 
-    expect(TraceTree.GetTraceType(tree.root)).toBe(TraceType.ONLY_ERRORS);
+    expect(tree.shape).toBe(TraceType.ONLY_ERRORS);
   });
 
   it('builds from spans when root is a transaction node', () => {
