@@ -160,8 +160,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
 
             priority: str = attrs["priority"]
 
-            if action_type == AlertRuleTriggerAction.Type.PAGERDUTY:
-                if priority not in PAGERDUTY_CUSTOM_PRIORITIES:
+            if action_type == AlertRuleTriggerAction.Type.PAGERDUTY and priority not in PAGERDUTY_CUSTOM_PRIORITIES:
                     raise serializers.ValidationError(
                         {
                             "priority": f"Allowed priorities for Pagerduty are {str(PAGERDUTY_CUSTOM_PRIORITIES)}"
