@@ -96,13 +96,14 @@ def assemble_file(task, org_or_project, name, checksum, chunks, file_type) -> As
 
     # Reject all files that exceed the maximum allowed size for this organization.
     file_size = sum(x[2] for x in file_blobs)
-    if file_size > get_max_file_size(organization):
+    max_file_size = get_max_file_size(organization)
+    if file_size > max_file_size:
         set_assemble_status(
             task,
             org_or_project.id,
             checksum,
             ChunkFileState.ERROR,
-            detail="File exceeds maximum size",
+            detail=f"File {name} exceeds maximum size ({file_size} > {max_file_size})",
         )
 
         return None
