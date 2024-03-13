@@ -20,6 +20,7 @@ import {
   isAValidSort,
 } from 'sentry/views/performance/http/domainTransactionsTable';
 import {DurationChart} from 'sentry/views/performance/http/durationChart';
+import {ResponseRateChart} from 'sentry/views/performance/http/responseRateChart';
 import {ThroughputChart} from 'sentry/views/performance/http/throughputChart';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
@@ -87,6 +88,16 @@ export function HTTPDomainSummaryPage() {
     yAxis: [`avg(${SpanMetricsField.SPAN_SELF_TIME})`],
     enabled: Boolean(domain),
     referrer: 'api.starfish.http-module-domain-summary-duration-chart',
+  });
+
+  const {
+    isLoading: isResponseCodeDataLoading,
+    data: responseCodeData,
+    error: responseCodeError,
+  } = useSpanMetricsSeries({
+    filters: filters,
+    yAxis: ['http_response_rate(3)', 'http_response_rate(4)', 'http_response_rate(5)'],
+    referrer: 'api.starfish.http-module-domain-summary-response-code-chart',
   });
 
   const {
@@ -172,21 +183,42 @@ export function HTTPDomainSummaryPage() {
               </HeaderContainer>
             </ModuleLayout.Full>
 
-            <ModuleLayout.Half>
+            <ModuleLayout.Third>
               <ThroughputChart
                 series={throughputData['spm()']}
                 isLoading={isThroughputDataLoading}
                 error={throughputError}
               />
-            </ModuleLayout.Half>
+            </ModuleLayout.Third>
 
-            <ModuleLayout.Half>
+            <ModuleLayout.Third>
               <DurationChart
                 series={durationData[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]}
                 isLoading={isDurationDataLoading}
                 error={durationError}
               />
-            </ModuleLayout.Half>
+            </ModuleLayout.Third>
+
+            <ModuleLayout.Third>
+              <ResponseRateChart
+                series={[
+                  {
+                    ...responseCodeData[`http_response_rate(3)`],
+                    seriesName: t('3XX'),
+                  },
+                  {
+                    ...responseCodeData[`http_response_rate(4)`],
+                    seriesName: t('4XX'),
+                  },
+                  {
+                    ...responseCodeData[`http_response_rate(5)`],
+                    seriesName: t('5XX'),
+                  },
+                ]}
+                isLoading={isResponseCodeDataLoading}
+                error={responseCodeError}
+              />
+            </ModuleLayout.Third>
 
             <ModuleLayout.Full>
               <DomainTransactionsTable
