@@ -585,11 +585,6 @@ class _RemoteSiloCall:
         # TODO: Performance considerations (persistent connections, pooling, etc.)?
         url = self.address + self.path
 
-        # Add tracing continuation headers as the SDK doesn't monkeypatch requests.
-        if traceparent := sentry_sdk.get_traceparent():
-            headers["Sentry-Trace"] = traceparent
-        if baggage := sentry_sdk.get_baggage():
-            headers["Baggage"] = baggage
         try:
             return http.post(url, headers=headers, data=data, timeout=settings.RPC_TIMEOUT)
         except requests.exceptions.ConnectionError as e:
