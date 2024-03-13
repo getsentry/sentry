@@ -14,7 +14,7 @@ jest.mock('sentry/utils/useOrganization');
 describe('HTTPSummaryPage', function () {
   const organization = OrganizationFixture();
 
-  let domainChartsRequestMock;
+  let domainChartsRequestMock, domainTransactionsListRequestMock;
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -46,7 +46,7 @@ describe('HTTPSummaryPage', function () {
   jest.mocked(useOrganization).mockReturnValue(organization);
 
   beforeEach(function () {
-    MockApiClient.addMockResponse({
+    domainTransactionsListRequestMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
       body: {
@@ -121,6 +121,34 @@ describe('HTTPSummaryPage', function () {
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'avg(span.self_time)',
+        },
+      })
+    );
+
+    expect(domainTransactionsListRequestMock).toHaveBeenNthCalledWith(
+      2,
+      `/organizations/${organization.slug}/events/`,
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          dataset: 'spansMetrics',
+          environment: [],
+          field: [
+            'transaction',
+            'spm()',
+            'http_response_rate(2)',
+            'http_response_rate(4)',
+            'http_response_rate(5)',
+            'avg(span.self_time)',
+            'sum(span.self_time)',
+            'time_spent_percentage()',
+          ],
+          per_page: 20,
+          project: [],
+          cursor: '',
+          query: 'span.module:http span.domain:"\\*.sentry.dev"',
+          referrer: 'api.starfish.http-module-domain-summary-transactions-list',
+          statsPeriod: '10d',
         },
       })
     );
