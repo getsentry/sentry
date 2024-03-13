@@ -147,6 +147,7 @@ describe('HTTPSummaryPage', function () {
           project: [],
           cursor: '0:20:0',
           query: 'span.module:http span.domain:"\\*.sentry.dev"',
+          sort: '-time_spent_percentage()',
           referrer: 'api.starfish.http-module-domain-summary-transactions-list',
           statsPeriod: '10d',
         },

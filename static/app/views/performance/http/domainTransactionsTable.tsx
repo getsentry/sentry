@@ -12,7 +12,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {RATE_UNIT_TITLE, RateUnit} from 'sentry/utils/discover/fields';
+import {RATE_UNIT_TITLE, RateUnit, type Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
@@ -80,9 +80,27 @@ const COLUMN_ORDER: Column[] = [
   },
 ];
 
+const SORTABLE_FIELDS = [
+  'avg(span.self_time)',
+  'spm()',
+  'http_response_rate(2)',
+  'http_response_rate(4)',
+  'http_response_rate(5)',
+  'time_spent_percentage()',
+] as const;
+
+type ValidSort = Sort & {
+  field: (typeof SORTABLE_FIELDS)[number];
+};
+
+export function isAValidSort(sort: Sort): sort is ValidSort {
+  return (SORTABLE_FIELDS as unknown as string[]).includes(sort.field);
+}
+
 interface Props {
   data: Row[];
   isLoading: boolean;
+  sort: ValidSort;
   error?: Error | null;
   meta?: EventsMetaType;
   pageLinks?: string;
@@ -94,6 +112,7 @@ export function DomainTransactionsTable({
   error,
   meta,
   pageLinks,
+  sort,
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
@@ -113,14 +132,19 @@ export function DomainTransactionsTable({
         error={error}
         data={data}
         columnOrder={COLUMN_ORDER}
-        columnSortBy={[]}
+        columnSortBy={[
+          {
+            key: sort.field,
+            order: sort.kind,
+          },
+        ]}
         grid={{
           renderHeadCell: col =>
             renderHeadCell({
               column: col,
-              sort: undefined,
+              sort,
               location,
-              sortParameterName: undefined,
+              sortParameterName: QueryParameterNames.TRANSACTIONS_SORT,
             }),
           renderBodyCell: (column, row) =>
             renderBodyCell(column, row, meta, location, organization),

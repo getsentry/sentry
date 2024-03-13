@@ -9,12 +9,16 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {fromSorts} from 'sentry/utils/discover/eventView';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {DomainTransactionsTable} from 'sentry/views/performance/http/domainTransactionsTable';
+import {
+  DomainTransactionsTable,
+  isAValidSort,
+} from 'sentry/views/performance/http/domainTransactionsTable';
 import {DurationChart} from 'sentry/views/performance/http/durationChart';
 import {ThroughputChart} from 'sentry/views/performance/http/throughputChart';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
@@ -36,6 +40,10 @@ type Query = {
 export function HTTPDomainSummaryPage() {
   const location = useLocation<Query>();
   const organization = useOrganization();
+
+  const sortField = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_SORT]);
+
+  const sort = fromSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
 
   const {domain} = location.query;
 
@@ -99,7 +107,7 @@ export function HTTPDomainSummaryPage() {
       'sum(span.self_time)',
       'time_spent_percentage()',
     ],
-    sorts: [],
+    sorts: [sort],
     limit: TRANSACTIONS_TABLE_ROW_COUNT,
     cursor,
     referrer: 'api.starfish.http-module-domain-summary-transactions-list',
@@ -187,6 +195,7 @@ export function HTTPDomainSummaryPage() {
                 isLoading={isTransactionsListLoading}
                 meta={transactionsListMeta}
                 pageLinks={transactionsListPageLinks}
+                sort={sort}
               />
             </ModuleLayout.Full>
           </ModuleLayout.Layout>
@@ -195,6 +204,11 @@ export function HTTPDomainSummaryPage() {
     </React.Fragment>
   );
 }
+
+const DEFAULT_SORT = {
+  field: 'time_spent_percentage()' as const,
+  kind: 'desc' as const,
+};
 
 const TRANSACTIONS_TABLE_ROW_COUNT = 20;
 
