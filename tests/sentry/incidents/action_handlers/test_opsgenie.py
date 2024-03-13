@@ -112,9 +112,11 @@ class OpsgenieActionHandlerTest(FireTest):
                 status=202,
             )
             expected_payload = {}
+            new_status = IncidentStatus.CLOSED
         else:
+            new_status = IncidentStatus.CRITICAL
             update_incident_status(
-                incident, IncidentStatus.CRITICAL, status_method=IncidentStatusMethod.RULE_TRIGGERED
+                incident, new_status, status_method=IncidentStatusMethod.RULE_TRIGGERED
             )
             responses.add(
                 responses.POST,
@@ -232,3 +234,10 @@ class OpsgenieActionHandlerTest(FireTest):
         self.action.update(sentry_app_config={"priority": "P3"})
 
         self.run_fire_test()
+
+    @responses.activate
+    def test_custom_priority_resolve(self):
+        # default critical incident priority is P1, custom set to P3
+        self.action.update(sentry_app_config={"priority": "P3"})
+
+        self.run_fire_test("resolve")

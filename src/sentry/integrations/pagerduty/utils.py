@@ -123,9 +123,11 @@ def build_incident_attachment(
     }
 
 
-def attach_custom_severity(data: dict[str, Any], action: AlertRuleTriggerAction) -> dict[str, Any]:
+def attach_custom_severity(
+    data: dict[str, Any], action: AlertRuleTriggerAction, new_status: IncidentStatus
+) -> dict[str, Any]:
     # use custom severity (overrides default in build_incident_attachment)
-    if action.sentry_app_config is None:
+    if new_status == IncidentStatus.CLOSED or action.sentry_app_config is None:
         return data
 
     severity = action.sentry_app_config.get("priority", None)
@@ -187,7 +189,7 @@ def send_incident_alert_notification(
     attachment = build_incident_attachment(
         incident, integration_key, new_status, metric_value, notification_uuid
     )
-    attachment = attach_custom_severity(attachment, action)
+    attachment = attach_custom_severity(attachment, action, new_status)
 
     try:
         client.send_trigger(attachment)
