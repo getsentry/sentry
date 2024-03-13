@@ -22,13 +22,6 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
           ),
         },
         {
-          title: t('Pinpoint hotspots'),
-          target: 'issue_sidebar_tags',
-          description: t(
-            `Tags are key/value string pairs that are automatically indexed and searchable in Sentry.`
-          ),
-        },
-        {
           title: t('Find problematic releases'),
           target: 'issue_sidebar_releases',
           description: t(
@@ -41,6 +34,13 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
           description: t(
             `Sentry can show your source code in the stack trace.
               See the exact sequence of function calls leading to the error in question.`
+          ),
+        },
+        {
+          title: t('Pinpoint hotspots'),
+          target: 'issue_sidebar_tags',
+          description: t(
+            `Tags are key/value string pairs that are automatically indexed and searchable in Sentry.`
           ),
         },
         {

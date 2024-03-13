@@ -14,6 +14,7 @@ describe('GuideAnchor', function () {
       seen: false,
     },
   ];
+  const firstGuideHeader = 'How bad is it?';
 
   beforeEach(function () {
     ConfigStore.config = ConfigFixture({
@@ -27,13 +28,14 @@ describe('GuideAnchor', function () {
   it('renders, async advances, async and finishes', async function () {
     render(
       <div>
-        <GuideAnchor target="issue_number" />
-        <GuideAnchor target="exception" />
+        <GuideAnchor target="issue_header_stats" />
+        <GuideAnchor target="breadcrumbs" />
+        <GuideAnchor target="issue_sidebar_owners" />
       </div>
     );
 
     act(() => GuideStore.fetchSucceeded(serverGuide));
-    expect(await screen.findByText('Identify Your Issues')).toBeInTheDocument();
+    expect(await screen.findByText(firstGuideHeader)).toBeInTheDocument();
 
     // XXX(epurkhiser): Skip pointer event checks due to a bug with how Popper
     // renders the hovercard with pointer-events: none. See [0]
@@ -44,8 +46,10 @@ describe('GuideAnchor', function () {
     // when we're on popper >= 1.
     await userEvent.click(screen.getByLabelText('Next'));
 
-    expect(await screen.findByText('Narrow Down Suspects')).toBeInTheDocument();
-    expect(screen.queryByText('Identify Your Issues')).not.toBeInTheDocument();
+    expect(await screen.findByText('Retrace Your Steps')).toBeInTheDocument();
+    expect(screen.queryByText(firstGuideHeader)).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByLabelText('Next'));
 
     // Clicking on the button in the last step should finish the guide.
     const finishMock = MockApiClient.addMockResponse({
@@ -70,13 +74,14 @@ describe('GuideAnchor', function () {
   it('dismisses', async function () {
     render(
       <div>
-        <GuideAnchor target="issue_number" />
-        <GuideAnchor target="exception" />
+        <GuideAnchor target="issue_header_stats" />
+        <GuideAnchor target="breadcrumbs" />
+        <GuideAnchor target="issue_sidebar_owners" />
       </div>
     );
 
     act(() => GuideStore.fetchSucceeded(serverGuide));
-    expect(await screen.findByText('Identify Your Issues')).toBeInTheDocument();
+    expect(await screen.findByText(firstGuideHeader)).toBeInTheDocument();
 
     const dismissMock = MockApiClient.addMockResponse({
       method: 'PUT',
@@ -96,7 +101,7 @@ describe('GuideAnchor', function () {
       })
     );
 
-    expect(screen.queryByText('Identify Your Issues')).not.toBeInTheDocument();
+    expect(screen.queryByText(firstGuideHeader)).not.toBeInTheDocument();
   });
 
   it('renders no container when inactive', function () {
@@ -124,16 +129,17 @@ describe('GuideAnchor', function () {
   it('if forceHide is true, async do not render guide', async function () {
     render(
       <div>
-        <GuideAnchor target="issue_number" />
-        <GuideAnchor target="exception" />
+        <GuideAnchor target="issue_header_stats" />
+        <GuideAnchor target="breadcrumbs" />
+        <GuideAnchor target="issue_sidebar_owners" />
       </div>
     );
 
     act(() => GuideStore.fetchSucceeded(serverGuide));
-    expect(await screen.findByText('Identify Your Issues')).toBeInTheDocument();
+    expect(await screen.findByText(firstGuideHeader)).toBeInTheDocument();
     act(() => GuideStore.setForceHide(true));
-    expect(screen.queryByText('Identify Your Issues')).not.toBeInTheDocument();
+    expect(screen.queryByText(firstGuideHeader)).not.toBeInTheDocument();
     act(() => GuideStore.setForceHide(false));
-    expect(await screen.findByText('Identify Your Issues')).toBeInTheDocument();
+    expect(await screen.findByText(firstGuideHeader)).toBeInTheDocument();
   });
 });
