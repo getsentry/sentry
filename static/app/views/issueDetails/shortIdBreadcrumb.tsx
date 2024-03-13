@@ -12,17 +12,17 @@ import type {Group, Organization, Project} from 'sentry/types';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
-interface ShortIdBreadrcumbProps {
+interface ShortIdBreadcrumbProps {
   group: Group;
   organization: Organization;
   project: Project;
 }
 
-export function ShortIdBreadrcumb({
+export function ShortIdBreadcrumb({
   organization,
   project,
   group,
-}: ShortIdBreadrcumbProps) {
+}: ShortIdBreadcrumbProps) {
   const {onClick: handleCopyShortId} = useCopyToClipboard({
     text: group.shortId,
     successMessage: t('Copied Short-ID to clipboard'),
