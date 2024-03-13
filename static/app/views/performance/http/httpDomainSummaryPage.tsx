@@ -87,7 +87,16 @@ export function HTTPDomainSummaryPage() {
     error: transactionsListError,
   } = useSpanMetrics({
     filters,
-    fields: ['transaction', 'spm()'],
+    fields: [
+      'transaction',
+      'spm()',
+      'http_response_rate(2)',
+      'http_response_rate(4)',
+      'http_response_rate(5)',
+      'avg(span.self_time)',
+      'sum(span.self_time)',
+      'time_spent_percentage()',
+    ],
     sorts: [],
     limit: TRANSACTIONS_TABLE_ROW_COUNT,
     cursor: '',

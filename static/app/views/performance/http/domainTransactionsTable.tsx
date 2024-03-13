@@ -13,10 +13,29 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import type {MetricsResponse} from 'sentry/views/starfish/types';
+import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
-type Row = Pick<MetricsResponse, 'transaction' | 'spm()'>;
+type Row = Pick<
+  MetricsResponse,
+  | 'transaction'
+  | 'spm()'
+  | 'http_response_rate(2)'
+  | 'http_response_rate(4)'
+  | 'http_response_rate(5)'
+  | 'avg(span.self_time)'
+  | 'sum(span.self_time)'
+  | 'time_spent_percentage()'
+>;
 
-type Column = GridColumnHeader<'transaction' | 'spm()'>;
+type Column = GridColumnHeader<
+  | 'transaction'
+  | 'spm()'
+  | 'http_response_rate(2)'
+  | 'http_response_rate(4)'
+  | 'http_response_rate(5)'
+  | 'avg(span.self_time)'
+  | 'time_spent_percentage()'
+>;
 
 const COLUMN_ORDER: Column[] = [
   {
@@ -27,6 +46,31 @@ const COLUMN_ORDER: Column[] = [
   {
     key: 'spm()',
     name: `${t('Requests')} ${RATE_UNIT_TITLE[RateUnit.PER_MINUTE]}`,
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: `http_response_rate(2)`,
+    name: t('2XXs'),
+    width: 50,
+  },
+  {
+    key: `http_response_rate(4)`,
+    name: t('4XXs'),
+    width: 50,
+  },
+  {
+    key: `http_response_rate(5)`,
+    name: t('5XXs'),
+    width: 50,
+  },
+  {
+    key: `avg(span.self_time)`,
+    name: DataTitles.avg,
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: 'time_spent_percentage()',
+    name: DataTitles.timeSpent,
     width: COL_WIDTH_UNDEFINED,
   },
 ];
