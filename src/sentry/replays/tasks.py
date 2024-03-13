@@ -30,7 +30,7 @@ def delete_recording_segments(project_id: int, replay_id: str, **kwargs: Any) ->
 def delete_replay_recording(project_id: int, replay_id: str) -> None:
     """Delete all recording-segments associated with a Replay."""
     # issue delete requests the segment data and model rows - ALL in parallel
-    with ThreadPoolExecutor(max_workers=4) as executor:
+    with ThreadPoolExecutor(max_workers=40) as executor:
         futures = []
         # Delete the segments which are now stored in clickhouse
         segments_from_metadata = fetch_segments_metadata(
