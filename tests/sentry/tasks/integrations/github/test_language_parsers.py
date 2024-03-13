@@ -578,10 +578,10 @@ class JavascriptParserTestCase(TestCase):
             "SeeMoreCard",
         }
 
-    def test_arrow_functions(self):
+    def test_javascript_functions_after_const(self):
 
         patch = """
-          "@@ -149,6 +149,12 @@ export const Redacted Redacted\n   // Redacted.\n   // Redacted \n   const redacted = redacted;\n+  const redacted = redacted();\n+  // const redacted = true;\n+  const redacted = redacted()\n+    redacted; // Redacted\nconst \n@@ -165,24 +171,40 @@ export const RedactedRedactedRedactedRedactedRedacted
+          "@@ -305,9 +285,7 @@ export const Redacted Redacted\n   // Redacted.\n   // Redacted \n   const redacted = redacted;\n+  const redacted = redacted();\n+  // const redacted = true;\n+  const redacted = redacted()\n+    redacted; // Redacted\nconst \n@@ -165,24 +171,40 @@ export const RedactedRedactedRedactedRedactedRedacted
 
           // Redacted
 @@44,38@@ var arrow2 = (a, ...b) => 0;
@@ -589,6 +589,37 @@ class JavascriptParserTestCase(TestCase):
 
         assert JavascriptParser.extract_functions_from_patch(patch) == {
             "arrow2",
+        }
+
+        patch = """
+            "@@ -305,9 +285,7 @@ export const Redacted Redacted\n   // Redacted.\n   // Redacted \n   const redacted = redacted;\n+  const redacted = redacted();\n+  // const redacted = true;\n+  const redacted = redacted()\n+    redacted; // Redacted\nconst \n@@ -165,24 +171,40@@ export const RedactedRedactedRedactedRedactedRedacted
+
+            // Redacted
+@@44,38@@ const planet = async function(argument) {
+"""
+        assert JavascriptParser.extract_functions_from_patch(patch) == {
+            "planet",
+        }
+
+        patch = """
+            "@@ -305,9 +285,7 @@ export const Redacted Redacted\n   // Redacted.\n   // Redacted \n   const redacted = redacted;\n+  const redacted = redacted();\n+  // const redacted = true;\n+  const redacted = redacted()\n+    redacted; // Redacted\nconst \n@@ -165,24 +171,40@@ export const RedactedRedactedRedactedRedactedRedacted
+
+            // Redacted
+@@44,38@@ const constructor = new Function(
+"""
+        assert JavascriptParser.extract_functions_from_patch(patch) == {
+            "constructor",
+        }
+
+        patch = """
+            "@@ -305,9 +285,7 @@ export const Redacted Redacted\n   // Redacted.\n   // Redacted \n   const redacted = redacted;\n+  const redacted = redacted();\n+  // const redacted = true;\n+  const redacted = redacted()\n+    redacted; // Redacted\nconst \n@@ -165,24 +171,40@@ export const RedactedRedactedRedactedRedactedRedacted
+
+            // Redacted
+@@44,38@@ function hello(argument1, argument2)
+
+"""
+        assert JavascriptParser.extract_functions_from_patch(patch) == {
+            "hello",
         }
 
 
