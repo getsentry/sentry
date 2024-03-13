@@ -22,6 +22,7 @@ import {IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization, PlatformKey, Project} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
+import {clamp} from 'sentry/utils/profiling/colors/utils';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -80,6 +81,7 @@ function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
 }
 
 const COUNT_FORMATTER = Intl.NumberFormat(undefined, {notation: 'compact'});
+const NO_ERRORS = [];
 
 interface RovingTabIndexState {
   index: number | null;
@@ -787,6 +789,7 @@ function RenderRow(props: {
     const errored =
       props.node.value.errors.length > 0 ||
       props.node.value.performance_issues.length > 0;
+
     return (
       <div
         key={props.index}
@@ -878,6 +881,8 @@ function RenderRow(props: {
             manager={props.manager}
             color={pickBarColor(props.node.value['transaction.op'])}
             node_space={props.node.space}
+            errors={props.node.value.errors}
+            performance_issues={props.node.value.performance_issues}
           />
           <button
             ref={ref =>
@@ -990,6 +995,8 @@ function RenderRow(props: {
             manager={props.manager}
             color={pickBarColor(props.node.value.op)}
             node_space={props.node.space}
+            errors={NO_ERRORS}
+            performance_issues={NO_ERRORS}
           />
           <button
             ref={ref =>
@@ -1064,6 +1071,8 @@ function RenderRow(props: {
             manager={props.manager}
             color={pickBarColor('missing-instrumentation')}
             node_space={props.node.space}
+            errors={NO_ERRORS}
+            performance_issues={NO_ERRORS}
           />
           <button
             ref={ref =>
@@ -1148,6 +1157,8 @@ function RenderRow(props: {
             manager={props.manager}
             color={pickBarColor('missing-instrumentation')}
             node_space={props.node.space}
+            errors={NO_ERRORS}
+            performance_issues={NO_ERRORS}
           />
           <button
             ref={ref =>
@@ -1394,8 +1405,10 @@ function ChildrenButton(props: {
 
 interface TraceBarProps {
   color: string;
+  errors: TraceTreeNode<TraceTree.Transaction>['value']['errors'];
   manager: VirtualizedViewManager;
   node_space: [number, number] | null;
+  performance_issues: TraceTreeNode<TraceTree.Transaction>['value']['performance_issues'];
   virtualized_index: number;
   duration?: number;
 }
@@ -1421,9 +1434,35 @@ function TraceBar(props: TraceBarProps) {
         className="TraceBar"
         style={{
           transform: `matrix(${spanTransform.join(',')})`,
+          '--inverse-span-scale': 1 / spanTransform[0],
           backgroundColor: props.color,
         }}
-      />
+      >
+        {props.errors.map((error, _i) => {
+          const timestamp = error.timestamp
+            ? error.timestamp * 1e3
+            : props.node_space![0];
+          // Clamp the error timestamp to the span's timestamp
+          const left = props.manager.computeRelativeLeftPositionFromOrigin(
+            clamp(
+              timestamp,
+              props.node_space![0],
+              props.node_space![0] + props.node_space![1]
+            ),
+            props.node_space!
+          );
+
+          return (
+            <div
+              key={error.event_id}
+              className="TraceError"
+              style={{left: left * 100 + '%'}}
+            >
+              <IconFire color="errorText" size="xs" />
+            </div>
+          );
+        })}
+      </div>
       <div
         ref={r =>
           props.manager.registerSpanBarTextRef(
@@ -1499,6 +1538,8 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
         manager={props.manager}
         virtualized_index={props.virtualized_index}
         duration={props.duration}
+        errors={NO_ERRORS}
+        performance_issues={NO_ERRORS}
       />
     );
   }
@@ -1532,7 +1573,10 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
       >
         {props.node_spaces.map((node_space, i) => {
           const width = node_space[1] / props.entire_space![1];
-          const left = (node_space[0] - props.entire_space![0]) / props.entire_space![1];
+          const left = props.manager.computeRelativeLeftPositionFromOrigin(
+            node_space[0],
+            props.entire_space!
+          );
           return (
             <div
               key={i}
@@ -1738,10 +1782,11 @@ const TraceStylingWrapper = styled('div')`
 
     .TraceError {
       position: absolute;
-      transform: translate(-50%, 0);
+      top: 50%;
+      transform: translate(-50%, -50%) scaleX(var(--inverse-span-scale));
       background: ${p => p.theme.background};
-      width: 16px !important;
-      height: 16px !important;
+      width: 18px !important;
+      height: 18px !important;
       background-color: ${p => p.theme.error};
       border-radius: 50%;
       display: flex;
