@@ -225,6 +225,10 @@ function Trace({
         return;
       }
 
+      if (maybeNode.node.space) {
+        manager.animateViewTo(maybeNode.node.space);
+      }
+
       manager.onScrollEndOutOfBoundsCheck();
       setDetailNode(maybeNode.node);
       roving_dispatch({
