@@ -92,7 +92,16 @@ class MonitorStatus:
     DELETION_IN_PROGRESS = 3
 
     OK = 4
+    """
+    The monitor environment has received check-ins and is OK.
+    """
+
     ERROR = 5
+    """
+    The monitor environment is currently in an active incident state. This is a
+    denormalization of thee fact that a MonitorIncident exists for the
+    environment without a resolving check-in.
+    """
 
     @classmethod
     def as_choices(cls) -> Sequence[tuple[int, str]]:

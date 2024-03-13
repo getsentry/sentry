@@ -57,8 +57,9 @@ function makeSpan(overrides: Partial<RawSpanType> = {}): TraceTree.Span {
     start_timestamp: 0,
     timestamp: 10,
     event: makeEvent(),
-    relatedErrors: [],
-    childTxn: undefined,
+    errors: [],
+    performance_issues: [],
+    childTransaction: undefined,
     ...overrides,
   } as TraceTree.Span;
 }
@@ -1825,7 +1826,7 @@ describe('TraceTree', () => {
           project_slug: '',
           event_id: '',
         });
-        node.value.relatedErrors = [makeTraceError()];
+        node.value.errors = [makeTraceError()];
         root.children.push(node);
       }
 
@@ -1978,7 +1979,7 @@ describe('TraceTree', () => {
             event_id: '',
           }
         );
-        node.value.relatedErrors = [makeTraceError()];
+        node.value.errors = [makeTraceError()];
         last.children.push(node);
         last = node;
       }
@@ -1996,7 +1997,7 @@ describe('TraceTree', () => {
 
       assertAutogroupedNode(root.children[0]);
       expect(root.children[0].has_error).toBe(true);
-      expect(root.children[0].errored_children).toHaveLength(3);
+      expect(root.children[0].errored_children).toHaveLength(1);
     });
 
     it('autogrouping direct children skips rendering intermediary nodes', () => {

@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import * as qs from 'query-string';
@@ -27,8 +27,9 @@ import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import type {
-  TraceErrorOrIssue,
+  TraceError,
   TraceFullDetailed,
+  TracePerformanceIssue,
 } from 'sentry/utils/performance/quickTrace/types';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -80,10 +81,11 @@ type TransactionResult = {
 
 export type SpanDetailProps = {
   childTransactions: TraceFullDetailed[] | null;
+  errors: TraceError[];
   event: Readonly<EventTransaction>;
   openPanel: string | undefined;
   organization: Organization;
-  relatedErrors: TraceErrorOrIssue[] | null;
+  performanceIssues: TracePerformanceIssue[];
   span: RawSpanType;
   trace: Readonly<ParsedTraceType>;
 };
@@ -97,6 +99,10 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
     props.span.sentry_tags?.op,
     props.span.sentry_tags?.category
   );
+
+  const relatedIssues = useMemo(() => {
+    return [...props.errors, ...props.performanceIssues];
+  }, [props.errors, props.performanceIssues]);
 
   useEffect(() => {
     // Run on mount.
@@ -278,13 +284,15 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   }
 
   function renderSpanErrorMessage() {
-    const {span, organization, relatedErrors} = props;
+    const {span, organization, errors, performanceIssues} = props;
 
-    if (!relatedErrors || relatedErrors.length <= 0 || isGapSpan(span)) {
+    const hasErrors = errors.length > 0 || performanceIssues.length > 0;
+
+    if (!hasErrors || isGapSpan(span)) {
       return null;
     }
 
-    return <IssueList organization={organization} issues={relatedErrors} />;
+    return <IssueList organization={organization} issues={relatedIssues} />;
   }
 
   function partitionSizes(data): {

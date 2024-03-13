@@ -245,7 +245,22 @@ class OrganizationAuthSettingsView(OrganizationView):
             if not helper.is_valid():
                 logger.info(
                     "OrganizationAuthSettingsView",
-                    extra=helper.state.get_state(),
+                    extra={
+                        "flow": helper.flow,
+                        "signature": helper.signature,
+                        "step_index": helper.step_index,
+                        "config": helper.config,
+                        "organization": helper.organization.slug,
+                        "provide_key": helper.provider.key,
+                        "provider_model_id": (
+                            helper.provider_model.id if helper.provider_model else ""
+                        ),
+                        "request_path": helper.request.path,
+                        "request_content_params": helper.request.content_params or "",
+                        "request_method": helper.request.method or "",
+                        "state_redis_key": helper.state.redis_key,
+                        "state_state": helper.state.get_state() is not None,
+                    },
                 )
                 return helper.error("Something unexpected happened during authentication.")
 
