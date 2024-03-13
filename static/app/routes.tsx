@@ -1369,6 +1369,14 @@ function buildRoutes() {
         path=":monitorSlug/edit/"
         component={make(() => import('sentry/views/monitors/edit'))}
       />
+      <Route
+        path=":projectSlug/:monitorSlug/"
+        component={make(() => import('sentry/views/monitors/details'))}
+      />
+      <Route
+        path=":projectSlug/:monitorSlug/edit"
+        component={make(() => import('sentry/views/monitors/details'))}
+      />
     </Route>
   );
 
