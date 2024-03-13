@@ -56,6 +56,7 @@ import {
   useMetricChartSamplesV2,
 } from 'sentry/views/ddm/chart/useMetricChartSamples';
 import type {FocusAreaProps} from 'sentry/views/ddm/context';
+import {EquationSymbol} from 'sentry/views/ddm/equationSymbol copy';
 import {FormularFormatter} from 'sentry/views/ddm/formulaParser/formatter';
 import {QuerySymbol} from 'sentry/views/ddm/querySymbol';
 import {SummaryTable} from 'sentry/views/ddm/summaryTable';
@@ -215,9 +216,16 @@ export const MetricWidget = memo(
       >
         <PanelBody>
           <MetricWidgetHeader>
-            {showQuerySymbols && queryId !== undefined && (
-              <QuerySymbol queryId={queryId} isSelected={isSelected && hasSiblings} />
-            )}
+            {showQuerySymbols &&
+              queryId !== undefined &&
+              (queries[0] && isMetricFormula(queries[0]) ? (
+                <EquationSymbol
+                  equationId={queryId}
+                  isSelected={isSelected && hasSiblings}
+                />
+              ) : (
+                <QuerySymbol queryId={queryId} isSelected={isSelected && hasSiblings} />
+              ))}
             <WidgetTitle>
               <StyledTooltip
                 title={widgetTitle}
