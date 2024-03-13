@@ -321,6 +321,7 @@ def get_item(dictionary, key):
 
 
 @register.filter
+@stringfilter
 def sanitize_periods(value):
     """
     Primarily used in email templates when a field may contain a domain name to prevent
