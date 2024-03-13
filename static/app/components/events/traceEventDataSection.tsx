@@ -354,6 +354,7 @@ export function TraceEventDataSection({
     <EventDataSection
       type={type}
       title={cloneElement(title, {type})}
+      guideTarget="stacktrace"
       actions={
         !stackTraceNotFound && (
           <ButtonBar gap={1}>

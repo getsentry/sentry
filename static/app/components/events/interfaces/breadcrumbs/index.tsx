@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import type {SelectOption, SelectSection} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -312,21 +311,20 @@ function BreadcrumbsContainer({data, event, organization, hideTitle = false}: Pr
       showPermalink={!hideTitle}
       type={EntryType.BREADCRUMBS}
       title={hideTitle ? '' : t('Breadcrumbs')}
+      guideTarget="breadcrumbs"
       actions={actions}
     >
       <ErrorBoundary>
-        <GuideAnchor target="breadcrumbs" position="bottom">
-          <Breadcrumbs
-            emptyMessage={getEmptyMessage()}
-            breadcrumbs={displayedBreadcrumbs}
-            event={event}
-            organization={organization}
-            onSwitchTimeFormat={() => setDisplayRelativeTime(old => !old)}
-            displayRelativeTime={displayRelativeTime}
-            searchTerm={searchTerm}
-            relativeTime={relativeTime}
-          />
-        </GuideAnchor>
+        <Breadcrumbs
+          emptyMessage={getEmptyMessage()}
+          breadcrumbs={displayedBreadcrumbs}
+          event={event}
+          organization={organization}
+          onSwitchTimeFormat={() => setDisplayRelativeTime(old => !old)}
+          displayRelativeTime={displayRelativeTime}
+          searchTerm={searchTerm}
+          relativeTime={relativeTime}
+        />
       </ErrorBoundary>
     </EventDataSection>
   );
