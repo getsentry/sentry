@@ -160,18 +160,24 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
 
             priority: str = attrs["priority"]
 
-            if action_type == AlertRuleTriggerAction.Type.PAGERDUTY and priority not in PAGERDUTY_CUSTOM_PRIORITIES:
-                    raise serializers.ValidationError(
-                        {
-                            "priority": f"Allowed priorities for Pagerduty are {str(PAGERDUTY_CUSTOM_PRIORITIES)}"
-                        }
-                    )
-            if action_type == AlertRuleTriggerAction.Type.OPSGENIE and priority not in OPSGENIE_CUSTOM_PRIORITIES:
-                    raise serializers.ValidationError(
-                        {
-                            "priority": f"Allowed priorities for Opsgenie are {str(OPSGENIE_CUSTOM_PRIORITIES)}"
-                        }
-                    )
+            if (
+                action_type == AlertRuleTriggerAction.Type.PAGERDUTY
+                and priority not in PAGERDUTY_CUSTOM_PRIORITIES
+            ):
+                raise serializers.ValidationError(
+                    {
+                        "priority": f"Allowed priorities for Pagerduty are {str(PAGERDUTY_CUSTOM_PRIORITIES)}"
+                    }
+                )
+            if (
+                action_type == AlertRuleTriggerAction.Type.OPSGENIE
+                and priority not in OPSGENIE_CUSTOM_PRIORITIES
+            ):
+                raise serializers.ValidationError(
+                    {
+                        "priority": f"Allowed priorities for Opsgenie are {str(OPSGENIE_CUSTOM_PRIORITIES)}"
+                    }
+                )
 
             # TODO(Ecosystem): Validate fields on schema config if alert-rule-action component exists
             # See NotifyEventSentryAppAction::self_validate for more details
