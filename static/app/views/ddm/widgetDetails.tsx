@@ -39,6 +39,7 @@ export function WidgetDetails() {
     selectedWidgetIndex,
     widgets,
     focusArea,
+    highlightedSampleId,
     setHighlightedSampleId,
     setMetricsSamples,
   } = useDDMContext();
@@ -67,6 +68,7 @@ export function WidgetDetails() {
       op={op}
       query={query}
       focusedSeries={focusedSeries}
+      highlightedSampleId={highlightedSampleId}
       onRowHover={handleSampleRowHover}
       setMetricsSamples={setMetricsSamples}
       focusArea={focusArea}
@@ -77,6 +79,7 @@ export function WidgetDetails() {
 interface MetricDetailsProps {
   focusArea?: FocusAreaProps;
   focusedSeries?: FocusedMetricsSeries[];
+  highlightedSampleId?: string;
   mri?: MRI;
   onRowHover?: SamplesTableProps['onRowHover'];
   op?: string;
@@ -88,6 +91,7 @@ interface MetricDetailsProps {
 
 // TODO: add types
 export function MetricDetails({
+  highlightedSampleId,
   mri,
   op,
   query,
@@ -156,6 +160,7 @@ export function MetricDetails({
                       op={op}
                       query={queryWithFocusedSeries}
                       setMetricsSamples={setMetricsSamples}
+                      highlightedSampleId={highlightedSampleId}
                     />
                   ) : (
                     <MetricSamplesTable
@@ -165,6 +170,7 @@ export function MetricDetails({
                       op={op}
                       query={queryWithFocusedSeries}
                       setMetricsSamples={setMetricsSamples}
+                      highlightedSampleId={highlightedSampleId}
                     />
                   )
                 ) : (

@@ -178,7 +178,7 @@ export const MetricWidget = memo(
         onClick: onSampleClick,
         unit: parseMRI(firstQuery?.mri)?.unit ?? '',
         operation: firstQuery?.op ?? '',
-        higlightedId: highlightedSampleId,
+        highlightedId: highlightedSampleId,
       };
     }, [
       samplesQuery.data,
@@ -197,8 +197,15 @@ export const MetricWidget = memo(
         onSampleClick: onSampleClickV2,
         unit: parseMRI(firstQuery?.mri)?.unit ?? '',
         operation: firstQuery?.op ?? '',
+        highlightedId: highlightedSampleId,
       };
-    }, [metricsSamples, firstQuery?.mri, firstQuery?.op, onSampleClickV2]);
+    }, [
+      metricsSamples,
+      firstQuery?.mri,
+      firstQuery?.op,
+      onSampleClickV2,
+      highlightedSampleId,
+    ]);
 
     const widgetTitle = getWidgetTitle(queries);
 
@@ -296,7 +303,7 @@ export interface SamplesProps {
   operation: string;
   unit: string;
   data?: MetricCorrelation[];
-  higlightedId?: string;
+  highlightedId?: string;
   onClick?: (sample: Sample) => void;
 }
 
@@ -304,7 +311,7 @@ export interface SamplesV2Props {
   operation: string;
   unit: string;
   data?: MetricsSamplesResults<Field>['data'];
-  higlightedId?: string;
+  highlightedId?: string;
   onSampleClick?: (sample: MetricsSamplesResults<Field>['data'][number]) => void;
 }
 
@@ -371,14 +378,14 @@ const MetricWidgetBody = memo(
       correlations: samples?.data,
       unit: samples?.unit,
       onClick: samples?.onClick,
-      highlightedSampleId: samples?.higlightedId,
+      highlightedSampleId: samples?.highlightedId,
       operation: samples?.operation,
       timeseries: chartSeries,
     });
 
     const samplesV2Prop = useMetricChartSamplesV2({
       samples: samplesV2?.data,
-      highlightedSampleId: samples?.higlightedId,
+      highlightedSampleId: samplesV2?.highlightedId,
       operation: samplesV2?.operation,
       onSampleClick: samplesV2?.onSampleClick,
       timeseries: chartSeries,

@@ -1,7 +1,7 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import type {CSSProperties} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
-import debounce from 'lodash/debounce';
 
 import {Button, LinkButton} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
@@ -66,6 +66,7 @@ export type Field = (typeof fields)[number];
 
 interface MetricsSamplesTableProps {
   focusArea?: SelectionRange;
+  highlightedSampleId?: string;
   mri?: MRI;
   onRowHover?: (sampleId?: string) => void;
   op?: string;
@@ -142,6 +143,7 @@ export function MetricsSamplesSearchBar({
 
 export function MetricSamplesTable({
   focusArea,
+  highlightedSampleId,
   mri,
   onRowHover,
   op,
@@ -272,49 +274,12 @@ export function MetricSamplesTable({
   }, [currentSort, location]);
 
   const _renderBodyCell = useMemo(
-    () => renderBodyCell(op, parsedMRI?.unit),
-    [op, parsedMRI?.unit]
-  );
-
-  const wrapperRef = useRef<HTMLDivElement>(null);
-
-  const handleMouseMove = useMemo(
-    () =>
-      debounce((event: React.MouseEvent) => {
-        const wrapper = wrapperRef.current;
-        const target = event.target;
-
-        if (!wrapper || !(target instanceof Element)) {
-          onRowHover?.(undefined);
-          return;
-        }
-
-        const tableRow = (target as Element).closest('tbody >tr');
-        if (!tableRow) {
-          onRowHover?.(undefined);
-          return;
-        }
-
-        const rows = Array.from(wrapper.querySelectorAll('tbody > tr'));
-        const rowIndex = rows.indexOf(tableRow);
-        const rowId = result.data?.data?.[rowIndex]?.id;
-
-        if (!rowId) {
-          onRowHover?.(undefined);
-          return;
-        }
-
-        onRowHover?.(rowId);
-      }, 10),
-    [onRowHover, result.data?.data]
+    () => renderBodyCell(op, parsedMRI?.unit, onRowHover, highlightedSampleId),
+    [op, parsedMRI?.unit, onRowHover, highlightedSampleId]
   );
 
   return (
-    <div
-      ref={wrapperRef}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={() => onRowHover?.(undefined)}
-    >
+    <div onMouseLeave={() => onRowHover?.(undefined)}>
       <GridEditable
         isLoading={enabled && result.isLoading}
         error={enabled && result.isError && supportedMRI}
@@ -410,11 +375,23 @@ function renderHeadCell(
   };
 }
 
-function renderBodyCell(op?: string, unit?: string) {
+function renderBodyCell(
+  op?: string,
+  unit?: string,
+  onRowHover?: (sampleId?: string) => void,
+  highlightedSampleId?: string
+) {
   return function (
     col: GridColumnOrder<ResultField>,
     dataRow: MetricsSamplesResults<SelectedField>['data'][number]
   ) {
+    const defaultProps = {
+      style: (highlightedSampleId === dataRow.id
+        ? {fontWeight: 'bold'}
+        : {}) satisfies CSSProperties,
+      onMouseEnter: () => onRowHover?.(dataRow.id),
+    };
+
     if (col.key === 'span.description') {
       return (
         <SpanDescription
@@ -425,33 +402,49 @@ function renderBodyCell(op?: string, unit?: string) {
           spanId={dataRow.id}
           transaction={dataRow.transaction}
           transactionId={dataRow['transaction.id']}
+          containerProps={defaultProps}
         />
       );
     }
 
     if (col.key === 'span.self_time' || col.key === 'span.duration') {
-      return <DurationRenderer duration={dataRow[col.key]} />;
+      return (
+        <DurationRenderer duration={dataRow[col.key]} containerProps={defaultProps} />
+      );
     }
 
     if (col.key === 'summary') {
-      return <SummaryRenderer summary={dataRow.summary} op={op} unit={unit} />;
+      return (
+        <SummaryRenderer
+          summary={dataRow.summary}
+          op={op}
+          unit={unit}
+          containerProps={defaultProps}
+        />
+      );
     }
 
     if (col.key === 'timestamp') {
-      return <TimestampRenderer timestamp={dataRow.timestamp} />;
+      return (
+        <TimestampRenderer timestamp={dataRow.timestamp} containerProps={defaultProps} />
+      );
     }
 
     if (col.key === 'trace') {
-      return <TraceId traceId={dataRow.trace} />;
+      return <TraceId traceId={dataRow.trace} containerProps={defaultProps} />;
     }
 
     if (col.key === 'profile.id') {
       return (
-        <ProfileId projectSlug={dataRow.project} profileId={dataRow['profile.id']} />
+        <ProfileId
+          projectSlug={dataRow.project}
+          profileId={dataRow['profile.id']}
+          containerProps={defaultProps}
+        />
       );
     }
 
-    return <Container>{dataRow[col.key]}</Container>;
+    return <Container {...defaultProps}>{dataRow[col.key]}</Container>;
   };
 }
 
@@ -484,6 +477,7 @@ function SpanDescription({
   spanId,
   transaction,
   transactionId,
+  containerProps,
   selfTimeColor = '#694D99',
   durationColor = 'gray100',
 }: {
@@ -494,6 +488,10 @@ function SpanDescription({
   spanId: string;
   transaction: string;
   transactionId: string;
+  containerProps?: React.DetailedHTMLProps<
+    React.HTMLAttributes<HTMLDivElement>,
+    HTMLDivElement
+  >;
   durationColor?: string;
   selfTimeColor?: string;
 }) {
@@ -527,7 +525,7 @@ function SpanDescription({
   });
 
   return (
-    <Container>
+    <Container {...containerProps}>
       <StyledHovercard
         header={
           <Flex justify="space-between" align="center">
@@ -570,9 +568,18 @@ function SpanDescription({
   );
 }
 
-function DurationRenderer({duration}: {duration: number}) {
+function DurationRenderer({
+  duration,
+  containerProps,
+}: {
+  duration: number;
+  containerProps?: React.DetailedHTMLProps<
+    React.HTMLAttributes<HTMLDivElement>,
+    HTMLDivElement
+  >;
+}) {
   return (
-    <NumberContainer>
+    <NumberContainer {...containerProps}>
       <PerformanceDuration milliseconds={duration} abbreviation />
     </NumberContainer>
   );
@@ -582,8 +589,13 @@ function SummaryRenderer({
   summary,
   op,
   unit,
+  containerProps,
 }: {
   summary: Summary;
+  containerProps?: React.DetailedHTMLProps<
+    React.HTMLAttributes<HTMLDivElement>,
+    HTMLDivElement
+  >;
   op?: string;
   unit?: string;
 }) {
@@ -593,25 +605,47 @@ function SummaryRenderer({
   unit = op === 'count' ? '' : unit;
 
   return (
-    <NumberContainer>{formatMetricUsingUnit(value ?? null, unit ?? '')}</NumberContainer>
+    <NumberContainer {...containerProps}>
+      {formatMetricUsingUnit(value ?? null, unit ?? '')}
+    </NumberContainer>
   );
 }
 
-function TimestampRenderer({timestamp}: {timestamp: DateString}) {
+function TimestampRenderer({
+  containerProps,
+  timestamp,
+}: {
+  timestamp: DateString;
+  containerProps?: React.DetailedHTMLProps<
+    React.HTMLAttributes<HTMLDivElement>,
+    HTMLDivElement
+  >;
+}) {
   const location = useLocation();
 
   return (
-    <FieldDateTime
-      date={timestamp}
-      year
-      seconds
-      timeZone
-      utc={decodeScalar(location?.query?.utc) === 'true'}
-    />
+    <Container {...containerProps}>
+      <FieldDateTime
+        date={timestamp}
+        year
+        seconds
+        timeZone
+        utc={decodeScalar(location?.query?.utc) === 'true'}
+      />
+    </Container>
   );
 }
 
-function TraceId({traceId}: {traceId: string}) {
+function TraceId({
+  containerProps,
+  traceId,
+}: {
+  traceId: string;
+  containerProps?: React.DetailedHTMLProps<
+    React.HTMLAttributes<HTMLDivElement>,
+    HTMLDivElement
+  >;
+}) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const target = getTraceDetailsUrl(
@@ -625,18 +659,29 @@ function TraceId({traceId}: {traceId: string}) {
     {}
   );
   return (
-    <Container>
+    <Container {...containerProps}>
       <Link to={target}>{getShortEventId(traceId)}</Link>
     </Container>
   );
 }
 
-function ProfileId({projectSlug, profileId}: {projectSlug: string; profileId?: string}) {
+function ProfileId({
+  containerProps,
+  projectSlug,
+  profileId,
+}: {
+  projectSlug: string;
+  containerProps?: React.DetailedHTMLProps<
+    React.HTMLAttributes<HTMLDivElement>,
+    HTMLDivElement
+  >;
+  profileId?: string;
+}) {
   const organization = useOrganization();
 
   if (!defined(profileId)) {
     return (
-      <Container>
+      <Container {...containerProps}>
         <Button href={undefined} disabled size="xs">
           <IconProfiling size="xs" />
         </Button>
@@ -651,7 +696,7 @@ function ProfileId({projectSlug, profileId}: {projectSlug: string; profileId?: s
   });
 
   return (
-    <Container>
+    <Container {...containerProps}>
       <LinkButton to={target} size="xs">
         <IconProfiling size="xs" />
       </LinkButton>
