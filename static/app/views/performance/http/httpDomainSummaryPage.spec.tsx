@@ -133,8 +133,6 @@ describe('HTTPSummaryPage', function () {
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
-    expect(
-      screen.getByRole('table', {name: 'Domain Transactions Table'})
-    ).toBeInTheDocument();
+    expect(screen.getByRole('table', {name: 'Transactions'})).toBeInTheDocument();
   });
 });
