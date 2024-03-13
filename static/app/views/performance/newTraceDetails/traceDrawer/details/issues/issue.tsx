@@ -51,7 +51,7 @@ function Issue(props: Props) {
       </ErrorTitle>
     </ErrorMessageContent>
   ) : isError ? (
-    <LoadingError message={t('Failed to download attachment.')} />
+    <LoadingError message={t('Failed to fetch issue')} />
   ) : null;
 }
 

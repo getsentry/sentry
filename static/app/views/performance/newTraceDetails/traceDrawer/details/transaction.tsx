@@ -1,4 +1,4 @@
-import {createRef, Fragment, useEffect, useState} from 'react';
+import {createRef, Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
@@ -187,6 +187,10 @@ export function TransactionNodeDetails({
     }
   );
 
+  const relatedIssues = useMemo(() => {
+    return [...node.value.errors, ...node.value.performance_issues];
+  }, [node.value.errors, node.value.performance_issues]);
+
   if (!event) {
     return <LoadingIndicator />;
   }
@@ -305,12 +309,7 @@ export function TransactionNodeDetails({
         </TraceDrawerComponents.Actions>
       </TraceDrawerComponents.HeaderContainer>
 
-      {hasIssues && (
-        <IssueList
-          organization={organization}
-          issues={[...node.value.errors, ...node.value.performance_issues]}
-        />
-      )}
+      {hasIssues && <IssueList organization={organization} issues={relatedIssues} />}
 
       <TraceDrawerComponents.Table className="table key-value">
         <tbody>
