@@ -129,10 +129,27 @@ describe('HTTPSummaryPage', function () {
   });
 
   it('renders a list of queries', async function () {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.starfish.http-module-domain-summary-transactions-list',
+        }),
+      ],
+      body: {
+        data: [{transaction: '/api/users', 'spm()': 17.88}],
+      },
+    });
+
     render(<HTTPDomainSummaryPage />);
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
     expect(screen.getByRole('table', {name: 'Transactions'})).toBeInTheDocument();
+
+    expect(screen.getByRole('cell', {name: '/api/users'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '17.88'})).toBeInTheDocument();
   });
 });

@@ -80,6 +80,20 @@ export function HTTPDomainSummaryPage() {
     referrer: 'api.starfish.http-module-domain-summary-duration-chart',
   });
 
+  const {
+    isLoading: isTransactionsListLoading,
+    data: transactionsList,
+    meta: transactionsListMeta,
+    error: transactionsListError,
+  } = useSpanMetrics({
+    filters,
+    fields: ['transaction', 'spm()'],
+    sorts: [],
+    limit: TRANSACTIONS_TABLE_ROW_COUNT,
+    cursor: '',
+    referrer: 'api.starfish.http-module-domain-summary-transactions-list',
+  });
+
   useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
 
   return (
@@ -160,7 +174,12 @@ export function HTTPDomainSummaryPage() {
             </ModuleLayout.Half>
 
             <ModuleLayout.Full>
-              <DomainTransactionsTable />
+              <DomainTransactionsTable
+                data={transactionsList}
+                error={transactionsListError}
+                isLoading={isTransactionsListLoading}
+                meta={transactionsListMeta}
+              />
             </ModuleLayout.Full>
           </ModuleLayout.Layout>
         </Layout.Main>
@@ -168,6 +187,8 @@ export function HTTPDomainSummaryPage() {
     </React.Fragment>
   );
 }
+
+const TRANSACTIONS_TABLE_ROW_COUNT = 20;
 
 const HeaderContainer = styled('div')`
   display: flex;
