@@ -93,9 +93,7 @@ class DailySummaryTest(
             name="foo", organization=self.organization, teams=[self.team]
         )
         self.project2.first_event = self.three_days_ago
-        user_option_service.set_option(
-            user_id=self.user.id, key="timezone", value="America/Los_Angeles"
-        )
+        user_option_service.set_option(user_id=self.user.id, key="timezone", value="Etc/GMT+8")
         self.release = self.create_release(project=self.project, date_added=self.now)
 
     def populate_event_data(
