@@ -50,7 +50,7 @@ def get_changed_data(
     """
     Generate a list per type of issue alert rule data of what changes occurred on edit.
     """
-    changed_data = defaultdict(list)
+    changed_data: DefaultDict[str, list[str]] = defaultdict(list)
     changed_data = check_added_or_removed(
         rule_data_before, rule_data, rule, changed_data, "conditions", "condition", added=True
     )

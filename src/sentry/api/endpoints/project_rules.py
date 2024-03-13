@@ -38,7 +38,7 @@ from sentry.tasks.integrations.slack import find_channel_id_for_rule
 from sentry.utils.safe import safe_execute
 
 
-def send_confirmation_notification(rule: Rule, new: bool, changed):
+def send_confirmation_notification(rule: Rule, new: bool, changed: dict | None = None):
     for action in rule.data.get("actions", ()):
         action_inst = instantiate_action(rule, action)
         safe_execute(
