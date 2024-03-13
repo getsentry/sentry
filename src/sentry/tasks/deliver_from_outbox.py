@@ -175,9 +175,6 @@ def process_outbox_batch(
         if not shard_outbox:
             continue
 
-        if shard_outbox.should_skip_shard():
-            continue
-
         try:
             processed_count += 1
             shard_outbox.drain_shard(flush_all=True)
