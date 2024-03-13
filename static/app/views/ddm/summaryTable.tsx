@@ -33,7 +33,7 @@ export const SummaryTable = memo(function SummaryTable({
   onSortChange: (sortState: SortState) => void;
   series: Series[];
   onColorDotClick?: (series: FocusedMetricsSeries) => void;
-  onRowFilter?: (series: FocusedMetricsSeries) => void;
+  onRowFilter?: (index: number, series: FocusedMetricsSeries) => void;
   onRowHover?: (seriesName: string) => void;
   sort?: SortState;
 }) {
@@ -79,6 +79,19 @@ export const SummaryTable = memo(function SummaryTable({
       }
     },
     [sort, onSortChange, organization]
+  );
+
+  const handleRowFilter = useCallback(
+    (index: number | undefined, row: FocusedMetricsSeries) => {
+      if (index === undefined) {
+        return;
+      }
+      trackAnalytics('ddm.widget.add_row_filter', {
+        organization,
+      });
+      onRowFilter?.(index, row);
+    },
+    [onRowFilter, organization]
   );
 
   const releaseTo = (release: string) => {
@@ -184,6 +197,7 @@ export const SummaryTable = memo(function SummaryTable({
             max,
             sum,
             isEquationSeries,
+            queryIndex,
           }) => {
             return (
               <Fragment key={id}>
@@ -271,7 +285,8 @@ export const SummaryTable = memo(function SummaryTable({
                             disabled={isEquationSeries}
                             onClick={event => {
                               event.stopPropagation();
-                              onRowFilter?.({
+
+                              handleRowFilter(queryIndex, {
                                 id,
                                 groupBy,
                               });

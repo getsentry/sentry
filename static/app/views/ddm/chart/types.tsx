@@ -12,6 +12,7 @@ export type Series = {
   hidden?: boolean;
   isEquationSeries?: boolean;
   paddingIndices?: Set<number>;
+  queryIndex?: number;
   release?: string;
   scalingFactor?: number;
   stack?: string;

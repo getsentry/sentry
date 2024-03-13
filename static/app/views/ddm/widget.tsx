@@ -27,7 +27,6 @@ import {
   getFormattedMQL,
   getMetricsSeriesId,
   getMetricsSeriesName,
-  getQueryName,
   isCumulativeOp,
   unescapeMetricsFormula,
 } from 'sentry/utils/metrics';
@@ -160,11 +159,10 @@ export const MetricWidget = memo(
     );
 
     const handleQueryChange = useCallback(
-      (queryName, data: Partial<MetricWidgetQueryParams>) => {
-        const queryIndex = queries.findIndex(q => q.name === queryName);
+      (queryIndex, data: Partial<MetricWidgetQueryParams>) => {
         onChange(queryIndex, data);
       },
-      [queries, onChange]
+      [onChange]
     );
 
     const handleDisplayTypeChange = ({value}: SelectOption<MetricDisplayType>) => {
@@ -302,7 +300,7 @@ interface MetricWidgetBodyProps {
   focusedSeries?: FocusedMetricsSeries[];
   getChartPalette?: (seriesNames: string[]) => Record<string, string>;
   onChange?: (data: Partial<MetricWidgetQueryParams>) => void;
-  onQueryChange?: (queryName: string, data: Partial<MetricQueryWidgetParams>) => void;
+  onQueryChange?: (queryIndex: number, data: Partial<MetricQueryWidgetParams>) => void;
   samples?: SamplesProps;
   samplesV2?: SamplesV2Props;
   tableSort?: SortState;
@@ -411,9 +409,8 @@ const MetricWidgetBody = memo(
     );
 
     const handleRowFilter = useCallback(
-      series => {
-        const queryName = getQueryName(series.id);
-        const queryToUpdate = queries.find(q => q.name === queryName);
+      (queryIndex, series) => {
+        const queryToUpdate = queries[queryIndex];
         if (!queryToUpdate) {
           return;
         }
@@ -424,7 +421,7 @@ const MetricWidgetBody = memo(
         }
 
         const newQuery = extendQueryWithGroupBys(queryToUpdate.query, [series.groupBy]);
-        onQueryChange?.(queryName, {query: newQuery});
+        onQueryChange?.(queryIndex, {query: newQuery});
       },
       [queries, onQueryChange]
     );
@@ -587,6 +584,7 @@ export function getChartTimeseries(
       scalingFactor: scalingFactor,
       name: getMetricsSeriesName(query, entry.by, isMultiQuery),
       id: getMetricsSeriesId(query, entry.by),
+      queryIndex: index,
       isEquationSeries,
       groupBy: entry.by,
       transaction: entry.by.transaction,
@@ -612,6 +610,7 @@ export function getChartTimeseries(
     transaction: item.transaction as string | undefined,
     release: item.release as string | undefined,
     isEquationSeries: item.isEquationSeries,
+    queryIndex: item.queryIndex,
     emphasis: {
       focus: 'series',
     } as SeriesOption['emphasis'],

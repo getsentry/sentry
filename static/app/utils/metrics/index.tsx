@@ -271,10 +271,6 @@ export function getMetricsSeriesId(
   return `${query.name}-${JSON.stringify(groupBy)}`;
 }
 
-export function getQueryName(seriesId: string) {
-  return seriesId.split('-')[0];
-}
-
 export function groupByOp(metrics: MetricMeta[]): Record<string, MetricMeta[]> {
   const uniqueOperations = [
     ...new Set(metrics.flatMap(field => field.operations).filter(isAllowedOp)),
