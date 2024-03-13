@@ -21,7 +21,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.metrics_code_locations import MetricCodeLocationsSerializer
-from sentry.api.utils import get_date_range_from_params
+from sentry.api.utils import get_date_range_from_params, handle_query_errors
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.sentry_metrics.querying.data_v2 import (
@@ -531,17 +531,18 @@ class OrganizationMetricsSamplesEndpoint(OrganizationEventsV2EndpointBase):
             Referrer.API_ORGANIZATION_METRICS_SAMPLES,
         )
 
-        return self.paginate(
-            request=request,
-            paginator=GenericOffsetPaginator(data_fn=executor.execute),
-            on_results=lambda results: self.handle_results_with_meta(
-                request,
-                organization,
-                params["project_id"],
-                results,
-                standard_meta=True,
-            ),
-        )
+        with handle_query_errors():
+            return self.paginate(
+                request=request,
+                paginator=GenericOffsetPaginator(data_fn=executor.execute),
+                on_results=lambda results: self.handle_results_with_meta(
+                    request,
+                    organization,
+                    params["project_id"],
+                    results,
+                    standard_meta=True,
+                ),
+            )
 
 
 @region_silo_endpoint
