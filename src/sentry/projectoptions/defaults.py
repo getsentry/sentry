@@ -169,6 +169,7 @@ register(
 )
 
 # The available loader SDK versions
+# todo: v8 add version
 register(
     key="sentry:loader_available_sdk_versions",
     epoch_defaults={1: ["7.x", "6.x", "5.x", "4.x"], 11: ["7.x"]},

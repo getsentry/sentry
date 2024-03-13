@@ -88,6 +88,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
                     help_text="The Sentry Javascript SDK version to use. The currently supported options are:",
                     # Ideally we would call get_browser_sdk_version_choices() here but that requires
                     # passing in project to this decorator
+                    # todo: v8 add version
                     choices=[("latest", "Most recent version"), ("7.x", "Version 7 releases")],
                     required=False,
                 ),
