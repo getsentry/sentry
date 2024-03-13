@@ -84,6 +84,11 @@ export type SidebarItemProps = {
    */
   isBeta?: boolean;
   /**
+   * Is this item nested within another item
+   */
+  isNested?: boolean;
+
+  /**
    * Specify the variant for the badge.
    */
   isNew?: boolean;
@@ -91,6 +96,10 @@ export type SidebarItemProps = {
    * An optional prefix that can be used to reset the "new" indicator
    */
   isNewSeenKeySuffix?: string;
+  /**
+   * Is the sidebar collapsed or in mobile view
+   */
+  isSmall?: boolean;
   onClick?: (id: string, e: React.MouseEvent<HTMLAnchorElement>) => void;
   search?: string;
   to?: string;
@@ -125,6 +134,8 @@ function SidebarItem({
   onClick,
   trailingItems,
   variant,
+  isNested,
+  isSmall = false,
   ...props
 }: SidebarItemProps) {
   const router = useRouter();
@@ -178,9 +189,12 @@ function SidebarItem({
     [href, to, id, onClick, recordAnalytics, showIsNew, isNewSeenKey]
   );
 
+  const isInFloatingSidebar = isNested && isSmall;
+  const isInCollapsedState = !isInFloatingSidebar && collapsed;
+
   return (
     <Tooltip
-      disabled={!collapsed && !isTop}
+      disabled={!isInCollapsedState && !isTop}
       title={
         <Flex align="center">
           {label} {badges}
@@ -191,6 +205,7 @@ function SidebarItem({
       <StyledSidebarItem
         {...props}
         id={`sidebar-item-${id}`}
+        isSmall={isSmall}
         active={isActive ? 'true' : undefined}
         to={toProps}
         className={className}
@@ -198,9 +213,9 @@ function SidebarItem({
         onClick={handleItemClick}
       >
         <InteractionStateLayer isPressed={isActive} color="white" higherOpacity />
-        <SidebarItemWrapper collapsed={collapsed}>
+        <SidebarItemWrapper collapsed={isInCollapsedState}>
           <SidebarItemIcon>{icon}</SidebarItemIcon>
-          {!collapsed && !isTop && (
+          {!isInCollapsedState && !isTop && (
             <SidebarItemLabel>
               <LabelHook id={id}>
                 <TextOverflow>{label}</TextOverflow>
@@ -208,21 +223,21 @@ function SidebarItem({
               </LabelHook>
             </SidebarItemLabel>
           )}
-          {collapsed && showIsNew && (
+          {isInCollapsedState && showIsNew && (
             <CollapsedFeatureBadge
               type="new"
               variant="indicator"
               tooltipProps={tooltipDisabledProps}
             />
           )}
-          {collapsed && isBeta && (
+          {isInCollapsedState && isBeta && (
             <CollapsedFeatureBadge
               type="beta"
               variant="indicator"
               tooltipProps={tooltipDisabledProps}
             />
           )}
-          {collapsed && isAlpha && (
+          {isInCollapsedState && isAlpha && (
             <CollapsedFeatureBadge
               type="alpha"
               variant="indicator"
@@ -230,7 +245,7 @@ function SidebarItem({
             />
           )}
           {badge !== undefined && badge > 0 && (
-            <SidebarItemBadge collapsed={collapsed}>{badge}</SidebarItemBadge>
+            <SidebarItemBadge collapsed={isInCollapsedState}>{badge}</SidebarItemBadge>
           )}
           {trailingItems}
         </SidebarItemWrapper>
@@ -269,9 +284,37 @@ export function isItemActive(
 
 export default SidebarItem;
 
-const getActiveStyle = ({active, theme}: {active?: string; theme?: Theme}) => {
+const getActiveStyle = ({
+  active,
+  theme,
+  isSmall,
+}: {
+  active?: string;
+  isSmall?: boolean;
+  theme?: Theme;
+}) => {
   if (!active) {
     return '';
+  }
+  if (isSmall) {
+    return css`
+      color: ${theme?.green300};
+
+      &:active,
+      &:focus,
+      &:hover {
+        color: ${theme?.gray500};
+      }
+
+      &:before {
+        background-color: ${theme?.active};
+        top: 0;
+        left: -15px;
+        width: 5px;
+        height: 30px;
+        border-radius: 0 3px 3px 0;
+      }
+    `;
   }
   return css`
     color: ${theme?.white};
@@ -328,7 +371,7 @@ const StyledSidebarItem = styled(Link, {
 
   &:hover,
   &:focus-visible {
-    color: ${p => p.theme.white};
+    color: ${p => (p.isSmall ? p.theme.gray500 : p.theme.white)};
   }
 
   &:focus {

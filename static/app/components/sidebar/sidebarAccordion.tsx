@@ -4,6 +4,7 @@ import {
   isValidElement,
   useCallback,
   useContext,
+  useRef,
   useState,
 } from 'react';
 import {useTheme} from '@emotion/react';
@@ -26,20 +27,32 @@ type SidebarAccordionProps = SidebarItemProps & {
 export const ExpandedContext = createContext<{
   items: React.ReactNode;
   setItems: (items: React.ReactNode) => void;
-}>({items: null, setItems: (_: React.ReactNode) => {}});
+  setTitle: (title: React.ReactNode) => void;
+  title: React.ReactNode;
+}>({
+  items: null,
+  setItems: (_: React.ReactNode) => {},
+  setTitle: (_: React.ReactNode) => '',
+  title: '',
+});
 
 export function ExpandedContextProvider(props) {
   const [items, setItems] = useState<React.ReactNode>(null);
+  const title = useRef<React.ReactNode>('');
+
+  const setTitle = (newTitle: React.ReactNode) => {
+    title.current = newTitle;
+  };
 
   return (
-    <ExpandedContext.Provider value={{items, setItems}}>
+    <ExpandedContext.Provider value={{items, setItems, title: title.current, setTitle}}>
       {props.children}
     </ExpandedContext.Provider>
   );
 }
 
 function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
-  const {items, setItems} = useContext(ExpandedContext);
+  const {items, setItems, setTitle} = useContext(ExpandedContext);
   const theme = useTheme();
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
 
@@ -77,7 +90,7 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
     _: string,
     e: React.MouseEvent<HTMLAnchorElement, MouseEvent>
   ) => {
-    if (!horizontal && !sidebarCollapsed) {
+    if ((!horizontal && !sidebarCollapsed) || !children) {
       setItems(null);
       return;
     }
@@ -86,6 +99,7 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
     if (items === children) {
       setItems(null);
     } else {
+      setTitle(itemProps.label);
       setItems(children);
     }
   };
@@ -204,8 +218,4 @@ const SidebarAccordionSubitemsWrap = styled('div')`
   display: flex;
   flex-direction: column;
   gap: 1px;
-
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    flex-direction: row;
-  }
 `;
