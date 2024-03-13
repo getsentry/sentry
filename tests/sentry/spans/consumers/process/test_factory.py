@@ -52,7 +52,6 @@ def build_mock_message(data, topic=None):
 @override_options(
     {
         "standalone-spans.process-spans-consumer.enable": True,
-        "standalone-spans.process-spans-consumer.rollout": 1.0,
         "standalone-spans.process-spans-consumer.project-allowlist": [1],
     }
 )
@@ -93,7 +92,6 @@ def test_consumer_pushes_to_redis_and_schedules_task(process_segment):
 @override_options(
     {
         "standalone-spans.process-spans-consumer.enable": True,
-        "standalone-spans.process-spans-consumer.rollout": 1.0,
         "standalone-spans.process-spans-consumer.project-allowlist": [1],
     }
 )
@@ -146,7 +144,6 @@ def test_second_span_in_segment_does_not_queue_task(process_segment):
 @override_options(
     {
         "standalone-spans.process-spans-consumer.enable": False,
-        "standalone-spans.process-spans-consumer.rollout": 1.0,
         "standalone-spans.process-spans-consumer.project-allowlist": [1],
     }
 )
@@ -182,7 +179,6 @@ def test_option_disabled(mock_buffer):
 @override_options(
     {
         "standalone-spans.process-spans-consumer.enable": True,
-        "standalone-spans.process-spans-consumer.rollout": 1.0,
         "standalone-spans.process-spans-consumer.project-allowlist": [],
     }
 )
