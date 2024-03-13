@@ -100,8 +100,9 @@ class AuditLogEntry(Model):
                     "Expected a user or actor key for audit log",
                     extra={
                         "event": self.event,
+                        "organization_id": self.organization_id,
+                        "event_data": self.data,
                     },
-                    stack_info=True,
                 )
                 # Fallback to IP address if user or actor label not available
                 self.actor_label = self.ip_address

@@ -6,17 +6,12 @@ import time
 import uuid
 from collections.abc import Generator
 from hashlib import md5
-from typing import Any, Literal, TypedDict, cast
-
-from django.conf import settings
+from typing import Any, Literal, TypedDict
 
 from sentry import features
+from sentry.conf.types.kafka_definition import Topic
 from sentry.models.project import Project
-from sentry.replays.usecases.ingest.events import SentryEvent
-from sentry.replays.usecases.ingest.issue_creation import (
-    report_rage_click_issue,
-    report_rage_click_issue_with_replay_event,
-)
+from sentry.replays.usecases.ingest.issue_creation import report_rage_click_issue_with_replay_event
 from sentry.utils import json, kafka_config, metrics
 from sentry.utils.pubsub import KafkaPublisher
 
@@ -219,7 +214,7 @@ def _initialize_publisher() -> KafkaPublisher:
     global replay_publisher
 
     if replay_publisher is None:
-        config = kafka_config.get_topic_definition(settings.KAFKA_INGEST_REPLAY_EVENTS)
+        config = kafka_config.get_topic_definition(Topic.INGEST_REPLAY_EVENTS)
         replay_publisher = KafkaPublisher(
             kafka_config.get_kafka_producer_cluster_options(config["cluster"])
         )
@@ -345,11 +340,11 @@ def _handle_resource_metric_event(event: dict[str, Any]) -> None:
 
 def _handle_options_logging_event(project_id: int, replay_id: str, event: dict[str, Any]) -> None:
     # log the SDK options sent from the SDK 1/500 times
-    if random.randint(0, 499) < 1:
-        log = event["data"].get("payload", {}).copy()
-        log["project_id"] = project_id
-        log["replay_id"] = replay_id
-        logger.info("SDK Options:", extra=log)
+    log = event["data"].get("payload", {}).copy()
+    log["project_id"] = project_id
+    log["replay_id"] = replay_id
+    # Log to "slow_click" because its the only bigtable sink
+    logger.info("sentry.replays.slow_click", extra=log)
 
 
 def _handle_mutations_event(project_id: int, replay_id: str, event: dict[str, Any]) -> None:
@@ -402,10 +397,6 @@ def _handle_breadcrumb(
                                 payload["data"]["url"],
                                 payload["data"]["node"],
                                 replay_event,
-                            )
-                        else:
-                            report_rage_click_issue.delay(
-                                project_id, replay_id, cast(SentryEvent, event)
                             )
         # Log the event for tracking.
         log = event["data"].get("payload", {}).copy()

@@ -50,6 +50,28 @@ describe('useSpanMetrics', () => {
 
   jest.mocked(useOrganization).mockReturnValue(organization);
 
+  it('respects the `enabled` prop', () => {
+    const eventsRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {data: []},
+    });
+
+    const {result} = reactHooks.renderHook(
+      ({fields, enabled}) => useSpanMetrics({fields, enabled}),
+      {
+        wrapper: Wrapper,
+        initialProps: {
+          fields: ['spm()'] as MetricsProperty[],
+          enabled: false,
+        },
+      }
+    );
+
+    expect(result.current.isFetching).toEqual(false);
+    expect(eventsRequest).not.toHaveBeenCalled();
+  });
+
   it('queries for current selection', async () => {
     const eventsRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
@@ -75,6 +97,7 @@ describe('useSpanMetrics', () => {
             'span.group': '221aa7ebd216',
             transaction: '/api/details',
             release: '0.0.1',
+            environment: undefined,
           },
           fields: ['spm()'] as MetricsProperty[],
           sorts: [{field: 'spm()', kind: 'desc' as const}],

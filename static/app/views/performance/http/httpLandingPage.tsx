@@ -1,5 +1,4 @@
 import React, {Fragment} from 'react';
-import pickBy from 'lodash/pickBy';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
@@ -69,11 +68,14 @@ export function HTTPLandingPage() {
   });
 
   const domainsListResponse = useSpanMetrics({
-    filters: pickBy(tableFilters, value => value !== undefined),
+    filters: tableFilters,
     fields: [
       'project.id',
       'span.domain',
       'spm()',
+      'http_response_rate(2)',
+      'http_response_rate(4)',
+      'http_response_rate(5)',
       'avg(span.self_time)',
       'sum(span.self_time)',
       'time_spent_percentage()',
@@ -81,7 +83,7 @@ export function HTTPLandingPage() {
     sorts: [sort],
     limit: DOMAIN_TABLE_ROW_COUNT,
     cursor,
-    referrer: 'api.starfish.http-module-domains-list',
+    referrer: 'api.starfish.http-module-landing-domains-list',
   });
 
   useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);

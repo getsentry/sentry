@@ -73,6 +73,19 @@ class ControlOutboxTest(TestCase):
     region = Region("eu", 1, "http://eu.testserver", RegionCategory.MULTI_TENANT)
     region_config = (region,)
 
+    def test_skip_shards(self):
+        with self.options({"hybrid_cloud.authentication.disabled_user_shards": [100]}):
+            assert ControlOutbox(
+                shard_scope=OutboxScope.USER_SCOPE, shard_identifier=100
+            ).should_skip_shard()
+            assert not ControlOutbox(
+                shard_scope=OutboxScope.USER_SCOPE, shard_identifier=101
+            ).should_skip_shard()
+
+        assert not ControlOutbox(
+            shard_scope=OutboxScope.USER_SCOPE, shard_identifier=100
+        ).should_skip_shard()
+
     def test_control_sharding_keys(self):
         request = RequestFactory().get("/extensions/slack/webhook/")
         with assume_test_silo_mode(SiloMode.REGION):
@@ -264,6 +277,31 @@ class ControlOutboxTest(TestCase):
 
 @region_silo_test
 class OutboxDrainTest(TransactionTestCase):
+    @patch("sentry.models.outbox.process_region_outbox.send")
+    def test_draining_with_disabled_shards(self, mock_send):
+        outbox1 = Organization(id=1).outbox_for_update()
+        outbox2 = Organization(id=1).outbox_for_update()
+        outbox3 = Organization(id=2).outbox_for_update()
+
+        with outbox_context(flush=False):
+            outbox1.save()
+            outbox2.save()
+            outbox3.save()
+
+        with self.options({"hybrid_cloud.authentication.disabled_organization_shards": [1]}):
+            outbox1.drain_shard()
+            with pytest.raises(RegionOutbox.DoesNotExist):
+                outbox1.refresh_from_db()
+            outbox2.refresh_from_db()  # still exists
+
+            assert mock_send.call_count == 0
+
+            outbox3.drain_shard()
+            with pytest.raises(RegionOutbox.DoesNotExist):
+                outbox3.refresh_from_db()
+
+            assert mock_send.call_count == 1
+
     def test_drain_shard_not_flush_all__upper_bound(self):
         outbox1 = Organization(id=1).outbox_for_update()
         outbox2 = Organization(id=1).outbox_for_update()
@@ -408,6 +446,13 @@ class RegionOutboxTest(TestCase):
             # drain outboxes
             pass
         assert RegionOutbox.objects.count() == 0
+
+    def test_skip_shards(self):
+        with self.options({"hybrid_cloud.authentication.disabled_organization_shards": [100]}):
+            assert Organization(id=100).outbox_for_update().should_skip_shard()
+            assert not Organization(id=101).outbox_for_update().should_skip_shard()
+
+        assert not Organization(id=100).outbox_for_update().should_skip_shard()
 
     @patch("sentry.models.outbox.metrics")
     def test_concurrent_coalesced_object_processing(self, mock_metrics):

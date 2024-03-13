@@ -33,7 +33,7 @@ class SnubaQuery(Model):
         CRASH_RATE = 2
 
     environment = FlexibleForeignKey("sentry.Environment", null=True, db_constraint=False)
-    # Possible values are in the the `Type` enum
+    # Possible values are in the `Type` enum
     type = models.SmallIntegerField()
     dataset = models.TextField()
     query = models.TextField()
@@ -52,7 +52,7 @@ class SnubaQuery(Model):
 
     @classmethod
     def query_for_relocation_export(cls, q: models.Q, pk_map: PrimaryKeyMap) -> models.Q:
-        from sentry.incidents.models import AlertRule
+        from sentry.incidents.models.alert_rule import AlertRule
         from sentry.models.actor import Actor
         from sentry.models.organization import Organization
         from sentry.models.project import Project
@@ -112,7 +112,7 @@ class QuerySubscription(Model):
     date_updated = models.DateTimeField(default=timezone.now, null=True)
     query_extra = models.TextField(
         null=True
-    )  # additional query filters to attach to the query created in Snuba
+    )  # additional query filters to attach to the query created in Snuba such as datetime filters, or release/deploy tags
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(
         cache_fields=("pk", "subscription_id"), cache_ttl=int(timedelta(hours=1).total_seconds())

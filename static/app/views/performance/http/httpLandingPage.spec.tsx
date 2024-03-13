@@ -50,7 +50,9 @@ describe('HTTPLandingPage', function () {
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
       match: [
-        MockApiClient.matchQuery({referrer: 'api.starfish.http-module-domains-list'}),
+        MockApiClient.matchQuery({
+          referrer: 'api.starfish.http-module-landing-domains-list',
+        }),
       ],
       body: {
         data: [
@@ -146,6 +148,9 @@ describe('HTTPLandingPage', function () {
             'project.id',
             'span.domain',
             'spm()',
+            'http_response_rate(2)',
+            'http_response_rate(4)',
+            'http_response_rate(5)',
             'avg(span.self_time)',
             'sum(span.self_time)',
             'time_spent_percentage()',
@@ -153,7 +158,7 @@ describe('HTTPLandingPage', function () {
           per_page: 10,
           project: [],
           query: 'span.module:http has:span.domain',
-          referrer: 'api.starfish.http-module-domains-list',
+          referrer: 'api.starfish.http-module-landing-domains-list',
           sort: '-time_spent_percentage()',
           statsPeriod: '10d',
         },
@@ -168,7 +173,13 @@ describe('HTTPLandingPage', function () {
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
-    expect(screen.getByRole('cell', {name: '*.sentry.io'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: '*.github.com'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: '*.sentry.io'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/performance/http/domains/?domain=%2A.sentry.io&statsPeriod=10d'
+    );
+    expect(screen.getByRole('link', {name: '*.github.com'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/performance/http/domains/?domain=%2A.github.com&statsPeriod=10d'
+    );
   });
 });

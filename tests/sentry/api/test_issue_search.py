@@ -324,7 +324,7 @@ class ConvertPriorityValueTest(TestCase):
 
     def test_invalid(self):
         filters = [SearchFilter(SearchKey("issue.priority"), "=", SearchValue("wrong"))]
-        with pytest.raises(KeyError):
+        with pytest.raises(InvalidSearchQuery):
             convert_query_values(filters, [self.project], self.user, None)
 
 

@@ -440,7 +440,7 @@ class QueryBuilderTest(TestCase):
             "array_join_measurements_key",
         )
         self.assertCountEqual(query.columns, [array_join_column, Function("count", [], "count")])
-        # make sure the the array join columns are present in gropuby
+        # make sure the array join columns are present in gropuby
         self.assertCountEqual(query.groupby, [array_join_column])
 
     def test_retention(self):
@@ -837,3 +837,25 @@ class QueryBuilderTest(TestCase):
                 selected_columns=["count()"],
                 orderby="equation|",
             )
+
+    def test_orderby_salted_column_hash(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            query="",
+            selected_columns=["column_hash(transaction) as sample"],
+            orderby=["sample"],
+            config=QueryBuilderConfig(
+                functions_acl=["column_hash"],
+            ),
+        )
+        snql_query = query.get_snql_query().query
+        self.assertCountEqual(
+            snql_query.orderby,
+            [
+                OrderBy(
+                    Function("farmFingerprint64", [Column("transaction")], "sample"),
+                    Direction.ASC,
+                )
+            ],
+        )

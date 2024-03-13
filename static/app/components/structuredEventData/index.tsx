@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import ExternalLink from 'sentry/components/links/externalLink';
+import {CollapsibleValue} from 'sentry/components/structuredEventData/collapsibleValue';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {isUrl} from 'sentry/utils';
 
-import Toggle from './toggle';
 import {
   looksLikeMultiLineString,
   looksLikeStrippedValue,
@@ -32,7 +32,8 @@ export type StructuredEventDataProps = {
    * Allows customization of how values are rendered
    */
   config?: StructedEventDataConfig;
-  data?: React.ReactNode;
+  // TODO(TS): What possible types can `data` be?
+  data?: any;
   'data-test-id'?: string;
   maxDefaultDepth?: number;
   meta?: Record<any, any>;
@@ -74,29 +75,50 @@ function StructuredData({
   maxDefaultDepth,
   withAnnotatedText,
   meta,
+  objectKey,
 }: {
   config: StructedEventDataConfig | undefined;
   depth: number;
   maxDefaultDepth: number;
   meta: Record<any, any> | undefined;
   withAnnotatedText: boolean;
-  value?: React.ReactNode;
+  objectKey?: string;
+  // TODO(TS): What possible types can `value` be?
+  value?: any;
 }) {
   let i = 0;
 
-  const children: React.ReactNode[] = [];
+  const formattedObjectKey = objectKey ? (
+    <Fragment>
+      <ValueObjectKey>
+        {config?.renderObjectKeys?.(objectKey) ?? objectKey}
+      </ValueObjectKey>
+      <span>{': '}</span>
+    </Fragment>
+  ) : null;
+
+  function Wrapper({children}: {children: React.ReactNode}) {
+    return (
+      <Fragment>
+        {formattedObjectKey}
+        {children}
+      </Fragment>
+    );
+  }
 
   if (config?.isNull?.(value) || value === null) {
     const nullValue = config?.renderNull?.(value) ?? String(value);
 
     return (
-      <ValueNull data-test-id="value-null">
-        <AnnotatedValue
-          value={nullValue}
-          meta={meta}
-          withAnnotatedText={withAnnotatedText}
-        />
-      </ValueNull>
+      <Wrapper>
+        <ValueNull data-test-id="value-null">
+          <AnnotatedValue
+            value={nullValue}
+            meta={meta}
+            withAnnotatedText={withAnnotatedText}
+          />
+        </ValueNull>
+      </Wrapper>
     );
   }
 
@@ -104,21 +126,29 @@ function StructuredData({
     const booleanValue = config?.renderBoolean?.(value) ?? String(value);
 
     return (
-      <ValueBoolean data-test-id="value-boolean">
-        <AnnotatedValue
-          value={booleanValue}
-          meta={meta}
-          withAnnotatedText={withAnnotatedText}
-        />
-      </ValueBoolean>
+      <Wrapper>
+        <ValueBoolean data-test-id="value-boolean">
+          <AnnotatedValue
+            value={booleanValue}
+            meta={meta}
+            withAnnotatedText={withAnnotatedText}
+          />
+        </ValueBoolean>
+      </Wrapper>
     );
   }
 
   if (typeof value === 'number' || config?.isNumber?.(value)) {
     return (
-      <ValueNumber data-test-id="value-number">
-        <AnnotatedValue value={value} meta={meta} withAnnotatedText={withAnnotatedText} />
-      </ValueNumber>
+      <Wrapper>
+        <ValueNumber data-test-id="value-number">
+          <AnnotatedValue
+            value={value}
+            meta={meta}
+            withAnnotatedText={withAnnotatedText}
+          />
+        </ValueNumber>
+      </Wrapper>
     );
   }
 
@@ -127,44 +157,62 @@ function StructuredData({
       const stringValue = config.renderString?.(value) ?? value;
 
       return (
-        <ValueString data-test-id="value-string">
-          {'"'}
-          <AnnotatedValue
-            value={stringValue}
-            meta={meta}
-            withAnnotatedText={withAnnotatedText}
-          />
-          {'"'}
-          <LinkHint value={stringValue} />
-        </ValueString>
+        <Wrapper>
+          <ValueString data-test-id="value-string">
+            {'"'}
+            <AnnotatedValue
+              value={stringValue}
+              meta={meta}
+              withAnnotatedText={withAnnotatedText}
+            />
+            {'"'}
+            <LinkHint value={stringValue} />
+          </ValueString>
+        </Wrapper>
       );
     }
 
     if (looksLikeStrippedValue(value)) {
       return (
-        <ValueStrippedString>
+        <Wrapper>
+          <ValueStrippedString>
+            <AnnotatedValue
+              value={value}
+              meta={meta}
+              withAnnotatedText={withAnnotatedText}
+            />
+          </ValueStrippedString>
+        </Wrapper>
+      );
+    }
+
+    if (looksLikeMultiLineString(value)) {
+      <Wrapper>
+        <ValueMultiLineString>
           <AnnotatedValue
             value={value}
             meta={meta}
             withAnnotatedText={withAnnotatedText}
           />
-        </ValueStrippedString>
-      );
-    }
-
-    if (looksLikeMultiLineString(value)) {
-      <ValueMultiLineString>
-        <AnnotatedValue value={value} meta={meta} withAnnotatedText={withAnnotatedText} />
-      </ValueMultiLineString>;
+        </ValueMultiLineString>
+      </Wrapper>;
     }
 
     return (
-      <span data-test-id="value-unformatted">
-        <AnnotatedValue value={value} meta={meta} withAnnotatedText={withAnnotatedText} />
-        <LinkHint value={value} />
-      </span>
+      <Wrapper>
+        <span data-test-id="value-unformatted">
+          <AnnotatedValue
+            value={value}
+            meta={meta}
+            withAnnotatedText={withAnnotatedText}
+          />
+          <LinkHint value={value} />
+        </span>
+      </Wrapper>
     );
   }
+
+  const children: React.ReactNode[] = [];
 
   if (Array.isArray(value)) {
     for (i = 0; i < value.length; i++) {
@@ -178,21 +226,27 @@ function StructuredData({
             meta={meta?.[i]}
             maxDefaultDepth={maxDefaultDepth}
           />
-          {i < value.length - 1 ? <span>{', '}</span> : null}
+          {i < value.length - 1 ? <span>{','}</span> : null}
         </div>
       );
     }
     return (
-      <span>
-        <span>{'['}</span>
-        <Toggle highUp={depth <= maxDefaultDepth}>{children}</Toggle>
-        <span>{']'}</span>
-      </span>
+      <CollapsibleValue
+        openTag="["
+        closeTag="]"
+        prefix={formattedObjectKey}
+        maxDefaultDepth={maxDefaultDepth}
+        depth={depth}
+      >
+        {children}
+      </CollapsibleValue>
     );
   }
+
   if (isValidElement(value)) {
     return value;
   }
+
   const keys = Object.keys(value);
   keys.sort(naturalCaseInsensitiveSort);
   for (i = 0; i < keys.length; i++) {
@@ -200,29 +254,30 @@ function StructuredData({
 
     children.push(
       <div key={key}>
-        <ValueObjectKey>{config?.renderObjectKeys?.(key) ?? key}</ValueObjectKey>
-        <span>{': '}</span>
-        <span>
-          <StructuredData
-            config={config}
-            value={value[key]}
-            depth={depth + 1}
-            withAnnotatedText={withAnnotatedText}
-            meta={meta?.[key]}
-            maxDefaultDepth={maxDefaultDepth}
-          />
-          {i < keys.length - 1 ? <span>{', '}</span> : null}
-        </span>
+        <StructuredData
+          config={config}
+          value={value[key]}
+          depth={depth + 1}
+          withAnnotatedText={withAnnotatedText}
+          meta={meta?.[key]}
+          maxDefaultDepth={maxDefaultDepth}
+          objectKey={key}
+        />
+        {i < keys.length - 1 ? <span>{','}</span> : null}
       </div>
     );
   }
 
   return (
-    <span>
-      <span>{'{'}</span>
-      <Toggle highUp={depth <= maxDefaultDepth - 1}>{children}</Toggle>
-      <span>{'}'}</span>
-    </span>
+    <CollapsibleValue
+      openTag="{"
+      closeTag="}"
+      prefix={formattedObjectKey}
+      maxDefaultDepth={maxDefaultDepth}
+      depth={depth}
+    >
+      {children}
+    </CollapsibleValue>
   );
 }
 

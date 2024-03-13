@@ -5,11 +5,17 @@ from typing import Any
 
 from sentry import features
 from sentry.eventstore.models import GroupEvent
+from sentry.integrations.repository import get_default_issue_alert_repository
+from sentry.integrations.repository.issue_alert import IssueAlertNotificationMessageRepository
 from sentry.integrations.slack.actions.form import SlackNotifyServiceForm
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
+from sentry.integrations.slack.message_builder.notifications.rule_save_edit import (
+    SlackRuleSaveEditMessageBuilder,
+)
 from sentry.integrations.slack.utils import get_channel_id
 from sentry.models.integrations.integration import Integration
+from sentry.models.rule import Rule
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
 from sentry.rules import EventState
 from sentry.rules.actions import IntegrationEventAction
@@ -47,6 +53,10 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 "type": "string",
                 "placeholder": "e.g. @jane, @on-call-team",
             }
+
+        self._repository: IssueAlertNotificationMessageRepository = (
+            get_default_issue_alert_repository()
+        )
 
     def after(
         self, event: GroupEvent, state: EventState, notification_uuid: str | None = None
@@ -134,6 +144,35 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
         metrics.incr("notifications.sent", instance="slack.notification", skip_internal=False)
         yield self.future(send_notification, key=key)
+
+    def send_confirmation_notification(self, rule: Rule, new: bool):
+        integration = self.get_integration()
+        if not integration:
+            # Integration removed, rule still active.
+            return
+
+        channel = self.get_option("channel_id")
+        blocks = SlackRuleSaveEditMessageBuilder(rule=rule, new=new).build()
+        payload = {
+            "text": blocks.get("text"),
+            "blocks": json.dumps(blocks.get("blocks")),
+            "channel": channel,
+            "unfurl_links": False,
+            "unfurl_media": False,
+        }
+        client = SlackClient(integration_id=integration.id)
+        try:
+            client.post("/chat.postMessage", data=payload, timeout=5, log_response_with_error=True)
+        except ApiError as e:
+            log_params = {
+                "error": str(e),
+                "project_id": rule.project.id,
+                "channel_name": self.get_option("channel"),
+            }
+            self.logger.info(
+                "rule_confirmation.fail.slack_post",
+                extra=log_params,
+            )
 
     def render_label(self) -> str:
         tags = self.get_tags_list()

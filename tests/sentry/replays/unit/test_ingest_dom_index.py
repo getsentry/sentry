@@ -6,6 +6,7 @@ from unittest import mock
 
 import pytest
 
+from sentry.replays.testutils import mock_replay_event
 from sentry.replays.usecases.ingest.dom_index import (
     _get_testid,
     _parse_classes,
@@ -17,19 +18,6 @@ from sentry.replays.usecases.ingest.dom_index import (
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
-
-
-def mock_replay_event():
-    return {
-        "user": {"id": "1", "email": "test@test.com"},
-        "environment": "production",
-    }
-
-
-@pytest.fixture(autouse=True)
-def patch_rage_click_issue():
-    with mock.patch("sentry.replays.usecases.ingest.dom_index.report_rage_click_issue") as m:
-        yield m
 
 
 @pytest.fixture(autouse=True)
@@ -278,7 +266,7 @@ def test_parse_replay_actions():
 
 
 @django_db_all
-def test_parse_replay_dead_click_actions(patch_rage_click_issue, default_project):
+def test_parse_replay_dead_click_actions(patch_rage_click_issue_with_replay_event, default_project):
     events = [
         {
             "type": 5,
@@ -393,8 +381,10 @@ def test_parse_replay_dead_click_actions(patch_rage_click_issue, default_project
         }
     ):
         default_project.update_option("sentry:replay_rage_click_issues", True)
-        replay_actions = parse_replay_actions(default_project.id, "1", 30, events, None)
-    assert patch_rage_click_issue.delay.call_count == 2
+        replay_actions = parse_replay_actions(
+            default_project.id, "1", 30, events, mock_replay_event()
+        )
+    assert patch_rage_click_issue_with_replay_event.call_count == 2
     assert replay_actions is not None
     assert replay_actions["type"] == "replay_event"
     assert isinstance(replay_actions["start_time"], float)
@@ -437,7 +427,9 @@ def test_parse_replay_dead_click_actions(patch_rage_click_issue, default_project
 
 
 @django_db_all
-def test_parse_replay_click_actions_not_dead(patch_rage_click_issue, default_project):
+def test_parse_replay_click_actions_not_dead(
+    patch_rage_click_issue_with_replay_event, default_project
+):
     events = [
         {
             "type": 5,
@@ -476,7 +468,7 @@ def test_parse_replay_click_actions_not_dead(patch_rage_click_issue, default_pro
     ]
 
     replay_actions = parse_replay_actions(default_project.id, "1", 30, events, None)
-    assert patch_rage_click_issue.delay.call_count == 0
+    assert patch_rage_click_issue_with_replay_event.delay.call_count == 0
     assert replay_actions is None
 
 
@@ -719,7 +711,7 @@ def test_parse_request_response_old_format_request_and_response():
 
 @django_db_all
 def test_parse_replay_rage_clicks_with_replay_event(
-    patch_rage_click_issue_with_replay_event, default_project, patch_rage_click_issue
+    patch_rage_click_issue_with_replay_event, default_project
 ):
     events = [
         {
@@ -839,7 +831,6 @@ def test_parse_replay_rage_clicks_with_replay_event(
             default_project.id, "1", 30, events, mock_replay_event()
         )
     assert patch_rage_click_issue_with_replay_event.call_count == 2
-    assert patch_rage_click_issue.delay.call_count == 0
     assert replay_actions is not None
     assert replay_actions["type"] == "replay_event"
     assert isinstance(replay_actions["start_time"], float)
@@ -876,12 +867,13 @@ def test_log_sdk_options():
     log["project_id"] = 1
     log["replay_id"] = "1"
 
-    with mock.patch("sentry.replays.usecases.ingest.dom_index.logger") as logger, mock.patch(
-        "random.randint"
-    ) as randint:
+    with (
+        mock.patch("sentry.replays.usecases.ingest.dom_index.logger") as logger,
+        mock.patch("random.randint") as randint,
+    ):
         randint.return_value = 0
         parse_replay_actions(1, "1", 30, events, None)
-        assert logger.info.call_args_list == [mock.call("SDK Options:", extra=log)]
+        assert logger.info.call_args_list == [mock.call("sentry.replays.slow_click", extra=log)]
 
 
 def test_log_large_dom_mutations():
@@ -905,9 +897,10 @@ def test_log_large_dom_mutations():
     log["project_id"] = 1
     log["replay_id"] = "1"
 
-    with mock.patch("sentry.replays.usecases.ingest.dom_index.logger") as logger, mock.patch(
-        "random.randint"
-    ) as randint:
+    with (
+        mock.patch("sentry.replays.usecases.ingest.dom_index.logger") as logger,
+        mock.patch("random.randint") as randint,
+    ):
         randint.return_value = 0
         parse_replay_actions(1, "1", 30, events, None)
         assert logger.info.call_args_list == [mock.call("Large DOM Mutations List:", extra=log)]

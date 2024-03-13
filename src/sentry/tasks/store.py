@@ -262,7 +262,7 @@ def preprocess_event(
 def preprocess_event_from_reprocessing(
     cache_key: str,
     data: Event | None = None,
-    start_time: int | None = None,
+    start_time: float | None = None,
     event_id: str | None = None,
     project: Project | None = None,
     **kwargs: Any,
