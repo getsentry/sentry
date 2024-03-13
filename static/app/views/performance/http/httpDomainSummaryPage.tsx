@@ -14,10 +14,9 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {DurationChart} from 'sentry/views/performance/database/durationChart';
-import {ThroughputChart} from 'sentry/views/performance/database/throughputChart';
-import {useSelectedDurationAggregate} from 'sentry/views/performance/database/useSelectedDurationAggregate';
 import {DomainTransactionsTable} from 'sentry/views/performance/http/domainTransactionsTable';
+import {DurationChart} from 'sentry/views/performance/http/durationChart';
+import {ThroughputChart} from 'sentry/views/performance/http/throughputChart';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
@@ -37,8 +36,6 @@ type Query = {
 export function HTTPDomainSummaryPage() {
   const location = useLocation<Query>();
   const organization = useOrganization();
-
-  const [selectedAggregate] = useSelectedDurationAggregate();
 
   const {domain} = location.query;
 
@@ -79,7 +76,7 @@ export function HTTPDomainSummaryPage() {
     error: durationError,
   } = useSpanMetricsSeries({
     filters,
-    yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
+    yAxis: [`avg(${SpanMetricsField.SPAN_SELF_TIME})`],
     enabled: Boolean(domain),
     referrer: 'api.starfish.http-module-domain-summary-duration-chart',
   });
@@ -158,9 +155,7 @@ export function HTTPDomainSummaryPage() {
                   <MetricReadout
                     title={DataTitles.avg}
                     value={
-                      domainMetrics?.[0]?.[
-                        `${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`
-                      ]
+                      domainMetrics?.[0]?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]
                     }
                     unit={DurationUnit.MILLISECOND}
                     isLoading={areDomainMetricsLoading}
@@ -179,9 +174,7 @@ export function HTTPDomainSummaryPage() {
 
             <ModuleLayout.Half>
               <DurationChart
-                series={
-                  durationData[`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`]
-                }
+                series={durationData[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]}
                 isLoading={isDurationDataLoading}
                 error={durationError}
               />
