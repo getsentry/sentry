@@ -31,6 +31,7 @@ function useDateTimeParams(options: MetricCorrelationOpts) {
     : getDateTimeParams(selection.datetime);
 }
 
+// TODO(ddm): remove this once samplesV2 are enabled for everyone
 function useMetricsCorrelations(
   mri: MRI | undefined,
   options: MetricCorrelationOpts,
@@ -73,9 +74,7 @@ function useMetricsCorrelations(
     return queryInfo;
   }
 
-  const data = sortCodeLocations(
-    deduplicateCodeLocations(mapToNewResponseShape(queryInfo.data, mri))
-  );
+  const data = mapToNewResponseShape(queryInfo.data, mri);
 
   return {...queryInfo, data};
 }
@@ -158,9 +157,51 @@ export function useMetricSamples(
 
 export function useMetricCodeLocations(
   mri: MRI | undefined,
-  options: Omit<MetricCorrelationOpts, 'codeLocations'> = {}
+  options: MetricCorrelationOpts
 ) {
-  return useMetricsCorrelations(mri, {...options, codeLocations: true});
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
+  const dateTimeParams = useDateTimeParams(options);
+
+  const minMaxParams =
+    // remove non-numeric values
+    options.min && options.max && !isNaN(options.min) && !isNaN(options.max)
+      ? {min: options.min, max: options.max}
+      : {};
+
+  const queryInfo = useApiQuery<MetricMetaCodeLocation[]>(
+    [
+      `/organizations/${organization.slug}/metrics/code-locations/`,
+      {
+        query: {
+          metric: mri,
+          project: selection.projects,
+          environment: selection.environments,
+          query: options.query,
+          ...dateTimeParams,
+          ...minMaxParams,
+        },
+      },
+    ],
+    {
+      enabled: !!mri,
+      staleTime: Infinity,
+    }
+  );
+
+  if (!queryInfo.data) {
+    return queryInfo;
+  }
+
+  const deduped = queryInfo.data
+    .filter(
+      (item, index, self) => index === self.findIndex(t => equalCodeLocations(t, item))
+    )
+    .sort((a, b) => {
+      return a.timestamp - b.timestamp;
+    });
+
+  return {...queryInfo, data: deduped};
 }
 
 const mapToNewResponseShape = (
@@ -206,22 +247,6 @@ const mapToNewResponseShape = (
     });
   }
 
-  return newData;
-};
-
-const sortCodeLocations = (data: ApiResponse) => {
-  const newData = {...data};
-  newData.metrics = [...data.metrics].sort((a, b) => {
-    return b.timestamp - a.timestamp;
-  });
-  return newData;
-};
-
-const deduplicateCodeLocations = (data: ApiResponse) => {
-  const newData = {...data};
-  newData.metrics = data.metrics.filter((element, index) => {
-    return !data.metrics.slice(0, index).some(e => equalCodeLocations(e, element));
-  });
   return newData;
 };
 

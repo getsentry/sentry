@@ -3,9 +3,9 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {ShortIdBreadrcumb} from './shortIdBreadcrumb';
+import {ShortIdBreadcrumb} from './shortIdBreadcrumb';
 
-describe('ShortIdBreadrcumb', function () {
+describe('ShortIdBreadcrumb', function () {
   const {organization, project} = initializeOrg();
   const group = GroupFixture({shortId: 'ABC-123'});
 
@@ -16,13 +16,13 @@ describe('ShortIdBreadrcumb', function () {
   });
 
   it('renders short ID', function () {
-    render(<ShortIdBreadrcumb {...{organization, project, group}} />);
+    render(<ShortIdBreadcrumb {...{organization, project, group}} />);
 
     expect(screen.getByText('ABC-123')).toBeInTheDocument();
   });
 
   it('supports copy', async function () {
-    render(<ShortIdBreadrcumb {...{organization, project, group}} />);
+    render(<ShortIdBreadcrumb {...{organization, project, group}} />);
 
     async function clickMenuItem(name: string) {
       await userEvent.click(screen.getByRole('button', {name: 'Short-ID copy actions'}));

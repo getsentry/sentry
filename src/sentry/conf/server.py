@@ -1230,6 +1230,14 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.tasks.on_demand_metrics.schedule_on_demand_check",
         "schedule": crontab(minute="*/5"),
     },
+    "detect_broken_monitor_envs": {
+        "task": "sentry.monitors.tasks.detect_broken_monitor_envs",
+        "schedule": crontab(
+            minute="0",
+            hour="12",  # 05:00 PDT, 09:00 EDT, 12:00 UTC
+        ),
+        "options": {"expires": 15 * 60},
+    },
 }
 
 # Assign the configuration keys celery uses based on our silo mode.
@@ -1896,8 +1904,10 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:slack-block-kit": False,
     # Improvements to Slack messages using Block Kit
     "organizations:slack-block-kit-improvements": False,
-    # Send Slack notifications to threads
+    # Send Slack notifications to threads for Metric Alerts
     "organizations:slack-thread": False,
+    # Send Slack notifications to threads for Issue Alerts
+    "organizations:slack-thread-issue-alert": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -2012,6 +2022,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:servicehooks": False,
     # Enable similarity embeddings API call
     "projects:similarity-embeddings": False,
+    # Enable similarity embeddings grouping
+    "projects:similarity-embeddings-grouping": False,
     # Starfish: extract metrics from the spans
     "projects:span-metrics-extraction": False,
     "projects:span-metrics-extraction-ga-modules": False,
@@ -3484,6 +3496,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "sessions-subscription-results": "default",
     "metrics-subscription-results": "default",
     "ingest-events": "default",
+    "ingest-feedback-events": "default",
     "ingest-attachments": "default",
     "ingest-transactions": "default",
     "ingest-metrics": "default",

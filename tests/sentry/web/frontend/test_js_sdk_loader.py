@@ -175,6 +175,42 @@ class JavaScriptSdkLoaderTest(TestCase):
         self.assertTemplateUsed(resp, "sentry/js-sdk-loader.js.tmpl")
         assert b"/7.100.0/bundle.tracing.replay.min.js" in resp.content
 
+    @mock.patch(
+        "sentry.loader.browsersdkversion.load_version_from_file",
+        return_value=["8.0.0"],
+    )
+    @mock.patch(
+        "sentry.loader.browsersdkversion.get_selected_browser_sdk_version", return_value="8.x"
+    )
+    def test_equal_to_v8_returns_default_bundle(
+        self, load_version_from_file, get_selected_browser_sdk_version
+    ):
+        settings.JS_SDK_LOADER_DEFAULT_SDK_URL = "https://browser.sentry-cdn.com/%s/bundle%s.min.js"
+        self.projectkey.data = {}
+        self.projectkey.save()
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, "sentry/js-sdk-loader.js.tmpl")
+        assert b"/8.0.0/bundle.min.js" in resp.content
+
+    @mock.patch(
+        "sentry.loader.browsersdkversion.load_version_from_file",
+        return_value=["8.1.0", "8.0.0", "8", "8.0.0-alpha.0"],
+    )
+    @mock.patch(
+        "sentry.loader.browsersdkversion.get_selected_browser_sdk_version", return_value="8.x"
+    )
+    def test_returns_latest_v8_version_when_various_v8_versions_available(
+        self, load_version_from_file, get_selected_browser_sdk_version
+    ):
+        settings.JS_SDK_LOADER_DEFAULT_SDK_URL = "https://browser.sentry-cdn.com/%s/bundle%s.min.js"
+        self.projectkey.data = {}
+        self.projectkey.save()
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, "sentry/js-sdk-loader.js.tmpl")
+        assert b"/8.1.0/bundle.min.js" in resp.content
+
     @mock.patch("sentry.loader.browsersdkversion.load_version_from_file", return_value=["7.37.0"])
     @mock.patch(
         "sentry.loader.browsersdkversion.get_selected_browser_sdk_version", return_value="7.x"

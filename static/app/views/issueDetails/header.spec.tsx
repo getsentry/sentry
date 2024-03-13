@@ -191,7 +191,7 @@ describe('GroupHeader', () => {
   describe('priority', () => {
     it('can change priority', async function () {
       const mockModifyIssue = MockApiClient.addMockResponse({
-        url: `/projects/org-slug/project-slug/issues/`,
+        url: `/organizations/org-slug/issues/`,
         method: 'PUT',
         body: {},
       });

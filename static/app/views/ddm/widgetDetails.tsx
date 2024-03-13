@@ -27,7 +27,7 @@ import type {FocusAreaProps} from 'sentry/views/ddm/context';
 import {useDDMContext} from 'sentry/views/ddm/context';
 import type {SamplesTableProps} from 'sentry/views/ddm/sampleTable';
 import {SampleTable} from 'sentry/views/ddm/sampleTable';
-import {getQueryWithFocusedSeries} from 'sentry/views/ddm/utils';
+import {extendQueryWithGroupBys} from 'sentry/views/ddm/utils';
 
 enum Tab {
   SAMPLES = 'samples',
@@ -111,7 +111,12 @@ export function MetricDetails({
   }
 
   const queryWithFocusedSeries = useMemo(
-    () => focusedSeries && getQueryWithFocusedSeries(query || '', focusedSeries),
+    () =>
+      focusedSeries &&
+      extendQueryWithGroupBys(
+        query || '',
+        focusedSeries.map(s => s.groupBy)
+      ),
     [focusedSeries, query]
   );
 

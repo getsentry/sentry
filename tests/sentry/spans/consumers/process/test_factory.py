@@ -8,6 +8,7 @@ from arroyo.types import Topic as ArroyoTopic
 from sentry.conf.types.kafka_definition import Topic
 from sentry.spans.buffer.redis import get_redis_client
 from sentry.spans.consumers.process.factory import ProcessSpansStrategyFactory
+from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 from sentry.utils.kafka_config import get_topic_definition
 
@@ -50,6 +51,12 @@ def build_mock_message(data, topic=None):
     return message
 
 
+@override_options(
+    {
+        "standalone-spans.process-spans-consumer.enable": True,
+        "standalone-spans.process-spans-consumer.project-allowlist": [1],
+    }
+)
 @mock.patch("sentry.spans.consumers.process.factory.process_segment")
 def test_consumer_pushes_to_redis_and_schedules_task(process_segment):
     redis_client = get_redis_client()
@@ -84,6 +91,12 @@ def test_consumer_pushes_to_redis_and_schedules_task(process_segment):
     process_segment.apply_async.assert_called_once_with(args=[1, "ace31e54d65652aa"], countdown=120)
 
 
+@override_options(
+    {
+        "standalone-spans.process-spans-consumer.enable": True,
+        "standalone-spans.process-spans-consumer.project-allowlist": [1],
+    }
+)
 @mock.patch("sentry.spans.consumers.process.factory.process_segment")
 def test_second_span_in_segment_does_not_queue_task(process_segment):
     redis_client = get_redis_client()
@@ -128,3 +141,73 @@ def test_second_span_in_segment_does_not_queue_task(process_segment):
         message.value(),
     ]
     process_segment.apply_async.assert_called_once_with(args=[1, "ace31e54d65652aa"], countdown=120)
+
+
+@override_options(
+    {
+        "standalone-spans.process-spans-consumer.enable": False,
+        "standalone-spans.process-spans-consumer.project-allowlist": [1],
+    }
+)
+@mock.patch("sentry.spans.consumers.process.factory.RedisSpansBuffer")
+def test_option_disabled(mock_buffer):
+    topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_SPANS)["real_topic_name"])
+    partition = Partition(topic, 0)
+    strategy = ProcessSpansStrategyFactory().create_with_partitions(
+        commit=mock.Mock(),
+        partitions={},
+    )
+
+    span_data = build_mock_span()
+    message = build_mock_message(span_data, topic)
+
+    strategy.submit(
+        Message(
+            BrokerValue(
+                KafkaPayload(b"key", message.value().encode("utf-8"), []),
+                partition,
+                1,
+                datetime.now(),
+            )
+        )
+    )
+
+    strategy.poll()
+    strategy.join(1)
+    strategy.terminate()
+    mock_buffer.assert_not_called()
+
+
+@override_options(
+    {
+        "standalone-spans.process-spans-consumer.enable": True,
+        "standalone-spans.process-spans-consumer.project-allowlist": [],
+    }
+)
+@mock.patch("sentry.spans.consumers.process.factory.RedisSpansBuffer")
+def test_option_project_rollout(mock_buffer):
+    topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_SPANS)["real_topic_name"])
+    partition = Partition(topic, 0)
+    strategy = ProcessSpansStrategyFactory().create_with_partitions(
+        commit=mock.Mock(),
+        partitions={},
+    )
+
+    span_data = build_mock_span()
+    message = build_mock_message(span_data, topic)
+
+    strategy.submit(
+        Message(
+            BrokerValue(
+                KafkaPayload(b"key", message.value().encode("utf-8"), []),
+                partition,
+                1,
+                datetime.now(),
+            )
+        )
+    )
+
+    strategy.poll()
+    strategy.join(1)
+    strategy.terminate()
+    mock_buffer.assert_not_called()

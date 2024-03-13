@@ -431,7 +431,14 @@ function renderBodyCell(
     }
 
     if (col.key === 'trace') {
-      return <TraceId traceId={dataRow.trace} containerProps={defaultProps} />;
+      return (
+        <TraceId
+          traceId={dataRow.trace}
+          timestamp={dataRow.timestamp}
+          eventId={dataRow.id}
+          containerProps={defaultProps}
+        />
+      );
     }
 
     if (col.key === 'profile.id') {
@@ -639,15 +646,22 @@ function TimestampRenderer({
 function TraceId({
   containerProps,
   traceId,
+  timestamp,
+  eventId,
 }: {
   traceId: string;
   containerProps?: React.DetailedHTMLProps<
     React.HTMLAttributes<HTMLDivElement>,
     HTMLDivElement
   >;
+  eventId?: string;
+  timestamp?: DateString;
 }) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const stringOrNumberTimestamp =
+    timestamp instanceof Date ? timestamp.toISOString() : timestamp ?? '';
+
   const target = getTraceDetailsUrl(
     organization,
     traceId,
@@ -656,7 +670,9 @@ function TraceId({
       end: selection.datetime.end,
       statsPeriod: selection.datetime.period,
     },
-    {}
+    {},
+    stringOrNumberTimestamp,
+    eventId
   );
   return (
     <Container {...containerProps}>

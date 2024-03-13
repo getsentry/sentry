@@ -25,12 +25,14 @@ import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useReplayExists from 'sentry/utils/replayCount/useReplayExists';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
+import useProfileExists from 'sentry/views/performance/browser/webVitals/utils/profiling/useProfileExists';
 import {useInpSpanSamplesWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useInpSpanSamplesWebVitalsQuery';
 import {useTransactionSamplesWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useTransactionSamplesWebVitalsQuery';
 import type {
@@ -111,27 +113,17 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
       datatype = Datatype.PAGELOADS;
   }
 
-  const samplesColumnOrder = useMemo(() => {
-    if (shouldReplaceFidWithInp) {
-      return PAGELOADS_COLUMN_ORDER.filter(col => col.key !== 'measurements.fid');
-    }
-    return PAGELOADS_COLUMN_ORDER;
-  }, [shouldReplaceFidWithInp]);
-
   const sortableFields = shouldUseStoredScores
     ? SORTABLE_INDEXED_FIELDS
     : SORTABLE_INDEXED_FIELDS.filter(
         field => !SORTABLE_INDEXED_SCORE_FIELDS.includes(field)
       );
 
-  let sort = useWebVitalsSort({
+  const sort = useWebVitalsSort({
     defaultSort: DEFAULT_INDEXED_SORT,
     sortableFields: sortableFields as unknown as string[],
   });
-  // Need to map fid back to inp for rendering
-  if (shouldReplaceFidWithInp && sort.field === 'measurements.fid') {
-    sort = {...sort, field: 'measurements.inp'};
-  }
+
   const replayLinkGenerator = generateReplayLink(routes);
 
   const project = useMemo(
@@ -160,8 +152,13 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
   } = useInpSpanSamplesWebVitalsQuery({
     transaction,
     enabled: datatype === Datatype.INTERACTIONS,
-    limit: 9,
+    limit,
+    filters: new MutableSearch(query ?? '').filters,
   });
+
+  const {profileExists} = useProfileExists(
+    interactionsTableData.filter(row => row['profile.id']).map(row => row['profile.id'])
+  );
 
   const getFormattedDuration = (value: number) => {
     return getDuration(value, value < 1 ? 0 : 2, true);
@@ -317,18 +314,19 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
       );
     }
     if (key === 'profile.id') {
+      const profileId = String(row[key]);
       const profileTarget =
         defined(row.projectSlug) && defined(row[key])
           ? generateProfileFlamechartRoute({
               orgSlug: organization.slug,
               projectSlug: row.projectSlug,
-              profileId: String(row[key]),
+              profileId,
             })
           : null;
       return (
         <NoOverflow>
           <AlignCenter>
-            {profileTarget && (
+            {profileTarget && profileExists(profileId) && (
               <Tooltip title={t('View Profile')}>
                 <LinkButton to={profileTarget} size="xs">
                   <IconProfiling size="xs" />
@@ -469,7 +467,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
         {datatype === Datatype.PAGELOADS && (
           <GridEditable
             isLoading={isLoading}
-            columnOrder={samplesColumnOrder}
+            columnOrder={PAGELOADS_COLUMN_ORDER}
             columnSortBy={[]}
             data={tableData}
             grid={{
