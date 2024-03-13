@@ -99,8 +99,13 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
             actual_group_arg = mock_call.call_args[0][1]
             assert actual_group_arg.id == group.id
 
-            entries_arg = mock_call.call_args[0][3]
-            assert any([entry.get("type") == "exception" for entry in entries_arg])
+            serialized_event_arg = mock_call.call_args[0][3]
+            assert any(
+                [
+                    entry.get("type") == "exception"
+                    for entry in serialized_event_arg.get("entries", [])
+                ]
+            )
 
         group = Group.objects.get(id=group.id)
 
@@ -143,7 +148,7 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         group = Group.objects.get(id=group.id)
 
-        error_msg = "Found no Github repositories linked to this project."
+        error_msg = "Found no Github repositories linked to this project. Please set up the Github Integration and code mappings if you haven't"
 
         assert response.status_code == 400  # Expecting a Bad Request response for invalid repo
         assert response.data["detail"] == error_msg
