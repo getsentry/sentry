@@ -226,10 +226,7 @@ function Trace({
       }
 
       if (maybeNode.node.space) {
-        const start = maybeNode.node.space[0];
-        const width = maybeNode.node.space[1];
-        const margin = 0.2 * width;
-        manager.animateViewTo(start - margin, width + margin * 2);
+        manager.animateViewTo(maybeNode.node.space);
       }
 
       manager.onScrollEndOutOfBoundsCheck();
