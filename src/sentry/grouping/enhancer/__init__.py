@@ -175,9 +175,7 @@ def parse_rust_enhancements(
 
 RustAssembleResult = tuple[bool | None, str | None, bool, list[RustComponent]]
 RustEnhancedFrames = list[tuple[str | None, bool | None]]
-RustExceptionData = dict[
-    str, Any
-]  # FIXME: the typing upstream in `ophio` are wrong. this should be `dict[str, bytes|None]`
+RustExceptionData = dict[str, bytes | None]
 
 
 def make_rust_exception_data(
@@ -263,7 +261,7 @@ def assemble_rust_components(
                 is_prefix_frame=c.is_prefix_frame or False,
                 is_sentinel_frame=c.is_sentinel_frame or False,
                 contributes=c.contributes,
-            )  # type: ignore # FIXME: upstream `ophio` types are wrong
+            )
             for c in components
         ]
 
