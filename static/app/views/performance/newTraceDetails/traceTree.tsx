@@ -539,8 +539,8 @@ export class TraceTree {
         tail.children[0].value.op === head.value.op
       ) {
         if (
-          (isTraceErrorNode(tail) && tail.value.errors.length > 0) ||
-          tail.value.performance_issues.length > 0
+          isTraceErrorNode(tail) &&
+          (tail.value.errors.length > 0 || tail.value.performance_issues.length > 0)
         ) {
           erroredChildren.push(tail);
         }
@@ -1625,10 +1625,10 @@ function getRelatedSpanErrorsFromTransaction(
   span: RawSpanType,
   node?: TraceTreeNode<TraceTree.NodeValue>
 ): TraceErrorType[] {
-  if (!node || !isTransactionNode(node)) {
+  if (!node || !node.value || !isTransactionNode(node)) {
     return [];
   }
-  if (!node.value.errors.length) {
+  if (!node?.value?.errors?.length) {
     return [];
   }
 
@@ -1647,11 +1647,11 @@ function getRelatedPerformanceIssuesFromTransaction(
   span: RawSpanType,
   node?: TraceTreeNode<TraceTree.NodeValue>
 ): TracePerformanceIssue[] {
-  if (!node || !isTransactionNode(node)) {
+  if (!node || !node.value || !isTransactionNode(node)) {
     return [];
   }
 
-  if (!node.value.performance_issues?.length) {
+  if (!node?.value?.performance_issues?.length && !node?.value?.errors?.length) {
     return [];
   }
 
