@@ -14,7 +14,7 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import {IconChat, IconFire, IconLink, IconPlay, IconTag} from 'sentry/icons';
+import {IconChat, IconFire, IconLink, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types';
@@ -88,13 +88,11 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
           </Section>
         )}
 
-        <Section icon={<IconPlay size="xs" />} title={t('Linked Replay')}>
-          <FeedbackReplay
-            eventData={eventData}
-            feedbackItem={feedbackItem}
-            organization={organization}
-          />
-        </Section>
+        <FeedbackReplay
+          eventData={eventData}
+          feedbackItem={feedbackItem}
+          organization={organization}
+        />
 
         <Section icon={<IconTag size="xs" />} title={t('Tags')}>
           <TagsSection tags={tags} />
