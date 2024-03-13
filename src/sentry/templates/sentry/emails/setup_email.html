@@ -1,11 +1,12 @@
 {% extends "sentry/emails/base.html" %}
 
 {% load i18n %}
+{% load sentry_helpers %}
 
 {% block main %}
     <h3>Confirm Email</h3>
     <p>
-        The {{ organization.name|title }} organization now requires all members to confirm
+        The {{ organization.name|sanitize_periods|title }} organization now requires all members to confirm
         their primary email address. Effective immediately, you will be unable to access
         this organization or receive its notifications until you confirm this email
         address.
