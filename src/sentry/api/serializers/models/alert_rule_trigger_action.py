@@ -16,7 +16,7 @@ class AlertRuleTriggerActionSerializer(Serializer):
             else ""
         )
         if priority:
-            priority += " level "
+            priority += " level"
 
         if action.type == action.Type.EMAIL.value:
             if action.target:

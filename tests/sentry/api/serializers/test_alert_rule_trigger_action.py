@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import responses
 
 from sentry.api.serializers import serialize
@@ -110,3 +112,55 @@ class AlertRuleTriggerActionSerializerTest(TestCase):
         result = serialize(action)
         self.assert_action_serialized(action, result)
         assert result["desc"] == "Send a Discord notification to "
+
+    @patch(
+        "sentry.incidents.logic.get_target_identifier_display_for_integration",
+        return_value=("123", "test"),
+    )
+    def test_pagerduty_priority(self, mock_get):
+        alert_rule = self.create_alert_rule()
+        trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
+        priority = "critical"
+
+        # pagerduty
+        action = create_alert_rule_trigger_action(
+            trigger,
+            AlertRuleTriggerAction.Type.PAGERDUTY,
+            AlertRuleTriggerAction.TargetType.SPECIFIC,
+            priority=priority,
+            target_identifier="123",
+        )
+        result = serialize(action)
+        self.assert_action_serialized(action, result)
+        assert result["priority"] == priority
+        assert result["desc"] == "Send a critical level PagerDuty notification to test"
+
+    @responses.activate
+    def test_opsgenie_priority(self):
+        alert_rule = self.create_alert_rule()
+        trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
+        priority = "critical"
+
+        # opsgenie
+        resp_data = {
+            "result": "Integration [sentry] is valid",
+            "took": 1,
+            "requestId": "hello-world",
+        }
+        responses.add(
+            responses.POST,
+            url="https://api.opsgenie.com/v2/integrations/authenticate",
+            json=resp_data,
+        )
+        priority = "P1"
+        action = create_alert_rule_trigger_action(
+            trigger,
+            type=AlertRuleTriggerAction.Type.OPSGENIE,
+            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
+            priority=priority,
+            target_identifier="123",
+        )
+        result = serialize(action)
+        self.assert_action_serialized(action, result)
+        assert result["priority"] == priority
+        assert result["desc"] == "Send a P1 level Opsgenie notification to test"
