@@ -40,7 +40,7 @@ Sentry.init({
   integrations: [${
     params.isProfilingSelected
       ? `
-      new ProfilingIntegration(),`
+      nodeProfilingIntegration(),`
       : ''
   }
 ],${

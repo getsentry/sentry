@@ -47,7 +47,7 @@ Sentry.GCPFunction.init({
   integrations: [${
     params.isProfilingSelected
       ? `
-      new ProfilingIntegration(),`
+      nodeProfilingIntegration(),`
       : ''
   }
 ],${
