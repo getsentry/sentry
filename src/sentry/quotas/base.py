@@ -420,6 +420,13 @@ class Quota(Service):
                 scope=QuotaScope.ORGANIZATION,
             ),
             AbuseQuota(
+                id="oacm",
+                option="organization-abuse-quota.custom-metric-bucket-limit",
+                categories=[DataCategory.METRIC_BUCKET],
+                scope=QuotaScope.ORGANIZATION,
+                namespace="custom",
+            ),
+            AbuseQuota(
                 id="gam",
                 option="global-abuse-quota.metric-bucket-limit",
                 categories=[DataCategory.METRIC_BUCKET],
@@ -454,16 +461,6 @@ class Quota(Service):
                 namespace="custom",
             ),
         ]
-
-        # If the organization belongs to the list, we want to stop ingesting custom metrics.
-        if org.id in (options.get("custom-metrics-ingestion-killswitched-orgs") or ()):
-            yield QuotaConfig(
-                limit=0,
-                scope=QuotaScope.ORGANIZATION,
-                categories=[DataCategory.METRIC_BUCKET],
-                reason_code="disabled",
-                namespace="custom",
-            )
 
         # XXX: These reason codes are hardcoded in getsentry:
         #      as `RateLimitReasonLabel.PROJECT_ABUSE_LIMIT` and `RateLimitReasonLabel.ORG_ABUSE_LIMIT`.
