@@ -21,6 +21,7 @@ import {
   isAValidSort,
 } from 'sentry/views/performance/http/domainTransactionsTable';
 import {DurationChart} from 'sentry/views/performance/http/durationChart';
+import {HTTPSamplesPanel} from 'sentry/views/performance/http/httpSamplesPanel';
 import {ResponseRateChart} from 'sentry/views/performance/http/responseRateChart';
 import {ThroughputChart} from 'sentry/views/performance/http/throughputChart';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
@@ -272,6 +273,8 @@ export function HTTPDomainSummaryPage() {
           </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>
+
+      <HTTPSamplesPanel />
     </React.Fragment>
   );
 }
