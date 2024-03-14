@@ -237,6 +237,7 @@ function AlertRulesList() {
                 <Projects orgId={organization.slug} slugs={projectsFromResults}>
                   {({initiallyLoaded, projects}) =>
                     ruleList.map(rule => {
+                      // TODO - Delete this code once we support ACTIVATED monitorType for metric alerts
                       if (
                         !isIssueAlert(rule) &&
                         rule.monitorType === MonitorType.ACTIVATED
