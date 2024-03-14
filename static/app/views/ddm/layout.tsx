@@ -59,7 +59,7 @@ export const DDMLayout = memo(() => {
                 'Metrics help you track and visualize the data points you care about, making it easier to monitor your application health and identify issues.'
               )}
             />
-            <FeatureBadge type="alpha" />
+            <FeatureBadge type="beta" />
           </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>

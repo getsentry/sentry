@@ -7,6 +7,7 @@ import {Button} from 'sentry/components/button';
 import DropdownButton from 'sentry/components/dropdownButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import FeatureBadge from 'sentry/components/featureBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -109,8 +110,8 @@ export function AddWidgetButton({onAddWidget, ...buttonProps}: Props & ButtonPro
     [organization, onAddWidget]
   );
 
-  const items: MenuItemProps[] = useMemo(() => {
-    const menuItems = [
+  const items = useMemo(() => {
+    const menuItems: MenuItemProps[] = [
       {
         key: DataSet.EVENTS,
         label: t('Errors and Transactions'),
@@ -138,6 +139,7 @@ export function AddWidgetButton({onAddWidget, ...buttonProps}: Props & ButtonPro
         key: DataSet.METRICS,
         label: t('Custom Metrics'),
         onAction: () => handleAction(DataSet.METRICS),
+        trailingItems: <FeatureBadge type="beta" />,
       });
     }
 

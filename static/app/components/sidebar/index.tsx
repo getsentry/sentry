@@ -446,7 +446,7 @@ function Sidebar() {
         to={ddmPath}
         search={location.pathname === normalizeUrl(ddmPath) ? location.search : ''}
         id="ddm"
-        isAlpha
+        isBeta
       />
     </Feature>
   );
