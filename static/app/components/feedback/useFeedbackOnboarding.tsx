@@ -2,7 +2,6 @@ import {useCallback, useEffect} from 'react';
 
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import useSelectedProjectsHaveField from 'sentry/utils/project/useSelectedProjectsHaveField';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
@@ -29,10 +28,6 @@ export function useFeedbackOnboardingSidebarPanel() {
   useEffect(() => {
     if (location.hash === FEEDBACK_HASH || location.hash === CRASH_REPORT_HASH) {
       SidebarPanelStore.activatePanel(SidebarPanelKey.FEEDBACK_ONBOARDING);
-      // this tracks clicks from both feedback index and issue details feedback tab
-      trackAnalytics('feedback.list-view-setup-sidebar', {
-        organization,
-      });
     }
   }, [location.hash, organization]);
 

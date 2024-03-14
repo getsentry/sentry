@@ -153,7 +153,7 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
 
     def convert_args(self, request: Request, *args, **kwargs):
         """
-        This baseclass is the the SentryApp collection endpoints:
+        This baseclass is the SentryApp collection endpoints:
 
               [GET, POST] /sentry-apps
 

@@ -9,7 +9,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
  */
 type FieldTypes = {
   id: string;
-  'profile.id': string | undefined;
+  'profile.id': string | null;
   project: string;
   'project.id': number;
   'span.description': string;
@@ -19,7 +19,10 @@ type FieldTypes = {
   timestamp: DateString;
   trace: string;
   transaction: string;
-  'transaction.id': string;
+  // There are some spans where the transaction id can be null
+  // because they're not associated to any transactions such
+  // as the INP spans.
+  'transaction.id': string | null;
 };
 
 export type Summary = {

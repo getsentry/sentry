@@ -1,14 +1,12 @@
 from collections.abc import Sequence
-from datetime import datetime
-from enum import Enum
-from typing import Any
+from datetime import datetime, timedelta, timezone
 
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -23,10 +21,9 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.metrics_code_locations import MetricCodeLocationsSerializer
-from sentry.api.utils import get_date_range_from_params
+from sentry.api.utils import get_date_range_from_params, handle_query_errors
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.organization import Organization
-from sentry.models.project import Project
 from sentry.sentry_metrics.querying.data_v2 import (
     MetricsAPIQueryTransformer,
     MetricsQueriesPlan,
@@ -55,17 +52,9 @@ from sentry.snuba.metrics.utils import DerivedMetricException, DerivedMetricPars
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.sessions_v2 import InvalidField
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils import metrics
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.dates import get_rollup_from_request, parse_stats_period
-
-
-class MetricMetaType(Enum):
-    CODE_LOCATIONS = "codeLocations"
-
-
-METRIC_META_TYPE_SERIALIZER = {
-    MetricMetaType.CODE_LOCATIONS.value: MetricCodeLocationsSerializer(),
-}
 
 DEFAULT_USE_CASE_IDS = [
     UseCaseID.TRANSACTIONS,
@@ -340,6 +329,40 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
     # Number of groups returned by default for each query.
     default_limit = 20
 
+    def _time_equal_within_bound(
+        self, time_1: datetime, time_2: datetime, bound: timedelta
+    ) -> bool:
+        return time_2 - bound <= time_1 <= time_2 + bound
+
+    def _within_last_7_days(self, start: datetime, end: datetime) -> bool:
+        # Get current datetime in UTC
+        current_datetime_utc = datetime.now(timezone.utc)
+
+        # Calculate datetime 7 days ago in UTC
+        seven_days_ago_utc = current_datetime_utc - timedelta(days=7)
+
+        # Normalize start and end datetimes to UTC
+        start_utc = start.astimezone(timezone.utc)
+        end_utc = end.astimezone(timezone.utc)
+
+        return (
+            self._time_equal_within_bound(start_utc, seven_days_ago_utc, timedelta(minutes=5))
+            and self._time_equal_within_bound(end_utc, current_datetime_utc, timedelta(minutes=5))
+        ) or (
+            self._time_equal_within_bound(end_utc, current_datetime_utc, timedelta(minutes=5))
+            and (end - start).days <= 7
+        )
+
+    def _get_projects_queried(self, request: Request) -> str:
+        project_ids = self.get_requested_project_ids_unchecked(request)
+        if not project_ids:
+            return "none"
+
+        if len(project_ids) == 1:
+            return "all" if project_ids.pop() == -1 else "single"
+
+        return "multiple"
+
     def _validate_order(self, order: str | None) -> QueryOrder | None:
         if order is None:
             return None
@@ -401,9 +424,23 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
 
     def post(self, request: Request, organization) -> Response:
         try:
+            if organization.id in (options.get("custom-metrics-querying-killswitched-orgs") or ()):
+                return Response(
+                    status=401, data={"detail": "The organization is not allowed to query metrics"}
+                )
+
             start, end = get_date_range_from_params(request.GET)
             interval = self._interval_from_request(request)
             metrics_queries_plan = self._metrics_queries_plan_from_request(request)
+
+            metrics.incr(
+                key="ddm.metrics_api.query",
+                amount=1,
+                tags={
+                    "within_last_7_days": self._within_last_7_days(start, end),
+                    "projects_queried": self._get_projects_queried(request),
+                },
+            )
 
             results = run_metrics_queries_plan(
                 metrics_queries_plan=metrics_queries_plan,
@@ -499,76 +536,64 @@ class OrganizationMetricsSamplesEndpoint(OrganizationEventsV2EndpointBase):
             Referrer.API_ORGANIZATION_METRICS_SAMPLES,
         )
 
-        return self.paginate(
-            request=request,
-            paginator=GenericOffsetPaginator(data_fn=executor.execute),
-            on_results=lambda results: self.handle_results_with_meta(
-                request,
-                organization,
-                params["project_id"],
-                results,
-                standard_meta=True,
-            ),
-        )
+        with handle_query_errors():
+            return self.paginate(
+                request=request,
+                paginator=GenericOffsetPaginator(data_fn=executor.execute),
+                on_results=lambda results: self.handle_results_with_meta(
+                    request,
+                    organization,
+                    params["project_id"],
+                    results,
+                    standard_meta=True,
+                ),
+            )
 
 
 @region_silo_endpoint
-class OrganizationMetricsMetadataEndpoint(OrganizationEndpoint):
+class OrganizationMetricsCodeLocationsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
     """
-    Get metadata of a metric for a given set of projects in a time interval.
-    The current metadata supported for metrics is:
-    - Code locations -> these are the code location in which the metric was emitted.
+    Gets the code locations of a metric.
     """
 
-    def _extract_metric_meta_types(self, request: Request) -> Sequence[MetricMetaType]:
-        meta_types = []
-
-        for meta_type in MetricMetaType:
-            if request.GET.get(meta_type.value) == "true":
-                meta_types.append(meta_type)
-
-        return meta_types
-
-    def _get_metric_code_locations(
-        self,
-        request: Request,
-        organization: Organization,
-        projects: Sequence[Project],
-        start: datetime,
-        end: datetime,
-    ) -> Sequence[MetricCodeLocations]:
-        return get_metric_code_locations(
-            metric_mris=[request.GET["metric"]],
-            start=start,
-            end=end,
-            organization=organization,
-            projects=projects,
-        )
-
     def get(self, request: Request, organization) -> Response:
-        response = {}
-
         start, end = get_date_range_from_params(request.GET)
         projects = self.get_projects(request, organization)
 
-        for meta_type in self._extract_metric_meta_types(request):
-            data: Any = {}
-
-            try:
-                if meta_type == MetricMetaType.CODE_LOCATIONS:
-                    data = self._get_metric_code_locations(
-                        request, organization, projects, start, end
-                    )
-            except LatestReleaseNotFoundError as e:
-                return Response(status=404, data={"detail": str(e)})
-
-            response[meta_type.value] = serialize(
-                data, request.user, METRIC_META_TYPE_SERIALIZER[meta_type.value]
+        def data_fn(offset: int, limit: int):
+            return get_metric_code_locations(
+                metric_mris=[request.GET["metric"]],
+                start=start,
+                end=end,
+                organization=organization,
+                projects=projects,
+                offset=offset,
+                limit=limit,
             )
 
-        return Response(response, status=200)
+        def on_results(data: tuple[bool, Sequence[MetricCodeLocations]]):
+            return serialize(data, request.user, MetricCodeLocationsSerializer())
+
+        return self.paginate(
+            request=request,
+            paginator=MetricsCodeLocationsPaginator(data_fn=data_fn),
+            on_results=on_results,
+        )
+
+
+class MetricsCodeLocationsPaginator(GenericOffsetPaginator):
+    def get_result(self, limit, cursor=None):
+        assert limit > 0
+        offset = cursor.offset if cursor is not None else 0
+        has_more, data = self.data_fn(offset=offset, limit=limit)
+
+        return CursorResult(
+            data,
+            prev=Cursor(0, max(0, offset - limit), True, offset > 0),
+            next=Cursor(0, max(0, offset + limit), False, has_more),
+        )

@@ -176,6 +176,7 @@ export class VirtualizedViewManager {
     [];
   timeline_indicators: (HTMLElement | undefined)[] = [];
   span_bars: ({ref: HTMLElement; space: [number, number]} | undefined)[] = [];
+  invisible_bars: ({ref: HTMLElement; space: [number, number]} | undefined)[] = [];
   span_arrows: (
     | {
         position: 0 | 1;
@@ -356,6 +357,13 @@ export class VirtualizedViewManager {
     this.span_bars[index] = ref ? {ref, space} : undefined;
   }
 
+  registerInvisibleBarRef(
+    ref: HTMLElement | null,
+    space: [number, number],
+    index: number
+  ) {
+    this.invisible_bars[index] = ref ? {ref, space} : undefined;
+  }
   registerArrowRef(ref: HTMLElement | null, space: [number, number], index: number) {
     this.span_arrows[index] = ref ? {ref, space, visible: false, position: 0} : undefined;
   }
@@ -499,7 +507,6 @@ export class VirtualizedViewManager {
     }
   }
 
-  zoomIntoSpaceRaf: number | null = null;
   onBringRowIntoView(space: [number, number]) {
     if (this.zoomIntoSpaceRaf !== null) {
       window.cancelAnimationFrame(this.zoomIntoSpaceRaf);
@@ -519,7 +526,22 @@ export class VirtualizedViewManager {
     }
   }
 
+  animateViewTo(node_space: [number, number]) {
+    const start = node_space[0];
+    const width = node_space[1] > 0 ? node_space[1] : this.trace_view.width;
+    const margin = 0.2 * width;
+
+    this.setTraceView({x: start - margin - this.to_origin, width: width + margin * 2});
+    this.draw();
+  }
+
+  zoomIntoSpaceRaf: number | null = null;
   onZoomIntoSpace(space: [number, number]) {
+    if (space[1] <= 0) {
+      // @TODO implement scrolling to 0 width spaces
+      return;
+    }
+
     const distance_x = space[0] - this.to_origin - this.trace_view.x;
     const distance_width = this.trace_view.width - space[1];
 
@@ -641,13 +663,16 @@ export class VirtualizedViewManager {
     }
 
     this.enqueueOnScrollEndOutOfBoundsCheck();
-    const columnWidth = this.columns.list.width * this.container_physical_space.width;
 
-    this.columns.list.translate[0] = clamp(
-      this.columns.list.translate[0] - event.deltaX,
-      -(this.row_measurer.max - columnWidth + 16), // 16px margin so we dont scroll right to the last px
-      0
+    const newTransform = this.clampRowTransform(
+      this.columns.list.translate[0] - event.deltaX
     );
+
+    if (newTransform === this.columns.list.translate[0]) {
+      return;
+    }
+
+    this.columns.list.translate[0] = newTransform;
 
     if (this.scrollSyncRaf) {
       window.cancelAnimationFrame(this.scrollSyncRaf);
@@ -662,6 +687,25 @@ export class VirtualizedViewManager {
         }
       }
     });
+  }
+
+  clampRowTransform(transform: number): number {
+    const columnWidth = this.columns.list.width * this.container_physical_space.width;
+    const max = this.row_measurer.max - columnWidth + 16;
+
+    if (this.row_measurer.max < columnWidth) {
+      return 0;
+    }
+
+    // Sometimes the wheel event glitches or jumps to a very high value
+    if (transform > 0) {
+      return 0;
+    }
+    if (transform < -max) {
+      return -max;
+    }
+
+    return transform;
   }
 
   scrollEndSyncRaf: number | null = null;
@@ -738,12 +782,11 @@ export class VirtualizedViewManager {
     duration: number = 600,
     offset_px: number = 0
   ) {
-    const VISUAL_OFFSET = this.row_depth_padding / 2;
-    const target = Math.min(
-      -node.depth * this.row_depth_padding + VISUAL_OFFSET + offset_px,
-      0
+    const newTransform = this.clampRowTransform(
+      -node.depth * this.row_depth_padding + offset_px
     );
-    this.animateScrollColumnTo(target, duration);
+
+    this.animateScrollColumnTo(newTransform, duration);
   }
 
   bringRowIntoViewAnimation: number | null = null;
@@ -808,6 +851,10 @@ export class VirtualizedViewManager {
     );
   }
 
+  computeRelativeLeftPositionFromOrigin(timestamp: number, node_space: [number, number]) {
+    return (timestamp - node_space[0]) / node_space[1];
+  }
+
   recomputeTimelineIntervals() {
     const tracePhysicalToView = this.trace_physical_space.between(this.trace_view);
     const time_at_100 =
@@ -837,6 +884,21 @@ export class VirtualizedViewManager {
       this.trace_view.x / this.span_to_px[0];
 
     return this.span_matrix;
+  }
+
+  scrollToEventID(
+    eventId: string,
+    tree: TraceTree,
+    rerender: () => void,
+    {api, organization}: {api: Client; organization: Organization}
+  ): Promise<{index: number; node: TraceTreeNode<TraceTree.NodeValue>} | null | null> {
+    const node = findInTreeByEventId(tree.root, eventId);
+
+    if (!node) {
+      return Promise.resolve(null);
+    }
+
+    return this.scrollToPath(tree, node.path, rerender, {api, organization});
   }
 
   scrollToPath(
@@ -1057,6 +1119,10 @@ export class VirtualizedViewManager {
       if (span_bar) {
         const span_transform = this.computeSpanCSSMatrixTransform(span_bar.space);
         span_bar.ref.style.transform = `matrix(${span_transform.join(',')}`;
+        span_bar.ref.style.setProperty(
+          '--inverse-span-scale',
+          1 / span_transform[0] + ''
+        );
       }
       const span_text = this.span_text[i];
       if (span_text) {
@@ -1089,6 +1155,13 @@ export class VirtualizedViewManager {
             }
           }
         }
+      }
+    }
+
+    for (let i = 0; i < this.invisible_bars.length; i++) {
+      const invisible_bar = this.invisible_bars[i];
+      if (invisible_bar) {
+        invisible_bar.ref.style.transform = `translateX(${this.computeTransformXFromTimestamp(invisible_bar.space[0])}px)`;
       }
     }
 
@@ -1355,24 +1428,29 @@ export class VirtualizedList {
   scrollHeight: number = 0;
   scrollTop: number = 0;
 
-  scrollToRow(index: number, rowHeight: number = 24) {
+  scrollToRow(index: number, anchor?: 'top') {
     if (!this.container) {
       return;
     }
 
-    const top = this.container.scrollTop;
-    const height = this.scrollHeight;
-    const position = index * rowHeight;
-
-    if (position < top) {
-      // above view
-    } else if (position > top + height) {
-      // under view
-    } else {
+    if (anchor === 'top') {
+      this.container.scrollTop = index * 24;
       return;
     }
 
-    this.container.scrollTop = index * rowHeight;
+    const position = index * 24;
+    const top = this.container.scrollTop;
+    const height = this.scrollHeight;
+
+    if (position < top) {
+      // Row is above the view
+      this.container.scrollTop = index * 24;
+    } else if (position > top + height) {
+      // Row is under the view
+      this.container.scrollTop = index * 24 - height + 24;
+    } else {
+      return;
+    }
   }
 }
 
@@ -1510,6 +1588,7 @@ export const useVirtualizedList = (
       }
 
       managerRef.current.isScrolling = true;
+      managerRef.current.enqueueOnScrollEndOutOfBoundsCheck();
 
       rafId.current = window.requestAnimationFrame(() => {
         scrollTopRef.current = Math.max(0, event.target?.scrollTop ?? 0);
@@ -1751,6 +1830,21 @@ function findInTreeFromSegment(
       return node.value.event_id === id;
     }
 
+    return false;
+  });
+}
+
+function findInTreeByEventId(start: TraceTreeNode<TraceTree.NodeValue>, eventId: string) {
+  return TraceTreeNode.Find(start, node => {
+    if (isTransactionNode(node)) {
+      return node.value.event_id === eventId;
+    }
+    if (isSpanNode(node)) {
+      return node.value.span_id === eventId;
+    }
+    if (isTraceErrorNode(node)) {
+      return node.value.event_id === eventId;
+    }
     return false;
   });
 }

@@ -132,7 +132,14 @@ export function generateTraceLink(dateSelection) {
       return {};
     }
 
-    return getTraceDetailsUrl(organization, traceId, dateSelection, {});
+    return getTraceDetailsUrl(
+      organization,
+      traceId,
+      dateSelection,
+      {},
+      tableRow.timestamp,
+      tableRow.id
+    );
   };
 }
 

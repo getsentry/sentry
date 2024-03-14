@@ -132,7 +132,8 @@ function TagTreeRow({
             <TreeBranchIcon />
           </Fragment>
         )}
-        <TreeKey>{tagKey}</TreeKey>
+        <TreeSearchKey aria-hidden>{originalTag.key}</TreeSearchKey>
+        <TreeKey title={originalTag.key}>{tagKey}</TreeKey>
       </TreeKeyTrunk>
       <TreeValueTrunk>
         <TreeValue>
@@ -153,7 +154,7 @@ function TagTreeRow({
         <TreeValueDropdown
           preventOverflowOptions={{padding: 4}}
           className={isVisible ? '' : 'invisible'}
-          position="bottom-start"
+          position="bottom-end"
           onOpenChange={isOpen => setIsVisible(isOpen)}
           triggerProps={{
             'aria-label': t('Tag Actions Menu'),
@@ -360,6 +361,7 @@ const TreeColumn = styled('div')`
 const TreeRow = styled('div')`
   border-radius: ${space(0.5)};
   padding-left: ${space(1)};
+  position: relative;
   display: grid;
   grid-column: span 2;
   grid-template-columns: subgrid;
@@ -408,12 +410,21 @@ const TreeValueTrunk = styled('div')`
 
 const TreeValue = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.fontSizeSmall};
   word-break: break-word;
   grid-column: span 1;
 `;
 
 const TreeKey = styled(TreeValue)`
   color: ${p => p.theme.gray300};
+`;
+
+/**
+ * Hidden element to allow browser searching for exact key name
+ */
+const TreeSearchKey = styled('span')`
+  font-size: 0;
+  position: absolute;
 `;
 
 const TreeValueDropdown = styled(DropdownMenu)`
