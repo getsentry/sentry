@@ -119,7 +119,7 @@ const mediumFidelityLadder = new GranularityLadder([
   [THIRTY_DAYS, '4h'],
   [TWENTY_FOUR_HOURS + 1, '1h'],
   [ONE_HOUR + 1, '15m'],
-  [0, '5m'],
+  [0, '1m'],
 ]);
 
 const lowFidelityLadder = new GranularityLadder([
