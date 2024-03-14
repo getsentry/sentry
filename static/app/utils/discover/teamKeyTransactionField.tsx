@@ -60,7 +60,7 @@ function TeamKeyTransactionField({
             size="zero"
             icon={
               <IconStar
-                color={keyedTeamsCount ? 'yellow400' : 'gray200'}
+                color={keyedTeamsCount ? 'yellow300' : 'gray200'}
                 isSolid={keyedTeamsCount > 0}
                 data-test-id="team-key-transaction-column"
               />
