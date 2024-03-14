@@ -1814,13 +1814,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# IDS of orgs that will stop ingesting custom metrics
-register(
-    "custom-metrics-killswitched-orgs",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # SDK Crash Detection
 #
 # The project ID belongs to the sentry organization: https://sentry.sentry.io/projects/cocoa-sdk-crashes/?project=4505469596663808.
