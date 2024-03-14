@@ -29,8 +29,7 @@ def init(ctx, dev, directory):
     if yaml is None:
         raise click.ClickException("DIRECTORY must not be a file.")
 
-    if directory and not os.path.exists(directory):
-        os.makedirs(directory)
+    os.makedirs(directory, exist_ok=True)
 
     py_contents, yaml_contents = generate_settings(dev)
 
