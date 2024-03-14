@@ -94,7 +94,6 @@ def get_allowed_org_roles(
     request: Request,
     organization: Organization,
     member: OrganizationMember | None = None,
-    include_retired: bool = False,
 ) -> Collection[Role]:
     """
     Get the set of org-level roles that the request is allowed to manage.
@@ -119,7 +118,7 @@ def get_allowed_org_roles(
             # token whose proxy user does not have an OrganizationMember object.
             return ()
 
-    return member.get_allowed_org_roles_to_invite(include_retired=include_retired)
+    return member.get_allowed_org_roles_to_invite()
 
 
 from .details import OrganizationMemberDetailsEndpoint

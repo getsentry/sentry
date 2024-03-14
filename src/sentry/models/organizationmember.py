@@ -593,26 +593,23 @@ class OrganizationMember(ReplicatedRegionModel):
 
         self.delete()
 
-    def get_allowed_org_roles_to_invite(self, include_retired=False) -> list[OrganizationRole]:
+    def get_allowed_org_roles_to_invite(self) -> list[OrganizationRole]:
         """
         Return a list of org-level roles which that member could invite
         Must check if member member has member:admin first before checking
         """
         member_scopes = self.get_scopes()
+        has_team_roles = features.has("organizations:team-roles", self.organization)
 
         # NOTE: We must fetch scopes using self.organization.get_scopes(role) instead of r.scopes
         # because this accounts for the org option that allows/restricts members from having the
         # 'alerts:write' scope, which is given by default to the member role in the SENTRY_ROLES config.
-        roles = [
+        return [
             r
             for r in organization_roles.get_all()
             if self.organization.get_scopes(r).issubset(member_scopes)
+            and not (has_team_roles and r.is_retired)
         ]
-
-        if not include_retired and features.has("organizations:team-roles", self.organization):
-            roles = [r for r in roles if not r.is_retired]
-
-        return roles
 
     def is_only_owner(self) -> bool:
         if organization_roles.get_top_dog().id != self.role:

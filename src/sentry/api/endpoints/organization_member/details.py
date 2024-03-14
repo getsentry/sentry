@@ -184,7 +184,6 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         Update a member's organization and team-level roles.
         """
         allowed_roles = get_allowed_org_roles(request, organization)
-        allowed_old_roles = get_allowed_org_roles(request, organization, include_retired=True)
         serializer = OrganizationMemberRequestSerializer(
             data=request.data,
             partial=True,
@@ -279,7 +278,6 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             # TODO(adas): Reenable idp lockout once all scim role bugs are resolved.
 
             allowed_role_ids = {r.id for r in allowed_roles}
-            allowed_old_role_ids = {r.id for r in allowed_old_roles}
 
             # A user cannot promote others above themselves
             if assigned_org_role not in allowed_role_ids:
@@ -288,7 +286,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 )
 
             # A user cannot demote a superior
-            if member.role not in allowed_old_role_ids:
+            if member.role not in allowed_role_ids:
                 return Response(
                     {"role": "You do not have permission to assign a role to the given user."},
                     status=403,
