@@ -403,11 +403,12 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
         MOCK_RULES = ("sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",)
 
         redis_buffer = RedisBuffer()
-        with mock.patch("sentry.buffer.backend.get", redis_buffer.get), mock.patch(
-            "sentry.buffer.backend.incr", redis_buffer.incr
-        ), patch("sentry.constants._SENTRY_RULES", MOCK_RULES), patch(
-            "sentry.rules.rules", init_registry()
-        ) as rules:
+        with (
+            mock.patch("sentry.buffer.backend.get", redis_buffer.get),
+            mock.patch("sentry.buffer.backend.incr", redis_buffer.incr),
+            patch("sentry.constants._SENTRY_RULES", MOCK_RULES),
+            patch("sentry.rules.rules", init_registry()) as rules,
+        ):
             MockAction = mock.Mock()
             MockAction.id = "tests.sentry.tasks.post_process.tests.MockAction"
             MockAction.return_value = mock.Mock(spec=EventAction)
@@ -2773,7 +2774,6 @@ class PostProcessGroupFeedbackTest(
                 event=event,
                 cache_key="total_rubbish",
             )
-        # assert mock_process_rules is not called
         assert mock_process_func.call_count == 0
 
     def test_not_ran_if_crash_report_project_option_enabled(self):
@@ -2800,7 +2800,55 @@ class PostProcessGroupFeedbackTest(
                 event=event,
                 cache_key="total_rubbish",
             )
-        # assert mock_process_rules is not called
+        assert mock_process_func.call_count == 1
+
+    def test_not_ran_if_crash_report_setting_option_epoch_0(self):
+        self.project.update_option("sentry:option-epoch", 1)
+        event = self.create_event(
+            data={},
+            project_id=self.project.id,
+            feedback_type=FeedbackCreationSource.CRASH_REPORT_EMBED_FORM,
+        )
+        mock_process_func = Mock()
+        with patch(
+            "sentry.tasks.post_process.GROUP_CATEGORY_POST_PROCESS_PIPELINE",
+            {
+                GroupCategory.FEEDBACK: [
+                    feedback_filter_decorator(mock_process_func),
+                ]
+            },
+        ):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+                cache_key="total_rubbish",
+            )
+        assert mock_process_func.call_count == 0
+
+    def test_ran_if_default_on_new_projects(self):
+        event = self.create_event(
+            data={},
+            project_id=self.project.id,
+            feedback_type=FeedbackCreationSource.CRASH_REPORT_EMBED_FORM,
+        )
+        mock_process_func = Mock()
+        with patch(
+            "sentry.tasks.post_process.GROUP_CATEGORY_POST_PROCESS_PIPELINE",
+            {
+                GroupCategory.FEEDBACK: [
+                    feedback_filter_decorator(mock_process_func),
+                ]
+            },
+        ):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+                cache_key="total_rubbish",
+            )
         assert mock_process_func.call_count == 1
 
     def test_ran_if_crash_feedback_envelope(self):

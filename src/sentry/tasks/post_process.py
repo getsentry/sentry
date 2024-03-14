@@ -13,7 +13,7 @@ from django.db.models.signals import post_save
 from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
-from sentry import features
+from sentry import features, projectoptions
 from sentry.exceptions import PluginError
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -1421,6 +1421,13 @@ def should_postprocess_feedback(job: PostProcessJob) -> bool:
     should_notify_on_old_feedbacks = job["event"].project.get_option(
         "sentry:feedback_user_report_notifications"
     )
+    if should_notify_on_old_feedbacks is None:
+        should_notify_on_old_feedbacks = projectoptions.get_well_known_default(
+            "sentry:feedback_user_report_notifications",
+            epoch=job["event"].project.get_option(
+                ("sentry:option-epoch"),
+            ),
+        )
 
     if (
         feedback_source in FeedbackCreationSource.old_feedback_category_values()
