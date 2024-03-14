@@ -126,7 +126,7 @@ class DiscordClient(ApiClient):
                 if discord_code in DISCORD_ERROR_CODES:
                     code_message = DISCORD_ERROR_CODES[discord_code]
 
-        except ValueError:
+        except Exception:
             pass
 
         is_ok = code in {
