@@ -718,6 +718,25 @@ def test_alert_metric_extraction_rules_empty(default_project):
 
 
 @django_db_all
+@pytest.mark.parametrize(
+    "custom_metrics,custom_metrics_killswitch,expected_in_config",
+    [(True, True, False), (True, False, True), (False, True, False), (False, False, False)],
+)
+def test_custom_metrics_ingestion(
+    default_project, custom_metrics, custom_metrics_killswitch, expected_in_config
+):
+    features = {
+        "organizations:custom-metrics": custom_metrics,
+        "organizations:custom-metrics-killswitch": custom_metrics_killswitch,
+    }
+
+    with Feature(features):
+        config = get_project_config(default_project).to_dict()["config"]
+        validate_project_config(json.dumps(config), strict=False)
+        assert ("organizations:custom-metrics" in config["features"]) == expected_in_config
+
+
+@django_db_all
 def test_alert_metric_extraction_rules(default_project, factories):
     # Alert compatible with out-of-the-box metrics. This should NOT be included
     # in the config.
