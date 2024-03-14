@@ -8,7 +8,7 @@ from sentry.api.endpoints.group_event_details import GroupEventDetailsEndpoint
 from sentry.api.endpoints.group_similar_issues_embeddings import (
     GroupSimilarIssuesEmbeddingsEndpoint,
 )
-from sentry.api.endpoints.issues_related_issues import GroupRelatedIssuesEndpoint
+from sentry.api.endpoints.issues.related_issues import RelatedIssuesEndpoint
 from sentry.api.endpoints.org_auth_token_details import OrgAuthTokenDetailsEndpoint
 from sentry.api.endpoints.org_auth_tokens import OrgAuthTokensEndpoint
 from sentry.api.endpoints.organization_events_root_cause_analysis import (
@@ -803,7 +803,7 @@ BROADCAST_URLS = [
 ISSUES_URLS = [
     re_path(
         r"^(?P<issue_id>[^\/]+)/related-issues/$",
-        GroupRelatedIssuesEndpoint.as_view(),
+        RelatedIssuesEndpoint.as_view(),
         name="sentry-api-0-issues-related-issues",
     ),
 ]

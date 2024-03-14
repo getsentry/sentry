@@ -12,7 +12,7 @@ from sentry.models.group import Group
 
 
 @region_silo_endpoint
-class GroupRelatedIssuesEndpoint(GroupEndpoint):
+class RelatedIssuesEndpoint(GroupEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {"GET": ApiPublishStatus.PRIVATE}
 
