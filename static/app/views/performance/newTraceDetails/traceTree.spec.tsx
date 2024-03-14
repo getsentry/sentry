@@ -6,6 +6,7 @@ import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types'
 import {EntryType, type Event, type EventTransaction} from 'sentry/types';
 import type {
   TraceFullDetailed,
+  TracePerformanceIssue,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 
@@ -20,7 +21,7 @@ import {
 } from './guards';
 import {
   ParentAutogroupNode,
-  type SiblingAutogroupNode,
+  SiblingAutogroupNode,
   TraceTree,
   TraceTreeNode,
 } from './traceTree';
@@ -74,6 +75,21 @@ function makeTraceError(
     data: {},
     ...overrides,
   } as TraceTree.TraceError;
+}
+
+function makeTracePerformanceIssue(
+  overrides: Partial<TracePerformanceIssue> = {}
+): TracePerformanceIssue {
+  return {
+    culprit: 'code',
+    end: new Date().toISOString(),
+    span: [],
+    start: new Date().toISOString(),
+    suspect_spans: ['sus span'],
+    type: 0,
+    issue_short_id: 'issue short id',
+    ...overrides,
+  } as TracePerformanceIssue;
 }
 
 function makeEvent(overrides: Partial<Event> = {}, spans: RawSpanType[] = []): Event {
@@ -139,13 +155,13 @@ function assertParentAutogroupedNode(
   }
 }
 
-// function _assertSiblingAutogroupedNode(
-//   node: TraceTreeNode<TraceTree.NodeValue>
-// ): asserts node is ParentAutogroupNode {
-//   if (!(node instanceof SiblingAutogroupNode)) {
-//     throw new Error('node is not a parent node');
-//   }
-// }
+function assertSiblingAutogroupedNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): asserts node is ParentAutogroupNode {
+  if (!(node instanceof SiblingAutogroupNode)) {
+    throw new Error('node is not a parent node');
+  }
+}
 
 describe('TreeNode', () => {
   it('expands transaction nodes by default', () => {
@@ -1815,7 +1831,7 @@ describe('TraceTree', () => {
       expect(root.children.length).toBe(1);
     });
 
-    it('collects errored children for sibling autogrouped node', () => {
+    it('collects errors and performance issues for sibling autogrouped node', () => {
       const root = new TraceTreeNode(null, makeSpan({description: 'span1'}), {
         project_slug: '',
         event_id: '',
@@ -1827,6 +1843,7 @@ describe('TraceTree', () => {
           event_id: '',
         });
         node.value.errors = [makeTraceError()];
+        node.value.performance_issues = [makeTracePerformanceIssue()];
         root.children.push(node);
       }
 
@@ -1835,9 +1852,11 @@ describe('TraceTree', () => {
       TraceTree.AutogroupSiblingSpanNodes(root);
 
       expect(root.children.length).toBe(1);
-      assertAutogroupedNode(root.children[0]);
-      expect(root.children[0].has_error).toBe(true);
-      expect(root.children[0].errored_children).toHaveLength(5);
+      const autogroupedNode = root.children[0];
+      assertSiblingAutogroupedNode(autogroupedNode);
+      expect(autogroupedNode.has_errors).toBe(true);
+      expect(autogroupedNode.errors).toHaveLength(5);
+      expect(autogroupedNode.performance_issues).toHaveLength(5);
     });
 
     it('adds autogrouped siblings as children under autogrouped node', () => {
@@ -1947,13 +1966,12 @@ describe('TraceTree', () => {
       );
     });
 
-    it('collects errored children for parent autogrouped node', () => {
+    it('collects errors and performance issues for parent autogrouped node', () => {
       // db             db                           db
       //  http    ->     parent autogroup (3) ->      parent autogroup (3)
       //   http                                        http
       //    http                                        http
       //                                                 http
-
       const root: TraceTreeNode<TraceTree.Span> = new TraceTreeNode(
         null,
         makeSpan({
@@ -1980,6 +1998,7 @@ describe('TraceTree', () => {
           }
         );
         node.value.errors = [makeTraceError()];
+        node.value.performance_issues = [makeTracePerformanceIssue()];
         last.children.push(node);
         last = node;
       }
@@ -1996,8 +2015,9 @@ describe('TraceTree', () => {
       expect(root.children.length).toBe(1);
 
       assertAutogroupedNode(root.children[0]);
-      expect(root.children[0].has_error).toBe(true);
-      expect(root.children[0].errored_children).toHaveLength(1);
+      expect(root.children[0].has_errors).toBe(true);
+      expect(root.children[0].errors).toHaveLength(3);
+      expect(root.children[0].performance_issues).toHaveLength(3);
     });
 
     it('autogrouping direct children skips rendering intermediary nodes', () => {
