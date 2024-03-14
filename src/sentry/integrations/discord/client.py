@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-# to avoid a circular import
 import logging
 from collections.abc import Mapping
 from urllib.parse import urlencode
@@ -12,7 +11,9 @@ from sentry import options
 from sentry.integrations.client import ApiClient
 from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
 from sentry.integrations.discord.utils.consts import DISCORD_ERROR_CODES, DISCORD_USER_ERRORS
-from sentry.utils import metrics
+
+# to avoid a circular import
+from sentry.utils import json, metrics
 
 logger = logging.getLogger("sentry.integrations.discord")
 
@@ -120,11 +121,10 @@ class DiscordClient(ApiClient):
         code_message = ""
 
         try:
-            json_data = resp.json()
-            if isinstance(json_data, dict):
-                discord_code = json_data.get("code")
-                if discord_code in DISCORD_ERROR_CODES:
-                    code_message = DISCORD_ERROR_CODES[discord_code]
+            discord_response = json.loads(resp.content.decode("utf-8")) if resp else {}
+            discord_code = discord_response.get("code")
+            if discord_code in DISCORD_ERROR_CODES:
+                code_message = DISCORD_ERROR_CODES[discord_code]
 
         except Exception:
             pass
@@ -137,11 +137,7 @@ class DiscordClient(ApiClient):
         }
 
         # These are excluded since they are not actionable from our side
-        discord_server_issues = {
-            status.HTTP_500_INTERNAL_SERVER_ERROR,
-            status.HTTP_503_SERVICE_UNAVAILABLE,
-        }
-        include_in_slo = discord_code not in (DISCORD_USER_ERRORS or discord_server_issues)
+        include_in_slo = discord_code not in DISCORD_USER_ERRORS
         metrics.incr(
             f"{self.metrics_prefix}.http_response",
             sample_rate=1.0,
