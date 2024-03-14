@@ -511,48 +511,48 @@ const generateBadgeTheme = (colors: BaseColors) => ({
 const generateTagTheme = (colors: BaseColors) => ({
   default: {
     background: colors.surface400,
-    border: colors.gray200,
-    iconColor: colors.gray300,
+    border: colors.translucentGray200,
+    color: colors.gray400,
   },
   promotion: {
     background: colors.pink100,
-    border: colors.pink200,
-    iconColor: colors.pink400,
+    border: colors.pink100,
+    color: colors.pink400,
   },
   highlight: {
     background: colors.purple100,
-    border: colors.purple200,
-    iconColor: colors.purple400,
+    border: colors.purple100,
+    color: colors.purple400,
   },
   warning: {
     background: colors.yellow100,
-    border: colors.yellow200,
-    iconColor: colors.yellow400,
+    border: colors.yellow100,
+    color: colors.yellow400,
   },
   success: {
     background: colors.green100,
-    border: colors.green200,
-    iconColor: colors.green400,
+    border: colors.green100,
+    color: colors.green400,
   },
   error: {
     background: colors.red100,
-    border: colors.red200,
-    iconColor: colors.red400,
+    border: colors.red100,
+    color: colors.red400,
   },
   info: {
     background: colors.purple100,
-    border: colors.purple200,
-    iconColor: colors.purple400,
+    border: colors.purple100,
+    color: colors.purple400,
   },
   white: {
     background: colors.white,
     border: colors.white,
-    iconColor: colors.black,
+    color: colors.black,
   },
   black: {
     background: colors.black,
     border: colors.black,
-    iconColor: colors.white,
+    color: colors.white,
   },
 });
 
