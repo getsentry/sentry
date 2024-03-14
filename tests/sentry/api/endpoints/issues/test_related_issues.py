@@ -10,7 +10,7 @@ from sentry.testutils.silo import region_silo_test
 class RelatedIssuesTest(APITestCase):
     endpoint = "sentry-api-0-issues-related-issues"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.organization = self.create_organization(owner=self.user)
@@ -25,7 +25,7 @@ class RelatedIssuesTest(APITestCase):
     def _data(self, type: str, value: str) -> dict[str, Any]:
         return {"type": "error", "metadata": {"type": type, "value": value}}
 
-    def test_same_root_related_issues(self):
+    def test_same_root_related_issues(self) -> None:
         # This is the group we're going to query about
         group = self.create_group(data=self._data(self.error_type, self.error_value))
         self.group_id = group.id
@@ -42,8 +42,7 @@ class RelatedIssuesTest(APITestCase):
             self.create_group(data=datum)
 
         response = self.get_success_response()
+        # The UI will then make normal calls to get issues-stats
+        # For instance, this URL
+        # https://us.sentry.io/api/0/organizations/sentry/issues-stats/?groups=4741828952&groups=4489703641&statsPeriod=24h
         assert response.json() == {"same_root_cause": [1, 5]}
-
-
-# XXX: Add a test class that will query an API with the related group IDs
-# This will emulate the 2nd call the UI will need to make

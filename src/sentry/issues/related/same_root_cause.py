@@ -1,8 +1,6 @@
 # Module to evaluate if groups have the same root cause
 #
-# The first two cases this module handles are:
-# * environmental failures
-# * buggy code paths
+# The first case this module handles is environmental failures.
 #
 # Refer to README in module for more details.
 from typing import Any

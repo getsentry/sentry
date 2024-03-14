@@ -342,6 +342,7 @@ from .endpoints.organization_events_has_measurements import (
 from .endpoints.organization_events_histogram import OrganizationEventsHistogramEndpoint
 from .endpoints.organization_events_meta import (
     OrganizationEventsMetaEndpoint,
+    OrganizationEventsRelatedIssuesEndpoint,
     OrganizationSpansSamplesEndpoint,
 )
 from .endpoints.organization_events_span_ops import OrganizationEventsSpanOpsEndpoint
@@ -1205,6 +1206,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/key-transactions-list/$",
         KeyTransactionListEndpoint.as_view(),
         name="sentry-api-0-organization-key-transactions-list",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/related-issues/$",
+        OrganizationEventsRelatedIssuesEndpoint.as_view(),
+        name="sentry-api-0-organization-related-issues",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/project-transaction-threshold-override/$",

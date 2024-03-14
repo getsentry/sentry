@@ -1,4 +1,4 @@
-"""This module exports a function to find related issues. It uses a set of algorithms to find related issues."""
+"""This module exports a function to find related issues. It groups them by type."""
 
 from sentry.models.group import Group
 
