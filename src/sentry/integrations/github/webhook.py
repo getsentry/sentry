@@ -218,7 +218,7 @@ class InstallationEventWebhook:
                 external_id=external_id,
             )
             if contexts.integration is not None:
-                self._handle_delete(event, contexts.integration, contexts.org_integrations)
+                self._handle_delete(event, contexts.integration, contexts.installs)
             else:
                 # It seems possible for the GH or GHE app to be installed on their
                 # end, but the integration to not exist. Possibly from deleting in
