@@ -1,11 +1,15 @@
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/tooltip';
+import {IconFix, IconMute} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {ColorOrAlias} from 'sentry/utils/theme';
 import {
   type Monitor,
   type MonitorEnvironment,
   MonitorStatus,
+  type StatusNotice,
 } from 'sentry/views/monitors/types';
 import {statusIconColorMap} from 'sentry/views/monitors/utils/constants';
 
@@ -14,13 +18,35 @@ interface Props {
   monitorEnv: MonitorEnvironment;
 }
 
+const userNotifiedDisplay: StatusNotice = {
+  label: t(
+    'This environment is likely broken due to being in an error state for multiple days.'
+  ),
+  icon: <IconFix color="subText" />,
+  color: 'subText',
+};
+
+const envMutedDisplay: StatusNotice = {
+  label: t(
+    'This environment is likely broken due to being in an error state for multiple days. It has been automatically muted.'
+  ),
+  icon: <IconMute color="subText" />,
+  color: 'subText',
+};
+
 export default function MonitorEnvironmentLabel({monitorEnv, monitor}: Props) {
-  const {name, status, isMuted} = monitorEnv;
+  const {name, status, isMuted, activeIncident} = monitorEnv;
+  const {userNotifiedTimestamp, envMutedTimestamp} = activeIncident?.brokenNotice ?? {};
   const envStatus = monitor.isMuted || isMuted ? MonitorStatus.DISABLED : status;
-  const {label, icon} = statusIconColorMap[envStatus];
+  const {label, icon, color} = userNotifiedTimestamp
+    ? userNotifiedDisplay
+    : envMutedTimestamp
+      ? envMutedDisplay
+      : statusIconColorMap[envStatus];
+
   return (
     <EnvWithStatus>
-      <MonitorEnvLabel status={envStatus}>{name}</MonitorEnvLabel>
+      <MonitorEnvLabel color={color}>{name}</MonitorEnvLabel>
       <Tooltip title={label} skipWrapper>
         {icon}
       </Tooltip>
@@ -36,12 +62,12 @@ const EnvWithStatus = styled('div')`
   opacity: var(--disabled-opacity);
 `;
 
-const MonitorEnvLabel = styled('div')<{status: MonitorStatus}>`
+const MonitorEnvLabel = styled('div')<{color: ColorOrAlias}>`
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
   min-width: 0;
 
-  color: ${p => p.theme[statusIconColorMap[p.status].color]};
+  color: ${p => p.theme[p.color]};
   opacity: var(--disabled-opacity);
 `;
