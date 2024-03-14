@@ -432,6 +432,8 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             org.flags.codecov_access = data["codecovAccess"]
         if "require2FA" in data:
             org.flags.require_2fa = data["require2FA"]
+        # This option is temporary since we will control custom metrics via a single feature flag in the future. This
+        # organization option is used just for people to opt-in to try out custom metrics.
         if "customMetricsAccess" in data:
             org.update_option("sentry:custom_metrics_access", data["customMetricsAccess"])
         if (
