@@ -23,10 +23,7 @@ class GroupRelatedIssuesEndpoint(GroupEndpoint):
         # if not features.has("FOO", organization, actor=request.user):
         #     return Response({"status": "disabled"}, status=403)
 
-        # group_id = request.GET.get("groupId")
-        # if group_id is None:
-        #     return Response({"status": "invalid"}, status=400)
-
+        # XXX: This needs to be generic to support multiple types of related issues
         groups = same_root_cause_analysis(group)
 
         return Response({"groups": [group.id for group in groups]})
