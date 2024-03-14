@@ -90,10 +90,10 @@ class Webhook:
     def __call__(self, event: Mapping[str, Any], host: str | None = None) -> None:
         external_id = get_github_external_id(event=event, host=host)
 
-        integration, installs = integration_service.get_organization_contexts(
+        contexts = integration_service.get_organization_contexts(
             external_id=external_id, provider=self.provider
         )
-        if integration is None or not installs:
+        if contexts.integration is None or not contexts.installs:
             # It seems possible for the GH or GHE app to be installed on their
             # end, but the integration to not exist. Possibly from deleting in
             # Sentry first or from a failed install flow (where the integration
@@ -113,7 +113,7 @@ class Webhook:
             orgs = {
                 org.id: org
                 for org in Organization.objects.filter(
-                    id__in=[install.organization_id for install in installs]
+                    id__in=[install.organization_id for install in contexts.installs]
                 )
             }
             repos = Repository.objects.filter(
@@ -123,10 +123,10 @@ class Webhook:
             )
 
             if not repos.exists():
-                provider = get_integration_repository_provider(integration)
+                provider = get_integration_repository_provider(contexts.integration)
 
                 config = {
-                    "integration_id": integration.id,
+                    "integration_id": contexts.integration.id,
                     "external_id": str(event["repository"]["id"]),
                     "identifier": event.get("repository", {}).get("full_name", None),
                 }
@@ -153,7 +153,7 @@ class Webhook:
                 repos = repos.all()
 
             for repo in repos.exclude(status=ObjectStatus.HIDDEN):
-                self._handle(integration, event, orgs[repo.organization_id], repo)
+                self._handle(contexts.integration, event, orgs[repo.organization_id], repo)
 
     def update_repo_data(self, repo: Repository, event: Mapping[str, Any]) -> None:
         """
@@ -213,12 +213,12 @@ class InstallationEventWebhook:
             external_id = event["installation"]["id"]
             if host:
                 external_id = "{}:{}".format(host, event["installation"]["id"])
-            integration, org_integrations = integration_service.get_organization_contexts(
+            contexts = integration_service.get_organization_contexts(
                 provider=self.provider,
                 external_id=external_id,
             )
-            if integration is not None:
-                self._handle_delete(event, integration, org_integrations)
+            if contexts.integration is not None:
+                self._handle_delete(event, contexts.integration, contexts.org_integrations)
             else:
                 # It seems possible for the GH or GHE app to be installed on their
                 # end, but the integration to not exist. Possibly from deleting in

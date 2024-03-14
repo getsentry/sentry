@@ -26,6 +26,7 @@ from sentry.services.hybrid_cloud.integration import (
 from sentry.services.hybrid_cloud.integration.model import (
     RpcIntegrationExternalProject,
     RpcIntegrationIdentityContext,
+    RpcOrganizationIntegrationContextResult,
 )
 from sentry.services.hybrid_cloud.integration.serial import (
     serialize_integration,
@@ -210,23 +211,6 @@ class DatabaseBackedIntegrationService(IntegrationService):
 
         return [serialize_organization_integration(oi) for oi in ois]
 
-    def get_organization_context(
-        self,
-        *,
-        organization_id: int,
-        integration_id: int | None = None,
-        provider: str | None = None,
-        external_id: str | None = None,
-    ) -> tuple[RpcIntegration | None, RpcOrganizationIntegration | None]:
-        integration, installs = self.get_organization_contexts(
-            organization_id=organization_id,
-            integration_id=integration_id,
-            provider=provider,
-            external_id=external_id,
-        )
-
-        return integration, installs[0] if installs else None
-
     def get_organization_contexts(
         self,
         *,
@@ -234,7 +218,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         integration_id: int | None = None,
         provider: str | None = None,
         external_id: str | None = None,
-    ) -> tuple[RpcIntegration | None, list[RpcOrganizationIntegration]]:
+    ) -> RpcOrganizationIntegrationContextResult:
         integration = self.get_integration(
             organization_id=organization_id,
             integration_id=integration_id,
@@ -242,12 +226,14 @@ class DatabaseBackedIntegrationService(IntegrationService):
             external_id=external_id,
         )
         if not integration:
-            return (None, [])
+            return RpcOrganizationIntegrationContextResult(integration=None, installs=[])
         organization_integrations = self.get_organization_integrations(
             integration_id=integration.id,
             organization_id=organization_id,
         )
-        return (integration, organization_integrations)
+        return RpcOrganizationIntegrationContextResult(
+            integration=integration, installs=organization_integrations
+        )
 
     def update_integrations(
         self,
