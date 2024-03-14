@@ -20,6 +20,7 @@ export const errorConfig: IssueCategoryConfigMapping = {
       share: {enabled: true},
     },
     attachments: {enabled: true},
+    autofix: true,
     mergedIssues: {enabled: true},
     replays: {enabled: true},
     similarIssues: {enabled: true},
