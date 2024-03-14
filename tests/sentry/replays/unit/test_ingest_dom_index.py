@@ -873,7 +873,7 @@ def test_log_sdk_options():
     ):
         randint.return_value = 0
         parse_replay_actions(1, "1", 30, events, None)
-        assert logger.info.call_args_list == [mock.call("SDK Options:", extra=log)]
+        assert logger.info.call_args_list == [mock.call("sentry.replays.slow_click", extra=log)]
 
 
 def test_log_large_dom_mutations():

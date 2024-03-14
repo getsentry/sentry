@@ -1,6 +1,6 @@
 import logging
 from base64 import urlsafe_b64encode
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import cached_property
 from time import time
 from urllib.parse import urlparse
@@ -56,9 +56,21 @@ def _valid_staff_timestamp(request, limit: timedelta = STAFF_AUTH_FLOW_MAX_AGE) 
     if not timestamp:
         return False
 
-    flag_datetime = datetime.utcfromtimestamp(timestamp)
-    if datetime.now() - flag_datetime > limit:
-        del request.session["staff_auth_flow"]
+    flag_datetime = datetime.fromtimestamp(timestamp, timezone.utc)
+    current_time = datetime.now(timezone.utc)
+    time_difference = current_time - flag_datetime
+    logger.info(
+        "Validating staff timestamp",
+        extra={
+            "user": request.user.id,
+            "current_time": current_time,
+            "flag_datetime": flag_datetime,
+            "time_difference": current_time - flag_datetime,
+            "limit": limit,
+            "boolean_check": time_difference > limit,
+        },
+    )
+    if time_difference > limit:
         return False
 
     return True
@@ -286,7 +298,7 @@ class U2fInterface(AuthenticatorInterface):
                 "webauthn_authentication_state"
             ):
                 logger.info(
-                    "Both staff and non-staff U2F states are set", extra={"user": request.user}
+                    "Both staff and non-staff U2F states are set", extra={"user": request.user.id}
                 )
             self.webauthn_authentication_server.authenticate_complete(
                 state=state,
