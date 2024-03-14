@@ -563,6 +563,7 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
             "monitors.consumer.monitor_environment_validation_failed",
             extra={
                 "guid": guid.hex,
+
                 "project": project.id,
                 "slug": monitor_slug,
                 "environment": environment,
@@ -580,23 +581,22 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
         return
 
     # 03
-    # Create or update check-in
-
-    try:
-        with transaction.atomic(router.db_for_write(Monitor)):
-            status = getattr(CheckInStatus, validated_params["status"].upper())
-            trace_id = validated_params.get("contexts", {}).get("trace", {}).get("trace_id")
-            duration = validated_params["duration"]
-
-            # 03-A
-            # Retrieve existing check-in for update
-            try:
-                if use_latest_checkin:
-                    check_in = (
-                        MonitorCheckIn.objects.select_for_update()
-                        .filter(
-                            monitor_environment=monitor_environment,
-                            status=CheckInStatus.IN_PROGRESS,
+    # Check for existing check-in and update or create as necessary
+    existing_check_in = MonitorCheckIn.objects.filter(guid=guid).first()
+    if existing_check_in:
+        txn.set_tag("outcome", "update_existing_checkin")
+        update_existing_check_in(
+            txn,
+            metric_kwargs,
+            project_id,
+            monitor_environment,
+            start_time,
+            existing_check_in,
+            status,
+            duration,
+        )
+    else:
+        # Create a brand new check-in object
                         )
                         .order_by("-date_added")[:1]
                         .get()
