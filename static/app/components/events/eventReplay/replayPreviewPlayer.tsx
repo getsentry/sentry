@@ -225,7 +225,6 @@ const HeaderWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: ${space(1)};
   margin-bottom: ${space(1)};
 `;
 
