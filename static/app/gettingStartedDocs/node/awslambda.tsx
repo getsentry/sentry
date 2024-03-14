@@ -38,7 +38,7 @@ Sentry.AWSLambda.init({
   integrations: [${
     params.isProfilingSelected
       ? `
-      new ProfilingIntegration(),`
+      nodeProfilingIntegration(),`
       : ''
   }
 ],${
