@@ -5,6 +5,10 @@ from sentry.api.serializers.models.rule import generate_rule_label
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule
 
+ONE_HOUR = 60
+ONE_DAY = ONE_HOUR * 24
+ONE_WEEK = ONE_DAY * 7
+
 
 def get_updated_rule_data(rule: Rule) -> dict[str, Any]:
     rule_data = dict(rule.data)
@@ -42,6 +46,22 @@ def generate_diff_labels(
     return changed_data
 
 
+def get_frequency_label(value: str) -> str | None:
+    if not value:
+        return None
+
+    value = int(value)
+    if value < 60:
+        return f"{value} minutes"
+    elif value >= 60 and value < 10080:
+        return f"{int(value / ONE_HOUR)} hours"
+    elif value == ONE_WEEK:
+        return f"{int(value / ONE_WEEK)} week"
+    elif value == ONE_DAY * 30:
+        return f"{int(value / ONE_DAY)} days"
+    return None
+
+
 def get_changed_data(
     rule: Rule, rule_data: dict[str, Any], rule_data_before: dict[str, Any]
 ) -> dict[str, Any]:
@@ -62,8 +82,10 @@ def get_changed_data(
         rule_data, rule_data_before, rule, changed_data, "actions", "Removed action '{}'"
     )
 
-    frequency_text = check_value_changed(rule_data, rule_data_before, "frequency", "frequency")
-    if frequency_text:
+    current_frequency = get_frequency_label(rule_data.get("frequency"))
+    previous_frequency = get_frequency_label(rule_data_before.get("frequency"))
+    if current_frequency != previous_frequency:
+        frequency_text = f"Changed frequency from *{previous_frequency}* to *{current_frequency}*"
         changed_data["changed_frequency"].append(frequency_text)
 
     if rule_data.get("environment_id") and not rule_data_before.get("environment_id"):
