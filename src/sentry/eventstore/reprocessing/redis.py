@@ -142,12 +142,15 @@ class RedisReprocessingStore(ReprocessingStore):
 
     def mark_event_reprocessed(self, group_id: int, num_events: int) -> bool:
         # refresh the TTL of the metadata:
-        self.redis.expire(
-            _get_info_reprocessed_key(group_id), settings.SENTRY_REPROCESSING_SYNC_TTL
+        pipe = self.redis.pipeline()
+        pipe.expire(
+            name=_get_info_reprocessed_key(group_id), time=settings.SENTRY_REPROCESSING_SYNC_TTL
         )
-        key = _get_sync_counter_key(group_id)
-        self.redis.expire(key, settings.SENTRY_REPROCESSING_SYNC_TTL)
-        return self.redis.decrby(key, num_events) == 0
+        sync_counter_key = _get_sync_counter_key(group_id)
+        pipe.expire(name=sync_counter_key, time=settings.SENTRY_REPROCESSING_SYNC_TTL)
+        pipe.decrby(name=sync_counter_key, amount=num_events)
+        new_decremented_value = pipe.execute()[2]
+        return new_decremented_value == 0
 
     def start_reprocessing(
         self, group_id: int, date_created: Any, sync_count: int, event_count: int
@@ -163,7 +166,7 @@ class RedisReprocessingStore(ReprocessingStore):
             ),
         )
 
-    def get_pending(self, group_id: int) -> tuple[int | None, int]:
+    def get_pending(self, group_id: int) -> tuple[str | None, int]:
         pending_key = _get_sync_counter_key(group_id)
         pending = self.redis.get(pending_key)
         ttl = self.redis.ttl(pending_key)
@@ -171,4 +174,6 @@ class RedisReprocessingStore(ReprocessingStore):
 
     def get_progress(self, group_id: int) -> dict[str, Any] | None:
         info = self.redis.get(_get_info_reprocessed_key(group_id))
-        return info
+        if info is None:
+            return None
+        return json.loads(info)

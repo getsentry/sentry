@@ -98,7 +98,7 @@ from sentry.eventstore.reprocessing import reprocessing_store
 from sentry.models.eventattachment import EventAttachment
 from sentry.snuba.dataset import Dataset
 from sentry.types.activity import ActivityType
-from sentry.utils import json, metrics, snuba
+from sentry.utils import metrics, snuba
 from sentry.utils.safe import get_path, set_path
 
 logger = logging.getLogger("sentry.reprocessing")
@@ -617,7 +617,6 @@ def get_progress(group_id: int, project_id: int | None = None) -> tuple[int, Any
 
             finish_reprocessing.delay(project_id=project_id, group_id=group_id)
 
-    info = json.loads(info)
     # Our internal sync counters are counting over *all* events, but the
     # progressbar in the frontend goes until max_events. Advance progressbar
     # proportionally.
