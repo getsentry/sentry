@@ -725,7 +725,7 @@ function RenderRow(props: {
           }}
         >
           <div
-            className={`TraceLeftColumnInner ${props.node.has_error ? 'Errored' : ''}`}
+            className={`TraceLeftColumnInner ${props.node.has_errors ? 'Errored' : ''}`}
             style={{
               paddingLeft: props.node.depth * props.manager.row_depth_padding,
             }}
@@ -743,7 +743,7 @@ function RenderRow(props: {
                 status={props.node.fetchStatus}
                 expanded={!props.node.expanded}
                 onClick={e => props.onExpand(e, props.node, !props.node.expanded)}
-                errored={props.node.has_error}
+                errored={props.node.has_errors}
               >
                 {COUNT_FORMATTER.format(props.node.groupCount)}
               </ChildrenButton>
