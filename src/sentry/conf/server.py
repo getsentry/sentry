@@ -768,7 +768,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.ping",
     "sentry.tasks.post_process",
     "sentry.tasks.process_buffer",
-    "sentry.tasks.recap_servers",
     "sentry.tasks.relay",
     "sentry.tasks.release_registry",
     "sentry.tasks.relocation",
@@ -935,7 +934,6 @@ CELERY_QUEUES_REGION = [
     Queue("auto_enable_codecov", routing_key="auto_enable_codecov"),
     Queue("weekly_escalating_forecast", routing_key="weekly_escalating_forecast"),
     Queue("relocation", routing_key="relocation"),
-    Queue("recap_servers", routing_key="recap_servers"),
     Queue("performance.statistical_detector", routing_key="performance.statistical_detector"),
     Queue("profiling.statistical_detector", routing_key="profiling.statistical_detector"),
     CELERY_ISSUE_STATES_QUEUE,
@@ -1205,12 +1203,6 @@ CELERYBEAT_SCHEDULE_REGION = {
     "github_comment_reactions": {
         "task": "sentry.tasks.integrations.github_comment_reactions",
         "schedule": crontab(minute="0", hour="16"),  # 9:00 PDT, 12:00 EDT, 16:00 UTC
-    },
-    "poll_recap_servers": {
-        "task": "sentry.tasks.poll_recap_servers",
-        # Run every 1 minute
-        "schedule": crontab(minute="*/1"),
-        "options": {"expires": 60},
     },
     "dynamic-sampling-collect-orgs": {
         "task": "sentry.dynamic_sampling.tasks.collect_orgs",
@@ -1826,8 +1818,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:project-event-date-limit": False,
     # Enable project selection on the stats page
     "organizations:project-stats": True,
-    # Enable functionality for recap server polling.
-    "organizations:recap-server": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See

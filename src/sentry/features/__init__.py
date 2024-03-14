@@ -224,7 +224,6 @@ default_manager.add("organizations:profiling", OrganizationFeature, FeatureHandl
 default_manager.add("organizations:project-create-replay-feedback", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:project-event-date-limit", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:project-stats", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:recap-server", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:related-events", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:relay-cardinality-limiter", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:release-comparison-performance", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
