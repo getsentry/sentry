@@ -882,9 +882,6 @@ register(
 # Drop delete_old_primary_hash messages for a particular project.
 register("reprocessing2.drop-delete-old-primary-hash", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# Switch to use service wrapper for reprocessing redis operations
-register("reprocessing.use_store", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
 # BEGIN ABUSE QUOTAS
 
 # Example:
