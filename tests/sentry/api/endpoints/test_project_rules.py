@@ -423,7 +423,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         rule_label = response.data["name"]
         assert response.data["actions"][0]["channel_id"] == self.channel_id
         data = parse_qs(responses.calls[1].request.body)
-        message = f"<http://testserver/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{rule_id}/details/|*{rule_label}*> was created in the *{self.project.slug}* project and will send notifications here."
+        message = f"Alert rule <http://testserver/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{rule_id}/details/|*{rule_label}*> was created in the *{self.project.slug}* project and will send notifications here."
         assert data["text"][0] == message
         rendered_blocks = json.loads(data["blocks"][0])
         assert rendered_blocks[0]["text"]["text"] == message

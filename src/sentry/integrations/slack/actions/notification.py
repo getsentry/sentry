@@ -145,14 +145,16 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         metrics.incr("notifications.sent", instance="slack.notification", skip_internal=False)
         yield self.future(send_notification, key=key)
 
-    def send_confirmation_notification(self, rule: Rule, new: bool):
+    def send_confirmation_notification(
+        self, rule: Rule, new: bool, changed: dict[str, Any] | None = None
+    ):
         integration = self.get_integration()
         if not integration:
             # Integration removed, rule still active.
             return
 
         channel = self.get_option("channel_id")
-        blocks = SlackRuleSaveEditMessageBuilder(rule=rule, new=new).build()
+        blocks = SlackRuleSaveEditMessageBuilder(rule=rule, new=new, changed=changed).build()
         payload = {
             "text": blocks.get("text"),
             "blocks": json.dumps(blocks.get("blocks")),

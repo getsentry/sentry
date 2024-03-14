@@ -14,7 +14,7 @@ from sentry.models.rulesnooze import RuleSnooze
 from sentry.services.hybrid_cloud.user.service import user_service
 
 
-def _generate_rule_label(project, rule, data):
+def generate_rule_label(project, rule, data):
     from sentry.rules import rules
 
     rule_cls = rules.get(data["id"])
@@ -202,7 +202,7 @@ class RuleSerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs) -> RuleSerializerResponse:
         environment = attrs["environment"]
         all_conditions = [
-            dict(list(o.items()) + [("name", _generate_rule_label(obj.project, obj, o))])
+            dict(list(o.items()) + [("name", generate_rule_label(obj.project, obj, o))])
             for o in obj.data.get("conditions", [])
         ]
 
@@ -212,7 +212,7 @@ class RuleSerializer(Serializer):
                 actions.append(
                     dict(
                         list(action.items())
-                        + [("name", _generate_rule_label(obj.project, obj, action))]
+                        + [("name", generate_rule_label(obj.project, obj, action))]
                     )
                 )
             except serializers.ValidationError:
