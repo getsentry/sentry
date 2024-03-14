@@ -1345,6 +1345,7 @@ describe('Modals -> WidgetViewerModal', function () {
         renderModal({
           initialData,
           widget: {...mockWidget, queries: [{...mockQuery, orderby: 'release'}]},
+          // in react 17 act requires that nothing is returned
         }).then(() => void 0)
       );
       expect(screen.queryByRole('button', {name: 'Previous'})).not.toBeInTheDocument();
