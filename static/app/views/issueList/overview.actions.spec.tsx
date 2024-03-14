@@ -28,7 +28,7 @@ const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575000:0:0>; rel="next"; results="true"; cursor="1443575000:0:0"';
 
-describe('IssueListOverview (actions)', () => {
+describe('IssueListOverview (actions)', function () {
   const project = ProjectFixture({
     id: '3559',
     name: 'Foo Project',
@@ -40,7 +40,7 @@ describe('IssueListOverview (actions)', () => {
   const api = new MockApiClient();
   const organization = OrganizationFixture({features: ['issue-priority-ui']});
 
-  beforeEach(() => {
+  beforeEach(function () {
     MockApiClient.clearMockResponses();
     GroupStore.reset();
     SelectedGroupStore.reset();
@@ -119,7 +119,7 @@ describe('IssueListOverview (actions)', () => {
     }),
   };
 
-  describe('status', () => {
+  describe('status', function () {
     const group1 = GroupFixture({
       id: '1',
       culprit: 'Group 1',
@@ -139,7 +139,7 @@ describe('IssueListOverview (actions)', () => {
       });
     });
 
-    it('removes issues after resolving', async () => {
+    it('removes issues after resolving', async function () {
       const updateIssueMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         method: 'PUT',
@@ -177,7 +177,7 @@ describe('IssueListOverview (actions)', () => {
       expect(screen.getByText('Group 2')).toBeInTheDocument();
     });
 
-    it('can undo resolve action', async () => {
+    it('can undo resolve action', async function () {
       const updateIssueMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         method: 'PUT',
@@ -241,7 +241,7 @@ describe('IssueListOverview (actions)', () => {
     });
   });
 
-  describe('mark reviewed', () => {
+  describe('mark reviewed', function () {
     const group1 = GroupFixture({
       id: '1',
       culprit: 'Group 1',
@@ -263,7 +263,7 @@ describe('IssueListOverview (actions)', () => {
       });
     });
 
-    it('removes issues after making reviewed (when on for review tab)', async () => {
+    it('removes issues after making reviewed (when on for review tab)', async function () {
       const updateIssueMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         method: 'PUT',
@@ -317,7 +317,7 @@ describe('IssueListOverview (actions)', () => {
     });
   });
 
-  describe('priority', () => {
+  describe('priority', function () {
     const medPriorityGroup = GroupFixture({
       id: '1',
       priority: PriorityLevel.MEDIUM,
@@ -337,7 +337,7 @@ describe('IssueListOverview (actions)', () => {
       });
     });
 
-    it('removes issues after bulk reprioritizing (when excluding priorities)', async () => {
+    it('removes issues after bulk reprioritizing (when excluding priorities)', async function () {
       const updateIssueMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         method: 'PUT',
@@ -375,7 +375,7 @@ describe('IssueListOverview (actions)', () => {
       expect(screen.queryByText('Medium priority issue')).not.toBeInTheDocument();
     });
 
-    it('removes issues after reprioritizing single issue (when excluding priorities)', async () => {
+    it('removes issues after reprioritizing single issue (when excluding priorities)', async function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/prompts-activity/',
         body: {data: {dismissed_ts: null}},
@@ -412,7 +412,7 @@ describe('IssueListOverview (actions)', () => {
       expect(screen.queryByText('Medium priority issue')).not.toBeInTheDocument();
     });
 
-    it('does not remove issues after bulk reprioritizing (when query includes all priorities)', async () => {
+    it('does not remove issues after bulk reprioritizing (when query includes all priorities)', async function () {
       const updateIssueMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         method: 'PUT',

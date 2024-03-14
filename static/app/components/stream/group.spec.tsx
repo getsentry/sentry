@@ -14,10 +14,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 
 jest.mock('sentry/utils/analytics');
 
-describe('StreamGroup', () => {
+describe('StreamGroup', function () {
   let group1;
 
-  beforeEach(() => {
+  beforeEach(function () {
     group1 = GroupFixture({
       id: '1337',
       project: ProjectFixture({
@@ -38,12 +38,12 @@ describe('StreamGroup', () => {
     GroupStore.loadInitialData([group1]);
   });
 
-  afterEach(() => {
+  afterEach(function () {
     (trackAnalytics as jest.Mock).mockClear();
     GroupStore.reset();
   });
 
-  it('renders with anchors', () => {
+  it('renders with anchors', function () {
     const {routerContext, organization} = initializeOrg();
     render(<StreamGroup id="1337" hasGuideAnchor {...routerContext} />, {
       context: routerContext,
@@ -53,7 +53,7 @@ describe('StreamGroup', () => {
     expect(GuideStore.state.anchors).toEqual(new Set(['dynamic_counts', 'issue_stream']));
   });
 
-  it('marks as reviewed', () => {
+  it('marks as reviewed', function () {
     const {routerContext, organization} = initializeOrg();
     render(
       <StreamGroup
@@ -73,7 +73,7 @@ describe('StreamGroup', () => {
     expect(screen.getByTestId('group')).toHaveAttribute('data-test-reviewed', 'true');
   });
 
-  it('marks as resolved', () => {
+  it('marks as resolved', function () {
     const {routerContext, organization} = initializeOrg();
     render(<StreamGroup id="1337" query="is:unresolved" />, {
       context: routerContext,
@@ -90,7 +90,7 @@ describe('StreamGroup', () => {
     expect(screen.getByTestId('resolved-issue')).toBeInTheDocument();
   });
 
-  it('can change priority', async () => {
+  it('can change priority', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/prompts-activity/',
       body: {data: {dismissed_ts: null}},
@@ -120,7 +120,7 @@ describe('StreamGroup', () => {
     );
   });
 
-  it('tracks clicks from issues stream', async () => {
+  it('tracks clicks from issues stream', async function () {
     const {routerContext, organization} = initializeOrg();
     render(
       <StreamGroup
