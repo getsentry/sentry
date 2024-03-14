@@ -389,9 +389,6 @@ class Endpoint(APIView):
         # the request (happens via middleware/stats.py).
         request._metric_tags = {}
 
-        if request.auth:
-            update_token_access_record(request.auth)
-
         start_time = time.time()
 
         origin = request.META.get("HTTP_ORIGIN", "null")
@@ -444,6 +441,9 @@ class Endpoint(APIView):
 
         if origin:
             self.add_cors_headers(request, response)
+
+        if request.auth:
+            update_token_access_record(request.auth)
 
         self.response = self.finalize_response(request, response, *args, **kwargs)
 
