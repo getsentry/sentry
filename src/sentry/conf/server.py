@@ -1585,6 +1585,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:integrations-chat-unfurl": True,
     # Enable the API to importing CODEOWNERS for a project
     "organizations:integrations-codeowners": True,
+    # Enable custom alert priorities for Pagerduty and Opsgenie
+    "organizations:integrations-custom-alert-priorities": False,
     # Enable integration functionality to work deployment integrations like Vercel
     "organizations:integrations-deployment": True,
     # Enable integration functionality to work with enterprise alert rules
@@ -1889,8 +1891,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:sourcemaps-upload-release-as-artifact-bundle": False,
     # Enable Slack messages using Block Kit
     "organizations:slack-block-kit": False,
-    # Improvements to Slack messages using Block Kit
-    "organizations:slack-block-kit-improvements": False,
     # Send Slack notifications to threads for Metric Alerts
     "organizations:slack-thread": False,
     # Send Slack notifications to threads for Issue Alerts
