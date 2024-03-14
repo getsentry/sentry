@@ -17,5 +17,8 @@ class RelatedIssuesEndpoint(GroupEndpoint):
     publish_status = {"GET": ApiPublishStatus.EXPERIMENTAL}
 
     def get(self, _: Request, group: Group) -> Response:
+        # XXX: Add real feature flag
+        # if not features.has("FOO", organization, actor=request.user):
+        #     return Response({"status": "disabled"}, status=403)
         related_issues = find_related_issues(group)
         return Response({key: [g.id for g in groups] for key, groups in related_issues.items()})
