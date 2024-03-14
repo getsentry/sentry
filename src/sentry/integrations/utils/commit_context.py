@@ -207,6 +207,18 @@ def _generate_integration_to_files_mapping(
                 )
                 continue
 
+            if "\\" in src_path or '"' in src_path:
+                logger.info(
+                    "process_commit_context_all_frames.invalid_src_path",
+                    extra={
+                        **extra,
+                        "code_mapping_id": code_mapping.id,
+                        "stacktrace_path": stacktrace_path,
+                        "src_path": src_path,
+                    },
+                )
+                continue
+
             num_successfully_mapped_frames += 1
             logger.info(
                 "process_commit_context_all_frames.found_stacktrace_and_src_paths",

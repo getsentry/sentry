@@ -417,7 +417,11 @@ def get_hash_values(
     primary_grouping_config, primary_hashes = run_primary_grouping(project, job, metric_tags)
 
     record_hash_calculation_metrics(
-        primary_grouping_config, primary_hashes, secondary_grouping_config, secondary_hashes
+        project,
+        primary_grouping_config,
+        primary_hashes,
+        secondary_grouping_config,
+        secondary_hashes,
     )
 
     all_hashes = CalculatedHashes(
@@ -438,6 +442,7 @@ def get_hash_values(
 
 
 def record_hash_calculation_metrics(
+    project: Project,
     primary_config: GroupingConfig,
     primary_hashes: CalculatedHashes,
     secondary_config: GroupingConfig,
@@ -462,6 +467,18 @@ def record_hash_calculation_metrics(
                 tags["result"] = "full change"
 
         metrics.incr("grouping.hash_comparison", tags=tags)
+
+        # TODO: This is temporary, just until we can figure out how we're recording a hash
+        # comparison metric showing projects calculating both primary and secondary hashes using the
+        # same config
+        if primary_config["id"] == secondary_config["id"]:
+            logger.info(
+                "Equal primary and secondary configs",
+                extra={
+                    "project": project.id,
+                    "primary_config": primary_config["id"],
+                },
+            )
 
     # Track the total number of grouping calculations done overall, so we can divide by the
     # count to get an average number of calculations per event
