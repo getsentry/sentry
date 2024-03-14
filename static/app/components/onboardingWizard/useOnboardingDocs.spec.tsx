@@ -41,7 +41,7 @@ describe('useOnboardingDocs', function () {
       });
     });
 
-    const {result, waitForNextUpdate} = reactHooks.renderHook(useOnboardingDocs, {
+    const {result, waitFor} = reactHooks.renderHook(useOnboardingDocs, {
       initialProps: {
         project,
         docKeys,
@@ -51,10 +51,9 @@ describe('useOnboardingDocs', function () {
       },
       wrapper,
     });
-    await waitForNextUpdate();
-    const {docContents, isLoading, hasOnboardingContents} = result.current;
+    await waitFor(() => expect(result.current.isLoading).toEqual(false));
+    const {docContents, hasOnboardingContents} = result.current;
 
-    expect(isLoading).toEqual(false);
     const expectedDocContents = Object.keys(apiMocks).reduce((acc, key) => {
       acc[key] = `${key} content`;
       return acc;

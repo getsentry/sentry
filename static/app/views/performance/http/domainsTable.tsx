@@ -14,6 +14,7 @@ import {RATE_UNIT_TITLE, RateUnit} from 'sentry/utils/discover/fields';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {DomainCell} from 'sentry/views/performance/http/domainCell';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import type {MetricsResponse} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -24,13 +25,22 @@ type Row = Pick<
   | 'project.id'
   | 'span.domain'
   | 'spm()'
+  | 'http_response_rate(2)'
+  | 'http_response_rate(4)'
+  | 'http_response_rate(5)'
   | 'avg(span.self_time)'
   | 'sum(span.self_time)'
   | 'time_spent_percentage()'
 >;
 
 type Column = GridColumnHeader<
-  'span.domain' | 'spm()' | 'avg(span.self_time)' | 'time_spent_percentage()'
+  | 'span.domain'
+  | 'spm()'
+  | 'http_response_rate(2)'
+  | 'http_response_rate(4)'
+  | 'http_response_rate(5)'
+  | 'avg(span.self_time)'
+  | 'time_spent_percentage()'
 >;
 
 const COLUMN_ORDER: Column[] = [
@@ -43,6 +53,21 @@ const COLUMN_ORDER: Column[] = [
     key: 'spm()',
     name: `${t('Requests')} ${RATE_UNIT_TITLE[RateUnit.PER_MINUTE]}`,
     width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: `http_response_rate(2)`,
+    name: t('2XXs'),
+    width: 50,
+  },
+  {
+    key: `http_response_rate(4)`,
+    name: t('4XXs'),
+    width: 50,
+  },
+  {
+    key: `http_response_rate(5)`,
+    name: t('5XXs'),
+    width: 50,
   },
   {
     key: `avg(span.self_time)`,
@@ -59,6 +84,9 @@ const COLUMN_ORDER: Column[] = [
 const SORTABLE_FIELDS = [
   'avg(span.self_time)',
   'spm()',
+  'http_response_rate(2)',
+  'http_response_rate(4)',
+  'http_response_rate(5)',
   'time_spent_percentage()',
 ] as const;
 
@@ -74,6 +102,7 @@ interface Props {
   response: {
     data: Row[];
     isLoading: boolean;
+    error?: Error | null;
     meta?: EventsMetaType;
     pageLinks?: string;
   };
@@ -100,6 +129,7 @@ export function DomainsTable({response, sort}: Props) {
     >
       <GridEditable
         isLoading={isLoading}
+        error={response.error}
         data={data}
         columnOrder={COLUMN_ORDER}
         columnSortBy={[
@@ -133,6 +163,10 @@ function renderBodyCell(
   location: Location,
   organization: Organization
 ) {
+  if (column.key === 'span.domain') {
+    return <DomainCell domain={row['span.domain']} />;
+  }
+
   if (!meta?.fields) {
     return row[column.key];
   }

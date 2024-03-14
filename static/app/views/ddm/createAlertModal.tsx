@@ -1,6 +1,5 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -29,6 +28,7 @@ import {formatMRIField, getUseCaseFromMRI, parseMRI} from 'sentry/utils/metrics/
 import type {MetricsQuery} from 'sentry/utils/metrics/types';
 import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {AVAILABLE_TIME_PERIODS} from 'sentry/views/alerts/rules/metric/triggers/chart';
@@ -47,13 +47,11 @@ interface FormState {
   project: string | null;
 }
 
-function getInitialFormState(metricsQuery: MetricsQuery): FormState {
+function getInitialFormState(selection: PageFilters): FormState {
   const project =
-    metricsQuery.projects.length === 1 ? metricsQuery.projects[0].toString() : null;
+    selection.projects.length === 1 ? selection.projects[0].toString() : null;
   const environment =
-    metricsQuery.environments.length === 1 && project
-      ? metricsQuery.environments[0]
-      : null;
+    selection.environments.length === 1 && project ? selection.environments[0] : null;
 
   return {
     project,
@@ -61,8 +59,7 @@ function getInitialFormState(metricsQuery: MetricsQuery): FormState {
   };
 }
 
-function getAlertPeriod(metricsQuery: MetricsQuery) {
-  const {period, start, end} = metricsQuery.datetime;
+function getAlertPeriod({period, start, end}: PageFilters['datetime']) {
   const inHours = statsPeriodToDays(period, start, end) * 24;
 
   switch (true) {
@@ -93,9 +90,13 @@ const TIME_WINDOWS_TO_CHECK = [
   TimeWindow.ONE_DAY,
 ];
 
-export function getAlertInterval(metricsQuery, period: TimePeriod) {
+export function getAlertInterval(
+  metricsQuery: MetricsQuery,
+  datetime: PageFilters['datetime'],
+  period: TimePeriod
+) {
   const useCase = getUseCaseFromMRI(metricsQuery.mri) ?? 'custom';
-  const interval = getDDMInterval(metricsQuery.datetime, useCase);
+  const interval = getDDMInterval(datetime, useCase);
   const inMinutes = parsePeriodToHours(interval) * 60;
 
   function toInterval(timeWindow: TimeWindow) {
@@ -120,20 +121,32 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
   const router = useRouter();
   const organization = useOrganization();
   const {projects} = useProjects();
+  const {selection} = usePageFilters();
   const [formState, setFormState] = useState<FormState>(() =>
-    getInitialFormState(metricsQuery)
+    getInitialFormState(selection)
   );
 
   const selectedProject = projects.find(p => p.id === formState.project);
   const isFormValid = formState.project !== null;
 
-  const alertPeriod = useMemo(() => getAlertPeriod(metricsQuery), [metricsQuery]);
+  const alertPeriod = useMemo(
+    () => getAlertPeriod(selection.datetime),
+    [selection.datetime]
+  );
   const alertInterval = useMemo(
-    () => getAlertInterval(metricsQuery, alertPeriod),
-    [metricsQuery, alertPeriod]
+    () => getAlertInterval(metricsQuery, selection.datetime, alertPeriod),
+    [metricsQuery, selection.datetime, alertPeriod]
   );
 
-  const alertChartQuery = pick(metricsQuery, 'mri', 'op', 'query');
+  const alertChartQuery = useMemo(
+    () => ({
+      mri: metricsQuery.mri,
+      op: metricsQuery.op,
+      query: metricsQuery.query,
+      name: 'query',
+    }),
+    [metricsQuery.mri, metricsQuery.op, metricsQuery.query]
+  );
 
   const aggregate = useMemo(() => getAlertAggregate(metricsQuery), [metricsQuery]);
 
@@ -165,8 +178,8 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
     projects
       .filter(
         project =>
-          metricsQuery.projects.length === 0 ||
-          metricsQuery.projects.includes(parseInt(project.id, 10))
+          selection.projects.length === 0 ||
+          selection.projects.includes(parseInt(project.id, 10))
       )
       .forEach(project =>
         project.isMember ? memberProjects.push(project) : nonMemberProjects.push(project)
@@ -190,7 +203,7 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
         })),
       },
     ];
-  }, [metricsQuery.projects, projects]);
+  }, [selection.projects, projects]);
 
   const environmentOptions = useMemo(
     () => [

@@ -59,6 +59,7 @@ export const ALLOWED_SCOPES = [
   'member:read',
   'member:write',
   'org:admin',
+  'org:billing',
   'org:integrations',
   'org:read',
   'org:superuser', // not an assignable API access scope
@@ -218,6 +219,7 @@ export const MAX_PICKABLE_DAYS = 90;
 export const DEFAULT_STATS_PERIOD = '14d';
 
 export const DEFAULT_QUERY = 'is:unresolved';
+export const NEW_DEFAULT_QUERY = 'is:unresolved issue.priority:[high, medium]';
 
 export const DEFAULT_USE_UTC = true;
 
@@ -352,6 +354,7 @@ export const FILTER_MASK = '[Filtered]';
 export const ORGANIZATION_FETCH_ERROR_TYPES = {
   ORG_NOT_FOUND: 'ORG_NOT_FOUND',
   ORG_NO_ACCESS: 'ORG_NO_ACCESS',
+  NO_ORGS: 'NO_ORGS',
 };
 
 export const CONFIG_DOCS_URL = 'https://develop.sentry.dev/config/';

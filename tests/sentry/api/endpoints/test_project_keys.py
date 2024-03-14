@@ -1,12 +1,16 @@
 from django.urls import reverse
 
-from sentry.models.projectkey import ProjectKey
+from sentry.models.projectkey import ProjectKey, UseCase
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 
 @region_silo_test
 class ListProjectKeysTest(APITestCase):
+    def setUp(self):
+        super().setUp()
+        self.user = self.create_user(is_superuser=False)
+
     def test_simple(self):
         project = self.create_project()
         key = ProjectKey.objects.get_or_create(project=project)[0]
@@ -19,6 +23,53 @@ class ListProjectKeysTest(APITestCase):
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]["public"] == key.public_key
+
+    def test_use_case(self):
+        """Regular user can access user DSNs but not internal DSNs"""
+        project = self.create_project()
+        user_key = ProjectKey.objects.get_or_create(project=project)[0]
+        internal_key = ProjectKey.objects.get_or_create(
+            use_case=UseCase.PROFILING.value, project=project
+        )[0]
+        self.login_as(user=self.user)
+        url = reverse(
+            "sentry-api-0-project-keys",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+        response = self.client.get(url)
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        response_data = response.data[0]
+        assert "useCase" not in response_data
+        assert response_data["public"] == user_key.public_key
+        assert response_data["public"] != internal_key.public_key
+
+    def test_use_case_superuser(self):
+        """Superuser can access both user DSNs and internal DSNs"""
+        project = self.create_project()
+        user_key = ProjectKey.objects.get_or_create(project=project)[0]
+        internal_key = ProjectKey.objects.get_or_create(
+            use_case=UseCase.PROFILING.value, project=project
+        )[0]
+        superuser = self.create_user(is_superuser=True)
+        self.login_as(superuser, superuser=True)
+        url = reverse(
+            "sentry-api-0-project-keys",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+        response = self.client.get(url)
+        assert response.status_code == 200
+        assert len(response.data) == 2
+
+        response.data.sort(key=lambda k: k["useCase"])
+
+        response_data = response.data[0]
+        assert response_data["useCase"] == "profiling"
+        assert response_data["public"] == internal_key.public_key
+
+        response_data = response.data[1]
+        assert response_data["useCase"] == "user"
+        assert response_data["public"] == user_key.public_key
 
 
 @region_silo_test
@@ -73,3 +124,19 @@ class CreateProjectKeyTest(APITestCase):
         key = ProjectKey.objects.get(public_key=resp.data["public"])
         assert key.public_key == resp.data["public"] == "a" * 32
         assert key.secret_key == resp.data["secret"] == "b" * 32
+
+    def test_cannot_create_internal(self):
+        """POST request ignores use case field"""
+        project = self.create_project()
+        key = ProjectKey.objects.get_or_create(use_case=UseCase.USER.value, project=project)[0]
+        self.login_as(user=self.user)
+        url = reverse(
+            "sentry-api-0-project-keys",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+        resp = self.client.post(
+            url, data={"public": "a" * 32, "secret": "b" * 32, "useCase": "profiling"}
+        )
+        assert resp.status_code == 201, resp.content
+        key = ProjectKey.objects.get(public_key=resp.data["public"])
+        assert key.use_case == "user"

@@ -7,7 +7,6 @@ docker>=6
 time-machine>=2.13.0
 honcho>=1.1.0
 openapi-core>=0.18.2
-psutil
 pytest>=8
 pytest-cov>=4.0.0
 pytest-django>=4.8.0
@@ -38,7 +37,7 @@ sentry-forked-django-stubs>=4.2.7.post3
 sentry-forked-djangorestframework-stubs>=3.14.5.post1
 lxml-stubs
 msgpack-types>=0.2.0
-mypy>=1.8
+mypy>=1.9
 types-beautifulsoup4
 types-cachetools
 types-croniter

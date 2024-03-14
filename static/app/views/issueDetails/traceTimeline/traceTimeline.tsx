@@ -9,8 +9,6 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import useOrganization from 'sentry/utils/useOrganization';
-import {hasTraceTimelineFeature} from 'sentry/views/issueDetails/traceTimeline/utils';
 
 import {TraceTimelineEvents} from './traceTimelineEvents';
 import {useTraceTimelineEvents} from './useTraceTimelineEvents';
@@ -20,25 +18,22 @@ interface TraceTimelineProps {
 }
 
 export function TraceTimeline({event}: TraceTimelineProps) {
-  const organization = useOrganization({allowNull: true});
   const timelineRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions({elementRef: timelineRef});
-  const hasFeature = hasTraceTimelineFeature(organization);
-  const {isError, isLoading, traceEvents} = useTraceTimelineEvents({event}, hasFeature);
+  const {isError, isLoading, traceEvents} = useTraceTimelineEvents({event});
 
   const hasTraceId = !!event.contexts?.trace?.trace_id;
 
   let timelineStatus: string | undefined;
-  if (hasFeature) {
-    if (hasTraceId && !isLoading) {
-      timelineStatus = traceEvents.length > 1 ? 'shown' : 'empty';
-    } else if (!hasTraceId) {
-      timelineStatus = 'no_trace_id';
-    }
+  if (hasTraceId && !isLoading) {
+    timelineStatus = traceEvents.length > 1 ? 'shown' : 'empty';
+  } else if (!hasTraceId) {
+    timelineStatus = 'no_trace_id';
   }
+
   useRouteAnalyticsParams(timelineStatus ? {trace_timeline_status: timelineStatus} : {});
 
-  if (!hasFeature || !hasTraceId) {
+  if (!hasTraceId) {
     return null;
   }
 
@@ -50,7 +45,7 @@ export function TraceTimeline({event}: TraceTimelineProps) {
     traceEvents.every(item => item.id === event.id);
   if (isError || noEvents || onlySelfEvent) {
     // display empty placeholder to reduce layout shift
-    return <div style={{height: 38}} data-test-id="trace-timeline-empty" />;
+    return <div style={{height: 36}} data-test-id="trace-timeline-empty" />;
   }
 
   return (
@@ -89,7 +84,7 @@ const TimelineWrapper = styled('div')`
   grid-template-columns: 1fr auto;
   align-items: start;
   gap: ${space(2)};
-  margin-top: ${space(0.5)};
+  margin-top: ${space(0.25)};
 `;
 
 const QuestionTooltipWrapper = styled('div')`

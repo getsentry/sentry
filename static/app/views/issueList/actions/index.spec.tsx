@@ -300,12 +300,12 @@ describe('IssueListActions', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({id: ['1'], project: [1]}),
-        data: {status: 'unresolved'},
+        data: {status: 'unresolved', statusDetails: {}},
       })
     );
   });
 
-  it('can resolve but not merge issues from different projects', function () {
+  it('can resolve but not merge issues from different projects', async function () {
     jest
       .spyOn(SelectedGroupStore, 'getSelectedIds')
       .mockImplementation(() => new Set(['1', '2', '3']));
@@ -321,13 +321,13 @@ describe('IssueListActions', function () {
     render(<WrappedComponent />);
 
     // Can resolve but not merge issues from multiple projects
-    expect(screen.getByRole('button', {name: 'Resolve'})).toBeEnabled();
+    expect(await screen.findByRole('button', {name: 'Resolve'})).toBeEnabled();
     expect(screen.getByRole('button', {name: 'Merge Selected Issues'})).toBeDisabled();
   });
 
   describe('mark reviewed', function () {
     it('acknowledges group', async function () {
-      const mockOnMarkReviewed = jest.fn();
+      const mockOnActionTaken = jest.fn();
 
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
@@ -347,23 +347,23 @@ describe('IssueListActions', function () {
           },
         });
       });
-      render(<WrappedComponent onMarkReviewed={mockOnMarkReviewed} />);
+      render(<WrappedComponent onActionTaken={mockOnActionTaken} />);
 
       const reviewButton = screen.getByRole('button', {name: 'Mark Reviewed'});
       expect(reviewButton).toBeEnabled();
       await userEvent.click(reviewButton);
 
-      expect(mockOnMarkReviewed).toHaveBeenCalledWith(['1', '2', '3']);
+      expect(mockOnActionTaken).toHaveBeenCalledWith(['1', '2', '3'], {inbox: false});
     });
 
-    it('mark reviewed disabled for group that is already reviewed', function () {
+    it('mark reviewed disabled for group that is already reviewed', async function () {
       SelectedGroupStore.add(['1']);
       SelectedGroupStore.toggleSelectAll();
       GroupStore.loadInitialData([GroupFixture({id: '1', inbox: null})]);
 
       render(<WrappedComponent {...defaultProps} />);
 
-      expect(screen.getByRole('button', {name: 'Mark Reviewed'})).toBeDisabled();
+      expect(await screen.findByRole('button', {name: 'Mark Reviewed'})).toBeDisabled();
     });
   });
 

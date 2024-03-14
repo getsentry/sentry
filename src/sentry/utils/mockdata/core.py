@@ -20,7 +20,8 @@ from sentry import buffer, roles, tsdb
 from sentry.constants import ObjectStatus
 from sentry.exceptions import HashDiscarded
 from sentry.incidents.logic import create_alert_rule, create_alert_rule_trigger, create_incident
-from sentry.incidents.models import AlertRuleThresholdType, IncidentType
+from sentry.incidents.models.alert_rule import AlertRuleThresholdType
+from sentry.incidents.models.incident import IncidentType
 from sentry.models.activity import Activity
 from sentry.models.broadcast import Broadcast
 from sentry.models.commit import Commit
@@ -424,7 +425,7 @@ def create_monitor(project: Project, environment: Environment) -> None:
 
     monitor_env, _ = MonitorEnvironment.objects.get_or_create(
         monitor=monitor,
-        environment=environment,
+        environment_id=environment.id,
         defaults={
             "status": MonitorStatus.DISABLED,
             "next_checkin": django_timezone.now() + timedelta(minutes=60),

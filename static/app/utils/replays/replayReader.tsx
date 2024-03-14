@@ -14,6 +14,7 @@ import hydrateBreadcrumbs, {
 import hydrateErrors from 'sentry/utils/replays/hydrateErrors';
 import hydrateFrames from 'sentry/utils/replays/hydrateFrames';
 import {
+  clipEndFrame,
   recordingEndFrame,
   recordingStartFrame,
 } from 'sentry/utils/replays/hydrateRRWebRecordingFrames';
@@ -29,6 +30,7 @@ import type {
   serializedNodeWithId,
   SlowClickFrame,
   SpanFrame,
+  VideoEvent,
 } from 'sentry/utils/replays/types';
 import {
   BreadcrumbCategories,
@@ -150,7 +152,7 @@ export default class ReplayReader {
       return archivedReader;
     }
 
-    const {breadcrumbFrames, optionFrame, rrwebFrames, spanFrames} =
+    const {breadcrumbFrames, optionFrame, rrwebFrames, spanFrames, videoFrames} =
       hydrateFrames(attachments);
 
     if (localStorageWrapper.getItem('REPLAY-BACKEND-TIMESTAMPS') !== '1') {
@@ -182,6 +184,7 @@ export default class ReplayReader {
     this._errors = hydrateErrors(replayRecord, errors).sort(sortFrames);
     // RRWeb Events are not sorted here, they are fetched in sorted order.
     this._sortedRRWebEvents = rrwebFrames;
+    this._videoEvents = videoFrames;
     // Breadcrumbs must be sorted. Crumbs like `slowClick` and `multiClick` will
     // have the same timestamp as the click breadcrumb, but will be emitted a
     // few seconds later.
@@ -218,6 +221,7 @@ export default class ReplayReader {
   private _sortedRRWebEvents: RecordingFrame[] = [];
   private _sortedSpanFrames: SpanFrame[] = [];
   private _startOffsetMs = 0;
+  private _videoEvents: VideoEvent[] = [];
 
   private _applyClipWindow = (clipWindow: ClipWindow) => {
     const clipStartTimestampMs = clamp(
@@ -237,14 +241,10 @@ export default class ReplayReader {
     this._sortedRRWebEvents = this._sortedRRWebEvents.filter(
       frame => frame.timestamp <= clipEndTimestampMs
     );
-
-    // We only want playback to occur while events are still being recorded.
-    // Without doing this, the replay will appear to stop prematurely.
-    const lastRecordingFrameTimestampMs =
-      this._sortedRRWebEvents.at(-1)?.timestamp ?? clipEndTimestampMs;
+    this._sortedRRWebEvents.push(clipEndFrame(clipEndTimestampMs));
 
     this._startOffsetMs = clipStartTimestampMs - this._replayRecord.started_at.getTime();
-    this._duration = duration(lastRecordingFrameTimestampMs - clipStartTimestampMs);
+    this._duration = duration(clipEndTimestampMs - clipStartTimestampMs);
 
     // We also only trim from the back for breadcrumbs/spans to keep
     // historical information about the replay, such as the current URL.
@@ -252,23 +252,19 @@ export default class ReplayReader {
       this._trimFramesToClipWindow(
         this._sortedBreadcrumbFrames,
         this._replayRecord.started_at.getTime(),
-        lastRecordingFrameTimestampMs
+        clipEndTimestampMs
       )
     );
     this._sortedSpanFrames = this._updateFrameOffsets(
       this._trimFramesToClipWindow(
         this._sortedSpanFrames,
         this._replayRecord.started_at.getTime(),
-        lastRecordingFrameTimestampMs
+        clipEndTimestampMs
       )
     );
 
     this._errors = this._updateFrameOffsets(
-      this._trimFramesToClipWindow(
-        this._errors,
-        clipStartTimestampMs,
-        lastRecordingFrameTimestampMs
-      )
+      this._trimFramesToClipWindow(this._errors, clipStartTimestampMs, clipEndTimestampMs)
     );
   };
 
@@ -419,6 +415,8 @@ export default class ReplayReader {
 
   getLPCFrames = memoize(() => this._sortedSpanFrames.filter(isLCPFrame));
 
+  getVideoEvents = () => this._videoEvents;
+
   getPaintFrames = memoize(() => this._sortedSpanFrames.filter(isPaintFrame));
 
   getSDKOptions = () => this._optionFrame;
@@ -430,6 +428,8 @@ export default class ReplayReader {
   hasCanvasElementInReplay = memoize(() => {
     return Boolean(this._sortedRRWebEvents.filter(findCanvas).length);
   });
+
+  isVideoReplay = memoize(() => this.getVideoEvents().length > 0);
 
   isNetworkDetailsSetup = memoize(() => {
     const sdkOptions = this.getSDKOptions();

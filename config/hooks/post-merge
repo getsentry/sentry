@@ -6,43 +6,31 @@ bold="$(tput bold)"
 reset="$(tput sgr0)"
 
 files_changed_upstream="$(mktemp)"
-trap "rm -f ${files_changed_upstream}" EXIT
+# shellcheck disable=SC2064
+trap "rm -f $files_changed_upstream" EXIT
 
 git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD >"$files_changed_upstream"
 
-grep --quiet 'requirements-dev-frozen.txt' "$files_changed_upstream" && py="install-py-dev "
-grep --quiet 'yarn.lock' "$files_changed_upstream" && js="install-js-dev "
-grep --quiet 'migrations' "$files_changed_upstream" && migrations="apply-migrations "
-
-[[ "$pc" || "$py" || "$js" || "$migrations" ]] && needs_update=1
-
-if [[ "$needs_update" ]]; then
-  update_command="make ${pc}${py}${js}${migrations}"
-
-  if [ ! -x "${HOME}/.local/share/sentry-devenv/bin/devenv" ]; then
-      # Old and busted.
-      if [ ! -f ".venv/bin/activate" ]; then
-          prompt_python_venv_creation
-          # This is time consuming but it has to be done
-          source "${SENTRY_ROOT}/scripts/bootstrap-py3-venv"
-      fi
-  else
-      # The new hotness (coming soon).
-      update_command="devenv sync"
-  fi
-
+if grep --quiet 'requirements-dev-frozen.txt' "$files_changed_upstream" || grep --quiet 'yarn.lock' "$files_changed_upstream" || grep --quiet 'migrations' "$files_changed_upstream"; then
   cat <<EOF
 
-[${red}${bold}!!!${reset}] ${red} It looks like some dependencies have changed that will require your intervention. Run the following to update:${reset}
-
-    ${red}${bold}${update_command}${reset}
+[${red}${bold}!!!${reset}] ${red} It looks like some dependencies have changed. Run devenv sync to resync your environment.${reset}
 
 EOF
 
   if [[ "$SENTRY_POST_MERGE_AUTO_UPDATE" ]]; then
-    echo "${yellow}Automatically running update command because SENTRY_POST_MERGE_AUTO_UPDATE is set.${reset}"
-    $update_command
+    if [ -f .venv/bin/devenv ]; then
+        DEVENV=.venv/bin/devenv
+    else
+        DEVENV=devenv
+    fi
+    echo "${yellow}Automatically running devenv sync because SENTRY_POST_MERGE_AUTO_UPDATE is set.${reset}"
+    if ! command -v "$DEVENV" >/dev/null 2>&1; then
+        echo "devenv not found! install: https://github.com/getsentry/devenv#install"
+        exit 1
+    fi
+    "$DEVENV" sync
   else
-    echo "${yellow}If you want these commands to be executed automatically after pulling code, you can export the SENTRY_POST_MERGE_AUTO_UPDATE variable.${reset}"
+    echo "${yellow}If you want devenv sync to be executed automatically after pulling code, you can export the SENTRY_POST_MERGE_AUTO_UPDATE variable.${reset}"
   fi
 fi

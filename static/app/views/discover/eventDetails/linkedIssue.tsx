@@ -2,10 +2,10 @@ import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import Times from 'sentry/components/group/times';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
+import LoadingError from 'sentry/components/loadingError';
 import Placeholder from 'sentry/components/placeholder';
 import SeenByList from 'sentry/components/seenByList';
 import ShortId from 'sentry/components/shortId';
@@ -13,34 +13,30 @@ import GroupChart from 'sentry/components/stream/groupChart';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types';
+import {useApiQuery} from 'sentry/utils/queryClient';
 
 type Props = {
   eventId: string;
   groupId: string;
 };
 
-type State = {
-  group: Group;
-};
+function LinkedIssue({eventId, groupId}: Props) {
+  const groupUrl = `/issues/${groupId}/`;
 
-class LinkedIssue extends DeprecatedAsyncComponent<
-  Props & DeprecatedAsyncComponent['props'],
-  State & DeprecatedAsyncComponent['state']
-> {
-  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    const {groupId} = this.props;
-    const groupUrl = `/issues/${groupId}/`;
+  const {
+    data: group,
+    isLoading,
+    isError,
+    error,
+  } = useApiQuery<Group>([groupUrl], {staleTime: 0});
 
-    return [['group', groupUrl]];
-  }
-
-  renderLoading() {
+  if (isLoading) {
     return <Placeholder height="120px" bottomGutter={2} />;
   }
 
-  renderError(error?: Error, disableLog = false): React.ReactNode {
-    const {errors} = this.state;
-    const hasNotFound = Object.values(errors).find(resp => resp && resp.status === 404);
+  if (isError || !group) {
+    const hasNotFound = error.status === 404;
+
     if (hasNotFound) {
       return (
         <Alert type="warning" showIcon>
@@ -49,44 +45,40 @@ class LinkedIssue extends DeprecatedAsyncComponent<
       );
     }
 
-    return super.renderError(error, disableLog);
+    return <LoadingError />;
   }
 
-  renderBody() {
-    const {eventId} = this.props;
-    const {group} = this.state;
-    const issueUrl = `${group.permalink}events/${eventId}/`;
+  const issueUrl = `${group.permalink}events/${eventId}/`;
 
-    return (
-      <Section>
-        <SectionHeading>{t('Event Issue')}</SectionHeading>
-        <StyledIssueCard>
-          <IssueCardHeader>
-            <StyledLink to={issueUrl} data-test-id="linked-issue">
-              <StyledShortId
-                shortId={group.shortId}
-                avatar={
-                  <ProjectBadge
-                    project={group.project}
-                    avatarSize={16}
-                    hideName
-                    disableLink
-                  />
-                }
-              />
-            </StyledLink>
-            <SeenByList seenBy={group.seenBy} maxVisibleAvatars={5} />
-          </IssueCardHeader>
-          <IssueCardBody>
-            <GroupChart statsPeriod="30d" data={group} height={56} />
-          </IssueCardBody>
-          <IssueCardFooter>
-            <Times lastSeen={group.lastSeen} firstSeen={group.firstSeen} />
-          </IssueCardFooter>
-        </StyledIssueCard>
-      </Section>
-    );
-  }
+  return (
+    <Section>
+      <SectionHeading>{t('Event Issue')}</SectionHeading>
+      <StyledIssueCard>
+        <IssueCardHeader>
+          <StyledLink to={issueUrl} data-test-id="linked-issue">
+            <StyledShortId
+              shortId={group.shortId}
+              avatar={
+                <ProjectBadge
+                  project={group.project}
+                  avatarSize={16}
+                  hideName
+                  disableLink
+                />
+              }
+            />
+          </StyledLink>
+          <SeenByList seenBy={group.seenBy} maxVisibleAvatars={5} />
+        </IssueCardHeader>
+        <IssueCardBody>
+          <GroupChart statsPeriod="30d" data={group} height={56} />
+        </IssueCardBody>
+        <IssueCardFooter>
+          <Times lastSeen={group.lastSeen} firstSeen={group.firstSeen} />
+        </IssueCardFooter>
+      </StyledIssueCard>
+    </Section>
+  );
 }
 
 const Section = styled('div')`

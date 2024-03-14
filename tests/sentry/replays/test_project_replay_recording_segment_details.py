@@ -7,7 +7,7 @@ from sentry.replays.lib.storage import (
     FilestoreBlob,
     RecordingSegmentStorageMeta,
     StorageBlob,
-    make_filename,
+    make_recording_filename,
 )
 from sentry.replays.testutils import mock_replay
 from sentry.testutils.abstract import Abstract
@@ -82,7 +82,7 @@ class FilestoreReplayRecordingSegmentDetailsTestCase(EnvironmentBase):
             retention_days=None,
         )
 
-        self.segment_filename = make_filename(metadata)
+        self.segment_filename = make_recording_filename(metadata)
         FilestoreBlob().set(metadata, self.segment_data)
 
 
@@ -96,7 +96,7 @@ class StorageReplayRecordingSegmentDetailsTestCase(EnvironmentBase, ReplaysSnuba
             retention_days=30,
         )
 
-        self.segment_filename = make_filename(metadata)
+        self.segment_filename = make_recording_filename(metadata)
 
         self.store_replays(
             mock_replay(

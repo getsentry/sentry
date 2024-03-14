@@ -122,8 +122,6 @@ class OpsgenieIntegration(IntegrationInstallation):
         return OpsgenieClient(
             integration=self.model,
             integration_key=team["integration_key"],
-            org_integration_id=org_integration.id,
-            keyid=keyid,
         )
 
     def get_client(self) -> Any:  # type: ignore

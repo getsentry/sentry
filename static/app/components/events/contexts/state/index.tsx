@@ -3,9 +3,7 @@ import upperFirst from 'lodash/upperFirst';
 import ClippedBox from 'sentry/components/clippedBox';
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 import {t} from 'sentry/locale';
-import type {Event} from 'sentry/types';
-
-type KeyValueListData = React.ComponentProps<typeof ContextBlock>['data'];
+import type {Event, KeyValueListData, KeyValueListDataItem} from 'sentry/types';
 
 type StateDescription = {
   value: Record<string, any> | null | string;
@@ -36,7 +34,8 @@ export function StateEventContext({data, event}: Props) {
       {
         key: 'state',
         subject: getStateTitle(t('State'), data.state.type),
-        value: data.state.value,
+        // TODO(TS): Objects cannot be rendered to dom
+        value: data.state.value as string,
         meta: meta.state?.value?.[''],
       },
     ];
@@ -45,9 +44,10 @@ export function StateEventContext({data, event}: Props) {
   function getUnknownData(): KeyValueListData {
     return Object.entries(data)
       .filter(([key]) => !['type', 'title', 'state'].includes(key))
-      .map(([name, state]) => ({
+      .map<KeyValueListDataItem>(([name, state]) => ({
         key: name,
-        value: state.value,
+        // TODO(TS): Objects cannot be rendered to dom
+        value: state.value as string,
         subject: getStateTitle(name, state.type),
         meta: meta[name]?.value?.[''],
       }));

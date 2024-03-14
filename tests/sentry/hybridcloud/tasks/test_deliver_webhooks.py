@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import PropertyMock, patch
 
 import pytest
 import responses
@@ -7,6 +7,7 @@ from django.utils import timezone
 from requests.exceptions import ConnectionError, ReadTimeout
 
 from sentry.hybridcloud.models.webhookpayload import MAX_ATTEMPTS, WebhookPayload
+from sentry.hybridcloud.tasks import deliver_webhooks
 from sentry.hybridcloud.tasks.deliver_webhooks import drain_mailbox, schedule_webhook_delivery
 from sentry.testutils.cases import TestCase
 from sentry.testutils.region import override_regions
@@ -203,17 +204,22 @@ class DrainMailboxTest(TestCase):
 
     @responses.activate
     @override_regions(region_config)
-    def test_drain_limit_depth(self):
+    def test_drain_time_limit(self):
         responses.add(
             responses.POST,
             "http://us.testserver/extensions/github/webhook/",
             status=200,
             body="",
         )
-        records = self.create_payloads(51, "github:123")
-        drain_mailbox(records[0].id)
+        records = self.create_payloads(1, "github:123")
+        with patch.object(
+            deliver_webhooks,
+            "BATCH_SCHEDULE_OFFSET",
+            new_callable=PropertyMock(return_value=timedelta(minutes=0)),
+        ):
+            drain_mailbox(records[0].id)
 
-        # Drain removes up to 50 messages.
+        # Once start time + batch offset is in the past we stop delivery
         assert WebhookPayload.objects.count() == 1
 
     @responses.activate
@@ -299,7 +305,7 @@ class DrainMailboxTest(TestCase):
 
     @responses.activate
     @override_regions(region_config)
-    def test_drain_api_error(self):
+    def test_drain_api_error_unauthorized(self):
         responses.add(
             responses.POST,
             "http://us.testserver/extensions/github/webhook/",
@@ -312,10 +318,48 @@ class DrainMailboxTest(TestCase):
         )
         drain_mailbox(webhook_one.id)
         hook = WebhookPayload.objects.filter(id=webhook_one.id).first()
-        assert hook
-        assert hook.schedule_for > timezone.now()
-        assert hook.attempts == 1
+        # We don't retry 401
+        assert hook is None
+        assert len(responses.calls) == 1
 
+    @responses.activate
+    @override_regions(region_config)
+    def test_drain_api_error_bad_request(self):
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/github/webhook/",
+            status=400,
+            body="",
+        )
+        webhook_one = self.create_webhook_payload(
+            mailbox_name="github:123",
+            region_name="us",
+        )
+        drain_mailbox(webhook_one.id)
+        hook = WebhookPayload.objects.filter(id=webhook_one.id).first()
+        # We don't retry 400
+        assert hook is None
+        assert len(responses.calls) == 1
+
+    @responses.activate
+    @override_regions(region_config)
+    def test_drain_not_found(self):
+        responses.add(
+            responses.POST,
+            "http://us.testserver/plugins/github/organizations/123/webhook/",
+            status=404,
+            body="<html><title>lol nope</title></html>",
+        )
+        webhook_one = self.create_webhook_payload(
+            mailbox_name="plugins:123",
+            region_name="us",
+            request_path="/plugins/github/organizations/123/webhook/",
+        )
+        drain_mailbox(webhook_one.id)
+
+        # We don't retry if the region 404s
+        hook = WebhookPayload.objects.filter(id=webhook_one.id).first()
+        assert hook is None
         assert len(responses.calls) == 1
 
     @responses.activate

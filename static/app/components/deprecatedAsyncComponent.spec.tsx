@@ -1,4 +1,4 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 
@@ -125,14 +125,14 @@ describe('DeprecatedAsyncComponent', function () {
 
       expect(screen.getByTestId('remaining-requests')).toHaveTextContent('2');
 
-      jest.advanceTimersByTime(40);
+      act(() => jest.advanceTimersByTime(40));
       expect(screen.getByTestId('remaining-requests')).toHaveTextContent('2');
 
-      jest.advanceTimersByTime(40);
+      act(() => jest.advanceTimersByTime(40));
       expect(screen.getByTestId('remaining-requests')).toHaveTextContent('1');
       expect(mockOnAllEndpointsSuccess).not.toHaveBeenCalled();
 
-      jest.advanceTimersByTime(40);
+      act(() => jest.advanceTimersByTime(40));
       expect(screen.queryByTestId('remaining-requests')).not.toBeInTheDocument();
       expect(mockOnAllEndpointsSuccess).toHaveBeenCalled();
 

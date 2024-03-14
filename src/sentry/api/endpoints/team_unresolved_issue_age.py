@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from django.db.models import Case, Count, Q, TextField, Value, When
 from django.utils import timezone
@@ -31,7 +31,7 @@ OLDEST_LABEL = "> 1 year"
 class TeamUnresolvedIssueAgeEndpoint(TeamEndpoint, EnvironmentMixin):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, team: Team) -> Response:
@@ -52,7 +52,7 @@ class TeamUnresolvedIssueAgeEndpoint(TeamEndpoint, EnvironmentMixin):
             .filter(
                 group_environment_filter,
                 status=GroupStatus.UNRESOLVED,
-                last_seen__gt=datetime.now() - timedelta(days=90),
+                last_seen__gt=datetime.now(UTC) - timedelta(days=90),
             )
             .annotate(
                 bucket=Case(

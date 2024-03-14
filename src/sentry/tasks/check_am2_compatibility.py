@@ -9,8 +9,12 @@ from django.db.models import Q
 
 from sentry.dynamic_sampling import get_redis_client_for_ds
 from sentry.exceptions import IncompatibleMetricsQuery
-from sentry.incidents.models import AlertRule
-from sentry.models.dashboard_widget import DashboardWidgetQuery
+from sentry.incidents.models.alert_rule import AlertRule
+from sentry.models.dashboard_widget import (
+    ON_DEMAND_ENABLED_KEY,
+    DashboardWidgetQuery,
+    DashboardWidgetQueryOnDemand,
+)
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.events.builder import MetricsQueryBuilder
@@ -18,7 +22,10 @@ from sentry.search.events.types import QueryBuilderConfig
 from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import query as discover_query
-from sentry.snuba.metrics.extraction import should_use_on_demand_metrics
+from sentry.snuba.metrics.extraction import (
+    OnDemandMetricSpecVersioning,
+    should_use_on_demand_metrics,
+)
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
 
@@ -328,14 +335,15 @@ class CheckAM2Compatibility:
         organization,
         unsupported_widgets,
         unsupported_alerts,
+        ondemand_supported_widgets,
         outdated_sdks_per_project,
     ):
         results: dict[str, Any] = {}
 
         widgets = []
-        for dashboard_id, unsupported_widgets in unsupported_widgets.items():
+        for dashboard_id, widget_data in unsupported_widgets.items():
             unsupported = []
-            for widget_id, fields, conditions in unsupported_widgets:
+            for widget_id, fields, conditions in widget_data:
                 unsupported.append(
                     {
                         "id": widget_id,
@@ -348,6 +356,25 @@ class CheckAM2Compatibility:
             widgets.append({"dashboard_id": dashboard_id, "unsupported": unsupported})
 
         results["widgets"] = widgets
+
+        ondemand_widgets = []
+        for dashboard_id, widget_data in ondemand_supported_widgets.items():
+            ondemand_supported = []
+            for widget_id, fields, conditions in widget_data:
+                ondemand_supported.append(
+                    {
+                        "id": widget_id,
+                        "url": cls.get_widget_url(organization.slug, dashboard_id, widget_id),
+                        "fields": fields,
+                        "conditions": conditions,
+                    }
+                )
+
+            ondemand_widgets.append(
+                {"dashboard_id": dashboard_id, "ondemand_supported": ondemand_supported}
+            )
+
+        results["ondemand_widgets"] = ondemand_widgets
 
         alerts = []
         for alert_id, aggregate, query in unsupported_alerts:
@@ -539,12 +566,25 @@ class CheckAM2Compatibility:
         )
 
     @classmethod
+    def get_ondemand_widget_ids(cls, organization_id):
+        current_version = OnDemandMetricSpecVersioning.get_query_spec_version(organization_id)
+        widget_ids = DashboardWidgetQueryOnDemand.objects.filter(
+            spec_version=current_version.version,
+            dashboard_widget_query__widget__dashboard__organization_id=organization_id,
+            extraction_state__startswith=ON_DEMAND_ENABLED_KEY,
+        ).values_list("dashboard_widget_query__widget_id", flat=True)
+        return set(widget_ids)
+
+    @classmethod
     def run_compatibility_check(cls, org_id):
         organization = Organization.objects.get(id=org_id)
 
         all_projects = list(Project.objects.using_replica().filter(organization=organization))
 
         unsupported_widgets = defaultdict(list)
+        ondemand_supported_widgets = defaultdict(list)
+        ondemand_widget_ids = cls.get_ondemand_widget_ids(org_id)
+
         for (
             widget_id,
             dashboard_id,
@@ -555,6 +595,13 @@ class CheckAM2Compatibility:
             # We run this query by selecting all projects, so that the widget query should never fail in case the
             # `query` contains "project:something".
             supports_metrics = cls.is_metrics_data(organization.id, all_projects, conditions)
+
+            supports_ondemand = widget_id in ondemand_widget_ids
+            if supports_ondemand:
+                # If it supports on demand it's no longer unsupported, but until all data has begun migrating
+                # we should still be showing the widgets so they can be checked.
+                ondemand_supported_widgets[dashboard_id].append((widget_id, fields, conditions))
+
             if supports_metrics is None:
                 with sentry_sdk.push_scope() as scope:
                     scope.set_tag("org_id", organization.id)
@@ -566,8 +613,8 @@ class CheckAM2Compatibility:
 
                 continue
 
-            if not supports_metrics:
-                # # We mark whether a metric is not supported.
+            if not supports_metrics and not supports_ondemand:
+                # We mark whether a metric is not supported.
                 unsupported_widgets[dashboard_id].append((widget_id, fields, conditions))
 
         unsupported_alerts = []
@@ -603,6 +650,7 @@ class CheckAM2Compatibility:
             organization,
             unsupported_widgets,
             unsupported_alerts,
+            ondemand_supported_widgets,
             outdated_sdks_per_project,
         )
 
@@ -627,12 +675,16 @@ def get_check_status(org_id):
     redis_client = get_redis_client_for_ds()
     cache_key = generate_cache_key_for_async_progress(org_id)
 
-    cached_status = redis_client.get(cache_key)
     try:
-        float_cached_status = float(cached_status)
-        return CheckStatus(float_cached_status)
+        cached_status = redis_client.get(cache_key)
+        if cached_status:
+            float_cached_status = float(cached_status)
+            return CheckStatus(float_cached_status)
+
     except (TypeError, ValueError):
-        return None
+        pass
+
+    return None
 
 
 def set_check_results(org_id, results):

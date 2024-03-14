@@ -16,7 +16,6 @@ from sentry.snuba.metrics.extraction import (
     to_standard_metrics_query,
 )
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.utils import json
 from sentry.utils.glob import glob_match
 
 
@@ -34,10 +33,17 @@ def test_equality_of_specs(default_project) -> None:
     [
         ("count()", "release:a", False),  # supported by standard metrics
         ("failure_rate()", "release:a", False),  # supported by standard metrics
-        # geo.city not supported by standard metrics, but also not by on demand
-        ("count_unique(geo.city)", "release:a", False),
+        # geo.city not supported by standard metrics
+        ("count_unique(geo.city)", "release:a", True),
         # transaction.duration not supported by standard metrics
         ("count()", "transaction.duration:>1", True),
+        ("epm()", "transaction.duration:>1", True),
+        ("eps()", "transaction.duration:>1", True),
+        ("epm()", "", False),  # supported by standard metrics
+        ("eps()", "", False),  # supported by standard metrics
+        # the endpoints introduce the field based on the interval
+        ("epm(900)", "", False),  # supported by standard metrics
+        ("eps(900)", "", False),  # supported by standard metrics
         ("failure_count()", "transaction.duration:>1", True),  # supported by on demand
         ("failure_rate()", "transaction.duration:>1", True),  # supported by on demand
         ("apdex(10)", "", True),  # every apdex query is on-demand
@@ -64,6 +70,8 @@ def test_equality_of_specs(default_project) -> None:
         ("count()", "event.type:default transaction.duration:>0", False),
         # error.handled is an error search term
         ("count()", "error.handled:true transaction.duration:>0", False),
+        ("user_misery(300)", "", True),
+        ("user_misery(300)", "transaction.duration:>0", True),
     ],
 )
 def test_should_use_on_demand(agg: str, query: str, result: bool) -> None:
@@ -141,24 +149,16 @@ class TestCreatesOndemandMetricSpec:
         "aggregate, query",
         [
             ("count()", "release:a"),  # supported by standard metrics
-            (
-                "count_unique(user)",
-                "transaction.duration:>0",
-            ),  # count_unique not supported by on demand
             ("last_seen()", "transaction.duration:>0"),  # last_seen not supported by on demand
             ("any(user)", "transaction.duration:>0"),  # any not supported by on demand
             ("p95(transaction.duration)", ""),  # p95 without query is supported by standard metrics
             # we do not support custom percentiles that can not be mapped to one of standard percentiles
             ("percentile(transaction.duration, 0.123)", "transaction.duration>0"),
-            (
-                "count()",
-                "p75(transaction.duration):>0",
-            ),  # p75 without query is supported by standard metrics
+            # p75 without query is supported by standard metrics
+            ("count()", "p75(transaction.duration):>0"),
             ("message", "transaction.duration:>0"),  # message not supported by on demand
-            (
-                "equation| count() / count()",
-                "transaction.duration:>0",
-            ),  # equation not supported by on demand
+            # equation not supported by on demand
+            ("equation| count() / count()", "transaction.duration:>0"),
             ("p75(measurements.lcp)", "!event.type:transaction"),  # supported by standard metrics
             # supported by standard metrics
             ("p95(measurements.lcp)", ""),
@@ -166,8 +166,6 @@ class TestCreatesOndemandMetricSpec:
             ("failure_count()", ""),
             ("failure_rate()", "release:bar"),
             ("failure_rate()", ""),
-            ("user_misery(300)", ""),
-            ("user_misery(300)", "transaction.duration:>0"),
         ],
     )
     def test_does_not_create_on_demand_spec(self, aggregate, query) -> None:
@@ -425,9 +423,7 @@ def test_spec_wildcard() -> None:
         ("title:*?dispatch*", "backend ?dispatch", r"*\?dispatch*"),
     ],
 )
-def test_spec_wildcard_escaping(
-    default_project, insta_snapshot, query, title, expected_pattern
-) -> None:
+def test_spec_wildcard_escaping(query, title, expected_pattern) -> None:
     spec = OnDemandMetricSpec("count()", query)
 
     assert spec._metric_type == "c"
@@ -442,10 +438,6 @@ def test_spec_wildcard_escaping(
     # We also validate using Relay's glob implementation to make sure the escaping
     # is interpreted correctly.
     assert glob_match(title, expected_pattern, ignorecase=True)
-
-    # We want to validate the json output, to make sure that characters are correctly escaped.
-    metric_spec = spec.to_metric_spec(default_project)
-    insta_snapshot(json.dumps(metric_spec))
 
 
 def test_spec_count_if() -> None:

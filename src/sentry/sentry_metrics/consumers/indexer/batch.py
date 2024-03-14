@@ -2,6 +2,7 @@ import logging
 import random
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping, MutableMapping, MutableSequence, Sequence
+from dataclasses import dataclass
 from typing import Any, cast
 
 import rapidjson
@@ -16,7 +17,7 @@ from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMe
 from sentry_kafka_schemas.schema_types.snuba_metrics_v1 import Metric
 
 from sentry import options
-from sentry.sentry_metrics.aggregation_option_registry import get_aggregation_option
+from sentry.sentry_metrics.aggregation_option_registry import get_aggregation_options
 from sentry.sentry_metrics.configuration import MAX_INDEXED_COLUMN_LENGTH
 from sentry.sentry_metrics.consumers.indexer.common import (
     BrokerMeta,
@@ -55,6 +56,35 @@ def _should_sample_debug_log() -> bool:
     return (rate > 0) and random.random() <= rate
 
 
+@dataclass
+class IndexerBatchMetrics:
+    message_count: int = 0
+    total_bytes: int = 0
+    total_tags_len: int = 0
+    total_value_len: int = 0
+    max_bytes: int = 0
+    max_tags_len: int = 0
+    max_value_len: int = 0
+
+    def add_metric(self, num_bytes: int, tags_len: int, value_len: int) -> None:
+        self.message_count += 1
+        self.total_bytes += num_bytes
+        self.total_tags_len += tags_len
+        self.total_value_len += value_len
+        self.max_bytes = max(self.max_bytes, num_bytes)
+        self.max_tags_len = max(self.max_tags_len, tags_len)
+        self.max_value_len = max(self.max_value_len, value_len)
+
+    def avg_bytes(self) -> float:
+        return self.total_bytes / self.message_count
+
+    def avg_tags_len(self) -> float:
+        return self.total_tags_len / self.message_count
+
+    def avg_value_len(self) -> float:
+        return self.total_value_len / self.message_count
+
+
 class IndexerBatch:
     def __init__(
         self,
@@ -70,13 +100,9 @@ class IndexerBatch:
         self.tags_validator = tags_validator
         self.schema_validator = schema_validator
 
-        self.__message_count: MutableMapping[UseCaseID, int] = defaultdict(int)
-        self.__message_bytes: MutableMapping[UseCaseID, int] = defaultdict(int)
-        self.__message_tags_len: MutableMapping[UseCaseID, int] = defaultdict(int)
-        self.__message_value_len: MutableMapping[UseCaseID, int] = defaultdict(int)
-        self.__message_bytes_max: MutableMapping[UseCaseID, int] = defaultdict(int)
-        self.__message_tags_len_max: MutableMapping[UseCaseID, int] = defaultdict(int)
-        self.__message_value_len_max: MutableMapping[UseCaseID, int] = defaultdict(int)
+        self._message_metrics: MutableMapping[
+            UseCaseID, MutableMapping[str, IndexerBatchMetrics]
+        ] = defaultdict(lambda: defaultdict(IndexerBatchMetrics))
 
         # Invalid messages and filtered messages are both skipped during processing
         # (reconstruct_messages), but we want to put the invalid messages into the
@@ -163,22 +189,10 @@ class IndexerBatch:
                 exc_info=True,
             )
 
-        self.__message_count[use_case_id] += 1
-
-        self.__message_bytes[use_case_id] += len(msg.payload.value)
-        self.__message_tags_len[use_case_id] += len(parsed_payload.get("tags", {}))
-        self.__message_value_len[use_case_id] += (
-            len(parsed_payload["value"]) if isinstance(parsed_payload["value"], Iterable) else 1
-        )
-        self.__message_bytes_max[use_case_id] = max(
-            len(msg.payload.value), self.__message_bytes_max[use_case_id]
-        )
-        self.__message_tags_len_max[use_case_id] = max(
-            len(parsed_payload.get("tags", {})), self.__message_tags_len_max[use_case_id]
-        )
-        self.__message_value_len_max[use_case_id] = max(
+        self._message_metrics[use_case_id][parsed_payload["type"]].add_metric(
+            len(msg.payload.value),
+            len(parsed_payload.get("tags", {})),
             len(parsed_payload["value"]) if isinstance(parsed_payload["value"], Iterable) else 1,
-            self.__message_value_len_max[use_case_id],
         )
 
         return parsed_payload
@@ -440,7 +454,7 @@ class IndexerBatch:
                     value = old_payload_value["value"]
                     assert isinstance(value, (int, float, list))
                     new_payload_v1: Metric = {
-                        "tags": new_tags,
+                        "tags": cast(dict[str, int], new_tags),
                         # XXX: relay actually sends this value unconditionally
                         "retention_days": old_payload_value.get("retention_days", 90),
                         "mapping_meta": output_message_meta,
@@ -473,8 +487,11 @@ class IndexerBatch:
                         "value": old_payload_value["value"],
                         "sentry_received_timestamp": sentry_received_timestamp,
                     }
-                    if aggregation_option := get_aggregation_option(old_payload_value["name"]):
-                        new_payload_v2["aggregation_option"] = aggregation_option.value
+                    if aggregation_options := get_aggregation_options(old_payload_value["name"]):
+                        # TODO: This should eventually handle multiple aggregation options
+                        option = list(aggregation_options.items())[0][0]
+                        assert option is not None
+                        new_payload_v2["aggregation_option"] = option.value
 
                     new_payload_value = new_payload_v2
 
@@ -501,61 +518,84 @@ class IndexerBatch:
                     new_messages.append(Message(message.value.replace(kafka_payload)))
 
         with metrics.timer("metrics_consumer.reconstruct_messages.emit_payload_metrics"):
-            for use_case_id in self.__message_count:
-                metrics.incr(
-                    "metrics_consumer.process_message.messages_seen",
-                    amount=self.__message_count[use_case_id],
-                    tags={"use_case_id": use_case_id.value},
-                )
-                metrics.distribution(
+            for use_case_id, metrics_by_type in self._message_metrics.items():
+                for metric_type, batch_metric in metrics_by_type.items():
+                    if batch_metric.message_count == 0:
+                        continue
+                    metrics.incr(
+                        "metrics_consumer.process_message.messages_seen",
+                        amount=batch_metric.message_count,
+                        tags={"use_case_id": use_case_id.value, "metric_type": metric_type},
+                    )
+                    metrics.distribution(
+                        "metrics_consumer.process_message.message.avg_size_in_batch",
+                        batch_metric.avg_bytes(),
+                        tags={"use_case_id": use_case_id.value, "metric_type": metric_type},
+                        unit="byte",
+                    )
+                    metrics.distribution(
+                        "metrics_consumer.process_message.message.avg_tags_len_in_batch",
+                        batch_metric.avg_tags_len(),
+                        tags={"use_case_id": use_case_id.value, "metric_type": metric_type},
+                        unit="int",
+                    )
+                    metrics.distribution(
+                        "metrics_consumer.process_message.message.avg_value_len_in_batch",
+                        batch_metric.avg_value_len(),
+                        tags={"use_case_id": use_case_id.value, "metric_type": metric_type},
+                        unit="int",
+                    )
+                    metrics.gauge(
+                        "metrics_consumer.process_message.message.max_size_in_batch",
+                        batch_metric.max_bytes,
+                        tags={"use_case_id": use_case_id.value, "metric_type": metric_type},
+                        unit="byte",
+                    )
+                    metrics.gauge(
+                        "metrics_consumer.process_message.message.max_tags_len_in_batch",
+                        batch_metric.max_tags_len,
+                        tags={"use_case_id": use_case_id.value, "metric_type": metric_type},
+                        unit="int",
+                    )
+                    metrics.gauge(
+                        "metrics_consumer.process_message.message.max_value_len_in_batch",
+                        batch_metric.max_value_len,
+                        tags={"use_case_id": use_case_id.value, "metric_type": metric_type},
+                        unit="int",
+                    )
+            num_messages = sum(
+                type_metrics.message_count
+                for use_case_metrics in self._message_metrics.values()
+                for type_metrics in use_case_metrics.values()
+            )
+            if not num_messages == 0:
+                metrics.gauge(
                     "metrics_consumer.process_message.message.avg_size_in_batch",
-                    self.__message_bytes[use_case_id] / self.__message_count[use_case_id],
-                    tags={"use_case_id": use_case_id.value},
-                    unit="byte",
+                    sum(
+                        type_metrics.total_bytes
+                        for use_case_metrics in self._message_metrics.values()
+                        for type_metrics in use_case_metrics.values()
+                    )
+                    / num_messages,
                 )
-                metrics.distribution(
+                metrics.gauge(
                     "metrics_consumer.process_message.message.avg_tags_len_in_batch",
-                    self.__message_tags_len[use_case_id] / self.__message_count[use_case_id],
-                    tags={"use_case_id": use_case_id.value},
-                    unit="int",
+                    sum(
+                        type_metrics.total_tags_len
+                        for use_case_metrics in self._message_metrics.values()
+                        for type_metrics in use_case_metrics.values()
+                    )
+                    / num_messages,
                 )
-                metrics.distribution(
+                metrics.gauge(
                     "metrics_consumer.process_message.message.avg_value_len_in_batch",
-                    self.__message_value_len[use_case_id] / self.__message_count[use_case_id],
-                    tags={"use_case_id": use_case_id.value},
-                    unit="int",
+                    sum(
+                        type_metrics.total_value_len
+                        for use_case_metrics in self._message_metrics.values()
+                        for type_metrics in use_case_metrics.values()
+                    )
+                    / num_messages,
                 )
-                metrics.gauge(
-                    "metrics_consumer.process_message.message.max_size_in_batch",
-                    self.__message_bytes_max[use_case_id],
-                    tags={"use_case_id": use_case_id.value},
-                    unit="byte",
-                )
-                metrics.gauge(
-                    "metrics_consumer.process_message.message.max_tags_len_in_batch",
-                    self.__message_tags_len_max[use_case_id],
-                    tags={"use_case_id": use_case_id.value},
-                    unit="int",
-                )
-                metrics.gauge(
-                    "metrics_consumer.process_message.message.max_value_len_in_batch",
-                    self.__message_value_len_max[use_case_id],
-                    tags={"use_case_id": use_case_id.value},
-                    unit="int",
-                )
-            num_messages = sum(self.__message_count.values())
-            metrics.gauge(
-                "metrics_consumer.process_message.message.avg_size_in_batch",
-                sum(self.__message_bytes.values()) / num_messages,
-            )
-            metrics.gauge(
-                "metrics_consumer.process_message.message.avg_tags_len_in_batch",
-                sum(self.__message_tags_len.values()) / num_messages,
-            )
-            metrics.gauge(
-                "metrics_consumer.process_message.message.avg_value_len_in_batch",
-                sum(self.__message_value_len.values()) / num_messages,
-            )
 
         return IndexerOutputMessageBatch(
             new_messages,

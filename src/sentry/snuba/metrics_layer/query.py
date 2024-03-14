@@ -18,6 +18,7 @@ from snuba_sdk import (
     Timeseries,
 )
 from snuba_sdk.formula import FormulaParameterGroup
+from snuba_sdk.mql.mql import parse_mql
 
 from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -137,11 +138,9 @@ def _setup_metrics_query(request: Request) -> tuple[Request, datetime, datetime]
     metrics_query = request.query
     assert isinstance(metrics_query, MetricsQuery)
 
-    # Currently we don't support nested Formula queries. Check to make sure that is what is being passed in.
-    # TODO: This should be removed once we fully support Formulas.
-    if isinstance(metrics_query.query, Formula):
-        if any(isinstance(p, Formula) for p in metrics_query.query.parameters):
-            raise InvalidParams("Nested formulas are not supported")
+    # We allow users to pass in a string instead of a Formula/Timeseries object. Handle that case here.
+    if isinstance(metrics_query.query, str):
+        metrics_query = metrics_query.set_query(parse_mql(metrics_query.query))
 
     assert len(metrics_query.scope.org_ids) == 1  # Initially only allow 1 org id
     organization_id = metrics_query.scope.org_ids[0]
@@ -271,7 +270,14 @@ def _resolve_query_metadata(
     assert metrics_query.query is not None
 
     org_id = metrics_query.scope.org_ids[0]
-    use_case_id_str = _resolve_use_case_id_str(metrics_query.query)
+    use_case_ids = _resolve_use_case_ids(metrics_query.query)
+
+    if not use_case_ids:
+        raise InvalidParams("No use case found in formula parameters")
+    if len(use_case_ids) > 1:
+        raise InvalidParams("Formula parameters must all be from the same use case")
+    use_case_id_str = use_case_ids.pop()
+
     if metrics_query.scope.use_case_id is None:
         metrics_query = metrics_query.set_scope(
             metrics_query.scope.set_use_case_id(use_case_id_str)
@@ -306,7 +312,7 @@ def _resolve_formula_metadata(
             formula_mappings.update(mappings)
 
     formula = formula.set_parameters(parameters)
-    return formula, mappings
+    return formula, formula_mappings
 
 
 def _resolve_timeseries_metadata(
@@ -337,7 +343,7 @@ def _resolve_timeseries_metadata(
     return series, mappings
 
 
-def _resolve_use_case_id_str(exp: Formula | Timeseries) -> str:
+def _resolve_use_case_ids(exp: Formula | Timeseries) -> set[str]:
     def fetch_namespace(metric: Metric) -> str:
         if metric.mri is None:
             mri = get_mri(metric.public_name)
@@ -350,20 +356,15 @@ def _resolve_use_case_id_str(exp: Formula | Timeseries) -> str:
         return parsed_mri.namespace
 
     if isinstance(exp, Timeseries):
-        return fetch_namespace(exp.metric)
+        return {fetch_namespace(exp.metric)}
 
     assert isinstance(exp, Formula), exp
     namespaces = set()
     for p in exp.parameters:
         if isinstance(p, (Formula, Timeseries)):
-            namespaces.add(_resolve_use_case_id_str(p))
+            namespaces |= _resolve_use_case_ids(p)
 
-    if not namespaces:
-        raise InvalidParams("No use case found in formula parameters")
-    if len(namespaces) > 1:
-        raise InvalidParams("Formula parameters must all be from the same use case")
-
-    return namespaces.pop()
+    return namespaces
 
 
 def _lookup_indexer_resolve(

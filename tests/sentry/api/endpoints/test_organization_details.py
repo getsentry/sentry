@@ -276,35 +276,39 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
     def test_is_dynamically_sampled(self):
         with self.feature({"organizations:dynamic-sampling": True}):
             with patch(
-                "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate",
+                "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
                 return_value=0.5,
             ):
                 response = self.get_success_response(self.organization.slug)
                 assert response.data["isDynamicallySampled"]
+                assert response.data["planSampleRate"] == 0.5
 
         with self.feature({"organizations:dynamic-sampling": True}):
             with patch(
-                "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate",
+                "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
                 return_value=1.0,
             ):
                 response = self.get_success_response(self.organization.slug)
                 assert not response.data["isDynamicallySampled"]
+                assert response.data["planSampleRate"] == 1.0
 
         with self.feature({"organizations:dynamic-sampling": True}):
             with patch(
-                "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate",
+                "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
                 return_value=None,
             ):
                 response = self.get_success_response(self.organization.slug)
                 assert not response.data["isDynamicallySampled"]
+                assert "planSampleRate" not in response.data
 
         with self.feature({"organizations:dynamic-sampling": False}):
             with patch(
-                "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate",
+                "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
                 return_value=None,
             ):
                 response = self.get_success_response(self.organization.slug)
                 assert not response.data["isDynamicallySampled"]
+                assert "planSampleRate" not in response.data
 
     def test_sensitive_fields_too_long(self):
         value = 1000 * ["0123456789"] + ["1"]

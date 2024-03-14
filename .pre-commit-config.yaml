@@ -48,6 +48,13 @@ repos:
         language: system
         types: [python]
         log_file: '.artifacts/flake8.pycodestyle.log'
+      - id: mypy
+        name: mypy
+        entry: bash -c 'if [ -n "${SENTRY_MYPY_PRE_PUSH:-}" ]; then exec mypy "$@"; fi' --
+        language: system
+        stages: [pre-push]
+        types: [python]
+        require_serial: true
       - id: lint-requirements
         name: lint-requirements
         entry: python -m tools.lint_requirements
@@ -117,7 +124,7 @@ repos:
     hooks:
       - id: biome-check
         name: biome (javascript, typescript, json)
-        additional_dependencies: ['@biomejs/biome@1.5.3']
+        additional_dependencies: ['@biomejs/biome@1.6.0']
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: 'v3.1.0' # Use the sha or tag you want to point at
     hooks:
@@ -125,6 +132,8 @@ repos:
         name: prettier (yaml, markdown, tsx, jsx, css)
         # TODO: Remove tsx and jsx when Biome supports styled CSS formatting.
         types_or: [yaml, markdown, tsx, jsx, css]
+        # Override the default version of prettier since there isn't a tag with 3.2.5
+        additional_dependencies: ['prettier@3.2.5']
         # https://pre-commit.com/#regular-expressions
         exclude: |
           (?x)^($^

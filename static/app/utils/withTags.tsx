@@ -15,7 +15,9 @@ type State = {
 /**
  * HOC for getting *only* tags from the TagStore.
  */
-function withTags<P extends InjectedTagsProps>(WrappedComponent: React.ComponentType<P>) {
+function withTags<P extends InjectedTagsProps>(
+  WrappedComponent: React.ComponentType<P>
+): React.ComponentType<Omit<P, keyof InjectedTagsProps>> {
   class WithTags extends Component<Omit<P, keyof InjectedTagsProps>, State> {
     static displayName = `withTags(${getDisplayName(WrappedComponent)})`;
 

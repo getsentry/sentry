@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 from django.conf import settings
 from django.core.cache import cache
@@ -90,19 +92,22 @@ def test_client_config_in_silo_modes(request_factory: RequestFactory):
     else:
         request = None
 
-    base_line = get_client_config(request)
+    base_line = dict(get_client_config(request))
 
-    # Removing the region list as it varies based on silo mode.
-    # See Region.to_url()
-    base_line.pop("regions")
-    base_line["links"].pop("regionUrl")
+    def normalize(value: dict[str, Any]):
+        # Removing the region lists as it varies based on silo mode.
+        # See Region.to_url()
+        value.pop("regions")
+        value.pop("memberRegions")
+        value["links"].pop("regionUrl")
+
+    normalize(base_line)
     cache.clear()
 
     for silo_mode in SiloMode:
         with override_settings(SILO_MODE=silo_mode):
-            result = get_client_config(request)
-            result.pop("regions")
-            result["links"].pop("regionUrl")
+            result = dict(get_client_config(request))
+            normalize(result)
             assert result == base_line
             cache.clear()
 
@@ -129,6 +134,11 @@ def test_client_config_default_region_data():
 
     assert len(result["regions"]) == 1
     regions = result["regions"]
+    assert regions[0]["name"] == settings.SENTRY_MONOLITH_REGION
+    assert regions[0]["url"] == options.get("system.url-prefix")
+
+    assert len(result["memberRegions"]) == 1
+    regions = result["memberRegions"]
     assert regions[0]["name"] == settings.SENTRY_MONOLITH_REGION
     assert regions[0]["url"] == options.get("system.url-prefix")
 
@@ -163,6 +173,62 @@ def test_client_config_with_region_data():
     regions = result["regions"]
     assert {r["name"] for r in regions} == {"eu", "us"}
 
+    assert len(result["memberRegions"]) == 1
+
+
+hidden_regions = [
+    region.Region(
+        name="us",
+        snowflake_id=1,
+        address="https//us.testserver",
+        category=region.RegionCategory.MULTI_TENANT,
+    ),
+    region.Region(
+        name="eu",
+        snowflake_id=5,
+        address="https//eu.testserver",
+        visible=False,
+        category=region.RegionCategory.MULTI_TENANT,
+    ),
+]
+
+
+@control_silo_test(regions=hidden_regions, include_monolith_run=True)
+@django_db_all
+def test_client_config_with_hidden_region_data():
+    request, user = make_user_request_from_org()
+    request.user = user
+    result = get_client_config(request)
+
+    assert len(result["regions"]) == 1
+    regions = result["regions"]
+    assert {r["name"] for r in regions} == {"us"}
+    assert len(result["memberRegions"]) == 1
+
+
+@multiregion_client_config_test
+@django_db_all
+def test_client_config_with_multiple_membership():
+    request, user = make_user_request_from_org()
+    request.user = user
+
+    # multiple us memberships and eu too
+    Factories.create_organization(slug="us-co", owner=user)
+    Factories.create_organization(slug="eu-co", owner=user)
+    mapping = OrganizationMapping.objects.get(slug="eu-co")
+    mapping.update(region_name="eu")
+
+    result = get_client_config(request)
+
+    # Single-tenant doesn't show up unless you have membership
+    assert len(result["regions"]) == 2
+    regions = result["regions"]
+    assert {r["name"] for r in regions} == {"eu", "us"}
+
+    assert len(result["memberRegions"]) == 2
+    regions = result["memberRegions"]
+    assert {r["name"] for r in regions} == {"eu", "us"}
+
 
 @multiregion_client_config_test
 @django_db_all
@@ -179,6 +245,10 @@ def test_client_config_with_single_tenant_membership():
     assert len(result["regions"]) == 3
     regions = result["regions"]
     assert {r["name"] for r in regions} == {"eu", "us", "acme"}
+
+    assert len(result["memberRegions"]) == 2
+    regions = result["memberRegions"]
+    assert {r["name"] for r in regions} == {"us", "acme"}
 
 
 @multiregion_client_config_test
@@ -201,6 +271,24 @@ def test_client_config_links_regionurl():
         result = get_client_config(request)
         assert result["links"]
         assert result["links"]["regionUrl"] == "http://eu.testserver"
+
+
+@control_silo_test(
+    regions=create_test_regions("us", "eu", "acme", "de", "apac", single_tenants=["acme"]),
+    include_monolith_run=True,
+)
+@django_db_all
+def test_client_config_region_display_order():
+    request, user = make_user_request_from_org()
+    request.user = user
+
+    Factories.create_organization(slug="acme-co", owner=user)
+    mapping = OrganizationMapping.objects.get(slug="acme-co")
+    mapping.update(region_name="acme")
+
+    result = get_client_config(request)
+    region_names = [region["name"] for region in result["regions"]]
+    assert region_names == ["us", "apac", "de", "eu", "acme"]
 
 
 @multiregion_client_config_test

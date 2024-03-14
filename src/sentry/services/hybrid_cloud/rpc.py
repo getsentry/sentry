@@ -462,8 +462,7 @@ class _RemoteSiloCall:
     def _metrics_tags(self, **additional_tags: str | int) -> Mapping[str, str | int | None]:
         return dict(
             rpc_destination_region=self.region.name if self.region else None,
-            rpc_service=self.service_name,
-            rpc_method=self.method_name,
+            rpc_method=f"{self.service_name}.{self.method_name}",
             **additional_tags,
         )
 
@@ -485,6 +484,7 @@ class _RemoteSiloCall:
             tags=self._metrics_tags(),
         )
         with self._open_request_context():
+            self._check_disabled()
             if use_test_client:
                 response = self._fire_test_request(headers, data)
             else:
@@ -518,8 +518,9 @@ class _RemoteSiloCall:
         return RpcRemoteException(self.service_name, self.method_name, message)
 
     def _raise_from_response_status_error(self, response: requests.Response) -> NoReturn:
+        rpc_method = f"{self.service_name}.{self.method_name}"
         with sentry_sdk.configure_scope() as scope:
-            scope.set_tag("rpc_method", f"{self.service_name}.{self.method_name}")
+            scope.set_tag("rpc_method", rpc_method)
             scope.set_tag("rpc_status_code", response.status_code)
 
         if in_test_environment():
@@ -535,6 +536,13 @@ class _RemoteSiloCall:
         if response.status_code == 403:
             raise self._remote_exception("Unauthorized service access")
         if response.status_code == 400:
+            logger.warning(
+                "rpc.bad_request",
+                extra={
+                    "rpc_method": rpc_method,
+                    "error": response.content.decode("utf8"),
+                },
+            )
             raise self._remote_exception("Invalid service request")
         raise self._remote_exception(f"Service unavailable ({response.status_code} status)")
 
@@ -564,7 +572,7 @@ class _RemoteSiloCall:
     def _fire_request(self, headers: MutableMapping[str, str], data: bytes) -> requests.Response:
         retry_adapter = HTTPAdapter(
             max_retries=Retry(
-                total=options.get("hybrid_cloud.rpc.retries"),
+                total=options.get("hybridcloud.rpc.retries"),
                 backoff_factor=0.1,
                 status_forcelist=[503],
                 allowed_methods=["POST"],
@@ -577,11 +585,6 @@ class _RemoteSiloCall:
         # TODO: Performance considerations (persistent connections, pooling, etc.)?
         url = self.address + self.path
 
-        # Add tracing continuation headers as the SDK doesn't monkeypatch requests.
-        if traceparent := sentry_sdk.get_traceparent():
-            headers["Sentry-Trace"] = traceparent
-        if baggage := sentry_sdk.get_baggage():
-            headers["Baggage"] = baggage
         try:
             return http.post(url, headers=headers, data=data, timeout=settings.RPC_TIMEOUT)
         except requests.exceptions.ConnectionError as e:
@@ -590,6 +593,16 @@ class _RemoteSiloCall:
             raise self._remote_exception("RPC failed, max retries reached.") from e
         except requests.exceptions.Timeout as e:
             raise self._remote_exception(f"Timeout of {settings.RPC_TIMEOUT} exceeded") from e
+
+    def _check_disabled(self):
+        if disabled_service_methods := options.get("hybrid_cloud.rpc.disabled-service-methods"):
+            service_method = f"{self.service_name}.{self.method_name}"
+            if service_method in disabled_service_methods:
+                raise RpcDisabledException(f"RPC {service_method} disabled")
+
+
+class RpcDisabledException(Exception):
+    """Indicates that an RPC method has been disabled and a request has not been made."""
 
 
 class RpcAuthenticationSetupException(Exception):

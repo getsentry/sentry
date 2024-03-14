@@ -129,7 +129,7 @@ export function GraphQlRequestBody({data, event}: GraphQlBodyProps) {
         data={Object.entries(omit(data, 'query')).map(([key, value]) => ({
           key,
           subject: key,
-          value,
+          value: value as React.ReactNode,
         }))}
         isContextData
       />

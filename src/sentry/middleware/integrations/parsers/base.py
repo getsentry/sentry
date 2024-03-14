@@ -92,7 +92,7 @@ class BaseRequestParser(abc.ABC):
             tags={"destination_region": region.name},
             sample_rate=1.0,
         ):
-            region_client = RegionSiloClient(region)
+            region_client = RegionSiloClient(region, retry=True)
             return region_client.proxy_request(incoming_request=self.request)
 
     def get_responses_from_region_silos(

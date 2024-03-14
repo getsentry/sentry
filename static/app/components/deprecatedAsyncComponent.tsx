@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import type {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps, RouteContextInterface} from 'react-router';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
@@ -151,6 +151,8 @@ class DeprecatedAsyncComponent<
     this.api.clear();
     document.removeEventListener('visibilitychange', this.visibilityReloader);
   }
+
+  declare context: {router: RouteContextInterface};
 
   /**
    * Override this flag to have the component reload its state when the window

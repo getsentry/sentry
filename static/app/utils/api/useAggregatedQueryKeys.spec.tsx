@@ -157,4 +157,57 @@ describe('useAggregatedQueryKeys', () => {
       ['1111', '2222', '3333']
     );
   });
+
+  it('should separate callsites that have different cacheKeys', async () => {
+    const wrapper = makeWrapper(makeTestQueryClient());
+    const mockRequest = MockApiClient.addMockResponse({
+      url: `/api/test/`,
+    });
+    const responseReducer1 = jest.fn((prevState: any, response: ApiResult) => {
+      return {
+        ...prevState,
+        ...response[0],
+      };
+    });
+    const responseReducer2 = jest.fn((prevState: any, response: ApiResult) => {
+      return {
+        ...prevState,
+        ...response[0],
+      };
+    });
+
+    const {result: result1, waitFor: waitFor1} = reactHooks.renderHook(
+      useAggregatedQueryKeys,
+      {
+        wrapper,
+        initialProps: {
+          ...initialProps,
+          cacheKey: 'cache key 1',
+          responseReducer: responseReducer1,
+        },
+      }
+    );
+
+    const {result: result2, waitFor: waitFor2} = reactHooks.renderHook(
+      useAggregatedQueryKeys,
+      {
+        wrapper,
+        initialProps: {
+          ...initialProps,
+          cacheKey: 'cache key 2',
+          responseReducer: responseReducer2,
+        },
+      }
+    );
+
+    result1.current.buffer(['1111']);
+    result2.current.buffer(['2222']);
+
+    await waitFor1(() => {
+      expect(mockRequest).toHaveBeenCalled();
+    });
+    await waitFor2(() => {
+      expect(mockRequest).toHaveBeenCalledTimes(2);
+    });
+  });
 });

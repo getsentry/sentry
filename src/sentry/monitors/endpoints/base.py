@@ -14,7 +14,7 @@ from sentry.api.authentication import (
 )
 from sentry.api.base import Endpoint
 from sentry.api.bases.organization import OrganizationPermission
-from sentry.api.bases.project import ProjectPermission
+from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.exceptions import ParameterValidationError, ResourceDoesNotExist
 from sentry.constants import ObjectStatus
 from sentry.models.environment import Environment
@@ -23,6 +23,8 @@ from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorEnvironment
 from sentry.utils.sdk import bind_organization_context, configure_scope
+
+DEPRECATED_INGEST_API_MESSAGE = "We have removed this deprecated API. Please migrate to using DSN instead: https://docs.sentry.io/product/crons/legacy-endpoint-migration/#am-i-using-legacy-endpoints"
 
 
 class OrganizationMonitorPermission(OrganizationPermission):
@@ -70,10 +72,9 @@ class MonitorEndpoint(Endpoint):
             raise ResourceDoesNotExist
 
         try:
-            monitor = Monitor.objects.get(organization_id=organization.id, slug=monitor_slug)
+            monitor = get_monitor_by_org_slug(organization, monitor_slug)
         except Monitor.DoesNotExist:
             raise ResourceDoesNotExist
-
         project = Project.objects.get_from_cache(id=monitor.project_id)
         if project.status != ObjectStatus.ACTIVE:
             raise ResourceDoesNotExist
@@ -108,6 +109,102 @@ class MonitorEndpoint(Endpoint):
             kwargs["checkin"] = checkin
 
         return args, kwargs
+
+
+class ProjectMonitorEndpoint(ProjectEndpoint):
+    """
+    Base endpoint class for monitors which will look up the monitor and
+    convert it to a Monitor object.
+
+    [!!]: This base endpoint is NOT used for legacy ingestion endpoints, see
+          MonitorIngestEndpoint for that.
+    """
+
+    permission_classes: tuple[type[BasePermission], ...] = (ProjectMonitorPermission,)
+
+    def convert_args(
+        self,
+        request: Request,
+        monitor_slug: str,
+        *args,
+        **kwargs,
+    ):
+        args, kwargs = super().convert_args(request, *args, **kwargs)
+        try:
+            kwargs["monitor"] = Monitor.objects.get(
+                project_id=kwargs["project"].id, slug=monitor_slug
+            )
+        except Monitor.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        return args, kwargs
+
+
+class ProjectMonitorCheckinEndpoint(ProjectMonitorEndpoint):
+    """
+    Base endpoint class for monitors which will look up a checkin
+    and convert it to a MonitorCheckin object.
+    """
+
+    def convert_args(
+        self,
+        request: Request,
+        checkin_id: str,
+        *args,
+        **kwargs,
+    ):
+        args, kwargs = super().convert_args(request, *args, **kwargs)
+        try:
+            kwargs["checkin"] = MonitorCheckIn.objects.get(
+                project_id=kwargs["project"].id,
+                guid=checkin_id,
+            )
+        except MonitorCheckIn.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        return args, kwargs
+
+
+class ProjectMonitorEnvironmentEndpoint(ProjectMonitorEndpoint):
+    """
+    Base endpoint class for monitor environment which will look up the monitor environment and
+    convert it to a MonitorEnvironment object.
+    """
+
+    permission_classes: tuple[type[BasePermission], ...] = (ProjectMonitorPermission,)
+
+    def convert_args(
+        self,
+        request: Request,
+        environment: str,
+        *args,
+        **kwargs,
+    ):
+        args, kwargs = super().convert_args(request, *args, **kwargs)
+        monitor = kwargs["monitor"]
+        try:
+            environment_object = Environment.objects.get(
+                organization_id=monitor.organization_id, name=environment
+            )
+            kwargs["monitor_environment"] = MonitorEnvironment.objects.get(
+                monitor_id=monitor.id, environment_id=environment_object.id
+            )
+        except (Environment.DoesNotExist, MonitorEnvironment.DoesNotExist):
+            raise ResourceDoesNotExist
+
+        return args, kwargs
+
+
+def get_monitor_by_org_slug(organization: Organization, monitor_slug: str) -> Monitor:
+    # Since we have changed our unique constraints to be on unique on (project, slug) we can
+    # end up with multiple monitors here. Since we have no idea which project the user wants,
+    # we just get the oldest monitor and use that.
+    # This is a temporary measure until we remove these org level endpoints
+    monitors = list(Monitor.objects.filter(organization_id=organization.id, slug=monitor_slug))
+    if not monitors:
+        raise Monitor.DoesNotExist
+
+    return min(monitors, key=lambda m: m.id)
 
 
 class MonitorIngestEndpoint(Endpoint):

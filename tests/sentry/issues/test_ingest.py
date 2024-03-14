@@ -5,6 +5,8 @@ from hashlib import md5
 from unittest import mock
 from unittest.mock import patch
 
+from django.utils import timezone
+
 from sentry.constants import LOG_LEVELS_MAP
 from sentry.issues.grouptype import (
     ErrorGroupType,
@@ -26,14 +28,17 @@ from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouprelease import GroupRelease
-from sentry.models.release import Release, ReleaseProject
+from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.ratelimits.sliding_windows import RequestedQuota
 from sentry.receivers import create_default_projects
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
+from sentry.types.group import PriorityLevel
 from sentry.utils import json
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import raw_query
@@ -117,13 +122,32 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
         create_default_projects()
         event_data = load_data("generic-event-profiling").data
         project_id = event_data["event"].pop("project_id", self.project.id)
-        event_data["event"]["timestamp"] = datetime.utcnow().isoformat()
+        event_data["event"]["timestamp"] = timezone.now().isoformat()
         event = self.store_event(data=event_data["event"], project_id=project_id)
         occurrence = self.build_occurrence()
         with self.assertRaisesMessage(
             ValueError, "IssueOccurrence must have the same event_id as the passed Event"
         ):
             save_issue_occurrence(occurrence.to_dict(), event)
+
+    @with_feature("projects:issue-priority")
+    def test_new_group_with_default_priority(self) -> None:
+        event = self.store_event(data={}, project_id=self.project.id)
+        occurrence = self.build_occurrence(event_id=event.event_id)
+        _, group_info = save_issue_occurrence(occurrence.to_dict(), event)
+        assert group_info is not None
+        assert group_info.group.priority == PriorityLevel.LOW
+
+    @with_feature("projects:issue-priority")
+    def test_new_group_with_priority(self) -> None:
+        event = self.store_event(data={}, project_id=self.project.id)
+        occurrence = self.build_occurrence(
+            event_id=event.event_id,
+            initial_issue_priority=PriorityLevel.HIGH,
+        )
+        _, group_info = save_issue_occurrence(occurrence.to_dict(), event)
+        assert group_info is not None
+        assert group_info.group.priority == PriorityLevel.HIGH
 
 
 @region_silo_test
@@ -309,6 +333,22 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
             metrics_logged = [call.args[0] for call in mock_metrics_incr.mock_calls]
             assert "grouping.in_app_frame_mix" not in metrics_logged
 
+    @with_feature("projects:issue-priority")
+    def test_new_group_with_default_priority(self) -> None:
+        occurrence = self.build_occurrence()
+        event = self.store_event(data={}, project_id=self.project.id)
+        group_info = save_issue_from_occurrence(occurrence, event, None)
+        assert group_info is not None
+        assert group_info.group.priority == PriorityLevel.LOW
+
+    @with_feature("projects:issue-priority")
+    def test_new_group_with_priority(self) -> None:
+        occurrence = self.build_occurrence(initial_issue_priority=PriorityLevel.HIGH)
+        event = self.store_event(data={}, project_id=self.project.id)
+        group_info = save_issue_from_occurrence(occurrence, event, None)
+        assert group_info is not None
+        assert group_info.group.priority == PriorityLevel.HIGH
+
 
 class CreateIssueKwargsTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
@@ -325,7 +365,7 @@ class CreateIssueKwargsTest(OccurrenceTestMixin, TestCase):
             "type": occurrence.type.type_id,
             "first_release": None,
             "data": materialize_metadata(occurrence, event),
-            "priority": occurrence.initial_issue_priority,
+            "priority": occurrence.type.default_priority,
         }
 
 
@@ -388,7 +428,7 @@ class SaveIssueOccurrenceToEventstreamTest(OccurrenceTestMixin, TestCase):
         create_default_projects()
         event_data = load_data("generic-event-profiling").data
         project_id = event_data["event"].pop("project_id")
-        event_data["event"]["timestamp"] = datetime.utcnow().isoformat()
+        event_data["event"]["timestamp"] = timezone.now().isoformat()
         event = self.store_event(data=event_data["event"], project_id=project_id)
         occurrence = self.build_occurrence(event_id=event.event_id)
         group_info = save_issue_from_occurrence(occurrence, event, None)

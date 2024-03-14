@@ -7,10 +7,11 @@ from collections.abc import Sequence
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    macos_version = platform.mac_ver()[0]
-    macos_major_version = int(macos_version.split(".")[0])
-    if macos_major_version < 14:
-        raise SystemExit(f"macos >= 14 is required to use colima, found {macos_version}")
+    if not os.getenv("CI"):
+        macos_version = platform.mac_ver()[0]
+        macos_major_version = int(macos_version.split(".")[0])
+        if macos_major_version < 14:
+            raise SystemExit(f"macos >= 14 is required to use colima, found {macos_version}")
 
     cpus = os.cpu_count()
     if cpus is None:

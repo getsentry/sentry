@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import logging
-import random
-import string
 from collections.abc import Callable, Mapping
 from typing import TYPE_CHECKING, Any
 
@@ -12,6 +10,7 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.constants import SentryAppInstallationStatus
+from sentry.hybridcloud.models.apitokenreplica import ApiTokenReplica
 from sentry.ratelimits.concurrent import ConcurrentRateLimiter
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.services.hybrid_cloud.auth import AuthenticatedToken
@@ -86,14 +85,23 @@ def get_rate_limit_key(
         return None
 
     if is_api_token_auth(request_auth) and request_user:
-        # XXX(schew2381): It's expected that request_auth is an instance of AuthenticatedToken because this
-        # middleware runs after we convert all apitokens into the generic AuthenticatedToken interface.
+        if isinstance(request_auth, ApiToken):
+            token_id = request_auth.id
+        elif isinstance(request_auth, AuthenticatedToken) and request_auth.entity_id is not None:
+            token_id = request_auth.entity_id
+        elif isinstance(request_auth, ApiTokenReplica) and request_auth.api_token_id is not None:
+            token_id = request_auth.api_token_id
+        else:
+            assert False  # Can't happen as asserted by is_api_token_auth check
 
         if request_user.is_sentry_app:
             category = "org"
-            # When the ApiToken is associated with a SentryApp (internal or public), it's guaranteed that
-            # the organization_id field must be set on AuthenticatedToken.
-            id = request_auth.organization_id
+            id = get_organization_id_from_token(token_id)
+
+            # Fallback to IP address limit if we can't find the organization
+            if id is None and ip_address is not None:
+                category = "ip"
+                id = ip_address
         else:
             category = "user"
             id = request_auth.user_id
@@ -123,7 +131,7 @@ def get_rate_limit_key(
         return f"{category}:{rate_limit_group}:{http_method}:{id}"
 
 
-def get_organization_id_from_token(token_id: int) -> Any:
+def get_organization_id_from_token(token_id: int) -> int | None:
     from sentry.services.hybrid_cloud.app import app_service
 
     installations = app_service.get_many(
@@ -132,13 +140,13 @@ def get_organization_id_from_token(token_id: int) -> Any:
             "api_token_id": token_id,
         }
     )
-    installation = installations[0] if len(installations) > 0 else None
+    installation = installations[0] if installations else None
 
-    # Return a random uppercase/lowercase letter to avoid collisions caused by tokens not being
-    # associated with a SentryAppInstallation. This is a temporary fix while we solve the root cause
+    # Return None to avoid collisions caused by tokens not being associated with
+    # a SentryAppInstallation. We fallback to IP address rate limiting in this case.
     if not installation:
         logger.info("installation.not_found", extra={"token_id": token_id})
-        return random.choice(string.ascii_letters)
+        return None
 
     return installation.organization_id
 

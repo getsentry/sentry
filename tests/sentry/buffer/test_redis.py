@@ -12,6 +12,11 @@ from sentry.models.project import Project
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
+from sentry.utils.redis import (
+    get_cluster_routing_client,
+    is_instance_rb_cluster,
+    is_instance_redis_cluster,
+)
 
 
 class TestRedisBuffer:
@@ -36,31 +41,31 @@ class TestRedisBuffer:
     @mock.patch("sentry.buffer.redis.process_incr")
     def test_process_pending_one_batch(self, process_incr):
         self.buf.incr_batch_size = 5
-        client = self.buf.get_routing_client()
+        client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
         client.zadd("b:p", {"foo": 1, "bar": 2})
         self.buf.process_pending()
         assert len(process_incr.apply_async.mock_calls) == 1
         process_incr.apply_async.assert_any_call(kwargs={"batch_keys": ["foo", "bar"]})
-        client = self.buf.get_routing_client()
+        client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
         assert client.zrange("b:p", 0, -1) == []
 
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.redis.process_incr")
     def test_process_pending_multiple_batches(self, process_incr):
         self.buf.incr_batch_size = 2
-        client = self.buf.get_routing_client()
+        client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
         client.zadd("b:p", {"foo": 1, "bar": 2, "baz": 3})
         self.buf.process_pending()
         assert len(process_incr.apply_async.mock_calls) == 2
         process_incr.apply_async.assert_any_call(kwargs={"batch_keys": ["foo", "bar"]})
         process_incr.apply_async.assert_any_call(kwargs={"batch_keys": ["baz"]})
-        client = self.buf.get_routing_client()
+        client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
         assert client.zrange("b:p", 0, -1) == []
 
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.base.Buffer.process")
     def test_process_does_bubble_up_json(self, process):
-        client = self.buf.get_routing_client()
+        client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
 
         client.hmset(
             "foo",
@@ -85,7 +90,7 @@ class TestRedisBuffer:
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.base.Buffer.process")
     def test_process_does_bubble_up_pickle(self, process):
-        client = self.buf.get_routing_client()
+        client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
 
         client.hmset(
             "foo",
@@ -134,7 +139,7 @@ class TestRedisBuffer:
 
     def test_incr_saves_to_redis(self):
         now = datetime.datetime(2017, 5, 3, 6, 6, 6, tzinfo=datetime.UTC)
-        client = self.buf.get_routing_client()
+        client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
         model = mock.Mock()
         model.__name__ = "Mock"
         columns = {"times_seen": 1}
@@ -194,15 +199,17 @@ class TestRedisBuffer:
     @mock.patch("sentry.buffer.redis.process_pending")
     def test_process_pending_partitions_none(self, process_pending, process_incr):
         self.buf.pending_partitions = 2
-        if self.buf.is_redis_cluster:
+        if is_instance_redis_cluster(self.buf.cluster, self.buf.is_redis_cluster):
             self.buf.cluster.zadd("b:p:0", {"foo": 1})
             self.buf.cluster.zadd("b:p:1", {"bar": 1})
             self.buf.cluster.zadd("b:p", {"baz": 1})
-        else:
+        elif is_instance_rb_cluster(self.buf.cluster, self.buf.is_redis_cluster):
             with self.buf.cluster.map() as client:
                 client.zadd("b:p:0", {"foo": 1})
                 client.zadd("b:p:1", {"bar": 1})
                 client.zadd("b:p", {"baz": 1})
+        else:
+            raise RuntimeError("unreachable")
 
         # On first pass, we are expecting to do:
         # * process the buffer that doesn't have a partition (b:p)
@@ -217,7 +224,7 @@ class TestRedisBuffer:
         ]
 
         # Confirm that we've only processed the unpartitioned buffer
-        client = self.buf.get_routing_client()
+        client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
 
         assert client.zrange("b:p", 0, -1) == []
         assert client.zrange("b:p:0", 0, -1) != []
@@ -244,7 +251,7 @@ class TestRedisBuffer:
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.base.Buffer.process")
     def test_process_uses_signal_only(self, process):
-        client = self.buf.get_routing_client()
+        client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
 
         client.hmset(
             "foo",

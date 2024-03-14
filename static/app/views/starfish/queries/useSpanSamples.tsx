@@ -79,6 +79,9 @@ export const useSpanSamples = (options: Options) => {
   const {isLoading: isLoadingSeries, data: spanMetricsSeriesData} = useSpanMetricsSeries({
     filters: {'span.group': groupId, ...filters},
     yAxis: [`avg(${SPAN_SELF_TIME})`],
+    enabled: Object.values({'span.group': groupId, ...filters}).every(value =>
+      Boolean(value)
+    ),
     referrer: 'api.starfish.sidebar-span-metrics',
   });
 

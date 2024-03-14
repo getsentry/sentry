@@ -43,7 +43,7 @@ COMMIT_RANGE_DELIMITER = ".."
 SEMVER_FAKE_PACKAGE = "__sentry_fake__"
 
 SORT_OPTIONS = {
-    "priority": _("Priority"),
+    "trends": _("Trends"),
     "date": _("Last Seen"),
     "new": _("First Seen"),
     "freq": _("Frequency"),

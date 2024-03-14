@@ -47,6 +47,7 @@ const mockAvailableMetrics = (mris: MRI[]): MetricMeta[] => {
     mri,
     operations: [],
     blockingStatus: [],
+    projectIds: [],
   })) as MetricMeta[];
 };
 
@@ -71,88 +72,112 @@ describe('WidgetParser', () => {
   ]);
 
   it('should parse a widget with single timeseries', async () => {
-    const widget = mockWidget();
+    const widgetToImport = mockWidget();
 
-    const result = new WidgetParser(widget, availableMetrics).parse();
-    const {report, widgets} = await result;
+    const result = new WidgetParser(widgetToImport, availableMetrics).parse();
+    const {report, widget} = await result;
 
     expect(report.outcome).toEqual('success');
     expect(report.errors).toEqual([]);
 
-    expect(widgets).toHaveLength(1);
-    expect(widgets[0]).toEqual({
+    expect(widget).toBeDefined();
+    expect(widget).toEqual({
       displayType: 'line',
-      groupBy: ['baz'],
-      mri: 'c:custom/sentry.foo.bar@none',
-      op: 'sum',
-      query: 'foo:bar',
+      limit: 10,
+      queries: [
+        {
+          fields: ['sum(c:custom/sentry.foo.bar@none)'],
+          aggregates: ['sum(c:custom/sentry.foo.bar@none)'],
+          conditions: 'foo:bar',
+          columns: ['baz'],
+          name: '',
+          orderby: undefined,
+        },
+      ],
       title: 'Test widget',
+      widgetType: 'custom-metrics',
     });
   });
 
   it('should parse a widget with 2 timeseries', async () => {
-    const widget = mockWidget({
+    const widgetToImport = mockWidget({
       requests: mockRequests([
         'sum:sentry.foo.bar{foo:bar} by {baz}',
         'sum:sentry.bar.baz{}',
       ]),
     });
-    const result = new WidgetParser(widget, availableMetrics).parse();
-    const {report, widgets} = await result;
+    const result = new WidgetParser(widgetToImport, availableMetrics).parse();
+    const {report, widget} = await result;
 
-    expect(report.outcome).toEqual('warning');
+    expect(report.outcome).toEqual('success');
     expect(report.errors).toEqual([]);
-    expect(report.notes.length).toEqual(1);
 
-    expect(widgets).toHaveLength(2);
-    expect(widgets[0]).toEqual({
-      displayType: 'line',
-      groupBy: ['baz'],
-      mri: 'c:custom/sentry.foo.bar@none',
-      op: 'sum',
-      query: 'foo:bar',
+    expect(widget?.queries).toHaveLength(2);
+
+    expect(widget).toEqual({
       title: 'Test widget',
-    });
-    expect(widgets[1]).toEqual({
       displayType: 'line',
-      groupBy: [],
-      mri: 'c:custom/sentry.bar.baz@none',
-      op: 'sum',
-      query: '',
-      title: 'Test widget',
+      widgetType: 'custom-metrics',
+      limit: 10,
+      queries: [
+        {
+          name: '',
+          aggregates: ['sum(c:custom/sentry.foo.bar@none)'],
+          columns: ['baz'],
+          fields: ['sum(c:custom/sentry.foo.bar@none)'],
+          conditions: 'foo:bar',
+          orderby: undefined,
+        },
+        {
+          name: '',
+          aggregates: ['sum(c:custom/sentry.bar.baz@none)'],
+          columns: [],
+          fields: ['sum(c:custom/sentry.bar.baz@none)'],
+          conditions: '',
+          orderby: undefined,
+        },
+      ],
     });
   });
 
   it('should parse a widget with operation appended to metric name', async () => {
-    const widget = mockWidget({
+    const widgetToImport = mockWidget({
       requests: mockRequests(['sum:sentry.foo.bar.avg{foo:bar} by {baz}']),
     });
 
-    const result = new WidgetParser(widget, availableMetrics).parse();
-    const {report, widgets} = await result;
+    const result = new WidgetParser(widgetToImport, availableMetrics).parse();
+    const {report, widget} = await result;
 
     expect(report.outcome).toEqual('success');
-    expect(widgets[0]).toEqual({
+    expect(widget).toEqual({
       displayType: 'line',
-      groupBy: ['baz'],
-      mri: 'c:custom/sentry.foo.bar@none',
-      op: 'avg',
-      query: 'foo:bar',
+      limit: 10,
+      queries: [
+        {
+          fields: ['avg(c:custom/sentry.foo.bar@none)'],
+          aggregates: ['avg(c:custom/sentry.foo.bar@none)'],
+          conditions: 'foo:bar',
+          columns: ['baz'],
+          name: '',
+          orderby: undefined,
+        },
+      ],
       title: 'Test widget',
+      widgetType: 'custom-metrics',
     });
   });
 
   it('should fail to parse widget with unknown metric', async () => {
-    const widget = mockWidget({
+    const widgetToImport = mockWidget({
       requests: mockRequests(['sum:sentry.unknown-metric{foo:bar} by {baz}']),
     });
 
-    const result = new WidgetParser(widget, availableMetrics).parse();
+    const result = new WidgetParser(widgetToImport, availableMetrics).parse();
     const {report} = await result;
 
     expect(report.outcome).toEqual('error');
     expect(report.errors).toEqual([
-      'widget - no queries found',
+      'widget - no parseable queries found',
       'widget.request.query - metric not found: sentry.unknown-metric',
     ]);
   });

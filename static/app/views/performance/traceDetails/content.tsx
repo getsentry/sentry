@@ -1,8 +1,8 @@
-import {Component, createRef, Fragment} from 'react';
+import {Component, createRef, Fragment, useEffect} from 'react';
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import emptyStateImg from 'sentry-images/spot/performance-empty-state.svg';
+import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
 
 import {Alert} from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
@@ -434,6 +434,12 @@ function OnlyOrphanErrorWarnings({orphanErrors}: OnlyOrphanErrorWarningsProps) {
     ? withPerformanceOnboarding.has(currentPlatform)
     : false;
 
+  useEffect(() => {
+    if (hasPerformanceOnboarding && location.hash === '#performance-sidequest') {
+      SidebarPanelStore.activatePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING);
+    }
+  }, [hasPerformanceOnboarding]);
+
   const {dismiss: snooze, isDismissed: isSnoozed} = useDismissAlert({
     key: LOCAL_STORAGE_KEY,
     expirationDays: 7,
@@ -451,13 +457,8 @@ function OnlyOrphanErrorWarnings({orphanErrors}: OnlyOrphanErrorWarningsProps) {
   if (!hasPerformanceOnboarding) {
     return (
       <Alert type="info" showIcon>
-        {tct(
-          "The good news is we know these errors are related to each other. The bad news is that we can't tell you more than that. If you haven't already, [tracingLink: configure performance monitoring for your SDKs] to learn more about service interactions.",
-          {
-            tracingLink: (
-              <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/" />
-            ),
-          }
+        {t(
+          "The good news is we know these errors are related to each other in the same trace. The bad news is that we can't tell you more than that due to limited sampling."
         )}
       </Alert>
     );
@@ -469,11 +470,11 @@ function OnlyOrphanErrorWarnings({orphanErrors}: OnlyOrphanErrorWarningsProps) {
 
   return (
     <BannerWrapper>
-      <div>
-        <BannerTitle>{t('Connect with Dots')}</BannerTitle>
+      <ActionsWrapper>
+        <BannerTitle>{t('Connect the Dots')}</BannerTitle>
         <BannerDescription>
           {t(
-            "Want to know why this string of errors happened? If you haven't already, update your SDK with this snippet to figure out what operations are running between your errors."
+            "If you haven't already, configure performance monitoring to learn more about how your services are interacting with each other. This will provide more clarity about how your errors are linked."
           )}
         </BannerDescription>
         <ButtonsWrapper>
@@ -482,10 +483,11 @@ function OnlyOrphanErrorWarnings({orphanErrors}: OnlyOrphanErrorWarningsProps) {
               priority="primary"
               onClick={event => {
                 event.preventDefault();
+                window.location.hash = 'performance-sidequest';
                 SidebarPanelStore.activatePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING);
               }}
             >
-              {t('Update SDKs')}
+              {t('Configure')}
             </Button>
           </ActionButton>
           <ActionButton>
@@ -494,8 +496,8 @@ function OnlyOrphanErrorWarnings({orphanErrors}: OnlyOrphanErrorWarningsProps) {
             </Button>
           </ActionButton>
         </ButtonsWrapper>
-      </div>
-      {<Background image={emptyStateImg} />}
+      </ActionsWrapper>
+      {<Background image={connectDotsImg} />}
       <CloseDropdownMenu
         position="bottom-end"
         triggerProps={{
@@ -529,14 +531,19 @@ const BannerWrapper = styled('div')`
   position: relative;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  padding: 26px;
-  margin: ${space(1)} 0;
+  padding: ${space(2)} ${space(3)};
+  margin-bottom: ${space(2)};
   background: linear-gradient(
     90deg,
     ${p => p.theme.backgroundSecondary}00 0%,
     ${p => p.theme.backgroundSecondary}FF 70%,
     ${p => p.theme.backgroundSecondary}FF 100%
   );
+  min-width: 850px;
+`;
+
+const ActionsWrapper = styled('div')`
+  max-width: 50%;
 `;
 
 const ButtonsWrapper = styled('div')`
@@ -569,9 +576,9 @@ const Background = styled('div')<{image: any}>`
   display: flex;
   justify-self: flex-end;
   position: absolute;
-  top: 6px;
-  right: 49px;
-  height: 100%;
+  top: 14px;
+  right: 15px;
+  height: 81%;
   width: 100%;
   max-width: 413px;
   background-image: url(${p => p.image});

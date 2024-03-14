@@ -108,6 +108,7 @@ export default class PermissionSelection extends Component<Props, State> {
     permissions: this.props.permissions,
   };
 
+  declare context: Required<React.ContextType<typeof FormContext>>;
   static contextType = FormContext;
 
   onChange = (resource: PermissionResource, choice: PermissionValue) => {
@@ -119,7 +120,10 @@ export default class PermissionSelection extends Component<Props, State> {
   save = (permissions: Permissions) => {
     this.setState({permissions});
     this.props.onChange(permissions);
-    this.context.form.setValue('scopes', permissionStateToList(this.state.permissions));
+    this.context.form.setValue(
+      'scopes',
+      permissionStateToList(this.state.permissions) as string[]
+    );
   };
 
   render() {

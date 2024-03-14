@@ -8,6 +8,10 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import type {MultiSeriesEventsStats} from 'sentry/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {
+  PRIMARY_RELEASE_COLOR,
+  SECONDARY_RELEASE_COLOR,
+} from 'sentry/views/starfish/colours';
 
 import StartDurationWidget, {transformData} from './startDurationWidget';
 
@@ -154,7 +158,7 @@ describe('StartDurationWidget', () => {
       expect(transformedData).toEqual({
         'com.example.vu.android@2.10.5': {
           seriesName: 'com.example.vu.android@2.10.5',
-          color: '#444674',
+          color: PRIMARY_RELEASE_COLOR,
           data: [
             {
               name: 1703937600000,
@@ -164,13 +168,16 @@ describe('StartDurationWidget', () => {
         },
         'com.example.vu.android@2.10.3+42': {
           seriesName: 'com.example.vu.android@2.10.3+42',
-          color: '#e9626e',
+          color: SECONDARY_RELEASE_COLOR,
           data: [
             {
               name: 1703937600000,
               value: 200,
             },
           ],
+          lineStyle: {
+            type: 'dashed',
+          },
         },
       });
     });

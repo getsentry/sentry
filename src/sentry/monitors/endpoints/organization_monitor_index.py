@@ -66,8 +66,6 @@ from rest_framework.response import Response
 
 DEFAULT_ORDERING = [
     MonitorStatus.ERROR,
-    MonitorStatus.TIMEOUT,
-    MonitorStatus.MISSED_CHECKIN,
     MonitorStatus.OK,
     MonitorStatus.ACTIVE,
     MonitorStatus.DISABLED,
@@ -137,21 +135,23 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         environments = None
         if "environment" in filter_params:
             environments = filter_params["environment_objects"]
+            environment_ids = [e.id for e in environments]
             # use a distinct() filter as queries spanning multiple tables can include duplicates
             if request.GET.get("includeNew"):
                 queryset = queryset.filter(
-                    Q(monitorenvironment__environment__in=environments) | Q(monitorenvironment=None)
+                    Q(monitorenvironment__environment_id__in=environment_ids)
+                    | Q(monitorenvironment=None)
                 ).distinct()
             else:
                 queryset = queryset.filter(
-                    monitorenvironment__environment__in=environments
+                    monitorenvironment__environment_id__in=environment_ids
                 ).distinct()
         else:
             environments = list(Environment.objects.filter(organization_id=organization.id))
 
         # sort monitors by top monitor environment, then by latest check-in
         monitor_environments_query = MonitorEnvironment.objects.filter(
-            monitor__id=OuterRef("id"), environment__in=environments
+            monitor__id=OuterRef("id"), environment_id__in=[e.id for e in environments]
         )
         sort_fields = []
 

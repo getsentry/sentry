@@ -72,3 +72,17 @@ class PriorityLevel(IntEnum):
     LOW = 25
     MEDIUM = 50
     HIGH = 75
+
+    def to_str(self) -> str:
+        """
+        Return the string representation of the priority level.
+        """
+        return self.name.lower()
+
+    @classmethod
+    def from_str(self, name: str) -> "PriorityLevel | None":
+        """
+        Return the priority level from a string representation.
+        """
+        name = name.upper()
+        return self[name] if name in self.__members__ else None

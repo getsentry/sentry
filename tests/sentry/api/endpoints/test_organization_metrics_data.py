@@ -39,113 +39,6 @@ pytestmark = [pytest.mark.sentry_metrics]
 
 @region_silo_test
 @freeze_time(MetricsAPIBaseTestCase.MOCK_DATETIME)
-class OrganizationMetricsDataWithNewLayerTest(MetricsAPIBaseTestCase):
-    endpoint = "sentry-api-0-organization-metrics-data"
-
-    def setUp(self):
-        super().setUp()
-        self.login_as(user=self.user)
-
-    @property
-    def now(self):
-        return MetricsAPIBaseTestCase.MOCK_DATETIME
-
-    @patch("sentry.api.endpoints.organization_metrics.run_metrics_query")
-    def test_query_with_feature_flag_enabled_but_param_missing(self, run_metrics_query):
-        run_metrics_query.return_value = {}
-
-        self.get_response(
-            self.project.organization.slug,
-            field=f"sum({TransactionMRI.DURATION.value})",
-            useCase="transactions",
-            useNewMetricsLayer="false",
-            statsPeriod="1h",
-            interval="1h",
-        )
-        run_metrics_query.assert_not_called()
-
-        self.get_response(
-            self.project.organization.slug,
-            field=f"sum({TransactionMRI.DURATION.value})",
-            useCase="transactions",
-            useNewMetricsLayer="true",
-            statsPeriod="1h",
-            interval="1h",
-        )
-        run_metrics_query.assert_called_once()
-
-    def test_query_with_invalid_query(self):
-        self.get_error_response(
-            self.project.organization.slug,
-            status_code=400,
-            field=f"sum({TransactionMRI.DURATION.value})",
-            query="foo:foz < bar:baz",
-            useCase="transactions",
-            useNewMetricsLayer="true",
-            statsPeriod="1h",
-            interval="1h",
-        )
-
-    def test_query_with_invalid_percentile(self):
-        self.get_error_response(
-            self.project.organization.slug,
-            status_code=500,
-            field=f"p30({TransactionMRI.DURATION.value})",
-            useCase="transactions",
-            useNewMetricsLayer="true",
-            statsPeriod="1h",
-            interval="1h",
-        )
-
-    def test_compare_query_with_transactions_metric(self):
-        for transaction, value in (("/hello", 10), ("/world", 5), ("/foo", 3)):
-            self.store_performance_metric(
-                name=TransactionMRI.DURATION.value,
-                tags={"transaction": transaction},
-                value=value,
-            )
-
-        responses = []
-        for flag_value in False, True:
-            field = f"sum({TransactionMRI.DURATION.value})"
-            response = self.get_response(
-                self.project.organization.slug,
-                field=field,
-                groupBy="transaction",
-                orderBy=field,
-                useCase="transactions",
-                # We test the limit in both.
-                limit="2",
-                per_page="2",
-                useNewMetricsLayer="true" if flag_value else "false",
-                statsPeriod="1h",
-                interval="1h",
-            )
-            responses.append(response)
-
-        response_old = responses[0].data
-        response_new = responses[1].data
-
-        for group_index in (0, 1):
-            # We want to only compare a subset of the fields since the APIs have some differences.
-            assert (
-                response_old["groups"][group_index]["by"]
-                == response_new["groups"][group_index]["by"]
-            )
-            assert list(response_old["groups"][group_index]["series"].values()) == list(
-                response_new["groups"][group_index]["series"].values()
-            )
-            assert list(response_old["groups"][group_index]["totals"].values()) == list(
-                response_new["groups"][group_index]["totals"].values()
-            )
-
-        assert response_old["intervals"] == response_new["intervals"]
-        assert response_old["start"] == response_new["start"]
-        assert response_old["end"] == response_new["end"]
-
-
-@region_silo_test
-@freeze_time(MetricsAPIBaseTestCase.MOCK_DATETIME)
 class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
     endpoint = "sentry-api-0-organization-metrics-data"
 
@@ -153,6 +46,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         super().setUp()
         self.project2 = self.create_project()
         self.login_as(user=self.user)
+        self.login_as(user=self.create_user(is_staff=True), staff=True)
 
         self.transaction_lcp_metric = perf_indexer_record(
             self.project.organization.id, TransactionMRI.MEASUREMENTS_LCP.value
@@ -167,37 +61,33 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         return MetricsAPIBaseTestCase.MOCK_DATETIME
 
     def test_missing_field(self):
-        response = self.get_response(self.project.organization.slug)
-        assert response.status_code == 400
-        assert response.json()["detail"] == 'Request is missing a "field"'
+        response = self.get_error_response(self.project.organization.slug, status_code=400)
+        assert response.data["detail"] == 'Request is missing a "field"'
 
     def test_incorrect_use_case_id_value(self):
-        response = self.get_response(
+        response = self.get_error_response(
             self.project.organization.slug,
             field="sum(sentry.sessions.session)",
             groupBy="environment",
             useCase="unknown",
+            status_code=400,
         )
-        assert response.status_code == 400
         assert (
-            response.json()["detail"]
+            response.data["detail"]
             == f"Invalid useCase parameter. Please use one of: {[uc.value for uc in UseCaseID]}"
         )
 
     def test_invalid_field(self):
         for field in ["", "(*&%", "foo(session", "foo(session)"]:
-            response = self.get_response(self.project.organization.slug, field=field)
-            assert response.status_code == 400
+            self.get_error_response(self.project.organization.slug, field=field, status_code=400)
 
     def test_groupby_single(self):
         rh_indexer_record(self.project.organization_id, "environment")
-        response = self.get_response(
+        self.get_success_response(
             self.project.organization.slug,
             field="sum(sentry.sessions.session)",
             groupBy="environment",
         )
-
-        assert response.status_code == 200
 
     def test_groupby_session_status(self):
         for status in ["ok", "crashed"]:
@@ -208,12 +98,13 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                     status=status,
                 )
 
-        response = self.get_response(
+        response = self.get_error_response(
             self.project.organization.slug,
             field="sum(sentry.sessions.session)",
             groupBy="session.status",
             statsPeriod="1h",
             interval="1h",
+            status_code=400,
         )
         assert response.data["detail"] == (
             "Tag name session.status cannot be used in groupBy query"
@@ -228,24 +119,26 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                     status=status,
                 )
 
-        response = self.get_response(
+        response = self.get_error_response(
             self.project.organization.slug,
             field="sum(sentry.sessions.session)",
             query="session.status:crashed",
             statsPeriod="1h",
             interval="1h",
+            status_code=400,
         )
         assert response.data["detail"] == ("Tag name session.status is not a valid query filter")
 
     def test_invalid_filter(self):
         query = "release:foo or "
-        response = self.get_response(
+        self.get_error_response(
             self.project.organization.slug,
             field="sum(sentry.sessions.session)",
             groupBy="environment",
             query=query,
+            status_code=400,
         )
-        assert response.status_code == 400, query
+        assert query
 
     def test_valid_filter(self):
         self.create_release(version="foo", project=self.project)
@@ -275,60 +168,60 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         assert response.data["meta"] == []
 
     def test_orderby_unknown(self):
-        response = self.get_response(
+        self.get_error_response(
             self.project.organization.slug,
             field="sum(sentry.sessions.session)",
             orderBy="foo",
+            status_code=400,
         )
-        assert response.status_code == 400
 
     def test_orderby_tag(self):
         """Order by tag is not supported (yet)"""
-        response = self.get_response(
+        self.get_error_response(
             self.project.organization.slug,
             field=["sum(sentry.sessions.session)", "environment"],
             groupBy="environment",
             orderBy="environment",
+            status_code=400,
         )
-        assert response.status_code == 400
 
     def test_date_range_too_long(self):
-        response = self.get_response(
+        response = self.get_error_response(
             self.project.organization.slug,
             field=["sum(sentry.sessions.session)"],
             interval="10s",
             statsPeriod="90d",
             per_page=1,
+            status_code=400,
         )
-        assert response.status_code == 400
-        assert response.json()["detail"] == (
+        assert response.data["detail"] == (
             "Your interval and date range would create too many results. Use a larger interval, "
             "or a smaller date range."
         )
 
     def test_interval_must_be_multiple_of_smallest_interval(self):
-        response = self.get_response(
+        response = self.get_error_response(
             self.project.organization.slug,
             field=["sum(sentry.sessions.session)"],
             interval="15s",
             statsPeriod="1d",
             per_page=1,
+            status_code=400,
         )
-        assert response.status_code == 400
-        assert response.json()["detail"] == (
+        assert response.data["detail"] == (
             "The interval has to be a multiple of the minimum interval of ten seconds."
         )
 
     def test_interval_should_divide_day_with_no_remainder(self):
-        response = self.get_response(
+        response = self.get_error_response(
             self.project.organization.slug,
             field=["sum(sentry.sessions.session)"],
             interval="3610s",
             statsPeriod="2d",
             per_page=1,
+            status_code=400,
         )
-        assert response.status_code == 400
-        assert response.json()["detail"] == (
+        assert response.data["detail"] == (
             "The interval should divide one day without a remainder."
         )
 
@@ -357,7 +250,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 status="ok",
             )
 
-        response = self.get_response(
+        response = self.get_success_response(
             self.project.organization.slug,
             field=["sum(sentry.sessions.session)"],
             project=[p.id, p2.id, self.project.id],
@@ -365,7 +258,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             interval="24h",
             statsPeriod="24h",
         )
-        assert response.status_code == 200
+
         assert response.data["groups"] == [
             {
                 "by": {},
@@ -399,7 +292,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 status="ok",
             )
 
-        response = self.get_response(
+        response = self.get_success_response(
             self.project.organization.slug,
             field=["sum(sentry.sessions.session)"],
             project=[p.id, p2.id, self.project.id],
@@ -407,12 +300,49 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             interval="24h",
             statsPeriod="24h",
         )
-        assert response.status_code == 200
+
         assert response.data["groups"] == [
             {
                 "by": {},
                 "totals": {"sum(sentry.sessions.session)": 2},
                 "series": {"sum(sentry.sessions.session)": [0, 2]},
+            }
+        ]
+
+    def test_staff_filter_by_single_project_slug(self):
+        staff_user = self.create_user(is_staff=True)
+        self.login_as(staff_user, staff=True)
+
+        p = self.create_project(name="sentry2")
+
+        for minute in range(2):
+            self.build_and_store_session(
+                project_id=self.project.id,
+                minutes_before_now=minute,
+                status="ok",
+            )
+
+        for minute in range(3):
+            self.build_and_store_session(
+                project_id=p.id,
+                minutes_before_now=minute,
+                status="ok",
+            )
+
+        response = self.get_success_response(
+            self.project.organization.slug,
+            field=["sum(sentry.sessions.session)"],
+            project=[p.id, self.project.id],
+            query="project:sentry2",
+            interval="24h",
+            statsPeriod="24h",
+        )
+
+        assert response.data["groups"] == [
+            {
+                "by": {},
+                "totals": {"sum(sentry.sessions.session)": 3},
+                "series": {"sum(sentry.sessions.session)": [0, 3]},
             }
         ]
 
@@ -433,7 +363,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 status="ok",
             )
 
-        response = self.get_response(
+        response = self.get_success_response(
             self.project.organization.slug,
             field=["sum(sentry.sessions.session)"],
             project=[p.id, self.project.id],
@@ -441,7 +371,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             interval="24h",
             statsPeriod="24h",
         )
-        assert response.status_code == 200
+
         assert response.data["groups"] == [
             {
                 "by": {},
@@ -467,7 +397,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 status="ok",
             )
 
-        response = self.get_response(
+        response = self.get_success_response(
             self.project.organization.slug,
             field=["sum(sentry.sessions.session)"],
             project=[p.id, self.project.id],
@@ -475,7 +405,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             interval="24h",
             statsPeriod="24h",
         )
-        assert response.status_code == 200
+
         assert response.data["groups"] == [
             {
                 "by": {},
@@ -509,7 +439,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 status="ok",
             )
 
-        response = self.get_response(
+        response = self.get_success_response(
             self.project.organization.slug,
             field=["sum(sentry.sessions.session)"],
             project=[prj_foo.id, prj_boo.id, self.project.id],
@@ -517,7 +447,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             statsPeriod="24h",
             groupBy="project",
         )
-        assert response.status_code == 200
+
         expected_output = {
             prj_foo.id: {
                 "by": {"project": prj_foo.id},
@@ -544,21 +474,20 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         Test that ensures a successful response is returned even when sending a per_page
         without an orderBy
         """
-        response = self.get_response(
+        self.get_success_response(
             self.organization.slug,
             field=f"count({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             groupBy="transaction",
             per_page=2,
             useCase="transactions",
         )
-        assert response.status_code == 200
 
     def test_query_with_wildcard(self):
         rh_indexer_record(self.organization.id, "session.crash_free_user_rate")
         self.build_and_store_session(
             project_id=self.project.id,
         )
-        response = self.get_response(
+        response = self.get_error_response(
             self.organization.slug,
             field="session.crash_free_user_rate",
             groupBy="release",
@@ -568,9 +497,9 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             interval="1h",
             includeTotals="1",
             includeSeries="0",
+            status_code=400,
         )
 
-        assert response.status_code == 400
         assert (
             response.data["detail"]
             == "Failed to parse conditions: Release Health Queries don't support wildcards"
@@ -581,7 +510,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         Test that ensures a successful response is returned even when requesting an offset
         without an orderBy
         """
-        response = self.get_response(
+        self.get_success_response(
             self.organization.slug,
             field=f"count({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             groupBy="transaction",
@@ -589,15 +518,14 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             statsPeriod="1h",
             useCase="transactions",
         )
-        assert response.status_code == 200, response.data
 
     def test_statsperiod_invalid(self):
-        response = self.get_response(
+        self.get_error_response(
             self.project.organization.slug,
             field="sum(sentry.sessions.session)",
             statsPeriod="",
+            status_code=400,
         )
-        assert response.status_code == 400
 
     def test_separate_projects(self):
         # Insert session metrics:
@@ -1457,15 +1385,13 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         for _ in range(2):
             self.build_and_store_session(project_id=self.project.id)
 
-        response = self.get_response(
+        response = self.get_success_response(
             self.organization.slug,
             statsPeriod="1h",
             interval="1h",
             field="sum(sentry.sessions.session)",
             groupBy=["project_id"],
         )
-
-        assert response.status_code == 200
 
         groups = response.data["groups"]
         assert len(groups) >= 2 and all(group["by"].keys() == {"project_id"} for group in groups)
@@ -1501,14 +1427,14 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         assert len(groups) == 1
         assert groups[0]["by"] == {"foo": None}
 
-        response = self.get_response(
+        self.get_error_response(
             self.organization.slug,
             field="sum(sentry.sessions.session)",
             statsPeriod="1h",
             interval="1h",
             groupBy=["bar"],
+            status_code=400,
         )
-        assert response.status_code == 400
 
     @mock.patch(
         "sentry.api.endpoints.organization_metrics.OrganizationMetricsDataEndpoint.default_per_page",
@@ -1538,14 +1464,14 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         # Insert session metrics:
         self.build_and_store_session(project_id=self.project.id)
 
-        response = self.get_response(
+        self.get_error_response(
             self.organization.slug,
             field="sum(sentry.sessions.session)",
             statsPeriod="1h",
             interval="1h",
             query="foo:123",  # Unknown tag key
+            status_code=400,
         )
-        assert response.status_code == 400
 
         response = self.get_success_response(
             self.organization.slug,
@@ -1560,16 +1486,16 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         assert groups[0]["series"]["sum(sentry.sessions.session)"] == [0]
 
     def test_request_too_granular(self):
-        response = self.get_response(
+        response = self.get_error_response(
             self.organization.slug,
             field="sum(sentry.sessions.session)",
             statsPeriod="24h",
             interval="5m",
             per_page=50,
             orderBy="-sum(sentry.sessions.session)",
+            status_code=400,
         )
-        assert response.status_code == 400
-        assert response.json()["detail"] == (
+        assert response.data["detail"] == (
             f"Requested intervals (288) of timedelta of {timedelta(minutes=5)} with statsPeriod "
             f"timedelta of {timedelta(hours=24)} is too granular "
             f"for a per_page of 51 elements. Increase your interval, decrease your statsPeriod, "
@@ -1592,15 +1518,15 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             {"by": {}, "series": {"sum(sentry.sessions.session)": [1.0]}}
         ]
 
-        response = self.get_response(
+        self.get_error_response(
             self.organization.slug,
             field="sum(sentry.sessions.session)",
             statsPeriod="1h",
             interval="1h",
             includeSeries="0",
             includeTotals="0",
+            status_code=400,
         )
-        assert response.status_code == 400
 
     def test_transaction_status_unknown_error(self):
         self.store_performance_metric(
@@ -1699,6 +1625,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
+        self.login_as(user=self.create_user(is_staff=True), staff=True)
         org_id = self.organization.id
         self.session_duration_metric = rh_indexer_record(org_id, SessionMRI.RAW_DURATION.value)
         self.session_metric = rh_indexer_record(org_id, SessionMRI.RAW_SESSION.value)
@@ -1744,15 +1671,15 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     status=status,
                 )
 
-        response = self.get_response(
+        response = self.get_error_response(
             self.organization.slug,
             field=["crash_free_fake"],
             statsPeriod="6m",
             interval="1m",
             useCase="sessions",
+            status_code=400,
         )
-        assert response.status_code == 400
-        assert response.json()["detail"] == (
+        assert response.data["detail"] == (
             "Derived Metric crash_free_fake cannot be calculated from a single entity"
         )
 
@@ -1761,17 +1688,41 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         Test that ensures appropriate exception is raised when a request is made for a field with no
         operation and a field that is not a valid derived metric
         """
-        response = self.get_response(
+        response = self.get_error_response(
             self.organization.slug,
             project=[self.project.id],
             field=["crash_free_fake"],
             statsPeriod="6m",
             interval="1m",
+            status_code=400,
         )
-        assert response.status_code == 400
-        assert response.json()["detail"] == (
+        assert response.data["detail"] == (
             "Failed to parse 'crash_free_fake'. The metric name must belong to a public metric."
         )
+
+    def test_staff_crash_free_percentage(self):
+        staff_user = self.create_user(is_staff=True)
+        self.login_as(user=staff_user, staff=True)
+
+        for status in ["ok", "crashed"]:
+            for minute in range(4):
+                self.build_and_store_session(
+                    project_id=self.project.id,
+                    minutes_before_now=minute,
+                    status=status,
+                )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["session.crash_free_rate", "session.all", "session.crashed"],
+            statsPeriod="6m",
+            interval="1m",
+        )
+        group = response.data["groups"][0]
+        assert group["totals"]["session.crash_free_rate"] == 0.5
+        assert group["totals"]["session.all"] == 8
+        assert group["totals"]["session.crashed"] == 4
+        assert group["series"]["session.crash_free_rate"] == [None, None, 0.5, 0.5, 0.5, 0.5]
 
     def test_crash_free_percentage(self):
         for status in ["ok", "crashed"]:
@@ -1861,14 +1812,15 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert response.data["groups"] == []
 
     def test_incorrect_crash_free_rate(self):
-        response = self.get_response(
+        response = self.get_error_response(
             self.organization.slug,
             project=[self.project.id],
             field=[f"sum({SessionMetricKey.CRASH_FREE_RATE.value})"],
             statsPeriod="6m",
             interval="1m",
+            status_code=400,
         )
-        assert (response.json()["detail"]) == (
+        assert (response.data["detail"]) == (
             "Failed to parse sum(session.crash_free_rate). No operations can be applied on this "
             "field as it is already a derived metric with an aggregation applied to it."
         )
@@ -1910,15 +1862,15 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             errors=2,
         )
 
-        response = self.get_response(
+        response = self.get_error_response(
             self.organization.slug,
             field=["session.errored"],
             statsPeriod="6m",
             interval="1m",
             groupBy=["release"],
             orderBy=["session.errored"],
+            status_code=400,
         )
-        assert response.status_code == 400
         assert response.data["detail"] == (
             "Selected 'orderBy' columns must belongs to the same entity"
         )
@@ -2257,12 +2209,13 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["series"]["session.healthy_user"] == [0]
 
     def test_private_transactions_derived_metric(self):
-        response = self.get_response(
+        response = self.get_error_response(
             self.organization.slug,
             project=[self.project.id],
             field=["transaction.all"],
             statsPeriod="1m",
             interval="1m",
+            status_code=400,
         )
 
         assert response.data["detail"] == (
@@ -2338,12 +2291,13 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             "session.errored_set",
             "session.errored_user_all",
         ]:
-            response = self.get_response(
+            response = self.get_error_response(
                 self.organization.slug,
                 project=[self.project.id],
                 field=[private_name],
                 statsPeriod="6m",
                 interval="6m",
+                status_code=400,
             )
             assert response.data["detail"] == (
                 f"Failed to parse '{private_name}'. The metric name must belong to a public metric."

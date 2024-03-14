@@ -5,7 +5,7 @@ from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
 
-from sentry_sdk.tracing import NoOpSpan, Transaction
+from sentry_sdk.tracing import NoOpSpan, Span, Transaction
 
 from sentry.issues.escalating import manage_issue_states
 from sentry.issues.status_change_message import StatusChangeMessageData
@@ -83,7 +83,7 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             activity_type = ActivityType.SET_REGRESSION
         elif new_substatus == GroupSubStatus.ONGOING:
             if group.substatus == GroupSubStatus.ESCALATING:
-                # If the group was previously escalating, we need to update the priority via AUTO_SET_ONGOING
+                # If the group was previously escalating, update the priority via AUTO_SET_ONGOING
                 activity_type = ActivityType.AUTO_SET_ONGOING
             else:
                 activity_type = ActivityType.SET_UNRESOLVED
@@ -145,13 +145,16 @@ def bulk_get_groups_from_fingerprints(
         (project_id, fingerprint[0]) for project_id, fingerprint in project_fingerprint_pairs
     }
     for project_id, fingerprint in fingerprints_set - found_fingerprints:
-        logger.error(
-            "grouphash.not_found",
-            extra={
-                "project_id": project_id,
-                "fingerprint": fingerprint,
-            },
-        )
+        try:
+            raise Exception("grouphash.not_found")
+        except Exception:
+            logger.exception(
+                "grouphash.not_found",
+                extra={
+                    "project_id": project_id,
+                    "fingerprint": fingerprint,
+                },
+            )
 
     return result
 
@@ -174,7 +177,7 @@ def _get_status_change_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
 
 
 def process_status_change_message(
-    message: Mapping[str, Any], txn: Transaction | NoOpSpan
+    message: Mapping[str, Any], txn: Transaction | NoOpSpan | Span
 ) -> Group | None:
     with metrics.timer("occurrence_consumer._process_message.status_change._get_kwargs"):
         kwargs = _get_status_change_kwargs(message)

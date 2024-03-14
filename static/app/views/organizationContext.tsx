@@ -41,7 +41,10 @@ interface Props {
  * There are still a number of places where we consume the legacy organization
  * context. So for now we still need a component that provides this.
  */
-class LegacyOrganizationContextProvider extends Component<{value: Organization | null}> {
+class LegacyOrganizationContextProvider extends Component<{
+  value: Organization | null;
+  children?: React.ReactNode;
+}> {
   static childContextTypes = {
     organization: SentryPropTypeValidators.isOrganization,
   };
@@ -102,8 +105,8 @@ export function OrganizationContextProvider({children}: Props) {
     if (organization && organization.slug === orgSlug) {
       return;
     }
-
     if (!orgSlug) {
+      OrganizationStore.setNoOrganization();
       return;
     }
 
@@ -138,10 +141,15 @@ export function OrganizationContextProvider({children}: Props) {
   // boot. We should fix the types here in the future
   const user: User | null = configStore.user;
 
-  // If we've had an error it may be possible for the user to use the sudo
-  // modal to load the organization.
+  // It may be possible for the user to use the sudo modal to load the organization.
   useEffect(() => {
     if (!error) {
+      // If the user has an active staff session, the response will not return a
+      // 403 but access scopes will be an empty list.
+      if (user?.isSuperuser && user?.isStaff && organization?.access?.length === 0) {
+        openSudo({isSuperuser: true, needsReload: true});
+      }
+
       return;
     }
 
@@ -153,7 +161,7 @@ export function OrganizationContextProvider({children}: Props) {
     // So let's log them. This may create some noise, especially the test case where
     // we specifically test this branch
     console.error(error); // eslint-disable-line no-console
-  }, [user, error]);
+  }, [user, error, organization]);
 
   // Switch organizations when the orgId changes
   const lastOrgId = useRef(orgSlug);

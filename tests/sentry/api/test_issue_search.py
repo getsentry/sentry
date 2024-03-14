@@ -27,7 +27,7 @@ from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, STATUS_QUERY_CHOI
 from sentry.search.utils import get_teams_for_users
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
-from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus
+from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus, PriorityLevel
 
 
 class ParseSearchQueryTest(unittest.TestCase):
@@ -311,6 +311,21 @@ class ConvertSubStatusValueTest(TestCase):
             ("substatus", "NOT IN", [GroupSubStatus.UNTIL_ESCALATING]),
             ("status", "NOT IN", [GroupStatus.UNRESOLVED]),
         ]
+
+
+class ConvertPriorityValueTest(TestCase):
+    def test_valid(self):
+        for priority in PriorityLevel:
+            filters = [
+                SearchFilter(SearchKey("issue.priority"), "=", SearchValue([priority.to_str()]))
+            ]
+            result = convert_query_values(filters, [self.project], self.user, None)
+            assert result[0].value.raw_value == [priority]
+
+    def test_invalid(self):
+        filters = [SearchFilter(SearchKey("issue.priority"), "=", SearchValue("wrong"))]
+        with pytest.raises(InvalidSearchQuery):
+            convert_query_values(filters, [self.project], self.user, None)
 
 
 @region_silo_test

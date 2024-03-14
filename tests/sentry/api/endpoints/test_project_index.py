@@ -188,32 +188,33 @@ class ProjectsListTest(APITestCase):
 
     def test_valid_with_internal_integration(self):
         project = self.create_project(organization=self.organization, teams=[self.team])
-        self.create_internal_integration(
+        internal_integration = self.create_internal_integration(
             name="my_app",
             organization=self.organization,
             scopes=("project:read",),
             webhook_url="http://example.com",
         )
-        # there should only be one record created so just grab the first one
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            token = SentryAppInstallationToken.objects.first()
+        token = self.create_internal_integration_token(
+            user=self.user, internal_integration=internal_integration
+        )
         path = reverse(self.endpoint)
-        response = self.client.get(path, HTTP_AUTHORIZATION=f"Bearer {token.api_token.token}")
+        response = self.client.get(path, HTTP_AUTHORIZATION=f"Bearer {token}")
         assert project.name.encode("utf-8") in response.content
 
     def test_deleted_token_with_internal_integration(self):
-        self.create_internal_integration(
+        internal_integration = self.create_internal_integration(
             name="my_app",
             organization=self.organization,
             scopes=("project:read",),
             webhook_url="http://example.com",
         )
+        token = self.create_internal_integration_token(
+            user=self.user, internal_integration=internal_integration
+        )
 
         with self.tasks(), assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
-            # there should only be one record created so just grab the first one
-            install_token = SentryAppInstallationToken.objects.first()
-            api_token = install_token.api_token
-            token = api_token.token
+            # Fetch the record using the created token
+            install_token = SentryAppInstallationToken.objects.get(api_token=token)
             # Delete the token
             install_token.delete()
             schedule_hybrid_cloud_foreign_key_jobs_control()

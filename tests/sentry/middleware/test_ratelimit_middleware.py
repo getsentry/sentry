@@ -11,10 +11,9 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
-from sentry.api.endpoints.organization_group_index import OrganizationGroupIndexEndpoint
+from sentry.issues.endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from sentry.middleware.ratelimit import RatelimitMiddleware
 from sentry.models.apikey import ApiKey
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.user import User
 from sentry.ratelimits.config import RateLimitConfig, get_default_rate_limits_for_group
 from sentry.ratelimits.utils import get_rate_limit_config, get_rate_limit_key, get_rate_limit_value
@@ -74,17 +73,20 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
             scopes=("project:read",),
             webhook_url="http://example.com",
         )
-        # there should only be one record created so just grab the first one
-        token = None
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            install = SentryAppInstallation.objects.get(
-                sentry_app=internal_integration.id, organization_id=self.organization.id
-            )
-            print(install.__dict__)
-            token = install.api_token
-            print(token, install.api_token)
+        # # there should only be one record created so just grab the first one
+        # token = None
+        # with assume_test_silo_mode(SiloMode.CONTROL):
+        #     install = SentryAppInstallation.objects.get(
+        #         sentry_app=internal_integration.id, organization_id=self.organization.id
+        #     )
+        #     print(install.__dict__)
+        #     token = install.api_token
+        #     print(token, install.api_token)
 
-        assert token is not None
+        token = self.create_internal_integration_token(
+            user=self.user,
+            internal_integration=internal_integration,
+        )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             request.user = User.objects.get(id=internal_integration.proxy_user_id)
@@ -133,8 +135,9 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
     def test_positive_rate_limit_response_headers(self, default_rate_limit_mock):
         request = self.factory.get("/")
 
-        with freeze_time("2000-01-01"), patch.object(
-            RatelimitMiddlewareTest.TestEndpoint, "enforce_rate_limit", True
+        with (
+            freeze_time("2000-01-01"),
+            patch.object(RatelimitMiddlewareTest.TestEndpoint, "enforce_rate_limit", True),
         ):
             default_rate_limit_mock.return_value = RateLimit(0, 100)
             response = self.middleware.process_view(request, self._test_endpoint, [], {})
@@ -199,7 +202,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
 
         self.populate_internal_integration_request(request)
         self.middleware.process_view(request, self._test_endpoint, [], {})
-        assert request.rate_limit_category == RateLimitCategory.ORGANIZATION
+        assert request.rate_limit_category == RateLimitCategory.IP
 
     def test_rate_limit_key_for_ips(self):
         self._setup_key()

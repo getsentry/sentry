@@ -14,7 +14,6 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import assume_test_silo_mode_of, region_silo_test
 from sentry.testutils.skips import requires_snuba
-from sentry.utils.cache import cache
 
 pytestmark = requires_snuba
 
@@ -26,6 +25,7 @@ def actor_key(actor):
 @region_silo_test
 class ProjectOwnershipTestCase(TestCase):
     def setUp(self):
+        self.rpc_user = user_service.get_user(user_id=self.user.id)
         self.user2 = self.create_user("bar@localhost", username="bar")
         self.organization.member_set.create(user_id=self.user2.id)
         self.team = self.create_team(
@@ -41,11 +41,6 @@ class ProjectOwnershipTestCase(TestCase):
         self.project2 = self.create_project(
             organization=self.organization, teams=[self.team, self.team2]
         )
-
-    def tearDown(self):
-        cache.delete(ProjectOwnership.get_cache_key(self.project.id))
-
-        super().tearDown()
 
     def python_event_data(self):
         return {
@@ -279,7 +274,7 @@ class ProjectOwnershipTestCase(TestCase):
         assert ProjectOwnership.get_issue_owners(
             self.project2.id, {"stacktrace": {"frames": [{"filename": "src/foo.py"}]}}
         ) == [
-            (rule_b, [user_service.get_user(self.user.id)], OwnerRuleType.OWNERSHIP_RULE.value),
+            (rule_b, [self.rpc_user], OwnerRuleType.OWNERSHIP_RULE.value),
             (rule_a, [self.team], OwnerRuleType.OWNERSHIP_RULE.value),
         ]
 
@@ -307,7 +302,7 @@ class ProjectOwnershipTestCase(TestCase):
             context={"rule": str(rule_c)},
         )
 
-        ProjectOwnership.handle_auto_assignment(self.project.id, self.event, logging_extra={})
+        ProjectOwnership.handle_auto_assignment(self.project.id, self.event)
         assert len(GroupAssignee.objects.all()) == 1
         assignee = GroupAssignee.objects.get(group=self.event.group)
         assert assignee.team_id == self.team.id
@@ -356,7 +351,7 @@ class ProjectOwnershipTestCase(TestCase):
             context={"commitId": self.commit.id},
         )
 
-        ProjectOwnership.handle_auto_assignment(self.project2.id, self.event, logging_extra={})
+        ProjectOwnership.handle_auto_assignment(self.project2.id, self.event)
         assert len(GroupAssignee.objects.all()) == 1
         assignee = GroupAssignee.objects.get(group=self.event.group)
         assert assignee.user_id == self.user2.id
@@ -388,7 +383,7 @@ class ProjectOwnershipTestCase(TestCase):
             context={"rule": str(rule_c)},
         )
 
-        ProjectOwnership.handle_auto_assignment(self.project.id, self.event, logging_extra={})
+        ProjectOwnership.handle_auto_assignment(self.project.id, self.event)
         assert len(GroupAssignee.objects.all()) == 1
         assignee = GroupAssignee.objects.get(group=self.event.group)
         assert assignee.team_id == self.team.id
@@ -398,7 +393,7 @@ class ProjectOwnershipTestCase(TestCase):
         GroupAssignee.objects.assign(self.event.group, self.user)
 
         # ensure the issue was not reassigned
-        ProjectOwnership.handle_auto_assignment(self.project.id, self.event, logging_extra={})
+        ProjectOwnership.handle_auto_assignment(self.project.id, self.event)
         assert len(GroupAssignee.objects.all()) == 1
         assignee = GroupAssignee.objects.get(group=self.event.group)
         assert assignee.user_id == self.user.id
@@ -433,7 +428,7 @@ class ProjectOwnershipTestCase(TestCase):
         GroupAssignee.objects.create(group=self.event.group, project=self.project, team=self.team)
 
         # ensure we skip calling assign
-        ProjectOwnership.handle_auto_assignment(self.project.id, self.event, logging_extra={})
+        ProjectOwnership.handle_auto_assignment(self.project.id, self.event)
         mock_assign.assert_not_called()
 
     def test_handle_auto_assignment_when_codeowners_and_issueowners_exists(self):
@@ -480,17 +475,26 @@ class ProjectOwnershipTestCase(TestCase):
             context={"rule": str(rule_c)},
         )
 
-        ProjectOwnership.handle_auto_assignment(self.project2.id, self.event, logging_extra={})
+        ProjectOwnership.handle_auto_assignment(self.project2.id, self.event)
         assert len(GroupAssignee.objects.all()) == 0
 
         # Turn on auto assignment
         self.ownership.auto_assignment = True
         self.ownership.suspect_committer_auto_assignment = True
         self.ownership.save()
-        ProjectOwnership.handle_auto_assignment(self.project2.id, self.event, logging_extra={})
+        ProjectOwnership.handle_auto_assignment(self.project2.id, self.event)
         assert len(GroupAssignee.objects.all()) == 1
         assignee = GroupAssignee.objects.get(group=self.event.group)
         assert assignee.team_id == self.team.id
+
+    def test_no_group_owner(self):
+        self.event = self.store_event(
+            data=self.python_event_data(),
+            project_id=self.project2.id,
+        )
+
+        ProjectOwnership.handle_auto_assignment(self.project2.id, self.event)
+        assert len(GroupAssignee.objects.all()) == 0
 
     def test_handle_auto_assignment_when_suspect_committer_and_codeowners_and_issueowners_exists(
         self,
@@ -564,14 +568,14 @@ class ProjectOwnershipTestCase(TestCase):
             context={"rule": str(rule_c)},
         )
 
-        ProjectOwnership.handle_auto_assignment(self.project2.id, self.event, logging_extra={})
+        ProjectOwnership.handle_auto_assignment(self.project2.id, self.event)
         assert len(GroupAssignee.objects.all()) == 0
 
         # Turn on auto assignment
         self.ownership.auto_assignment = True
         self.ownership.suspect_committer_auto_assignment = True
         self.ownership.save()
-        ProjectOwnership.handle_auto_assignment(self.project2.id, self.event, logging_extra={})
+        ProjectOwnership.handle_auto_assignment(self.project2.id, self.event)
         assert len(GroupAssignee.objects.all()) == 1
         assignee = GroupAssignee.objects.get(group=self.event.group)
         assert assignee.user_id == self.user2.id
@@ -590,7 +594,6 @@ class ProjectOwnershipTestCase(TestCase):
         ) == ([ActorTuple(self.team.id, Team)], [rule])
 
     def test_saves_without_either_auto_assignment_option(self):
-        # Project has group for autoassigned_owner_cache
         self.group = self.create_group(project=self.project)
         # Turn off all autoassignment
         ProjectOwnership.objects.create(
@@ -626,7 +629,7 @@ class ProjectOwnershipTestCase(TestCase):
             context={"rule": str(rule_a)},
         )
 
-        ProjectOwnership.handle_auto_assignment(self.project.id, self.event, logging_extra={})
+        ProjectOwnership.handle_auto_assignment(self.project.id, self.event)
         assert len(GroupAssignee.objects.all()) == 1
         assignee = GroupAssignee.objects.get(group=self.event.group)
         assert assignee.team_id == self.team.id
@@ -645,22 +648,39 @@ class ProjectOwnershipTestCase(TestCase):
         ProjectOwnership.handle_auto_assignment(
             self.project.id,
             group=self.event.group,
-            logging_extra={},
             force_autoassign=True,
         )
         assert len(GroupAssignee.objects.all()) == 1
         assignee = GroupAssignee.objects.get(group=self.event.group)
         assert assignee.team_id == self.team.id
 
-        # TODO(Leander): Remove after caller in getsentry uses `force_autoassign`
-        # Manually assign the group to someone else (again)
-        GroupAssignee.objects.assign(self.event.group, self.user)
-        assert len(GroupAssignee.objects.all()) == 1
-        assignee = GroupAssignee.objects.get(group=self.event.group)
-        assert assignee.user_id == self.user.id
+    def test_force_handle_auto_assignment_cache_check(self):
+        # Run auto-assignment first
+        self.code_mapping = self.create_code_mapping(project=self.project)
 
-        # Run force auto-assignment without explicit parameter
-        ProjectOwnership.handle_auto_assignment(self.project.id, group=self.event.group)
+        rule_a = Rule(Matcher("path", "*.py"), [Owner("team", self.team.slug)])
+
+        self.create_codeowners(
+            self.project, self.code_mapping, raw="*.py @tiger-team", schema=dump_schema([rule_a])
+        )
+
+        self.event = self.store_event(
+            data=self.python_event_data(),
+            project_id=self.project.id,
+        )
+        assert self.event.group is not None
+
+        GroupOwner.objects.create(
+            group=self.event.group,
+            type=GroupOwnerType.CODEOWNERS.value,
+            user_id=None,
+            team_id=self.team.id,
+            project=self.project,
+            organization=self.project.organization,
+            context={"rule": str(rule_a)},
+        )
+
+        ProjectOwnership.handle_auto_assignment(self.project.id, self.event)
         assert len(GroupAssignee.objects.all()) == 1
         assignee = GroupAssignee.objects.get(group=self.event.group)
         assert assignee.team_id == self.team.id

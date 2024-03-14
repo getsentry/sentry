@@ -30,13 +30,18 @@ from sentry.event_manager import EventManager
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.incidents.logic import (
     create_alert_rule,
+    create_alert_rule_activation,
+    create_alert_rule_activation_condition,
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
     query_datasets_to_type,
 )
-from sentry.incidents.models import (
+from sentry.incidents.models.alert_rule import (
+    AlertRuleMonitorType,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
+)
+from sentry.incidents.models.incident import (
     Incident,
     IncidentActivity,
     IncidentProject,
@@ -45,6 +50,7 @@ from sentry.incidents.models import (
     IncidentType,
     TriggerStatus,
 )
+from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.mediators.token_exchange.grant_exchanger import GrantExchanger
 from sentry.models.activity import Activity
@@ -82,6 +88,7 @@ from sentry.models.integrations.integration_feature import (
 )
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.integrations.sentry_app_installation_for_provider import (
     SentryAppInstallationForProvider,
@@ -411,7 +418,7 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_user_auth_token(user, scope_list: list[str] = None, **kwargs) -> ApiToken:
+    def create_user_auth_token(user, scope_list: list[str] | None = None, **kwargs) -> ApiToken:
         if scope_list is None:
             scope_list = []
         return ApiToken.objects.create(
@@ -800,16 +807,15 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_user(email=None, **kwargs):
+    def create_user(email=None, is_superuser=False, is_staff=False, is_active=True, **kwargs):
         if email is None:
             email = uuid4().hex + "@example.com"
 
         kwargs.setdefault("username", email)
-        kwargs.setdefault("is_staff", True)
-        kwargs.setdefault("is_active", True)
-        kwargs.setdefault("is_superuser", False)
 
-        user = User(email=email, **kwargs)
+        user = User(
+            email=email, is_superuser=is_superuser, is_staff=is_staff, is_active=is_active, **kwargs
+        )
         if kwargs.get("password") is None:
             user.set_password("admin")
         user.save()
@@ -1050,28 +1056,36 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_internal_integration(**kwargs):
+    def create_internal_integration(**kwargs) -> SentryApp:
         args = Factories._sentry_app_kwargs(**kwargs)
         args["verify_install"] = False
         user = args.pop("user", None)
-        app = SentryAppCreator(is_internal=True, **args).run(user=user, request=None)
+        app = SentryAppCreator(is_internal=True, **args).run(
+            user=user, request=None, skip_default_auth_token=True
+        )
         return app
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_internal_integration_token(user, install=None, request=None, org=None, scopes=None):
-        if scopes is None:
-            scopes = []
+    def create_internal_integration_token(
+        user,
+        internal_integration: SentryApp | None = None,
+        install: SentryAppInstallation | None = None,
+        request=None,
+    ) -> ApiToken:
+        if internal_integration and install:
+            raise ValueError("Only one of internal_integration or install arg can be provided")
+        if internal_integration is None and install is None:
+            raise ValueError("Must pass in either internal_integration or install arg")
+
         if install is None:
-            assert org
-            sentry_app = Factories.create_sentry_app(
-                name="Integration Token",
-                organization=org,
-                scopes=scopes,
-            )
-            install = Factories.create_sentry_app_installation(
-                organization=org, slug=sentry_app.slug, user=user
-            )
+            # Fetch install from provided or created internal integration
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                install = SentryAppInstallation.objects.get(
+                    sentry_app=internal_integration.id,
+                    organization_id=internal_integration.owner_id,
+                )
+
         return SentryAppInstallationTokenCreator(sentry_app_installation=install).run(
             user=user, request=request
         )
@@ -1098,7 +1112,11 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
     def create_sentry_app_installation(
-        organization=None, slug=None, user=None, status=None, prevent_token_exchange=False
+        organization=None,
+        slug=None,
+        user=None,
+        status=None,
+        prevent_token_exchange=False,
     ):
         if not organization:
             organization = Factories.create_organization()
@@ -1468,6 +1486,7 @@ class Factories:
         user=None,
         event_types=None,
         comparison_delta=None,
+        monitor_type=AlertRuleMonitorType.CONTINUOUS,
     ):
         if not name:
             name = petname.generate(2, " ", letters=10).title()
@@ -1494,12 +1513,34 @@ class Factories:
             user=user,
             event_types=event_types,
             comparison_delta=comparison_delta,
+            monitor_type=monitor_type,
         )
 
         if date_added is not None:
             alert_rule.update(date_added=date_added)
 
         return alert_rule
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_alert_rule_activation_condition(
+        alert_rule,
+        label=None,
+        condition_type=AlertRuleActivationConditionType.RELEASE_CREATION,
+    ):
+        if not label:
+            label = petname.generate(2, " ", letters=10).title()
+
+        return create_alert_rule_activation_condition(alert_rule, label, condition_type)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_alert_rule_activation(
+        alert_rule,
+        **kwargs,
+    ):
+
+        return create_alert_rule_activation(alert_rule, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -1811,14 +1852,13 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_webhook_payload(mailbox_name: str, region_name: str, **kwargs) -> WebhookPayload:
-        kwargs.update(
-            {
-                "request_method": "POST",
-                "request_path": "/extensions/github/webhook/",
-                "request_headers": '{"Content-Type": "application/json"}',
-                "request_body": "{}",
-            }
-        )
+        payload_kwargs = {
+            "request_method": "POST",
+            "request_path": "/extensions/github/webhook/",
+            "request_headers": '{"Content-Type": "application/json"}',
+            "request_body": "{}",
+            **kwargs,
+        }
         return WebhookPayload.objects.create(
-            mailbox_name=mailbox_name, region_name=region_name, **kwargs
+            mailbox_name=mailbox_name, region_name=region_name, **payload_kwargs
         )

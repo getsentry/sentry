@@ -127,7 +127,7 @@ export class NewTraceDetailsSpanBar extends Component<
 
     // If span is anchored scroll to span bar and open it's detail panel
     if (this.isHighlighted && this.props.onRowClick) {
-      this.props.onRowClick(this.getSpanDetailsProps());
+      this.props.onRowClick(undefined);
 
       // Needs a little delay after bar is rendered, to achieve
       // scrollto bar functionality for spans that exist much further down the
@@ -180,7 +180,7 @@ export class NewTraceDetailsSpanBar extends Component<
         relatedErrors &&
         relatedErrors.length > 0
       ) {
-        this.props.onRowClick(this.getSpanDetailsProps());
+        this.props.onRowClick(undefined);
       }
     }
   }
@@ -840,7 +840,7 @@ export class NewTraceDetailsSpanBar extends Component<
         });
         spanDetailProps.openPanel = 'open';
       }
-      this.props.onRowClick(spanDetailProps);
+      this.props.onRowClick(undefined);
     }
   }
   renderHeader({

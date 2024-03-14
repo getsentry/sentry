@@ -507,7 +507,7 @@ class DifAssembleEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class SourceMapsEndpoint(ProjectEndpoint):
-    owner = ApiOwner.OWNERS_PROCESSING
+    owner = ApiOwner.PROCESSING
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
         "GET": ApiPublishStatus.PRIVATE,
@@ -597,9 +597,14 @@ class SourceMapsEndpoint(ProjectEndpoint):
 
         if archive_name:
             with atomic_transaction(using=router.db_for_write(ReleaseFile)):
-                release = Release.objects.get(
-                    organization_id=project.organization_id, projects=project, version=archive_name
-                )
+                try:
+                    release = Release.objects.get(
+                        organization_id=project.organization_id,
+                        projects=project,
+                        version=archive_name,
+                    )
+                except Release.DoesNotExist:
+                    raise ResourceDoesNotExist(detail="The provided release does not exist")
                 if release is not None:
                     release_files = ReleaseFile.objects.filter(release_id=release.id)
                     release_files.delete()

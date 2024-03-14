@@ -68,7 +68,7 @@ class GroupNotesEndpoint(GroupEndpoint):
         )
 
         activity = Activity.objects.create_group_activity(
-            group, ActivityType.NOTE, user_id=request.user.id, data=data
+            group=group, type=ActivityType.NOTE, user_id=request.user.id, data=data
         )
 
         self.create_external_comment(request, group, activity)

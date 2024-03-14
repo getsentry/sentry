@@ -9,6 +9,11 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  getCrashReportModalConfigDescription,
+  getCrashReportModalIntroduction,
+  getCrashReportSDKInstallFirstStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getDotnetMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
@@ -46,34 +51,6 @@ public static IHostBuilder CreateHostBuilder(string[] args) =>
               o.TracesSampleRate = 1.0;
           });
       });`;
-
-const getPerformanceMiddlewareSnippet = () => `
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Sentry.AspNetCore;
-
-public class Startup
-{
-    public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
-    {
-        app.UseRouting();
-
-        // Enable automatic tracing integration.
-        // If running with .NET 5 or below, make sure to put this middleware
-        // right after "UseRouting()".
-        app.UseSentryTracing();
-
-        app.UseEndpoints(endpoints =>
-        {
-            endpoints.MapControllerRoute(
-                name: "default",
-                pattern: "{controller=Home}/{action=Index}/{id?}");
-        });
-    }
-}`;
 
 const getPerformanceSpansSnippet = () => `
 using Microsoft.AspNetCore.Mvc;
@@ -180,10 +157,6 @@ const onboarding: OnboardingConfig = {
       ),
       configurations: [
         {
-          language: 'csharp',
-          code: getPerformanceMiddlewareSnippet(),
-        },
-        {
           description: t(
             "You'll be able to monitor the performance of your actions automatically. To add additional spans to it, you can use the API:"
           ),
@@ -231,10 +204,56 @@ const onboarding: OnboardingConfig = {
   ],
 };
 
+const crashReportOnboarding: OnboardingConfig = {
+  introduction: () => getCrashReportModalIntroduction(),
+  install: (params: Params) => [
+    {
+      type: StepType.INSTALL,
+      configurations: [
+        getCrashReportSDKInstallFirstStep(params),
+        {
+          description: tct(
+            'If you are rendering the page from the server, for example on ASP.NET MVC, the [code:Error.cshtml] razor page can be:',
+            {code: <code />}
+          ),
+          code: [
+            {
+              label: 'cshtml',
+              value: 'html',
+              language: 'html',
+              code: `@using Sentry
+@using Sentry.AspNetCore
+@inject Microsoft.Extensions.Options.IOptions<SentryAspNetCoreOptions> SentryOptions
+
+@if (SentrySdk.LastEventId != SentryId.Empty) {
+  <script>
+    Sentry.init({ dsn: "@(SentryOptions.Value.Dsn)" });
+    Sentry.showReportDialog({ eventId: "@SentrySdk.LastEventId" });
+  </script>
+}`,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: getCrashReportModalConfigDescription({
+        link: 'https://docs.sentry.io/platforms/dotnet/guides/aspnetcore/user-feedback/configuration/#crash-report-modal',
+      }),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
   customMetricsOnboarding: getDotnetMetricsOnboarding({packageName: 'Sentry.AspNetCore'}),
+  crashReportOnboarding,
 };
 
 export default docs;

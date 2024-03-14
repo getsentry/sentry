@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import uuid
-from collections.abc import Mapping
-from datetime import datetime
+from collections.abc import Mapping, Sequence
+from datetime import UTC, datetime
 from typing import Any
 
 from sentry.issues.grouptype import (
     PerformanceNPlusOneAPICallsGroupType,
     PerformanceNPlusOneGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
+    PerformanceSlowDBQueryGroupType,
     ProfileFileIOGroupType,
 )
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
@@ -16,9 +17,10 @@ from sentry.models.group import Group
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.utils.actions import MessageAction
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import ExternalProviders
-from sentry.utils.dates import ensure_aware
 
 
 class DummyNotification(BaseNotification):
@@ -53,6 +55,22 @@ class DummyNotification(BaseNotification):
 
     def get_participants(self):
         return []
+
+    def get_message_actions(
+        self, recipient: RpcActor, provider: ExternalProviders
+    ) -> Sequence[MessageAction]:
+        zombo_link = MessageAction(
+            name="Go to Zombo.com",
+            style="primary",
+            url="http://zombo.com",
+        )
+        sentry_link = MessageAction(
+            name="Sentry Link",
+            label="Go to Sentry",
+            style="primary",
+            url="http://sentry.io",
+        )
+        return [zombo_link, sentry_link]
 
 
 class AnotherDummyNotification(DummyNotification):
@@ -97,7 +115,7 @@ TEST_ISSUE_OCCURRENCE = IssueOccurrence(
         IssueEvidence("Evidence 3", "Nobody cares about this", False),
     ],
     ProfileFileIOGroupType,
-    ensure_aware(datetime.now()),
+    datetime.now(UTC),
     "info",
     "/api/123/",
 )
@@ -118,12 +136,38 @@ TEST_PERF_ISSUE_OCCURRENCE = IssueOccurrence(
         ),
     ],
     PerformanceNPlusOneGroupType,
-    ensure_aware(datetime.now()),
+    datetime.now(UTC),
     "info",
     "/api/123/",
 )
 
 SAMPLE_TO_OCCURRENCE_MAP = {
+    "transaction-slow-db-query": IssueOccurrence(
+        uuid.uuid4().hex,
+        1,
+        uuid.uuid4().hex,
+        ["ad800f7f33d223e714d718cb4e7d3ce1"],
+        "Slow DB Query",
+        'SELECT "marketing_information"."id", "marketing_information"."email", "marketing_information"."subscribed", "marketing_information"."updated_at", "marketing_information"."category", "marketing_information"."opted_out" FROM "marketing_information" WHERE "marketing_information"."email" IN (SELECT U0."email" FROM "users" U0 WHERE U0."user_id" = %s)',
+        None,
+        {
+            "op": "db",
+            "cause_span_ids": [],
+            "parent_span_ids": [],
+            "offender_span_ids": [
+                "b3da1046fed392a3",
+            ],
+            "transaction_name": "",
+            "num_repeating_spans": "1",
+            "repeating_spans": 'SELECT "marketing_information"."id", "marketing_information"."email", "marketing_information"."subscribed", "marketing_information"."updated_at", "marketing_information"."category", "marketing_information"."opted_out" FROM "marketing_information" WHERE "marketing_information"."email" IN (SELECT U0."email" FROM "users" U0 WHERE U0."user_id" = %s)',
+            "repeating_spans_compact": 'SELECT "marketing_information"."id", "marketing_information"."email", "marketing_information"."subscribed", "marketing_information"."updated_at", "marketing_information"."category", "marketing_information"."opted_out" FROM "marketing_information" WHERE "marketing_information"."email" IN (SELECT U0."email" FROM "users" U0 WHERE U0."user_id" = %s)',
+        },
+        [],
+        PerformanceSlowDBQueryGroupType,
+        datetime.now(UTC),
+        "info",
+        "/api/marketing-info/",
+    ),
     "transaction-n-plus-one-api-call": IssueOccurrence(
         uuid.uuid4().hex,
         1,
@@ -160,7 +204,7 @@ SAMPLE_TO_OCCURRENCE_MAP = {
         },
         [],
         PerformanceNPlusOneAPICallsGroupType,
-        ensure_aware(datetime.now()),
+        datetime.now(UTC),
         "info",
         "/books/",
     ),
@@ -196,7 +240,7 @@ SAMPLE_TO_OCCURRENCE_MAP = {
         },
         [],
         PerformanceNPlusOneGroupType,
-        ensure_aware(datetime.now()),
+        datetime.now(UTC),
         "info",
         "/books/",
     ),
@@ -223,7 +267,7 @@ SAMPLE_TO_OCCURRENCE_MAP = {
         },
         [],
         PerformanceRenderBlockingAssetSpanGroupType,
-        ensure_aware(datetime.now()),
+        datetime.now(UTC),
         "info",
         "/render-blocking-asset/",
     ),

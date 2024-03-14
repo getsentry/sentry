@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import OrderedDict, defaultdict
 from collections.abc import MutableMapping
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from django.db.models import Count, DateTimeField, Func
 from django.db.models.functions import Extract
@@ -16,7 +16,6 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.models.environment import Environment
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorEnvironment
-from sentry.utils.dates import to_timestamp
 
 
 def normalize_to_epoch(timestamp: datetime, seconds: int):
@@ -26,7 +25,7 @@ def normalize_to_epoch(timestamp: datetime, seconds: int):
     i.e. if the rollup is minutes, the resulting timestamp would have
     the seconds and microseconds rounded down.
     """
-    epoch = int(to_timestamp(timestamp))
+    epoch = int(timestamp.timestamp())
     return epoch - (epoch % seconds)
 
 
@@ -124,7 +123,7 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
         bucket = Func(
             timedelta(seconds=args["rollup"]),
             "date_added",
-            datetime.fromtimestamp(start),
+            datetime.fromtimestamp(start, UTC),
             function="date_bin",
             output_field=DateTimeField(),
         )

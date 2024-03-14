@@ -215,7 +215,7 @@ function BaseDropdownMenuItem(
       trailingItems={
         isSubmenu ? (
           <Fragment>
-            {trailingItems}
+            {trailingItems as React.ReactNode}
             <IconChevron size="xs" direction="right" aria-hidden="true" />
           </Fragment>
         ) : (

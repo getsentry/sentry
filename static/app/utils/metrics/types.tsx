@@ -1,4 +1,4 @@
-import type {DateString, MRI, PageFilters} from 'sentry/types';
+import type {DateString, MRI} from 'sentry/types';
 
 export enum MetricDisplayType {
   LINE = 'line',
@@ -16,17 +16,42 @@ export type SortState = {
 };
 
 export interface FocusedMetricsSeries {
-  seriesName: string;
+  id: string;
   groupBy?: Record<string, string>;
 }
 
-export interface MetricWidgetQueryParams extends MetricsQuerySubject {
+export interface MetricsQuery {
+  mri: MRI;
+  op: string;
+  groupBy?: string[];
+  query?: string;
+}
+
+export enum MetricQueryType {
+  QUERY = 1,
+  FORMULA = 2,
+}
+
+export interface BaseWidgetParams {
   displayType: MetricDisplayType;
+  id: number;
+  isHidden: boolean;
+  type: MetricQueryType;
   focusedSeries?: FocusedMetricsSeries[];
-  highlightedSample?: string | null;
-  powerUserMode?: boolean;
   sort?: SortState;
 }
+
+export interface MetricQueryWidgetParams extends BaseWidgetParams, MetricsQuery {
+  type: MetricQueryType.QUERY;
+  powerUserMode?: boolean;
+}
+
+export interface MetricFormulaWidgetParams extends BaseWidgetParams {
+  formula: string;
+  type: MetricQueryType.FORMULA;
+}
+
+export type MetricWidgetQueryParams = MetricQueryWidgetParams | MetricFormulaWidgetParams;
 
 export interface DdmQueryParams {
   widgets: string; // stringified json representation of MetricWidgetQueryParams
@@ -37,18 +62,6 @@ export interface DdmQueryParams {
   statsPeriod?: string | null;
   utc?: boolean | null;
 }
-
-export type MetricsQuery = {
-  datetime: PageFilters['datetime'];
-  environments: PageFilters['environments'];
-  mri: MRI;
-  projects: PageFilters['projects'];
-  groupBy?: string[];
-  op?: string;
-  query?: string;
-};
-
-export type MetricsQuerySubject = Pick<MetricsQuery, 'mri' | 'op' | 'query' | 'groupBy'>;
 
 export type MetricCodeLocationFrame = {
   absPath?: string;
@@ -104,10 +117,3 @@ export type MetricCorrelation = {
     spanOp: string;
   }[];
 };
-
-export interface SelectionRange {
-  end?: DateString;
-  max?: number;
-  min?: number;
-  start?: DateString;
-}

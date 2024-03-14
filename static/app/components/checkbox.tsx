@@ -174,13 +174,13 @@ const StyledCheckbox = styled('div')<{
         `
       : p.checked
         ? css`
-          background: ${p.color ?? p.theme.active};
-          border: 0;
-        `
+            background: ${p.color ?? p.theme.active};
+            border: 0;
+          `
         : css`
-          background: ${p.theme.background};
-          border: 1px solid ${p.theme.gray200};
-        `}
+            background: ${p.theme.background};
+            border: 1px solid ${p.theme.gray200};
+          `}
 `;
 
 const VariableWeightIcon = styled('svg')<{size: string; invertColors?: boolean}>`
