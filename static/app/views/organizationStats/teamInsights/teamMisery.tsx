@@ -93,7 +93,7 @@ function TeamMisery({
             }
             headers={[
               <FlexCenter key="transaction">
-                <StyledIconStar isSolid color="yellow400" /> {t('Key transaction')}
+                <StyledIconStar isSolid color="yellow300" /> {t('Key transaction')}
               </FlexCenter>,
               t('Project'),
               tct('Last [period]', {period}),
@@ -126,7 +126,7 @@ function TeamMisery({
                 <Fragment key={idx}>
                   <KeyTransactionTitleWrapper>
                     <div>
-                      <StyledIconStar isSolid color="yellow400" />
+                      <StyledIconStar isSolid color="yellow300" />
                     </div>
                     <TransactionWrapper>
                       <Link
