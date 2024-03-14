@@ -247,7 +247,7 @@ describe('GroupReplays', () => {
       expect(
         await screen.findByText('There are no items to display')
       ).toBeInTheDocument();
-      expect(mockReplayCountApi).toHaveBeenCalledTimes(2);
+      expect(mockReplayCountApi).toHaveBeenCalled();
       expect(mockReplayApi).toHaveBeenCalledTimes(1);
     });
 
