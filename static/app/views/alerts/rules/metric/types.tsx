@@ -187,15 +187,41 @@ export const TargetLabel = {
   [TargetType.TEAM]: t('Team'),
 };
 
+export enum PagerDutyPriorities {
+  CRITICAL = 'critical',
+  WARNING = 'warning',
+  ERROR = 'error',
+  INFO = 'info',
+}
+
+export enum OpsgeniePriorities {
+  P1 = 'P1',
+  P2 = 'P2',
+  P3 = 'P3',
+  P4 = 'P4',
+  P5 = 'P5',
+}
+
 export const PriorityOptions = {
-  [ActionType.PAGERDUTY]: ['critical', 'warning', 'error', 'info'],
-  [ActionType.OPSGENIE]: ['P1', 'P2', 'P3', 'P4', 'P5'],
+  [ActionType.PAGERDUTY]: [
+    PagerDutyPriorities.CRITICAL,
+    PagerDutyPriorities.WARNING,
+    PagerDutyPriorities.ERROR,
+    PagerDutyPriorities.INFO,
+  ],
+  [ActionType.OPSGENIE]: [
+    OpsgeniePriorities.P1,
+    OpsgeniePriorities.P2,
+    OpsgeniePriorities.P3,
+    OpsgeniePriorities.P4,
+    OpsgeniePriorities.P5,
+  ],
 };
 
 // default priorities per threshold (0 = critical, 1 = warning)
 export const DefaultPriorities = {
-  [ActionType.PAGERDUTY]: {[0]: 'critical', [1]: 'warning'},
-  [ActionType.OPSGENIE]: {[0]: 'P1', [1]: 'P2'},
+  [ActionType.PAGERDUTY]: [PagerDutyPriorities.CRITICAL, PagerDutyPriorities.WARNING],
+  [ActionType.OPSGENIE]: [OpsgeniePriorities.P1, OpsgeniePriorities.P2],
 };
 
 /**

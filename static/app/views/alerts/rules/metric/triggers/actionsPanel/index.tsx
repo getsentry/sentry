@@ -353,6 +353,10 @@ class ActionsPanel extends PureComponent<Props> {
         {actions.map(({action, actionIdx, triggerIndex, availableAction}) => {
           const actionDisabled =
             triggers[triggerIndex].actions[actionIdx]?.disabled || disabled;
+          const hasPrioritySelect =
+            hasPriorityFlag &&
+            availableAction &&
+            (availableAction.type === 'opsgenie' || availableAction.type === 'pagerduty');
           return (
             <div key={action.id ?? action.unsavedId}>
               <RuleRowContainer>
@@ -459,10 +463,7 @@ class ActionsPanel extends PureComponent<Props> {
                         'inputChannelId'
                       )}
                     />
-                    {hasPriorityFlag &&
-                    availableAction &&
-                    (availableAction.type === 'opsgenie' ||
-                      availableAction.type === 'pagerduty') ? (
+                    {hasPrioritySelect && (
                       <SelectControl
                         isDisabled={disabled || loading}
                         value={action.priority}
@@ -479,7 +480,7 @@ class ActionsPanel extends PureComponent<Props> {
                           actionIdx
                         )}
                       />
-                    ) : null}
+                    )}
                   </PanelItemSelects>
                   <DeleteActionButton
                     triggerIndex={triggerIndex}
