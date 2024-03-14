@@ -19,6 +19,7 @@ consumer_type_to_default_topic = {
     "events": Topic.INGEST_EVENTS,
     "transactions": Topic.INGEST_TRANSACTIONS,
     "attachments": Topic.INGEST_ATTACHMENTS,
+    "ingest-feedback-events": Topic.INGEST_FEEDBACK_EVENTS,
 }
 
 
