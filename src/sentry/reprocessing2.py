@@ -470,6 +470,7 @@ def pop_batched_events_from_redis(key: str) -> tuple[list[str], datetime | None,
     return reprocessing_store.pop_batched_events_by_key(key)
 
 
+@sentry_sdk.tracing.trace
 def mark_event_reprocessed(
     data: dict[str, Any] | None = None,
     group_id: str | None = None,

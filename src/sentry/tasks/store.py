@@ -843,6 +843,7 @@ def _do_save_event(
             time_synthetic_monitoring_event(data, project_id, start_time)
 
 
+@sentry_sdk.tracing.trace
 def time_synthetic_monitoring_event(data: Event, project_id: int, start_time: float | None) -> bool:
     """
     For special events produced by the recurring synthetic monitoring
