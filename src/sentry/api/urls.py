@@ -635,7 +635,8 @@ from ..monitors.endpoints.project_monitors_details import ProjectMonitorDetailsE
 # to the organization (and queryable via short ID)
 
 
-# NOTE: Start adding to GROUP_URLS instead of here
+# NOTE: Start adding to ISSUES_URLS instead of here because (?:issues|groups)
+# cannot be reversed and we prefer to always use issues instead of groups
 def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
     return [
         re_path(
