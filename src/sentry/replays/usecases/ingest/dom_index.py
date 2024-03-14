@@ -340,11 +340,11 @@ def _handle_resource_metric_event(event: dict[str, Any]) -> None:
 
 def _handle_options_logging_event(project_id: int, replay_id: str, event: dict[str, Any]) -> None:
     # log the SDK options sent from the SDK 1/500 times
-    if random.randint(0, 499) < 1:
-        log = event["data"].get("payload", {}).copy()
-        log["project_id"] = project_id
-        log["replay_id"] = replay_id
-        logger.info("SDK Options:", extra=log)
+    log = event["data"].get("payload", {}).copy()
+    log["project_id"] = project_id
+    log["replay_id"] = replay_id
+    # Log to "slow_click" because its the only bigtable sink
+    logger.info("sentry.replays.slow_click", extra=log)
 
 
 def _handle_mutations_event(project_id: int, replay_id: str, event: dict[str, Any]) -> None:

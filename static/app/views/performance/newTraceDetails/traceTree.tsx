@@ -4,8 +4,8 @@ import type {Organization} from 'sentry/types';
 import type {Event, EventTransaction, Measurement} from 'sentry/types/event';
 import type {
   TraceError as TraceErrorType,
-  TraceErrorOrIssue,
   TraceFullDetailed,
+  TracePerformanceIssue,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 import {isTraceError} from 'sentry/utils/performance/quickTrace/utils';
@@ -89,23 +89,21 @@ import {
  *                                                                          |- other span (children of tail, parent points to tail)
  *
  * Notes and improvements:
- * - collecting children should be O(n), it is currently O(n^2) as we are missing a proper queue implementation
  * - the notion of expanded and zoomed is confusing, they stand for the same idea from a UI pov
  * - there is an annoying thing wrt span and transaction nodes where we either store data on _children or _spanChildren
  *   this is because we want to be able to store both transaction and span nodes in the same tree, but it makes for an
  *   annoying API. A better design would have been to create an invisible meta node that just points to the correct children
- * - connector generation should live in the UI layer, not in the tree. Same with depth calculation. It is more convenient
- *   to calculate this when rendering the tree, as we can only calculate it only for the visible nodes and avoid an extra tree pass
  * - instead of storing span children separately, we should have meta tree nodes that handle pointing to the correct children
  */
 
 export declare namespace TraceTree {
   type Transaction = TraceFullDetailed;
-  type Span = RawSpanType & {
-    childTxn: Transaction | undefined;
+  interface Span extends RawSpanType {
+    childTransaction: Transaction | undefined;
+    errors: TraceError[];
     event: EventTransaction;
-    relatedErrors: TraceErrorOrIssue[];
-  };
+    performance_issues: TracePerformanceIssue[];
+  }
   type Trace = TraceSplitResults<Transaction>;
   type TraceError = TraceErrorType;
 
@@ -121,7 +119,7 @@ export declare namespace TraceTree {
     };
   }
 
-  interface ChildrenAutogroup {
+  interface ChildrenAutogroup extends RawSpanType {
     autogrouped_by: {
       op: string;
     };
@@ -215,10 +213,21 @@ function maybeInsertMissingInstrumentationSpan(
   parent.spanChildren.push(missingInstrumentationSpan);
 }
 
+function shouldCollapseNodeByDefault(node: TraceTreeNode<TraceTree.NodeValue>) {
+  if (isSpanNode(node)) {
+    // Android creates TCP connection spans which are noisy and not useful in most cases
+    if (node.value.op === 'http.client' && node.value.origin === 'auto.http.okhttp') {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 // cls is not included as it is a cumulative layout shift and not a single point in time
 const RENDERABLE_MEASUREMENTS = ['fcp', 'fp', 'lcp', 'ttfb'];
 export class TraceTree {
-  type: 'loading' | 'empty' | 'trace' = 'trace';
+  type: 'loading' | 'empty' | 'error' | 'trace' = 'trace';
   root: TraceTreeNode<null> = TraceTreeNode.Root();
   indicators: TraceTree.Indicator[] = [];
 
@@ -231,10 +240,24 @@ export class TraceTree {
     return tree;
   }
 
-  static Loading(metadata: TraceTree.Metadata): TraceTree {
-    const tree = makeExampleTrace(metadata);
-    tree.type = 'loading';
-    return tree;
+  static Loading(metadata: TraceTree.Metadata, tree?: TraceTree | null): TraceTree {
+    const t = tree ? TraceTree.FromTree(tree) : makeExampleTrace(metadata);
+    t.type = 'loading';
+    return t;
+  }
+
+  static Error(metadata: TraceTree.Metadata, tree?: TraceTree | null): TraceTree {
+    const t = tree ? TraceTree.FromTree(tree) : makeExampleTrace(metadata);
+    t.type = 'error';
+    return t;
+  }
+
+  static FromTree(tree: TraceTree): TraceTree {
+    const newTree = new TraceTree();
+    newTree.root = tree.root.cloneDeep() as TraceTreeNode<null>;
+    newTree.indicators = tree.indicators;
+    newTree._list = tree._list;
+    return newTree;
   }
 
   static FromTrace(trace: TraceTree.Trace, event?: EventTransaction): TraceTree {
@@ -286,12 +309,36 @@ export class TraceTree {
     // Trace is always expanded by default
     tree.root.children.push(traceNode);
 
-    for (const transaction of trace.transactions) {
-      visit(traceNode, transaction);
-    }
+    const transactionQueue = trace.transactions ?? [];
+    const orphanErrorsQueue = trace.orphan_errors ?? [];
 
-    for (const trace_error of trace.orphan_errors) {
-      visit(traceNode, trace_error);
+    let tIdx = 0;
+    let oIdx = 0;
+    const tLen = transactionQueue.length;
+    const oLen = orphanErrorsQueue.length;
+
+    while (tIdx < tLen || oIdx < oLen) {
+      const transaction = transactionQueue[tIdx];
+      const orphan = orphanErrorsQueue[oIdx];
+
+      if (transaction && orphan) {
+        if (
+          typeof orphan.timestamp === 'number' &&
+          transaction.start_timestamp <= orphan.timestamp
+        ) {
+          visit(traceNode, transaction);
+          tIdx++;
+        } else {
+          visit(traceNode, orphan);
+          oIdx++;
+        }
+      } else if (transaction) {
+        visit(traceNode, transaction);
+        tIdx++;
+      } else if (orphan) {
+        visit(traceNode, orphan);
+        oIdx++;
+      }
     }
 
     if (event?.measurements) {
@@ -323,9 +370,13 @@ export class TraceTree {
     return tree.build();
   }
 
-  static GetTraceType(root: TraceTreeNode<null>): TraceType {
-    const trace = root.children[0];
-    if (!trace || !isTraceNode(trace)) {
+  get shape(): TraceType {
+    const trace = this.root.children[0];
+    if (!trace) {
+      return TraceType.EMPTY_TRACE;
+    }
+
+    if (!isTraceNode(trace)) {
       throw new TypeError('Not trace node');
     }
 
@@ -409,14 +460,13 @@ export class TraceTree {
     }
 
     for (const span of spans) {
-      const childTxn = transactionsToSpanMap.get(span.span_id);
+      const childTransaction = transactionsToSpanMap.get(span.span_id);
       const spanNodeValue: TraceTree.Span = {
         ...span,
         event: data as EventTransaction,
-        relatedErrors: childTxn
-          ? getSpanErrorsOrIssuesFromTransaction(span, childTxn.value)
-          : [],
-        childTxn: childTxn?.value,
+        errors: getRelatedSpanErrorsFromTransaction(span, parent),
+        performance_issues: getRelatedPerformanceIssuesFromTransaction(span, parent),
+        childTransaction: childTransaction?.value,
       };
       const node: TraceTreeNode<TraceTree.Span> = new TraceTreeNode(null, spanNodeValue, {
         event_id: undefined,
@@ -426,9 +476,9 @@ export class TraceTree {
       // This is the case where the current span is the parent of a txn at the
       // trace level. When zooming into the parent of the txn, we want to place a copy
       // of the txn as a child of the parenting span.
-      if (childTxn) {
+      if (childTransaction) {
         const clonedChildTxn =
-          childTxn.cloneDeep() as unknown as TraceTreeNode<TraceTree.Span>;
+          childTransaction.cloneDeep() as unknown as TraceTreeNode<TraceTree.Span>;
 
         node.spanChildren.push(clonedChildTxn);
         clonedChildTxn.parent = node;
@@ -488,7 +538,10 @@ export class TraceTree {
         isSpanNode(tail.children[0]) &&
         tail.children[0].value.op === head.value.op
       ) {
-        if (tail.value?.relatedErrors.length > 0) {
+        if (
+          isTraceErrorNode(tail) &&
+          (tail.value.errors.length > 0 || tail.value.performance_issues.length > 0)
+        ) {
           erroredChildren.push(tail);
         }
 
@@ -498,7 +551,7 @@ export class TraceTree {
 
       // Checking the tail node for errors as it is not included in the grouping
       // while loop, but is hidden when the autogrouped node is collapsed
-      if (tail.value?.relatedErrors.length > 0) {
+      if (tail.hasErrors()) {
         erroredChildren.push(tail);
       }
 
@@ -631,7 +684,7 @@ export class TraceTree {
               );
             }
 
-            if (child.value?.relatedErrors.length > 0) {
+            if (child.hasErrors()) {
               autoGroupedNode.errored_children.push(child);
             }
 
@@ -808,7 +861,9 @@ export class TraceTree {
         const index = this._list.indexOf(node);
         if (node.expanded) {
           const childrenCount = node.getVisibleChildrenCount();
-          this._list.splice(index + 1, childrenCount);
+          if (childrenCount > 0) {
+            this._list.splice(index + 1, childrenCount);
+          }
         }
 
         // Api response is not sorted
@@ -917,8 +972,20 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
       ];
     }
 
+    if (
+      isTraceErrorNode(this) &&
+      'timestamp' in this.value &&
+      typeof this.value.timestamp === 'number'
+    ) {
+      this.space = [this.value.timestamp * this.multiplier, 0];
+    }
+
     if (isTransactionNode(this) || isTraceNode(this) || isSpanNode(this)) {
       this.expanded = true;
+    }
+
+    if (shouldCollapseNodeByDefault(this)) {
+      this.expanded = false;
     }
   }
 
@@ -951,13 +1018,19 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     if (isParentAutogroupedNode(node)) {
       node.head = node.head.cloneDeep() as TraceTreeNode<TraceTree.Span>;
       node.tail = node.tail.cloneDeep() as TraceTreeNode<TraceTree.Span>;
+      node.head.parent = node;
 
-      for (const child of node.head.children) {
-        child.parent = node;
-      }
-
-      for (const child of node.tail.children) {
-        child.parent = node;
+      // If the node is not expanded, the parent of the tail points to the
+      // autogrouped node. If the node is expanded, the parent of the children
+      // of the tail points to the autogrouped node.
+      if (!node.expanded) {
+        for (const c of node.tail.children) {
+          c.parent = node;
+        }
+      } else {
+        for (const c of node.children) {
+          c.parent = node.tail;
+        }
       }
 
       node.head.parent = node;
@@ -1008,6 +1081,14 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
 
     this._depth = depth;
     return this._depth;
+  }
+
+  hasErrors(): boolean {
+    return (
+      this.value &&
+      (('errors' in this.value && this.value.errors.length > 0) ||
+        ('performance_issues' in this.value && this.value.performance_issues.length > 0))
+    );
   }
 
   /**
@@ -1405,7 +1486,7 @@ export function makeExampleTrace(metadata: TraceTree.Metadata): TraceTree {
 
   trace.transactions.push(root);
 
-  for (let i = 0; i < 25; i++) {
+  for (let i = 0; i < 50; i++) {
     const end = start + randomBetween(100, 200);
     const nest = i > 0 && Math.random() > 0.33;
 
@@ -1539,39 +1620,58 @@ export function computeAutogroupedBarSegments(
   return segments;
 }
 
-// Returns a list of errors or performance issues related to the txn
-// with ids matching the span id
-function getSpanErrorsOrIssuesFromTransaction(
+// Returns a list of errors related to the txn with ids matching the span id
+function getRelatedSpanErrorsFromTransaction(
   span: RawSpanType,
-  txn: TraceTree.Transaction
-): TraceErrorOrIssue[] {
-  if (!txn.performance_issues.length && !txn.errors.length) {
+  node?: TraceTreeNode<TraceTree.NodeValue>
+): TraceErrorType[] {
+  if (!node || !node.value || !isTransactionNode(node)) {
+    return [];
+  }
+  if (!node?.value?.errors?.length) {
     return [];
   }
 
-  const errorsOrIssues: TraceErrorOrIssue[] = [];
+  const errors: TraceErrorType[] = [];
+  for (const error of node.value.errors) {
+    if (error.span === span.span_id) {
+      errors.push(error);
+    }
+  }
 
-  for (const perfIssue of txn.performance_issues) {
+  return errors;
+}
+
+// Returns a list of performance errors related to the txn with ids matching the span id
+function getRelatedPerformanceIssuesFromTransaction(
+  span: RawSpanType,
+  node?: TraceTreeNode<TraceTree.NodeValue>
+): TracePerformanceIssue[] {
+  if (!node || !node.value || !isTransactionNode(node)) {
+    return [];
+  }
+
+  if (!node?.value?.performance_issues?.length && !node?.value?.errors?.length) {
+    return [];
+  }
+
+  const performanceIssues: TracePerformanceIssue[] = [];
+
+  for (const perfIssue of node.value.performance_issues) {
     for (const s of perfIssue.span) {
       if (s === span.span_id) {
-        errorsOrIssues.push(perfIssue);
+        performanceIssues.push(perfIssue);
       }
     }
 
     for (const suspect of perfIssue.suspect_spans) {
       if (suspect === span.span_id) {
-        errorsOrIssues.push(perfIssue);
+        performanceIssues.push(perfIssue);
       }
     }
   }
 
-  for (const error of txn.errors) {
-    if (error.span === span.span_id) {
-      errorsOrIssues.push(error);
-    }
-  }
-
-  return errorsOrIssues;
+  return performanceIssues;
 }
 
 function printNode(t: TraceTreeNode<TraceTree.NodeValue>, offset: number): string {
@@ -1605,7 +1705,7 @@ function printNode(t: TraceTreeNode<TraceTree.NodeValue>, offset: number): strin
   }
 
   if (isTraceErrorNode(t)) {
-    return padding + t.value.event_id || 'unknown trace error';
+    return padding + (t.value.event_id || t.value.level) || 'unknown trace error';
   }
 
   return 'unknown node';

@@ -7,6 +7,7 @@ class MetricCodeLocationsSerializer(Serializer):
 
     def _compute_attrs(self, item):
         return {
+            "project_id": item.query.project_id,
             "mri": item.query.metric_mri,
             "timestamp": item.query.timestamp,
             "frames": [location.__dict__ for location in item.frames],
@@ -29,6 +30,7 @@ class MetricCodeLocationsSerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         return {
+            "projectId": attrs["project_id"],
             "mri": attrs["mri"],
             "timestamp": attrs["timestamp"],
             "frames": [

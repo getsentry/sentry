@@ -51,6 +51,12 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                 self.builder, alias
             ),
             "span.duration": self._resolve_span_duration,
+            constants.PRECISE_FINISH_TS: lambda alias: field_aliases.resolve_precise_timestamp(
+                Column("end_timestamp"), Column("end_ms"), alias
+            ),
+            constants.PRECISE_START_TS: lambda alias: field_aliases.resolve_precise_timestamp(
+                Column("start_timestamp"), Column("start_ms"), alias
+            ),
         }
 
     @property

@@ -725,6 +725,13 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "issues.similarity-embeddings-grouping.projects-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # ## sentry.killswitches
 #
 # The following options are documented in sentry.killswitches in more detail
@@ -826,7 +833,7 @@ register("relay.cardinality-limiter.mode", default="enabled", flags=FLAG_AUTOMAT
 #
 # In passive mode Relay's cardinality limiter is active but it does not enforce the limits.
 #
-# Example: `{1: ["transactions"]}`
+# Example: `{'1': ["transactions"]}`
 # Forces the `transactions` cardinality limit into passive mode for the organization with id `1` (Sentry).
 register(
     "relay.cardinality-limiter.passive-limits-by-org", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE
@@ -843,7 +850,8 @@ register(
 # when writing to Kafka.
 #
 # Key is the metric namespace (as used by Relay) and the value is the desired encoding.
-register("relay.metric-bucket-encodings", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("relay.metric-bucket-set-encodings", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("relay.metric-bucket-distribution-encodings", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Write new kafka headers in eventstream
 register("eventstream:kafka-headers", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1238,6 +1246,13 @@ register(
 )
 register(
     "sentry-metrics.cardinality-limiter.limits.custom.per-org",
+    default=[
+        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
+    ],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "sentry-metrics.cardinality-limiter.limits.profiles.per-org",
     default=[
         {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
     ],
@@ -1799,6 +1814,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# IDs of orgs that will be disabled from querying metrics via `/metrics/query` endpoint.
+register(
+    "custom-metrics-querying-killswitched-orgs",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # SDK Crash Detection
 #
 # The project ID belongs to the sentry organization: https://sentry.sentry.io/projects/cocoa-sdk-crashes/?project=4505469596663808.
@@ -2063,11 +2085,6 @@ register(
     default=0.0,
     flags=FLAG_ADMIN_MODIFIABLE | FLAG_AUTOMATOR_MODIFIABLE | FLAG_RATE,
 )
-register(
-    "grouping.experiments.parameterization.json_str_val",
-    default=0.0,
-    flags=FLAG_ADMIN_MODIFIABLE | FLAG_AUTOMATOR_MODIFIABLE | FLAG_RATE,
-)
 
 # Sample rate for double writing to experimental dsn
 register(
@@ -2093,4 +2110,17 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Standalone spans
+register(
+    "standalone-spans.process-spans-consumer.enable",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "standalone-spans.process-spans-consumer.project-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
