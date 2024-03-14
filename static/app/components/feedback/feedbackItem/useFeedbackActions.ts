@@ -13,7 +13,7 @@ import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
-  feedbackItem: FeedbackIssue
+  feedbackItem: FeedbackIssue;
 }
 
 const mutationOptions = {
@@ -25,9 +25,8 @@ const mutationOptions = {
   },
 };
 
-export default function useActions({feedbackItem}:Props) {
+export default function useActions({feedbackItem}: Props) {
   const organization = useOrganization();
-
 
   const {markAsRead, resolve} = useMutateFeedback({
     feedbackIds: [feedbackItem.id],
@@ -41,7 +40,7 @@ export default function useActions({feedbackItem}:Props) {
     addLoadingMessage(t('Updating feedback...'));
     const newStatus = isResolved ? GroupStatus.UNRESOLVED : GroupStatus.RESOLVED;
     resolve(newStatus, mutationOptions);
-  }, [isResolved, resolve])
+  }, [isResolved, resolve]);
 
   const hasSpamFeature = organization.features.includes('user-feedback-spam-filter-ui');
   const isSpam = feedbackItem.status === GroupStatus.IGNORED;
@@ -62,7 +61,7 @@ export default function useActions({feedbackItem}:Props) {
   const onMarkAsReadClick = useCallback(() => {
     addLoadingMessage(t('Updating feedback...'));
     markAsRead(!hasSeen, mutationOptions);
-  }, [hasSeen, markAsRead])
+  }, [hasSeen, markAsRead]);
 
   return {
     isResolved,
