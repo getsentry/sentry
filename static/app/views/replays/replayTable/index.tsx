@@ -98,129 +98,127 @@ const ReplayTable = memo(
     const eventView = EventView.fromLocation(location);
 
     return (
-      <div>
-        <StyledPanelTable
-          headers={tableHeaders}
-          isEmpty={replays?.length === 0}
-          isLoading={isFetching}
-          visibleColumns={visibleColumns}
-          disablePadding
-          data-test-id="replay-table"
-          emptyMessage={emptyMessage}
-          gridRows={isFetching ? undefined : gridRows}
-          loader={<LoadingIndicator style={{margin: '54px auto'}} />}
-        >
-          {replays?.map(
-            (replay: ReplayListRecord | ReplayListRecordWithTx, index: number) => {
-              return (
-                <Fragment key={replay.id}>
-                  {visibleColumns.map(column => {
-                    switch (column) {
-                      case ReplayColumn.ACTIVITY:
-                        return (
-                          <ActivityCell
-                            key="activity"
-                            replay={replay}
-                            showDropdownFilters={showDropdownFilters}
-                          />
-                        );
+      <StyledPanelTable
+        headers={tableHeaders}
+        isEmpty={replays?.length === 0}
+        isLoading={isFetching}
+        visibleColumns={visibleColumns}
+        disablePadding
+        data-test-id="replay-table"
+        emptyMessage={emptyMessage}
+        gridRows={isFetching ? undefined : gridRows}
+        loader={<LoadingIndicator style={{margin: '54px auto'}} />}
+      >
+        {replays?.map(
+          (replay: ReplayListRecord | ReplayListRecordWithTx, index: number) => {
+            return (
+              <Fragment key={replay.id}>
+                {visibleColumns.map(column => {
+                  switch (column) {
+                    case ReplayColumn.ACTIVITY:
+                      return (
+                        <ActivityCell
+                          key="activity"
+                          replay={replay}
+                          showDropdownFilters={showDropdownFilters}
+                        />
+                      );
 
-                      case ReplayColumn.BROWSER:
-                        return (
-                          <BrowserCell
-                            key="browser"
-                            replay={replay}
-                            showDropdownFilters={showDropdownFilters}
-                          />
-                        );
+                    case ReplayColumn.BROWSER:
+                      return (
+                        <BrowserCell
+                          key="browser"
+                          replay={replay}
+                          showDropdownFilters={showDropdownFilters}
+                        />
+                      );
 
-                      case ReplayColumn.COUNT_DEAD_CLICKS:
-                        return (
-                          <DeadClickCountCell
-                            key="countDeadClicks"
-                            replay={replay}
-                            showDropdownFilters={showDropdownFilters}
-                          />
-                        );
+                    case ReplayColumn.COUNT_DEAD_CLICKS:
+                      return (
+                        <DeadClickCountCell
+                          key="countDeadClicks"
+                          replay={replay}
+                          showDropdownFilters={showDropdownFilters}
+                        />
+                      );
 
-                      case ReplayColumn.COUNT_ERRORS:
-                        return (
-                          <ErrorCountCell
-                            key="countErrors"
-                            replay={replay}
-                            showDropdownFilters={showDropdownFilters}
-                          />
-                        );
+                    case ReplayColumn.COUNT_ERRORS:
+                      return (
+                        <ErrorCountCell
+                          key="countErrors"
+                          replay={replay}
+                          showDropdownFilters={showDropdownFilters}
+                        />
+                      );
 
-                      case ReplayColumn.COUNT_RAGE_CLICKS:
-                        return (
-                          <RageClickCountCell
-                            key="countRageClicks"
-                            replay={replay}
-                            showDropdownFilters={showDropdownFilters}
-                          />
-                        );
+                    case ReplayColumn.COUNT_RAGE_CLICKS:
+                      return (
+                        <RageClickCountCell
+                          key="countRageClicks"
+                          replay={replay}
+                          showDropdownFilters={showDropdownFilters}
+                        />
+                      );
 
-                      case ReplayColumn.DURATION:
-                        return (
-                          <DurationCell
-                            key="duration"
-                            replay={replay}
-                            showDropdownFilters={showDropdownFilters}
-                          />
-                        );
+                    case ReplayColumn.DURATION:
+                      return (
+                        <DurationCell
+                          key="duration"
+                          replay={replay}
+                          showDropdownFilters={showDropdownFilters}
+                        />
+                      );
 
-                      case ReplayColumn.OS:
-                        return (
-                          <OSCell
-                            key="os"
-                            replay={replay}
-                            showDropdownFilters={showDropdownFilters}
-                          />
-                        );
+                    case ReplayColumn.OS:
+                      return (
+                        <OSCell
+                          key="os"
+                          replay={replay}
+                          showDropdownFilters={showDropdownFilters}
+                        />
+                      );
 
-                      case ReplayColumn.REPLAY:
-                        return (
-                          <StyledReplayCell
-                            key="session"
-                            replay={replay}
-                            eventView={eventView}
-                            organization={organization}
-                            referrer={referrer}
-                            referrer_table="main"
-                            isPlaying={selectedReplayIndex === index}
-                          />
-                        );
+                    case ReplayColumn.REPLAY:
+                      return (
+                        <ReplayCell
+                          key="session"
+                          replay={replay}
+                          eventView={eventView}
+                          organization={organization}
+                          referrer={referrer}
+                          referrer_table="main"
+                          isPlaying={selectedReplayIndex === index}
+                        />
+                      );
 
-                      case ReplayColumn.PLAY_PAUSE:
-                        return (
-                          <PlayPauseCell
-                            key="play"
-                            isSelected={selectedReplayIndex === index}
-                            handleClick={() => onClickPlay?.(index)}
-                            priority={replayPlayButtonPriority}
-                          />
-                        );
+                    case ReplayColumn.PLAY_PAUSE:
+                      return (
+                        <PlayPauseCell
+                          key="play"
+                          isSelected={selectedReplayIndex === index}
+                          handleClick={() => onClickPlay?.(index)}
+                          priority={replayPlayButtonPriority}
+                        />
+                      );
 
-                      case ReplayColumn.SLOWEST_TRANSACTION:
-                        return (
-                          <TransactionCell
-                            key="slowestTransaction"
-                            replay={replay}
-                            organization={organization}
-                          />
-                        );
+                    case ReplayColumn.SLOWEST_TRANSACTION:
+                      return (
+                        <TransactionCell
+                          key="slowestTransaction"
+                          replay={replay}
+                          organization={organization}
+                        />
+                      );
 
-                      default:
-                        return null;
-                    }
-                  })}
-                </Fragment>
-              );
-            }
-          )}
-        </StyledPanelTable>
-      </div>
+                    default:
+                      return null;
+                  }
+                })}
+              </Fragment>
+            );
+          }
+        )}
+      </StyledPanelTable>
     );
   }
 );
@@ -246,10 +244,6 @@ const StyledAlert = styled(Alert)`
   border-width: 1px 0 0 0;
   grid-column: 1/-1;
   margin-bottom: 0;
-`;
-
-const StyledReplayCell = styled(ReplayCell)<{showCursor?: boolean}>`
-  ${p => (p.showCursor ? 'cursor: pointer;' : '')}
 `;
 
 export default ReplayTable;
