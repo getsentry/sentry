@@ -288,13 +288,15 @@ describe('Modals -> WidgetViewerModal', function () {
             },
           });
         });
-        expect(initialData.router.push).toHaveBeenCalledWith(
-          expect.objectContaining({
-            query: {
-              viewerEnd: '2022-03-01T07:33:20',
-              viewerStart: '2022-03-01T02:00:00',
-            },
-          })
+        await waitFor(() =>
+          expect(initialData.router.push).toHaveBeenCalledWith(
+            expect.objectContaining({
+              query: {
+                viewerEnd: '2022-03-01T07:33:20',
+                viewerStart: '2022-03-01T02:00:00',
+              },
+            })
+          )
         );
       });
 
@@ -435,13 +437,15 @@ describe('Modals -> WidgetViewerModal', function () {
           );
         });
 
-        expect(initialData.router.push).toHaveBeenCalledWith(
-          expect.objectContaining({
-            query: {
-              viewerEnd: '2022-03-01T05:53:20',
-              viewerStart: '2022-03-01T03:40:00',
-            },
-          })
+        await waitFor(() =>
+          expect(initialData.router.push).toHaveBeenCalledWith(
+            expect.objectContaining({
+              query: {
+                viewerEnd: '2022-03-01T05:53:20',
+                viewerStart: '2022-03-01T03:40:00',
+              },
+            })
+          )
         );
       });
 
@@ -597,7 +601,7 @@ describe('Modals -> WidgetViewerModal', function () {
           seriesResultsType: {'count()': 'duration'},
         });
 
-        const link = screen.getByTestId('widget-viewer-transaction-link');
+        const link = await screen.findByTestId('widget-viewer-transaction-link');
         expect(link).toHaveAttribute(
           'href',
           expect.stringMatching(
@@ -968,7 +972,7 @@ describe('Modals -> WidgetViewerModal', function () {
             '<https://sentry.io>; rel="previous"; results="false"; cursor="0:0:1", <https://sentry.io>; rel="next"; results="true"; cursor="0:20:0"',
         });
         expect(eventsMock).not.toHaveBeenCalled();
-        await userEvent.click(screen.getByLabelText('Next'));
+        await userEvent.click(await screen.findByLabelText('Next'));
         await waitFor(() => {
           expect(eventsMock).toHaveBeenCalled();
         });
@@ -1120,19 +1124,19 @@ describe('Modals -> WidgetViewerModal', function () {
 
     it('renders widget title', async function () {
       await renderModal({initialData, widget: mockWidget});
-      expect(screen.getByText('Issue Widget')).toBeInTheDocument();
+      expect(await screen.findByText('Issue Widget')).toBeInTheDocument();
     });
 
     it('renders Edit and Open buttons', async function () {
       await renderModal({initialData, widget: mockWidget});
-      expect(screen.getByText('Edit Widget')).toBeInTheDocument();
+      expect(await screen.findByText('Edit Widget')).toBeInTheDocument();
       expect(screen.getByText('Open in Issues')).toBeInTheDocument();
     });
 
     it('renders events, status, async and title table columns', async function () {
       await renderModal({initialData, widget: mockWidget});
-      expect(screen.getByText('title')).toBeInTheDocument();
       expect(await screen.findByText('Error: Failed')).toBeInTheDocument();
+      expect(screen.getByText('title')).toBeInTheDocument();
       expect(screen.getByText('events')).toBeInTheDocument();
       expect(screen.getByText('6')).toBeInTheDocument();
       expect(screen.getByText('status')).toBeInTheDocument();
@@ -1172,20 +1176,22 @@ describe('Modals -> WidgetViewerModal', function () {
           onEdit={() => undefined}
         />
       );
-      expect(issuesMock).toHaveBeenCalledWith(
-        '/organizations/org-slug/issues/',
-        expect.objectContaining({
-          data: {
-            cursor: undefined,
-            environment: ['prod', 'dev'],
-            expand: ['owners'],
-            limit: 20,
-            project: [1, 2],
-            query: 'is:unresolved',
-            sort: 'date',
-            statsPeriod: '24h',
-          },
-        })
+      await waitFor(() =>
+        expect(issuesMock).toHaveBeenCalledWith(
+          '/organizations/org-slug/issues/',
+          expect.objectContaining({
+            data: {
+              cursor: undefined,
+              environment: ['prod', 'dev'],
+              expand: ['owners'],
+              limit: 20,
+              project: [1, 2],
+              query: 'is:unresolved',
+              sort: 'date',
+              statsPeriod: '24h',
+            },
+          })
+        )
       );
     });
 
@@ -1225,7 +1231,7 @@ describe('Modals -> WidgetViewerModal', function () {
     it('displays with correct table column widths', async function () {
       initialData.router.location.query = {width: ['-1', '-1', '575']};
       await renderModal({initialData, widget: mockWidget});
-      expect(screen.getByTestId('grid-editable')).toHaveStyle({
+      expect(await screen.findByTestId('grid-editable')).toHaveStyle({
         'grid-template-columns':
           ' minmax(90px, auto) minmax(90px, auto) minmax(575px, auto)',
       });
@@ -1287,17 +1293,19 @@ describe('Modals -> WidgetViewerModal', function () {
 
     it('does a sessions query', async function () {
       await renderModal({initialData, widget: mockWidget});
-      expect(metricsMock).toHaveBeenCalled();
+      await waitFor(() => {
+        expect(metricsMock).toHaveBeenCalled();
+      });
     });
 
     it('renders widget title', async function () {
       await renderModal({initialData, widget: mockWidget});
-      expect(screen.getByText('Release Widget')).toBeInTheDocument();
+      expect(await screen.findByText('Release Widget')).toBeInTheDocument();
     });
 
     it('renders Edit and Open in Releases buttons', async function () {
       await renderModal({initialData, widget: mockWidget});
-      expect(screen.getByText('Edit Widget')).toBeInTheDocument();
+      expect(await screen.findByText('Edit Widget')).toBeInTheDocument();
       expect(screen.getByText('Open in Releases')).toBeInTheDocument();
     });
 
@@ -1332,10 +1340,13 @@ describe('Modals -> WidgetViewerModal', function () {
     });
 
     it('does not render pagination buttons when sorting by release', async function () {
-      await renderModal({
-        initialData,
-        widget: {...mockWidget, queries: [{...mockQuery, orderby: 'release'}]},
-      });
+      // TODO(scttcper): We shouldn't need to wrap render with act, it seems to double render ReleaseWidgetQueries
+      await act(() =>
+        renderModal({
+          initialData,
+          widget: {...mockWidget, queries: [{...mockQuery, orderby: 'release'}]},
+        })
+      );
       expect(screen.queryByRole('button', {name: 'Previous'})).not.toBeInTheDocument();
       expect(screen.queryByRole('button', {name: 'Next'})).not.toBeInTheDocument();
     });
@@ -1348,7 +1359,7 @@ describe('Modals -> WidgetViewerModal', function () {
         seriesData: [],
       });
       expect(metricsMock).toHaveBeenCalledTimes(1);
-      await userEvent.click(screen.getByText(`sum(session)`), {delay: null});
+      await userEvent.click(await screen.findByText(`sum(session)`), {delay: null});
       expect(initialData.router.push).toHaveBeenCalledWith({
         query: {sort: '-sum(session)'},
       });
