@@ -532,6 +532,12 @@ function SpanDescription({
     projectID: String(projects[0]?.id ?? ''),
   });
 
+  const contents = description ? (
+    <Fragment>{description}</Fragment>
+  ) : (
+    <EmptyValueContainer>{t('(no value)')}</EmptyValueContainer>
+  );
+
   return (
     <Container>
       <StyledHovercard
@@ -570,7 +576,7 @@ function SpanDescription({
         }
         showUnderline
       >
-        <Link to={transactionDetailsTarget}>{description}</Link>
+        <Link to={transactionDetailsTarget}>{contents}</Link>
       </StyledHovercard>
     </Container>
   );
@@ -705,4 +711,8 @@ const LegendDot = styled('div')<{color: string}>`
   height: ${space(1)};
   border-radius: 100%;
   background-color: ${p => p.theme[p.color] ?? p.color};
+`;
+
+const EmptyValueContainer = styled('span')`
+  color: ${p => p.theme.gray300};
 `;
