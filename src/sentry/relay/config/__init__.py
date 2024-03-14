@@ -66,7 +66,6 @@ EXPOSABLE_FEATURES = [
     "organizations:session-replay-recording-scrubbing",
     "organizations:device-class-synthesis",
     "organizations:custom-metrics",
-    "organizations:custom-metrics-killswitch",
     "organizations:metric-meta",
     "organizations:standalone-span-ingestion",
     "projects:discard-transaction",
@@ -85,7 +84,13 @@ logger = logging.getLogger(__name__)
 def get_exposed_features(project: Project) -> Sequence[str]:
     active_features = []
     for feature in EXPOSABLE_FEATURES:
-        if feature.startswith("organizations:"):
+        # Custom metrics ingestion is enabled only if the flag is true, and we are not kill switching the specific
+        # organization.
+        if feature == "organizations:custom-metrics":
+            has_feature = not features.has(
+                "organizations:custom-metrics-killswitch", project.organization
+            ) and features.has(feature, project.organization)
+        elif feature.startswith("organizations:"):
             has_feature = features.has(feature, project.organization)
         elif feature.startswith("projects:"):
             has_feature = features.has(feature, project)
