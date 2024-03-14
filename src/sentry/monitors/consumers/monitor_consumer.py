@@ -651,37 +651,40 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
             # 03-B
             # Create a brand new check-in object
             except MonitorCheckIn.DoesNotExist:
-                # Infer the original start time of the check-in from the duration.
-                # Note that the clock of this worker may be off from what Relay is reporting.
-                date_added = start_time
-                if duration is not None:
-                    date_added -= timedelta(milliseconds=duration)
+                check_in = MonitorCheckIn.objects.filter(guid=guid).first()
+                if check_in is None:
+                    # Infer the original start time of the check-in from the duration.
+                    # Note that the clock of this worker may be off from what Relay is reporting.
+                    date_added = start_time
+                    if duration is not None:
+                        date_added -= timedelta(milliseconds=duration)
 
-                # When was this check-in expected to have happened?
-                expected_time = monitor_environment.next_checkin
+                    # When was this check-in expected to have happened?
+                    expected_time = monitor_environment.next_checkin
 
-                # denormalize the monitor configration into the check-in.
-                # Useful to show details about the configuration of the
-                # monitor at the time of the check-in
-                monitor_config = monitor.get_validated_config()
-                timeout_at = get_timeout_at(monitor_config, status, date_added)
+                    # denormalize the monitor configration into the check-in.
+                    # Useful to show details about the configuration of the
+                    # monitor at the time of the check-in
+                    monitor_config = monitor.get_validated_config()
+                    timeout_at = get_timeout_at(monitor_config, status, date_added)
 
-                check_in, created = MonitorCheckIn.objects.get_or_create(
-                    defaults={
-                        "duration": duration,
-                        "status": status,
-                        "date_added": date_added,
-                        "date_updated": start_time,
-                        "expected_time": expected_time,
-                        "timeout_at": timeout_at,
-                        "monitor_config": monitor_config,
-                        "trace_id": trace_id,
-                    },
-                    project_id=project_id,
-                    monitor=monitor,
-                    monitor_environment=monitor_environment,
-                    guid=guid,
-                )
+                    check_in = MonitorCheckIn.objects.create(
+                        duration=duration,
+                        status=status,
+                        date_added=date_added,
+                        date_updated=start_time,
+                        expected_time=expected_time,
+                        timeout_at=timeout_at,
+                        monitor_config=monitor_config,
+                        trace_id=trace_id,
+                        project_id=project_id,
+                        monitor=monitor,
+                        monitor_environment=monitor_environment,
+                        guid=guid,
+                    )
+                    created = True
+                else:
+                    created = False
 
                 # Race condition. The check-in was created (such as an
                 # in_progress) while this check-in was being processed.
