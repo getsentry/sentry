@@ -8,6 +8,7 @@ from sentry.grouping.component import GroupingComponent
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.enhancer.matchers import create_match_frame
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 
 
@@ -30,7 +31,6 @@ def dump_obj(obj):
 
 
 @pytest.mark.parametrize("version", [1, 2])
-@django_db_all
 def test_basic_parsing(insta_snapshot, version):
     enhancement = Enhancements.from_config_string(
         """
@@ -463,6 +463,8 @@ def test_range_matching_direct():
 
 @pytest.mark.parametrize("action", ["+", "-"])
 @pytest.mark.parametrize("type", ["prefix", "sentinel"])
+@django_db_all  # because of `options` usage
+@override_options({"grouping.rust_enhancers.compare_components": 1.0})
 def test_sentinel_and_prefix(action, type):
     enhancements = Enhancements.from_config_string(f"function:foo {action}{type}")
 

@@ -2,6 +2,7 @@ import pytest
 
 from sentry.grouping.api import get_default_grouping_config_dict
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
+from sentry.testutils.pytest.fixtures import django_db_all
 from tests.sentry.grouping import with_fingerprint_input
 
 GROUPING_CONFIG = get_default_grouping_config_dict()
@@ -158,6 +159,7 @@ app:true                                        -> {{ default }}
 
 
 @with_fingerprint_input("input")
+@django_db_all  # because of `options` usage
 def test_event_hash_variant(insta_snapshot, input):
     config, evt = input.create_event()
 
