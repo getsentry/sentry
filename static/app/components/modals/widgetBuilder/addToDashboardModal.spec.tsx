@@ -230,7 +230,7 @@ describe('add to dashboard modal', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           environment: [],
-          interval: '5m',
+          interval: '1m',
           orderby: '',
           partial: '1',
           project: [1],
