@@ -16,7 +16,6 @@ import TimeAndScrubberGrid from 'sentry/components/replays/timeAndScrubberGrid';
 import {IconNext, IconPrevious} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {IssueCategory} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
@@ -36,7 +35,6 @@ function ReplayPreviewPlayer({
   replayId,
   fullReplayButtonProps,
   replayRecord,
-  issueCategory,
   handleBackClick,
   handleForwardClick,
   overlayText,
@@ -49,7 +47,6 @@ function ReplayPreviewPlayer({
   fullReplayButtonProps?: Partial<ComponentProps<typeof LinkButton>>;
   handleBackClick?: () => void;
   handleForwardClick?: () => void;
-  issueCategory?: IssueCategory;
   onClickNextReplay?: () => void;
   overlayText?: string;
   playPausePriority?: ComponentProps<typeof ReplayPlayPauseButton>['priority'];
@@ -68,15 +65,13 @@ function ReplayPreviewPlayer({
   });
   const isFullscreen = useIsFullscreen();
   const startOffsetMs = replay?.getStartOffsetMs() ?? 0;
-  const isRageClickIssue = issueCategory === IssueCategory.REPLAY;
 
   const fullReplayUrl = {
     pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replayId}/`),
     query: {
       referrer: getRouteStringFromRoutes(routes),
-      t_main: isRageClickIssue ? TabKey.BREADCRUMBS : TabKey.ERRORS,
+      t_main: TabKey.ERRORS,
       t: (currentTime + startOffsetMs) / 1000,
-      f_b_type: isRageClickIssue ? 'rageOrDead' : undefined,
     },
   };
 

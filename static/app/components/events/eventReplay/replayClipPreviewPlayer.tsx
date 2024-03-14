@@ -17,7 +17,6 @@ import ReplayProcessingError from 'sentry/components/replays/replayProcessingErr
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {IssueCategory} from 'sentry/types';
 import type {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -33,7 +32,6 @@ type Props = {
   handleBackClick?: () => void;
   handleForwardClick?: () => void;
   isLarge?: boolean;
-  issueCategory?: IssueCategory;
   onClickNextReplay?: () => void;
   overlayText?: string;
   showNextAndPrevious?: boolean;
@@ -64,7 +62,6 @@ function ReplayClipPreviewPlayer({
   analyticsContext,
   orgSlug,
   fullReplayButtonProps,
-  issueCategory,
   isLarge,
   handleForwardClick,
   handleBackClick,
@@ -126,7 +123,6 @@ function ReplayClipPreviewPlayer({
           replayId={replayId}
           fullReplayButtonProps={fullReplayButtonProps}
           replayRecord={replayRecord}
-          issueCategory={issueCategory}
           handleBackClick={handleBackClick}
           handleForwardClick={handleForwardClick}
           overlayText={overlayText}
