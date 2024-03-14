@@ -37,7 +37,11 @@ from sentry.services.hybrid_cloud.user import (
     UserSerializeType,
     UserUpdateArgs,
 )
-from sentry.services.hybrid_cloud.user.model import RpcVerifyUserEmail, UserIdEmailArgs
+from sentry.services.hybrid_cloud.user.model import (
+    RpcUserCreationResult,
+    RpcVerifyUserEmail,
+    UserIdEmailArgs,
+)
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user, serialize_user_avatar
 from sentry.services.hybrid_cloud.user.service import UserService
 from sentry.signals import user_signup
@@ -180,13 +184,13 @@ class DatabaseBackedUserService(UserService):
             return None
         return serialize_rpc_user(user)
 
-    def get_or_create_user_by_email(
+    def get_or_create_user_by_email_v2(
         self, *, email: str, ident: str | None = None, referrer: str | None = None
-    ) -> tuple[RpcUser, bool]:
+    ) -> RpcUserCreationResult:
         with transaction.atomic(router.db_for_write(User)):
             rpc_user = self.get_user_by_email(email=email, ident=ident)
             if rpc_user:
-                return (rpc_user, False)
+                return RpcUserCreationResult(user=rpc_user, was_newly_created=False)
 
             # Create User if it doesn't exist
             user = User.objects.create(
@@ -198,7 +202,7 @@ class DatabaseBackedUserService(UserService):
                 sender=self, user=user, source="api", referrer=referrer or "unknown"
             )
             user.update(flags=F("flags").bitor(User.flags.newsletter_consent_prompt))
-            return (serialize_rpc_user(user), True)
+            return RpcUserCreationResult(user=serialize_rpc_user(user), was_newly_created=True)
 
     def get_user_by_email(
         self,

@@ -150,3 +150,8 @@ class UserIdEmailArgs(TypedDict):
 class RpcVerifyUserEmail(RpcModel):
     exists: bool = False
     email: str = ""
+
+
+class RpcUserCreationResult(RpcModel):
+    user: RpcUser
+    was_newly_created: bool

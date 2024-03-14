@@ -17,7 +17,12 @@ from sentry.services.hybrid_cloud.user import (
     UserSerializeType,
     UserUpdateArgs,
 )
-from sentry.services.hybrid_cloud.user.model import RpcAvatar, RpcVerifyUserEmail, UserIdEmailArgs
+from sentry.services.hybrid_cloud.user.model import (
+    RpcAvatar,
+    RpcUserCreationResult,
+    RpcVerifyUserEmail,
+    UserIdEmailArgs,
+)
 from sentry.silo import SiloMode
 
 
@@ -133,8 +138,6 @@ class UserService(RpcService):
     def get_first_superuser(self) -> RpcUser | None:
         pass
 
-    @rpc_method
-    @abstractmethod
     def get_or_create_user_by_email(
         self,
         *,
@@ -142,6 +145,19 @@ class UserService(RpcService):
         ident: str | None = None,
         referrer: str | None = None,
     ) -> tuple[RpcUser, bool]:
+        """DEPRECATED. To be removed after usage in getsentry is replaced."""
+        result = self.get_or_create_user_by_email_v2(email=email, ident=ident, referrer=referrer)
+        return result.user, result.was_newly_created
+
+    @rpc_method
+    @abstractmethod
+    def get_or_create_user_by_email_v2(
+        self,
+        *,
+        email: str,
+        ident: str | None = None,
+        referrer: str | None = None,
+    ) -> RpcUserCreationResult:
         pass
 
     @rpc_method
