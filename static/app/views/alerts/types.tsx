@@ -1,5 +1,5 @@
 import type {User} from 'sentry/types';
-import type {IssueAlertRule} from 'sentry/types/alerts';
+import type {IssueAlertRule, MonitorType} from 'sentry/types/alerts';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 
 type Data = [number, {count: number}[]][];
@@ -91,9 +91,11 @@ interface IssueAlert extends IssueAlertRule {
   type: CombinedAlertType.ISSUE;
   latestIncident?: Incident | null;
 }
+
 interface MetricAlert extends MetricRule {
   type: CombinedAlertType.METRIC;
   latestIncident?: Incident | null;
+  monitorType?: MonitorType;
 }
 
 export type CombinedMetricIssueAlerts = IssueAlert | MetricAlert;
