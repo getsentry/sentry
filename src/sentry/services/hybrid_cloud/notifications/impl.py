@@ -14,7 +14,11 @@ from sentry.notifications.types import (
     NotificationSettingsOptionEnum,
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
-from sentry.services.hybrid_cloud.notifications import NotificationsService
+from sentry.services.hybrid_cloud.notifications import (
+    NotificationsService,
+    RpcGroupSubscriptionStatus,
+)
+from sentry.services.hybrid_cloud.notifications.serial import serialize_group_subscription_status
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviderEnum, ExternalProviders
 
@@ -118,10 +122,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
         user_id: int,
         project_ids: list[int],
         type: NotificationSettingEnum,
-    ) -> Mapping[int, tuple[bool, bool, bool]]:
-        """
-        Returns a mapping of project_id to a tuple of (is_disabled, is_active, has_only_inactive_subscriptions)
-        """
+    ) -> Mapping[int, RpcGroupSubscriptionStatus]:
         user = user_service.get_user(user_id)
         if not user:
             return {}
@@ -132,7 +133,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
             type=type,
         )
         return {
-            project: (s.is_disabled, s.is_active, s.has_only_inactive_subscriptions)
+            project: serialize_group_subscription_status(s)
             # TODO(Steve): Simplify API to pass in one project at a time
             for project, s in controller.get_subscriptions_status_for_projects(
                 user=user, project_ids=project_ids, type=type
