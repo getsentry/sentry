@@ -636,6 +636,7 @@ export function PlayPauseCell({
       aria-label={t('Play')}
       icon={<IconPlay size="sm" />}
       onClick={handleClick}
+      data-test-id="replay-table-play-button"
     />
   );
   return <Item>{inner}</Item>;

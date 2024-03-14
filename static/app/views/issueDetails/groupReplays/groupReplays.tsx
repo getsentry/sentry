@@ -167,11 +167,11 @@ function GroupReplaysTable({
   const setSelectedReplayIndex = useCallback(
     (index: number) => {
       browserHistory.replace({
-        pathname: window.location.pathname,
+        pathname: location.pathname,
         query: {...location.query, selected_replay_index: index},
       });
     },
-    [location.query]
+    [location]
   );
 
   const selectedReplay = replays?.[selectedReplayIndex];
