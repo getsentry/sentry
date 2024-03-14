@@ -13,6 +13,7 @@ const replayConfig: IssueCategoryConfigMapping = {
       share: {enabled: true},
     },
     attachments: {enabled: false},
+    autofix: false,
     events: {enabled: true},
     mergedIssues: {enabled: false},
     regression: {enabled: false},
