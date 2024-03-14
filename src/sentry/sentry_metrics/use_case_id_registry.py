@@ -19,6 +19,7 @@ class UseCaseID(Enum):
     CUSTOM = "custom"
     PROFILES = "profiles"
     BUNDLE_ANALYSIS = "bundle_analysis"
+    METRIC_STATS = "metric_stats"
 
 
 # UseCaseKey will be renamed to MetricPathKey
@@ -30,6 +31,7 @@ METRIC_PATH_MAPPING: Mapping[UseCaseID, UseCaseKey] = {
     UseCaseID.CUSTOM: UseCaseKey.PERFORMANCE,
     UseCaseID.BUNDLE_ANALYSIS: UseCaseKey.PERFORMANCE,
     UseCaseID.PROFILES: UseCaseKey.PERFORMANCE,
+    UseCaseID.METRIC_STATS: UseCaseKey.PERFORMANCE,
 }
 
 # TODO: Remove this as soon as the entire indexer system is use case aware
@@ -46,6 +48,7 @@ USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS = {
     UseCaseID.SPANS: "sentry-metrics.cardinality-limiter.limits.spans.per-org",
     UseCaseID.CUSTOM: "sentry-metrics.cardinality-limiter.limits.custom.per-org",
     UseCaseID.PROFILES: "sentry-metrics.cardinality-limiter.limits.profiles.per-org",
+    UseCaseID.METRIC_STATS: "sentry-metrics.cardinality-limiter.limits.metric_stats.per-org",
 }
 
 USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS = {

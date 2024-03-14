@@ -191,6 +191,12 @@ SHARED_TAG_STRINGS = {
     "os.version": PREFIX + 271,
     # Performance Score
     "sentry.score_profile_version": PREFIX + 272,
+    # Metric stats
+    "mri": PREFIX + 273,
+    "mri.type": PREFIX + 274,
+    "mri.namespace": PREFIX + 275,
+    "outcome": PREFIX + 276,
+    "reason": PREFIX + 277,
     # GENERAL/MISC (don't have a category)
     "": PREFIX + 1000,
 }
@@ -236,6 +242,12 @@ BUNDLE_ANALYSIS_METRIC_NAMES = {
     "d:bundle_analysis/bundle_size@byte": PREFIX + 700,
 }
 
+# 800-899
+METRIC_STATS_METRIC_NAMES = {
+    "g:metric_stats/volume@none": PREFIX + 800,
+    "g:metric_stats/cardinality@none": PREFIX + 801,
+}
+
 
 SHARED_STRINGS = {
     **SESSION_METRIC_NAMES,
@@ -243,8 +255,9 @@ SHARED_STRINGS = {
     **SPAN_METRICS_NAMES,
     **ESCALATING_ISSUES_METRIC_NAMES,
     **PROFILING_METRIC_NAMES,
-    **SHARED_TAG_STRINGS,
     **BUNDLE_ANALYSIS_METRIC_NAMES,
+    **METRIC_STATS_METRIC_NAMES,
+    **SHARED_TAG_STRINGS,
 }
 REVERSE_SHARED_STRINGS = {v: k for k, v in SHARED_STRINGS.items()}
 
