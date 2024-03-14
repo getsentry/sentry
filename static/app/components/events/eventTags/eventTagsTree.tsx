@@ -132,7 +132,8 @@ function TagTreeRow({
             <TreeBranchIcon />
           </Fragment>
         )}
-        <TreeKey>{tagKey}</TreeKey>
+        <TreeSearchKey aria-hidden>{originalTag.key}</TreeSearchKey>
+        <TreeKey title={originalTag.key}>{tagKey}</TreeKey>
       </TreeKeyTrunk>
       <TreeValueTrunk>
         <TreeValue>
@@ -360,6 +361,7 @@ const TreeColumn = styled('div')`
 const TreeRow = styled('div')`
   border-radius: ${space(0.5)};
   padding-left: ${space(1)};
+  position: relative;
   display: grid;
   grid-column: span 2;
   grid-template-columns: subgrid;
@@ -414,6 +416,14 @@ const TreeValue = styled('div')`
 
 const TreeKey = styled(TreeValue)`
   color: ${p => p.theme.gray300};
+`;
+
+/**
+ * Hidden element to allow browser searching for exact key name
+ */
+const TreeSearchKey = styled('span')`
+  font-size: 0;
+  position: absolute;
 `;
 
 const TreeValueDropdown = styled(DropdownMenu)`
