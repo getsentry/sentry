@@ -485,18 +485,6 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
             member.update(role="manager")
         assert member.get_allowed_org_roles_to_invite() == [
             roles.get("member"),
-            roles.get("manager"),
-        ]
-
-    @with_feature({"organizations:team-roles": False})
-    def test_get_allowed_org_roles_to_invite_retired_role(self):
-        member = OrganizationMember.objects.get(
-            user_id=self.user.id, organization=self.organization
-        )
-        with unguarded_write(using=router.db_for_write(OrganizationMember)):
-            member.update(role="manager")
-        assert member.get_allowed_org_roles_to_invite() == [
-            roles.get("member"),
             roles.get("admin"),
             roles.get("manager"),
         ]
