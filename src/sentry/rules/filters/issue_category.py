@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Any, cast
+from typing import Any
 
 from django import forms
 
@@ -50,6 +50,6 @@ class IssueCategoryFilter(EventFilter):
         return self._passes(group)
 
     def render_label(self) -> str:
-        value = cast(str, self.data.get("value"))
+        value = self.data["value"]
         group_category_name = get_group_type_by_type_id(int(value)).description
         return self.label.format(value=group_category_name)
