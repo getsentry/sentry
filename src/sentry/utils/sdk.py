@@ -219,7 +219,7 @@ def before_send_transaction(event, _):
 def before_send(event, _):
     if event.get("tags"):
         if settings.SILO_MODE:
-            event["tags"]["silo_mode"] = settings.SILO_MODE
+            event["tags"]["silo_mode"] = str(settings.SILO_MODE)
         if settings.SENTRY_REGION:
             event["tags"]["sentry_region"] = settings.SENTRY_REGION
     return event
