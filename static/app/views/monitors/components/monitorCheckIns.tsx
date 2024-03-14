@@ -49,7 +49,7 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const queryKey = [
-    `/organizations/${orgSlug}/monitors/${monitor.slug}/checkins/`,
+    `/projects/${orgSlug}/${monitor.project.slug}/monitors/${monitor.slug}/checkins/`,
     {
       query: {
         per_page: '10',
