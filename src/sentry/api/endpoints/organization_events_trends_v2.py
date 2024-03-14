@@ -251,7 +251,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             data[1]["data_start"] = data_start
             data[1]["data_end"] = data_end
             # user requested start and end
-            data[1]["request_start"] = params["start"].timestamp()
+            data[1]["request_start"] = int(params["start"].timestamp())
             data[1]["request_end"] = data_end
             return data
 
