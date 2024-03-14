@@ -129,33 +129,36 @@ export function useMetricWidgets() {
     [setWidgets]
   );
 
-  const addWidget = useCallback(
-    (type: MetricQueryType = MetricQueryType.QUERY) => {
+  const duplicateWidget = useCallback(
+    (index: number) => {
       setWidgets(currentWidgets => {
-        const lastWidget =
-          currentWidgets.length > 0
-            ? currentWidgets[currentWidgets.length - 1]
-            : undefined;
-
-        let newWidget =
-          type === MetricQueryType.QUERY
-            ? emptyMetricsQueryWidget
-            : emptyMetricsFormulaWidget;
-
-        // if the last widget is of the same type, we duplicate it
-        if (lastWidget && lastWidget.type === newWidget.type) {
-          newWidget = {
-            ...newWidget,
-            ...lastWidget,
-          };
-        }
-
+        const newWidgets = [...currentWidgets];
+        const newWidget = {...currentWidgets[index]};
         newWidget.id = NO_QUERY_ID;
-
-        return [...currentWidgets, newWidget];
+        newWidgets.splice(index + 1, 0, newWidget);
+        return newWidgets;
       });
     },
     [setWidgets]
+  );
+
+  const addWidget = useCallback(
+    (type: MetricQueryType = MetricQueryType.QUERY) => {
+      const lastIndexOfSameType = currentWidgetsRef.current.findLastIndex(
+        w => w.type === type
+      );
+      if (lastIndexOfSameType > -1) {
+        duplicateWidget(lastIndexOfSameType);
+      } else {
+        setWidgets(currentWidgets => [
+          ...currentWidgets,
+          type === MetricQueryType.QUERY
+            ? emptyMetricsQueryWidget
+            : emptyMetricsFormulaWidget,
+        ]);
+      }
+    },
+    [currentWidgetsRef, duplicateWidget, setWidgets]
   );
 
   const removeWidget = useCallback(
@@ -168,19 +171,6 @@ export function useMetricWidgets() {
         if (!newWidgets.find(w => !w.isHidden)) {
           newWidgets = newWidgets.map(w => ({...w, isHidden: false}));
         }
-        return newWidgets;
-      });
-    },
-    [setWidgets]
-  );
-
-  const duplicateWidget = useCallback(
-    (index: number) => {
-      setWidgets(currentWidgets => {
-        const newWidgets = [...currentWidgets];
-        const newWidget = {...currentWidgets[index]};
-        newWidget.id = NO_QUERY_ID;
-        newWidgets.splice(index + 1, 0, newWidget);
         return newWidgets;
       });
     },

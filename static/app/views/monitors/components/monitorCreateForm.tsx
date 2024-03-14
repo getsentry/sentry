@@ -70,7 +70,7 @@ export default function MonitorCreateForm() {
     };
     browserHistory.push(
       normalizeUrl({
-        pathname: `/organizations/${organization.slug}/crons/${data.slug}/`,
+        pathname: `/organizations/${organization.slug}/crons/${data.project.slug}/${data.slug}/`,
         query: endpointOptions.query,
       })
     );

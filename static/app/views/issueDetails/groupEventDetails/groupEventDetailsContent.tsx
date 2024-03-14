@@ -125,7 +125,11 @@ function DefaultGroupEventDetailsContent({
         </EventDataSection>
       )}
       {group.issueCategory === IssueCategory.CRON && (
-        <CronTimelineSection event={event} organization={organization} />
+        <CronTimelineSection
+          event={event}
+          organization={organization}
+          project={project}
+        />
       )}
       {hasNewTagsUI && (
         <EventDataSection
@@ -141,7 +145,9 @@ function DefaultGroupEventDetailsContent({
           <ContextSummary event={event} />
         </EventDataSection>
       )}
-      <EventTagsAndScreenshot event={event} projectSlug={project.slug} />
+      {!hasNewTagsUI && (
+        <EventTagsAndScreenshot event={event} projectSlug={project.slug} />
+      )}
       {showMaybeSolutionsHigher && (
         <ResourcesAndMaybeSolutions event={event} project={project} group={group} />
       )}
@@ -172,6 +178,9 @@ function DefaultGroupEventDetailsContent({
       )}
       <GroupEventEntry entryType={EntryType.DEBUGMETA} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.REQUEST} {...eventEntryProps} />
+      {hasNewTagsUI && (
+        <EventTagsAndScreenshot event={event} projectSlug={project.slug} />
+      )}
       <EventContexts group={group} event={event} />
       <EventExtraData event={event} />
       <EventPackageData event={event} />
