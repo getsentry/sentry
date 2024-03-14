@@ -191,6 +191,7 @@ describe('HTTPSummaryPage', function () {
           environment: [],
           field: [
             'transaction',
+            'transaction.method',
             'spm()',
             'http_response_rate(2)',
             'http_response_rate(4)',
@@ -227,6 +228,7 @@ describe('HTTPSummaryPage', function () {
         data: [
           {
             transaction: '/api/users',
+            'transaction.method': 'GET',
             'spm()': 17.88,
             'http_response_rate(2)': 0.97,
             'http_response_rate(4)': 0.025,
@@ -264,7 +266,11 @@ describe('HTTPSummaryPage', function () {
     expect(screen.getByRole('columnheader', {name: 'Avg Duration'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Time Spent'})).toBeInTheDocument();
 
-    expect(screen.getByRole('cell', {name: '/api/users'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: 'GET /api/users'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'GET /api/users'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/performance/http/domains/?domain=%2A.sentry.dev&statsPeriod=10d&transaction=%2Fapi%2Fusers&transactionMethod=GET&transactionsCursor=0%3A20%3A0'
+    );
     expect(screen.getByRole('cell', {name: '17.9/s'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '97%'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '2.5%'})).toBeInTheDocument();

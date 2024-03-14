@@ -115,6 +115,7 @@ export function HTTPDomainSummaryPage() {
     search: MutableSearch.fromQueryObject(filters),
     fields: [
       'transaction',
+      'transaction.method',
       'spm()',
       'http_response_rate(2)',
       'http_response_rate(4)',
@@ -259,6 +260,7 @@ export function HTTPDomainSummaryPage() {
 
             <ModuleLayout.Full>
               <DomainTransactionsTable
+                domain={domain}
                 data={transactionsList}
                 error={transactionsListError}
                 isLoading={isTransactionsListLoading}
