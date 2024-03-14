@@ -195,8 +195,8 @@ SHARED_TAG_STRINGS = {
     "mri": PREFIX + 273,
     "mri.type": PREFIX + 274,
     "mri.namespace": PREFIX + 275,
-    "outcome": PREFIX + 276,
-    "reason": PREFIX + 277,
+    "outcome.id": PREFIX + 276,
+    "outcome.reason": PREFIX + 277,
     # GENERAL/MISC (don't have a category)
     "": PREFIX + 1000,
 }
