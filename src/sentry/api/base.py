@@ -56,6 +56,7 @@ from .authentication import (
     ApiKeyAuthentication,
     OrgAuthTokenAuthentication,
     UserAuthTokenAuthentication,
+    update_token_access,
 )
 from .paginator import BadPaginationError, MissingPaginationError, Paginator
 from .permissions import (
@@ -387,6 +388,9 @@ class Endpoint(APIView):
         # Tags that will ultimately flow into the metrics backend at the end of
         # the request (happens via middleware/stats.py).
         request._metric_tags = {}
+
+        if request.auth:
+            update_token_access(request.auth)
 
         start_time = time.time()
 

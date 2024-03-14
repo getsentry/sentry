@@ -24,7 +24,11 @@ from sentry.models.apiapplication import ApiApplication
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 from sentry.models.integrations.sentry_app import SentryApp
-from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.orgauthtoken import (
+    OrgAuthToken,
+    is_org_auth_token_auth,
+    update_org_auth_token_last_used,
+)
 from sentry.models.projectkey import ProjectKey
 from sentry.models.relay import Relay
 from sentry.models.user import User
@@ -130,6 +134,14 @@ def relay_from_id(request, relay_id) -> tuple[Relay | None, bool]:
             return relay, False  # a Relay from the database
         except Relay.DoesNotExist:
             return None, False  # no Relay found
+
+
+def update_token_access(auth: object):
+    """
+    Perform updates to token models for security purposes (i.e. 'date_last_used')
+    """
+    if is_org_auth_token_auth(auth):
+        update_org_auth_token_last_used(auth, [])
 
 
 class QuietBasicAuthentication(BasicAuthentication):
