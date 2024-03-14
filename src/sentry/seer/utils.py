@@ -8,6 +8,10 @@ from sentry.net.http import connection_from_url
 from sentry.utils import json
 
 
+class SeerException(Exception):
+    pass
+
+
 class BreakpointData(TypedDict):
     project: str
     # For legacy reasons, the group name is always
@@ -53,11 +57,27 @@ def detect_breakpoints(breakpoint_request) -> BreakpointResponse:
         body=json.dumps(breakpoint_request),
         headers={"content-type": "application/json;charset=utf-8"},
     )
-    try:
-        return json.loads(response.data)
-    except ValueError as e:
-        sentry_sdk.capture_exception(e)
-        return {"data": []}
+
+    if response.status >= 200 and response.status < 300:
+        try:
+            return json.loads(response.data)
+        except ValueError as e:
+            # seer failed to return valid json, report the error
+            # and assume no breakpoints were found
+            sentry_sdk.capture_exception(e)
+            return {"data": []}
+
+    with sentry_sdk.push_scope() as scope:
+        scope.set_context(
+            "seer_response",
+            {
+                "data": response.data,
+            },
+        )
+        sentry_sdk.capture_exception(SeerException(f"Seer response: {response.status}"))
+
+    # assume no breakpoints if an error was returned from seer
+    return {"data": []}
 
 
 class SimilarIssuesEmbeddingsRequestNotRequired(TypedDict, total=False):
