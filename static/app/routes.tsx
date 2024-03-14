@@ -1475,54 +1475,31 @@ function buildRoutes() {
     />
   );
 
-  const statsChildRoutes = ({forCustomerDomain}: {forCustomerDomain: boolean}) => {
-    return (
-      <Fragment>
+  const statsRoutes = (
+    <Fragment>
+      <Route path="/stats/" withOrgPath>
         <IndexRoute component={make(() => import('sentry/views/organizationStats'))} />
         <Route
-          path="issues/"
           component={make(() => import('sentry/views/organizationStats/teamInsights'))}
         >
-          <IndexRoute
+          <Route
+            path="issues/"
             component={make(
               () => import('sentry/views/organizationStats/teamInsights/issues')
             )}
           />
-        </Route>
-        <Route
-          path="health/"
-          component={make(() => import('sentry/views/organizationStats/teamInsights'))}
-        >
-          <IndexRoute
+          <Route
+            path="health/"
             component={make(
               () => import('sentry/views/organizationStats/teamInsights/health')
             )}
           />
         </Route>
-        {forCustomerDomain ? null : (
-          <Redirect from="team/" to="/organizations/:orgId/stats/issues/" />
-        )}
-      </Fragment>
-    );
-  };
-  const statsRoutes = (
-    <Fragment>
-      {USING_CUSTOMER_DOMAIN && (
-        <Route
-          path="/stats/"
-          component={withDomainRequired(NoOp)}
-          key="orgless-stats-route"
-        >
-          {statsChildRoutes({forCustomerDomain: true})}
-        </Route>
-      )}
-      <Route
-        path="/organizations/:orgId/stats/"
-        component={withDomainRedirect(NoOp)}
-        key="org-stats"
-      >
-        {statsChildRoutes({forCustomerDomain: false})}
       </Route>
+      <Redirect
+        from="/organizations/:orgId/stats/team/"
+        to="/organizations/:orgId/stats/issues/"
+      />
     </Fragment>
   );
 
