@@ -410,6 +410,7 @@ const TreeValueTrunk = styled('div')`
 
 const TreeValue = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.fontSizeSmall};
   word-break: break-word;
   grid-column: span 1;
 `;
