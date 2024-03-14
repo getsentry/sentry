@@ -193,7 +193,7 @@ export const PriorityOptions = {
 // default priorities per threshold (0 = critical, 1 = warning)
 export const DefaultPriorities = {
   [ActionType.PAGERDUTY]: {[0]: 'critical', [1]: 'warning'},
-  [ActionType.OPSGENIE]: {[0]: 'P3', [1]: 'P3'},
+  [ActionType.OPSGENIE]: {[0]: 'P1', [1]: 'P2'},
 };
 
 /**
