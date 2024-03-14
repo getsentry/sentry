@@ -392,9 +392,6 @@ def process_resource_change(instance, change, **kwargs):
         instance if change == "updated" else None,
         READ_CACHE_DURATION,
     )
-    autoassignment_types = ProjectOwnership._get_autoassignment_types(instance)
-    if len(autoassignment_types) > 0:
-        GroupOwner.invalidate_autoassigned_owner_cache(instance.project_id, autoassignment_types)
     GroupOwner.invalidate_assignee_exists_cache(instance.project.id)
     GroupOwner.invalidate_debounce_issue_owners_evaluation_cache(instance.project_id)
 
