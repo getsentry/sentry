@@ -46,11 +46,11 @@ def generate_diff_labels(
     return changed_data
 
 
-def get_frequency_label(value: str) -> str | None:
-    if not value:
+def get_frequency_label(value_str: str | None) -> str | None:
+    if not value_str:
         return None
 
-    value = int(value)
+    value = int(value_str)
     if value < 60:
         return f"{value} minutes"
     elif value >= 60 and value < 10080:
