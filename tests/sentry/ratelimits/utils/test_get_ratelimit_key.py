@@ -9,10 +9,10 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.user import User
 from sentry.ratelimits import get_rate_limit_config, get_rate_limit_key
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.ratelimits.utils import RateLimit, RateLimitCategory
 from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode_of, region_silo_test
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 CONCURRENT_RATE_LIMIT = 20
 
