@@ -1,5 +1,6 @@
 from typing import TypedDict
 
+import sentry_sdk
 from django.conf import settings
 from urllib3 import Retry
 
@@ -52,7 +53,11 @@ def detect_breakpoints(breakpoint_request) -> BreakpointResponse:
         body=json.dumps(breakpoint_request),
         headers={"content-type": "application/json;charset=utf-8"},
     )
-    return json.loads(response.data)
+    try:
+        return json.loads(response.data)
+    except ValueError as e:
+        sentry_sdk.capture_exception(e)
+        return {"data": []}
 
 
 class SimilarIssuesEmbeddingsRequestNotRequired(TypedDict, total=False):
