@@ -205,14 +205,17 @@ DISCORD_ERROR_CODES = {
 }
 
 """
-After an alert rule is created, the user can perform actions that can break the alert
-and therefore Discord API responses are no longer ok.
+After an alert rule is created, the user can perform actions that can break the alert and
+produce error Discord API responses.
 
-For our SLO that monitors Discord response status codes, we do want to keep track of
-codes that indicate a problem from our end i.e. 50109 (the request body contains invalid JSON.)
+For our SLO that monitors Discord response status codes, we _do_ want to keep track of
+responses that indicate a problem from our end i.e. 50109
+(the request body contains invalid JSON.).
+We _don't_ want to keep track of responses that are failing because of a user config change.
 
-In order to make the SLO more relevent, we want to ignore specific discord provided codes that
+In order to make the SLO more relevant, we want to ignore specific discord provided codes that
 can be returned when a user changes a configuration and breaks the alert.
+
 Complete list of codes: https://discord.com/developers/docs/topics/opcodes-and-status-codes#http
 
 Here is a working list of codes that we should ignore and why:
