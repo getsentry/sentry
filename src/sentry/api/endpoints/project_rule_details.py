@@ -42,6 +42,7 @@ from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
+from sentry.rules.actions.utils import get_changed_data, get_updated_rule_data
 from sentry.signals import alert_rule_edited
 from sentry.tasks.integrations.slack import find_channel_id_for_rule
 
@@ -228,6 +229,13 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         - Filters - help control noise by triggering an alert only if the issue matches the specified criteria.
         - Actions - specify what should happen when the trigger conditions are met and the filters match.
         """
+        rule_data_before = dict(rule.data)
+        if rule.environment_id:
+            rule_data_before["environment_id"] = rule.environment_id
+        if rule.owner:
+            rule_data_before["owner"] = rule.owner
+        rule_data_before["label"] = rule.label
+
         serializer = DrfRuleSerializer(
             context={"project": project, "organization": project.organization},
             data=request.data,
@@ -367,7 +375,9 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
             if features.has(
                 "organizations:rule-create-edit-confirm-notification", project.organization
             ):
-                send_confirmation_notification(rule=rule, new=False)
+                new_rule_data = get_updated_rule_data(rule)
+                changed_data = get_changed_data(rule, new_rule_data, rule_data_before)
+                send_confirmation_notification(rule=rule, new=False, changed=changed_data)
             return Response(serialize(updated_rule, request.user))
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
