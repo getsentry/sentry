@@ -426,7 +426,7 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
         try:
             if organization.id in (options.get("custom-metrics-querying-killswitched-orgs") or ()):
                 return Response(
-                    status=401, data={"detail": "Your organization is not allowed to query metrics"}
+                    status=401, data={"detail": "The organization is not allowed to query metrics"}
                 )
 
             start, end = get_date_range_from_params(request.GET)
