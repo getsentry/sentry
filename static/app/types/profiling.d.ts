@@ -140,6 +140,7 @@ declare namespace Profiling {
     path?: string;
     line?: number;
     column?: number;
+    col?: number;
     is_application?: boolean;
     resource?: string;
     threadId?: number;
