@@ -660,13 +660,13 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
                 # When was this check-in expected to have happened?
                 expected_time = monitor_environment.next_checkin
 
-                # denormalize the monitor configration into the check-in.
+                # denormalize the monitor configuration into the check-in.
                 # Useful to show details about the configuration of the
                 # monitor at the time of the check-in
                 monitor_config = monitor.get_validated_config()
                 timeout_at = get_timeout_at(monitor_config, status, date_added)
 
-                check_in, created = MonitorCheckIn.objects.get_or_create(
+                check_in, created = MonitorCheckIn.objects.update_or_create(
                     defaults={
                         "duration": duration,
                         "status": status,
