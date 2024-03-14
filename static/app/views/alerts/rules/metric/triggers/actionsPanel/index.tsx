@@ -316,6 +316,9 @@ class ActionsPanel extends PureComponent<Props> {
       value: getActionUniqueKey(availableAction),
       label: getFullActionTitle(availableAction),
     }));
+    const hasPriorityFlag = organization.features.includes(
+      'integrations-custom-alert-priorities'
+    );
 
     const levels = [
       {value: 0, label: 'Critical Status'},
@@ -456,7 +459,8 @@ class ActionsPanel extends PureComponent<Props> {
                         'inputChannelId'
                       )}
                     />
-                    {availableAction &&
+                    {hasPriorityFlag &&
+                    availableAction &&
                     (availableAction.type === 'opsgenie' ||
                       availableAction.type === 'pagerduty') ? (
                       <SelectControl
