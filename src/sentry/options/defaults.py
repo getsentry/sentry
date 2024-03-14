@@ -732,6 +732,38 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# seer nearest neighbour endpoint timeout
+register(
+    "embeddings-grouping.seer.nearest-neighbour-timeout",
+    type=Float,
+    default=0.1,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# seer embeddings record update endpoint timeout
+register(
+    "embeddings-grouping.seer.embeddings-record-update-timeout",
+    type=Float,
+    default=0.05,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# seer embeddings record delete endpoint timeout
+register(
+    "embeddings-grouping.seer.embeddings-record-delete-timeout",
+    type=Float,
+    default=0.1,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# seer embeddings ratelimit in percentage that is allowed
+register(
+    "embeddings-grouping.seer.ratelimit",
+    type=Int,
+    default=0,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # ## sentry.killswitches
 #
 # The following options are documented in sentry.killswitches in more detail
@@ -751,6 +783,7 @@ register(
 register(
     "store.load-shed-process-event-projects", type=Any, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
 )
+register("embeddings-grouping.use-embeddings", type=Sequence, default=[])
 register(
     "store.load-shed-process-event-projects-gradual",
     type=Dict,
