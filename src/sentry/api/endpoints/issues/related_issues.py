@@ -14,14 +14,8 @@ from sentry.models.group import Group
 @region_silo_endpoint
 class RelatedIssuesEndpoint(GroupEndpoint):
     owner = ApiOwner.ISSUES
-    publish_status = {"GET": ApiPublishStatus.PRIVATE}
+    publish_status = {"GET": ApiPublishStatus.EXPERIMENTAL}
 
     def get(self, _: Request, group: Group) -> Response:
-        # XXX: Add real feature flag
-        # if not features.has("FOO", organization, actor=request.user):
-        #     return Response({"status": "disabled"}, status=403)
-
-        # XXX: This needs to be generic to support multiple types of related issues
         related_issues = find_related_issues(group)
-
         return Response({key: [g.id for g in groups] for key, groups in related_issues.items()})

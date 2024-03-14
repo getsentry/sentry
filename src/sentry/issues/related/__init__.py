@@ -11,9 +11,9 @@ RELATED_ISSUES_ALGORITHMS = {
 }
 
 
-def find_related_issues(group: Group) -> dict[str, list[Group]] | None:
+def find_related_issues(group: Group) -> dict[str, list[Group]]:
     related_issues = {}
     for key, func in RELATED_ISSUES_ALGORITHMS.items():
         related_issues[key] = func(group)
 
-    return related_issues
+    return related_issues or {}

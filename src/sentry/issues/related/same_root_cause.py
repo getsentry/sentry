@@ -8,12 +8,12 @@ from typing import Any
 from sentry.models.group import Group
 
 
-def same_root_cause_analysis(group: Group) -> list[Group] | None:
+def same_root_cause_analysis(group: Group) -> list[Group]:
     """Analyze and create a group set if the group was caused by the same root cause."""
     # XXX: This function is not optimal since we can't query the data field which is a GzippedDictField
     project_groups = Group.objects.filter(project=group.project_id)
     same_error_type_groups = [g for g in project_groups if compare_groups(g, group)]
-    return same_error_type_groups
+    return same_error_type_groups or []
 
 
 def compare_groups(groupA: Group, groupB: Group) -> bool:

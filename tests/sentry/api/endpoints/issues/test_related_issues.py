@@ -19,7 +19,7 @@ class RelatedIssuesTest(APITestCase):
         # You need to set this value in your test before calling the API
         self.group_id = None
 
-    def reverse_url(self):
+    def reverse_url(self) -> str:
         return reverse(self.endpoint, kwargs={"issue_id": self.group_id})
 
     def _data(self, type: str, value: str) -> dict[str, Any]:
