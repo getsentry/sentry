@@ -31,6 +31,8 @@ from sentry.incidents.serializers import (
     AlertRuleTriggerActionSerializer,
     AlertRuleTriggerSerializer,
 )
+from sentry.integrations.opsgenie.utils import OPSGENIE_CUSTOM_PRIORITIES
+from sentry.integrations.pagerduty.utils import PAGERDUTY_CUSTOM_PRIORITIES
 from sentry.models.actor import ACTOR_TYPES, get_actor_for_user
 from sentry.models.environment import Environment
 from sentry.models.user import User
@@ -908,6 +910,98 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
             },
             {"nonFieldErrors": ["User does not belong to this organization"]},
         )
+
+    def test_invalid_priority(self):
+        self.run_fail_validation_test(
+            {
+                "type": AlertRuleTriggerAction.get_registered_type(
+                    AlertRuleTriggerAction.Type.MSTEAMS
+                ).slug,
+                "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                    AlertRuleTriggerAction.TargetType.SPECIFIC
+                ],
+                "priority": "P1",
+            },
+            {
+                "priority": [
+                    ErrorDetail("Can only be set for Pagerduty or Opsgenie", code="invalid")
+                ]
+            },
+        )
+        self.run_fail_validation_test(
+            {
+                "type": AlertRuleTriggerAction.get_registered_type(
+                    AlertRuleTriggerAction.Type.PAGERDUTY
+                ).slug,
+                "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                    AlertRuleTriggerAction.TargetType.SPECIFIC
+                ],
+                "priority": "P1",
+            },
+            {
+                "priority": [
+                    ErrorDetail(
+                        f"Allowed priorities for Pagerduty are {str(PAGERDUTY_CUSTOM_PRIORITIES)}",
+                        code="invalid",
+                    )
+                ]
+            },
+        )
+        self.run_fail_validation_test(
+            {
+                "type": AlertRuleTriggerAction.get_registered_type(
+                    AlertRuleTriggerAction.Type.OPSGENIE
+                ).slug,
+                "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                    AlertRuleTriggerAction.TargetType.SPECIFIC
+                ],
+                "priority": "critical",
+            },
+            {
+                "priority": [
+                    ErrorDetail(
+                        f"Allowed priorities for Opsgenie are {str(OPSGENIE_CUSTOM_PRIORITIES)}",
+                        code="invalid",
+                    )
+                ]
+            },
+        )
+
+    @patch(
+        "sentry.incidents.logic.get_target_identifier_display_for_integration",
+        return_value=("test", "test"),
+    )
+    def test_pagerduty_valid_priority(self, mock_get):
+        params = {
+            "type": AlertRuleTriggerAction.get_registered_type(
+                AlertRuleTriggerAction.Type.PAGERDUTY
+            ).slug,
+            "targetType": ACTION_TARGET_TYPE_TO_STRING[AlertRuleTriggerAction.TargetType.SPECIFIC],
+            "targetIdentifier": "123",
+            "priority": "critical",
+        }
+        serializer = AlertRuleTriggerActionSerializer(data=params, context=self.context)
+        assert serializer.is_valid()
+        action = serializer.save()
+        assert action.sentry_app_config["priority"] == "critical"
+
+    @patch(
+        "sentry.incidents.logic.get_target_identifier_display_for_integration",
+        return_value=("test", "test"),
+    )
+    def test_opsgenie_valid_priority(self, mock_get):
+        params = {
+            "type": AlertRuleTriggerAction.get_registered_type(
+                AlertRuleTriggerAction.Type.OPSGENIE
+            ).slug,
+            "targetType": ACTION_TARGET_TYPE_TO_STRING[AlertRuleTriggerAction.TargetType.SPECIFIC],
+            "targetIdentifier": "123",
+            "priority": "P1",
+        }
+        serializer = AlertRuleTriggerActionSerializer(data=params, context=self.context)
+        assert serializer.is_valid()
+        action = serializer.save()
+        assert action.sentry_app_config["priority"] == "P1"
 
     def test_discord(self):
         self.run_fail_validation_test(

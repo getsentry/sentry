@@ -475,7 +475,9 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
     alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger")
 
     date_added = models.DateTimeField(default=timezone.now)
-    sentry_app_config = JSONField(null=True)
+    sentry_app_config = JSONField(
+        null=True
+    )  # list of dicts if this is a sentry app, otherwise can be singular dict
     status = BoundedPositiveIntegerField(
         default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices()
     )
