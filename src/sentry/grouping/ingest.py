@@ -448,7 +448,9 @@ def record_hash_calculation_metrics(
     secondary_config: GroupingConfig,
     secondary_hashes: CalculatedHashes,
 ):
-    if extract_hashes(secondary_hashes):
+    has_secondary_hashes = len(extract_hashes(secondary_hashes)) > 0
+
+    if has_secondary_hashes:
         tags = {
             "primary_config": primary_config["id"],
             "secondary_config": secondary_config["id"],
@@ -482,7 +484,7 @@ def record_hash_calculation_metrics(
 
     # Track the total number of grouping calculations done overall, so we can divide by the
     # count to get an average number of calculations per event
-    metrics.incr("grouping.hashes_calculated", amount=2 if extract_hashes(secondary_hashes) else 1)
+    metrics.incr("grouping.hashes_calculated", amount=2 if has_secondary_hashes else 1)
 
 
 def record_new_group_metrics(event: Event):
