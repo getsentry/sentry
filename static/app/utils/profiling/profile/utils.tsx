@@ -88,6 +88,7 @@ export function createFrameIndex(
     acc[index] = new Frame(
       {
         key: index,
+        column: frame.colno ?? frame?.col ?? frame?.column,
         ...frame,
       },
       type

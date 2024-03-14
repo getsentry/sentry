@@ -45,7 +45,7 @@ export class Frame {
     this.name = frameInfo.name;
     this.resource = frameInfo.resource;
     this.line = frameInfo.line;
-    this.column = frameInfo.column ?? frameInfo.col;
+    this.column = frameInfo.column;
     this.is_application = !!frameInfo.is_application;
     this.package = frameInfo.package;
     this.module = frameInfo.module ?? frameInfo.image;
