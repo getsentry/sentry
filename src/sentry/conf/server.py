@@ -1759,8 +1759,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-screens-platform-selector": False,
     # Enable API aka HTTP aka Network Performance module
     "organizations:performance-http-view": False,
-    # Skip groupowner cache post processing
-    "organizations:post-process-skip-groupowner-cache": False,
     # Enable column that shows ttid ttfd contributing spans
     "organizations:mobile-ttid-ttfd-contribution": False,
     # Enable slow DB performance issue type
@@ -2406,6 +2404,9 @@ SENTRY_MANAGED_USER_FIELDS = ()
 
 # Secret key for OpenAI
 OPENAI_API_KEY: str | None = None
+
+# AI Suggested Fix default model
+SENTRY_AI_SUGGESTED_FIX_MODEL: str = os.getenv("SENTRY_AI_SUGGESTED_FIX_MODEL", "gpt-3.5-turbo-16k")
 
 SENTRY_API_PAGINATION_ALLOWLIST = SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY
 
