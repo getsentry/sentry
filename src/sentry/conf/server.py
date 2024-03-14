@@ -1106,15 +1106,6 @@ CELERYBEAT_SCHEDULE_REGION = {
         ),
         "options": {"expires": 60 * 60 * 3},
     },
-    # "schedule-monthly-invite-missing-org-members": {
-    #     "task": "sentry.tasks.invite_missing_org_members.schedule_organizations",
-    #     "schedule": crontab(
-    #         minute=0,
-    #         hour=7,
-    #         day_of_month="1",  # 00:00 PDT, 03:00 EDT, 7:00 UTC
-    #     ),
-    #     "options": {"expires": 60 * 25},
-    # },
     "schedule-hybrid-cloud-foreign-key-jobs": {
         "task": "sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
         # Run every 15 minutes
@@ -1444,7 +1435,6 @@ SENTRY_EARLY_FEATURES = {
     "organizations:grouping-stacktrace-ui": "Enable experimental new version of stacktrace component where additional data related to grouping is shown on each frame",
     "organizations:grouping-title-ui": "Enable tweaks to group title in relation to hierarchical grouping.",
     "organizations:grouping-tree-ui": "Enable experimental new version of Merged Issues where sub-hashes are shown",
-    "organizations:integrations-gh-invite": "Enables inviting new members based on GitHub commit activity",
     "organizations:issue-details-tag-improvements": "Enable tag improvements in the issue details page",
     "organizations:mobile-cpu-memory-in-transactions": "Display CPU and memory metrics in transactions with profiles",
     "organizations:performance-metrics-backed-transaction-summary": "Enable metrics-backed transaction summary view",
@@ -1605,8 +1595,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:integrations-enterprise-incident-management": True,
     # Enable interface functionality to receive event hooks.
     "organizations:integrations-event-hooks": True,
-    # Enables inviting new members based on GitHub commit activity.
-    "organizations:integrations-gh-invite": False,
     # Enable integration functionality to work with alert rules (specifically incident
     # management integrations)
     "organizations:integrations-incident-management": True,
