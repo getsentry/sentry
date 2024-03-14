@@ -28,6 +28,7 @@ from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
+from sentry.relay.config.experimental import BuildTimeChecker
 from sentry.search.events import fields
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
@@ -89,7 +90,9 @@ def get_max_widget_specs(organization: Organization) -> int:
 
 
 @metrics.wraps("on_demand_metrics.get_metric_extraction_config")
-def get_metric_extraction_config(project: Project) -> MetricExtractionConfig | None:
+def get_metric_extraction_config(
+    timeout: BuildTimeChecker, project: Project
+) -> MetricExtractionConfig | None:
     """
     Returns generic metric extraction config for the given project.
 
@@ -100,14 +103,18 @@ def get_metric_extraction_config(project: Project) -> MetricExtractionConfig | N
     """
     # For efficiency purposes, we fetch the flags in batch and propagate them downstream.
     enabled_features = on_demand_metrics_feature_flags(project.organization)
+    timeout.check()
     sentry_sdk.set_tag("organization_id", project.organization_id)
 
     prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
 
     alert_specs = _get_alert_metric_specs(project, enabled_features, prefilling)
+    timeout.check()
     widget_specs = _get_widget_metric_specs(project, enabled_features, prefilling)
+    timeout.check()
 
     metric_specs = _merge_metric_specs(alert_specs, widget_specs)
+    timeout.check()
     if not metric_specs:
         return None
 
@@ -820,6 +827,7 @@ _DEFAULT_THRESHOLD = _DefaultThreshold(
 
 
 def get_metric_conditional_tagging_rules(
+    timeout: Any,
     project: Project,
 ) -> Sequence[MetricConditionalTaggingRule]:
     rules: list[MetricConditionalTaggingRule] = []

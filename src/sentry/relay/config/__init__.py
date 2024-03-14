@@ -1,6 +1,6 @@
 import logging
 import uuid
-from collections.abc import Callable, Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
 from typing import Any, Literal, NotRequired, TypedDict
 
@@ -37,6 +37,7 @@ from sentry.ingest.transaction_clusterer.rules import (
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
+from sentry.relay.config.experimental import BuildTimeChecker, add_experimental_config
 from sentry.relay.config.metric_extraction import (
     get_metric_conditional_tagging_rules,
     get_metric_extraction_config,
@@ -246,7 +247,7 @@ class CardinalityLimit(TypedDict):
     namespace: str | None
 
 
-def get_metrics_config(project: Project) -> Mapping[str, Any] | None:
+def get_metrics_config(timeout: BuildTimeChecker, project: Project) -> Mapping[str, Any] | None:
     metrics_config = {}
 
     if features.has("organizations:relay-cardinality-limiter", project.organization):
@@ -256,6 +257,7 @@ def get_metrics_config(project: Project) -> Mapping[str, Any] | None:
 
         cardinality_limits: list[CardinalityLimit] = []
         for namespace, option_name in USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS.items():
+            timeout.check()
             option = options.get(option_name)
             if not option or not len(option) == 1:
                 # Multiple quotas are not supported
@@ -281,6 +283,7 @@ def get_metrics_config(project: Project) -> Mapping[str, Any] | None:
 
     if features.has("organizations:metrics-blocking", project.organization):
         metrics_blocking_state = get_metrics_blocking_state_for_relay_config(project)
+        timeout.check()
         if metrics_blocking_state is not None:
             metrics_config.update(metrics_blocking_state)  # type:ignore
 
@@ -309,7 +312,9 @@ def get_project_config(
             return _get_project_config(project, full_config=full_config, project_keys=project_keys)
 
 
-def get_dynamic_sampling_config(project: Project) -> Mapping[str, Any] | None:
+def get_dynamic_sampling_config(
+    timeout: BuildTimeChecker, project: Project
+) -> Mapping[str, Any] | None:
     if features.has("organizations:dynamic-sampling", project.organization):
         # For compatibility reasons we want to return an empty list of old rules. This has been done in order to make
         # old Relays use empty configs which will result in them forwarding sampling decisions to upstream Relays.
@@ -333,11 +338,14 @@ class TransactionNameRule(TypedDict):
     redaction: TransactionNameRuleRedaction
 
 
-def get_transaction_names_config(project: Project) -> Sequence[TransactionNameRule] | None:
+def get_transaction_names_config(
+    timeout: BuildTimeChecker, project: Project
+) -> Sequence[TransactionNameRule] | None:
     if not features.has("organizations:transaction-name-normalize", project.organization):
         return None
 
     cluster_rules = get_sorted_rules(ClustererNamespace.TRANSACTIONS, project)
+    timeout.check()
     if not cluster_rules:
         return None
 
@@ -372,28 +380,6 @@ class SpanDescriptionRule(TypedDict):
     expiry: str
     scope: SpanDescriptionScope
     redaction: SpanDescriptionRuleRedaction
-
-
-def add_experimental_config(
-    config: MutableMapping[str, Any],
-    key: str,
-    function: Callable[..., Any],
-    *args: Any,
-    **kwargs: Any,
-) -> None:
-    """Try to set `config[key] = function(*args, **kwargs)`.
-    If the result of the function call is None, the key is not set.
-    If the function call raises an exception, we log it to sentry and the key remains unset.
-    NOTE: Only use this function if you expect Relay to behave reasonably
-    if ``key`` is missing from the config.
-    """
-    try:
-        subconfig = function(*args, **kwargs)
-    except Exception:
-        logger.exception("Exception while building Relay project config field")
-    else:
-        if subconfig is not None:
-            config[key] = subconfig
 
 
 def _should_extract_abnormal_mechanism(project: Project) -> bool:
@@ -992,7 +978,7 @@ def _should_extract_transaction_metrics(project: Project) -> bool:
 
 
 def get_transaction_metrics_settings(
-    project: Project, breakdowns_config: Mapping[str, Any] | None
+    timeout: Any, project: Project, breakdowns_config: Mapping[str, Any] | None
 ) -> TransactionMetricsSettings:
     """This function assumes that the corresponding feature flag has been checked.
     See _should_extract_transaction_metrics.
