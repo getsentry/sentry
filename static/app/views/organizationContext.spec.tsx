@@ -181,6 +181,27 @@ describe('OrganizationContext', function () {
     expect(switchOrganization).toHaveBeenCalled();
   });
 
+  it('opens sudo modal for superusers for nonmember org with active staff', async function () {
+    ConfigStore.set('user', UserFixture({isSuperuser: true, isStaff: true}));
+    organization.access = [];
+
+    getOrgMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/`,
+      body: organization,
+    });
+
+    render(
+      <OrganizationContextProvider>
+        <OrganizationLoaderStub />
+        <OrganizationName />
+      </OrganizationContextProvider>
+    );
+
+    await waitFor(() => !OrganizationStore.getState().loading);
+
+    expect(openSudo).toHaveBeenCalled();
+  });
+
   it('opens sudo modal for superusers on 403s', async function () {
     ConfigStore.set('user', UserFixture({isSuperuser: true}));
 

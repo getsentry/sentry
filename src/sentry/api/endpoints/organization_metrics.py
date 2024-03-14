@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from datetime import datetime, timedelta, timezone
 
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
@@ -20,7 +21,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.metrics_code_locations import MetricCodeLocationsSerializer
-from sentry.api.utils import get_date_range_from_params
+from sentry.api.utils import get_date_range_from_params, handle_query_errors
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.sentry_metrics.querying.data_v2 import (
@@ -51,6 +52,7 @@ from sentry.snuba.metrics.utils import DerivedMetricException, DerivedMetricPars
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.sessions_v2 import InvalidField
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils import metrics
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.dates import get_rollup_from_request, parse_stats_period
 
@@ -327,6 +329,40 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
     # Number of groups returned by default for each query.
     default_limit = 20
 
+    def _time_equal_within_bound(
+        self, time_1: datetime, time_2: datetime, bound: timedelta
+    ) -> bool:
+        return time_2 - bound <= time_1 <= time_2 + bound
+
+    def _within_last_7_days(self, start: datetime, end: datetime) -> bool:
+        # Get current datetime in UTC
+        current_datetime_utc = datetime.now(timezone.utc)
+
+        # Calculate datetime 7 days ago in UTC
+        seven_days_ago_utc = current_datetime_utc - timedelta(days=7)
+
+        # Normalize start and end datetimes to UTC
+        start_utc = start.astimezone(timezone.utc)
+        end_utc = end.astimezone(timezone.utc)
+
+        return (
+            self._time_equal_within_bound(start_utc, seven_days_ago_utc, timedelta(minutes=5))
+            and self._time_equal_within_bound(end_utc, current_datetime_utc, timedelta(minutes=5))
+        ) or (
+            self._time_equal_within_bound(end_utc, current_datetime_utc, timedelta(minutes=5))
+            and (end - start).days <= 7
+        )
+
+    def _get_projects_queried(self, request: Request) -> str:
+        project_ids = self.get_requested_project_ids_unchecked(request)
+        if not project_ids:
+            return "none"
+
+        if len(project_ids) == 1:
+            return "all" if project_ids.pop() == -1 else "single"
+
+        return "multiple"
+
     def _validate_order(self, order: str | None) -> QueryOrder | None:
         if order is None:
             return None
@@ -391,6 +427,15 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
             start, end = get_date_range_from_params(request.GET)
             interval = self._interval_from_request(request)
             metrics_queries_plan = self._metrics_queries_plan_from_request(request)
+
+            metrics.incr(
+                key="ddm.metrics_api.query",
+                amount=1,
+                tags={
+                    "within_last_7_days": self._within_last_7_days(start, end),
+                    "projects_queried": self._get_projects_queried(request),
+                },
+            )
 
             results = run_metrics_queries_plan(
                 metrics_queries_plan=metrics_queries_plan,
@@ -486,17 +531,18 @@ class OrganizationMetricsSamplesEndpoint(OrganizationEventsV2EndpointBase):
             Referrer.API_ORGANIZATION_METRICS_SAMPLES,
         )
 
-        return self.paginate(
-            request=request,
-            paginator=GenericOffsetPaginator(data_fn=executor.execute),
-            on_results=lambda results: self.handle_results_with_meta(
-                request,
-                organization,
-                params["project_id"],
-                results,
-                standard_meta=True,
-            ),
-        )
+        with handle_query_errors():
+            return self.paginate(
+                request=request,
+                paginator=GenericOffsetPaginator(data_fn=executor.execute),
+                on_results=lambda results: self.handle_results_with_meta(
+                    request,
+                    organization,
+                    params["project_id"],
+                    results,
+                    standard_meta=True,
+                ),
+            )
 
 
 @region_silo_endpoint

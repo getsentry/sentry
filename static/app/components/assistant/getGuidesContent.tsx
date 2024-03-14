@@ -11,45 +11,53 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
   return [
     {
       guide: 'issue',
-      requiredTargets: ['issue_number', 'exception'],
+      requiredTargets: ['issue_header_stats', 'breadcrumbs', 'issue_sidebar_owners'],
       steps: [
         {
-          title: t('Identify Your Issues'),
-          target: 'issue_number',
-          description: tct(
-            `You have Issues. That's fine. Use the Issue number in your commit message,
-                and we'll automatically resolve the Issue when your code is deployed. [link:Learn more]`,
-            {link: <ExternalLink href="https://docs.sentry.io/product/releases/" />}
-          ),
-        },
-        {
-          title: t('Annoy the Right People'),
-          target: 'owners',
-          description: tct(
-            `Notification overload makes it tempting to hurl your phone into the ocean.
-                Define who is responsible for what, so alerts reach the right people and your
-                devices stay on dry land. [link:Learn more]`,
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/" />
-              ),
-            }
-          ),
-        },
-        {
-          title: t('Narrow Down Suspects'),
-          target: 'exception',
+          title: t('How bad is it?'),
+          target: 'issue_header_stats',
           description: t(
-            `We've got stack trace. See the exact sequence of function calls leading to the error
-                in question, no detective skills necessary.`
+            `You have Issues and that's fine.
+              Understand impact at a glance by viewing total issue frequency and affected users.`
+          ),
+        },
+        {
+          title: t('Find problematic releases'),
+          target: 'issue_sidebar_releases',
+          description: t(
+            `See which release introduced the issue and which release it last appeared in.`
+          ),
+        },
+        {
+          title: t('Not your typical stack trace'),
+          target: 'stacktrace',
+          description: t(
+            `Sentry can show your source code in the stack trace.
+              See the exact sequence of function calls leading to the error in question.`
+          ),
+        },
+        {
+          title: t('Pinpoint hotspots'),
+          target: 'issue_sidebar_tags',
+          description: t(
+            `Tags are key/value string pairs that are automatically indexed and searchable in Sentry.`
           ),
         },
         {
           title: t('Retrace Your Steps'),
           target: 'breadcrumbs',
           description: t(
-            `Not sure how you got here? Sentry automatically captures breadcrumbs for events in web
-                frameworks to lead you straight to your error.`
+            `Not sure how you got here? Sentry automatically captures breadcrumbs for
+              events your user and app took that lead to the error.`
+          ),
+        },
+        {
+          title: t('Annoy the Right People'),
+          target: 'issue_sidebar_owners',
+          description: t(
+            `Automatically assign issues to the person who introduced the commit,
+              notify them over notification tools like Slack,
+              and triage through issue management tools like Jira. `
           ),
         },
       ],

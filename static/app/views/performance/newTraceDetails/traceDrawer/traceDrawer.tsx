@@ -32,23 +32,31 @@ const DEFAULT_PANEL_HEIGHT = 200;
 
 function getTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
   if (isTransactionNode(node)) {
-    return node.value['transaction.op'] + ' - ' + node.value.transaction;
+    return (
+      t('Transaction: ') +
+      node.value['transaction.op'] +
+      (node.value.transaction ? ' - ' + node.value.transaction : '')
+    );
   }
 
   if (isSpanNode(node)) {
-    return node.value.op + ' - ' + node.value.description;
+    return (
+      t('Span: ') +
+      node.value.op +
+      (node.value.description ? ' - ' + node.value.description : '')
+    );
   }
 
   if (isAutogroupedNode(node)) {
-    return t('Auto-Group');
+    return t('Autogroup');
   }
 
   if (isMissingInstrumentationNode(node)) {
-    return t('Missing Instrumentation Span');
+    return t('Missing Instrumentation');
   }
 
   if (isTraceErrorNode(node)) {
-    return node.value.title;
+    return node.value.title || 'Error';
   }
 
   return t('Detail');
@@ -63,6 +71,7 @@ type TraceDrawerProps = {
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
   scrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   setActiveTab: (tab: 'trace' | 'node') => void;
+  trace: TraceTree;
   traceEventView: EventView;
   traces: TraceSplitResults<TraceFullDetailed> | null;
 };
@@ -112,6 +121,7 @@ function TraceDrawer(props: TraceDrawerProps) {
       <Content>
         {props.activeTab === 'trace' ? (
           <TraceLevelDetails
+            tree={props.trace}
             rootEventResults={props.rootEventResults}
             organization={props.organization}
             location={props.location}
@@ -137,15 +147,16 @@ function TraceDrawer(props: TraceDrawerProps) {
 
 const ResizeableHandle = styled('div')`
   width: 100%;
-  height: 8px;
+  height: 12px;
   cursor: ns-resize;
   position: absolute;
-  top: -4px;
+  top: -6px;
   left: 0;
   z-index: 1;
 `;
 
 const PanelWrapper = styled('div')`
+  grid-area: drawer;
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -156,7 +167,7 @@ const PanelWrapper = styled('div')`
   background: ${p => p.theme.background};
   color: ${p => p.theme.textColor};
   text-align: left;
-  z-index: ${p => p.theme.zIndex.sidebar - 1};
+  z-index: 10;
 `;
 
 const TabsContainer = styled('ul')`
@@ -185,7 +196,7 @@ const Tab = styled('li')<{active: boolean}>`
 const TabButton = styled('button')`
   height: 100%;
   border: none;
-  max-width: 160px;
+  max-width: 260px;
 
   overflow: hidden;
   text-overflow: ellipsis;
