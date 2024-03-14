@@ -15,7 +15,6 @@ from sentry.api.serializers.models.projectownership import ProjectOwnershipSeria
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
 from sentry.apidocs.examples import ownership_examples
 from sentry.apidocs.parameters import GlobalParams
-from sentry.models.groupowner import GroupOwner
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.ownership.grammar import CODEOWNERS, create_schema_from_issue_owners
@@ -154,11 +153,6 @@ class ProjectOwnershipRequestSerializer(serializers.Serializer):
             new_values["auto_assignment"] = True
             new_values["suspect_committer_auto_assignment"] = False
         if auto_assignment == "Turn off Auto-Assignment":
-            autoassignment_types = ProjectOwnership._get_autoassignment_types(ownership)
-            if autoassignment_types:
-                GroupOwner.invalidate_autoassigned_owner_cache(
-                    ownership.project_id, autoassignment_types
-                )
             new_values["auto_assignment"] = False
             new_values["suspect_committer_auto_assignment"] = False
 
