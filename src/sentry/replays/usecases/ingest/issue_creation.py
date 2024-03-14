@@ -22,6 +22,7 @@ def report_rage_click_issue_with_replay_event(
     selector: str,
     url: str,
     node: dict[str, Any],
+    component_name: str | None,
     replay_event: dict[str, Any],
 ):
     metrics.incr("replay.rage_click_issue_creation_with_replay_event")
@@ -32,6 +33,31 @@ def report_rage_click_issue_with_replay_event(
 
     selector = selector
     clicked_element = selector.split(" > ")[-1]
+    component_name = component_name
+    evidence = [
+        IssueEvidence(name="Clicked Element", value=clicked_element, important=False),
+    ]
+    evidence_data = {
+        # RRWeb node data of clicked element.
+        "node": node,
+        # CSS selector path to clicked element.
+        "selector": selector,
+    }
+
+    if component_name:
+        # component name is important
+        evidence.extend(
+            [
+                IssueEvidence(name="Selector Path", value=selector, important=False),
+                IssueEvidence(name="React Component Name", value=component_name, important=True),
+            ],
+        )
+        evidence_data.update({"component_name": component_name})
+    else:
+        # selector path is important
+        evidence.append(
+            IssueEvidence(name="Selector Path", value=selector, important=True),
+        )
 
     new_issue_occurrence(
         culprit=url[:MAX_CULPRIT_LENGTH],
@@ -46,16 +72,8 @@ def report_rage_click_issue_with_replay_event(
         subtitle=selector,
         timestamp=timestamp_utc,
         title=RAGE_CLICK_TITLE,
-        evidence_data={
-            # RRWeb node data of clicked element.
-            "node": node,
-            # CSS selector path to clicked element.
-            "selector": selector,
-        },
-        evidence_display=[
-            IssueEvidence(name="Clicked Element", value=clicked_element, important=True),
-            IssueEvidence(name="Selector Path", value=selector, important=True),
-        ],
+        evidence_data=evidence_data,
+        evidence_display=evidence,
         extra_event_data={
             "contexts": _make_contexts(replay_id, replay_event),
             "level": RAGE_CLICK_LEVEL,

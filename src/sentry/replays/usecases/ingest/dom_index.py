@@ -396,6 +396,7 @@ def _handle_breadcrumb(
                                 payload["message"],
                                 payload["data"]["url"],
                                 payload["data"]["node"],
+                                payload["data"]["node"]["attributes"].get("data-sentry-component"),
                                 replay_event,
                             )
         # Log the event for tracking.
