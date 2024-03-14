@@ -48,7 +48,6 @@ jest.mock('screenfull', () => ({
 }));
 
 const mockUseReplayReader = jest.mocked(useReplayReader);
-const mockReplayId = '761104e184c64d439ee1014b72b4d83b';
 
 const mockEventTimestamp = new Date('2022-09-22T16:59:41Z');
 const mockEventTimestampMs = mockEventTimestamp.getTime();
@@ -83,7 +82,7 @@ mockUseReplayReader.mockImplementation(() => {
     onRetry: jest.fn(),
     projectSlug: ProjectFixture().slug,
     replay: mockReplay,
-    replayId: mockReplayId,
+    replayId: REPLAY_ID_1,
     replayRecord: ReplayRecordFixture(),
   };
 });
