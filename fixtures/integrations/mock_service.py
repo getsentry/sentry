@@ -88,8 +88,7 @@ class MockService(StubService):
     def _get_project_path(self, project):
         path = os.path.join(FIXTURE_DIRECTORY, self.service_name, "data", project)
 
-        if not os.path.exists(path):
-            os.makedirs(path)
+        os.makedirs(path, exist_ok=True)
         return path
 
     def _set_data(self, project, name, data):
