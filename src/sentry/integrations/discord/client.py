@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from sentry import options
 from sentry.integrations.client import ApiClient
 from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
+from sentry.integrations.discord.utils.consts import DISCORD_ERROR_CODES
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.integrations.discord")
@@ -115,6 +116,19 @@ class DiscordClient(ApiClient):
         resp: Response | None = None,
         extra: Mapping[str, str] | None = None,
     ) -> None:
+        discord_code = ""
+        code_message = ""
+
+        try:
+            json_data = resp.json()
+            if isinstance(json_data, dict):
+                discord_code = json_data.get("code")
+                if discord_code in DISCORD_ERROR_CODES:
+                    code_message = DISCORD_ERROR_CODES[discord_code]
+
+        except ValueError:
+            pass
+
         is_ok = code in {
             status.HTTP_200_OK,
             status.HTTP_201_CREATED,
@@ -140,6 +154,7 @@ class DiscordClient(ApiClient):
                 "status": code,
                 "is_ok": is_ok,
                 "include_in_slo": include_in_slo,
+                "discord_code": discord_code,
             },
         )
 
@@ -147,7 +162,10 @@ class DiscordClient(ApiClient):
             **(extra or {}),
             "status_string": str(code),
             "error": str(error)[:256] if error else None,
+            "discord_code": discord_code,
+            "code_message": code_message,
         }
+
         if self.integration_type:
             log_params[self.integration_type] = self.name
 
