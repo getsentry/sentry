@@ -727,13 +727,19 @@ def test_custom_metrics_ingestion(
 ):
     features = {
         "organizations:custom-metrics": custom_metrics,
-        "organizations:custom-metrics-killswitch": custom_metrics_killswitch,
     }
 
-    with Feature(features):
-        config = get_project_config(default_project).to_dict()["config"]
-        validate_project_config(json.dumps(config), strict=False)
-        assert ("organizations:custom-metrics" in config["features"]) == expected_in_config
+    with override_options(
+        {
+            "custom-metrics-killswitched-orgs": [default_project.organization.id]
+            if custom_metrics_killswitch
+            else []
+        }
+    ):
+        with Feature(features):
+            config = get_project_config(default_project).to_dict()["config"]
+            validate_project_config(json.dumps(config), strict=False)
+            assert ("organizations:custom-metrics" in config["features"]) == expected_in_config
 
 
 @django_db_all

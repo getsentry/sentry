@@ -1506,8 +1506,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:crons-disable-new-projects": False,
     # Metrics: Enable ingestion and storage of custom metrics. See ddm-ui for UI.
     "organizations:custom-metrics": False,
-    # Disable ingestion of custom metrics.
-    "organizations:custom-metrics-killswitch": False,
     # Allow organizations to configure custom external symbol sources.
     "organizations:custom-symbol-sources": True,
     # Enable usage of customer domains on the frontend

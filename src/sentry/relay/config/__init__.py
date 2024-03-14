@@ -87,9 +87,10 @@ def get_exposed_features(project: Project) -> Sequence[str]:
         # Custom metrics ingestion is enabled only if the flag is true, and we are not kill switching the specific
         # organization.
         if feature == "organizations:custom-metrics":
-            has_feature = not features.has(
-                "organizations:custom-metrics-killswitch", project.organization
-            ) and features.has(feature, project.organization)
+            is_killswitched = project.organization.id in (
+                options.get("custom-metrics-killswitched-orgs") or ()
+            )
+            has_feature = not is_killswitched and features.has(feature, project.organization)
         elif feature.startswith("organizations:"):
             has_feature = features.has(feature, project.organization)
         elif feature.startswith("projects:"):
