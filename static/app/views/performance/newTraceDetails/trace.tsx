@@ -22,6 +22,10 @@ import {IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization, PlatformKey, Project} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
+import type {
+  TraceError,
+  TracePerformanceIssue,
+} from 'sentry/utils/performance/quickTrace/types';
 import {clamp} from 'sentry/utils/profiling/colors/utils';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -773,6 +777,8 @@ function RenderRow(props: {
             color={props.theme.blue300}
             entire_space={props.node.space}
             node_spaces={props.node.autogroupedSegments}
+            errors={props.node.errors}
+            performance_issues={props.node.performance_issues}
           />
           <button
             ref={ref =>
@@ -1448,63 +1454,20 @@ function TraceBar(props: TraceBarProps) {
           } as React.CSSProperties
         }
       >
-        {props.errors.map((error, _i) => {
-          const timestamp = error.timestamp
-            ? error.timestamp * 1e3
-            : props.node_space![0];
-          // Clamp the error timestamp to the span's timestamp
-          const left = props.manager.computeRelativeLeftPositionFromOrigin(
-            clamp(
-              timestamp,
-              props.node_space![0],
-              props.node_space![0] + props.node_space![1]
-            ),
-            props.node_space!
-          );
-
-          return (
-            <div
-              key={error.event_id}
-              className="TraceError"
-              style={{left: left * 100 + '%'}}
-            >
-              <IconFire color="errorText" size="xs" />
-            </div>
-          );
-        })}
-
-        {props.performance_issues.map((issue, _i) => {
-          const timestamp = issue.start * 1e3;
-          // Clamp the issue timestamp to the span's timestamp
-          const left = props.manager.computeRelativeLeftPositionFromOrigin(
-            clamp(
-              timestamp,
-              props.node_space![0],
-              props.node_space![0] + props.node_space![1]
-            ),
-            props.node_space!
-          );
-
-          const max_width = 100 - left;
-          const issue_duration = (issue.end - issue.start) * 1e3;
-          const width = clamp(
-            (issue_duration / props.node_space![1]) * 100,
-            0,
-            max_width
-          );
-
-          return (
-            <div
-              key={issue.event_id}
-              className="TracePerformanceIssue"
-              style={{left: left * 100 + '%', width: width + '%'}}
-            >
-              <div className="TraceError" style={{left: 0}}>
-                <IconFire color="errorText" size="xs" />
-              </div>
-            </div>
-          );
-        })}
+        {props.errors.length > 0 ? (
+          <Errors
+            node_space={props.node_space}
+            errors={props.errors}
+            manager={props.manager}
+          />
+        ) : null}
+        {props.performance_issues.length > 0 ? (
+          <PerformanceIssues
+            node_space={props.node_space}
+            performance_issues={props.performance_issues}
+            manager={props.manager}
+          />
+        ) : null}
       </div>
       <div
         ref={r =>
@@ -1563,11 +1526,89 @@ function InvisibleTraceBar(props: InvisibleTraceBarProps) {
   );
 }
 
+interface PerformanceIssuesProps {
+  manager: VirtualizedViewManager;
+  node_space: [number, number] | null;
+  performance_issues: TracePerformanceIssue[];
+}
+
+function PerformanceIssues(props: PerformanceIssuesProps) {
+  return (
+    <Fragment>
+      {props.performance_issues.map((issue, _i) => {
+        const timestamp = issue.start * 1e3;
+        // Clamp the issue timestamp to the span's timestamp
+        const left = props.manager.computeRelativeLeftPositionFromOrigin(
+          clamp(
+            timestamp,
+            props.node_space![0],
+            props.node_space![0] + props.node_space![1]
+          ),
+          props.node_space!
+        );
+
+        const max_width = 100 - left;
+        const issue_duration = (issue.end - issue.start) * 1e3;
+        const width = clamp((issue_duration / props.node_space![1]) * 100, 0, max_width);
+
+        return (
+          <div
+            key={issue.event_id}
+            className="TracePerformanceIssue"
+            style={{left: left * 100 + '%', width: width + '%'}}
+          >
+            <div className="TraceError" style={{left: 0}}>
+              <IconFire color="errorText" size="xs" />
+            </div>
+          </div>
+        );
+      })}
+    </Fragment>
+  );
+}
+
+interface ErrorsProps {
+  errors: TraceError[];
+  manager: VirtualizedViewManager;
+  node_space: [number, number] | null;
+}
+
+function Errors(props: ErrorsProps) {
+  return (
+    <Fragment>
+      {props.errors.map((error, _i) => {
+        const timestamp = error.timestamp ? error.timestamp * 1e3 : props.node_space![0];
+        // Clamp the error timestamp to the span's timestamp
+        const left = props.manager.computeRelativeLeftPositionFromOrigin(
+          clamp(
+            timestamp,
+            props.node_space![0],
+            props.node_space![0] + props.node_space![1]
+          ),
+          props.node_space!
+        );
+
+        return (
+          <div
+            key={error.event_id}
+            className="TraceError"
+            style={{left: left * 100 + '%'}}
+          >
+            <IconFire color="errorText" size="xs" />
+          </div>
+        );
+      })}
+    </Fragment>
+  );
+}
+
 interface AutogroupedTraceBarProps {
   color: string;
   entire_space: [number, number] | null;
+  errors: TraceTreeNode<TraceTree.Transaction>['value']['errors'];
   manager: VirtualizedViewManager;
   node_spaces: [number, number][];
+  performance_issues: TraceTreeNode<TraceTree.Transaction>['value']['performance_issues'];
   virtualized_index: number;
   duration?: number;
 }
@@ -1581,8 +1622,8 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
         manager={props.manager}
         virtualized_index={props.virtualized_index}
         duration={props.duration}
-        errors={NO_ERRORS}
-        performance_issues={NO_ERRORS}
+        errors={props.errors}
+        performance_issues={props.performance_issues}
       />
     );
   }
@@ -1632,6 +1673,21 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
             />
           );
         })}
+
+        {props.errors.length > 0 ? (
+          <Errors
+            node_space={props.entire_space}
+            errors={props.errors}
+            manager={props.manager}
+          />
+        ) : null}
+        {props.performance_issues.length > 0 ? (
+          <PerformanceIssues
+            node_space={props.entire_space}
+            performance_issues={props.performance_issues}
+            manager={props.manager}
+          />
+        ) : null}
       </div>
       <div
         ref={r =>
@@ -2034,6 +2090,7 @@ const TraceStylingWrapper = styled('div')`
 
     &.Errored {
       border: 2px solid ${p => p.theme.error};
+      background-color: ${p => p.theme.error} !important;
     }
 
     .TraceChildrenCountContent {

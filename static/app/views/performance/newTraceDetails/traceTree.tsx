@@ -534,6 +534,9 @@ export class TraceTree {
       const errors: TraceErrorType[] = [];
       const performance_issues: TracePerformanceIssue[] = [];
 
+      let start = head.value.start_timestamp;
+      let end = head.value.timestamp;
+
       while (
         tail &&
         tail.children.length === 1 &&
@@ -547,6 +550,15 @@ export class TraceTree {
           performance_issues.push(...tail.value.performance_issues);
         }
 
+        // Collect start/end of all nodes in the list
+        // so that we can properly render a autogrouped bar that
+        // encapsulates all the nodes in the list
+        if (tail.value.start_timestamp < start) {
+          start = tail.value.start_timestamp;
+        }
+        if (tail.value.timestamp > end) {
+          end = tail.value.timestamp;
+        }
         groupMatchCount++;
         tail = tail.children[0];
       }
@@ -571,6 +583,8 @@ export class TraceTree {
         node.parent,
         {
           ...head.value,
+          start_timestamp: start,
+          timestamp: end,
           autogrouped_by: {
             op: head.value && 'op' in head.value ? head.value.op ?? '' : '',
           },
@@ -591,12 +605,8 @@ export class TraceTree {
       autoGroupedNode.errors = errors;
       autoGroupedNode.performance_issues = performance_issues;
       autoGroupedNode.space = [
-        Math.min(head.value.start_timestamp, tail.value.timestamp) *
-          autoGroupedNode.multiplier,
-        Math.max(
-          tail.value.timestamp - head.value.start_timestamp,
-          head.value.timestamp - tail.value.timestamp
-        ) * autoGroupedNode.multiplier,
+        start * autoGroupedNode.multiplier,
+        (end - start) * autoGroupedNode.multiplier,
       ];
 
       for (const c of tail.children) {
