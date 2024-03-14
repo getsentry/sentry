@@ -10,13 +10,15 @@ interface Props {
 }
 
 const NegativeSpaceContainer = styled(
-  forwardRef(({children, testId, ...props}: Props, ref: ForwardedRef<HTMLDivElement>) => {
-    return (
-      <div data-test-id={testId} {...props} ref={ref}>
-        {children}
-      </div>
-    );
-  })
+  forwardRef(
+    ({children, testId, style, className}: Props, ref: ForwardedRef<HTMLDivElement>) => {
+      return (
+        <div data-test-id={testId} style={style} className={className} ref={ref}>
+          {children}
+        </div>
+      );
+    }
+  )
 )`
   width: 100%;
   display: flex;
