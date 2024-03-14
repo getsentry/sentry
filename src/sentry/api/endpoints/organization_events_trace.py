@@ -397,7 +397,7 @@ def child_sort_key(item: TraceEvent) -> list[int]:
     elif item.span_serialized:
         return [
             float(item.event["precise.start_ts"]),
-            item.event["precise.finish_ts"],
+            float(item.event["precise.finish_ts"]),
             item.event["transaction"],
             item.event["id"],
         ]
