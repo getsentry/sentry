@@ -1345,7 +1345,7 @@ describe('Modals -> WidgetViewerModal', function () {
         renderModal({
           initialData,
           widget: {...mockWidget, queries: [{...mockQuery, orderby: 'release'}]},
-        })
+        }).then(() => void 0)
       );
       expect(screen.queryByRole('button', {name: 'Previous'})).not.toBeInTheDocument();
       expect(screen.queryByRole('button', {name: 'Next'})).not.toBeInTheDocument();
