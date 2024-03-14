@@ -455,6 +455,18 @@ class Quota(Service):
             ),
         ]
 
+        # We want to disable custom metrics ingestion if an organization is not enrolled in custom metrics or if they
+        # have been kill switched.
+        if not features.has("organizations:custom-metric") or org.id in (
+            options.get("custom-metrics-killswitched-orgs") or ()
+        ):
+            yield QuotaConfig(
+                scope=QuotaScope.GLOBAL,
+                categories=[DataCategory.METRIC_BUCKET],
+                limit=0,
+                reason_code="disabled",
+            )
+
         # XXX: These reason codes are hardcoded in getsentry:
         #      as `RateLimitReasonLabel.PROJECT_ABUSE_LIMIT` and `RateLimitReasonLabel.ORG_ABUSE_LIMIT`.
         #      Don't change it here. If it's changed in getsentry, it needs to be synced here.
@@ -496,7 +508,6 @@ class Quota(Service):
                     limit=0,
                     reason_code="disabled",
                 )
-
             else:
                 yield QuotaConfig(
                     id=quota.id,
