@@ -66,6 +66,7 @@ EXPOSABLE_FEATURES = [
     "organizations:session-replay-recording-scrubbing",
     "organizations:device-class-synthesis",
     "organizations:custom-metrics",
+    "organizations:custom-metrics-killswitch",
     "organizations:metric-meta",
     "organizations:standalone-span-ingestion",
     "projects:discard-transaction",
