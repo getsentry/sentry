@@ -73,7 +73,7 @@ function BaseTag({
 }: Props) {
   const iconsProps: SVGIconProps = {
     size: 'xs',
-    color: theme.tag[type].iconColor as Color,
+    color: theme.tag[type].color as Color,
   };
 
   const isLink = href !== undefined || to !== undefined;
