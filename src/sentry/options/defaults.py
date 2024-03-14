@@ -1835,6 +1835,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# IDs of orgs that will be disabled from querying metrics via `/metrics/query` endpoint.
+register(
+    "custom-metrics-querying-killswitched-orgs",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # SDK Crash Detection
 #
 # The project ID belongs to the sentry organization: https://sentry.sentry.io/projects/cocoa-sdk-crashes/?project=4505469596663808.
@@ -2077,6 +2084,13 @@ register(
 # Rate at which to prefer the `apply_modifications_to_frames` result of the Rust implementation.
 register(
     "grouping.rust_enhancers.prefer_rust_result",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Rate at which to run the Rust implementation of `assemble_stacktrace_component`
+# and compare the results
+register(
+    "grouping.rust_enhancers.compare_components",
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
