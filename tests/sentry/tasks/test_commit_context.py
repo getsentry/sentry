@@ -727,6 +727,24 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
                 # No lineno
             },
             {
+                "function": "something_else",
+                "abs_path": "/usr/src/sentry/src/sentry/invalid_1.py",
+                "module": "sentry.invalid_1",
+                "in_app": True,
+                # Bad path with backslashes
+                "filename": "sentry/invalid_1.py\\other",
+                "lineno": 39,
+            },
+            {
+                "function": "something_else",
+                "abs_path": "/usr/src/sentry/src/sentry/invalid_2.py",
+                "module": "sentry.invalid_2",
+                "in_app": True,
+                # Bad path with quotes
+                "filename": 'sentry/"invalid_2".py',
+                "lineno": 39,
+            },
+            {
                 "function": "set_commits",
                 "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
                 "module": "sentry.models.release",
@@ -777,9 +795,11 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
             project_id=self.project.id,
             group_id=self.event.group_id,
             event_id=self.event.event_id,
-            num_frames=1,  # Filters out the invalid frames and dedupes the 2 valid frames
+            # 1 was a duplicate, 2 filtered out because of missing properties
+            num_frames=3,
             num_unique_commits=1,
             num_unique_commit_authors=1,
+            # Only 1 successfully mapped frame of the 6 total
             num_successfully_mapped_frames=1,
             selected_frame_index=0,
             selected_provider="github",
