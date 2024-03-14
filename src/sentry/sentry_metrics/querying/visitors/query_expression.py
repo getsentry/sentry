@@ -51,6 +51,15 @@ class TimeseriesConditionInjectionVisitor(QueryExpressionVisitor[QueryExpression
     def __init__(self, condition_group: ConditionGroup):
         self._condition_group = condition_group
 
+    def _visit_formula(self, formula: Formula) -> QueryExpression:
+        if self._condition_group:
+            current_filters = formula.filters if formula.filters else []
+            current_filters.extend(self._condition_group)
+
+            return formula.set_filters(current_filters)
+
+        return formula
+
     def _visit_timeseries(self, timeseries: Timeseries) -> QueryExpression:
         if self._condition_group:
             current_filters = timeseries.filters if timeseries.filters else []
