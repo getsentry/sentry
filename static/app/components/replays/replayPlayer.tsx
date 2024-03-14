@@ -1,12 +1,15 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
+import {Button} from 'sentry/components/button';
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import BufferingOverlay from 'sentry/components/replays/player/bufferingOverlay';
 import FastForwardBadge from 'sentry/components/replays/player/fastForwardBadge';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
+import {IconPlay} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -17,6 +20,8 @@ type Dimensions = ReturnType<typeof useReplayContext>['dimensions'];
 interface Props {
   className?: string;
   isPreview?: boolean;
+  onClickNextReplay?: () => void;
+  overlayText?: string;
 }
 
 function useVideoSizeLogger({
@@ -57,13 +62,19 @@ function useVideoSizeLogger({
   }, [organization, windowDimensions, videoDimensions, didLog, analyticsContext]);
 }
 
-function BasePlayerRoot({className, isPreview = false}: Props) {
+function BasePlayerRoot({
+  className,
+  overlayText,
+  onClickNextReplay,
+  isPreview = false,
+}: Props) {
   const {
     dimensions: videoDimensions,
     fastForwardSpeed,
     initRoot,
     isBuffering,
     isFetching,
+    isFinished,
   } = useReplayContext();
 
   const windowEl = useRef<HTMLDivElement>(null);
@@ -117,13 +128,26 @@ function BasePlayerRoot({className, isPreview = false}: Props) {
   }, [windowDimensions, videoDimensions]);
 
   return (
-    <NegativeSpaceContainer ref={windowEl} className="sentry-block">
-      <div ref={viewEl} className={className} />
-      {fastForwardSpeed ? <PositionedFastForward speed={fastForwardSpeed} /> : null}
-      {isBuffering ? <PositionedBuffering /> : null}
-      {isPreview ? null : <PlayerDOMAlert />}
-      {isFetching ? <PositionedLoadingIndicator /> : null}
-    </NegativeSpaceContainer>
+    <Fragment>
+      {isFinished && overlayText && (
+        <Overlay>
+          <OverlayInnerWrapper>
+            <UpNext>{t('Up Next')}</UpNext>
+            <OverlayText>{overlayText}</OverlayText>
+            <Button onClick={onClickNextReplay} icon={<IconPlay size="md" />}>
+              {t('Play Now')}
+            </Button>
+          </OverlayInnerWrapper>
+        </Overlay>
+      )}
+      <StyledNegativeSpaceContainer ref={windowEl} className="sentry-block">
+        <div ref={viewEl} className={className} />
+        {fastForwardSpeed ? <PositionedFastForward speed={fastForwardSpeed} /> : null}
+        {isBuffering ? <PositionedBuffering /> : null}
+        {isPreview ? null : <PlayerDOMAlert />}
+        {isFetching ? <PositionedLoadingIndicator /> : null}
+      </StyledNegativeSpaceContainer>
+    </Fragment>
   );
 }
 
@@ -254,6 +278,43 @@ const SentryPlayerRoot = styled(PlayerRoot)`
       height: 10px;
     }
   }
+`;
+
+const Overlay = styled('div')`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1;
+`;
+
+const OverlayInnerWrapper = styled('div')`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+`;
+
+const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
+  position: relative;
+  width: 100%;
+  height: 100%;
+`;
+
+const OverlayText = styled('div')`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+`;
+
+const UpNext = styled('div')`
+  line-height: 0;
 `;
 
 export default SentryPlayerRoot;
