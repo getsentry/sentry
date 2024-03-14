@@ -22,7 +22,13 @@ export function UserFixture(params: Partial<User> = {}): User {
     authenticators: [],
     canReset2fa: false,
     dateJoined: '2020-01-01T00:00:00.000Z',
-    emails: [],
+    emails: [
+      {
+        "id": '1',
+        "email": 'foo@example.com',
+        "is_verified": true, 
+      },
+    ],
     experiments: [],
     has2fa: false,
     identities: [],
