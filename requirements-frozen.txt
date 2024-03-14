@@ -128,7 +128,7 @@ sentry-usage-accountant==0.0.10
 simplejson==3.17.6
 six==1.16.0
 sniffio==1.3.0
-snuba-sdk==2.0.30
+snuba-sdk==2.0.31
 soupsieve==2.3.2.post1
 sqlparse==0.4.4
 statsd==3.3.0
