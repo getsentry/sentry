@@ -136,7 +136,7 @@ def relay_from_id(request, relay_id) -> tuple[Relay | None, bool]:
             return None, False  # no Relay found
 
 
-def update_token_access(auth: object):
+def update_token_access_record(auth: object):
     """
     Perform updates to token models for security purposes (i.e. 'date_last_used')
     """

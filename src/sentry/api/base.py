@@ -56,7 +56,7 @@ from .authentication import (
     ApiKeyAuthentication,
     OrgAuthTokenAuthentication,
     UserAuthTokenAuthentication,
-    update_token_access,
+    update_token_access_record,
 )
 from .paginator import BadPaginationError, MissingPaginationError, Paginator
 from .permissions import (
@@ -390,7 +390,7 @@ class Endpoint(APIView):
         request._metric_tags = {}
 
         if request.auth:
-            update_token_access(request.auth)
+            update_token_access_record(request.auth)
 
         start_time = time.time()
 
