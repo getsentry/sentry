@@ -43,7 +43,7 @@ export default function EditMonitor() {
     setApiQueryData(queryClient, queryKey, data);
     browserHistory.push(
       normalizeUrl({
-        pathname: `/organizations/${organization.slug}/crons/${data.slug}/`,
+        pathname: `/organizations/${organization.slug}/crons/${data.project.slug}/${data.slug}/`,
         query: {
           environment: selection.environments,
           project: selection.projects,
@@ -92,7 +92,7 @@ export default function EditMonitor() {
                     </MonitorBreadcrumb>
                   ),
                   to: normalizeUrl(
-                    `/organizations/${organization.slug}/crons/${monitor.slug}/`
+                    `/organizations/${organization.slug}/crons/${monitor.project.slug}/${monitor.slug}/`
                   ),
                 },
                 {

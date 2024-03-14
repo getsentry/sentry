@@ -1,9 +1,8 @@
-import {createRef, Fragment, useEffect, useState} from 'react';
+import {createRef, Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
-import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import DateTime from 'sentry/components/dateTime';
@@ -27,20 +26,12 @@ import FileSize from 'sentry/components/fileSize';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {
-  ErrorDot,
-  ErrorLevel,
-  ErrorMessageContent,
-  ErrorMessageTitle,
-  ErrorTitle,
-} from 'sentry/components/performance/waterfall/rowDetails';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconChevron, IconOpen} from 'sentry/icons';
-import {t, tn} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
   type EntryBreadcrumbs,
@@ -63,6 +54,7 @@ import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transac
 
 import type {TraceTree, TraceTreeNode} from '../../traceTree';
 
+import IssueList from './issues/issueList';
 import {TraceDrawerComponents} from './styles';
 
 function OpsBreakdown({event}: {event: EventTransaction}) {
@@ -195,6 +187,10 @@ export function TransactionNodeDetails({
     }
   );
 
+  const relatedIssues = useMemo(() => {
+    return [...node.value.errors, ...node.value.performance_issues];
+  }, [node.value.errors, node.value.performance_issues]);
+
   if (!event) {
     return <LoadingIndicator />;
   }
@@ -313,32 +309,7 @@ export function TransactionNodeDetails({
         </TraceDrawerComponents.Actions>
       </TraceDrawerComponents.HeaderContainer>
 
-      {hasIssues && (
-        <Alert
-          system
-          defaultExpanded
-          type="error"
-          expand={[...node.value.errors, ...node.value.performance_issues].map(error => (
-            <ErrorMessageContent key={error.event_id}>
-              <ErrorDot level={error.level} />
-              <ErrorLevel>{error.level}</ErrorLevel>
-              <ErrorTitle>
-                <Link to={generateIssueEventTarget(error, organization)}>
-                  {error.title}
-                </Link>
-              </ErrorTitle>
-            </ErrorMessageContent>
-          ))}
-        >
-          <ErrorMessageTitle>
-            {tn(
-              '%s issue occurred in this transaction.',
-              '%s issues occurred in this transaction.',
-              node.value.errors.length + node.value.performance_issues.length
-            )}
-          </ErrorMessageTitle>
-        </Alert>
-      )}
+      {hasIssues && <IssueList organization={organization} issues={relatedIssues} />}
 
       <TraceDrawerComponents.Table className="table key-value">
         <tbody>
@@ -401,7 +372,8 @@ export function TransactionNodeDetails({
             enableHiding
             location={location}
             organization={organization}
-            transaction={node.value}
+            tags={event.tags}
+            event={node.value}
           />
 
           {measurementNames.length > 0 && (

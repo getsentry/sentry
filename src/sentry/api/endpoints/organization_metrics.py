@@ -6,7 +6,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -21,7 +21,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.metrics_code_locations import MetricCodeLocationsSerializer
-from sentry.api.utils import get_date_range_from_params
+from sentry.api.utils import get_date_range_from_params, handle_query_errors
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.sentry_metrics.querying.data_v2 import (
@@ -424,6 +424,11 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
 
     def post(self, request: Request, organization) -> Response:
         try:
+            if organization.id in (options.get("custom-metrics-querying-killswitched-orgs") or ()):
+                return Response(
+                    status=401, data={"detail": "The organization is not allowed to query metrics"}
+                )
+
             start, end = get_date_range_from_params(request.GET)
             interval = self._interval_from_request(request)
             metrics_queries_plan = self._metrics_queries_plan_from_request(request)
@@ -531,17 +536,18 @@ class OrganizationMetricsSamplesEndpoint(OrganizationEventsV2EndpointBase):
             Referrer.API_ORGANIZATION_METRICS_SAMPLES,
         )
 
-        return self.paginate(
-            request=request,
-            paginator=GenericOffsetPaginator(data_fn=executor.execute),
-            on_results=lambda results: self.handle_results_with_meta(
-                request,
-                organization,
-                params["project_id"],
-                results,
-                standard_meta=True,
-            ),
-        )
+        with handle_query_errors():
+            return self.paginate(
+                request=request,
+                paginator=GenericOffsetPaginator(data_fn=executor.execute),
+                on_results=lambda results: self.handle_results_with_meta(
+                    request,
+                    organization,
+                    params["project_id"],
+                    results,
+                    standard_meta=True,
+                ),
+            )
 
 
 @region_silo_endpoint

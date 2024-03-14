@@ -3,6 +3,7 @@
     The goal is to eventually find owners for all and shrink this list.
     DO NOT ADD ANY NEW APIS
 """
+
 API_OWNERSHIP_ALLOWLIST_DONT_MODIFY = [
     "/api/0/projects/{organization_slug}/{project_slug}/alert-rules/{alert_rule_id}/",
     "/api/0/organizations/{organization_slug}/relay_usage/",
@@ -64,6 +65,7 @@ API_OWNERSHIP_ALLOWLIST_DONT_MODIFY = [
     "/api/0/organizations/{organization_slug}/derive-code-mappings/",
     "/api/0/teams/{organization_slug}/{team_slug}/unresolved-issue-age/",
     "/api/0/organizations/{organization_slug}/alert-rules/available-actions/",
+    "/api/0/organizations/{organization_slug}/minimal-projects/",
     "/api/0/projects/{organization_slug}/{project_slug}/releases/token/",
     "/api/0/wizard/",
     "/api/0/projects/{organization_slug}/{project_slug}/processingissues/",

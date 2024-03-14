@@ -1,8 +1,10 @@
+import * as Sentry from '@sentry/react';
 import invariant from 'invariant';
 
 import isValidDate from 'sentry/utils/date/isValidDate';
 import type {ErrorFrame, RawReplayError} from 'sentry/utils/replays/types';
 import {isErrorFrame} from 'sentry/utils/replays/types';
+import toArray from 'sentry/utils/toArray';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 export default function hydrateErrors(
@@ -27,7 +29,7 @@ export default function hydrateErrors(
               (Array.isArray(error['error.type'])
                 ? error['error.type'][0]
                 : error['error.type']) ?? '',
-            labels: error['error.type'].filter(Boolean),
+            labels: toArray(error['error.type']).filter(Boolean),
             projectSlug: error['project.name'],
           },
           message: error.title,
@@ -36,7 +38,8 @@ export default function hydrateErrors(
           timestampMs: time.getTime(),
           type: 'error', // For compatibility reasons. See BreadcrumbType
         };
-      } catch {
+      } catch (err) {
+        Sentry.captureException(err);
         return undefined;
       }
     })

@@ -25,9 +25,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {CodeLocations} from 'sentry/views/ddm/codeLocations';
 import type {FocusAreaProps} from 'sentry/views/ddm/context';
 import {useDDMContext} from 'sentry/views/ddm/context';
-import type {SamplesTableProps} from 'sentry/views/ddm/sampleTable';
-import {SampleTable} from 'sentry/views/ddm/sampleTable';
-import {getQueryWithFocusedSeries} from 'sentry/views/ddm/utils';
+import {extendQueryWithGroupBys} from 'sentry/views/ddm/utils';
 
 enum Tab {
   SAMPLES = 'samples',
@@ -78,7 +76,7 @@ interface MetricDetailsProps {
   focusArea?: FocusAreaProps;
   focusedSeries?: FocusedMetricsSeries[];
   mri?: MRI;
-  onRowHover?: SamplesTableProps['onRowHover'];
+  onRowHover?: (sampleId?: string) => void;
   op?: string;
   query?: string;
   setMetricsSamples?: React.Dispatch<
@@ -86,7 +84,6 @@ interface MetricDetailsProps {
   >;
 }
 
-// TODO: add types
 export function MetricDetails({
   mri,
   op,
@@ -107,7 +104,12 @@ export function MetricDetails({
   }
 
   const queryWithFocusedSeries = useMemo(
-    () => focusedSeries && getQueryWithFocusedSeries(query || '', focusedSeries),
+    () =>
+      focusedSeries &&
+      extendQueryWithGroupBys(
+        query || '',
+        focusedSeries.map(s => s.groupBy)
+      ),
     [focusedSeries, query]
   );
 
@@ -147,32 +149,23 @@ export function MetricDetails({
           <TabPanels>
             <TabPanels.Item key={Tab.SAMPLES}>
               <MetricSampleTableWrapper organization={organization}>
-                {organization.features.includes('metrics-samples-list') ? (
-                  organization.features.includes('metrics-samples-list-search') ? (
-                    <SearchableMetricSamplesTable
-                      focusArea={focusArea?.selection?.range}
-                      mri={mri}
-                      onRowHover={onRowHover}
-                      op={op}
-                      query={queryWithFocusedSeries}
-                      setMetricsSamples={setMetricsSamples}
-                    />
-                  ) : (
-                    <MetricSamplesTable
-                      focusArea={focusArea?.selection?.range}
-                      mri={mri}
-                      onRowHover={onRowHover}
-                      op={op}
-                      query={queryWithFocusedSeries}
-                      setMetricsSamples={setMetricsSamples}
-                    />
-                  )
-                ) : (
-                  <SampleTable
+                {organization.features.includes('metrics-samples-list-search') ? (
+                  <SearchableMetricSamplesTable
+                    focusArea={focusArea?.selection?.range}
                     mri={mri}
-                    {...focusArea?.selection?.range}
-                    query={queryWithFocusedSeries}
                     onRowHover={onRowHover}
+                    op={op}
+                    query={queryWithFocusedSeries}
+                    setMetricsSamples={setMetricsSamples}
+                  />
+                ) : (
+                  <MetricSamplesTable
+                    focusArea={focusArea?.selection?.range}
+                    mri={mri}
+                    onRowHover={onRowHover}
+                    op={op}
+                    query={queryWithFocusedSeries}
+                    setMetricsSamples={setMetricsSamples}
                   />
                 )}
               </MetricSampleTableWrapper>
