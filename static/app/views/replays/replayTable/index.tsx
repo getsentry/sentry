@@ -1,9 +1,8 @@
 import type {ReactNode} from 'react';
-import {Fragment, memo} from 'react';
+import {memo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
-import type {Button} from 'sentry/components/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelTable from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
@@ -40,7 +39,6 @@ type Props = {
   emptyMessage?: ReactNode;
   gridRows?: string;
   onClickPlay?: (index: number) => void;
-  replayPlayButtonPriority?: React.ComponentProps<typeof Button>['priority'];
   showDropdownFilters?: boolean;
 };
 
@@ -56,7 +54,6 @@ const ReplayTable = memo(
     gridRows,
     showDropdownFilters,
     onClickPlay,
-    replayPlayButtonPriority,
   }: Props) => {
     const routes = useRoutes();
     const location = useLocation();
@@ -112,7 +109,7 @@ const ReplayTable = memo(
         {replays?.map(
           (replay: ReplayListRecord | ReplayListRecordWithTx, index: number) => {
             return (
-              <Fragment key={replay.id}>
+              <Row key={replay.id} isPlaying={index === selectedReplayIndex}>
                 {visibleColumns.map(column => {
                   switch (column) {
                     case ReplayColumn.ACTIVITY:
@@ -187,7 +184,6 @@ const ReplayTable = memo(
                           organization={organization}
                           referrer={referrer}
                           referrer_table="main"
-                          isPlaying={selectedReplayIndex === index}
                         />
                       );
 
@@ -197,7 +193,6 @@ const ReplayTable = memo(
                           key="play"
                           isSelected={selectedReplayIndex === index}
                           handleClick={() => onClickPlay?.(index)}
-                          priority={replayPlayButtonPriority}
                         />
                       );
 
@@ -214,7 +209,7 @@ const ReplayTable = memo(
                       return null;
                   }
                 })}
-              </Fragment>
+              </Row>
             );
           }
         )}
@@ -244,6 +239,14 @@ const StyledAlert = styled(Alert)`
   border-width: 1px 0 0 0;
   grid-column: 1/-1;
   margin-bottom: 0;
+`;
+
+const Row = styled('div')<{isPlaying?: boolean}>`
+  display: contents;
+  & > * {
+    background-color: ${p => (p.isPlaying ? p.theme.translucentInnerBorder : 'inherit')};
+    border-bottom: 1px solid ${p => p.theme.border};
+  }
 `;
 
 export default ReplayTable;

@@ -42,6 +42,7 @@ function ReplayPreviewPlayer({
   overlayText,
   showNextAndPrevious,
   onClickNextReplay,
+  playPausePriority,
 }: {
   replayId: string;
   replayRecord: ReplayRecord;
@@ -51,6 +52,7 @@ function ReplayPreviewPlayer({
   issueCategory?: IssueCategory;
   onClickNextReplay?: () => void;
   overlayText?: string;
+  playPausePriority?: ComponentProps<typeof ReplayPlayPauseButton>['priority'];
   showNextAndPrevious?: boolean;
 }) {
   const routes = useRoutes();
@@ -65,7 +67,6 @@ function ReplayPreviewPlayer({
     elementRef: fullscreenRef,
   });
   const isFullscreen = useIsFullscreen();
-
   const startOffsetMs = replay?.getStartOffsetMs() ?? 0;
   const isRageClickIssue = issueCategory === IssueCategory.REPLAY;
 
@@ -125,7 +126,9 @@ function ReplayPreviewPlayer({
               />
             )}
             <ReplayPlayPauseButton
-              priority={isFinished || isPlaying ? 'primary' : 'default'}
+              priority={
+                playPausePriority ?? (isFinished || isPlaying ? 'primary' : 'default')
+              }
             />
             {showNextAndPrevious && (
               <Button

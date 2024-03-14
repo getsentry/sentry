@@ -132,6 +132,8 @@ function ReplayClipPreviewPlayer({
           overlayText={overlayText}
           showNextAndPrevious={showNextAndPrevious}
           onClickNextReplay={onClickNextReplay}
+          // if the player is large, we want to keep the priority as default
+          playPausePriority={isLarge ? 'default' : undefined}
         />
       )}
     </PlayerContainer>

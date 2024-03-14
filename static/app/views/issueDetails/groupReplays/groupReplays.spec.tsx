@@ -523,7 +523,6 @@ describe('GroupReplays', () => {
         );
       });
       expect(screen.getByText('See Full Replay')).toBeInTheDocument();
-      expect(screen.getByText('Currently Playing')).toBeInTheDocument();
     });
 
     it('Should switch replays when clicking and replay-play-from-replay-tab is enabled', async () => {

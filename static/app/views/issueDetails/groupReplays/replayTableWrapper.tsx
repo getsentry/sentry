@@ -27,8 +27,8 @@ function ReplayTableWrapper({
   ...props
 }: Props) {
   const {selectedReplayIndex} = props;
-  const {analyticsContext, isFinished, isPlaying} = useReplayContext();
-  const replayContext = useReplayReader({
+  const {analyticsContext} = useReplayContext();
+  const replayReaderData = useReplayReader({
     orgSlug,
     replaySlug,
     group,
@@ -62,11 +62,11 @@ function ReplayTableWrapper({
             : undefined
         }
         analyticsContext={analyticsContext}
-        {...replayContext}
+        isLarge
+        {...replayReaderData}
       />
       <ReplayTable
         onClickPlay={setSelectedReplayIndex}
-        replayPlayButtonPriority={isFinished || isPlaying ? 'primary' : 'default'}
         fetchError={props.fetchError}
         isFetching={props.isFetching}
         replays={props.replays}

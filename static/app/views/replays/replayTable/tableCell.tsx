@@ -12,7 +12,6 @@ import ContextIcon from 'sentry/components/replays/contextIcon';
 import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
 import {formatTime} from 'sentry/components/replays/utils';
 import ScoreBar from 'sentry/components/scoreBar';
-import Tag from 'sentry/components/tag';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
@@ -291,13 +290,11 @@ export function ReplayCell({
   referrer_table,
   isWidget,
   className,
-  isPlaying,
 }: Props & {
   eventView: EventView;
   organization: Organization;
   referrer: string;
   className?: string;
-  isPlaying?: boolean;
   isWidget?: boolean;
   referrer_table?: ReferrerTableType;
 }) {
@@ -392,7 +389,6 @@ export function ReplayCell({
         // this is the subheading for the avatar, so displayEmail in this case is a misnomer
         displayEmail={subText}
       />
-      {isPlaying && <Tag type="highlight">{t('Currently Playing')}</Tag>}
     </Item>
   );
 }
@@ -622,14 +618,12 @@ export function ActivityCell({replay, showDropdownFilters}: Props) {
 export function PlayPauseCell({
   isSelected,
   handleClick,
-  priority,
 }: {
   handleClick: () => void;
   isSelected: boolean;
-  priority: React.ComponentProps<typeof Button>['priority'];
 }) {
   const inner = isSelected ? (
-    <ReplayPlayPauseButton iconSize="sm" priority={priority} />
+    <ReplayPlayPauseButton size="sm" iconSize="sm" priority="default" borderless />
   ) : (
     <Button
       title={t('Play')}
@@ -637,6 +631,9 @@ export function PlayPauseCell({
       icon={<IconPlay size="sm" />}
       onClick={handleClick}
       data-test-id="replay-table-play-button"
+      borderless
+      size="sm"
+      priority="default"
     />
   );
   return <Item>{inner}</Item>;
