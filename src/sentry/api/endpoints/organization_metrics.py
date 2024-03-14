@@ -6,7 +6,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -424,6 +424,11 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
 
     def post(self, request: Request, organization) -> Response:
         try:
+            if organization.id in (options.get("custom-metrics-querying-killswitched-orgs") or ()):
+                raise MetricsQueryExecutionError(
+                    "Your organization is not allowed to query metrics"
+                )
+
             start, end = get_date_range_from_params(request.GET)
             interval = self._interval_from_request(request)
             metrics_queries_plan = self._metrics_queries_plan_from_request(request)

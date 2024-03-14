@@ -1814,6 +1814,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# IDs of orgs that will be disabled from querying metrics via `/metrics/query` endpoint.
+register(
+    "custom-metrics-querying-killswitched-orgs",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # SDK Crash Detection
 #
 # The project ID belongs to the sentry organization: https://sentry.sentry.io/projects/cocoa-sdk-crashes/?project=4505469596663808.

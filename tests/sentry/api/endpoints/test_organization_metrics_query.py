@@ -90,3 +90,19 @@ class OrganizationMetricsQueryTest(MetricsAPIBaseTestCase):
                 },
             ]
         ]
+
+    def test_query_with_killswitched_org(self):
+        with self.options({"custom-metrics-querying-killswitched-orgs": [self.organization.id]}):
+            self.get_error_response(
+                self.project.organization.slug,
+                status_code=500,
+                queries=[{"name": "query_1", "mql": f"sum({TransactionMRI.DURATION.value})"}],
+                formulas=[{"mql": "$query_1"}],
+                qs_params={
+                    "statsPeriod": "3h",
+                    "interval": "1h",
+                    "project": [self.project.id],
+                    "environment": [],
+                    "includeSeries": "false",
+                },
+            )
