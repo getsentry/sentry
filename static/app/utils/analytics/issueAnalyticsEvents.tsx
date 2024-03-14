@@ -261,6 +261,7 @@ export type IssueEventParameters = {
   'tag.clicked': {
     is_clickable: boolean;
   };
+  'whats_new.link_clicked': {title?: string};
 };
 
 export type IssueEventKey = keyof IssueEventParameters;
@@ -354,4 +355,5 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.sourcemap_wizard_learn_more':
     'Issue Details: Sourcemap Wizard Learn More',
   'issue_details.set_priority': 'Issue Details: Set Priority',
+  'whats_new.link_clicked': "What's New: Link Clicked",
 };
