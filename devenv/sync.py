@@ -134,7 +134,7 @@ def main(context: dict[str, str]) -> int:
     if not os.path.exists(f"{constants.home}/.sentry/config.yml") or not os.path.exists(
         f"{constants.home}/.sentry/sentry.conf.py"
     ):
-        proc.run((f"{venv_dir}/bin/{repo}", "init", "--dev"))
+        proc.run((f"{venv_dir}/bin/sentry", "init", "--dev"))
 
     # TODO: check healthchecks for redis and postgres to short circuit this
     proc.run(
