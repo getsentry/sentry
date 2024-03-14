@@ -9,7 +9,8 @@ from .mail import MailPreview
 def get_context():
     date = datetime.datetime(2024, 1, 1, 0, 0, tzinfo=datetime.UTC)
     return {
-        "broken_monitors": [("Dummy Cron Monitor", "#", date), ("Example Cron Monitor", "#", date)]
+        "broken_monitors": [("Dummy Cron Monitor", "#", date), ("Example Cron Monitor", "#", date)],
+        "view_monitors_link": "#",
     }
 
 

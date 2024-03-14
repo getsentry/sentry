@@ -2,8 +2,17 @@
 
 {% load i18n %}
 {% load sentry_helpers %}
+{% load sentry_assets %}
+
+{% block head %}
+    {{ block.super }}
+    <style>
+        img.hero {margin-bottom: 15px; width: 100%;}
+    </style>
+{% endblock %}
 
 {% block main %}
+    <img class="hero" src="{% absolute_asset_url 'sentry' 'images/email/crons/crons-hero.jpg' %}" />
     <h3>Your Cron Monitors Aren't Working</h3>
     <p>
       We've noticed the cron monitors below have not processed a successful check-in for multiple days:
@@ -11,14 +20,15 @@
       <ul>
         {% for monitor_name, monitor_url, earliest_incident_start_date in broken_monitors %}
           <li>
-            <a href="{{monitor_url}}">{{monitor_name}}</a> | Failing since {{earliest_incident_start_date|date:"N j, Y, g:i:s a e"}}
+            <a href="{{monitor_url}}">{{monitor_name}}</a> <br /> Failing since {{earliest_incident_start_date|date:"N j, Y, g:i:s a e"}}
           </li>
         {% endfor %}
       </ul>
     <p>
-      To bring your monitors back to a healthy status, we recommend checking out our <a href="https://docs.sentry.io/product/crons/troubleshooting/">troubleshooting guide and our FAQs</a>
+      To bring your monitors back to a healthy status, we recommend checking out our <a href="https://docs.sentry.io/product/crons/troubleshooting/">troubleshooting guide and our FAQs</a>.
     </p>
+    <p><a href="{{ view_monitors_link }}" class="btn">View Monitors</a></p>
     <p>
-      Still facing issues? Reach out to our support team or write feedback to crons-feedback@sentry.io
+      Still facing issues? <a href="https://sentry.zendesk.com/hc/en-us/requests/new">Reach out to our support team</a>.
     </p>
 {% endblock %}

@@ -5,6 +5,8 @@ We've noticed the cron monitors below have not processed a successful check-in f
 * {{monitor_name}} {{monitor_url}} | Failing since {{earliest_incident_start_date|date:"N j, Y, g:i:s a e"}}
 {% endfor %}
 
-To bring your monitors back to a healthy status, we recommend checking out our troubleshooting guide and our FAQs: https://docs.sentry.io/product/crons/troubleshooting/
+To bring your monitors back to a healthy status, we recommend checking out our troubleshooting guide and our FAQs: "https://docs.sentry.io/product/crons/troubleshooting/".
 
-Still facing issues? Reach out to our support team or write feedback to "crons-feedback@sentry.io"
+View Monitors: {{ view_monitors_link }}
+
+Still facing issues? Reach our to our support team "https://sentry.zendesk.com/hc/en-us/requests/new".
