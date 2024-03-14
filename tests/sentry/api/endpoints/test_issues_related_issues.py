@@ -25,7 +25,7 @@ class RelatedIssuesTest(APITestCase):
     def _data(self, type: str, value: str) -> dict[str, Any]:
         return {"type": "error", "metadata": {"type": type, "value": value}}
 
-    def test_basic_related_issues(self):
+    def test_same_root_related_issues(self):
         # This is the group we're going to query about
         group = self.create_group(data=self._data(self.error_type, self.error_value))
         self.group_id = group.id
@@ -37,11 +37,13 @@ class RelatedIssuesTest(APITestCase):
             # Only this group will be related
             self._data(self.error_type, self.error_value),
         ]
+        # XXX: See if we can get this code to be closer to how save_event generates groups
         for datum in groups_data:
             self.create_group(data=datum)
 
         response = self.get_success_response()
-        assert response.json() == {"groups": [1, 5]}
+        assert response.json() == {"same_root_cause": [1, 5]}
 
 
 # XXX: Add a test class that will query an API with the related group IDs
+# This will emulate the 2nd call the UI will need to make
