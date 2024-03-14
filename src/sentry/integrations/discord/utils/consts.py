@@ -203,3 +203,44 @@ DISCORD_ERROR_CODES = {
     350000: "Cannot enable onboarding, requirements are not met",
     350001: "Cannot update onboarding while below requirements",
 }
+
+"""
+After an alert rule is created, the user can perform actions that can break the alert
+and therefore Discord API responses are no longer ok.
+
+For our SLO that monitors Discord response status codes, we do want to keep track of
+codes that indicate a problem from our end i.e. 50109 (the request body contains invalid JSON.)
+
+In order to make the SLO more relevent, we want to ignore specific discord provided codes that
+can be returned when a user changes a configuration and breaks the alert.
+Complete list of codes: https://discord.com/developers/docs/topics/opcodes-and-status-codes#http
+
+Here is a working list of codes that we should ignore and why:
+"""
+DISCORD_USER_ERRORS = {
+    10001,  # user deleted account
+    10002,  # user deleted application
+    10003,  # user deleted channel
+    10004,  # user deleted guild
+    10005,  # user deleted integration
+    10008,  # user deleted message
+    10011,  # user deleted role
+    10013,  # user deleted account
+    10087,  # user deleted tag
+    20009,  # user's error message contains explicit content
+    20018,  # user changed action permissions to owner-restricted
+    50001,  # user changed bot's permissions
+    50007,  # user is preventing direct messages from bot **direct messages not implemented yet
+    50009,  # bot not added to channel yet
+    50013,  # user changed bot's permissions for actions
+    50055,  # user changed or deleted guild (would likely only hit 10003)
+    50083,  # user archived thread (would likely only hit 10003)
+    50178,  # user not verified yet
+    60003,  # user added 2 factor not sure if this can happen with bot
+    80004,  # user DiscordTag does not exist (could have been deleted or modified)
+    160002,  # user removed bot's permission to reply to thread
+    160005,  # user locked a thread
+    200000,  # bot's message blocked by auto mod
+    200001,  # bot's message title blocked by auto mod
+    240000,  # auto mod blocked because message contained harmful link
+}

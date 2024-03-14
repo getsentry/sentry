@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from sentry import options
 from sentry.integrations.client import ApiClient
 from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
-from sentry.integrations.discord.utils.consts import DISCORD_ERROR_CODES
+from sentry.integrations.discord.utils.consts import DISCORD_ERROR_CODES, DISCORD_USER_ERRORS
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.integrations.discord")
@@ -137,15 +137,11 @@ class DiscordClient(ApiClient):
         }
 
         # These are excluded since they are not actionable from our side
-        # (i.e. user error, Discord api is down, etc)
-        include_in_slo = code not in {
-            status.HTTP_429_TOO_MANY_REQUESTS,  # Alert is making too many requests to Discord
-            status.HTTP_403_FORBIDDEN,  # User doesn't have permission (i.e. changed bot permissions)
-            status.HTTP_404_NOT_FOUND,  # Discord resource DNE (i.e. deleted channel)
-            status.HTTP_503_SERVICE_UNAVAILABLE,  # Discord side is not ready to handle request
-            status.HTTP_500_INTERNAL_SERVER_ERROR,  # Unexpected problem on Discord side
+        discord_server_issues = {
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status.HTTP_503_SERVICE_UNAVAILABLE,
         }
-
+        include_in_slo = discord_code not in (DISCORD_USER_ERRORS or discord_server_issues)
         metrics.incr(
             f"{self.metrics_prefix}.http_response",
             sample_rate=1.0,
