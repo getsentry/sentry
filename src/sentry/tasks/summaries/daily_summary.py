@@ -244,7 +244,7 @@ def build_summary_data(
                         release.id: [group for group in new_groups_in_release]
                     }
 
-            new_in_release = json.dumps([group.id for group in project_ctx.new_in_release])
+            new_in_release = json.dumps([group for group in project_ctx.new_in_release])
             logger.info(
                 "daily_summary.new_in_release",
                 extra={
