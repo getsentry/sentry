@@ -38,7 +38,7 @@ export function createSentrySampleProfileFrameIndex(
         package: frame.package,
         name: frame.function ?? 'unknown',
         line: frame.lineno,
-        column: frame.colno,
+        column: frame.colno ?? frame?.col ?? frame?.column,
         instructionAddr: frame.instruction_addr,
         symbol: frame.symbol,
         symbolAddr: frame.sym_addr,
@@ -88,6 +88,7 @@ export function createFrameIndex(
     acc[index] = new Frame(
       {
         key: index,
+        column: frame.colno ?? frame?.col ?? frame?.column,
         ...frame,
       },
       type

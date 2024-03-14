@@ -37,7 +37,11 @@ declare namespace Profiling {
 
   type SentrySampledProfileFrame = {
     in_app: boolean;
+    // These differ slightly from the speedscope schema, but just
+    // override them right now as we don't use the speedscope schema anymore
     colno?: number;
+    col?: number;
+    column?: number;
     filename?: string;
     function?: string;
     instruction_addr?: string;
@@ -140,6 +144,8 @@ declare namespace Profiling {
     path?: string;
     line?: number;
     column?: number;
+    col?: number;
+    colno?: number;
     is_application?: boolean;
     resource?: string;
     threadId?: number;
