@@ -1090,22 +1090,6 @@ function buildRoutes() {
     </Route>
   );
 
-  const dashboardWidgetRoutes = (
-    <Fragment>
-      <Route
-        path="widget/:widgetIndex/edit/"
-        component={make(() => import('sentry/views/dashboards/widgetBuilder'))}
-      />
-      <Route
-        path="widget/new/"
-        component={make(() => import('sentry/views/dashboards/widgetBuilder'))}
-      />
-      <Route
-        path="widget/:widgetId/"
-        component={make(() => import('sentry/views/dashboards/view'))}
-      />
-    </Fragment>
-  );
   const dashboardRoutes = (
     <Fragment>
       <Fragment>
@@ -1199,28 +1183,24 @@ function buildRoutes() {
       {USING_CUSTOMER_DOMAIN && (
         <Redirect from="/dashboards/:dashboardId/" to="/dashboard/:dashboardId/" />
       )}
-      <Fragment>
-        {USING_CUSTOMER_DOMAIN && (
-          <Route
-            path="/dashboard/:dashboardId/"
-            component={withDomainRequired(
-              make(() => import('sentry/views/dashboards/view'))
-            )}
-            key="orgless-dashboards-dashboard-id-route"
-          >
-            {dashboardWidgetRoutes}
-          </Route>
-        )}
+      <Route
+        path="/dashboard/:dashboardId/"
+        component={make(() => import('sentry/views/dashboards/view'))}
+        withOrgPath
+      >
         <Route
-          path="/organizations/:orgId/dashboard/:dashboardId/"
-          component={withDomainRedirect(
-            make(() => import('sentry/views/dashboards/view'))
-          )}
-          key="org-dashboards-dashboard-id"
-        >
-          {dashboardWidgetRoutes}
-        </Route>
-      </Fragment>
+          path="widget/:widgetIndex/edit/"
+          component={make(() => import('sentry/views/dashboards/widgetBuilder'))}
+        />
+        <Route
+          path="widget/new/"
+          component={make(() => import('sentry/views/dashboards/widgetBuilder'))}
+        />
+        <Route
+          path="widget/:widgetId/"
+          component={make(() => import('sentry/views/dashboards/view'))}
+        />
+      </Route>
     </Fragment>
   );
 
