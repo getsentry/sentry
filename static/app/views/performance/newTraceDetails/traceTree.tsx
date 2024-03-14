@@ -634,9 +634,13 @@ export class TraceTree {
 
       let index = 0;
       let matchCount = 0;
+
       while (index < node.children.length) {
         const current = node.children[index] as TraceTreeNode<TraceTree.Span>;
         const next = node.children[index + 1] as TraceTreeNode<TraceTree.Span>;
+
+        let start_timestamp = current.value.start_timestamp;
+        let timestamp = current.value.timestamp;
 
         if (
           next &&
@@ -646,6 +650,15 @@ export class TraceTree {
           next.value.description === current.value.description
         ) {
           matchCount++;
+          if (
+            next.value?.start_timestamp &&
+            next.value.start_timestamp < start_timestamp
+          ) {
+            start_timestamp = next.value.start_timestamp;
+          }
+          if (next.value?.timestamp && next.value?.timestamp > timestamp) {
+            timestamp = next.value.timestamp;
+          }
           // If the next node is the last node in the list, we keep iterating
           if (index + 1 < node.children.length) {
             index++;
@@ -658,6 +671,8 @@ export class TraceTree {
             node,
             {
               ...current.value,
+              timestamp: timestamp,
+              start_timestamp: start_timestamp,
               autogrouped_by: {
                 op: current.value.op ?? '',
                 description: current.value.description ?? '',
@@ -671,28 +686,9 @@ export class TraceTree {
 
           autoGroupedNode.groupCount = matchCount + 1;
           const start = index - matchCount;
-          let start_timestamp = Number.MAX_SAFE_INTEGER;
-          let timestamp = Number.MIN_SAFE_INTEGER;
 
           for (let j = start; j < start + matchCount + 1; j++) {
             const child = node.children[j];
-            if (
-              child.value &&
-              'timestamp' in child.value &&
-              typeof child.value.timestamp === 'number' &&
-              child.value.timestamp > timestamp
-            ) {
-              timestamp = child.value.timestamp;
-            }
-
-            if (
-              child.value &&
-              'start_timestamp' in child.value &&
-              typeof child.value.start_timestamp === 'number' &&
-              child.value.start_timestamp > start_timestamp
-            ) {
-              start_timestamp = child.value.start_timestamp;
-            }
 
             if (!isSpanNode(child)) {
               throw new TypeError(
