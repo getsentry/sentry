@@ -18,6 +18,7 @@ import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types';
+import {MonitorType} from 'sentry/types/alerts';
 import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
@@ -32,7 +33,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
 import FilterBar from '../../filterBar';
-import type {CombinedMetricIssueAlerts} from '../../types';
+import {CombinedAlertType, type CombinedMetricIssueAlerts} from '../../types';
 import {AlertRuleType} from '../../types';
 import {getTeamParams, isIssueAlert} from '../../utils';
 import AlertHeader from '../header';
@@ -235,21 +236,33 @@ function AlertRulesList() {
               >
                 <Projects orgId={organization.slug} slugs={projectsFromResults}>
                   {({initiallyLoaded, projects}) =>
-                    ruleList.map(rule => (
-                      <RuleListRow
-                        // Metric and issue alerts can have the same id
-                        key={`${
-                          isIssueAlert(rule) ? AlertRuleType.METRIC : AlertRuleType.ISSUE
-                        }-${rule.id}`}
-                        projectsLoaded={initiallyLoaded}
-                        projects={projects as Project[]}
-                        rule={rule}
-                        orgId={organization.slug}
-                        onOwnerChange={handleOwnerChange}
-                        onDelete={handleDeleteRule}
-                        hasEditAccess={hasEditAccess}
-                      />
-                    ))
+                    ruleList.map(rule => {
+                      // For now, filter out any ACTIVATED MetricAlerts
+                      if (
+                        rule.type === CombinedAlertType.METRIC &&
+                        rule.monitorType === MonitorType.ACTIVATED
+                      ) {
+                        return null;
+                      }
+
+                      return (
+                        <RuleListRow
+                          // Metric and issue alerts can have the same id
+                          key={`${
+                            isIssueAlert(rule)
+                              ? AlertRuleType.METRIC
+                              : AlertRuleType.ISSUE
+                          }-${rule.id}`}
+                          projectsLoaded={initiallyLoaded}
+                          projects={projects as Project[]}
+                          rule={rule}
+                          orgId={organization.slug}
+                          onOwnerChange={handleOwnerChange}
+                          onDelete={handleDeleteRule}
+                          hasEditAccess={hasEditAccess}
+                        />
+                      );
+                    })
                   }
                 </Projects>
               </VisuallyCompleteWithData>
