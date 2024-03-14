@@ -1759,8 +1759,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-screens-platform-selector": False,
     # Enable API aka HTTP aka Network Performance module
     "organizations:performance-http-view": False,
-    # Skip groupowner cache post processing
-    "organizations:post-process-skip-groupowner-cache": False,
     # Enable column that shows ttid ttfd contributing spans
     "organizations:mobile-ttid-ttfd-contribution": False,
     # Enable slow DB performance issue type

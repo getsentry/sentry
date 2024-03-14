@@ -1,23 +1,17 @@
-from datetime import timedelta
 from unittest import mock
 
 from django.urls import reverse
-from django.utils import timezone
 from rest_framework.exceptions import ErrorDetail
 
 from sentry import audit_log
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.models.group import Group
-from sentry.models.groupowner import ISSUE_OWNERS_DEBOUNCE_DURATION, GroupOwner, GroupOwnerType
 from sentry.models.projectownership import ProjectOwnership
-from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
-from sentry.utils.cache import cache
 
 pytestmark = [requires_snuba]
 
@@ -417,72 +411,3 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
 
         resp = self.client.put(self.path, {"fallthrough": False})
         assert resp.status_code == 403
-
-    def test_turn_off_auto_assignment_clears_autoassignment_cache(self):
-        # Turn auto assignment on
-        self.client.put(self.path, {"autoAssignment": "Auto Assign to Issue Owner"})
-
-        # Create codeowner rule
-        self.code_mapping = self.create_code_mapping(project=self.project)
-        rule = Rule(Matcher("path", "*.py"), [Owner("team", self.team.slug)])
-        ProjectOwnership.objects.create(
-            project_id=self.project.id, schema=dump_schema([rule]), fallthrough=True
-        )
-        self.create_codeowners(
-            self.project, self.code_mapping, raw="*.py @tiger-team", schema=dump_schema([rule])
-        )
-
-        # Auto assign rule using codeowner
-        self.event = self.store_event(
-            data=self.python_event_data(),
-            project_id=self.project.id,
-        )
-        GroupOwner.objects.create(
-            group=self.event.group,
-            type=GroupOwnerType.CODEOWNERS.value,
-            user_id=None,
-            team_id=self.team.id,
-            project=self.project,
-            organization=self.project.organization,
-            context={"rule": str(rule)},
-        )
-        ProjectOwnership.handle_auto_assignment(self.project.id, self.event)
-
-        auto_assignment_ownership = ProjectOwnership.objects.get(project=self.project)
-        auto_assignment_types = ProjectOwnership._get_autoassignment_types(
-            auto_assignment_ownership
-        )
-        assert auto_assignment_types == [
-            GroupOwnerType.OWNERSHIP_RULE.value,
-            GroupOwnerType.CODEOWNERS.value,
-        ]
-        # Get the cache keys
-        groups = Group.objects.filter(
-            project_id=self.project.id,
-            last_seen__gte=timezone.now() - timedelta(seconds=ISSUE_OWNERS_DEBOUNCE_DURATION),
-        )
-        assert groups
-        auto_assignment_cache_keys = [
-            GroupOwner.get_autoassigned_owner_cache_key(
-                group.id, self.project.id, auto_assignment_types
-            )
-            for group in groups
-        ]
-        assert auto_assignment_types == [
-            GroupOwnerType.OWNERSHIP_RULE.value,
-            GroupOwnerType.CODEOWNERS.value,
-        ]
-        # Assert the cache is set
-        for cache_key in auto_assignment_cache_keys:
-            assert cache.get(cache_key) is not None
-
-        # Turn auto assignment off
-        self.client.put(self.path, {"autoAssignment": "Turn off Auto-Assignment"})
-        no_auto_assignment_ownership = ProjectOwnership.objects.get(project=self.project)
-        no_auto_assignment_types = ProjectOwnership._get_autoassignment_types(
-            no_auto_assignment_ownership
-        )
-        assert no_auto_assignment_types == []
-        # Assert that the autoassignment cache was cleared
-        for cache_key in auto_assignment_cache_keys:
-            assert cache.get(cache_key) is None

@@ -211,7 +211,6 @@ default_manager.add("organizations:performance-trendsv2-dev-only", OrganizationF
 default_manager.add("organizations:performance-use-metrics", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:performance-vitals-inp", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:performance-http-view", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:post-process-skip-groupowner-cache", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:profiling-beta", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:profiling-browser", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:profiling-differential-flamegraph-page", OrganizationFeature, FeatureHandlerStrategy.REMOTE)

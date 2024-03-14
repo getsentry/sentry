@@ -149,9 +149,6 @@ def process_resource_change(instance, change, **kwargs):
     if not ownership:
         ownership = ProjectOwnership(project_id=instance.project_id)
 
-    autoassignment_types = ProjectOwnership._get_autoassignment_types(ownership)
-    if ownership.auto_assignment:
-        GroupOwner.invalidate_autoassigned_owner_cache(instance.project_id, autoassignment_types)
     GroupOwner.invalidate_debounce_issue_owners_evaluation_cache(instance.project_id)
 
 
