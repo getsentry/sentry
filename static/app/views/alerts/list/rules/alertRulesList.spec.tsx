@@ -29,6 +29,7 @@ describe('AlertRulesList', () => {
   const defaultOrg = OrganizationFixture({
     access: ['alerts:write'],
   });
+
   TeamStore.loadInitialData([TeamFixture()], false, null);
   let rulesMock!: jest.Mock;
   let projectMock!: jest.Mock;
@@ -61,6 +62,7 @@ describe('AlertRulesList', () => {
         }),
       ],
     });
+
     projectMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [
@@ -445,5 +447,42 @@ describe('AlertRulesList', () => {
         },
       })
     );
+  });
+
+  it('does not display ACTIVATED Metric Alerts', async () => {
+    rulesMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/combined-rules/',
+      headers: {Link: pageLinks},
+      body: [
+        ProjectAlertRuleFixture({
+          id: '123',
+          name: 'First Issue Alert',
+          projects: ['earth'],
+          createdBy: {name: 'Samwise', id: 1, email: ''},
+        }),
+        MetricRuleFixture({
+          id: '345',
+          projects: ['earth'],
+          name: 'Omitted Test Metric Alert',
+          monitorType: 1,
+          latestIncident: IncidentFixture({
+            status: IncidentStatus.CRITICAL,
+          }),
+        }),
+        MetricRuleFixture({
+          id: '678',
+          name: 'Test Metric Alert 2',
+          monitorType: 0,
+          projects: ['earth'],
+          latestIncident: null,
+        }),
+      ],
+    });
+
+    const {routerContext, organization} = initializeOrg({organization: defaultOrg});
+    render(<AlertRulesList />, {context: routerContext, organization});
+
+    await screen.findByText('Test Metric Alert 2'); // this fails the test if it doesn't find the text as well
+    expect(screen.queryByText('Omitted Test Metric Alert')).not.toBeInTheDocument();
   });
 });

@@ -33,7 +33,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
 import FilterBar from '../../filterBar';
-import {CombinedAlertType, type CombinedMetricIssueAlerts} from '../../types';
+import type {CombinedMetricIssueAlerts} from '../../types';
 import {AlertRuleType} from '../../types';
 import {getTeamParams, isIssueAlert} from '../../utils';
 import AlertHeader from '../header';
@@ -237,9 +237,8 @@ function AlertRulesList() {
                 <Projects orgId={organization.slug} slugs={projectsFromResults}>
                   {({initiallyLoaded, projects}) =>
                     ruleList.map(rule => {
-                      // For now, filter out any ACTIVATED MetricAlerts
                       if (
-                        rule.type === CombinedAlertType.METRIC &&
+                        !isIssueAlert(rule) &&
                         rule.monitorType === MonitorType.ACTIVATED
                       ) {
                         return null;
