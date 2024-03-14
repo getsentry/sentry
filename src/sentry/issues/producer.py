@@ -71,7 +71,8 @@ def produce_occurrence_to_kafka(
         return
 
     try:
-        _occurrence_producer.produce(ArroyoTopic(settings.KAFKA_INGEST_OCCURRENCES), payload)
+        topic = get_topic_definition(Topic.INGEST_OCCURRENCES)["real_topic_name"]
+        _occurrence_producer.produce(ArroyoTopic(topic), payload)
     except KafkaException:
         logger.exception(
             "Failed to send occurrence to issue platform",

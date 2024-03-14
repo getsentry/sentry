@@ -153,6 +153,29 @@ def get_access_by_project(
     return result
 
 
+def get_environments_by_projects(projects: Sequence[Project]) -> MutableMapping[int, list[str]]:
+    project_envs = (
+        EnvironmentProject.objects.filter(
+            project_id__in=[i.id for i in projects],
+            # Including the organization_id is necessary for postgres to use indexes
+            # efficiently.
+            environment__organization_id=projects[0].organization_id,
+        )
+        .exclude(
+            is_hidden=True,
+            # HACK(lb): avoiding the no environment value
+        )
+        .exclude(environment__name="")
+        .values("project_id", "environment__name")
+    )
+
+    environments_by_project = defaultdict(list)
+    for project_env in project_envs:
+        environments_by_project[project_env["project_id"]].append(project_env["environment__name"])
+
+    return environments_by_project
+
+
 def get_features_for_projects(
     all_projects: Sequence[Project], user: User, filter_unused_on_frontend_features: bool = False
 ) -> MutableMapping[Project, list[str]]:
@@ -682,26 +705,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             )
         )
 
-        project_envs = (
-            EnvironmentProject.objects.filter(
-                project_id__in=[i.id for i in item_list],
-                # Including the organization_id is necessary for postgres to use indexes
-                # efficiently.
-                environment__organization_id=item_list[0].organization_id,
-            )
-            .exclude(
-                is_hidden=True,
-                # HACK(lb): avoiding the no environment value
-            )
-            .exclude(environment__name="")
-            .values("project_id", "environment__name")
-        )
-
-        environments_by_project = defaultdict(list)
-        for project_env in project_envs:
-            environments_by_project[project_env["project_id"]].append(
-                project_env["environment__name"]
-            )
+        environments_by_project = get_environments_by_projects(item_list)
 
         # Only fetch the latest release version key for each project to cut down on response size
         latest_release_versions = _get_project_to_release_version_mapping(item_list)
@@ -971,7 +975,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "dataScrubber": bool(attrs["options"].get("sentry:scrub_data", True)),
                 "dataScrubberDefaults": bool(attrs["options"].get("sentry:scrub_defaults", True)),
                 "safeFields": attrs["options"].get("sentry:safe_fields", []),
-                "recapServerUrl": attrs["options"].get("sentry:recap_server_url"),
                 "storeCrashReports": convert_crashreport_count(
                     attrs["options"].get("sentry:store_crash_reports"), allow_none=True
                 ),
@@ -1062,4 +1065,26 @@ class SharedProjectSerializer(Serializer):
             "color": obj.color,
             "features": feature_list,
             "organization": {"slug": obj.organization.slug, "name": obj.organization.name},
+        }
+
+
+class MinimalProjectSerializer(Serializer):
+    def get_attrs(self, item_list: Sequence[Project], user: User, **kwargs: Any):
+        environments_by_project = get_environments_by_projects(item_list)
+        memberships_by_project = get_access_by_project(item_list, user)
+        return {
+            project: {
+                "environments": environments_by_project[project.id],
+                "isMember": memberships_by_project[project]["is_member"],
+            }
+            for project in item_list
+        }
+
+    def serialize(self, obj: Project, attrs: Mapping[str, Any], user: User):
+        return {
+            "slug": obj.slug,
+            "id": obj.id,
+            "platform": obj.platform,
+            "environments": attrs["environments"],
+            "isMember": attrs["isMember"],
         }

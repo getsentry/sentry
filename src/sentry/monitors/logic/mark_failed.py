@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 def mark_failed(
     failed_checkin: MonitorCheckIn,
     ts: datetime,
+    received: datetime | None = None,
 ):
     """
     Given a failing check-in, mark the monitor environment as failed and trigger
@@ -92,12 +93,14 @@ def mark_failed(
         use_issue_platform = False
 
     if use_issue_platform:
-        return mark_failed_threshold(failed_checkin, failure_issue_threshold)
+        return mark_failed_threshold(failed_checkin, failure_issue_threshold, received)
     else:
         return mark_failed_no_threshold(failed_checkin)
 
 
-def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshold: int):
+def mark_failed_threshold(
+    failed_checkin: MonitorCheckIn, failure_issue_threshold: int, received: datetime | None
+):
     from sentry.signals import monitor_environment_failed
 
     monitor_env = failed_checkin.monitor_environment
@@ -156,11 +159,7 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
         )
         fingerprint = incident.grouphash
 
-    elif monitor_env.status in [
-        MonitorStatus.ERROR,
-        MonitorStatus.MISSED_CHECKIN,
-        MonitorStatus.TIMEOUT,
-    ]:
+    elif monitor_env.status == MonitorStatus.ERROR:
         # if monitor environment has a failed status, use the failed
         # check-in and send occurrence
         previous_checkins = [
@@ -172,7 +171,9 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
         ]
 
         # get the existing grouphash from the monitor environment
-        fingerprint = monitor_env.incident_grouphash
+        incident = monitor_env.active_incident
+        if incident:
+            fingerprint = incident.grouphash
     else:
         # don't send occurrence for other statuses
         return False
@@ -185,7 +186,7 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
     if fingerprint:
         checkins = MonitorCheckIn.objects.filter(id__in=[c["id"] for c in previous_checkins])
         for previous_checkin in checkins:
-            create_issue_platform_occurrence(previous_checkin, fingerprint)
+            create_issue_platform_occurrence(previous_checkin, fingerprint, received=received)
 
     monitor_environment_failed.send(monitor_environment=monitor_env, sender=type(monitor_env))
 
@@ -197,11 +198,7 @@ def mark_failed_no_threshold(failed_checkin: MonitorCheckIn):
 
     monitor_env = failed_checkin.monitor_environment
 
-    failed_status_map = {
-        CheckInStatus.MISSED: MonitorStatus.MISSED_CHECKIN,
-        CheckInStatus.TIMEOUT: MonitorStatus.TIMEOUT,
-    }
-    monitor_env.update(status=failed_status_map.get(failed_checkin.status, MonitorStatus.ERROR))
+    monitor_env.update(status=MonitorStatus.ERROR)
 
     # Do not create event if monitor or monitor environment is muted
     if monitor_env.monitor.is_muted or monitor_env.is_muted:
@@ -252,6 +249,7 @@ def create_legacy_event(failed_checkin: MonitorCheckIn):
 def create_issue_platform_occurrence(
     failed_checkin: MonitorCheckIn,
     fingerprint: str,
+    received: datetime | None,
 ):
     from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
     from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
@@ -305,7 +303,8 @@ def create_issue_platform_occurrence(
         "fingerprint": [fingerprint],
         "platform": "other",
         "project_id": monitor_env.monitor.project_id,
-        "received": current_timestamp.isoformat(),
+        # We set this to the time that the checkin that triggered the occurrence was written to the ingest topic
+        "received": (received if received else current_timestamp).isoformat(),
         "sdk": None,
         "tags": {
             "monitor.id": str(monitor_env.monitor.guid),

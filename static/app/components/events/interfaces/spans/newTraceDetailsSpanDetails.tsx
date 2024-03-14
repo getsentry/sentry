@@ -1,6 +1,7 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
+import * as qs from 'query-string';
 
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
@@ -10,21 +11,12 @@ import DiscoverButton from 'sentry/components/discoverButton';
 import SpanSummaryButton from 'sentry/components/events/interfaces/spans/spanSummaryButton';
 import FileSize from 'sentry/components/fileSize';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {
-  ErrorDot,
-  ErrorLevel,
-  ErrorMessageContent,
-  ErrorMessageTitle,
-  ErrorTitle,
-} from 'sentry/components/performance/waterfall/rowDetails';
 import Pill from 'sentry/components/pill';
 import Pills from 'sentry/components/pills';
 import {TransactionToProfileButton} from 'sentry/components/profiling/transactionToProfileButton';
-import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {ALL_ACCESS_PROJECTS, PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
-import {t, tn} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import type {EventTransaction} from 'sentry/types/event';
@@ -35,15 +27,21 @@ import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import type {
-  TraceErrorOrIssue,
+  TraceError,
   TraceFullDetailed,
+  TracePerformanceIssue,
 } from 'sentry/utils/performance/quickTrace/types';
+import {safeURL} from 'sentry/utils/url/safeURL';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {CustomMetricsEventData} from 'sentry/views/ddm/customMetricsEventData';
+import IssueList from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issueList';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils';
+import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
+import {ModuleName} from 'sentry/views/starfish/types';
+import {resolveSpanModule} from 'sentry/views/starfish/utils/resolveSpanModule';
 
 import {OpsDot} from '../../opsBreakdown';
 
@@ -55,18 +53,14 @@ import type {ParsedTraceType, RawSpanType} from './types';
 import {rawSpanKeys} from './types';
 import type {SubTimingInfo} from './utils';
 import {
-  getCumulativeAlertLevelFromErrors,
   getFormattedTimeRangeWithLeadingAndTrailingZero,
   getSpanSubTimings,
   getTraceDateTimeRange,
-  isErrorPerformanceError,
   isGapSpan,
   isHiddenDataKey,
   isOrphanSpan,
   scrollToSpan,
 } from './utils';
-
-const DEFAULT_ERRORS_VISIBLE = 5;
 
 const SIZE_DATA_KEYS = [
   'Encoded Body Size',
@@ -87,20 +81,28 @@ type TransactionResult = {
 
 export type SpanDetailProps = {
   childTransactions: TraceFullDetailed[] | null;
+  errors: TraceError[];
   event: Readonly<EventTransaction>;
   openPanel: string | undefined;
   organization: Organization;
-  relatedErrors: TraceErrorOrIssue[] | null;
+  performanceIssues: TracePerformanceIssue[];
   span: RawSpanType;
   trace: Readonly<ParsedTraceType>;
 };
 
 function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
-  const [errorsOpened, setErrorsOpened] = useState(false);
   const location = useLocation();
   const profileId = props.event.contexts.profile?.profile_id || '';
   const {projects} = useProjects();
   const project = projects.find(p => p.id === props.event.projectID);
+  const resolvedModule: ModuleName = resolveSpanModule(
+    props.span.sentry_tags?.op,
+    props.span.sentry_tags?.category
+  );
+
+  const relatedIssues = useMemo(() => {
+    return [...props.errors, ...props.performanceIssues];
+  }, [props.errors, props.performanceIssues]);
 
   useEffect(() => {
     // Run on mount.
@@ -281,60 +283,16 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
     );
   }
 
-  function toggleErrors() {
-    setErrorsOpened(prevErrorsOpened => !prevErrorsOpened);
-  }
-
   function renderSpanErrorMessage() {
-    const {span, organization, relatedErrors} = props;
+    const {span, organization, errors, performanceIssues} = props;
 
-    if (!relatedErrors || relatedErrors.length <= 0 || isGapSpan(span)) {
+    const hasErrors = errors.length > 0 || performanceIssues.length > 0;
+
+    if (!hasErrors || isGapSpan(span)) {
       return null;
     }
 
-    const visibleErrors = errorsOpened
-      ? relatedErrors
-      : relatedErrors.slice(0, DEFAULT_ERRORS_VISIBLE);
-
-    return (
-      <Alert type={getCumulativeAlertLevelFromErrors(relatedErrors)} system>
-        <ErrorMessageTitle>
-          {tn(
-            '%s error event or performance issue is associated with this span.',
-            '%s error events or performance issues are associated with this span.',
-            relatedErrors.length
-          )}
-        </ErrorMessageTitle>
-        <Fragment>
-          {visibleErrors.map(error => (
-            <ErrorMessageContent
-              key={error.event_id}
-              excludeLevel={isErrorPerformanceError(error)}
-            >
-              {isErrorPerformanceError(error) ? (
-                <ErrorDot level="error" />
-              ) : (
-                <Fragment>
-                  <ErrorDot level={error.level} />
-                  <ErrorLevel>{error.level}</ErrorLevel>
-                </Fragment>
-              )}
-
-              <ErrorTitle>
-                <Link to={generateIssueEventTarget(error, organization)}>
-                  {error.title}
-                </Link>
-              </ErrorTitle>
-            </ErrorMessageContent>
-          ))}
-        </Fragment>
-        {relatedErrors.length > DEFAULT_ERRORS_VISIBLE && (
-          <ErrorToggle size="xs" onClick={toggleErrors}>
-            {errorsOpened ? t('Show less') : t('Show more')}
-          </ErrorToggle>
-        )}
-      </Alert>
-    );
+    return <IssueList organization={organization} issues={relatedIssues} />;
   }
 
   function partitionSizes(data): {
@@ -467,11 +425,27 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                   {profileId}
                 </Row>
               )}
-              <Row title={t('Description')} extra={renderSpanDetailActions()}>
-                {span?.description ?? ''}
-              </Row>
               <Row title={t('Status')}>{span.status || ''}</Row>
               <Row title={t('Duration')}>{durationString}</Row>
+              <SpanHTTPInfo span={props.span} />
+              <Row
+                title={
+                  resolvedModule === ModuleName.DB && span.op?.startsWith('db')
+                    ? t('Database Query')
+                    : t('Description')
+                }
+                extra={renderSpanDetailActions()}
+              >
+                {resolvedModule === ModuleName.DB ? (
+                  <SpanDescription
+                    groupId={span.sentry_tags?.group ?? ''}
+                    op={span.op ?? ''}
+                    preliminaryDescription={span.description}
+                  />
+                ) : (
+                  span.description
+                )}
+              </Row>
               <Row title={t('Date Range')}>
                 {getDynamicText({
                   fixed: 'Mar 16, 2020 9:10:12 AM UTC',
@@ -577,6 +551,31 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   );
 }
 
+function SpanHTTPInfo({span}: {span: RawSpanType}) {
+  if (span.op === 'http.client' && span.description) {
+    const [method, url] = span.description.split(' ');
+
+    const parsedURL = safeURL(url);
+    const queryString = qs.parse(parsedURL?.search ?? '');
+
+    return parsedURL ? (
+      <Fragment>
+        <Row title={t('HTTP Method')}>{method}</Row>
+        <Row title={t('URL')}>
+          {parsedURL ? parsedURL?.origin + parsedURL?.pathname : 'failed to parse URL'}
+        </Row>
+        <Row title={t('Query')}>
+          {parsedURL
+            ? JSON.stringify(queryString, null, 2)
+            : 'failed to parse query string'}
+        </Row>
+      </Fragment>
+    ) : null;
+  }
+
+  return null;
+}
+
 function RowTimingPrefix({timing}: {timing: SubTimingInfo}) {
   return <OpsDot style={{backgroundColor: timing.color}} />;
 }
@@ -635,10 +634,6 @@ function TextTr({children}) {
     </tr>
   );
 }
-
-const ErrorToggle = styled(Button)`
-  margin-top: ${space(0.75)};
-`;
 
 const SpanIdTitle = styled('a')`
   display: flex;

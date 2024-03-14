@@ -13,10 +13,12 @@ class SlackRuleSaveEditMessageBuilder(BlockSlackMessageBuilder):
         self,
         rule: Rule,
         new: bool,
+        changed: dict | None = None,
     ) -> None:
         super().__init__()
         self.rule = rule
         self.new = new
+        self.changed = changed
 
     def linkify_rule(self):
         org_slug = self.rule.project.organization.slug
@@ -40,12 +42,20 @@ class SlackRuleSaveEditMessageBuilder(BlockSlackMessageBuilder):
         rule_url = self.linkify_rule()
         project = self.rule.project.slug
         if self.new:
-            rule_text = f"{rule_url} was created in the *{project}* project and will send notifications here."
+            rule_text = f"Alert rule {rule_url} was created in the *{project}* project and will send notifications here."
         else:
-            rule_text = f"{rule_url} in the *{project}* project was updated."
+            rule_text = f"Alert rule {rule_url} in the *{project}* project was updated."
+            # TODO potentially use old name if it's changed?
 
-        # TODO add short summary of the trigger & filter conditions
         blocks.append(self.get_markdown_block(rule_text))
+
+        if not self.new and self.changed:
+            changes_text = "*Changes*\n"
+            for changes in self.changed.values():
+                for change in changes:
+                    changes_text += f"• {change}\n"
+
+            blocks.append(self.get_markdown_block(changes_text))
 
         settings_link = self.get_settings_url()
         blocks.append(self.get_context_block(settings_link))

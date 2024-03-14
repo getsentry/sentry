@@ -3,18 +3,21 @@ import type {
   RawBreadcrumbFrame,
   RawSpanFrame,
   RecordingFrame,
+  VideoEvent,
 } from 'sentry/utils/replays/types';
 import {
   isBreadcrumbFrameEvent,
   isOptionFrameEvent,
   isRecordingFrame,
   isSpanFrameEvent,
+  isVideoFrameEvent,
 } from 'sentry/utils/replays/types';
 
 export default function hydrateFrames(attachments: unknown[]) {
   const rrwebFrames: RecordingFrame[] = [];
   const breadcrumbFrames: RawBreadcrumbFrame[] = [];
   const spanFrames: RawSpanFrame[] = [];
+  const videoFrames: VideoEvent[] = [];
   let optionFrame = undefined as OptionFrame | undefined;
 
   attachments.forEach(attachment => {
@@ -31,6 +34,12 @@ export default function hydrateFrames(attachments: unknown[]) {
       spanFrames.push(attachment.data.payload);
     } else if (isOptionFrameEvent(attachment)) {
       optionFrame = attachment.data.payload;
+    } else if (isVideoFrameEvent(attachment) && attachment.data.payload.duration > 0) {
+      videoFrames.push({
+        duration: attachment.data.payload.duration,
+        id: attachment.data.payload.segmentId,
+        timestamp: attachment.timestamp,
+      });
     } else if (isRecordingFrame(attachment)) {
       rrwebFrames.push(attachment);
     }
@@ -41,5 +50,6 @@ export default function hydrateFrames(attachments: unknown[]) {
     optionFrame,
     rrwebFrames,
     spanFrames,
+    videoFrames,
   };
 }

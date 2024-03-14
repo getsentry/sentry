@@ -442,7 +442,13 @@ function renderBodyCell(op?: string, unit?: string) {
     }
 
     if (col.key === 'trace') {
-      return <TraceId traceId={dataRow.trace} />;
+      return (
+        <TraceId
+          traceId={dataRow.trace}
+          timestamp={dataRow.timestamp}
+          eventId={dataRow.id}
+        />
+      );
     }
 
     if (col.key === 'profile.id') {
@@ -526,6 +532,12 @@ function SpanDescription({
     projectID: String(projects[0]?.id ?? ''),
   });
 
+  const contents = description ? (
+    <Fragment>{description}</Fragment>
+  ) : (
+    <EmptyValueContainer>{t('(no value)')}</EmptyValueContainer>
+  );
+
   return (
     <Container>
       <StyledHovercard
@@ -564,7 +576,7 @@ function SpanDescription({
         }
         showUnderline
       >
-        <Link to={transactionDetailsTarget}>{description}</Link>
+        <Link to={transactionDetailsTarget}>{contents}</Link>
       </StyledHovercard>
     </Container>
   );
@@ -611,9 +623,20 @@ function TimestampRenderer({timestamp}: {timestamp: DateString}) {
   );
 }
 
-function TraceId({traceId}: {traceId: string}) {
+function TraceId({
+  traceId,
+  timestamp,
+  eventId,
+}: {
+  traceId: string;
+  eventId?: string;
+  timestamp?: DateString;
+}) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const stringOrNumberTimestamp =
+    timestamp instanceof Date ? timestamp.toISOString() : timestamp ?? '';
+
   const target = getTraceDetailsUrl(
     organization,
     traceId,
@@ -622,7 +645,9 @@ function TraceId({traceId}: {traceId: string}) {
       end: selection.datetime.end,
       statsPeriod: selection.datetime.period,
     },
-    {}
+    {},
+    stringOrNumberTimestamp,
+    eventId
   );
   return (
     <Container>
@@ -686,4 +711,8 @@ const LegendDot = styled('div')<{color: string}>`
   height: ${space(1)};
   border-radius: 100%;
   background-color: ${p => p.theme[p.color] ?? p.color};
+`;
+
+const EmptyValueContainer = styled('span')`
+  color: ${p => p.theme.gray300};
 `;
