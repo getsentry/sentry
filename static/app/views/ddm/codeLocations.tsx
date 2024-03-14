@@ -13,7 +13,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Frame, MRI} from 'sentry/types';
 import type {MetricCodeLocationFrame} from 'sentry/utils/metrics/types';
-import {useMetricCodeLocations} from 'sentry/utils/metrics/useMetricsCorrelations';
+import {useMetricCodeLocations} from 'sentry/utils/metrics/useMetricsCodeLocations';
 import type {SelectionRange} from 'sentry/views/ddm/chart/types';
 
 interface CodeLocationsProps extends SelectionRange {

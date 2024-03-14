@@ -14,7 +14,6 @@ import type {MetricsQueryApiQueryParams} from 'sentry/utils/metrics/useMetricsQu
 import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {DDM_CHART_GROUP, MIN_WIDGET_WIDTH} from 'sentry/views/ddm/constants';
 import {useDDMContext} from 'sentry/views/ddm/context';
@@ -24,7 +23,6 @@ import {type TokenList, TokenType} from 'sentry/views/ddm/formulaParser/types';
 import {getQuerySymbol} from 'sentry/views/ddm/querySymbol';
 import {useGetCachedChartPalette} from 'sentry/views/ddm/utils/metricsChartPalette';
 
-import type {Sample} from './widget';
 import {MetricWidget} from './widget';
 
 interface WidgetDependencies {
@@ -67,7 +65,6 @@ export function MetricScratchpad() {
 
   const router = useRouter();
   const organization = useOrganization();
-  const {projects} = useProjects();
   const getChartPalette = useGetCachedChartPalette();
 
   // Make sure all charts are connected to the same group whenever the widgets definition changes
@@ -83,22 +80,6 @@ export function MetricScratchpad() {
   );
 
   const handleSampleClick = useCallback(
-    (sample: Sample) => {
-      const project = projects.find(p => parseInt(p.id, 10) === sample.projectId);
-      router.push(
-        getMetricsCorrelationSpanUrl(
-          organization,
-          project?.slug,
-          sample.spanId,
-          sample.transactionId,
-          sample.transactionSpanId
-        )
-      );
-    },
-    [projects, router, organization]
-  );
-
-  const handleSampleClickV2 = useCallback(
     (sample: MetricsSamplesResults<Field>['data'][number]) => {
       router.push(
         getMetricsCorrelationSpanUrl(
@@ -203,7 +184,6 @@ export function MetricScratchpad() {
                   focusAreaProps={focusArea}
                   showQuerySymbols={showQuerySymbols}
                   onSampleClick={handleSampleClick}
-                  onSampleClickV2={handleSampleClickV2}
                   chartHeight={200}
                   highlightedSampleId={
                     selectedWidgetIndex === index ? highlightedSampleId : undefined
@@ -233,7 +213,6 @@ export function MetricScratchpad() {
           focusAreaProps={focusArea}
           showQuerySymbols={false}
           onSampleClick={handleSampleClick}
-          onSampleClickV2={handleSampleClickV2}
           chartHeight={200}
           highlightedSampleId={highlightedSampleId}
           metricsSamples={metricsSamples}
