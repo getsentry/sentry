@@ -8,7 +8,6 @@ export function MemberFixture(params: Partial<Member> = {}): Member {
     email: 'sentry1@test.com',
     name: 'Sentry 1 Name',
     orgRole: 'member',
-    groupOrgRoles: [],
     teamRoles: [],
     role: 'member',
     roleName: 'Member',

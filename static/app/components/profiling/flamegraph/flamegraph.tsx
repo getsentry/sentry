@@ -62,7 +62,6 @@ import type {ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
 import {formatTo, fromNanoJoulesToWatts} from 'sentry/utils/profiling/units/units';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
-import useOrganization from 'sentry/utils/useOrganization';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 import {
   useProfileTransaction,
@@ -194,7 +193,6 @@ const LOADING_OR_FALLBACK_MEMORY_CHART = FlamegraphChartModel.Empty;
 const noopFormatDuration = () => '';
 
 function Flamegraph(): ReactElement {
-  const organization = useOrganization();
   const devicePixelRatio = useDevicePixelRatio();
   const profiledTransaction = useProfileTransaction();
   const dispatch = useDispatchFlamegraphState();
@@ -237,35 +235,23 @@ function Flamegraph(): ReactElement {
 
   const hasUIFrames = useMemo(() => {
     const platform = profileGroup.metadata.platform;
-    return (
-      (platform === 'cocoa' || platform === 'android') &&
-      organization.features.includes('profiling-ui-frames')
-    );
-  }, [organization.features, profileGroup.metadata.platform]);
+    return platform === 'cocoa' || platform === 'android';
+  }, [profileGroup.metadata.platform]);
 
   const hasBatteryChart = useMemo(() => {
     const platform = profileGroup.metadata.platform;
-    return (
-      platform === 'cocoa' &&
-      organization.features.includes('profiling-battery-usage-chart')
-    );
-  }, [profileGroup.metadata.platform, organization.features]);
+    return platform === 'cocoa';
+  }, [profileGroup.metadata.platform]);
 
   const hasCPUChart = useMemo(() => {
     const platform = profileGroup.metadata.platform;
-    return (
-      (platform === 'cocoa' || platform === 'android' || platform === 'node') &&
-      organization.features.includes('profiling-cpu-chart')
-    );
-  }, [profileGroup.metadata.platform, organization.features]);
+    return platform === 'cocoa' || platform === 'android' || platform === 'node';
+  }, [profileGroup.metadata.platform]);
 
   const hasMemoryChart = useMemo(() => {
     const platform = profileGroup.metadata.platform;
-    return (
-      (platform === 'cocoa' || platform === 'android' || platform === 'node') &&
-      organization.features.includes('profiling-memory-chart')
-    );
-  }, [profileGroup.metadata.platform, organization.features]);
+    return platform === 'cocoa' || platform === 'android' || platform === 'node';
+  }, [profileGroup.metadata.platform]);
 
   const profile = useMemo(() => {
     return profileGroup.profiles.find(p => p.threadId === threadId);

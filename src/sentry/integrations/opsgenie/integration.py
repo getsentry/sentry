@@ -116,14 +116,12 @@ class OpsgenieIntegration(IntegrationInstallation):
     def get_keyring_client(self, keyid: str) -> OpsgenieClient:
         org_integration = self.org_integration
         assert org_integration, "OrganizationIntegration is required"
-        team = get_team(keyid, org_integration)
+        team = get_team(team_id=keyid, org_integration=org_integration)
         assert team, "Cannot get client for unknown team"
 
         return OpsgenieClient(
             integration=self.model,
             integration_key=team["integration_key"],
-            org_integration_id=org_integration.id,
-            keyid=keyid,
         )
 
     def get_client(self) -> Any:  # type: ignore

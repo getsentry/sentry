@@ -6,7 +6,7 @@ import {space} from 'sentry/styles/space';
 
 const cellBackground = (p: CellProps & {theme: Theme}) => {
   if (p.isSelected) {
-    return `background-color: ${p.theme.black};`;
+    return `background-color: ${p.theme.purple300};`;
   }
   if (p.isStatusError) {
     return `background-color: ${p.theme.red100};`;
@@ -19,20 +19,11 @@ const cellBackground = (p: CellProps & {theme: Theme}) => {
 
 const cellColor = (p: CellProps & {theme: Theme}) => {
   if (p.isSelected) {
-    const color = p.isStatusError
-      ? p.theme.red300
-      : p.isStatusWarning
-        ? p.theme.yellow300
-        : p.theme.white;
+    const color = p.theme.white;
     return `color: ${color};`;
   }
-  const colors = p.isStatusError
-    ? [p.theme.red300, p.theme.red400]
-    : p.isStatusWarning
-      ? [p.theme.textColor, p.theme.subText]
-      : ['inherit', p.theme.subText];
 
-  return `color: ${p.hasOccurred !== false ? colors[0] : colors[1]};`;
+  return `color: inherit`;
 };
 
 type CellProps = {

@@ -9,7 +9,6 @@ from django.urls import reverse
 from sentry import eventstore
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL
 from sentry.models.eventattachment import EventAttachment
-from sentry.models.files.file import File
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
@@ -109,14 +108,10 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
         hello, minidump = attachments
 
         assert hello.name == "hello.txt"
-        hello_file = File.objects.get(id=hello.file_id)
-        assert hello_file.type == "event.attachment"
-        assert hello_file.checksum == "2ef7bde608ce5404e97d5f042f95f89f1c232871"
+        assert hello.sha1 == "2ef7bde608ce5404e97d5f042f95f89f1c232871"
 
         assert minidump.name == "windows.dmp"
-        minidump_file = File.objects.get(id=minidump.file_id)
-        assert minidump_file.type == "event.minidump"
-        assert minidump_file.checksum == "74bb01c850e8d65d3ffbc5bad5cabc4668fce247"
+        assert minidump.sha1 == "74bb01c850e8d65d3ffbc5bad5cabc4668fce247"
 
     def test_full_minidump_json_extra(self):
         self.project.update_option("sentry:store_crash_reports", STORE_CRASH_REPORTS_ALL)
@@ -202,9 +197,7 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
             )
 
             assert minidump.name == "windows.dmp"
-            minidump_file = File.objects.get(id=minidump.file_id)
-            assert minidump_file.type == "event.minidump"
-            assert minidump_file.checksum == "74bb01c850e8d65d3ffbc5bad5cabc4668fce247"
+            assert minidump.sha1 == "74bb01c850e8d65d3ffbc5bad5cabc4668fce247"
 
     def test_minidump_threadnames(self):
         self.project.update_option("sentry:store_crash_reports", STORE_CRASH_REPORTS_ALL)

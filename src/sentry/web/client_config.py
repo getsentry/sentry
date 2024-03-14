@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping, MutableMapping
+from collections.abc import Iterable, Mapping
 from functools import cached_property
 from typing import Any
 
@@ -8,8 +8,11 @@ import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.messages import get_messages
+from django.contrib.sessions.backends.base import SessionBase
 from django.core.cache import cache
+from django.http import HttpRequest
 from packaging.version import parse as parse_version
+from rest_framework.request import Request
 
 import sentry
 from sentry import features, options
@@ -17,19 +20,29 @@ from sentry.api.utils import generate_organization_url, generate_region_url
 from sentry.auth import superuser
 from sentry.auth.superuser import is_active_superuser
 from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.auth import AuthenticatedToken, AuthenticationContext
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.organization import (
+    RpcOrganization,
+    RpcUserOrganizationContext,
+    organization_service,
+)
 from sentry.services.hybrid_cloud.project_key import ProjectKeyRole, project_key_service
 from sentry.services.hybrid_cloud.user import UserSerializeType
 from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo.base import SiloMode
-from sentry.types.region import find_all_multitenant_region_names, get_region_by_name
+from sentry.types.region import (
+    Region,
+    RegionCategory,
+    find_all_multitenant_region_names,
+    get_region_by_name,
+)
 from sentry.utils import auth, json
 from sentry.utils.assets import get_frontend_dist_prefix
 from sentry.utils.email import is_smtp_enabled
 from sentry.utils.http import is_using_customer_domain
-from sentry.utils.settings import is_self_hosted
+from sentry.utils.settings import is_self_hosted, should_show_beacon_consent_prompt
 from sentry.utils.support import get_support_mail
 
 
@@ -75,11 +88,11 @@ def _needs_upgrade():
     return False
 
 
-def _get_statuspage():
-    id = settings.STATUS_PAGE_ID
-    if id is None:
+def _get_statuspage() -> dict[str, str] | None:
+    page_id: str | None = settings.STATUS_PAGE_ID
+    if page_id is None:
         return None
-    return {"id": id, "api_host": settings.STATUS_PAGE_API_HOST}
+    return {"id": page_id, "api_host": settings.STATUS_PAGE_API_HOST}
 
 
 def _get_public_dsn() -> str | None:
@@ -89,7 +102,7 @@ def _get_public_dsn() -> str | None:
     if settings.IS_DEV and not settings.SENTRY_USE_RELAY:
         return ""
 
-    project_id = settings.SENTRY_FRONTEND_PROJECT or settings.SENTRY_PROJECT
+    project_id: int | None = settings.SENTRY_FRONTEND_PROJECT or settings.SENTRY_PROJECT
     if project_id is None:
         return None
 
@@ -115,13 +128,22 @@ def _delete_activeorg(session):
         del session["activeorg"]
 
 
-def _resolve_last_org(session, user, org_context=None):
+def _resolve_last_org(
+    request: HttpRequest | None,
+    session: SessionBase | None,
+    user: AnonymousUser | User | None,
+    org_context: RpcUserOrganizationContext | None = None,
+) -> RpcOrganization | None:
+    user_is_authenticated = (
+        user is not None and not isinstance(user, AnonymousUser) and user.is_authenticated
+    )
+
     if org_context is None:
         last_org_slug = session["activeorg"] if session and "activeorg" in session else None
         if not last_org_slug:
             return None
 
-        if user is not None and not isinstance(user, AnonymousUser):
+        if user_is_authenticated and user is not None:
             org_context = organization_service.get_organization_by_slug(
                 slug=last_org_slug,
                 only_visible=False,
@@ -130,23 +152,34 @@ def _resolve_last_org(session, user, org_context=None):
                 include_teams=False,
             )
 
-    if org_context and org_context.member:
+    has_org_access = bool(org_context and org_context.member)
+
+    if not has_org_access and user_is_authenticated:
+        has_org_access = request is not None and superuser.is_active_superuser(request)
+
+    if org_context and has_org_access:
         return org_context.organization
 
     return None
 
 
 class _ClientConfig:
-    def __init__(self, request=None, org_context=None) -> None:
+    def __init__(
+        self,
+        request: Request | None = None,
+        org_context: RpcUserOrganizationContext | None = None,
+    ) -> None:
         self.request = request
         if request is not None:
-            self.user = getattr(request, "user", None) or AnonymousUser()
-            self.session = getattr(request, "session", None)
+            self.user: User | AnonymousUser | None = (
+                getattr(request, "user", None) or AnonymousUser()
+            )
+            self.session: SessionBase | None = getattr(request, "session", None)
         else:
             self.user = None
             self.session = None
 
-        self.last_org = _resolve_last_org(self.session, self.user, org_context)
+        self.last_org = _resolve_last_org(request, self.session, self.user, org_context)
 
     @property
     def last_org_slug(self) -> str | None:
@@ -258,9 +291,9 @@ class _ClientConfig:
         yield "regionUrl", region_url
         yield "sentryUrl", options.get("system.url-prefix")
 
-        if self._is_superuser() and superuser.ORG_ID is not None:
+        if self._is_superuser() and superuser.SUPERUSER_ORG_ID is not None:
             org_context = organization_service.get_organization_by_id(
-                id=superuser.ORG_ID,
+                id=superuser.SUPERUSER_ORG_ID,
                 user_id=None,
                 include_projects=False,
                 include_teams=False,
@@ -296,24 +329,58 @@ class _ClientConfig:
         """
         The regions available to the current user.
 
-        This will include *all* multi-tenant regions, and if the customer
+        This will include *all* multi-tenant regions, and if the user
         has membership on any single-tenant regions those will also be included.
         """
         user = self.user
+
+        # Only expose visible regions.
+        # When new regions are added they can take some work to get working correctly.
+        # Before they are working we need ways to bring parts of the region online without
+        # exposing the region to customers.
         region_names = find_all_multitenant_region_names()
+
         if not region_names:
             return [{"name": "default", "url": options.get("system.url-prefix")}]
 
-        # No logged in user.
+        # Show all visible multi-tenant regions to unauthenticated users as they could
+        # create a new account
         if not user or not user.id:
-            return [get_region_by_name(region).api_serialize() for region in region_names]
+            return [get_region_by_name(name).api_serialize() for name in region_names]
 
+        # TODO(hybridcloud) Have a an RPC for regionmembership for efficiency
         # Ensure all regions the current user is in are included as there
-        # could be single tenants as well.
+        # could be single tenants or hidden regions
         memberships = user_service.get_organizations(user_id=user.id)
         unique_regions = set(region_names) | {membership.region_name for membership in memberships}
 
-        return [get_region_by_name(name).api_serialize() for name in unique_regions]
+        def region_display_order(region: Region) -> tuple[bool, bool, str]:
+            return (
+                not region.is_historic_monolith_region(),  # default region comes first
+                region.category != RegionCategory.MULTI_TENANT,  # multi-tenants before single
+                region.name,  # then sort alphabetically
+            )
+
+        regions = [get_region_by_name(name) for name in unique_regions]
+        regions.sort(key=region_display_order)
+        return [region.api_serialize() for region in regions]
+
+    @property
+    def member_regions(self) -> list[Mapping[str, Any]]:
+        """
+        The regions the user has membership in. Includes single-tenant regions.
+        """
+        user = self.user
+        # If the user is not authenticated they have no region membership
+        if not user or not user.id:
+            return []
+
+        # TODO(hybridcloud) Have a an RPC for regionmembership for efficiency
+        memberships = user_service.get_organizations(user_id=user.id)
+        region_names = {membership.region_name for membership in memberships}
+        regions = [get_region_by_name(name) for name in region_names]
+        regions.sort(key=lambda r: r.name)
+        return [r.api_serialize() for r in regions]
 
     def get_context(self) -> Mapping[str, Any]:
         return {
@@ -333,6 +400,8 @@ class _ClientConfig:
             # Maintain isOnPremise key for backcompat (plugins?).
             "isOnPremise": is_self_hosted(),
             "isSelfHosted": is_self_hosted(),
+            "shouldShowBeaconConsentPrompt": not self.needs_upgrade
+            and should_show_beacon_consent_prompt(),
             "invitesEnabled": settings.SENTRY_ENABLE_INVITES,
             "gravatarBaseUrl": settings.SENTRY_GRAVATAR_BASE_URL,
             "termsUrl": settings.TERMS_URL,
@@ -360,6 +429,7 @@ class _ClientConfig:
                 "allowUrls": self.allow_list,
                 "tracePropagationTargets": settings.SENTRY_FRONTEND_TRACE_PROPAGATION_TARGETS or [],
             },
+            "memberRegions": self.member_regions,
             "regions": self.regions,
             "relocationConfig": {"selectableRegions": options.get("relocation.selectable-regions")},
             "demoMode": settings.DEMO_MODE,
@@ -374,7 +444,9 @@ class _ClientConfig:
         }
 
 
-def get_client_config(request=None, org_context=None) -> MutableMapping[str, Any]:
+def get_client_config(
+    request=None, org_context: RpcUserOrganizationContext | None = None
+) -> Mapping[str, Any]:
     """
     Provides initial bootstrap data needed to boot the frontend application.
     """

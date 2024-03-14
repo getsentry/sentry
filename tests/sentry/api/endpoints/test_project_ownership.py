@@ -14,7 +14,6 @@ from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
@@ -80,6 +79,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             "dateCreated": None,
             "lastUpdated": None,
             "codeownersAutoSync": True,
+            "schema": None,
         }
 
     def test_update(self):
@@ -91,7 +91,6 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert resp.data["dateCreated"] is not None
         assert resp.data["lastUpdated"] is not None
         assert resp.data["codeownersAutoSync"] is True
-        assert "schema" not in resp.data.keys()
 
         resp = self.client.put(self.path, {"fallthrough": False})
         assert resp.status_code == 200
@@ -187,8 +186,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert len(auditlog) == 1
         assert "modified" in auditlog[0].data["ownership_rules"]
 
-    @with_feature("organizations:streamline-targeting-context")
-    def test_update_with_streamline_targeting(self):
+    def test_update_schema(self):
         resp = self.client.put(self.path, {"raw": "*.js admin@localhost #tiger-team"})
         assert resp.data["schema"] == {
             "$version": 1,
@@ -204,41 +202,35 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         }
 
     def test_get(self):
-        # Test put + get without the streamline-targeting-context flag
         self.client.put(self.path, {"raw": "*.js admin@localhost #tiger-team"})
-        resp_no_schema = self.client.get(self.path)
-        assert "schema" not in resp_no_schema.data.keys()
-
-        # Test get after with the streamline-targeting-context flag
-        with self.feature({"organizations:streamline-targeting-context": True}):
-            resp = self.client.get(self.path)
-            assert resp.data["schema"] == {
-                "$version": 1,
-                "rules": [
-                    {
-                        "matcher": {"type": "path", "pattern": "*.js"},
-                        "owners": [
-                            {"type": "user", "id": self.user.id, "name": "admin@localhost"},
-                            {"type": "team", "id": self.team.id, "name": "tiger-team"},
-                        ],
-                    }
-                ],
-            }
-
-            # Assert that "identifier" is not renamed to "name" in the backend
-            ownership = ProjectOwnership.objects.get(project=self.project)
-            assert ownership.schema["rules"] == [
+        resp = self.client.get(self.path)
+        assert "schema" in resp.data.keys()
+        assert resp.data["schema"] == {
+            "$version": 1,
+            "rules": [
                 {
                     "matcher": {"type": "path", "pattern": "*.js"},
                     "owners": [
-                        {"type": "user", "identifier": "admin@localhost", "id": self.user.id},
-                        {"type": "team", "identifier": "tiger-team", "id": self.team.id},
+                        {"type": "user", "id": self.user.id, "name": "admin@localhost"},
+                        {"type": "team", "id": self.team.id, "name": "tiger-team"},
                     ],
                 }
-            ]
+            ],
+        }
 
-    @with_feature("organizations:streamline-targeting-context")
-    def test_get_empty_with_streamline_targeting(self):
+        # Assert that "identifier" is not renamed to "name" in the backend
+        ownership = ProjectOwnership.objects.get(project=self.project)
+        assert ownership.schema["rules"] == [
+            {
+                "matcher": {"type": "path", "pattern": "*.js"},
+                "owners": [
+                    {"type": "user", "identifier": "admin@localhost", "id": self.user.id},
+                    {"type": "team", "identifier": "tiger-team", "id": self.team.id},
+                ],
+            }
+        ]
+
+    def test_get_empty_schema(self):
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         assert resp.data == {
@@ -252,7 +244,27 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             "schema": None,
         }
 
-    def test_get_rule_deleted_owner_with_streamline_targeting(self):
+    def test_get_schema_empty_raw(self):
+        # Create ProjectOwnership...
+        self.client.put(self.path, {"raw": "*.js admin@localhost #tiger-team"})
+        # ...then remove its contents
+        self.client.put(self.path, {"raw": ""})
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        expected_data = {
+            "raw": None,
+            "fallthrough": True,
+            "autoAssignment": "Auto Assign to Issue Owner",
+            "isActive": True,
+            "codeownersAutoSync": True,
+            "schema": None,
+        }
+        for k in expected_data:
+            assert expected_data[k] == resp.data[k]
+        assert resp.data["dateCreated"] is not None
+        assert resp.data["lastUpdated"] is not None
+
+    def test_get_rule_deleted_owner(self):
         self.member_user_delete = self.create_user("member_delete@localhost", is_superuser=False)
         self.create_member(
             user=self.member_user_delete,
@@ -260,26 +272,22 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             role="member",
             teams=[self.team],
         )
-        # Put without the streamline-targeting-context flag
         self.client.put(self.path, {"raw": "*.js member_delete@localhost #tiger-team"})
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.member_user_delete.delete()
+        resp = self.client.get(self.path)
+        assert resp.data["schema"] == {
+            "$version": 1,
+            "rules": [
+                {
+                    "matcher": {"type": "path", "pattern": "*.js"},
+                    "owners": [{"type": "team", "name": "tiger-team", "id": self.team.id}],
+                }
+            ],
+        }
 
-        # Get after with the streamline-targeting-context flag
-        with self.feature({"organizations:streamline-targeting-context": True}):
-            resp = self.client.get(self.path)
-            assert resp.data["schema"] == {
-                "$version": 1,
-                "rules": [
-                    {
-                        "matcher": {"type": "path", "pattern": "*.js"},
-                        "owners": [{"type": "team", "name": "tiger-team", "id": self.team.id}],
-                    }
-                ],
-            }
-
-    def test_get_no_rule_deleted_owner_with_streamline_targeting(self):
+    def test_get_no_rule_deleted_owner(self):
         self.member_user_delete = self.create_user("member_delete@localhost", is_superuser=False)
         self.create_member(
             user=self.member_user_delete,
@@ -287,18 +295,15 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             role="member",
             teams=[self.team],
         )
-        # Put without the streamline-targeting-context flag
         self.client.put(self.path, {"raw": "*.js member_delete@localhost"})
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.member_user_delete.delete()
 
-        # Get after with the streamline-targeting-context flag
-        with self.feature({"organizations:streamline-targeting-context": True}):
-            resp = self.client.get(self.path)
-            assert resp.data["schema"] == {"$version": 1, "rules": []}
+        resp = self.client.get(self.path)
+        assert resp.data["schema"] == {"$version": 1, "rules": []}
 
-    def test_get_multiple_rules_deleted_owners_with_streamline_targeting(self):
+    def test_get_multiple_rules_deleted_owners(self):
         self.member_user_delete = self.create_user("member_delete@localhost", is_superuser=False)
         self.create_member(
             user=self.member_user_delete,
@@ -313,7 +318,6 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             role="member",
             teams=[self.team],
         )
-        # Put without the streamline-targeting-context flag
         self.client.put(
             self.path,
             {
@@ -325,24 +329,22 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             self.member_user_delete.delete()
             self.member_user_delete2.delete()
 
-        # Get after with the streamline-targeting-context flag
-        with self.feature({"organizations:streamline-targeting-context": True}):
-            resp = self.client.get(self.path)
-            assert resp.data["schema"] == {
-                "$version": 1,
-                "rules": [
-                    {
-                        "matcher": {"pattern": "*.py", "type": "path"},
-                        "owners": [{"id": self.team.id, "name": "tiger-team", "type": "team"}],
-                    },
-                    {
-                        "matcher": {"pattern": "*.rb", "type": "path"},
-                        "owners": [
-                            {"id": self.member_user.id, "name": "member@localhost", "type": "user"}
-                        ],
-                    },
-                ],
-            }
+        resp = self.client.get(self.path)
+        assert resp.data["schema"] == {
+            "$version": 1,
+            "rules": [
+                {
+                    "matcher": {"pattern": "*.py", "type": "path"},
+                    "owners": [{"id": self.team.id, "name": "tiger-team", "type": "team"}],
+                },
+                {
+                    "matcher": {"pattern": "*.rb", "type": "path"},
+                    "owners": [
+                        {"id": self.member_user.id, "name": "member@localhost", "type": "user"}
+                    ],
+                },
+            ],
+        }
 
     def test_invalid_email(self):
         resp = self.client.put(self.path, {"raw": "*.js idont@exist.com #tiger-team"})

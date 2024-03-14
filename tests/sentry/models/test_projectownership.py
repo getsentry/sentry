@@ -11,6 +11,7 @@ from sentry.models.user import User
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema, resolve_actors
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import assume_test_silo_mode_of, region_silo_test
 from sentry.testutils.skips import requires_snuba
@@ -26,6 +27,7 @@ def actor_key(actor):
 @region_silo_test
 class ProjectOwnershipTestCase(TestCase):
     def setUp(self):
+        self.rpc_user = user_service.get_user(user_id=self.user.id)
         self.user2 = self.create_user("bar@localhost", username="bar")
         self.organization.member_set.create(user_id=self.user2.id)
         self.team = self.create_team(
@@ -83,12 +85,12 @@ class ProjectOwnershipTestCase(TestCase):
 
     def test_get_owners_default(self):
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
-        assert ProjectOwnership.get_owners(self.project.id, {}) == (ProjectOwnership.Everyone, None)
+        assert ProjectOwnership.get_owners(self.project.id, {}) == ([], None)
 
     def test_get_owners_no_record(self):
+        assert ProjectOwnership.get_owners(self.project.id, {}) == ([], None)
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
-        assert ProjectOwnership.get_owners(self.project.id, {}) == (ProjectOwnership.Everyone, None)
-        assert ProjectOwnership.get_owners(self.project.id, {}) == (ProjectOwnership.Everyone, None)
+        assert ProjectOwnership.get_owners(self.project.id, {}) == ([], None)
 
     def test_get_owners_basic(self):
         rule_a = Rule(Matcher("path", "*.py"), [Owner("team", self.team.slug)])
@@ -99,7 +101,7 @@ class ProjectOwnershipTestCase(TestCase):
         )
 
         # No data matches
-        assert ProjectOwnership.get_owners(self.project.id, {}) == (ProjectOwnership.Everyone, None)
+        assert ProjectOwnership.get_owners(self.project.id, {}) == ([], None)
 
         # Match only rule_a
         self.assert_ownership_equals(
@@ -125,11 +127,7 @@ class ProjectOwnershipTestCase(TestCase):
             ([ActorTuple(self.team.id, Team), ActorTuple(self.user.id, User)], [rule_a, rule_b]),
         )
 
-        assert ProjectOwnership.get_owners(
-            self.project.id, {"stacktrace": {"frames": [{"filename": "xxxx"}]}}
-        ) == (ProjectOwnership.Everyone, None)
-
-        # When fallthrough = False, we don't implicitly assign to Everyone
+        # We should be ignoring the fallthrough flag
         owner = ProjectOwnership.objects.get(project_id=self.project.id)
         owner.fallthrough = False
         owner.save()
@@ -283,7 +281,7 @@ class ProjectOwnershipTestCase(TestCase):
         assert ProjectOwnership.get_issue_owners(
             self.project2.id, {"stacktrace": {"frames": [{"filename": "src/foo.py"}]}}
         ) == [
-            (rule_b, [user_service.get_user(self.user.id)], OwnerRuleType.OWNERSHIP_RULE.value),
+            (rule_b, [self.rpc_user], OwnerRuleType.OWNERSHIP_RULE.value),
             (rule_a, [self.team], OwnerRuleType.OWNERSHIP_RULE.value),
         ]
 
@@ -496,6 +494,25 @@ class ProjectOwnershipTestCase(TestCase):
         assignee = GroupAssignee.objects.get(group=self.event.group)
         assert assignee.team_id == self.team.id
 
+    def test_no_group_owner(self):
+        self.event = self.store_event(
+            data=self.python_event_data(),
+            project_id=self.project2.id,
+        )
+
+        ProjectOwnership.handle_auto_assignment(self.project2.id, self.event)
+        assert len(GroupAssignee.objects.all()) == 0
+
+    @with_feature("organizations:post-process-skip-groupowner-cache")
+    def test_no_group_owner_no_cache(self):
+        self.event = self.store_event(
+            data=self.python_event_data(),
+            project_id=self.project2.id,
+        )
+
+        ProjectOwnership.handle_auto_assignment(self.project2.id, self.event)
+        assert len(GroupAssignee.objects.all()) == 0
+
     def test_handle_auto_assignment_when_suspect_committer_and_codeowners_and_issueowners_exists(
         self,
     ):
@@ -602,7 +619,7 @@ class ProjectOwnershipTestCase(TestCase):
             suspect_committer_auto_assignment=False,
             auto_assignment=False,
         )
-        assert ProjectOwnership.get_owners(self.project.id, {}) == (ProjectOwnership.Everyone, None)
+        assert ProjectOwnership.get_owners(self.project.id, {}) == ([], None)
 
     def test_force_handle_auto_assignment(self):
         # Run auto-assignment first
@@ -646,10 +663,130 @@ class ProjectOwnershipTestCase(TestCase):
         assert assignee.user_id == self.user.id
 
         # Run force auto-assignment
-        ProjectOwnership.handle_auto_assignment(self.project.id, group=self.event.group)
+        ProjectOwnership.handle_auto_assignment(
+            self.project.id,
+            group=self.event.group,
+            force_autoassign=True,
+        )
         assert len(GroupAssignee.objects.all()) == 1
         assignee = GroupAssignee.objects.get(group=self.event.group)
         assert assignee.team_id == self.team.id
+
+    def test_force_handle_auto_assignment_cache_check(self):
+        # Run auto-assignment first
+        self.code_mapping = self.create_code_mapping(project=self.project)
+
+        rule_a = Rule(Matcher("path", "*.py"), [Owner("team", self.team.slug)])
+
+        self.create_codeowners(
+            self.project, self.code_mapping, raw="*.py @tiger-team", schema=dump_schema([rule_a])
+        )
+
+        self.event = self.store_event(
+            data=self.python_event_data(),
+            project_id=self.project.id,
+        )
+        assert self.event.group is not None
+
+        GroupOwner.objects.create(
+            group=self.event.group,
+            type=GroupOwnerType.CODEOWNERS.value,
+            user_id=None,
+            team_id=self.team.id,
+            project=self.project,
+            organization=self.project.organization,
+            context={"rule": str(rule_a)},
+        )
+
+        ProjectOwnership.handle_auto_assignment(self.project.id, self.event)
+        assert len(GroupAssignee.objects.all()) == 1
+        assignee = GroupAssignee.objects.get(group=self.event.group)
+        assert assignee.team_id == self.team.id
+
+        # check cache
+        cache_key = GroupOwner.get_autoassigned_owner_cache_key(
+            self.event.group.id, self.project.id, [1, 2]
+        )
+        assert cache.get(cache_key) is not None
+
+    @with_feature("organizations:post-process-skip-groupowner-cache")
+    def test_force_handle_auto_assignment_no_cache(self):
+        # Run auto-assignment first
+        self.code_mapping = self.create_code_mapping(project=self.project)
+
+        rule_a = Rule(Matcher("path", "*.py"), [Owner("team", self.team.slug)])
+
+        self.create_codeowners(
+            self.project, self.code_mapping, raw="*.py @tiger-team", schema=dump_schema([rule_a])
+        )
+
+        self.event = self.store_event(
+            data=self.python_event_data(),
+            project_id=self.project.id,
+        )
+        assert self.event.group is not None
+
+        GroupOwner.objects.create(
+            group=self.event.group,
+            type=GroupOwnerType.CODEOWNERS.value,
+            user_id=None,
+            team_id=self.team.id,
+            project=self.project,
+            organization=self.project.organization,
+            context={"rule": str(rule_a)},
+        )
+
+        ProjectOwnership.handle_auto_assignment(self.project.id, self.event)
+        assert len(GroupAssignee.objects.all()) == 1
+        assignee = GroupAssignee.objects.get(group=self.event.group)
+        assert assignee.team_id == self.team.id
+
+        # check cache
+        cache_key = GroupOwner.get_autoassigned_owner_cache_key(
+            self.event.group.id, self.project.id, [1, 2]
+        )
+        assert cache.get(cache_key) is None
+
+    @patch("sentry.models.groupowner.GroupOwner")
+    def test_update_modifies_cache(self, mock_group_owner):
+        rule_a = Rule(Matcher("path", "*.py"), [Owner("team", self.team.slug)])
+        schema_a = dump_schema([rule_a])
+        ownership = ProjectOwnership.objects.create(project_id=self.project.id, schema=schema_a)
+        cache_key = ProjectOwnership.get_cache_key(self.project.id)
+
+        assert ProjectOwnership.get_issue_owners(
+            self.project.id,
+            {"stacktrace": {"frames": [{"filename": "foo.py"}]}},
+        ) == [(rule_a, [self.team], OwnerRuleType.OWNERSHIP_RULE.value)]
+        ownership_cache_a = cache.get(cache_key)
+        assert ownership_cache_a == ownership
+        assert ownership_cache_a.schema == schema_a
+
+        rule_b = Rule(Matcher("path", "*.py"), [Owner("user", self.user.email)])
+        schema_b = dump_schema([rule_b])
+        ownership.update(schema=schema_b)
+
+        mock_group_owner.reset_mock()
+        ownership.save()
+
+        assert ProjectOwnership.get_issue_owners(
+            self.project.id,
+            {"stacktrace": {"frames": [{"filename": "foo.py"}]}},
+        ) == [(rule_b, [self.rpc_user], OwnerRuleType.OWNERSHIP_RULE.value)]
+
+        ownership_cache_b = cache.get(cache_key)
+        assert ownership_cache_b.schema == schema_b
+        assert ownership_cache_b.schema != ownership_cache_a.schema
+
+        # Assert ingestion cache is also invalidated
+        autoassignment_types = ProjectOwnership._get_autoassignment_types(ownership=ownership)
+        mock_group_owner.invalidate_autoassigned_owner_cache.assert_called_with(
+            self.project.id, autoassignment_types
+        )
+        mock_group_owner.invalidate_assignee_exists_cache.assert_called_with(self.project.id)
+        mock_group_owner.invalidate_debounce_issue_owners_evaluation_cache.assert_called_with(
+            self.project.id
+        )
 
 
 @region_silo_test

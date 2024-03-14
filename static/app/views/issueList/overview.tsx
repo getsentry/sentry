@@ -26,8 +26,8 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import QueryCount from 'sentry/components/queryCount';
 import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
-import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {t, tct, tn} from 'sentry/locale';
+import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD, NEW_DEFAULT_QUERY} from 'sentry/constants';
+import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
@@ -37,10 +37,11 @@ import type {
   Group,
   Organization,
   PageFilters,
+  PriorityLevel,
   SavedSearch,
   TagCollection,
 } from 'sentry/types';
-import {IssueCategory} from 'sentry/types';
+import {GroupStatus, IssueCategory} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import CursorPoller from 'sentry/utils/cursorPoller';
@@ -62,6 +63,8 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withSavedSearches from 'sentry/utils/withSavedSearches';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
+import type {IssueUpdateData} from 'sentry/views/issueList/types';
+import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
 
 import IssueListActions from './actions';
 import IssueListFilters from './filters';
@@ -105,12 +108,9 @@ type Props = {
   WithRouteAnalyticsProps;
 
 type State = {
-  actionTaken: boolean;
-  actionTakenGroupData: Group[];
   error: string | null;
   groupIds: string[];
   issuesLoading: boolean;
-  itemsRemoved: number;
   memberList: ReturnType<typeof indexMembersByProject>;
   pageLinks: string;
   /**
@@ -124,7 +124,6 @@ type State = {
   queryMaxCount: number;
   realtimeActive: boolean;
   selectAllActive: boolean;
-  undo: boolean;
   // Will be set to true if there is valid session data from issue-stats api call
   query?: string;
 };
@@ -162,12 +161,9 @@ class IssueListOverview extends Component<Props, State> {
     return {
       groupIds: [],
       actionTaken: false,
-      actionTakenGroupData: [],
-      undo: false,
       selectAllActive: false,
       realtimeActive,
       pageLinks: '',
-      itemsRemoved: 0,
       queryCount: 0,
       queryCounts: {},
       queryMaxCount: 0,
@@ -313,6 +309,8 @@ class IssueListOverview extends Component<Props, State> {
   private _lastRequest: any;
   private _lastStatsRequest: any;
   private _lastFetchCountsRequest: any;
+  private actionTaken = false;
+  private undo = false;
 
   getQueryFromSavedSearchOrLocation({
     savedSearch,
@@ -328,7 +326,9 @@ class IssueListOverview extends Component<Props, State> {
       return decodeScalar(query, '');
     }
 
-    return DEFAULT_QUERY;
+    return this.props.organization.features.includes('issue-priority-ui')
+      ? NEW_DEFAULT_QUERY
+      : DEFAULT_QUERY;
   }
 
   getSortFromSavedSearchOrLocation({
@@ -576,13 +576,12 @@ class IssueListOverview extends Component<Props, State> {
     const query = this.getQuery();
 
     if (!this.state.realtimeActive) {
-      if (!this.state.actionTaken && !this.state.undo) {
+      if (!this.actionTaken && !this.undo) {
         GroupStore.loadInitialData([]);
 
         this.setState({
           issuesLoading: true,
           queryCount: 0,
-          itemsRemoved: 0,
           error: null,
         });
       }
@@ -593,7 +592,6 @@ class IssueListOverview extends Component<Props, State> {
         this.setState({
           issuesLoading: true,
           queryCount: 0,
-          itemsRemoved: 0,
           error: null,
         });
       }
@@ -603,7 +601,6 @@ class IssueListOverview extends Component<Props, State> {
     transaction?.setTag('query.sort', this.getSort());
 
     this.setState({
-      itemsRemoved: 0,
       error: null,
     });
 
@@ -673,7 +670,7 @@ class IssueListOverview extends Component<Props, State> {
         // If this is a direct hit, we redirect to the intended result directly.
         if (resp.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
           let redirect: string;
-          if (data[0] && data[0].matchingEventId) {
+          if (data[0]?.matchingEventId) {
             const {id, matchingEventId} = data[0];
             redirect = `/organizations/${organization.slug}/issues/${id}/events/${matchingEventId}/`;
           } else {
@@ -693,7 +690,7 @@ class IssueListOverview extends Component<Props, State> {
           return;
         }
 
-        if (this.state.undo) {
+        if (this.undo) {
           GroupStore.loadInitialData(data);
         }
         GroupStore.add(data);
@@ -746,7 +743,8 @@ class IssueListOverview extends Component<Props, State> {
         this.resumePolling();
 
         if (!this.state.realtimeActive) {
-          this.setState({actionTaken: false, undo: false});
+          this.actionTaken = false;
+          this.undo = false;
         }
       },
     });
@@ -809,56 +807,10 @@ class IssueListOverview extends Component<Props, State> {
   listener = GroupStore.listen(() => this.onGroupChange(), undefined);
 
   onGroupChange() {
-    const {actionTakenGroupData} = this.state;
-    const query = this.getQuery();
-
-    if (!this.state.realtimeActive && actionTakenGroupData.length > 0) {
-      const filteredItems = GroupStore.getAllItems().filter(item => {
-        return actionTakenGroupData.findIndex(data => data.id === item.id) !== -1;
-      });
-
-      const resolvedIds = filteredItems
-        .filter(item => item.status === 'resolved')
-        .map(id => id.id);
-      const ignoredIds = filteredItems
-        .filter(item => item.status === 'ignored')
-        .map(i => i.id);
-      // need to include resolve and ignored statuses because marking as resolved/ignored also
-      // counts as reviewed
-      const reviewedIds = filteredItems
-        .filter(
-          item => !item.inbox && item.status !== 'resolved' && item.status !== 'ignored'
-        )
-        .map(i => i.id);
-      // Remove Ignored and Resolved group ids from the issue stream if on the All Unresolved,
-      // For Review, or Ignored tab. Still include on the saved/custom search tab.
-      if (
-        resolvedIds.length > 0 &&
-        (query.includes('is:unresolved') ||
-          query.includes('is:ignored') ||
-          isForReviewQuery(query))
-      ) {
-        this.onIssueAction(resolvedIds, 'Resolved');
-      }
-      if (
-        ignoredIds.length > 0 &&
-        (query.includes('is:unresolved') || isForReviewQuery(query))
-      ) {
-        this.onIssueAction(ignoredIds, 'Archived');
-      }
-      // Remove issues that are marked as Reviewed from the For Review tab, but still include the
-      // issues if on the All Unresolved tab or saved/custom searches.
-      if (
-        reviewedIds.length > 0 &&
-        (isForReviewQuery(query) || query.includes('is:ignored'))
-      ) {
-        this.onIssueAction(reviewedIds, 'Reviewed');
-      }
-    }
-
     const groupIds = GroupStore.getAllItems()
       .map(item => item.id)
       .slice(0, MAX_ISSUES_COUNT);
+
     if (!isEqual(groupIds, this.state.groupIds)) {
       this.setState({groupIds});
     }
@@ -969,7 +921,7 @@ class IssueListOverview extends Component<Props, State> {
     const {organization} = this.props;
     let path: string;
 
-    if (savedSearch && savedSearch.id) {
+    if (savedSearch?.id) {
       path = `/organizations/${organization.slug}/issues/searches/${savedSearch.id}/`;
 
       // Remove the query as saved searches bring their own query string.
@@ -1042,16 +994,14 @@ class IssueListOverview extends Component<Props, State> {
   };
 
   onDelete = () => {
-    this.setState({actionTaken: true});
+    this.actionTaken = true;
     this.fetchData(true);
   };
 
-  onUndo = () => {
+  undoAction = ({data, groups}: {data: IssueUpdateData; groups: BaseGroup[]}) => {
     const {organization, selection} = this.props;
-    const {actionTakenGroupData} = this.state;
     const query = this.getQuery();
 
-    const groupIds = actionTakenGroupData.map(data => data.id);
     const projectIds = selection?.projects?.map(p => p.toString());
     const endpoint = `/organizations/${organization.slug}/issues/`;
 
@@ -1067,12 +1017,10 @@ class IssueListOverview extends Component<Props, State> {
 
     this.props.api.request(endpoint, {
       method: 'PUT',
-      data: {
-        status: 'unresolved',
-      },
+      data,
       query: {
         project: projectIds,
-        id: groupIds,
+        id: groups.map(group => group.id),
       },
       success: response => {
         if (!response) {
@@ -1082,9 +1030,9 @@ class IssueListOverview extends Component<Props, State> {
         // on this page for a second and then be removed (will show up on All Unresolved). This is to
         // stop this from happening and avoid confusion.
         if (!query.includes('is:ignored') && !isForReviewQuery(query)) {
-          GroupStore.add(actionTakenGroupData);
+          GroupStore.add(groups);
         }
-        this.setState({undo: true});
+        this.undo = true;
       },
       error: err => {
         this.setState({
@@ -1093,78 +1041,109 @@ class IssueListOverview extends Component<Props, State> {
         });
       },
       complete: () => {
-        this.setState({actionTakenGroupData: []});
         this.fetchData();
       },
     });
   };
 
-  onMarkReviewed = (itemIds: string[]) => {
-    const query = this.getQuery();
-
-    if (!isForReviewQuery(query)) {
-      if (itemIds.length > 1) {
-        addMessage(
-          tn('Reviewed %s Issue', 'Reviewed %s Issues', itemIds.length),
-          'success',
-          {duration: 4000}
-        );
-      } else {
-        const shortId = itemIds.map(item => GroupStore.get(item)?.shortId).toString();
-        addMessage(t('Reviewed %s', shortId), 'success', {duration: 4000});
-      }
+  onActionTaken = (itemIds: string[], data: IssueUpdateData) => {
+    if (this.state.realtimeActive) {
       return;
     }
 
-    const {queryCounts, itemsRemoved} = this.state;
-    const currentQueryCount = queryCounts[query as Query];
-    if (itemIds.length && currentQueryCount) {
-      const inInboxCount = itemIds.filter(id => GroupStore.get(id)?.inbox).length;
-      currentQueryCount.count -= inInboxCount;
-      this.setState({
-        queryCounts: {
-          ...queryCounts,
-          [query as Query]: currentQueryCount,
-        },
-        itemsRemoved: itemsRemoved + inInboxCount,
+    const query = this.getQuery();
+    const groups = itemIds.map(id => GroupStore.get(id)).filter(defined);
+
+    if ('status' in data) {
+      if (data.status === 'resolved') {
+        this.onIssueAction({
+          itemIds,
+          actionType: 'Resolved',
+          shouldRemove:
+            query.includes('is:unresolved') ||
+            query.includes('is:ignored') ||
+            isForReviewQuery(query),
+          undo: () =>
+            this.undoAction({
+              data: {status: GroupStatus.UNRESOLVED, statusDetails: {}},
+              groups,
+            }),
+        });
+        return;
+      }
+
+      if (data.status === 'ignored') {
+        this.onIssueAction({
+          itemIds,
+          actionType: 'Archived',
+          shouldRemove: query.includes('is:unresolved') || isForReviewQuery(query),
+          undo: () =>
+            this.undoAction({
+              data: {status: GroupStatus.UNRESOLVED, statusDetails: {}},
+              groups,
+            }),
+        });
+        return;
+      }
+    }
+
+    if ('inbox' in data && data.inbox === false) {
+      this.onIssueAction({
+        itemIds,
+        actionType: 'Reviewed',
+        shouldRemove: isForReviewQuery(query),
       });
+      return;
+    }
+
+    if ('priority' in data && typeof data.priority === 'string') {
+      const priorityValues = parseIssuePrioritySearch(query);
+      const priority = data.priority.toLowerCase() as PriorityLevel;
+
+      this.onIssueAction({
+        itemIds,
+        actionType: 'Reprioritized',
+        shouldRemove: !priorityValues.has(priority),
+      });
+      return;
     }
   };
 
-  onActionTaken = (itemIds: string[]) => {
-    const actionTakenGroupData = itemIds
-      .map(id => GroupStore.get(id) as Group | undefined)
-      .filter(defined);
-    this.setState({
-      actionTakenGroupData,
-    });
-  };
-
-  onIssueAction = (
-    itemIds: string[],
-    actionType: 'Reviewed' | 'Resolved' | 'Ignored' | 'Archived'
-  ) => {
+  onIssueAction = ({
+    itemIds,
+    actionType,
+    shouldRemove,
+    undo,
+  }: {
+    actionType: 'Reviewed' | 'Resolved' | 'Ignored' | 'Archived' | 'Reprioritized';
+    itemIds: string[];
+    shouldRemove: boolean;
+    undo?: () => void;
+  }) => {
     if (itemIds.length > 1) {
       addMessage(`${actionType} ${itemIds.length} ${t('Issues')}`, 'success', {
         duration: 4000,
-        ...(actionType !== 'Reviewed' && {undo: this.onUndo}),
+        undo,
       });
     } else {
       const shortId = itemIds.map(item => GroupStore.get(item)?.shortId).toString();
       addMessage(`${actionType} ${shortId}`, 'success', {
         duration: 4000,
-        ...(actionType !== 'Reviewed' && {undo: this.onUndo}),
+        undo,
       });
+    }
+
+    if (!shouldRemove) {
+      return;
     }
 
     const links = parseLinkHeader(this.state.pageLinks);
 
     GroupStore.remove(itemIds);
+
     const queryCount = this.state.queryCount - itemIds.length;
-    this.setState({
-      actionTaken: true,
-      queryCount,
-    });
+    this.actionTaken = true;
+    this.setState({queryCount});
 
     if (GroupStore.getAllItemIds().length === 0) {
       // If we run out of issues on the last page, navigate back a page to
@@ -1233,14 +1212,13 @@ class IssueListOverview extends Component<Props, State> {
       realtimeActive,
       groupIds,
       queryMaxCount,
-      itemsRemoved,
       issuesLoading,
       error,
     } = this.state;
     const {organization, selection, router} = this.props;
     const query = this.getQuery();
 
-    const modifiedQueryCount = Math.max(queryCount - itemsRemoved, 0);
+    const modifiedQueryCount = Math.max(queryCount, 0);
     const projectIds = selection?.projects?.map(p => p.toString());
 
     const showReprocessingTab = this.displayReprocessingTab();
@@ -1275,7 +1253,6 @@ class IssueListOverview extends Component<Props, State> {
                 query={query}
                 queryCount={modifiedQueryCount}
                 onSelectStatsPeriod={this.onSelectStatsPeriod}
-                onMarkReviewed={this.onMarkReviewed}
                 onActionTaken={this.onActionTaken}
                 onDelete={this.onDelete}
                 statsPeriod={this.getGroupStatsPeriod()}
@@ -1306,6 +1283,7 @@ class IssueListOverview extends Component<Props, State> {
                     loading={issuesLoading}
                     error={error}
                     refetchGroups={this.fetchData}
+                    onActionTaken={this.onActionTaken}
                   />
                 </VisuallyCompleteWithData>
               </PanelBody>

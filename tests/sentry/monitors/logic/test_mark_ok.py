@@ -42,10 +42,55 @@ class MarkOkTestCase(TestCase):
         # Start with monitor in an ERROR state
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=self.environment,
+            environment_id=self.environment.id,
             status=MonitorStatus.ERROR,
             last_checkin=now - timedelta(minutes=1),
             next_checkin=now,
+        )
+
+        # OK checkin comes in
+        success_checkin = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            status=CheckInStatus.OK,
+            date_added=now,
+        )
+        mark_ok(success_checkin, ts=now)
+
+        # Monitor has recovered to OK with updated upcoming timestamps
+        monitor_environment.refresh_from_db()
+        assert monitor_environment.status == MonitorStatus.OK
+        assert monitor_environment.next_checkin == now + timedelta(minutes=1)
+        assert monitor_environment.next_checkin_latest == now + timedelta(minutes=2)
+        assert monitor_environment.last_checkin == now
+
+    def test_muted_ok(self):
+        now = timezone.now().replace(second=0, microsecond=0)
+
+        monitor = Monitor.objects.create(
+            name="test monitor",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            type=MonitorType.CRON_JOB,
+            config={
+                "schedule": "* * * * *",
+                "schedule_type": ScheduleType.CRONTAB,
+                "max_runtime": None,
+                "checkin_margin": None,
+                "recovery_threshold": None,
+            },
+            is_muted=True,
+        )
+
+        # Start with monitor in an ERROR state
+        monitor_environment = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment_id=self.environment.id,
+            status=MonitorStatus.ERROR,
+            last_checkin=now - timedelta(minutes=1),
+            next_checkin=now,
+            is_muted=True,
         )
 
         # OK checkin comes in
@@ -87,9 +132,8 @@ class MarkOkTestCase(TestCase):
         # Start with monitor in an ERROR state with an active incident
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=self.environment,
+            environment_id=self.environment.id,
             status=MonitorStatus.ERROR,
-            last_state_change=None,
         )
         first_checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
@@ -103,7 +147,6 @@ class MarkOkTestCase(TestCase):
             monitor_environment=monitor_environment,
             starting_checkin=first_checkin,
             starting_timestamp=first_checkin.date_added,
-            grouphash=monitor_environment.incident_grouphash,
         )
 
         # Create OK check-ins
@@ -136,8 +179,6 @@ class MarkOkTestCase(TestCase):
         assert monitor_environment.status != MonitorStatus.OK
         assert monitor_environment.next_checkin == now + timedelta(minutes=1)
 
-        # check that timestamp has not updated
-        assert monitor_environment.last_state_change is None
         # Incident has not resolved
         assert incident.resolving_checkin is None
         assert incident.resolving_timestamp is None
@@ -180,8 +221,6 @@ class MarkOkTestCase(TestCase):
         assert monitor_environment.status == MonitorStatus.OK
         assert monitor_environment.next_checkin == last_checkin.date_added + timedelta(minutes=1)
 
-        # check that monitor environment has updated timestamp used for fingerprinting
-        assert monitor_environment.last_state_change == monitor_environment.last_checkin
         # Incident resolved
         assert incident.resolving_checkin == last_checkin
         assert incident.resolving_timestamp == last_checkin.date_added

@@ -142,7 +142,6 @@ function EventDisplay({
   transaction,
   durationBaseline,
 }: EventDisplayProps) {
-  const location = useLocation();
   const organization = useOrganization();
   const [selectedEventId, setSelectedEventId] = useState<string>('');
 
@@ -167,8 +166,7 @@ function EventDisplay({
     }
   }, [eventIds, selectedEventId]);
 
-  const eventIdIndex =
-    eventIds && eventIds.findIndex(eventId => eventId === selectedEventId);
+  const eventIdIndex = eventIds?.findIndex(eventId => eventId === selectedEventId);
   const hasNext =
     defined(eventIdIndex) && defined(eventIds) && eventIdIndex + 1 < eventIds.length;
   const hasPrev = defined(eventIdIndex) && eventIdIndex - 1 >= 0;
@@ -283,12 +281,7 @@ function EventDisplay({
         </ComparisonContentWrapper>
       </div>
 
-      <EventTags
-        event={eventData}
-        organization={organization}
-        projectSlug={project.slug}
-        location={location}
-      />
+      <EventTags event={eventData} projectSlug={project.slug} />
     </EventDisplayContainer>
   );
 }

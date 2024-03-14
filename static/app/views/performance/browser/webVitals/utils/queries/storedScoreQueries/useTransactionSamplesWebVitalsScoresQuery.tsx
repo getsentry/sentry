@@ -140,7 +140,7 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
           })
           // TODO: Discover doesn't let us query more than 20 fields and we're hitting that limit.
           // Clean up the types to account for this so we don't need to do this casting.
-        ) as TransactionSampleRowWithScore[])
+        ) as unknown as TransactionSampleRowWithScore[])
       : [];
 
   return {

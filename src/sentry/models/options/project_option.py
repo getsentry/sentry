@@ -38,8 +38,9 @@ OPTION_KEYS = frozenset(
         "sentry:releases",
         "sentry:error_messages",
         "sentry:scrape_javascript",
-        "sentry:recap_server_url",
-        "sentry:recap_server_token",
+        "sentry:replay_rage_click_issues",
+        "sentry:feedback_user_report_notifications",
+        "sentry:feedback_ai_spam_detection",
         "sentry:token",
         "sentry:token_header",
         "sentry:verify_ssl",
@@ -55,7 +56,6 @@ OPTION_KEYS = frozenset(
         "sentry:dynamic_sampling",
         "sentry:dynamic_sampling_biases",
         "sentry:breakdowns",
-        "sentry:span_attributes",
         "sentry:transaction_name_cluster_rules",
         "sentry:span_description_cluster_rules",
         "quotas:spike-protection-disabled",
@@ -81,7 +81,7 @@ class ProjectOptionManager(OptionManager["ProjectOption"]):
 
     def get_value(
         self,
-        project: Project,
+        project: int | Project,
         key: str,
         default: Value | None = None,
         validate: ValidateFunction | None = None,
@@ -105,6 +105,11 @@ class ProjectOptionManager(OptionManager["ProjectOption"]):
         self.reload_cache(project.id, "projectoption.set_value")
 
         return created or inst > 0
+
+    def update_value(self, project_id: int, key: str, value: Value):
+        # Updates a value with the assumption of the entry being existent.
+        self.update_value(project_id=project_id, key=key, value=value)
+        self.reload_cache(project_id, "projectoption.update_value")
 
     def get_all_values(self, project: Project | int) -> Mapping[str, Value]:
         if isinstance(project, models.Model):

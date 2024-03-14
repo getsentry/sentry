@@ -75,7 +75,7 @@ class JSONCodec(Codec[JSONData, str]):
         return str(json.dumps(value))
 
     def decode(self, value: str) -> JSONData:
-        return json.loads(value)
+        return json.loads(value, skip_trace=True)
 
 
 class ZlibCodec(Codec[bytes, bytes]):

@@ -176,7 +176,7 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
                 kafka_config, "get_kafka_producer_cluster_options"
             ), mock.patch.object(kafka, "KafkaPublisher"):
                 response = self.client.delete(self.url)
-                assert response.status_code == 202
+                assert response.status_code == 204
 
         try:
             ReplayRecordingSegment.objects.get(id=recording_segment_id)

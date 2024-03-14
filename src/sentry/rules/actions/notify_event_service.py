@@ -10,7 +10,8 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.app_platform_event import AppPlatformEvent
 from sentry.api.serializers.models.incident import IncidentSerializer
 from sentry.eventstore.models import GroupEvent
-from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus
+from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.plugins.base import plugins
 from sentry.rules import EventState
@@ -74,7 +75,7 @@ def send_incident_alert_notification(
         sentry_app_id=action.sentry_app_id,
         action_id=action.id,
         incident_id=incident.id,
-        organization=organization,
+        organization_id=organization.id,
         new_status=new_status.value,
         incident_attachment_json=json.dumps(incident_attachment),
         metric_value=metric_value,

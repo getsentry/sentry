@@ -3,21 +3,23 @@ from __future__ import annotations
 import functools
 import importlib.resources
 import logging
+from collections.abc import Callable
 from copy import deepcopy
 from threading import Lock
-from typing import Any, Generic, TypeVar, overload
+from typing import Any, Generic, TypeGuard, TypeVar, overload
 
 import rb
 from django.utils.functional import SimpleLazyObject
-from redis.client import Script
-from redis.connection import ConnectionPool, Encoder
-from redis.exceptions import BusyLoadingError, ConnectionError
+from rb.clients import LocalClient
+from redis.client import Script, StrictRedis
+from redis.connection import ConnectionPool
 from rediscluster import RedisCluster
-from rediscluster.exceptions import ClusterError
 from sentry_redis_tools.failover_redis import FailoverRedis
+from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
 
 from sentry import options
 from sentry.exceptions import InvalidConfiguration
+from sentry.options import OptionsManager
 from sentry.utils import warnings
 from sentry.utils.imports import import_string
 from sentry.utils.versioning import Version, check_versions
@@ -28,15 +30,15 @@ logger = logging.getLogger(__name__)
 
 _REDIS_DEFAULT_CLIENT_ARGS = {
     # 3 seconds default socket and socket connection timeout avoids blocking on socket till the
-    # operating sysstem level timeout kicks in
+    # operating system level timeout kicks in
     "socket_timeout": 3.0
 }
 
-_pool_cache = {}
+_pool_cache: dict[str, ConnectionPool] = {}
 _pool_lock = Lock()
 
 
-def _shared_pool(**opts):
+def _shared_pool(**opts: Any) -> ConnectionPool:
     if "host" in opts:
         key = "{}:{}/{}".format(opts["host"], opts["port"], opts["db"])
     else:
@@ -57,73 +59,70 @@ _make_rb_cluster = functools.partial(rb.Cluster, pool_cls=_shared_pool)
 
 
 class _RBCluster:
-    def supports(self, config):
+    def supports(self, config: dict[str, Any]) -> bool:
         return not config.get("is_redis_cluster", False)
 
-    def factory(self, **config):
+    def factory(
+        self,
+        decode_responses: bool | None = None,
+        hosts: list[dict[int, Any]] | dict[int, Any] | None = None,
+        **config: Any,
+    ) -> functools.partial:
+        if not decode_responses:
+            raise NotImplementedError("decode_responses=False mode is not implemented for `rb`")
+        if not hosts:
+            hosts = []
         # rb expects a dict of { host, port } dicts where the key is the host
         # ID. Coerce the configuration into the correct format if necessary.
-        hosts = config["hosts"]
         hosts = {k: v for k, v in enumerate(hosts)} if isinstance(hosts, list) else hosts
         config["hosts"] = hosts
 
-        pool_options = config.pop("client_args", {})
+        pool_options: dict[str, Any] = config.pop("client_args", {})
         pool_options = {**_REDIS_DEFAULT_CLIENT_ARGS, **pool_options}
         config["pool_options"] = pool_options
 
         return _make_rb_cluster(**config)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "Redis Blaster Cluster"
 
 
-class RetryingRedisCluster(RedisCluster):
-    """
-    Execute a command with cluster reinitialization retry logic.
-
-    Should a cluster respond with a ConnectionError or BusyLoadingError the
-    cluster nodes list will be reinitialized and the command will be executed
-    again with the most up to date view of the world.
-    """
-
-    def execute_command(self, *args, **kwargs):
-        try:
-            return super(self.__class__, self).execute_command(*args, **kwargs)
-        except (
-            ConnectionError,
-            BusyLoadingError,
-            ClusterError,
-            KeyError,  # see: https://github.com/Grokzen/redis-py-cluster/issues/287
-        ):
-            self.connection_pool.nodes.reset()
-            return super(self.__class__, self).execute_command(*args, **kwargs)
-
-
 class _RedisCluster:
-    def supports(self, config):
+    def supports(self, config: dict[str, Any]) -> bool:
         # _RedisCluster supports two configurations:
         #  * Explicitly configured with is_redis_cluster. This mode is for real redis-cluster.
         #  * No is_redis_cluster, but only 1 host. This represents a singular node Redis running
         #    in non-cluster mode.
-        return config.get("is_redis_cluster", False) or len(config.get("hosts")) == 1
+        return config.get("is_redis_cluster", False) or len(config.get("hosts", [])) == 1
 
-    def factory(self, **config):
+    def factory(
+        self,
+        *,
+        decode_responses: bool,
+        is_redis_cluster: bool = False,
+        readonly_mode: bool = False,
+        hosts: list[dict[Any, Any]] | dict[Any, Any] | None = None,
+        client_args: dict[str, Any] | None = None,
+        **config: Any,
+    ) -> SimpleLazyObject:
         # StrictRedisCluster expects a list of { host, port } dicts. Coerce the
         # configuration into the correct format if necessary.
-        hosts = config.get("hosts")
-        hosts = list(hosts.values()) if isinstance(hosts, dict) else hosts
+        if not hosts:
+            hosts = []
+        hosts_list = list(hosts.values()) if isinstance(hosts, dict) else hosts
 
         # support for scaling reads using the readonly mode
         # https://redis.io/docs/reference/cluster-spec/#scaling-reads-using-replica-nodes
-        readonly_mode = config.get("readonly_mode", False)
 
-        client_args = config.get("client_args") or {}
+        if not client_args:
+            client_args = {}
+
         client_args = {**_REDIS_DEFAULT_CLIENT_ARGS, **client_args}
 
         # Redis cluster does not wait to attempt to connect. We'd prefer to not
         # make TCP connections on boot. Wrap the client in a lazy proxy object.
-        def cluster_factory():
-            if config.get("is_redis_cluster", False):
+        def cluster_factory() -> RetryingRedisCluster | FailoverRedis:
+            if is_redis_cluster:
                 return RetryingRedisCluster(
                     # Intentionally copy hosts here because redis-cluster-py
                     # mutates the inner dicts and this closure can be run
@@ -132,8 +131,8 @@ class _RedisCluster:
                     # reset() after startup
                     #
                     # https://github.com/Grokzen/redis-py-cluster/blob/73f27edf7ceb4a408b3008ef7d82dac570ab9c6a/rediscluster/nodemanager.py#L385
-                    startup_nodes=deepcopy(hosts),
-                    decode_responses=True,
+                    startup_nodes=deepcopy(hosts_list),
+                    decode_responses=decode_responses,
                     skip_full_coverage_check=True,
                     max_connections=16,
                     max_connections_per_node=True,
@@ -141,8 +140,9 @@ class _RedisCluster:
                     **client_args,
                 )
             else:
-                host = hosts[0].copy()
-                host["decode_responses"] = True
+                assert len(hosts_list) > 0, "Hosts should have at least 1 entry"
+                host = dict(hosts_list[0])
+                host["decode_responses"] = decode_responses
                 return (
                     import_string(config["client_class"])
                     if "client_class" in config
@@ -151,60 +151,70 @@ class _RedisCluster:
 
         return SimpleLazyObject(cluster_factory)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "Redis Cluster"
 
 
-TCluster = TypeVar("TCluster", rb.Cluster, RedisCluster)
+TCluster = TypeVar("TCluster", rb.Cluster, RedisCluster | StrictRedis)
 
 
 class ClusterManager(Generic[TCluster]):
     @overload
-    def __init__(self: ClusterManager[rb.Cluster], options_manager) -> None:
+    def __init__(self: ClusterManager[rb.Cluster], options_manager: OptionsManager) -> None:
         ...
 
     @overload
     def __init__(
-        self: ClusterManager[RedisCluster], options_manager, cluster_type: type[Any]
+        self: ClusterManager[RedisCluster | StrictRedis],
+        options_manager: OptionsManager,
+        cluster_type: type[Any],
     ) -> None:
         ...
 
-    def __init__(self, options_manager, cluster_type=_RBCluster):
-        self.__clusters = {}
+    def __init__(self, options_manager: OptionsManager, cluster_type: type[Any] = _RBCluster):
+        self.__clusters: dict[tuple[str, bool], TCluster] = {}
         self.__options_manager = options_manager
         self.__cluster_type = cluster_type()
 
-    def get(self, key) -> TCluster:
-        cluster = self.__clusters.get(key)
+    def get(self, key: str, *, decode_responses: bool = True) -> TCluster:
+        cache_key = (key, decode_responses)
+        try:
+            return self.__clusters[cache_key]
+        except KeyError:
+            # Do not access attributes of the `cluster` object to prevent
+            # setup/init of lazy objects. The _RedisCluster type will try to
+            # connect to the cluster during initialization.
 
-        # Do not access attributes of the `cluster` object to prevent
-        # setup/init of lazy objects. The _RedisCluster type will try to
-        # connect to the cluster during initialization.
-        if cluster is None:
             # TODO: This would probably be safer with a lock, but I'm not sure
             # that it's necessary.
-            configuration = self.__options_manager.get("redis.clusters").get(key)
+            configuration = self.__options_manager.get("redis.clusters", {}).get(key)
             if configuration is None:
                 raise KeyError(f"Invalid cluster name: {key}")
 
             if not self.__cluster_type.supports(configuration):
                 raise KeyError(f"Invalid cluster type, expected: {self.__cluster_type}")
 
-            cluster = self.__clusters[key] = self.__cluster_type.factory(**configuration)
-
-        return cluster
+            ret = self.__clusters[cache_key] = self.__cluster_type.factory(
+                **configuration,
+                decode_responses=decode_responses,
+            )
+            return ret
 
 
 # TODO(epurkhiser): When migration of all rb cluster to true redis clusters has
 # completed, remove the rb ``clusters`` module variable and rename
 # redis_clusters to clusters.
 clusters: ClusterManager[rb.Cluster] = ClusterManager(options.default_manager)
-redis_clusters: ClusterManager[RedisCluster] = ClusterManager(
+redis_clusters: ClusterManager[RedisCluster | StrictRedis] = ClusterManager(
     options.default_manager, _RedisCluster
 )
 
 
-def get_cluster_from_options(setting, options, cluster_manager=clusters):
+def get_cluster_from_options(
+    setting: str,
+    options: dict[str, Any],
+    cluster_manager: ClusterManager = clusters,
+) -> tuple[rb.Cluster | RedisCluster | StrictRedis, dict[str, Any]]:
     cluster_option_name = "cluster"
     default_cluster_name = "default"
     cluster_constructor_option_names = frozenset(("hosts",))
@@ -240,31 +250,66 @@ def get_cluster_from_options(setting, options, cluster_manager=clusters):
     return cluster, options
 
 
-def get_dynamic_cluster_from_options(setting, config):
+def get_dynamic_cluster_from_options(
+    setting: str, config: dict[str, Any]
+) -> tuple[bool, RedisCluster | StrictRedis | rb.Cluster, dict[str, Any]]:
     cluster_name = config.get("cluster", "default")
-    cluster_opts = options.default_manager.get("redis.clusters").get(cluster_name)
+    cluster_opts: dict[str, Any] | None = options.default_manager.get("redis.clusters").get(
+        cluster_name
+    )
     if cluster_opts is not None and cluster_opts.get("is_redis_cluster"):
-        # RedisCluster
+        # RedisCluster, StrictRedis
         return True, redis_clusters.get(cluster_name), config
 
     # RBCluster
-    return (False,) + get_cluster_from_options(setting, config)
+    cluster, config = get_cluster_from_options(setting, config)
+    return False, cluster, config
 
 
-def validate_dynamic_cluster(is_redis_cluster, cluster):
+def get_cluster_routing_client(
+    cluster: RedisCluster | rb.Cluster, is_redis_cluster: bool
+) -> RedisCluster | rb.RoutingClient:
+    if is_instance_redis_cluster(cluster, is_redis_cluster):
+        return cluster
+    elif is_instance_rb_cluster(cluster, is_redis_cluster):
+        return cluster.get_routing_client()
+    else:
+        raise AssertionError("unreachable")
+
+
+def is_instance_redis_cluster(
+    val: rb.Cluster | RedisCluster, is_redis_cluster: bool
+) -> TypeGuard[RedisCluster]:
+    return is_redis_cluster
+
+
+def is_instance_rb_cluster(
+    val: rb.Cluster | RedisCluster, is_redis_cluster: bool
+) -> TypeGuard[rb.Cluster]:
+    return not is_redis_cluster
+
+
+def validate_dynamic_cluster(is_redis_cluster: bool, cluster: rb.Cluster | RedisCluster) -> None:
     try:
-        if is_redis_cluster:
+        if is_instance_redis_cluster(cluster, is_redis_cluster):
             cluster.ping()
             cluster.connection_pool.disconnect()
-        else:
+        elif is_instance_rb_cluster(cluster, is_redis_cluster):
             with cluster.all() as client:
                 client.ping()
             cluster.disconnect_pools()
+        else:
+            raise AssertionError("unreachable")
     except Exception as e:
         raise InvalidConfiguration(str(e))
 
 
-def check_cluster_versions(cluster, required, recommended=None, label=None):
+def check_cluster_versions(
+    cluster: rb.Cluster,
+    required: Version,
+    recommended: Version | None = None,
+    label: str | None = None,
+) -> None:
     try:
         with cluster.all() as client:
             results = client.info()
@@ -286,15 +331,19 @@ def check_cluster_versions(cluster, required, recommended=None, label=None):
     )
 
 
-def load_script(path):
-    script = []
+def load_script(
+    path: str,
+) -> Callable[[rb.Cluster | RedisCluster | LocalClient, Any, Any], Any]:
+    script: list[Script] = []
 
     # This changes the argument order of the ``Script.__call__`` method to
     # encourage using the script with a specific Redis client, rather
     # than implicitly using the first client that the script was registered
     # with. (This can prevent lots of bizarre behavior when dealing with
     # clusters of Redis servers.)
-    def call_script(client, keys, args):
+    def call_script(
+        client: rb.Cluster | RedisCluster | LocalClient, keys: Any, args: Any
+    ) -> Callable[[Any, Any, Any], Any]:
         # Executes load_script's path as a Lua script on a Redis server.
         # Takes the client to execute the script on as the first argument,
         # followed by the values that will be provided as ``KEYS`` and ``ARGV``
@@ -314,36 +363,3 @@ def load_script(path):
         return script[0](keys, args, client)
 
     return call_script
-
-
-class SentryScript(Script):
-    """
-    XXX: This is a gross workaround to fix a breaking api change in redis-py. When we
-    instantiate a script, we've historically been passing `None` as the client. Then
-    when we call the script we pass the actual client, which Redis uses as an override.
-    The breaking changes relies on there being a client passed in the constructor to
-    determine the encoding of the script before generating the sha.
-
-    To work around this, we create a fake client with a fake connection pool that just
-    returns an encoder that will work. Once this has been done we then set the
-    `registered_client` back to None, so that the behaviour is the same as before.
-
-    This is only needed when we can't use `load_script`, since we have the client
-    available there and can pass it through. So once we remove `RedisTSDB` we can also
-    kill this hack.
-    """
-
-    class FakeConnectionPool:
-        def get_encoder(self):
-            return Encoder(encoding="utf-8", encoding_errors="strict", decode_responses=False)
-
-    class FakeEncoderClient:
-        def __init__(self):
-            self.connection_pool = SentryScript.FakeConnectionPool()
-
-    def __init__(self, registered_client, script):
-        if registered_client is None:
-            registered_client = self.FakeEncoderClient()
-        super().__init__(registered_client, script)
-        if isinstance(self.registered_client, self.FakeEncoderClient):
-            self.registered_client = None

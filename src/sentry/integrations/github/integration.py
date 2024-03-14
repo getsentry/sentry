@@ -3,13 +3,11 @@ from __future__ import annotations
 import logging
 import re
 from collections.abc import Collection, Mapping, Sequence
-from datetime import timezone
 from typing import Any
 
 from django.http import HttpResponse
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
-from isodate import parse_datetime
 from rest_framework.request import Request
 
 from sentry import features, options
@@ -248,51 +246,6 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         except ApiError:
             return False
         return True
-
-    def get_commit_context(
-        self, repo: Repository, filepath: str, ref: str, event_frame: Mapping[str, Any]
-    ) -> Mapping[str, str] | None:
-        lineno = event_frame.get("lineno", 0)
-        if not lineno:
-            return None
-        blame_range: Sequence[Mapping[str, Any]] | None = self.get_blame_for_file(
-            repo, filepath, ref, lineno
-        )
-
-        if blame_range is None:
-            return None
-
-        try:
-            commit: Mapping[str, Any] = max(
-                (
-                    blame
-                    for blame in blame_range
-                    if blame.get("startingLine", 0) <= lineno <= blame.get("endingLine", 0)
-                    and blame.get("commit", {}).get("committedDate")
-                ),
-                key=lambda blame: parse_datetime(blame.get("commit", {}).get("committedDate")),
-                default={},
-            )
-            if not commit:
-                return None
-        except (ValueError, IndexError):
-            return None
-
-        commitInfo = commit.get("commit")
-        if not commitInfo:
-            return None
-        else:
-            committed_date = parse_datetime(commitInfo.get("committedDate")).astimezone(
-                timezone.utc
-            )
-
-            return {
-                "commitId": commitInfo.get("oid"),
-                "committedDate": committed_date,
-                "commitMessage": commitInfo.get("message"),
-                "commitAuthorName": commitInfo.get("author", {}).get("name"),
-                "commitAuthorEmail": commitInfo.get("author", {}).get("email"),
-            }
 
 
 class GitHubIntegrationProvider(IntegrationProvider):

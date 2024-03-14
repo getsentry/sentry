@@ -47,6 +47,7 @@ MOBILE = [
 # When changing this file, make sure to keep sentry/static/app/data/platformCategories.tsx in sync.
 BACKEND = [
     "bun",
+    "deno",
     "dotnet",
     "dotnet-aspnet",
     "dotnet-aspnetcore",

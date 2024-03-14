@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import FeedbackOnboardingSidebar from 'sentry/components/feedback/feedbackOnboarding/sidebar';
 import Hook from 'sentry/components/hook';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
@@ -70,8 +71,8 @@ function togglePanel(panel: SidebarPanelKey) {
   SidebarPanelStore.togglePanel(panel);
 }
 
-function hidePanel() {
-  SidebarPanelStore.hidePanel();
+function hidePanel(hash?: string) {
+  SidebarPanelStore.hidePanel(hash);
 }
 
 function useOpenOnboardingSidebar(organization?: Organization) {
@@ -117,7 +118,14 @@ function Sidebar() {
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
 
   // Avoid showing superuser UI on self-hosted instances
-  const hasSuperuserSession = isActiveSuperuser() && !ConfigStore.get('isSelfHosted');
+  const showSuperuserWarning = () => {
+    return isActiveSuperuser() && !ConfigStore.get('isSelfHosted');
+  };
+
+  // Avoid showing superuser UI on certain organizations
+  const isExcludedOrg = () => {
+    return HookStore.get('component:superuser-warning-excluded')[0]?.(organization);
+  };
 
   useOpenOnboardingSidebar();
 
@@ -229,7 +237,8 @@ function Sidebar() {
         if (
           organization.features.includes('performance-database-view') ||
           organization.features.includes('starfish-browser-webvitals') ||
-          organization.features.includes('performance-screens-view')
+          organization.features.includes('performance-screens-view') ||
+          organization.features.includes('performance-http-view')
         ) {
           return (
             <SidebarAccordion
@@ -254,6 +263,15 @@ function Sidebar() {
                   icon={<SubitemDot collapsed />}
                 />
               </Feature>
+              <Feature features="performance-http-view" organization={organization}>
+                <SidebarItem
+                  {...sidebarItemProps}
+                  label={<GuideAnchor target="performance-http">{t('HTTP')}</GuideAnchor>}
+                  to={`/organizations/${organization.slug}/performance/http/`}
+                  id="performance-http"
+                  icon={<SubitemDot collapsed />}
+                />
+              </Feature>
               <Feature features="starfish-browser-webvitals" organization={organization}>
                 <SidebarItem
                   {...sidebarItemProps}
@@ -270,7 +288,7 @@ function Sidebar() {
               <Feature features="performance-screens-view" organization={organization}>
                 <SidebarItem
                   {...sidebarItemProps}
-                  label={t('Mobile')}
+                  label={t('Screen Loads')}
                   to={`/organizations/${organization.slug}/performance/mobile/screens/`}
                   id="performance-mobile-screens"
                   icon={<SubitemDot collapsed />}
@@ -279,11 +297,11 @@ function Sidebar() {
               <Feature features="starfish-mobile-appstart" organization={organization}>
                 <SidebarItem
                   {...sidebarItemProps}
-                  label={t('App Startup')}
+                  label={t('App Starts')}
                   to={`/organizations/${organization.slug}/performance/mobile/app-startup`}
                   id="performance-mobile-app-startup"
                   icon={<SubitemDot collapsed />}
-                  isAlpha
+                  isNew
                 />
               </Feature>
               <Feature features="starfish-browser-resource-module-ui">
@@ -492,10 +510,12 @@ function Sidebar() {
   return (
     <SidebarWrapper aria-label={t('Primary Navigation')} collapsed={collapsed}>
       <SidebarSectionGroupPrimary>
-        <DropdownSidebarSection isSuperuser={hasSuperuserSession}>
+        <DropdownSidebarSection isSuperuser={showSuperuserWarning() && !isExcludedOrg()}>
           <SidebarDropdown orientation={orientation} collapsed={collapsed} />
 
-          {hasSuperuserSession && <Hook name="component:superuser-warning" />}
+          {showSuperuserWarning() && !isExcludedOrg() && (
+            <Hook name="component:superuser-warning" organization={organization} />
+          )}
         </DropdownSidebarSection>
 
         <PrimaryItems>
@@ -538,6 +558,12 @@ function Sidebar() {
           <PerformanceOnboardingSidebar
             currentPanel={activePanel}
             onShowPanel={() => togglePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING)}
+            hidePanel={() => hidePanel('performance-sidequest')}
+            {...sidebarItemProps}
+          />
+          <FeedbackOnboardingSidebar
+            currentPanel={activePanel}
+            onShowPanel={() => togglePanel(SidebarPanelKey.FEEDBACK_ONBOARDING)}
             hidePanel={hidePanel}
             {...sidebarItemProps}
           />

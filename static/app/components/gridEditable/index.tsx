@@ -94,21 +94,22 @@ type GridEditableProps<DataRow, ColumnKey> = {
     ) => React.ReactNode[];
   };
   location: Location;
+  'aria-label'?: string;
   emptyMessage?: React.ReactNode;
-  error?: React.ReactNode | null;
+  error?: unknown | null;
   /**
    * Inject a set of buttons into the top of the grid table.
    * The controlling component is responsible for handling any actions
    * in these buttons and updating props to the GridEditable instance.
    */
   headerButtons?: () => React.ReactNode;
-  height?: string | number;
 
+  height?: string | number;
   isLoading?: boolean;
+
   minimumColWidth?: number;
 
   scrollable?: boolean;
-
   stickyHeader?: boolean;
   /**
    * GridEditable (mostly) do not maintain any internal state and relies on the
@@ -379,12 +380,11 @@ class GridEditable<
 
     return (
       <GridRow key={row} data-test-id="grid-body-row">
-        {prependColumns &&
-          prependColumns.map((item, i) => (
-            <GridBodyCell data-test-id="grid-body-cell" key={`prepend-${i}`}>
-              {item}
-            </GridBodyCell>
-          ))}
+        {prependColumns?.map((item, i) => (
+          <GridBodyCell data-test-id="grid-body-cell" key={`prepend-${i}`}>
+            {item}
+          </GridBodyCell>
+        ))}
         {columnOrder.map((col, i) => (
           <GridBodyCell data-test-id="grid-body-cell" key={`${col.key}${i}`}>
             {grid.renderBodyCell
@@ -432,7 +432,13 @@ class GridEditable<
   }
 
   render() {
-    const {title, headerButtons, scrollable, height} = this.props;
+    const {
+      title,
+      headerButtons,
+      scrollable,
+      height,
+      'aria-label': ariaLabel,
+    } = this.props;
     const showHeader = title || headerButtons;
     return (
       <Fragment>
@@ -447,6 +453,7 @@ class GridEditable<
           )}
           <Body>
             <Grid
+              aria-label={ariaLabel}
               data-test-id="grid-editable"
               scrollable={scrollable}
               height={height}

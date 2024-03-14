@@ -38,14 +38,6 @@ class AccessService(abc.ABC):
         """
         pass
 
-    @abc.abstractmethod
-    def get_all_org_roles(self, member_id: int, organization_id: int) -> list[str]:
-        pass
-
-    @abc.abstractmethod
-    def get_top_dog_team_member_ids(self, organization_id: int) -> list[int]:
-        pass
-
     def auth_identity_is_valid(
         self,
         auth_provider: RpcAuthProvider,
@@ -121,7 +113,7 @@ class AccessService(abc.ABC):
         # into a single argument b/c query_sso_state specifically needs is_superuser
         if is_superuser or is_staff:
             # "permissions" is a bit of a misnomer -- these are all admin level permissions, and the intent is that if you
-            # have them, you can only use them when you are acting, as a superuser.  This is intentional.
+            # have them, you can only use them when you are acting, as a superuser or staff.  This is intentional.
             permissions = list(self.get_permissions_for_user(user_id))
         else:
             permissions = []

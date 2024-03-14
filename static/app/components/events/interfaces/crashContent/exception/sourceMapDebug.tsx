@@ -217,17 +217,12 @@ function combineErrors(
   sdkName?: string
 ) {
   const combinedErrors = uniqBy(
-    response
-      .map(res => res?.errors)
-      .flat()
-      .filter(defined),
+    response.flatMap(res => res?.errors).filter(defined),
     error => error?.type
   );
-  const errors = combinedErrors
-    .map(error =>
-      getErrorMessage(error, sdkName).map(message => ({...message, type: error.type}))
-    )
-    .flat();
+  const errors = combinedErrors.flatMap(error =>
+    getErrorMessage(error, sdkName).map(message => ({...message, type: error.type}))
+  );
 
   return errors;
 }

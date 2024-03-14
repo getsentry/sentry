@@ -16,7 +16,7 @@ from sentry.search.events.builder import SessionsV2QueryBuilder, TimeseriesSessi
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.utils import to_intervals
-from sentry.utils.dates import parse_stats_period, to_timestamp
+from sentry.utils.dates import parse_stats_period
 from sentry.utils.outcomes import Outcome
 
 logger = logging.getLogger(__name__)
@@ -737,7 +737,7 @@ def massage_sessions_result_summary(
 
 
 def isoformat_z(date):
-    return datetime.utcfromtimestamp(int(to_timestamp(date))).isoformat() + "Z"
+    return datetime.fromtimestamp(int(date.timestamp())).isoformat() + "Z"
 
 
 def get_timestamps(query):
@@ -746,10 +746,10 @@ def get_timestamps(query):
     The timestamps are returned as ISO strings for now.
     """
     rollup = query.rollup
-    start = int(to_timestamp(query.start))
-    end = int(to_timestamp(query.end))
+    start = int(query.start.timestamp())
+    end = int(query.end.timestamp())
 
-    return [datetime.utcfromtimestamp(ts).isoformat() + "Z" for ts in range(start, end, rollup)]
+    return [datetime.fromtimestamp(ts).isoformat() + "Z" for ts in range(start, end, rollup)]
 
 
 def _split_rows_groupby(rows, groupby):

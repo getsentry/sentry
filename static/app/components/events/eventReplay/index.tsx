@@ -2,11 +2,15 @@ import {useCallback} from 'react';
 import ReactLazyLoad from 'react-lazyload';
 import styled from '@emotion/styled';
 
+import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
 import {EventReplaySection} from 'sentry/components/events/eventReplay/eventReplaySection';
 import LazyLoad from 'sentry/components/lazyLoad';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ReplayGroupContextProvider} from 'sentry/components/replays/replayGroupContext';
 import {replayBackendPlatforms} from 'sentry/data/platformCategories';
+import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import {getAnalyticsDataForEvent, getAnalyticsDataForGroup} from 'sentry/utils/events';
@@ -15,12 +19,16 @@ import {useHasOrganizationSentAnyReplayEvents} from 'sentry/utils/replays/hooks/
 import {projectCanUpsellReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
-import {useUser} from 'sentry/utils/useUser';
 
 type Props = {
   event: Event;
   projectSlug: string;
   group?: Group;
+};
+
+const CLIP_OFFSETS = {
+  durationAfterMs: 5_000,
+  durationBeforeMs: 5_000,
 };
 
 function EventReplayContent({
@@ -29,39 +37,35 @@ function EventReplayContent({
   replayId,
 }: Props & {replayId: undefined | string}) {
   const organization = useOrganization();
-  const user = useUser();
   const {hasOrgSentReplays, fetching} = useHasOrganizationSentAnyReplayEvents();
 
-  const onboardingPanel = useCallback(() => import('./replayInlineOnboardingPanel'), []);
-  const onboardingPanelBackend = useCallback(
-    () => import('./replayInlineOnboardingPanelBackend'),
+  const replayOnboardingPanel = useCallback(
+    () => import('./replayInlineOnboardingPanel'),
     []
   );
   const replayPreview = useCallback(() => import('./replayPreview'), []);
   const replayClipPreview = useCallback(() => import('./replayClipPreview'), []);
 
-  const hasReplayClipFeature =
-    organization.features.includes('issue-details-inline-replay-viewer') &&
-    user.options.issueDetailsNewExperienceQ42023;
+  const hasReplayClipFeature = organization.features.includes(
+    'issue-details-inline-replay-viewer'
+  );
 
   if (fetching) {
     return null;
   }
 
-  if (!hasOrgSentReplays) {
-    return (
-      <ErrorBoundary mini>
-        <LazyLoad component={onboardingPanel} />
-      </ErrorBoundary>
-    );
-  }
+  const platform = group?.project.platform ?? group?.platform ?? 'other';
+  const projectId = group?.project.id ?? event.projectID ?? '';
 
-  const platform = group?.project.platform ?? 'other';
-  if (!replayId && replayBackendPlatforms.includes(platform)) {
-    // if backend project, show new onboarding panel
+  // frontend or backend platforms
+  if (!hasOrgSentReplays || (!replayId && replayBackendPlatforms.includes(platform))) {
     return (
       <ErrorBoundary mini>
-        <LazyLoad component={onboardingPanelBackend} platform={platform} />
+        <LazyLoad
+          component={replayOnboardingPanel}
+          platform={platform}
+          projectId={projectId}
+        />
       </ErrorBoundary>
     );
   }
@@ -89,6 +93,11 @@ function EventReplayContent({
         organization,
       },
     },
+    loadingFallback: (
+      <StyledNegativeSpaceContainer testId="replay-loading-placeholder">
+        <LoadingIndicator />
+      </StyledNegativeSpaceContainer>
+    ),
   };
 
   return (
@@ -97,7 +106,12 @@ function EventReplayContent({
         <ReplayGroupContextProvider groupId={group?.id} eventId={event.id}>
           <ReactLazyLoad debounce={50} height={448} offset={0} once>
             {hasReplayClipFeature ? (
-              <LazyLoad {...commonProps} component={replayClipPreview} />
+              <LazyLoad
+                {...commonProps}
+                component={replayClipPreview}
+                clipOffsets={CLIP_OFFSETS}
+                issueCategory={group?.issueCategory}
+              />
             ) : (
               <LazyLoad {...commonProps} component={replayPreview} />
             )}
@@ -132,5 +146,10 @@ export default function EventReplay({event, group, projectSlug}: Props) {
 
 // The min-height here is due to max-height that is set in replayPreview.tsx
 const ReplaySectionMinHeight = styled(EventReplaySection)`
-  min-height: 508px;
+  min-height: 557px;
+`;
+
+const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
+  height: ${REPLAY_LOADING_HEIGHT}px;
+  margin-bottom: ${space(2)};
 `;

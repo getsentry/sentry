@@ -94,7 +94,7 @@ export default class AddIntegration extends Component<Props> {
     const opts = `scrollbars=yes,width=${width},height=${height},top=${top},left=${left}`;
 
     this.dialog = window.open(installUrl, name, opts);
-    this.dialog && this.dialog.focus();
+    this.dialog?.focus();
   };
 
   didReceiveMessage = (message: MessageEvent) => {

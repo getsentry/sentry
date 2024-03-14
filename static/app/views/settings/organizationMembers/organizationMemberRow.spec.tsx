@@ -1,11 +1,9 @@
 import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {OrgRoleFixture} from 'sentry/types/role';
 import OrganizationMemberRow from 'sentry/views/settings/organizationMembers/organizationMemberRow';
 
 describe('OrganizationMemberRow', function () {
@@ -29,23 +27,6 @@ describe('OrganizationMemberRow', function () {
       has2fa: false,
       name: 'sentry@test.com',
     }),
-    groupOrgRoles: [],
-  });
-
-  const managerTeam = TeamFixture({
-    orgRole: 'manager',
-  });
-
-  const memberOnManagerTeam = MemberFixture({
-    id: '2',
-    orgRole: 'member',
-    teams: [managerTeam.slug],
-    groupOrgRoles: [
-      {
-        teamSlug: managerTeam.slug,
-        role: OrgRoleFixture({name: 'Manager'}),
-      },
-    ],
   });
 
   const currentUser = UserFixture({
@@ -306,43 +287,6 @@ describe('OrganizationMemberRow', function () {
       render(<OrganizationMemberRow {...props} canRemoveMembers />);
 
       expect(removeButton()).toBeEnabled();
-    });
-  });
-
-  describe('render org role', function () {
-    it('renders org role without tooltip if no org roles from team membership', function () {
-      render(
-        <OrganizationMemberRow
-          {...defaultProps}
-          member={{...member, user: UserFixture({...member.user})}}
-        />
-      );
-
-      expect(screen.getByText('Member')).toBeInTheDocument();
-
-      const questionTooltip = screen.queryByTestId('more-information');
-      expect(questionTooltip).not.toBeInTheDocument();
-    });
-  });
-
-  it('renders org role info tooltip if member has org roles from team membership', async function () {
-    render(
-      <OrganizationMemberRow
-        {...defaultProps}
-        member={{
-          ...memberOnManagerTeam,
-          user: UserFixture({...memberOnManagerTeam.user}),
-        }}
-      />
-    );
-
-    const questionTooltip = screen.getByTestId('more-information');
-    expect(questionTooltip).toBeInTheDocument();
-
-    await userEvent.hover(questionTooltip);
-    await waitFor(() => {
-      expect(screen.getByText(`#${managerTeam.slug}`)).toBeInTheDocument();
-      expect(screen.getByText(': Manager')).toBeInTheDocument();
     });
   });
 });

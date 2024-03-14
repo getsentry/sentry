@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import {t, tct} from 'sentry/locale';
-import type {Project} from 'sentry/types';
+import type {PlatformKey, Project} from 'sentry/types';
 import type {
   IssueCategoryConfigMapping,
   IssueTypeConfig,
@@ -31,60 +31,85 @@ export const errorConfig: IssueCategoryConfigMapping = {
 type ErrorInfo = {
   errorHelpType: ErrorHelpType;
   errorTitle: string | RegExp;
-  projectCheck: boolean;
+  projectPlatforms: PlatformKey[];
 };
 
 const ErrorInfoChecks: Array<ErrorInfo> = [
   {
     errorTitle: 'ChunkLoadError',
-    projectCheck: false,
+    projectPlatforms: ['javascript'],
     errorHelpType: ErrorHelpType.CHUNK_LOAD_ERROR,
   },
   {
-    errorTitle: 'window is not defined',
-    projectCheck: false,
-    errorHelpType: ErrorHelpType.DOCUMENT_OR_WINDOW_OBJECT_ERROR,
-  },
-  {
-    errorTitle: 'document is not defined',
-    projectCheck: false,
+    errorTitle: /(window is not defined|document is not defined)/i,
+    projectPlatforms: ['javascript'],
     errorHelpType: ErrorHelpType.DOCUMENT_OR_WINDOW_OBJECT_ERROR,
   },
   {
     errorTitle: 'Invariant: attempted to hard navigate to the same URL',
-    projectCheck: true,
+    projectPlatforms: ['javascript-nextjs'],
     errorHelpType: ErrorHelpType.HANDLE_HARD_NAVIGATE_ERROR,
   },
   {
     errorTitle: "Module not found: Can't resolve",
-    projectCheck: true,
+    projectPlatforms: ['javascript-nextjs'],
     errorHelpType: ErrorHelpType.MODULE_NOT_FOUND,
   },
   {
     errorTitle: 'Dynamic server usage',
-    projectCheck: true,
+    projectPlatforms: ['javascript-nextjs'],
     errorHelpType: ErrorHelpType.DYNAMIC_SERVER_USAGE,
   },
   {
     errorTitle:
       /(does not match server-rendered HTML|Hydration failed because|error while hydrating)/i,
-    projectCheck: true,
+    projectPlatforms: ['javascript-nextjs'],
     errorHelpType: ErrorHelpType.HYDRATION_ERROR,
   },
   {
     errorTitle: 'TypeError: Load failed',
-    projectCheck: false,
+    projectPlatforms: ['javascript'],
     errorHelpType: ErrorHelpType.LOAD_FAILED,
   },
   {
     errorTitle: 'Failed to fetch',
-    projectCheck: false,
+    projectPlatforms: ['javascript'],
     errorHelpType: ErrorHelpType.FAILED_TO_FETCH,
   },
   {
     errorTitle: 'socket hang up',
-    projectCheck: false,
+    projectPlatforms: ['javascript'],
     errorHelpType: ErrorHelpType.SOCKET_HANG_UP,
+  },
+  {
+    errorTitle: 'Error: NextRouter was not mounted',
+    projectPlatforms: ['javascript-nextjs'],
+    errorHelpType: ErrorHelpType.NEXTJS_ROUTER_NOT_MOUNTED,
+  },
+  {
+    errorTitle: 'UnboundLocalError',
+    projectPlatforms: ['python'],
+    errorHelpType: ErrorHelpType.UNBOUND_LOCAL_ERROR,
+  },
+  {
+    errorTitle: 'Error: Cannot find module',
+    projectPlatforms: ['node'],
+    errorHelpType: ErrorHelpType.NODEJS_CANNOT_FIND_MODULE,
+  },
+  {
+    errorTitle: 'ImportError: No module named',
+    projectPlatforms: ['python'],
+    errorHelpType: ErrorHelpType.NO_MODULE_NAMED,
+  },
+  {
+    errorTitle: "TypeError: 'str' object does not support item assignment",
+    projectPlatforms: ['python'],
+    errorHelpType: ErrorHelpType.STRINGS_ARE_IMMUTABLE,
+  },
+  {
+    errorTitle: 'Invariant Violation',
+    projectPlatforms: ['javascript', 'react'],
+    errorHelpType: ErrorHelpType.INVARIANT_VIOLATION_ERROR,
   },
 ];
 
@@ -232,6 +257,100 @@ const errorHelpTypeResourceMap: Record<
       linksByPlatform: {},
     },
   },
+  [ErrorHelpType.NEXTJS_ROUTER_NOT_MOUNTED]: {
+    resources: {
+      description: tct(
+        '[errorTypes] occur in Next.js applications when the useRouter hook is used incorrectly. To learn more about how to fix these errors, check out these resources:',
+        {errorTypes: <b>NextRouter not mounted errors</b>}
+      ),
+      links: [
+        {
+          text: t('Fixing "NextRouter was not mounted" errors in Next.js'),
+          link: 'https://sentry.io/answers/error-nextrouter-was-not-mounted/',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
+  [ErrorHelpType.UNBOUND_LOCAL_ERROR]: {
+    resources: {
+      description: tct(
+        '[errorTypes] occur in Python applications when a variable is defined in both global and local contexts. To learn more about how to fix these errors, check out these resources:',
+        {errorTypes: <b>UnboundLocalError errors</b>}
+      ),
+      links: [
+        {
+          text: t('Fixing "UnboundLocalError" errors in Python'),
+          link: 'https://sentry.io/answers/unbound-local-error/',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
+  [ErrorHelpType.NODEJS_CANNOT_FIND_MODULE]: {
+    resources: {
+      description: tct(
+        '[errorTypes] occur in Node.js applications when an imported module cannot be found. To learn more about how to fix these errors, check out these resources:',
+        {errorTypes: <b>Cannot find module errors</b>}
+      ),
+      links: [
+        {
+          text: t('Fixing "Cannot find module" errors in Node.js'),
+          link: 'http://sentry.io/answers/how-do-i-resolve-cannot-find-module-error-using-node-js/',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
+  [ErrorHelpType.NO_MODULE_NAMED]: {
+    resources: {
+      description: tct(
+        '[errorTypes] occur in Python applications when a module that does not exist is imported. To learn more about how to fix these errors, check out these resources:',
+        {errorTypes: <b>No module named errors</b>}
+      ),
+      links: [
+        {
+          text: t('Fixing "ImportError: No module named" errors in Python'),
+          link: 'https://sentry.io/answers/resolve-python-importerror-no-module-named/',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
+  [ErrorHelpType.STRINGS_ARE_IMMUTABLE]: {
+    resources: {
+      description: tct(
+        '[errorTypes] occur in Python applications when a string is modified in place. To learn more about how to fix these errors, check out these resources:',
+        {errorTypes: <b>Strings do not support item assignment errors</b>}
+      ),
+      links: [
+        {
+          text: t(
+            'Fixing "\'str\' object does not support item assignment" errors in Python'
+          ),
+          link: 'https://sentry.io/answers/strings-are-immutable/',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
+  [ErrorHelpType.INVARIANT_VIOLATION_ERROR]: {
+    resources: {
+      description: tct(
+        '[errorTypes] occur in React when modules are imported incorrectly. To learn more about how to fix these errors, check out these resources:',
+        {errorTypes: <b>Invariant violation errors</b>}
+      ),
+      links: [
+        {
+          text: t(
+            'Fixing "Invariant Violation: Element type is invalid" errors in React'
+          ),
+          link: 'https://sentry.io/answers/uncaught-error-invariant-violation-element-type-is-invalid/',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
 };
 
 export function getErrorHelpResource({
@@ -242,19 +361,21 @@ export function getErrorHelpResource({
   title: string;
 }): Pick<IssueTypeConfig, 'resources'> | null {
   for (const errorInfo of ErrorInfoChecks) {
-    const {errorTitle, errorHelpType, projectCheck} = errorInfo;
+    const {errorTitle, errorHelpType, projectPlatforms} = errorInfo;
     const shouldShowCustomResource =
       typeof errorTitle === 'string'
         ? title.includes(errorTitle)
         : title.match(errorTitle);
 
     if (shouldShowCustomResource) {
-      if (projectCheck && !(project.platform || '').includes('nextjs')) {
-        continue;
+      // Issues without a platform will never have a custom "Sentry Answers" resource
+      for (const platform of projectPlatforms) {
+        const isCorrectPlatform = (project.platform || '').includes(platform);
+        if (isCorrectPlatform) {
+          return errorHelpTypeResourceMap[errorHelpType];
+        }
       }
-      return errorHelpTypeResourceMap[errorHelpType];
     }
   }
-
   return null;
 }

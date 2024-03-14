@@ -91,7 +91,7 @@ const RightLinks = styled('div')`
 
 const FooterLink = styled(ExternalLink)`
   color: ${p => p.theme.subText};
-  &.focus-visible {
+  &:focus-visible {
     outline: none;
     box-shadow: ${p => p.theme.blue300} 0 2px 0;
   }

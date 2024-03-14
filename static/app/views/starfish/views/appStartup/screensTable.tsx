@@ -13,6 +13,7 @@ import type EventView from 'sentry/utils/discover/eventView';
 import {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -23,7 +24,9 @@ import {
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/starfish/components/releaseSelector';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
 import Breakdown from 'sentry/views/starfish/views/appStartup/breakdown';
+import {COLD_START_TYPE} from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
 import {TOP_SCREENS} from 'sentry/views/starfish/views/screens';
 
 type Props = {
@@ -37,6 +40,9 @@ export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
+
+  const startType =
+    decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? COLD_START_TYPE;
 
   const columnNameMap = {
     transaction: t('Screen'),
@@ -56,8 +62,13 @@ export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
       'Warm Start (%s)',
       SECONDARY_RELEASE_ALIAS
     ),
-    app_start_breakdown: t('App Start Breakdown'),
-    'count()': t('Total Count'),
+    [`avg_compare(measurements.app_start_cold,release,${primaryRelease},${secondaryRelease})`]:
+      t('Change'),
+    [`avg_compare(measurements.app_start_warm,release,${primaryRelease},${secondaryRelease})`]:
+      t('Change'),
+    app_start_breakdown: t('Type Breakdown'),
+    'count_starts(measurements.app_start_cold)': t('Count'),
+    'count_starts(measurements.app_start_warm)': t('Count'),
   };
 
   function renderBodyCell(column, row): React.ReactNode {
@@ -169,12 +180,11 @@ export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
         data={data?.data as TableDataRow[]}
         columnOrder={[
           'transaction',
-          `avg_if(measurements.app_start_cold,release,${primaryRelease})`,
-          `avg_if(measurements.app_start_cold,release,${secondaryRelease})`,
-          `avg_if(measurements.app_start_warm,release,${primaryRelease})`,
-          `avg_if(measurements.app_start_warm,release,${secondaryRelease})`,
-          `app_start_breakdown`,
-          'count()',
+          `avg_if(measurements.app_start_${startType},release,${primaryRelease})`,
+          `avg_if(measurements.app_start_${startType},release,${secondaryRelease})`,
+          `avg_compare(measurements.app_start_${startType},release,${primaryRelease},${secondaryRelease})`,
+          'app_start_breakdown',
+          `count_starts(measurements.app_start_${startType})`,
         ].map(columnKey => {
           return {
             key: columnKey,
@@ -184,7 +194,7 @@ export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
         })}
         columnSortBy={[
           {
-            key: 'count()',
+            key: `count_starts_measurements_app_start_${startType}`,
             order: 'desc',
           },
         ]}

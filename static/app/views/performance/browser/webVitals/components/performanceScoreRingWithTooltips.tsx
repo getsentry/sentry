@@ -17,8 +17,9 @@ import type {
   ProjectScore,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webVitals/utils/useReplaceFidWithInpSetting';
 
-import {ORDER} from '../performanceScoreChart';
+import {ORDER, ORDER_WITH_INP} from '../performanceScoreChart';
 
 import {getFormattedDuration} from './webVitalMeters';
 
@@ -137,6 +138,7 @@ function PerformanceScoreRingWithTooltips({
   height,
   text,
   webVitalLabelCoordinates,
+  // TODO: This prop isn't really needed anymore since we should always get weights from projectScore
   weights = {
     lcp: LCP_WEIGHT,
     fcp: FCP_WEIGHT,
@@ -172,8 +174,11 @@ function PerformanceScoreRingWithTooltips({
   const [webVitalTooltip, setWebVitalTooltip] = useState<WebVitals | null>(null);
   const [labelHovered, setLabelHovered] = useState<WebVitals | null>(null);
 
+  const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
+  const ringSegmentOrder = shouldReplaceFidWithInp ? ORDER_WITH_INP : ORDER;
+
   if (labelHovered && inPerformanceWidget) {
-    const index = ORDER.indexOf(labelHovered);
+    const index = ringSegmentOrder.indexOf(labelHovered);
     ringSegmentColors = ringSegmentColors.map((color, i) => {
       return i === index ? color : theme.gray200;
     });
@@ -192,17 +197,16 @@ function PerformanceScoreRingWithTooltips({
     onUnHover: () => setLabelHovered(null),
   };
 
-  const {lcpX, lcpY, fcpX, fcpY, fidX, fidY, clsX, clsY, ttfbX, ttfbY} =
-    calculateLabelCoordinates(
-      size,
-      x,
-      y,
-      barWidth,
-      weights,
-      labelWidthPadding,
-      labelHeightPadding,
-      radiusPadding
-    );
+  const coordinates = calculateLabelCoordinates(
+    size,
+    x,
+    y,
+    barWidth,
+    weights,
+    labelWidthPadding,
+    labelHeightPadding,
+    radiusPadding
+  );
 
   return (
     <ProgressRingContainer ref={elem} {...mouseTrackingProps}>
@@ -210,7 +214,9 @@ function PerformanceScoreRingWithTooltips({
         <PerformanceScoreRingTooltip x={mousePosition.x} y={mousePosition.y}>
           <TooltipRow>
             <span>
-              <Dot color={ringBackgroundColors[ORDER.indexOf(webVitalTooltip)]} />
+              <Dot
+                color={ringBackgroundColors[ringSegmentOrder.indexOf(webVitalTooltip)]}
+              />
               {webVitalTooltip.toUpperCase()} {t('Opportunity')}
             </span>
             <TooltipValue>
@@ -219,7 +225,7 @@ function PerformanceScoreRingWithTooltips({
           </TooltipRow>
           <TooltipRow>
             <span>
-              <Dot color={ringSegmentColors[ORDER.indexOf(webVitalTooltip)]} />
+              <Dot color={ringSegmentColors[ringSegmentOrder.indexOf(webVitalTooltip)]} />
               {webVitalTooltip.toUpperCase()} {t('Score')}
             </span>
             <TooltipValue>{projectScore[`${webVitalTooltip}Score`]}</TooltipValue>
@@ -230,56 +236,20 @@ function PerformanceScoreRingWithTooltips({
       <svg height={height} width={width}>
         {!hideWebVitalLabels && (
           <Fragment>
-            {weights.lcp > 0 && (
-              <WebVitalLabel
-                {...commonWebVitalLabelProps}
-                webVital="lcp"
-                coordinates={{
-                  x: lcpX,
-                  y: lcpY,
-                }}
-              />
-            )}
-            {weights.fcp > 0 && (
-              <WebVitalLabel
-                {...commonWebVitalLabelProps}
-                webVital="fcp"
-                coordinates={{
-                  x: fcpX,
-                  y: fcpY,
-                }}
-              />
-            )}
-            {weights.fid > 0 && (
-              <WebVitalLabel
-                {...commonWebVitalLabelProps}
-                webVital="fid"
-                coordinates={{
-                  x: fidX,
-                  y: fidY,
-                }}
-              />
-            )}
-            {weights.cls > 0 && (
-              <WebVitalLabel
-                {...commonWebVitalLabelProps}
-                webVital="cls"
-                coordinates={{
-                  x: clsX,
-                  y: clsY,
-                }}
-              />
-            )}
-            {weights.ttfb > 0 && (
-              <WebVitalLabel
-                {...commonWebVitalLabelProps}
-                webVital="ttfb"
-                coordinates={{
-                  x: ttfbX,
-                  y: ttfbY,
-                }}
-              />
-            )}
+            {Object.keys(weights).map((key, index) => {
+              const webVital = key as WebVitals;
+              if (weights[key] > 0 && coordinates[webVital] !== undefined) {
+                return (
+                  <WebVitalLabel
+                    {...commonWebVitalLabelProps}
+                    key={`webVitalLabel-${key}-${index}`}
+                    webVital={webVital}
+                    coordinates={coordinates[webVital] as Coordinates}
+                  />
+                );
+              }
+              return null;
+            })}
           </Fragment>
         )}
         <PerformanceScoreRing
@@ -297,10 +267,14 @@ function PerformanceScoreRingWithTooltips({
               onHoverActions: () => setWebVitalTooltip('fcp'),
             },
             {
-              value: (projectScore.fidScore ?? 0) * weights.fid * 0.01,
-              maxValue: weights.fid,
-              key: 'fid',
-              onHoverActions: () => setWebVitalTooltip('fid'),
+              value: shouldReplaceFidWithInp
+                ? (projectScore.inpScore ?? 0) * weights.inp * 0.01
+                : (projectScore.fidScore ?? 0) * weights.fid * 0.01,
+              maxValue: shouldReplaceFidWithInp ? weights.inp : weights.fid,
+              key: shouldReplaceFidWithInp ? 'inp' : 'fid',
+              onHoverActions: shouldReplaceFidWithInp
+                ? () => setWebVitalTooltip('inp')
+                : () => setWebVitalTooltip('fid'),
             },
             {
               value: (projectScore.clsScore ?? 0) * weights.cls * 0.01,
@@ -354,74 +328,27 @@ function calculateLabelCoordinates(
   const sumMaxValues = Object.values(weights).reduce((acc, val) => acc + val, 0);
   const BASE_ANGLE = -90;
   const weightToAngle = (weight: number) => (weight / sumMaxValues) * 360;
-  const [lcpAngle, fcpAngle, fidAngle, clsAngle, ttfbAngle] = [
-    weights.lcp,
-    weights.fcp,
-    weights.fid,
-    weights.cls,
-    weights.ttfb,
-  ].map(weightToAngle);
-  const lcpX =
-    center.x + radius * Math.cos(((BASE_ANGLE + lcpAngle / 2) * Math.PI) / 180);
-  const lcpY =
-    center.y + radius * Math.sin(((BASE_ANGLE + lcpAngle / 2) * Math.PI) / 180);
-  const fcpX =
-    center.x +
-    radius * Math.cos(((BASE_ANGLE + lcpAngle + fcpAngle / 2) * Math.PI) / 180);
-  const fcpY =
-    center.y +
-    radius * Math.sin(((BASE_ANGLE + lcpAngle + fcpAngle / 2) * Math.PI) / 180);
-  const fidX =
-    center.x +
-    radius *
-      Math.cos(((BASE_ANGLE + lcpAngle + fcpAngle + fidAngle / 2) * Math.PI) / 180);
-  const fidY =
-    center.y +
-    radius *
-      Math.sin(((BASE_ANGLE + lcpAngle + fcpAngle + fidAngle / 2) * Math.PI) / 180);
-  const clsX =
-    center.x +
-    radius *
-      Math.cos(
-        ((BASE_ANGLE + lcpAngle + fcpAngle + fidAngle + clsAngle / 2) * Math.PI) / 180
-      );
-  const clsY =
-    center.y +
-    radius *
-      Math.sin(
-        ((BASE_ANGLE + lcpAngle + fcpAngle + fidAngle + clsAngle / 2) * Math.PI) / 180
-      );
-  // Padding hack for now since ttfb label is longer than the others
-  const ttfbX =
-    center.x -
-    12 +
-    radius *
-      Math.cos(
-        ((BASE_ANGLE + lcpAngle + fcpAngle + fidAngle + clsAngle + ttfbAngle / 2) *
-          Math.PI) /
-          180
-      );
-  const ttfbY =
-    center.y +
-    radius *
-      Math.sin(
-        ((BASE_ANGLE + lcpAngle + fcpAngle + fidAngle + clsAngle + ttfbAngle / 2) *
-          Math.PI) /
-          180
-      );
+  const angles = Object.values(weights).map(weightToAngle);
+  const coordinates = angles.map((angle, index) => {
+    const previousAngles = angles.slice(0, index).reduce((acc, value) => acc + value, 0);
+    const segmentX =
+      center.x +
+      radius * Math.cos(((BASE_ANGLE + previousAngles + angle / 2) * Math.PI) / 180);
+    const segmentY =
+      center.y +
+      radius * Math.sin(((BASE_ANGLE + previousAngles + angle / 2) * Math.PI) / 180);
+    return {x: segmentX, y: segmentY};
+  });
 
-  return {
-    lcpX,
-    lcpY,
-    fcpX,
-    fcpY,
-    fidX,
-    fidY,
-    clsX,
-    clsY,
-    ttfbX,
-    ttfbY,
-  };
+  const results: {[key in WebVitals]?: {x: number; y: number}} = {};
+  Object.keys(weights).forEach((key, index) => {
+    results[key] = {
+      // Padding hack for now since ttfb label is longer than the others
+      x: coordinates[index].x + (key === 'ttfb' ? -12 : 0),
+      y: coordinates[index].y,
+    };
+  });
+  return results;
 }
 
 const ProgressRingContainer = styled('div')``;

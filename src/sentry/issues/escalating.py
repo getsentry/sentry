@@ -1,6 +1,7 @@
 """This module has the logic for querying Snuba for the hourly event count for a list of groups.
 This is later used for generating group forecasts for determining when a group may be escalating.
 """
+
 from __future__ import annotations
 
 import logging
@@ -442,7 +443,7 @@ def is_escalating(group: Group) -> tuple[bool, int | None]:
     """
     group_hourly_count = get_group_hourly_count(group)
     forecast_today = EscalatingGroupForecast.fetch_todays_forecast(group.project.id, group.id)
-    # Check if current event occurance is greater than forecast for today's date
+    # Check if current event occurrence is greater than forecast for today's date
     if forecast_today and group_hourly_count > forecast_today:
         return True, forecast_today
     return False, None
@@ -511,7 +512,6 @@ def manage_issue_states(
                 )
             add_group_to_inbox(group, GroupInboxReason.ESCALATING, snooze_details)
             record_group_history(group, GroupHistoryStatus.ESCALATING)
-            auto_update_priority(group, PriorityChangeReason.ESCALATING)
 
             has_forecast = (
                 True if data and activity_data and "forecast" in activity_data.keys() else False
@@ -539,6 +539,7 @@ def manage_issue_states(
             Activity.objects.create_group_activity(
                 group=group, type=ActivityType.SET_ESCALATING, data=data
             )
+            auto_update_priority(group, PriorityChangeReason.ESCALATING)
 
     elif group_inbox_reason == GroupInboxReason.ONGOING:
         updated = Group.objects.filter(

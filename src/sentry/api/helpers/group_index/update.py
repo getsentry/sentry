@@ -23,6 +23,7 @@ from sentry.db.models.query import create_or_update
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
 from sentry.issues.merge import handle_merge
+from sentry.issues.priority import update_priority
 from sentry.issues.status_change import handle_status_update
 from sentry.issues.update_inbox import update_inbox
 from sentry.models.activity import Activity, ActivityIntegration
@@ -53,7 +54,7 @@ from sentry.signals import issue_resolved
 from sentry.tasks.auto_ongoing_issues import TRANSITION_AFTER_DAYS
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.types.activity import ActivityType
-from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus
+from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus, PriorityLevel
 from sentry.utils import metrics
 
 from . import ACTIVITIES_COUNT, BULK_MUTATION_LIMIT, SearchFunction, delete_group_list
@@ -188,6 +189,8 @@ def update_groups(
     else:
         group_list = None
 
+    has_priority = False
+
     serializer = None
     # TODO(jess): We may want to look into refactoring GroupValidator
     # to support multiple projects, but this is pretty complicated
@@ -204,6 +207,8 @@ def update_groups(
         )
         if not serializer.is_valid():
             raise serializers.ValidationError(serializer.errors)
+        if not has_priority and features.has("projects:issue-priority", project, actor=user):
+            has_priority = True
 
     if serializer is None:
         return
@@ -255,6 +260,13 @@ def update_groups(
     res_type = None
     activity_type = None
     activity_data: MutableMapping[str, Any | None] | None = None
+    if has_priority and "priority" in result:
+        handle_priority(
+            priority=result["priority"],
+            group_list=group_list,
+            actor=acting_user,
+            project_lookup=project_lookup,
+        )
     if status in ("resolved", "resolvedInNextRelease"):
         res_status = None
         if status == "resolvedInNextRelease" or status_details.get("inNextRelease"):
@@ -586,7 +598,6 @@ def update_groups(
                 acting_user=acting_user,
                 status_details=result.get("statusDetails", {}),
                 sender=update_groups,
-                activity_type=activity_type,
             )
 
     # XXX (ahmed): hack to get the activities to work properly on issues page. Not sure of
@@ -656,9 +667,11 @@ def update_groups(
                 "referer": (
                     "issue stream"
                     if re.search(issue_stream_regex, referer)
-                    else "similar issues tab"
-                    if re.search(similar_issues_tab_regex, referer)
-                    else "unknown"
+                    else (
+                        "similar issues tab"
+                        if re.search(similar_issues_tab_regex, referer)
+                        else "unknown"
+                    )
                 ),
             },
         )
@@ -765,6 +778,22 @@ def handle_has_seen(
                 )
     elif has_seen is False:
         GroupSeen.objects.filter(group__in=group_ids, user_id=user_id).delete()
+
+
+def handle_priority(
+    priority: str, group_list: Sequence[Group], actor: User, project_lookup: dict[int, Project]
+) -> None:
+    for group in group_list:
+        priority_value = PriorityLevel.from_str(priority) if priority else None
+
+        update_priority(
+            group=group,
+            priority=priority_value,
+            sender="manual_update_priority",
+            actor=actor,
+            project=project_lookup[group.project_id],
+        )
+        group.update(priority_locked_at=django_timezone.now())
 
 
 def handle_is_public(

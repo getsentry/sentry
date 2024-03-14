@@ -20,15 +20,7 @@ function ApiTokenRow({token, onRemove, tokenPrefix = ''}: Props) {
   return (
     <StyledPanelItem>
       <Controls>
-        <TokenPreview aria-label={t('Token preview')}>
-          {tokenPreview(
-            getDynamicText({
-              value: token.tokenLastCharacters,
-              fixed: 'ABCD',
-            }),
-            tokenPrefix
-          )}
-        </TokenPreview>
+        {token.name ? token.name : ''}
         <ButtonWrapper>
           <Button
             data-test-id="token-delete"
@@ -41,6 +33,18 @@ function ApiTokenRow({token, onRemove, tokenPrefix = ''}: Props) {
       </Controls>
 
       <Details>
+        <TokenWrapper>
+          <Heading>{t('Token')}</Heading>
+          <TokenPreview aria-label={t('Token preview')}>
+            {tokenPreview(
+              getDynamicText({
+                value: token.tokenLastCharacters,
+                fixed: 'ABCD',
+              }),
+              tokenPrefix
+            )}
+          </TokenPreview>
+        </TokenWrapper>
         <ScopesWrapper>
           <Heading>{t('Scopes')}</Heading>
           <ScopeList>{token.scopes.join(', ')}</ScopeList>
@@ -77,8 +81,14 @@ const Details = styled('div')`
   margin-top: ${space(1)};
 `;
 
-const ScopesWrapper = styled('div')`
+const TokenWrapper = styled('div')`
   flex: 1;
+  margin-right: ${space(1)};
+`;
+
+const ScopesWrapper = styled('div')`
+  flex: 2;
+  margin-right: ${space(4)};
 `;
 
 const ScopeList = styled('div')`

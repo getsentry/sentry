@@ -5,11 +5,13 @@ from unittest.mock import patch
 
 import responses
 from django.test import RequestFactory
+from django.utils import timezone
 from pytest import fixture
 
 from sentry.integrations.github import client
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.github.issues import GitHubIssueBasic
+from sentry.issues.grouptype import FeedbackGroup
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.silo.util import PROXY_BASE_URL_HEADER, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
@@ -29,7 +31,7 @@ class GitHubIssueBasicAllSiloTest(TestCase):
         super().setUp()
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
-        ten_days = datetime.datetime.utcnow() + datetime.timedelta(days=10)
+        ten_days = timezone.now() + datetime.timedelta(days=10)
         self.integration = self.create_integration(
             organization=self.organization,
             provider="github",
@@ -396,6 +398,41 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             ("getsentry/hello", "hello"),
             ("getsentry/sentry", "sentry"),
         ]
+
+    @responses.activate
+    def test_linked_issue_comment(self):
+        issue_event = self.store_event(
+            data={"event_id": "a" * 32, "timestamp": self.min_ago}, project_id=self.project.id
+        )
+        feedback_issue = self.create_group(project=self.project, type=FeedbackGroup.type_id)
+
+        responses.add(
+            responses.GET,
+            "https://api.github.com/installation/repositories",
+            json={
+                "total_count": 2,
+                "repositories": [
+                    {"full_name": "getsentry/sentry", "name": "sentry"},
+                    {"full_name": "getsentry/other", "name": "other", "archived": True},
+                ],
+            },
+        )
+
+        # link an issue
+        data = {"params": {"repo": "getsentry/hello"}}
+        assert issue_event.group is not None
+        resp = self.install.get_link_issue_config(group=issue_event.group, **data)
+        # assert comment wording for linked issue is correct
+        assert "Sentry Issue" in resp[2]["default"]
+
+        # link a feedback issue
+        resp = self.install.get_link_issue_config(group=feedback_issue, **data)
+        # assert comment wording for linked feedback is correct
+        assert "Sentry Feedback" in resp[2]["default"]
+
+        # ensure linked comment is a string
+        assert isinstance(resp[1]["default"], str)
+        assert isinstance(resp[0]["default"], str)
 
     @responses.activate
     def after_link_issue(self):

@@ -1,14 +1,15 @@
 import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import StreamGroup from 'sentry/components/stream/group';
 import GroupStore from 'sentry/stores/groupStore';
 import GuideStore from 'sentry/stores/guideStore';
 import type {GroupStatusResolution, MarkReviewed} from 'sentry/types';
-import {EventOrGroupType, GroupStatus} from 'sentry/types';
+import {EventOrGroupType, GroupStatus, PriorityLevel} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 jest.mock('sentry/utils/analytics');
@@ -87,6 +88,32 @@ describe('StreamGroup', function () {
     act(() => GroupStore.onUpdate('1337', undefined, data));
     act(() => GroupStore.onUpdateSuccess('1337', undefined, data));
     expect(screen.getByTestId('resolved-issue')).toBeInTheDocument();
+  });
+
+  it('can change priority', async function () {
+    const mockModifyGroup = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/',
+      method: 'PUT',
+      body: {priority: PriorityLevel.HIGH},
+    });
+
+    render(<StreamGroup id="1337" query="is:unresolved" />, {
+      organization: OrganizationFixture({features: ['issue-priority-ui']}),
+    });
+
+    const priorityDropdown = screen.getByRole('button', {name: 'Modify issue priority'});
+    expect(within(priorityDropdown).getByText('Med')).toBeInTheDocument();
+    await userEvent.click(priorityDropdown);
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'High'}));
+    expect(within(priorityDropdown).getByText('High')).toBeInTheDocument();
+    expect(mockModifyGroup).toHaveBeenCalledWith(
+      '/organizations/org-slug/issues/',
+      expect.objectContaining({
+        data: expect.objectContaining({
+          priority: 'high',
+        }),
+      })
+    );
   });
 
   it('tracks clicks from issues stream', async function () {

@@ -2,10 +2,15 @@ import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {bulkDelete, bulkUpdate, mergeGroups} from 'sentry/actionCreators/group';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  clearIndicators,
+} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/alert';
 import Checkbox from 'sentry/components/checkbox';
 import {Sticky} from 'sentry/components/sticky';
-import {tct, tn} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
@@ -19,6 +24,7 @@ import useApi from 'sentry/utils/useApi';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from 'sentry/views/issueList/utils';
 
 import ActionSet from './actionSet';
@@ -38,8 +44,7 @@ type IssueListActionsProps = {
   selection: PageFilters;
   sort: string;
   statsPeriod: string;
-  onActionTaken?: (itemIds: string[]) => void;
-  onMarkReviewed?: (itemIds: string[]) => void;
+  onActionTaken?: (itemIds: string[], data: IssueUpdateData) => void;
 };
 
 function IssueListActions({
@@ -48,7 +53,6 @@ function IssueListActions({
   groupIds,
   onActionTaken,
   onDelete,
-  onMarkReviewed,
   onSelectStatsPeriod,
   onSortChange,
   queryCount,
@@ -75,7 +79,7 @@ function IssueListActions({
 
   const disableActions = useMedia(
     `(max-width: ${
-      isSavedSearchesOpen ? theme.breakpoints.large : theme.breakpoints.small
+      isSavedSearchesOpen ? theme.breakpoints.xlarge : theme.breakpoints.medium
     })`
   );
 
@@ -142,15 +146,16 @@ function IssueListActions({
     });
   }
 
-  function handleUpdate(data?: any) {
-    if (data.status === 'ignored') {
-      const statusDetails = data.statusDetails.ignoreCount
-        ? 'ignoreCount'
-        : data.statusDetails.ignoreDuration
-          ? 'ignoreDuration'
-          : data.statusDetails.ignoreUserCount
-            ? 'ignoreUserCount'
-            : undefined;
+  function handleUpdate(data: IssueUpdateData) {
+    if ('status' in data && data.status === 'ignored') {
+      const statusDetails =
+        'ignoreCount' in data.statusDetails
+          ? 'ignoreCount'
+          : 'ignoreDuration' in data.statusDetails
+            ? 'ignoreDuration'
+            : 'ignoreUserCount' in data.statusDetails
+              ? 'ignoreUserCount'
+              : undefined;
       trackAnalytics('issues_stream.archived', {
         action_status_details: statusDetails,
         action_substatus: data.substatus,
@@ -159,12 +164,6 @@ function IssueListActions({
     }
 
     actionSelectedGroups(itemIds => {
-      if (data?.inbox === false) {
-        onMarkReviewed?.(itemIds ?? []);
-      }
-
-      onActionTaken?.(itemIds ?? []);
-
       // If `itemIds` is undefined then it means we expect to bulk update all items
       // that match the query.
       //
@@ -172,6 +171,10 @@ function IssueListActions({
       // * users with no global views requires a project to be specified
       // * users with global views need to be explicit about what projects the query will run against
       const projectConstraints = {project: selection.projects};
+
+      if (itemIds?.length) {
+        addLoadingMessage(t('Saving changes\u2026'));
+      }
 
       bulkUpdate(
         api,
@@ -181,10 +184,20 @@ function IssueListActions({
           data,
           query,
           environment: selection.environments,
+          failSilently: true,
           ...projectConstraints,
           ...selection.datetime,
         },
-        {}
+        {
+          success: () => {
+            clearIndicators();
+            onActionTaken?.(itemIds ?? [], data);
+          },
+          error: () => {
+            clearIndicators();
+            addErrorMessage(t('Unable to update issues'));
+          },
+        }
       );
     });
   }
@@ -285,7 +298,7 @@ function useSelectedGroupsState() {
   const selected = SelectedGroupStore.getSelectedIds();
   const projects = [...selected]
     .map(id => GroupStore.get(id))
-    .filter((group): group is Group => !!(group && group.project))
+    .filter((group): group is Group => !!group?.project)
     .map(group => group.project.slug);
 
   const uniqProjects = uniq(projects);
@@ -322,6 +335,7 @@ function shouldConfirm(
     case ConfirmAction.RESOLVE:
     case ConfirmAction.UNRESOLVE:
     case ConfirmAction.ARCHIVE:
+    case ConfirmAction.SET_PRIORITY:
     case ConfirmAction.UNBOOKMARK: {
       return pageSelected && selectedIdsSet.size > 1;
     }

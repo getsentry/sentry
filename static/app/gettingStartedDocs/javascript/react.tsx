@@ -1,16 +1,25 @@
+import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
+import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
+import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {
+  getCrashReportJavaScriptInstallStep,
+  getCrashReportModalConfigDescription,
+  getCrashReportModalIntroduction,
+  getFeedbackConfigOptions,
+  getFeedbackConfigureDescription,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
+import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
-  getUploadSourceMapsStep,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils';
-import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import {tracePropagationMessage} from 'sentry/components/replaysOnboarding/utils';
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -24,10 +33,15 @@ Sentry.init({
   integrations: [${
     params.isPerformanceSelected
       ? `
-        new Sentry.BrowserTracing({
-          // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
-          tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],
-        }),`
+        Sentry.browserTracingIntegration(),`
+      : ''
+  }${
+    params.isFeedbackSelected
+      ? `
+        Sentry.feedbackIntegration({
+// Additional SDK configuration goes in here, for example:
+colorScheme: "system",
+${getFeedbackConfigOptions(params.feedbackOptions)}}),`
       : ''
   }${
     params.isReplaySelected
@@ -39,7 +53,9 @@ Sentry.init({
   params.isPerformanceSelected
     ? `
       // Performance Monitoring
-      tracesSampleRate: 1.0, //  Capture 100% of the transactions`
+      tracesSampleRate: 1.0, //  Capture 100% of the transactions
+      // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
+      tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],`
     : ''
 }${
   params.isReplaySelected
@@ -202,7 +218,7 @@ const replayOnboarding: OnboardingConfig = {
               code: getSdkSetupSnippet(params),
             },
           ],
-          additionalInfo: tracePropagationMessage,
+          additionalInfo: <TracePropagationMessage />,
         },
       ],
     },
@@ -211,10 +227,73 @@ const replayOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
+const feedbackOnboarding: OnboardingConfig = {
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/react]) installed, minimum version 7.85.0.',
+        {
+          code: <code />,
+        }
+      ),
+      configurations: getInstallConfig(),
+    },
+  ],
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      description: getFeedbackConfigureDescription({
+        linkConfig:
+          'https://docs.sentry.io/platforms/javascript/guides/react/user-feedback/configuration/',
+        linkButton:
+          'https://docs.sentry.io/platforms/javascript/guides/react/user-feedback/configuration/#bring-your-own-button',
+      }),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: getSdkSetupSnippet(params),
+            },
+          ],
+        },
+      ],
+      additionalInfo: crashReportCallout({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/react/user-feedback/#crash-report-modal',
+      }),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
+const crashReportOnboarding: OnboardingConfig = {
+  introduction: () => getCrashReportModalIntroduction(),
+  install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: getCrashReportModalConfigDescription({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/react/user-feedback/configuration/#crash-report-modal',
+      }),
+      additionalInfo: widgetCallout({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/react/user-feedback/#user-feedback-widget',
+      }),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
+  feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboardingNpm: replayOnboarding,
   customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
+  crashReportOnboarding,
 };
 
 export default docs;

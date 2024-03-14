@@ -30,6 +30,7 @@ from snuba_sdk import (
 from sentry import features
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
+from sentry.models.organization import Organization
 from sentry.search.events import constants, fields
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.builder.utils import (
@@ -58,12 +59,16 @@ from sentry.snuba.metrics.extraction import (
     MetricSpecType,
     OnDemandMetricSpec,
     fetch_on_demand_metric_spec,
-    should_use_on_demand_metrics,
+    should_use_on_demand_metrics_for_querying,
 )
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
-from sentry.snuba.metrics.query import MetricField, MetricGroupByField, MetricsQuery
+from sentry.snuba.metrics.query import (
+    MetricField,
+    MetricGroupByField,
+    MetricOrderByField,
+    MetricsQuery,
+)
 from sentry.snuba.metrics.utils import get_num_intervals
-from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import DATASETS, bulk_snql_query, raw_snql_query
 
 
@@ -154,7 +159,13 @@ class MetricsQueryBuilder(QueryBuilder):
 
         groupby_columns = self._get_group_bys()
 
-        if not should_use_on_demand_metrics(self.dataset, field, self.query, groupby_columns):
+        if not should_use_on_demand_metrics_for_querying(
+            Organization.objects.get_from_cache(id=self.organization_id),
+            dataset=self.dataset,
+            aggregate=field,
+            query=self.query,
+            groupbys=groupby_columns,
+        ):
             return None
 
         try:
@@ -203,11 +214,21 @@ class MetricsQueryBuilder(QueryBuilder):
         }
         return map
 
+    def convert_spec_to_metric_field(self, spec: OnDemandMetricSpec) -> MetricField:
+        if isinstance(self, (TopMetricsQueryBuilder, TimeseriesMetricQueryBuilder)):
+            alias = get_function_alias(spec.field) or "count"
+        elif isinstance(self, AlertMetricsQueryBuilder):
+            alias = spec.mri
+        else:
+            alias = get_function_alias(spec.field) or spec.mri
+        return MetricField(spec.op, spec.mri, alias=alias)
+
     def _get_metrics_query_from_on_demand_spec(
         self,
         spec: OnDemandMetricSpec,
         require_time_range: bool = True,
         groupby: Sequence[MetricGroupByField] | None = None,
+        orderby: Sequence[MetricOrderByField] | None = None,
         # Where normally isn't accepted for on-demand since it should only encoded into the metric
         # but in the case of top events, etc. there is need for another where condition dynamically for top N groups.
         additional_where: Sequence[Condition] | None = None,
@@ -234,22 +255,18 @@ class MetricsQueryBuilder(QueryBuilder):
             if intervals_len > 0:
                 limit = Limit(int(limit.limit / intervals_len))
             max_limit = 10_000
-            alias = get_function_alias(spec.field) or "count"
             include_series = True
             interval = self.interval
         elif isinstance(self, TimeseriesMetricQueryBuilder):
             limit = Limit(1)
-            alias = get_function_alias(spec.field) or "count"
             include_series = True
             interval = self.interval
         elif isinstance(self, AlertMetricsQueryBuilder):
             limit = self.limit or Limit(1)
-            alias = spec.mri
             include_series = False
             interval = None
         else:
             limit = self.limit or Limit(1)
-            alias = get_function_alias(spec.field) or spec.mri
             include_series = False
             interval = None
 
@@ -282,7 +299,7 @@ class MetricsQueryBuilder(QueryBuilder):
             where.extend(additional_where)
 
         return MetricsQuery(
-            select=[MetricField(spec.op, spec.mri, alias=alias)],
+            select=[self.convert_spec_to_metric_field(spec)],
             where=where,
             limit=limit,
             max_limit=max_limit,
@@ -293,9 +310,11 @@ class MetricsQueryBuilder(QueryBuilder):
             org_id=self.params.organization.id,
             project_ids=[p.id for p in self.params.projects],
             include_series=include_series,
+            orderby=orderby,
             groupby=groupby,
             start=start,
             end=end,
+            skip_orderby_validation=True,
         )
 
     def validate_aggregate_arguments(self) -> None:
@@ -653,7 +672,7 @@ class MetricsQueryBuilder(QueryBuilder):
         # timestamp{,.to_{hour,day}} need a datetime string
         # last_seen needs an integer
         if isinstance(value, datetime) and name not in constants.TIMESTAMP_FIELDS:
-            value = int(to_timestamp(value)) * 1000
+            value = int(value.timestamp()) * 1000
 
         if name in constants.TIMESTAMP_FIELDS:
             if (
@@ -965,20 +984,67 @@ class MetricsQueryBuilder(QueryBuilder):
 
         return use_case_ids.pop()
 
+    def resolve_ondemand_orderby(self) -> Any:
+        """Ondemand needs to resolve their orderby separately than how any other QB system does it
+
+        - Functions are resolved in self._on_demand_metric_spec_map so we need to get those back and throw 'em into
+          the orderby.
+          - This is problematic though, because for historical reasons (ie. we used to do it and we've kept it
+            instead of introducing additional risk by removing it) orderbys in the QB and MetricLayer both verify
+            that the orderby is in the selected fields
+          - This is why we pass skip_orderby_validation to the MetricsQuery
+        """
+        result = []
+        raw_orderby = self.raw_orderby
+
+        if not raw_orderby:
+            return []
+
+        if isinstance(self.raw_orderby, str):
+            raw_orderby = [self.raw_orderby]
+        # While technically feasible to order by multiple fields, we would need to know which table each orderby is
+        # going to. Leaving that out for now to keep this simple since we don't allow more than one in the UI anyways
+        if len(raw_orderby) > 1:
+            raise IncompatibleMetricsQuery("Can't orderby more than one field")
+
+        for orderby in raw_orderby:
+            direction = Direction.DESC if orderby.startswith("-") else Direction.ASC
+            bare_orderby = orderby.lstrip("-")
+            if bare_orderby in self._on_demand_metric_spec_map:
+                spec = self._on_demand_metric_spec_map[bare_orderby]
+                result.append(
+                    MetricOrderByField(
+                        field=self.convert_spec_to_metric_field(spec),
+                        direction=direction,
+                    )
+                )
+            else:
+                raise IncompatibleMetricsQuery(
+                    f"Cannot orderby {bare_orderby}, likely because its a tag"
+                )
+        return result
+
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
         groupbys = self.groupby
         if not groupbys and self.use_on_demand:
             # Need this otherwise top_events returns only 1 item
-            groupbys = [Column(col) for col in self._get_group_bys()]
-        groupby_aliases = [
-            groupby.alias
-            if isinstance(groupby, (AliasedExpression, CurriedFunction))
-            else groupby.name
-            for groupby in groupbys
-            if not (
-                isinstance(groupby, CurriedFunction) and groupby.function == "team_key_transaction"
-            )
-        ]
+            groupbys = [self.resolve_column(col) for col in self._get_group_bys()]
+            # Later the query is made by passing these columns to metrics layer so we can just have the aliases be the
+            # raw groupbys
+            groupby_aliases = self._get_group_bys()
+        else:
+            groupby_aliases = [
+                (
+                    groupby.alias
+                    if isinstance(groupby, (AliasedExpression, CurriedFunction))
+                    else groupby.name
+                )
+                for groupby in groupbys
+                if not (
+                    isinstance(groupby, CurriedFunction)
+                    and groupby.function == "team_key_transaction"
+                )
+            ]
         # The typing for these are weak (all using Any) since the results from snuba can contain an assortment of types
         value_map: dict[str, Any] = defaultdict(dict)
         groupby_values: list[Any] = []
@@ -1021,9 +1087,11 @@ class MetricsQueryBuilder(QueryBuilder):
                             Function(
                                 "tuple",
                                 [
-                                    groupby.exp
-                                    if isinstance(groupby, AliasedExpression)
-                                    else groupby
+                                    (
+                                        groupby.exp
+                                        if isinstance(groupby, AliasedExpression)
+                                        else groupby
+                                    )
                                     for groupby in self.groupby
                                     if not (
                                         isinstance(groupby, CurriedFunction)
@@ -1050,6 +1118,7 @@ class MetricsQueryBuilder(QueryBuilder):
                                         spec=spec,
                                         require_time_range=True,
                                         groupby=[MetricGroupByField(field=c) for c in group_bys],
+                                        orderby=self.resolve_ondemand_orderby(),
                                     )
                                 )
                         else:
@@ -1118,9 +1187,11 @@ class MetricsQueryBuilder(QueryBuilder):
                             Function(
                                 "tuple",
                                 [
-                                    groupby.exp
-                                    if isinstance(groupby, AliasedExpression)
-                                    else groupby
+                                    (
+                                        groupby.exp
+                                        if isinstance(groupby, AliasedExpression)
+                                        else groupby
+                                    )
                                     for groupby in self.groupby
                                 ],
                             ),
@@ -1791,9 +1862,11 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
                             get_series(
                                 projects=self.params.projects,
                                 metrics_query=metrics_query,
-                                use_case_id=UseCaseID.TRANSACTIONS
-                                if self.is_performance
-                                else UseCaseID.SESSIONS,
+                                use_case_id=(
+                                    UseCaseID.TRANSACTIONS
+                                    if self.is_performance
+                                    else UseCaseID.SESSIONS
+                                ),
                                 include_meta=True,
                                 tenant_ids=self.tenant_ids,
                             )

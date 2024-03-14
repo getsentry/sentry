@@ -33,8 +33,12 @@ from sentry.integrations.slack.message_builder import (
     SlackBlock,
 )
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
-from sentry.integrations.slack.utils.escape import escape_slack_text
-from sentry.issues.grouptype import GroupCategory
+from sentry.integrations.slack.utils.escape import escape_slack_markdown_text, escape_slack_text
+from sentry.issues.grouptype import (
+    GroupCategory,
+    PerformanceP95EndpointRegressionGroupType,
+    ProfileFunctionRegressionType,
+)
 from sentry.models.actor import ActorTuple
 from sentry.models.commit import Commit
 from sentry.models.group import Group, GroupStatus
@@ -68,6 +72,44 @@ SUPPORTED_COMMIT_PROVIDERS = (
     "bitbucket",
     "integrations:bitbucket",
 )
+
+
+def get_approx_start_time(group: Group):
+    event = group.get_recommended_event_for_environments()
+
+    if event is None:
+        return None
+
+    occurrence = event.occurrence
+
+    if occurrence is None:
+        return None
+
+    regression_time = occurrence.evidence_data.get("breakpoint", None)
+
+    if regression_time is None:
+        return None
+
+    # format moment into YYYY-mm-dd h:m:s
+    time = datetime.fromtimestamp(regression_time)
+    return time.strftime("%Y-%m-%d %H:%M:%S")
+
+
+# NOTE: if this starts getting large and functions get complicated,
+# pull things out into their own functions
+SUPPORTED_CONTEXT_DATA = {
+    "Events": lambda group: get_group_global_count(group),
+    "Users Affected": lambda group: group.count_users_seen(),
+    "State": lambda group: SUBSTATUS_TO_STR.get(group.substatus, "").replace("_", " ").title(),
+    "First Seen": lambda group: time_since(group.first_seen),
+    "Approx. Start Time": get_approx_start_time,
+}
+
+
+REGRESSION_PERFORMANCE_ISSUE_TYPES = [
+    PerformanceP95EndpointRegressionGroupType,
+    ProfileFunctionRegressionType,
+]
 
 logger = logging.getLogger(__name__)
 
@@ -164,6 +206,7 @@ def format_release_tag(value: str, event: GroupEvent | Group):
 
 
 def get_tags(
+    group: Group,
     event_for_tags: Any,
     tags: set[str] | None = None,
 ) -> Sequence[Mapping[str, str | bool]]:
@@ -177,7 +220,6 @@ def get_tags(
     if tags and isinstance(tags, list):
         tags = set(tags[0])
 
-    tags = tags | {"level", "release", "handled", "environment"}
     if tags:
         event_tags = event_for_tags.tags if event_for_tags else []
         for key, value in event_tags:
@@ -194,6 +236,33 @@ def get_tags(
                 }
             )
     return fields
+
+
+def get_context(group: Group) -> str:
+    context_text = ""
+
+    context = group.issue_type.notification_config.context
+    context_dict = {}
+
+    for c in context:
+        if c in SUPPORTED_CONTEXT_DATA:
+            context_dict[c] = SUPPORTED_CONTEXT_DATA[c](group)
+
+    # for errors, non-regression performance, and rage click issues
+    # always show state and first seen
+    # only show event count and user count if event count > 1 or state != new
+
+    event_count = context_dict.get("Events")
+    state = context_dict.get("State")
+    if (event_count and int(event_count) <= 1) or (state and state == "New"):
+        # filter out event count and users count
+        context_dict.pop("Events", None)
+        context_dict.pop("Users Affected", None)
+
+    for k, v in context_dict.items():
+        if v:
+            context_text += f"{k}: *{v}*   "
+    return context_text.rstrip()
 
 
 def get_option_groups(group: Group) -> Sequence[Mapping[str, Any]]:
@@ -261,16 +330,13 @@ def get_suggested_assignees(
     ):  # we don't want every user in the project to be a suggested assignee
         resolved_owners = ActorTuple.resolve_many(issue_owners)
         suggested_assignees = RpcActor.many_from_object(resolved_owners)
-    if features.has("organizations:streamline-targeting-context", project.organization):
-        try:
-            suspect_commit_users = RpcActor.many_from_object(
-                get_suspect_commit_users(project, event)
-            )
-            suggested_assignees.extend(suspect_commit_users)
-        except (Release.DoesNotExist, Commit.DoesNotExist):
-            logger.info("Skipping suspect committers because release does not exist.")
-        except Exception:
-            logger.exception("Could not get suspect committers. Continuing execution.")
+    try:
+        suspect_commit_users = RpcActor.many_from_object(get_suspect_commit_users(project, event))
+        suggested_assignees.extend(suspect_commit_users)
+    except (Release.DoesNotExist, Commit.DoesNotExist):
+        logger.info("Skipping suspect committers because release does not exist.")
+    except Exception:
+        logger.exception("Could not get suspect committers. Continuing execution.")
     if suggested_assignees:
         suggested_assignees = dedupe_suggested_assignees(suggested_assignees)
         assignee_texts = []
@@ -430,9 +496,11 @@ def build_actions(
             label="Select Assignee...",
             type="select",
             selected_options=format_actor_options([assignee]) if assignee else [],
-            option_groups=get_option_groups(group)
-            if not use_block_kit
-            else get_option_groups_block_kit(group),
+            option_groups=(
+                get_option_groups(group)
+                if not use_block_kit
+                else get_option_groups_block_kit(group)
+            ),
         )
         return assign_button
 
@@ -484,6 +552,9 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self.skip_fallback = skip_fallback
         self.notes = notes
         self.commits = commits
+        self.use_block_kit = features.has(
+            "organizations:slack-block-kit", group.project.organization
+        )
 
     @property
     def escape_text(self) -> bool:
@@ -495,7 +566,11 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
     def build(self, notification_uuid: str | None = None) -> SlackBlock | SlackAttachment:
         # XXX(dcramer): options are limited to 100 choices, even when nested
         text = build_attachment_text(self.group, self.event) or ""
-        if self.escape_text:
+        text = text.strip(" \n")
+
+        if self.use_block_kit:
+            text = escape_slack_markdown_text(text)
+        if not self.use_block_kit and self.escape_text:
             text = escape_slack_text(text)
             # XXX(scefali): Not sure why we actually need to do this just for unfurled messages.
             # If we figure out why this is required we should note it here because it's quite strange
@@ -503,7 +578,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                 text = escape_slack_text(text)
 
         # This link does not contain user input (it's a static label and a url), must not escape it.
-        text += build_attachment_replay_link(self.group, self.event) or ""
+        replay_link = build_attachment_replay_link(self.group, self.event)
         project = Project.objects.get_from_cache(id=self.group.project_id)
 
         # If an event is unspecified, use the tags of the latest event (if one exists).
@@ -544,6 +619,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         title = build_attachment_title(obj)
 
         if not features.has("organizations:slack-block-kit", self.group.project.organization):
+            if replay_link:
+                text += f"\n\n{replay_link}"
             if action_text and self.identity:
                 text += "\n" + action_text
 
@@ -582,7 +659,9 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         # build up text block
         if text:
             text = text.lstrip(" ")
-            blocks.append(self.get_rich_text_preformatted_block(text))
+            # XXX(CEO): sometimes text is " " and slack will error if we pass an empty string (now "")
+            if text:
+                blocks.append(self.get_markdown_quote_block(text))
 
         # build up actions text
         if self.actions and self.identity and not action_text:
@@ -591,27 +670,15 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if self.actions:
             blocks.append(self.get_markdown_block(action_text))
 
-        if self.group.issue_category == GroupCategory.ERROR:
-            # XXX(CEO): in the short term we're not adding these to non-error issues (e.g. crons)
-            # since they don't make sense, but in the future we'll read some config from the grouptype
+        # build tags block
+        tags = get_tags(self.group, event_for_tags, self.tags)
+        if tags:
+            blocks.append(self.get_tags_block(tags))
 
-            # build tags block
-            tags = get_tags(event_for_tags, self.tags)
-            if tags:
-                blocks.append(self.get_tags_block(tags))
-
-            # add event count, user count, substate, first seen
-            context = {
-                "Events": get_group_global_count(self.group),
-                "Users Affected": self.group.count_users_seen(),
-                "State": SUBSTATUS_TO_STR.get(self.group.substatus, "").replace("_", " ").title(),
-                "First Seen": time_since(self.group.first_seen),
-            }
-            context_text = ""
-            for k, v in context.items():
-                if k and v:
-                    context_text += f"{k}: *{v}*   "
-            blocks.append(self.get_context_block(context_text[:-3]))
+        # add event count, user count, substate, first seen
+        context = get_context(self.group)
+        if context:
+            blocks.append(self.get_context_block(context))
 
         # build actions
         actions = []
@@ -680,7 +747,10 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             for k, v in footer_data.items():
                 footer_text += f"{k}: {v}    "
 
-            footer_text = footer_text[:-4]  # chop off the empty space
+            if replay_link:
+                footer_text += replay_link
+            else:
+                footer_text = footer_text[:-4]  # chop off the empty space
             blocks.append(self.get_context_block(text=footer_text))
         else:
             blocks.append(self.get_context_block(text=footer, timestamp=timestamp))

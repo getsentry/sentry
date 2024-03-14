@@ -204,7 +204,7 @@ DATE_FORMAT = "%Y-%m-%d"
 
 
 def parse_unix_timestamp(value: str) -> datetime:
-    return datetime.utcfromtimestamp(float(value)).replace(tzinfo=timezone.utc)
+    return datetime.fromtimestamp(float(value), timezone.utc)
 
 
 def parse_iso_timestamp(value: str) -> datetime:

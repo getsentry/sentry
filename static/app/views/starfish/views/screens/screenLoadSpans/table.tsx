@@ -43,7 +43,10 @@ import {
   PLATFORM_LOCAL_STORAGE_KEY,
   PLATFORM_QUERY_PARAM,
 } from 'sentry/views/starfish/views/screens/platformSelector';
-import {SpanOpSelector} from 'sentry/views/starfish/views/screens/screenLoadSpans/spanOpSelector';
+import {
+  SpanOpSelector,
+  TTID_CONTRIBUTING_SPAN_OPS,
+} from 'sentry/views/starfish/views/screens/screenLoadSpans/spanOpSelector';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
 import {isCrossPlatform} from 'sentry/views/starfish/views/screens/utils';
 
@@ -88,9 +91,7 @@ export function ScreenLoadSpansTable({
       'has:span.description',
       ...(spanOp
         ? [`${SpanMetricsField.SPAN_OP}:${spanOp}`]
-        : [
-            'span.op:[file.read,file.write,ui.load,http.client,db,db.sql.room,db.sql.query,db.sql.transaction]',
-          ]),
+        : [`span.op:[${TTID_CONTRIBUTING_SPAN_OPS.join(',')}]`]),
     ]);
 
     if (project && isCrossPlatform(project) && hasPlatformSelectFeature) {
@@ -201,7 +202,7 @@ export function ScreenLoadSpansTable({
           'This span always ends before TTID and TTFD and may affect initial and final display. [link: Learn more.]',
           {
             link: (
-              <ExternalLink href="https://docs.sentry.io/product/performance/mobile-vitals/#ttid-and-ttfd-affecting-spans" />
+              <ExternalLink href="https://docs.sentry.io/product/performance/mobile-vitals/screen-loads/#ttid-and-ttfd-affecting-spans" />
             ),
           }
         );
@@ -217,7 +218,7 @@ export function ScreenLoadSpansTable({
           'This span always ends before TTFD and may affect final display. [link: Learn more.]',
           {
             link: (
-              <ExternalLink href="https://docs.sentry.io/product/performance/mobile-vitals/#ttid-and-ttfd-affecting-spans" />
+              <ExternalLink href="https://docs.sentry.io/product/performance/mobile-vitals/screen-loads/#ttid-and-ttfd-affecting-spans" />
             ),
           }
         );
@@ -232,7 +233,7 @@ export function ScreenLoadSpansTable({
         'This span may not be contributing to TTID or TTFD. [link: Learn more.]',
         {
           link: (
-            <ExternalLink href="https://docs.sentry.io/product/performance/mobile-vitals/#ttid-and-ttfd-affecting-spans" />
+            <ExternalLink href="https://docs.sentry.io/product/performance/mobile-vitals/screen-loads/#ttid-and-ttfd-affecting-spans" />
           ),
         }
       );
@@ -254,7 +255,7 @@ export function ScreenLoadSpansTable({
           'This span always ends before TTID and may affect initial display. [link: Learn more.]',
           {
             link: (
-              <ExternalLink href="https://docs.sentry.io/product/performance/mobile-vitals/#ttid-and-ttfd-affecting-spans" />
+              <ExternalLink href="https://docs.sentry.io/product/performance/mobile-vitals/screen-loads/#ttid-and-ttfd-affecting-spans" />
             ),
           }
         );
@@ -269,7 +270,7 @@ export function ScreenLoadSpansTable({
         'This span may not affect initial display. [link: Learn more.]',
         {
           link: (
-            <ExternalLink href="https://docs.sentry.io/product/performance/mobile-vitals/#ttid-and-ttfd-affecting-spans" />
+            <ExternalLink href="https://docs.sentry.io/product/performance/mobile-vitals/screen-loads/#ttid-and-ttfd-affecting-spans" />
           ),
         }
       );

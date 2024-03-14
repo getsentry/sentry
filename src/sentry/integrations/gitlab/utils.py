@@ -14,7 +14,7 @@ class GitLabRateLimitInfo:
         self.used = info["used"]
 
     def next_window(self) -> str:
-        return datetime.utcfromtimestamp(self.reset).strftime("%H:%M:%S")
+        return datetime.fromtimestamp(self.reset).strftime("%H:%M:%S")
 
     def __repr__(self) -> str:
         return f"GitLabRateLimitInfo(limit={self.limit},rem={self.remaining},reset={self.reset}),used={self.used})"
@@ -28,6 +28,7 @@ class GitLabApiClientPath:
     compare = "/projects/{project}/repository/compare"
     diff = "/projects/{project}/repository/commits/{sha}/diff"
     file = "/projects/{project}/repository/files/{path}"
+    file_raw = "/projects/{project}/repository/files/{path}/raw"
     group = "/groups/{group}"
     group_projects = "/groups/{group}/projects"
     hooks = "/hooks"

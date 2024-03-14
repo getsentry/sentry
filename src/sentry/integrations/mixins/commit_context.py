@@ -35,11 +35,6 @@ class FileBlameInfo(SourceLineInfo):
 
 
 class GetBlameForFile(Protocol):
-    def get_blame_for_file(
-        self, repo: Repository, filepath: str, ref: str, lineno: int
-    ) -> list[dict[str, Any]] | None:
-        ...
-
     def get_blame_for_files(
         self, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]
     ) -> list[FileBlameInfo]:
@@ -55,28 +50,6 @@ class CommitContextMixin(GetClient):
     # whether or not integration has the ability to search through Repositories
     # dynamically given a search query
     repo_search = False
-
-    def get_blame_for_file(
-        self, repo: Repository, filepath: str, ref: str, lineno: int
-    ) -> Sequence[Mapping[str, Any]] | None:
-        """
-        Calls the client's `get_blame_for_file` method to see if the file has a blame list.
-
-        repo: Repository (object)
-        filepath: filepath of the source code. (string)
-        ref: commitsha or default_branch (string)
-        """
-        filepath = filepath.lstrip("/")
-        try:
-            client = self.get_client()
-        except Identity.DoesNotExist:
-            return None
-        try:
-            response = client.get_blame_for_file(repo, filepath, ref, lineno)
-        except IdentityNotValid:
-            return None
-
-        return response
 
     def get_blame_for_files(
         self, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]
@@ -104,9 +77,3 @@ class CommitContextMixin(GetClient):
         Given a list of source files and line numbers,returns the commit info for the most recent commit.
         """
         return self.get_blame_for_files(files, extra)
-
-    def get_commit_context(
-        self, repo: Repository, filepath: str, branch: str, event_frame: Mapping[str, Any]
-    ) -> Mapping[str, Any] | None:
-        """Formats the source code url used for stack trace linking."""
-        raise NotImplementedError

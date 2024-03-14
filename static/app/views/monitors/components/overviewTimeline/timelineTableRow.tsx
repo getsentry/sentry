@@ -6,6 +6,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Tag from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons';
@@ -13,6 +14,7 @@ import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
 import type {ObjectStatus} from 'sentry/types';
+import {trimSlug} from 'sentry/utils/trimSlug';
 import useOrganization from 'sentry/utils/useOrganization';
 import {StatusToggleButton} from 'sentry/views/monitors/components/statusToggleButton';
 import type {Monitor} from 'sentry/views/monitors/types';
@@ -63,12 +65,25 @@ export function TimelineTableRow({
 
   const monitorDetails = singleMonitorView ? null : (
     <DetailsArea>
-      <DetailsLink to={`/organizations/${organization.slug}/crons/${monitor.slug}/`}>
+      <DetailsLink
+        to={`/organizations/${organization.slug}/crons/${monitor.project.slug}/${monitor.slug}/`}
+      >
         <DetailsHeadline>
           <Name>{monitor.name}</Name>
           {isDisabled && <Tag>{t('Disabled')}</Tag>}
         </DetailsHeadline>
-        <Schedule>{scheduleAsText(monitor.config)}</Schedule>
+        <ProjectScheduleDetails>
+          <DetailsText>{scheduleAsText(monitor.config)}</DetailsText>
+          <ProjectDetails>
+            <ProjectBadge
+              project={monitor.project}
+              avatarSize={12}
+              disableLink
+              hideName
+            />
+            <DetailsText>{trimSlug(monitor.project.slug)}</DetailsText>
+          </ProjectDetails>
+        </ProjectScheduleDetails>
       </DetailsLink>
       <DetailsActions>
         {onToggleStatus && (
@@ -86,7 +101,7 @@ export function TimelineTableRow({
     (env: string) => ({
       label: t('View Environment'),
       key: 'view',
-      to: `/organizations/${organization.slug}/crons/${monitor.slug}/?environment=${env}`,
+      to: `/organizations/${organization.slug}/crons/${monitor.project.slug}/${monitor.slug}/?environment=${env}`,
     }),
     ...(onToggleMuteEnvironment
       ? [
@@ -219,13 +234,24 @@ const DetailsHeadline = styled('div')`
   grid-template-columns: 1fr minmax(30px, max-content);
 `;
 
+const ProjectScheduleDetails = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  flex-wrap: wrap;
+`;
+
+const ProjectDetails = styled('div')`
+  display: flex;
+  gap: ${space(0.5)};
+`;
+
 const Name = styled('h3')`
   font-size: ${p => p.theme.fontSizeLarge};
   margin-bottom: ${space(0.25)};
   word-break: break-word;
 `;
 
-const Schedule = styled('small')`
+const DetailsText = styled('small')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
 `;

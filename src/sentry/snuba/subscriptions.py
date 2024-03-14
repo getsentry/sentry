@@ -17,7 +17,7 @@ def create_snuba_query(
     query_type, dataset, query, aggregate, time_window, resolution, environment, event_types=None
 ):
     """
-    Creates a SnubaQuery.
+    Constructs a SnubaQuery which is the postgres representation of a query in snuba
 
     :param query_type: The SnubaQuery.Type of this query
     :param dataset: The snuba dataset to query and aggregate over
@@ -81,6 +81,9 @@ def update_snuba_query(
     :param event_types: A (currently) optional list of event_types that apply to this
     query. If not passed, we'll use the existing event types on the query.
     :return: A list of QuerySubscriptions
+
+    TODO: Ensure update handles activated alert rule updates
+    eg. insert start_time into query, insert release version into query, etc.
     """
     current_event_types = set(snuba_query.event_types)
     if not event_types:
@@ -120,7 +123,9 @@ def update_snuba_query(
         )
 
 
-def bulk_create_snuba_subscriptions(projects, subscription_type, snuba_query):
+def bulk_create_snuba_subscriptions(
+    projects, subscription_type, snuba_query, query_extra: str | None = None
+):
     """
     Creates a subscription to a snuba query for each project.
 
@@ -133,11 +138,15 @@ def bulk_create_snuba_subscriptions(projects, subscription_type, snuba_query):
     subscriptions = []
     # TODO: Batch this up properly once we care about multi-project rules.
     for project in projects:
-        subscriptions.append(create_snuba_subscription(project, subscription_type, snuba_query))
+        subscriptions.append(
+            create_snuba_subscription(project, subscription_type, snuba_query, query_extra)
+        )
     return subscriptions
 
 
-def create_snuba_subscription(project, subscription_type, snuba_query) -> QuerySubscription:
+def create_snuba_subscription(
+    project, subscription_type, snuba_query, query_extra: str | None = None
+) -> QuerySubscription:
     """
     Creates a subscription to a snuba query.
 
@@ -152,6 +161,7 @@ def create_snuba_subscription(project, subscription_type, snuba_query) -> QueryS
         project=project,
         snuba_query=snuba_query,
         type=subscription_type,
+        query_extra=query_extra,
     )
 
     create_subscription_in_snuba.apply_async(

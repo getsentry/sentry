@@ -183,7 +183,7 @@ function TableView(props: TableViewProps) {
     if (!hasIdField) {
       let value = dataRow.id;
 
-      if (tableData && tableData.meta) {
+      if (tableData?.meta) {
         const fieldRenderer = getFieldRenderer('id', tableData.meta);
         value = fieldRenderer(dataRow, {organization, location});
       }
@@ -343,7 +343,9 @@ function TableView(props: TableViewProps) {
           organization,
           String(dataRow.trace),
           dateSelection,
-          {}
+          {},
+          dataRow.timestamp,
+          dataRow.id
         );
 
         cell = (

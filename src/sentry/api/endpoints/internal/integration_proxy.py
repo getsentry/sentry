@@ -81,11 +81,11 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 
         # Get the organization integration
-        org_id_header = request.headers.get(PROXY_OI_HEADER)
-        if org_id_header is None or not org_id_header.isnumeric():
+        org_integration_id_header = request.headers.get(PROXY_OI_HEADER)
+        if org_integration_id_header is None or not org_integration_id_header.isnumeric():
             logger.info("integration_proxy.missing_org_integration", extra=self.log_extra)
             return False
-        org_integration_id = int(org_id_header)
+        org_integration_id = int(org_integration_id_header)
         self.log_extra["org_integration_id"] = org_integration_id
 
         self.org_integration = (
@@ -134,18 +134,24 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         """
         is_correct_silo = SiloMode.get_current_mode() == SiloMode.CONTROL
         if not is_correct_silo:
+            self.log_extra["silo_mode"] = SiloMode.get_current_mode().value
+            logger.info("integration_proxy.incorrect_silo_mode", extra=self.log_extra)
+            metrics.incr("hybrid_cloud.integration_proxy.failure.invalid_mode", sample_rate=1.0)
             return False
 
         is_valid_sender = self._validate_sender(request=request)
         if not is_valid_sender:
+            logger.info("integration_proxy.failure.invalid_sender", extra=self.log_extra)
             metrics.incr("hybrid_cloud.integration_proxy.failure.invalid_sender", sample_rate=1.0)
             return False
 
         is_valid_request = self._validate_request(request=request)
         if not is_valid_request:
+            logger.info("integration_proxy.failure.invalid_request", extra=self.log_extra)
             metrics.incr("hybrid_cloud.integration_proxy.failure.invalid_request", sample_rate=1.0)
             return False
 
+        logger.info("integration_proxy.valid_request", extra=self.log_extra)
         return True
 
     def _call_third_party_api(self, request, full_url: str, headers) -> HttpResponse:
@@ -195,6 +201,18 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         headers = clean_outbound_headers(request.headers)
 
         response = self._call_third_party_api(request=request, full_url=full_url, headers=headers)
+
+        # TODO(hybridcloud) Remove this logging once we have resolved slack delivery issues.
+        if response.status_code != 200 and self.integration.provider == "slack":
+            logger.info(
+                "slack.response",
+                extra={
+                    **self.log_extra,
+                    "integration_id": self.integration.id,
+                    "status_code": response.status_code,
+                    "response_text": response.content.decode("utf8"),
+                },
+            )
 
         metrics.incr(
             "hybrid_cloud.integration_proxy.complete.response_code",

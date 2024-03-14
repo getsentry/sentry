@@ -1,5 +1,6 @@
 import time
 from datetime import datetime, timedelta, timezone
+from typing import Any
 from unittest import mock
 from unittest.mock import ANY, patch
 
@@ -342,7 +343,7 @@ def test_project_config_with_all_biases_enabled(
         }
     ):
         with patch(
-            "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate",
+            "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
             return_value=0.1,
         ):
             project_cfg = get_project_config(default_project)
@@ -542,16 +543,6 @@ def test_project_config_satisfaction_thresholds(
     cfg = project_cfg.to_dict()
     _validate_project_config(cfg["config"])
     insta_snapshot(cfg["config"]["metricConditionalTagging"])
-
-
-@django_db_all
-@region_silo_test
-def test_project_config_with_span_attributes(default_project, insta_snapshot):
-    # The span attributes config is not set with the flag turnd off
-    project_cfg = get_project_config(default_project, full_config=True)
-    cfg = project_cfg.to_dict()
-    _validate_project_config(cfg["config"])
-    insta_snapshot(cfg["config"]["spanAttributes"])
 
 
 @django_db_all
@@ -923,33 +914,73 @@ def test_performance_calculate_score(default_project):
 
 @django_db_all
 @region_silo_test
-def test_project_config_cardinality_limits(default_project, insta_snapshot):
-    options = override_options(
-        {
-            "sentry-metrics.cardinality-limiter.limits.performance.per-org": [
-                {"window_seconds": 1000, "granularity_seconds": 100, "limit": 10}
-            ],
-            "sentry-metrics.cardinality-limiter.limits.releasehealth.per-org": [
-                {"window_seconds": 2000, "granularity_seconds": 200, "limit": 20}
-            ],
-            "sentry-metrics.cardinality-limiter.limits.spans.per-org": [
-                {"window_seconds": 3000, "granularity_seconds": 300, "limit": 30}
-            ],
-            "sentry-metrics.cardinality-limiter.limits.custom.per-org": [
-                {"window_seconds": 4000, "granularity_seconds": 400, "limit": 40}
-            ],
-            "sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org": [
-                {"window_seconds": 5000, "granularity_seconds": 500, "limit": 50}
-            ],
-        },
-    )
+@pytest.mark.parametrize("passive", [False, True])
+def test_project_config_cardinality_limits(default_project, insta_snapshot, passive):
+    options: dict[Any, Any] = {
+        "sentry-metrics.cardinality-limiter.limits.performance.per-org": [
+            {"window_seconds": 1000, "granularity_seconds": 100, "limit": 10}
+        ],
+        "sentry-metrics.cardinality-limiter.limits.releasehealth.per-org": [
+            {"window_seconds": 2000, "granularity_seconds": 200, "limit": 20}
+        ],
+        "sentry-metrics.cardinality-limiter.limits.spans.per-org": [
+            {"window_seconds": 3000, "granularity_seconds": 300, "limit": 30}
+        ],
+        "sentry-metrics.cardinality-limiter.limits.custom.per-org": [
+            {"window_seconds": 4000, "granularity_seconds": 400, "limit": 40}
+        ],
+        "sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org": [
+            {"window_seconds": 5000, "granularity_seconds": 500, "limit": 50}
+        ],
+        "sentry-metrics.cardinality-limiter.limits.profiles.per-org": [
+            {"window_seconds": 3600, "granularity_seconds": 600, "limit": 60}
+        ],
+    }
+
+    if passive:
+        options["relay.cardinality-limiter.passive-limits-by-org"] = {
+            str(default_project.organization.id): [
+                "sessions",
+                "transactions",
+                "spans",
+                "profiles",
+                "custom",
+            ]
+        }
 
     features = Feature({"organizations:relay-cardinality-limiter": True})
 
-    with options, features:
+    with override_options(options), features:
         project_cfg = get_project_config(default_project, full_config=True)
 
         cfg = project_cfg.to_dict()
         _validate_project_config(cfg["config"])
 
         insta_snapshot(cfg["config"]["metrics"])
+
+
+@patch(
+    "sentry.relay.config._get_generic_project_filters",
+    lambda *args, **kwargs: {
+        "version": 1,
+        "filters": [
+            {
+                "id": "test-id",
+                "isEnabled": True,
+                "condition": {
+                    "op": "not",
+                    "inner": {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Firefox",
+                    },
+                },
+            }
+        ],
+    },
+)
+@django_db_all
+@region_silo_test
+def test_project_config_valid_with_generic_filters(default_project):
+    config = get_project_config(default_project).to_dict()
+    _validate_project_config(config["config"])

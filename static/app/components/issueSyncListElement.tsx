@@ -158,7 +158,8 @@ const StyledHovercard = styled(Hovercard)`
 `;
 
 const Label = styled('div')`
-display: flex;
-align-items: center;`;
+  display: flex;
+  align-items: center;
+`;
 
 export default IssueSyncListElement;

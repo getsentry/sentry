@@ -94,9 +94,12 @@ function preloadOrganizationData(config: Config) {
   const preloadPromises: Record<string, any> = {orgSlug: slug};
   window.__sentry_preload = preloadPromises;
   try {
+    if (!slug) {
+      return;
+    }
     preloadPromises.organization = promiseRequest(makeUrl('/?detailed=0'));
     preloadPromises.projects = promiseRequest(
-      makeUrl('/projects/?all_projects=1&collapse=latestDeploys')
+      makeUrl('/projects/?all_projects=1&collapse=latestDeploys&collapse=unusedFeatures')
     );
     preloadPromises.teams = promiseRequest(makeUrl('/teams/'));
   } catch (e) {

@@ -111,7 +111,7 @@ export const SectionToggleButton = styled(Button)<{visible: boolean}>`
   color: ${p => p.theme.subText};
   transition: opacity 0.1s;
 
-  &.focus-visible {
+  &:focus-visible {
     opacity: 1;
     pointer-events: all;
   }

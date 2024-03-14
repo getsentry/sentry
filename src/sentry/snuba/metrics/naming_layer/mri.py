@@ -16,6 +16,7 @@ and so it is a private metric, whereas `SessionMRI.CRASH_FREE_RATE` has a corres
 `SessionMetricKey` with the same name i.e. `SessionMetricKey.CRASH_FREE_RATE` and hence is a public
 metric that is queryable by the API.
 """
+
 __all__ = (
     "SessionMRI",
     "TransactionMRI",
@@ -23,6 +24,7 @@ __all__ = (
     "MRI_SCHEMA_REGEX",
     "MRI_EXPRESSION_REGEX",
     "ErrorsMRI",
+    "BundleAnalysisMRI",
     "parse_mri",
     "get_available_operations",
     "is_mri_field",
@@ -195,6 +197,10 @@ class ErrorsMRI(Enum):
     EVENT_INGESTED = "c:escalating_issues/event_ingested@none"
 
 
+class BundleAnalysisMRI(Enum):
+    BUNDLE_SIZE = "d:bundle_analysis/bundle_size@byte"
+
+
 @dataclass
 class ParsedMRI:
     entity: str
@@ -325,7 +331,7 @@ def is_custom_measurement(parsed_mri: ParsedMRI) -> bool:
         and parsed_mri.name.startswith("measurements.")
         and
         # Iterate through the transaction MRI and check that this parsed_mri isn't in there
-        parsed_mri.mri_string not in [mri.value for mri in TransactionMRI.__members__.values()]
+        all(parsed_mri.mri_string != mri.value for mri in TransactionMRI.__members__.values())
     )
 
 

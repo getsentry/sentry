@@ -1,3 +1,5 @@
+from typing import NotRequired, TypedDict
+
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -21,6 +23,10 @@ class UserReportSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserReport
         fields = ("name", "email", "comments", "event_id")
+
+
+class _PaginateKwargs(TypedDict):
+    post_query_filter: NotRequired[object]
 
 
 @region_silo_endpoint
@@ -47,7 +53,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
         if isinstance(request.auth, ProjectKey):
             return self.respond(status=401)
 
-        paginate_kwargs = {}
+        paginate_kwargs: _PaginateKwargs = {}
         try:
             environment = self._get_environment_from_request(request, project.organization_id)
         except Environment.DoesNotExist:

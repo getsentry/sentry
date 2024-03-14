@@ -12,7 +12,7 @@ import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable'
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
-import {getDuration} from 'sentry/utils/formatters';
+import {formatAbbreviatedNumber, getDuration} from 'sentry/utils/formatters';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -38,7 +38,7 @@ type Column = GridColumnHeader;
 
 const columnOrder: GridColumnOrder[] = [
   {key: 'transaction', width: COL_WIDTH_UNDEFINED, name: 'Pages'},
-  {key: 'count()', width: COL_WIDTH_UNDEFINED, name: 'Pageloads'},
+  {key: 'count', width: COL_WIDTH_UNDEFINED, name: 'Pageloads'},
   {key: 'webVital', width: COL_WIDTH_UNDEFINED, name: 'Web Vital'},
   {key: 'score', width: COL_WIDTH_UNDEFINED, name: 'Score'},
   {key: 'opportunity', width: COL_WIDTH_UNDEFINED, name: 'Opportunity'},
@@ -68,10 +68,9 @@ export function WebVitalsDetailPanel({
   const projectScore = shouldUseStoredScores
     ? calculatePerformanceScoreFromStoredTableDataRow(projectScoresData?.data?.[0])
     : calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
-
   const {data, isLoading} = useTransactionWebVitalsQuery({
     limit: 100,
-    opportunityWebVital: webVital ?? 'total',
+    webVital: webVital ?? 'total',
     ...(webVital
       ? shouldUseStoredScores
         ? {
@@ -86,6 +85,7 @@ export function WebVitalsDetailPanel({
           }
       : {}),
     enabled: webVital !== null,
+    sortName: 'webVitalsDetailPanelSort',
   });
 
   const dataByOpportunity = useMemo(() => {
@@ -177,6 +177,11 @@ export function WebVitalsDetailPanel({
         </Tooltip>
       );
     }
+    if (col.key === 'count') {
+      if (webVital === 'inp') {
+        return <AlignRight>{t('Interactions')}</AlignRight>;
+      }
+    }
     return <AlignRight>{col.name}</AlignRight>;
   };
 
@@ -198,7 +203,7 @@ export function WebVitalsDetailPanel({
     }
     if (col.key === 'webVital') {
       let value: string | number = row[mapWebVitalToColumn(webVital)];
-      if (webVital && ['lcp', 'fcp', 'ttfb', 'fid'].includes(webVital)) {
+      if (webVital && ['lcp', 'fcp', 'ttfb', 'fid', 'inp'].includes(webVital)) {
         value = getFormattedDuration(value);
       } else if (webVital === 'cls') {
         value = value?.toFixed(2);
@@ -227,6 +232,11 @@ export function WebVitalsDetailPanel({
           </Link>
         </NoOverflow>
       );
+    }
+    if (key === 'count') {
+      const count =
+        webVital === 'inp' ? row['count_scores(measurements.score.inp)'] : row['count()'];
+      return <AlignRight>{formatAbbreviatedNumber(count)}</AlignRight>;
     }
     return <AlignRight>{row[key]}</AlignRight>;
   };
@@ -287,6 +297,8 @@ const mapWebVitalToColumn = (webVital?: WebVitals | null) => {
       return 'p75(measurements.ttfb)';
     case 'fid':
       return 'p75(measurements.fid)';
+    case 'inp':
+      return 'p75(measurements.inp)';
     default:
       return 'count()';
   }

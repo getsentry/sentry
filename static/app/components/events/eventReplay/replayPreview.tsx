@@ -1,26 +1,22 @@
 import type {ComponentProps} from 'react';
-import {Fragment, useMemo} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
-import {LinkButton} from 'sentry/components/button';
-import Placeholder from 'sentry/components/placeholder';
+import type {LinkButton} from 'sentry/components/button';
+import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
+import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
+import {StaticReplayPreview} from 'sentry/components/events/eventReplay/staticReplayPreview';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Flex} from 'sentry/components/profiling/flex';
 import MissingReplayAlert from 'sentry/components/replays/alerts/missingReplayAlert';
-import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
-import ReplayPlayer from 'sentry/components/replays/replayPlayer';
-import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
-import {IconDelete, IconPlay} from 'sentry/icons';
+import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
-import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import type {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import {useRoutes} from 'sentry/utils/useRoutes';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
@@ -62,7 +58,6 @@ function ReplayPreview({
   orgSlug,
   replaySlug,
 }: Props) {
-  const routes = useRoutes();
   const {fetching, replay, replayRecord, fetchError, replayId} = useReplayReader({
     orgSlug,
     replaySlug,
@@ -96,81 +91,29 @@ function ReplayPreview({
     return <MissingReplayAlert orgSlug={orgSlug} />;
   }
 
-  if (fetching || !replayRecord) {
+  if (fetching || !replayRecord || !replay) {
     return (
-      <StyledPlaceholder
-        testId="replay-loading-placeholder"
-        height="400px"
-        width="100%"
-      />
+      <StyledNegativeSpaceContainer testId="replay-loading-placeholder">
+        <LoadingIndicator />
+      </StyledNegativeSpaceContainer>
     );
   }
 
-  const fullReplayUrl = {
-    pathname: normalizeUrl(`/organizations/${orgSlug}/replays/${replayId}/`),
-    query: {
-      referrer: getRouteStringFromRoutes(routes),
-      t_main: focusTab ?? TabKey.ERRORS,
-      t: initialTimeOffsetMs / 1000,
-    },
-  };
-
   return (
-    <ReplayContextProvider
+    <StaticReplayPreview
+      focusTab={focusTab}
       isFetching={fetching}
-      replay={replay}
-      initialTimeOffsetMs={{offsetMs: initialTimeOffsetMs}}
       analyticsContext={analyticsContext}
-    >
-      <PlayerContainer data-test-id="player-container">
-        {replay?.hasProcessingErrors() ? (
-          <ReplayProcessingError processingErrors={replay.processingErrors()} />
-        ) : (
-          <Fragment>
-            <StaticPanel>
-              <ReplayPlayer isPreview />
-            </StaticPanel>
-
-            <CTAOverlay>
-              <LinkButton
-                {...fullReplayButtonProps}
-                icon={<IconPlay />}
-                priority="primary"
-                to={fullReplayUrl}
-              >
-                {t('Open Replay')}
-              </LinkButton>
-            </CTAOverlay>
-          </Fragment>
-        )}
-      </PlayerContainer>
-    </ReplayContextProvider>
+      replay={replay}
+      replayId={replayId}
+      fullReplayButtonProps={fullReplayButtonProps}
+      initialTimeOffsetMs={initialTimeOffsetMs}
+    />
   );
 }
 
-const PlayerContainer = styled(FluidHeight)`
-  position: relative;
-  background: ${p => p.theme.background};
-  gap: ${space(1)};
-  max-height: 448px;
-`;
-
-const StaticPanel = styled(FluidHeight)`
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-`;
-
-const CTAOverlay = styled('div')`
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: rgba(255, 255, 255, 0.5);
-`;
-
-const StyledPlaceholder = styled(Placeholder)`
+const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
+  height: ${REPLAY_LOADING_HEIGHT}px;
   margin-bottom: ${space(2)};
 `;
 

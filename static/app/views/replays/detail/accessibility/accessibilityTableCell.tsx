@@ -1,28 +1,19 @@
-import type {ComponentProps, CSSProperties} from 'react';
+import type {ComponentProps, CSSProperties, ReactNode} from 'react';
 import {forwardRef} from 'react';
+import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import {
-  Cell,
-  CodeHighlightCell,
-  Text,
-} from 'sentry/components/replays/virtualizedGrid/bodyCell';
+import {Cell, Text} from 'sentry/components/replays/virtualizedGrid/bodyCell';
+import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconFire, IconInfo, IconWarning} from 'sentry/icons';
+import {space} from 'sentry/styles/space';
 import type useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
-import type {Color} from 'sentry/utils/theme';
 import useUrlParams from 'sentry/utils/useUrlParams';
 import type useSortAccessibility from 'sentry/views/replays/detail/accessibility/useSortAccessibility';
 
 const EMPTY_CELL = '--';
-
-const IMPACT_ICON_MAPPING: Record<keyof HydratedA11yFrame['impact'], Color> = {
-  minor: <IconInfo size="xs" />,
-  moderate: <IconInfo size="xs" />,
-  serious: <IconWarning size="xs" color="yellow400" />,
-  critical: <IconFire size="xs" color="red400" />,
-};
 
 interface Props extends ReturnType<typeof useCrumbHandlers> {
   a11yIssue: HydratedA11yFrame;
@@ -56,6 +47,13 @@ const AccessibilityTableCell = forwardRef<HTMLDivElement, Props>(
 
     const {getParamValue} = useUrlParams('a_detail_row', '');
     const isSelected = getParamValue() === String(dataIndex);
+
+    const IMPACT_ICON_MAPPING: Record<keyof HydratedA11yFrame['impact'], ReactNode> = {
+      minor: <IconInfo size="xs" />,
+      moderate: <IconInfo size="xs" />,
+      serious: <IconWarning size="xs" color={isSelected ? 'white' : 'yellow400'} />,
+      critical: <IconFire size="xs" color={isSelected ? 'white' : 'red400'} />,
+    };
 
     const hasOccurred = currentTime >= a11yIssue.offsetMs;
     const isBeforeHover =
@@ -99,7 +97,7 @@ const AccessibilityTableCell = forwardRef<HTMLDivElement, Props>(
 
     const renderFns = [
       () => (
-        <Cell {...columnProps}>
+        <StyledCell {...columnProps} impact={a11yIssue.impact} isRowSelected={isSelected}>
           <Text>
             {a11yIssue.impact ? (
               <Tooltip title={a11yIssue.impact ?? EMPTY_CELL}>
@@ -109,19 +107,26 @@ const AccessibilityTableCell = forwardRef<HTMLDivElement, Props>(
               EMPTY_CELL
             )}
           </Text>
-        </Cell>
+        </StyledCell>
       ),
       () => (
-        <Cell {...columnProps}>
+        <StyledCell {...columnProps} impact={a11yIssue.impact} isRowSelected={isSelected}>
           <Text>{a11yIssue.id ?? EMPTY_CELL}</Text>
-        </Cell>
+        </StyledCell>
       ),
       () => (
-        <Cell {...columnProps}>
-          <CodeHighlightCell language="html" hideCopyButton data-render-inline>
-            {a11yIssue.element.element ?? EMPTY_CELL}
-          </CodeHighlightCell>
-        </Cell>
+        <StyledCell {...columnProps} impact={a11yIssue.impact} isRowSelected={isSelected}>
+          <Tooltip
+            title={a11yIssue.element.element ?? EMPTY_CELL}
+            isHoverable
+            showOnlyOnOverflow
+            overlayStyle={{maxWidth: '500px !important'}}
+          >
+            <StyledTextOverflow>
+              {a11yIssue.element.element ?? EMPTY_CELL}
+            </StyledTextOverflow>
+          </Tooltip>
+        </StyledCell>
       ),
     ];
 
@@ -130,3 +135,21 @@ const AccessibilityTableCell = forwardRef<HTMLDivElement, Props>(
 );
 
 export default AccessibilityTableCell;
+
+const StyledTextOverflow = styled(TextOverflow)`
+  padding-right: ${space(1)};
+`;
+
+const StyledCell = styled(Cell)<{
+  impact: HydratedA11yFrame['impact'];
+  isRowSelected: boolean;
+}>`
+  background: ${p =>
+    p.isSelected
+      ? p.theme.purple300
+      : p.impact === 'serious'
+        ? p.theme.yellow100
+        : p.impact === 'critical'
+          ? p.theme.red100
+          : 'transparent'};
+`;

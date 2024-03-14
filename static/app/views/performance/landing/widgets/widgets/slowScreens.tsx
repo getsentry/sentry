@@ -306,7 +306,7 @@ function SlowScreensByTTID(props: PerformanceWidgetProps) {
             valueFormatter: value =>
               tooltipFormatterUsingAggregateOutputType(value, OUTPUT_TYPE[YAxis.TTID]),
           }}
-          errored={provided.widgetData.chart.isErrored}
+          error={provided.widgetData.chart.error}
           disableXAxis
           showLegend={false}
         />

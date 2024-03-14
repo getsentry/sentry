@@ -1,3 +1,6 @@
+import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
+import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
+import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
@@ -5,14 +8,20 @@ import type {
   OnboardingConfig,
   PlatformOption,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {
+  getCrashReportJavaScriptInstallStep,
+  getCrashReportModalConfigDescription,
+  getCrashReportModalIntroduction,
+  getFeedbackConfigureDescription,
+  getFeedbackSDKSetupSnippet,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
+import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
-  getUploadSourceMapsStep,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils';
-import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
-import {tracePropagationMessage} from 'sentry/components/replaysOnboarding/utils';
 import {t, tct} from 'sentry/locale';
 
 export enum VueVersion {
@@ -47,10 +56,7 @@ const getSentryInitLayout = (params: Params, siblingOption: string): string => {
     integrations: [${
       params.isPerformanceSelected
         ? `
-          new Sentry.BrowserTracing({
-            // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
-            tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],
-          }),`
+          Sentry.browserTracingIntegration(),`
         : ''
     }${
       params.isReplaySelected
@@ -62,7 +68,9 @@ const getSentryInitLayout = (params: Params, siblingOption: string): string => {
     params.isPerformanceSelected
       ? `
         // Performance Monitoring
-        tracesSampleRate: 1.0, //  Capture 100% of the transactions`
+        tracesSampleRate: 1.0, //  Capture 100% of the transactions
+        // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
+        tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],`
       : ''
   }${
     params.isReplaySelected
@@ -168,12 +176,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
 };
 
 export const nextSteps = [
-  {
-    id: 'source-maps',
-    name: t('Source Maps'),
-    description: t('Learn how to enable readable stack traces in your Sentry errors.'),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/vue/sourcemaps/',
-  },
   {
     id: 'vue-features',
     name: t('Vue Features'),
@@ -286,7 +288,72 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
         link: 'https://docs.sentry.io/platforms/javascript/guides/vue/session-replay/',
       }),
       configurations: getSetupConfiguration(params),
-      additionalInfo: tracePropagationMessage,
+      additionalInfo: <TracePropagationMessage />,
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
+const feedbackOnboarding: OnboardingConfig<PlatformOptions> = {
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/vue]) installed, minimum version 7.85.0.',
+        {
+          code: <code />,
+        }
+      ),
+      configurations: getInstallConfig(),
+    },
+  ],
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      description: getFeedbackConfigureDescription({
+        linkConfig:
+          'https://docs.sentry.io/platforms/javascript/guides/vue/user-feedback/configuration/',
+        linkButton:
+          'https://docs.sentry.io/platforms/javascript/guides/vue/user-feedback/configuration/#bring-your-own-button',
+      }),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: getFeedbackSDKSetupSnippet({
+                importStatement: `import * as Sentry from "@sentry/vue";`,
+                dsn: params.dsn,
+                feedbackOptions: params.feedbackOptions,
+              }),
+            },
+          ],
+        },
+      ],
+      additionalInfo: crashReportCallout({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/vue/user-feedback/#crash-report-modal',
+      }),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
+const crashReportOnboarding: OnboardingConfig<PlatformOptions> = {
+  introduction: () => getCrashReportModalIntroduction(),
+  install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: getCrashReportModalConfigDescription({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/vue/user-feedback/configuration/#crash-report-modal',
+      }),
+      additionalInfo: widgetCallout({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/vue/user-feedback/#user-feedback-widget',
+      }),
     },
   ],
   verify: () => [],
@@ -296,8 +363,10 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
 const docs: Docs<PlatformOptions> = {
   onboarding,
   platformOptions,
+  feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboardingNpm: replayOnboarding,
   customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
+  crashReportOnboarding,
 };
 
 export default docs;

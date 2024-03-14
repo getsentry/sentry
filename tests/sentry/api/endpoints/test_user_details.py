@@ -1,3 +1,6 @@
+from django.test import override_settings
+from pytest import fixture
+
 from sentry.models.deletedorganization import DeletedOrganization
 from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization, OrganizationStatus
@@ -8,6 +11,8 @@ from sentry.models.userrole import UserRole
 from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers import Feature
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -19,6 +24,8 @@ class UserDetailsTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.user = self.create_user(email="a@example.com", is_managed=False, name="example name")
+        self.superuser = self.create_user(is_superuser=True)
+        self.staff_user = self.create_user(is_staff=True)
         self.login_as(user=self.user)
 
 
@@ -41,9 +48,8 @@ class UserDetailsGetTest(UserDetailsTest):
         assert not resp.data["options"]["clock24Hours"]
         assert not resp.data["options"]["issueDetailsNewExperienceQ42023"]
 
-    def test_superuser(self):
-        superuser = self.create_user(email="b@example.com", is_superuser=True)
-        self.login_as(user=superuser, superuser=True)
+    def test_superuser_simple(self):
+        self.login_as(user=self.superuser, superuser=True)
 
         resp = self.get_success_response(self.user.id)
 
@@ -51,21 +57,46 @@ class UserDetailsGetTest(UserDetailsTest):
         assert "identities" in resp.data
         assert len(resp.data["identities"]) == 0
 
-    def test_includes_roles_and_permissions(self):
-        superuser = self.create_user(email="b@example.com", is_superuser=True)
-        self.add_user_permission(superuser, "users.admin")
-        self.login_as(user=superuser, superuser=True)
+    @with_feature("auth:enterprise-staff-cookie")
+    def test_staff_simple(self):
+        self.login_as(user=self.staff_user, staff=True)
 
-        resp = self.get_success_response(superuser.id)
+        resp = self.get_success_response(self.user.id)
 
-        assert resp.data["id"] == str(superuser.id)
+        assert resp.data["id"] == str(self.user.id)
+        assert "identities" in resp.data
+        assert len(resp.data["identities"]) == 0
+
+    def test_superuser_includes_roles_and_permissions(self):
+        self.add_user_permission(self.superuser, "users.admin")
+        self.login_as(user=self.superuser, superuser=True)
+
+        resp = self.get_success_response(self.superuser.id)
+
+        assert resp.data["id"] == str(self.superuser.id)
         assert "permissions" in resp.data
         assert resp.data["permissions"] == ["users.admin"]
 
         role = UserRole.objects.create(name="test", permissions=["broadcasts.admin"])
-        role.users.add(superuser)
+        role.users.add(self.superuser)
 
-        resp = self.get_success_response(superuser.id)
+        resp = self.get_success_response(self.superuser.id)
+        assert resp.data["permissions"] == ["broadcasts.admin", "users.admin"]
+
+    def test_staff_includes_roles_and_permissions(self):
+        self.add_user_permission(self.staff_user, "users.admin")
+        self.login_as(user=self.staff_user, staff=True)
+
+        resp = self.get_success_response(self.staff_user.id)
+
+        assert resp.data["id"] == str(self.staff_user.id)
+        assert "permissions" in resp.data
+        assert resp.data["permissions"] == ["users.admin"]
+
+        role = UserRole.objects.create(name="test", permissions=["broadcasts.admin"])
+        role.users.add(self.staff_user)
+
+        resp = self.get_success_response(self.staff_user.id)
         assert resp.data["permissions"] == ["broadcasts.admin", "users.admin"]
 
 
@@ -162,8 +193,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
 
     def test_superuser_can_change_is_active(self):
         self.user.update(is_active=True)
-        superuser = self.create_user(email="b@example.com", is_superuser=True)
-        self.login_as(user=superuser, superuser=True)
+        self.login_as(user=self.superuser, superuser=True)
 
         resp = self.get_success_response(
             self.user.id,
@@ -176,9 +206,8 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
 
     def test_superuser_with_permission_can_change_is_active(self):
         self.user.update(is_active=True)
-        superuser = self.create_user(email="b@example.com", is_superuser=True)
-        UserPermission.objects.create(user=superuser, permission="users.admin")
-        self.login_as(user=superuser, superuser=True)
+        UserPermission.objects.create(user=self.superuser, permission="users.admin")
+        self.login_as(user=self.superuser, superuser=True)
 
         resp = self.get_success_response(
             self.user.id,
@@ -189,10 +218,42 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
         user = User.objects.get(id=self.user.id)
         assert not user.is_active
 
-    def test_superuser_cannot_add_superuser(self):
-        self.user.update(is_superuser=False)
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    @with_feature("auth:enterprise-superuser-read-write")
+    def test_superuser_read_cannot_change_is_active(self):
+        self.user.update(is_active=True)
         superuser = self.create_user(email="b@example.com", is_superuser=True)
         self.login_as(user=superuser, superuser=True)
+
+        self.get_error_response(
+            self.user.id,
+            isActive="false",
+            status_code=403,
+        )
+
+        self.user.refresh_from_db()
+        assert self.user.is_active
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    @with_feature("auth:enterprise-superuser-read-write")
+    def test_superuser_write_can_change_is_active(self):
+        self.user.update(is_active=True)
+        superuser = self.create_user(email="b@example.com", is_superuser=True)
+        self.add_user_permission(superuser, "superuser.write")
+        self.login_as(user=superuser, superuser=True)
+
+        resp = self.get_success_response(
+            self.user.id,
+            isActive="false",
+        )
+        assert resp.data["id"] == str(self.user.id)
+
+        self.user.refresh_from_db()
+        assert not self.user.is_active
+
+    def test_superuser_cannot_add_superuser(self):
+        self.user.update(is_superuser=False)
+        self.login_as(user=self.superuser, superuser=True)
 
         resp = self.get_error_response(
             self.user.id,
@@ -206,8 +267,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
 
     def test_superuser_cannot_add_staff(self):
         self.user.update(is_staff=False)
-        superuser = self.create_user(email="b@example.com", is_superuser=True)
-        self.login_as(user=superuser, superuser=True)
+        self.login_as(user=self.superuser, superuser=True)
 
         resp = self.get_error_response(
             self.user.id,
@@ -221,9 +281,8 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
 
     def test_superuser_with_permission_can_add_superuser(self):
         self.user.update(is_superuser=False)
-        superuser = self.create_user(email="b@example.com", is_superuser=True)
-        UserPermission.objects.create(user=superuser, permission="users.admin")
-        self.login_as(user=superuser, superuser=True)
+        UserPermission.objects.create(user=self.superuser, permission="users.admin")
+        self.login_as(user=self.superuser, superuser=True)
 
         resp = self.get_success_response(
             self.user.id,
@@ -236,9 +295,127 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
 
     def test_superuser_with_permission_can_add_staff(self):
         self.user.update(is_staff=False)
-        superuser = self.create_user(email="b@example.com", is_superuser=True)
-        UserPermission.objects.create(user=superuser, permission="users.admin")
-        self.login_as(user=superuser, superuser=True)
+        UserPermission.objects.create(user=self.superuser, permission="users.admin")
+        self.login_as(user=self.superuser, superuser=True)
+
+        resp = self.get_success_response(
+            self.user.id,
+            isStaff="true",
+        )
+        assert resp.data["id"] == str(self.user.id)
+
+        user = User.objects.get(id=self.user.id)
+        assert user.is_staff
+
+
+@control_silo_test
+class UserDetailsStaffUpdateTest(UserDetailsTest):
+    method = "put"
+
+    @fixture(autouse=True)
+    def use_staff_feature_flag(self):
+        with Feature("auth:enterprise-staff-cookie"):
+            yield
+
+    def test_staff_can_change_is_active(self):
+        self.user.update(is_active=True)
+        self.login_as(user=self.staff_user, staff=True)
+
+        resp = self.get_success_response(
+            self.user.id,
+            isActive="false",
+        )
+        assert resp.data["id"] == str(self.user.id)
+
+        user = User.objects.get(id=self.user.id)
+        assert not user.is_active
+
+    def test_staff_with_permission_can_change_is_active(self):
+        self.user.update(is_active=True)
+        UserPermission.objects.create(user=self.staff_user, permission="users.admin")
+        self.login_as(user=self.staff_user, staff=True)
+
+        resp = self.get_success_response(
+            self.user.id,
+            isActive="false",
+        )
+        assert resp.data["id"] == str(self.user.id)
+
+        user = User.objects.get(id=self.user.id)
+        assert not user.is_active
+
+    def test_staff_cannot_add_superuser(self):
+        self.user.update(is_superuser=False)
+        self.login_as(user=self.staff_user, staff=True)
+
+        resp = self.get_error_response(
+            self.user.id,
+            isSuperuser="true",
+            status_code=403,
+        )
+        assert resp.data["detail"] == "Missing required permission to add superuser."
+
+        user = User.objects.get(id=self.user.id)
+        assert not user.is_superuser
+
+    def test_staff_cannot_add_staff(self):
+        self.user.update(is_staff=False)
+
+        self.login_as(user=self.staff_user, staff=True)
+
+        resp = self.get_error_response(
+            self.user.id,
+            isStaff="true",
+            status_code=403,
+        )
+        assert resp.data["detail"] == "Missing required permission to add admin."
+
+        user = User.objects.get(id=self.user.id)
+        assert not user.is_staff
+
+    def test_superuser_cannot_add_superuser_or_staff_with_feature_flag(self):
+        self.user.update(is_staff=False)
+
+        self.login_as(user=self.superuser, superuser=True)
+
+        resp = self.get_error_response(
+            self.user.id,
+            isStaff="true",
+            status_code=403,
+        )
+        assert resp.data["detail"] == "Missing required permission to add admin."
+
+        resp = self.get_error_response(
+            self.user.id,
+            isSuperuser="true",
+            status_code=403,
+        )
+        assert resp.data["detail"] == "Missing required permission to add superuser."
+
+        user = User.objects.get(id=self.user.id)
+        assert not user.is_staff
+        assert not user.is_superuser
+
+    def test_staff_with_permission_can_add_superuser(self):
+        self.user.update(is_superuser=False)
+
+        UserPermission.objects.create(user=self.staff_user, permission="users.admin")
+        self.login_as(user=self.staff_user, staff=True)
+
+        resp = self.get_success_response(
+            self.user.id,
+            isSuperuser="true",
+        )
+        assert resp.data["id"] == str(self.user.id)
+
+        user = User.objects.get(id=self.user.id)
+        assert user.is_superuser
+
+    def test_staff_with_permission_can_add_staff(self):
+        self.user.update(is_staff=False)
+
+        UserPermission.objects.create(user=self.staff_user, permission="users.admin")
+        self.login_as(user=self.staff_user, staff=True)
 
         resp = self.get_success_response(
             self.user.id,
@@ -355,31 +532,65 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
         # Cannot hard delete your own account
         self.get_error_response(self.user.id, hardDelete=True, organizations=[], status_code=403)
 
-    def test_hard_delete_account_without_permission(self):
-        self.user.update(is_superuser=True)
+    def test_superuser_hard_delete_account_without_permission(self):
+        self.login_as(user=self.superuser, superuser=True)
         user2 = self.create_user(email="user2@example.com")
 
-        # failed authorization, user does not have permissions to delete another user
-        self.get_error_response(user2.id, hardDelete=True, organizations=[], status_code=403)
+        # failed authorization, user does not have users.admin permission to hard delete another user
+        response = self.get_error_response(
+            user2.id, hardDelete=True, organizations=[], status_code=403
+        )
 
-        # Reauthenticate as super user to hard delete an account
-        self.login_as(user=self.user, superuser=True)
-
-        self.get_error_response(user2.id, hardDelete=True, organizations=[], status_code=403)
-
+        assert response.data["detail"] == "Missing required permission to hard delete account."
         assert User.objects.filter(id=user2.id).exists()
 
-    def test_hard_delete_account_with_permission(self):
-        self.user.update(is_superuser=True)
+    @with_feature("auth:enterprise-staff-cookie")
+    def test_staff_hard_delete_account_without_permission(self):
+        self.login_as(user=self.staff_user, staff=True)
         user2 = self.create_user(email="user2@example.com")
 
-        # failed authorization, user does not have permissions to delete another user
-        self.get_error_response(user2.id, hardDelete=True, organizations=[], status_code=403)
+        # failed authorization, user does not have users.admin permission to hard delete another user
+        response = self.get_error_response(
+            user2.id, hardDelete=True, organizations=[], status_code=403
+        )
 
-        # Reauthenticate as super user to hard delete an account
-        UserPermission.objects.create(user=self.user, permission="users.admin")
-        self.login_as(user=self.user, superuser=True)
+        assert response.data["detail"] == "Missing required permission to hard delete account."
+        assert User.objects.filter(id=user2.id).exists()
+
+    def test_superuser_hard_delete_account_with_permission(self):
+        self.login_as(user=self.superuser, superuser=True)
+        user2 = self.create_user(email="user2@example.com")
+
+        # Add users.admin permission to superuser
+        UserPermission.objects.create(user=self.superuser, permission="users.admin")
 
         self.get_success_response(user2.id, hardDelete=True, organizations=[], status_code=204)
-
         assert not User.objects.filter(id=user2.id).exists()
+
+    @with_feature("auth:enterprise-staff-cookie")
+    def test_staff_hard_delete_account_with_permission(self):
+        self.login_as(user=self.staff_user, staff=True)
+        user2 = self.create_user(email="user2@example.com")
+
+        # Add users.admin permission to staff
+        UserPermission.objects.create(user=self.staff_user, permission="users.admin")
+
+        self.get_success_response(user2.id, hardDelete=True, organizations=[], status_code=204)
+        assert not User.objects.filter(id=user2.id).exists()
+
+    @with_feature("auth:enterprise-staff-cookie")
+    def test_superuser_cannot_hard_delete_with_active_feature_flag(self):
+        self.login_as(user=self.superuser, superuser=True)
+        user2 = self.create_user(email="user2@example.com")
+
+        # Add users.admin permission to superuser
+        UserPermission.objects.create(user=self.superuser, permission="users.admin")
+
+        # Superusers will eventually be prevented from hard deleting accounts
+        # once the feature flag is removed
+        response = self.get_error_response(
+            user2.id, hardDelete=True, organizations=[], status_code=403
+        )
+
+        assert response.data["detail"] == "Missing required permission to hard delete account."
+        assert User.objects.filter(id=user2.id).exists()

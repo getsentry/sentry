@@ -22,11 +22,11 @@ from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.grouplink import GroupLink
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
 
 
@@ -526,7 +526,6 @@ class PullRequestEventWebhook(APITestCase):
 
         assert response.status_code == 204
 
-    @with_feature("organizations:integrations-open-pr-comment")
     @patch("sentry.integrations.github.webhook.metrics")
     def test_opened(self, mock_metrics):
         project = self.project  # force creation
@@ -562,7 +561,7 @@ class PullRequestEventWebhook(APITestCase):
         mock_metrics.incr.assert_called_with("github.open_pr_comment.queue_task")
 
     @patch("sentry.integrations.github.webhook.metrics")
-    def test_opened_missing_feature_flag(self, mock_metrics):
+    def test_opened_missing_option(self, mock_metrics):
         project = self.project  # force creation
         self.create_group(project=project, short_id=7)
 
@@ -571,6 +570,10 @@ class PullRequestEventWebhook(APITestCase):
             external_id="35129377",
             provider="integrations:github",
             name="baxterthehacker/public-repo",
+        )
+
+        OrganizationOption.objects.set_value(
+            organization=self.organization, key="sentry:github_open_pr_bot", value=False
         )
 
         self._setup_repo_test(project)
@@ -588,7 +591,7 @@ class PullRequestEventWebhook(APITestCase):
         assert repos[0].external_id == "35129377"
         assert repos[0].provider == "integrations:github"
         assert repos[0].name == "baxterthehacker/public-repo"
-        mock_metrics.incr.assert_called_with("github.webhook.repository_created")
+        mock_metrics.incr.assert_any_call("github.webhook.repository_created")
 
     def test_ignores_hidden_repo(self):
         project = self.project  # force creation
@@ -645,7 +648,7 @@ class PullRequestEventWebhook(APITestCase):
             assert repo.external_id == "35129377"
             assert repo.provider == "integrations:github"
             assert repo.name == "baxterthehacker/public-repo"
-        mock_metrics.incr.assert_called_with("github.webhook.repository_created")
+        mock_metrics.incr.assert_any_call("github.webhook.repository_created")
 
     def test_multiple_orgs_ignores_hidden_repo(self):
         project = self.project  # force creation
@@ -737,7 +740,6 @@ class PullRequestEventWebhook(APITestCase):
 
         self.assert_group_link(group, pr)
 
-    @with_feature("organizations:integrations-open-pr-comment")
     @patch("sentry.integrations.github.webhook.metrics")
     def test_closed(self, mock_metrics):
         project = self.project  # force creation

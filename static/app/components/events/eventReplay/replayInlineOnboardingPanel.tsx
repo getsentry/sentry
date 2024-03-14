@@ -1,126 +1,178 @@
-import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import replaysInlineOnboarding from 'sentry-images/spot/replay-inline-onboarding.svg';
+import replayInlineOnboarding from 'sentry-images/spot/replay-inline-onboarding-v2.svg';
 
 import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {EventReplaySection} from 'sentry/components/events/eventReplay/eventReplaySection';
-import {t} from 'sentry/locale';
+import HookOrDefault from 'sentry/components/hookOrDefault';
+import platforms, {otherPlatform} from 'sentry/data/platforms';
+import {IconClose} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import localStorage from 'sentry/utils/localStorage';
+import type {PlatformKey} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
+import theme from 'sentry/utils/theme';
+import useDismissAlert from 'sentry/utils/useDismissAlert';
+import useMedia from 'sentry/utils/useMedia';
+import useOrganization from 'sentry/utils/useOrganization';
 
-const LOCAL_STORAGE_KEY = 'replay-preview-onboarding-hide-until';
-const SNOOZE_TIME = 1000 * 60 * 60 * 24 * 7; // 1 week
-const DISMISS_TIME = 1000 * 60 * 60 * 24 * 365; // 1 year
+type OnboardingCTAProps = {
+  platform: PlatformKey;
+  projectId: string;
+};
 
-function getHideUntilTime() {
-  return Number(localStorage.getItem(LOCAL_STORAGE_KEY)) || 0;
-}
+const OnboardingCTAButton = HookOrDefault({
+  hookName: 'component:replay-onboarding-cta-button',
+  defaultComponent: null,
+});
 
-function setHideUntilTime(offset: number) {
-  localStorage.setItem(LOCAL_STORAGE_KEY, String(Date.now() + offset));
-}
+export default function ReplayInlineOnboardingPanel({
+  platform,
+  projectId,
+}: OnboardingCTAProps) {
+  const LOCAL_STORAGE_KEY = `${projectId}:issue-details-replay-onboarding-hide`;
 
-function clearHideUntilTime() {
-  localStorage.removeItem(LOCAL_STORAGE_KEY);
-}
-
-export default function ReplayInlineOnboardingPanel() {
-  const [isHidden, setIsHidden] = useState(() => {
-    const hideUntilTime = getHideUntilTime();
-    if (hideUntilTime && Date.now() < hideUntilTime) {
-      return true;
-    }
-    clearHideUntilTime();
-    return false;
+  const {dismiss: snooze, isDismissed: isSnoozed} = useDismissAlert({
+    key: LOCAL_STORAGE_KEY,
+    expirationDays: 7,
   });
+
+  const {dismiss, isDismissed} = useDismissAlert({
+    key: LOCAL_STORAGE_KEY,
+    expirationDays: 365,
+  });
+
   const {activateSidebar} = useReplayOnboardingSidebarPanel();
 
-  if (isHidden) {
+  const platformKey = platforms.find(p => p.id === platform) ?? otherPlatform;
+  const platformName = platformKey === otherPlatform ? '' : platformKey.name;
+  const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.small})`);
+  const organization = useOrganization();
+
+  if (isDismissed || isSnoozed) {
     return null;
   }
 
   return (
     <EventReplaySection>
-      <StyledOnboardingPanel>
+      <BannerWrapper>
         <div>
-          <Heading>{t('Configure Session Replay')}</Heading>
-          <Content>
-            {t(
-              'Playback your app to identify the root cause of errors and latency issues.'
-            )}
-          </Content>
-          <ButtonList>
-            <Button onClick={activateSidebar} priority="primary" size="sm">
-              {t('Get Started')}
+          <BannerTitle>
+            {tct('Set up your [platform] app with Session Replay', {
+              platform: <PurpleText>{platformName}</PurpleText>,
+            })}
+          </BannerTitle>
+          <BannerDescription>
+            {t('Watch the errors and latency issues your users face')}
+          </BannerDescription>
+          <ActionButton>
+            {!isScreenSmall && <OnboardingCTAButton />}
+            <Button
+              analyticsEventName="Clicked Replay Onboarding CTA Set Up Button in Issue Details"
+              analyticsEventKey="issue_details.replay-onboarding-cta-set-up-button-clicked"
+              analyticsParams={{platform}}
+              onClick={activateSidebar}
+            >
+              {t('Set Up Now')}
             </Button>
-            <ButtonBar merged>
-              <Button
-                size="sm"
-                onClick={() => {
-                  setHideUntilTime(SNOOZE_TIME);
-                  setIsHidden(true);
-                }}
-              >
-                {t('Snooze')}
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => {
-                  setHideUntilTime(DISMISS_TIME);
-                  setIsHidden(true);
-                }}
-              >
-                {t('Dismiss')}
-              </Button>
-            </ButtonBar>
-          </ButtonList>
+          </ActionButton>
         </div>
-        <Illustration src={replaysInlineOnboarding} width={220} height={112} alt="" />
-      </StyledOnboardingPanel>
+        {!isScreenSmall && <Background image={replayInlineOnboarding} />}
+        <CloseDropdownMenu
+          position="bottom-end"
+          triggerProps={{
+            showChevron: false,
+            borderless: true,
+            icon: <IconClose color="subText" />,
+          }}
+          size="xs"
+          items={[
+            {
+              key: 'dismiss',
+              label: t('Dismiss'),
+              onAction: () => {
+                dismiss();
+                trackAnalytics('issue-details.replay-cta-dismiss', {
+                  organization,
+                  type: 'dismiss',
+                });
+              },
+            },
+            {
+              key: 'snooze',
+              label: t('Snooze'),
+              onAction: () => {
+                snooze();
+                trackAnalytics('issue-details.replay-cta-dismiss', {
+                  organization,
+                  type: 'snooze',
+                });
+              },
+            },
+          ]}
+        />
+      </BannerWrapper>
     </EventReplaySection>
   );
 }
 
-const StyledOnboardingPanel = styled('div')`
-  display: flex;
-  flex-direction: column;
-  max-width: 600px;
-  border: 1px dashed ${p => p.theme.border};
+const PurpleText = styled('span')`
+  color: ${p => p.theme.purple300};
+  font-weight: bold;
+`;
+
+const BannerWrapper = styled('div')`
+  position: relative;
+  border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(3)};
-  margin-bottom: ${space(3)};
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    flex-direction: row;
-  }
+  padding: ${space(2)};
+  margin: ${space(1)} 0;
+  background: linear-gradient(
+    90deg,
+    ${p => p.theme.backgroundSecondary}00 0%,
+    ${p => p.theme.backgroundSecondary}FF 70%,
+    ${p => p.theme.backgroundSecondary}FF 100%
+  );
 `;
 
-const Heading = styled('h3')`
-  text-transform: uppercase;
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
+const BannerTitle = styled('div')`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
   margin-bottom: ${space(1)};
+  font-weight: 600;
 `;
 
-const Content = styled('p')`
-  margin-bottom: ${space(2)};
-  font-size: ${p => p.theme.fontSizeMedium};
+const BannerDescription = styled('div')`
+  margin-bottom: ${space(1.5)};
+  max-width: 340px;
 `;
 
-const Illustration = styled('img')`
-  display: none;
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    display: block;
-  }
+const CloseDropdownMenu = styled(DropdownMenu)`
+  position: absolute;
+  display: block;
+  top: ${space(1)};
+  right: ${space(1)};
+  color: ${p => p.theme.white};
+  cursor: pointer;
+  z-index: 1;
 `;
 
-const ButtonList = styled('div')`
-  display: inline-flex;
-  justify-content: flex-start;
-  align-items: center;
-  gap: 0 ${space(1)};
+const Background = styled('div')<{image: any}>`
+  display: flex;
+  justify-self: flex-end;
+  position: absolute;
+  top: 0px;
+  right: 25px;
+  height: 100%;
+  width: 100%;
+  max-width: 250px;
+  background-image: url(${p => p.image});
+  background-repeat: no-repeat;
+  background-size: contain;
+`;
+
+const ActionButton = styled('div')`
+  display: flex;
+  gap: ${space(1)};
 `;

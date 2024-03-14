@@ -4,12 +4,17 @@ from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from typing import Any
 from unittest.mock import patch
+from urllib.parse import parse_qs
+from uuid import uuid4
 
 import responses
 from django.test import override_settings
 from rest_framework import status
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.slack.message_builder.notifications.rule_save_edit import (
+    SlackRuleSaveEditMessageBuilder,
+)
 from sentry.models.actor import get_actor_for_user, get_actor_id_for_user
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
@@ -44,7 +49,9 @@ class ProjectRuleBaseTestCase(APITestCase):
         self.first_seen_condition = [
             {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
         ]
-        self.notify_event_action = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
+        self.notify_event_action = [
+            {"id": "sentry.rules.actions.notify_event.NotifyEventAction", "uuid": str(uuid4())}
+        ]
         self.notify_issue_owners_action = [
             {
                 "targetType": "IssueOwners",
@@ -52,6 +59,17 @@ class ProjectRuleBaseTestCase(APITestCase):
                 "id": "sentry.mail.actions.NotifyEmailAction",
                 "targetIdentifier": "",
                 "name": "Send a notification to IssueOwners and if none can be found then send a notification to ActiveMembers",
+                "uuid": str(uuid4()),
+            }
+        ]
+        self.channel_id = "CSVK0921"
+        self.slack_actions = [
+            {
+                "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                "name": "Send a notification to the funinthesun Slack workspace to #team-team-team and show tags [] in notification",
+                "workspace": str(self.slack_integration.id),
+                "channel": "#team-team-team",
+                "input_channel_id": self.channel_id,
             }
         ]
 
@@ -167,6 +185,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             {
                 "id": "sentry.rules.actions.notify_event.NotifyEventAction",
                 "name": "Send a notification to IssueOwners and if none can be found then send a notification to ActiveMembers",
+                "uuid": str(uuid4()),
             }
         ]
 
@@ -288,10 +307,12 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
 
     def test_pre_save(self):
         """Test that a rule with name data in the conditions and actions is saved without it"""
+        action_uuid = str(uuid4())
         actions = [
             {
                 "id": "sentry.rules.actions.notify_event.NotifyEventAction",
                 "name": "Send a notification to IssueOwners and if none can be found then send a notification to ActiveMembers",
+                "uuid": action_uuid,
             }
         ]
         response = self.get_success_response(
@@ -308,7 +329,8 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         )
         rule = Rule.objects.get(id=response.data.get("id"))
         assert rule.data["actions"][0] == {
-            "id": "sentry.rules.actions.notify_event.NotifyEventAction"
+            "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+            "uuid": action_uuid,
         }
         assert rule.data["conditions"][0] == {
             "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"
@@ -328,26 +350,20 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         )
 
     @responses.activate
-    def test_slack_channel_id_saved(self):
-        channel_id = "CSVK0921"
+    @with_feature("organizations:rule-create-edit-confirm-notification")
+    @patch(
+        "sentry.integrations.slack.actions.notification.SlackNotifyServiceAction.send_confirmation_notification"
+    )
+    def test_slack_channel_id_saved(self, mock_send_confirmation_notification):
         responses.add(
             method=responses.GET,
             url="https://slack.com/api/conversations.info",
             status=200,
             content_type="application/json",
             body=json.dumps(
-                {"ok": "true", "channel": {"name": "team-team-team", "id": channel_id}}
+                {"ok": "true", "channel": {"name": "team-team-team", "id": self.channel_id}}
             ),
         )
-        actions = [
-            {
-                "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
-                "name": "Send a notification to the funinthesun Slack workspace to #team-team-team and show tags [] in notification",
-                "workspace": str(self.slack_integration.id),
-                "channel": "#team-team-team",
-                "input_channel_id": channel_id,
-            }
-        ]
         response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
@@ -356,11 +372,65 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             environment=None,
             actionMatch="any",
             frequency=5,
-            actions=actions,
+            actions=self.slack_actions,
             conditions=self.first_seen_condition,
             status_code=status.HTTP_200_OK,
         )
-        assert response.data["actions"][0]["channel_id"] == channel_id
+        assert response.data["actions"][0]["channel_id"] == self.channel_id
+        assert mock_send_confirmation_notification.call_count == 1
+
+    @responses.activate
+    @with_feature("organizations:rule-create-edit-confirm-notification")
+    def test_slack_confirmation_notification_contents(self):
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/conversations.info",
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {"ok": "true", "channel": {"name": "team-team-team", "id": self.channel_id}}
+            ),
+        )
+
+        blocks = SlackRuleSaveEditMessageBuilder(rule=self.rule, new=True).build()
+        payload = {
+            "text": blocks.get("text"),
+            "blocks": json.dumps(blocks.get("blocks")),
+            "channel": self.channel_id,
+            "unfurl_links": False,
+            "unfurl_media": False,
+        }
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.postMessage",
+            status=200,
+            content_type="application/json",
+            body=json.dumps(payload),
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            name="hello world",
+            owner=f"user:{self.user.id}",
+            environment=None,
+            actionMatch="any",
+            frequency=5,
+            actions=self.slack_actions,
+            conditions=self.first_seen_condition,
+            status_code=status.HTTP_200_OK,
+        )
+        rule_id = response.data["id"]
+        rule_label = response.data["name"]
+        assert response.data["actions"][0]["channel_id"] == self.channel_id
+        data = parse_qs(responses.calls[1].request.body)
+        message = f"Alert rule <http://testserver/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{rule_id}/details/|*{rule_label}*> was created in the *{self.project.slug}* project and will send notifications here."
+        assert data["text"][0] == message
+        rendered_blocks = json.loads(data["blocks"][0])
+        assert rendered_blocks[0]["text"]["text"] == message
+        assert (
+            rendered_blocks[1]["elements"][0]["text"]
+            == "<http://testserver/settings/account/notifications/alerts/|*Notification Settings*>"
+        )
 
     def test_missing_name(self):
         self.get_error_response(
@@ -401,7 +471,9 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
     @override_settings(MAX_SLOW_CONDITION_ISSUE_ALERTS=1)
     @override_settings(MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS=2)
     def test_exceed_limit_slow_conditions(self):
-        actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
+        actions = [
+            {"id": "sentry.rules.actions.notify_event.NotifyEventAction", "uuid": str(uuid4())}
+        ]
         conditions = [
             {
                 "id": "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
@@ -437,6 +509,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
                 "fallthroughType": "ActiveMembers",
                 "id": "sentry.mail.actions.NotifyEmailAction",
                 "targetIdentifier": self.team.id,
+                "uuid": str(uuid4()),
             }
         )
         with self.feature("organizations:more-slow-alerts"):
@@ -552,7 +625,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10}
         ]
         actions: list[dict[str, Any]] = [
-            {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
+            {"id": "sentry.rules.actions.notify_event.NotifyEventAction", "uuid": str(uuid4())}
         ]
         self.run_test(
             actions=actions,
@@ -566,7 +639,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
         ]
         actions: list[dict[str, Any]] = [
-            {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
+            {"id": "sentry.rules.actions.notify_event.NotifyEventAction", "uuid": str(uuid4())}
         ]
 
         self.run_test(
@@ -642,6 +715,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
                 "channel": "#team-team-team",
                 "channel_id": "",
                 "tags": "",
+                "uuid": str(uuid4()),
             }
         ]
         payload: dict[str, Any] = {
@@ -687,7 +761,9 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             "interval": "1h",
             "value": 50,
         }
-        actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
+        actions = [
+            {"id": "sentry.rules.actions.notify_event.NotifyEventAction", "uuid": str(uuid4())}
+        ]
         self.run_test(
             actions=actions,
             conditions=[condition],
@@ -708,6 +784,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
                 "fallthroughType": "ActiveMembers",
                 "id": "sentry.mail.actions.NotifyEmailAction",
                 "targetIdentifier": self.team.id,
+                "uuid": str(uuid4()),
             }
         )
         self.run_test(actions=actions, conditions=[condition])
@@ -720,6 +797,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
                 "fallthroughType": "ActiveMembers",
                 "id": "sentry.mail.actions.NotifyEmailAction",
                 "targetIdentifier": self.user.id,
+                "uuid": str(uuid4()),
             }
         )
         self.run_test(actions=actions, conditions=[condition])
@@ -812,6 +890,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
                 "settings": self.sentry_app_settings_payload,
                 "sentryAppInstallationUuid": self.sentry_app_installation.uuid,
                 "hasSchemaFormConfig": True,
+                "uuid": str(uuid4()),
             },
         ]
         payload = {

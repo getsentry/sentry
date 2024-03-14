@@ -1,4 +1,3 @@
-import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 import {TeamFixture} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -17,7 +16,6 @@ import ProjectTeams from 'sentry/views/settings/project/projectTeams';
 describe('ProjectTeams', function () {
   let org: Organization;
   let project: Project;
-  let routerContext: Record<string, any>;
 
   const team1WithAdmin = TeamFixture({
     access: ['team:read', 'team:write', 'team:admin'],
@@ -44,7 +42,6 @@ describe('ProjectTeams', function () {
       ...initialData.project,
       access: ['project:admin', 'project:write', 'project:admin'],
     };
-    routerContext = initialData.routerContext;
 
     TeamStore.loadInitialData([team1WithAdmin, team2WithAdmin]);
 
@@ -69,17 +66,6 @@ describe('ProjectTeams', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders', function () {
-    render(
-      <ProjectTeams
-        {...RouteComponentPropsFixture()}
-        params={{projectId: project.slug}}
-        organization={org}
-        project={project}
-      />
-    );
-  });
-
   it('can remove a team from project', async function () {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/teams/`,
@@ -101,14 +87,9 @@ describe('ProjectTeams', function () {
       statusCode: 200,
     });
 
-    render(
-      <ProjectTeams
-        {...RouteComponentPropsFixture()}
-        params={{projectId: project.slug}}
-        organization={org}
-        project={project}
-      />
-    );
+    render(<ProjectTeams organization={org} project={project} />);
+
+    expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
 
     expect(mock1).not.toHaveBeenCalled();
 
@@ -158,14 +139,9 @@ describe('ProjectTeams', function () {
       statusCode: 200,
     });
 
-    render(
-      <ProjectTeams
-        {...RouteComponentPropsFixture()}
-        params={{projectId: project.slug}}
-        organization={org}
-        project={project}
-      />
-    );
+    render(<ProjectTeams organization={org} project={project} />);
+
+    expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
 
     // Remove first team
     await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
@@ -209,14 +185,9 @@ describe('ProjectTeams', function () {
       body: [team3NoAdmin],
     });
 
-    render(
-      <ProjectTeams
-        {...RouteComponentPropsFixture()}
-        params={{projectId: project.slug}}
-        organization={org}
-        project={project}
-      />
-    );
+    render(<ProjectTeams organization={org} project={project} />);
+
+    expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
 
     expect(mock1).not.toHaveBeenCalled();
 
@@ -257,14 +228,9 @@ describe('ProjectTeams', function () {
       statusCode: 200,
     });
 
-    render(
-      <ProjectTeams
-        {...RouteComponentPropsFixture()}
-        params={{projectId: project.slug}}
-        organization={org}
-        project={project}
-      />
-    );
+    render(<ProjectTeams organization={org} project={project} />);
+
+    expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
 
     expect(mock).not.toHaveBeenCalled();
 
@@ -296,18 +262,12 @@ describe('ProjectTeams', function () {
     const createTeam = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/teams/`,
       method: 'POST',
-      body: {slug: 'new-team'},
+      body: TeamFixture({slug: 'new-team'}),
     });
 
-    render(
-      <ProjectTeams
-        {...RouteComponentPropsFixture()}
-        params={{projectId: project.slug}}
-        project={project}
-        organization={org}
-      />,
-      {context: routerContext}
-    );
+    render(<ProjectTeams project={project} organization={org} />);
+
+    expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
 
     // Add new team
     await userEvent.click(screen.getAllByRole('button', {name: 'Add Team'})[1]);

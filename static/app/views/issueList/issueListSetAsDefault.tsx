@@ -95,8 +95,8 @@ function IssueListSetAsDefault({organization, sort, query}: IssueListSetAsDefaul
   // Hide if we are already on the default search,
   // except when the user has a different search pinned.
   if (
-    isDefaultIssueStreamSearch({query, sort}) &&
-    (!pinnedSearch || isDefaultIssueStreamSearch(pinnedSearch))
+    isDefaultIssueStreamSearch({query, sort}, {organization}) &&
+    (!pinnedSearch || isDefaultIssueStreamSearch(pinnedSearch, {organization}))
   ) {
     return null;
   }

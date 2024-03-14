@@ -110,33 +110,43 @@ def first_symbol_source_id(sources_json):
 class ProjectDetailsTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
 
-    def test_simple(self):
-        project = self.project  # force creation
+    def setUp(self):
+        super().setUp()
         self.login_as(user=self.user)
 
-        response = self.get_success_response(project.organization.slug, project.slug)
-        assert response.data["id"] == str(project.id)
+    def test_simple(self):
+        response = self.get_success_response(self.project.organization.slug, self.project.slug)
+        assert response.data["id"] == str(self.project.id)
+
+    def test_superuser_simple(self):
+        superuser = self.create_user(is_superuser=True)
+        self.login_as(user=superuser, superuser=True)
+
+        response = self.get_success_response(self.project.organization.slug, self.project.slug)
+        assert response.data["id"] == str(self.project.id)
+
+    def test_staff_simple(self):
+        staff_user = self.create_user(is_staff=True)
+        self.login_as(user=staff_user, staff=True)
+
+        response = self.get_success_response(self.project.organization.slug, self.project.slug)
+        assert response.data["id"] == str(self.project.id)
 
     def test_numeric_org_slug(self):
         # Regression test for https://github.com/getsentry/sentry/issues/2236
-        self.login_as(user=self.user)
-        org = self.create_organization(name="baz", slug="1", owner=self.user)
-        team = self.create_team(organization=org, name="foo", slug="foo")
-        project = self.create_project(name="Bar", slug="bar", teams=[team])
+        project = self.create_project(name="Bar", slug="bar", teams=[self.team])
 
         # We want to make sure we don't hit the LegacyProjectRedirect view at all.
-        url = f"/api/0/projects/{org.slug}/{project.slug}/"
+        url = f"/api/0/projects/{self.organization.slug}/{project.slug}/"
         response = self.client.get(url)
         assert response.status_code == 200
         assert response.data["id"] == str(project.id)
 
     def test_with_stats(self):
-        project = self.create_project()
-        self.create_group(project=project)
-        self.login_as(user=self.user)
+        self.create_group(project=self.project)
 
         response = self.get_success_response(
-            project.organization.slug, project.slug, qs_params={"include": "stats"}
+            self.project.organization.slug, self.project.slug, qs_params={"include": "stats"}
         )
         assert response.data["stats"]["unresolved"] == 1
 
@@ -145,13 +155,11 @@ class ProjectDetailsTest(APITestCase):
             integration = self.create_provider_integration(provider="msteams")
             integration.add_organization(self.organization)
 
-        project = self.create_project()
-        self.create_group(project=project)
-        self.login_as(user=self.user)
+        self.create_group(project=self.project)
 
         response = self.get_success_response(
-            project.organization.slug,
-            project.slug,
+            self.project.organization.slug,
+            self.project.slug,
             qs_params={"expand": "hasAlertIntegration"},
         )
         assert response.data["hasAlertIntegrationInstalled"]
@@ -161,62 +169,57 @@ class ProjectDetailsTest(APITestCase):
             integration = self.create_provider_integration(provider="jira")
             integration.add_organization(self.organization)
 
-        project = self.create_project()
-        self.create_group(project=project)
-        self.login_as(user=self.user)
+        self.create_group(project=self.project)
 
         response = self.get_success_response(
-            project.organization.slug, project.slug, qs_params={"expand": "hasAlertIntegration"}
+            self.project.organization.slug,
+            self.project.slug,
+            qs_params={"expand": "hasAlertIntegration"},
         )
         assert not response.data["hasAlertIntegrationInstalled"]
 
     def test_filters_disabled_plugins(self):
         from sentry.plugins.base import plugins
 
-        project = self.create_project()
-        self.create_group(project=project)
-        self.login_as(user=self.user)
+        self.create_group(project=self.project)
 
         response = self.get_success_response(
-            project.organization.slug,
-            project.slug,
+            self.project.organization.slug,
+            self.project.slug,
         )
         assert response.data["plugins"] == []
 
         asana_plugin = plugins.get("asana")
-        asana_plugin.enable(project)
+        asana_plugin.enable(self.project)
 
         response = self.get_success_response(
-            project.organization.slug,
-            project.slug,
+            self.project.organization.slug,
+            self.project.slug,
         )
         assert len(response.data["plugins"]) == 1
         assert response.data["plugins"][0]["slug"] == asana_plugin.slug
 
     def test_project_renamed_302(self):
-        project = self.create_project()
-        self.login_as(user=self.user)
-
         # Rename the project
         self.get_success_response(
-            project.organization.slug, project.slug, method="put", slug="foobar"
+            self.project.organization.slug, self.project.slug, method="put", slug="foobar"
         )
 
         with outbox_runner():
             response = self.get_success_response(
-                project.organization.slug, project.slug, status_code=302
+                self.project.organization.slug, self.project.slug, status_code=302
             )
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert (
                 AuditLogEntry.objects.get(
-                    organization_id=project.organization_id,
+                    organization_id=self.project.organization_id,
                     event=audit_log.get_event_id("PROJECT_EDIT"),
                 ).data.get("old_slug")
-                == project.slug
+                == self.project.slug
             )
             assert (
                 AuditLogEntry.objects.get(
-                    organization_id=project.organization_id,
+                    organization_id=self.project.organization_id,
                     event=audit_log.get_event_id("PROJECT_EDIT"),
                 ).data.get("new_slug")
                 == "foobar"
@@ -224,9 +227,9 @@ class ProjectDetailsTest(APITestCase):
         assert response.data["slug"] == "foobar"
         assert (
             response.data["detail"]["extra"]["url"]
-            == f"/api/0/projects/{project.organization.slug}/foobar/"
+            == f"/api/0/projects/{self.project.organization.slug}/foobar/"
         )
-        redirect_path = f"/api/0/projects/{project.organization.slug}/foobar/"
+        redirect_path = f"/api/0/projects/{self.project.organization.slug}/foobar/"
         # XXX: AttributeError: 'Response' object has no attribute 'url'
         # (this is with self.assertRedirects(response, ...))
         assert response["Location"] == redirect_path
@@ -435,6 +438,22 @@ class ProjectUpdateTest(APITestCase):
         self.proj_slug = self.project.slug
         self.login_as(user=self.user)
 
+    def test_superuser_simple(self):
+        superuser = self.create_user(is_superuser=True)
+        self.login_as(user=superuser, superuser=True)
+
+        self.get_success_response(self.org_slug, self.proj_slug, platform="native")
+        project = Project.objects.get(id=self.project.id)
+        assert project.platform == "native"
+
+    def test_staff_simple(self):
+        superuser = self.create_user(is_superuser=True)
+        self.login_as(user=superuser, superuser=True)
+
+        self.get_success_response(self.org_slug, self.proj_slug, platform="native")
+        project = Project.objects.get(id=self.project.id)
+        assert project.platform == "native"
+
     def test_blank_subject_prefix(self):
         project = Project.objects.get(id=self.project.id)
         options = {"mail:subject_prefix": "[Sentry]"}
@@ -590,6 +609,9 @@ class ProjectUpdateTest(APITestCase):
             "sentry:token": "*",
             "sentry:token_header": "*",
             "sentry:verify_ssl": False,
+            "sentry:replay_rage_click_issues": True,
+            "sentry:feedback_user_report_notifications": True,
+            "sentry:feedback_ai_spam_detection": True,
             "feedback:branding": False,
             "filters:react-hydration-errors": True,
             "filters:chunk-load-error": True,
@@ -703,6 +725,10 @@ class ProjectUpdateTest(APITestCase):
                 event=audit_log.get_event_id("PROJECT_EDIT"),
             ).exists()
         assert project.get_option("feedback:branding") == "0"
+        assert project.get_option("sentry:replay_rage_click_issues") is True
+        assert project.get_option("sentry:feedback_user_report_notifications") is True
+        assert project.get_option("sentry:feedback_ai_spam_detection") is True
+
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert AuditLogEntry.objects.filter(
                 organization_id=project.organization_id,
@@ -1099,78 +1125,6 @@ class ProjectUpdateTest(APITestCase):
             assert resp.status_code == 200
             assert project.get_option("sentry:symbol_sources", json.dumps([source1]))
 
-    @mock.patch("sentry.tasks.recap_servers.poll_project_recap_server.delay")
-    def test_recap_server(self, poll_project_recap_server):
-        project = Project.objects.get(id=self.project.id)
-        with Feature({"organizations:recap-server": True}):
-            resp = self.get_response(
-                self.org_slug, self.proj_slug, recapServerUrl="http://example.com"
-            )
-
-            assert resp.status_code == 200
-            assert project.get_option("sentry:recap_server_url") == "http://example.com"
-            assert poll_project_recap_server.called
-
-            resp = self.get_response(self.org_slug, self.proj_slug, recapServerToken="wat")
-
-            assert resp.status_code == 200
-            assert project.get_option("sentry:recap_server_token") == "wat"
-            assert poll_project_recap_server.called
-
-    @mock.patch("sentry.tasks.recap_servers.poll_project_recap_server.delay")
-    def test_recap_server_no_feature(self, poll_project_recap_server):
-        project = Project.objects.get(id=self.project.id)
-        with Feature({"organizations:recap-server": False}):
-            resp = self.get_response(
-                self.org_slug, self.proj_slug, recapServerUrl="http://example.com"
-            )
-
-            assert resp.status_code == 400
-            assert project.get_option("sentry:recap_server_url") is None
-
-            resp = self.get_response(self.org_slug, self.proj_slug, recapServerToken="wat")
-
-            assert resp.status_code == 400
-            assert project.get_option("sentry:recap_server_token") is None
-
-    @mock.patch("sentry.tasks.recap_servers.poll_project_recap_server.delay")
-    def test_recap_server_no_modification(self, poll_project_recap_server):
-        project = Project.objects.get(id=self.project.id)
-        project.update_option("sentry:recap_server_url", "http://example.com")
-        project.update_option("sentry:recap_server_token", "wat")
-        with Feature({"organizations:recap-server": True}):
-            resp = self.get_response(
-                self.org_slug, self.proj_slug, recapServerUrl="http://example.com"
-            )
-
-            assert resp.status_code == 200
-            assert project.get_option("sentry:recap_server_url") == "http://example.com"
-            assert not poll_project_recap_server.called
-
-            resp = self.get_response(self.org_slug, self.proj_slug, recapServerToken="wat")
-
-            assert resp.status_code == 200
-            assert project.get_option("sentry:recap_server_token") == "wat"
-            assert not poll_project_recap_server.called
-
-    @mock.patch("sentry.tasks.recap_servers.poll_project_recap_server.delay")
-    def test_recap_server_deletion(self, poll_project_recap_server):
-        project = Project.objects.get(id=self.project.id)
-        project.update_option("sentry:recap_server_url", "http://example.com")
-        project.update_option("sentry:recap_server_token", "wat")
-        with Feature({"organizations:recap-server": True}):
-            resp = self.get_response(self.org_slug, self.proj_slug, recapServerUrl="")
-
-            assert resp.status_code == 200
-            assert project.get_option("sentry:recap_server_url") is None
-            assert not poll_project_recap_server.called
-
-            resp = self.get_response(self.org_slug, self.proj_slug, recapServerToken="")
-
-            assert resp.status_code == 200
-            assert project.get_option("sentry:recap_server_token") is None
-            assert not poll_project_recap_server.called
-
 
 @region_silo_test
 class CopyProjectSettingsTest(APITestCase):
@@ -1376,40 +1330,56 @@ class ProjectDeleteTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "delete"
 
-    @mock.patch("sentry.db.mixin.uuid4")
-    def test_simple(self, mock_uuid4_mixin):
-        mock_uuid4_mixin.return_value = self.get_mock_uuid()
-        project = self.create_project()
-
+    def setUp(self):
+        super().setUp()
         self.login_as(user=self.user)
 
+    @mock.patch("sentry.db.mixin.uuid4")
+    def _delete_project_and_assert_deleted(self, mock_uuid4_mixin):
+        mock_uuid4_mixin.return_value = self.get_mock_uuid()
+
         with self.settings(SENTRY_PROJECT=0):
-            self.get_success_response(project.organization.slug, project.slug, status_code=204)
+            self.get_success_response(
+                self.project.organization.slug, self.project.slug, status_code=204
+            )
 
         assert RegionScheduledDeletion.objects.filter(
-            model_name="Project", object_id=project.id
+            model_name="Project", object_id=self.project.id
         ).exists()
 
-        deleted_project = Project.objects.get(id=project.id)
+        deleted_project = Project.objects.get(id=self.project.id)
         assert deleted_project.status == ObjectStatus.PENDING_DELETION
         assert deleted_project.slug == "abc123"
         assert OrganizationOption.objects.filter(
             organization_id=deleted_project.organization_id,
             key=deleted_project.build_pending_deletion_key(),
         ).exists()
-        deleted_project = DeletedProject.objects.get(slug=project.slug)
-        self.assert_valid_deleted_log(deleted_project, project)
+        deleted_project = DeletedProject.objects.get(slug=self.project.slug)
+        self.assert_valid_deleted_log(deleted_project, self.project)
+
+    def test_simple(self):
+        self._delete_project_and_assert_deleted()
+
+    def test_superuser(self):
+        superuser = self.create_user(is_superuser=True)
+        self.login_as(user=superuser, superuser=True)
+
+        self._delete_project_and_assert_deleted()
+
+    def test_staff(self):
+        staff_user = self.create_user(is_staff=True)
+        self.login_as(user=staff_user, staff=True)
+
+        self._delete_project_and_assert_deleted()
 
     def test_internal_project(self):
-        project = self.create_project()
-
-        self.login_as(user=self.user)
-
-        with self.settings(SENTRY_PROJECT=project.id):
-            self.get_error_response(project.organization.slug, project.slug, status_code=403)
+        with self.settings(SENTRY_PROJECT=self.project.id):
+            self.get_error_response(
+                self.project.organization.slug, self.project.slug, status_code=403
+            )
 
         assert not RegionScheduledDeletion.objects.filter(
-            model_name="Project", object_id=project.id
+            model_name="Project", object_id=self.project.id
         ).exists()
 
 
@@ -1530,9 +1500,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
         Tests that when sending a request to enable a dynamic sampling bias,
         the bias will be successfully enabled and the audit log 'SAMPLING_BIAS_ENABLED' will be triggered
         """
-
-        project = self.project  # force creation
-        project.update_option(
+        self.project.update_option(
             "sentry:dynamic_sampling_biases",
             [
                 {"id": "boostEnvironments", "active": False},
@@ -1576,9 +1544,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
         Tests that when sending a request to disable a dynamic sampling bias,
         the bias will be successfully disabled and the audit log 'SAMPLING_BIAS_DISABLED' will be triggered
         """
-
-        project = self.project  # force creation
-        project.update_option(
+        self.project.update_option(
             "sentry:dynamic_sampling_biases",
             [
                 {"id": "boostEnvironments", "active": True},

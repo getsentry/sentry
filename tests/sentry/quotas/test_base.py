@@ -159,6 +159,14 @@ class QuotaTest(TestCase):
                 "reasonCode": "go_away",
             },
         ),
+        (
+            QuotaConfig(limit=0, scope=QuotaScope.GLOBAL, reason_code="come back!"),
+            {
+                "limit": 0,
+                "scope": "global",
+                "reasonCode": "come back!",
+            },
+        ),
     ],
 )
 def test_quotas_to_json(obj, json):

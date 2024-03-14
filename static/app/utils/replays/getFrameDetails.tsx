@@ -5,6 +5,7 @@ import FeatureBadge from 'sentry/components/featureBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
 import {
+  IconChat,
   IconCursorArrow,
   IconFire,
   IconFix,
@@ -167,35 +168,35 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     icon: <IconFire size="xs" />,
   }),
   'ui.click': frame => ({
-    color: 'purple300',
+    color: 'blue300',
     description: frame.message ?? '',
     tabKey: TabKey.BREADCRUMBS,
     title: 'User Click',
     icon: <IconCursorArrow size="xs" />,
   }),
   'ui.input': () => ({
-    color: 'purple300',
+    color: 'blue300',
     description: 'User Action',
     tabKey: TabKey.BREADCRUMBS,
     title: 'User Input',
     icon: <IconInput size="xs" />,
   }),
   'ui.keyDown': () => ({
-    color: 'purple300',
+    color: 'blue300',
     description: 'User Action',
     tabKey: TabKey.BREADCRUMBS,
     title: 'User KeyDown',
     icon: <IconKeyDown size="xs" />,
   }),
   'ui.blur': () => ({
-    color: 'purple300',
+    color: 'blue300',
     description: 'User Action',
     tabKey: TabKey.BREADCRUMBS,
     title: 'User Blur',
     icon: <IconUser size="xs" />,
   }),
   'ui.focus': () => ({
-    color: 'purple300',
+    color: 'blue300',
     description: 'User Action',
     tabKey: TabKey.BREADCRUMBS,
     title: 'User Focus',
@@ -267,6 +268,13 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     tabKey: TabKey.NETWORK,
     title: 'Paint',
     icon: <IconInfo size="xs" />,
+  }),
+  'sentry.feedback': () => ({
+    color: 'blue300',
+    description: '',
+    tabKey: TabKey.BREADCRUMBS,
+    title: 'User Feedback Submitted',
+    icon: <IconChat size="xs" />,
   }),
   'resource.css': frame => ({
     color: 'gray300',

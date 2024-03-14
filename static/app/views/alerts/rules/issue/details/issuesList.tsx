@@ -57,7 +57,11 @@ function AlertRuleIssuesList({project, rule, period, start, end, utc, cursor}: P
   );
 
   if (isError) {
-    return <LoadingError message={error?.responseJSON?.detail ?? t('default message')} />;
+    return (
+      <LoadingError
+        message={(error?.responseJSON?.detail as string) ?? t('default message')}
+      />
+    );
   }
 
   return (

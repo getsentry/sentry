@@ -64,7 +64,7 @@ def _get_attachments(
 def _notify_recipient(
     notification: BaseNotification,
     recipient: RpcActor,
-    attachments: list[SlackAttachment],
+    attachments: list[SlackAttachment] | SlackBlock,
     channel: str,
     integration: Integration,
     shared_context: Mapping[str, Any],
@@ -75,7 +75,11 @@ def _notify_recipient(
 
         text = notification.get_notification_title(ExternalProviders.SLACK, shared_context)
 
-        if features.has("organizations:slack-block-kit", notification.organization):
+        # NOTE(isabella): we check that attachments consists of blocks in case the flag is turned on
+        # while a notification with the legacy format is being sent
+        if features.has("organizations:slack-block-kit", notification.organization) and isinstance(
+            local_attachments, dict
+        ):
             blocks = []
             if text:
                 # NOTE(isabella): with legacy attachments, the notification title was

@@ -4,7 +4,7 @@ from django.db import models
 from sentry.new_migrations.monkey.executor import SentryMigrationExecutor
 from sentry.new_migrations.monkey.fields import deconstruct
 
-LAST_VERIFIED_DJANGO_VERSION = (4, 2)
+LAST_VERIFIED_DJANGO_VERSION = (5, 0)
 CHECK_MESSAGE = """Looks like you're trying to upgrade Django! Since we monkeypatch
 Django in several places, please verify that we have the latest code, and that the
 monkeypatching still works as expected. Currently the main things to check are:

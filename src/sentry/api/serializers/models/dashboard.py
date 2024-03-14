@@ -7,9 +7,11 @@ from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,
+    DashboardWidgetQueryOnDemand,
     DashboardWidgetTypes,
 )
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.utils import json
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
 
@@ -20,9 +22,9 @@ class DashboardWidgetSerializer(Serializer):
         result = {}
         data_sources = serialize(
             list(
-                DashboardWidgetQuery.objects.filter(
-                    widget_id__in=[i.id for i in item_list]
-                ).order_by("order")
+                DashboardWidgetQuery.objects.filter(widget_id__in=[i.id for i in item_list])
+                .prefetch_related("dashboardwidgetqueryondemand_set")
+                .order_by("order")
             )
         )
 
@@ -52,8 +54,41 @@ class DashboardWidgetSerializer(Serializer):
         }
 
 
+@register(DashboardWidgetQueryOnDemand)
+class DashboardWidgetQueryOnDemandSerializer(Serializer):
+    def serialize(self, obj, attrs, user, **kwargs):
+        return {
+            "enabled": obj.extraction_enabled(),
+            "extractionState": obj.extraction_state,
+            "dashboardWidgetQueryId": obj.dashboard_widget_query_id,
+        }
+
+
 @register(DashboardWidgetQuery)
 class DashboardWidgetQuerySerializer(Serializer):
+    def get_attrs(self, item_list, user):
+        result = {}
+
+        stateful_extraction_version = (
+            OnDemandMetricSpecVersioning.get_default_spec_version().version
+        )
+        data_sources = serialize(
+            list(
+                DashboardWidgetQueryOnDemand.objects.filter(
+                    dashboard_widget_query_id__in=[i.id for i in item_list],
+                    spec_version=stateful_extraction_version,
+                )
+            )
+        )
+
+        for widget_query in item_list:
+            widget_data_sources = [
+                d for d in data_sources if d["dashboardWidgetQueryId"] == widget_query.id
+            ]
+            result[widget_query] = {"onDemand": widget_data_sources}
+
+        return result
+
     def serialize(self, obj, attrs, user, **kwargs):
         return {
             "id": str(obj.id),
@@ -65,6 +100,7 @@ class DashboardWidgetQuerySerializer(Serializer):
             "conditions": str(obj.conditions),
             "orderby": str(obj.orderby),
             "widgetId": str(obj.widget_id),
+            "onDemand": attrs["onDemand"],
         }
 
 

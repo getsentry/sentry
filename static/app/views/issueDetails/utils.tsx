@@ -83,7 +83,7 @@ const SUBSCRIPTION_REASONS = {
  * @returns Reason for subscription
  */
 export function getSubscriptionReason(group: Group) {
-  if (group.subscriptionDetails && group.subscriptionDetails.disabled) {
+  if (group.subscriptionDetails?.disabled) {
     return t('You have disabled workflow notifications for this project.');
   }
 

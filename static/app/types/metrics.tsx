@@ -31,7 +31,7 @@ export type MetricsApiRequestMetric = {
   query?: string;
 };
 
-export type MetricsApiRequestQuery = MetricsApiRequestMetric & {
+export interface MetricsApiRequestQuery extends MetricsApiRequestMetric {
   interval: string;
   end?: DateString;
   environment?: string[];
@@ -41,11 +41,9 @@ export type MetricsApiRequestQuery = MetricsApiRequestMetric & {
   project?: number[];
   start?: DateString;
   statsPeriod?: string;
-};
+}
 
-export type MetricsApiRequestQueryOptions = Partial<MetricsApiRequestQuery> & {
-  fidelity?: 'high' | 'low';
-};
+export type MetricsDataIntervalLadder = 'ddm' | 'bar' | 'dashboard';
 
 export type MetricsApiResponse = {
   end: string;
@@ -55,6 +53,29 @@ export type MetricsApiResponse = {
   query: string;
   start: string;
 };
+
+export interface MetricsQueryApiResponse {
+  data: {
+    by: Record<string, string>;
+    series: Array<number | null>;
+    totals: number;
+  }[][];
+  end: string;
+  intervals: string[];
+  meta: (
+    | {name: string; type: string}
+    // The last entry in meta has a different shape
+    | {
+        group_bys: string[];
+        limit: number | null;
+        order: string | null;
+        scaling_factor?: number | null;
+        unit?: string | null;
+        unit_family?: 'duration' | 'information' | null;
+      }
+  )[][];
+  start: string;
+}
 
 export type MetricsGroup = {
   by: Record<string, string>;
@@ -79,6 +100,7 @@ export type MetricMeta = {
   // name is returned by the API but should not be used, use parseMRI(mri).name instead
   // name: string;
   operations: MetricsOperation[];
+  projectIds: number[];
   type: MetricType;
   unit: string;
 };

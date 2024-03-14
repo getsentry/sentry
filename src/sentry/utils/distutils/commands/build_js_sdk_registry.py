@@ -1,16 +1,19 @@
 # NOTE: This is run external to sentry as well as part of the setup
 # process.  Thus we do not want to import non stdlib things here.
 
+import json  # NOQA
+
 # Import the stdlib json instead of sentry.utils.json, since this command is
 # run in setup.py
-import json  # NOQA
+import logging
 import os
-from distutils import log
 from urllib.request import urlopen
 
 import sentry
 
 from .base import BaseBuildCommand
+
+log = logging.getLogger(__name__)
 
 JS_SDK_REGISTRY_URL = (
     "https://release-registry.services.sentry.io/sdks/sentry.javascript.browser/versions"
@@ -44,4 +47,6 @@ class BuildJsSdkRegistryCommand(BaseBuildCommand):
         try:
             sync_registry()
         except Exception:
-            log.error("error occurred while trying to fetch js sdk information from the registry")
+            log.exception(
+                "error occurred while trying to fetch js sdk information from the registry"
+            )

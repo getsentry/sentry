@@ -27,9 +27,7 @@ type FunctionCallback<Args extends any[] = any[]> = (...args: Args) => void;
 /**
  * Callables for matching requests based on arbitrary conditions.
  */
-interface MatchCallable {
-  (url: string, options: ApiNamespace.RequestOptions): boolean;
-}
+type MatchCallable = (url: string, options: ApiNamespace.RequestOptions) => boolean;
 
 type AsyncDelay = undefined | number;
 interface ResponseType extends ApiNamespace.ResponseMeta {

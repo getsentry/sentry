@@ -167,20 +167,18 @@ class SnubaTSDB(BaseTSDB):
     non_outcomes_snql_query_settings = {
         TSDBModel.project: SnubaModelQuerySettings(Dataset.Events, "project_id", None, []),
         TSDBModel.group: SnubaModelQuerySettings(Dataset.Events, "group_id", None, []),
-        TSDBModel.release: SnubaModelQuerySettings(
-            Dataset.Events, "tags[sentry:release]", None, []
-        ),
+        TSDBModel.release: SnubaModelQuerySettings(Dataset.Events, "release", None, []),
         TSDBModel.users_affected_by_group: SnubaModelQuerySettings(
             Dataset.Events, "group_id", "tags[sentry:user]", []
         ),
         TSDBModel.users_affected_by_project: SnubaModelQuerySettings(
-            Dataset.Events, "project_id", "tags[sentry:user]", []
+            Dataset.Events, "project_id", "user", []
         ),
         TSDBModel.frequent_environments_by_group: SnubaModelQuerySettings(
             Dataset.Events, "group_id", "environment", []
         ),
         TSDBModel.frequent_releases_by_group: SnubaModelQuerySettings(
-            Dataset.Events, "group_id", "tags[sentry:release]", []
+            Dataset.Events, "group_id", "release", []
         ),
         TSDBModel.frequent_issues_by_project: SnubaModelQuerySettings(
             Dataset.Events, "project_id", "group_id", []
@@ -213,7 +211,7 @@ class SnubaTSDB(BaseTSDB):
     def __init__(self, **options):
         super().__init__(**options)
 
-    def __manual_group_on_time_aggregation(self, rollup, time_column_alias) -> Sequence[Any]:
+    def __manual_group_on_time_aggregation(self, rollup, time_column_alias) -> list[Any]:
         """
         Explicitly builds an aggregation expression in-place of using a `TimeSeriesProcessor` on the snuba entity.
         Older tables and queries that target that table had syntactic sugar on the `time` column and would apply
@@ -322,8 +320,8 @@ class SnubaTSDB(BaseTSDB):
     def __get_data_snql(
         self,
         model: TSDBModel,
-        keys: Sequence[Any],
-        start: datetime | None,
+        keys: Sequence | Set | Mapping,
+        start: datetime,
         end: datetime | None,
         rollup: int | None = None,
         environment_ids: Sequence[int] | None = None,
@@ -352,8 +350,8 @@ class SnubaTSDB(BaseTSDB):
         model_dataset = model_query_settings.dataset
 
         columns = (model_query_settings.groupby, model_query_settings.aggregate)
-        keys_map = dict(zip(columns, self.flatten_keys(keys)))
-        keys_map = {k: v for k, v in keys_map.items() if k is not None and v is not None}
+        keys_map_tmp = dict(zip(columns, self.flatten_keys(keys)))
+        keys_map = {k: v for k, v in keys_map_tmp.items() if k is not None and v is not None}
         if environment_ids is not None:
             keys_map["environment"] = environment_ids
 
@@ -402,7 +400,7 @@ class SnubaTSDB(BaseTSDB):
                 orderby.append(OrderBy(Column(model_group), Direction.ASC))
 
             # build up where conditions
-            conditions = conditions if conditions is not None else []
+            conditions = list(conditions) if conditions is not None else []
             if model_query_settings.conditions is not None:
                 conditions += model_query_settings.conditions
 
@@ -438,7 +436,9 @@ class SnubaTSDB(BaseTSDB):
                 app_id="tsdb.get_data",
                 query=Query(
                     match=Entity(model_dataset.value),
-                    select=(model_query_settings.selected_columns or []) + aggregations,
+                    select=list(
+                        itertools.chain((model_query_settings.selected_columns or []), aggregations)
+                    ),
                     where=where_conds,
                     groupby=[Column(g) for g in groupby] if groupby else None,
                     orderby=orderby,
@@ -909,7 +909,7 @@ class SnubaTSDB(BaseTSDB):
             tenant_ids=tenant_ids,
         )
 
-    def flatten_keys(self, items):
+    def flatten_keys(self, items: Mapping | Sequence | Set) -> tuple[list, Sequence | None]:
         """
         Returns a normalized set of keys based on the various formats accepted
         by TSDB methods. The input is either just a plain list of keys for the
@@ -922,6 +922,6 @@ class SnubaTSDB(BaseTSDB):
                 list(set.union(*(set(v) for v in items.values())) if items else []),
             )
         elif isinstance(items, (Sequence, Set)):
-            return (items, None)
+            return (list(items), None)
         else:
             raise ValueError("Unsupported type: %s" % (type(items)))

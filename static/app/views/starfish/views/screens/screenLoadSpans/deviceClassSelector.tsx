@@ -1,3 +1,4 @@
+import type {ComponentProps} from 'react';
 import {browserHistory} from 'react-router';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -6,7 +7,12 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {MobileCursors} from 'sentry/views/starfish/views/screens/constants';
 
-export function DeviceClassSelector() {
+interface Props {
+  clearSpansTableCursor?: boolean;
+  size?: ComponentProps<typeof CompactSelect>['size'];
+}
+
+export function DeviceClassSelector({size = 'xs', clearSpansTableCursor}: Props) {
   const location = useLocation();
 
   const value = decodeScalar(location.query['device.class']) ?? '';
@@ -21,7 +27,8 @@ export function DeviceClassSelector() {
 
   return (
     <CompactSelect
-      triggerProps={{prefix: t('Device Class'), size: 'xs'}}
+      size={size}
+      triggerProps={{prefix: t('Device Class')}}
       value={value}
       options={options ?? []}
       onChange={newValue => {
@@ -32,6 +39,7 @@ export function DeviceClassSelector() {
             ['device.class']: newValue.value,
             [MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE]: undefined,
             [MobileCursors.RELEASE_2_EVENT_SAMPLE_TABLE]: undefined,
+            ...(clearSpansTableCursor ? {[MobileCursors.SPANS_TABLE]: undefined} : {}),
           },
         });
       }}

@@ -54,45 +54,44 @@ export function FunctionsMiniGrid(props: FunctionsMiniGridProps) {
       </FunctionsMiniGridHeader>
       <FunctionsMiniGridHeader align="right">{t('Count')}</FunctionsMiniGridHeader>
 
-      {functions &&
-        functions.map((f, idx) => {
-          if (!defined(f)) {
-            return null;
-          }
+      {functions?.map((f, idx) => {
+        if (!defined(f)) {
+          return null;
+        }
 
-          let rendered = <Fragment>{f.function}</Fragment>;
+        let rendered = <Fragment>{f.function}</Fragment>;
 
-          const examples = f['examples()'];
-          if (defined(examples?.[0])) {
-            const exampleProfileId = examples![0].replaceAll('-', '');
-            rendered = (
-              <Link
-                to={linkToFlamechartRoute(
-                  exampleProfileId,
-                  f.function as string,
-                  f.package as string
-                )}
-                onClick={onLinkClick}
-              >
-                {f.function}
-              </Link>
-            );
-          }
-
-          return (
-            <Fragment key={idx}>
-              <FunctionsMiniGridCell title={f.function as string}>
-                <FunctionNameTextTruncate>{rendered}</FunctionNameTextTruncate>
-              </FunctionsMiniGridCell>
-              <FunctionsMiniGridCell align="right">
-                <PerformanceDuration nanoseconds={f['sum()'] as number} abbreviation />
-              </FunctionsMiniGridCell>
-              <FunctionsMiniGridCell align="right">
-                <NumberContainer>{f['count()']}</NumberContainer>
-              </FunctionsMiniGridCell>
-            </Fragment>
+        const examples = f['examples()'];
+        if (defined(examples?.[0])) {
+          const exampleProfileId = examples![0].replaceAll('-', '');
+          rendered = (
+            <Link
+              to={linkToFlamechartRoute(
+                exampleProfileId,
+                f.function as string,
+                f.package as string
+              )}
+              onClick={onLinkClick}
+            >
+              {f.function}
+            </Link>
           );
-        })}
+        }
+
+        return (
+          <Fragment key={idx}>
+            <FunctionsMiniGridCell title={f.function as string}>
+              <FunctionNameTextTruncate>{rendered}</FunctionNameTextTruncate>
+            </FunctionsMiniGridCell>
+            <FunctionsMiniGridCell align="right">
+              <PerformanceDuration nanoseconds={f['sum()'] as number} abbreviation />
+            </FunctionsMiniGridCell>
+            <FunctionsMiniGridCell align="right">
+              <NumberContainer>{f['count()']}</NumberContainer>
+            </FunctionsMiniGridCell>
+          </Fragment>
+        );
+      })}
     </FunctionsMiniGridContainer>
   );
 }

@@ -16,6 +16,7 @@ from sentry.snuba.metrics.extraction import (
     to_standard_metrics_query,
 )
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.glob import glob_match
 
 
 @django_db_all
@@ -32,73 +33,48 @@ def test_equality_of_specs(default_project) -> None:
     [
         ("count()", "release:a", False),  # supported by standard metrics
         ("failure_rate()", "release:a", False),  # supported by standard metrics
-        ("count_unique(geo.city)", "release:a", False),
-        # geo.city not supported by standard metrics, but also not by on demand
-        (
-            "count()",
-            "transaction.duration:>1",
-            True,
-        ),  # transaction.duration not supported by standard metrics
+        # geo.city not supported by standard metrics
+        ("count_unique(geo.city)", "release:a", True),
+        # transaction.duration not supported by standard metrics
+        ("count()", "transaction.duration:>1", True),
+        ("epm()", "transaction.duration:>1", True),
+        ("eps()", "transaction.duration:>1", True),
+        ("epm()", "", False),  # supported by standard metrics
+        ("eps()", "", False),  # supported by standard metrics
+        # the endpoints introduce the field based on the interval
+        ("epm(900)", "", False),  # supported by standard metrics
+        ("eps(900)", "", False),  # supported by standard metrics
         ("failure_count()", "transaction.duration:>1", True),  # supported by on demand
         ("failure_rate()", "transaction.duration:>1", True),  # supported by on demand
         ("apdex(10)", "", True),  # every apdex query is on-demand
         ("apdex(10)", "transaction.duration:>10", True),  # supported by on demand
-        (
-            "count_if(transaction.duration,equals,0)",
-            "release:a",
-            False,
-        ),  # count_if supported by standard metrics
+        # count_if supported by standard metrics
+        ("count_if(transaction.duration,equals,0)", "release:a", False),
         ("p75(transaction.duration)", "release:a", False),  # supported by standard metrics
-        (
-            "p75(transaction.duration)",
-            "transaction.duration:>1",
-            True,
-        ),  # transaction.duration query is on-demand
+        # transaction.duration query is on-demand
+        ("p75(transaction.duration)", "transaction.duration:>1", True),
         ("p90(transaction.duration)", "release:a", False),  # supported by standard metrics
-        (
-            "p90(transaction.duration)",
-            "transaction.duration:>1",
-            True,
-        ),  # transaction.duration query is on-demand
-        (
-            "percentile(transaction.duration, 0.9)",
-            "release:a",
-            False,
-        ),  # supported by standard metrics
-        (
-            "percentile(transaction.duration, 0.9)",
-            "transaction.duration:>1",
-            True,
-        ),  # transaction.duration query is on-demand
-        (
-            "percentile(transaction.duration, 0.90)",
-            "release:a",
-            False,
-        ),  # supported by standard metrics
-        (
-            "percentile(transaction.duration, 0.90)",
-            "transaction.duration:>1",
-            True,
-        ),
+        # transaction.duration query is on-demand
+        ("p90(transaction.duration)", "transaction.duration:>1", True),
+        # supported by standard metrics
+        ("percentile(transaction.duration, 0.9)", "release:a", False),
+        # transaction.duration query is on-demand
+        ("percentile(transaction.duration, 0.9)", "transaction.duration:>1", True),
+        # supported by standard metrics
+        ("percentile(transaction.duration, 0.90)", "release:a", False),
+        ("percentile(transaction.duration, 0.90)", "transaction.duration:>1", True),
         ("count()", "", False),  # Malformed aggregate should return false
-        (
-            "count()",
-            "event.type:error transaction.duration:>0",
-            False,
-        ),  # event.type:error not supported by metrics
-        (
-            "count()",
-            "event.type:default transaction.duration:>0",
-            False,
-        ),  # event.type:error not supported by metrics
-        (
-            "count()",
-            "error.handled:true transaction.duration:>0",
-            False,
-        ),  # error.handled is an error search term
+        # event.type:error not supported by metrics
+        ("count()", "event.type:error transaction.duration:>0", False),
+        # event.type:error not supported by metrics
+        ("count()", "event.type:default transaction.duration:>0", False),
+        # error.handled is an error search term
+        ("count()", "error.handled:true transaction.duration:>0", False),
+        ("user_misery(300)", "", True),
+        ("user_misery(300)", "transaction.duration:>0", True),
     ],
 )
-def test_should_use_on_demand(agg, query, result) -> None:
+def test_should_use_on_demand(agg: str, query: str, result: bool) -> None:
     assert should_use_on_demand_metrics(Dataset.PerformanceMetrics, agg, query) is result
 
 
@@ -107,26 +83,10 @@ def test_should_use_on_demand(agg, query, result) -> None:
     [
         ("sum(c:custom/page_load@millisecond)", "release:a", False),
         ("sum(c:custom/page_load@millisecond)", "transaction.duration:>0", False),
-        (
-            "p75(d:transactions/measurements.fcp@millisecond)",
-            "release:a",
-            False,
-        ),
-        (
-            "p75(d:transactions/measurements.fcp@millisecond)",
-            "transaction.duration:>0",
-            False,
-        ),
-        (
-            "p95(d:spans/duration@millisecond)",
-            "release:a",
-            False,
-        ),
-        (
-            "p95(d:spans/duration@millisecond)",
-            "transaction.duration:>0",
-            False,
-        ),
+        ("p75(d:transactions/measurements.fcp@millisecond)", "release:a", False),
+        ("p75(d:transactions/measurements.fcp@millisecond)", "transaction.duration:>0", False),
+        ("p95(d:spans/duration@millisecond)", "release:a", False),
+        ("p95(d:spans/duration@millisecond)", "transaction.duration:>0", False),
     ],
 )
 def test_should_use_on_demand_with_mri(agg, query, result) -> None:
@@ -166,24 +126,18 @@ class TestCreatesOndemandMetricSpec:
             ("percentile(transaction.duration, 1)", "transaction.duration>0"),
             ("count_if(transaction.duration,equals,0)", "transaction.duration:>0"),
             ("count_if(transaction.duration,notEquals,0)", "transaction.duration:>0"),
-            (
-                "count()",
-                "project:a-1 route.action:CloseBatch level:info",  # custom tags not supported by standard metrics
-            ),
+            # custom tags not supported by standard metrics
+            ("count()", "project:a-1 route.action:CloseBatch"),
             ("count()", "transaction.duration:[1,2,3]"),
             ("count()", "project:a_1 or project:b-2 or transaction.duration:>0"),
             ("count()", "foo:bar"),  # custom tags not supported by standard metrics
             ("failure_count()", "transaction.duration:>100"),
             ("failure_rate()", "transaction.duration:>100"),
             ("apdex(10)", "transaction.duration:>100"),
-            (
-                "count_web_vitals(measurements.fcp,any)",
-                "transaction.duration:>0",
-            ),  # count_web_vitals supported by on demand
-            (
-                "apdex(10)",
-                "",
-            ),  # apdex with specified threshold is on-demand metric even without query
+            # count_web_vitals supported by on demand
+            ("count_web_vitals(measurements.fcp,any)", "transaction.duration:>0"),
+            # apdex with specified threshold is on-demand metric even without query
+            ("apdex(10)", ""),
             ("count()", "transaction.duration:>0 my-transaction"),
             ("count()", "transaction.source:route"),
         ],
@@ -195,24 +149,16 @@ class TestCreatesOndemandMetricSpec:
         "aggregate, query",
         [
             ("count()", "release:a"),  # supported by standard metrics
-            (
-                "count_unique(user)",
-                "transaction.duration:>0",
-            ),  # count_unique not supported by on demand
             ("last_seen()", "transaction.duration:>0"),  # last_seen not supported by on demand
             ("any(user)", "transaction.duration:>0"),  # any not supported by on demand
             ("p95(transaction.duration)", ""),  # p95 without query is supported by standard metrics
             # we do not support custom percentiles that can not be mapped to one of standard percentiles
             ("percentile(transaction.duration, 0.123)", "transaction.duration>0"),
-            (
-                "count()",
-                "p75(transaction.duration):>0",
-            ),  # p75 without query is supported by standard metrics
+            # p75 without query is supported by standard metrics
+            ("count()", "p75(transaction.duration):>0"),
             ("message", "transaction.duration:>0"),  # message not supported by on demand
-            (
-                "equation| count() / count()",
-                "transaction.duration:>0",
-            ),  # equation not supported by on demand
+            # equation not supported by on demand
+            ("equation| count() / count()", "transaction.duration:>0"),
             ("p75(measurements.lcp)", "!event.type:transaction"),  # supported by standard metrics
             # supported by standard metrics
             ("p95(measurements.lcp)", ""),
@@ -464,6 +410,34 @@ def test_spec_wildcard() -> None:
         "op": "glob",
         "value": ["1.*"],
     }
+
+
+@django_db_all
+@pytest.mark.parametrize(
+    "query,title,expected_pattern",
+    [
+        ("title:*[dispatch:*", "backend test [dispatch:something]", r"*\[dispatch:*"),
+        ("title:*{dispatch:*", "test {dispatch:something]", r"*\{dispatch:*"),
+        ("title:*dispatch]:*", "backend dispatch]:", r"*dispatch\]:*"),
+        ("title:*dispatch}:*", "test [dispatch}:", r"*dispatch\}:*"),
+        ("title:*?dispatch*", "backend ?dispatch", r"*\?dispatch*"),
+    ],
+)
+def test_spec_wildcard_escaping(query, title, expected_pattern) -> None:
+    spec = OnDemandMetricSpec("count()", query)
+
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
+    assert spec.op == "sum"
+    assert spec.condition == {
+        "name": "event.transaction",
+        "op": "glob",
+        "value": [expected_pattern],
+    }
+
+    # We also validate using Relay's glob implementation to make sure the escaping
+    # is interpreted correctly.
+    assert glob_match(title, expected_pattern, ignorecase=True)
 
 
 def test_spec_count_if() -> None:

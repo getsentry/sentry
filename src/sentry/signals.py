@@ -6,7 +6,7 @@ import logging
 from collections.abc import Callable
 from typing import Any
 
-from django.dispatch.dispatcher import NO_RECEIVERS, Signal
+from django.dispatch.dispatcher import Signal
 
 from sentry.utils.env import in_test_environment
 
@@ -79,32 +79,12 @@ class BetterSignal(Signal):
             wrapped.__doc__ = receiver.__doc__
         return wrapped(receiver)
 
-    def send_robust(self, sender, **named) -> list[tuple[Receiver, Exception | Any]]:
-        """
-        A reimplementation of send_robust which logs failures, thus recovering stacktraces.
-        """
-        responses: list[tuple[Receiver, Exception | Any]] = []
-        if not self.receivers or self.sender_receivers_cache.get(sender) is NO_RECEIVERS:
-            return responses
+    def _log_robust_failure(self, receiver: object, err: Exception) -> None:
+        if in_test_environment():
+            if _receivers_that_raise is _AllReceivers.ALL or receiver in _receivers_that_raise:
+                raise
 
-        # Call each receiver with whatever arguments it can accept.
-        # Return a list of tuple pairs [(receiver, response), ... ].
-        for receiver in self._live_receivers(sender):
-            try:
-                response = receiver(signal=self, sender=sender, **named)
-            except Exception as err:
-                if in_test_environment():
-                    if (
-                        _receivers_that_raise is _AllReceivers.ALL
-                        or receiver in _receivers_that_raise
-                    ):
-                        raise
-
-                logging.exception("signal.failure", extra={"receiver": repr(receiver)})
-                responses.append((receiver, err))
-            else:
-                responses.append((receiver, response))
-        return responses
+        logging.error("signal.failure", extra={"receiver": repr(receiver)}, exc_info=err)
 
 
 buffer_incr_complete = BetterSignal()  # ["model", "columns", "extra", "result"]
@@ -173,6 +153,9 @@ issue_archived = BetterSignal()  # ["project", "user", "group_list", "activity_d
 issue_escalating = BetterSignal()  # ["project", "group", "event", "was_until_escalating"]
 issue_unignored = BetterSignal()  # ["project", "user_id", "group", "transition_type"]
 issue_mark_reviewed = BetterSignal()  # ["project", "user", "group"]
+issue_update_priority = (
+    BetterSignal()
+)  # ["project", "group", "new_priority", "previous_priority", "user_id", "reason"]
 
 # comments
 comment_created = BetterSignal()  # ["project", "user", "group", "activity_data"]

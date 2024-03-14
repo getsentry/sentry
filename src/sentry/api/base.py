@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import abc
 import functools
 import logging
 import time
@@ -44,18 +45,26 @@ from sentry.utils.http import (
 )
 from sentry.utils.sdk import capture_exception, merge_context_into_scope
 
+from ..services.hybrid_cloud import rpcmetrics
+from ..utils.pagination_factory import (
+    annotate_span_with_pagination_args,
+    clamp_pagination_per_page,
+    get_cursor,
+    get_paginator,
+)
 from .authentication import (
     ApiKeyAuthentication,
     OrgAuthTokenAuthentication,
     UserAuthTokenAuthentication,
 )
-from .paginator import BadPaginationError, Paginator
+from .paginator import BadPaginationError, MissingPaginationError, Paginator
 from .permissions import (
     NoPermission,
     StaffPermission,
     SuperuserOrStaffFeatureFlaggedPermission,
     SuperuserPermission,
 )
+from .utils import generate_organization_url
 
 __all__ = [
     "Endpoint",
@@ -65,14 +74,7 @@ __all__ = [
     "region_silo_endpoint",
 ]
 
-from ..services.hybrid_cloud import rpcmetrics
-from ..utils.pagination_factory import (
-    annotate_span_with_pagination_args,
-    clamp_pagination_per_page,
-    get_cursor,
-    get_paginator,
-)
-from .utils import generate_organization_url
+PAGINATION_DEFAULT_PER_PAGE = 100
 
 ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
@@ -161,6 +163,38 @@ def apply_cors_headers(
             response["Access-Control-Allow-Credentials"] = "true"
 
     return response
+
+
+class BaseEndpointMixin(abc.ABC):
+    """
+    Inherit from this class when adding mixin classes that call `Endpoint` methods. This allows typing to
+    work correctly
+    """
+
+    @abc.abstractmethod
+    def create_audit_entry(self, request: Request, transaction_id=None, **kwargs):
+        pass
+
+    @abc.abstractmethod
+    def respond(self, context: object | None = None, **kwargs: Any) -> Response:
+        pass
+
+    @abc.abstractmethod
+    def paginate(
+        self,
+        request,
+        on_results=None,
+        paginator=None,
+        paginator_cls=Paginator,
+        default_per_page: int | None = None,
+        max_per_page: int | None = None,
+        cursor_cls=Cursor,
+        response_cls=Response,
+        response_kwargs=None,
+        count_hits=None,
+        **paginator_kwargs,
+    ):
+        pass
 
 
 class Endpoint(APIView):
@@ -331,6 +365,10 @@ class Endpoint(APIView):
                 rv.user = orig_user
         return rv
 
+    def has_pagination(self, response: Response) -> bool:
+        # If response is paginated, it will have a "Link" header
+        return response.headers.get("Link") is not None
+
     @csrf_exempt
     @allow_cors_options
     def dispatch(self, request: Request, *args, **kwargs) -> Response:
@@ -390,7 +428,9 @@ class Endpoint(APIView):
 
             with sentry_sdk.start_span(
                 op="base.dispatch.execute",
-                description=f"{type(self).__name__}.{handler.__name__}",
+                description=".".join(
+                    getattr(part, "__name__", None) or str(part) for part in (type(self), handler)
+                ),
             ) as span:
                 with rpcmetrics.wrap_sdk_span(span):
                     response = handler(request, *args, **kwargs)
@@ -414,6 +454,18 @@ class Endpoint(APIView):
                     span.set_data("SENTRY_API_RESPONSE_DELAY", settings.SENTRY_API_RESPONSE_DELAY)
                     time.sleep(settings.SENTRY_API_RESPONSE_DELAY / 1000.0 - duration)
 
+        # Only enforced in dev environment
+        if settings.ENFORCE_PAGINATION:
+            if request.method.lower() == "get":
+                # Response can either be Response or HttpResponse, check if it's value is an array
+                if hasattr(self.response, "data") and isinstance(self.response.data, list):
+                    # if not paginated and not in  settings.SENTRY_API_PAGINATION_ALLOWLIST, raise error
+                    if (
+                        handler.__self__.__class__.__name__
+                        not in settings.SENTRY_API_PAGINATION_ALLOWLIST
+                        and not self.has_pagination(self.response)
+                    ):
+                        raise MissingPaginationError(handler.__func__.__qualname__)
         return self.response
 
     def add_cors_headers(self, request: Request, response):
@@ -438,7 +490,12 @@ class Endpoint(APIView):
     def respond_with_text(self, text):
         return self.respond({"text": text})
 
-    def get_per_page(self, request: Request, default_per_page=100, max_per_page=100):
+    def get_per_page(
+        self, request: Request, default_per_page: int | None = None, max_per_page: int | None = None
+    ):
+        default_per_page = default_per_page or PAGINATION_DEFAULT_PER_PAGE
+        max_per_page = max_per_page or 100
+
         try:
             return clamp_pagination_per_page(
                 request.GET.get("per_page", default_per_page),
@@ -460,8 +517,8 @@ class Endpoint(APIView):
         on_results=None,
         paginator=None,
         paginator_cls=Paginator,
-        default_per_page=100,
-        max_per_page=100,
+        default_per_page: int | None = None,
+        max_per_page: int | None = None,
         cursor_cls=Cursor,
         response_cls=Response,
         response_kwargs=None,
@@ -563,7 +620,7 @@ class StatsMixin:
             if end_s:
                 end = to_datetime(float(end_s))
             else:
-                end = datetime.utcnow().replace(tzinfo=timezone.utc)
+                end = datetime.now(timezone.utc)
         except ValueError:
             raise ParseError(detail="until must be a numeric timestamp.")
 

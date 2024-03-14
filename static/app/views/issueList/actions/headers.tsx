@@ -5,6 +5,7 @@ import ToolbarHeader from 'sentry/components/toolbarHeader';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
   isReprocessingQuery: boolean;
@@ -21,6 +22,8 @@ function Headers({
   isReprocessingQuery,
   isSavedSearchesOpen,
 }: Props) {
+  const organization = useOrganization();
+
   return (
     <Fragment>
       {isReprocessingQuery ? (
@@ -52,9 +55,14 @@ function Headers({
           </GraphHeaderWrapper>
           <EventsOrUsersLabel>{t('Events')}</EventsOrUsersLabel>
           <EventsOrUsersLabel>{t('Users')}</EventsOrUsersLabel>
-          <AssigneesLabel isSavedSearchesOpen={isSavedSearchesOpen}>
+          {organization.features.includes('issue-priority-ui') && (
+            <PriorityLabel isSavedSearchesOpen={isSavedSearchesOpen}>
+              <ToolbarHeader>{t('Priority')}</ToolbarHeader>
+            </PriorityLabel>
+          )}
+          <AssigneeLabel isSavedSearchesOpen={isSavedSearchesOpen}>
             <ToolbarHeader>{t('Assignee')}</ToolbarHeader>
-          </AssigneesLabel>
+          </AssigneeLabel>
         </Fragment>
       )}
     </Fragment>
@@ -69,6 +77,7 @@ const GraphHeaderWrapper = styled('div')<{isSavedSearchesOpen?: boolean}>`
   margin-right: ${space(2)};
   animation: 0.25s FadeIn linear forwards;
 
+  /* prettier-ignore */
   @media (max-width: ${p =>
     p.isSavedSearchesOpen ? p.theme.breakpoints.xlarge : p.theme.breakpoints.large}) {
     display: none;
@@ -117,13 +126,27 @@ const EventsOrUsersLabel = styled(ToolbarHeader)`
   }
 `;
 
-const AssigneesLabel = styled('div')<{isSavedSearchesOpen?: boolean}>`
+const PriorityLabel = styled('div')<{isSavedSearchesOpen?: boolean}>`
   justify-content: flex-end;
   text-align: right;
-  width: 80px;
+  width: 70px;
+  margin: 0 ${space(2)};
+
+  /* prettier-ignore */
+  @media (max-width: ${p =>
+    p.isSavedSearchesOpen ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
+    display: none;
+  }
+`;
+
+const AssigneeLabel = styled('div')<{isSavedSearchesOpen?: boolean}>`
+  justify-content: flex-end;
+  text-align: right;
+  width: 60px;
   margin-left: ${space(2)};
   margin-right: ${space(2)};
 
+  /* prettier-ignore */
   @media (max-width: ${p =>
     p.isSavedSearchesOpen ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
     display: none;

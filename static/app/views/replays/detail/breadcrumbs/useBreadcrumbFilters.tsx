@@ -29,6 +29,7 @@ type Return = {
 
 const TYPE_TO_LABEL: Record<string, string> = {
   start: 'Replay Start',
+  feedback: 'User Feedback',
   replay: 'Replay',
   issue: 'Issue',
   console: 'Console',
@@ -51,6 +52,7 @@ const TYPE_TO_LABEL: Record<string, string> = {
 const OPORCATEGORY_TO_TYPE: Record<string, keyof typeof TYPE_TO_LABEL> = {
   'replay.init': 'start',
   'replay.mutations': 'replay',
+  'sentry.feedback': 'feedback',
   issue: 'issue',
   console: 'console',
   navigation: 'nav',
@@ -103,7 +105,7 @@ function useBreadcrumbFilters({frames}: Options): Return {
         dict[value] ? {...dict, [value]: [dict[value], key]} : {...dict, [value]: key},
       {}
     );
-    const OpOrCategory = type.map(theType => TYPE_TO_OPORCATEGORY[theType]).flat();
+    const OpOrCategory = type.flatMap(theType => TYPE_TO_OPORCATEGORY[theType]);
     return filterItems({
       items: frames,
       filterFns: FILTERS,

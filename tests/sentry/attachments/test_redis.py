@@ -49,7 +49,7 @@ def mocked_attachment_cache(request, mock_client):
     else:
         assert False
 
-    assert attachment_cache.inner.client is mock_client
+    assert attachment_cache.inner._text_client is mock_client
     yield attachment_cache
 
 

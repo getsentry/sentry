@@ -2,7 +2,7 @@ from sentry.projectoptions import register
 
 # This controls what sentry:option-epoch value is given to a project when it is created
 # The epoch of a project will determine what options are valid options for that specific project
-LATEST_EPOCH = 11
+LATEST_EPOCH = 12
 
 # grouping related configs
 #
@@ -102,9 +102,6 @@ register(key="filters:filtered-transaction", default="1")
 # extracted performance metrics.
 register(key="sentry:transaction_metrics_custom_tags", epoch_defaults={1: []})
 
-# Default span attributes config
-register(key="sentry:span_attributes", epoch_defaults={1: ["exclusive-time"]})
-
 DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS = {
     "uncompressed_assets_detection_enabled": True,
     "consecutive_http_spans_detection_enabled": True,
@@ -135,6 +132,20 @@ register(
     default=DEFAULT_PROJECT_PERFORMANCE_GENERAL_SETTINGS,
 )
 
+register(
+    key="sentry:replay_rage_click_issues",
+    default=True,
+)
+register(
+    key="sentry:feedback_user_report_notifications",
+    epoch_defaults={12: True},
+)
+
+register(
+    key="sentry:feedback_ai_spam_detection",
+    default=True,
+)
+
 
 # Replacement rules for transaction names discovered by the transaction clusterer.
 # Contains a mapping from rule to last seen timestamp,
@@ -158,7 +169,8 @@ register(
 )
 
 # The available loader SDK versions
+# todo: v8 add version
 register(
     key="sentry:loader_available_sdk_versions",
-    epoch_defaults={1: ["latest", "7.x", "6.x", "5.x", "4.x"], 11: ["latest", "7.x"]},
+    epoch_defaults={1: ["7.x", "6.x", "5.x", "4.x"], 11: ["7.x"]},
 )

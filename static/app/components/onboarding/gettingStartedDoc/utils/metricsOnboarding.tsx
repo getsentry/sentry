@@ -12,7 +12,7 @@ const getJSConfigureSnippet = (params: DocsParams) => `
 Sentry.init({
   dsn: "${params.dsn}",
   integrations: [
-    new Sentry.metrics.MetricsAggregator(),
+    Sentry.metrics.metricsAggregatorIntegration(),
   ],
 });`;
 
@@ -29,7 +29,7 @@ export const getJSMetricsOnboarding = ({
     {
       type: StepType.INSTALL,
       description: tct(
-        'You need a minimum version [codeVersion:7.88.0] of the Sentry browser SDK package, or an equivalent framework SDK (e.g. [codePackage:@sentry/react]) installed.',
+        'You need a minimum version [codeVersion:7.103.0] of the Sentry browser SDK package, or an equivalent framework SDK (e.g. [codePackage:@sentry/react]) installed.',
         {
           codeVersion: <code />,
           codePackage: <code />,
@@ -42,9 +42,8 @@ export const getJSMetricsOnboarding = ({
     {
       type: StepType.CONFIGURE,
       description: tct(
-        'To enable capturing metrics, you first need to add the [codeIntegration:MetricsAggregator] integration under the [codeNamespace:Sentry.metrics] namespace.',
+        'To enable capturing metrics, you first need to add the metrics aggregator integration under the [codeNamespace:Sentry.metrics] namespace.',
         {
-          codeIntegration: <code />,
           codeNamespace: <code />,
         }
       ),
@@ -119,7 +118,7 @@ export const getJSServerMetricsOnboarding = (): OnboardingConfig => ({
     {
       type: StepType.INSTALL,
       description: tct(
-        'You need a minimum version [codeVersion:7.91.0] of [codeNode:@sentry/node], [codeDeno:@sentry/deno] or [codeBun:@sentry/bun].',
+        'You need a minimum version [codeVersion:7.103.0] of [codeNode:@sentry/node], [codeDeno:@sentry/deno] or [codeBun:@sentry/bun].',
         {
           codeVersion: <code />,
           codeNode: <code />,
@@ -213,7 +212,7 @@ sentry_sdk.init(
 
 const getPythonVerifySnippet = () => `
 # Increment a metric to see how it works
-metrics.incr("drank-drinks", 1, tags={"kind": "coffee"})`;
+sentry_sdk.metrics.incr("drank-drinks", 1, tags={"kind": "coffee"})`;
 
 export const getPythonMetricsOnboarding = ({
   installSnippet,
@@ -327,7 +326,7 @@ export const getDotnetMetricsOnboarding = ({
     {
       type: StepType.INSTALL,
       description: tct(
-        'You need a minimum version [codeVersion:4.0.0-beta.8] of the .NET SDK installed',
+        'You need a minimum version [codeVersion:4.0.0] of the .NET SDK installed',
         {
           codeVersion: <code />,
         }
@@ -335,7 +334,7 @@ export const getDotnetMetricsOnboarding = ({
       configurations: [
         {
           language: 'powershell',
-          code: `dotnet add package ${packageName} -v 4.0.0-beta.8`,
+          code: `dotnet add package ${packageName} -v 4.1.2`,
         },
       ],
     },
@@ -358,12 +357,13 @@ export const getDotnetMetricsOnboarding = ({
     {
       type: StepType.VERIFY,
       description: tct(
-        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. Try out this example:",
+        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], [codeGauge:gauges], and [codeTimings:timings]. Try out this example:",
         {
           codeCounters: <code />,
           codeSets: <code />,
           codeDistribution: <code />,
           codeGauge: <code />,
+          codeTimings: <code />,
         }
       ),
       configurations: [

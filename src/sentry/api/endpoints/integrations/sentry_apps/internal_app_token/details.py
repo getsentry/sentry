@@ -16,22 +16,21 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
 
 
-# TODO: this endpoint should be deprecated in favor of the new version below, as this endpoint exposes the secret token
 @control_silo_endpoint
 class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (SentryInternalAppTokenPermission,)
 
-    def convert_args(self, request: Request, sentry_app_slug, api_token, *args, **kwargs):
+    def convert_args(self, request: Request, sentry_app_slug, api_token_id, *args, **kwargs):
         # get the sentry_app from the SentryAppBaseEndpoint class
         (args, kwargs) = super().convert_args(request, sentry_app_slug, *args, **kwargs)
 
         try:
-            kwargs["api_token"] = ApiToken.objects.get(token=api_token)
-        except ApiToken.DoesNotExist:
+            kwargs["api_token"] = ApiToken.objects.get(id=api_token_id)
+        except (ApiToken.DoesNotExist, ValueError):
             raise Http404
 
         return (args, kwargs)
@@ -71,28 +70,3 @@ class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
         )
 
         return Response(status=204)
-
-
-# TODO: when the above endpoint is deprecated, simply move the convert method.
-# This endpoint handler utilizes the id instead.
-@control_silo_endpoint
-class NewSentryInternalAppTokenDetailsEndpoint(SentryInternalAppTokenDetailsEndpoint):
-    owner = ApiOwner.INTEGRATIONS
-    publish_status = {
-        "DELETE": ApiPublishStatus.EXPERIMENTAL,
-    }
-
-    # The api_token is actually the id of the api token, but needs the same signature of the parent class method
-    def convert_args(self, request: Request, sentry_app_slug, api_token, *args, **kwargs):
-        try:
-            api_token_obj = ApiToken.objects.get(id=api_token)
-        except ApiToken.DoesNotExist:
-            raise Http404
-
-        # We are doing the super call AFTER getting the api token because the parent class still needs the token
-        # Once the token passing is deprecated, we can change the order to be similar to the parent
-        (args, kwargs) = super().convert_args(
-            request, sentry_app_slug, api_token_obj.token, *args, **kwargs
-        )
-
-        return (args, kwargs)

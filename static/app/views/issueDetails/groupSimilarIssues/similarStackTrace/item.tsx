@@ -22,11 +22,11 @@ type Props = {
   groupId: Group['id'];
   issue: Group;
   orgId: Organization['id'];
-  organization: Organization;
   project: Project;
   aggregate?: {
     exception: number;
     message: number;
+    shouldBeGrouped?: string;
   };
   score?: Record<string, any>;
   scoresByInterface?: {
@@ -58,10 +58,16 @@ class Item extends Component<Props, State> {
   };
 
   handleShowDiff = (event: React.MouseEvent) => {
-    const {orgId, groupId: baseIssueId, issue, project} = this.props;
+    const {orgId, groupId: baseIssueId, issue, project, aggregate} = this.props;
     const {id: targetIssueId} = issue;
 
-    openDiffModal({baseIssueId, targetIssueId, project, orgId});
+    const hasSimilarityEmbeddingsFeature = project.features.includes(
+      'similarity-embeddings'
+    );
+    const shouldBeGrouped = hasSimilarityEmbeddingsFeature
+      ? aggregate?.shouldBeGrouped
+      : '';
+    openDiffModal({baseIssueId, targetIssueId, project, orgId, shouldBeGrouped});
     event.stopPropagation();
   };
 
@@ -95,12 +101,14 @@ class Item extends Component<Props, State> {
   };
 
   render() {
-    const {aggregate, scoresByInterface, issue, organization} = this.props;
+    const {aggregate, scoresByInterface, issue, project} = this.props;
     const {visible, busy} = this.state;
-    const similarInterfaces = ['exception', 'message'];
-    const hasSimilarityEmbeddingsFeature = organization?.features?.includes(
-      'issues-similarity-embeddings'
+    const hasSimilarityEmbeddingsFeature = project.features.includes(
+      'similarity-embeddings'
     );
+    const similarInterfaces = hasSimilarityEmbeddingsFeature
+      ? ['exception', 'message', 'shouldBeGrouped']
+      : ['exception', 'message'];
 
     if (!visible) {
       return null;
@@ -125,7 +133,7 @@ class Item extends Component<Props, State> {
             onChange={this.handleCheckClick}
           />
           <EventDetails>
-            <EventOrGroupHeader data={issue} size="normal" source="similar-issues" />
+            <EventOrGroupHeader data={issue} source="similar-issues" />
             <EventOrGroupExtraDetails data={{...issue, lastSeen: ''}} showAssignee />
           </EventDetails>
 
@@ -141,10 +149,17 @@ class Item extends Component<Props, State> {
           {similarInterfaces.map(interfaceName => {
             const avgScore = aggregate?.[interfaceName];
             const scoreList = scoresByInterface?.[interfaceName] || [];
-            // Check for valid number (and not NaN)
-            const scoreValue =
-              typeof avgScore === 'number' && !Number.isNaN(avgScore) ? avgScore : 0;
 
+            // If hasSimilarityEmbeddingsFeature is on, avgScore can be a string
+            let scoreValue = avgScore;
+            if (
+              (typeof avgScore !== 'string' && hasSimilarityEmbeddingsFeature) ||
+              !hasSimilarityEmbeddingsFeature
+            ) {
+              // Check for valid number (and not NaN)
+              scoreValue =
+                typeof avgScore === 'number' && !Number.isNaN(avgScore) ? avgScore : 0;
+            }
             return (
               <Column key={interfaceName}>
                 {!hasSimilarityEmbeddingsFeature && (
@@ -154,7 +169,11 @@ class Item extends Component<Props, State> {
                     <ScoreBar vertical score={Math.round(scoreValue * 5)} />
                   </Hovercard>
                 )}
-                {hasSimilarityEmbeddingsFeature && <div>{scoreValue.toFixed(4)}</div>}
+                {hasSimilarityEmbeddingsFeature && (
+                  <div>
+                    {typeof scoreValue === 'number' ? scoreValue.toFixed(4) : scoreValue}
+                  </div>
+                )}
               </Column>
             );
           })}
@@ -181,8 +200,8 @@ const Columns = styled('div')`
   display: flex;
   align-items: center;
   flex-shrink: 0;
-  min-width: 300px;
-  width: 300px;
+  min-width: 350px;
+  width: 350px;
 `;
 
 const columnStyle = css`

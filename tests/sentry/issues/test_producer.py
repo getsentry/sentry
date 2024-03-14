@@ -190,11 +190,16 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
             ).exists()
 
     def test_with_status_change_unresolved(self):
+        # We modify a single group through different substatuses that are supported in the UI
+        # to ensure the status change is processed correctly.
+        self.group.update(status=GroupStatus.IGNORED, substatus=GroupSubStatus.UNTIL_ESCALATING)
         for substatus, activity_type in [
             (GroupSubStatus.ESCALATING, ActivityType.SET_ESCALATING),
-            (GroupSubStatus.ONGOING, ActivityType.SET_UNRESOLVED),
+            (GroupSubStatus.ONGOING, ActivityType.AUTO_SET_ONGOING),
             (GroupSubStatus.REGRESSED, ActivityType.SET_REGRESSION),
+            (GroupSubStatus.ONGOING, ActivityType.SET_UNRESOLVED),
         ]:
+            # Produce the status change message and process it
             status_change = StatusChangeMessage(
                 fingerprint=self.fingerprint,
                 project_id=self.group.project_id,
@@ -294,6 +299,7 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
                 "project_id": group.project_id,
                 "fingerprint": wrong_fingerprint["fingerprint"][0],
             },
+            exc_info=True,
         )
         assert group.status == initial_status
         assert group.substatus == initial_substatus

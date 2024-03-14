@@ -18,14 +18,11 @@ const config: TransformOptions = {
         corejs: '3.27',
       },
     ],
-    '@babel/preset-typescript',
+    // TODO: Remove allowDeclareFields when we upgrade to Babel 8
+    ['@babel/preset-typescript', {allowDeclareFields: true}],
   ],
   overrides: [],
-  plugins: [
-    '@emotion/babel-plugin',
-    '@babel/plugin-transform-runtime',
-    '@babel/plugin-transform-class-properties',
-  ],
+  plugins: ['@emotion/babel-plugin', '@babel/plugin-transform-runtime'],
   env: {
     production: {
       plugins: [
@@ -44,14 +41,14 @@ const config: TransformOptions = {
           },
         ],
         ['babel-plugin-add-react-displayname'],
-        ['@fullstory/babel-plugin-annotate-react'],
+        '@sentry/babel-plugin-component-annotate',
       ],
     },
     development: {
       plugins: [
         '@emotion/babel-plugin',
         '@babel/plugin-transform-react-jsx-source',
-        ['@fullstory/babel-plugin-annotate-react'],
+        '@sentry/babel-plugin-component-annotate',
         ...(process.env.SENTRY_UI_HOT_RELOAD ? ['react-refresh/babel'] : []),
       ],
     },

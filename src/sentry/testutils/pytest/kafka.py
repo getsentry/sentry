@@ -63,32 +63,6 @@ def kafka_admin(request):
     return inner
 
 
-@pytest.fixture
-def kafka_topics_setter():
-    """
-    Returns a function that given a Django settings objects will setup the
-    kafka topics names to test names.
-
-    :return: a function that given a settings object changes all kafka topic names
-    to "test-<normal_topic_name>"
-    """
-
-    def set_test_kafka_settings(settings):
-        settings.KAFKA_INGEST_EVENTS = "ingest-events"
-        settings.KAFKA_TOPICS[settings.KAFKA_INGEST_EVENTS] = {"cluster": "default"}
-
-        settings.INGEST_TRANSACTIONS = "ingest-transactions"
-        settings.KAFKA_TOPICS[settings.INGEST_TRANSACTIONS] = {"cluster": "default"}
-
-        settings.KAFKA_INGEST_ATTACHMENTS = "ingest-attachments"
-        settings.KAFKA_TOPICS[settings.KAFKA_INGEST_ATTACHMENTS] = {"cluster": "default"}
-
-        settings.KAFKA_OUTCOMES = "outcomes"
-        settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES] = {"cluster": "default"}
-
-    return set_test_kafka_settings
-
-
 @pytest.fixture(scope="session")
 def scope_consumers():
     """
@@ -129,8 +103,7 @@ def session_ingest_consumer(scope_consumers, kafka_admin, task_runner):
     """
 
     def ingest_consumer(settings):
-        from sentry.ingest.consumer.factory import get_ingest_consumer
-        from sentry.ingest.types import ConsumerType
+        from sentry.consumers import get_stream_processor
         from sentry.utils.batching_kafka_consumer import create_topics
 
         # Relay is configured to use this topic for all ingest messages. See
@@ -150,18 +123,14 @@ def session_ingest_consumer(scope_consumers, kafka_admin, task_runner):
         # simulate the event ingestion task
         group_id = "test-consumer"
 
-        consumer = get_ingest_consumer(
-            consumer_type=ConsumerType.Attachments,
+        consumer = get_stream_processor(
+            "ingest-attachments",
+            consumer_args=["--max-batch-size=1", "--max-batch-time-ms=10000", "--processes=1"],
+            topic=topic_event_name,
+            cluster=cluster_name,
             group_id=group_id,
             auto_offset_reset="earliest",
             strict_offset_reset=False,
-            max_batch_size=1,
-            max_batch_time=10,
-            num_processes=1,
-            input_block_size=1,
-            output_block_size=1,
-            force_topic=topic_event_name,
-            force_cluster=cluster_name,
         )
 
         scope_consumers[topic_event_name] = consumer
@@ -192,8 +161,6 @@ def wait_for_ingest_consumer(session_ingest_consumer, task_runner):
     """
 
     def factory(settings, **kwargs):
-        consumer = session_ingest_consumer(settings, **kwargs)
-
         def waiter(exit_predicate, max_time=MAX_SECONDS_WAITING_FOR_EVENT):
             """
             Implements a wait loop for the ingest consumer
@@ -203,6 +170,7 @@ def wait_for_ingest_consumer(session_ingest_consumer, task_runner):
             :return: the first non None result returned by the exit predicate or None if the
                 max time has expired without the exit predicate returning a non None value
             """
+            consumer = session_ingest_consumer(settings, **kwargs)
 
             start_wait = time.time()
             with task_runner():

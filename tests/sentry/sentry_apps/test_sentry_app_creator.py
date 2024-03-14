@@ -217,6 +217,24 @@ class TestInternalCreator(TestCase):
 
         assert install.api_token
 
+    def test_skips_creating_auth_token_when_flag_is_true(self) -> None:
+        app = SentryAppCreator(
+            is_internal=True,
+            verify_install=False,
+            author=self.org.name,
+            name="nulldb",
+            organization_id=self.org.id,
+            scopes=[
+                "project:read",
+            ],
+            webhook_url="http://example.com",
+            schema={"elements": [self.create_issue_link_schema()]},
+        ).run(user=self.user, request=None, skip_default_auth_token=True)
+
+        install = SentryAppInstallation.objects.get(organization_id=self.org.id, sentry_app=app)
+
+        assert install.api_token is None
+
     @patch("sentry.utils.audit.create_audit_entry")
     def test_audits(self, create_audit_entry):
         SentryAppCreator(

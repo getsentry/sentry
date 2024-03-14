@@ -25,7 +25,8 @@ type Props = {
 };
 
 export const ORDER = ['lcp', 'fcp', 'fid', 'cls', 'ttfb'];
-export const ORDER_WITH_INP = ['lcp', 'fcp', 'inp', 'cls', 'ttfb'];
+export const ORDER_WITH_INP = ['lcp', 'fcp', 'inp', 'cls', 'ttfb', 'fid'];
+export const ORDER_WITH_INP_WITHOUT_FID = ['lcp', 'fcp', 'inp', 'cls', 'ttfb'];
 
 export function PerformanceScoreChart({
   projectScore,
@@ -63,12 +64,12 @@ export function PerformanceScoreChart({
   // Gets weights to dynamically size the performance score ring segments
   const weights = projectScore
     ? {
-        cls: projectScore.clsWeight,
-        fcp: projectScore.fcpWeight,
-        fid: projectScore.fidWeight,
         lcp: projectScore.lcpWeight,
+        fcp: projectScore.fcpWeight,
+        fid: shouldReplaceFidWithInp ? 0 : projectScore.fidWeight,
+        inp: shouldReplaceFidWithInp ? projectScore.inpWeight : 0,
+        cls: projectScore.clsWeight,
         ttfb: projectScore.ttfbWeight,
-        inp: projectScore.inpWeight,
       }
     : undefined;
 

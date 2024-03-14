@@ -1,3 +1,67 @@
+24.2.0
+------
+
+### Various fixes & improvements
+
+- Revert "build: update redis and remove redis-py-cluster (#64711)" (c699781d) by @getsentry-bot
+- rename issue_alert creators (#65207) by @nhsiehgit
+- ref(similarity-embedding): Move log (#65243) by @jangjodi
+- build: update redis and remove redis-py-cluster (#64711) by @anonrig
+- feat(metrics_extraction): user_misery to fall back to Discover (#65232) by @armenzg
+- build: optimize extract-ios-device-names command (#65112) by @anonrig
+- feat(trace): prevent back forward navigation (#65244) by @JonasBa
+- feat(metrics): Support basic spans metrics examples (#65119) by @Zylphrex
+- ref(similar-embeddings): Add shouldBeGrouped to diff analytics (#65235) by @jangjodi
+- chore(issues): Revert-revert of deleting streamline-targeting-context (#65160) by @leeandher
+- ref: use decode_responses=False for raw=True redis cache (#64885) by @asottile-sentry
+- fix(profiling): fix measurement chart messaging (#65237) by @JonasBa
+- ref: replace trivial uses of utcnow with tz-aware now (#65085) by @asottile-sentry
+- feat(hybridcloud) Add a metric for webhook saves (#65185) by @markstory
+- feat(ddm): sample tooltip prefix (#65230) by @obostjancic
+- fix(relay): Increase project config timeout (#65229) by @jjbayer
+- fix(ddm): Add op to series name (#65231) by @ArthurKnaus
+- chore(dashboards): remove inline widget editor (#65166) by @obostjancic
+- feat(ddm): Prefix multi query series names (#65222) by @ArthurKnaus
+- fix(ddm): Remove connected nulls (#65221) by @ArthurKnaus
+- chore(stats): remove metrics (#65220) by @obostjancic
+- feat(platforms): Add platform deno in BE (#65218) by @ArthurKnaus
+- feat(ddm): Multi query chart (#65217) by @ArthurKnaus
+- chore(dashboards): remove custom metrics from widget builder (#65156) by @obostjancic
+
+_Plus 207 more_
+
+24.1.2
+------
+
+### Various fixes & improvements
+
+- ref(api): Make processing team endpoints private (#63939) by @loewenheim
+- feat(issue-priority): Add priority column to issue stream (#64820) by @malwilley
+- Revert "ref: upgrade hiredis  (#64789)" (782b0f44) by @getsentry-bot
+- feat(issue-details): Show static replay when error is not within the replay (#64827) by @malwilley
+- ref(sdk): Remove excessive json.loads spans (#64883) by @k-fish
+- fix(integrations): phabricator host validation (#64882) by @oioki
+- feat(integrations): Autofill project in selector after project creation modal (#64791) by @roggenkemper
+- ref(replay): remove 'new' badge from selector widgets & tab (#64848) by @michellewzhang
+- fix(replays): check before attempting to load in onboarding doc (#64842) by @michellewzhang
+- fix(ddm): Handle all and my projects (#64877) by @ArthurKnaus
+- ref: upgrade hiredis  (#64789) by @asottile-sentry
+- fix(replays): Move code requiring exception-prone variables into try block (#64658) by @cmanallen
+- Sprinkle some tracing around more `save_event` functions (#64869) by @Swatinem
+- fix(ddm): Focused series backwards compatibility (#64868) by @ArthurKnaus
+- ref: Add option to throttle proguard processing (#64866) by @loewenheim
+- ref(similarity-embeddings): Remove unused organization level flag (#64815) by @jangjodi
+- ref: upgrade psycopg2-binary (#64809) by @asottile-sentry
+- fix(ddm): Global loading state on zoom (#64861) by @ArthurKnaus
+- fix(ddm): project param rename (#64860) by @obostjancic
+- fix(ddm): Clicking chart hides tooltip (#64859) by @ArthurKnaus
+- feat(ddm): Multiple focused series (#64855) by @ArthurKnaus
+- feat(ddm): Add new metrics/query endpoint base code (#64785) by @iambriccardo
+- feat(stats): metrics stats (#64790) by @obostjancic
+- ref(feedback): add analytics for mark as spam buttons (#64850) by @michellewzhang
+
+_Plus 606 more_
+
 24.1.1
 ------
 

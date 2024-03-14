@@ -38,6 +38,7 @@ type Props = {
   sort: Sort;
   sortKey: string;
   data?: TableData;
+  footerAlignedPagination?: boolean;
   pageLinks?: string;
   showDeviceClassSelector?: boolean;
 };
@@ -56,6 +57,7 @@ export function EventSamplesTable({
   profileIdKey,
   columnNameMap,
   sort,
+  footerAlignedPagination = false,
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
@@ -169,10 +171,13 @@ export function EventSamplesTable({
 
   return (
     <Fragment>
-      <Header>
-        {showDeviceClassSelector && <DeviceClassSelector />}
-        <StyledPagination size="xs" pageLinks={pageLinks} onCursor={handleCursor} />
-      </Header>
+      {!footerAlignedPagination && (
+        <Header>
+          {showDeviceClassSelector && <DeviceClassSelector />}
+
+          <StyledPagination size="xs" pageLinks={pageLinks} onCursor={handleCursor} />
+        </Header>
+      )}
       <GridContainer>
         <GridEditable
           isLoading={isLoading}
@@ -190,6 +195,11 @@ export function EventSamplesTable({
           }}
         />
       </GridContainer>
+      <div>
+        {footerAlignedPagination && (
+          <StyledPagination size="xs" pageLinks={pageLinks} onCursor={handleCursor} />
+        )}
+      </div>
     </Fragment>
   );
 }

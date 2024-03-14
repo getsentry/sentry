@@ -5,6 +5,12 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {
+  getCrashReportJavaScriptInstallStep,
+  getCrashReportModalConfigDescription,
+  getCrashReportModalIntroduction,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
+import {getJSServerMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 import type {ProductSelectionMap} from 'sentry/utils/gettingStartedDocs/node';
@@ -41,7 +47,7 @@ Sentry.GCPFunction.init({
   integrations: [${
     params.isProfilingSelected
       ? `
-      new ProfilingIntegration(),`
+      nodeProfilingIntegration(),`
       : ''
   }
 ],${
@@ -81,6 +87,14 @@ exports.helloEvents = Sentry.GCPFunction.wrapCloudEventFunction(
 const getVerifySnippet = () => `
 exports.helloHttp = Sentry.GCPFunction.wrapHttpFunction((req, res) => {
   throw new Error("oh, hello there!");
+});`;
+
+const getMetricsConfigureSnippet = (params: DocsParams) => `
+Sentry.GCPFunction.init({
+  dsn: "${params.dsn}",
+  _experiments: {
+    metricsAggregator: true,
+  },
 });`;
 
 const onboarding: OnboardingConfig = {
@@ -133,8 +147,66 @@ const onboarding: OnboardingConfig = {
   ],
 };
 
+const customMetricsOnboarding: OnboardingConfig = {
+  install: params => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'You need a minimum version [codeVersion:7.91.0] of [codePackage:@sentry/serverless]:',
+        {
+          codeVersion: <code />,
+          codePackage: <code />,
+        }
+      ),
+      configurations: [{language: 'json', code: getInstallSnippet(params)}],
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      description: tct(
+        'To enable capturing metrics, you first need to add the [codeIntegration:metricsAggregator] experiment to your [codeNamespace:Sentry.init] call in your main process.',
+        {
+          codeIntegration: <code />,
+          codeNamespace: <code />,
+        }
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: getMetricsConfigureSnippet(params),
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  verify: getJSServerMetricsOnboarding().verify,
+};
+
+const crashReportOnboarding: OnboardingConfig = {
+  introduction: () => getCrashReportModalIntroduction(),
+  install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: getCrashReportModalConfigDescription({
+        link: 'https://docs.sentry.io/platforms/node/guides/gcp-functions/user-feedback/configuration/#crash-report-modal',
+      }),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
+  customMetricsOnboarding,
+  crashReportOnboarding,
 };
 
 export default docs;

@@ -54,6 +54,7 @@ EVENT_DATA_ALLOWLIST = {
                     "image_addr": Allow.SIMPLE_TYPE,
                     "package": Allow.SIMPLE_TYPE,
                     "platform": Allow.SIMPLE_TYPE,
+                    "lineno": Allow.SIMPLE_TYPE,
                 }
             },
             "value": Allow.NEVER.with_explanation("The exception value could contain PII."),
@@ -180,7 +181,7 @@ def _strip_frames(
                 path_field_value: str = frame.get(path_field_key, "")
                 if path_field_value:
                     frame[path_field_key] = sdk_crash_detector.replace_sdk_frame_path(
-                        path_field_value
+                        path_field_key, path_field_value
                     )
         else:
             frame["in_app"] = False

@@ -14,6 +14,7 @@ interface Props {
   displayType: DisplayType;
   fieldOptions: ReturnType<typeof generateFieldOptions>;
   fields: QueryFieldValue[];
+  isOnDemandWidget: boolean;
   onChange: (newColumns: QueryFieldValue[]) => void;
   organization: Organization;
   widgetType: WidgetType;
@@ -34,6 +35,7 @@ export function ColumnFields({
   filterAggregateParameters,
   filterPrimaryOptions,
   noFieldsMessage,
+  isOnDemandWidget,
 }: Props) {
   return (
     <FieldGroup
@@ -53,6 +55,7 @@ export function ColumnFields({
           filterAggregateParameters={filterAggregateParameters}
           filterPrimaryOptions={filterPrimaryOptions}
           noFieldsMessage={noFieldsMessage}
+          isOnDemandWidget={isOnDemandWidget}
         />
       ) : (
         // The only other display type this component
@@ -68,6 +71,7 @@ export function ColumnFields({
           source={widgetType}
           filterPrimaryOptions={filterPrimaryOptions}
           noFieldsMessage={noFieldsMessage}
+          isOnDemandWidget={isOnDemandWidget}
         />
       )}
     </FieldGroup>

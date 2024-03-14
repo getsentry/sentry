@@ -5,7 +5,7 @@ import uuid
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from time import time
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict
 
 import sentry_sdk
 from django.conf import settings
@@ -51,6 +51,7 @@ logger = logging.getLogger(__name__)
 locks = LockManager(build_instance_from_options(settings.SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS))
 
 ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 50
+HIGHER_ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 200
 
 
 class PostProcessJob(TypedDict, total=False):
@@ -171,10 +172,17 @@ def _capture_group_stats(job: PostProcessJob) -> None:
         metrics.incr("events.unique", tags=tags, skip_internal=False)
 
 
-def should_issue_owners_ratelimit(project_id, group_id):
+def should_issue_owners_ratelimit(project_id: int, group_id: int, organization_id: int | None):
     """
-    Make sure that we do not accept more groups than ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT at the project level.
+    Make sure that we do not accept more groups than the enforced_limit at the project level.
     """
+    from sentry.models.organization import Organization
+
+    enforced_limit = ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT
+    organization = Organization.objects.get_from_cache(id=organization_id)
+    if features.has("organizations:increased-issue-owners-rate-limit", organization=organization):
+        enforced_limit = HIGHER_ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT
+
     cache_key = f"issue_owner_assignment_ratelimiter:{project_id}"
     data = cache.get(cache_key)
 
@@ -189,7 +197,7 @@ def should_issue_owners_ratelimit(project_id, group_id):
         timeout = max(60 - (datetime.now() - window_start).total_seconds(), 0)
         cache.set(cache_key, (groups, window_start), timeout)
 
-    return len(groups) > ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT
+    return len(groups) > enforced_limit
 
 
 def handle_owner_assignment(job):
@@ -221,7 +229,11 @@ def handle_owner_assignment(job):
             # - an Assignee has been set with TTL of infinite
             with metrics.timer("post_process.handle_owner_assignment"):
                 with sentry_sdk.start_span(op="post_process.handle_owner_assignment.ratelimited"):
-                    if should_issue_owners_ratelimit(project.id, group.id):
+                    if should_issue_owners_ratelimit(
+                        project_id=project.id,
+                        group_id=group.id,
+                        organization_id=event.project.organization_id,
+                    ):
                         logger.info(
                             "handle_owner_assignment.ratelimited",
                             extra={
@@ -244,9 +256,11 @@ def handle_owner_assignment(job):
                         cache.set(
                             assignee_key,
                             assignees_exists,
-                            ASSIGNEE_EXISTS_DURATION
-                            if assignees_exists
-                            else ASSIGNEE_DOES_NOT_EXIST_DURATION,
+                            (
+                                ASSIGNEE_EXISTS_DURATION
+                                if assignees_exists
+                                else ASSIGNEE_DOES_NOT_EXIST_DURATION
+                            ),
                         )
 
                     if assignees_exists:
@@ -290,13 +304,7 @@ def handle_owner_assignment(job):
                             },
                         ):
                             # see ProjectOwnership.get_issue_owners
-                            issue_owners: Sequence[
-                                tuple[
-                                    Rule,
-                                    Sequence[Team | RpcUser],
-                                    str,
-                                ]
-                            ] = []
+                            issue_owners: Sequence[tuple[Rule, Sequence[Team | RpcUser], str]] = []
                         else:
                             issue_owners = ProjectOwnership.get_issue_owners(project.id, event.data)
 
@@ -331,6 +339,10 @@ def handle_invalid_group_owners(group):
     )
     for owner in invalid_group_owners:
         owner.delete()
+        logger.info(
+            "handle_invalid_group_owners.delete_group_owner",
+            extra={"group": group.id, "group_owner_id": owner.id, "project": group.project_id},
+        )
 
 
 def handle_group_owners(
@@ -350,9 +362,11 @@ def handle_group_owners(
 
     lock = locks.get(f"groupowner-bulk:{group.id}", duration=10, name="groupowner_bulk")
     try:
-        with metrics.timer("post_process.handle_group_owners"), sentry_sdk.start_span(
-            op="post_process.handle_group_owners"
-        ), lock.acquire():
+        with (
+            metrics.timer("post_process.handle_group_owners"),
+            sentry_sdk.start_span(op="post_process.handle_group_owners"),
+            lock.acquire(),
+        ):
             current_group_owners = GroupOwner.objects.filter(
                 group=group,
                 type__in=[GroupOwnerType.OWNERSHIP_RULE.value, GroupOwnerType.CODEOWNERS.value],
@@ -369,6 +383,12 @@ def handle_group_owners(
             # Owners already in the database that we'll keep
             keeping_owners = set()
             for group_owner in current_group_owners:
+                logging_params = {
+                    "group": group.id,
+                    "project": project.id,
+                    "organization": project.organization_id,
+                    "group_owner_id": group_owner.id,
+                }
                 owner_rule_type = (
                     OwnerRuleType.CODEOWNERS.value
                     if group_owner.type == GroupOwnerType.CODEOWNERS.value
@@ -383,6 +403,10 @@ def handle_group_owners(
                 lookup_key_value = None
                 if lookup_key not in new_owners:
                     group_owner.delete()
+                    logger.info(
+                        "handle_group_owners.delete_group_owner",
+                        extra={**logging_params, "reason": "assignment_deleted"},
+                    )
                 else:
                     lookup_key_value = new_owners.get(lookup_key)
                 # Old groupowner assignment from outdated rules get deleted
@@ -391,6 +415,10 @@ def handle_group_owners(
                     and (group_owner.context or {}).get("rule") not in lookup_key_value
                 ):
                     group_owner.delete()
+                    logger.info(
+                        "handle_group_owners.delete_group_owner",
+                        extra={**logging_params, "reason": "outdated_rule"},
+                    )
                 else:
                     keeping_owners.add(lookup_key)
 
@@ -431,6 +459,15 @@ def handle_group_owners(
                         instance=go,
                         created=True,
                     )
+                logger.info(
+                    "group_owners.bulk_create",
+                    extra={
+                        "group_id": group.id,
+                        "project_id": project.id,
+                        "organization_id": project.organization_id,
+                        "count": len(new_group_owners),
+                    },
+                )
 
     except UnableToAcquireLock:
         pass
@@ -702,11 +739,19 @@ def post_process_group(
         for job in group_jobs:
             run_post_process_job(job)
 
+        metric_tags = {}
+        if group_events:
+            # In practice, we only have one group here and will be removing the list of jobs. For now, just grab a
+            # random one
+            group_event = list(group_events.values())[0]
+            metric_tags["occurrence_type"] = group_event.group.issue_type.slug
+
         if not is_reprocessed and event.data.get("received"):
             metrics.timing(
                 "events.time-to-post-process",
                 time() - event.data["received"],
                 instance=event.data["platform"],
+                tags=metric_tags,
             )
 
 
@@ -729,14 +774,17 @@ def run_post_process_job(job: PostProcessJob):
 
     for pipeline_step in pipeline:
         try:
-            with metrics.timer(
-                "tasks.post_process.run_post_process_job.pipeline.duration",
-                tags={
-                    "pipeline": pipeline_step.__name__,
-                    "issue_category": issue_category_metric,
-                    "is_reprocessed": job["is_reprocessed"],
-                },
-            ), sentry_sdk.start_span(op=f"tasks.post_process_group.{pipeline_step.__name__}"):
+            with (
+                metrics.timer(
+                    "tasks.post_process.run_post_process_job.pipeline.duration",
+                    tags={
+                        "pipeline": pipeline_step.__name__,
+                        "issue_category": issue_category_metric,
+                        "is_reprocessed": job["is_reprocessed"],
+                    },
+                ),
+                sentry_sdk.start_span(op=f"tasks.post_process_group.{pipeline_step.__name__}"),
+            ):
                 pipeline_step(job)
         except Exception:
             metrics.incr(
@@ -1000,12 +1048,6 @@ def process_replay_link(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    if not features.has(
-        "organizations:session-replay-event-linking", job["event"].project.organization
-    ):
-        metrics.incr("post_process.process_replay_link.feature_not_enabled")
-        return
-
     metrics.incr("post_process.process_replay_link.id_sampled")
 
     group_event = job["event"]
@@ -1092,7 +1134,7 @@ def process_code_mappings(job: PostProcessJob) -> None:
 
         with metrics.timer("post_process.process_code_mappings.duration"):
             # Supported platforms
-            if event.data["platform"] not in SUPPORTED_LANGUAGES:
+            if event.data.get("platform") not in SUPPORTED_LANGUAGES:
                 return
 
             # To limit the overall number of tasks, only process one issue per project per hour. In
@@ -1111,13 +1153,15 @@ def process_code_mappings(job: PostProcessJob) -> None:
             next_time = timezone.now() + timedelta(hours=1)
 
             if features.has("organizations:derive-code-mappings", org):
+                extra: dict[str, Any] = {
+                    "organization.slug": org_slug,
+                    "project.slug": project.slug,
+                    "group_id": group_id,
+                    "next_time": next_time,
+                }
                 logger.info(
-                    "derive_code_mappings: Queuing code mapping derivation for project.slug=%s group_id=%s."
-                    " Future events in org_slug=%s will not have not have code mapping derivation until %s",
-                    project.slug,
-                    group_id,
-                    org_slug,
-                    next_time,
+                    "derive_code_mappings: Queuing code mapping derivation",
+                    extra=extra,
                 )
                 derive_code_mappings.delay(project.id, event.data)
 
@@ -1130,7 +1174,7 @@ def process_commits(job: PostProcessJob) -> None:
         return
 
     from sentry.models.commit import Commit
-    from sentry.tasks.commit_context import DEBOUNCE_CACHE_KEY, process_commit_context
+    from sentry.tasks.commit_context import process_commit_context
     from sentry.tasks.groupowner import DEBOUNCE_CACHE_KEY as SUSPECT_COMMITS_DEBOUNCE_CACHE_KEY
     from sentry.tasks.groupowner import process_suspect_commits
 
@@ -1172,22 +1216,10 @@ def process_commits(job: PostProcessJob) -> None:
                     # Cache the integrations check for 4 hours
                     cache.set(integration_cache_key, has_integrations, 14400)
 
-                if (
-                    features.has("organizations:commit-context", event.project.organization)
-                    and has_integrations
-                ):
-                    if (
-                        features.has(
-                            "organizations:suspect-commits-all-frames", event.project.organization
-                        )
-                        and not job["group_state"]["is_new"]
-                    ):
+                if has_integrations:
+                    if not job["group_state"]["is_new"]:
                         return
 
-                    cache_key = DEBOUNCE_CACHE_KEY(event.group_id)
-                    if cache.get(cache_key):
-                        metrics.incr("sentry.tasks.process_commit_context.debounce")
-                        return
                     process_commit_context.delay(
                         event_id=event.event_id,
                         event_platform=event.platform,
@@ -1222,7 +1254,18 @@ def handle_auto_assignment(job: PostProcessJob) -> None:
     event = job["event"]
     try:
         with metrics.timer("post_process.handle_auto_assignment.duration"):
-            ProjectOwnership.handle_auto_assignment(event.project.id, event)
+            ProjectOwnership.handle_auto_assignment(
+                project_id=event.project_id,
+                organization_id=event.project.organization_id,
+                event=event,
+                logging_extra={
+                    "event_id": event.event_id,
+                    "group_id": str(event.group_id),
+                    "project_id": str(event.project_id),
+                    "organization_id": event.project.organization_id,
+                    "source": "post_process",
+                },
+            )
     except Exception:
         logger.exception("Failed to set auto-assignment")
 
@@ -1366,16 +1409,25 @@ def should_postprocess_feedback(job: PostProcessJob) -> bool:
     from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
 
     event = job["event"]
+
+    if not hasattr(event, "occurrence") or event.occurrence is None:
+        return False
+
+    feedback_source = event.occurrence.evidence_data.get("source")
+
+    if feedback_source in FeedbackCreationSource.new_feedback_category_values():
+        return True
+
+    should_notify_on_old_feedbacks = job["event"].project.get_option(
+        "sentry:feedback_user_report_notifications"
+    )
+
     if (
-        hasattr(event, "occurrence")
-        and event.occurrence is not None
-        and event.occurrence.evidence_data.get("source")
-        in [
-            FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE.value,
-            FeedbackCreationSource.NEW_FEEDBACK_DJANGO_ENDPOINT.value,
-        ]
+        feedback_source in FeedbackCreationSource.old_feedback_category_values()
+        and should_notify_on_old_feedbacks
     ):
         return True
+
     return False
 
 

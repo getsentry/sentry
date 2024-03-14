@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from typing import Any
+from typing import Any, TypedDict
 
 import sentry_sdk
 from drf_spectacular.utils import extend_schema
@@ -7,13 +7,12 @@ from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
-from typing_extensions import TypedDict
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationAndStaffPermission, OrganizationEndpoint
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs.constants import RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
@@ -146,6 +145,7 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
             RateLimitCategory.ORGANIZATION: RateLimit(20, 1),
         }
     }
+    permission_classes = (OrganizationAndStaffPermission,)
 
     @extend_schema(
         operation_id="Retrieve Event Counts for an Organization (v2)",

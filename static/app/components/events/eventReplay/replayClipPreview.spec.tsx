@@ -1,3 +1,4 @@
+import {duration} from 'moment';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
@@ -34,11 +35,18 @@ const mockReplay = ReplayReader.factory({
       name: 'Chrome',
       version: '110.0.0',
     },
+    started_at: new Date('Sep 22, 2022 4:58:39 PM UTC'),
+    finished_at: new Date(mockEventTimestampMs + 5_000),
+    duration: duration(10, 'seconds'),
   }),
   errors: [],
   attachments: RRWebInitFrameEventsFixture({
     timestamp: new Date('Sep 22, 2022 4:58:39 PM UTC'),
   }),
+  clipWindow: {
+    startTimestampMs: mockEventTimestampMs - 5_000,
+    endTimestampMs: mockEventTimestampMs + 5_000,
+  },
 });
 
 mockUseReplayReader.mockImplementation(() => {
@@ -115,6 +123,10 @@ describe('ReplayClipPreview', () => {
     orgSlug: mockOrgSlug,
     replaySlug: mockReplaySlug,
     eventTimestampMs: mockEventTimestampMs,
+    clipOffsets: {
+      durationAfterMs: 5_000,
+      durationBeforeMs: 5_000,
+    },
   };
 
   it('Should render a placeholder when is fetching the replay data', () => {
@@ -165,12 +177,10 @@ describe('ReplayClipPreview', () => {
     // Should be two sliders, one for the scrubber and one for timeline
     const sliders = screen.getAllByRole('slider', {name: 'Seek slider'});
 
-    // Replay should start at 57000ms because event happened at 62000ms
-    expect(sliders[0]).toHaveValue('57000');
-    expect(sliders[0]).toHaveAttribute('min', '57000');
-
-    // End of range should be 5 seconds after at 67000ms
-    expect(sliders[0]).toHaveAttribute('max', '67000');
+    // Replay should be 10 seconds long and start at the beginning
+    expect(sliders[0]).toHaveValue('0');
+    expect(sliders[0]).toHaveAttribute('min', '0');
+    expect(sliders[0]).toHaveAttribute('max', '10000');
   });
 
   it('Should link to the full replay correctly', () => {
@@ -194,9 +204,6 @@ describe('ReplayClipPreview', () => {
 
     // Breadcrumbs sidebar should be open
     expect(screen.getByTestId('replay-details-breadcrumbs-tab')).toBeInTheDocument();
-
-    // Should filter out breadcrumbs that aren't part of the clip
-    expect(screen.getByText('No breadcrumbs recorded')).toBeInTheDocument();
 
     // Can close the breadcrumbs sidebar
     await userEvent.click(screen.getByRole('button', {name: 'Collapse Sidebar'}));

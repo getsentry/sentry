@@ -18,8 +18,8 @@ from sentry.utils.snuba import raw_query
 @region_silo_endpoint
 class GroupHashesEndpoint(GroupEndpoint):
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, group) -> Response:

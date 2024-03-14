@@ -20,6 +20,7 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.exceptions import APIException, ParseError
 from rest_framework.request import Request
 from sentry_sdk import Scope
+from urllib3.exceptions import MaxRetryError, ReadTimeoutError
 
 from sentry import options
 from sentry.auth.staff import is_active_staff
@@ -90,7 +91,7 @@ def default_start_end_dates(
 
 @overload
 def get_date_range_from_params(
-    params: dict[str, Any],
+    params: Mapping[str, Any],
     optional: Literal[False] = ...,
     default_stats_period: datetime.timedelta = ...,
 ) -> tuple[datetime.datetime, datetime.datetime]:
@@ -99,7 +100,7 @@ def get_date_range_from_params(
 
 @overload
 def get_date_range_from_params(
-    params: dict[str, Any],
+    params: Mapping[str, Any],
     optional: bool = ...,
     default_stats_period: datetime.timedelta = ...,
 ) -> tuple[None, None] | tuple[datetime.datetime, datetime.datetime]:
@@ -107,7 +108,7 @@ def get_date_range_from_params(
 
 
 def get_date_range_from_params(
-    params: dict[str, Any],
+    params: Mapping[str, Any],
     optional: bool = False,
     default_stats_period: datetime.timedelta = MAX_STATS_PERIOD,
 ) -> tuple[None, None] | tuple[datetime.datetime, datetime.datetime]:
@@ -133,7 +134,15 @@ def get_date_range_from_params(
     :return: A length 2 tuple containing start/end or raises an `InvalidParams`
     exception
     """
-    mutable_params = params.copy()
+    mutable_params = {
+        k: params[k]
+        for k in (
+            *("timeframe", "timeframeStart", "timeframeEnd"),
+            *("statsPeriod", "statsPeriodStart", "statsPeriodEnd"),
+            *("start", "end"),
+        )
+        if k in params
+    }
     timeframe = mutable_params.get("timeframe")
     timeframe_start = mutable_params.get("timeframeStart")
     timeframe_end = mutable_params.get("timeframeEnd")
@@ -412,6 +421,7 @@ def handle_query_errors() -> Generator[None, None, None]:
         raise ParseError(detail=message)
     except SnubaError as error:
         message = "Internal error. Please try again."
+        arg = error.args[0] if len(error.args) > 0 else None
         if isinstance(
             error,
             (
@@ -420,6 +430,9 @@ def handle_query_errors() -> Generator[None, None, None]:
                 QueryExecutionTimeMaximum,
                 QueryTooManySimultaneous,
             ),
+        ) or isinstance(
+            arg,
+            ReadTimeoutError,
         ):
             sentry_sdk.set_tag("query.error_reason", "Timeout")
             raise ParseError(detail=TIMEOUT_ERROR_MESSAGE)
@@ -439,6 +452,12 @@ def handle_query_errors() -> Generator[None, None, None]:
         ):
             sentry_sdk.capture_exception(error)
             message = "Internal error. Your query failed to run."
+        elif isinstance(
+            arg,
+            (MaxRetryError),
+        ):
+            sentry_sdk.capture_message(str(error), level="warning")
+            message = "Internal error. Your query failed to run. This may be temporary please try again later."
         else:
             sentry_sdk.capture_exception(error)
         raise APIException(detail=message)

@@ -7,6 +7,7 @@ import {
   getErrorHelpResource,
 } from 'sentry/utils/issueTypeConfig/errorConfig';
 import performanceConfig from 'sentry/utils/issueTypeConfig/performanceConfig';
+import replayConfig from 'sentry/utils/issueTypeConfig/replayConfig';
 import type {
   IssueCategoryConfigMapping,
   IssueTypeConfig,
@@ -37,6 +38,7 @@ const BASE_CONFIG: IssueTypeConfig = {
   mergedIssues: {enabled: false},
   regression: {enabled: false},
   replays: {enabled: false},
+  showFeedbackWidget: false,
   stats: {enabled: true},
   similarIssues: {enabled: false},
   tags: {enabled: true},
@@ -45,6 +47,7 @@ const BASE_CONFIG: IssueTypeConfig = {
   evidence: {title: t('Evidence')},
   resources: null,
   usesIssuePlatform: true,
+  traceTimeline: true,
 };
 
 const issueTypeConfig: Config = {
@@ -52,6 +55,7 @@ const issueTypeConfig: Config = {
   [IssueCategory.PERFORMANCE]: performanceConfig,
   [IssueCategory.PROFILE]: performanceConfig,
   [IssueCategory.CRON]: cronConfig,
+  [IssueCategory.REPLAY]: replayConfig,
 };
 
 /**

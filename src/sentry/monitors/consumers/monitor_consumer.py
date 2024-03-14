@@ -4,9 +4,8 @@ import logging
 import uuid
 from collections import defaultdict
 from collections.abc import Mapping
-from concurrent.futures import Executor, ThreadPoolExecutor, wait
+from concurrent.futures import ThreadPoolExecutor, wait
 from datetime import datetime, timedelta
-from functools import partial
 from typing import Literal
 
 import msgpack
@@ -270,7 +269,13 @@ def update_existing_check_in(
         return
 
     if updated_duration is None:
-        updated_duration = int((start_time - existing_check_in.date_added).total_seconds() * 1000)
+        # We use abs here because in some cases we might end up having checkins arrive
+        # slightly out of order due to race conditions in relay. In cases like this,
+        # we're happy to just assume that the duration is the absolute difference between
+        # the two dates.
+        updated_duration = abs(
+            int((start_time - existing_check_in.date_added).total_seconds() * 1000)
+        )
 
     if not valid_duration(updated_duration):
         metrics.incr(
@@ -713,7 +718,7 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
             # 04
             # Update monitor status
             if check_in.status == CheckInStatus.ERROR:
-                mark_failed(check_in, ts=start_time)
+                mark_failed(check_in, ts=start_time, received=item.ts)
             else:
                 mark_ok(check_in, ts=start_time)
 
@@ -747,6 +752,9 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
         logger.exception("Failed to process check-in")
 
 
+_checkin_worker = ThreadPoolExecutor()
+
+
 def process_checkin(item: CheckinItem):
     """
     Process an individual check-in
@@ -770,7 +778,7 @@ def process_checkin_group(items: list[CheckinItem]):
         process_checkin(item)
 
 
-def process_batch(worker: Executor, message: Message[ValuesBatch[KafkaPayload]]):
+def process_batch(message: Message[ValuesBatch[KafkaPayload]]):
     """
     Receives batches of check-in messages. This function will take the batch
     and group them together by monitor ID (ensuring order is preserved) and
@@ -818,7 +826,8 @@ def process_batch(worker: Executor, message: Message[ValuesBatch[KafkaPayload]])
     # Submit check-in groups for processing
     with sentry_sdk.start_transaction(op="process_batch", name="monitors.monitor_consumer"):
         futures = [
-            worker.submit(process_checkin_group, group) for group in checkin_mapping.values()
+            _checkin_worker.submit(process_checkin_group, group)
+            for group in checkin_mapping.values()
         ]
         wait(futures)
 
@@ -863,11 +872,6 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
     Does the consumer process unrelated check-ins in parallel?
     """
 
-    max_workers: int | None = None
-    """
-    Number of Executor workers to use when running in parallel
-    """
-
     max_batch_size = 500
     """
     How many messages will be batched at once when in parallel mode.
@@ -883,7 +887,6 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
         mode: Literal["parallel", "serial"] | None = None,
         max_batch_size: int | None = None,
         max_batch_time: int | None = None,
-        max_workers: int | None = None,
     ) -> None:
         if mode == "parallel":
             self.parallel = True
@@ -892,14 +895,10 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
             self.max_batch_size = max_batch_size
         if max_batch_time is not None:
             self.max_batch_time = max_batch_time
-        if max_workers is not None:
-            self.max_workers = max_workers
 
-    def create_parallel_worker(self, commit: Commit) -> ProcessingStrategy[KafkaPayload]:
-        worker = ThreadPoolExecutor(max_workers=self.max_workers)
-
+    def create_paralell_worker(self, commit: Commit) -> ProcessingStrategy[KafkaPayload]:
         batch_processor = RunTask(
-            function=partial(process_batch, worker=worker),
+            function=process_batch,
             next_step=CommitOffsets(commit),
         )
         return BatchStep(
@@ -920,6 +919,6 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
         if self.parallel:
-            return self.create_parallel_worker(commit)
+            return self.create_paralell_worker(commit)
         else:
             return self.create_synchronous_worker(commit)

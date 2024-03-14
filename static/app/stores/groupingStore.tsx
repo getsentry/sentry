@@ -47,7 +47,7 @@ type State = {
   unmergeState: Map<any, any>;
 };
 
-type ScoreMap = Record<string, number | null>;
+type ScoreMap = Record<string, number | null | string>;
 
 type ApiFingerprint = {
   id: string;
@@ -88,18 +88,20 @@ export type SimilarItem = {
   aggregate?: {
     exception: number;
     message: number;
+    shouldBeGrouped?: string;
   };
   score?: Record<string, number | null>;
   scoresByInterface?: {
     exception: Array<[string, number | null]>;
     message: Array<[string, any | null]>;
+    shouldBeGrouped?: Array<[string, string | null]>;
   };
 };
 
 type ResponseProcessors = {
   merged: (item: ApiFingerprint[]) => Fingerprint[];
   similar: (data: [Group, ScoreMap]) => {
-    aggregate: Record<string, number>;
+    aggregate: Record<string, number | string>;
     isBelowThreshold: boolean;
     issue: Group;
     score: ScoreMap;
@@ -328,8 +330,15 @@ const storeConfig: GroupingStoreDefinition = {
         return newItems;
       },
       similar: ([issue, scoreMap]) => {
+        // Check which similarity endpoint is being used
+        const hasSimilarityEmbeddingsFeature = requests[0]?.endpoint.includes(
+          'similar-issues-embeddings'
+        );
+
         // Hide items with a low scores
-        const isBelowThreshold = checkBelowThreshold(scoreMap);
+        const isBelowThreshold = hasSimilarityEmbeddingsFeature
+          ? false
+          : checkBelowThreshold(scoreMap);
 
         // List of scores indexed by interface (i.e., exception and message)
         // Note: for v2, the interface is always "similarity". When v2 is
@@ -357,8 +366,7 @@ const storeConfig: GroupingStoreDefinition = {
             const scores = allScores.filter(([, score]) => score !== null);
 
             const avg = scores.reduce((sum, [, score]) => sum + score, 0) / scores.length;
-
-            acc[interfaceName] = avg;
+            acc[interfaceName] = hasSimilarityEmbeddingsFeature ? scores[0][1] : avg;
             return acc;
           }, {});
 

@@ -25,9 +25,9 @@ from sentry.utils import snuba
 @region_silo_endpoint
 class GroupHashesSplitEndpoint(GroupEndpoint):
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, group) -> Response:

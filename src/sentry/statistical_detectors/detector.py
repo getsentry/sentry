@@ -566,9 +566,7 @@ class RegressionDetector(ABC):
             regression_groups = []
 
             for version, prev_date_regressed, regression in regression_chunk:
-                date_regressed = datetime.utcfromtimestamp(regression["breakpoint"]).replace(
-                    tzinfo=timezone.utc
-                )
+                date_regressed = datetime.fromtimestamp(regression["breakpoint"], timezone.utc)
 
                 # enforce a buffer window after the date regressed after which the issue
                 # cannot be changed to regressed again to avoid the issue state changing frequently

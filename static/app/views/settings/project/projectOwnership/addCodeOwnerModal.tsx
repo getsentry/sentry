@@ -131,7 +131,7 @@ class AddCodeOwnerModal extends DeprecatedAsyncComponent<Props, State> {
   };
 
   handleAddedFile(data: CodeOwner) {
-    this.props.onSave && this.props.onSave(data);
+    this.props.onSave?.(data);
     this.props.closeModal();
   }
 

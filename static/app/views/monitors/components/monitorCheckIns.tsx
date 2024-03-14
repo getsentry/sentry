@@ -136,7 +136,11 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
                   emptyCell
                 )}
                 {defined(checkIn.duration) ? (
-                  <Duration seconds={checkIn.duration / 1000} />
+                  <div>
+                    <Tooltip title={<Duration exact seconds={checkIn.duration / 1000} />}>
+                      <Duration seconds={checkIn.duration / 1000} />
+                    </Tooltip>
+                  </div>
                 ) : (
                   emptyCell
                 )}
@@ -184,19 +188,23 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
                 )}
                 {!hasMultiEnv ? null : <div>{checkIn.environment}</div>}
                 <div>
-                  <Tooltip
-                    disabled={!customTimezone}
-                    title={
-                      <DateTime
-                        date={checkIn.expectedTime}
-                        forcedTimezone={monitor.config.timezone ?? 'UTC'}
-                        timeZone
-                        seconds
-                      />
-                    }
-                  >
-                    <Timestamp date={checkIn.expectedTime} timeZone seconds />
-                  </Tooltip>
+                  {checkIn.expectedTime ? (
+                    <Tooltip
+                      disabled={!customTimezone}
+                      title={
+                        <DateTime
+                          date={checkIn.expectedTime}
+                          forcedTimezone={monitor.config.timezone ?? 'UTC'}
+                          timeZone
+                          seconds
+                        />
+                      }
+                    >
+                      <Timestamp date={checkIn.expectedTime} timeZone seconds />
+                    </Tooltip>
+                  ) : (
+                    emptyCell
+                  )}
                 </div>
               </Fragment>
             ))}

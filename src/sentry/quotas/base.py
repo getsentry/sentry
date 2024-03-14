@@ -22,6 +22,7 @@ class QuotaScope(IntEnum):
     ORGANIZATION = 1
     PROJECT = 2
     KEY = 3
+    GLOBAL = 4
 
     def api_name(self):
         return self.name.lower()
@@ -36,7 +37,9 @@ class AbuseQuota:
     # Quota categories.
     categories: list[DataCategory]
     # Quota Scope.
-    scope: Literal[QuotaScope.ORGANIZATION, QuotaScope.PROJECT]
+    scope: Literal[QuotaScope.ORGANIZATION, QuotaScope.PROJECT, QuotaScope.GLOBAL]
+    # The optional namespace that the quota belongs to.
+    namespace: str | None = None
     # Old org option name still used for compatibility reasons,
     # takes precedence over `option` and `compat_option_sentry`.
     compat_option_org: str | None = None
@@ -83,7 +86,16 @@ class QuotaConfig:
                         since unlimited quotas can never be exceeded.
     """
 
-    __slots__ = ["id", "categories", "scope", "scope_id", "limit", "window", "reason_code"]
+    __slots__ = [
+        "id",
+        "categories",
+        "scope",
+        "scope_id",
+        "limit",
+        "window",
+        "reason_code",
+        "namespace",
+    ]
 
     def __init__(
         self,
@@ -94,6 +106,7 @@ class QuotaConfig:
         limit: int | None = None,
         window=None,
         reason_code=None,
+        namespace=None,
     ):
         if limit is not None:
             assert reason_code, "reason code required for fallible quotas"
@@ -119,6 +132,7 @@ class QuotaConfig:
         self.limit = limit
         self.window = window
         self.reason_code = reason_code
+        self.namespace = namespace
 
     @property
     def should_track(self):
@@ -140,6 +154,7 @@ class QuotaConfig:
             "categories": categories,
             "limit": self.limit,
             "window": self.window,
+            "namespace": self.namespace,
             "reasonCode": self.reason_code,
         }
 
@@ -404,6 +419,40 @@ class Quota(Service):
                 categories=[DataCategory.METRIC_BUCKET],
                 scope=QuotaScope.ORGANIZATION,
             ),
+            AbuseQuota(
+                id="gam",
+                option="global-abuse-quota.metric-bucket-limit",
+                categories=[DataCategory.METRIC_BUCKET],
+                scope=QuotaScope.GLOBAL,
+            ),
+            AbuseQuota(
+                id="gams",
+                option="global-abuse-quota.sessions-metric-bucket-limit",
+                categories=[DataCategory.METRIC_BUCKET],
+                scope=QuotaScope.GLOBAL,
+                namespace="sessions",
+            ),
+            AbuseQuota(
+                id="gamt",
+                option="global-abuse-quota.transactions-metric-bucket-limit",
+                categories=[DataCategory.METRIC_BUCKET],
+                scope=QuotaScope.GLOBAL,
+                namespace="transactions",
+            ),
+            AbuseQuota(
+                id="gamp",
+                option="global-abuse-quota.spans-metric-bucket-limit",
+                categories=[DataCategory.METRIC_BUCKET],
+                scope=QuotaScope.GLOBAL,
+                namespace="spans",
+            ),
+            AbuseQuota(
+                id="gamc",
+                option="global-abuse-quota.custom-metric-bucket-limit",
+                categories=[DataCategory.METRIC_BUCKET],
+                scope=QuotaScope.GLOBAL,
+                namespace="custom",
+            ),
         ]
 
         # XXX: These reason codes are hardcoded in getsentry:
@@ -412,6 +461,7 @@ class Quota(Service):
         reason_codes = {
             QuotaScope.ORGANIZATION: "org_abuse_limit",
             QuotaScope.PROJECT: "project_abuse_limit",
+            QuotaScope.GLOBAL: "global_abuse_limit",
         }
 
         for quota in abuse_quotas:
@@ -455,6 +505,7 @@ class Quota(Service):
                     categories=quota.categories,
                     window=abuse_window,
                     reason_code=reason_codes[quota.scope],
+                    namespace=quota.namespace,
                 )
 
     def get_monitor_quota(self, project):
@@ -522,7 +573,7 @@ class Quota(Service):
     ) -> float | None:
         """
         Returns the blended sample rate for an org based on the package that they are currently on. Returns ``None``
-        if the the organization doesn't have dynamic sampling.
+        if the organization doesn't have dynamic sampling.
 
         The reasoning for having two params as `Optional` is because this method was first designed to work with
         `Project` but due to requirements change the `Organization` was needed and since we can get the `Organization`

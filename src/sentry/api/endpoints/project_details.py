@@ -19,6 +19,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
+from sentry.api.permissions import StaffPermissionMixin
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import DetailedProjectSerializer
 from sentry.api.serializers.rest_framework.list import EmptyListField
@@ -46,11 +47,6 @@ from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.notifications.utils import has_alert_integration
-from sentry.tasks.recap_servers import (
-    RECAP_SERVER_TOKEN_OPTION,
-    RECAP_SERVER_URL_OPTION,
-    poll_project_recap_server,
-)
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
@@ -124,8 +120,6 @@ class ProjectMemberSerializer(serializers.Serializer):
         "performanceIssueCreationRate",
         "performanceIssueCreationThroughPlatform",
         "performanceIssueSendToPlatform",
-        "recapServerUrl",
-        "recapServerToken",
     ]
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
@@ -208,8 +202,6 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     performanceIssueCreationRate = serializers.FloatField(required=False, min_value=0, max_value=1)
     performanceIssueCreationThroughPlatform = serializers.BooleanField(required=False)
     performanceIssueSendToPlatform = serializers.BooleanField(required=False)
-    recapServerUrl = serializers.URLField(required=False, allow_blank=True, allow_null=True)
-    recapServerToken = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
     # DO NOT ADD MORE TO OPTIONS
     # Each param should be a field in the serializer like above.
@@ -413,32 +405,6 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     def validate_safeFields(self, value):
         return validate_pii_selectors(value)
 
-    def validate_recapServerUrl(self, value):
-        from sentry import features
-
-        # Adding recapServerUrl is only allowed if recap server polling is enabled for given organization.
-        has_recap_server_enabled = features.has(
-            "organizations:recap-server", self.context["project"].organization
-        )
-
-        if not has_recap_server_enabled:
-            raise serializers.ValidationError("Project is not allowed to set recap server url")
-
-        return value
-
-    def validate_recapServerToken(self, value):
-        from sentry import features
-
-        # Adding recapServerUrl is only allowed if recap server polling is enabled for given organization.
-        has_recap_server_enabled = features.has(
-            "organizations:recap-server", self.context["project"].organization
-        )
-
-        if not has_recap_server_enabled:
-            raise serializers.ValidationError("Project is not allowed to set recap server token")
-
-        return value
-
 
 class RelaxedProjectPermission(ProjectPermission):
     scope_map = {
@@ -450,6 +416,10 @@ class RelaxedProjectPermission(ProjectPermission):
     }
 
 
+class RelaxedProjectAndStaffPermission(StaffPermissionMixin, RelaxedProjectPermission):
+    pass
+
+
 @extend_schema(tags=["Projects"])
 @region_silo_endpoint
 class ProjectDetailsEndpoint(ProjectEndpoint):
@@ -458,7 +428,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
-    permission_classes = (RelaxedProjectPermission,)
+    permission_classes = (RelaxedProjectAndStaffPermission,)
 
     def _get_unresolved_count(self, project):
         queryset = Group.objects.filter(status=GroupStatus.UNRESOLVED, project=project)
@@ -606,18 +576,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         elif result.get("isBookmarked") is False:
             ProjectBookmark.objects.filter(project_id=project.id, user_id=request.user.id).delete()
 
-        if result.get("recapServerUrl") is not None:
-            if result["recapServerUrl"] == "":
-                project.delete_option(RECAP_SERVER_URL_OPTION)
-            elif project.get_option(RECAP_SERVER_URL_OPTION) != result["recapServerUrl"]:
-                project.update_option(RECAP_SERVER_URL_OPTION, result["recapServerUrl"])
-                poll_project_recap_server.delay(project.id)
-        if result.get("recapServerToken") is not None:
-            if result["recapServerToken"] == "":
-                project.delete_option(RECAP_SERVER_TOKEN_OPTION)
-            elif project.get_option(RECAP_SERVER_TOKEN_OPTION) != result["recapServerToken"]:
-                project.update_option(RECAP_SERVER_TOKEN_OPTION, result["recapServerToken"])
-                poll_project_recap_server.delay(project.id)
         if result.get("digestsMinDelay"):
             project.update_option("digests:mail:minimum_delay", result["digestsMinDelay"])
         if result.get("digestsMaxDelay"):
@@ -806,6 +764,21 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if "feedback:branding" in options:
                 project.update_option(
                     "feedback:branding", "1" if options["feedback:branding"] else "0"
+                )
+            if "sentry:replay_rage_click_issues" in options:
+                project.update_option(
+                    "sentry:replay_rage_click_issues",
+                    bool(options["sentry:replay_rage_click_issues"]),
+                )
+            if "sentry:feedback_user_report_notifications" in options:
+                project.update_option(
+                    "sentry:feedback_user_report_notifications",
+                    bool(options["sentry:feedback_user_report_notifications"]),
+                )
+            if "sentry:feedback_ai_spam_detection" in options:
+                project.update_option(
+                    "sentry:feedback_ai_spam_detection",
+                    bool(options["sentry:feedback_ai_spam_detection"]),
                 )
             if "sentry:reprocessing_active" in options:
                 project.update_option(

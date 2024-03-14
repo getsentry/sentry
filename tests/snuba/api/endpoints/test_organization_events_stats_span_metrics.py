@@ -273,6 +273,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         assert data[1][1][0]["count"] == 4.0
 
 
+@region_silo_test
 class OrganizationEventsStatsSpansMetricsEndpointTestWithMetricLayer(
     OrganizationEventsStatsSpansMetricsEndpointTest
 ):

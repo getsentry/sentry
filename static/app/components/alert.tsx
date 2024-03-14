@@ -141,29 +141,28 @@ const alertStyles = ({
       ${showExpand && 'max-content'};
     gap: ${space(1)};
     margin: 0 0 ${space(2)};
+    color: ${alertColors.color};
     font-size: ${theme.fontSizeMedium};
     border-radius: ${theme.borderRadius};
     border: 1px solid ${alertColors.border};
-    background: ${
-      opaque
-        ? `linear-gradient(
+    background: ${opaque
+      ? `linear-gradient(
           ${alertColors.backgroundLight},
           ${alertColors.backgroundLight}),
           linear-gradient(${theme.background}, ${theme.background}
         )`
-        : `${alertColors.backgroundLight}`
-    };
+      : `${alertColors.backgroundLight}`};
 
     a:not([role='button']) {
-      color: ${theme.textColor};
-      text-decoration-color: ${theme.translucentBorder};
+      color: ${alertColors.color};
+      text-decoration-color: ${alertColors.border};
       text-decoration-style: solid;
       text-decoration-line: underline;
       text-decoration-thickness: 0.08em;
       text-underline-offset: 0.06em;
     }
     a:not([role='button']):hover {
-      text-decoration-color: ${theme.subText};
+      text-decoration-color: ${alertColors.color};
       text-decoration-style: solid;
     }
 
@@ -172,36 +171,20 @@ const alertStyles = ({
       margin: ${space(0.5)} 0 0;
     }
 
-    ${IconWrapper}, ${ExpandIconWrap} {
-      color: ${alertColors.iconColor};
-    }
+    ${hovered && `border-color: ${alertColors.borderHover};`}
 
-    ${
-      hovered &&
-      `
-      border-color: ${alertColors.borderHover};
-      ${IconWrapper}, ${IconChevron} {
-        color: ${alertColors.iconHoverColor};
-      }
-    `
-    }
-
-    ${
-      showExpand &&
-      `cursor: pointer;
+    ${showExpand &&
+    `cursor: pointer;
       ${TrailingItems} {
        cursor: auto;
       }
-    `
-    }
+    `}
 
-    ${
-      system &&
-      `
+    ${system &&
+    `
       border-width: 0 0 1px 0;
       border-radius: 0;
-    `
-    }
+    `}
   `;
 };
 

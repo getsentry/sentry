@@ -30,7 +30,7 @@ interface Props {
   headerInfo: ReactNode;
   inviteStatus: InviteStatus;
   invites: NormalizedInvite[];
-  member: Member;
+  member: Member | undefined;
   pendingInvites: InviteRow[];
   removeInviteRow: (index: number) => void;
   reset: () => void;
@@ -40,6 +40,7 @@ interface Props {
   setRole: (role: string, index: number) => void;
   setTeams: (teams: string[], index: number) => void;
   willInvite: boolean;
+  error?: string;
 }
 
 export default function InviteMembersModalView({
@@ -61,6 +62,7 @@ export default function InviteMembersModalView({
   setRole,
   setTeams,
   willInvite,
+  error,
 }: Props) {
   const disableInputs = sendingInvites || complete;
 
@@ -68,8 +70,15 @@ export default function InviteMembersModalView({
   const hasDuplicateEmails = inviteEmails.length !== new Set(inviteEmails).size;
   const isValidInvites = invites.length > 0 && !hasDuplicateEmails;
 
+  const errorAlert = error ? (
+    <Alert type="error" showIcon>
+      {error}
+    </Alert>
+  ) : null;
+
   return (
     <Fragment>
+      {errorAlert}
       <Heading>{t('Invite New Members')}</Heading>
       {willInvite ? (
         <Subtext>{t('Invite new members by email to join your organization.')}</Subtext>

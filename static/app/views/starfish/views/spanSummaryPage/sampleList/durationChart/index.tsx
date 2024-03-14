@@ -31,6 +31,7 @@ type Props = {
   groupId: string;
   transactionName: string;
   additionalFields?: string[];
+  additionalFilters?: Record<string, string>;
   highlightedSpanId?: string;
   onClickSample?: (sample: SpanSample) => void;
   onMouseLeaveSample?: () => void;
@@ -77,6 +78,7 @@ function DurationChart({
   release,
   query,
   platform,
+  additionalFilters,
 }: Props) {
   const theme = useTheme();
   const {setPageError} = usePageAlert();
@@ -104,14 +106,18 @@ function DurationChart({
     data: spanMetricsSeriesData,
     error: spanMetricsSeriesError,
   } = useSpanMetricsSeries({
-    filters,
+    filters: {...filters, ...additionalFilters},
     yAxis: [`avg(${SPAN_SELF_TIME})`],
+    enabled: Object.values({...filters, ...additionalFilters}).every(value =>
+      Boolean(value)
+    ),
     referrer: 'api.starfish.sidebar-span-metrics-chart',
   });
 
   const {data, error: spanMetricsError} = useSpanMetrics({
     filters,
     fields: [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
+    enabled: Object.values(filters).every(value => Boolean(value)),
     referrer: 'api.starfish.span-summary-panel-samples-table-avg',
   });
 

@@ -12,6 +12,7 @@ from sentry.api.bases import SentryAppsBaseEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import SentryAppSerializer
+from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import SentryAppStatus
 from sentry.models.integrations.sentry_app import SentryApp
@@ -32,13 +33,14 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
 
     def get(self, request: Request) -> Response:
         status = request.GET.get("status")
+        elevated_user = is_active_superuser(request) or is_active_staff(request)
 
         if status == "published":
             queryset = SentryApp.objects.filter(status=SentryAppStatus.PUBLISHED)
 
         elif status == "unpublished":
             queryset = SentryApp.objects.filter(status=SentryAppStatus.UNPUBLISHED)
-            if not is_active_superuser(request):
+            if not elevated_user:
                 queryset = queryset.filter(
                     owner_id__in=[
                         o.id
@@ -49,7 +51,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
                 )
         elif status == "internal":
             queryset = SentryApp.objects.filter(status=SentryAppStatus.INTERNAL)
-            if not is_active_superuser(request):
+            if not elevated_user:
                 queryset = queryset.filter(
                     owner_id__in=[
                         o.id
@@ -59,7 +61,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
                     ]
                 )
         else:
-            if is_active_superuser(request):
+            if elevated_user:
                 queryset = SentryApp.objects.all()
             else:
                 queryset = SentryApp.objects.filter(status=SentryAppStatus.PUBLISHED)
@@ -88,9 +90,9 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             "schema": request.json_body.get("schema", {}),
             "overview": request.json_body.get("overview"),
             "allowedOrigins": request.json_body.get("allowedOrigins", []),
-            "popularity": request.json_body.get("popularity")
-            if is_active_superuser(request)
-            else None,
+            "popularity": (
+                request.json_body.get("popularity") if is_active_superuser(request) else None
+            ),
         }
 
         if self._has_hook_events(request) and not features.has(
@@ -128,7 +130,8 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
                     overview=data["overview"],
                     allowed_origins=data["allowedOrigins"],
                     popularity=data["popularity"],
-                ).run(user=request.user, request=request)
+                ).run(user=request.user, request=request, skip_default_auth_token=True)
+                # We want to stop creating the default auth token for new apps and installations through the API
             except ValidationError as e:
                 # we generate and validate the slug here instead of the serializer since the slug never changes
                 return Response(e.detail, status=400)

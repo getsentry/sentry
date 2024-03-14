@@ -67,7 +67,7 @@ def save_issue_occurrence(
     return occurrence, group_info
 
 
-def process_occurrence_data(data: Mapping[str, Any]) -> None:
+def process_occurrence_data(data: dict[str, Any]) -> None:
     if "fingerprint" not in data:
         return
 
@@ -86,6 +86,7 @@ class IssueArgs(TypedDict):
     type: int
     data: OccurrenceMetadata
     first_release: Release | None
+    priority: int | None
 
 
 def _create_issue_kwargs(
@@ -104,6 +105,11 @@ def _create_issue_kwargs(
         "type": occurrence.type.type_id,
         "first_release": release,
         "data": materialize_metadata(occurrence, event),
+        "priority": (
+            occurrence.initial_issue_priority
+            if occurrence.initial_issue_priority is not None
+            else occurrence.type.default_priority
+        ),
     }
     kwargs["data"]["last_received"] = json.datetime_to_str(event.datetime)
     return kwargs
@@ -116,6 +122,7 @@ class OccurrenceMetadata(TypedDict):
     title: str
     location: str | None
     last_received: str
+    initial_priority: int | None
 
 
 def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> OccurrenceMetadata:
@@ -147,6 +154,7 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
         "metadata": event_metadata,
         "location": event.location,
         "last_received": json.datetime_to_str(event.datetime),
+        "initial_priority": occurrence.initial_issue_priority,
     }
 
 
@@ -257,7 +265,7 @@ def send_issue_occurrence_to_eventstream(
     group_event = event.for_group(group_info.group)
     group_event.occurrence = occurrence
 
-    eventstream.insert(
+    eventstream.backend.insert(
         event=group_event,
         is_new=group_info.is_new,
         is_regression=group_info.is_regression,

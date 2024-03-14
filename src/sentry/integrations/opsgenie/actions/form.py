@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, cast
 
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
-from sentry.integrations.opsgenie.client import OpsgenieClient
+from sentry.integrations.opsgenie.integration import OpsgenieIntegration
 from sentry.integrations.opsgenie.utils import get_team
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.integration.model import (
@@ -66,13 +66,11 @@ class OpsgenieNotifyTeamForm(forms.Form):
         if not team or not team_id:
             return INVALID_TEAM
 
-        integration_key = team["integration_key"]
-        client = OpsgenieClient(
-            integration=integration,
-            integration_key=integration_key,
-            org_integration_id=org_integration.id,
-            keyid=team_id,
+        install = cast(
+            "OpsgenieIntegration",
+            integration.get_installation(organization_id=org_integration.organization_id),
         )
+        client = install.get_keyring_client(keyid=team_id)
         # the integration should be of type "sentry"
         # there's no way to authenticate that a key is an integration key
         # without specifying the type... even though the type is arbitrary

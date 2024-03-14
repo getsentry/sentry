@@ -15,7 +15,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 
-from sentry import analytics, features, options
+from sentry import analytics, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
@@ -25,6 +25,7 @@ from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
@@ -529,9 +530,13 @@ class PullRequestEventWebhook(Webhook):
             )
 
             if action == "opened" and created:
-                if not features.has("organizations:integrations-open-pr-comment", organization):
+                if not OrganizationOption.objects.get_value(
+                    organization=organization,
+                    key="sentry:github_open_pr_bot",
+                    default=True,
+                ):
                     logger.info(
-                        "github.open_pr_comment.flag_missing",
+                        "github.open_pr_comment.option_missing",
                         extra={"organization_id": organization.id},
                     )
                     return
@@ -621,7 +626,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
             return HttpResponse(status=400)
 
         if not handler:
-            logger.error(
+            logger.info(
                 "github.webhook.missing-handler",
                 extra={"event_type": request.META["HTTP_X_GITHUB_EVENT"]},
             )

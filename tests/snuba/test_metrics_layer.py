@@ -11,6 +11,7 @@ from snuba_sdk import (
     Condition,
     Direction,
     Formula,
+    Limit,
     Metric,
     MetricsQuery,
     MetricsScope,
@@ -24,7 +25,7 @@ from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI
 from sentry.snuba.metrics.naming_layer.public import TransactionStatusTagValue, TransactionTagsKey
-from sentry.snuba.metrics_layer.query import run_query
+from sentry.snuba.metrics_layer.query import bulk_run_query, run_query
 from sentry.testutils.cases import BaseMetricsTestCase, TestCase
 
 pytestmark = pytest.mark.sentry_metrics
@@ -133,6 +134,63 @@ class MQLTest(TestCase, BaseMetricsTestCase):
                 ).isoformat()
             )
 
+    def test_basic_bulk_generic_metrics(self) -> None:
+        query = MetricsQuery(
+            query=None,
+            start=self.hour_ago,
+            end=self.now,
+            rollup=Rollup(interval=60, granularity=60),
+            scope=MetricsScope(
+                org_ids=[self.org_id],
+                project_ids=[self.project.id],
+                use_case_id=UseCaseID.TRANSACTIONS.value,
+            ),
+        )
+
+        query1 = query.set_query(
+            Timeseries(
+                metric=Metric(
+                    "transaction.duration",
+                    TransactionMRI.DURATION.value,
+                ),
+                aggregate="max",
+            )
+        )
+        query2 = query.set_query(
+            Timeseries(
+                metric=Metric(
+                    public_name=None,
+                    mri=TransactionMRI.USER.value,
+                ),
+                aggregate="uniq",
+            )
+        )
+        request1 = Request(
+            dataset="generic_metrics",
+            app_id="tests",
+            query=query1,
+            tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
+        )
+        request2 = Request(
+            dataset="generic_metrics",
+            app_id="tests",
+            query=query2,
+            tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
+        )
+        results = bulk_run_query([request1, request2])
+        assert len(results) == 2
+
+        result = results[0]  # Distribution
+        rows = result["data"]
+        for i in range(10):
+            assert rows[i]["aggregate_value"] == i
+            assert (
+                rows[i]["time"]
+                == (
+                    self.hour_ago.replace(second=0, microsecond=0) + timedelta(minutes=1 * i)
+                ).isoformat()
+            )
+
     def test_groupby_generic_metrics(self) -> None:
         query = MetricsQuery(
             query=Timeseries(
@@ -206,8 +264,10 @@ class MQLTest(TestCase, BaseMetricsTestCase):
         result = run_query(request)
         assert len(result["data"]) == 2
         rows = result["data"]
-        assert rows[0]["aggregate_value"] == [0]
-        assert rows[1]["aggregate_value"] == [6.0]
+        # TODO: Snuba is going to start returning 0 instead of [0] for single value aggregates
+        # For now handle both cases for backwards compatibility
+        assert rows[0]["aggregate_value"] in ([0], 0)
+        assert rows[1]["aggregate_value"] in ([6.0], 6)
 
     def test_complex_generic_metrics(self) -> None:
         query = MetricsQuery(
@@ -243,9 +303,11 @@ class MQLTest(TestCase, BaseMetricsTestCase):
         result = run_query(request)
         assert len(result["data"]) == 2
         rows = result["data"]
-        assert rows[0]["aggregate_value"] == [0]
+        # TODO: Snuba is going to start returning 0 instead of [0] for single value aggregates
+        # For now handle both cases for backwards compatibility
+        assert rows[0]["aggregate_value"] in ([0], 0)
         assert rows[0]["transaction"] == "transaction_0"
-        assert rows[1]["aggregate_value"] == [6.0]
+        assert rows[1]["aggregate_value"] in ([6.0], 6)
         assert rows[1]["transaction"] == "transaction_0"
 
     def test_totals(self) -> None:
@@ -677,7 +739,9 @@ class MQLTest(TestCase, BaseMetricsTestCase):
         assert len(result["data"]) == 10
         rows = result["data"]
         for i in range(10):
-            assert rows[i]["aggregate_value"] == [i]
+            # TODO: Snuba is going to start returning 0 instead of [0] for single value aggregates
+            # For now handle both cases for backwards compatibility
+            assert rows[i]["aggregate_value"] in ([i], i)
             assert (
                 rows[i]["time"]
                 == (
@@ -727,3 +791,84 @@ class MQLTest(TestCase, BaseMetricsTestCase):
                     self.hour_ago.replace(second=0, microsecond=0) + timedelta(minutes=1 * i)
                 ).isoformat()
             )
+
+    def test_resolve_all_mris(self) -> None:
+        for mri in [
+            "d:custom/sentry.event_manager.save@second",
+            "d:custom/sentry.event_manager.save_generic_events@second",
+        ]:
+            self.store_metric(
+                self.org_id,
+                self.project.id,
+                "distribution",
+                mri,
+                {
+                    "transaction": "transaction_1",
+                    "status_code": "200",
+                    "device": "BlackBerry",
+                },
+                self.ts(self.hour_ago + timedelta(minutes=5)),
+                1,
+                UseCaseID.CUSTOM,
+            )
+
+        query = MetricsQuery(
+            query=Formula(
+                function_name="plus",
+                parameters=[
+                    Timeseries(
+                        metric=Metric(
+                            mri="d:custom/sentry.event_manager.save@second",
+                        ),
+                        aggregate="avg",
+                    ),
+                    Timeseries(
+                        metric=Metric(
+                            mri="d:custom/sentry.event_manager.save_generic_events@second",
+                        ),
+                        aggregate="avg",
+                    ),
+                ],
+            ),
+            start=self.hour_ago,
+            end=self.now,
+            rollup=Rollup(interval=None, totals=True, orderby=None, granularity=10),
+            scope=MetricsScope(
+                org_ids=[self.org_id], project_ids=[self.project.id], use_case_id="custom"
+            ),
+            limit=Limit(20),
+            offset=None,
+        )
+
+        request = Request(
+            dataset="generic_metrics",
+            app_id="tests",
+            query=query,
+            tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
+        )
+        result = run_query(request)
+        assert len(result["data"]) == 1
+
+    def test_formulas_with_scalar_formulas(self) -> None:
+        query = MetricsQuery(
+            query=f"sum({TransactionMRI.DURATION.value}) + (24 * 3600)",
+            start=self.hour_ago,
+            end=self.now,
+            rollup=Rollup(interval=60, granularity=60),
+            scope=MetricsScope(
+                org_ids=[self.org_id],
+                project_ids=[self.project.id],
+                use_case_id=UseCaseID.TRANSACTIONS.value,
+            ),
+        )
+
+        request = Request(
+            dataset="generic_metrics",
+            app_id="tests",
+            query=query,
+            tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
+        )
+        result = run_query(request)
+        assert len(result["data"]) == 10
+        for row in result["data"]:
+            assert row["aggregate_value"] >= 86400

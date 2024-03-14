@@ -321,8 +321,9 @@ class UserAuthTokenAuthentication(StandardAuthentication):
 
         if not token:
             if SiloMode.get_current_mode() == SiloMode.REGION:
-                atr = token = ApiTokenReplica.objects.filter(token=token_str).last()
-                if not atr:
+                try:
+                    atr = token = ApiTokenReplica.objects.get(token=token_str)
+                except ApiTokenReplica.DoesNotExist:
                     raise AuthenticationFailed("Invalid token")
                 user = user_service.get_user(user_id=atr.user_id)
                 application_is_inactive = not atr.application_is_active
@@ -379,11 +380,12 @@ class OrgAuthTokenAuthentication(StandardAuthentication):
         token_hashed = hash_token(token_str)
 
         if SiloMode.get_current_mode() == SiloMode.REGION:
-            token = OrgAuthTokenReplica.objects.filter(
-                token_hashed=token_hashed,
-                date_deactivated__isnull=True,
-            ).last()
-            if token is None:
+            try:
+                token = OrgAuthTokenReplica.objects.get(
+                    token_hashed=token_hashed,
+                    date_deactivated__isnull=True,
+                )
+            except OrgAuthTokenReplica.DoesNotExist:
                 raise AuthenticationFailed("Invalid org token")
         else:
             try:

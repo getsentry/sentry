@@ -24,7 +24,9 @@ from sentry.models.group import Group
 from sentry.receivers import create_default_projects
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.types.group import PriorityLevel
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -88,6 +90,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
             result = _process_message(message)
         assert result is not None
         occurrence = result[0]
+        assert occurrence is not None
 
         fetched_occurrence = IssueOccurrence.fetch(occurrence.id, self.project.id)
         assert fetched_occurrence is not None
@@ -111,6 +114,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         assert result is not None
         project_id = event_data["event"]["project_id"]
         occurrence = result[0]
+        assert occurrence is not None
 
         event = eventstore.backend.get_event_by_id(project_id, event_data["event"]["event_id"])
         event = event.for_group(event.group)
@@ -154,6 +158,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
             result = _process_message(message)
         assert result is not None
         occurrence = result[0]
+        assert occurrence is not None
 
         fetched_occurrence = IssueOccurrence.fetch(occurrence.id, self.project.id)
         assert fetched_occurrence is not None
@@ -166,6 +171,31 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         assert fetched_event.get_event_type() == "generic"
 
         assert Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).exists()
+
+    @with_feature("projects:issue-priority")
+    def test_issue_platform_default_priority(self):
+        # test default priority of LOW
+        message = get_test_message(self.project.id)
+        with self.feature("organizations:profile-file-io-main-thread-ingest"):
+            result = _process_message(message)
+        assert result is not None
+        occurrence = result[0]
+        assert occurrence is not None
+        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).first()
+        assert group.priority == PriorityLevel.LOW
+
+    @with_feature("projects:issue-priority")
+    def test_issue_platform_override_priority(self):
+        # test explicitly set priority of HIGH
+        message = get_test_message(self.project.id)
+        message["initial_issue_priority"] = PriorityLevel.HIGH.value
+        with self.feature("organizations:profile-file-io-main-thread-ingest"):
+            result = _process_message(message)
+        assert result is not None
+        occurrence = result[0]
+        assert occurrence is not None
+        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).first()
+        assert group.priority == PriorityLevel.HIGH
 
 
 class IssueOccurrenceLookupEventIdTest(IssueOccurrenceTestBase):
@@ -199,6 +229,7 @@ class IssueOccurrenceLookupEventIdTest(IssueOccurrenceTestBase):
             processed = _process_message(message)
         assert processed is not None
         occurrence, _ = processed[0], processed[1]
+        assert occurrence is not None
 
         fetched_event = self.eventstore.get_event_by_id(self.project.id, occurrence.event_id)
         assert fetched_event is not None
@@ -406,3 +437,20 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
         message["culprit"] = "i did it"
         kwargs = _get_kwargs(message)
         assert kwargs["occurrence_data"]["culprit"] == "i did it"
+
+    def test_priority(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        kwargs = _get_kwargs(message)
+        assert kwargs["occurrence_data"]["initial_issue_priority"] == PriorityLevel.LOW
+
+    def test_priority_defaults_to_grouptype(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        message["initial_issue_priority"] = None
+        kwargs = _get_kwargs(message)
+        assert kwargs["occurrence_data"]["initial_issue_priority"] == PriorityLevel.LOW
+
+    def test_priority_overrides_defaults(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        message["initial_issue_priority"] = PriorityLevel.HIGH
+        kwargs = _get_kwargs(message)
+        assert kwargs["occurrence_data"]["initial_issue_priority"] == PriorityLevel.HIGH

@@ -2,12 +2,13 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 
 import pytest
+import rb
 
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.tsdb.base import ONE_DAY, ONE_HOUR, ONE_MINUTE, TSDBModel
 from sentry.tsdb.redis import CountMinScript, RedisTSDB, SuppressionWrapper
-from sentry.utils.dates import to_datetime, to_timestamp
+from sentry.utils.dates import to_datetime
 
 
 def test_suppression_wrapper():
@@ -45,10 +46,12 @@ class RedisTSDBTest(TestCase):
             cluster="tsdb",
         )
 
+        assert isinstance(self.db.cluster, rb.Cluster)
         # the point of this test is to demonstrate behaviour with a multi-host cluster
         assert len(self.db.cluster.hosts) == 3
 
     def tearDown(self):
+        assert isinstance(self.db.cluster, rb.Cluster)
         with self.db.cluster.all() as client:
             client.flushdb()
 
@@ -65,7 +68,7 @@ class RedisTSDBTest(TestCase):
         assert result == ("ts:1:1368889980:1", "1?e=1")
 
         result = self.db.make_counter_key(TSDBModel.project, 1, to_datetime(1368889980), "foo", 1)
-        assert result == ("ts:1:1368889980:46", self.db.get_model_key("foo") + "?e=1")
+        assert result == ("ts:1:1368889980:46", str(self.db.get_model_key("foo")) + "?e=1")
 
     def test_get_model_key(self):
         result = self.db.get_model_key(1)
@@ -78,11 +81,11 @@ class RedisTSDBTest(TestCase):
         assert result == "26f980fbe1e8a9d3a0123d2049f95f28"
 
     def test_simple(self):
-        now = datetime.utcnow().replace(tzinfo=timezone.utc) - timedelta(hours=4)
+        now = datetime.now(timezone.utc) - timedelta(hours=4)
         dts = [now + timedelta(hours=i) for i in range(4)]
 
         def timestamp(d):
-            t = int(to_timestamp(d))
+            t = int(d.timestamp())
             return t - (t % 3600)
 
         self.db.incr(TSDBModel.project, 1, dts[0])
@@ -132,14 +135,14 @@ class RedisTSDBTest(TestCase):
             ],
         }
 
-        results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1])
-        assert results == {1: 9, 2: 4}
+        sum_results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1])
+        assert sum_results == {1: 9, 2: 4}
 
-        results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1], environment_id=1)
-        assert results == {1: 4, 2: 3}
+        sum_results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1], environment_id=1)
+        assert sum_results == {1: 4, 2: 3}
 
-        results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1], environment_id=0)
-        assert results == {1: 0, 2: 0}
+        sum_results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1], environment_id=0)
+        assert sum_results == {1: 0, 2: 0}
 
         self.db.merge(TSDBModel.project, 1, [2], now, environment_ids=[0, 1, 2])
 
@@ -174,25 +177,25 @@ class RedisTSDBTest(TestCase):
             2: [(timestamp(dts[i]), 0) for i in range(0, 4)],
         }
 
-        results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1])
-        assert results == {1: 13, 2: 0}
+        sum_results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1])
+        assert sum_results == {1: 13, 2: 0}
 
         self.db.delete([TSDBModel.project], [1, 2], dts[0], dts[-1], environment_ids=[0, 1, 2])
 
-        results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1])
-        assert results == {1: 0, 2: 0}
+        sum_results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1])
+        assert sum_results == {1: 0, 2: 0}
 
-        results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1], environment_id=1)
-        assert results == {1: 0, 2: 0}
+        sum_results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1], environment_id=1)
+        assert sum_results == {1: 0, 2: 0}
 
     def test_count_distinct(self):
-        now = datetime.utcnow().replace(tzinfo=timezone.utc) - timedelta(hours=4)
+        now = datetime.now(timezone.utc) - timedelta(hours=4)
         dts = [now + timedelta(hours=i) for i in range(4)]
 
         model = TSDBModel.users_affected_by_group
 
         def timestamp(d):
-            t = int(to_timestamp(d))
+            t = int(d.timestamp())
             return t - (t % 3600)
 
         self.db.record(model, 1, ("foo", "bar"), dts[0])
@@ -324,7 +327,7 @@ class RedisTSDBTest(TestCase):
         assert results == {1: 0, 2: 0}
 
     def test_frequency_tables(self):
-        now = datetime.utcnow().replace(tzinfo=timezone.utc)
+        now = datetime.now(timezone.utc)
         model = TSDBModel.frequent_issues_by_project
 
         # None of the registered frequency tables actually support
@@ -417,7 +420,7 @@ class RedisTSDBTest(TestCase):
             environment_id=0,
         ) == {"organization:1": [], "organization:2": []}
 
-        timestamp = int(to_timestamp(now) // rollup) * rollup
+        timestamp = int(now.timestamp() // rollup) * rollup
 
         assert self.db.get_most_frequent_series(
             model,
@@ -591,6 +594,7 @@ class RedisTSDBTest(TestCase):
         ) == {"organization:1": [], "organization:2": []}
 
     def test_frequency_table_import_export_no_estimators(self):
+        assert isinstance(self.db.cluster, rb.Cluster)
         client = self.db.cluster.get_local_client_for_key("key")
 
         parameters = [64, 5, 10]
@@ -641,6 +645,7 @@ class RedisTSDBTest(TestCase):
         assert client.exists("1:e")
 
     def test_frequency_table_import_export_both_estimators(self):
+        assert isinstance(self.db.cluster, rb.Cluster)
         client = self.db.cluster.get_local_client_for_key("key")
 
         parameters = [64, 5, 5]
@@ -703,6 +708,7 @@ class RedisTSDBTest(TestCase):
         ]
 
     def test_frequency_table_import_export_source_estimators(self):
+        assert isinstance(self.db.cluster, rb.Cluster)
         client = self.db.cluster.get_local_client_for_key("key")
 
         parameters = [64, 5, 5]
@@ -761,6 +767,7 @@ class RedisTSDBTest(TestCase):
         ]
 
     def test_frequency_table_import_export_destination_estimators(self):
+        assert isinstance(self.db.cluster, rb.Cluster)
         client = self.db.cluster.get_local_client_for_key("key")
 
         parameters = [64, 5, 5]

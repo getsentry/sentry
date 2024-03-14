@@ -12,6 +12,7 @@ import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performanc
 import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
+import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webVitals/utils/useReplaceFidWithInpSetting';
 import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 
 import {GenericPerformanceWidget} from '../components/performanceWidget';
@@ -23,6 +24,7 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
   const {InteractiveTitle, organization} = props;
   const theme = useTheme();
   const shouldUseStoredScores = useStoredScoresSetting();
+  const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
   const {data: projectData, isLoading} = useProjectRawWebVitalsQuery();
   const {data: projectScores, isLoading: isProjectScoresLoading} =
     useProjectWebVitalsScoresQuery({enabled: shouldUseStoredScores});
@@ -40,12 +42,12 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
 
   const weights = projectScore
     ? {
-        cls: projectScore.clsWeight,
-        fid: projectScore.fidWeight,
-        fcp: projectScore.fcpWeight,
         lcp: projectScore.lcpWeight,
+        fcp: projectScore.fcpWeight,
+        inp: shouldReplaceFidWithInp ? projectScore.inpWeight : 0,
+        fid: shouldReplaceFidWithInp ? 0 : projectScore.fidWeight,
+        cls: projectScore.clsWeight,
         ttfb: projectScore.ttfbWeight,
-        inp: projectScore.inpWeight,
       }
     : undefined;
 

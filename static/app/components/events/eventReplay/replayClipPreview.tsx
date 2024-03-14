@@ -5,11 +5,15 @@ import styled from '@emotion/styled';
 import {Alert} from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
+import {StaticReplayPreview} from 'sentry/components/events/eventReplay/staticReplayPreview';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
-import Placeholder from 'sentry/components/placeholder';
 import {Flex} from 'sentry/components/profiling/flex';
 import MissingReplayAlert from 'sentry/components/replays/alerts/missingReplayAlert';
+import {StaticReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
 import {
   Provider as ReplayContextProvider,
   useReplayContext,
@@ -24,11 +28,14 @@ import TimeAndScrubberGrid from 'sentry/components/replays/timeAndScrubberGrid';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {IssueCategory} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import useFullscreen from 'sentry/utils/window/useFullscreen';
@@ -37,19 +44,22 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import BrowserOSIcons from 'sentry/views/replays/detail/browserOSIcons';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import {ReplayCell} from 'sentry/views/replays/replayTable/tableCell';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
   analyticsContext: string;
+  clipOffsets: {
+    durationAfterMs: number;
+    durationBeforeMs: number;
+  };
   eventTimestampMs: number;
   orgSlug: string;
   replaySlug: string;
   focusTab?: TabKey;
   fullReplayButtonProps?: Partial<ComponentProps<typeof LinkButton>>;
+  issueCategory?: IssueCategory;
 };
-
-const CLIP_DURATION_BEFORE_EVENT = 5_000;
-const CLIP_DURATION_AFTER_EVENT = 5_000;
 
 function getReplayAnalyticsStatus({
   fetchError,
@@ -76,14 +86,20 @@ function getReplayAnalyticsStatus({
 function ReplayPreviewPlayer({
   replayId,
   fullReplayButtonProps,
+  replayRecord,
+  issueCategory,
 }: {
   replayId: string;
+  replayRecord: ReplayRecord;
   fullReplayButtonProps?: Partial<ComponentProps<typeof LinkButton>>;
+  issueCategory?: IssueCategory;
 }) {
   const routes = useRoutes();
+  const location = useLocation();
   const organization = useOrganization();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const {currentTime} = useReplayContext();
+  const {replay, currentTime} = useReplayContext();
+  const eventView = EventView.fromLocation(location);
 
   const fullscreenRef = useRef(null);
   const {toggle: toggleFullscreen} = useFullscreen({
@@ -91,17 +107,30 @@ function ReplayPreviewPlayer({
   });
   const isFullscreen = useIsFullscreen();
 
+  const startOffsetMs = replay?.getStartOffsetMs() ?? 0;
+  const isRageClickIssue = issueCategory === IssueCategory.REPLAY;
+
   const fullReplayUrl = {
     pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replayId}/`),
     query: {
       referrer: getRouteStringFromRoutes(routes),
-      t_main: TabKey.ERRORS,
-      t: currentTime / 1000,
+      t_main: isRageClickIssue ? TabKey.BREADCRUMBS : TabKey.ERRORS,
+      t: (currentTime + startOffsetMs) / 1000,
+      f_b_type: isRageClickIssue ? 'rageOrDead' : undefined,
     },
   };
 
   return (
     <PlayerPanel>
+      {replayRecord && (
+        <ReplayCellNoPadding
+          key="session"
+          replay={replayRecord}
+          eventView={eventView}
+          organization={organization}
+          referrer="issue-details-replay-header"
+        />
+      )}
       <PreviewPlayerContainer ref={fullscreenRef} isSidebarOpen={isSidebarOpen}>
         <PlayerBreadcrumbContainer>
           <PlayerContextContainer>
@@ -142,44 +171,30 @@ function ReplayPreviewPlayer({
 
 function ReplayClipPreview({
   analyticsContext,
+  clipOffsets,
   eventTimestampMs,
   orgSlug,
   replaySlug,
   fullReplayButtonProps,
+  issueCategory,
 }: Props) {
+  const clipWindow = useMemo(
+    () => ({
+      startTimestampMs: eventTimestampMs - clipOffsets.durationBeforeMs,
+      endTimestampMs: eventTimestampMs + clipOffsets.durationAfterMs,
+    }),
+    [clipOffsets.durationBeforeMs, clipOffsets.durationAfterMs, eventTimestampMs]
+  );
+
   const {fetching, replay, replayRecord, fetchError, replayId} = useReplayReader({
     orgSlug,
     replaySlug,
+    clipWindow,
   });
-
-  const startTimestampMs = replayRecord?.started_at?.getTime() ?? 0;
-  const endTimestampMs = replayRecord?.finished_at?.getTime() ?? 0;
-  const eventTimeOffsetMs = Math.abs(eventTimestampMs - startTimestampMs);
-  const endTimeOffsetMs = Math.abs(endTimestampMs - startTimestampMs);
 
   useRouteAnalyticsParams({
     event_replay_status: getReplayAnalyticsStatus({fetchError, replayRecord}),
   });
-
-  const clipStartTimeOffsetMs = Math.max(
-    eventTimeOffsetMs - CLIP_DURATION_BEFORE_EVENT,
-    0
-  );
-  const clipDurationMs =
-    Math.min(eventTimeOffsetMs + CLIP_DURATION_AFTER_EVENT, endTimeOffsetMs) -
-    clipStartTimeOffsetMs;
-
-  const clipWindow = useMemo(
-    () => ({
-      startTimeOffsetMs: clipStartTimeOffsetMs,
-      durationMs: clipDurationMs,
-    }),
-    [clipDurationMs, clipStartTimeOffsetMs]
-  );
-  const offset = useMemo(
-    () => ({offsetMs: clipWindow.startTimeOffsetMs}),
-    [clipWindow.startTimeOffsetMs]
-  );
 
   if (replayRecord?.is_archived) {
     return (
@@ -198,21 +213,31 @@ function ReplayClipPreview({
 
   if (fetching || !replayRecord || !replay) {
     return (
-      <StyledPlaceholder
-        testId="replay-loading-placeholder"
-        height="400px"
-        width="100%"
+      <StyledNegativeSpaceContainer testId="replay-loading-placeholder">
+        <LoadingIndicator />
+      </StyledNegativeSpaceContainer>
+    );
+  }
+
+  if (replay.getDurationMs() <= 0) {
+    return (
+      <StaticReplayPreview
+        analyticsContext={analyticsContext}
+        isFetching={false}
+        replay={replay}
+        replayId={replayId}
+        fullReplayButtonProps={fullReplayButtonProps}
+        initialTimeOffsetMs={0}
       />
     );
   }
 
   return (
     <ReplayContextProvider
-      isFetching={fetching}
-      replay={replay}
-      initialTimeOffsetMs={offset}
-      clipWindow={clipWindow}
       analyticsContext={analyticsContext}
+      isFetching={fetching}
+      prefsStrategy={StaticReplayPreferences}
+      replay={replay}
     >
       <PlayerContainer data-test-id="player-container">
         {replay?.hasProcessingErrors() ? (
@@ -221,6 +246,8 @@ function ReplayClipPreview({
           <ReplayPreviewPlayer
             replayId={replayId}
             fullReplayButtonProps={fullReplayButtonProps}
+            replayRecord={replayRecord}
+            issueCategory={issueCategory}
           />
         )}
       </PlayerContainer>
@@ -261,7 +288,7 @@ const PreviewPlayerContainer = styled(FluidHeight)<{isSidebarOpen: boolean}>`
 
 const PlayerContainer = styled(FluidHeight)`
   position: relative;
-  max-height: 448px;
+  max-height: ${REPLAY_LOADING_HEIGHT + 16}px;
 `;
 
 const PlayerContextContainer = styled(FluidHeight)`
@@ -275,7 +302,8 @@ const StaticPanel = styled(FluidHeight)`
   border-radius: ${p => p.theme.borderRadius};
 `;
 
-const StyledPlaceholder = styled(Placeholder)`
+const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
+  height: ${REPLAY_LOADING_HEIGHT}px;
   margin-bottom: ${space(2)};
 `;
 
@@ -300,6 +328,10 @@ const ContextContainer = styled('div')`
   grid-template-columns: 1fr max-content max-content;
   align-items: center;
   gap: ${space(1)};
+`;
+
+const ReplayCellNoPadding = styled(ReplayCell)`
+  padding: 0 0 ${space(1)};
 `;
 
 export default ReplayClipPreview;

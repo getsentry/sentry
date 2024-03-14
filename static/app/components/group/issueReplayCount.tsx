@@ -5,21 +5,22 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconPlay} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Group} from 'sentry/types';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
-type Props = {
-  groupId: string;
-};
+interface Props {
+  group: Group;
+}
 
 /**
  * Show the count of how many replays are associated to an issue.
  */
-function IssueReplayCount({groupId}: Props) {
+function IssueReplayCount({group}: Props) {
   const organization = useOrganization();
   const {getReplayCountForIssue} = useReplayCountForIssues();
-  const count = getReplayCountForIssue(groupId);
+  const count = getReplayCountForIssue(group.id, group.issueCategory);
 
   if (count === undefined || count === 0) {
     return null;
@@ -37,7 +38,7 @@ function IssueReplayCount({groupId}: Props) {
     <Tooltip title={count > 50 ? titleOver50 : title50OrLess}>
       <ReplayCountLink
         to={normalizeUrl(
-          `/organizations/${organization.slug}/issues/${groupId}/replays/`
+          `/organizations/${organization.slug}/issues/${group.id}/replays/`
         )}
         aria-label="replay-count"
       >

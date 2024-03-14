@@ -1,8 +1,8 @@
 from collections import defaultdict
+from typing import TypedDict
 
 from django.db.models import Max, Q, prefetch_related_objects
 from rest_framework import serializers
-from typing_extensions import TypedDict
 
 from sentry.api.serializers import Serializer, register
 from sentry.constants import ObjectStatus
@@ -14,7 +14,7 @@ from sentry.models.rulesnooze import RuleSnooze
 from sentry.services.hybrid_cloud.user.service import user_service
 
 
-def _generate_rule_label(project, rule, data):
+def generate_rule_label(project, rule, data):
     from sentry.rules import rules
 
     rule_cls = rules.get(data["id"])
@@ -89,7 +89,10 @@ class RuleSerializer(Serializer):
         )
 
         users = {
-            u.id: u for u in user_service.get_many(filter=dict(user_ids=[ra.user_id for ra in ras]))
+            u.id: u
+            for u in user_service.get_many(
+                filter=dict(user_ids=[ra.user_id for ra in ras if ra.user_id is not None])
+            )
         }
 
         for rule_activity in ras:
@@ -199,7 +202,7 @@ class RuleSerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs) -> RuleSerializerResponse:
         environment = attrs["environment"]
         all_conditions = [
-            dict(list(o.items()) + [("name", _generate_rule_label(obj.project, obj, o))])
+            dict(list(o.items()) + [("name", generate_rule_label(obj.project, obj, o))])
             for o in obj.data.get("conditions", [])
         ]
 
@@ -209,7 +212,7 @@ class RuleSerializer(Serializer):
                 actions.append(
                     dict(
                         list(action.items())
-                        + [("name", _generate_rule_label(obj.project, obj, action))]
+                        + [("name", generate_rule_label(obj.project, obj, action))]
                     )
                 )
             except serializers.ValidationError:

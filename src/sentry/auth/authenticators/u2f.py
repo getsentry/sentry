@@ -1,4 +1,7 @@
+import logging
 from base64 import urlsafe_b64encode
+from datetime import datetime, timedelta, timezone
+from functools import cached_property
 from time import time
 from urllib.parse import urlparse
 
@@ -12,7 +15,6 @@ from fido2.ctap2 import AuthenticatorData, base
 from fido2.server import Fido2Server, U2FFido2Server
 from fido2.utils import websafe_decode
 from fido2.webauthn import PublicKeyCredentialRpEntity
-from rest_framework.request import Request
 from u2flib_server.model import DeviceRegistration
 
 from sentry import options
@@ -23,6 +25,11 @@ from sentry.utils.decorators import classproperty
 from sentry.utils.http import absolute_uri
 
 from .base import ActivationChallengeResult, AuthenticatorInterface
+
+logger = logging.getLogger("sentry.auth.u2f")
+
+# The maximum time the staff auth flow flag can stay alive on the request session
+STAFF_AUTH_FLOW_MAX_AGE = timedelta(minutes=2)
 
 
 def decode_credential_id(device):
@@ -40,6 +47,35 @@ def _get_url_prefix() -> str:
     return options.get("system.url-prefix")
 
 
+def _valid_staff_timestamp(request, limit: timedelta = STAFF_AUTH_FLOW_MAX_AGE) -> bool:
+    """
+    Returns whether or not the staff timestamp exists and is valid within the
+    timedelta. If the timestamp is invalid, it is removed from the session.
+    """
+    timestamp = request.session.get("staff_auth_flow")
+    if not timestamp:
+        return False
+
+    flag_datetime = datetime.fromtimestamp(timestamp, timezone.utc)
+    current_time = datetime.now(timezone.utc)
+    time_difference = current_time - flag_datetime
+    logger.info(
+        "Validating staff timestamp",
+        extra={
+            "user": request.user.id,
+            "current_time": current_time,
+            "flag_datetime": flag_datetime,
+            "time_difference": current_time - flag_datetime,
+            "limit": limit,
+            "boolean_check": time_difference > limit,
+        },
+    )
+    if time_difference > limit:
+        return False
+
+    return True
+
+
 class U2fInterface(AuthenticatorInterface):
     type = 3
     interface_id = "u2f"
@@ -53,11 +89,20 @@ class U2fInterface(AuthenticatorInterface):
         "Chrome)."
     )
     allow_multi_enrollment = True
-    # rp is a relying party for webauthn, this would be sentry.io for SAAS
-    # and the prefix for self-hosted / dev environments
-    rp_id = urlparse(_get_url_prefix()).hostname
-    rp = PublicKeyCredentialRpEntity(rp_id, "Sentry")
-    webauthn_registration_server = Fido2Server(rp)
+
+    @cached_property
+    def rp_id(self) -> str | None:
+        # rp is a relying party for webauthn, this would be sentry.io for SAAS
+        # and the prefix for self-hosted / dev environments
+        return urlparse(_get_url_prefix()).hostname
+
+    @cached_property
+    def rp(self) -> PublicKeyCredentialRpEntity:
+        return PublicKeyCredentialRpEntity(self.rp_id, "Sentry")
+
+    @cached_property
+    def webauthn_registration_server(self) -> Fido2Server:
+        return Fido2Server(self.rp)
 
     def __init__(self, authenticator=None, status=EnrollmentStatus.EXISTING):
         super().__init__(authenticator, status)
@@ -193,15 +238,70 @@ class U2fInterface(AuthenticatorInterface):
         challenge, state = self.webauthn_authentication_server.authenticate_begin(
             credentials=credentials
         )
-        request.session["webauthn_authentication_state"] = state
+        logger.info(
+            "U2F activate",
+            extra={
+                "user": request.user.id,
+                "staff_flag": (
+                    datetime.utcfromtimestamp(request.session["staff_auth_flow"])
+                    if "staff_auth_flow" in request.session
+                    else "missing"
+                ),
+            },
+        )
+        # It is an intentional decision to not check whether or not the staff
+        # timestamp is valid here if it exists. The reason for this is we prefer
+        # the failure to occur and present itself when tapping the U2F device,
+        # not immediately upon generating the challenge/response.
+        if request.session.get("staff_auth_flow"):
+            request.session["staff_webauthn_authentication_state"] = state
+        else:
+            request.session["webauthn_authentication_state"] = state
 
+        logger.info(
+            "U2F activate after setting state",
+            extra={
+                "user": request.user.id,
+                "staff_flag": (
+                    datetime.utcfromtimestamp(request.session["staff_auth_flow"])
+                    if "staff_auth_flow" in request.session
+                    else "missing"
+                ),
+                "has_state": "webauthn_authentication_state" in request.session,
+                "has_staff_state": "staff_webauthn_authentication_state" in request.session,
+            },
+        )
         return ActivationChallengeResult(challenge=cbor.encode(challenge["publicKey"]))
 
-    def validate_response(self, request: Request, challenge, response):
+    def validate_response(self, request: HttpRequest, challenge, response):
         try:
             credentials = self.credentials()
+            if hasattr(request, "user") and request.user.is_staff:
+                logger.info(
+                    "Validating U2F for staff",
+                    extra={
+                        "user": request.user.id,
+                        "staff_flag": (
+                            datetime.utcfromtimestamp(request.session["staff_auth_flow"])
+                            if "staff_auth_flow" in request.session
+                            else "missing"
+                        ),
+                        "has_state": "webauthn_authentication_state" in request.session,
+                        "has_staff_state": "staff_webauthn_authentication_state" in request.session,
+                    },
+                )
+            if _valid_staff_timestamp(request):
+                state = request.session["staff_webauthn_authentication_state"]
+            else:
+                state = request.session["webauthn_authentication_state"]
+            if request.session.get("staff_webauthn_authentication_state") and request.session.get(
+                "webauthn_authentication_state"
+            ):
+                logger.info(
+                    "Both staff and non-staff U2F states are set", extra={"user": request.user.id}
+                )
             self.webauthn_authentication_server.authenticate_complete(
-                state=request.session["webauthn_authentication_state"],
+                state=state,
                 credentials=credentials,
                 credential_id=websafe_decode(response["keyHandle"]),
                 client_data=ClientData(websafe_decode(response["clientData"])),
@@ -210,4 +310,9 @@ class U2fInterface(AuthenticatorInterface):
             )
         except (InvalidSignature, InvalidKey, StopIteration):
             return False
+        finally:
+            # Cleanup the U2F state from the session
+            request.session.pop("webauthn_authentication_state", None)
+            request.session.pop("staff_webauthn_authentication_state", None)
+            request.session.pop("staff_auth_flow", None)
         return True

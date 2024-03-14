@@ -7,6 +7,7 @@ import {
   GroupUnresolved,
   IssueCategory,
   IssueType,
+  PriorityLevel,
 } from 'sentry/types';
 
 export function GroupFixture(params: Partial<Group> = {}): Group {
@@ -37,6 +38,8 @@ export function GroupFixture(params: Partial<Group> = {}): Group {
     pluginActions: [],
     pluginContexts: [],
     pluginIssues: [],
+    priority: PriorityLevel.MEDIUM,
+    priorityLockedAt: null,
     project: ProjectFixture({
       platform: 'javascript',
     }),

@@ -298,7 +298,6 @@
   "/static/app/views/projectInstall/issueAlertOptions.spec.jsx": 2105,
   "/static/app/views/projects/projectContext.spec.jsx": 1251,
   "/static/app/components/onboarding/footer.spec.tsx": 1302,
-  "/static/app/views/settings/project/projectOwnership/ruleBuilder.spec.jsx": 3001,
   "/static/app/bootstrap/initializeSdk.spec.tsx": 2017,
   "/static/app/views/issueDetails/header.spec.tsx": 3641,
   "/static/app/components/modals/sudoModal.spec.jsx": 2435,

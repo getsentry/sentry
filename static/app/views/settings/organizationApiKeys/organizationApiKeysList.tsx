@@ -47,7 +47,7 @@ function OrganizationApiKeysList({
   onAddApiKey,
   onRemove,
 }: Props) {
-  const hasKeys = keys && keys.length;
+  const hasKeys = Boolean(keys?.length);
 
   const action = (
     <Button
@@ -92,37 +92,36 @@ function OrganizationApiKeysList({
         emptyMessage={t('No API keys for this organization')}
         headers={[t('Name'), t('Key'), t('Actions')]}
       >
-        {keys &&
-          keys.map(({id, key, label}) => {
-            const apiDetailsUrl = recreateRoute(`${id}/`, {
-              params: {...params, orgId: organization.slug},
-              routes,
-            });
+        {keys?.map(({id, key, label}) => {
+          const apiDetailsUrl = recreateRoute(`${id}/`, {
+            params: {...params, orgId: organization.slug},
+            routes,
+          });
 
-            return (
-              <Fragment key={key}>
-                <Cell>
-                  <Link to={apiDetailsUrl}>{label}</Link>
-                </Cell>
+          return (
+            <Fragment key={key}>
+              <Cell>
+                <Link to={apiDetailsUrl}>{label}</Link>
+              </Cell>
 
-                <TextCopyInput size="sm" monospace>
-                  {key}
-                </TextCopyInput>
+              <TextCopyInput size="sm" monospace>
+                {key}
+              </TextCopyInput>
 
-                <Cell>
-                  <LinkWithConfirmation
-                    aria-label={t('Remove API Key')}
-                    className="btn btn-default btn-sm"
-                    onConfirm={() => onRemove(id)}
-                    message={t('Are you sure you want to remove this API key?')}
-                    title={t('Remove API Key?')}
-                  >
-                    <IconDelete size="xs" css={{position: 'relative', top: '2px'}} />
-                  </LinkWithConfirmation>
-                </Cell>
-              </Fragment>
-            );
-          })}
+              <Cell>
+                <LinkWithConfirmation
+                  aria-label={t('Remove API Key')}
+                  className="btn btn-default btn-sm"
+                  onConfirm={() => onRemove(id)}
+                  message={t('Are you sure you want to remove this API key?')}
+                  title={t('Remove API Key?')}
+                >
+                  <IconDelete size="xs" css={{position: 'relative', top: '2px'}} />
+                </LinkWithConfirmation>
+              </Cell>
+            </Fragment>
+          );
+        })}
       </PanelTable>
     </div>
   );

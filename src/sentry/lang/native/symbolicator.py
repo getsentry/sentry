@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import dataclasses
 import logging
-import random
 import time
 import uuid
 from collections.abc import Callable
@@ -16,8 +15,8 @@ from requests.exceptions import RequestException
 
 from sentry import options
 from sentry.lang.native.sources import (
-    get_bundle_index_urls,
     get_internal_artifact_lookup_source,
+    get_internal_source,
     get_scraping_config,
     sources_for_symbolication,
 )
@@ -152,7 +151,10 @@ class Symbolicator:
         }
 
         res = self._process(
-            "process_minidump", "minidump", data=data, files={"upload_file_minidump": minidump}
+            "process_minidump",
+            "minidump",
+            data=data,
+            files={"upload_file_minidump": minidump},
         )
         return process_response(res)
 
@@ -178,7 +180,10 @@ class Symbolicator:
         scraping_config = get_scraping_config(self.project)
         json = {
             "sources": sources,
-            "options": {"dif_candidates": True, "apply_source_context": apply_source_context},
+            "options": {
+                "dif_candidates": True,
+                "apply_source_context": apply_source_context,
+            },
             "stacktraces": stacktraces,
             "modules": modules,
             "scraping": scraping_config,
@@ -202,21 +207,45 @@ class Symbolicator:
             "scraping": scraping_config,
         }
 
-        try:
-            debug_id_index, url_index = get_bundle_index_urls(self.project, release, dist)
-            if debug_id_index:
-                json["debug_id_index"] = debug_id_index
-            if url_index:
-                json["url_index"] = url_index
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-
         if release is not None:
             json["release"] = release
         if dist is not None:
             json["dist"] = dist
 
         return self._process("symbolicate_js_stacktraces", "symbolicate-js", json=json)
+
+    def process_jvm(
+        self,
+        exceptions,
+        stacktraces,
+        modules,
+        release_package,
+        apply_source_context=True,
+    ):
+        """
+        Process a JVM event by remapping its frames and exceptions with
+        ProGuard.
+
+        :param exceptions: The event's exceptions. These must contain a `type` and a `module`.
+        :param stacktraces: The event's stacktraces. Frames must contain a `function` and a `module`.
+        :param modules: ProGuard modules to use for deobfuscation. They must contain a `uuid`.
+        :param release_package: The name of the release's package. This is optional.
+        :param apply_source_context: Whether to add source context to frames.
+        """
+        source = get_internal_source(self.project)
+
+        json = {
+            "sources": [source],
+            "exceptions": exceptions,
+            "stacktraces": stacktraces,
+            "modules": modules,
+            "options": {"apply_source_context": apply_source_context},
+        }
+
+        if release_package is not None:
+            json["release_package"] = release_package
+
+        return self._process("symbolicate_jvm_stacktraces", "symbolicate-jvm", json=json)
 
 
 class TaskIdNotFound(Exception):
@@ -237,10 +266,6 @@ class SymbolicatorSession:
     - Otherwise, it retries failed requests.
     """
 
-    # Used as the `x-sentry-worker-id` HTTP header which is the routing key of
-    # the Symbolicator load balancer.
-    _worker_id = None
-
     def __init__(
         self,
         url=None,
@@ -253,7 +278,7 @@ class SymbolicatorSession:
         self.event_id = event_id
         self.timeout = timeout
         self.session = None
-        self.worker_id = self._get_worker_id()
+        self.reset_worker_id()
 
     def __enter__(self):
         self.open()
@@ -365,21 +390,5 @@ class SymbolicatorSession:
         with metrics.timer("events.symbolicator.query_task"):
             return self._request("get", task_url, params=params)
 
-    @classmethod
-    def _get_worker_id(cls) -> str:
-        if random.random() <= options.get("symbolicator.worker-id-randomization-sample-rate"):
-            return uuid.uuid4().hex
-
-        # as class attribute to keep it static for life of process
-        if cls._worker_id is None:
-            # %5000 to reduce cardinality of metrics tagging with worker id
-            cls._worker_id = str(uuid.uuid4().int % 5000)
-        return cls._worker_id
-
-    @classmethod
-    def _reset_worker_id(cls):
-        cls._worker_id = None
-
     def reset_worker_id(self):
-        self._reset_worker_id()
-        self.worker_id = self._get_worker_id()
+        self.worker_id = uuid.uuid4().hex

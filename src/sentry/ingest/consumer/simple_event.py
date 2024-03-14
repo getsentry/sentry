@@ -12,7 +12,9 @@ from .processors import IngestMessage, process_event
 logger = logging.getLogger(__name__)
 
 
-def process_simple_event_message(raw_message: Message[KafkaPayload]) -> None:
+def process_simple_event_message(
+    raw_message: Message[KafkaPayload], consumer_type: str, reprocess_only_stuck_events: bool
+) -> None:
     """
     Processes a single Kafka Message containing a "simple" Event payload.
 
@@ -28,6 +30,12 @@ def process_simple_event_message(raw_message: Message[KafkaPayload]) -> None:
     """
 
     raw_payload = raw_message.payload.value
+    metrics.distribution(
+        "ingest_consumer.payload_size",
+        len(raw_payload),
+        tags={"consumer": consumer_type},
+        unit="byte",
+    )
     message: IngestMessage = msgpack.unpackb(raw_payload, use_list=False)
 
     message_type = message["type"]
@@ -43,4 +51,4 @@ def process_simple_event_message(raw_message: Message[KafkaPayload]) -> None:
         logger.exception("Project for ingested event does not exist: %s", project_id)
         return
 
-    return process_event(message, project)
+    return process_event(message, project, reprocess_only_stuck_events)

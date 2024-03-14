@@ -18,11 +18,12 @@ from snuba_sdk import (
     Timeseries,
 )
 from snuba_sdk.formula import FormulaParameterGroup
+from snuba_sdk.mql.mql import parse_mql
 
 from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_weak, reverse_resolve_weak, string_to_use_case_id
-from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mapping import get_mri
 from sentry.snuba.metrics.naming_layer.mri import parse_mri
 from sentry.snuba.metrics.utils import to_intervals
@@ -48,19 +49,6 @@ AGGREGATE_ALIASES = {
     "count_unique": ("uniq", None),
 }
 
-RELEASE_HEALTH_ENTITIES = {
-    "c": EntityKey.MetricsCounters,
-    "d": EntityKey.MetricsDistributions,
-    "s": EntityKey.MetricsSets,
-}
-
-GENERIC_ENTITIES = {
-    "c": EntityKey.GenericMetricsCounters,
-    "d": EntityKey.GenericMetricsDistributions,
-    "s": EntityKey.GenericMetricsSets,
-    "g": EntityKey.GenericMetricsGauges,
-}
-
 
 class ReverseMappings:
     """
@@ -77,26 +65,82 @@ class ReverseMappings:
         self.reverse_mappings: dict[int, str] = dict()
 
 
+def bulk_run_query(requests: list[Request]) -> list[Mapping[str, Any]]:
+    """
+    Entrypoint for executing a list of metrics queries in Snuba.
+
+    This function is used to execute multiple metrics queries in a single request.
+    """
+    if not requests:
+        return []
+
+    queries = []
+    for request in requests:
+        request, start, end = _setup_metrics_query(request)
+        queries.append([request, start, end])
+
+    logging_tags = {"referrer": request.tenant_ids["referrer"] or "unknown", "lang": "mql"}
+
+    for q in queries:
+        q[0], reverse_mappings, mappings = _resolve_metrics_query(q[0], logging_tags)
+        q.extend([reverse_mappings, mappings])
+
+    try:
+        snuba_results = bulk_snuba_queries(
+            [q[0] for q in queries],
+            queries[0][0].tenant_ids["referrer"],
+            use_cache=True,
+        )
+    except Exception:
+        metrics.incr(
+            "metrics_layer.query",
+            tags={**logging_tags, "status": "query_error"},
+        )
+        raise
+
+    for idx, snuba_result in enumerate(snuba_results):
+        request, start, end, reverse_mappings, mappings = queries[idx]
+        metrics_query = request.query
+
+        snuba_result = convert_snuba_result(
+            snuba_result,
+            reverse_mappings,
+            request.dataset,
+            metrics_query.scope.use_case_id,
+            metrics_query.scope.org_ids[0],
+        )
+
+        # If we normalized the start/end, return those values in the response so the caller is aware
+        results = {
+            **snuba_result,
+            "modified_start": start,
+            "modified_end": end,
+            "indexer_mappings": mappings,
+        }
+
+        snuba_results[idx] = results
+
+    metrics.incr(
+        "metrics_layer.query",
+        tags={**logging_tags, "status": "success"},
+    )
+    return snuba_results
+
+
 def run_query(request: Request) -> Mapping[str, Any]:
     """
     Entrypoint for executing a metrics query in Snuba.
-
-    First iteration:
-    The purpose of this function is to eventually replace datasource.py::get_series().
-    As a first iteration, this function will only support single timeseries metric queries.
-    This means that for now, other queries such as total, formula, or meta queries
-    will not be supported. Additionally, the first iteration will only support
-    querying raw metrics (no derived). This means that each call to this function will only
-    resolve into a single request (and single entity) to the Snuba API.
     """
+    return bulk_run_query([request])[0]
+
+
+def _setup_metrics_query(request: Request) -> tuple[Request, datetime, datetime]:
     metrics_query = request.query
     assert isinstance(metrics_query, MetricsQuery)
 
-    # Currently we don't support nested Formula queries. Check to make sure that is what is being passed in.
-    # TODO: This should be removed once we fully support Formulas.
-    if isinstance(metrics_query.query, Formula):
-        if any(isinstance(p, Formula) for p in metrics_query.query.parameters):
-            raise InvalidParams("Nested formulas are not supported")
+    # We allow users to pass in a string instead of a Formula/Timeseries object. Handle that case here.
+    if isinstance(metrics_query.query, str):
+        metrics_query = metrics_query.set_query(parse_mql(metrics_query.query))
 
     assert len(metrics_query.scope.org_ids) == 1  # Initially only allow 1 org id
     organization_id = metrics_query.scope.org_ids[0]
@@ -108,7 +152,7 @@ def run_query(request: Request) -> Mapping[str, Any]:
     start = metrics_query.start
     end = metrics_query.end
     if metrics_query.rollup.interval:
-        start, end, _num_intervals = to_intervals(
+        start, end, _ = to_intervals(
             metrics_query.start, metrics_query.end, metrics_query.rollup.interval
         )
         metrics_query = metrics_query.set_start(start).set_end(end)
@@ -121,7 +165,7 @@ def run_query(request: Request) -> Mapping[str, Any]:
         )
     request.query = metrics_query
 
-    return mql_query(request, start, end)
+    return request, start, end
 
 
 def _resolve_aggregate_aliases(exp: Timeseries | Formula) -> MetricsQuery:
@@ -182,9 +226,10 @@ def _resolve_granularity(start: datetime, end: datetime, interval: int | None) -
     return min(found_granularities)
 
 
-def mql_query(request: Request, start: datetime, end: datetime) -> Mapping[str, Any]:
+def _resolve_metrics_query(
+    request: Request, logging_tags: dict[str, str]
+) -> tuple[Request, ReverseMappings, dict[str, str | int]]:
     metrics_query = request.query
-    logging_tags = {"referrer": request.tenant_ids["referrer"] or "unknown", "lang": "mql"}
 
     try:
         # There are two kinds of resolving: lookup up in the indexer, and resolving things like
@@ -208,39 +253,7 @@ def mql_query(request: Request, start: datetime, end: datetime) -> Mapping[str, 
         )
         raise
 
-    try:
-        snuba_result = bulk_snuba_queries(
-            [request],
-            request.tenant_ids["referrer"],
-            use_cache=True,
-        )[0]
-    except Exception:
-        metrics.incr(
-            "metrics_layer.query",
-            tags={**logging_tags, "status": "query_error"},
-        )
-        raise
-
-    snuba_result = convert_snuba_result(
-        snuba_result,
-        reverse_mappings,
-        request.dataset,
-        metrics_query.scope.use_case_id,
-        metrics_query.scope.org_ids[0],
-    )
-
-    # If we normalized the start/end, return those values in the response so the caller is aware
-    results = {
-        **snuba_result,
-        "modified_start": start,
-        "modified_end": end,
-        "indexer_mappings": mappings,
-    }
-    metrics.incr(
-        "metrics_layer.query",
-        tags={**logging_tags, "status": "success"},
-    )
-    return results
+    return request, reverse_mappings, mappings
 
 
 def _resolve_query_metadata(
@@ -257,7 +270,14 @@ def _resolve_query_metadata(
     assert metrics_query.query is not None
 
     org_id = metrics_query.scope.org_ids[0]
-    use_case_id_str = _resolve_use_case_id_str(metrics_query.query)
+    use_case_ids = _resolve_use_case_ids(metrics_query.query)
+
+    if not use_case_ids:
+        raise InvalidParams("No use case found in formula parameters")
+    if len(use_case_ids) > 1:
+        raise InvalidParams("Formula parameters must all be from the same use case")
+    use_case_id_str = use_case_ids.pop()
+
     if metrics_query.scope.use_case_id is None:
         metrics_query = metrics_query.set_scope(
             metrics_query.scope.set_use_case_id(use_case_id_str)
@@ -292,7 +312,7 @@ def _resolve_formula_metadata(
             formula_mappings.update(mappings)
 
     formula = formula.set_parameters(parameters)
-    return formula, mappings
+    return formula, formula_mappings
 
 
 def _resolve_timeseries_metadata(
@@ -319,15 +339,11 @@ def _resolve_timeseries_metadata(
     else:
         mappings[metric.mri] = metric.id
 
-    if not metric.entity:
-        entity = _resolve_metrics_entity(metric.mri)  # This should eventually be done in Snuba
-        metric = metric.set_entity(entity.value)
-
     series = series.set_metric(metric)
     return series, mappings
 
 
-def _resolve_use_case_id_str(exp: Formula | Timeseries) -> str:
+def _resolve_use_case_ids(exp: Formula | Timeseries) -> set[str]:
     def fetch_namespace(metric: Metric) -> str:
         if metric.mri is None:
             mri = get_mri(metric.public_name)
@@ -340,31 +356,15 @@ def _resolve_use_case_id_str(exp: Formula | Timeseries) -> str:
         return parsed_mri.namespace
 
     if isinstance(exp, Timeseries):
-        return fetch_namespace(exp.metric)
+        return {fetch_namespace(exp.metric)}
 
     assert isinstance(exp, Formula), exp
     namespaces = set()
     for p in exp.parameters:
         if isinstance(p, (Formula, Timeseries)):
-            namespaces.add(_resolve_use_case_id_str(p))
+            namespaces |= _resolve_use_case_ids(p)
 
-    if not namespaces:
-        raise InvalidParams("No use case found in formula parameters")
-    if len(namespaces) > 1:
-        raise InvalidParams("Formula parameters must all be from the same use case")
-
-    return namespaces.pop()
-
-
-def _resolve_metrics_entity(mri: str) -> EntityKey:
-    parsed_mri = parse_mri(mri)
-    if parsed_mri is None:
-        raise InvalidParams(f"'{mri}' is not a valid MRI")
-
-    if parsed_mri.namespace == "sessions":
-        return RELEASE_HEALTH_ENTITIES[parsed_mri.entity]
-
-    return GENERIC_ENTITIES[parsed_mri.entity]
+    return namespaces
 
 
 def _lookup_indexer_resolve(

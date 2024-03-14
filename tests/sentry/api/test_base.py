@@ -7,7 +7,6 @@ from pytest import raises
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from sentry_sdk import Scope
-from sentry_sdk.utils import exc_info_from_error
 
 from sentry.api.base import Endpoint, EndpointSiloLimit
 from sentry.api.exceptions import SuperuserRequired
@@ -350,28 +349,26 @@ class EndpointHandleExceptionTest(APITestCase):
                 scope_arg=scope_arg,
             )
 
-            with mock.patch("sys.exc_info", return_value=exc_info_from_error(handler_error)):
-                with mock.patch("sys.stderr.write") as mock_stderr_write:
-                    response = mock_endpoint(self.make_request(method="GET"))
+            with mock.patch("sys.stderr.write") as mock_stderr_write:
+                response = mock_endpoint(self.make_request(method="GET"))
 
-                    assert response.status_code == 500
-                    assert response.data == {
-                        "detail": "Internal Error",
-                        "errorId": "1231201211212012",
-                    }
-                    assert response.exception is True
+                assert response.status_code == 500
+                assert response.data == {
+                    "detail": "Internal Error",
+                    "errorId": "1231201211212012",
+                }
+                assert response.exception is True
 
-                    mock_stderr_write.assert_called_with("Exception: nope\n")
+                (((s,), _),) = mock_stderr_write.call_args_list
+                assert s.splitlines()[-1] == "Exception: nope"
 
-                    capture_exception_handler_context_arg = mock_capture_exception.call_args.args[0]
-                    capture_exception_scope_kwarg = mock_capture_exception.call_args.kwargs.get(
-                        "scope"
-                    )
+                capture_exception_handler_context_arg = mock_capture_exception.call_args.args[0]
+                capture_exception_scope_kwarg = mock_capture_exception.call_args.kwargs.get("scope")
 
-                    assert capture_exception_handler_context_arg == handler_error
-                    assert isinstance(capture_exception_scope_kwarg, Scope)
-                    assert capture_exception_scope_kwarg._contexts == expected_scope_contexts
-                    assert capture_exception_scope_kwarg._tags == expected_scope_tags
+                assert capture_exception_handler_context_arg == handler_error
+                assert isinstance(capture_exception_scope_kwarg, Scope)
+                assert capture_exception_scope_kwarg._contexts == expected_scope_contexts
+                assert capture_exception_scope_kwarg._tags == expected_scope_tags
 
 
 class CursorGenerationTest(APITestCase):

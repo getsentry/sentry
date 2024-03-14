@@ -1,7 +1,6 @@
 import React, {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import pickBy from 'lodash/pickBy';
 
 import Alert from 'sentry/components/alert';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -21,11 +20,12 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import {DurationChart} from 'sentry/views/performance/database/durationChart';
-import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 import {NoDataMessage} from 'sentry/views/performance/database/noDataMessage';
 import {isAValidSort, QueriesTable} from 'sentry/views/performance/database/queriesTable';
 import {ThroughputChart} from 'sentry/views/performance/database/throughputChart';
 import {useSelectedDurationAggregate} from 'sentry/views/performance/database/useSelectedDurationAggregate';
+import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
+import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import Onboarding from 'sentry/views/performance/onboarding';
 import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
@@ -80,7 +80,7 @@ export function DatabaseLandingPage() {
   const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
 
   const queryListResponse = useSpanMetrics({
-    filters: pickBy(tableFilters, value => value !== undefined),
+    filters: tableFilters,
     fields: [
       'project.id',
       'span.group',
@@ -96,15 +96,21 @@ export function DatabaseLandingPage() {
     referrer: 'api.starfish.use-span-list',
   });
 
-  const {isLoading: isThroughputDataLoading, data: throughputData} = useSpanMetricsSeries(
-    {
-      filters: chartFilters,
-      yAxis: ['spm()'],
-      referrer: 'api.starfish.span-landing-page-metrics-chart',
-    }
-  );
+  const {
+    isLoading: isThroughputDataLoading,
+    data: throughputData,
+    error: throughputError,
+  } = useSpanMetricsSeries({
+    filters: chartFilters,
+    yAxis: ['spm()'],
+    referrer: 'api.starfish.span-landing-page-metrics-chart',
+  });
 
-  const {isLoading: isDurationDataLoading, data: durationData} = useSpanMetricsSeries({
+  const {
+    isLoading: isDurationDataLoading,
+    data: durationData,
+    error: durationError,
+  } = useSpanMetricsSeries({
     filters: chartFilters,
     yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
     referrer: 'api.starfish.span-landing-page-metrics-chart',
@@ -145,61 +151,75 @@ export function DatabaseLandingPage() {
 
       <Layout.Body>
         <Layout.Main fullWidth>
-          {!onboardingProject && !isCriticalDataLoading && (
-            <NoDataMessage
-              Wrapper={AlertBanner}
-              isDataAvailable={isAnyCriticalDataAvailable}
-            />
-          )}
-
-          <FloatingFeedbackWidget />
-
-          <PaddedContainer>
-            <PageFilterBar condensed>
-              <ProjectPageFilter />
-              <EnvironmentPageFilter />
-              <DatePageFilter />
-            </PageFilterBar>
-          </PaddedContainer>
-
-          {onboardingProject && (
-            <Onboarding organization={organization} project={onboardingProject} />
-          )}
-          {!onboardingProject && (
-            <Fragment>
-              <ChartContainer>
-                <ThroughputChart
-                  series={throughputData['spm()']}
-                  isLoading={isThroughputDataLoading}
+          <ModuleLayout.Layout>
+            {!onboardingProject && !isCriticalDataLoading && (
+              <ModuleLayout.Full>
+                <NoDataMessage
+                  Wrapper={AlertBanner}
+                  isDataAvailable={isAnyCriticalDataAvailable}
                 />
+              </ModuleLayout.Full>
+            )}
 
-                <DurationChart
-                  series={durationData[`${selectedAggregate}(span.self_time)`]}
-                  isLoading={isDurationDataLoading}
-                />
-              </ChartContainer>
+            <FloatingFeedbackWidget />
 
-              <FilterOptionsContainer>
-                <SelectorContainer>
-                  <ActionSelector moduleName={moduleName} value={spanAction ?? ''} />
-                </SelectorContainer>
+            <ModuleLayout.Full>
+              <PageFilterBar condensed>
+                <ProjectPageFilter />
+                <EnvironmentPageFilter />
+                <DatePageFilter />
+              </PageFilterBar>
+            </ModuleLayout.Full>
 
-                <SelectorContainer>
-                  <DomainSelector moduleName={moduleName} value={spanDomain ?? ''} />
-                </SelectorContainer>
-              </FilterOptionsContainer>
+            {onboardingProject && (
+              <ModuleLayout.Full>
+                <Onboarding organization={organization} project={onboardingProject} />
+              </ModuleLayout.Full>
+            )}
+            {!onboardingProject && (
+              <Fragment>
+                <ModuleLayout.Half>
+                  <ThroughputChart
+                    series={throughputData['spm()']}
+                    isLoading={isThroughputDataLoading}
+                    error={throughputError}
+                  />
+                </ModuleLayout.Half>
 
-              <SearchBarContainer>
-                <SearchBar
-                  query={spanDescription}
-                  placeholder={t('Search for more Queries')}
-                  onSearch={handleSearch}
-                />
-              </SearchBarContainer>
+                <ModuleLayout.Half>
+                  <DurationChart
+                    series={durationData[`${selectedAggregate}(span.self_time)`]}
+                    isLoading={isDurationDataLoading}
+                    error={durationError}
+                  />
+                </ModuleLayout.Half>
 
-              <QueriesTable response={queryListResponse} sort={sort} />
-            </Fragment>
-          )}
+                <ModuleLayout.Full>
+                  <FilterOptionsContainer>
+                    <SelectorContainer>
+                      <ActionSelector moduleName={moduleName} value={spanAction ?? ''} />
+                    </SelectorContainer>
+
+                    <SelectorContainer>
+                      <DomainSelector moduleName={moduleName} value={spanDomain ?? ''} />
+                    </SelectorContainer>
+                  </FilterOptionsContainer>
+                </ModuleLayout.Full>
+
+                <ModuleLayout.Full>
+                  <SearchBar
+                    query={spanDescription}
+                    placeholder={t('Search for more Queries')}
+                    onSearch={handleSearch}
+                  />
+                </ModuleLayout.Full>
+
+                <ModuleLayout.Full>
+                  <QueriesTable response={queryListResponse} sort={sort} />
+                </ModuleLayout.Full>
+              </Fragment>
+            )}
+          </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>
     </React.Fragment>
@@ -211,20 +231,6 @@ const DEFAULT_SORT = {
   kind: 'desc' as const,
 };
 
-const PaddedContainer = styled('div')`
-  margin-bottom: ${space(2)};
-`;
-
-const ChartContainer = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr;
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: 1fr 1fr;
-    gap: ${space(2)};
-  }
-`;
-
 function AlertBanner(props) {
   return <Alert {...props} type="info" showIcon />;
 }
@@ -233,7 +239,6 @@ const FilterOptionsContainer = styled('div')`
   display: flex;
   flex-wrap: wrap;
   gap: ${space(2)};
-  margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     flex-wrap: nowrap;
@@ -248,15 +253,15 @@ const SelectorContainer = styled('div')`
   }
 `;
 
-const SearchBarContainer = styled('div')`
-  margin-bottom: ${space(2)};
-`;
-
 const LIMIT: number = 25;
 
 function LandingPageWithProviders() {
   return (
-    <ModulePageProviders title={[t('Performance'), t('Database')].join(' — ')}>
+    <ModulePageProviders
+      title={[t('Performance'), t('Database')].join(' — ')}
+      baseURL="/performance/database"
+      features="performance-database-view"
+    >
       <DatabaseLandingPage />
     </ModulePageProviders>
   );

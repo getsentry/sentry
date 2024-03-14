@@ -51,13 +51,11 @@ const inputStyles = (props: Props) => css`
 
   ${props.monospace ? `font-family: ${props.theme.text.familyMono}` : ''};
 
-  ${
-    props.readOnly
-      ? css`
+  ${props.readOnly
+    ? css`
         cursor: default;
       `
-      : ''
-  };
+    : ''};
 
   &::placeholder {
     color: ${props.theme.formPlaceholder};
@@ -75,7 +73,7 @@ const inputStyles = (props: Props) => css`
   }
 
   &:focus,
-  &.focus-visible {
+  &:focus-visible {
     outline: none;
     border-color: ${props.theme.focusBorder};
     box-shadow: ${props.theme.focusBorder} 0 0 0 1px;

@@ -1,86 +1,112 @@
 import datetime
 import logging
+from typing import Any
+from uuid import UUID
 
+from sentry.constants import MAX_CULPRIT_LENGTH
 from sentry.issues.grouptype import ReplayRageClickType
 from sentry.issues.issue_occurrence import IssueEvidence
-from sentry.models.project import Project
-from sentry.replays.query import query_replay_instance
-from sentry.replays.usecases.ingest.events import SentryEvent
 from sentry.replays.usecases.issue import new_issue_occurrence
-from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 
 logger = logging.getLogger()
 
-RAGE_CLICK_TITLE = "Suspected Rage Click"
-RAGE_CLICK_LEVEL = "warning"
+RAGE_CLICK_TITLE = "Rage Click"
+RAGE_CLICK_LEVEL = "error"
 
 
-@instrumented_task(
-    name="sentry.replays.usecases.ingest.issue_creation.report_rage_click_issue",
-    queue="replays.ingest_replay",
-    default_retry_delay=5,
-    max_retries=5,
-    silo_mode=SiloMode.REGION,
-)
-def report_rage_click_issue(project_id: int, replay_id: str, event: SentryEvent):
-    metrics.incr("replay.rage_click_issue_creation")
-    payload = event["data"]["payload"]
-
-    project = Project.objects.get(id=project_id)
+def report_rage_click_issue_with_replay_event(
+    project_id: int,
+    replay_id: str,
+    timestamp: float,
+    selector: str,
+    url: str,
+    node: dict[str, Any],
+    component_name: str | None,
+    replay_event: dict[str, Any],
+):
+    metrics.incr("replay.rage_click_issue_creation_with_replay_event")
 
     # Seconds since epoch is UTC.
-    timestamp = datetime.datetime.fromtimestamp(payload["timestamp"])
-    timestamp = timestamp.replace(tzinfo=datetime.UTC)
+    date = datetime.datetime.fromtimestamp(timestamp)
+    timestamp_utc = date.replace(tzinfo=datetime.UTC)
 
-    replay_info_list = query_replay_instance(
-        project_id=project_id,
-        replay_id=replay_id,
-        start=timestamp - datetime.timedelta(hours=1),
-        end=timestamp,
-        organization=project.organization,
-    )
-    if not replay_info_list or len(replay_info_list) == 0:
-        metrics.incr("replay.rage_click_issue_creation.no_replay_info")
-        return
-
-    replay_info = replay_info_list[0]
-
-    selector = payload["message"]
+    selector = selector
     clicked_element = selector.split(" > ")[-1]
+    component_name = component_name
+    evidence = [
+        IssueEvidence(name="Clicked Element", value=clicked_element, important=False),
+    ]
+    evidence_data = {
+        # RRWeb node data of clicked element.
+        "node": node,
+        # CSS selector path to clicked element.
+        "selector": selector,
+    }
+
+    if component_name:
+        # component name is important
+        evidence.extend(
+            [
+                IssueEvidence(name="Selector Path", value=selector, important=False),
+                IssueEvidence(name="React Component Name", value=component_name, important=True),
+            ],
+        )
+        evidence_data.update({"component_name": component_name})
+    else:
+        # selector path is important
+        evidence.append(
+            IssueEvidence(name="Selector Path", value=selector, important=True),
+        )
 
     new_issue_occurrence(
-        culprit=payload["data"]["url"],
-        environment=replay_info["agg_environment"],
+        culprit=url[:MAX_CULPRIT_LENGTH],
+        environment=replay_event.get(
+            "environment", "production"
+        ),  # if no environment is set, default to production
         fingerprint=[selector],
         issue_type=ReplayRageClickType,
         level=RAGE_CLICK_LEVEL,
-        platform="javascript",
+        platform=replay_event["platform"],
         project_id=project_id,
         subtitle=selector,
-        timestamp=timestamp,
+        timestamp=timestamp_utc,
         title=RAGE_CLICK_TITLE,
-        evidence_data={
-            # RRWeb node data of clicked element.
-            "node": payload["data"]["node"],
-            # CSS selector path to clicked element.
-            "selector": selector,
-        },
-        evidence_display=[
-            IssueEvidence(name="Clicked Element", value=clicked_element, important=True),
-            IssueEvidence(name="Selector Path", value=selector, important=True),
-            IssueEvidence(name="Page URL", value=payload["data"]["url"], important=True),
-        ],
+        evidence_data=evidence_data,
+        evidence_display=evidence,
         extra_event_data={
-            "contexts": {"replay": {"replay_id": replay_id}},
+            "contexts": _make_contexts(replay_id, replay_event),
             "level": RAGE_CLICK_LEVEL,
-            "tags": {"replayId": replay_id, "url": payload["data"]["url"]},
-            "user": {
-                "id": replay_info["user_id"],
-                "username": replay_info["user_username"],
-                "email": replay_info["user_email"],
-                "ip": replay_info["user_ip"],
-            },
+            "tags": _make_tags(replay_id, url, replay_event),
+            "user": replay_event["user"],
+            "release": replay_event.get("release"),
+            "sdk": replay_event.get("sdk"),
+            "dist": replay_event.get("dist"),
         },
     )
+
+
+def _make_contexts(replay_id, replay_event):
+    contexts = {"replay": {"replay_id": replay_id}}
+
+    if replay_event.get("trace_ids"):
+        if len(replay_event["trace_ids"]) > 0:
+            trace_id = replay_event["trace_ids"][0]
+            trace_id_hex = UUID(trace_id).hex
+            # there could in theory be multiple traces, but generally
+            # lets just use the first one. can adjust if this is not ideal
+            trace_context = {"trace_id": trace_id_hex}
+            contexts.update({"trace": trace_context})
+
+    if replay_event.get("contexts"):
+        contexts.update(replay_event["contexts"])
+
+    return contexts
+
+
+def _make_tags(replay_id, url, replay_event):
+    tags = {"replayId": replay_id, "url": url}
+    if replay_event.get("tags"):
+        tags.update(replay_event["tags"])
+
+    return tags

@@ -57,13 +57,13 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
         Return a client key bound to a project.
         """
         try:
-            key = ProjectKey.objects.get(
+            key = ProjectKey.objects.for_request(request).get(
                 project=project, public_key=key_id, roles=F("roles").bitor(ProjectKey.roles.store)
             )
         except ProjectKey.DoesNotExist:
             raise ResourceDoesNotExist
 
-        return Response(serialize(key, request.user), status=200)
+        return Response(serialize(key, request.user, request=request), status=200)
 
     @extend_schema(
         operation_id="Update a Client Key",
@@ -88,6 +88,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
                     help_text="The Sentry Javascript SDK version to use. The currently supported options are:",
                     # Ideally we would call get_browser_sdk_version_choices() here but that requires
                     # passing in project to this decorator
+                    # todo: v8 add version
                     choices=[("latest", "Most recent version"), ("7.x", "Version 7 releases")],
                     required=False,
                 ),
@@ -109,7 +110,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
         Update various settings for a client key.
         """
         try:
-            key = ProjectKey.objects.get(
+            key = ProjectKey.objects.for_request(request).get(
                 project=project, public_key=key_id, roles=F("roles").bitor(ProjectKey.roles.store)
             )
         except ProjectKey.DoesNotExist:
@@ -166,7 +167,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
             data=key.get_audit_log_data(),
         )
 
-        return Response(serialize(key, request.user), status=200)
+        return Response(serialize(key, request.user, request=request), status=200)
 
     @extend_schema(
         operation_id="Delete a Client Key",
@@ -187,7 +188,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
         Delete a client key for a given project.
         """
         try:
-            key = ProjectKey.objects.get(
+            key = ProjectKey.objects.for_request(request).get(
                 project=project, public_key=key_id, roles=F("roles").bitor(ProjectKey.roles.store)
             )
         except ProjectKey.DoesNotExist:

@@ -5,7 +5,7 @@ IN_APP_FRAME = {
     "function": "LoginViewController.viewDidAppear",
     "raw_function": "LoginViewController.viewDidAppear(Bool)",
     "symbol": "$s8Sentry9LoginViewControllerC13viewDidAppearyySbF",
-    "package": "SentryApp",
+    "package": "/private/var/containers/Bundle/Application/6D441916-FFB1-4346-9C51-3DD3E23046FC/Sentry.app/Sentry",
     "filename": "LoginViewController.swift",
     "abs_path": "/Users/sentry/git/iOS/Sentry/LoggedOut/LoginViewController.swift",
     "lineno": 196,
@@ -92,6 +92,7 @@ def get_frames(
             "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
             "platform": "platform",
             "post_context": ["should_be_removed"],
+            "lineno": 143,
         },
     ]
 

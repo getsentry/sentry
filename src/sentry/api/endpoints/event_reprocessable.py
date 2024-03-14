@@ -12,9 +12,9 @@ from sentry.reprocessing2 import CannotReprocess, pull_event_data
 
 @region_silo_endpoint
 class EventReprocessableEndpoint(ProjectEndpoint):
-    owner = ApiOwner.OWNERS_PROCESSING
+    owner = ApiOwner.PROCESSING
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, project, event_id) -> Response:

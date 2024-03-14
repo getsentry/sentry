@@ -7,7 +7,6 @@ from urllib.parse import urlencode
 
 from rest_framework import status
 from rest_framework.response import Response
-from sentry_sdk.tracing import Span
 
 from sentry import options
 from sentry.integrations.client import ApiClient
@@ -112,15 +111,10 @@ class DiscordClient(ApiClient):
     def track_response_data(
         self,
         code: str | int,
-        span: Span | None = None,
         error: Exception | None = None,
         resp: Response | None = None,
         extra: Mapping[str, str] | None = None,
     ) -> None:
-        # if no span was passed, create a dummy to which to add data to avoid having to wrap every
-        # span call in `if span`
-        span = span or Span()
-
         is_ok = code in {
             status.HTTP_200_OK,
             status.HTTP_201_CREATED,
@@ -142,11 +136,6 @@ class DiscordClient(ApiClient):
                 "include_in_slo": include_in_slo,
             },
         )
-
-        try:
-            span.set_http_status(int(code))
-        except ValueError:
-            span.set_status(str(code))
 
         log_params = {
             **(extra or {}),

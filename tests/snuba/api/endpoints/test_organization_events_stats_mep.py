@@ -6,13 +6,17 @@ from unittest import mock
 
 import pytest
 from django.urls import reverse
+from rest_framework.response import Response
 
+from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.environment import Environment
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.extraction import MetricSpecType, OnDemandMetricSpec
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.on_demand import create_widget
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.samples import load_data
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -42,13 +46,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         }
 
         self.additional_params = dict()
-
-    def do_request(self, data, url=None, features=None):
-        if features is None:
-            features = {"organizations:discover-basic": True}
-        features.update(self.features)
-        with self.feature(features):
-            return self.client.get(self.url if url is None else url, data=data, format="json")
 
     # These throughput tests should roughly match the ones in OrganizationEventsStatsEndpointTest
     def test_throughput_epm_hour_rollup(self):
@@ -766,6 +763,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         assert data["order"] == 0
 
 
+@region_silo_test
 class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest
 ):
@@ -975,14 +973,21 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
             "sentry-api-0-organization-events-stats",
             kwargs={"organization_slug": self.project.organization.slug},
         )
-        self.features = {"organizations:on-demand-metrics-extraction-widgets": True}
+        self.features = {
+            "organizations:on-demand-metrics-extraction-widgets": True,
+            "organizations:on-demand-metrics-extraction": True,
+        }
 
-    def do_request(self, data, url=None, features=None):
-        if features is None:
-            features = {"organizations:discover-basic": True}
-        features.update(self.features)
-        with self.feature(features):
-            return self.client.get(self.url if url is None else url, data=data, format="json")
+    def _make_on_demand_request(
+        self, params: dict[str, Any], extra_features: dict[str, bool] | None = None
+    ) -> Response:
+        """Ensures that the required parameters for an on-demand request are included."""
+        # Expected parameters for this helper function
+        params["dataset"] = "metricsEnhanced"
+        params["useOnDemandMetrics"] = "true"
+        params["onDemandType"] = "dynamic_query"
+        _features = {**self.features, **(extra_features or {})}
+        return self.do_request(params, features=_features)
 
     def test_top_events_wrong_on_demand_type(self):
         query = "transaction.duration:>=100"
@@ -1166,6 +1171,319 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
                 "onDemandType": "dynamic_query",
             },
         )
+
+        assert response.status_code == 200, response.content
+
+        groups = [
+            ("foo,red", "count()", 0.0, 1488.0),
+            ("foo,red", "count_web_vitals(measurements.lcp, good)", 0.0, 0.0),
+            ("bar,blue", "count()", 0.0, 0.0),
+            ("bar,blue", "count_web_vitals(measurements.lcp, good)", 0.0, 1440.0),
+        ]
+        assert len(response.data.keys()) == 2
+        for group_count in groups:
+            group, agg, row1, row2 = group_count
+            row_data = response.data[group][agg]["data"][:2]
+            assert [attrs for time, attrs in row_data] == [[{"count": row1}], [{"count": row2}]]
+
+            assert response.data[group][agg]["meta"]["isMetricsExtractedData"]
+            assert response.data[group]["isMetricsExtractedData"]
+
+    def test_top_events_with_transaction_on_demand_passing_widget_id_unsaved_transaction_only(self):
+        field = "count()"
+        field_two = "count_web_vitals(measurements.lcp, good)"
+        groupbys = ["customtag1", "customtag2"]
+        query = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(
+            field=field, groupbys=groupbys, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY
+        )
+        spec_two = OnDemandMetricSpec(
+            field=field_two, groupbys=groupbys, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY
+        )
+
+        _, widget, __ = create_widget(
+            ["count()"],
+            "",
+            self.project,
+            discover_widget_split=None,
+        )
+
+        for hour in range(0, 2):
+            self.store_on_demand_metric(
+                hour * 62 * 24,
+                spec=spec,
+                additional_tags={
+                    "customtag1": "foo",
+                    "customtag2": "red",
+                    "environment": "production",
+                },
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+            self.store_on_demand_metric(
+                hour * 60 * 24,
+                spec=spec_two,
+                additional_tags={
+                    "customtag1": "bar",
+                    "customtag2": "blue",
+                    "environment": "production",
+                },
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+
+        yAxis = [field, field_two]
+
+        response = self.do_request(
+            data={
+                "project": self.project.id,
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "orderby": ["-count()"],
+                "query": query,
+                "yAxis": yAxis,
+                "field": yAxis + groupbys,
+                "topEvents": 5,
+                "dataset": "metricsEnhanced",
+                "useOnDemandMetrics": "true",
+                "onDemandType": "dynamic_query",
+                "dashboardWidgetId": widget.id,
+            },
+        )
+        saved_widget = DashboardWidget.objects.get(id=widget.id)
+        assert saved_widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE
+
+        assert response.status_code == 200, response.content
+        # Fell back to discover data which is empty for this test (empty group of '').
+        assert len(response.data.keys()) == 2
+        assert bool(response.data["foo,red"])
+        assert bool(response.data["bar,blue"])
+
+    def test_top_events_with_transaction_on_demand_passing_widget_id_unsaved_error(
+        self,
+    ):
+        field = "count()"
+        field_two = "count()"
+        groupbys = ["customtag1", "customtag2"]
+        query = "query.dataset:foo"
+
+        _, widget, __ = create_widget(
+            ["count()"],
+            "",
+            self.project,
+            discover_widget_split=None,
+        )
+
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "very bad",
+                "type": "error",
+                "start_timestamp": iso_format(self.day_ago + timedelta(hours=1)),
+                "timestamp": iso_format(self.day_ago + timedelta(hours=1)),
+                "tags": {"customtag1": "error_value", "query.dataset": "foo"},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "very bad 2",
+                "type": "error",
+                "start_timestamp": iso_format(self.day_ago + timedelta(hours=1)),
+                "timestamp": iso_format(self.day_ago + timedelta(hours=1)),
+                "tags": {"customtag1": "error_value2", "query.dataset": "foo"},
+            },
+            project_id=self.project.id,
+        )
+
+        yAxis = ["count()"]
+
+        response = self.do_request(
+            data={
+                "project": self.project.id,
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "orderby": ["-count()"],
+                "query": query,
+                "yAxis": yAxis,
+                "field": [field, field_two] + groupbys,
+                "topEvents": 5,
+                "dataset": "metricsEnhanced",
+                "useOnDemandMetrics": "true",
+                "onDemandType": "dynamic_query",
+                "dashboardWidgetId": widget.id,
+            },
+        )
+        saved_widget = DashboardWidget.objects.get(id=widget.id)
+        assert saved_widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS
+
+        assert response.status_code == 200, response.content
+        # Fell back to discover data which is empty for this test (empty group of '').
+        assert len(response.data.keys()) == 2
+        assert bool(response.data["error_value,"])
+        assert bool(response.data["error_value2,"])
+
+    def test_top_events_with_transaction_on_demand_passing_widget_id_unsaved_discover(self):
+        field = "count()"
+        field_two = "count()"
+        groupbys = ["customtag1", "customtag2"]
+        query = "query.dataset:foo"
+        spec = OnDemandMetricSpec(
+            field=field, groupbys=groupbys, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY
+        )
+        spec_two = OnDemandMetricSpec(
+            field=field_two, groupbys=groupbys, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY
+        )
+
+        _, widget, __ = create_widget(
+            ["count()"],
+            "",
+            self.project,
+            discover_widget_split=None,
+        )
+
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "very bad",
+                "type": "error",
+                "timestamp": iso_format(self.day_ago + timedelta(hours=1)),
+                "tags": {"customtag1": "error_value", "query.dataset": "foo"},
+            },
+            project_id=self.project.id,
+        )
+
+        transaction = load_data("transaction")
+        transaction["timestamp"] = iso_format(self.day_ago + timedelta(hours=1))
+        transaction["start_timestamp"] = iso_format(self.day_ago + timedelta(hours=1))
+        transaction["tags"] = {"customtag1": "transaction_value", "query.dataset": "foo"}
+
+        self.store_event(
+            data=transaction,
+            project_id=self.project.id,
+        )
+
+        for hour in range(0, 5):
+            self.store_on_demand_metric(
+                hour * 62 * 24,
+                spec=spec,
+                additional_tags={
+                    "customtag1": "foo",
+                    "customtag2": "red",
+                    "environment": "production",
+                },
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+            self.store_on_demand_metric(
+                hour * 60 * 24,
+                spec=spec_two,
+                additional_tags={
+                    "customtag1": "bar",
+                    "customtag2": "blue",
+                    "environment": "production",
+                },
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+
+        yAxis = ["count()"]
+
+        response = self.do_request(
+            data={
+                "project": self.project.id,
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "orderby": ["-count()"],
+                "query": query,
+                "yAxis": yAxis,
+                "field": [field, field_two, "customtag1", "customtag2"],
+                "topEvents": 5,
+                "dataset": "metricsEnhanced",
+                "useOnDemandMetrics": "true",
+                "onDemandType": "dynamic_query",
+                "dashboardWidgetId": widget.id,
+            },
+        )
+
+        saved_widget = DashboardWidget.objects.get(id=widget.id)
+        assert saved_widget.discover_widget_split == DashboardWidgetTypes.DISCOVER
+
+        assert response.status_code == 200, response.content
+
+        assert response.status_code == 200, response.content
+        # Fell back to discover data which is empty for this test (empty group of '').
+        assert len(response.data.keys()) == 2
+        assert bool(response.data["error_value,"])
+        assert bool(response.data["transaction_value,"])
+
+    def test_top_events_with_transaction_on_demand_passing_widget_id_saved(self):
+        field = "count()"
+        field_two = "count_web_vitals(measurements.lcp, good)"
+        groupbys = ["customtag1", "customtag2"]
+        query = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(
+            field=field, groupbys=groupbys, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY
+        )
+        spec_two = OnDemandMetricSpec(
+            field=field_two, groupbys=groupbys, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY
+        )
+
+        _, widget, __ = create_widget(
+            ["count()"],
+            "",
+            self.project,
+            discover_widget_split=DashboardWidgetTypes.TRANSACTION_LIKE,  # Transactions like uses on-demand
+        )
+
+        for hour in range(0, 5):
+            self.store_on_demand_metric(
+                hour * 62 * 24,
+                spec=spec,
+                additional_tags={
+                    "customtag1": "foo",
+                    "customtag2": "red",
+                    "environment": "production",
+                },
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+            self.store_on_demand_metric(
+                hour * 60 * 24,
+                spec=spec_two,
+                additional_tags={
+                    "customtag1": "bar",
+                    "customtag2": "blue",
+                    "environment": "production",
+                },
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+
+        yAxis = ["count()", "count_web_vitals(measurements.lcp, good)"]
+
+        with mock.patch.object(widget, "save") as mock_widget_save:
+            response = self.do_request(
+                data={
+                    "project": self.project.id,
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "orderby": ["-count()"],
+                    "query": query,
+                    "yAxis": yAxis,
+                    "field": [
+                        "count()",
+                        "count_web_vitals(measurements.lcp, good)",
+                        "customtag1",
+                        "customtag2",
+                    ],
+                    "topEvents": 5,
+                    "dataset": "metricsEnhanced",
+                    "useOnDemandMetrics": "true",
+                    "onDemandType": "dynamic_query",
+                    "dashboardWidgetId": widget.id,
+                },
+            )
+            assert bool(mock_widget_save.assert_not_called)
 
         assert response.status_code == 200, response.content
 
@@ -1391,7 +1709,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
     def _test_is_metrics_extracted_data(
         self, params: dict[str, Any], expected_on_demand_query: bool, dataset: str
     ) -> None:
-        features = {"organizations:on-demand-metrics-extraction": True}
         spec = OnDemandMetricSpec(
             field="count()",
             query="transaction.duration:>1s",
@@ -1399,7 +1716,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
         )
 
         self.store_on_demand_metric(1, spec=spec)
-        response = self.do_request(params, features=features)
+        response = self.do_request(params)
 
         assert response.status_code == 200, response.content
         meta = response.data["meta"]
@@ -1420,6 +1737,30 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
             expected_on_demand_query=True,
             dataset="metricsEnhanced",
         )
+
+    def test_on_demand_epm_no_query(self):
+        params = {
+            "dataset": "metricsEnhanced",
+            "environment": "production",
+            "onDemandType": "dynamic_query",
+            "project": self.project.id,
+            "query": "",
+            "statsPeriod": "1h",
+            "useOnDemandMetrics": "true",
+            "yAxis": ["epm()"],
+        }
+        response = self.do_request(params)
+
+        assert response.status_code == 200, response.content
+        assert response.data["meta"] == {
+            "fields": {"time": "date", "epm_900": "rate"},
+            "units": {"time": None, "epm_900": None},
+            "isMetricsData": True,
+            "isMetricsExtractedData": False,
+            "tips": {},
+            "datasetReason": "unchanged",
+            "dataset": "metricsEnhanced",
+        }
 
     def test_group_by_transaction(self):
         field = "count()"
@@ -1469,3 +1810,259 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
             [{"count": 5.0}],
             [{"count": 10.0}],
         ]
+
+    def _setup_orderby_tests(self, query):
+        count_spec = OnDemandMetricSpec(
+            field="count()",
+            groupbys=["networkId"],
+            query=query,
+            spec_type=MetricSpecType.DYNAMIC_QUERY,
+        )
+        p95_spec = OnDemandMetricSpec(
+            field="p95(transaction.duration)",
+            groupbys=["networkId"],
+            query=query,
+            spec_type=MetricSpecType.DYNAMIC_QUERY,
+        )
+
+        for hour in range(0, 5):
+            self.store_on_demand_metric(
+                1,
+                spec=count_spec,
+                additional_tags={"networkId": "1234"},
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+            self.store_on_demand_metric(
+                100,
+                spec=p95_spec,
+                additional_tags={"networkId": "1234"},
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+            self.store_on_demand_metric(
+                200,
+                spec=p95_spec,
+                additional_tags={"networkId": "5678"},
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+            # Store twice as many 5678 so orderby puts it later
+            self.store_on_demand_metric(
+                2,
+                spec=count_spec,
+                additional_tags={"networkId": "5678"},
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+
+    def test_order_by_aggregate_top_events_desc(self):
+        url = "https://sentry.io"
+        query = f'http.url:{url}/*/foo/bar/* http.referer:"{url}/*/bar/*" event.type:transaction'
+        self._setup_orderby_tests(query)
+        response = self.do_request(
+            data={
+                "dataset": "metricsEnhanced",
+                "field": ["networkId", "count()"],
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=5)),
+                "onDemandType": "dynamic_query",
+                "orderby": "-count()",
+                "interval": "1d",
+                "partial": 1,
+                "query": query,
+                "referrer": "api.dashboards.widget.bar-chart",
+                "project": self.project.id,
+                "topEvents": 2,
+                "useOnDemandMetrics": "true",
+                "yAxis": "count()",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 3
+        data1 = response.data["5678"]
+        assert data1["order"] == 0
+        assert data1["data"][0][1][0]["count"] == 10
+        data2 = response.data["1234"]
+        assert data2["order"] == 1
+        assert data2["data"][0][1][0]["count"] == 5
+        for datum in response.data.values():
+            assert datum["meta"] == {
+                "dataset": "metricsEnhanced",
+                "datasetReason": "unchanged",
+                "fields": {},
+                "isMetricsData": False,
+                "isMetricsExtractedData": True,
+                "tips": {},
+                "units": {},
+            }
+
+    def test_order_by_aggregate_top_events_asc(self):
+        url = "https://sentry.io"
+        query = f'http.url:{url}/*/foo/bar/* http.referer:"{url}/*/bar/*" event.type:transaction'
+        self._setup_orderby_tests(query)
+        response = self.do_request(
+            data={
+                "dataset": "metricsEnhanced",
+                "field": ["networkId", "count()"],
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=5)),
+                "onDemandType": "dynamic_query",
+                "orderby": "count()",
+                "interval": "1d",
+                "partial": 1,
+                "query": query,
+                "referrer": "api.dashboards.widget.bar-chart",
+                "project": self.project.id,
+                "topEvents": 2,
+                "useOnDemandMetrics": "true",
+                "yAxis": "count()",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 3
+        data1 = response.data["1234"]
+        assert data1["order"] == 0
+        assert data1["data"][0][1][0]["count"] == 5
+        data2 = response.data["5678"]
+        assert data2["order"] == 1
+        assert data2["data"][0][1][0]["count"] == 10
+        for datum in response.data.values():
+            assert datum["meta"] == {
+                "dataset": "metricsEnhanced",
+                "datasetReason": "unchanged",
+                "fields": {},
+                "isMetricsData": False,
+                "isMetricsExtractedData": True,
+                "tips": {},
+                "units": {},
+            }
+
+    def test_order_by_aggregate_top_events_graph_different_aggregate(self):
+        url = "https://sentry.io"
+        query = f'http.url:{url}/*/foo/bar/* http.referer:"{url}/*/bar/*" event.type:transaction'
+        self._setup_orderby_tests(query)
+        response = self.do_request(
+            data={
+                "dataset": "metricsEnhanced",
+                "field": ["networkId", "count()"],
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=5)),
+                "onDemandType": "dynamic_query",
+                "orderby": "count()",
+                "interval": "1d",
+                "partial": 1,
+                "query": query,
+                "referrer": "api.dashboards.widget.bar-chart",
+                "project": self.project.id,
+                "topEvents": 2,
+                "useOnDemandMetrics": "true",
+                "yAxis": "p95(transaction.duration)",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 3
+        data1 = response.data["1234"]
+        assert data1["order"] == 0
+        assert data1["data"][0][1][0]["count"] == 100
+        data2 = response.data["5678"]
+        assert data2["order"] == 1
+        assert data2["data"][0][1][0]["count"] == 200
+        for datum in response.data.values():
+            assert datum["meta"] == {
+                "dataset": "metricsEnhanced",
+                "datasetReason": "unchanged",
+                "fields": {},
+                "isMetricsData": False,
+                "isMetricsExtractedData": True,
+                "tips": {},
+                "units": {},
+            }
+
+    def test_cannot_order_by_tag(self):
+        url = "https://sentry.io"
+        query = f'http.url:{url}/*/foo/bar/* http.referer:"{url}/*/bar/*" event.type:transaction'
+        self._setup_orderby_tests(query)
+        response = self.do_request(
+            data={
+                "dataset": "metrics",
+                "field": ["networkId", "count()"],
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=5)),
+                "onDemandType": "dynamic_query",
+                "orderby": "-networkId",
+                "interval": "1d",
+                "partial": 1,
+                "query": query,
+                "referrer": "api.dashboards.widget.bar-chart",
+                "project": self.project.id,
+                "topEvents": 2,
+                "useOnDemandMetrics": "true",
+                "yAxis": "count()",
+            },
+        )
+
+        assert response.status_code == 400, response.content
+
+    def test_order_by_two_aggregates(self):
+        url = "https://sentry.io"
+        query = f'http.url:{url}/*/foo/bar/* http.referer:"{url}/*/bar/*" event.type:transaction'
+        self._setup_orderby_tests(query)
+        response = self.do_request(
+            data={
+                "dataset": "metrics",
+                "field": ["networkId", "count()", "p95(transaction.duration)"],
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=5)),
+                "onDemandType": "dynamic_query",
+                "orderby": ["count()", "p95(transaction.duration)"],
+                "interval": "1d",
+                "partial": 1,
+                "query": query,
+                "referrer": "api.dashboards.widget.bar-chart",
+                "project": self.project.id,
+                "topEvents": 2,
+                "useOnDemandMetrics": "true",
+                "yAxis": "p95(transaction.duration)",
+            },
+        )
+
+        assert response.status_code == 400, response.content
+
+    def test_top_events_with_tag(self):
+        query = "transaction.duration:>=100"
+        yAxis = ["count()"]
+        field = "count()"
+        groupbys = ["some-field"]
+        spec = OnDemandMetricSpec(
+            field=field, groupbys=groupbys, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY
+        )
+        self.store_on_demand_metric(
+            1,
+            spec=spec,
+            additional_tags={
+                "some-field": "bar",
+                "environment": "production",
+            },
+            timestamp=self.day_ago,
+        )
+        response = self.do_request(
+            data={
+                "project": self.project.id,
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "orderby": ["-count()"],
+                "environment": "production",
+                "query": query,
+                "yAxis": yAxis,
+                "field": [
+                    "some-field",
+                    "count()",
+                ],
+                "topEvents": 5,
+                "dataset": "metrics",
+                "useOnDemandMetrics": "true",
+            },
+        )
+
+        assert response.status_code == 200, response.content

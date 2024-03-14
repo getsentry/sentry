@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import logging
+from typing import TypedDict
 
 from django.conf import settings
 from django.core.cache import cache
 from packaging.version import Version
-from typing_extensions import TypedDict
 
 from sentry.tasks.release_registry import SDK_INDEX_CACHE_KEY
 from sentry.utils.safe import get_path

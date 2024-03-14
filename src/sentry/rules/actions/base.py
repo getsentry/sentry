@@ -3,11 +3,29 @@ from __future__ import annotations
 import abc
 import logging
 from collections.abc import Generator
+from typing import Any
 
 from sentry.eventstore.models import GroupEvent
+from sentry.models.rule import Rule
 from sentry.rules.base import CallbackFuture, EventState, RuleBase
 
 logger = logging.getLogger("sentry.rules")
+
+
+def instantiate_action(rule: Rule, action):
+    from sentry.rules import rules
+
+    action_cls = rules.get(action["id"])
+    if action_cls is None:
+        logger.warning("Unregistered action %r", action["id"])
+        return None
+
+    action_inst = action_cls(rule.project, data=action, rule=rule)
+    if not isinstance(action_inst, EventAction):
+        logger.warning("Unregistered action %r", action["id"])
+        return None
+
+    return action_inst
 
 
 class EventAction(RuleBase, abc.ABC):
@@ -36,3 +54,9 @@ class EventAction(RuleBase, abc.ABC):
         >>>     for future in futures:
         >>>         print(future)
         """
+
+    def send_confirmation_notification(self, rule: Rule, new: bool, changed: dict[str, Any]):
+        """
+        Send a notification confirming that a rule was created or edited
+        """
+        pass

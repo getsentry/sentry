@@ -5,10 +5,9 @@ from urllib.parse import parse_qs, urlparse, urlsplit
 
 from requests import PreparedRequest
 
+from sentry.integrations.client import ApiClient
 from sentry.integrations.utils import get_query_hash
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
-from sentry.services.hybrid_cloud.util import control_silo_function
-from sentry.shared_integrations.client.proxy import IntegrationProxyClient, infer_org_integration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri
@@ -21,7 +20,7 @@ ISSUE_KEY_RE = re.compile(r"^[A-Za-z][A-Za-z0-9]*-\d+$")
 CUSTOMFIELD_PREFIX = "customfield_"
 
 
-class JiraCloudClient(IntegrationProxyClient):
+class JiraCloudClient(ApiClient):
     # TODO: Update to v3 endpoints
     COMMENTS_URL = "/rest/api/2/issue/%s/comment"
     COMMENT_URL = "/rest/api/2/issue/%s/comment/%s"
@@ -53,23 +52,17 @@ class JiraCloudClient(IntegrationProxyClient):
         self,
         integration: RpcIntegration,
         verify_ssl: bool,
-        org_integration_id: str | None = None,
         logging_context: JSONData | None = None,
     ):
         self.base_url = integration.metadata.get("base_url")
         self.shared_secret = integration.metadata.get("shared_secret")
-        if not org_integration_id:
-            org_integration_id = infer_org_integration(
-                integration_id=integration.id, ctx_logger=logger
-            )
         super().__init__(
-            org_integration_id=org_integration_id,
+            integration_id=integration.id,
             verify_ssl=verify_ssl,
             logging_context=logging_context,
         )
 
-    @control_silo_function
-    def authorize_request(self, prepared_request: PreparedRequest):
+    def finalize_request(self, prepared_request: PreparedRequest):
         path = prepared_request.url[len(self.base_url) :]
         url_params = dict(parse_qs(urlsplit(path).query))
         path = path.split("?")[0]

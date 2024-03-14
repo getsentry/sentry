@@ -166,6 +166,9 @@ class MetricsQuery(MetricsQueryValidationRunner):
     # doesn't take into account time bounds as the alerts service uses subscriptable queries that react in real time
     # to dataset changes.
     is_alerts_query: bool = False
+    # Need to skip the orderby validation for ondemand queries, this is because ondemand fields are based on a spec
+    # instead of being direct fields
+    skip_orderby_validation: bool = False
 
     @cached_property
     def projects(self) -> list[Project]:
@@ -231,7 +234,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
                     )
 
     def validate_orderby(self) -> None:
-        if not self.orderby:
+        if not self.orderby or self.skip_orderby_validation:
             return
 
         for metric_order_by_field in self.orderby:
@@ -382,7 +385,9 @@ class MetricsQuery(MetricsQueryValidationRunner):
             interval = self.interval
 
         if self.start and self.end and self.include_series:
-            if (self.end - self.start).total_seconds() / interval > MAX_POINTS:
+            # For this calculation, we decided to round down to the integer since if we get 10.000,x we prefer to allow
+            # the query and lose some data points. On the other hand, if we get 11.000,x we will not allow the query.
+            if int((self.end - self.start).total_seconds() / interval) > MAX_POINTS:
                 raise InvalidParams(
                     "Your interval and date range would create too many results. "
                     "Use a larger interval, or a smaller date range."

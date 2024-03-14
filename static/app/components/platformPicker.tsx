@@ -25,6 +25,10 @@ const PlatformList = styled('div')`
   gap: ${space(1)};
   grid-template-columns: repeat(auto-fill, 112px);
   margin-bottom: ${space(2)};
+
+  &.centered {
+    justify-content: center;
+  }
 `;
 
 const selectablePlatforms = platforms.filter(platform =>
@@ -42,9 +46,12 @@ interface PlatformPickerProps {
   defaultCategory?: Category;
   listClassName?: string;
   listProps?: React.HTMLAttributes<HTMLDivElement>;
+  modal?: boolean;
+  navClassName?: string;
   noAutoFilter?: boolean;
   organization?: Organization;
   platform?: string | null;
+  showFilterBar?: boolean;
   showOther?: boolean;
   source?: string;
 }
@@ -100,12 +107,18 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
 
   render() {
     const platformList = this.platformList;
-    const {setPlatform, listProps, listClassName} = this.props;
+    const {
+      setPlatform,
+      listProps,
+      listClassName,
+      navClassName,
+      showFilterBar = true,
+    } = this.props;
     const {filter, category} = this.state;
 
     return (
       <Fragment>
-        <NavContainer>
+        <NavContainer className={navClassName}>
           <CategoryNav>
             {categoryList.map(({id, name}) => (
               <ListLink
@@ -126,12 +139,14 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
               </ListLink>
             ))}
           </CategoryNav>
-          <StyledSearchBar
-            size="sm"
-            query={filter}
-            placeholder={t('Filter Platforms')}
-            onChange={val => this.setState({filter: val}, this.logSearch)}
-          />
+          {showFilterBar && (
+            <StyledSearchBar
+              size="sm"
+              query={filter}
+              placeholder={t('Filter Platforms')}
+              onChange={val => this.setState({filter: val}, this.logSearch)}
+            />
+          )}
         </NavContainer>
         <PlatformList className={listClassName} {...listProps}>
           {platformList.map(platform => {
@@ -191,6 +206,11 @@ const NavContainer = styled('div')`
   grid-template-columns: 1fr minmax(0, 300px);
   align-items: start;
   border-bottom: 1px solid ${p => p.theme.border};
+
+  &.centered {
+    grid-template-columns: none;
+    justify-content: center;
+  }
 `;
 
 const StyledSearchBar = styled(SearchBar)`

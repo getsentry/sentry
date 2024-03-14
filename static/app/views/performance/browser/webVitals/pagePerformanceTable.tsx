@@ -34,12 +34,19 @@ import {
   SORTABLE_FIELDS,
   SORTABLE_SCORE_FIELDS,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webVitals/utils/useReplaceFidWithInpSetting';
 import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 
 type Column = GridColumnHeader<keyof RowWithScoreAndOpportunity>;
 
-const columnOrder: GridColumnOrder<keyof RowWithScoreAndOpportunity>[] = [
+const INP_COLUMN: GridColumnOrder<keyof RowWithScoreAndOpportunity> = {
+  key: 'p75(measurements.inp)',
+  width: COL_WIDTH_UNDEFINED,
+  name: 'INP',
+};
+
+const COLUMN_ORDER: GridColumnOrder<keyof RowWithScoreAndOpportunity>[] = [
   {key: 'transaction', width: COL_WIDTH_UNDEFINED, name: 'Pages'},
   {key: 'count()', width: COL_WIDTH_UNDEFINED, name: 'Pageloads'},
   {key: 'p75(measurements.lcp)', width: COL_WIDTH_UNDEFINED, name: 'LCP'},
@@ -53,11 +60,25 @@ const columnOrder: GridColumnOrder<keyof RowWithScoreAndOpportunity>[] = [
 
 const MAX_ROWS = 25;
 
+const DEFAULT_SORT: Sort = {
+  field: 'opportunity_score(measurements.score.total)',
+  kind: 'desc',
+};
+
 export function PagePerformanceTable() {
   const organization = useOrganization();
   const location = useLocation();
   const {projects} = useProjects();
   const shouldUseStoredScores = useStoredScoresSetting();
+  const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
+
+  const columnOrder = useMemo(() => {
+    const columns = [...COLUMN_ORDER];
+    if (shouldReplaceFidWithInp) {
+      columns.splice(4, 1, INP_COLUMN);
+    }
+    return columns;
+  }, [shouldReplaceFidWithInp]);
 
   const query = decodeScalar(location.query.query, '');
 
@@ -66,7 +87,11 @@ export function PagePerformanceTable() {
     [projects, location.query.project]
   );
 
-  const sort = useWebVitalsSort();
+  let sort = useWebVitalsSort({defaultSort: DEFAULT_SORT});
+  // Need to map fid back to inp for rendering
+  if (shouldReplaceFidWithInp && sort.field === 'p75(measurements.fid)') {
+    sort = {...sort, field: 'p75(measurements.inp)'};
+  }
 
   const {data: projectData, isLoading: isProjectWebVitalsQueryLoading} =
     useProjectRawWebVitalsQuery({transaction: query});
@@ -84,7 +109,11 @@ export function PagePerformanceTable() {
     data,
     pageLinks,
     isLoading: isTransactionWebVitalsQueryLoading,
-  } = useTransactionWebVitalsQuery({limit: MAX_ROWS, transaction: query});
+  } = useTransactionWebVitalsQuery({
+    limit: MAX_ROWS,
+    transaction: query,
+    defaultSort: DEFAULT_SORT,
+  });
 
   const count = projectData?.data?.[0]?.['count()'] as number;
   const scoreCount = projectScoresData?.data?.[0]?.[
@@ -252,6 +281,7 @@ export function PagePerformanceTable() {
         'p75(measurements.lcp)',
         'p75(measurements.ttfb)',
         'p75(measurements.fid)',
+        'p75(measurements.inp)',
       ].includes(key)
     ) {
       const measurement = parseFunction(key)?.arguments?.[0];

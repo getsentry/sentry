@@ -290,7 +290,7 @@ class ActivityItem extends Component<Props, State> {
           });
         }
         assignee = MemberListStore.getById(data.assignee);
-        if (assignee && assignee.email) {
+        if (assignee?.email) {
           return tct('[author] assigned [issue] to [assignee]', {
             author,
             assignee: <span title={assignee.email}>{assignee.name}</span>,

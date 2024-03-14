@@ -1,12 +1,13 @@
 import {useCallback, useMemo} from 'react';
+import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
+import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
-  IconAdd,
   IconBookmark,
   IconDashboard,
   IconEllipsis,
@@ -17,12 +18,12 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isCustomMeasurement} from 'sentry/utils/metrics';
 import {MRIToField} from 'sentry/utils/metrics/mri';
+import {MetricQueryType, type MetricQueryWidgetParams} from 'sentry/utils/metrics/types';
 import {middleEllipsis} from 'sentry/utils/middleEllipsis';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {useDDMContext} from 'sentry/views/ddm/context';
-import {getCreateAlert} from 'sentry/views/ddm/contextMenu';
+import {getCreateAlert} from 'sentry/views/ddm/metricQueryContextMenu';
 import {QuerySymbol} from 'sentry/views/ddm/querySymbol';
 import {useCreateDashboard} from 'sentry/views/ddm/useCreateDashboard';
 
@@ -34,18 +35,15 @@ interface Props {
 export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Props) {
   const router = useRouter();
   const organization = useOrganization();
-  const {selection} = usePageFilters();
   const createDashboard = useCreateDashboard();
   const {
-    addWidget,
     isDefaultQuery,
     setDefaultQuery,
     widgets,
     showQuerySymbols,
     selectedWidgetIndex,
+    isMultiChartMode,
   } = useDDMContext();
-
-  const hasEmptyWidget = widgets.length === 0 || widgets.some(widget => !widget.mri);
 
   const handleToggleDefaultQuery = useCallback(() => {
     if (isDefaultQuery) {
@@ -66,23 +64,25 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
   const items = useMemo(
     () => [
       {
-        leadingItems: [<IconAdd isCircled key="icon" />],
-        key: 'add-query',
-        label: t('Add Query'),
-        disabled: hasEmptyWidget,
-        onAction: () => {
-          trackAnalytics('ddm.widget.add', {
-            organization,
-          });
-          Sentry.metrics.increment('ddm.widget.add');
-          addWidget();
-        },
-      },
-      {
         leadingItems: [<IconDashboard key="icon" />],
         key: 'add-dashboard',
-        label: t('Add to Dashboard'),
+        label: (
+          <Feature
+            organization={organization}
+            hookName="feature-disabled:dashboards-edit"
+            features="dashboards-edit"
+          >
+            {({hasFeature}) => (
+              <AddToDashboardItem disabled={!hasFeature}>
+                {t('Add to Dashboard')}
+              </AddToDashboardItem>
+            )}
+          </Feature>
+        ),
         onAction: () => {
+          if (!organization.features.includes('dashboards-edit')) {
+            return;
+          }
           trackAnalytics('ddm.add-to-dashboard', {
             organization,
             source: 'global',
@@ -97,57 +97,52 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
         onAction: () => navigateTo(`/settings/projects/:projectId/metrics/`, router),
       },
     ],
-    [addWidget, createDashboard, hasEmptyWidget, organization, router]
+    [createDashboard, organization, router]
   );
 
   const alertItems = useMemo(
     () =>
-      widgets.map((widget, index) => {
-        const createAlert = getCreateAlert(organization, {
-          datetime: selection.datetime,
-          projects: selection.projects,
-          environments: selection.environments,
-          query: widget.query,
-          mri: widget.mri,
-          groupBy: widget.groupBy,
-          op: widget.op,
-        });
-        return {
-          leadingItems: showQuerySymbols
-            ? [
-                <QuerySymbol
-                  key="icon"
-                  index={index}
-                  isSelected={index === selectedWidgetIndex}
-                />,
-              ]
-            : [],
-          key: `add-alert-${index}`,
-          label: widget.mri
-            ? middleEllipsis(MRIToField(widget.mri, widget.op!), 60, /\.|-|_/)
-            : t('Select a metric to create an alert'),
-          tooltip: isCustomMeasurement({mri: widget.mri})
-            ? t('Custom measurements cannot be used to create alerts')
-            : undefined,
-          disabled: !createAlert,
-          onAction: () => {
-            trackAnalytics('ddm.create-alert', {
-              organization,
-              source: 'global',
-            });
-            createAlert?.();
-          },
-        };
-      }),
-    [
-      organization,
-      selectedWidgetIndex,
-      selection.datetime,
-      selection.environments,
-      selection.projects,
-      showQuerySymbols,
-      widgets,
-    ]
+      widgets
+        .filter(
+          (query): query is MetricQueryWidgetParams =>
+            query.type === MetricQueryType.QUERY
+        )
+        .map((widget, index) => {
+          const createAlert = getCreateAlert(organization, {
+            query: widget.query,
+            mri: widget.mri,
+            groupBy: widget.groupBy,
+            op: widget.op,
+          });
+          return {
+            leadingItems: showQuerySymbols
+              ? [
+                  <QuerySymbol
+                    key="icon"
+                    queryId={widget.id}
+                    isHidden={widget.isHidden}
+                    isSelected={index === selectedWidgetIndex && isMultiChartMode}
+                  />,
+                ]
+              : [],
+            key: `add-alert-${index}`,
+            label: widget.mri
+              ? middleEllipsis(MRIToField(widget.mri, widget.op), 60, /\.|-|_/)
+              : t('Select a metric to create an alert'),
+            tooltip: isCustomMeasurement({mri: widget.mri})
+              ? t('Custom measurements cannot be used to create alerts')
+              : undefined,
+            disabled: !createAlert,
+            onAction: () => {
+              trackAnalytics('ddm.create-alert', {
+                organization,
+                source: 'global',
+              });
+              createAlert?.();
+            },
+          };
+        }),
+    [isMultiChartMode, organization, selectedWidgetIndex, showQuerySymbols, widgets]
   );
 
   return (
@@ -198,3 +193,7 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
     </ButtonBar>
   );
 }
+
+const AddToDashboardItem = styled('div')<{disabled: boolean}>`
+  color: ${p => (p.disabled ? p.theme.disabled : p.theme.textColor)};
+`;

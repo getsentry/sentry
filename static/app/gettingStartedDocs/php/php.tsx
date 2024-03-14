@@ -5,6 +5,11 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  getCrashReportModalConfigDescription,
+  getCrashReportModalIntroduction,
+  getCrashReportPHPInstallStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 
@@ -30,7 +35,7 @@ const getMetricsConfigureSnippet = () => `
 use function \\Sentry\\init;
 
 \\Sentry\\init([
-    'metric_code_locations' => true,
+    'attach_metric_code_locations' => true,
 ]);`;
 
 const getVerifySnippet = () => `
@@ -202,10 +207,26 @@ const customMetricsOnboarding: OnboardingConfig = {
   ],
 };
 
+const crashReportOnboarding: OnboardingConfig = {
+  introduction: () => getCrashReportModalIntroduction(),
+  install: (params: Params) => getCrashReportPHPInstallStep(params),
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: getCrashReportModalConfigDescription({
+        link: 'https://docs.sentry.io/platforms/php/user-feedback/configuration/#crash-report-modal',
+      }),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
   customMetricsOnboarding,
+  crashReportOnboarding,
 };
 
 export default docs;

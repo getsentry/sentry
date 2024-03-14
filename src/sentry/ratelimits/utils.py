@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import random
-import string
+import logging
 from collections.abc import Callable, Mapping
 from typing import TYPE_CHECKING, Any
 
@@ -18,6 +17,8 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory, RateLimitMeta, 
 from sentry.utils.hashlib import md5_text
 
 from . import backend as ratelimiter
+
+logger = logging.getLogger("sentry.api.rate-limit")
 
 if TYPE_CHECKING:
     from sentry.models.apitoken import ApiToken
@@ -70,7 +71,7 @@ def get_rate_limit_key(
         return None
 
     ip_address = request.META.get("REMOTE_ADDR")
-    request_auth: (AuthenticatedToken | ApiToken | None) = getattr(request, "auth", None)
+    request_auth: AuthenticatedToken | ApiToken | None = getattr(request, "auth", None)
     request_user = getattr(request, "user", None)
 
     from django.contrib.auth.models import AnonymousUser
@@ -93,6 +94,11 @@ def get_rate_limit_key(
         if request_user.is_sentry_app:
             category = "org"
             id = get_organization_id_from_token(token_id)
+
+            # Fallback to IP address limit if we can't find the organization
+            if id is None and ip_address is not None:
+                category = "ip"
+                id = ip_address
         else:
             category = "user"
             id = request_auth.user_id
@@ -122,7 +128,7 @@ def get_rate_limit_key(
         return f"{category}:{rate_limit_group}:{http_method}:{id}"
 
 
-def get_organization_id_from_token(token_id: int) -> Any:
+def get_organization_id_from_token(token_id: int) -> int | None:
     from sentry.services.hybrid_cloud.app import app_service
 
     installations = app_service.get_many(
@@ -131,12 +137,13 @@ def get_organization_id_from_token(token_id: int) -> Any:
             "api_token_id": token_id,
         }
     )
-    installation = installations[0] if len(installations) > 0 else None
+    installation = installations[0] if installations else None
 
-    # Return a random uppercase/lowercase letter to avoid collisions caused by tokens not being
-    # associated with a SentryAppInstallation. This is a temporary fix while we solve the root cause
+    # Return None to avoid collisions caused by tokens not being associated with
+    # a SentryAppInstallation. We fallback to IP address rate limiting in this case.
     if not installation:
-        return random.choice(string.ascii_letters)
+        logger.info("installation.not_found", extra={"token_id": token_id})
+        return None
 
     return installation.organization_id
 
@@ -230,14 +237,18 @@ def for_organization_member_invite(
 
     return any(
         (
-            ratelimiter.is_limited(
-                "members:invite-by-user:{}".format(
-                    md5_text(user.id if user and user.is_authenticated else str(auth)).hexdigest()
-                ),
-                **config["members:invite-by-user"],
-            )
-            if (user or auth)
-            else None,
+            (
+                ratelimiter.is_limited(
+                    "members:invite-by-user:{}".format(
+                        md5_text(
+                            user.id if user and user.is_authenticated else str(auth)
+                        ).hexdigest()
+                    ),
+                    **config["members:invite-by-user"],
+                )
+                if (user or auth)
+                else None
+            ),
             ratelimiter.is_limited(
                 f"members:invite-by-org:{md5_text(organization.id).hexdigest()}",
                 **config["members:invite-by-org"],

@@ -1,6 +1,6 @@
 import logging
 import time
-from collections.abc import Generator, Mapping
+from collections.abc import Generator, Mapping, MutableMapping
 from dataclasses import dataclass
 from typing import Union
 
@@ -8,7 +8,7 @@ import sentry_sdk
 from django.conf import settings
 
 from sentry import options
-from sentry.processing.backpressure.health import record_consumer_health
+from sentry.processing.backpressure.health import UnhealthyReasons, record_consumer_health
 
 # from sentry import options
 from sentry.processing.backpressure.memory import (
@@ -77,19 +77,21 @@ def assert_all_services_defined(services: dict[str, Service]) -> None:
             )
 
 
-def check_service_health(services: Mapping[str, Service]) -> Mapping[str, bool]:
-    service_health = {}
+def check_service_health(services: Mapping[str, Service]) -> MutableMapping[str, UnhealthyReasons]:
+    unhealthy_services: MutableMapping[str, UnhealthyReasons] = {}
 
     for name, service in services.items():
         high_watermark = options.get(f"backpressure.high_watermarks.{name}")
-        is_healthy = True
+        reasons = []
 
         logger.info("Checking service `%s` (configured high watermark: %s):", name, high_watermark)
         try:
             for memory in check_service_memory(service):
-                is_healthy = is_healthy and memory.percentage < high_watermark
+                if memory.percentage >= high_watermark:
+                    reasons.append(memory)
                 logger.info(
-                    "  used: %s, available: %s, percentage: %s",
+                    "  name: %s, used: %s, available: %s, percentage: %s",
+                    memory.name,
                     memory.used,
                     memory.available,
                     memory.percentage,
@@ -98,12 +100,13 @@ def check_service_health(services: Mapping[str, Service]) -> Mapping[str, bool]:
             with sentry_sdk.push_scope() as scope:
                 scope.set_tag("service", name)
                 sentry_sdk.capture_exception(e)
-            is_healthy = False
+            unhealthy_services[name] = e
+        else:
+            unhealthy_services[name] = reasons
 
-        service_health[name] = is_healthy
-        logger.info("  => healthy: %s", is_healthy)
+        logger.info("  => healthy: %s", not unhealthy_services[name])
 
-    return service_health
+    return unhealthy_services
 
 
 def start_service_monitoring() -> None:
@@ -117,11 +120,11 @@ def start_service_monitoring() -> None:
 
         with sentry_sdk.start_transaction(name="backpressure.monitoring", sampled=True):
             # first, check each base service and record its health
-            service_health = check_service_health(services)
+            unhealthy_services = check_service_health(services)
 
             # then, check the derived services and record their health
             try:
-                record_consumer_health(service_health)
+                record_consumer_health(unhealthy_services)
             except Exception as e:
                 sentry_sdk.capture_exception(e)
 

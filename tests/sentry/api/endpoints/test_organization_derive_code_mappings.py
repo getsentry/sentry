@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 from django.db import router
 from django.urls import reverse
+from rest_framework import status
 
 from sentry.integrations.utils.code_mapping import FrameFilename, _get_code_mapping_source_path
 from sentry.models.integrations.integration import Integration
@@ -17,7 +18,12 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
-        self.project = self.create_project(organization=self.organization)
+        self.organization = self.create_organization("federal-bureau-of-control")
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        self.team = self.create_team(organization=self.organization, name="night-springs")
+        self.create_team_membership(team=self.team, user=self.user)
+        self.project = self.create_project(organization=self.organization, teams=[self.team])
         self.url = reverse(
             "sentry-api-0-organization-derive-code-mappings",
             args=[self.organization.slug],
@@ -117,6 +123,26 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             Integration.objects.all().delete()
         response = self.client.get(self.url, data=config_data, format="json")
         assert response.status_code == 404, response.content
+
+    def test_non_project_member_permissions(self):
+        config_data = {
+            "projectId": self.project.id,
+            "stackRoot": "/stack/root",
+            "sourceRoot": "/source/root",
+            "defaultBranch": "master",
+            "repoName": "getsentry/codemap",
+        }
+        non_member = self.create_user()
+        non_member_om = self.create_member(organization=self.organization, user=non_member)
+        self.login_as(user=non_member)
+
+        response = self.client.post(self.url, data=config_data, format="json")
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+        self.create_team_membership(team=self.team, member=non_member_om)
+
+        response = self.client.post(self.url, data=config_data, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
 
     def test_post_simple(self):
         config_data = {

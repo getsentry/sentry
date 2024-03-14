@@ -22,7 +22,7 @@ function getType(user: AvatarUser | Actor, gravatar: boolean | undefined) {
   if (user.avatar) {
     return user.avatar.avatarType;
   }
-  if (user.options && user.options.avatarType) {
+  if (user.options?.avatarType) {
     return user.options.avatarType;
   }
 

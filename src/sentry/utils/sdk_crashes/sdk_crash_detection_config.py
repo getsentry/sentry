@@ -1,14 +1,13 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum, unique
-
-import sentry_sdk
-from typing_extensions import TypedDict
+from typing import TypedDict
 
 from sentry import options
 from sentry.utils.sdk_crashes.path_replacer import (
     FixedPathReplacer,
     KeepAfterPatternMatchPathReplacer,
+    KeepFieldPathReplacer,
     PathReplacer,
 )
 
@@ -17,7 +16,7 @@ from sentry.utils.sdk_crashes.path_replacer import (
 class SDKFrameConfig:
     function_patterns: set[str]
 
-    filename_patterns: set[str]
+    path_patterns: set[str]
 
     path_replacer: PathReplacer
 
@@ -26,6 +25,7 @@ class SDKFrameConfig:
 class SdkName(Enum):
     Cocoa = "cocoa"
     ReactNative = "react-native"
+    Java = "java"
 
 
 @dataclass
@@ -92,7 +92,7 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                     r"*(Sentry*)*",  # Objective-C class extension categories
                     r"SentryMX*",  # MetricKit Swift classes
                 },
-                filename_patterns={"Sentry**"},
+                path_patterns={"Sentry**"},
                 path_replacer=FixedPathReplacer(path="Sentry.framework"),
             ),
             # [SentrySDK crash] is a testing function causing a crash.
@@ -122,7 +122,7 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
             },
             sdk_frame_config=SDKFrameConfig(
                 function_patterns=set(),
-                filename_patterns={
+                path_patterns={
                     # Development path
                     r"**/sentry-react-native/dist/**",
                     # Production paths taken from https://github.com/getsentry/sentry-react-native/blob/037d5fa2f38b02eaf4ca92fda569e0acfd6c3ebe/package.json#L68-L77
@@ -150,6 +150,56 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
         )
         configs.append(react_native_config)
 
+    java_options = _get_options(sdk_name=SdkName.Java, has_organization_allowlist=True)
+    if java_options:
+        java_config = SDKCrashDetectionConfig(
+            sdk_name=SdkName.Java,
+            project_id=java_options["project_id"],
+            sample_rate=java_options["sample_rate"],
+            organization_allowlist=java_options["organization_allowlist"],
+            sdk_names=[
+                "sentry.java.android",
+                "sentry.java.android.capacitor",
+                "sentry.java.android.dotnet",
+                "sentry.java.android.flutter",
+                "sentry.java.android.kmp",
+                "sentry.java.android.react-native",
+                "sentry.java.android.timber",
+                "sentry.java.android.unity",
+                "sentry.java.android.unreal",
+                "sentry.java.jul",
+                "sentry.java.kmp",
+                "sentry.java.log4j2",
+                "sentry.java.logback",
+                "sentry.java.opentelemetry.agent",
+                "sentry.java.spring",
+                "sentry.java.spring-boot",
+                "sentry.java.spring-boot.jakarta",
+                "sentry.java.spring.jakarta",
+            ],
+            # The sentry-java SDK sends SDK frames for uncaught exceptions since 7.0.0, which is required for detecting SDK crashes.
+            # 7.0.0 was released in Nov 2023, see https://github.com/getsentry/sentry-java/releases/tag/7.0.0
+            min_sdk_version="7.0.0",
+            system_library_path_patterns={
+                r"java.**",
+                r"javax.**",
+                r"android.**",
+                r"androidx.**",
+                r"com.android.internal.**",
+                r"kotlin.**",
+                r"dalvik.**",
+            },
+            sdk_frame_config=SDKFrameConfig(
+                function_patterns=set(),
+                path_patterns={
+                    r"io.sentry.**",
+                },
+                path_replacer=KeepFieldPathReplacer(fields={"module", "filename"}),
+            ),
+            sdk_crash_ignore_functions_matchers=set(),
+        )
+        configs.append(java_config)
+
     return configs
 
 
@@ -160,7 +210,6 @@ def _get_options(
 
     project_id = options.get(f"{options_prefix}.project_id")
     if not project_id:
-        sentry_sdk.capture_message(f"{sdk_name.value} project_id is not set.")
         return None
 
     sample_rate = options.get(f"{options_prefix}.sample_rate")

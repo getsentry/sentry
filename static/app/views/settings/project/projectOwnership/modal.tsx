@@ -48,7 +48,7 @@ function getFrameSuggestions(eventData?: Event) {
   }
 
   // Only display in-app frames
-  frames = frames.filter(frame => frame && frame.inApp).reverse();
+  frames = frames.filter(frame => frame?.inApp).reverse();
 
   return uniq(frames.map(frame => frame.filename || frame.absPath || ''));
 }
@@ -138,31 +138,23 @@ class ProjectOwnershipModal extends DeprecatedAsyncComponent<Props, State> {
           .map(i => i.value)
           .slice(0, 5)
       : [];
-
-    const hasStreamlineTargetingFeature = organization.features.includes(
-      'streamline-targeting-context'
-    );
     const paths = getFrameSuggestions(eventData);
 
     return (
       <Fragment>
-        {hasStreamlineTargetingFeature ? (
-          <Fragment>
-            <Description>
-              {tct(
-                'Assign issues based on custom rules. To learn more, [docs:read the docs].',
-                {
-                  docs: (
-                    <ExternalLink href="https://docs.sentry.io/product/issues/issue-owners/" />
-                  ),
-                }
-              )}
-            </Description>
-            <OwnershipSuggestions paths={paths} urls={urls} eventData={eventData} />
-          </Fragment>
-        ) : (
-          <p>{t('Match against Issue Data: (globbing syntax *, ? supported)')}</p>
-        )}
+        <Fragment>
+          <Description>
+            {tct(
+              'Assign issues based on custom rules. To learn more, [docs:read the docs].',
+              {
+                docs: (
+                  <ExternalLink href="https://docs.sentry.io/product/issues/issue-owners/" />
+                ),
+              }
+            )}
+          </Description>
+          <OwnershipSuggestions paths={paths} urls={urls} eventData={eventData} />
+        </Fragment>
         <OwnerInput
           organization={organization}
           project={project}

@@ -1,7 +1,10 @@
+from django.test import override_settings
+
 from sentry.attachments.base import CachedAttachment
 from sentry.models.eventattachment import EventAttachment
 from sentry.testutils.cases import APITestCase, PermissionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
@@ -52,28 +55,28 @@ class CreateAttachmentMixin:
 
 @region_silo_test
 class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
+    @with_feature("organizations:event-attachments")
     def test_simple(self):
         self.login_as(user=self.user)
 
         self.create_attachment()
         path = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/events/{self.event.event_id}/attachments/{self.attachment.id}/"
 
-        with self.feature("organizations:event-attachments"):
-            response = self.client.get(path)
+        response = self.client.get(path)
 
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(self.attachment.id)
         assert response.data["mimetype"] == "image/png"
         assert response.data["event_id"] == self.event.event_id
 
+    @with_feature("organizations:event-attachments")
     def test_download(self):
         self.login_as(user=self.user)
 
         self.create_attachment()
         path1 = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/events/{self.event.event_id}/attachments/{self.attachment.id}/?download"
 
-        with self.feature("organizations:event-attachments"):
-            response = self.client.get(path1)
+        response = self.client.get(path1)
 
         assert response.status_code == 200, response.content
         assert response.get("Content-Disposition") == 'attachment; filename="hello.png"'
@@ -91,8 +94,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         path2 = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/events/{self.event.event_id}/attachments/{self.attachment.id}/?download"
         assert path1 is not path2
 
-        with self.feature("organizations:event-attachments"):
-            response = self.client.get(path2)
+        response = self.client.get(path2)
 
         assert response.status_code == 200, response.content
         assert response.get("Content-Disposition") == 'attachment; filename="hello.png"'
@@ -100,6 +102,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         assert response.get("Content-Type") == "image/png"
         assert close_streaming_response(response) == ATTACHMENT_CONTENT
 
+    @with_feature("organizations:event-attachments")
     def test_zero_sized_attachment(self):
         self.login_as(user=self.user)
 
@@ -107,8 +110,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
 
         path = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/events/{self.event.event_id}/attachments/{self.attachment.id}/"
 
-        with self.feature("organizations:event-attachments"):
-            response = self.client.get(path)
+        response = self.client.get(path)
 
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(self.attachment.id)
@@ -118,8 +120,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
 
         path = f"{path}?download"
 
-        with self.feature("organizations:event-attachments"):
-            response = self.client.get(path)
+        response = self.client.get(path)
 
         assert response.status_code == 200, response.content
         assert response.get("Content-Disposition") == 'attachment; filename="hello.png"'
@@ -127,14 +128,14 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         assert response.get("Content-Type") == "image/png"
         assert close_streaming_response(response) == b""
 
+    @with_feature("organizations:event-attachments")
     def test_delete(self):
         self.login_as(user=self.user)
 
         self.create_attachment()
         path = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/events/{self.event.event_id}/attachments/{self.attachment.id}/"
 
-        with self.feature("organizations:event-attachments"):
-            response = self.client.delete(path)
+        response = self.client.delete(path)
 
         assert response.status_code == 204, response.content
         assert EventAttachment.objects.count() == 0
@@ -147,35 +148,57 @@ class EventAttachmentDetailsPermissionTest(PermissionTestCase, CreateAttachmentM
         self.create_attachment()
         self.path = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/events/{self.event.event_id}/attachments/{self.attachment.id}/?download"
 
+    @with_feature("organizations:event-attachments")
     def test_member_can_access_by_default(self):
-        with self.feature("organizations:event-attachments"):
-            close_streaming_response(self.assert_member_can_access(self.path))
-            close_streaming_response(self.assert_can_access(self.owner, self.path))
+        close_streaming_response(self.assert_member_can_access(self.path))
+        close_streaming_response(self.assert_can_access(self.owner, self.path))
 
+    @with_feature("organizations:event-attachments")
     def test_member_cannot_access_for_owner_role(self):
         self.organization.update_option("sentry:attachments_role", "owner")
-        with self.feature("organizations:event-attachments"):
-            self.assert_member_cannot_access(self.path)
-            close_streaming_response(self.assert_can_access(self.owner, self.path))
+        self.assert_member_cannot_access(self.path)
+        close_streaming_response(self.assert_can_access(self.owner, self.path))
 
-    def test_member_on_owner_team_can_access_for_owner_role(self):
-        self.organization.update_option("sentry:attachments_role", "owner")
-        owner_team = self.create_team(organization=self.organization, org_role="owner")
-        user = self.create_user()
-        self.create_member(organization=self.organization, user=user, teams=[owner_team, self.team])
-        with self.feature("organizations:event-attachments"):
-            close_streaming_response(self.assert_can_access(user, self.path))
-
+    @with_feature("organizations:event-attachments")
     def test_random_user_cannot_access(self):
         self.organization.update_option("sentry:attachments_role", "owner")
         user = self.create_user()
 
-        with self.feature("organizations:event-attachments"):
-            self.assert_cannot_access(user, self.path)
+        self.assert_cannot_access(user, self.path)
 
+    @with_feature("organizations:event-attachments")
     def test_superuser_can_access(self):
         self.organization.update_option("sentry:attachments_role", "owner")
         superuser = self.create_user(is_superuser=True)
 
-        with self.feature("organizations:event-attachments"):
-            close_streaming_response(self.assert_can_access(superuser, self.path))
+        close_streaming_response(self.assert_can_access(superuser, self.path))
+
+        with self.settings(SENTRY_SELF_HOSTED=False):
+            self.assert_can_access(superuser, self.path)
+            self.assert_can_access(superuser, self.path, method="DELETE")
+
+    @with_feature(
+        {"organizations:event-attachments": True, "auth:enterprise-superuser-read-write": True}
+    )
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    def test_superuser_read_access(self):
+        self.organization.update_option("sentry:attachments_role", "owner")
+        superuser = self.create_user(is_superuser=True)
+
+        close_streaming_response(self.assert_can_access(superuser, self.path))
+
+        self.assert_cannot_access(superuser, self.path, method="DELETE")
+
+    @with_feature(
+        {"organizations:event-attachments": True, "auth:enterprise-superuser-read-write": True}
+    )
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    def test_superuser_write_can_access(self):
+        self.organization.update_option("sentry:attachments_role", "owner")
+        superuser = self.create_user(is_superuser=True)
+
+        self.add_user_permission(superuser, "superuser.write")
+
+        close_streaming_response(self.assert_can_access(superuser, self.path))
+
+        self.assert_can_access(superuser, self.path, method="DELETE")

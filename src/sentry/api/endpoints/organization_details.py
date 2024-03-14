@@ -3,13 +3,13 @@ from __future__ import annotations
 import logging
 from copy import copy
 from datetime import datetime, timedelta, timezone
+from typing import TypedDict
 
 from django.db import models, router, transaction
 from django.db.models.query_utils import DeferredAttribute
 from django.urls import reverse
 from django.utils import timezone as django_timezone
 from rest_framework import serializers, status
-from typing_extensions import TypedDict
 
 from bitfield.types import BitHandler
 from sentry import audit_log, roles
@@ -26,6 +26,7 @@ from sentry.api.serializers.models.organization import (
     BaseOrganizationSerializer,
     TrustedRelaySerializer,
 )
+from sentry.auth.staff import is_active_staff
 from sentry.constants import (
     ACCOUNT_RATE_LIMIT_DEFAULT,
     AI_SUGGESTED_SOLUTION,
@@ -333,7 +334,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         return attrs
 
     def save_trusted_relays(self, incoming, changed_data, organization):
-        timestamp_now = datetime.utcnow().replace(tzinfo=timezone.utc).isoformat()
+        timestamp_now = datetime.now(timezone.utc).isoformat()
         option_key = "sentry:trusted-relays"
         try:
             # get what we already have
@@ -532,6 +533,7 @@ def post_org_pending_deletion(
         send_delete_confirmation(delete_confirmation_args)
 
 
+# NOTE: We override the permission class of this endpoint in getsentry with the OrganizationDetailsPermission class
 @region_silo_endpoint
 class OrganizationDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
@@ -553,9 +555,9 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         :param string detailed: Specify '0' to retrieve details without projects and teams.
         :auth: required
         """
-
         serializer = org_serializers.OrganizationSerializer
-        if request.access.has_scope("org:read"):
+
+        if request.access.has_scope("org:read") or is_active_staff(request):
             is_detailed = request.GET.get("detailed", "1") != "0"
 
             serializer = org_serializers.DetailedOrganizationSerializer
@@ -583,6 +585,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         """
         from sentry import features
 
+        # We don't need to check for staff here b/c the _admin portal uses another endpoint to update orgs
         if request.access.has_scope("org:admin"):
             serializer_cls = OwnerOrganizationSerializer
         else:

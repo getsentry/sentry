@@ -6,7 +6,7 @@ from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.silo import no_silo_test
 from sentry.utils.samples import load_data
 
-now = datetime.utcnow().replace(tzinfo=timezone.utc)
+now = datetime.now(timezone.utc)
 
 
 @no_silo_test

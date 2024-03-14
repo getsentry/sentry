@@ -62,13 +62,15 @@ IDLE_MAX_AGE = getattr(settings, "SUPERUSER_IDLE_MAX_AGE", timedelta(minutes=15)
 
 ALLOWED_IPS = frozenset(getattr(settings, "SUPERUSER_ALLOWED_IPS", settings.INTERNAL_IPS) or ())
 
-ORG_ID = getattr(settings, "SUPERUSER_ORG_ID", None)
+SUPERUSER_ORG_ID = getattr(settings, "SUPERUSER_ORG_ID", None)
 
 SUPERUSER_ACCESS_CATEGORIES = getattr(settings, "SUPERUSER_ACCESS_CATEGORIES", ["for_unit_test"])
 
 UNSET = object()
 
-ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV = getattr(settings, "ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV", False)
+DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = getattr(
+    settings, "DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL", False
+)
 
 SUPERUSER_SCOPES = settings.SENTRY_SCOPES.union({"org:superuser"})
 
@@ -87,12 +89,17 @@ def get_superuser_scopes(auth_state: RpcAuthState, user: Any):
     return superuser_scopes
 
 
-def superuser_has_permission(request: HttpRequest | Request) -> bool:
+def superuser_has_permission(
+    request: HttpRequest | Request, permissions: frozenset[str] | None = None
+) -> bool:
     """
     This is used in place of is_active_superuser() in APIs / permission classes.
     Checks if superuser has permission for the request.
     Superuser read-only is restricted to GET and OPTIONS requests.
     These checks do not affect self-hosted.
+
+    The `permissions` arg is passed in and used when request.access is not populated,
+    e.g. in UserPermission
     """
     if not is_active_superuser(request):
         return False
@@ -104,8 +111,14 @@ def superuser_has_permission(request: HttpRequest | Request) -> bool:
     if not features.has("auth:enterprise-superuser-read-write", actor=request.user):
         return True
 
+    # either request.access or permissions must exist
+    assert getattr(request, "access", None) or permissions is not None
+
     # superuser write can access all requests
-    if request.access.has_permission("superuser.write"):
+    if getattr(request, "access", None) and request.access.has_permission("superuser.write"):
+        return True
+
+    elif permissions is not None and "superuser.write" in permissions:
         return True
 
     # superuser read-only can only hit GET and OPTIONS (pre-flight) requests
@@ -138,7 +151,7 @@ class EmptySuperuserAccessForm(SentryAPIException):
 
 class Superuser(ElevatedMode):
     allowed_ips = frozenset(ipaddress.ip_network(str(v), strict=False) for v in ALLOWED_IPS)
-    org_id = ORG_ID
+    org_id = SUPERUSER_ORG_ID
 
     def _check_expired_on_org_change(self) -> bool:
         if self.expires is not None:
@@ -166,7 +179,15 @@ class Superuser(ElevatedMode):
 
     @staticmethod
     def _needs_validation():
-        if is_self_hosted() or ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV:
+        self_hosted = is_self_hosted()
+        logger.info(
+            "superuser.needs-validation",
+            extra={
+                "DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL": DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL,
+                "self_hosted": self_hosted,
+            },
+        )
+        if self_hosted or DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL:
             return False
         return settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON
 
@@ -175,8 +196,8 @@ class Superuser(ElevatedMode):
         org = getattr(self.request, "organization", None)
         if org and org.id != self.org_id:
             return self._check_expired_on_org_change()
-        # We have a wsgi request with no user.
-        if not hasattr(self.request, "user"):
+        # We have a wsgi request with no user or user is None.
+        if not hasattr(self.request, "user") or self.request.user is None:
             return False
         # if we've been logged out
         if not self.request.user.is_authenticated:

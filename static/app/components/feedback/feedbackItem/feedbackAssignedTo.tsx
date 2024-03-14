@@ -43,6 +43,7 @@ export default function FeedbackAssignedTo({feedbackIssue, feedbackEvent}: Props
   const {assign} = useMutateFeedback({
     feedbackIds: [feedbackIssue.id],
     organization,
+    projectIds: [feedbackIssue.project.id],
   });
 
   const owners = getOwnerList([], eventOwners ?? null, feedbackIssue.assignedTo);

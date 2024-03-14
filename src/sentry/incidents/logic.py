@@ -5,7 +5,7 @@ from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, cast
 from uuid import uuid4
 
 from django.db import router, transaction
@@ -18,15 +18,23 @@ from sentry import analytics, audit_log, features, quotas
 from sentry.auth.access import SystemAccess
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, ObjectStatus
 from sentry.incidents import tasks
-from sentry.incidents.models import (
+from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleActivity,
     AlertRuleActivityType,
     AlertRuleExcludedProjects,
+    AlertRuleMonitorType,
+    AlertRuleProjects,
     AlertRuleStatus,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
     AlertRuleTriggerExclusion,
+)
+from sentry.incidents.models.alert_rule_activations import (
+    AlertRuleActivationCondition,
+    AlertRuleActivations,
+)
+from sentry.incidents.models.incident import (
     Incident,
     IncidentActivity,
     IncidentActivityType,
@@ -38,9 +46,11 @@ from sentry.incidents.models import (
     IncidentTrigger,
     TriggerStatus,
 )
+from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.models.actor import Actor
 from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.models.project import Project
+from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import is_function, resolve_field
@@ -64,7 +74,6 @@ from sentry.snuba.metrics.extraction import should_use_on_demand_metrics
 from sentry.snuba.metrics.naming_layer.mri import get_available_operations, is_mri, parse_mri
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.subscriptions import (
-    bulk_create_snuba_subscriptions,
     bulk_delete_snuba_subscriptions,
     bulk_disable_snuba_subscriptions,
     bulk_enable_snuba_subscriptions,
@@ -382,7 +391,7 @@ def calculate_incident_time_range(incident, start=None, end=None, windowed_stats
     retention = quotas.get_event_retention(organization=incident.organization) or 90
     start = max(
         start.replace(tzinfo=timezone.utc),
-        datetime.utcnow().replace(tzinfo=timezone.utc) - timedelta(days=retention),
+        datetime.now(timezone.utc) - timedelta(days=retention),
     )
     end = max(start, end.replace(tzinfo=timezone.utc))
 
@@ -476,6 +485,7 @@ def create_alert_rule(
     user=None,
     event_types=None,
     comparison_delta: int | None = None,
+    monitor_type: AlertRuleMonitorType = AlertRuleMonitorType.CONTINUOUS,
     **kwargs,
 ):
     """
@@ -525,14 +535,15 @@ def create_alert_rule(
         actor = owner
 
     with transaction.atomic(router.db_for_write(SnubaQuery)):
+        # NOTE: `create_snuba_query` constructs the postgres representation of the snuba query
         snuba_query = create_snuba_query(
-            query_type,
-            dataset,
-            query,
-            aggregate,
-            timedelta(minutes=time_window),
-            timedelta(minutes=resolution),
-            environment,
+            query_type=query_type,
+            dataset=dataset,
+            query=query,
+            aggregate=aggregate,
+            time_window=timedelta(minutes=time_window),
+            resolution=timedelta(minutes=resolution),
+            environment=environment,
             event_types=event_types,
         )
 
@@ -548,6 +559,7 @@ def create_alert_rule(
             comparison_delta=comparison_delta,
             user_id=actor.user_id if actor else None,
             team_id=actor.team_id if actor else None,
+            monitor_type=monitor_type.value,
         )
 
         if user:
@@ -561,6 +573,7 @@ def create_alert_rule(
             )
 
         if include_all_projects:
+            # NOTE: This feature is not currently utilized.
             excluded_projects = excluded_projects if excluded_projects else []
             projects = Project.objects.filter(organization=organization).exclude(
                 id__in=[p.id for p in excluded_projects]
@@ -570,9 +583,17 @@ def create_alert_rule(
                 for project in excluded_projects
             ]
             AlertRuleExcludedProjects.objects.bulk_create(exclusions)
+        elif monitor_type == AlertRuleMonitorType.ACTIVATED and projects:
+            arps = [
+                AlertRuleProjects(alert_rule=alert_rule, project=project) for project in projects
+            ]
+            AlertRuleProjects.objects.bulk_create(arps)
 
-        subscribe_projects_to_alert_rule(alert_rule, projects)
+        # NOTE: This constructs the query in snuba
+        # NOTE: Will only subscribe if AlertRule.monitor_type === 'CONTINUOUS'
+        alert_rule.subscribe_projects(projects=projects)
 
+        # Activity is an audit log of what's happened with this alert rule
         AlertRuleActivity.objects.create(
             alert_rule=alert_rule,
             user_id=user.id if user else None,
@@ -645,6 +666,7 @@ def update_alert_rule(
     user=None,
     event_types=None,
     comparison_delta=NOT_SET,
+    monitor_type: AlertRuleMonitorType | None = None,
     **kwargs,
 ):
     """
@@ -702,6 +724,9 @@ def update_alert_rule(
             updated_query_fields["dataset"] = dataset
     if query_type is not None:
         updated_query_fields["query_type"] = query_type
+    if monitor_type is not None:
+        # TODO: determine how to convert activated alert into continuous alert and vice versa
+        pass
     if event_types is not None:
         updated_query_fields["event_types"] = event_types
     if owner is not NOT_SET:
@@ -768,6 +793,7 @@ def update_alert_rule(
             get_excluded_projects_for_alert_rule(alert_rule).delete()
 
         if alert_rule.include_all_projects:
+            # NOTE: This feature is not currently utilized.
             if include_all_projects or excluded_projects is not None:
                 # If we're in `include_all_projects` mode, we want to just fetch
                 # projects that aren't already subscribed, and haven't been excluded so
@@ -806,7 +832,7 @@ def update_alert_rule(
             ]
 
         if new_projects:
-            subscribe_projects_to_alert_rule(alert_rule, new_projects)
+            alert_rule.subscribe_projects(projects=new_projects)
 
         if deleted_subs:
             bulk_delete_snuba_subscriptions(deleted_subs)
@@ -824,16 +850,6 @@ def update_alert_rule(
     schedule_update_project_config(alert_rule, projects)
 
     return alert_rule
-
-
-def subscribe_projects_to_alert_rule(alert_rule, projects):
-    """
-    Subscribes a list of projects to an alert rule
-    :return: The list of created subscriptions
-    """
-    return bulk_create_snuba_subscriptions(
-        projects, tasks.INCIDENTS_SNUBA_SUBSCRIPTION_TYPE, alert_rule.snuba_query
-    )
 
 
 def enable_alert_rule(alert_rule):
@@ -878,14 +894,15 @@ def delete_alert_rule(alert_rule, user=None, ip_address=None):
 
         incidents = Incident.objects.filter(alert_rule=alert_rule)
         if incidents.exists():
-            alert_rule.update(status=AlertRuleStatus.SNAPSHOT.value)
             AlertRuleActivity.objects.create(
                 alert_rule=alert_rule,
                 user_id=user.id if user else None,
                 type=AlertRuleActivityType.DELETED.value,
             )
         else:
-            alert_rule.delete()
+            RegionScheduledDeletion.schedule(instance=alert_rule, days=0, actor=user)
+
+        alert_rule.update(status=AlertRuleStatus.SNAPSHOT.value)
 
     if alert_rule.id:
         # Change the incident status asynchronously, which could take awhile with many incidents due to snapshot creations.
@@ -900,9 +917,51 @@ class AlertRuleTriggerLabelAlreadyUsedError(Exception):
     pass
 
 
+class AlertRuleActivationConditionLabelAlreadyUsedError(Exception):
+    pass
+
+
 class ProjectsNotAssociatedWithAlertRuleError(Exception):
     def __init__(self, project_slugs):
         self.project_slugs = project_slugs
+
+
+def create_alert_rule_activation_condition(
+    alert_rule: AlertRule,
+    label: str,
+    condition_type: AlertRuleActivationConditionType,
+):
+    """
+    Creates a new AlertRuleActivationCondition
+    :param alert_rule: The alert rule to create the condition for
+    :param label: A description of the condition
+    :param condition_type: The type of condition being created (so far, only deploy/release creation)
+    :return: The created AlertRuleActivationCondition
+    """
+    if AlertRuleActivationCondition.objects.filter(alert_rule=alert_rule, label=label).exists():
+        raise AlertRuleActivationConditionLabelAlreadyUsedError()
+
+    with transaction.atomic(router.db_for_write(AlertRuleActivationCondition)):
+        condition = AlertRuleActivationCondition.objects.create(
+            alert_rule=alert_rule, label=label, condition_type=condition_type.value
+        )
+
+    return condition
+
+
+def create_alert_rule_activation(
+    alert_rule: AlertRule,
+    metric_value: int | None = None,
+    finished_at: datetime | None = None,
+):
+    with transaction.atomic(router.db_for_write(AlertRuleActivations)):
+        activation = AlertRuleActivations.objects.create(
+            alert_rule=alert_rule,
+            metric_value=metric_value,
+            finished_at=finished_at,
+        )
+
+    return activation
 
 
 def create_alert_rule_trigger(alert_rule, label, alert_threshold, excluded_projects=None):
@@ -1126,6 +1185,7 @@ def create_alert_rule_trigger_action(
     sentry_app_config=None,
     installations: list[RpcSentryAppInstallation] | None = None,
     integrations: list[RpcIntegration] | None = None,
+    priority: str | None = None,
 ) -> AlertRuleTriggerAction:
     """
     Creates an AlertRuleTriggerAction
@@ -1162,6 +1222,13 @@ def create_alert_rule_trigger_action(
             trigger.alert_rule.organization, sentry_app_id, installations
         )
 
+    # store priority in the json sentry_app_config
+    if priority is not None and type in [ActionService.PAGERDUTY, ActionService.OPSGENIE]:
+        if sentry_app_config:
+            sentry_app_config.update({"priority": priority})
+        else:
+            sentry_app_config = {"priority": priority}
+
     return AlertRuleTriggerAction.objects.create(
         alert_rule_trigger=trigger,
         type=type.value,
@@ -1186,6 +1253,7 @@ def update_alert_rule_trigger_action(
     sentry_app_config=None,
     installations: list[RpcSentryAppInstallation] | None = None,
     integrations: list[RpcIntegration] | None = None,
+    priority: str | None = None,
 ) -> AlertRuleTriggerAction:
     """
     Updates values on an AlertRuleTriggerAction
@@ -1238,6 +1306,14 @@ def update_alert_rule_trigger_action(
             updated_fields["target_display"] = target_display
 
         updated_fields["target_identifier"] = target_identifier
+
+    # store priority in the json sentry_app_config
+    if priority is not None and type in [ActionService.PAGERDUTY, ActionService.OPSGENIE]:
+        if updated_fields.get("sentry_app_config"):
+            updated_fields["sentry_app_config"].update({"priority": priority})
+        else:
+            updated_fields["sentry_app_config"] = {"priority": priority}
+
     trigger_action.update(**updated_fields)
     return trigger_action
 
@@ -1400,26 +1476,25 @@ def get_alert_rule_trigger_action_opsgenie_team(
     input_channel_id=None,
     integrations=None,
 ) -> tuple[str, str]:
-    from sentry.integrations.opsgenie.client import OpsgenieClient
+    from sentry.integrations.opsgenie.integration import OpsgenieIntegration
     from sentry.integrations.opsgenie.utils import get_team
 
-    oi = integration_service.get_organization_integration(
-        integration_id=integration_id, organization_id=organization.id
+    integration, oi = integration_service.get_organization_context(
+        organization_id=organization.id, integration_id=integration_id
     )
+    if integration is None or oi is None:
+        raise InvalidTriggerActionError("Opsgenie integration not found.")
+
     team = get_team(target_value, oi)
     if not team:
         raise InvalidTriggerActionError("No Opsgenie team found.")
 
-    integration_key = team["integration_key"]
-    integration = integration_service.get_integration(integration_id=integration_id)
-    if integration is None:
-        raise InvalidTriggerActionError("Opsgenie integration not found.")
-    client = OpsgenieClient(
-        integration=integration,
-        integration_key=integration_key,
-        org_integration_id=oi.id,
-        keyid=team["id"],
+    install = cast(
+        "OpsgenieIntegration",
+        integration.get_installation(organization_id=organization.id),
     )
+    client = install.get_keyring_client(keyid=team["id"])
+
     try:
         client.authorize_integration(type="sentry")
     except ApiError as e:
@@ -1446,9 +1521,11 @@ def get_alert_rule_trigger_action_sentry_app(organization, sentry_app_id, instal
 
 def delete_alert_rule_trigger_action(trigger_action):
     """
-    Deletes a AlertRuleTriggerAction
+    Schedules a deletion for a AlertRuleTriggerAction, and marks it as pending deletion.
+    Marking it as pending deletion should filter out the object through the manager when querying.
     """
-    trigger_action.delete()
+    RegionScheduledDeletion.schedule(instance=trigger_action, days=0)
+    trigger_action.update(status=ObjectStatus.PENDING_DELETION)
 
 
 def get_actions_for_trigger(trigger):
@@ -1662,11 +1739,15 @@ def get_filtered_actions(
 
 
 def schedule_update_project_config(alert_rule: AlertRule, projects: Sequence[Project]):
+    """
+    If `should_use_on_demand`, then invalidate the project configs
+    """
     enabled_features = on_demand_metrics_feature_flags(alert_rule.organization)
     prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
-
-    if not projects or not (
-        "organizations:on-demand-metrics-extraction" in enabled_features or prefilling
+    if (
+        not projects
+        or "organizations:on-demand-metrics-extraction" not in enabled_features
+        and not prefilling
     ):
         return
 

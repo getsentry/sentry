@@ -1,5 +1,7 @@
+import {Fragment} from 'react';
+import styled from '@emotion/styled';
+
 import {Alert} from 'sentry/components/alert';
-import {LinkButton} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import List from 'sentry/components/list';
@@ -12,7 +14,7 @@ interface Props {
 
 export default function MissingReplayAlert({orgSlug}: Props) {
   const reasons = [
-    t('The replay is still processing'),
+    t('The replay is still processing.'),
     tct(
       'The replay was rate-limited and could not be accepted. [link:View the stats page] for more information.',
       {
@@ -21,38 +23,35 @@ export default function MissingReplayAlert({orgSlug}: Props) {
     ),
     t('The replay has been deleted by a member in your organization.'),
     t('There were network errors and the replay was not saved.'),
-    tct('[link:Read the docs] to understand why.', {
-      link: (
-        <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/#error-linking" />
-      ),
-    }),
   ];
-
   return (
     <Alert
       type="info"
       showIcon
       data-test-id="replay-error"
-      trailingItems={
-        <LinkButton
-          external
-          href="https://docs.sentry.io/platforms/javascript/session-replay/#error-linking"
-          size="xs"
-        >
-          {t('Read Docs')}
-        </LinkButton>
+      expand={
+        <Fragment>
+          <ListIntro>{t('Other reasons may include:')}</ListIntro>
+          <List symbol="bullet">
+            {reasons.map((reason, i) => (
+              <ListItem key={i}>{reason}</ListItem>
+            ))}
+          </List>
+        </Fragment>
       }
     >
-      <p>
-        {t(
-          'The replay for this event cannot be found. This could be due to these reasons:'
-        )}
-      </p>
-      <List symbol="bullet">
-        {reasons.map((reason, i) => (
-          <ListItem key={i}>{reason}</ListItem>
-        ))}
-      </List>
+      {tct(
+        "The replay associated with this event cannot be found. In most cases, the replay wasn't accepted because your replay quota was exceeded at the time. To learn more, [link:read our docs].",
+        {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/#error-linking" />
+          ),
+        }
+      )}
     </Alert>
   );
 }
+
+const ListIntro = styled('div')`
+  line-height: 2em;
+`;

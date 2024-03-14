@@ -93,13 +93,7 @@ def create_blame_query(file_path_mapping: FilePathMapping, extra: Mapping[str, A
 
         repo_queries += _make_repo_query(repo_name, repo_owner, ref_queries, repo_index)
 
-    query = f"""query {{{repo_queries}\n}}"""
-
-    logger.info(
-        "get_blame_for_files.create_blame_query.created_query", extra={**extra, "query": query}
-    )
-
-    return query
+    return f"""query {{{repo_queries}\n}}"""
 
 
 def extract_commits_from_blame_response(
@@ -114,7 +108,6 @@ def extract_commits_from_blame_response(
     back to the correct file.
     """
     file_blames: list[FileBlameInfo] = []
-    logger.info("get_blame_for_files.extract_commits_from_blame.missing_repository", extra=extra)
     for repo_index, (full_repo_name, ref_mapping) in enumerate(file_path_mapping.items()):
         repo_mapping: GitHubRepositoryResponse | None = response.get("data", {}).get(
             f"repository{repo_index}"

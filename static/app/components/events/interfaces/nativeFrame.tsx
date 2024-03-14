@@ -13,7 +13,6 @@ import {
   hasContextRegisters,
   hasContextSource,
   hasContextVars,
-  hasStacktraceLinkInFrameFeature,
   isExpandable,
   trimPackage,
 } from 'sentry/components/events/interfaces/frame/utils';
@@ -39,7 +38,6 @@ import type {
 } from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
-import useOrganization from 'sentry/utils/useOrganization';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
 import type DebugImage from './debugMeta/debugImage';
@@ -101,8 +99,6 @@ function NativeFrame({
    */
   isHoverPreviewed = false,
 }: Props) {
-  const organization = useOrganization();
-
   const traceEventDataSectionContext = useContext(TraceEventDataSectionContext);
 
   const absolute = traceEventDataSectionContext?.display.includes('absolute-addresses');
@@ -124,7 +120,7 @@ function NativeFrame({
     frame.symbolicatorStatus !== SymbolicatorStatus.UNKNOWN_IMAGE &&
     !isHoverPreviewed;
 
-  const leadsToApp = !frame.inApp && ((nextFrame && nextFrame.inApp) || !nextFrame);
+  const leadsToApp = !frame.inApp && (nextFrame?.inApp || !nextFrame);
   const expandable =
     !leadsToApp || includeSystemFrames
       ? isExpandable({
@@ -151,10 +147,7 @@ function NativeFrame({
 
   const contextLine = (frame?.context || []).find(l => l[0] === frame.lineNo);
   const hasStacktraceLink = frame.inApp && !!frame.filename && (isHovering || expanded);
-  const hasInFrameFeature = hasStacktraceLinkInFrameFeature(organization);
-  const showStacktraceLinkInFrame = hasStacktraceLink && hasInFrameFeature;
-  const showSentryAppStacktraceLinkInFrame =
-    showStacktraceLinkInFrame && components.length > 0;
+  const showSentryAppStacktraceLinkInFrame = hasStacktraceLink && components.length > 0;
 
   const handleMouseEnter = () => setHovering(true);
 
@@ -381,7 +374,7 @@ function NativeFrame({
             </ShowHideButton>
           ) : null}
           <GenericCellWrapper>
-            {showStacktraceLinkInFrame && (
+            {hasStacktraceLink && (
               <ErrorBoundary>
                 <StacktraceLink
                   frame={frame}
@@ -431,6 +424,7 @@ function NativeFrame({
           isExpanded={expanded}
           registersMeta={registersMeta}
           frameMeta={frameMeta}
+          platform={platform}
         />
       )}
     </StackTraceFrame>

@@ -5,12 +5,11 @@ from collections import namedtuple
 from collections.abc import Sequence
 from copy import deepcopy
 from datetime import datetime, timedelta
-from typing import Any, NotRequired
+from typing import Any, NotRequired, TypedDict
 
 import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk import Condition, Function, Op
-from typing_extensions import TypedDict
 
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
@@ -30,7 +29,6 @@ from sentry.search.events.fields import (
 from sentry.search.events.types import HistogramParams, ParamsType, QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
-from sentry.utils.dates import to_timestamp
 from sentry.utils.math import nice_int
 from sentry.utils.snuba import (
     SnubaTSResult,
@@ -120,7 +118,7 @@ def format_time(data, start, end, rollup, orderby):
             # ISO 8601 parser. It is only the inverse function of `datetime.isoformat`, which is
             # the format returned by snuba. This is significantly faster when compared to other
             # parsers like `dateutil.parser.parse` and `datetime.strptime`.
-            obj["time"] = int(to_timestamp(datetime.fromisoformat(obj["time"])))
+            obj["time"] = int(datetime.fromisoformat(obj["time"]).timestamp())
         if obj["time"] in data_by_time:
             data_by_time[obj["time"]].append(obj)
         else:
@@ -151,7 +149,7 @@ def zerofill(data, start, end, rollup, orderby, time_col_name=None):
             # ISO 8601 parser. It is only the inverse function of `datetime.isoformat`, which is
             # the format returned by snuba. This is significantly faster when compared to other
             # parsers like `dateutil.parser.parse` and `datetime.strptime`.
-            obj["time"] = int(to_timestamp(datetime.fromisoformat(obj["time"])))
+            obj["time"] = int(datetime.fromisoformat(obj["time"]).timestamp())
         if obj["time"] in data_by_time:
             data_by_time[obj["time"]].append(obj)
         else:
@@ -271,7 +269,7 @@ def query(
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    params: dict[str, Any],
+    params: ParamsType,
     rollup: int,
     referrer: str | None = None,
     zerofill_results: bool = True,
@@ -344,15 +342,17 @@ def timeseries_query(
         for snql_query, result in zip(query_list, query_results):
             results.append(
                 {
-                    "data": zerofill(
-                        result["data"],
-                        snql_query.params.start,
-                        snql_query.params.end,
-                        rollup,
-                        "time",
-                    )
-                    if zerofill_results
-                    else result["data"],
+                    "data": (
+                        zerofill(
+                            result["data"],
+                            snql_query.params.start,
+                            snql_query.params.end,
+                            rollup,
+                            "time",
+                        )
+                        if zerofill_results
+                        else result["data"]
+                    ),
                     "meta": result["meta"],
                 }
             )
@@ -509,9 +509,11 @@ def top_events_timeseries(
     ):
         return SnubaTSResult(
             {
-                "data": zerofill([], params["start"], params["end"], rollup, "time")
-                if zerofill_results
-                else [],
+                "data": (
+                    zerofill([], params["start"], params["end"], rollup, "time")
+                    if zerofill_results
+                    else []
+                ),
             },
             params["start"],
             params["end"],
@@ -553,9 +555,11 @@ def top_events_timeseries(
         for key, item in results.items():
             results[key] = SnubaTSResult(
                 {
-                    "data": zerofill(item["data"], params["start"], params["end"], rollup, "time")
-                    if zerofill_results
-                    else item["data"],
+                    "data": (
+                        zerofill(item["data"], params["start"], params["end"], rollup, "time")
+                        if zerofill_results
+                        else item["data"]
+                    ),
                     "order": item["order"],
                 },
                 params["start"],
@@ -594,7 +598,7 @@ def get_facets(
     Returns Sequence[FacetResult]
     """
     sample = len(params["project_id"]) > 2
-    fetch_projects = len(params.get("project_id", [])) > 1
+    fetch_projects = len(params["project_id"]) > 1
 
     with sentry_sdk.start_span(op="discover.discover", description="facets.frequent_tags"):
         key_name_builder = QueryBuilder(

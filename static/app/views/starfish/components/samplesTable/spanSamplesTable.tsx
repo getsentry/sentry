@@ -143,7 +143,7 @@ export function SpanSamplesTable({
             <Tooltip title={t('View Profile')}>
               <LinkButton
                 to={normalizeUrl(
-                  `/organizations/${organization.slug}/profiling/profile/${row.project}/${row.profile_id}/flamechart/`
+                  `/organizations/${organization.slug}/profiling/profile/${row.project}/${row.profile_id}/flamegraph/?spanId=${row.span_id}`
                 )}
                 size="xs"
               >

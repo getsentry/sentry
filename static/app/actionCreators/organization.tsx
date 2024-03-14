@@ -19,7 +19,7 @@ import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 async function fetchOrg(
   api: Client,
   slug: string,
-  isInitialFetch?: boolean
+  usePreload?: boolean
 ): Promise<Organization> {
   const [org] = await getPreloadedDataPromise(
     'organization',
@@ -31,7 +31,7 @@ async function fetchOrg(
         includeAllArgs: true,
         query: {detailed: 0},
       }),
-    isInitialFetch
+    usePreload
   );
 
   if (!org) {
@@ -53,7 +53,7 @@ async function fetchOrg(
 
 async function fetchProjectsAndTeams(
   slug: string,
-  isInitialFetch?: boolean
+  usePreload?: boolean
 ): Promise<
   [
     [Project[], string | undefined, XMLHttpRequest | ResponseMeta | undefined],
@@ -73,10 +73,10 @@ async function fetchProjectsAndTeams(
         includeAllArgs: true,
         query: {
           all_projects: 1,
-          collapse: 'latestDeploys',
+          collapse: ['latestDeploys', 'unusedFeatures'],
         },
       }),
-    isInitialFetch
+    usePreload
   );
 
   const teamsPromise = getPreloadedDataPromise(
@@ -88,7 +88,7 @@ async function fetchProjectsAndTeams(
       uncancelableApi.requestPromise(`/organizations/${slug}/teams/`, {
         includeAllArgs: true,
       }),
-    isInitialFetch
+    usePreload
   );
 
   try {
@@ -117,12 +117,13 @@ async function fetchProjectsAndTeams(
  * @param slug The organization slug
  * @param silent Should we silently update the organization (do not clear the
  *               current organization in the store)
+ * @param usePreload Should the preloaded data be used if available?
  */
 export function fetchOrganizationDetails(
   api: Client,
   slug: string,
   silent: boolean,
-  isInitialFetch?: boolean
+  usePreload?: boolean
 ) {
   if (!silent) {
     OrganizationStore.reset();
@@ -133,7 +134,7 @@ export function fetchOrganizationDetails(
 
   const loadOrganization = async () => {
     try {
-      await fetchOrg(api, slug, isInitialFetch);
+      await fetchOrg(api, slug, usePreload);
     } catch (err) {
       if (!err) {
         return;
@@ -161,10 +162,7 @@ export function fetchOrganizationDetails(
   };
 
   const loadTeamsAndProjects = async () => {
-    const [[projects], [teams, , resp]] = await fetchProjectsAndTeams(
-      slug,
-      isInitialFetch
-    );
+    const [[projects], [teams, , resp]] = await fetchProjectsAndTeams(slug, usePreload);
 
     ProjectsStore.loadInitialData(projects ?? []);
 

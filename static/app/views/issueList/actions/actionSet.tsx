@@ -1,23 +1,23 @@
 import {Fragment} from 'react';
-import {useTheme} from '@emotion/react';
 
 import ActionLink from 'sentry/components/actions/actionLink';
 import ArchiveActions from 'sentry/components/actions/archive';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {GroupPriorityBadge} from 'sentry/components/group/groupPriority';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import type {BaseGroup, Project} from 'sentry/types';
-import {GroupStatus} from 'sentry/types';
+import {GroupStatus, PriorityLevel} from 'sentry/types';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import type {IssueTypeConfig} from 'sentry/utils/issueTypeConfig/types';
 import Projects from 'sentry/utils/projects';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
 import ResolveActions from './resolveActions';
 import ReviewAction from './reviewAction';
@@ -31,7 +31,7 @@ type Props = {
   onDelete: () => void;
   onMerge: () => void;
   onShouldConfirm: (action: ConfirmAction) => boolean;
-  onUpdate: (data?: any) => void;
+  onUpdate: (data: IssueUpdateData) => void;
   query: string;
   queryCount: number;
   selectedProjectSlug?: string;
@@ -103,8 +103,7 @@ function ActionSet({
 
   // Determine whether to nest "Merge" and "Mark as Reviewed" buttons inside
   // the dropdown menu based on the current screen size
-  const theme = useTheme();
-  const nestMergeAndReview = useMedia(`(max-width: ${theme.breakpoints.xlarge})`);
+  const nestMergeAndReview = useMedia(`(max-width: 1700px`);
 
   const menuItems: MenuItemProps[] = [
     {
@@ -166,12 +165,40 @@ function ActionSet({
       onAction: () => {
         openConfirmModal({
           bypass: !onShouldConfirm(ConfirmAction.UNRESOLVE),
-          onConfirm: () => onUpdate({status: GroupStatus.UNRESOLVED}),
+          onConfirm: () => onUpdate({status: GroupStatus.UNRESOLVED, statusDetails: {}}),
           message: confirm({action: ConfirmAction.UNRESOLVE, canBeUndone: true}),
           confirmText: label('unresolve'),
         });
       },
     },
+    ...(organization.features.includes('issue-priority-ui')
+      ? [
+          {
+            key: 'set-priority',
+            label: t('Set Priority to...'),
+            hidden: !organization.features.includes('issue-priority-ui'),
+            isSubmenu: true,
+            children: [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW].map(
+              priority => ({
+                key: `priority-${priority}`,
+                textValue: t('Set priority to %s', priority),
+                label: <GroupPriorityBadge priority={priority} />,
+                onAction: () =>
+                  openConfirmModal({
+                    bypass: !onShouldConfirm(ConfirmAction.SET_PRIORITY),
+                    onConfirm: () => onUpdate({priority}),
+                    message: confirm({
+                      action: ConfirmAction.SET_PRIORITY,
+                      append: ` to ${priority}`,
+                      canBeUndone: true,
+                    }),
+                    confirmText: label('reprioritize'),
+                  }),
+              })
+            ),
+          },
+        ]
+      : []),
     {
       key: 'delete',
       label: t('Delete'),
@@ -198,7 +225,8 @@ function ActionSet({
           onClick={() => {
             openConfirmModal({
               bypass: !onShouldConfirm(ConfirmAction.UNRESOLVE),
-              onConfirm: () => onUpdate({status: GroupStatus.UNRESOLVED}),
+              onConfirm: () =>
+                onUpdate({status: GroupStatus.UNRESOLVED, statusDetails: {}}),
               message: confirm({action: ConfirmAction.UNRESOLVE, canBeUndone: true}),
               confirmText: label('unarchive'),
             });
@@ -248,21 +276,13 @@ function ActionSet({
           }}
         />
       )}
-      <GuideAnchor
-        target="issue_stream_archive_button"
-        position="bottom"
+      <ArchiveActions
+        onUpdate={onUpdate}
+        shouldConfirm={onShouldConfirm(ConfirmAction.ARCHIVE)}
+        confirmMessage={() => confirm({action: ConfirmAction.ARCHIVE, canBeUndone: true})}
+        confirmLabel={label('archive')}
         disabled={ignoreDisabled}
-      >
-        <ArchiveActions
-          onUpdate={onUpdate}
-          shouldConfirm={onShouldConfirm(ConfirmAction.ARCHIVE)}
-          confirmMessage={() =>
-            confirm({action: ConfirmAction.ARCHIVE, canBeUndone: true})
-          }
-          confirmLabel={label('archive')}
-          disabled={ignoreDisabled}
-        />
-      </GuideAnchor>
+      />
       {!nestMergeAndReview && (
         <ReviewAction disabled={!canMarkReviewed} onUpdate={onUpdate} />
       )}

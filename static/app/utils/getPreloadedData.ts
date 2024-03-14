@@ -2,12 +2,12 @@ export async function getPreloadedDataPromise(
   name: string,
   slug: string,
   fallback: () => Promise<any>,
-  isInitialFetch?: boolean
+  usePreload?: boolean
 ) {
   try {
     const data = (window as any).__sentry_preload;
     if (
-      !isInitialFetch ||
+      !usePreload ||
       !data ||
       !data.orgSlug ||
       data.orgSlug.toLowerCase() !== slug.toLowerCase() ||

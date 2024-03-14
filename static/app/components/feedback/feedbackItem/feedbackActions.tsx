@@ -14,6 +14,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types';
 import {GroupStatus} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -36,6 +37,7 @@ export default function FeedbackActions({
   const {markAsRead, resolve} = useMutateFeedback({
     feedbackIds: [feedbackItem.id],
     organization,
+    projectIds: [feedbackItem.project.id],
   });
 
   const mutationOptions = {
@@ -72,6 +74,13 @@ export default function FeedbackActions({
             addLoadingMessage(t('Updating feedback...'));
             const newStatus = isSpam ? GroupStatus.UNRESOLVED : GroupStatus.IGNORED;
             resolve(newStatus, mutationOptions);
+            if (!isSpam) {
+              // not currently spam, clicking the button will turn it into spam
+              trackAnalytics('feedback.mark-spam-clicked', {
+                organization,
+                type: 'details',
+              });
+            }
           }}
         >
           {isSpam ? t('Move to Inbox') : t('Mark as Spam')}

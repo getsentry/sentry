@@ -1,4 +1,4 @@
-from datetime import timedelta, timezone
+from datetime import timedelta
 from unittest import mock
 
 from django.utils import timezone as django_timezone
@@ -7,7 +7,6 @@ from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializerSnuba
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
-from sentry.issues.priority import PriorityLevel
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouplink import GroupLink
@@ -23,6 +22,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.types.group import PriorityLevel
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
@@ -439,7 +439,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
 
     def test_get_start_from_seen_stats(self):
         for days, expected in [(None, 30), (0, 14), (1000, 90)]:
-            last_seen = None if days is None else before_now(days=days).replace(tzinfo=timezone.utc)
+            last_seen = None if days is None else before_now(days=days)
             start = GroupSerializerSnuba._get_start_from_seen_stats(
                 {
                     mock.sentinel.group: {
@@ -460,22 +460,22 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
                 SearchFilter(
                     SearchKey("timestamp"),
                     ">",
-                    SearchValue(before_now(hours=1).replace(tzinfo=timezone.utc)),
+                    SearchValue(before_now(hours=1)),
                 ),
                 SearchFilter(
                     SearchKey("timestamp"),
                     "<",
-                    SearchValue(before_now(seconds=1).replace(tzinfo=timezone.utc)),
+                    SearchValue(before_now(seconds=1)),
                 ),
                 SearchFilter(
                     SearchKey("date"),
                     ">",
-                    SearchValue(before_now(hours=1).replace(tzinfo=timezone.utc)),
+                    SearchValue(before_now(hours=1)),
                 ),
                 SearchFilter(
                     SearchKey("date"),
                     "<",
-                    SearchValue(before_now(seconds=1).replace(tzinfo=timezone.utc)),
+                    SearchValue(before_now(seconds=1)),
                 ),
             ]
         )

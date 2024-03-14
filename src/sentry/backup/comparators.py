@@ -20,7 +20,7 @@ from sentry.backup.findings import ComparatorFinding, ComparatorFindingKind, Ins
 from sentry.backup.helpers import Side
 from sentry.utils.json import JSONData
 
-UNIX_EPOCH = unix_zero_date = datetime.utcfromtimestamp(0).replace(tzinfo=timezone.utc).isoformat()
+UNIX_EPOCH = unix_zero_date = datetime.fromtimestamp(0, timezone.utc).isoformat()
 
 
 class ScrubbedData:
@@ -760,7 +760,9 @@ def get_default_comparators():
         list,
         {
             "sentry.apitoken": [
-                HashObfuscatingComparator("refresh_token", "token"),
+                HashObfuscatingComparator(
+                    "refresh_token", "token", "hashed_token", "hashed_refresh_token"
+                ),
                 IgnoredComparator("token_last_characters"),
                 UnorderedListComparator("scope_list"),
             ],
@@ -782,6 +784,7 @@ def get_default_comparators():
                 HashObfuscatingComparator("token_hashed", "token_last_characters")
             ],
             "sentry.dashboardwidgetqueryondemand": [DateUpdatedComparator("date_modified")],
+            "sentry.dashboardwidgetquery": [DateUpdatedComparator("date_modified")],
             "sentry.organization": [AutoSuffixComparator("slug")],
             "sentry.organizationintegration": [DateUpdatedComparator("date_updated")],
             "sentry.organizationmember": [
@@ -807,7 +810,11 @@ def get_default_comparators():
             "sentry.sentryappinstallation": [DateUpdatedComparator("date_updated")],
             "sentry.servicehook": [HashObfuscatingComparator("secret")],
             # TODO(hybrid-cloud): actor refactor. Remove this entry when done.
-            "sentry.team": [ForeignKeyComparator({"actor": Actor, "organization": Organization})],
+            "sentry.team": [
+                ForeignKeyComparator({"actor": Actor, "organization": Organization}),
+                # TODO(getsentry/sentry#66247): Remove once self-hosted 24.4.0 is released.
+                IgnoredComparator("org_role"),
+            ],
             "sentry.user": [
                 AutoSuffixComparator("username"),
                 DateUpdatedComparator("last_active", "last_password_change"),

@@ -312,7 +312,7 @@ const ActionMenuTrigger = styled(Button)`
 
   opacity: 0;
   transition: opacity 0.1s;
-  &.focus-visible,
+  &:focus-visible,
   &[aria-expanded='true'],
   ${Container}:hover & {
     opacity: 1;

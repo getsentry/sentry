@@ -12,7 +12,7 @@ from snuba_sdk.query import Query
 from sentry import release_health
 from sentry.snuba.dataset import Dataset
 from sentry.utils import snuba
-from sentry.utils.dates import to_datetime, to_timestamp
+from sentry.utils.dates import to_datetime
 from sentry.utils.snuba import QueryOutsideRetentionError, parse_snuba_datetime, raw_query
 
 DATASET_BUCKET = 3600
@@ -279,7 +279,7 @@ def _get_project_releases_count(
 
 def _make_stats(start, rollup, buckets, default=0):
     rv = []
-    start = int(to_timestamp(start) // rollup + 1) * rollup
+    start = int(start.timestamp() // rollup + 1) * rollup
     for x in range(buckets):
         rv.append([start, default])
         start += rollup
@@ -578,7 +578,7 @@ def _get_project_release_stats(project_id, release, stat, rollup, start, end, en
     # since snuba end queries are exclusive of the time and we're bucketing to
     # a full hour, we need to round to the next hour since snuba is exclusive
     # on the end.
-    end = to_datetime((to_timestamp(end) // DATASET_BUCKET + 1) * DATASET_BUCKET)
+    end = to_datetime((end.timestamp() // DATASET_BUCKET + 1) * DATASET_BUCKET)
 
     filter_keys = {"project_id": [project_id]}
     conditions = [["release", "=", release]]
@@ -716,7 +716,7 @@ def _get_release_sessions_time_bounds(project_id, release, org_id, environments=
         referrer="sessions.release-sessions-time-bounds",
     )["data"]
 
-    formatted_unix_start_time = datetime.utcfromtimestamp(0).strftime("%Y-%m-%dT%H:%M:%S+00:00")
+    formatted_unix_start_time = datetime.fromtimestamp(0).strftime("%Y-%m-%dT%H:%M:%S+00:00")
 
     if rows:
         rv = rows[0]

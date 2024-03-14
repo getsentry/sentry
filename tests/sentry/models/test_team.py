@@ -1,15 +1,9 @@
-import pytest
 from django.test import override_settings
-from rest_framework.serializers import ValidationError
 
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
-from sentry.models.project import Project
-from sentry.models.projectteam import ProjectTeam
-from sentry.models.release import Release, ReleaseProject
-from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.team import Team
 from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
@@ -71,113 +65,6 @@ class TeamTest(TestCase):
         assert team.id < 1_000_000_000
         assert Team.objects.filter(id=team.id).exists()
 
-    def test_cannot_demote_last_owner_team(self):
-        org = self.create_organization()
-
-        with pytest.raises(ValidationError):
-            team = self.create_team(org, org_role="owner")
-            self.create_member(
-                organization=org, role="member", user=self.create_user(), teams=[team]
-            )
-            team.org_role = "manager"
-            team.save()
-
-
-@region_silo_test
-class TransferTest(TestCase):
-    def test_simple(self):
-        user = self.create_user()
-        org = self.create_organization(name="foo", owner=user)
-        org2 = self.create_organization(name="bar", owner=None)
-        team = self.create_team(organization=org)
-        project = self.create_project(teams=[team])
-        user2 = self.create_user("foo@example.com")
-        self.create_member(user=user2, organization=org, role="admin", teams=[team])
-        self.create_member(user=user2, organization=org2, role="member", teams=[])
-        team.transfer_to(org2)
-
-        assert team.organization == org2
-        team = Team.objects.get(id=team.id)
-        assert team.organization == org2
-
-        project = Project.objects.get(id=project.id)
-        assert project.organization == org2
-
-        # owner does not exist on new org, so should not be transferred
-        assert not OrganizationMember.objects.filter(user_id=user.id, organization=org2).exists()
-
-        # existing member should now have access
-        member = OrganizationMember.objects.get(user_id=user2.id, organization=org2)
-        assert list(member.teams.all()) == [team]
-        # role should not automatically upgrade
-        assert member.role == "member"
-
-        # old member row should still exist
-        assert OrganizationMember.objects.filter(user_id=user2.id, organization=org).exists()
-
-        # no references to old org for this team should exist
-        assert not OrganizationMemberTeam.objects.filter(
-            organizationmember__organization=org, team=team
-        ).exists()
-
-    def test_existing_team(self):
-        org = self.create_organization(name="foo")
-        org2 = self.create_organization(name="bar")
-        team = self.create_team(name="foo", organization=org)
-        team2 = self.create_team(name="foo", organization=org2)
-        project = self.create_project(teams=[team])
-        with outbox_runner():
-            team.transfer_to(org2)
-
-        project = Project.objects.get(id=project.id)
-        assert ProjectTeam.objects.filter(project=project, team=team2).exists()
-
-        assert not Team.objects.filter(id=team.id).exists()
-
-    def test_release_projects(self):
-        user = self.create_user()
-        org = self.create_organization(name="foo", owner=user)
-        org2 = self.create_organization(name="bar", owner=None)
-        team = self.create_team(organization=org)
-        project = self.create_project(teams=[team])
-
-        release = Release.objects.create(version="a" * 7, organization=org)
-
-        release.add_project(project)
-
-        assert ReleaseProject.objects.filter(release=release, project=project).exists()
-
-        team.transfer_to(org2)
-
-        assert Release.objects.filter(id=release.id).exists()
-
-        assert not ReleaseProject.objects.filter(release=release, project=project).exists()
-
-    def test_release_project_envs(self):
-        user = self.create_user()
-        org = self.create_organization(name="foo", owner=user)
-        org2 = self.create_organization(name="bar", owner=None)
-        team = self.create_team(organization=org)
-        project = self.create_project(teams=[team])
-
-        release = Release.objects.create(version="a" * 7, organization=org)
-
-        release.add_project(project)
-        env = self.create_environment(name="prod", project=project)
-        ReleaseProjectEnvironment.objects.create(release=release, project=project, environment=env)
-
-        assert ReleaseProjectEnvironment.objects.filter(
-            release=release, project=project, environment=env
-        ).exists()
-
-        team.transfer_to(org2)
-
-        assert Release.objects.filter(id=release.id).exists()
-
-        assert not ReleaseProjectEnvironment.objects.filter(
-            release=release, project=project, environment=env
-        ).exists()
-
 
 @region_silo_test
 class TeamDeletionTest(TestCase):
@@ -215,13 +102,3 @@ class TeamDeletionTest(TestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert not NotificationSettingOption.objects.filter(**base_params).exists()
             assert not NotificationSettingProvider.objects.filter(**base_params).exists()
-
-    def test_cannot_delete_last_owner_team(self):
-        org = self.create_organization()
-
-        with pytest.raises(ValidationError):
-            team = self.create_team(org, org_role="owner")
-            self.create_member(
-                organization=org, role="member", user=self.create_user(), teams=[team]
-            )
-            team.delete()

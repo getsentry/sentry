@@ -156,8 +156,7 @@ function TableRender({
   const query = decodeScalar(location.query.query, '');
   const display = decodeScalar(location.query.display, DisplayModes.DURATION);
   const performanceAtScaleContext = useContext(PerformanceAtScaleContext);
-  const hasResults =
-    tableData && tableData.data && tableData.meta && tableData.data.length > 0;
+  const hasResults = tableData?.meta && tableData.data?.length > 0;
 
   useEffect(() => {
     if (!performanceAtScaleContext) {

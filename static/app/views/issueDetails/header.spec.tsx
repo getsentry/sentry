@@ -6,11 +6,11 @@ import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {IssueCategory} from 'sentry/types';
+import {IssueCategory, PriorityLevel} from 'sentry/types';
 import GroupHeader from 'sentry/views/issueDetails/header';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
-describe('groupDetails', () => {
+describe('GroupHeader', () => {
   const baseUrl = 'BASE_URL/';
   const organization = OrganizationFixture();
   const project = ProjectFixture({
@@ -185,6 +185,40 @@ describe('groupDetails', () => {
         screen.queryByRole('tab', {name: /similar issues/i})
       ).not.toBeInTheDocument();
       expect(screen.queryByRole('tab', {name: /replays/i})).not.toBeInTheDocument();
+    });
+  });
+
+  describe('priority', () => {
+    it('can change priority', async function () {
+      const mockModifyIssue = MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/issues/`,
+        method: 'PUT',
+        body: {},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/replay-count/',
+        body: {},
+      });
+
+      render(
+        <GroupHeader
+          baseUrl=""
+          organization={OrganizationFixture({features: ['issue-priority-ui']})}
+          group={GroupFixture({priority: PriorityLevel.MEDIUM})}
+          project={ProjectFixture()}
+          groupReprocessingStatus={ReprocessingStatus.NO_STATUS}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Modify issue priority'}));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'High'}));
+
+      expect(mockModifyIssue).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {priority: PriorityLevel.HIGH},
+        })
+      );
     });
   });
 });

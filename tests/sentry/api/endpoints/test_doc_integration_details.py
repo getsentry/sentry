@@ -18,6 +18,7 @@ class DocIntegrationDetailsTest(APITestCase):
     def setUp(self):
         self.user = self.create_user(email="jinx@lol.com")
         self.superuser = self.create_user(email="vi@lol.com", is_superuser=True)
+        self.staff_user = self.create_user(is_staff=True)
         self.doc_1 = self.create_doc_integration(name="test_1", is_draft=True, has_avatar=False)
         self.doc_2 = self.create_doc_integration(
             name="test_2",
@@ -35,7 +36,28 @@ class DocIntegrationDetailsTest(APITestCase):
 class GetDocIntegrationDetailsTest(DocIntegrationDetailsTest):
     method = "GET"
 
-    def test_read_doc_for_superuser(self):
+    def test_staff_read_doc(self):
+        """
+        Tests that any DocIntegration is visible (with all the expected data)
+        for those with superuser permissions
+        """
+        self.login_as(user=self.staff_user, staff=True)
+        # Non-draft DocIntegration, with features and an avatar
+        response = self.get_success_response(self.doc_2.slug, status_code=status.HTTP_200_OK)
+        assert serialize(self.doc_2) == response.data
+        features = IntegrationFeature.objects.filter(
+            target_id=self.doc_2.id, target_type=IntegrationTypes.DOC_INTEGRATION.value
+        )
+        for feature in features:
+            assert serialize(feature) in response.data["features"]
+        assert serialize(self.doc_2.avatar.get()) == response.data["avatar"]
+        # Draft DocIntegration, without features or an avatar
+        response = self.get_success_response(self.doc_1.slug, status_code=status.HTTP_200_OK)
+        assert serialize(self.doc_1) == response.data
+        assert not response.data["avatar"]
+
+    # TODO(schew2381): Change test to check that superusers can only fetch non-draft DocIntegrations
+    def test_superuser_read_doc(self):
         """
         Tests that any DocIntegration is visible (with all the expected data)
         for those with superuser permissions
@@ -55,7 +77,7 @@ class GetDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         assert serialize(self.doc_1) == response.data
         assert not response.data["avatar"]
 
-    def test_read_doc_for_public(self):
+    def test_public_read_doc(self):
         """
         Tests that only non-draft DocIntegrations (with all the expected data)
         are visible for those without superuser permissions
@@ -89,7 +111,32 @@ class PutDocIntegrationDetailsTest(DocIntegrationDetailsTest):
     }
     ignored_keys = ["metadata"]
 
-    def test_update_doc_for_superuser(self):
+    def setUp(self):
+        super().setUp()
+        self.login_as(user=self.staff_user, staff=True)
+
+    def test_staff_update_doc(self):
+        """
+        Tests that a DocIntegration can be updated by superuser requests
+        """
+        response = self.get_success_response(
+            self.doc_2.slug, status_code=status.HTTP_200_OK, **self.payload
+        )
+        self.doc_2.refresh_from_db()
+        assert serialize(self.doc_2) == response.data
+        features = IntegrationFeature.objects.filter(
+            target_id=self.doc_2.id, target_type=IntegrationTypes.DOC_INTEGRATION.value
+        )
+        assert features.exists()
+        assert len(features) == 3
+        for feature in features:
+            # Ensure payload features are in the database
+            assert feature.feature in self.payload["features"]
+            # Ensure they are also serialized in the response
+            assert serialize(feature) in response.data["features"]
+
+    # TODO(schew2381): Change test to check that superusers cannot update DocIntegrations
+    def test_superuser_update_doc(self):
         """
         Tests that a DocIntegration can be updated by superuser requests
         """
@@ -125,7 +172,6 @@ class PutDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         Tests that DocIntegration updates remove any unused and no longer
         necessary features from the database
         """
-        self.login_as(user=self.superuser, superuser=True)
         self.get_success_response(self.doc_2.slug, status_code=status.HTTP_200_OK, **self.payload)
         unused_features = IntegrationFeature.objects.filter(
             target_id=self.doc_2.id,
@@ -138,7 +184,6 @@ class PutDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         Tests that DocIntegration updates retain any existing features if
         applicable to avoid pointless database transactions
         """
-        self.login_as(user=self.superuser, superuser=True)
         unaffected_feature = IntegrationFeature.objects.get(
             target_id=self.doc_2.id, target_type=IntegrationTypes.DOC_INTEGRATION.value, feature=4
         )
@@ -152,7 +197,6 @@ class PutDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         Tests that providing duplicate keys do not result in a server
         error; instead, the excess are ignored.
         """
-        self.login_as(user=self.superuser, superuser=True)
         payload = {**self.payload, "features": [0, 0, 0, 0, 1, 1, 1, 2]}
         self.get_success_response(self.doc_2.slug, status_code=status.HTTP_200_OK, **payload)
         features = IntegrationFeature.objects.filter(
@@ -167,7 +211,6 @@ class PutDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         effect on the slug of the DocIntegration
         """
         previous_slug = self.doc_2.slug
-        self.login_as(user=self.superuser, superuser=True)
         self.get_success_response(self.doc_2.slug, status_code=status.HTTP_200_OK, **self.payload)
         self.doc_2.refresh_from_db()
         assert self.doc_2.slug == previous_slug
@@ -176,7 +219,6 @@ class PutDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         """
         Tests that incorrectly structured metadata throws an error
         """
-        self.login_as(user=self.superuser, superuser=True)
         invalid_resources = {
             "not_an_array": {},
             "extra_keys": [{**self.payload["resources"][0], "extra": "key"}],
@@ -195,7 +237,6 @@ class PutDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         metadata contained on the record
         """
         previous_metadata = self.doc_2.metadata
-        self.login_as(user=self.superuser, superuser=True)
         payload = {**self.payload}
         del payload["resources"]
         response = self.get_success_response(
@@ -210,7 +251,6 @@ class PutDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         Tests that certain reserved keys cannot be overridden by the
         request payload. They must be created by the API.
         """
-        self.login_as(user=self.superuser, superuser=True)
         payload = {**self.payload, "metadata": {"should": "not override"}}
         self.get_success_response(self.doc_2.slug, status_code=status.HTTP_200_OK, **payload)
         # Ensure the DocIntegration was not created with the ignored keys' values
@@ -222,7 +262,6 @@ class PutDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         Tests that the DocIntegration can be edited without an
         associated DocIntegrationAvatar.
         """
-        self.login_as(user=self.superuser, superuser=True)
         payload = {**self.payload, "is_draft": True}
         response = self.get_success_response(
             self.doc_1.slug, status_code=status.HTTP_200_OK, **payload
@@ -235,7 +274,6 @@ class PutDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         Tests that the DocIntegration cannot be published without an
         associated DocIntegrationAvatar.
         """
-        self.login_as(user=self.superuser, superuser=True)
         response = self.get_error_response(
             self.doc_1.slug, status_code=status.HTTP_400_BAD_REQUEST, **self.payload
         )
@@ -253,7 +291,26 @@ class PutDocIntegrationDetailsTest(DocIntegrationDetailsTest):
 class DeleteDocIntegrationDetailsTest(DocIntegrationDetailsTest):
     method = "DELETE"
 
-    def test_delete_valid_for_superuser(self):
+    def test_staff_delete_valid(self):
+        """
+        Tests that the delete method works for those with superuser
+        permissions, deleting the DocIntegration and associated
+        IntegrationFeatures and DocIntegrationAvatar
+        """
+        self.login_as(user=self.staff_user, staff=True)
+        features = IntegrationFeature.objects.filter(
+            target_id=self.doc_delete.id, target_type=IntegrationTypes.DOC_INTEGRATION.value
+        )
+        assert features.exists()
+        assert self.doc_delete.avatar.exists()
+        self.get_success_response(self.doc_delete.slug, status_code=status.HTTP_204_NO_CONTENT)
+        with pytest.raises(DocIntegration.DoesNotExist):
+            DocIntegration.objects.get(id=self.doc_delete.id)
+        assert not features.exists()
+        assert not self.doc_delete.avatar.exists()
+
+    # TODO(schew2381): Change test to check that superusers cannot delete DocIntegrations
+    def test_superuser_delete_valid(self):
         """
         Tests that the delete method works for those with superuser
         permissions, deleting the DocIntegration and associated
@@ -271,7 +328,7 @@ class DeleteDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         assert not features.exists()
         assert not self.doc_delete.avatar.exists()
 
-    def test_delete_invalid_for_public(self):
+    def test_public_delete_invalid(self):
         """
         Tests that the delete method is not accessible by those with regular member
         permissions, and no changes occur in the database.

@@ -31,7 +31,6 @@ def dump_obj(obj):
 
 
 @pytest.mark.parametrize("version", [1, 2])
-@django_db_all
 def test_basic_parsing(insta_snapshot, version):
     enhancement = Enhancements.from_config_string(
         """
@@ -53,25 +52,10 @@ family:native                                   max-frames=3
 
     insta_snapshot(dump_obj(enhancement))
 
-    rust_parsing = 1.0 if version == 2 else 0.0
-    with override_options({"grouping.rust_enhancers.parse_rate": rust_parsing}):
-        dumped = enhancement.dumps()
-        assert Enhancements.loads(dumped).dumps() == dumped
-        assert (
-            Enhancements.loads(dumped)._to_config_structure() == enhancement._to_config_structure()
-        )
-        assert isinstance(dumped, str)
-
-        with override_options({"enhancers.use-zstd": True}):
-            dumped_zstd = enhancement.dumps()
-
-            assert dumped_zstd is not dumped
-            assert Enhancements.loads(dumped_zstd).dumps() == dumped_zstd
-            assert (
-                Enhancements.loads(dumped_zstd)._to_config_structure()
-                == enhancement._to_config_structure()
-            )
-            assert isinstance(dumped_zstd, str)
+    dumped = enhancement.dumps()
+    assert Enhancements.loads(dumped).dumps() == dumped
+    assert Enhancements.loads(dumped)._to_config_structure() == enhancement._to_config_structure()
+    assert isinstance(dumped, str)
 
 
 def test_parsing_errors():
@@ -91,10 +75,6 @@ def test_callee_recursion():
         Enhancements.from_config_string(" category:foo | [ category:bar ] | [ category:baz ] +app")
 
 
-@django_db_all
-@override_options(
-    {"grouping.rust_enhancers.parse_rate": 1.0, "grouping.rust_enhancers.modify_frames_rate": 1.0}
-)
 def test_flipflop_inapp():
     enhancement = Enhancements.from_config_string(
         """
@@ -483,25 +463,22 @@ def test_range_matching_direct():
 
 @pytest.mark.parametrize("action", ["+", "-"])
 @pytest.mark.parametrize("type", ["prefix", "sentinel"])
+@django_db_all  # because of `options` usage
+@override_options({"grouping.rust_enhancers.compare_components": 1.0})
 def test_sentinel_and_prefix(action, type):
-    rule = Enhancements.from_config_string(f"function:foo {action}{type}").rules[0]
+    enhancements = Enhancements.from_config_string(f"function:foo {action}{type}")
 
     frames = [{"function": "foo"}]
-    actions = _get_matching_frame_actions(rule, frames, "whatever")
-    assert len(actions) == 1
-
     component = GroupingComponent(id=None)
     assert not getattr(component, f"is_{type}_frame")
+    frame_components = [component]
 
-    actions[0][1].update_frame_components_contributions([component], frames, 0)
+    enhancements.assemble_stacktrace_component(frame_components, frames, "whatever")
+
     expected = action == "+"
     assert getattr(component, f"is_{type}_frame") is expected
 
 
-@django_db_all
-@override_options(
-    {"grouping.rust_enhancers.parse_rate": 1.0, "grouping.rust_enhancers.modify_frames_rate": 1.0}
-)
 @pytest.mark.parametrize(
     "frame",
     [
@@ -511,5 +488,5 @@ def test_sentinel_and_prefix(action, type):
 )
 def test_app_no_matches(frame):
     enhancements = Enhancements.from_config_string("app:no +app")
-    enhancements.apply_modifications_to_frame([frame], "native", None)
+    enhancements.apply_modifications_to_frame([frame], "native", {})
     assert frame.get("in_app")

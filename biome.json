@@ -13,10 +13,55 @@
     "enabled": true,
     "rules": {
       "recommended": false,
+      "a11y": {
+        "noBlankTarget": "error"
+      },
+      "correctness": {
+        "noGlobalObjectCalls": "error",
+        "noUnreachable": "error",
+        "useHookAtTopLevel": "error",
+        "useIsNan": "error",
+        "noUnusedPrivateClassMembers": "error"
+      },
+      "complexity": {
+        "useFlatMap": "error",
+        "useOptionalChain": "error",
+        "noEmptyTypeParameters": "error",
+        "noUselessLoneBlockStatements": "error"
+      },
       "nursery": {
         "noDuplicateJsonKeys": "error",
+        "noNodejsModules": "error"
+      },
+      "security": {
+        "noDangerouslySetInnerHtmlWithChildren": "error"
+      },
+      "suspicious": {
+        "noDebugger": "error",
+        "noDoubleEquals": "error",
+        "noDuplicateJsxProps": "error",
+        "noDuplicateObjectKeys": "error",
+        "noDuplicateParameters": "error",
+        "noDuplicateCase": "error",
+        "noFallthroughSwitchClause": "error",
+        "noRedeclare": "error",
+        "noSparseArray": "error",
+        "noUnsafeDeclarationMerging": "error",
+        "noUnsafeNegation": "error",
+        "useIsArray": "error",
+        "noApproximativeNumericConstant": "error",
+        "noMisrefactoredShorthandAssign": "error"
+      },
+      "style": {
+        "noCommaOperator": "error",
+        "noShoutyConstants": "error",
+        "noParameterProperties": "error",
+        "noVar": "error",
+        "useConst": "error",
+        "useShorthandFunctionType": "error",
         "useExportType": "error",
-        "useImportType": "error"
+        "useImportType": "error",
+        "useNodejsImportProtocol": "error"
       }
     }
   },
@@ -40,7 +85,7 @@
   },
   "javascript": {
     "formatter": {
-      "enabled": true,
+      "enabled": false,
       "lineWidth": 90,
       "quoteStyle": "single",
       "jsxQuoteStyle": "double",
@@ -60,5 +105,37 @@
       "allowComments": true,
       "allowTrailingCommas": true
     }
-  }
+  },
+  "overrides": [
+    {
+      "include": [
+        "api-docs/*.ts",
+        "build-utils/*.ts",
+        "config/webpack.chartcuterie.config.ts",
+        "scripts",
+        "tests/js/sentry-test/loadFixtures.ts",
+        "tests/js/jest-pegjs-transform.js",
+        "tests/js/setup.ts",
+        "tests/js/test-balancer/index.js",
+        "*.config.ts"
+      ],
+      "linter": {
+        "rules": {
+          "nursery": {
+            "noNodejsModules": "off"
+          }
+        }
+      }
+    },
+    {
+      "include": ["src/sentry/templates/sentry/error-page-embed.js"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noVar": "off"
+          }
+        }
+      }
+    }
+  ]
 }

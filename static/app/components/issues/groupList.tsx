@@ -41,7 +41,13 @@ const defaultProps = {
   withColumns: ['graph', 'event', 'users', 'assignee'] satisfies GroupListColumn[],
 };
 
-export type GroupListColumn = 'graph' | 'event' | 'users' | 'assignee' | 'lastTriggered';
+export type GroupListColumn =
+  | 'graph'
+  | 'event'
+  | 'users'
+  | 'priority'
+  | 'assignee'
+  | 'lastTriggered';
 
 type Props = WithRouterProps & {
   api: Client;

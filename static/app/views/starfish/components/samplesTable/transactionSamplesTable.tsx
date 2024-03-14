@@ -195,7 +195,7 @@ export function TransactionSamplesTable({
         <Link
           {...commonProps}
           to={normalizeUrl(
-            `/organizations/${organization.slug}/profiling/profile/${row['project.name']}/${row.profile_id}/flamechart/`
+            `/organizations/${organization.slug}/profiling/profile/${row['project.name']}/${row.profile_id}/flamegraph/`
           )}
         >
           {row.profile_id.slice(0, 8)}

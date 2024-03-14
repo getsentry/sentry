@@ -3,6 +3,7 @@
     The goal is to eventually find owners for all and shrink this list.
     DO NOT ADD ANY NEW APIS
 """
+
 API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/relays/": {"GET"},
     "/api/0/relays/register/challenge/": {"POST"},
@@ -578,7 +579,6 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/projects/{organization_slug}/{project_slug}/tombstones/": {"GET"},
     "/api/0/projects/{organization_slug}/{project_slug}/tombstones/{tombstone_id}/": {"DELETE"},
     "/api/0/projects/{organization_slug}/{project_slug}/stacktrace-link/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/stacktrace-links/": {"GET"},
     "/api/0/projects/{organization_slug}/{project_slug}/grouping-configs/": {"GET"},
     "/api/0/projects/{organization_slug}/{project_slug}/appstoreconnect/": {"POST"},
     "/api/0/projects/{organization_slug}/{project_slug}/appstoreconnect/apps/": {"POST"},

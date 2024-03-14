@@ -262,26 +262,6 @@ class UnfurlTest(TestCase):
         unfurls = link_handlers[LinkType.ISSUES].fn(self.request, self.integration, links)
         assert unfurls[links[0].url]["text"] == "&amp;lt;https://example.com/|*Click Here*&amp;gt;"
 
-    @with_feature("organizations:slack-block-kit")
-    def test_escape_issue_block_kit(self):
-        group = self.create_group(
-            project=self.project,
-            data={"type": "error", "metadata": {"value": "<https://example.com/|*Click Here*>"}},
-        )
-
-        links = [
-            UnfurlableUrl(
-                url=f"https://sentry.io/organizations/{self.organization.slug}/issues/{group.id}/",
-                args={"issue_id": group.id, "event_id": None},
-            ),
-        ]
-
-        unfurls = link_handlers[LinkType.ISSUES].fn(self.request, self.integration, links)
-        assert (
-            "&amp;lt;https://example.com/|*Click Here*&amp;gt;"
-            in unfurls[links[0].url]["blocks"][1]["elements"][0]["elements"][0]["text"]
-        )
-
     def test_unfurl_metric_alert(self):
         alert_rule = self.create_alert_rule()
 

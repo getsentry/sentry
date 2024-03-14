@@ -8,7 +8,7 @@ from socket import timeout as SocketTimeout
 from typing import Optional
 
 from requests import Session as _Session
-from requests.adapters import DEFAULT_POOLBLOCK, HTTPAdapter
+from requests.adapters import DEFAULT_POOLBLOCK, DEFAULT_RETRIES, HTTPAdapter, Retry
 from urllib3.connection import HTTPConnection, HTTPSConnection
 from urllib3.connectionpool import HTTPConnectionPool, HTTPSConnectionPool
 from urllib3.connectionpool import connection_from_url as _connection_from_url
@@ -146,11 +146,15 @@ class BlacklistAdapter(HTTPAdapter):
 
     is_ipaddress_permitted: IsIpAddressPermitted = None
 
-    def __init__(self, is_ipaddress_permitted: IsIpAddressPermitted = None) -> None:
+    def __init__(
+        self,
+        is_ipaddress_permitted: IsIpAddressPermitted = None,
+        max_retries: Retry | int = DEFAULT_RETRIES,
+    ) -> None:
         # If is_ipaddress_permitted is defined, then we pass it as an additional parameter to freshly created
         # `urllib3.connectionpool.ConnectionPool` instances managed by `SafePoolManager`.
         self.is_ipaddress_permitted = is_ipaddress_permitted
-        super().__init__()
+        super().__init__(max_retries=max_retries)
 
     def init_poolmanager(self, connections, maxsize, block=DEFAULT_POOLBLOCK, **pool_kwargs):
         self._pool_connections = connections
@@ -196,10 +200,14 @@ class Session(_Session):
 
 
 class SafeSession(Session):
-    def __init__(self, is_ipaddress_permitted: IsIpAddressPermitted = None) -> None:
+    def __init__(
+        self, is_ipaddress_permitted: IsIpAddressPermitted = None, max_retries: Retry | None = None
+    ) -> None:
         Session.__init__(self)
         self.headers.update({"User-Agent": USER_AGENT})
-        adapter = BlacklistAdapter(is_ipaddress_permitted=is_ipaddress_permitted)
+        adapter = BlacklistAdapter(
+            is_ipaddress_permitted=is_ipaddress_permitted, max_retries=max_retries
+        )
         self.mount("https://", adapter)
         self.mount("http://", adapter)
 

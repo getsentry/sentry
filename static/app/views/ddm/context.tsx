@@ -9,21 +9,24 @@ import {
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
+import type {Field} from 'sentry/components/ddm/metricSamplesTable';
+import {useInstantRef, useUpdateQuery} from 'sentry/utils/metrics';
 import {
-  getAbsoluteDateTimeRange,
-  getDefaultMetricDisplayType,
-  useInstantRef,
-  useUpdateQuery,
-} from 'sentry/utils/metrics';
-import {DEFAULT_SORT_STATE, emptyWidget} from 'sentry/utils/metrics/constants';
-import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
-import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
-import {decodeList} from 'sentry/utils/queryString';
+  emptyMetricsFormulaWidget,
+  emptyMetricsQueryWidget,
+  NO_QUERY_ID,
+} from 'sentry/utils/metrics/constants';
+import {MetricQueryType, type MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
+import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples';
+import {decodeInteger, decodeScalar} from 'sentry/utils/queryString';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
-import type {FocusAreaSelection} from 'sentry/views/ddm/focusArea';
-import {useStructuralSharing} from 'sentry/views/ddm/useStructuralSharing';
+import type {FocusAreaSelection} from 'sentry/views/ddm/chart/types';
+import {parseMetricWidgetsQueryParam} from 'sentry/views/ddm/utils/parseMetricWidgetsQueryParam';
+import {useStructuralSharing} from 'sentry/views/ddm/utils/useStructuralSharing';
 
 export type FocusAreaProps = {
   onAdd?: (area: FocusAreaSelection) => void;
@@ -33,39 +36,52 @@ export type FocusAreaProps = {
 };
 
 interface DDMContextValue {
-  addWidget: () => void;
+  addWidget: (type?: MetricQueryType) => void;
   duplicateWidget: (index: number) => void;
+  focusArea: FocusAreaProps;
+  hasMetrics: boolean;
   isDefaultQuery: boolean;
-  isLoading: boolean;
-  metricsMeta: ReturnType<typeof useMetricsMeta>['data'];
+  isMultiChartMode: boolean;
   removeWidget: (index: number) => void;
   selectedWidgetIndex: number;
   setDefaultQuery: (query: Record<string, any> | null) => void;
   setHighlightedSampleId: (sample?: string) => void;
+  setIsMultiChartMode: (value: boolean) => void;
+  setMetricsSamples: React.Dispatch<
+    React.SetStateAction<MetricsSamplesResults<Field>['data'] | undefined>
+  >;
   setSelectedWidgetIndex: (index: number) => void;
   showQuerySymbols: boolean;
-  updateWidget: (index: number, data: Partial<MetricWidgetQueryParams>) => void;
+  toggleWidgetVisibility: (index: number) => void;
+  updateWidget: (
+    index: number,
+    data: Partial<Omit<MetricWidgetQueryParams, 'type'>>
+  ) => void;
   widgets: MetricWidgetQueryParams[];
-  focusArea?: FocusAreaProps;
   highlightedSampleId?: string;
+  metricsSamples?: MetricsSamplesResults<Field>['data'];
 }
 
 export const DDMContext = createContext<DDMContextValue>({
   addWidget: () => {},
   duplicateWidget: () => {},
+  focusArea: {},
+  hasMetrics: false,
+  highlightedSampleId: undefined,
   isDefaultQuery: false,
-  isLoading: false,
-  metricsMeta: [],
+  isMultiChartMode: false,
+  metricsSamples: [],
   removeWidget: () => {},
   selectedWidgetIndex: 0,
   setDefaultQuery: () => {},
+  setHighlightedSampleId: () => {},
+  setIsMultiChartMode: () => {},
+  setMetricsSamples: () => {},
   setSelectedWidgetIndex: () => {},
   showQuerySymbols: false,
   updateWidget: () => {},
   widgets: [],
-  highlightedSampleId: undefined,
-  setHighlightedSampleId: () => {},
-  focusArea: undefined,
+  toggleWidgetVisibility: () => {},
 });
 
 export function useDDMContext() {
@@ -73,31 +89,14 @@ export function useDDMContext() {
 }
 
 export function useMetricWidgets() {
-  const router = useRouter();
+  const {widgets: urlWidgets} = useLocationQuery({fields: {widgets: decodeScalar}});
   const updateQuery = useUpdateQuery();
 
   const widgets = useStructuralSharing(
-    useMemo<MetricWidgetQueryParams[]>(() => {
-      const currentWidgets = JSON.parse(
-        router.location.query.widgets ?? JSON.stringify([emptyWidget])
-      );
-
-      return currentWidgets.map((widget: MetricWidgetQueryParams) => {
-        return {
-          mri: widget.mri,
-          op: widget.op,
-          query: widget.query,
-          groupBy: decodeList(widget.groupBy),
-          displayType:
-            widget.displayType ?? getDefaultMetricDisplayType(widget.mri, widget.op),
-          focusedSeries: widget.focusedSeries,
-          showSummaryTable: widget.showSummaryTable ?? true, // temporary default
-          powerUserMode: widget.powerUserMode,
-          sort: widget.sort ?? DEFAULT_SORT_STATE,
-          title: widget.title,
-        };
-      });
-    }, [router.location.query.widgets])
+    useMemo<MetricWidgetQueryParams[]>(
+      () => parseMetricWidgetsQueryParam(urlWidgets),
+      [urlWidgets]
+    )
   );
 
   // We want to have it as a ref, so that we can use it in the setWidget callback
@@ -117,36 +116,13 @@ export function useMetricWidgets() {
   );
 
   const updateWidget = useCallback(
-    (index: number, data: Partial<MetricWidgetQueryParams>) => {
+    (index: number, data: Partial<Omit<MetricWidgetQueryParams, 'type'>>) => {
       setWidgets(currentWidgets => {
         const newWidgets = [...currentWidgets];
-        newWidgets[index] = {...currentWidgets[index], ...data};
-        return newWidgets;
-      });
-    },
-    [setWidgets]
-  );
-
-  const addWidget = useCallback(() => {
-    setWidgets(currentWidgets => {
-      const lastWidget = currentWidgets.length
-        ? currentWidgets[currentWidgets.length - 1]
-        : {};
-
-      const newWidget = {
-        ...emptyWidget,
-        ...lastWidget,
-      };
-
-      return [...currentWidgets, newWidget];
-    });
-  }, [setWidgets]);
-
-  const removeWidget = useCallback(
-    (index: number) => {
-      setWidgets(currentWidgets => {
-        const newWidgets = [...currentWidgets];
-        newWidgets.splice(index, 1);
+        newWidgets[index] = {
+          ...currentWidgets[index],
+          ...data,
+        };
         return newWidgets;
       });
     },
@@ -157,7 +133,44 @@ export function useMetricWidgets() {
     (index: number) => {
       setWidgets(currentWidgets => {
         const newWidgets = [...currentWidgets];
-        newWidgets.splice(index, 0, currentWidgets[index]);
+        const newWidget = {...currentWidgets[index]};
+        newWidget.id = NO_QUERY_ID;
+        newWidgets.splice(index + 1, 0, newWidget);
+        return newWidgets;
+      });
+    },
+    [setWidgets]
+  );
+
+  const addWidget = useCallback(
+    (type: MetricQueryType = MetricQueryType.QUERY) => {
+      const lastIndexOfSameType = currentWidgetsRef.current.findLastIndex(
+        w => w.type === type
+      );
+      if (lastIndexOfSameType > -1) {
+        duplicateWidget(lastIndexOfSameType);
+      } else {
+        setWidgets(currentWidgets => [
+          ...currentWidgets,
+          type === MetricQueryType.QUERY
+            ? emptyMetricsQueryWidget
+            : emptyMetricsFormulaWidget,
+        ]);
+      }
+    },
+    [currentWidgetsRef, duplicateWidget, setWidgets]
+  );
+
+  const removeWidget = useCallback(
+    (index: number) => {
+      setWidgets(currentWidgets => {
+        let newWidgets = [...currentWidgets];
+        newWidgets.splice(index, 1);
+
+        // Ensure that a visible widget remains
+        if (!newWidgets.find(w => !w.isHidden)) {
+          newWidgets = newWidgets.map(w => ({...w, isHidden: false}));
+        }
         return newWidgets;
       });
     },
@@ -170,6 +183,7 @@ export function useMetricWidgets() {
     addWidget,
     removeWidget,
     duplicateWidget,
+    setWidgets,
   };
 }
 
@@ -198,19 +212,58 @@ const useDefaultQuery = () => {
   );
 };
 
+function useSelectedProjects() {
+  const {selection} = usePageFilters();
+  const {projects} = useProjects();
+
+  return useMemo(() => {
+    if (selection.projects.length === 0) {
+      return projects.filter(project => project.isMember);
+    }
+    if (selection.projects.includes(-1)) {
+      return projects;
+    }
+    return projects.filter(project => selection.projects.includes(Number(project.id)));
+  }, [selection.projects, projects]);
+}
+
 export function DDMContextProvider({children}: {children: React.ReactNode}) {
   const router = useRouter();
   const updateQuery = useUpdateQuery();
+  const {multiChartMode} = useLocationQuery({fields: {multiChartMode: decodeInteger}});
+  const isMultiChartMode = multiChartMode === 1;
 
   const {setDefaultQuery, isDefaultQuery} = useDefaultQuery();
 
   const [selectedWidgetIndex, setSelectedWidgetIndex] = useState(0);
   const {widgets, updateWidget, addWidget, removeWidget, duplicateWidget} =
     useMetricWidgets();
+
+  const [metricsSamples, setMetricsSamples] = useState<
+    MetricsSamplesResults<Field>['data'] | undefined
+  >();
+
   const [highlightedSampleId, setHighlightedSampleId] = useState<string | undefined>();
 
-  const pageFilters = usePageFilters().selection;
-  const {data: metricsMeta, isLoading} = useMetricsMeta(pageFilters.projects);
+  const selectedProjects = useSelectedProjects();
+  const hasMetrics = useMemo(
+    () =>
+      selectedProjects.some(
+        project =>
+          project.hasCustomMetrics || project.hasSessions || project.firstTransactionEvent
+      ),
+    [selectedProjects]
+  );
+
+  const handleSetSelectedWidgetIndex = useCallback(
+    (value: number) => {
+      if (!isMultiChartMode) {
+        return;
+      }
+      setSelectedWidgetIndex(value);
+    },
+    [isMultiChartMode]
+  );
 
   const focusAreaSelection = useMemo<FocusAreaSelection | undefined>(
     () => router.location.query.focusArea && JSON.parse(router.location.query.focusArea),
@@ -223,18 +276,11 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
         Sentry.metrics.increment('ddm.enhance.range-undefined');
         return;
       }
-
-      const dateRange = getAbsoluteDateTimeRange(pageFilters.datetime);
-      if (area.range.end < dateRange.start || area.range.start > dateRange.end) {
-        Sentry.metrics.increment('ddm.enhance.range-outside');
-        return;
-      }
-
       Sentry.metrics.increment('ddm.enhance.add');
-      setSelectedWidgetIndex(area.widgetIndex);
+      handleSetSelectedWidgetIndex(area.widgetIndex);
       updateQuery({focusArea: JSON.stringify(area)}, {replace: true});
     },
-    [updateQuery, pageFilters.datetime]
+    [handleSetSelectedWidgetIndex, updateQuery]
   );
 
   const handleRemoveFocusArea = useCallback(() => {
@@ -250,63 +296,104 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
     };
   }, [focusAreaSelection, handleAddFocusArea, handleRemoveFocusArea]);
 
-  const handleAddWidget = useCallback(() => {
-    addWidget();
-    setSelectedWidgetIndex(widgets.length);
-  }, [addWidget, widgets.length]);
+  const handleAddWidget = useCallback(
+    (type?: MetricQueryType) => {
+      addWidget(type);
+      handleSetSelectedWidgetIndex(widgets.length);
+    },
+    [addWidget, handleSetSelectedWidgetIndex, widgets.length]
+  );
 
   const handleUpdateWidget = useCallback(
     (index: number, data: Partial<MetricWidgetQueryParams>) => {
       updateWidget(index, data);
-      setSelectedWidgetIndex(index);
+      handleSetSelectedWidgetIndex(index);
       if (index === focusAreaSelection?.widgetIndex) {
         handleRemoveFocusArea();
       }
     },
-    [updateWidget, handleRemoveFocusArea, focusAreaSelection?.widgetIndex]
+    [
+      updateWidget,
+      handleSetSelectedWidgetIndex,
+      focusAreaSelection?.widgetIndex,
+      handleRemoveFocusArea,
+    ]
   );
 
   const handleDuplicate = useCallback(
     (index: number) => {
       duplicateWidget(index);
-      setSelectedWidgetIndex(index + 1);
+      handleSetSelectedWidgetIndex(index + 1);
     },
-    [duplicateWidget]
+    [duplicateWidget, handleSetSelectedWidgetIndex]
   );
+
+  const handleSetIsMultiChartMode = useCallback(
+    (value: boolean) => {
+      updateQuery({multiChartMode: value ? 1 : 0}, {replace: true});
+      updateWidget(0, {focusedSeries: undefined});
+      const firstVisibleWidgetIndex = widgets.findIndex(w => !w.isHidden);
+      setSelectedWidgetIndex(firstVisibleWidgetIndex);
+    },
+    [updateQuery, updateWidget, widgets]
+  );
+
+  const toggleWidgetVisibility = useCallback(
+    (index: number) => {
+      if (index === selectedWidgetIndex) {
+        const firstVisibleWidgetIndex = widgets.findIndex(w => !w.isHidden);
+        setSelectedWidgetIndex(firstVisibleWidgetIndex);
+      }
+      updateWidget(index, {isHidden: !widgets[index].isHidden});
+    },
+    [selectedWidgetIndex, updateWidget, widgets]
+  );
+
+  const selectedWidget = widgets[selectedWidgetIndex];
+  const isSelectionValid = selectedWidget && !selectedWidget.isHidden;
 
   const contextValue = useMemo<DDMContextValue>(
     () => ({
       addWidget: handleAddWidget,
-      selectedWidgetIndex:
-        selectedWidgetIndex > widgets.length - 1 ? 0 : selectedWidgetIndex,
-      setSelectedWidgetIndex,
+      selectedWidgetIndex: isSelectionValid
+        ? selectedWidgetIndex
+        : widgets.findIndex(w => !w.isHidden),
+      setSelectedWidgetIndex: handleSetSelectedWidgetIndex,
       updateWidget: handleUpdateWidget,
       removeWidget,
       duplicateWidget: handleDuplicate,
       widgets,
-      isLoading,
-      metricsMeta,
+      hasMetrics,
       focusArea,
       setDefaultQuery,
       isDefaultQuery,
       showQuerySymbols: widgets.length > 1,
       highlightedSampleId,
       setHighlightedSampleId,
+      isMultiChartMode: isMultiChartMode,
+      setIsMultiChartMode: handleSetIsMultiChartMode,
+      metricsSamples,
+      setMetricsSamples,
+      toggleWidgetVisibility,
     }),
     [
       handleAddWidget,
+      isSelectionValid,
       selectedWidgetIndex,
       widgets,
+      handleSetSelectedWidgetIndex,
       handleUpdateWidget,
       removeWidget,
       handleDuplicate,
-      isLoading,
-      metricsMeta,
+      hasMetrics,
       focusArea,
       setDefaultQuery,
       isDefaultQuery,
       highlightedSampleId,
-      setHighlightedSampleId,
+      isMultiChartMode,
+      handleSetIsMultiChartMode,
+      metricsSamples,
+      toggleWidgetVisibility,
     ]
   );
 

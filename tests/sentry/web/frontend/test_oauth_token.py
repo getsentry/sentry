@@ -161,7 +161,7 @@ class OAuthTokenCodeTest(TestCase):
             user=self.user,
             application=self.application,
             redirect_uri="https://example.com",
-            expires_at="2022-01-01 11:11",
+            expires_at="2022-01-01 11:11+00:00",
         )
         resp = self.client.post(
             self.path,

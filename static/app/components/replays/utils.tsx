@@ -1,5 +1,5 @@
 import {formatSecondsToClock} from 'sentry/utils/formatters';
-import type {ReplayFrame, SpanFrame} from 'sentry/utils/replays/types';
+import type {ReplayFrame, SpanFrame, VideoEvent} from 'sentry/utils/replays/types';
 
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
@@ -86,28 +86,19 @@ export function countColumns(durationMs: number, width: number, minWidth: number
 export function getFramesByColumn(
   durationMs: number,
   frames: ReplayFrame[],
-  totalColumns: number,
-  startTimeOffsetMs: number = 0
+  totalColumns: number
 ) {
   const safeDurationMs = isNaN(durationMs) ? 1 : durationMs;
 
-  const columnFramePairs = frames
-    .filter(
-      frame =>
-        frame.offsetMs >= startTimeOffsetMs &&
-        frame.offsetMs <= startTimeOffsetMs + safeDurationMs
-    )
-    .map(frame => {
-      const columnPositionCalc =
-        Math.floor(
-          ((frame.offsetMs - startTimeOffsetMs) / safeDurationMs) * (totalColumns - 1)
-        ) + 1;
+  const columnFramePairs = frames.map(frame => {
+    const columnPositionCalc =
+      Math.floor((frame.offsetMs / safeDurationMs) * (totalColumns - 1)) + 1;
 
-      // Should start at minimum in the first column
-      const column = Math.max(1, columnPositionCalc);
+    // Should start at minimum in the first column
+    const column = Math.max(1, columnPositionCalc);
 
-      return [column, frame] as [number, ReplayFrame];
-    });
+    return [column, frame] as [number, ReplayFrame];
+  });
 
   const framesByColumn = columnFramePairs.reduce<Map<number, ReplayFrame[]>>(
     (map, [column, frame]) => {
@@ -194,4 +185,44 @@ export function divide(numerator: number, denominator: number | undefined) {
     return 0;
   }
   return numerator / denominator;
+}
+
+/**
+ * Finds the index of the mobile replay segment that is neared
+ */
+export function findVideoSegmentIndex(
+  trackList: [ts: number, index: number][],
+  segments: VideoEvent[],
+  targetTimestamp: number,
+  optionalStart?: number,
+  optionalEnd?: number
+) {
+  const start = optionalStart ?? 0;
+  const end = optionalEnd ?? segments.length - 1;
+
+  if (start > end) {
+    // XXX: This means we are not returning "exact" segments, but the prior
+    // segment if it doesn't not satisfy the exact time constraints
+    //
+    // In the case where targetTimestamp is < first segment, end can be -1
+    return end;
+  }
+
+  const mid = Math.floor((start + end) / 2);
+
+  const [ts, index] = trackList[mid];
+  const segment = segments[index];
+
+  // Segment match found
+  if (targetTimestamp >= ts && targetTimestamp <= ts + segment.duration) {
+    return index;
+  }
+
+  // Search higher half
+  if (targetTimestamp > ts) {
+    return findVideoSegmentIndex(trackList, segments, targetTimestamp, mid + 1, end);
+  }
+
+  // Search lower half
+  return findVideoSegmentIndex(trackList, segments, targetTimestamp, start, mid - 1);
 }

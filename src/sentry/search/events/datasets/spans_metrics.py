@@ -10,7 +10,9 @@ from sentry.exceptions import IncompatibleMetricsQuery
 from sentry.search.events import builder, constants, fields
 from sentry.search.events.datasets import field_aliases, filter_aliases, function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
+from sentry.search.events.fields import SnQLStringArg
 from sentry.search.events.types import SelectType, WhereType
+from sentry.search.utils import DEVICE_CLASS
 from sentry.snuba.metrics.naming_layer.mri import SpanMRI
 from sentry.snuba.referrer import Referrer
 
@@ -28,9 +30,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
     ) -> Mapping[str, Callable[[SearchFilter], WhereType | None]]:
         return {
             constants.SPAN_DOMAIN_ALIAS: self._span_domain_filter_converter,
-            constants.DEVICE_CLASS_ALIAS: lambda search_filter: filter_aliases.device_class_converter(
-                self.builder, search_filter
-            ),
+            constants.DEVICE_CLASS_ALIAS: self._device_class_filter_converter,
         }
 
     @property
@@ -332,6 +332,31 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     default_result_type="percentage",
                 ),
                 fields.MetricsFunction(
+                    "http_response_rate",
+                    required_args=[
+                        SnQLStringArg("code"),
+                    ],
+                    snql_distribution=lambda args, alias: function_aliases.resolve_division(
+                        self._resolve_http_response_count(args),
+                        Function(
+                            "countIf",
+                            [
+                                Column("value"),
+                                Function(
+                                    "equals",
+                                    [
+                                        Column("metric_id"),
+                                        self.resolve_metric("span.self_time"),
+                                    ],
+                                ),
+                            ],
+                        ),
+                        alias,
+                    ),
+                    default_result_type="percentage",
+                ),
+                # TODO: Deprecated, use `http_response_rate(5)` instead
+                fields.MetricsFunction(
                     "http_error_rate",
                     snql_distribution=lambda args, alias: function_aliases.resolve_division(
                         self._resolve_http_error_count(args),
@@ -352,6 +377,15 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     ),
                     default_result_type="percentage",
                 ),
+                fields.MetricsFunction(
+                    "http_response_count",
+                    required_args=[
+                        SnQLStringArg("code"),
+                    ],
+                    snql_distribution=self._resolve_http_response_count,
+                    default_result_type="integer",
+                ),
+                # TODO: Deprecated, use `http_response_count(5)` instead
                 fields.MetricsFunction(
                     "http_error_count",
                     snql_distribution=self._resolve_http_error_count,
@@ -482,6 +516,11 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 0,
             )
 
+    def _device_class_filter_converter(self, search_filter: SearchFilter) -> SelectType:
+        return filter_aliases.device_class_converter(
+            self.builder, search_filter, {**DEVICE_CLASS, "Unknown": {""}}
+        )
+
     def _resolve_span_module(self, alias: str) -> SelectType:
         return field_aliases.resolve_span_module(self.builder, alias)
 
@@ -578,6 +617,31 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 ],
             ),
             total_time,
+            alias,
+        )
+
+    def _resolve_http_response_count(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+        condition = Function(
+            "startsWith",
+            [
+                self.builder.column("span.status_code"),
+                args["code"],
+            ],
+        )
+
+        return self._resolve_count_if(
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    self.resolve_metric("span.self_time"),
+                ],
+            ),
+            condition,
             alias,
         )
 

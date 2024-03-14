@@ -575,6 +575,11 @@ class MetricsDatasetConfig(DatasetConfig):
                     default_result_type="integer",
                 ),
                 fields.MetricsFunction(
+                    "count_total_starts",
+                    snql_distribution=self._resolve_count_total_starts_function,
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
                     "count_web_vitals",
                     required_args=[
                         fields.MetricArg(
@@ -606,6 +611,7 @@ class MetricsDatasetConfig(DatasetConfig):
                                 "measurements.score.fcp",
                                 "measurements.score.lcp",
                                 "measurements.score.fid",
+                                "measurements.score.inp",
                                 "measurements.score.cls",
                                 "measurements.score.ttfb",
                             ],
@@ -625,6 +631,7 @@ class MetricsDatasetConfig(DatasetConfig):
                                 "measurements.score.fcp",
                                 "measurements.score.lcp",
                                 "measurements.score.fid",
+                                "measurements.score.inp",
                                 "measurements.score.cls",
                                 "measurements.score.ttfb",
                             ],
@@ -644,6 +651,7 @@ class MetricsDatasetConfig(DatasetConfig):
                                 "measurements.score.fcp",
                                 "measurements.score.lcp",
                                 "measurements.score.fid",
+                                "measurements.score.inp",
                                 "measurements.score.cls",
                                 "measurements.score.ttfb",
                                 "measurements.score.total",
@@ -665,6 +673,7 @@ class MetricsDatasetConfig(DatasetConfig):
                                 "measurements.score.fcp",
                                 "measurements.score.lcp",
                                 "measurements.score.fid",
+                                "measurements.score.inp",
                                 "measurements.score.cls",
                                 "measurements.score.ttfb",
                             ],
@@ -918,9 +927,9 @@ class MetricsDatasetConfig(DatasetConfig):
             column_name_resolver=lambda _use_case_id, _org_id, value: self.builder.resolve_column_name(
                 value
             ),
-            org_id=self.builder.params.organization.id
-            if self.builder.params.organization
-            else None,
+            org_id=(
+                self.builder.params.organization.id if self.builder.params.organization else None
+            ),
             project_ids=self.builder.params.project_ids,
         )
 
@@ -1104,9 +1113,11 @@ class MetricsDatasetConfig(DatasetConfig):
             f"histogramIf({num_buckets})",
             [
                 Column("value"),
-                Function("and", [zoom_params, metric_condition])
-                if zoom_params
-                else metric_condition,
+                (
+                    Function("and", [zoom_params, metric_condition])
+                    if zoom_params
+                    else metric_condition
+                ),
             ],
             alias,
         )
@@ -1290,6 +1301,38 @@ class MetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
+    def _resolve_count_total_starts_function(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str,
+    ) -> SelectType:
+        return Function(
+            "countIf",
+            [
+                Column("value"),
+                Function(
+                    "or",
+                    [
+                        Function(
+                            "equals",
+                            [
+                                Column("metric_id"),
+                                self.resolve_metric("measurements.app_start_cold"),
+                            ],
+                        ),
+                        Function(
+                            "equals",
+                            [
+                                Column("metric_id"),
+                                self.resolve_metric("measurements.app_start_warm"),
+                            ],
+                        ),
+                    ],
+                ),
+            ],
+            alias,
+        )
+
     def _resolve_web_vital_function(
         self,
         args: Mapping[str, str | Column | SelectType | int | float],
@@ -1361,6 +1404,7 @@ class MetricsDatasetConfig(DatasetConfig):
             "measurements.score.lcp",
             "measurements.score.fcp",
             "measurements.score.fid",
+            "measurements.score.inp",
             "measurements.score.cls",
             "measurements.score.ttfb",
         ]:
@@ -1440,6 +1484,7 @@ class MetricsDatasetConfig(DatasetConfig):
             "measurements.score.lcp",
             "measurements.score.fcp",
             "measurements.score.fid",
+            "measurements.score.inp",
             "measurements.score.cls",
             "measurements.score.ttfb",
         ]:
@@ -1548,6 +1593,7 @@ class MetricsDatasetConfig(DatasetConfig):
             "measurements.score.lcp",
             "measurements.score.fcp",
             "measurements.score.fid",
+            "measurements.score.inp",
             "measurements.score.cls",
             "measurements.score.ttfb",
             "measurements.score.total",
@@ -1612,6 +1658,7 @@ class MetricsDatasetConfig(DatasetConfig):
             "measurements.score.lcp",
             "measurements.score.fcp",
             "measurements.score.fid",
+            "measurements.score.inp",
             "measurements.score.cls",
             "measurements.score.ttfb",
         ]:
@@ -1725,9 +1772,11 @@ class MetricsDatasetConfig(DatasetConfig):
                         condition,
                     ],
                 ),
-                args["interval"]
-                if interval is None
-                else Function("divide", [args["interval"], interval]),
+                (
+                    args["interval"]
+                    if interval is None
+                    else Function("divide", [args["interval"], interval])
+                ),
             ],
             alias,
         )

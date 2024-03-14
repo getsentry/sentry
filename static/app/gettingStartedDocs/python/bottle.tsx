@@ -7,11 +7,12 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
+import {crashReportOnboardingPython} from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
-const getInstallSnippet = () => `pip install --upgrade sentry-sdk[bottle]`;
+const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[bottle]'`;
 
 const getSdkSetupSnippet = (params: Params) => `
 import sentry_sdk
@@ -131,6 +132,7 @@ const docs: Docs = {
   customMetricsOnboarding: getPythonMetricsOnboarding({
     installSnippet: getInstallSnippet(),
   }),
+  crashReportOnboarding: crashReportOnboardingPython,
 };
 
 export default docs;

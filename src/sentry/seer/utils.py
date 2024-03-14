@@ -35,6 +35,15 @@ seer_connection_pool = connection_from_url(
     timeout=settings.ANOMALY_DETECTION_TIMEOUT,
 )
 
+seer_staging_connection_pool = connection_from_url(
+    settings.SEER_AUTOFIX_URL,
+    retries=Retry(
+        total=5,
+        status_forcelist=[408, 429, 502, 503, 504],
+    ),
+    timeout=settings.ANOMALY_DETECTION_TIMEOUT,
+)
+
 
 def detect_breakpoints(breakpoint_request) -> BreakpointResponse:
     response = seer_connection_pool.urlopen(
@@ -44,3 +53,44 @@ def detect_breakpoints(breakpoint_request) -> BreakpointResponse:
         headers={"content-type": "application/json;charset=utf-8"},
     )
     return json.loads(response.data)
+
+
+class SimilarIssuesEmbeddingsRequestNotRequired(TypedDict, total=False):
+    k: int
+    threshold: float
+
+
+class SimilarIssuesEmbeddingsRequest(SimilarIssuesEmbeddingsRequestNotRequired):
+    group_id: int
+    project_id: int
+    stacktrace: str
+    message: str
+
+
+class SimilarIssuesEmbeddingsData(TypedDict):
+    parent_group_id: int
+    stacktrace_distance: float
+    message_distance: float
+    should_group: bool
+
+
+class SimilarIssuesEmbeddingsResponse(TypedDict):
+    responses: list[SimilarIssuesEmbeddingsData | None]
+
+
+def get_similar_issues_embeddings(
+    similar_issues_request: SimilarIssuesEmbeddingsRequest,
+) -> SimilarIssuesEmbeddingsResponse:
+    """Call /v0/issues/similar-issues endpoint from seer."""
+    response = seer_staging_connection_pool.urlopen(
+        "POST",
+        "/v0/issues/similar-issues",
+        body=json.dumps(similar_issues_request),
+        headers={"Content-Type": "application/json;charset=utf-8"},
+    )
+
+    try:
+        return json.loads(response.data.decode("utf-8"))
+    except AttributeError:
+        empty_response: SimilarIssuesEmbeddingsResponse = {"responses": []}
+        return empty_response

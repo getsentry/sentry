@@ -1,5 +1,15 @@
 from django.db import router, transaction
-from django.db.models import Case, DateTimeField, IntegerField, OuterRef, Q, Subquery, Value, When
+from django.db.models import (
+    Case,
+    DateTimeField,
+    Exists,
+    IntegerField,
+    OuterRef,
+    Q,
+    Subquery,
+    Value,
+    When,
+)
 from drf_spectacular.utils import extend_schema
 
 from sentry import audit_log, quotas
@@ -34,7 +44,7 @@ from sentry.monitors.serializers import (
     MonitorSerializer,
     MonitorSerializerResponse,
 )
-from sentry.monitors.utils import create_alert_rule, signal_monitor_created
+from sentry.monitors.utils import create_issue_alert_rule, signal_monitor_created
 from sentry.monitors.validators import MonitorBulkEditValidator, MonitorValidator
 from sentry.search.utils import tokenize_query
 from sentry.utils.outcomes import Outcome
@@ -56,8 +66,6 @@ from rest_framework.response import Response
 
 DEFAULT_ORDERING = [
     MonitorStatus.ERROR,
-    MonitorStatus.TIMEOUT,
-    MonitorStatus.MISSED_CHECKIN,
     MonitorStatus.OK,
     MonitorStatus.ACTIVE,
     MonitorStatus.DISABLED,
@@ -127,21 +135,23 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         environments = None
         if "environment" in filter_params:
             environments = filter_params["environment_objects"]
+            environment_ids = [e.id for e in environments]
             # use a distinct() filter as queries spanning multiple tables can include duplicates
             if request.GET.get("includeNew"):
                 queryset = queryset.filter(
-                    Q(monitorenvironment__environment__in=environments) | Q(monitorenvironment=None)
+                    Q(monitorenvironment__environment_id__in=environment_ids)
+                    | Q(monitorenvironment=None)
                 ).distinct()
             else:
                 queryset = queryset.filter(
-                    monitorenvironment__environment__in=environments
+                    monitorenvironment__environment_id__in=environment_ids
                 ).distinct()
         else:
             environments = list(Environment.objects.filter(organization_id=organization.id))
 
         # sort monitors by top monitor environment, then by latest check-in
         monitor_environments_query = MonitorEnvironment.objects.filter(
-            monitor__id=OuterRef("id"), environment__in=environments
+            monitor__id=OuterRef("id"), environment_id__in=[e.id for e in environments]
         )
         sort_fields = []
 
@@ -171,6 +181,15 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
             sort_fields = ["environment_status_ordering", "-last_checkin_monitorenvironment"]
         elif sort == "name":
             sort_fields = ["name"]
+        elif sort == "muted":
+            queryset = queryset.annotate(
+                muted_ordering=Case(
+                    When(is_muted=True, then=Value(2)),
+                    When(Exists(monitor_environments_query.filter(is_muted=True)), then=Value(1)),
+                    default=0,
+                ),
+            )
+            sort_fields = ["muted_ordering", "name"]
 
         if not is_asc:
             sort_fields = [flip_sort_direction(sort_field) for sort_field in sort_fields]
@@ -269,13 +288,15 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         project = result["project"]
         signal_monitor_created(project, request.user, False)
 
-        validated_alert_rule = result.get("alert_rule")
-        if validated_alert_rule:
-            alert_rule_id = create_alert_rule(request, project, monitor, validated_alert_rule)
+        validated_issue_alert_rule = result.get("alert_rule")
+        if validated_issue_alert_rule:
+            issue_alert_rule_id = create_issue_alert_rule(
+                request, project, monitor, validated_issue_alert_rule
+            )
 
-            if alert_rule_id:
+            if issue_alert_rule_id:
                 config = monitor.config
-                config["alert_rule_id"] = alert_rule_id
+                config["alert_rule_id"] = issue_alert_rule_id
                 monitor.update(config=config)
 
         return self.respond(serialize(monitor, request.user), status=201)

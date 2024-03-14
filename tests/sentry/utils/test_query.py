@@ -55,10 +55,12 @@ class RangeQuerySetWrapperTest(TestCase):
         assert len(list(self.range_wrapper(qs, step=2))) == 0
 
 
+@no_silo_test
 class RangeQuerySetWrapperWithProgressBarTest(RangeQuerySetWrapperTest):
     range_wrapper = RangeQuerySetWrapperWithProgressBar
 
 
+@no_silo_test
 class RangeQuerySetWrapperWithProgressBarApproxTest(RangeQuerySetWrapperTest):
     range_wrapper = RangeQuerySetWrapperWithProgressBarApprox
 

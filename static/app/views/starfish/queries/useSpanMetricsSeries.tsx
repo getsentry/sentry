@@ -20,6 +20,7 @@ interface SpanMetricTimeseriesRow {
 }
 
 interface UseSpanMetricsSeriesOptions<Fields> {
+  enabled?: boolean;
   filters?: SpanMetricsQueryFilters;
   referrer?: string;
   yAxis?: Fields;
@@ -34,13 +35,11 @@ export const useSpanMetricsSeries = <Fields extends MetricsProperty[]>(
 
   const eventView = getEventView(filters, pageFilters.selection, yAxis);
 
-  const enabled = Object.values(filters).every(value => Boolean(value));
-
   const result = useWrappedDiscoverTimeseriesQuery<SpanMetricTimeseriesRow[]>({
     eventView,
     initialData: [],
     referrer,
-    enabled,
+    enabled: options.enabled,
   });
 
   const parsedData = keyBy(

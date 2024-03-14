@@ -7,10 +7,7 @@ import {
   usePromptsCheck,
 } from 'sentry/actionCreators/prompts';
 import useStacktraceLink from 'sentry/components/events/interfaces/frame/useStacktraceLink';
-import {
-  hasFileExtension,
-  hasStacktraceLinkInFrameFeature,
-} from 'sentry/components/events/interfaces/frame/utils';
+import {hasFileExtension} from 'sentry/components/events/interfaces/frame/utils';
 import type {
   Event,
   Frame,
@@ -63,8 +60,7 @@ export function StacktraceBanners({stacktrace, event}: StacktraceBannersProps) {
   const {projects} = useProjects();
   const expectedDefaultFrame: Frame | undefined = (stacktrace.frames ?? [])
     .filter(
-      frame =>
-        frame && frame.inApp && hasFileExtension(frame.absPath || frame.filename || '')
+      frame => frame?.inApp && hasFileExtension(frame.absPath || frame.filename || '')
     )
     .at(-1);
   const project = useMemo(
@@ -72,9 +68,7 @@ export function StacktraceBanners({stacktrace, event}: StacktraceBannersProps) {
     [projects, event]
   );
 
-  const hasInFrameFeature = hasStacktraceLinkInFrameFeature(organization);
-  const enabled =
-    !!organization && !!expectedDefaultFrame && !!project && hasInFrameFeature;
+  const enabled = !!organization && !!expectedDefaultFrame && !!project;
 
   const {data: stacktraceLink} = useStacktraceLink(
     {

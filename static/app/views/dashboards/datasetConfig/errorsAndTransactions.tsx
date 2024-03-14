@@ -128,12 +128,14 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   ) => {
     const url = `/organizations/${organization.slug}/events/`;
 
+    const useOnDemandMetrics = shouldUseOnDemandMetrics(
+      organization,
+      widget,
+      onDemandControlContext
+    );
     const queryExtras = {
-      useOnDemandMetrics: shouldUseOnDemandMetrics(
-        organization,
-        widget,
-        onDemandControlContext
-      ),
+      useOnDemandMetrics,
+      ...getQueryExtraForSplittingDiscover(widget, organization, !!useOnDemandMetrics),
       onDemandType: 'dynamic_query',
     };
     return getEventsRequest(
@@ -421,7 +423,14 @@ function renderTraceAsLinkable(
     return null;
   }
   const dateSelection = eventView.normalizeDateSelection(location);
-  const target = getTraceDetailsUrl(organization, String(data.trace), dateSelection, {});
+  const target = getTraceDetailsUrl(
+    organization,
+    String(data.trace),
+    dateSelection,
+    {},
+    data.timestamp,
+    data.id || data.eventID
+  );
 
   return (
     <Tooltip title={t('View Trace')}>
@@ -525,7 +534,11 @@ function getEventsSeriesRequest(
   const {displayType, limit} = widget;
   const {environments, projects} = pageFilters;
   const {start, end, period: statsPeriod} = pageFilters.datetime;
-  const interval = getWidgetInterval(displayType, {start, end, period: statsPeriod});
+  const interval = getWidgetInterval(
+    displayType,
+    {start, end, period: statsPeriod},
+    '1m'
+  );
   const isMEPEnabled = defined(mepSetting) && mepSetting !== MEPState.TRANSACTIONS_ONLY;
 
   let requestData;
@@ -607,6 +620,10 @@ function getEventsSeriesRequest(
   }
 
   if (shouldUseOnDemandMetrics(organization, widget, onDemandControlContext)) {
+    requestData.queryExtras = {
+      ...requestData.queryExtras,
+      ...getQueryExtraForSplittingDiscover(widget, organization, true),
+    };
     return doOnDemandMetricsRequest(api, requestData);
   }
 
@@ -636,7 +653,7 @@ async function doOnDemandMetricsRequest(
       generatePathname: isEditing ? fetchEstimatedStats : undefined,
     });
 
-    response[0] = {...response[0], isMetricsData: true, isExtrapolatedData: isEditing};
+    response[0] = {...response[0]};
 
     return [response[0], response[1], response[2]];
   } catch (err) {
@@ -658,3 +675,21 @@ function filterAggregateParams(option: FieldValueOption, fieldValue?: QueryField
   }
   return true;
 }
+
+const shouldSendWidgetForSplittingDiscover = (organization: Organization) => {
+  return organization.features.includes('performance-discover-widget-split-ui');
+};
+
+const getQueryExtraForSplittingDiscover = (
+  widget: Widget,
+  organization: Organization,
+  useOnDemandMetrics: boolean
+) => {
+  if (!useOnDemandMetrics || !shouldSendWidgetForSplittingDiscover(organization)) {
+    return {};
+  }
+  if (widget.id) {
+    return {dashboardWidgetId: widget.id};
+  }
+  return {};
+};

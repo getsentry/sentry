@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import moment from 'moment-timezone';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import type {ButtonProps} from 'sentry/components/button';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -33,20 +32,17 @@ import {
   getShortEventId,
 } from 'sentry/utils/events';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useUser} from 'sentry/utils/useUser';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
 import {TraceLink} from 'sentry/views/issueDetails/traceTimeline/traceLink';
-import {hasTraceTimelineFeature} from 'sentry/views/issueDetails/traceTimeline/utils';
 import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
-
-import QuickTrace from './quickTrace';
 
 type GroupEventCarouselProps = {
   event: Event;
@@ -177,58 +173,56 @@ function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigatio
   ];
 
   return (
-    <GuideAnchor target="issue_details_default_event" position="bottom">
-      <CompactSelect
-        size="sm"
-        disabled={isDisabled}
-        options={eventNavDropdownOptions}
-        value={!selectedValue ? EventNavDropdownOption.CUSTOM : selectedValue}
-        triggerLabel={
-          !selectedValue ? (
-            <TimeSince
-              date={event.dateCreated ?? event.dateReceived}
-              disabledAbsoluteTooltip
-            />
-          ) : selectedValue === EventNavDropdownOption.RECOMMENDED ? (
-            t('Recommended')
-          ) : undefined
-        }
-        menuWidth={232}
-        onChange={selectedOption => {
-          trackAnalytics('issue_details.event_dropdown_option_selected', {
-            organization,
-            selected_event_type: selectedOption.value,
-            from_event_type: selectedValue ?? EventNavDropdownOption.CUSTOM,
-            event_id: event.id,
-            group_id: group.id,
-          });
+    <CompactSelect
+      size="sm"
+      disabled={isDisabled}
+      options={eventNavDropdownOptions}
+      value={!selectedValue ? EventNavDropdownOption.CUSTOM : selectedValue}
+      triggerLabel={
+        !selectedValue ? (
+          <TimeSince
+            date={event.dateCreated ?? event.dateReceived}
+            disabledAbsoluteTooltip
+          />
+        ) : selectedValue === EventNavDropdownOption.RECOMMENDED ? (
+          t('Recommended')
+        ) : undefined
+      }
+      menuWidth={232}
+      onChange={selectedOption => {
+        trackAnalytics('issue_details.event_dropdown_option_selected', {
+          organization,
+          selected_event_type: selectedOption.value,
+          from_event_type: selectedValue ?? EventNavDropdownOption.CUSTOM,
+          event_id: event.id,
+          group_id: group.id,
+        });
 
-          switch (selectedOption.value) {
-            case EventNavDropdownOption.RECOMMENDED:
-            case EventNavDropdownOption.LATEST:
-            case EventNavDropdownOption.OLDEST:
-              browserHistory.push({
-                pathname: normalizeUrl(
-                  makeBaseEventsPath({organization, group}) + selectedOption.value + '/'
-                ),
-                query: {...location.query, referrer: `${selectedOption.value}-event`},
-              });
-              break;
-            case EventNavDropdownOption.ALL:
-              const searchTermWithoutQuery = omit(location.query, 'query');
-              browserHistory.push({
-                pathname: normalizeUrl(
-                  `/organizations/${organization.slug}/issues/${group.id}/events/`
-                ),
-                query: searchTermWithoutQuery,
-              });
-              break;
-            default:
-              break;
-          }
-        }}
-      />
-    </GuideAnchor>
+        switch (selectedOption.value) {
+          case EventNavDropdownOption.RECOMMENDED:
+          case EventNavDropdownOption.LATEST:
+          case EventNavDropdownOption.OLDEST:
+            browserHistory.push({
+              pathname: normalizeUrl(
+                makeBaseEventsPath({organization, group}) + selectedOption.value + '/'
+              ),
+              query: {...location.query, referrer: `${selectedOption.value}-event`},
+            });
+            break;
+          case EventNavDropdownOption.ALL:
+            const searchTermWithoutQuery = omit(location.query, 'query');
+            browserHistory.push({
+              pathname: normalizeUrl(
+                `/organizations/${organization.slug}/issues/${group.id}/events/`
+              ),
+              query: searchTermWithoutQuery,
+            });
+            break;
+          default:
+            break;
+        }
+      }}
+    />
   );
 }
 
@@ -361,10 +355,6 @@ export function GroupEventActions({event, group, projectSlug}: GroupEventActions
 }
 
 export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarouselProps) {
-  const organization = useOrganization();
-  const location = useLocation();
-  const user = useUser();
-
   const latencyThreshold = 30 * 60 * 1000; // 30 minutes
   const isOverLatencyThreshold =
     event.dateReceived &&
@@ -379,7 +369,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
     text: event.id,
   });
 
-  const hasTraceTimeline = hasTraceTimelineFeature(organization, user);
+  const issueTypeConfig = getConfigForIssueType(group, group.project);
 
   return (
     <CarouselAndButtonsWrapper>
@@ -429,11 +419,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
             )}
           </EventIdAndTimeContainer>
         </EventHeading>
-        {hasTraceTimeline ? (
-          <TraceLink event={event} />
-        ) : (
-          <QuickTrace event={event} organization={organization} location={location} />
-        )}
+        {issueTypeConfig.traceTimeline ? <TraceLink event={event} /> : null}
       </div>
       <ActionsWrapper>
         <GroupEventActions event={event} group={group} projectSlug={projectSlug} />

@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import type {ProfilerOnRenderCallback, ReactNode} from 'react';
 import {Fragment, Profiler, useEffect, useRef} from 'react';
 import type {IdleTransaction} from '@sentry/core';
 import {captureMessage, setExtra, setTag} from '@sentry/react';
@@ -35,11 +35,7 @@ export function getPerformanceTransaction(): IdleTransaction | Transaction | und
 /**
  * Callback for React Profiler https://reactjs.org/docs/profiler.html
  */
-export function onRenderCallback(
-  id: string,
-  phase: 'mount' | 'update',
-  actualDuration: number
-) {
+export const onRenderCallback: ProfilerOnRenderCallback = (id, phase, actualDuration) => {
   try {
     const transaction = getPerformanceTransaction();
     if (transaction && actualDuration > MIN_UPDATE_SPAN_TIME) {
@@ -54,7 +50,7 @@ export function onRenderCallback(
   } catch (_) {
     // Add defensive catch since this wraps all of App
   }
-}
+};
 
 export class PerformanceInteraction {
   private static interactionTransaction: Transaction | null = null;
@@ -604,7 +600,9 @@ function getNearestElementName(node: HTMLElement | undefined | null): string | u
   let current: HTMLElement | null = node;
   while (current && current !== document.body) {
     const elementName =
-      current.dataset?.testId ?? current.dataset?.component ?? current.dataset?.element;
+      current.dataset?.testId ??
+      current.dataset?.sentryComponent ??
+      current.dataset?.element;
 
     if (elementName) {
       return elementName;

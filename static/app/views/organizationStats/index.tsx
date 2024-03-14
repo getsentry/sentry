@@ -258,12 +258,12 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
       return null;
     }
 
-    const hasReplay = organization.features.includes('session-replay');
-    const options = hasReplay
-      ? CHART_OPTIONS_DATACATEGORY
-      : CHART_OPTIONS_DATACATEGORY.filter(
-          opt => opt.value !== DATA_CATEGORY_INFO.replay.plural
-        );
+    const options = CHART_OPTIONS_DATACATEGORY.filter(opt => {
+      if (opt.value === DATA_CATEGORY_INFO.replay.plural) {
+        return organization.features.includes('session-replay');
+      }
+      return true;
+    });
 
     return (
       <PageControl>
@@ -313,12 +313,12 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
 
     const {start, end, period, utc} = this.dataDatetime;
 
-    const hasReplay = organization.features.includes('session-replay');
-    const options = hasReplay
-      ? CHART_OPTIONS_DATACATEGORY
-      : CHART_OPTIONS_DATACATEGORY.filter(
-          opt => opt.value !== DATA_CATEGORY_INFO.replay.plural
-        );
+    const options = CHART_OPTIONS_DATACATEGORY.filter(opt => {
+      if (opt.value === DATA_CATEGORY_INFO.replay.plural) {
+        return organization.features.includes('session-replay');
+      }
+      return true;
+    });
 
     return (
       <SelectorGrid>
@@ -347,7 +347,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
    * This method is replaced by the hook "component:enhanced-org-stats"
    */
   renderUsageStatsOrg() {
-    const {organization, router} = this.props;
+    const {organization, router, location, params, routes} = this.props;
     return (
       <UsageStatsOrg
         isSingleProject={this.isSingleProject}
@@ -359,6 +359,9 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
         chartTransform={this.chartTransform}
         handleChangeState={this.setStateOnUrl}
         router={router}
+        location={location}
+        params={params}
+        routes={routes}
       />
     );
   }

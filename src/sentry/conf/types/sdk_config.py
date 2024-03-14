@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any, Literal, NotRequired
-
-from typing_extensions import TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 
 class SdkConfig(TypedDict):
@@ -17,6 +15,7 @@ class SdkConfig(TypedDict):
 
     send_client_reports: NotRequired[bool]
     traces_sampler: NotRequired[Callable[[dict[str, Any]], float]]
+    before_send: NotRequired[Callable[[dict[str, Any], object], dict[str, Any]]]
     before_send_transaction: NotRequired[Callable[[dict[str, Any], object], dict[str, Any]]]
     profiles_sample_rate: NotRequired[float]
     profiler_mode: NotRequired[Literal["sleep", "thread", "gevent", "unknown"]]

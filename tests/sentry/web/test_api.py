@@ -15,6 +15,7 @@ from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.scheduled import run_deletion
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, create_test_regions, region_silo_test
 from sentry.utils import json
 
@@ -188,11 +189,14 @@ class ClientConfigViewTest(TestCase):
         assert data["features"] == ["organizations:create"]
         assert data["customerDomain"] is None
 
-    def test_superuser(self):
-        user = self.create_user("foo@example.com", is_superuser=True)
-        self.login_as(user, superuser=True)
+    def _run_test_with_privileges(self, is_superuser: bool, is_staff: bool):
+        user = self.create_user("foo@example.com", is_superuser=is_superuser, is_staff=is_staff)
+        self.create_organization(owner=user)
+        self.login_as(user, superuser=is_superuser, staff=is_staff)
 
-        with mock.patch("sentry.auth.superuser.ORG_ID", self.organization.id):
+        other_org = self.create_organization()
+
+        with mock.patch("sentry.auth.superuser.SUPERUSER_ORG_ID", self.organization.id):
             resp = self.client.get(self.path)
 
         assert resp.status_code == 200
@@ -202,32 +206,80 @@ class ClientConfigViewTest(TestCase):
         assert data["isAuthenticated"]
         assert data["user"]
         assert data["user"]["email"] == user.email
-        assert data["user"]["isSuperuser"] is True
+        assert data["user"]["isSuperuser"] is is_superuser
         assert data["lastOrganization"] is None
-        assert data["links"] == {
-            "organizationUrl": None,
-            "regionUrl": None,
-            "sentryUrl": "http://testserver",
-            "superuserUrl": f"http://{self.organization.slug}.testserver",
-        }
+        if is_superuser:
+            assert data["links"] == {
+                "organizationUrl": None,
+                "regionUrl": None,
+                "sentryUrl": "http://testserver",
+                "superuserUrl": f"http://{self.organization.slug}.testserver",
+            }
+        else:
+            assert data["links"] == {
+                "organizationUrl": None,
+                "regionUrl": None,
+                "sentryUrl": "http://testserver",
+            }
         assert "activeorg" not in self.client.session
 
         # Induce last active organization
-        resp = self.client.get(
-            reverse("sentry-api-0-organization-projects", args=[self.organization.slug])
-        )
-        assert resp.status_code == 200
-        assert resp["Content-Type"] == "application/json"
-        assert "activeorg" not in self.client.session
+        with (
+            override_settings(SENTRY_USE_CUSTOMER_DOMAINS=True),
+            self.feature({"organizations:customer-domains": [other_org.slug]}),
+            assume_test_silo_mode(SiloMode.MONOLITH),
+        ):
+            response = self.client.get(
+                "/",
+                HTTP_HOST=f"{other_org.slug}.testserver",
+                follow=True,
+            )
+            assert response.status_code == 200
+            if is_superuser:
+                assert response.redirect_chain == [
+                    (f"http://{other_org.slug}.testserver/issues/", 302)
+                ]
+                assert self.client.session["activeorg"] == other_org.slug
+            else:
+                assert response.redirect_chain == [
+                    (f"http://{other_org.slug}.testserver/auth/login/{other_org.slug}/", 302)
+                ]
+                assert "activeorg" not in self.client.session
 
-        # lastOrganization is not set
-        resp = self.client.get(self.path)
+        # lastOrganization is set
+        with mock.patch("sentry.auth.superuser.SUPERUSER_ORG_ID", self.organization.id):
+            resp = self.client.get(self.path)
         assert resp.status_code == 200
         assert resp["Content-Type"] == "application/json"
 
         data = json.loads(resp.content)
-        assert data["lastOrganization"] is None
-        assert "activeorg" not in self.client.session
+
+        if is_superuser:
+            assert data["lastOrganization"] == other_org.slug
+            assert data["links"] == {
+                "organizationUrl": f"http://{other_org.slug}.testserver",
+                "regionUrl": generate_region_url(),
+                "sentryUrl": "http://testserver",
+                "superuserUrl": f"http://{self.organization.slug}.testserver",
+            }
+        else:
+            assert data["lastOrganization"] is None
+            assert data["links"] == {
+                "organizationUrl": None,
+                "regionUrl": None,
+                "sentryUrl": "http://testserver",
+            }
+
+    def test_superuser(self):
+        self._run_test_with_privileges(is_superuser=True, is_staff=False)
+
+    @with_feature("auth:enterprise-staff-cookie")
+    def test_staff(self):
+        self._run_test_with_privileges(is_superuser=False, is_staff=True)
+
+    @with_feature("auth:enterprise-staff-cookie")
+    def test_superuser_and_staff(self):
+        self._run_test_with_privileges(is_superuser=True, is_staff=True)
 
     def test_superuser_cookie_domain(self):
         # Cannot set the superuser cookie domain using override_settings().

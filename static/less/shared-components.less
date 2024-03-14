@@ -1,12 +1,14 @@
 dl.flat {
   margin-bottom: 1em;
 }
+
 dl.flat dt {
   float: left;
   clear: left;
   width: 70px;
   padding-bottom: 5px;
 }
+
 dl.flat dd {
   padding-bottom: 5px;
 }
@@ -23,12 +25,15 @@ dl.flat dd {
     padding-left: 30px;
     padding-right: 30px;
   }
+
   &.flex-justify-right {
     justify-content: flex-end;
   }
+
   &.flex-vertically-centered {
     align-items: center;
   }
+
   > * {
     flex-grow: 1;
   }
@@ -361,6 +366,7 @@ table.table.key-value {
     }
   }
 }
+
 /**
 * Avatar
 * ============================================================================
@@ -437,16 +443,19 @@ table.table.key-value {
     -webkit-transform: rotate(0deg);
     transform: rotate(0deg);
   }
+
   100% {
     -webkit-transform: rotate(360deg);
     transform: rotate(360deg);
   }
 }
+
 @keyframes loading {
   0% {
     -webkit-transform: rotate(0deg);
     transform: rotate(0deg);
   }
+
   100% {
     -webkit-transform: rotate(360deg);
     transform: rotate(360deg);
@@ -550,6 +559,7 @@ table.table.key-value {
 
     a {
       color: @gray-dark;
+
       &:hover {
         color: @gray-darker;
       }
@@ -665,6 +675,7 @@ table.table.key-value {
       height: auto;
       font-size: 14px;
     }
+
     .with-padding {
       padding: 10px 10px 0;
     }
@@ -742,6 +753,7 @@ header + .alert {
   p:last-child {
     margin: 0;
   }
+
   .icon {
     float: left;
     margin: 3px 8px 0 3px;
@@ -808,6 +820,7 @@ header + .alert {
 .alert-block ul {
   padding-left: 20px;
 }
+
 // ugh this is awful
 .alert-block p + ul,
 .alert-block p + p,
@@ -865,7 +878,9 @@ header + .alert {
   top: 32px;
   border: none;
   border-radius: 2px;
-  box-shadow: 0 0 0 1px rgba(52, 60, 69, 0.2), 0 1px 3px rgba(70, 82, 98, 0.25);
+  box-shadow:
+    0 0 0 1px rgba(52, 60, 69, 0.2),
+    0 1px 3px rgba(70, 82, 98, 0.25);
   -webkit-background-clip: padding-box;
   -moz-background-clip: padding;
   background-clip: padding-box;
@@ -1081,7 +1096,7 @@ header + .alert {
         color: @gray-darker;
       }
 
-      &.focus-visible {
+      &:focus-visible {
         text-decoration: underline;
         outline: none;
       }

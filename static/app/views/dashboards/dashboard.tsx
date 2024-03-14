@@ -52,7 +52,7 @@ import {
 import SortableWidget from './sortableWidget';
 import type {DashboardDetails, Widget} from './types';
 import {DashboardWidgetSource, WidgetType} from './types';
-import {getDashboardFiltersFromURL} from './utils';
+import {connectDashboardCharts, getDashboardFiltersFromURL} from './utils';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
 const DRAG_RESIZE_CLASS = 'widget-resize';
@@ -69,6 +69,7 @@ const BOTTOM_MOBILE_VIEW_POSITION = {
 const MOBILE_BREAKPOINT = parseInt(theme.breakpoints.small, 10);
 const BREAKPOINTS = {[MOBILE]: 0, [DESKTOP]: MOBILE_BREAKPOINT};
 const COLUMNS = {[MOBILE]: NUM_MOBILE_COLS, [DESKTOP]: NUM_DESKTOP_COLS};
+export const DASHBOARD_CHART_GROUP = 'dashboard-group';
 
 type Props = {
   api: Client;
@@ -85,13 +86,10 @@ type Props = {
   router: InjectedRouter;
   selection: PageFilters;
   widgetLimitReached: boolean;
-  editingWidgetIndex?: number;
   handleAddMetricWidget?: (layout?: Widget['layout']) => void;
   isPreview?: boolean;
   newWidget?: Widget;
-  onEndEditMetricWidget?: (widgets: Widget[], isCancel?: boolean) => void;
   onSetNewWidget?: () => void;
-  onStartEditMetricWidget?: (index: number) => void;
   paramDashboardId?: string;
   paramTemplateId?: string;
 };
@@ -158,6 +156,8 @@ class Dashboard extends Component<Props, State> {
 
     // Get member list data for issue widgets
     this.fetchMemberList();
+
+    connectDashboardCharts(DASHBOARD_CHART_GROUP);
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -315,7 +315,7 @@ class Dashboard extends Component<Props, State> {
     const widget = this.props.dashboard.widgets[index];
 
     if (widget.widgetType === WidgetType.METRICS && hasDDMFeature(organization)) {
-      this.handleStartEditMetricWidget(index);
+      // TODO(ddm): open preview modal
       return;
     }
 
@@ -345,28 +345,6 @@ class Dashboard extends Component<Props, State> {
     return;
   };
 
-  handleStartEditMetricWidget = (index: number) => {
-    this.props.onStartEditMetricWidget?.(index);
-  };
-
-  onUpdate = (widget: Widget, index: number) => (newWidget: Widget | null) => {
-    if (widget.widgetType === WidgetType.METRICS) {
-      this.handleEndEditMetricWidget(widget, index)(newWidget);
-      return;
-    }
-  };
-
-  handleEndEditMetricWidget =
-    (widget: Widget, index: number) => (newWidget: Widget | null) => {
-      const widgets = [...this.props.dashboard.widgets];
-
-      if (newWidget) {
-        widgets[index] = {...widget, ...newWidget};
-      }
-
-      this.props.onEndEditMetricWidget?.(widgets, !newWidget);
-    };
-
   getWidgetIds() {
     return [
       ...this.props.dashboard.widgets.map((widget, index): string => {
@@ -378,16 +356,8 @@ class Dashboard extends Component<Props, State> {
 
   renderWidget(widget: Widget, index: number) {
     const {isMobile, windowWidth} = this.state;
-    const {
-      isEditingDashboard,
-      editingWidgetIndex,
-      widgetLimitReached,
-      isPreview,
-      dashboard,
-      location,
-    } = this.props;
-
-    const isEditingWidget = editingWidgetIndex === index;
+    const {isEditingDashboard, widgetLimitReached, isPreview, dashboard, location} =
+      this.props;
 
     const widgetProps = {
       widget,
@@ -396,27 +366,13 @@ class Dashboard extends Component<Props, State> {
       onDelete: this.handleDeleteWidget(widget),
       onEdit: this.handleEditWidget(index),
       onDuplicate: this.handleDuplicateWidget(widget, index),
-      onUpdate: this.onUpdate(widget, index),
+
       isPreview,
-      isEditingWidget,
+
       dashboardFilters: getDashboardFiltersFromURL(location) ?? dashboard.filters,
     };
 
     const key = constructGridItemKey(widget);
-
-    // inline edited widgets span full width
-    if (isEditingWidget) {
-      return (
-        <WidgetWidthWrapper key={key} data-grid={widget.layout}>
-          <SortableWidget
-            {...widgetProps}
-            isMobile={isMobile}
-            windowWidth={windowWidth}
-            index={String(index)}
-          />
-        </WidgetWidthWrapper>
-      );
-    }
 
     return (
       <div key={key} data-grid={widget.layout}>
@@ -538,6 +494,9 @@ class Dashboard extends Component<Props, State> {
       if (widgetType === WidgetType.RELEASE) {
         return organization.features.includes('dashboards-rh-widget');
       }
+      if (widgetType === WidgetType.METRICS) {
+        return hasDDMFeature(organization);
+      }
       return true;
     });
 
@@ -620,14 +579,4 @@ const ResizeHandle = styled(Button)`
   .react-resizable-hide & {
     display: none;
   }
-`;
-
-const WidgetWidthWrapper = styled('div')`
-  position: absolute;
-  /* react-grid-layout adds left, right and width so we need to override */
-  left: 16px !important;
-  right: 16px !important;
-  width: auto !important;
-  /* minimal working z-index */
-  z-index: 6;
 `;

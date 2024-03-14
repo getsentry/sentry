@@ -6,11 +6,27 @@ from rest_framework import serializers
 from rest_framework.request import Request
 
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.permissions import StaffPermissionMixin
 from sentry.db.models.fields.bounded import BoundedAutoField
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 
-from .organization import OrganizationEndpoint
+from .organization import OrganizationEndpoint, OrganizationPermission
+
+
+class MemberPermission(OrganizationPermission):
+    scope_map = {
+        "GET": ["member:read", "member:write", "member:admin"],
+        "POST": ["member:write", "member:admin"],
+        "PUT": ["member:write", "member:admin"],
+        "DELETE": ["member:admin"],
+    }
+
+
+class MemberAndStaffPermission(StaffPermissionMixin, MemberPermission):
+    """Allows staff to access member endpoints."""
+
+    pass
 
 
 class MemberIdField(serializers.IntegerField):

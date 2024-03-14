@@ -5,7 +5,7 @@ from django.utils import timezone
 
 from sentry.models.group import GroupStatus
 from sentry.models.grouprelease import GroupRelease
-from sentry.models.release import ReleaseProject
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.signals import release_created
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test

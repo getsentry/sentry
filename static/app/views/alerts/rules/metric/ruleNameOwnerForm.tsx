@@ -39,7 +39,7 @@ export default function RuleNameOwnerForm({disabled, project}: Props) {
     >
       {({model}) => {
         const owner = model.getValue('owner');
-        const ownerId = owner && owner.split(':')[1];
+        const ownerId = owner?.split(':')[1];
         return (
           <TeamSelector
             value={ownerId}

@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Mapping
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from time import time
 
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 
 from sentry import analytics
 from sentry.issues import grouptype
@@ -72,9 +72,9 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
     project.update_option("sentry:_last_auto_resolve", int(time()))
 
     if cutoff:
-        cutoff = datetime.utcfromtimestamp(cutoff).replace(tzinfo=timezone.utc)
+        cutoff = datetime.fromtimestamp(cutoff, timezone.utc)
     else:
-        cutoff = timezone.now() - timedelta(hours=int(age))
+        cutoff = django_timezone.now() - timedelta(hours=int(age))
 
     filter_conditions = {
         "project": project,
@@ -96,7 +96,7 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
     for group in queryset:
         happened = Group.objects.filter(id=group.id, status=GroupStatus.UNRESOLVED).update(
             status=GroupStatus.RESOLVED,
-            resolved_at=timezone.now(),
+            resolved_at=django_timezone.now(),
             substatus=None,
         )
         remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED)

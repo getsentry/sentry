@@ -35,6 +35,7 @@ const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 type Props = {
   groupId: string;
   transactionName: string;
+  additionalFilters?: Record<string, string>;
   project?: Project | null;
   release?: string;
   sectionSubtitle?: string;
@@ -50,6 +51,7 @@ export function ScreenLoadSampleContainer({
   release,
   project,
   spanOp,
+  additionalFilters,
 }: Props) {
   const router = useRouter();
   const location = useLocation();
@@ -97,8 +99,9 @@ export function ScreenLoadSampleContainer({
   }
 
   const {data} = useSpanMetrics({
-    filters,
+    filters: {...filters, ...additionalFilters},
     fields: [`avg(${SPAN_SELF_TIME})`, 'count()', SPAN_OP],
+    enabled: Boolean(groupId) && Boolean(transactionName),
     referrer: 'api.starfish.span-summary-panel-samples-table-avg',
   });
 
@@ -148,6 +151,12 @@ export function ScreenLoadSampleContainer({
         </Block>
       </Container>
       <DurationChart
+        query={
+          additionalFilters
+            ? Object.entries(additionalFilters).map(([key, value]) => `${key}:${value}`)
+            : undefined
+        }
+        additionalFilters={additionalFilters}
         groupId={groupId}
         transactionName={transactionName}
         transactionMethod={transactionMethod}
@@ -167,6 +176,12 @@ export function ScreenLoadSampleContainer({
         }
       />
       <SampleTable
+        query={
+          additionalFilters
+            ? Object.entries(additionalFilters).map(([key, value]) => `${key}:${value}`)
+            : undefined
+        }
+        additionalFilters={additionalFilters}
         highlightedSpanId={highlightedSpanId}
         transactionMethod={transactionMethod}
         onMouseLeaveSample={() => setHighlightedSpanId(undefined)}

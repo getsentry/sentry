@@ -5,6 +5,7 @@ export function ApiTokenFixture(
 ): NewInternalAppApiToken {
   return {
     id: '1',
+    name: 'token_name1',
     token: 'apitoken123',
     dateCreated: new Date('Thu Jan 11 2018 18:01:41 GMT-0800 (PST)').toISOString(),
     scopes: ['project:read', 'project:write'],

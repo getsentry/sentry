@@ -35,6 +35,8 @@ export enum SpanMetricsField {
   HTTP_RESPONSE_TRANSFER_SIZE = 'http.response_transfer_size',
   FILE_EXTENSION = 'file_extension',
   OS_NAME = 'os.name',
+  APP_START_TYPE = 'app_start_type',
+  DEVICE_CLASS = 'device.class',
 }
 
 export type SpanNumberFields =
@@ -76,6 +78,7 @@ export const SPAN_FUNCTIONS = [
   'spm',
   'count',
   'time_spent_percentage',
+  'http_response_rate',
   'http_error_count',
 ] as const;
 
@@ -89,6 +92,12 @@ export type MetricsResponse = {
   [Property in SpanStringFields as `${Property}`]: string;
 } & {
   [Property in SpanStringArrayFields as `${Property}`]: string[];
+} & {
+  // TODO: This should include all valid HTTP codes or just all integers
+  'http_response_rate(2)': number;
+  'http_response_rate(3)': number;
+  'http_response_rate(4)': number;
+  'http_response_rate(5)': number;
 } & {
   ['project.id']: number;
 };
@@ -119,6 +128,14 @@ export enum SpanIndexedField {
   PROJECT_ID = 'project_id',
   PROFILE_ID = 'profile_id',
   TRANSACTION = 'transaction',
+  ORIGIN_TRANSACTION = 'origin.transaction',
+  REPLAY_ID = 'replay.id',
+  BROWSER_NAME = 'browser.name',
+  USER = 'user',
+  INP = 'measurements.inp',
+  INP_SCORE = 'measurements.score.inp',
+  INP_SCORE_WEIGHT = 'measurements.score.weight.inp',
+  TOTAL_SCORE = 'measurements.score.total',
 }
 
 export type SpanIndexedFieldTypes = {
@@ -139,6 +156,14 @@ export type SpanIndexedFieldTypes = {
   [SpanIndexedField.PROFILE_ID]: string;
   [SpanIndexedField.RESOURCE_RENDER_BLOCKING_STATUS]: '' | 'non-blocking' | 'blocking';
   [SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH]: string;
+  [SpanIndexedField.ORIGIN_TRANSACTION]: string;
+  [SpanIndexedField.REPLAY_ID]: string;
+  [SpanIndexedField.BROWSER_NAME]: string;
+  [SpanIndexedField.USER]: string;
+  [SpanIndexedField.INP]: number;
+  [SpanIndexedField.INP_SCORE]: number;
+  [SpanIndexedField.INP_SCORE_WEIGHT]: number;
+  [SpanIndexedField.TOTAL_SCORE]: number;
 };
 
 export type Op = SpanIndexedFieldTypes[SpanIndexedField.SPAN_OP];
@@ -148,6 +173,7 @@ export enum SpanFunction {
   SPM = 'spm',
   TIME_SPENT_PERCENTAGE = 'time_spent_percentage',
   HTTP_ERROR_COUNT = 'http_error_count',
+  HTTP_RESPONSE_RATE = 'http_response_rate',
 }
 
 export const StarfishDatasetFields = {
@@ -180,6 +206,12 @@ export const STARFISH_AGGREGATION_FIELDS: Record<
   [SpanFunction.HTTP_ERROR_COUNT]: {
     desc: t('Count of 5XX http errors'),
     defaultOutputType: 'integer',
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.NUMBER,
+  },
+  [SpanFunction.HTTP_RESPONSE_RATE]: {
+    desc: t('Percentage of HTTP responses by code'),
+    defaultOutputType: 'percentage',
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
   },

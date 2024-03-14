@@ -27,6 +27,7 @@ import LineSeries from 'sentry/components/charts/series/lineSeries';
 import ScatterSeries from 'sentry/components/charts/series/scatterSeries';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {isChartHovered} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
 import type {
@@ -80,7 +81,7 @@ type Props = {
   definedAxisTicks?: number;
   disableXAxis?: boolean;
   durationUnit?: number;
-  errored?: boolean;
+  error?: Error | null;
   forwardedRef?: RefObject<ReactEchartsRef>;
   grid?: AreaChartProps['grid'];
   height?: number;
@@ -179,7 +180,7 @@ function Chart({
   forwardedRef,
   chartGroup,
   tooltipFormatterOptions = {},
-  errored,
+  error,
   onLegendSelectChanged,
   onDataZoom,
   legendFormatter,
@@ -279,14 +280,7 @@ function Chart({
     params,
     asyncTicket
   ) => {
-    // Kinda jank. Get hovered dom elements and check if any of them are the chart
-    const hoveredEchartElement = Array.from(document.querySelectorAll(':hover')).find(
-      element => {
-        return element.classList.contains('echarts-for-react');
-      }
-    );
-
-    if (hoveredEchartElement === chartRef?.current?.ele) {
+    if (isChartHovered(chartRef?.current)) {
       // Return undefined to use default formatter
       return getFormatter({
         isGroupedByDate: true,
@@ -332,7 +326,7 @@ function Chart({
         return tooltipFormatter(
           value,
           aggregateOutputFormat ??
-            aggregateOutputType(data && data.length ? data[0].seriesName : seriesName)
+            aggregateOutputType(data?.length ? data[0].seriesName : seriesName)
         );
       },
       nameFormatter(value: string) {
@@ -372,9 +366,9 @@ function Chart({
       };
 
   function getChart() {
-    if (errored) {
+    if (error) {
       return (
-        <ErrorPanel>
+        <ErrorPanel height={`${height}px`} data-test-id="chart-error-panel">
           <IconWarning color="gray300" size="lg" />
         </ErrorPanel>
       );

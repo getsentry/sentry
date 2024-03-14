@@ -16,20 +16,18 @@ Prism.manual = true;
  * (`javascript`).
  */
 const PRISM_LANGUAGE_MAP: Record<string, string> = Object.fromEntries(
-  Object.entries(prismComponents.languages)
-    .map(([lang, value]) => {
-      if (!value.alias) {
-        return [[lang, lang]]; // map the full language name to itself
-      }
+  Object.entries(prismComponents.languages).flatMap(([lang, value]) => {
+    if (!value.alias) {
+      return [[lang, lang]]; // map the full language name to itself
+    }
 
-      return [
-        [lang, lang], // map the full language name to itself
-        ...(Array.isArray(value.alias) // map aliases to full language name
-          ? value.alias.map(alias => [alias, lang])
-          : [[value.alias, lang]]),
-      ];
-    })
-    .flat(1)
+    return [
+      [lang, lang], // map the full language name to itself
+      ...(Array.isArray(value.alias) // map aliases to full language name
+        ? value.alias.map(alias => [alias, lang])
+        : [[value.alias, lang]]),
+    ];
+  })
 );
 
 // Aliases that don't already exist in Prism.js
