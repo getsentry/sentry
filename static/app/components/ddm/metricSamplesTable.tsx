@@ -499,20 +499,22 @@ function SpanDescription({
   selfTime: number;
   spanId: string;
   transaction: string;
-  transactionId: string;
+  transactionId: string | null;
   durationColor?: string;
   selfTimeColor?: string;
 }) {
   const location = useLocation();
   const organization = useOrganization();
   const {projects} = useProjects({slugs: [project]});
-  const transactionDetailsTarget = getTransactionDetailsUrl(
-    organization.slug,
-    `${project}:${transactionId}`,
-    undefined,
-    undefined,
-    spanId
-  );
+  const transactionDetailsTarget = defined(transactionId)
+    ? getTransactionDetailsUrl(
+        organization.slug,
+        `${project}:${transactionId}`,
+        undefined,
+        undefined,
+        spanId
+      )
+    : undefined;
 
   const colorStops = useMemo(() => {
     const percentage = selfTime / duration;
@@ -532,11 +534,14 @@ function SpanDescription({
     projectID: String(projects[0]?.id ?? ''),
   });
 
-  const contents = description ? (
+  let contents = description ? (
     <Fragment>{description}</Fragment>
   ) : (
     <EmptyValueContainer>{t('(no value)')}</EmptyValueContainer>
   );
+  if (defined(transactionDetailsTarget)) {
+    contents = <Link to={transactionDetailsTarget}>{contents}</Link>;
+  }
 
   return (
     <Container>
@@ -576,7 +581,7 @@ function SpanDescription({
         }
         showUnderline
       >
-        <Link to={transactionDetailsTarget}>{contents}</Link>
+        {contents}
       </StyledHovercard>
     </Container>
   );
@@ -656,7 +661,13 @@ function TraceId({
   );
 }
 
-function ProfileId({projectSlug, profileId}: {projectSlug: string; profileId?: string}) {
+function ProfileId({
+  profileId,
+  projectSlug,
+}: {
+  profileId: string | null;
+  projectSlug: string;
+}) {
   const organization = useOrganization();
 
   if (!defined(profileId)) {
