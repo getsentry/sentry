@@ -53,9 +53,12 @@ class SlackNotificationsTest(SlackActivityNotificationTest):
 
     @responses.activate
     def test_additional_attachment_block_kit(self):
-        with self.feature("organizations:slack-block-kit"), mock.patch.dict(
-            manager.attachment_generators,
-            {ExternalProviders.SLACK: additional_attachment_generator_block_kit},
+        with (
+            self.feature("organizations:slack-block-kit"),
+            mock.patch.dict(
+                manager.attachment_generators,
+                {ExternalProviders.SLACK: additional_attachment_generator_block_kit},
+            ),
         ):
             with self.tasks():
                 send_notification_as_slack(self.notification, [self.user], {}, {})
@@ -67,12 +70,30 @@ class SlackNotificationsTest(SlackActivityNotificationTest):
             assert data["text"][0] == "Notification Title"
 
             blocks = json.loads(data["blocks"][0])
-            assert len(blocks) == 4
+            assert len(blocks) == 5
 
             assert blocks[0]["text"]["text"] == "Notification Title"
             assert blocks[1]["text"]["text"] == "*My Title*  \n"
-            assert blocks[2]["text"]["text"] == self.organization.slug
-            assert blocks[3]["text"]["text"] == self.integration.id
+            # Message actions
+            assert blocks[2] == {
+                "elements": [
+                    {
+                        "text": {"text": "Go to Zombo.com", "type": "plain_text"},
+                        "type": "button",
+                        "url": "http://zombo.com",
+                        "value": "link_clicked",
+                    },
+                    {
+                        "text": {"text": "Go to Sentry", "type": "plain_text"},
+                        "type": "button",
+                        "url": "http://sentry.io",
+                        "value": "link_clicked",
+                    },
+                ],
+                "type": "actions",
+            }
+            assert blocks[3]["text"]["text"] == self.organization.slug
+            assert blocks[4]["text"]["text"] == self.integration.id
 
     @responses.activate
     def test_no_additional_attachment(self):
@@ -102,10 +123,28 @@ class SlackNotificationsTest(SlackActivityNotificationTest):
             assert data["text"][0] == "Notification Title"
 
             blocks = json.loads(data["blocks"][0])
-            assert len(blocks) == 2
+            assert len(blocks) == 3
 
             assert blocks[0]["text"]["text"] == "Notification Title"
             assert blocks[1]["text"]["text"] == "*My Title*  \n"
+            # Message actions
+            assert blocks[2] == {
+                "elements": [
+                    {
+                        "text": {"text": "Go to Zombo.com", "type": "plain_text"},
+                        "type": "button",
+                        "url": "http://zombo.com",
+                        "value": "link_clicked",
+                    },
+                    {
+                        "text": {"text": "Go to Sentry", "type": "plain_text"},
+                        "type": "button",
+                        "url": "http://sentry.io",
+                        "value": "link_clicked",
+                    },
+                ],
+                "type": "actions",
+            }
 
     @responses.activate
     @mock.patch("sentry.integrations.slack.notifications._get_attachments")

@@ -1,6 +1,5 @@
 import type React from 'react';
 import {
-  Fragment,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -16,20 +15,21 @@ import * as qs from 'query-string';
 
 import ButtonBar from 'sentry/components/buttonBar';
 import DiscoverButton from 'sentry/components/discoverButton';
+import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {EventTransaction, Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
-import TraceMetaQuery, {
-  type TraceMetaQueryChildrenProps,
-} from 'sentry/utils/performance/quickTrace/traceMetaQuery';
 import type {
   TraceFullDetailed,
+  TraceMeta,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
@@ -55,8 +55,8 @@ import {isTraceNode} from './guards';
 import Trace from './trace';
 import TraceHeader from './traceHeader';
 import {TraceTree, type TraceTreeNode} from './traceTree';
-import TraceWarnings from './traceWarnings';
 import {useTrace} from './useTrace';
+import {useTraceMeta} from './useTraceMeta';
 
 const DOCUMENT_TITLE = [t('Trace Details'), t('Performance')].join(' — ');
 
@@ -108,40 +108,28 @@ export function TraceView() {
   }, [queryParams, traceSlug]);
 
   const trace = useTrace();
+  const meta = useTraceMeta();
 
   return (
     <SentryDocumentTitle title={DOCUMENT_TITLE} orgSlug={organization.slug}>
-      <Layout.Page>
-        <NoProjectMessage organization={organization}>
-          <TraceMetaQuery
-            location={location}
-            orgSlug={organization.slug}
-            traceId={traceSlug}
-            start={queryParams.start}
-            end={queryParams.end}
-            statsPeriod={queryParams.statsPeriod}
-          >
-            {metaResults => (
-              <TraceViewContent
-                status={trace.status}
-                trace={trace.data ?? null}
-                traceSlug={traceSlug}
-                organization={organization}
-                location={location}
-                traceEventView={traceEventView}
-                metaResults={metaResults}
-              />
-            )}
-          </TraceMetaQuery>
-        </NoProjectMessage>
-      </Layout.Page>
+      <NoProjectMessage organization={organization}>
+        <TraceViewContent
+          status={trace.status}
+          trace={trace.data ?? null}
+          traceSlug={traceSlug}
+          organization={organization}
+          location={location}
+          traceEventView={traceEventView}
+          metaResults={meta}
+        />
+      </NoProjectMessage>
     </SentryDocumentTitle>
   );
 }
 
 type TraceViewContentProps = {
   location: Location;
-  metaResults: TraceMetaQueryChildrenProps;
+  metaResults: UseApiQueryResult<TraceMeta | null, any>;
   organization: Organization;
   status: UseApiQueryResult<any, any>['status'];
   trace: TraceSplitResults<TraceFullDetailed> | null;
@@ -205,13 +193,6 @@ function TraceViewContent(props: TraceViewContentProps) {
     rootEvent.data,
     rootEvent.status,
   ]);
-
-  const traceType = useMemo(() => {
-    if (props.status !== 'success' || !tree) {
-      return null;
-    }
-    return tree.shape;
-  }, [props.status, tree]);
 
   const [rovingTabIndexState, rovingTabIndexDispatch] = useReducer(
     rovingTabIndexReducer,
@@ -338,7 +319,13 @@ function TraceViewContent(props: TraceViewContentProps) {
   useQueryParamSync(syncQuery);
 
   const onOutsideClick = useCallback(() => {
-    const {node: _node, ...queryParamsWithoutNode} = qs.parse(location.search);
+    // we will drop eventId such that after users clicks outside and shares the URL,
+    // we will no longer scroll to the event or node
+    const {
+      node: _node,
+      eventId: _eventId,
+      ...queryParamsWithoutNode
+    } = qs.parse(location.search);
 
     browserHistory.push({
       pathname: location.pathname,
@@ -383,8 +370,10 @@ function TraceViewContent(props: TraceViewContentProps) {
     [api, props.organization, tree, viewManager, searchState, onTraceSearch]
   );
 
+  const scrollQueueRef = useRef<TraceTree.NodePath[] | null>(null);
+
   return (
-    <Fragment>
+    <TraceExternalLayout>
       <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumb
@@ -409,15 +398,14 @@ function TraceViewContent(props: TraceViewContentProps) {
           </ButtonBar>
         </Layout.HeaderActions>
       </Layout.Header>
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          {traceType ? <TraceWarnings type={traceType} /> : null}
-          <TraceHeader
-            rootEventResults={rootEvent}
-            metaResults={props.metaResults}
-            organization={props.organization}
-            traces={props.trace}
-          />
+      <TraceInnerLayout>
+        <TraceHeader
+          rootEventResults={rootEvent}
+          metaResults={props.metaResults}
+          organization={props.organization}
+          traces={props.trace}
+        />
+        <TraceToolbar>
           <TraceSearchInput
             query={searchState.query}
             status={searchState.status}
@@ -429,37 +417,50 @@ function TraceViewContent(props: TraceViewContentProps) {
             resultCount={searchState.results?.length}
             resultIteratorIndex={searchState.resultIteratorIndex}
           />
-          <TraceContainer ref={r => (traceContainerRef.current = r)}>
-            <Trace
-              trace={tree}
-              trace_id={props.traceSlug}
-              roving_dispatch={rovingTabIndexDispatch}
-              roving_state={rovingTabIndexState}
-              search_dispatch={searchDispatch}
-              search_state={searchState}
-              setClickedNode={onSetClickedNode}
-              searchResultsIteratorIndex={searchState.resultIndex}
-              searchResultsMap={searchState.resultsLookup}
-              onTraceSearch={onTraceSearch}
-              previouslyFocusedIndexRef={previouslyFocusedIndexRef}
-              manager={viewManager}
-            />
-            <TraceDrawer
-              scrollToNode={scrollToNode}
-              manager={viewManager}
-              activeTab={activeTab}
-              setActiveTab={setActiveTab}
-              nodes={clickedNode}
-              rootEventResults={rootEvent}
-              organization={props.organization}
-              location={props.location}
-              traces={props.trace}
-              traceEventView={props.traceEventView}
-            />
-          </TraceContainer>
-        </Layout.Main>
-      </Layout.Body>
-    </Fragment>
+        </TraceToolbar>
+        <TraceGrid ref={r => (traceContainerRef.current = r)}>
+          <Trace
+            trace={tree}
+            trace_id={props.traceSlug}
+            roving_dispatch={rovingTabIndexDispatch}
+            roving_state={rovingTabIndexState}
+            search_dispatch={searchDispatch}
+            search_state={searchState}
+            setClickedNode={onSetClickedNode}
+            scrollQueueRef={scrollQueueRef}
+            searchResultsIteratorIndex={searchState.resultIndex}
+            searchResultsMap={searchState.resultsLookup}
+            onTraceSearch={onTraceSearch}
+            previouslyFocusedIndexRef={previouslyFocusedIndexRef}
+            manager={viewManager}
+          />
+
+          {tree.type === 'loading' ? (
+            <TraceLoading />
+          ) : tree.type === 'error' ? (
+            <TraceError />
+          ) : tree.type === 'empty' ? (
+            <TraceEmpty />
+          ) : scrollQueueRef.current ? (
+            <TraceLoading />
+          ) : null}
+
+          <TraceDrawer
+            trace={tree}
+            scrollToNode={scrollToNode}
+            manager={viewManager}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            nodes={clickedNode}
+            rootEventResults={rootEvent}
+            organization={props.organization}
+            location={props.location}
+            traces={props.trace}
+            traceEventView={props.traceEventView}
+          />
+        </TraceGrid>
+      </TraceInnerLayout>
+    </TraceExternalLayout>
   );
 }
 
@@ -518,6 +519,147 @@ function useRootEvent(trace: TraceSplitResults<TraceFullDetailed> | null) {
   );
 }
 
-const TraceContainer = styled('div')`
+const TraceExternalLayout = styled('div')`
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 100%;
+
+  ~ footer {
+    display: none;
+  }
+`;
+
+const TraceInnerLayout = styled('div')`
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 100%;
+  padding: ${space(2)} ${space(2)} 0 ${space(2)};
+  background-color: ${p => p.theme.background};
+`;
+
+const TraceToolbar = styled('div')`
+  flex-grow: 0;
+`;
+
+const TraceGrid = styled('div')`
   box-shadow: 0 0 0 1px ${p => p.theme.border};
+  flex: 1 1 100%;
+  display: grid;
+  border-top-left-radius: ${p => p.theme.borderRadius};
+  border-top-right-radius: ${p => p.theme.borderRadius};
+  overflow: hidden;
+  position: relative;
+  grid-template-areas:
+    'trace'
+    'drawer';
+  grid-template-rows: 1fr auto;
+`;
+
+const LoadingContainer = styled('div')<{animate: boolean; error?: boolean}>`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  left: 50%;
+  top: 50%;
+  position: absolute;
+  height: auto;
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.gray300};
+  z-index: 30;
+  padding: 24px;
+  background-color: ${p => p.theme.background};
+  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.border};
+  transform-origin: 50% 50%;
+  transform: translate(-50%, -50%);
+  animation: ${p =>
+    p.animate
+      ? `${p.error ? 'showLoadingContainerShake' : 'showLoadingContainer'} 300ms cubic-bezier(0.61, 1, 0.88, 1) forwards`
+      : 'none'};
+
+  @keyframes showLoadingContainer {
+    from {
+      opacity: 0.6;
+      transform: scale(0.99) translate(-50%, -50%);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translate(-50%, -50%);
+    }
+  }
+
+  @keyframes showLoadingContainerShake {
+    0% {
+      transform: translate(-50%, -50%);
+    }
+    25% {
+      transform: translate(-51%, -50%);
+    }
+    75% {
+      transform: translate(-49%, -50%);
+    }
+    100% {
+      transform: translate(-50%, -50%);
+    }
+  }
+`;
+
+function TraceLoading() {
+  return (
+    // Dont flash the animation on load because it's annoying
+    <LoadingContainer animate={false}>
+      <NoMarginIndicator size={24}>
+        <div>{t('Assembling the trace')}</div>
+      </NoMarginIndicator>
+    </LoadingContainer>
+  );
+}
+
+function TraceError() {
+  const linkref = useRef<HTMLAnchorElement>(null);
+  const feedback = useFeedbackWidget({buttonRef: linkref});
+  return (
+    <LoadingContainer animate error>
+      <div>{t('Ughhhhh, we failed to load your trace...')}</div>
+      <div>
+        {t('Seeing this often? Send us ')}
+        {feedback ? (
+          <a href="#" ref={linkref}>
+            {t('feedback')}
+          </a>
+        ) : (
+          <a href="mailto:support@sentry.io?subject=Trace%20fails%20to%20load">
+            {t('feedback')}
+          </a>
+        )}
+      </div>
+    </LoadingContainer>
+  );
+}
+
+function TraceEmpty() {
+  const linkref = useRef<HTMLAnchorElement>(null);
+  const feedback = useFeedbackWidget({buttonRef: linkref});
+  return (
+    <LoadingContainer animate>
+      <div>{t('This trace does not contain any data?!')}</div>
+      <div>
+        {t('Seeing this often? Send us ')}
+        {feedback ? (
+          <a href="#" ref={linkref}>
+            {t('feedback')}
+          </a>
+        ) : (
+          <a href="mailto:support@sentry.io?subject=Trace%20does%20not%20contain%20data">
+            {t('feedback')}
+          </a>
+        )}
+      </div>
+    </LoadingContainer>
+  );
+}
+
+const NoMarginIndicator = styled(LoadingIndicator)`
+  margin: 0;
 `;

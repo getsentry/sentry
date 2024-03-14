@@ -16,6 +16,7 @@ from sentry.api.endpoints.organization_events_root_cause_analysis import (
 from sentry.api.endpoints.organization_integration_migrate_opsgenie import (
     OrganizationIntegrationMigrateOpsgenieEndpoint,
 )
+from sentry.api.endpoints.organization_minimal_projects import OrganizationMinimalProjectsEndpoint
 from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
 from sentry.api.endpoints.organization_projects_experiment import (
     OrganizationProjectsExperimentEndpoint,
@@ -132,6 +133,17 @@ from sentry.monitors.endpoints.organization_monitor_schedule_sample_data import 
     OrganizationMonitorScheduleSampleDataEndpoint,
 )
 from sentry.monitors.endpoints.organization_monitor_stats import OrganizationMonitorStatsEndpoint
+from sentry.monitors.endpoints.project_monitor_checkin_attachment import (
+    ProjectMonitorCheckInAttachmentEndpoint,
+)
+from sentry.monitors.endpoints.project_monitor_checkin_index import (
+    ProjectMonitorCheckInIndexEndpoint,
+)
+from sentry.monitors.endpoints.project_monitor_environment_details import (
+    ProjectMonitorEnvironmentDetailsEndpoint,
+)
+from sentry.monitors.endpoints.project_monitor_stats import ProjectMonitorStatsEndpoint
+from sentry.monitors.endpoints.project_monitors_details import ProjectMonitorDetailsEndpoint
 from sentry.replays.endpoints.organization_replay_count import OrganizationReplayCountEndpoint
 from sentry.replays.endpoints.organization_replay_details import OrganizationReplayDetailsEndpoint
 from sentry.replays.endpoints.organization_replay_events_meta import (
@@ -619,16 +631,6 @@ from .endpoints.userroles_details import UserRoleDetailsEndpoint
 from .endpoints.userroles_index import UserRolesEndpoint
 
 __all__ = ("urlpatterns",)
-
-from ..monitors.endpoints.project_monitor_checkin_attachment import (
-    ProjectMonitorCheckInAttachmentEndpoint,
-)
-from ..monitors.endpoints.project_monitor_checkin_index import ProjectMonitorCheckInIndexEndpoint
-from ..monitors.endpoints.project_monitor_environment_details import (
-    ProjectMonitorEnvironmentDetailsEndpoint,
-)
-from ..monitors.endpoints.project_monitor_stats import ProjectMonitorStatsEndpoint
-from ..monitors.endpoints.project_monitors_details import ProjectMonitorDetailsEndpoint
 
 # issues endpoints are available both top level (by numerical ID) as well as coupled
 # to the organization (and queryable via short ID)
@@ -1687,6 +1689,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/projects/$",
         OrganizationProjectsEndpoint.as_view(),
         name="sentry-api-0-organization-projects",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/minimal-projects/$",
+        OrganizationMinimalProjectsEndpoint.as_view(),
+        name="sentry-api-0-organization-minimal-projects",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/experimental/projects/$",

@@ -507,7 +507,6 @@ export class VirtualizedViewManager {
     }
   }
 
-  zoomIntoSpaceRaf: number | null = null;
   onBringRowIntoView(space: [number, number]) {
     if (this.zoomIntoSpaceRaf !== null) {
       window.cancelAnimationFrame(this.zoomIntoSpaceRaf);
@@ -527,6 +526,16 @@ export class VirtualizedViewManager {
     }
   }
 
+  animateViewTo(node_space: [number, number]) {
+    const start = node_space[0];
+    const width = node_space[1] > 0 ? node_space[1] : this.trace_view.width;
+    const margin = 0.2 * width;
+
+    this.setTraceView({x: start - margin - this.to_origin, width: width + margin * 2});
+    this.draw();
+  }
+
+  zoomIntoSpaceRaf: number | null = null;
   onZoomIntoSpace(space: [number, number]) {
     if (space[1] <= 0) {
       // @TODO implement scrolling to 0 width spaces
@@ -821,6 +830,10 @@ export class VirtualizedViewManager {
     );
   }
 
+  computeRelativeLeftPositionFromOrigin(timestamp: number, node_space: [number, number]) {
+    return (timestamp - node_space[0]) / node_space[1];
+  }
+
   recomputeTimelineIntervals() {
     const tracePhysicalToView = this.trace_physical_space.between(this.trace_view);
     const time_at_100 =
@@ -850,6 +863,21 @@ export class VirtualizedViewManager {
       this.trace_view.x / this.span_to_px[0];
 
     return this.span_matrix;
+  }
+
+  scrollToEventID(
+    eventId: string,
+    tree: TraceTree,
+    rerender: () => void,
+    {api, organization}: {api: Client; organization: Organization}
+  ): Promise<{index: number; node: TraceTreeNode<TraceTree.NodeValue>} | null | null> {
+    const node = findInTreeByEventId(tree.root, eventId);
+
+    if (!node) {
+      return Promise.resolve(null);
+    }
+
+    return this.scrollToPath(tree, node.path, rerender, {api, organization});
   }
 
   scrollToPath(
@@ -1070,6 +1098,10 @@ export class VirtualizedViewManager {
       if (span_bar) {
         const span_transform = this.computeSpanCSSMatrixTransform(span_bar.space);
         span_bar.ref.style.transform = `matrix(${span_transform.join(',')}`;
+        span_bar.ref.style.setProperty(
+          '--inverse-span-scale',
+          1 / span_transform[0] + ''
+        );
       }
       const span_text = this.span_text[i];
       if (span_text) {
@@ -1375,24 +1407,29 @@ export class VirtualizedList {
   scrollHeight: number = 0;
   scrollTop: number = 0;
 
-  scrollToRow(index: number, rowHeight: number = 24) {
+  scrollToRow(index: number, anchor?: 'top') {
     if (!this.container) {
       return;
     }
 
-    const top = this.container.scrollTop;
-    const height = this.scrollHeight;
-    const position = index * rowHeight;
-
-    if (position < top) {
-      // above view
-    } else if (position > top + height) {
-      // under view
-    } else {
+    if (anchor === 'top') {
+      this.container.scrollTop = index * 24;
       return;
     }
 
-    this.container.scrollTop = index * rowHeight;
+    const position = index * 24;
+    const top = this.container.scrollTop;
+    const height = this.scrollHeight;
+
+    if (position < top) {
+      // Row is above the view
+      this.container.scrollTop = index * 24;
+    } else if (position > top + height) {
+      // Row is under the view
+      this.container.scrollTop = index * 24 - height + 24;
+    } else {
+      return;
+    }
   }
 }
 
@@ -1530,6 +1567,7 @@ export const useVirtualizedList = (
       }
 
       managerRef.current.isScrolling = true;
+      managerRef.current.enqueueOnScrollEndOutOfBoundsCheck();
 
       rafId.current = window.requestAnimationFrame(() => {
         scrollTopRef.current = Math.max(0, event.target?.scrollTop ?? 0);
@@ -1771,6 +1809,21 @@ function findInTreeFromSegment(
       return node.value.event_id === id;
     }
 
+    return false;
+  });
+}
+
+function findInTreeByEventId(start: TraceTreeNode<TraceTree.NodeValue>, eventId: string) {
+  return TraceTreeNode.Find(start, node => {
+    if (isTransactionNode(node)) {
+      return node.value.event_id === eventId;
+    }
+    if (isSpanNode(node)) {
+      return node.value.span_id === eventId;
+    }
+    if (isTraceErrorNode(node)) {
+      return node.value.event_id === eventId;
+    }
     return false;
   });
 }

@@ -41,35 +41,35 @@ export const lightColors = {
   translucentGray200: 'rgba(58, 17, 95, 0.14)',
   translucentGray100: 'rgba(45, 0, 85, 0.06)',
 
-  purple400: '#584AC0',
+  purple400: '#6559C5',
   purple300: '#6C5FC7',
   purple200: 'rgba(108, 95, 199, 0.5)',
-  purple100: 'rgba(108, 95, 199, 0.08)',
+  purple100: 'rgba(108, 95, 199, 0.09)',
 
   blue400: '#2562D4',
   blue300: '#3C74DD',
   blue200: 'rgba(60, 116, 221, 0.5)',
   blue100: 'rgba(60, 116, 221, 0.09)',
 
-  green400: '#268D75',
+  green400: '#207964',
   green300: '#2BA185',
   green200: 'rgba(43, 161, 133, 0.55)',
-  green100: 'rgba(43, 161, 133, 0.13)',
+  green100: 'rgba(43, 161, 133, 0.11)',
 
-  yellow400: '#E5A500',
-  yellow300: '#F5B000',
-  yellow200: 'rgba(245, 176, 0, 0.55)',
-  yellow100: 'rgba(245, 176, 0, 0.08)',
+  yellow400: '#856C00',
+  yellow300: '#EBC000',
+  yellow200: 'rgba(235, 192, 0, 0.7)',
+  yellow100: 'rgba(235, 192, 0, 0.14)',
 
-  red400: '#DF3338',
+  red400: '#CF2126',
   red300: '#F55459',
   red200: 'rgba(245, 84, 89, 0.5)',
-  red100: 'rgba(245, 84, 89, 0.09)',
+  red100: 'rgba(245, 84, 89, 0.1)',
 
-  pink400: '#E50675',
+  pink400: '#D1056B',
   pink300: '#F14499',
   pink200: 'rgba(249, 26, 138, 0.5)',
-  pink100: 'rgba(249, 26, 138, 0.1)',
+  pink100: 'rgba(249, 26, 138, 0.09)',
 };
 
 /**
@@ -108,35 +108,35 @@ export const darkColors = {
   translucentGray200: 'rgba(218, 184, 245, 0.16)',
   translucentGray100: 'rgba(208, 168, 240, 0.07)',
 
-  purple400: '#A397F7',
+  purple400: '#ABA0F8',
   purple300: '#7669D3',
   purple200: 'rgba(118, 105, 211, 0.27)',
-  purple100: 'rgba(118, 105, 211, 0.12)',
+  purple100: 'rgba(118, 105, 211, 0.11)',
 
-  blue400: '#70A2FF',
+  blue400: '#80ACFF',
   blue300: '#3070E8',
   blue200: 'rgba(48, 112, 232, 0.25)',
   blue100: 'rgba(48, 112, 232, 0.12)',
 
-  green400: '#1AB792',
+  green400: '#1CC49D',
   green300: '#1D876E',
   green200: 'rgba(29, 135, 110, 0.3)',
-  green100: 'rgba(29, 135, 110, 0.14)',
+  green100: 'rgba(29, 135, 110, 0.12)',
 
-  yellow400: '#E5A500',
-  yellow300: '#B28000',
-  yellow200: 'rgba(178, 128, 0, 0.25)',
-  yellow100: 'rgba(178, 128, 0, 0.1)',
+  yellow400: '#C7B000',
+  yellow300: '#A89500',
+  yellow200: 'rgba(168, 149, 0, 0.25)',
+  yellow100: 'rgba(168, 149, 0, 0.09)',
 
-  red400: '#F87277',
+  red400: '#F98A8F',
   red300: '#E12D33',
   red200: 'rgba(225, 45, 51, 0.25)',
-  red100: 'rgba(225, 45, 51, 0.12)',
+  red100: 'rgba(225, 45, 51, 0.15)',
 
-  pink400: '#E674AD',
+  pink400: '#EB8FBC',
   pink300: '#CE3B85',
   pink200: 'rgba(206, 59, 133, 0.25)',
-  pink100: 'rgba(206, 59, 133, 0.1)',
+  pink100: 'rgba(206, 59, 133, 0.13)',
 };
 
 const prismLight = {
@@ -504,6 +504,11 @@ const generateBadgeTheme = (colors: BaseColors) => ({
   warning: {
     background: colors.yellow300,
     indicatorColor: colors.yellow300,
+    color: colors.gray500,
+  },
+  gray: {
+    background: `rgba(43, 34, 51, 0.08)`,
+    indicatorColor: `rgba(43, 34, 51, 0.08)`,
     color: colors.gray500,
   },
 });
