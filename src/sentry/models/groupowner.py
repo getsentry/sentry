@@ -110,23 +110,7 @@ class GroupOwner(Model):
         return f"groupowner_id:{group_id}:{project_id}:{':'.join([str(t) for t in autoassignment_types])}"
 
     @classmethod
-    def get_autoassigned_owner_cached(cls, group_id, project_id, autoassignment_types):
-        """
-        Cached read access to find the autoassigned GroupOwner.
-        """
-        cache_key = cls.get_autoassigned_owner_cache_key(group_id, project_id, autoassignment_types)
-        issue_owner = cache.get(cache_key)
-        if issue_owner is None:
-            issue_owner = cls.get_autoassigned_owner_no_cache(
-                group_id, project_id, autoassignment_types
-            )
-            # Store either the GroupOwner if exists or False for no owners
-            cache.set(cache_key, issue_owner, READ_CACHE_DURATION)
-
-        return issue_owner
-
-    @classmethod
-    def get_autoassigned_owner_no_cache(cls, group_id, project_id, autoassignment_types):
+    def get_autoassigned_owner(cls, group_id, project_id, autoassignment_types):
         """
         Non-cached read access to find the autoassigned GroupOwner.
         """
