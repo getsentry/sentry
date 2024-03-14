@@ -7,12 +7,17 @@ from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_confi
 from arroyo.types import Message, Value
 from confluent_kafka import KafkaException
 from django.conf import settings
+from sentry_kafka_schemas import get_codec
+from sentry_kafka_schemas.codecs import Codec
+from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.spans.consumers.recombine.message import process_segment
 from sentry.utils import json
 from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
+
+BUFFERED_SEGMENT_SCHEMA: Codec[SpanEvent] = get_codec("snuba-spans")
 
 logger = logging.getLogger(__name__)
 
@@ -28,11 +33,20 @@ def _get_producer() -> KafkaProducer:
 _segments_producer = SingletonProducer(_get_producer)
 
 
-def produce_segment_to_kafka(payload_data) -> None:
-    if payload_data is None:
+def prepare_message(segments) -> bytes:
+    segment_str = ",".join(segments)
+    return bytes(f"[{segment_str}]", encoding="utf8")
+
+
+def produce_segment_to_kafka(segments) -> None:
+    if segments is None or len(segments) == 0:
         return
 
-    payload = KafkaPayload(None, json.dumps(payload_data).encode("utf-8"), [])
+    payload_data = prepare_message(segments)
+
+    breakpoint()
+
+    payload = KafkaPayload(None, payload_data, [])
     if settings.SENTRY_EVENTSTREAM != "sentry.eventstream.kafka.KafkaEventStream":
         # If we're not running Kafka then we're just in dev.
         # Skip producing to Kafka and just process the message directly

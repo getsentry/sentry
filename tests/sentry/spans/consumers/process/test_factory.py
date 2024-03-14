@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest import mock
 
 from arroyo.backends.kafka import KafkaPayload
@@ -60,7 +60,7 @@ def test_consumer_pushes_to_redis():
         partitions={},
     )
 
-    span_data = build_mock_span()
+    span_data = build_mock_span(is_segment=True)
     message = build_mock_message(span_data, topic)
 
     strategy.submit(
@@ -69,10 +69,13 @@ def test_consumer_pushes_to_redis():
                 KafkaPayload(b"key", message.value().encode("utf-8"), []),
                 partition,
                 1,
-                datetime.now(),
+                datetime.now() - timedelta(minutes=3),
             )
         )
     )
+
+    span_data = build_mock_span()
+    message = build_mock_message(span_data, topic)
 
     strategy.submit(
         Message(
