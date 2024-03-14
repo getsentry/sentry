@@ -10,7 +10,7 @@ from sentry.conf.types.kafka_definition import Topic
 from sentry.models.project import Project
 from sentry.utils import metrics
 
-from .processors import IngestMessage, process_event
+from .processors import IngestMessage, Retriable, process_event
 
 logger = logging.getLogger(__name__)
 
@@ -66,10 +66,12 @@ def process_simple_event_message(
 
         return process_event(message, project, reprocess_only_stuck_events)
 
-    except Exception:
-        # Any exception that fails schema validation will raise InvalidMessage, which Arroyo will DLQ.
-        # Messages that pass schema validation will not be DLQed as they may be retriable.
+    except Exception as exc:
+        # If the retriable exception was raised, we should not DLQ
+        if isinstance(exc, Retriable):
+            raise
 
+        # If no retriable exception was raised, check the schema to decide whether to DLQ
         default_topic = consumer_type_to_default_topic[consumer_type].value
 
         # TODO: Currently, there is only a schema for ingest-events, so just continue to re-raise
