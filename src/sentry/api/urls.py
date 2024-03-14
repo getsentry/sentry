@@ -2224,7 +2224,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-dsym-files",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/dsyms/config$",
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/dsyms/config/$",
         DebugFilesConfigEndpoint.as_view(),
         name="sentry-api-0-dsym-file-config",
     ),
