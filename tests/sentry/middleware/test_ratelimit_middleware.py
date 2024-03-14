@@ -13,7 +13,8 @@ from rest_framework.response import Response
 from sentry.api.base import Endpoint
 from sentry.issues.endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from sentry.middleware.ratelimit import RatelimitMiddleware
-from sentry.models.apikey import ApiKey
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.models.user import User
 from sentry.ratelimits.config import RateLimitConfig, get_default_rate_limits_for_group
 from sentry.ratelimits.utils import get_rate_limit_config, get_rate_limit_key, get_rate_limit_value
@@ -73,15 +74,6 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
             scopes=("project:read",),
             webhook_url="http://example.com",
         )
-        # # there should only be one record created so just grab the first one
-        # token = None
-        # with assume_test_silo_mode(SiloMode.CONTROL):
-        #     install = SentryAppInstallation.objects.get(
-        #         sentry_app=internal_integration.id, organization_id=self.organization.id
-        #     )
-        #     print(install.__dict__)
-        #     token = install.api_token
-        #     print(token, install.api_token)
 
         token = self.create_internal_integration_token(
             user=self.user,
@@ -202,7 +194,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
 
         self.populate_internal_integration_request(request)
         self.middleware.process_view(request, self._test_endpoint, [], {})
-        assert request.rate_limit_category == RateLimitCategory.IP
+        assert request.rate_limit_category == RateLimitCategory.ORGANIZATION
 
     def test_rate_limit_key_for_ips(self):
         self._setup_key()
@@ -235,10 +227,9 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
 
     def test_rate_limit_key_for_users(self):
         self._setup_key()
-
-        # Test for users
         self.request.session = {}
         self.request.user = self.user
+
         assert (
             get_rate_limit_key(
                 self.view, self.request, self.rate_limit_group, self.rate_limit_config
@@ -248,11 +239,10 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
 
     def test_rate_limit_key_for_user_auth_tokens(self):
         self._setup_key()
-
-        # Test for user auth tokens
         token = self.create_user_auth_token(user=self.user, scope_list=["event:read", "org:read"])
         self.request.auth = token
         self.request.user = self.user
+
         assert (
             get_rate_limit_key(
                 self.view, self.request, self.rate_limit_group, self.rate_limit_config
@@ -260,20 +250,25 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
             == f"user:default:OrganizationGroupIndexEndpoint:GET:{self.user.id}"
         )
 
+    def test_rate_limit_key_for_api_keys(self):
+        self._setup_key()
+        self.request.user = AnonymousUser()
+        self.request.auth = self.create_api_key(
+            organization=self.organization, scope_list=["project:write"]
+        )
+
+        assert (
+            get_rate_limit_key(
+                self.view, self.request, self.rate_limit_group, self.rate_limit_config
+            )
+            == "ip:default:OrganizationGroupIndexEndpoint:GET:127.0.0.1"
+        )
+
     def test_rate_limit_key_for_sentry_apps(self):
         self._setup_key()
 
-        # # Test for PUBLIC SentryApp api tokens
-        # self.populate_sentry_app_request(self.request)
-        # assert (
-        #     get_rate_limit_key(
-        #         self.view, self.request, self.rate_limit_group, self.rate_limit_config
-        #     )
-        #     == f"org:default:OrganizationGroupIndexEndpoint:GET:{self.organization.id}"
-        # )
-
-        # Test for INTERNAL SentryApp api tokens
-        self.populate_internal_integration_request(self.request)
+        # Test for PUBLIC SentryApp api tokens
+        self.populate_sentry_app_request(self.request)
         assert (
             get_rate_limit_key(
                 self.view, self.request, self.rate_limit_group, self.rate_limit_config
@@ -281,23 +276,20 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
             == f"org:default:OrganizationGroupIndexEndpoint:GET:{self.organization.id}"
         )
 
-    # def test_rate_limit_key_(self):
-    #     self._setup_key()
+        # Test for INTERNAL SentryApp api tokens
+        self.populate_internal_integration_request(self.request)
 
-    # def test_rate_limit_key_(self):
-
-    #     # Test for
-    #     self.request.user = AnonymousUser()
-    #     api_key = None
-    #     with assume_test_silo_mode(SiloMode.CONTROL):
-    #         api_key = ApiKey.objects.create(
-    #             organization_id=self.organization.id, scope_list=["project:write"]
-    #         )
-    #     self.request.auth = api_key
-    #     assert (
-    #         get_rate_limit_key(self.view, self.request, self.rate_limit_group, self.rate_limit_config)
-    #         == "ip:default:OrganizationGroupIndexEndpoint:GET:684D:1111:222:3333:4444:5555:6:77"
-    #     )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            # Ensure that the internal integration token lives in
+            # SentryAppInstallationToken instead of SentryAppInstallation
+            assert not SentryAppInstallation.objects.filter(api_token_id=self.request.auth.id)
+            assert SentryAppInstallationToken.objects.filter(api_token_id=self.request.auth.id)
+        assert (
+            get_rate_limit_key(
+                self.view, self.request, self.rate_limit_group, self.rate_limit_config
+            )
+            == f"org:default:OrganizationGroupIndexEndpoint:GET:{self.organization.id}"
+        )
 
     # def test_enforce_rate_limit_is_false(self):
     #     request = self.factory.get("/")
@@ -341,9 +333,9 @@ class TestGetRateLimitValue(TestCase):
         view = TestEndpoint.as_view()
         rate_limit_config = get_rate_limit_config(view.view_class)
 
-        assert get_rate_limit_value(
-            "GET", RateLimitCategory.IP, self.rate_limit_config
-        ) == RateLimit(100, 5)
+        assert get_rate_limit_value("GET", RateLimitCategory.IP, rate_limit_config) == RateLimit(
+            100, 5
+        )
         # get is not overriddent for user, hence we use the default
         assert get_rate_limit_value(
             "GET", RateLimitCategory.USER, rate_limit_config
@@ -352,9 +344,9 @@ class TestGetRateLimitValue(TestCase):
         assert get_rate_limit_value(
             "POST", RateLimitCategory.IP, rate_limit_config
         ) == get_default_rate_limits_for_group("default", category=RateLimitCategory.IP)
-        assert get_rate_limit_value(
-            "POST", RateLimitCategory.USER, self.rate_limit_config
-        ) == RateLimit(20, 4)
+        assert get_rate_limit_value("POST", RateLimitCategory.USER, rate_limit_config) == RateLimit(
+            20, 4
+        )
 
 
 class RateLimitHeaderTestEndpoint(Endpoint):

@@ -198,6 +198,15 @@ class DatabaseBackedAppService(AppService):
                 query = query.filter(status=filters["status"])
             if "api_token_id" in filters:
                 query = query.filter(api_token_id=filters["api_token_id"])
+            if "installation_token_api_token_id" in filters:
+                # When we want to fetch installations related to a specific
+                # internal integration token, we need to look in SentryAppInstallationToken
+                installations_with_token_id = (
+                    SentryAppInstallationToken.objects.select_related("sentry_app_installation")
+                    .filter(api_token_id=filters["installation_token_api_token_id"])
+                    .values_list("sentry_app_installation", flat=True)
+                )
+                query = query.filter(id__in=installations_with_token_id)
 
             return query
 

@@ -10,7 +10,6 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.constants import SentryAppInstallationStatus
-from sentry.hybridcloud.models.apitokenreplica import ApiTokenReplica
 from sentry.ratelimits.concurrent import ConcurrentRateLimiter
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.services.hybrid_cloud.auth import AuthenticatedToken
@@ -78,6 +77,7 @@ def get_rate_limit_key(
     from django.contrib.auth.models import AnonymousUser
 
     from sentry.auth.system import is_system_auth
+    from sentry.hybridcloud.models.apitokenreplica import ApiTokenReplica
     from sentry.models.apikey import ApiKey
 
     # Don't Rate Limit System Token Requests
@@ -140,6 +140,18 @@ def get_organization_id_from_token(token_id: int) -> int | None:
             "api_token_id": token_id,
         }
     )
+
+    if not installations:
+        # If we can't find the installation with the token, we need to check if
+        # the token exists in the SentryAppInstallationToken, which has as a
+        # foreign key to the relevant SentryAppInstallation.
+        installations = app_service.get_many(
+            filter={
+                "status": SentryAppInstallationStatus.INSTALLED,
+                "installation_token_api_token_id": token_id,
+            }
+        )
+
     installation = installations[0] if installations else None
 
     # Return None to avoid collisions caused by tokens not being associated with
