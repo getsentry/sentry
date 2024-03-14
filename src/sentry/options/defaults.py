@@ -2066,6 +2066,13 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Rate at which to run the Rust implementation of `assemble_stacktrace_component`
+# and compare the results
+register(
+    "grouping.rust_enhancers.compare_components",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Rate to move from outbox based webhook delivery to webhookpayload.
 register(
     "hybridcloud.webhookpayload.rollout",
