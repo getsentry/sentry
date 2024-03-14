@@ -133,7 +133,7 @@ export function useMetricChartSamples({
 
   const handleClick = useCallback<EChartClickHandler>(
     (event: EChartMouseEventParam) => {
-      const sample = samplesById[event.seriesId];
+      const sample = samplesById[event.seriesName];
       if (defined(onSampleClick) && defined(sample)) {
         onSampleClick(sample);
       }
