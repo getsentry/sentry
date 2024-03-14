@@ -773,7 +773,7 @@ class CallbackPaginator:
         self.callback = callback
         self.on_results = on_results
 
-    def get_result(self, limit: int, cursor: Cursor = None):
+    def get_result(self, limit: int, cursor: Cursor | None = None):
         if cursor is None:
             cursor = Cursor(0, 0, 0)
 

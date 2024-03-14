@@ -205,7 +205,7 @@ class Fixtures:
             project = self.project
         return Factories.create_release(project=project, user=user, *args, **kwargs)
 
-    def create_group_release(self, project: Project = None, *args, **kwargs) -> GroupRelease:
+    def create_group_release(self, project: Project | None = None, *args, **kwargs) -> GroupRelease:
         if project is None:
             project = self.project
         return Factories.create_group_release(project, *args, **kwargs)

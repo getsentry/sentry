@@ -418,7 +418,7 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_user_auth_token(user, scope_list: list[str] = None, **kwargs) -> ApiToken:
+    def create_user_auth_token(user, scope_list: list[str] | None = None, **kwargs) -> ApiToken:
         if scope_list is None:
             scope_list = []
         return ApiToken.objects.create(

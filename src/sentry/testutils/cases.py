@@ -2069,7 +2069,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         self.login_as(user=self.user)
         self._index_metric_strings()
 
-    def do_request(self, data: dict[str, Any], features: dict[str, bool] = None) -> Response:
+    def do_request(self, data: dict[str, Any], features: dict[str, bool] | None = None) -> Response:
         """Set up self.features and self.url in the inheriting classes.
         You can pass your own features if you do not want to use the default used by the subclass.
         """
