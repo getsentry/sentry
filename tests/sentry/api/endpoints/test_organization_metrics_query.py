@@ -95,7 +95,7 @@ class OrganizationMetricsQueryTest(MetricsAPIBaseTestCase):
         with self.options({"custom-metrics-querying-killswitched-orgs": [self.organization.id]}):
             self.get_error_response(
                 self.project.organization.slug,
-                status_code=500,
+                status_code=401,
                 queries=[{"name": "query_1", "mql": f"sum({TransactionMRI.DURATION.value})"}],
                 formulas=[{"mql": "$query_1"}],
                 qs_params={
