@@ -5,7 +5,6 @@ import {CommitRow} from 'sentry/components/commitRow';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventContexts} from 'sentry/components/events/contexts';
 import ContextSummary from 'sentry/components/events/contextSummary';
-import {CONTEXT_DOCS_LINK} from 'sentry/components/events/contextSummary/utils';
 import {EventDevice} from 'sentry/components/events/device';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
@@ -37,13 +36,13 @@ import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {DataSection} from 'sentry/components/events/styles';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
-import ExternalLink from 'sentry/components/links/externalLink';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, Group, Project} from 'sentry/types';
 import {IssueCategory, IssueType} from 'sentry/types';
 import type {EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
+import {objectIsEmpty} from 'sentry/utils';
 import {shouldShowCustomErrorResourceConfig} from 'sentry/utils/issueTypeConfig';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ResourcesAndMaybeSolutions} from 'sentry/views/issueDetails/resourcesAndMaybeSolutions';
@@ -131,16 +130,12 @@ function DefaultGroupEventDetailsContent({
           project={project}
         />
       )}
-      {hasNewTagsUI && (
+      {hasNewTagsUI && !objectIsEmpty(event.contexts) && (
         <EventDataSection
-          title={t('Context Summary')}
-          help={tct('A summary contexts derived from this event. [link:Learn more]', {
-            link: <ExternalLink openInNewTab href={CONTEXT_DOCS_LINK} />,
-          })}
-          isHelpHoverable
-          data-test-id="context-summary"
-          guideTarget="context-summary"
-          type="context-summary"
+          title={t('Highlighted Event Data')}
+          data-test-id="highlighted-event-data"
+          guideTarget="highlighted-event-data"
+          type="highlighted-event-data"
         >
           <ContextSummary event={event} />
         </EventDataSection>

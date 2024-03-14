@@ -71,11 +71,13 @@ describe('EventTagsTree', function () {
     });
 
     pillOnlyTags.forEach(tag => {
-      expect(screen.queryByText(tag)).not.toBeInTheDocument();
+      const tagComponent = screen.queryByText(tag);
+      expect(tagComponent).toBeInTheDocument();
+      expect(tagComponent).toHaveAttribute('aria-hidden', 'true');
     });
 
     treeBranchTags.forEach(tag => {
-      expect(screen.getByText(tag)).toBeInTheDocument();
+      expect(screen.getByText(tag, {selector: 'div'})).toBeInTheDocument();
     });
 
     const rows = screen.queryAllByTestId('tag-tree-row');
