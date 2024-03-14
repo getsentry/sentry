@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from typing import Any
 
@@ -17,6 +17,8 @@ from sentry.models.group import Group
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.utils.actions import MessageAction
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import ExternalProviders
 
@@ -53,6 +55,22 @@ class DummyNotification(BaseNotification):
 
     def get_participants(self):
         return []
+
+    def get_message_actions(
+        self, recipient: RpcActor, provider: ExternalProviders
+    ) -> Sequence[MessageAction]:
+        zombo_link = MessageAction(
+            name="Go to Zombo.com",
+            style="primary",
+            url="http://zombo.com",
+        )
+        sentry_link = MessageAction(
+            name="Sentry Link",
+            label="Go to Sentry",
+            style="primary",
+            url="http://sentry.io",
+        )
+        return [zombo_link, sentry_link]
 
 
 class AnotherDummyNotification(DummyNotification):
