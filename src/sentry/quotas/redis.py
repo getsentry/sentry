@@ -82,6 +82,18 @@ class RedisQuota(Quota):
                 )
             )
 
+        # If the project belongs to the killswitched list, we want to stop ingesting custom metrics.
+        if project.id in (options.get("custom-metrics-ingestion-killswitched-projects") or ()):
+            results.append(
+                QuotaConfig(
+                    limit=0,
+                    scope=QuotaScope.PROJECT,
+                    categories=[DataCategory.METRIC_BUCKET],
+                    reason_code="custom_metrics_ingestion_disabled",
+                    namespace="custom",
+                )
+            )
+
         with sentry_sdk.start_span(op="redis.get_quotas.get_project_quota") as span:
             span.set_tag("project.id", project.id)
             pquota = self.get_project_quota(project)

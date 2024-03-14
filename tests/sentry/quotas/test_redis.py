@@ -304,6 +304,15 @@ class RedisQuotaTest(TestCase):
             assert quotas[0].limit == 0
             assert quotas[0].reason_code == "custom_metrics_ingestion_disabled"
 
+        with self.options({"custom-metrics-ingestion-killswitched-projects": [self.project.id]}):
+            quotas = self.quota.get_quotas(self.project)
+
+            assert quotas[0].scope == QuotaScope.PROJECT
+            assert quotas[0].scope_id is None
+            assert quotas[0].categories == {DataCategory.METRIC_BUCKET}
+            assert quotas[0].limit == 0
+            assert quotas[0].reason_code == "custom_metrics_ingestion_disabled"
+
     @pytest.fixture(autouse=True)
     def _patch_get_project_quota(self):
         with mock.patch.object(
