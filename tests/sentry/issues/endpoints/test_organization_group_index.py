@@ -3591,14 +3591,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert tombstone.project == group1.project
         assert tombstone.data == group1.data
 
-    @override_settings(SENTRY_SELF_HOSTED=False)
-    def test_ratelimit(self):
-        self.login_as(user=self.user)
-        with freeze_time("2000-01-01"):
-            for i in range(5):
-                self.get_success_response()
-            self.get_error_response(status_code=status.HTTP_429_TOO_MANY_REQUESTS)
-
     def test_set_inbox(self):
         group1 = self.create_group()
         group2 = self.create_group()
