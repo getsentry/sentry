@@ -391,21 +391,27 @@ def is_root(item: SnubaTransaction) -> bool:
 def child_sort_key(item: TraceEvent) -> list[int]:
     if item.fetched_nodestore and item.nodestore_event is not None:
         return [
-            item.nodestore_event.data["start_timestamp"],
-            item.nodestore_event.data["timestamp"],
+            float(item.nodestore_event.data["start_timestamp"]),
+            float(item.nodestore_event.data["timestamp"]),
         ]
     elif item.span_serialized:
-        return [
-            item.event["precise.start_ts"],
-            item.event["precise.finish_ts"],
-            item.event["transaction"],
-            item.event["id"],
+        sort_key = [
+            float(item.event["precise.start_ts"]),
+            float(item.event["precise.finish_ts"]),
         ]
+        # Check if transaction and id are numeric, if not, exclude them from sort key
+        try:
+            sort_key.append(float(item.event["transaction"]))
+        except ValueError:
+            pass
+        try:
+            sort_key.append(float(item.event["id"]))
+        except ValueError:
+            pass
+        return sort_key
     else:
-        return [
-            item.event["transaction"],
-            item.event["id"],
-        ]
+        # Since transaction and id are not numeric, we exclude them from the sort key
+        return []
 
 
 def count_performance_issues(trace_id: str, params: Mapping[str, str]) -> int:
