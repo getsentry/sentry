@@ -64,7 +64,6 @@ function ReplayClipPreviewPlayer({
   analyticsContext,
   orgSlug,
   fullReplayButtonProps,
-  issueCategory,
   isLarge,
   handleForwardClick,
   handleBackClick,
@@ -126,7 +125,6 @@ function ReplayClipPreviewPlayer({
           replayId={replayId}
           fullReplayButtonProps={fullReplayButtonProps}
           replayRecord={replayRecord}
-          issueCategory={issueCategory}
           handleBackClick={handleBackClick}
           handleForwardClick={handleForwardClick}
           overlayText={overlayText}
