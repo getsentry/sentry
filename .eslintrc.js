@@ -33,7 +33,7 @@ module.exports = {
   ignorePatterns: ['*.json'],
   overrides: [
     {
-      files: ['tests/js/**/*.{ts,js}'],
+      files: ['static/**/*.spec.{ts,js}', 'tests/js/**/*.{ts,js}'],
       extends: ['plugin:testing-library/react', 'sentry-app/strict'],
       rules: {
         // TODO(@anonrig): Remove this from eslint-sentry-config
