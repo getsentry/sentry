@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from time import time
+from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock
 
@@ -114,30 +115,41 @@ class EventManagerGroupingTest(TestCase):
 @region_silo_test
 class EventManagerGroupingMetricsTest(TestCase):
     @mock.patch("sentry.event_manager.metrics.incr")
-    def test_records_num_calculations(self, mock_metrics_incr: MagicMock):
+    def test_records_avg_calculations_per_event_metrics(self, mock_metrics_incr: MagicMock):
         project = self.project
-        project.update_option("sentry:grouping_config", LEGACY_CONFIG)
-        project.update_option("sentry:secondary_grouping_config", None)
 
-        save_new_event({"message": "Dogs are great!"}, self.project)
+        cases: list[Any] = [
+            [LEGACY_CONFIG, None, None, 1],
+            [NEWSTYLE_CONFIG, LEGACY_CONFIG, time() + 3600, 2],
+        ]
 
-        hashes_calculated_calls = get_relevant_metrics_calls(
-            mock_metrics_incr, "grouping.hashes_calculated"
-        )
-        assert len(hashes_calculated_calls) == 1
-        assert hashes_calculated_calls[0].kwargs["amount"] == 1
+        for primary_config, secondary_config, transition_expiry, expected_total_calcs in cases:
+            mock_metrics_incr.reset_mock()
 
-        project.update_option("sentry:grouping_config", NEWSTYLE_CONFIG)
-        project.update_option("sentry:secondary_grouping_config", LEGACY_CONFIG)
-        project.update_option("sentry:secondary_grouping_expiry", time() + 3600)
+            project.update_option("sentry:grouping_config", primary_config)
+            project.update_option("sentry:secondary_grouping_config", secondary_config)
+            project.update_option("sentry:secondary_grouping_expiry", transition_expiry)
 
-        save_new_event({"message": "Dogs are great!"}, self.project)
+            save_new_event({"message": "Dogs are great!"}, self.project)
 
-        hashes_calculated_calls = get_relevant_metrics_calls(
-            mock_metrics_incr, "grouping.hashes_calculated"
-        )
-        assert len(hashes_calculated_calls) == 2
-        assert hashes_calculated_calls[1].kwargs["amount"] == 2
+            total_calculations_calls = get_relevant_metrics_calls(
+                mock_metrics_incr, "grouping.total_calculations"
+            )
+            assert len(total_calculations_calls) == 1
+            assert total_calculations_calls[0].kwargs["amount"] == expected_total_calcs
+            assert set(total_calculations_calls[0].kwargs["tags"].keys()) == {
+                "in_transition",
+                "using_transition_optimization",
+            }
+
+            event_hashes_calculated_calls = get_relevant_metrics_calls(
+                mock_metrics_incr, "grouping.event_hashes_calculated"
+            )
+            assert len(event_hashes_calculated_calls) == 1
+            assert set(event_hashes_calculated_calls[0].kwargs["tags"].keys()) == {
+                "in_transition",
+                "using_transition_optimization",
+            }
 
     @mock.patch("sentry.event_manager.metrics.incr")
     @mock.patch("sentry.grouping.ingest._is_in_transition", return_value=True)
