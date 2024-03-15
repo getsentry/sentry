@@ -484,7 +484,8 @@ def record_hash_calculation_metrics(
 
     # Track the total number of grouping calculations done overall, so we can divide by the
     # count to get an average number of calculations per event
-    metrics.incr("grouping.hashes_calculated", amount=2 if has_secondary_hashes else 1)
+    metrics.incr("grouping.event_hashes_calculated")
+    metrics.incr("grouping.total_calculations", amount=2 if has_secondary_hashes else 1)
 
 
 def record_new_group_metrics(event: Event):
