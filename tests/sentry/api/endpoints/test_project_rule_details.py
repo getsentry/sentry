@@ -1011,7 +1011,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         filters = [
             {
                 "id": "sentry.rules.filters.issue_category.IssueCategoryFilter",
-                "value": GroupCategory.ERROR.value,
+                "value": GroupCategory.PERFORMANCE.value,
             }
         ]
         actions = [
@@ -1092,7 +1092,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         rendered_blocks = json.loads(data["blocks"][0])
         assert rendered_blocks[0]["text"]["text"] == message
         changes = "*Changes*\n"
-        changes += "• Added condition 'The issue's category is equal to Error'\n"
+        changes += "• Added condition 'The issue's category is equal to Performance'\n"
         changes += "• Added action 'Send a notification to the Awesome Team Slack workspace to new_channel_name (optionally, an ID: new_channel_id) and show tags [] in notification'\n"
         changes += "• Removed action 'Send a notification to the Awesome Team Slack workspace to #old_channel_name (optionally, an ID: old_channel_id) and show tags [] in notification'\n"
         changes += "• Changed frequency from *5 minutes* to *3 hours*\n"

@@ -4,7 +4,7 @@ from typing import Any
 from django import forms
 
 from sentry.eventstore.models import GroupEvent
-from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
+from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
 from sentry.rules import EventState
 from sentry.rules.filters import EventFilter
@@ -51,5 +51,8 @@ class IssueCategoryFilter(EventFilter):
 
     def render_label(self) -> str:
         value = self.data["value"]
-        group_category_name = get_group_type_by_type_id(int(value)).description
+        group_category_name = ""
+        for id, title in CATEGORY_CHOICES.items():
+            if id == value:
+                group_category_name = title.title()
         return self.label.format(value=group_category_name)
