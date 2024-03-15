@@ -21,7 +21,12 @@ from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.pipeline import PipelineView
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
-from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, ApiUnauthorized
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiRateLimitedError,
+    ApiUnauthorized,
+    IntegrationError,
+)
 from sentry.tasks.integrations import migrate_opsgenie_plugin
 from sentry.web.helpers import render_to_response
 
@@ -159,18 +164,25 @@ class OpsgenieIntegration(IntegrationInstallation):
         # this is not instantaneous, so you could add the same team a bunch of times in a row
         # but I don't anticipate this being too much of an issue
         added_names = {team["team"] for team in teams if team not in unsaved_teams}
+        existing_team_key_pairs = {
+            (team["team"], team["integration_key"]) for team in teams if team not in unsaved_teams
+        }
 
-        if unsaved_teams:
-            integration = integration_service.get_integration(
-                organization_integration_id=self.org_integration.id
-            )
-            if not integration:
-                raise ValidationError("Integration does not exist")
+        integration = integration_service.get_integration(
+            organization_integration_id=self.org_integration.id
+        )
+        if not integration:
+            raise IntegrationError("Integration does not exist")
 
         for team in unsaved_teams:
             if team["team"] in added_names:
                 raise ValidationError({"duplicate_name": ["Duplicate team name."]})
             team["id"] = str(self.org_integration.id) + "-" + team["team"]
+
+        for team in teams:
+            # skip if team, key pair already exist in config
+            if (team["team"], team["integration_key"]) in existing_team_key_pairs:
+                continue
 
             integration_key = team["integration_key"]
 
@@ -193,6 +205,9 @@ class OpsgenieIntegration(IntegrationInstallation):
                     )
                 elif e.code == 401:
                     raise ApiUnauthorized(f"Invalid integration key {integration_key}")
+
+                if e.json and e.json.get("message"):
+                    raise ApiError(e.json["message"])
                 raise
 
         return super().update_organization_config(data)

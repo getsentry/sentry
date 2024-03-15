@@ -154,6 +154,8 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
         org_integration = OrganizationIntegration.objects.get(integration_id=integration.id)
         team_id = str(org_integration.id) + "-" + "cool-team"
 
+        responses.add(responses.GET, url="https://api.opsgenie.com/v2/teams", status=200, json={})
+
         # valid
         data = {"team_table": [{"id": "", "team": "cool-team", "integration_key": "1234"}]}
         installation.update_organization_config(data)
@@ -182,9 +184,14 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
         integration.add_organization(self.organization, self.user)
         installation = integration.get_installation(self.organization.id)
 
-        data = {"team_table": [{"id": "", "team": "cool-team", "integration_key": "1234"}]}
-
+        data = {
+            "team_table": [
+                {"id": "", "team": "rad-team", "integration_key": "4321"},
+                {"id": "cool-team", "team": "cool-team", "integration_key": "1234"},
+            ]
+        }
         responses.add(responses.GET, url="https://api.opsgenie.com/v2/teams", status=429)
+
         with pytest.raises(ApiRateLimitedError):
             installation.update_organization_config(data)
 
@@ -196,9 +203,14 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
         integration.add_organization(self.organization, self.user)
         installation = integration.get_installation(self.organization.id)
 
-        data = {"team_table": [{"id": "", "team": "cool-team", "integration_key": "1234"}]}
-
+        data = {
+            "team_table": [
+                {"id": "cool-team", "team": "cool-team", "integration_key": "1234"},
+                {"id": "", "team": "rad-team", "integration_key": "4321"},
+            ]
+        }
         responses.add(responses.GET, url="https://api.opsgenie.com/v2/teams", status=401)
+
         with pytest.raises(ApiUnauthorized):
             installation.update_organization_config(data)
 
