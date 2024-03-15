@@ -43,7 +43,7 @@ jobs:
           repository: getsentry/sentry-api-schema
           path: sentry-api-schema
 
-      - uses: getsentry/action-setup-volta@c52be2ea13cfdc084edb806e81958c13e445941e # v1.2.0
+      - uses: getsentry/action-setup-volta@e4939d337b83760d13a9d7030a6f68c9d0ee7581 # v2.0.0
         if: steps.changes.outputs.api_docs == 'true'
 
       - name: Build OpenAPI Derefed JSON

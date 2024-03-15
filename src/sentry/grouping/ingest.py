@@ -185,11 +185,11 @@ def _calculate_background_grouping(
         return _calculate_event_grouping(project, event, config)
 
 
-def _should_run_secondary_grouping(project: Project) -> bool:
+def _is_in_transition(project: Project) -> bool:
     secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
     secondary_grouping_expiry = project.get_option("sentry:secondary_grouping_expiry")
 
-    return secondary_grouping_config and (secondary_grouping_expiry or 0) >= time.time()
+    return bool(secondary_grouping_config) and (secondary_grouping_expiry or 0) >= time.time()
 
 
 def maybe_run_secondary_grouping(
@@ -203,7 +203,7 @@ def maybe_run_secondary_grouping(
     secondary_grouping_config = NULL_GROUPING_CONFIG
     secondary_hashes = NULL_HASHES
 
-    if _should_run_secondary_grouping(project):
+    if _is_in_transition(project):
         with metrics.timer("event_manager.secondary_grouping", tags=metric_tags):
             secondary_grouping_config = SecondaryGroupingConfigLoader().get_config_dict(project)
             secondary_hashes = _calculate_secondary_hash(project, job, secondary_grouping_config)
@@ -417,7 +417,11 @@ def get_hash_values(
     primary_grouping_config, primary_hashes = run_primary_grouping(project, job, metric_tags)
 
     record_hash_calculation_metrics(
-        primary_grouping_config, primary_hashes, secondary_grouping_config, secondary_hashes
+        project,
+        primary_grouping_config,
+        primary_hashes,
+        secondary_grouping_config,
+        secondary_hashes,
     )
 
     all_hashes = CalculatedHashes(
@@ -438,12 +442,15 @@ def get_hash_values(
 
 
 def record_hash_calculation_metrics(
+    project: Project,
     primary_config: GroupingConfig,
     primary_hashes: CalculatedHashes,
     secondary_config: GroupingConfig,
     secondary_hashes: CalculatedHashes,
 ):
-    if extract_hashes(secondary_hashes):
+    has_secondary_hashes = len(extract_hashes(secondary_hashes)) > 0
+
+    if has_secondary_hashes:
         tags = {
             "primary_config": primary_config["id"],
             "secondary_config": secondary_config["id"],
@@ -463,9 +470,21 @@ def record_hash_calculation_metrics(
 
         metrics.incr("grouping.hash_comparison", tags=tags)
 
+        # TODO: This is temporary, just until we can figure out how we're recording a hash
+        # comparison metric showing projects calculating both primary and secondary hashes using the
+        # same config
+        if primary_config["id"] == secondary_config["id"]:
+            logger.info(
+                "Equal primary and secondary configs",
+                extra={
+                    "project": project.id,
+                    "primary_config": primary_config["id"],
+                },
+            )
+
     # Track the total number of grouping calculations done overall, so we can divide by the
     # count to get an average number of calculations per event
-    metrics.incr("grouping.hashes_calculated", amount=2 if extract_hashes(secondary_hashes) else 1)
+    metrics.incr("grouping.hashes_calculated", amount=2 if has_secondary_hashes else 1)
 
 
 def record_new_group_metrics(event: Event):

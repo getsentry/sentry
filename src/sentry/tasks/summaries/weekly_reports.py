@@ -27,6 +27,7 @@ from sentry.tasks.summaries.utils import (
     ONE_DAY,
     OrganizationReportContext,
     ProjectContext,
+    check_if_ctx_is_empty,
     fetch_key_error_groups,
     fetch_key_performance_issue_groups,
     organization_project_issue_substatus_summaries,
@@ -39,7 +40,7 @@ from sentry.tasks.summaries.utils import (
 )
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json
-from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
+from sentry.utils.dates import floor_to_utc_day, to_datetime
 from sentry.utils.email import MessageBuilder
 from sentry.utils.outcomes import Outcome
 from sentry.utils.query import RangeQuerySetWrapper
@@ -48,34 +49,6 @@ from sentry.utils.snuba import parse_snuba_datetime
 date_format = partial(dateformat.format, format_string="F jS, Y")
 
 logger = logging.getLogger(__name__)
-
-
-def check_if_project_is_empty(project_ctx: ProjectContext) -> bool:
-    """
-    Check if this project has any content we could show in an email.
-    """
-    return (
-        not project_ctx.key_errors
-        and not project_ctx.key_transactions
-        and not project_ctx.key_performance_issues
-        and not project_ctx.accepted_error_count
-        and not project_ctx.dropped_error_count
-        and not project_ctx.accepted_transaction_count
-        and not project_ctx.dropped_transaction_count
-        and not project_ctx.accepted_replay_count
-        and not project_ctx.dropped_replay_count
-    )
-
-
-def check_if_ctx_is_empty(ctx: OrganizationReportContext) -> bool:
-    """
-    Check if the context is empty. If it is, we don't want to send an email.
-    """
-    project_ctxs = [
-        cast(ProjectContext, project_ctx) for project_ctx in ctx.projects_context_map.values()
-    ]
-
-    return all(check_if_project_is_empty(project_ctx) for project_ctx in project_ctxs)
 
 
 # The entry point. This task is scheduled to run every week.
@@ -92,7 +65,7 @@ def schedule_organizations(
 ) -> None:
     if timestamp is None:
         # The time that the report was generated
-        timestamp = to_timestamp(floor_to_utc_day(timezone.now()))
+        timestamp = floor_to_utc_day(timezone.now()).timestamp()
 
     if duration is None:
         # The total timespan that the task covers
@@ -152,7 +125,7 @@ def prepare_organization_report(
                 continue
             project_ctx = cast(ProjectContext, ctx.projects_context_map[project_id])
             total = data["total"]
-            timestamp = int(to_timestamp(parse_snuba_datetime(data["time"])))
+            timestamp = int(parse_snuba_datetime(data["time"]).timestamp())
             if data["category"] == DataCategory.TRANSACTION:
                 # Transaction outcome
                 if data["outcome"] == Outcome.RATE_LIMITED or data["outcome"] == Outcome.FILTERED:
@@ -487,7 +460,7 @@ def render_template_context(ctx, user_id):
         # Calculate series
         series = []
         for i in range(0, 7):
-            t = int(to_timestamp(ctx.start)) + ONE_DAY * i
+            t = int(ctx.start.timestamp()) + ONE_DAY * i
             project_series = [
                 {
                     "color": project_breakdown_colors[i],

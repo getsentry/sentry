@@ -1,16 +1,16 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import Input from 'sentry/components/input';
-import {Tooltip} from 'sentry/components/tooltip';
+import Input, {inputStyles} from 'sentry/components/input';
 import {t} from 'sentry/locale';
+import {unescapeMetricsFormula} from 'sentry/utils/metrics';
+import {FormularFormatter} from 'sentry/views/ddm/formulaParser/formatter';
 import {joinTokens, parseFormula} from 'sentry/views/ddm/formulaParser/parser';
 import {type TokenList, TokenType} from 'sentry/views/ddm/formulaParser/types';
 
 interface Props extends Omit<React.ComponentProps<typeof Input>, 'onChange' | 'value'> {
   availableVariables: Set<string>;
-  formulaVariables: Set<string>;
   onChange: (formula: string) => void;
   value: string;
 }
@@ -27,85 +27,155 @@ function escapeVariables(tokens: TokenList): TokenList {
   });
 }
 
-function unescapeVariables(formula: string): string {
-  return formula.replaceAll('$', '');
+function equalizeWhitespace(formula: TokenList): TokenList {
+  return formula.map(token => {
+    // Ensure equal spacing
+    if (token.type === TokenType.WHITESPACE) {
+      return {...token, content: ' '};
+    }
+    return token;
+  });
 }
-
 export function FormulaInput({
   availableVariables,
-  formulaVariables,
-  value,
+  value: valueProp,
   onChange,
   ...props
 }: Props) {
-  const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<any>([]);
+  const [showErrors, setIsValidationEnabled] = useState(false);
+  const [value, setValue] = useState<string>(() => unescapeMetricsFormula(valueProp));
 
-  const defaultValue = useMemo(() => unescapeVariables(value), [value]);
+  const validateVariable = useCallback(
+    (variable: string): string | null => {
+      if (!availableVariables.has(variable)) {
+        return t('Unknown query "%s"', variable);
+      }
+      return null;
+    },
+    [availableVariables]
+  );
 
-  const validateVariables = useCallback(
-    (tokens: TokenList): string | null => {
-      for (const token of tokens) {
-        if (token.type !== TokenType.VARIABLE) {
-          continue;
-        }
-        if (formulaVariables.has(token.content)) {
-          return t('Formulas cannot reference other formulas.', token.content);
-        }
-        if (!availableVariables.has(token.content)) {
-          return t('Unknown variable "%s"', token.content);
+  const parseAndValidateFormula = useCallback(
+    (formula: string): TokenList | null => {
+      let tokens: TokenList = [];
+      const newErrors: any[] = [];
+      if (formula) {
+        try {
+          tokens = parseFormula(formula);
+        } catch (err) {
+          newErrors.push({
+            message: err.message,
+            start: err.location.start.offset,
+          });
         }
       }
 
-      return null;
+      // validate variables
+      let charCount = 0;
+      tokens.forEach(token => {
+        if (token.type === TokenType.VARIABLE) {
+          const error = validateVariable(token.content);
+          if (error) {
+            newErrors.push({
+              message: error,
+              start: charCount,
+              end: charCount + token.content.length,
+            });
+          }
+        }
+        charCount += token.content.length;
+      });
+
+      newErrors.sort((a, b) => a.start - b.start);
+      setErrors(newErrors);
+
+      if (newErrors.length > 0) {
+        return null;
+      }
+
+      return tokens;
     },
-    [availableVariables, formulaVariables]
+    [validateVariable]
   );
+
+  useEffect(() => {
+    setIsValidationEnabled(false);
+
+    const timeoutId = setTimeout(() => {
+      setIsValidationEnabled(true);
+    }, 500);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [value]);
+
+  // Parse and validate formula everytime the validation criteria changes
+  useEffect(() => {
+    parseAndValidateFormula(value);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [parseAndValidateFormula]);
 
   const handleChange = useMemo(
     () =>
       debounce((e: React.ChangeEvent<HTMLInputElement>) => {
         const newValue = e.target.value.trim();
 
-        let tokens: TokenList = [];
-        if (newValue) {
-          try {
-            tokens = parseFormula(newValue);
-          } catch (err) {
-            setError(t('Invalid formula: %s', err.message));
-            return;
-          }
-        }
+        const tokens = parseAndValidateFormula(newValue);
 
-        const validationError = validateVariables(tokens);
-        if (validationError) {
-          setError(validationError);
+        if (!tokens) {
           return;
         }
 
-        setError(null);
-        onChange(joinTokens(escapeVariables(tokens)));
+        onChange(joinTokens(equalizeWhitespace(escapeVariables(tokens))));
       }, 200),
-    [onChange, validateVariables]
+    [onChange, parseAndValidateFormula]
   );
+
   return (
-    <Tooltip
-      position="top-start"
-      title={error || ''}
-      disabled={!error}
-      skipWrapper
-      forceVisible={!!error}
-    >
+    <Wrapper>
       <StyledInput
         {...props}
-        hasError={!!error}
-        defaultValue={defaultValue}
-        onChange={handleChange}
+        monospace
+        hasError={showErrors && errors.length > 0}
+        defaultValue={value}
+        onChange={e => {
+          setValue(e.target.value);
+          handleChange(e);
+        }}
       />
-    </Tooltip>
+      <RendererOverlay monospace>
+        <FormularFormatter formula={value} errors={showErrors ? errors : []} />
+      </RendererOverlay>
+    </Wrapper>
   );
 }
 
+const Wrapper = styled('div')`
+  position: relative;
+`;
+
+const RendererOverlay = styled('div')`
+  ${inputStyles}
+  border-color: transparent;
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  background: none;
+  white-space: nowrap;
+  overflow: hidden;
+  resize: none;
+`;
+
 const StyledInput = styled(Input)<{hasError: boolean}>`
+  caret-color: ${p => p.theme.subText};
+  color: transparent;
   ${p =>
     p.hasError &&
     `

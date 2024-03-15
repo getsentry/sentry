@@ -4,6 +4,7 @@ import contextlib
 import io
 import os
 import random
+import zipfile
 from base64 import b64encode
 from binascii import hexlify
 from collections.abc import Mapping, Sequence
@@ -30,16 +31,18 @@ from sentry.event_manager import EventManager
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.incidents.logic import (
     create_alert_rule,
+    create_alert_rule_activation,
     create_alert_rule_activation_condition,
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
     query_datasets_to_type,
 )
-from sentry.incidents.models import (
-    AlertRuleActivationConditionType,
+from sentry.incidents.models.alert_rule import (
     AlertRuleMonitorType,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
+)
+from sentry.incidents.models.incident import (
     Incident,
     IncidentActivity,
     IncidentProject,
@@ -48,6 +51,7 @@ from sentry.incidents.models import (
     IncidentType,
     TriggerStatus,
 )
+from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.mediators.token_exchange.grant_exchanger import GrantExchanger
 from sentry.models.activity import Activity
@@ -301,22 +305,22 @@ class Factories:
         if not name:
             name = petname.generate(2, " ", letters=10).title()
 
-        if region is None or SiloMode.get_current_mode() == SiloMode.MONOLITH:
-            region_name = get_local_region().name
-            org_creation_context = contextlib.nullcontext()
-        else:
-            if isinstance(region, Region):
-                region_name = region.name
+        with contextlib.ExitStack() as ctx:
+            if region is None or SiloMode.get_current_mode() == SiloMode.MONOLITH:
+                region_name = get_local_region().name
             else:
-                region_obj = get_region_by_name(region)  # Verify it exists
-                region_name = region_obj.name
-            org_creation_context = override_settings(
-                SILO_MODE=SiloMode.REGION, SENTRY_REGION=region_name
-            )
+                if isinstance(region, Region):
+                    region_name = region.name
+                else:
+                    region_obj = get_region_by_name(region)  # Verify it exists
+                    region_name = region_obj.name
 
-        with org_creation_context:
+                ctx.enter_context(
+                    override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION=region_name)
+                )
+
             with outbox_context(flush=False):
-                org: Organization = Organization.objects.create(name=name, **kwargs)
+                org = Organization.objects.create(name=name, **kwargs)
 
             with assume_test_silo_mode(SiloMode.CONTROL):
                 # Organization mapping creation relies on having a matching org slug reservation
@@ -415,7 +419,7 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_user_auth_token(user, scope_list: list[str] = None, **kwargs) -> ApiToken:
+    def create_user_auth_token(user, scope_list: list[str] | None = None, **kwargs) -> ApiToken:
         if scope_list is None:
             scope_list = []
         return ApiToken.objects.create(
@@ -589,7 +593,7 @@ class Factories:
             ReleaseEnvironment.objects.create(
                 organization=project.organization, release=release, environment=environment
             )
-            for project in [project] + additional_projects:
+            for project in [project, *additional_projects]:
                 ReleaseProjectEnvironment.objects.create(
                     project=project,
                     release=release,
@@ -623,6 +627,7 @@ class Factories:
 
         return release
 
+    @staticmethod
     def create_group_release(project: Project, group: Group, release: Release) -> GroupRelease:
         return GroupRelease.objects.create(
             project_id=project.id,
@@ -659,13 +664,11 @@ class Factories:
     def create_artifact_bundle_zip(
         org=None, release=None, project=None, extra_files=None, fixture_path="artifact_bundle"
     ):
-        import zipfile
-
         bundle = io.BytesIO()
         bundle_dir = get_fixture_path(fixture_path)
-        with zipfile.ZipFile(bundle, "w", zipfile.ZIP_DEFLATED) as zipfile:
+        with zipfile.ZipFile(bundle, "w", zipfile.ZIP_DEFLATED) as zipf:
             for path, content in (extra_files or {}).items():
-                zipfile.writestr(path, content)
+                zipf.writestr(path, content)
             for path, _, files in os.walk(bundle_dir):
                 for filename in files:
                     fullpath = os.path.join(path, filename)
@@ -674,9 +677,9 @@ class Factories:
                         manifest = _patch_artifact_manifest(
                             fullpath, org, release, project, extra_files
                         )
-                        zipfile.writestr(relpath, manifest)
+                        zipf.writestr(relpath, manifest)
                     else:
-                        zipfile.write(fullpath, relpath)
+                        zipf.write(fullpath, relpath)
 
         return bundle.getvalue()
 
@@ -684,10 +687,10 @@ class Factories:
     @assume_test_silo_mode(SiloMode.REGION)
     def create_release_archive(cls, org, release: str, project=None, dist=None):
         bundle = cls.create_artifact_bundle_zip(org, release, project)
-        file_ = File.objects.create(name="release-artifacts.zip")
-        file_.putfile(ContentFile(bundle))
-        release = Release.objects.get(organization__slug=org, version=release)
-        return update_artifact_index(release, dist, file_)
+        file = File.objects.create(name="release-artifacts.zip")
+        file.putfile(ContentFile(bundle))
+        release_obj = Release.objects.get(organization__slug=org, version=release)
+        return update_artifact_index(release_obj, dist, file)
 
     @classmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -804,16 +807,15 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_user(email=None, **kwargs):
+    def create_user(email=None, is_superuser=False, is_staff=False, is_active=True, **kwargs):
         if email is None:
             email = uuid4().hex + "@example.com"
 
         kwargs.setdefault("username", email)
-        kwargs.setdefault("is_staff", True)
-        kwargs.setdefault("is_active", True)
-        kwargs.setdefault("is_superuser", False)
 
-        user = User(email=email, **kwargs)
+        user = User(
+            email=email, is_superuser=is_superuser, is_staff=is_staff, is_active=is_active, **kwargs
+        )
         if kwargs.get("password") is None:
             user.set_password("admin")
         user.save()
@@ -852,7 +854,7 @@ class Factories:
         user: User,
         provider: str | None = None,
         uid: str | None = None,
-        extra_data: Mapping[str, Any] | None = None,
+        extra_data: dict[str, Any] | None = None,
     ):
         if not provider:
             provider = "asana"
@@ -883,7 +885,7 @@ class Factories:
                         type=group_type,
                         parent_span_ids=None,
                         cause_span_ids=None,
-                        offender_span_ids=None,
+                        offender_span_ids=[],
                         evidence_data={},
                         evidence_display=[],
                     )
@@ -1073,16 +1075,18 @@ class Factories:
     ) -> ApiToken:
         if internal_integration and install:
             raise ValueError("Only one of internal_integration or install arg can be provided")
-        if internal_integration is None and install is None:
+        elif internal_integration is None and install is None:
             raise ValueError("Must pass in either internal_integration or install arg")
 
-        if install is None:
+        if internal_integration is not None and install is None:
             # Fetch install from provided or created internal integration
             with assume_test_silo_mode(SiloMode.CONTROL):
                 install = SentryAppInstallation.objects.get(
                     sentry_app=internal_integration.id,
                     organization_id=internal_integration.owner_id,
                 )
+        elif install is None:
+            raise AssertionError("unreachable")
 
         return SentryAppInstallationTokenCreator(sentry_app_installation=install).run(
             user=user, request=request
@@ -1136,6 +1140,7 @@ class Factories:
             if not prevent_token_exchange and (
                 install.sentry_app.status != SentryAppStatus.INTERNAL
             ):
+                assert install.api_grant is not None
                 GrantExchanger.run(
                     install=rpc_install,
                     code=install.api_grant.code,
@@ -1533,6 +1538,15 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
+    def create_alert_rule_activation(
+        alert_rule,
+        **kwargs,
+    ):
+
+        return create_alert_rule_activation(alert_rule, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_alert_rule_trigger(
         alert_rule, label=None, alert_threshold=100, excluded_projects=None
     ):
@@ -1667,6 +1681,7 @@ class Factories:
         organization_integration = integration.add_organization(
             organization_id=organization.id, user=user, default_auth_id=identity.id
         )
+        assert organization_integration is not None
         return integration, organization_integration, identity, identity_provider
 
     @staticmethod
@@ -1809,7 +1824,7 @@ class Factories:
         return UserOption.objects.create(*args, **kwargs)
 
     @staticmethod
-    def create_basic_auth_header(username: str, password: str = "") -> str:
+    def create_basic_auth_header(username: str, password: str = "") -> bytes:
         return b"Basic " + b64encode(f"{username}:{password}".encode())
 
     @staticmethod

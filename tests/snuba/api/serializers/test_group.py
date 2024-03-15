@@ -1,7 +1,7 @@
-from datetime import timedelta, timezone
+from datetime import timedelta
 from unittest import mock
 
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.api.serializers import serialize
@@ -77,7 +77,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert result["priorityLockedAt"] is None
 
     def test_is_ignored_with_expired_snooze(self):
-        now = django_timezone.now()
+        now = timezone.now()
 
         user = self.create_user()
         group = self.create_group(status=GroupStatus.IGNORED)
@@ -88,7 +88,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert result["statusDetails"] == {}
 
     def test_is_ignored_with_valid_snooze(self):
-        now = django_timezone.now()
+        now = timezone.now()
 
         user = self.create_user()
         group = self.create_group(status=GroupStatus.IGNORED)
@@ -104,7 +104,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert result["statusDetails"]["actor"] is None
 
     def test_is_ignored_with_valid_snooze_and_actor(self):
-        now = django_timezone.now()
+        now = timezone.now()
 
         user = self.create_user()
         group = self.create_group(status=GroupStatus.IGNORED)
@@ -439,7 +439,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
 
     def test_get_start_from_seen_stats(self):
         for days, expected in [(None, 30), (0, 14), (1000, 90)]:
-            last_seen = None if days is None else before_now(days=days).replace(tzinfo=timezone.utc)
+            last_seen = None if days is None else before_now(days=days)
             start = GroupSerializerSnuba._get_start_from_seen_stats(
                 {
                     mock.sentinel.group: {
@@ -460,22 +460,22 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
                 SearchFilter(
                     SearchKey("timestamp"),
                     ">",
-                    SearchValue(before_now(hours=1).replace(tzinfo=timezone.utc)),
+                    SearchValue(before_now(hours=1)),
                 ),
                 SearchFilter(
                     SearchKey("timestamp"),
                     "<",
-                    SearchValue(before_now(seconds=1).replace(tzinfo=timezone.utc)),
+                    SearchValue(before_now(seconds=1)),
                 ),
                 SearchFilter(
                     SearchKey("date"),
                     ">",
-                    SearchValue(before_now(hours=1).replace(tzinfo=timezone.utc)),
+                    SearchValue(before_now(hours=1)),
                 ),
                 SearchFilter(
                     SearchKey("date"),
                     "<",
-                    SearchValue(before_now(seconds=1).replace(tzinfo=timezone.utc)),
+                    SearchValue(before_now(seconds=1)),
                 ),
             ]
         )
@@ -495,7 +495,7 @@ class PerformanceGroupSerializerSnubaTest(
         proj = self.create_project()
 
         first_group_fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-group1"
-        timestamp = django_timezone.now() - timedelta(days=5)
+        timestamp = timezone.now() - timedelta(days=5)
         times = 5
         for _ in range(0, times):
             event_data = load_data(
@@ -525,8 +525,8 @@ class PerformanceGroupSerializerSnubaTest(
         result = serialize(
             first_group,
             serializer=GroupSerializerSnuba(
-                start=django_timezone.now() - timedelta(days=60),
-                end=django_timezone.now() + timedelta(days=10),
+                start=timezone.now() - timedelta(days=60),
+                end=timezone.now() + timedelta(days=10),
             ),
         )
 
@@ -547,7 +547,7 @@ class ProfilingGroupSerializerSnubaTest(
         environment = self.create_environment(project=proj)
 
         first_group_fingerprint = f"{ProfileFileIOGroupType.type_id}-group1"
-        timestamp = (django_timezone.now() - timedelta(days=5)).replace(hour=0, minute=0, second=0)
+        timestamp = (timezone.now() - timedelta(days=5)).replace(hour=0, minute=0, second=0)
         times = 5
         for incr in range(0, times):
             # for user_0 - user_4, first_group

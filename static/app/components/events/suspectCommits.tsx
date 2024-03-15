@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
 import type {CommitRowProps} from 'sentry/components/commitRow';
-import {DataSection, SuspectCommitHeader} from 'sentry/components/events/styles';
+import {SuspectCommitHeader} from 'sentry/components/events/styles';
 import Panel from 'sentry/components/panels/panel';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
@@ -79,7 +79,7 @@ export function SuspectCommits({group, eventId, project, commitRow: CommitRow}: 
   const commitHeading = tn('Suspect Commit', 'Suspect Commits (%s)', commits.length);
 
   return (
-    <StyledDataSection>
+    <div>
       <SuspectCommitHeader>
         <h3 data-test-id="suspect-commit">{commitHeading}</h3>
         {commits.length > 1 && (
@@ -109,17 +109,9 @@ export function SuspectCommits({group, eventId, project, commitRow: CommitRow}: 
           />
         ))}
       </StyledPanel>
-    </StyledDataSection>
+    </div>
   );
 }
-
-const StyledDataSection = styled(DataSection)`
-  padding: ${space(0.5)} ${space(2)};
-
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding: ${space(1)} ${space(4)};
-  }
-`;
 
 export const StyledPanel = styled(Panel)`
   margin: 0;

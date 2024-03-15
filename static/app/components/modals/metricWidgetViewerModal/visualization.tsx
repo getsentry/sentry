@@ -9,31 +9,33 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricsQueryApiResponse} from 'sentry/types';
-import {getWidgetTitle} from 'sentry/utils/metrics';
 import {DEFAULT_SORT_STATE} from 'sentry/utils/metrics/constants';
 import type {FocusedMetricsSeries, SortState} from 'sentry/utils/metrics/types';
 import {
-  type MetricsQueryApiRequestQuery,
+  type MetricsQueryApiQueryParams,
   useMetricsQuery,
 } from 'sentry/utils/metrics/useMetricsQuery';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
+import {BigNumber, getBigNumberData} from 'sentry/views/dashboards/metrics/bigNumber';
 import {getTableData, MetricTable} from 'sentry/views/dashboards/metrics/table';
+import type {Order} from 'sentry/views/dashboards/metrics/types';
 import {toMetricDisplayType} from 'sentry/views/dashboards/metrics/utils';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {displayTypes} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {LoadingScreen} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import {getIngestionSeriesId, MetricChart} from 'sentry/views/ddm/chart/chart';
 import {SummaryTable} from 'sentry/views/ddm/summaryTable';
 import {useSeriesHover} from 'sentry/views/ddm/useSeriesHover';
 import {createChartPalette} from 'sentry/views/ddm/utils/metricsChartPalette';
-import {getChartTimeseries} from 'sentry/views/ddm/widget';
+import {getChartTimeseries, getWidgetTitle} from 'sentry/views/ddm/widget';
 
 function useFocusedSeries({
   timeseriesData,
   queries,
   onChange,
 }: {
-  queries: MetricsQueryApiRequestQuery[];
+  queries: MetricsQueryApiQueryParams[];
   timeseriesData: MetricsQueryApiResponse | null;
   onChange?: () => void;
 }) {
@@ -100,27 +102,25 @@ function useFocusedSeries({
   };
 }
 
-const supportedDisplayTypes = Object.keys(displayTypes)
-  .filter(d => d !== DisplayType.BIG_NUMBER)
-  .map(value => ({
-    label: displayTypes[value],
-    value,
-  }));
+const supportedDisplayTypes = Object.keys(displayTypes).map(value => ({
+  label: displayTypes[value],
+  value,
+}));
 
 interface MetricVisualizationProps {
   displayType: DisplayType;
   onDisplayTypeChange: (displayType: DisplayType) => void;
-  queries: MetricsQueryApiRequestQuery[];
+  queries: MetricsQueryApiQueryParams[];
+  onOrderChange?: (order: Order, index: number) => void;
 }
 
 export function MetricVisualization({
   queries,
   displayType,
   onDisplayTypeChange,
+  onOrderChange,
 }: MetricVisualizationProps) {
   const {selection} = usePageFilters();
-
-  const isTable = displayType === DisplayType.TABLE;
 
   const {
     data: timeseriesData,
@@ -132,6 +132,40 @@ export function MetricVisualization({
   });
 
   const widgetMQL = useMemo(() => getWidgetTitle(queries), [queries]);
+
+  const visualizationComponent = useMemo(() => {
+    if (!timeseriesData) {
+      return null;
+    }
+    if (displayType === DisplayType.TABLE) {
+      return (
+        <MetricTableVisualization
+          isLoading={isLoading}
+          timeseriesData={timeseriesData}
+          queries={queries}
+          onOrderChange={onOrderChange}
+        />
+      );
+    }
+    if (displayType === DisplayType.BIG_NUMBER) {
+      return (
+        <MetricBigNumberVisualization
+          timeseriesData={timeseriesData}
+          isLoading={isLoading}
+          queries={queries}
+        />
+      );
+    }
+
+    return (
+      <MetricChartVisualization
+        isLoading={isLoading}
+        timeseriesData={timeseriesData}
+        queries={queries}
+        displayType={displayType}
+      />
+    );
+  }, [timeseriesData, displayType, isLoading, queries, onOrderChange]);
 
   if (!timeseriesData || isError) {
     return (
@@ -168,43 +202,71 @@ export function MetricVisualization({
           onChange={({value}) => onDisplayTypeChange(value as DisplayType)}
         />
       </ViualizationHeader>
-      {!isTable ? (
-        <MetricChartVisualization
-          isLoading={isLoading}
-          timeseriesData={timeseriesData}
-          queries={queries}
-          displayType={displayType}
-        />
-      ) : (
-        <MetricTableVisualization
-          isLoading={isLoading}
-          timeseriesData={timeseriesData}
-          queries={queries}
-        />
-      )}
+      {visualizationComponent}
     </StyledOuterContainer>
   );
 }
 
 interface MetricTableVisualizationProps {
   isLoading: boolean;
-  queries: MetricsQueryApiRequestQuery[];
+  queries: MetricsQueryApiQueryParams[];
   timeseriesData: MetricsQueryApiResponse;
+  onOrderChange?: (order: Order, index: number) => void;
 }
 
 function MetricTableVisualization({
   timeseriesData,
   queries,
   isLoading,
+  onOrderChange,
 }: MetricTableVisualizationProps) {
   const tableData = useMemo(() => {
     return getTableData(timeseriesData, queries);
   }, [timeseriesData, queries]);
 
+  const handleOrderChange = useCallback(
+    (column: any) => {
+      if (!onOrderChange) {
+        return;
+      }
+      const queryIdx = queries.findIndex(q => q.name === column.name);
+      if (queryIdx < 0) {
+        return;
+      }
+      onOrderChange?.(column.order, queryIdx);
+    },
+    [onOrderChange, queries]
+  );
+
   return (
     <Fragment>
       <TransparentLoadingMask visible={isLoading} />
-      <MetricTable isLoading={isLoading} data={tableData} />
+      <MetricTable
+        isLoading={isLoading}
+        data={tableData}
+        onOrderChange={handleOrderChange}
+      />
+    </Fragment>
+  );
+}
+
+function MetricBigNumberVisualization({
+  timeseriesData,
+  queries,
+  isLoading,
+}: MetricTableVisualizationProps) {
+  const bigNumberData = useMemo(() => {
+    return timeseriesData ? getBigNumberData(timeseriesData, queries) : undefined;
+  }, [timeseriesData, queries]);
+
+  if (!bigNumberData) {
+    return null;
+  }
+
+  return (
+    <Fragment>
+      <LoadingScreen loading={isLoading} />
+      <BigNumber>{bigNumberData}</BigNumber>
     </Fragment>
   );
 }

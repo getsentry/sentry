@@ -1,4 +1,3 @@
-import selectEvent from 'react-select-event';
 import {MemberFixture} from 'sentry-fixture/member';
 import {MonitorFixture} from 'sentry-fixture/monitor';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -7,6 +6,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import {useMembers} from 'sentry/utils/useMembers';
 import useProjects from 'sentry/utils/useProjects';
@@ -118,7 +118,7 @@ describe('MonitorForm', function () {
 
     const notifySelect = screen.getByRole('textbox', {name: 'Notify'});
 
-    selectEvent.openMenu(notifySelect);
+    await selectEvent.openMenu(notifySelect);
     expect(
       screen.getByRole('menuitemcheckbox', {name: 'John Smith'})
     ).toBeInTheDocument();
@@ -195,7 +195,7 @@ describe('MonitorForm', function () {
     expect(screen.getByText(project.slug)).toBeInTheDocument();
 
     // Schedule type
-    selectEvent.openMenu(screen.getByRole('textbox', {name: 'Schedule Type'}));
+    await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Schedule Type'}));
     const crontabOption = screen.getByRole('menuitemradio', {name: 'Crontab'});
     expect(crontabOption).toBeChecked();
     await userEvent.click(crontabOption);
@@ -206,7 +206,7 @@ describe('MonitorForm', function () {
     );
 
     // Schedule timezone
-    selectEvent.openMenu(screen.getByRole('textbox', {name: 'Timezone'}));
+    await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Timezone'}));
     const losAngelesOption = screen.getByRole('menuitemradio', {name: 'Los Angeles'});
     expect(losAngelesOption).toBeChecked();
     await userEvent.click(losAngelesOption);
@@ -220,7 +220,7 @@ describe('MonitorForm', function () {
     expect(screen.getByRole('spinbutton', {name: 'Recovery Tolerance'})).toHaveValue(2);
 
     // Alert rule configuration
-    selectEvent.openMenu(screen.getByRole('textbox', {name: 'Notify'}));
+    await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Notify'}));
     const memberOption = screen.getByRole('menuitemcheckbox', {name: member.user?.name});
     expect(memberOption).toBeChecked();
     await userEvent.keyboard('{Escape}');

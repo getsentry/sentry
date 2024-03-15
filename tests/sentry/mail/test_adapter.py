@@ -2,7 +2,7 @@ import uuid
 import zoneinfo
 from collections import Counter
 from collections.abc import Mapping, Sequence
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from functools import cached_property
 from unittest import mock
 from unittest.mock import ANY
@@ -11,7 +11,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 from django.db.models import F
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
@@ -51,7 +51,6 @@ from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from sentry.types.rules import RuleFuture
-from sentry.utils.dates import ensure_aware
 from sentry.utils.email import MessageBuilder, get_email_addresses
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 from tests.sentry.mail import make_event_data, mock_notify
@@ -333,7 +332,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
                 IssueEvidence("Evidence 3", "Value 3", False),
             ],
             MonitorCheckInFailure,
-            ensure_aware(datetime.now()),
+            timezone.now(),
             "info",
             "/api/123",
         )
@@ -389,7 +388,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             {"Test": 123},
             [],  # no evidence
             MonitorCheckInFailure,
-            ensure_aware(datetime.now()),
+            timezone.now(),
             "info",
             "/api/123",
         )
@@ -661,8 +660,8 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         """
         from django.template.defaultfilters import date
 
-        timestamp = datetime.now(tz=timezone.utc)
-        local_timestamp_s = django_timezone.localtime(timestamp, zoneinfo.ZoneInfo("Europe/Vienna"))
+        timestamp = timezone.now()
+        local_timestamp_s = timezone.localtime(timestamp, zoneinfo.ZoneInfo("Europe/Vienna"))
         local_timestamp = date(local_timestamp_s, "N j, Y, g:i:s a e")
 
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -702,7 +701,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         recipient_context = notification.get_recipient_context(
             RpcActor.from_orm_user(self.user), {}
         )
-        assert recipient_context["timezone"] == timezone.utc
+        assert recipient_context["timezone"] == UTC
 
     def test_context_invalid_timezone_empty_string(self):
         self._test_invalid_timezone("")
@@ -946,8 +945,8 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
         )
         self.create_member(user=user2, organization=organization, teams=[team])
         self.group = self.create_group(
-            first_seen=django_timezone.now(),
-            last_seen=django_timezone.now(),
+            first_seen=timezone.now(),
+            last_seen=timezone.now(),
             project=project,
             message="hello  world",
             logger="root",
@@ -1357,7 +1356,7 @@ class MailAdapterGetDigestSubjectTest(BaseMailAdapterTest):
             get_digest_subject(
                 mock.Mock(qualified_short_id="BAR-1"),
                 Counter({mock.sentinel.group: 3}),
-                datetime(2016, 9, 19, 1, 2, 3, tzinfo=timezone.utc),
+                datetime(2016, 9, 19, 1, 2, 3, tzinfo=UTC),
             )
             == "BAR-1 - 1 new alert since Sept. 19, 2016, 1:02 a.m. UTC"
         )

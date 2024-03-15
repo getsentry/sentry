@@ -394,6 +394,8 @@ export const feedbackWidgetPlatforms: readonly PlatformKey[] = [
 // Feedback platforms that only show crash API instructions
 export const feedbackCrashApiPlatforms: readonly PlatformKey[] = [
   'android',
+  'apple-macos',
+  'apple-ios',
   'dart',
   'dotnet',
   'dotnet-awslambda',
@@ -408,13 +410,43 @@ export const feedbackCrashApiPlatforms: readonly PlatformKey[] = [
   'java-log4j2',
   'java-logback',
   'kotlin',
+  'node-koa',
   'react-native',
   'unity',
   'unreal',
 ];
 
+// Feedback platforms that default to the web API
+export const feedbackWebApiPlatforms: readonly PlatformKey[] = [
+  'cordova',
+  'ruby-rack',
+  'ruby',
+  'rust',
+  'native',
+  'native-qt',
+  'node-awslambda',
+  'node-azurefunctions',
+  'node-connect',
+  'node-gcpfunctions',
+  'node-serverlesscloud',
+  'minidump',
+  'python-asgi',
+  'python-awslambda',
+  'python-celery',
+  'python-chalice',
+  'python-gcpfunctions',
+  'python-pymongo',
+  'python-pylons',
+  'python',
+  'python-rq',
+  'python-serverless',
+  'python-tryton',
+  'python-wsgi',
+];
+
 // All feedback onboarding platforms
 export const feedbackOnboardingPlatforms: readonly PlatformKey[] = [
+  ...feedbackWebApiPlatforms,
   ...feedbackWidgetPlatforms,
   ...feedbackCrashApiPlatforms,
 ];
@@ -429,6 +461,14 @@ const customMetricBackendPlatforms: readonly PlatformKey[] = [
   'dotnet-uwp',
   'dotnet-winforms',
   'dotnet-wpf',
+  'java',
+  'java-appengine',
+  'java-log4j',
+  'java-log4j2',
+  'java-logback',
+  'java-logging',
+  'java-spring',
+  'java-spring-boot',
   'php',
   'php-laravel',
   // TODO: Enable once metrics are available for Symfony
@@ -467,7 +507,9 @@ const customMetricBackendPlatforms: readonly PlatformKey[] = [
 ];
 
 const customMetricFrontendPlatforms: readonly PlatformKey[] = [
+  'android',
   'electron',
+  'java-android',
   'javascript-angular',
   'javascript-astro',
   'javascript-backbone',
@@ -482,20 +524,21 @@ const customMetricFrontendPlatforms: readonly PlatformKey[] = [
   'javascript-sveltekit',
   'javascript-vue',
   'javascript',
+  'react-native',
 ];
 
 // These are all the platforms that can set up custom metrics.
-export const customMetricPlatforms: Set<PlatformKey> = new Set([
+export const customMetricPlatforms: readonly PlatformKey[] = [
   ...customMetricFrontendPlatforms,
   ...customMetricBackendPlatforms,
-]);
+];
 
 /**
  * The list of platforms for which we have created onboarding instructions.
  * Should be a subset of the list of `customMetricPlatforms`.
  */
-export const customMetricOnboardingPlatforms = new Set(
-  [...customMetricPlatforms].filter(
+export const customMetricOnboardingPlatforms: readonly PlatformKey[] =
+  customMetricPlatforms.filter(
     p =>
       // Legacy platforms that do not have in-product docs
       ![
@@ -505,5 +548,4 @@ export const customMetricOnboardingPlatforms = new Set(
         'python-pylons',
         'python-tryton',
       ].includes(p)
-  )
-);
+  );

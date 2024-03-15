@@ -9,13 +9,15 @@ import pytest
 from django.conf import settings
 
 from sentry import eventstore
+from sentry.conf.types.kafka_definition import Topic
 from sentry.consumers import get_stream_processor
 from sentry.event_manager import EventManager
-from sentry.ingest.types import ConsumerType
+from sentry.eventstore.processing import event_processing_store
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_kafka, requires_snuba
 from sentry.utils import json
 from sentry.utils.batching_kafka_consumer import create_topics
+from sentry.utils.kafka_config import get_topic_definition
 
 pytestmark = [requires_snuba, requires_kafka]
 
@@ -60,7 +62,12 @@ def get_test_message(default_project):
                 },
             }
         elif type == "event":
-            event = {"message": message_text, "extra": {"the_id": event_id}, "event_id": event_id}
+            event = {
+                "message": message_text,
+                "extra": {"the_id": event_id},
+                "project": project_id,
+                "event_id": event_id,
+            }
         else:
             raise ValueError(type)
 
@@ -69,7 +76,7 @@ def get_test_message(default_project):
         normalized_event = dict(em.get_data())
         message = {
             "type": "event",
-            "start_time": time.time(),
+            "start_time": int(time.time()),
             "event_id": event_id,
             "project_id": int(project_id),
             "payload": json.dumps(normalized_event),
@@ -95,7 +102,9 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
     get_test_message,
     random_group_id,
 ):
-    topic_event_name = ConsumerType.get_topic_name(ConsumerType.Events)
+
+    topic = Topic.INGEST_EVENTS
+    topic_event_name = get_topic_definition(topic)["real_topic_name"]
 
     admin = kafka_admin(settings)
     admin.delete_topic(topic_event_name)
@@ -117,6 +126,7 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
         group_id=random_group_id,
         auto_offset_reset="earliest",
         strict_offset_reset=False,
+        enforce_schema=True,
     )
 
     with task_runner():
@@ -140,3 +150,65 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
     assert transaction_message.data["event_id"] == transaction_event_id
     assert transaction_message.data["spans"] == []
     assert transaction_message.data["contexts"]["trace"]
+
+
+@django_db_all(transaction=True)
+def test_ingest_consumer_gets_event_unstuck(
+    task_runner,
+    kafka_producer,
+    kafka_admin,
+    default_project,
+    get_test_message,
+    random_group_id,
+):
+    topic = Topic.INGEST_EVENTS
+    topic_event_name = get_topic_definition(topic)["real_topic_name"]
+
+    admin = kafka_admin(settings)
+    admin.delete_topic(topic_event_name)
+    producer = kafka_producer(settings)
+
+    create_topics("default", [topic_event_name])
+
+    message1, event_id1 = get_test_message(type="event")
+    producer.produce(topic_event_name, message1)
+
+    message2, event_id2 = get_test_message(type="event")
+    producer.produce(topic_event_name, message2)
+
+    # an event is "stuck" when it is in the processing store, so lets fake that:
+    event_processing_store.store({"project": default_project.id, "event_id": event_id2})
+
+    consumer = get_stream_processor(
+        "ingest-events",
+        consumer_args=[
+            "--max-batch-size=2",
+            "--max-batch-time-ms=5000",
+            "--processes=10",
+            "--reprocess-only-stuck-events",
+        ],
+        topic=None,
+        cluster=None,
+        group_id=random_group_id,
+        auto_offset_reset="earliest",
+        strict_offset_reset=False,
+        enforce_schema=True,
+    )
+
+    with task_runner():
+        i = 0
+        while i < MAX_POLL_ITERATIONS:
+            message = eventstore.backend.get_event_by_id(default_project.id, event_id2)
+
+            if message:
+                break
+
+            consumer._run_once()
+            i += 1
+
+    # check that we got the messages
+    assert message.data["event_id"] == event_id2
+    assert message.data["extra"]["the_id"] == event_id2
+
+    # the first event was never "stuck", so we expect it to be skipped
+    assert not eventstore.backend.get_event_by_id(default_project.id, event_id1)

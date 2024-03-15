@@ -62,6 +62,7 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def __init__(
         self,
         consumer_type: str,
+        reprocess_only_stuck_events: bool,
         num_processes: int,
         max_batch_size: int,
         max_batch_time: int,
@@ -70,6 +71,7 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     ):
         self.consumer_type = consumer_type
         self.is_attachment_topic = consumer_type == ConsumerType.Attachments
+        self.reprocess_only_stuck_events = reprocess_only_stuck_events
 
         self.multi_process = None
         self._pool = MultiprocessingPool(num_processes)
@@ -97,7 +99,11 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         final_step = CommitOffsets(commit)
 
         if not self.is_attachment_topic:
-            event_function = partial(process_simple_event_message, consumer_type=self.consumer_type)
+            event_function = partial(
+                process_simple_event_message,
+                consumer_type=self.consumer_type,
+                reprocess_only_stuck_events=self.reprocess_only_stuck_events,
+            )
             next_step = maybe_multiprocess_step(mp, event_function, final_step, self._pool)
             return create_backpressure_step(health_checker=self.health_checker, next_step=next_step)
 
@@ -112,8 +118,12 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         # later step.
 
         assert self._attachments_pool is not None
+        processing_function = partial(
+            process_attachments_and_events,
+            reprocess_only_stuck_events=self.reprocess_only_stuck_events,
+        )
         step_2 = maybe_multiprocess_step(
-            mp, process_attachments_and_events, final_step, self._attachments_pool
+            mp, processing_function, final_step, self._attachments_pool
         )
         # This `FilterStep` will skip over processing `None` (aka already handled attachment chunks)
         # in the second step. We filter this here explicitly,
@@ -123,10 +133,12 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         # As the steps are defined (and types inferred) in reverse order, we would get a type error here,
         # as `step_1` outputs an `| None`, but the `filter_step` does not mention that in its type,
         # as it is inferred from the `step_2` input type which does not mention `| None`.
-        attachment_function = partial(decode_and_process_chunks, consumer_type=self.consumer_type)
-        step_1 = maybe_multiprocess_step(
-            mp, attachment_function, filter_step, self._pool  # type:ignore
+        attachment_function = partial(
+            decode_and_process_chunks,
+            consumer_type=self.consumer_type,
+            reprocess_only_stuck_events=self.reprocess_only_stuck_events,
         )
+        step_1 = maybe_multiprocess_step(mp, attachment_function, filter_step, self._pool)
 
         return create_backpressure_step(health_checker=self.health_checker, next_step=step_1)
 

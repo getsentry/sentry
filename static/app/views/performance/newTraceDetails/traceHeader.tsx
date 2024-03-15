@@ -11,9 +11,9 @@ import {space} from 'sentry/styles/space';
 import type {EventTransaction, Organization} from 'sentry/types';
 import {getShortEventId} from 'sentry/utils/events';
 import {getDuration} from 'sentry/utils/formatters';
-import type {TraceMetaQueryChildrenProps} from 'sentry/utils/performance/quickTrace/traceMetaQuery';
 import type {
   TraceFullDetailed,
+  TraceMeta,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
@@ -25,27 +25,34 @@ import {BrowserDisplay} from '../transactionDetails/eventMetas';
 import {MetaData} from '../transactionDetails/styles';
 
 type TraceHeaderProps = {
-  metaResults: TraceMetaQueryChildrenProps;
+  metaResults: UseApiQueryResult<TraceMeta | null, any>;
   organization: Organization;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
   traces: TraceSplitResults<TraceFullDetailed> | null;
 };
 
-export default function TraceHeader(props: TraceHeaderProps) {
-  const {metaResults, rootEventResults, traces, organization} = props;
-  const {meta, isLoading: metaLoading} = metaResults;
-  const {data: rootEvent, isLoading: rootEventLoading} = rootEventResults;
-  const emptyTrace =
+export default function TraceHeader({
+  metaResults,
+  rootEventResults,
+  traces,
+  organization,
+}: TraceHeaderProps) {
+  const errors = metaResults.data?.errors || 0;
+  const performanceIssues = metaResults.data?.performance_issues || 0;
+  const errorsAndIssuesCount = errors + performanceIssues;
+  const traceInfo = getTraceInfo(traces?.transactions, traces?.orphan_errors);
+
+  const replay_id = rootEventResults?.data?.contexts.replay?.replay_id;
+
+  const isEmptyTrace =
     traces?.transactions &&
     traces?.transactions.length === 0 &&
     traces?.orphan_errors &&
     traces.orphan_errors.length === 0;
-  const showLoadingIndicator = rootEventLoading && !emptyTrace;
-  const errors = meta?.errors || 0;
-  const performanceIssues = meta?.performance_issues || 0;
-  const replay_id = rootEvent?.contexts.replay?.replay_id ?? '';
-  const traceInfo = getTraceInfo(traces?.transactions, traces?.orphan_errors);
-  const loadingIndicator = <LoadingIndicator size={20} mini />;
+
+  const showLoadingIndicator =
+    (rootEventResults.isLoading && rootEventResults.fetchStatus !== 'idle') ||
+    metaResults.isLoading;
 
   return (
     <TraceHeaderContainer>
@@ -54,9 +61,13 @@ export default function TraceHeader(props: TraceHeaderProps) {
           headingText={t('User')}
           tooltipText=""
           bodyText={
-            showLoadingIndicator
-              ? loadingIndicator
-              : rootEvent?.user?.email ?? rootEvent?.user?.name ?? '\u2014'
+            showLoadingIndicator ? (
+              <LoadingIndicator size={20} mini />
+            ) : (
+              rootEventResults?.data?.user?.email ??
+              rootEventResults?.data?.user?.name ??
+              '\u2014'
+            )
           }
           subtext={null}
         />
@@ -65,9 +76,9 @@ export default function TraceHeader(props: TraceHeaderProps) {
           tooltipText=""
           bodyText={
             showLoadingIndicator ? (
-              loadingIndicator
-            ) : rootEvent ? (
-              <BrowserDisplay event={rootEvent} showVersion />
+              <LoadingIndicator size={20} mini />
+            ) : rootEventResults?.data ? (
+              <BrowserDisplay event={rootEventResults?.data} showVersion />
             ) : (
               '\u2014'
             )
@@ -99,7 +110,15 @@ export default function TraceHeader(props: TraceHeaderProps) {
           <MetaData
             headingText={t('Events')}
             tooltipText=""
-            bodyText={metaLoading ? loadingIndicator : meta?.transactions ?? '\u2014'}
+            bodyText={
+              metaResults.isLoading ? (
+                <LoadingIndicator size={20} mini />
+              ) : metaResults.data ? (
+                metaResults.data.transactions + metaResults.data.errors
+              ) : (
+                '\u2014'
+              )
+            }
             subtext={null}
           />
         </GuideAnchor>
@@ -109,7 +128,7 @@ export default function TraceHeader(props: TraceHeaderProps) {
           bodyText={
             <Tooltip
               title={
-                errors + performanceIssues > 0 ? (
+                errorsAndIssuesCount > 0 ? (
                   <Fragment>
                     <div>{tn('%s error issue', '%s error issues', errors)}</div>
                     <div>
@@ -125,11 +144,13 @@ export default function TraceHeader(props: TraceHeaderProps) {
               showUnderline
               position="bottom"
             >
-              {metaLoading
-                ? loadingIndicator
-                : errors || performanceIssues
-                  ? errors + performanceIssues
-                  : 0}
+              {metaResults.isLoading ? (
+                <LoadingIndicator size={20} mini />
+              ) : errorsAndIssuesCount >= 0 ? (
+                errorsAndIssuesCount
+              ) : (
+                '\u2014'
+              )}
             </Tooltip>
           }
           subtext={null}
@@ -138,11 +159,15 @@ export default function TraceHeader(props: TraceHeaderProps) {
           headingText={t('Total Duration')}
           tooltipText=""
           bodyText={
-            emptyTrace
-              ? getDuration(0, 2, true)
-              : traceInfo.startTimestamp && traceInfo.endTimestamp
-                ? getDuration(traceInfo.endTimestamp - traceInfo.startTimestamp, 2, true)
-                : loadingIndicator
+            isEmptyTrace ? (
+              getDuration(0, 2, true)
+            ) : traceInfo.startTimestamp && traceInfo.endTimestamp ? (
+              getDuration(traceInfo.endTimestamp - traceInfo.startTimestamp, 2, true)
+            ) : metaResults.isLoading ? (
+              <LoadingIndicator size={20} mini />
+            ) : (
+              '\u2014'
+            )
           }
           subtext={null}
         />

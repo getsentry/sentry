@@ -11,6 +11,7 @@ from .query_expression import (
     QueryValidationV2Visitor,
     QueryValidationVisitor,
     TimeseriesConditionInjectionVisitor,
+    UnitsNormalizationV2Visitor,
     UsedGroupBysVisitor,
 )
 
@@ -28,4 +29,5 @@ __all__ = [
     "QueryConditionsCompositeVisitor",
     "QueriedMetricsVisitor",
     "UsedGroupBysVisitor",
+    "UnitsNormalizationV2Visitor",
 ]

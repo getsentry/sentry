@@ -5,9 +5,9 @@ from snuba_sdk.mql.mql import InvalidMQLQueryError, parse_mql
 
 from sentry.models.environment import Environment
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.data_v2.plan import MetricsQueriesPlan, QueryOrder
+from sentry.sentry_metrics.querying.data_v2.plan import MetricsQueriesPlan
 from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
-from sentry.sentry_metrics.querying.types import QueryExpression
+from sentry.sentry_metrics.querying.types import QueryExpression, QueryOrder
 from sentry.sentry_metrics.querying.visitors import (
     EnvironmentsInjectionVisitor,
     LatestReleaseTransformationVisitor,
@@ -15,6 +15,7 @@ from sentry.sentry_metrics.querying.visitors import (
     QueryValidationV2Visitor,
     VisitableQueryExpression,
 )
+from sentry.utils import metrics
 
 
 class QueryParser:
@@ -35,6 +36,7 @@ class QueryParser:
         try:
             query = parse_mql(mql)
         except InvalidMQLQueryError as e:
+            metrics.incr(key="ddm.metrics_api.parsing.error")
             cause = e.__cause__
             if cause and isinstance(cause, IncompleteParseError):
                 error_context = cause.text[cause.pos : cause.pos + 20]
@@ -69,5 +71,4 @@ class QueryParser:
                     )
                 ).get()
             )
-            # TODO: check if we want to use a better data structure for returning queries.
             yield query_expression, formula_definition.order, formula_definition.limit

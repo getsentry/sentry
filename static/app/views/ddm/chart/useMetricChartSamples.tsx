@@ -1,191 +1,117 @@
-import type {RefObject} from 'react';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import type {XAXisOption} from 'echarts/types/dist/shared';
+import type {XAXisOption, YAXisOption} from 'echarts/types/dist/shared';
 import moment from 'moment';
 
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
 import {isChartHovered} from 'sentry/components/charts/utils';
+import type {Field} from 'sentry/components/ddm/metricSamplesTable';
 import {t} from 'sentry/locale';
-import type {EChartClickHandler, ReactEchartsRef, Series} from 'sentry/types/echarts';
+import type {EChartClickHandler, ReactEchartsRef} from 'sentry/types/echarts';
+import {defined} from 'sentry/utils';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import {isCumulativeOp} from 'sentry/utils/metrics';
 import {formatMetricsUsingUnitAndOp} from 'sentry/utils/metrics/formatters';
-import {getMetricValueNormalizer} from 'sentry/utils/metrics/normalizeMetricValue';
-import type {MetricCorrelation, MetricSummary} from 'sentry/utils/metrics/types';
-import {fitToValueRect, getValueRect} from 'sentry/views/ddm/chart/chartUtils';
-import type {CombinedMetricChartProps} from 'sentry/views/ddm/chart/types';
-import type {Sample} from 'sentry/views/ddm/widget';
+import {
+  getSummaryValueForOp,
+  type MetricsSamplesResults,
+} from 'sentry/utils/metrics/useMetricsSamples';
+import {fitToValueRect} from 'sentry/views/ddm/chart/chartUtils';
+import type {
+  CombinedMetricChartProps,
+  ScatterSeries,
+  Series,
+} from 'sentry/views/ddm/chart/types';
 
-type UseChartSamplesProps = {
-  timeseries: Series[];
-  chartRef?: RefObject<ReactEchartsRef>;
-  correlations?: MetricCorrelation[];
-  highlightedSampleId?: string;
-  onClick?: (sample: Sample) => void;
-  onMouseOut?: (sample: Sample) => void;
-  onMouseOver?: (sample: Sample) => void;
-  operation?: string;
-  unit?: string;
-};
+export const SAMPLES_X_AXIS_ID = 'xAxisSamples';
+export const SAMPLES_Y_AXIS_ID = 'yAxisSamples';
 
-// TODO: remove this once we have a stabilized type for this
-type ChartSample = MetricCorrelation & MetricSummary;
-
-function getDateRange(timeseries: Series[]) {
-  if (!timeseries?.length) {
-    return {min: -Infinity, max: Infinity};
+function getValueRectFromSeries(series: Series[]) {
+  const referenceSeries = series[0];
+  if (!referenceSeries) {
+    return {xMin: -Infinity, xMax: Infinity, yMin: -Infinity, yMax: Infinity};
   }
-  const min = timeseries[0].data[0].name as number;
-  const max = timeseries[0].data[timeseries[0].data.length - 1].name as number;
+  const seriesWithSameUnit = series.filter(
+    s => s.unit === referenceSeries.unit && !s.hidden
+  );
+  const scalingFactor = referenceSeries.scalingFactor ?? 1;
+  const xValues = referenceSeries.data.map(entry => entry.name);
+  const yValues = [referenceSeries, ...seriesWithSameUnit].flatMap(s =>
+    s.data.map(entry => entry.value)
+  );
 
-  return {min, max};
+  return {
+    xMin: Math.min(...xValues),
+    xMax: Math.max(...xValues),
+    yMin: Math.min(0, ...yValues) / scalingFactor,
+    yMax: Math.max(0, ...yValues) / scalingFactor,
+  };
 }
 
+// TODO: remove this once we have a stabilized type for this
 type EChartMouseEventParam = Parameters<EChartClickHandler>[0];
 
+interface UseMetricChartSamplesOptions {
+  timeseries: Series[];
+  highlightedSampleId?: string;
+  onSampleClick?: (sample: MetricsSamplesResults<Field>['data'][number]) => void;
+  operation?: string;
+  samples?: MetricsSamplesResults<Field>['data'];
+  unit?: string;
+}
+
 export function useMetricChartSamples({
-  correlations,
-  onClick,
-  highlightedSampleId,
-  unit = '',
-  operation,
   timeseries,
-}: UseChartSamplesProps) {
+  highlightedSampleId,
+  onSampleClick,
+  operation,
+  samples,
+  unit = '',
+}: UseMetricChartSamplesOptions) {
   const theme = useTheme();
   const chartRef = useRef<ReactEchartsRef>(null);
 
-  const [valueRect, setValueRect] = useState(getValueRect(chartRef));
+  const [valueRect, setValueRect] = useState(() => getValueRectFromSeries(timeseries));
 
-  const samples: Record<string, ChartSample> = useMemo(() => {
-    return (correlations ?? [])
-      ?.flatMap(correlation => [
-        ...correlation.metricSummaries.map(summaries => ({...summaries, ...correlation})),
-      ])
-      .reduce((acc, sample) => {
-        acc[sample.transactionId] = sample;
-        return acc;
-      }, {});
-  }, [correlations]);
+  const samplesById = useMemo(() => {
+    return (samples ?? []).reduce((acc, sample) => {
+      acc[sample.id] = sample;
+      return acc;
+    }, {});
+  }, [samples]);
 
   useEffect(() => {
     // Changes in timeseries change the valueRect since the timeseries yAxis auto scales
     // and scatter yAxis needs to match the scale
-    setValueRect(getValueRect(chartRef));
-  }, [chartRef, timeseries]);
+    setValueRect(getValueRectFromSeries(timeseries));
+  }, [timeseries]);
 
   const xAxis: XAXisOption = useMemo(() => {
-    const {min, max} = getDateRange(timeseries);
-
     return {
-      id: 'xAxisScatter',
-      scale: false,
+      id: SAMPLES_X_AXIS_ID,
       show: false,
       axisLabel: {
-        formatter: () => {
-          return '';
-        },
+        show: false,
       },
       axisPointer: {
         type: 'none',
       },
-      min: Math.max(valueRect.xMin, min),
-      max: Math.min(valueRect.xMax, max),
+      min: valueRect.xMin,
+      max: valueRect.xMax,
     };
-  }, [valueRect.xMin, valueRect.xMax, timeseries]);
+  }, [valueRect.xMin, valueRect.xMax]);
 
-  const yAxis = useMemo(() => {
+  const yAxis: YAXisOption = useMemo(() => {
     return {
-      id: 'yAxisScatter',
-      scale: false,
+      id: SAMPLES_Y_AXIS_ID,
       show: false,
       axisLabel: {
-        formatter: () => {
-          return '';
-        },
+        show: false,
       },
-
       min: valueRect.yMin,
       max: valueRect.yMax,
     };
   }, [valueRect.yMin, valueRect.yMax]);
-
-  const getSample = useCallback(
-    (event: EChartMouseEventParam): ChartSample | undefined => {
-      return samples[event.seriesId];
-    },
-    [samples]
-  );
-
-  const handleClick = useCallback<EChartClickHandler>(
-    (event: EChartMouseEventParam) => {
-      if (!onClick) {
-        return;
-      }
-      const sample = getSample(event);
-      if (!sample) {
-        return;
-      }
-      onClick(sample);
-    },
-    [getSample, onClick]
-  );
-
-  const series = useMemo(() => {
-    if (isCumulativeOp(operation)) {
-      // TODO: for now we do not show samples for cumulative operations,
-      // we will implement them as marklines
-      return [];
-    }
-
-    const normalizeMetric = getMetricValueNormalizer(unit ?? '');
-
-    return Object.values(samples).map(sample => {
-      const isHighlighted = highlightedSampleId === sample.transactionId;
-
-      const xValue = moment(sample.timestamp).valueOf();
-      const yValue = normalizeMetric(((sample.min ?? 0) + (sample.max ?? 0)) / 2) ?? 0;
-
-      const [xPosition, yPosition] = fitToValueRect(xValue, yValue, valueRect);
-
-      const symbol = yPosition === yValue ? 'circle' : 'arrow';
-      const symbolRotate = yPosition > yValue ? 180 : 0;
-
-      return {
-        seriesName: sample.transactionId,
-        id: sample.transactionId,
-        operation: '',
-        unit: '',
-        symbolSize: isHighlighted ? 20 : 10,
-        animation: false,
-        symbol,
-        symbolRotate,
-        color: theme.purple400,
-        // TODO: for now we just pass these ids through, but we should probably index
-        // samples by an id and then just pass that reference
-        itemStyle: {
-          color: theme.purple400,
-          opacity: 1,
-        },
-        yAxisIndex: 1,
-        xAxisIndex: 1,
-        xValue,
-        yValue,
-        tooltip: {
-          axisPointer: {
-            type: 'none',
-          },
-        },
-        data: [
-          {
-            name: xPosition,
-            value: yPosition,
-          },
-        ],
-        z: 10,
-      };
-    });
-  }, [operation, unit, samples, highlightedSampleId, valueRect, theme.purple400]);
 
   const formatterOptions = useMemo(() => {
     return {
@@ -194,19 +120,80 @@ export function useMetricChartSamples({
       showTimeInTooltip: true,
       addSecondsToTimeFormat: true,
       nameFormatter: (name: string) => {
-        return t('Event %s', name.substring(0, 8));
+        return t('Span %s', name.substring(0, 8));
       },
       valueFormatter: (_, label?: string) => {
         // We need to access the sample as the charts datapoints are fit to the charts viewport
-        const sample = samples[label ?? ''];
-        const yValue = ((sample.min ?? 0) + (sample.max ?? 0)) / 2;
+        const sample = samplesById[label ?? ''];
+        const yValue = getSummaryValueForOp(sample.summary, operation);
         return formatMetricsUsingUnitAndOp(yValue, unit, operation);
       },
     };
-  }, [operation, samples, unit]);
+  }, [operation, samplesById, unit]);
+
+  const handleClick = useCallback<EChartClickHandler>(
+    (event: EChartMouseEventParam) => {
+      const sample = samplesById[event.seriesName];
+      if (defined(onSampleClick) && defined(sample)) {
+        onSampleClick(sample);
+      }
+    },
+    [onSampleClick, samplesById]
+  );
 
   const applyChartProps = useCallback(
     (baseProps: CombinedMetricChartProps): CombinedMetricChartProps => {
+      let series: ScatterSeries[] = [];
+
+      const newYAxisIndex = Array.isArray(baseProps.yAxes) ? baseProps.yAxes.length : 1;
+      const newXAxisIndex = Array.isArray(baseProps.xAxes) ? baseProps.xAxes.length : 1;
+
+      if (!isCumulativeOp(operation)) {
+        series = (samples ?? []).map((sample, index) => {
+          const isHighlighted = highlightedSampleId === sample.id;
+
+          const xValue = moment(sample.timestamp).valueOf();
+          const value = getSummaryValueForOp(sample.summary, operation);
+          const yValue = value;
+
+          const [xPosition, yPosition] = fitToValueRect(xValue, yValue, valueRect);
+
+          return {
+            seriesName: sample.id,
+            id: `${index}_${sample.id}`,
+            operation: '',
+            unit: '',
+            symbolSize: isHighlighted ? 20 : 11,
+            animation: false,
+            symbol: yPosition === yValue ? 'circle' : 'arrow',
+            symbolRotate: yPosition > yValue ? 180 : 0,
+            color: theme.purple400,
+            itemStyle: {
+              color: theme.purple400,
+              opacity: 0.95,
+              borderColor: theme.white,
+              borderWidth: 1,
+            },
+            yAxisIndex: newYAxisIndex,
+            xAxisIndex: newXAxisIndex,
+            xValue,
+            yValue,
+            tooltip: {
+              axisPointer: {
+                type: 'none',
+              },
+            },
+            data: [
+              {
+                name: xPosition,
+                value: yPosition,
+              },
+            ],
+            z: timeseries.length + 1,
+          };
+        });
+      }
+
       return {
         ...baseProps,
         forwardedRef: mergeRefs([baseProps.forwardedRef, chartRef]),
@@ -246,16 +233,27 @@ export function useMetricChartSamples({
         },
       };
     },
-    [formatterOptions, handleClick, series, xAxis, yAxis]
+    [
+      formatterOptions,
+      handleClick,
+      highlightedSampleId,
+      operation,
+      samples,
+      theme.purple400,
+      theme.white,
+      valueRect,
+      xAxis,
+      yAxis,
+      timeseries.length,
+    ]
   );
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  return useMemo(
-    () => ({
-      applyChartProps,
-    }),
-    [applyChartProps]
-  );
+  return useMemo(() => {
+    if (!defined(samples)) {
+      return undefined;
+    }
+    return {applyChartProps};
+  }, [applyChartProps, samples]);
 }
 
 export type UseMetricSamplesResult = ReturnType<typeof useMetricChartSamples>;

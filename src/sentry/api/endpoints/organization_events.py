@@ -26,6 +26,7 @@ from sentry.snuba import discover, metrics_enhanced_performance, metrics_perform
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.referrer import Referrer
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils.snuba import SnubaError
 
 logger = logging.getLogger(__name__)
 
@@ -320,42 +321,76 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 if not (metrics_enhanced and dashboard_widget_id):
                     return _data_fn(scopedDataset, offset, limit, scoped_query)
 
-                widget = DashboardWidget.objects.get(id=dashboard_widget_id)
-                does_widget_have_split = widget.discover_widget_split is not None
+                try:
+                    widget = DashboardWidget.objects.get(id=dashboard_widget_id)
+                    does_widget_have_split = widget.discover_widget_split is not None
+                    has_override_feature = features.has(
+                        "organizations:performance-discover-widget-split-override-save",
+                        organization,
+                        actor=request.user,
+                    )
 
-                if does_widget_have_split:
-                    # This is essentially cached behaviour and we skip the check
-                    split_query = scoped_query
-                    if widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS:
-                        split_dataset = discover
-                        split_query = f"({scoped_query}) AND event.type:error"
-                    elif widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE:
-                        split_dataset = scopedDataset
+                    if does_widget_have_split and not has_override_feature:
+                        # This is essentially cached behaviour and we skip the check
+                        split_query = scoped_query
+                        if widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS:
+                            split_dataset = discover
+                            split_query = f"({scoped_query}) AND !event.type:transaction"
+                        elif widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE:
+                            # We can't add event.type:transaction for now because of on-demand.
+                            split_dataset = scopedDataset
+                        else:
+                            split_dataset = discover
+
+                        return _data_fn(split_dataset, offset, limit, split_query)
+
+                    try:
+                        error_results = _data_fn(
+                            discover, offset, limit, f"({scoped_query}) AND !event.type:transaction"
+                        )
+                        # Widget has not split the discover dataset yet, so we need to check if there are errors etc.
+                        has_errors = len(error_results["data"]) > 0
+                    except SnubaError:
+                        has_errors = False
+                        error_results = None
+
+                    original_results = _data_fn(scopedDataset, offset, limit, scoped_query)
+                    if original_results.get("data"):
+                        dataset_meta = original_results.get("data").get("meta", {})
                     else:
-                        split_dataset = discover
+                        dataset_meta = (
+                            list(original_results.values())[0].get("data").get("meta", {})
+                        )
+                    using_metrics = dataset_meta.get("isMetricsData", False) or dataset_meta.get(
+                        "isMetricsExtractedData", False
+                    )
+                    has_other_data = len(original_results["data"]) > 0
 
-                    return _data_fn(split_dataset, offset, limit, split_query)
+                    has_transactions = has_other_data
+                    transaction_results = None
+                    if has_errors and has_other_data and not using_metrics:
+                        # In the case that the original request was not using the metrics dataset, we cannot be certain that other data is solely transactions.
+                        sentry_sdk.set_tag("third_split_query", True)
+                        transactions_only_query = f"({scoped_query}) AND event.type:transaction"
+                        transaction_results = _data_fn(
+                            discover, offset, limit, transactions_only_query
+                        )
+                        has_transactions = len(transaction_results["data"]) > 0
 
-                # Widget has not split the discover dataset yet, so we need to check if there are errors etc.
-                error_results = _data_fn(
-                    discover, offset, limit, f"({scoped_query}) AND event.type:error"
-                )
-                has_errors = len(error_results["data"]) > 0
+                    decision = self.save_split_decision(widget, has_errors, has_transactions)
 
-                if has_errors:
-                    # If we see errors, always fallback to discover to scoped_query for the user.
-                    all_results = _data_fn(discover, offset, limit, scoped_query)
-                else:
-                    all_results = _data_fn(scopedDataset, offset, limit, scoped_query)
-
-                has_other_data = len(all_results["data"]) > 0
-                new_discover_widget_split = self.get_split_decision(has_errors, has_other_data)
-
-                if widget.discover_widget_split != new_discover_widget_split:
-                    widget.discover_widget_split = new_discover_widget_split
-                    widget.save()
-
-                return all_results
+                    if decision == DashboardWidgetTypes.DISCOVER:
+                        return _data_fn(discover, offset, limit, scoped_query)
+                    elif decision == DashboardWidgetTypes.TRANSACTION_LIKE:
+                        return original_results
+                    elif decision == DashboardWidgetTypes.ERROR_EVENTS and error_results:
+                        return error_results
+                    else:
+                        return original_results
+                except Exception as e:
+                    # Swallow the exception if it was due to the discover split, and try again one more time.
+                    sentry_sdk.capture_exception(e)
+                    return _data_fn(scopedDataset, offset, limit, scoped_query)
 
             return fn
 

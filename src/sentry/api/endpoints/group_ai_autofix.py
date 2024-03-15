@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
+from typing import Any
 
 import requests
 from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, AnonymousUser
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import eventstore, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -17,6 +18,7 @@ from sentry.api.serializers import EventSerializer, serialize
 from sentry.models.group import Group
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.repository import Repository
+from sentry.models.user import User
 from sentry.tasks.ai_autofix import ai_autofix_check_for_timeout
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import json
@@ -46,38 +48,40 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
         }
     }
 
-    def _get_repos_from_code_mapping(self, group: Group):
+    @staticmethod
+    def _get_repos_from_code_mapping(group: Group) -> list[dict]:
         repo_configs: list[
             RepositoryProjectPathConfig
         ] = RepositoryProjectPathConfig.objects.filter(project__in=[group.project])
 
-        repos = []
+        repos: dict[tuple, dict] = {}
         for repo_config in repo_configs:
             repo: Repository = repo_config.repository
             repo_name_sections = repo.name.split("/")
 
             # We expect a repository name to be in the format of "owner/name" for now.
-            if len(repo_name_sections) > 1:
-                repos.append(
-                    {
-                        "provider": repo.provider,
-                        "owner": repo_name_sections[0],
-                        "name": "/".join(repo_name_sections[1:]),
-                    }
-                )
+            if len(repo_name_sections) > 1 and repo.provider:
+                repo_dict = {
+                    "provider": repo.provider,
+                    "owner": repo_name_sections[0],
+                    "name": "/".join(repo_name_sections[1:]),
+                }
+                repo_key = (repo_dict["provider"], repo_dict["owner"], repo_dict["name"])
 
-        return repos
+                repos[repo_key] = repo_dict
 
-    def _get_event_entries(
-        self, group: Group, user: AbstractBaseUser | AnonymousUser
-    ) -> list | None:
-        latest_event = group.get_latest_event()
+        return list(repos.values())
 
-        if not latest_event:
+    def _get_serialized_event(
+        self, event_id: int, group: Group, user: AbstractBaseUser | AnonymousUser
+    ) -> dict[str, Any] | None:
+        event = eventstore.backend.get_event_by_id(group.project.id, event_id, group_id=group.id)
+
+        if not event:
             return None
 
-        serialized_event = serialize(latest_event, user, EventSerializer())
-        return serialized_event["entries"]
+        serialized_event = serialize(event, user, EventSerializer())
+        return serialized_event
 
     def _make_error_metadata(self, autofix: dict, reason: str):
         return {
@@ -104,31 +108,51 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
 
     def _call_autofix(
         self,
+        user: User | AnonymousUser,
         group: Group,
         repos: list[dict],
-        event_entries: list[dict],
+        serialized_event: dict[str, Any],
         additional_context: str,
+        timeout_secs: int,
     ):
-        requests.post(
+        response = requests.post(
             f"{settings.SEER_AUTOFIX_URL}/v0/automation/autofix",
             data=json.dumps(
                 {
-                    "organization": group.organization.id,
-                    "project": group.project.id,
+                    "organization_id": group.organization.id,
+                    "project_id": group.project.id,
                     "repos": repos,
                     "issue": {
                         "id": group.id,
                         "title": group.title,
-                        "events": [{"entries": event_entries}],
+                        "short_id": group.qualified_short_id,
+                        "events": [serialized_event],
                     },
                     "additional_context": additional_context,
+                    "timeout_secs": timeout_secs,
+                    "last_updated": datetime.now().isoformat(),
+                    "invoking_user": (
+                        {
+                            "id": user.id,
+                            "display_name": user.get_display_name(),
+                        }
+                        if not isinstance(user, AnonymousUser)
+                        else None
+                    ),
                 }
             ),
             headers={"content-type": "application/json;charset=utf-8"},
         )
 
+        response.raise_for_status()
+
     def post(self, request: Request, group: Group) -> Response:
         data = json.loads(request.body)
+
+        # This event_id is the event that the user is looking at when they click the "Fix" button
+        event_id = data.get("event_id", None)
+        if event_id is None:
+            raise ValueError("event_id is required")
 
         created_at = datetime.now().isoformat()
         metadata = group.data.get("metadata", {})
@@ -141,6 +165,7 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
                     "index": 1,
                     "title": "Waiting to be picked up...",
                     "status": "PROCESSING",
+                    "progress": [],
                 }
             ],
         }
@@ -150,14 +175,15 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
                 group, metadata, "AI Autofix is not enabled for this project.", 403
             )
 
-        event_entries = self._get_event_entries(group, request.user)
+        # For now we only send the event that the user is looking at, in the near future we want to send multiple events.
+        serialized_event = self._get_serialized_event(event_id, group, request.user)
 
-        if event_entries is None:
+        if serialized_event is None:
             return self._respond_with_error(
                 group, metadata, "Cannot fix issues without an event.", 400
             )
 
-        if not any([exception.get("type") == "exception" for exception in event_entries]):
+        if not any([entry.get("type") == "exception" for entry in serialized_event["entries"]]):
             return self._respond_with_error(
                 group, metadata, "Cannot fix issues without a stacktrace.", 400
             )
@@ -165,10 +191,22 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
         repos = self._get_repos_from_code_mapping(group)
 
         if not repos:
-            return self._respond_with_error(group, metadata, "No valid repositories found.", 400)
+            return self._respond_with_error(
+                group,
+                metadata,
+                "Found no Github repositories linked to this project. Please set up the Github Integration and code mappings if you haven't",
+                400,
+            )
 
         try:
-            self._call_autofix(group, repos, event_entries, data.get("additional_context", ""))
+            self._call_autofix(
+                request.user,
+                group,
+                repos,
+                serialized_event,
+                data.get("additional_context", ""),
+                TIMEOUT_SECONDS,
+            )
 
             # Mark the task as completed after TIMEOUT_SECONDS
             ai_autofix_check_for_timeout.apply_async(

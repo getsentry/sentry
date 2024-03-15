@@ -12,13 +12,21 @@ describe('useLocalStorageState', () => {
     }
   });
 
-  it('throws if key is not a string', () => {
-    const results = reactHooks.renderHook(() =>
-      // @ts-expect-error force incorrect usage
-      useLocalStorageState({}, 'default value')
-    );
-    expect(results.result.error).toBeInstanceOf(TypeError);
-    expect(results.result.error?.message).toBe('useLocalStorage: key must be a string');
+  it('throws if key is not a string', async () => {
+    let errorResult!: TypeError;
+
+    reactHooks.renderHook(() => {
+      try {
+        // @ts-expect-error force incorrect usage
+        // biome-ignore lint/correctness/useHookAtTopLevel: <explanation>
+        useLocalStorageState({}, 'default value');
+      } catch (err) {
+        errorResult = err;
+      }
+    });
+
+    await waitFor(() => expect(errorResult).toBeInstanceOf(TypeError));
+    expect(errorResult.message).toBe('useLocalStorage: key must be a string');
   });
 
   it('initialized with value', () => {

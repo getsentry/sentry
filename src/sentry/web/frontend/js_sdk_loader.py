@@ -67,6 +67,7 @@ class JavaScriptSdkLoader(BaseView):
                 "hasDebug": False,
             }
 
+        is_v7_sdk = sdk_version >= Version("7.0.0") and sdk_version < Version("8.0.0")
         is_greater_or_equal_v7_sdk = sdk_version >= Version("7.0.0")
 
         is_lazy = True
@@ -89,12 +90,12 @@ class JavaScriptSdkLoader(BaseView):
             bundle_kind_modifier += ".replay"
             is_lazy = False
 
-        # From JavaScript SDK version 7 onwards, the default bundle code is ES6, however, in the loader we
+        # In JavaScript SDK version 7, the default bundle code is ES6, however, in the loader we
         # want to provide the ES5 version. This is why we need to modify the requested bundle name here.
         #
         # If we are loading replay, do not add the es5 modifier, as those bundles are
         # ES6 only.
-        if is_greater_or_equal_v7_sdk and not has_replay:
+        if is_v7_sdk and not has_replay:
             bundle_kind_modifier += ".es5"
 
         if has_debug:
@@ -192,17 +193,21 @@ class JavaScriptSdkLoader(BaseView):
 
         metrics.incr("js-sdk-loader.rendered", instance=instance, skip_internal=False)
 
-        analytics.record(
-            "js_sdk_loader.rendered",
-            organization_id=key.project.organization_id,
-            project_id=key.project_id,
-            is_lazy=loader_config["isLazy"],
-            has_performance=loader_config["hasPerformance"],
-            has_replay=loader_config["hasReplay"],
-            has_debug=loader_config["hasDebug"],
-            sdk_version=sdk_version,
-            tmpl=tmpl,
-        ) if key else None
+        (
+            analytics.record(
+                "js_sdk_loader.rendered",
+                organization_id=key.project.organization_id,
+                project_id=key.project_id,
+                is_lazy=loader_config["isLazy"],
+                has_performance=loader_config["hasPerformance"],
+                has_replay=loader_config["hasReplay"],
+                has_debug=loader_config["hasDebug"],
+                sdk_version=sdk_version,
+                tmpl=tmpl,
+            )
+            if key
+            else None
+        )
 
         response = render_to_response(tmpl, context, content_type="text/javascript")
 
