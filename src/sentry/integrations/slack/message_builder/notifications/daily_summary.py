@@ -97,7 +97,7 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
                 discover_url = self.build_discover_url(project)
                 event_count_text += f"<{discover_url}|{context.total_today}>"
             else:
-                event_count_text += context.total_today
+                event_count_text += str(context.total_today)
             fields.append(self.make_field(event_count_text))
 
             # Calculate today's event count percentage against 14 day avg
