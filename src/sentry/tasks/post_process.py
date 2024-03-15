@@ -5,7 +5,7 @@ import uuid
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from time import time
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict
 
 import sentry_sdk
 from django.conf import settings
@@ -13,7 +13,7 @@ from django.db.models.signals import post_save
 from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
-from sentry import features
+from sentry import features, projectoptions
 from sentry.exceptions import PluginError
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -739,11 +739,19 @@ def post_process_group(
         for job in group_jobs:
             run_post_process_job(job)
 
+        metric_tags = {}
+        if group_events:
+            # In practice, we only have one group here and will be removing the list of jobs. For now, just grab a
+            # random one
+            group_event = list(group_events.values())[0]
+            metric_tags["occurrence_type"] = group_event.group.issue_type.slug
+
         if not is_reprocessed and event.data.get("received"):
             metrics.timing(
                 "events.time-to-post-process",
                 time() - event.data["received"],
                 instance=event.data["platform"],
+                tags=metric_tags,
             )
 
 
@@ -1145,13 +1153,15 @@ def process_code_mappings(job: PostProcessJob) -> None:
             next_time = timezone.now() + timedelta(hours=1)
 
             if features.has("organizations:derive-code-mappings", org):
+                extra: dict[str, Any] = {
+                    "organization.slug": org_slug,
+                    "project.slug": project.slug,
+                    "group_id": group_id,
+                    "next_time": next_time,
+                }
                 logger.info(
-                    "derive_code_mappings: Queuing code mapping derivation for project.slug=%s group_id=%s."
-                    " Future events in org_slug=%s will not have not have code mapping derivation until %s",
-                    project.slug,
-                    group_id,
-                    org_slug,
-                    next_time,
+                    "derive_code_mappings: Queuing code mapping derivation",
+                    extra=extra,
                 )
                 derive_code_mappings.delay(project.id, event.data)
 
@@ -1409,8 +1419,15 @@ def should_postprocess_feedback(job: PostProcessJob) -> bool:
         return True
 
     should_notify_on_old_feedbacks = job["event"].project.get_option(
-        "sentry:replay_rage_click_issues"
+        "sentry:feedback_user_report_notifications"
     )
+    if should_notify_on_old_feedbacks is None:
+        should_notify_on_old_feedbacks = projectoptions.get_well_known_default(
+            "sentry:feedback_user_report_notifications",
+            epoch=job["event"].project.get_option(
+                ("sentry:option-epoch"),
+            ),
+        )
 
     if (
         feedback_source in FeedbackCreationSource.old_feedback_category_values()

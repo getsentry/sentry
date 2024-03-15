@@ -1,4 +1,3 @@
-import re
 from concurrent.futures import ThreadPoolExecutor
 from functools import cached_property
 from time import sleep, time
@@ -118,8 +117,9 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
     def test_positive_rate_limit_response_headers(self, default_rate_limit_mock):
         request = self.factory.get("/")
 
-        with freeze_time("2000-01-01"), patch.object(
-            RatelimitMiddlewareTest.TestEndpoint, "enforce_rate_limit", True
+        with (
+            freeze_time("2000-01-01"),
+            patch.object(RatelimitMiddlewareTest.TestEndpoint, "enforce_rate_limit", True),
         ):
             default_rate_limit_mock.return_value = RateLimit(0, 100)
             response = self.middleware.process_view(request, self._test_endpoint, [], {})
@@ -184,7 +184,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
 
         self.populate_internal_integration_request(request)
         self.middleware.process_view(request, self._test_endpoint, [], {})
-        assert request.rate_limit_category == RateLimitCategory.ORGANIZATION
+        assert request.rate_limit_category == RateLimitCategory.IP
 
     def test_get_rate_limit_key(self):
         # Import an endpoint
@@ -197,7 +197,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
         request = self.factory.get("/")
         assert (
             get_rate_limit_key(view, request, rate_limit_group, rate_limit_config)
-            == "ip:default:OrganizationGroupIndexEndpoint:GET:127.0.0.1"
+            == "ip:default:GET:127.0.0.1"
         )
         # Test when IP address is missing
         request.META["REMOTE_ADDR"] = None
@@ -207,7 +207,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
         request.META["REMOTE_ADDR"] = "684D:1111:222:3333:4444:5555:6:77"
         assert (
             get_rate_limit_key(view, request, rate_limit_group, rate_limit_config)
-            == "ip:default:OrganizationGroupIndexEndpoint:GET:684D:1111:222:3333:4444:5555:6:77"
+            == "ip:default:GET:684D:1111:222:3333:4444:5555:6:77"
         )
 
         # Test for users
@@ -215,7 +215,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
         request.user = self.user
         assert (
             get_rate_limit_key(view, request, rate_limit_group, rate_limit_config)
-            == f"user:default:OrganizationGroupIndexEndpoint:GET:{self.user.id}"
+            == f"user:default:GET:{self.user.id}"
         )
 
         # Test for user auth tokens
@@ -224,21 +224,22 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
         request.user = self.user
         assert (
             get_rate_limit_key(view, request, rate_limit_group, rate_limit_config)
-            == f"user:default:OrganizationGroupIndexEndpoint:GET:{self.user.id}"
+            == f"user:default:GET:{self.user.id}"
         )
 
         # Test for sentryapp auth tokens:
         self.populate_sentry_app_request(request)
         assert (
             get_rate_limit_key(view, request, rate_limit_group, rate_limit_config)
-            == f"org:default:OrganizationGroupIndexEndpoint:GET:{self.organization.id}"
+            == f"org:default:GET:{self.organization.id}"
         )
 
         self.populate_internal_integration_request(request)
-        key_pattern = re.compile(r"^org:default:OrganizationGroupIndexEndpoint:GET:[a-zA-Z]$")
-        key = get_rate_limit_key(view, request, rate_limit_group, rate_limit_config)
-        assert key
-        assert key_pattern.match(key)
+        # Fallback to IP address limit if we can't find the organization
+        assert (
+            get_rate_limit_key(view, request, rate_limit_group, rate_limit_config)
+            == "ip:default:GET:684D:1111:222:3333:4444:5555:6:77"
+        )
 
         # Test for
         request.user = AnonymousUser()
@@ -250,7 +251,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
         request.auth = api_key
         assert (
             get_rate_limit_key(view, request, rate_limit_group, rate_limit_config)
-            == "ip:default:OrganizationGroupIndexEndpoint:GET:684D:1111:222:3333:4444:5555:6:77"
+            == "ip:default:GET:684D:1111:222:3333:4444:5555:6:77"
         )
 
     def test_enforce_rate_limit_is_false(self):

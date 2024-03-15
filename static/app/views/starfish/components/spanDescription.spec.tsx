@@ -100,7 +100,9 @@ describe('DatabaseSpanDescription', function () {
 
     await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
-    expect(screen.getByText('SELECT users FROM my_table LIMIT 1;')).toBeInTheDocument();
+    expect(
+      await screen.findByText('SELECT users FROM my_table LIMIT 1;')
+    ).toBeInTheDocument();
   });
 
   it('shows query source if available', async function () {
@@ -149,7 +151,9 @@ describe('DatabaseSpanDescription', function () {
 
     await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
-    expect(screen.getByText('SELECT users FROM my_table LIMIT 1;')).toBeInTheDocument();
+    expect(
+      await screen.findByText('SELECT users FROM my_table LIMIT 1;')
+    ).toBeInTheDocument();
     expect(
       screen.getByText(textWithMarkupMatcher('/app/views/users.py at line 78'))
     ).toBeInTheDocument();

@@ -1,9 +1,9 @@
 import unittest
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from unittest import mock
 
 import pytest
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 from urllib3 import HTTPConnectionPool
 from urllib3.exceptions import HTTPError, ReadTimeoutError
 
@@ -28,7 +28,7 @@ from sentry.utils.snuba import (
 
 class SnubaUtilsTest(TestCase):
     def setUp(self):
-        self.now = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+        self.now = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
         self.proj1 = self.create_project()
         self.proj1env1 = self.create_environment(project=self.proj1, name="prod")
         self.proj1group1 = self.create_group(self.proj1)
@@ -301,7 +301,7 @@ class PrepareQueryParamsTest(TestCase):
 
 class QuantizeTimeTest(unittest.TestCase):
     def setUp(self):
-        self.now = django_timezone.now().replace(microsecond=0)
+        self.now = timezone.now().replace(microsecond=0)
 
     def test_quantizes_with_duration(self):
         key_hash = 0

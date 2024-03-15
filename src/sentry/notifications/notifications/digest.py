@@ -33,7 +33,6 @@ from sentry.notifications.utils.digest import (
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.types.integrations import ExternalProviders
-from sentry.utils.dates import to_timestamp
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -86,7 +85,7 @@ class DigestNotification(ProjectNotification):
         organization = project.organization
 
         return "<!date^{:.0f}^{count} {noun} detected {date} in| Digest Report for> <{project_link}|{project_name}>".format(
-            to_timestamp(context["start"]),
+            context["start"].timestamp(),
             count=len(context["counts"]),
             noun="issue" if len(context["counts"]) == 1 else "issues",
             project_link=organization.absolute_url(

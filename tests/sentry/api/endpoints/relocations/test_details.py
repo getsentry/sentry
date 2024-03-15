@@ -1,7 +1,6 @@
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from sentry.api.exceptions import StaffRequired
 from sentry.models.relocation import Relocation
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -51,8 +50,7 @@ class GetRelocationDetailsTest(APITestCase):
     @with_feature("auth:enterprise-staff-cookie")
     def test_bad_superuser_fails_with_flag(self):
         self.login_as(user=self.superuser, superuser=True)
-        response = self.get_error_response(self.relocation.uuid, status_code=403)
-        assert response.data["detail"]["message"] == StaffRequired.message
+        self.get_error_response(self.relocation.uuid, status_code=403)
 
     def test_bad_superuser_not_found(self):
         self.login_as(user=self.superuser, superuser=True)

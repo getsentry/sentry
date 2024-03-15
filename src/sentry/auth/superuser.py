@@ -62,7 +62,7 @@ IDLE_MAX_AGE = getattr(settings, "SUPERUSER_IDLE_MAX_AGE", timedelta(minutes=15)
 
 ALLOWED_IPS = frozenset(getattr(settings, "SUPERUSER_ALLOWED_IPS", settings.INTERNAL_IPS) or ())
 
-ORG_ID = getattr(settings, "SUPERUSER_ORG_ID", None)
+SUPERUSER_ORG_ID = getattr(settings, "SUPERUSER_ORG_ID", None)
 
 SUPERUSER_ACCESS_CATEGORIES = getattr(settings, "SUPERUSER_ACCESS_CATEGORIES", ["for_unit_test"])
 
@@ -151,7 +151,7 @@ class EmptySuperuserAccessForm(SentryAPIException):
 
 class Superuser(ElevatedMode):
     allowed_ips = frozenset(ipaddress.ip_network(str(v), strict=False) for v in ALLOWED_IPS)
-    org_id = ORG_ID
+    org_id = SUPERUSER_ORG_ID
 
     def _check_expired_on_org_change(self) -> bool:
         if self.expires is not None:

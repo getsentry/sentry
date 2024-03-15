@@ -6,6 +6,7 @@ import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types'
 import {EntryType, type Event, type EventTransaction} from 'sentry/types';
 import type {
   TraceFullDetailed,
+  TracePerformanceIssue,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 
@@ -15,11 +16,12 @@ import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
   isSpanNode,
+  isTraceErrorNode,
   isTransactionNode,
 } from './guards';
 import {
   ParentAutogroupNode,
-  type SiblingAutogroupNode,
+  SiblingAutogroupNode,
   TraceTree,
   TraceTreeNode,
 } from './traceTree';
@@ -56,8 +58,9 @@ function makeSpan(overrides: Partial<RawSpanType> = {}): TraceTree.Span {
     start_timestamp: 0,
     timestamp: 10,
     event: makeEvent(),
-    relatedErrors: [],
-    childTxn: undefined,
+    errors: [],
+    performance_issues: [],
+    childTransaction: undefined,
     ...overrides,
   } as TraceTree.Span;
 }
@@ -72,6 +75,21 @@ function makeTraceError(
     data: {},
     ...overrides,
   } as TraceTree.TraceError;
+}
+
+function makeTracePerformanceIssue(
+  overrides: Partial<TracePerformanceIssue> = {}
+): TracePerformanceIssue {
+  return {
+    culprit: 'code',
+    end: new Date().toISOString(),
+    span: [],
+    start: new Date().toISOString(),
+    suspect_spans: ['sus span'],
+    type: 0,
+    issue_short_id: 'issue short id',
+    ...overrides,
+  } as TracePerformanceIssue;
 }
 
 function makeEvent(overrides: Partial<Event> = {}, spans: RawSpanType[] = []): Event {
@@ -113,6 +131,14 @@ function assertMissingInstrumentationNode(
   }
 }
 
+function assertTraceErrorNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): asserts node is TraceTreeNode<TraceTree.TraceError> {
+  if (!isTraceErrorNode(node)) {
+    throw new Error('node is not a trace error node');
+  }
+}
+
 function assertAutogroupedNode(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): asserts node is ParentAutogroupNode | SiblingAutogroupNode {
@@ -129,13 +155,13 @@ function assertParentAutogroupedNode(
   }
 }
 
-// function _assertSiblingAutogroupedNode(
-//   node: TraceTreeNode<TraceTree.NodeValue>
-// ): asserts node is ParentAutogroupNode {
-//   if (!(node instanceof SiblingAutogroupNode)) {
-//     throw new Error('node is not a parent node');
-//   }
-// }
+function assertSiblingAutogroupedNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): asserts node is ParentAutogroupNode {
+  if (!(node instanceof SiblingAutogroupNode)) {
+    throw new Error('node is not a parent node');
+  }
+}
 
 describe('TreeNode', () => {
   it('expands transaction nodes by default', () => {
@@ -622,6 +648,54 @@ describe('TreeNode', () => {
       });
     });
 
+    describe('collapses some node by default', () => {
+      it('android okhttp', async () => {
+        const tree = TraceTree.FromTrace(
+          makeTrace({
+            transactions: [
+              makeTransaction({
+                transaction: '/',
+                project_slug: 'project',
+                event_id: 'event_id',
+              }),
+            ],
+          })
+        );
+
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events/project:event_id/',
+          method: 'GET',
+          body: makeEvent({}, [
+            makeSpan({
+              description: 'span',
+              span_id: '2',
+              op: 'http.client',
+              origin: 'auto.http.okhttp',
+            }),
+            makeSpan({
+              description: 'span',
+              op: 'http.client.tls',
+              span_id: '3',
+              parent_span_id: '2',
+            }),
+          ]),
+        });
+
+        tree.zoomIn(tree.list[1], true, {
+          api: new MockApiClient(),
+          organization: OrganizationFixture(),
+        });
+
+        await waitFor(() => {
+          // trace
+          //  - transaction
+          //   - http.client
+          //    ^ child of http.client is not visible
+          expect(tree.list.length).toBe(3);
+        });
+      });
+    });
+
     describe('non expanded direct children autogrouped path', () => {
       const tree = TraceTree.FromTrace(
         makeTrace({
@@ -666,9 +740,6 @@ describe('TreeNode', () => {
         expect(tree.list[tree.list.length - 1].path).toEqual(['span:6', 'txn:event_id']);
       });
     });
-
-    it.todo('sibling autogrouped node paths');
-    it.todo('nested transactions autogrouped node paths');
   });
 });
 
@@ -693,7 +764,7 @@ describe('TraceTree', () => {
     expect(tree.list).toHaveLength(3);
   });
 
-  it('builds orphan errors as well', () => {
+  it('builds orphan errors', () => {
     const tree = TraceTree.FromTrace(
       makeTrace({
         transactions: [
@@ -709,6 +780,48 @@ describe('TraceTree', () => {
     );
 
     expect(tree.list).toHaveLength(4);
+  });
+
+  it('processes orphan errors without timestamps', () => {
+    const tree = TraceTree.FromTrace(
+      makeTrace({
+        transactions: [
+          makeTransaction({
+            children: [],
+          }),
+        ],
+        orphan_errors: [
+          {
+            level: 'error',
+            title: 'Error',
+            event_type: 'error',
+          } as TraceTree.TraceError,
+        ],
+      })
+    );
+
+    expect(tree.list).toHaveLength(3);
+  });
+
+  it('sorts orphan errors', () => {
+    const tree = TraceTree.FromTrace(
+      makeTrace({
+        transactions: [
+          makeTransaction({
+            start_timestamp: 0,
+            timestamp: 1,
+          }),
+          makeTransaction({
+            start_timestamp: 2,
+            timestamp: 3,
+          }),
+        ],
+        orphan_errors: [makeTraceError({timestamp: 1, level: 'error'})],
+      })
+    );
+
+    expect(tree.list).toHaveLength(4);
+    assertTraceErrorNode(tree.list[2]);
   });
 
   it('adjusts trace bounds by orphan error timestamp as well', () => {
@@ -748,7 +861,7 @@ describe('TraceTree', () => {
       })
     );
 
-    expect(TraceTree.GetTraceType(tree.root)).toBe(TraceType.EMPTY_TRACE);
+    expect(tree.shape).toBe(TraceType.EMPTY_TRACE);
 
     tree = TraceTree.FromTrace(
       makeTrace({
@@ -764,7 +877,7 @@ describe('TraceTree', () => {
       })
     );
 
-    expect(TraceTree.GetTraceType(tree.root)).toBe(TraceType.NO_ROOT);
+    expect(tree.shape).toBe(TraceType.NO_ROOT);
 
     tree = TraceTree.FromTrace(
       makeTrace({
@@ -778,7 +891,7 @@ describe('TraceTree', () => {
       })
     );
 
-    expect(TraceTree.GetTraceType(tree.root)).toBe(TraceType.ONE_ROOT);
+    expect(tree.shape).toBe(TraceType.ONE_ROOT);
 
     tree = TraceTree.FromTrace(
       makeTrace({
@@ -795,7 +908,7 @@ describe('TraceTree', () => {
       })
     );
 
-    expect(TraceTree.GetTraceType(tree.root)).toBe(TraceType.BROKEN_SUBTRACES);
+    expect(tree.shape).toBe(TraceType.BROKEN_SUBTRACES);
 
     tree = TraceTree.FromTrace(
       makeTrace({
@@ -813,7 +926,7 @@ describe('TraceTree', () => {
       })
     );
 
-    expect(TraceTree.GetTraceType(tree.root)).toBe(TraceType.MULTIPLE_ROOTS);
+    expect(tree.shape).toBe(TraceType.MULTIPLE_ROOTS);
 
     tree = TraceTree.FromTrace(
       makeTrace({
@@ -822,7 +935,7 @@ describe('TraceTree', () => {
       })
     );
 
-    expect(TraceTree.GetTraceType(tree.root)).toBe(TraceType.ONLY_ERRORS);
+    expect(tree.shape).toBe(TraceType.ONLY_ERRORS);
   });
 
   it('builds from spans when root is a transaction node', () => {
@@ -1718,7 +1831,7 @@ describe('TraceTree', () => {
       expect(root.children.length).toBe(1);
     });
 
-    it('collects errored children for sibling autogrouped node', () => {
+    it('collects errors and performance issues for sibling autogrouped node', () => {
       const root = new TraceTreeNode(null, makeSpan({description: 'span1'}), {
         project_slug: '',
         event_id: '',
@@ -1729,7 +1842,8 @@ describe('TraceTree', () => {
           project_slug: '',
           event_id: '',
         });
-        node.value.relatedErrors = [makeTraceError()];
+        node.value.errors = [makeTraceError()];
+        node.value.performance_issues = [makeTracePerformanceIssue()];
         root.children.push(node);
       }
 
@@ -1738,9 +1852,11 @@ describe('TraceTree', () => {
       TraceTree.AutogroupSiblingSpanNodes(root);
 
       expect(root.children.length).toBe(1);
-      assertAutogroupedNode(root.children[0]);
-      expect(root.children[0].has_error).toBe(true);
-      expect(root.children[0].errored_children).toHaveLength(5);
+      const autogroupedNode = root.children[0];
+      assertSiblingAutogroupedNode(autogroupedNode);
+      expect(autogroupedNode.has_errors).toBe(true);
+      expect(autogroupedNode.errors).toHaveLength(5);
+      expect(autogroupedNode.performance_issues).toHaveLength(5);
     });
 
     it('adds autogrouped siblings as children under autogrouped node', () => {
@@ -1850,13 +1966,12 @@ describe('TraceTree', () => {
       );
     });
 
-    it('collects errored children for parent autogrouped node', () => {
+    it('collects errors and performance issues for parent autogrouped node', () => {
       // db             db                           db
       //  http    ->     parent autogroup (3) ->      parent autogroup (3)
       //   http                                        http
       //    http                                        http
       //                                                 http
-
       const root: TraceTreeNode<TraceTree.Span> = new TraceTreeNode(
         null,
         makeSpan({
@@ -1882,7 +1997,8 @@ describe('TraceTree', () => {
             event_id: '',
           }
         );
-        node.value.relatedErrors = [makeTraceError()];
+        node.value.errors = [makeTraceError()];
+        node.value.performance_issues = [makeTracePerformanceIssue()];
         last.children.push(node);
         last = node;
       }
@@ -1899,8 +2015,9 @@ describe('TraceTree', () => {
       expect(root.children.length).toBe(1);
 
       assertAutogroupedNode(root.children[0]);
-      expect(root.children[0].has_error).toBe(true);
-      expect(root.children[0].errored_children).toHaveLength(3);
+      expect(root.children[0].has_errors).toBe(true);
+      expect(root.children[0].errors).toHaveLength(3);
+      expect(root.children[0].performance_issues).toHaveLength(3);
     });
 
     it('autogrouping direct children skips rendering intermediary nodes', () => {

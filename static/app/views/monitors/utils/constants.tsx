@@ -1,10 +1,5 @@
-import {
-  IconCheckmark,
-  IconFire,
-  IconTimer,
-  IconUnsubscribed,
-  IconWarning,
-} from 'sentry/icons';
+import type {StatusIndicatorProps} from 'sentry/components/statusIndicator';
+import {IconCheckmark, IconFire, IconTimer, IconUnsubscribed} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Aliases} from 'sentry/utils/theme';
 import type {StatsBucket} from 'sentry/views/monitors/components/overviewTimeline/types';
@@ -34,16 +29,6 @@ export const statusIconColorMap: Record<
     color: 'errorText',
     label: t('Error'),
   },
-  timeout: {
-    icon: <IconFire color="errorText" />,
-    color: 'errorText',
-    label: t('Timed Out'),
-  },
-  missed_checkin: {
-    icon: <IconWarning color="warningText" />,
-    color: 'warningText',
-    label: t('Missed'),
-  },
   active: {
     icon: <IconTimer color="subText" />,
     color: 'subText',
@@ -54,4 +39,15 @@ export const statusIconColorMap: Record<
     color: 'subText',
     label: t('Muted'),
   },
+};
+
+export const checkStatusToIndicatorStatus: Record<
+  CheckInStatus,
+  StatusIndicatorProps['status']
+> = {
+  [CheckInStatus.OK]: 'success',
+  [CheckInStatus.ERROR]: 'error',
+  [CheckInStatus.IN_PROGRESS]: 'muted',
+  [CheckInStatus.MISSED]: 'warning',
+  [CheckInStatus.TIMEOUT]: 'error',
 };

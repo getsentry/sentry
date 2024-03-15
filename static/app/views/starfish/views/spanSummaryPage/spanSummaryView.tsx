@@ -1,15 +1,18 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {RateUnit} from 'sentry/utils/discover/fields';
+import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {formatRate} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
+import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import {AVG_COLOR, ERRORS_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
 import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
+import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
@@ -17,9 +20,9 @@ import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {
   DataTitles,
   getThroughputChartTitle,
+  getThroughputTitle,
 } from 'sentry/views/starfish/views/spans/types';
 import {Block, BlockContainer} from 'sentry/views/starfish/views/spanSummaryPage/block';
-import {SpanMetricsRibbon} from 'sentry/views/starfish/views/spanSummaryPage/spanMetricsRibbon';
 
 const CHART_HEIGHT = 160;
 
@@ -85,6 +88,8 @@ export function SpanSummaryView({groupId}: Props) {
     [SpanMetricsField.SPAN_GROUP]: string;
   };
 
+  const op = span?.[SpanMetricsField.SPAN_OP] ?? '';
+
   const {isLoading: areSpanMetricsSeriesLoading, data: spanMetricsSeriesData} =
     useSpanMetricsSeries({
       filters: {'span.group': groupId, ...seriesQueryFilter},
@@ -109,7 +114,38 @@ export function SpanSummaryView({groupId}: Props) {
           <StarfishDatePicker />
         </FilterOptionsContainer>
 
-        <SpanMetricsRibbon spanMetrics={span} />
+        <BlockContainer>
+          <MetricReadout
+            title={getThroughputTitle(op)}
+            unit={RateUnit.PER_MINUTE}
+            value={spanMetrics?.[`${SpanFunction.SPM}()`]}
+          />
+
+          <MetricReadout
+            title={DataTitles.avg}
+            unit={DurationUnit.MILLISECOND}
+            value={spanMetrics?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]}
+          />
+
+          {op.startsWith('http') && (
+            <MetricReadout
+              title={DataTitles.errorCount}
+              tooltip={t('5XX responses in this span')}
+              unit="count"
+              value={spanMetrics?.[`${SpanFunction.HTTP_ERROR_COUNT}()`]}
+            />
+          )}
+
+          <MetricReadout
+            title={DataTitles.timeSpent}
+            unit={DurationUnit.MILLISECOND}
+            tooltip={getTimeSpentExplanation(
+              spanMetrics?.[`${SpanFunction.TIME_SPENT_PERCENTAGE}()`],
+              op
+            )}
+            value={spanMetrics?.[`sum(${SpanMetricsField.SPAN_SELF_TIME})`]}
+          />
+        </BlockContainer>
       </HeaderContainer>
 
       {span?.[SpanMetricsField.SPAN_DESCRIPTION] && (

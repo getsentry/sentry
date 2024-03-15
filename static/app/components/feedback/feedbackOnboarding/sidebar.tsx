@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
@@ -9,6 +9,7 @@ import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {FeedbackOnboardingLayout} from 'sentry/components/feedback/feedbackOnboarding/feedbackOnboardingLayout';
 import useLoadFeedbackOnboardingDoc from 'sentry/components/feedback/feedbackOnboarding/useLoadFeedbackOnboardingDoc';
+import {CRASH_REPORT_HASH} from 'sentry/components/feedback/useFeedbackOnboarding';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -33,7 +34,9 @@ import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project, SelectValue} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useRouteContext} from 'sentry/utils/useRouteContext';
 import useUrlParams from 'sentry/utils/useUrlParams';
 
 function FeedbackOnboardingSidebar(props: CommonSidebarProps) {
@@ -77,6 +80,16 @@ function FeedbackOnboardingSidebar(props: CommonSidebarProps) {
       },
     ];
   }, [allProjects]);
+
+  useEffect(() => {
+    if (isActive) {
+      // this tracks clicks from any source: feedback index, issue details feedback tab, banner callout, etc
+      trackAnalytics('feedback.list-view-setup-sidebar', {
+        organization,
+        platform: currentProject?.platform ?? 'unknown',
+      });
+    }
+  }, [organization, currentProject, isActive]);
 
   if (!isActive || !hasProjectAccess || !currentProject) {
     return null;
@@ -152,6 +165,8 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   }>(jsFrameworkSelectOptions[0]);
 
   const defaultTab = 'npm';
+  const {location} = useRouteContext();
+  const crashReportOnboarding = location.hash === CRASH_REPORT_HASH;
 
   const {getParamValue: setupMode, setParamValue: setSetupMode} = useUrlParams(
     'mode',
@@ -173,9 +188,9 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     .filter(p => p !== 'javascript')
     .includes(currentPlatform.id);
 
-  const showRadioButtons = replayJsLoaderInstructionsPlatformList.includes(
-    currentPlatform.id
-  );
+  const showRadioButtons =
+    replayJsLoaderInstructionsPlatformList.includes(currentPlatform.id) &&
+    !crashReportOnboarding;
 
   function getJsFramework() {
     return (
@@ -190,7 +205,10 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     cdn,
     isProjKeysLoading,
   } = useLoadFeedbackOnboardingDoc({
-    platform: showJsFrameworkInstructions ? getJsFramework() : currentPlatform,
+    platform:
+      showJsFrameworkInstructions && !crashReportOnboarding
+        ? getJsFramework()
+        : currentPlatform,
     organization,
     projectSlug: currentProject.slug,
   });
@@ -202,7 +220,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     projectSlug: currentProject.slug,
   });
 
-  if (webApiPlatform) {
+  if (webApiPlatform && !crashReportOnboarding) {
     return <FeedbackOnboardingWebApiBanner />;
   }
 
@@ -247,10 +265,13 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           ]}
           value={setupMode()}
           onChange={setSetupMode}
+          disabledChoices={[['jsLoader', t('Coming soon!')]]}
+          tooltipPosition={'top-start'}
         />
       ) : (
         newDocs?.platformOptions &&
-        widgetPlatform && (
+        widgetPlatform &&
+        !crashReportOnboarding && (
           <PlatformSelect>
             {tct("I'm using [platformSelect]", {
               platformSelect: (
@@ -300,6 +321,9 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   }
 
   function getConfig() {
+    if (crashReportOnboarding) {
+      return 'crashReportOnboarding';
+    }
     if (crashApiPlatform) {
       return 'feedbackOnboardingCrashApi';
     }

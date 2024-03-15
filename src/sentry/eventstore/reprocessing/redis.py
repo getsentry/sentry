@@ -7,7 +7,7 @@ import redis
 from django.conf import settings
 
 from sentry.utils import json
-from sentry.utils.dates import to_datetime, to_timestamp
+from sentry.utils.dates import to_datetime
 from sentry.utils.redis import redis_clusters
 
 from .base import ReprocessingStore
@@ -55,10 +55,15 @@ class RedisReprocessingStore(ReprocessingStore):
         `event id;datetime of event`, returns a list of event IDs, the
         earliest datetime, and the latest datetime.
         """
+        key = _get_old_primary_hash_subset_key(project_id, group_id, primary_hash)
+        return self.pop_batched_events_by_key(key)
+
+    def pop_batched_events_by_key(
+        self, key: str
+    ) -> tuple[list[str], datetime | None, datetime | None]:
         event_ids_batch = []
         min_datetime: datetime | None = None
         max_datetime: datetime | None = None
-        key = _get_old_primary_hash_subset_key(project_id, group_id, primary_hash)
 
         for row in self.redis.lrange(key, 0, -1):
             datetime_raw, event_id = row.split(";")
@@ -94,7 +99,7 @@ class RedisReprocessingStore(ReprocessingStore):
         old_primary_hash: str,
     ) -> None:
         event_key = _get_old_primary_hash_subset_key(project_id, group_id, old_primary_hash)
-        self.redis.lpush(event_key, f"{to_timestamp(date_val)};{event_id}")
+        self.redis.lpush(event_key, f"{date_val.timestamp()};{event_id}")
         self.redis.expire(event_key, settings.SENTRY_REPROCESSING_TOMBSTONES_TTL)
 
     def add_hash(self, project_id: int, group_id: int, hash: str) -> None:
@@ -113,10 +118,7 @@ class RedisReprocessingStore(ReprocessingStore):
         if datetime_to_event:
             llen = self.redis.lpush(
                 key,
-                *(
-                    f"{to_timestamp(datetime)};{event_id}"
-                    for datetime, event_id in datetime_to_event
-                ),
+                *(f"{datetime.timestamp()};{event_id}" for datetime, event_id in datetime_to_event),
             )
             self.redis.expire(key, settings.SENTRY_REPROCESSING_SYNC_TTL)
         else:
@@ -140,12 +142,15 @@ class RedisReprocessingStore(ReprocessingStore):
 
     def mark_event_reprocessed(self, group_id: int, num_events: int) -> bool:
         # refresh the TTL of the metadata:
-        self.redis.expire(
-            _get_info_reprocessed_key(group_id), settings.SENTRY_REPROCESSING_SYNC_TTL
+        pipe = self.redis.pipeline()
+        pipe.expire(
+            name=_get_info_reprocessed_key(group_id), time=settings.SENTRY_REPROCESSING_SYNC_TTL
         )
-        key = _get_sync_counter_key(group_id)
-        self.redis.expire(key, settings.SENTRY_REPROCESSING_SYNC_TTL)
-        return self.redis.decrby(key, num_events) == 0
+        sync_counter_key = _get_sync_counter_key(group_id)
+        pipe.expire(name=sync_counter_key, time=settings.SENTRY_REPROCESSING_SYNC_TTL)
+        pipe.decrby(name=sync_counter_key, amount=num_events)
+        new_decremented_value = pipe.execute()[2]
+        return new_decremented_value == 0
 
     def start_reprocessing(
         self, group_id: int, date_created: Any, sync_count: int, event_count: int
@@ -161,7 +166,7 @@ class RedisReprocessingStore(ReprocessingStore):
             ),
         )
 
-    def get_pending(self, group_id: int) -> tuple[int | None, int]:
+    def get_pending(self, group_id: int) -> tuple[str | None, int]:
         pending_key = _get_sync_counter_key(group_id)
         pending = self.redis.get(pending_key)
         ttl = self.redis.ttl(pending_key)
@@ -169,4 +174,6 @@ class RedisReprocessingStore(ReprocessingStore):
 
     def get_progress(self, group_id: int) -> dict[str, Any] | None:
         info = self.redis.get(_get_info_reprocessed_key(group_id))
-        return info
+        if info is None:
+            return None
+        return json.loads(info)
