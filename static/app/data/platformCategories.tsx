@@ -499,7 +499,17 @@ const customMetricBackendPlatforms: readonly PlatformKey[] = [
 ];
 
 const customMetricFrontendPlatforms: readonly PlatformKey[] = [
+  'android',
   'electron',
+  'java',
+  'java-android',
+  'java-appengine',
+  'java-log4j',
+  'java-log4j2',
+  'java-logback',
+  'java-logging',
+  'java-spring',
+  'java-spring-boot',
   'javascript-angular',
   'javascript-astro',
   'javascript-backbone',
