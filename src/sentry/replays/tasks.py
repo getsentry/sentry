@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 import uuid
-from concurrent.futures import ALL_COMPLETED, ThreadPoolExecutor, wait
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from sentry.replays.lib.kafka import initialize_replays_publisher
@@ -31,24 +31,22 @@ def delete_replay_recording(project_id: int, replay_id: str) -> None:
     """Delete all recording-segments associated with a Replay."""
     # issue delete requests the segment data and model rows - ALL in parallel
     with ThreadPoolExecutor(max_workers=40) as executor:
-        futures = []
         # Delete the segments which are now stored in clickhouse
         segments_from_metadata = fetch_segments_metadata(
             project_id, replay_id, offset=0, limit=10000
         )
         for segment_metadata in segments_from_metadata:
             driver = FilestoreBlob() if segment_metadata.file_id else StorageBlob()
-            futures.append(executor.submit(driver.delete, segment_metadata))
+            executor.submit(driver.delete, segment_metadata)
 
         # Delete the ReplayRecordingSegment models that we previously stored using django models
         segments_from_django_models = ReplayRecordingSegment.objects.filter(
             replay_id=replay_id, project_id=project_id
         ).all()
         for segment_model in segments_from_django_models:
-            futures.append(
-                executor.submit(segment_model.delete)
+            executor.submit(
+                segment_model.delete
             )  # Three queries + one request to the message broker
-        wait(futures, return_when=ALL_COMPLETED)  # wait to return
 
 
 def archive_replay(project_id: int, replay_id: str) -> None:
