@@ -14,6 +14,14 @@ import {getExactDuration, parseLargestSuffix} from 'sentry/utils/formatters';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import {
+  Dataset,
+  AlertRuleThresholdType,
+  AlertRuleTriggerType,
+  EventTypes,
+  type UnsavedMetricRule,
+} from 'sentry/views/alerts/rules/metric/types';
+import {MEPAlertsQueryType} from 'sentry/views/alerts/wizard/options';
 
 import {
   CRASH_FREE_SESSION_RATE_STR,
@@ -90,6 +98,7 @@ export function ThresholdGroupRows({
         label: 'Error Count',
       },
     ];
+
     if (isInternal) {
       list.push(
         {
@@ -104,6 +113,7 @@ export function ThresholdGroupRows({
         }
       );
     }
+
     return list;
   }, [organization]);
 
@@ -146,6 +156,7 @@ export function ThresholdGroupRows({
       setTempError('No project provided');
       return;
     }
+
     const thresholdId = `${NEW_THRESHOLD_PREFIX}-${newThresholdIterator}`;
     const [windowValue, windowSuffix] = parseLargestSuffix(defaultWindow);
     const newThreshold: EditingThreshold = {
@@ -159,7 +170,9 @@ export function ThresholdGroupRows({
       value: 0,
       hasError: false,
     };
+
     const updatedEditingThresholds = {...editingThresholds};
+
     updatedEditingThresholds[thresholdId] = newThreshold;
     setEditingThresholds(updatedEditingThresholds);
     setNewThresholdIterator(newThresholdIterator + 1);
@@ -168,6 +181,7 @@ export function ThresholdGroupRows({
   const enableEditThreshold = (threshold: Threshold) => {
     const updatedEditingThresholds = {...editingThresholds};
     const [windowValue, windowSuffix] = parseLargestSuffix(threshold.window_in_seconds);
+
     updatedEditingThresholds[threshold.id] = {
       ...JSON.parse(JSON.stringify(threshold)), // Deep copy the original threshold object
       environmentName: threshold.environment ? threshold.environment.name : '', // convert environment to string for editing
@@ -175,6 +189,7 @@ export function ThresholdGroupRows({
       windowSuffix,
       hasError: false,
     };
+
     setEditingThresholds(updatedEditingThresholds);
   };
 
@@ -184,26 +199,64 @@ export function ThresholdGroupRows({
       const seconds = moment
         .duration(thresholdData.windowValue, thresholdData.windowSuffix)
         .as('seconds');
+
       if (!thresholdData.project) {
         setTempError('Project required');
         return;
       }
+
       const submitData = {
         ...thresholdData,
         environment: thresholdData.environmentName,
         window_in_seconds: seconds,
       };
+
       let path = `/projects/${organization.slug}/${thresholdData.project.slug}/release-thresholds/${id}/`;
       let method: APIRequestMethod = 'PUT';
+
       if (id.includes(NEW_THRESHOLD_PREFIX)) {
         path = `/projects/${organization.slug}/${thresholdData.project.slug}/release-thresholds/`;
         method = 'POST';
       }
+
+      const metricAlertData: UnsavedMetricRule & { name: string; } = {
+        name: `Release Alert Rule for ${thresholdData.project.slug} in ${submitData.environmentName}`,
+        aggregate: 'count()',
+        dataset: Dataset.ERRORS,
+        environment: submitData.environmentName || null,
+        projects: [submitData.project.slug],
+        query: '',
+        resolveThreshold: null,
+        thresholdPeriod: 1,
+        thresholdType: AlertRuleThresholdType.ABOVE,
+        timeWindow: submitData.windowValue,
+        triggers: [
+          {
+            label: AlertRuleTriggerType.CRITICAL,
+            alertThreshold: submitData.value,
+            actions: [/* TODO - need to ask nathan about this */],
+          },
+        ],
+        comparisonDelta: null,
+        eventTypes: [EventTypes.ERROR],
+        owner: null,
+        queryType: MEPAlertsQueryType.ERROR,
+      };
+
+      const metricAlertRequest = api.requestPromise(
+        `/api/0/organizations/${organization.slug}/alert-rules/`,
+        {
+          method,
+          data: metricAlertData,
+        }
+      );
+
       const request = api.requestPromise(path, {
         method,
         data: submitData,
       });
-      request
+
+      Promise.all([metricAlertRequest, request])
         .then(() => {
           refetch();
           closeEditForm(id);
@@ -231,47 +284,51 @@ export function ThresholdGroupRows({
     const thresholdData = editingThresholds[thresholdId];
     const path = `/projects/${organization.slug}/${thresholdData.project.slug}/release-thresholds/${thresholdId}/`;
     const method = 'DELETE';
+
     if (!thresholdId.includes(NEW_THRESHOLD_PREFIX)) {
       const request = api.requestPromise(path, {
         method,
       });
-      request
-        .then(() => {
-          refetch();
-        })
-        .catch(_err => {
-          setTempError('Issue deleting threshold');
-          const errorThreshold = {
-            ...thresholdData,
-            hasError: true,
-          };
-          updatedEditingThresholds[thresholdId] = errorThreshold as EditingThreshold;
-          setEditingThresholds(updatedEditingThresholds);
-        });
+
+      request.then(refetch).catch(_err => {
+        setTempError('Issue deleting threshold');
+
+        const errorThreshold = {
+          ...thresholdData,
+          hasError: true,
+        };
+
+        updatedEditingThresholds[thresholdId] = errorThreshold as EditingThreshold;
+        setEditingThresholds(updatedEditingThresholds);
+      });
     }
+
     delete updatedEditingThresholds[thresholdId];
+
     setEditingThresholds(updatedEditingThresholds);
   };
 
   const closeEditForm = thresholdId => {
     const updatedEditingThresholds = {...editingThresholds};
     delete updatedEditingThresholds[thresholdId];
+
     setEditingThresholds(updatedEditingThresholds);
-    if (onFormClose) {
-      onFormClose(thresholdId);
-    }
+    onFormClose?.(thresholdId);
   };
 
   const editThresholdState = (thresholdId, key, value) => {
     if (editingThresholds[thresholdId]) {
       const updateEditing = JSON.parse(JSON.stringify(editingThresholds));
       const currentThresholdValues = updateEditing[thresholdId];
+
       updateEditing[thresholdId][key] = value;
+
       if (key === 'threshold_type' && value === CRASH_FREE_SESSION_RATE_STR) {
         if (['seconds', 'minutes'].indexOf(currentThresholdValues.windowSuffix) > -1) {
           updateEditing[thresholdId].windowSuffix = 'hours';
         }
       }
+
       setEditingThresholds(updateEditing);
     }
   };
@@ -324,6 +381,7 @@ export function ThresholdGroupRows({
                   : '{No environment}'}
               </FlexCenter>
             )}
+
             {/* FOLLOWING COLUMNS ARE EDITABLE */}
             {isEditing ? (
               <Fragment>
@@ -410,13 +468,16 @@ export function ThresholdGroupRows({
                 </FlexCenter>
               </Fragment>
             )}
+
             {/* END OF EDITABLE COLUMNS */}
+
             <ActionsColumn>
               {isEditing ? (
                 <Fragment>
                   <Button size="xs" onClick={() => saveThreshold([threshold.id])}>
                     Save
                   </Button>
+
                   {!threshold.id.includes(NEW_THRESHOLD_PREFIX) && (
                     <Button
                       aria-label={t('Delete threshold')}
@@ -426,6 +487,7 @@ export function ThresholdGroupRows({
                       size="xs"
                     />
                   )}
+
                   <Button
                     aria-label={t('Close')}
                     borderless
@@ -442,6 +504,7 @@ export function ThresholdGroupRows({
                     onClick={() => enableEditThreshold(threshold as Threshold)}
                     size="xs"
                   />
+
                   <Button
                     aria-label={t('New Threshold')}
                     icon={<IconAdd color="activeText" isCircled />}
