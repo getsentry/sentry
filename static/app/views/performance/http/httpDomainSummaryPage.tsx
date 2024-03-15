@@ -12,6 +12,7 @@ import {space} from 'sentry/styles/space';
 import {fromSorts} from 'sentry/utils/discover/eventView';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -56,7 +57,7 @@ export function HTTPDomainSummaryPage() {
   const cursor = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_CURSOR]);
 
   const {data: domainMetrics, isLoading: areDomainMetricsLoading} = useSpanMetrics({
-    filters,
+    search: MutableSearch.fromQueryObject(filters),
     fields: [
       SpanMetricsField.SPAN_DOMAIN,
       `${SpanFunction.SPM}()`,
@@ -73,7 +74,7 @@ export function HTTPDomainSummaryPage() {
     data: throughputData,
     error: throughputError,
   } = useSpanMetricsSeries({
-    filters,
+    search: MutableSearch.fromQueryObject(filters),
     yAxis: ['spm()'],
     enabled: Boolean(domain),
     referrer: 'api.starfish.http-module-domain-summary-throughput-chart',
@@ -84,7 +85,7 @@ export function HTTPDomainSummaryPage() {
     data: durationData,
     error: durationError,
   } = useSpanMetricsSeries({
-    filters,
+    search: MutableSearch.fromQueryObject(filters),
     yAxis: [`avg(${SpanMetricsField.SPAN_SELF_TIME})`],
     enabled: Boolean(domain),
     referrer: 'api.starfish.http-module-domain-summary-duration-chart',
@@ -95,7 +96,7 @@ export function HTTPDomainSummaryPage() {
     data: responseCodeData,
     error: responseCodeError,
   } = useSpanMetricsSeries({
-    filters: filters,
+    search: MutableSearch.fromQueryObject(filters),
     yAxis: ['http_response_rate(3)', 'http_response_rate(4)', 'http_response_rate(5)'],
     referrer: 'api.starfish.http-module-domain-summary-response-code-chart',
   });
@@ -107,7 +108,7 @@ export function HTTPDomainSummaryPage() {
     error: transactionsListError,
     pageLinks: transactionsListPageLinks,
   } = useSpanMetrics({
-    filters,
+    search: MutableSearch.fromQueryObject(filters),
     fields: [
       'transaction',
       'spm()',
