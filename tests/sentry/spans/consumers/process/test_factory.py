@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from unittest import mock
 
 from arroyo.backends.kafka import KafkaPayload
@@ -61,26 +61,26 @@ def test_consumer_pushes_to_redis():
     )
 
     span_data = build_mock_span(is_segment=True)
-    message = build_mock_message(span_data, topic)
+    message1 = build_mock_message(span_data, topic)
 
     strategy.submit(
         Message(
             BrokerValue(
-                KafkaPayload(b"key", message.value().encode("utf-8"), []),
+                KafkaPayload(b"key", message1.value().encode("utf-8"), []),
                 partition,
                 1,
-                datetime.now() - timedelta(minutes=3),
+                datetime.now(),
             )
         )
     )
 
     span_data = build_mock_span()
-    message = build_mock_message(span_data, topic)
+    message2 = build_mock_message(span_data, topic)
 
     strategy.submit(
         Message(
             BrokerValue(
-                KafkaPayload(b"key", message.value().encode("utf-8"), []),
+                KafkaPayload(b"key", message2.value().encode("utf-8"), []),
                 partition,
                 1,
                 datetime.now(),
@@ -92,6 +92,6 @@ def test_consumer_pushes_to_redis():
     strategy.join(1)
     strategy.terminate()
     assert redis_client.lrange("segment:ace31e54d65652aa:1:process-segment", 0, -1) == [
-        message.value(),
-        message.value(),
+        message1.value().encode("utf-8"),
+        message2.value().encode("utf-8"),
     ]

@@ -101,50 +101,40 @@ def _update_occurrence_group_type(jobs: Sequence[Job], projects: ProjectsMapping
 
 def transform_spans_to_event_dict(spans):
     event: dict[str, Any] = {"type": "transaction", "level": "info", "contexts": {}}
-    deserialized_spans: list[dict[str, Any]] = []
+    spans: list[dict[str, Any]] = []
     for span in spans:
-        try:
-            deserialized_span = dict(_deserialize_span(span))
-        except Exception:
-            logger.exception("Failed to process span payload")
-            continue
+        sentry_tags = span.get("sentry_tags", {})
 
-        sentry_tags = deserialized_span.get("sentry_tags", {})
-
-        if deserialized_span["is_segment"] is True:
-            event["event_id"] = deserialized_span.get("event_id")
-            event["project_id"] = deserialized_span["project_id"]
+        if span["is_segment"] is True:
+            event["event_id"] = span.get("event_id")
+            event["project_id"] = span["project_id"]
             event["transaction"] = sentry_tags.get("transaction")
             event["contexts"]["trace"] = {
-                "trace_id": deserialized_span["trace_id"],
+                "trace_id": span["trace_id"],
                 "type": "trace",
                 "op": sentry_tags.get("transaction.op"),
-                "span_id": deserialized_span["span_id"],
+                "span_id": span["span_id"],
             }
-            event["received"] = deserialized_span["received"]
-            event["timestamp"] = (
-                deserialized_span["start_timestamp_ms"] + deserialized_span["duration_ms"]
-            ) / 1000
+            event["received"] = span["received"]
+            event["timestamp"] = (span["start_timestamp_ms"] + span["duration_ms"]) / 1000
 
-            if (profile_id := deserialized_span.get("profile_id")) is not None:
+            if (profile_id := span.get("profile_id")) is not None:
                 event["contexts"]["profile"] = {"profile_id": profile_id, "type": "profile"}
 
         if (op := sentry_tags.get("op")) is not None:
-            deserialized_span["op"] = op
+            span["op"] = op
 
-        deserialized_span["start_timestamp"] = deserialized_span["start_timestamp_ms"] / 1000
-        deserialized_span["timestamp"] = (
-            deserialized_span["start_timestamp_ms"] + deserialized_span["duration_ms"]
-        ) / 1000
+        span["start_timestamp"] = span["start_timestamp_ms"] / 1000
+        span["timestamp"] = (span["start_timestamp_ms"] + span["duration_ms"]) / 1000
 
-        deserialized_spans.append(deserialized_span)
+        spans.append(span)
 
     # The performance detectors expect the span list to be ordered/flattened in the way they
     # are structured in the tree. This is an implicit assumption in the performance detectors.
     # So we build a tree and flatten it depth first.
     # TODO: See if we can update the detectors to work without this assumption so we can
     # just pass it a list of spans.
-    tree, root_span_id = build_tree(deserialized_spans)
+    tree, root_span_id = build_tree(spans)
     flattened_spans = flatten_tree(tree, root_span_id)
     event["spans"] = flattened_spans
 

@@ -10,7 +10,7 @@ TWO_MINUTES = 2 * 60  # 2 min delay in seconds
 
 
 def get_redis_client() -> RedisCluster | StrictRedis:
-    return redis.redis_clusters.get(settings.SENTRY_SPAN_BUFFER_CLUSTER)
+    return redis.redis_clusters.get(settings.SENTRY_SPAN_BUFFER_CLUSTER, decode_responses=False)
 
 
 def get_segment_key(project_id: str | int, segment_id: str) -> str:
