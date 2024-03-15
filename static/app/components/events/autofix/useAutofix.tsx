@@ -39,7 +39,7 @@ export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
   }, [apiData?.autofix, overwriteData]);
 
   const triggerAutofix = useCallback(
-    async (additionalContext: string) => {
+    async (instruction: string) => {
       setOverwriteData({
         status: 'PROCESSING',
         steps: [
@@ -59,7 +59,7 @@ export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
           method: 'POST',
           data: {
             event_id: event.id,
-            additional_context: additionalContext,
+            instruction,
           },
         });
       } catch (e) {
