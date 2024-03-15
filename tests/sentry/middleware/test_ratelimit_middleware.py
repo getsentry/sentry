@@ -204,7 +204,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
             get_rate_limit_key(
                 self.view, self.request, self.rate_limit_group, self.rate_limit_config
             )
-            == "ip:default:OrganizationGroupIndexEndpoint:GET:127.0.0.1"
+            == "ip:default:GET:127.0.0.1"
         )
 
         # Test when IP address is missing
@@ -222,7 +222,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
             get_rate_limit_key(
                 self.view, self.request, self.rate_limit_group, self.rate_limit_config
             )
-            == "ip:default:OrganizationGroupIndexEndpoint:GET:684D:1111:222:3333:4444:5555:6:77"
+            == "ip:default:GET:684D:1111:222:3333:4444:5555:6:77"
         )
 
     def test_rate_limit_key_for_users(self):
@@ -234,7 +234,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
             get_rate_limit_key(
                 self.view, self.request, self.rate_limit_group, self.rate_limit_config
             )
-            == f"user:default:OrganizationGroupIndexEndpoint:GET:{self.user.id}"
+            == f"user:default:GET:{self.user.id}"
         )
 
     def test_rate_limit_key_for_user_auth_tokens(self):
@@ -247,7 +247,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
             get_rate_limit_key(
                 self.view, self.request, self.rate_limit_group, self.rate_limit_config
             )
-            == f"user:default:OrganizationGroupIndexEndpoint:GET:{self.user.id}"
+            == f"user:default:GET:{self.user.id}"
         )
 
     def test_rate_limit_key_for_api_keys(self):
@@ -261,7 +261,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
             get_rate_limit_key(
                 self.view, self.request, self.rate_limit_group, self.rate_limit_config
             )
-            == "ip:default:OrganizationGroupIndexEndpoint:GET:127.0.0.1"
+            == "ip:default:GET:127.0.0.1"
         )
 
     def test_rate_limit_key_for_sentry_apps(self):
@@ -273,7 +273,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
             get_rate_limit_key(
                 self.view, self.request, self.rate_limit_group, self.rate_limit_config
             )
-            == f"org:default:OrganizationGroupIndexEndpoint:GET:{self.organization.id}"
+            == f"org:default:GET:{self.organization.id}"
         )
 
         # Test for INTERNAL SentryApp api tokens
@@ -288,7 +288,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
             get_rate_limit_key(
                 self.view, self.request, self.rate_limit_group, self.rate_limit_config
             )
-            == f"org:default:OrganizationGroupIndexEndpoint:GET:{self.organization.id}"
+            == f"org:default:GET:{self.organization.id}"
         )
 
     # def test_enforce_rate_limit_is_false(self):
