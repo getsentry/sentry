@@ -52,6 +52,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase):
         )
         data["transaction"] = transaction
         data["contexts"]["trace"]["parent_span_id"] = parent_span_id
+        data["contexts"]["profile"] = {"profile_id": uuid4().hex}
         if span_id:
             data["contexts"]["trace"]["span_id"] = span_id
         if measurements:
@@ -806,6 +807,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert result["transaction"] == event_data.transaction, message
         assert result["event_id"] == event_data.event_id
         assert result["start_timestamp"] == event_data.data["start_timestamp"]
+        assert result["profile_id"] == event_data.data["contexts"]["profile"]["profile_id"]
 
     def assert_trace_data(self, root, gen2_no_children=True):
         """see the setUp docstring for an idea of what the response structure looks like"""
