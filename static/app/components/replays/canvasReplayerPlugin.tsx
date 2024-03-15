@@ -58,7 +58,7 @@ function findIndex(
 
 /**
  * Takes sorted canvasMutationEvents and:
- *   - preloads a small amount to improve playback
+ *   - preloads a small amount of canvas events to improve playback
  *   - applies the canvas draw comands to a canvas outside of rrweb iframe
  *    - copies outside canvas to iframe canvas
  *    - this avoids having to remove iframe sandbox
@@ -80,6 +80,13 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
   const preloadQueue = new Set<CanvasEventWithTime>();
   const eventsToPrune: eventWithTime[] = [];
 
+  // This is a pointer to the index of the next event that will need to be
+  // preloaded. Most of the time the recording plays sequentially, so we do not
+  // need to re-iterate through the events list.
+  //
+  // If this value is -1, then it means there is no next preload index and we
+  // should search (`findIndex`) the events list for the index. This happens
+  // when the user jumps around the recording.
   let nextPreloadIndex = 0;
 
   /**
