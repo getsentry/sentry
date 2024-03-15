@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -13,12 +13,12 @@ import {space} from 'sentry/styles/space';
 import type {EventTag} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import {generateQueryWithTag, isUrl} from 'sentry/utils';
+import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
 const MAX_TREE_DEPTH = 4;
 const INVALID_BRANCH_REGEX = /\.{2,}/;
-export const COLUMN_COUNT = 2;
 
 interface TagTree {
   [key: string]: TagTreeContent;
@@ -275,7 +275,12 @@ function getTagTreeRows({tagKey, content, spacerCount = 0, ...props}: TagTreeRow
  * Component to render proportional columns for event tags. The columns will not separate
  * branch tags from their roots, and attempt to be as evenly distributed as possible.
  */
-function TagTreeColumns({meta, tags, ...props}: EventTagsTreeProps) {
+function TagTreeColumns({
+  meta,
+  tags,
+  columnCount,
+  ...props
+}: EventTagsTreeProps & {columnCount: number}) {
   const assembledColumns = useMemo(() => {
     // Create the TagTree data structure using all the given tags
     const tagTree = tags.reduce<TagTree>(
@@ -292,7 +297,7 @@ function TagTreeColumns({meta, tags, ...props}: EventTagsTreeProps) {
       (sum, group) => sum + group.length,
       0
     );
-    const columnRowGoal = Math.ceil(tagTreeRowTotal / COLUMN_COUNT);
+    const columnRowGoal = Math.ceil(tagTreeRowTotal / columnCount);
 
     // Iterate through the row groups, splitting rows into columns when we exceed the goal size
     const data = tagTreeRowGroups.reduce<TagTreeColumnData>(
@@ -322,16 +327,19 @@ function TagTreeColumns({meta, tags, ...props}: EventTagsTreeProps) {
       {startIndex: 0, runningTotal: 0, columns: []}
     );
     return data.columns;
-  }, [meta, tags, props]);
+  }, [meta, tags, props, columnCount]);
 
   return <Fragment>{assembledColumns}</Fragment>;
 }
 
 function EventTagsTree(props: EventTagsTreeProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const {width} = useDimensions<HTMLDivElement>({elementRef: containerRef});
+  const columnCount = width < 700 ? 1 : 2;
   return (
-    <TreeContainer>
-      <TreeGarden columnCount={COLUMN_COUNT}>
-        <TagTreeColumns {...props} />
+    <TreeContainer ref={containerRef}>
+      <TreeGarden columnCount={columnCount}>
+        <TagTreeColumns columnCount={columnCount} {...props} />
       </TreeGarden>
     </TreeContainer>
   );
@@ -430,6 +438,7 @@ const TreeSearchKey = styled('span')`
 const TreeValueDropdown = styled(DropdownMenu)`
   margin: 1px;
   height: 20px;
+  font-size: inherit;
   .tag-button {
     height: 20px;
     min-height: 20px;
