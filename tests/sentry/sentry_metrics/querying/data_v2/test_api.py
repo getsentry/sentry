@@ -948,7 +948,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         # the test is failing because totals are correctly queried but series data is returned up to
         # 3 elements and since filters are not properly applied, any 3 entries are returned out of all
         # the groups * intervals combinations. Once the bug will be fixed on the snuba side, we should
-        # expect to get back 3 correct entires from the series query.
+        # expect to get back 3 correct entries from the series query.
         results = self.run_query(
             metrics_queries_plan=plan,
             start=self.now() - timedelta(minutes=30),
