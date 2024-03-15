@@ -29,75 +29,57 @@ class RedisSpansBuffer:
     def __init__(self):
         self.client: RedisCluster | StrictRedis = get_redis_client()
 
-    def _read_key(self, key: str) -> list[str | bytes]:
-        return self.client.lrange(key, 0, -1) or []
-
-    def _read_many_keys(self, keys) -> list[str]:
-        values = []
-        with self.client.pipeline() as p:
-            for key in keys:
-                p.lrange(key, 0, -1)
-
-            response = p.execute()
-
-        for value in response:
-            values.append((key, value))
-
-        return values
-
-    def set_last_processed_timestamp(self, timestamp: int, partition: int):
-        key = get_last_processed_timestamp_key(partition)
-        self.client.set(key, timestamp)
-
-    def write_span_and_get_last_processed_timestamp(
+    def write_span_and_check_processing(
         self,
         project_id: str | int,
         segment_id: str,
         timestamp: int,
         partition: int,
         span: bytes,
-    ) -> int | None:
+    ) -> bool:
         segment_key = get_segment_key(project_id, segment_id)
-        last_processed_timestamp_key = get_last_processed_timestamp_key(partition)
-        now = timestamp
+        timestamp_key = get_last_processed_timestamp_key(partition)
 
         with self.client.pipeline() as p:
             p.rpush(segment_key, span)
-            p.get(last_processed_timestamp_key)
+            p.get(timestamp_key)
+            p.set(timestamp_key, timestamp)
             results = p.execute()
 
         new_key = results[0] == 1
-        last_processed_timestamp = int(results[1]) if results[1] is not None else None
+        last_processed_timestamp = results[1]
 
         if new_key:
             bucket = get_unprocessed_segments_key(partition)
             with self.client.pipeline() as p:
                 p.expire(segment_key, SEGMENT_TTL)
-                p.rpush(bucket, json.dumps([now, segment_key]))
+                p.rpush(bucket, json.dumps([timestamp, segment_key]))
                 p.execute()
 
-        return last_processed_timestamp
+        if last_processed_timestamp is None:
+            return False
 
-    def read_segment(self, project_id: str | int, segment_id: str) -> list[str | bytes]:
-        key = get_segment_key(project_id, segment_id)
+        return timestamp > int(last_processed_timestamp)
 
-        return self.client.lrange(key, 0, -1) or []
-
-    def read_many_segments(self, keys: list[str]) -> list[tuple[str, list[str | bytes]]]:
-        return self._read_many_keys(keys)
-
-    def expire_many_segments(self, keys):
+    def read_and_expire_many_segments(self, keys: list[str]) -> list[tuple[str, list[str | bytes]]]:
+        values = []
         with self.client.pipeline() as p:
             for key in keys:
+                p.lrange(key, 0, -1)
                 p.expire(key, 0)
 
-            p.execute()
+            response = p.execute()
+
+        for value in response[::2]:
+            values.append(value)
+
+        return values
 
     def get_unprocessed_segments_and_prune_bucket(
         self, timestamp: int, partition: int
     ) -> list[str]:
         key = get_unprocessed_segments_key(partition)
-        results = self._read_key(key)
+        results = self.client.lrange(key, 0, -1) or []
 
         now = timestamp
 
