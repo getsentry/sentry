@@ -148,3 +148,4 @@ class SentryAppInstallationFilterArgs(TypedDict, total=False):
     uuids: list[str]
     status: int
     api_token_id: str
+    installation_token_api_token_id: str

@@ -71,7 +71,9 @@ def get_rate_limit_key(
         return None
 
     ip_address = request.META.get("REMOTE_ADDR")
-    request_auth: AuthenticatedToken | ApiToken | None = getattr(request, "auth", None)
+    request_auth: AuthenticatedToken | ApiToken | ApiTokenReplica | None = getattr(
+        request, "auth", None
+    )
     request_user = getattr(request, "user", None)
 
     from django.contrib.auth.models import AnonymousUser
