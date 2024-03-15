@@ -1841,8 +1841,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-accessibility-issues": False,
     # Enable combined envelope Kafka items in Relay
     "organizations:session-replay-combined-envelope-items": False,
-    # Enable core Session Replay SDK for recording onError events on sentry.io
-    "organizations:session-replay-count-query-optimize": False,
     # Enable canvas recording
     "organizations:session-replay-enable-canvas": False,
     # Enable canvas replaying
@@ -3089,7 +3087,7 @@ STATUS_PAGE_API_HOST = "statuspage.io"
 SENTRY_SELF_HOSTED = True
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "24.2.0"
+SELF_HOSTED_STABLE_VERSION = "24.3.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
