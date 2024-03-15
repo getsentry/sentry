@@ -24,15 +24,17 @@ type Props = Omit<ControlProps<OptionType>, 'onChange' | 'value'> & {
 function RoleSelectControl({roles, disableUnallowed, ...props}: Props) {
   return (
     <SelectControl
-      options={roles?.map(
-        (r: MemberRole) =>
-          ({
-            value: r.id,
-            label: r.name,
-            disabled: (disableUnallowed && !r.allowed) || r.isRetired,
-            details: <Details>{r.desc}</Details>,
-          }) as OptionType
-      )}
+      options={roles
+        ?.filter(r => !r.isRetired)
+        .map(
+          (r: MemberRole) =>
+            ({
+              value: r.id,
+              label: r.name,
+              disabled: disableUnallowed && !r.allowed,
+              details: <Details>{r.desc}</Details>,
+            }) as OptionType
+        )}
       showDividers
       {...props}
     />
