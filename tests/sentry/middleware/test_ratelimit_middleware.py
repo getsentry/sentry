@@ -11,11 +11,12 @@ from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.middleware.ratelimit import RatelimitMiddleware
+from sentry.models.user import User
 from sentry.ratelimits.config import RateLimitConfig, get_default_rate_limits_for_group
 from sentry.ratelimits.utils import get_rate_limit_config, get_rate_limit_value
 from sentry.testutils.cases import APITestCase, BaseTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import all_silo_test
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode_of
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
@@ -27,6 +28,29 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
     @cached_property
     def factory(self):
         return RequestFactory()
+
+    def _populate_public_integration_request(self, request) -> None:
+        install = self.create_sentry_app_installation(organization=self.organization)
+        token = install.api_token
+
+        with assume_test_silo_mode_of(User):
+            request.user = User.objects.get(id=install.sentry_app.proxy_user_id)
+        request.auth = token
+
+    def _populate_internal_integration_request(self, request) -> None:
+        internal_integration = self.create_internal_integration(
+            name="my_app",
+            organization=self.organization,
+            scopes=("project:read",),
+            webhook_url="http://example.com",
+        )
+        token = self.create_internal_integration_token(
+            user=self.user,
+            internal_integration=internal_integration,
+        )
+        with assume_test_silo_mode_of(User):
+            request.user = User.objects.get(id=internal_integration.proxy_user_id)
+        request.auth = token
 
     class TestEndpoint(Endpoint):
         enforce_rate_limit = True
@@ -147,11 +171,11 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
         self.middleware.process_view(request, self._test_endpoint, [], {})
         assert request.rate_limit_category == RateLimitCategory.USER
 
-        self.populate_public_integration_request(request)
+        self._populate_public_integration_request(request)
         self.middleware.process_view(request, self._test_endpoint, [], {})
         assert request.rate_limit_category == RateLimitCategory.ORGANIZATION
 
-        self.populate_internal_integration_request(request)
+        self._populate_internal_integration_request(request)
         self.middleware.process_view(request, self._test_endpoint, [], {})
         assert request.rate_limit_category == RateLimitCategory.ORGANIZATION
 

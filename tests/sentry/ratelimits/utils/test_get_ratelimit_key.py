@@ -13,14 +13,8 @@ from sentry.models.user import User
 from sentry.ratelimits import get_rate_limit_config, get_rate_limit_key
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.services.hybrid_cloud.auth import AuthenticatedToken
-from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import (
-    all_silo_test,
-    assume_test_silo_mode,
-    assume_test_silo_mode_of,
-    region_silo_test,
-)
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode_of, region_silo_test
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 CONCURRENT_RATE_LIMIT = 20
@@ -57,7 +51,7 @@ class GetRateLimitKeyTest(TestCase):
         install = self.create_sentry_app_installation(organization=self.organization)
         token = install.api_token
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(User):
             request.user = User.objects.get(id=install.sentry_app.proxy_user_id)
         request.auth = token
 
@@ -73,7 +67,7 @@ class GetRateLimitKeyTest(TestCase):
             internal_integration=internal_integration,
         )
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(User):
             request.user = User.objects.get(id=internal_integration.proxy_user_id)
         request.auth = token
 
@@ -200,7 +194,7 @@ class GetRateLimitKeyTest(TestCase):
         # Test for INTERNAL Integration api tokens
         self._populate_internal_integration_request(self.request)
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(SentryAppInstallation, SentryAppInstallationToken):
             # Ensure that the internal integration token lives in
             # SentryAppInstallationToken instead of SentryAppInstallation
             assert not SentryAppInstallation.objects.filter(api_token_id=self.request.auth.id)
