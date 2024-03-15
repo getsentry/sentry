@@ -12,8 +12,8 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
-# hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
 env:
+  # hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
   NODE_OPTIONS: '--max-old-space-size=4096'
 
@@ -24,12 +24,13 @@ jobs:
     timeout-minutes: 3
     # Map a step output to a job output
     outputs:
-      eslint_config: ${{ steps.changes.outputs.eslint_config }}
-      frontend: ${{ steps.changes.outputs.frontend_all }}
-      frontend_components_modified_lintable: ${{ steps.changes.outputs.frontend_components_modified_lintable }}
-      frontend_components_modified_lintable_files: ${{ steps.changes.outputs.frontend_components_modified_lintable_files }}
-      frontend_modified_lintable_files: ${{ steps.changes.outputs.frontend_modified_lintable_files }}
-      yarn_lockfile: ${{ steps.changes.outputs.yarn_lockfile }}
+      lintable_css_in_js_modified_files: ${{ steps.changes.outputs.lintable_css_in_js_modified_files }}
+      lintable_css_in_js_rules_changed: ${{ steps.changes.output.lintable_css_in_js_rules_changed }}
+      lintable_modified_files: ${{ steps.changes.outputs.lintable_modified_files }}
+      lintable_rules_changed: ${{ steps.changes.outputs.lintable_rules_changed }}
+      testable_and_modified_files: ${{ steps.changes.outputs.testable_and_modified_files }}
+      testable_rules_changed: ${{ steps.changes.outputs.testable_rules_changed }}
+      frontend_src: ${{ steps.changes.outputs.frontend_src }}
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
@@ -42,7 +43,7 @@ jobs:
           list-files: shell
 
   typescript-and-lint:
-    if: needs.files-changed.outputs.frontend == 'true'
+    if: needs.files-changed.outputs.frontend_src == 'true'
     needs: files-changed
     name: typescript and lint
     runs-on: ubuntu-22.04
@@ -70,61 +71,47 @@ jobs:
           echo "::add-matcher::.github/tsc.json"
           echo "::add-matcher::.github/eslint-stylish.json"
 
-      - name: eslint logic
-        id: eslint
-        if: (github.ref == 'refs/heads/master' || needs.files-changed.outputs.eslint_config == 'true' || needs.files-changed.outputs.yarn_lockfile == 'true')
-        run: echo "all-files=true" >> "$GITHUB_OUTPUT"
-
-      # Lint entire frontend if:
-      # - this is on main branch
-      # - eslint configuration in repo has changed
-      # - yarn lockfile has changed (i.e. we bump our eslint config)
-      - name: eslint
-        if: steps.eslint.outputs.all-files == 'true'
-        env:
-          # Run relax config on main branch (and stricter config for changed files)
-          SENTRY_ESLINT_RELAXED: 1
+      - name: lint
+        if: github.ref == 'refs/heads/master' || needs.files-changed.outputs.lintable_rules_changed != 'true' || needs.files-changed.outputs.lintable_css_in_js_rules_changed != 'true'
         run: yarn lint
 
-      # Otherwise... only lint modified files
-      # Note `eslint --fix` will not fail when it auto fixes files
+      - name: biome
+        if: github.ref != 'refs/heads/master'
+        run: yarn biome check . --apply
+
+      - name: prettier (changed files only)
+        if: github.ref != 'refs/heads/master' && needs.files-changed.outputs.lintable_rules_changed != 'true'
+        run: yarn prettier --write ${{ needs.files-changed.outputs.lintable_modified_files }}
+
       - name: eslint (changed files only)
-        if: steps.eslint.outputs.all-files != 'true'
-        run: |
-          yarn eslint --fix ${{ needs.files-changed.outputs.frontend_modified_lintable_files }}
+        if: github.ref != 'refs/heads/master' && needs.files-changed.outputs.lintable_rules_changed != 'true'
+        run: yarn eslint --fix ${{ needs.files-changed.outputs.lintable_modified_files }}
 
       - name: stylelint (changed files only)
-        if: github.ref != 'refs/heads/master' && needs.files-changed.outputs.frontend_components_modified_lintable == 'true'
-        run: |
-          yarn stylelint ${{ needs.files-changed.outputs.frontend_components_modified_lintable_files }}
-
-      - name: biome
-        if: github.ref != 'refs/heads/master' && needs.files-changed.outputs.frontend_components_modified_lintable == 'true'
-        run: yarn biome check . --apply
+        if: github.ref != 'refs/heads/master' && needs.files-changed.outputs.lintable_css_in_js_rules_changed != 'true'
+        run: yarn stylelint ${{ needs.files-changed.outputs.lintable_css_in_js_modified_files }}
 
       # Check (and error) for dirty working tree for forks
       # Reason being we need a different token to auto commit changes and
       # forks do not have access to said token
       - name: Check for dirty git working tree (forks)
-        if: steps.token.outcome != 'success' && github.ref != 'refs/heads/master'
+        if: github.ref != 'refs/heads/master' && steps.token.outcome != 'success'
         run: |
           git diff --quiet || (echo '::error ::lint produced file changes, run linter locally and try again' && exit 1)
 
       # If working tree is dirty, commit and update if we have a token
       - name: Commit any eslint fixed files
-        if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master'
+        if: github.ref != 'refs/heads/master' && steps.token.outcome == 'success'
         uses: getsentry/action-github-commit@748c31dd78cffe76f51bef49a0be856b6effeda7 # v1.1.0
         with:
           github-token: ${{ steps.token.outputs.token }}
           message: ':hammer_and_wrench: apply eslint style fixes'
 
       - name: tsc
-        id: tsc
-        if: steps.dependencies.outcome == 'success'
         run: yarn tsc -p config/tsconfig.ci.json
 
   frontend-jest-tests:
-    if: needs.files-changed.outputs.frontend == 'true'
+    if: github.ref == 'refs/heads/master' || needs.files-changed.outputs.testable_rules_changed == 'true'
     needs: files-changed
     name: Jest
     # If you change the runs-on image, you must also change the runner in jest-balance.yml
@@ -186,7 +173,7 @@ jobs:
       # it reduces large coverage fluctuations.
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
-        if: ${{ always() && needs.files-changed.outputs.frontend_all == 'true' }}
+        if: always()
         with:
           files: .artifacts/coverage/*
           type: frontend
