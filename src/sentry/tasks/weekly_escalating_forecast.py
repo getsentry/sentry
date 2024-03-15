@@ -30,7 +30,7 @@ ITERATOR_CHUNK = 10_000
 @instrumented_task(
     name="sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
     queue="weekly_escalating_forecast",
-    max_retries=0,  # TODO: Increase this when the task is changed to run weekly
+    max_retries=0,
     silo_mode=SiloMode.REGION,
 )
 @monitor(monitor_slug="escalating-issue-forecast-job-monitor")
