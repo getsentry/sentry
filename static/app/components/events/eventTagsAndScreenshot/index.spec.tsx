@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
 import {EventFixture} from 'sentry-fixture/event';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -10,6 +12,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {TagFilter} from 'sentry/components/events/eventTags/util';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import GlobalModal from 'sentry/components/globalModal';
 import type {EventAttachment} from 'sentry/types';
@@ -118,7 +121,7 @@ describe('EventTagsAndScreenshot', function () {
 
   const event = EventFixture({user});
 
-  const {organization, project, router} = initializeOrg({
+  const {organization, project} = initializeOrg({
     organization: {
       orgRole: 'member',
       attachmentsRole: 'member',
@@ -189,9 +192,7 @@ describe('EventTagsAndScreenshot', function () {
       render(
         <EventTagsAndScreenshot
           event={EventFixture({...event, tags, contexts})}
-          organization={organization}
           projectSlug={project.slug}
-          location={router.location}
         />,
         {organization}
       );
@@ -236,9 +237,7 @@ describe('EventTagsAndScreenshot', function () {
       render(
         <EventTagsAndScreenshot
           event={EventFixture({...event, tags, contexts})}
-          organization={organization}
           projectSlug={project.slug}
-          location={router.location}
           isShare
         />,
         {organization}
@@ -255,9 +254,7 @@ describe('EventTagsAndScreenshot', function () {
       render(
         <EventTagsAndScreenshot
           event={EventFixture({...event, tags, contexts})}
-          organization={organization}
           projectSlug={project.slug}
-          location={router.location}
           isShare
         />
       );
@@ -284,9 +281,7 @@ describe('EventTagsAndScreenshot', function () {
           <GlobalModal />
           <EventTagsAndScreenshot
             event={EventFixture({user: {}, contexts: {}})}
-            organization={organization}
             projectSlug={project.slug}
-            location={router.location}
           />
         </Fragment>,
         {organization}
@@ -339,9 +334,7 @@ describe('EventTagsAndScreenshot', function () {
       render(
         <EventTagsAndScreenshot
           event={EventFixture({...event, tags, contexts})}
-          organization={organization}
           projectSlug={project.slug}
-          location={router.location}
         />,
         {organization}
       );
@@ -396,9 +389,7 @@ describe('EventTagsAndScreenshot', function () {
       render(
         <EventTagsAndScreenshot
           event={EventFixture({...event, tags, contexts})}
-          organization={organization}
           projectSlug={project.slug}
-          location={router.location}
         />,
         {organization}
       );
@@ -439,9 +430,7 @@ describe('EventTagsAndScreenshot', function () {
       render(
         <EventTagsAndScreenshot
           event={EventFixture({...event, tags, contexts})}
-          organization={organization}
           projectSlug={project.slug}
-          location={router.location}
         />,
         {organization}
       );
@@ -473,9 +462,7 @@ describe('EventTagsAndScreenshot', function () {
       render(
         <EventTagsAndScreenshot
           event={EventFixture({...event, contexts})}
-          organization={organization}
           projectSlug={project.slug}
-          location={router.location}
         />,
         {organization}
       );
@@ -502,12 +489,7 @@ describe('EventTagsAndScreenshot', function () {
 
     it('has tags and attachments only', async function () {
       render(
-        <EventTagsAndScreenshot
-          event={{...event, tags}}
-          organization={organization}
-          projectSlug={project.slug}
-          location={router.location}
-        />,
+        <EventTagsAndScreenshot event={{...event, tags}} projectSlug={project.slug} />,
         {organization}
       );
 
@@ -529,6 +511,155 @@ describe('EventTagsAndScreenshot', function () {
       // Tags
       const tagsContainer = within(screen.getByTestId('event-tags'));
       expect(tagsContainer.getAllByRole('listitem')).toHaveLength(tags.length);
+    });
+  });
+
+  describe("renders changes for 'event-tags-new-ui' flag", function () {
+    const featuredOrganization = OrganizationFixture({
+      features: ['event-attachments', 'event-tags-tree-ui'],
+    });
+    const router = RouterFixture({
+      location: {
+        query: {tagsTree: '1'},
+      },
+    });
+    function assertNewTagsView() {
+      expect(screen.getByText('Tags')).toBeInTheDocument();
+      // Ensure context isn't added in tag section
+      const contextItems = screen.queryByTestId('context-item');
+      expect(contextItems).not.toBeInTheDocument();
+      // Ensure tag filter appears
+      const tagsContainer = within(screen.getByTestId('event-tags'));
+      expect(tagsContainer.getAllByRole('radio')).toHaveLength(
+        Object.keys(TagFilter).length
+      );
+    }
+
+    function assertFlagAndQueryParamWork() {
+      const flaggedOrgTags = render(
+        <EventTagsAndScreenshot
+          event={EventFixture({...event, tags, contexts})}
+          projectSlug={project.slug}
+        />,
+        {organization: featuredOrganization}
+      );
+      assertNewTagsView();
+      flaggedOrgTags.unmount();
+
+      const flaggedOrgTagsAsShare = render(
+        <EventTagsAndScreenshot
+          event={EventFixture({...event, tags, contexts})}
+          projectSlug={project.slug}
+          isShare
+        />,
+        {organization: featuredOrganization}
+      );
+      assertNewTagsView();
+      flaggedOrgTagsAsShare.unmount();
+
+      const queryParamTags = render(
+        <EventTagsAndScreenshot
+          event={EventFixture({...event, tags, contexts})}
+          projectSlug={project.slug}
+        />,
+        {organization, router}
+      );
+      assertNewTagsView();
+      queryParamTags.unmount();
+
+      const queryParamTagsAsShare = render(
+        <EventTagsAndScreenshot
+          event={EventFixture({...event, tags, contexts})}
+          projectSlug={project.slug}
+          isShare
+        />,
+        {organization, router}
+      );
+      assertNewTagsView();
+      queryParamTagsAsShare.unmount();
+    }
+
+    it('no context, tags only', function () {
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
+        body: [],
+      });
+      assertFlagAndQueryParamWork();
+    });
+
+    it('no context, tags and screenshot', function () {
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
+        body: attachments,
+      });
+      assertFlagAndQueryParamWork();
+    });
+
+    it("allows filtering with 'event-tags-new-ui' flag", async function () {
+      MockApiClient.addMockResponse({
+        url: `/projects/${featuredOrganization.slug}/${project.slug}/events/${event.id}/attachments/`,
+        body: [],
+      });
+      const applicationTags = [
+        {key: 'app', value: 'Sentry'},
+        {key: 'app.app_start_time', value: '2008-05-08T00:00:00.000Z'},
+        {key: 'app.app_name', value: 'com.sentry.app'},
+        {key: 'app.app_version', value: '0.0.2'},
+      ];
+      const customTags = [
+        {key: 'custom', value: 'some-value'},
+        {key: 'custom.nested', value: 'some-other-value'},
+      ];
+      const allTags = applicationTags.concat(customTags);
+      const testEvent = EventFixture({tags: allTags});
+      render(<EventTagsAndScreenshot projectSlug={project.slug} event={testEvent} />, {
+        organization: featuredOrganization,
+      });
+      let rows = screen.getAllByTestId('tag-tree-row');
+      expect(rows).toHaveLength(allTags.length);
+
+      await userEvent.click(screen.getByTestId(TagFilter.APPLICATION));
+      rows = screen.getAllByTestId('tag-tree-row');
+      expect(rows).toHaveLength(applicationTags.length);
+
+      // Hide categories that don't have tags for this event
+      expect(screen.queryByTestId(TagFilter.CLIENT)).not.toBeInTheDocument();
+      expect(screen.queryByTestId(TagFilter.OTHER)).not.toBeInTheDocument();
+
+      // Always show 'Custom' and 'All' selectors though
+      await userEvent.click(screen.getByTestId(TagFilter.CUSTOM));
+      rows = screen.getAllByTestId('tag-tree-row');
+      expect(rows).toHaveLength(customTags.length);
+
+      await userEvent.click(screen.getByTestId(TagFilter.ALL));
+      rows = screen.getAllByTestId('tag-tree-row');
+      expect(rows).toHaveLength(allTags.length);
+    });
+
+    it("promotes custom tags with 'event-tags-new-ui' flag", async function () {
+      MockApiClient.addMockResponse({
+        url: `/projects/${featuredOrganization.slug}/${project.slug}/events/${event.id}/attachments/`,
+        body: [],
+      });
+      const applicationTags = [
+        {key: 'app', value: 'Sentry'},
+        {key: 'app.app_start_time', value: '2008-05-08T00:00:00.000Z'},
+        {key: 'app.app_name', value: 'com.sentry.app'},
+        {key: 'app.app_version', value: '0.0.2'},
+      ];
+      const testEvent = EventFixture({tags: applicationTags});
+      render(<EventTagsAndScreenshot projectSlug={project.slug} event={testEvent} />, {
+        organization: featuredOrganization,
+      });
+      const rows = screen.getAllByTestId('tag-tree-row');
+      expect(rows).toHaveLength(applicationTags.length);
+
+      expect(screen.queryByTestId(TagFilter.CLIENT)).not.toBeInTheDocument();
+      expect(screen.queryByTestId(TagFilter.OTHER)).not.toBeInTheDocument();
+
+      // Even without custom tags, show the banner when category is selected
+      await userEvent.click(screen.getByTestId(TagFilter.CUSTOM));
+      expect(screen.getByTestId('event-tags-custom-banner')).toBeInTheDocument();
     });
   });
 });

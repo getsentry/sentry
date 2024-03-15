@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from base64 import b64encode
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 from typing import Any
 from unittest.mock import patch
 
@@ -11,7 +11,7 @@ import responses
 from dateutil.parser import parse as parse_date
 from django.core import mail
 from django.db import router
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 from rest_framework import status
 
 from sentry import audit_log
@@ -242,9 +242,9 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         data = {"trustedRelays": trusted_relays}
 
         with self.feature("organizations:relay"):
-            start_time = datetime.now(timezone.utc)
+            start_time = timezone.now()
             self.get_success_response(self.organization.slug, method="put", **data)
-            end_time = datetime.now(timezone.utc)
+            end_time = timezone.now()
             response = self.get_success_response(self.organization.slug)
 
         response_data = response.data.get("trustedRelays")
@@ -425,6 +425,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "defaultRole": "owner",
             "require2FA": True,
             "allowJoinRequests": False,
+            "customMetricsAccess": True,
         }
 
         # needed to set require2FA
@@ -458,6 +459,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert options.get("sentry:scrape_javascript") is False
         assert options.get("sentry:join_requests") is False
         assert options.get("sentry:events_member_admin") is False
+        assert options.get("sentry:custom_metrics_access") is True
 
         # log created
         with assume_test_silo_mode_of(AuditLogEntry):
@@ -577,9 +579,9 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         data = {"trustedRelays": trusted_relays}
 
         with self.feature("organizations:relay"), outbox_runner():
-            start_time = datetime.now(timezone.utc)
+            start_time = timezone.now()
             response = self.get_success_response(self.organization.slug, **data)
-            end_time = datetime.now(timezone.utc)
+            end_time = timezone.now()
             response_data = response.data.get("trustedRelays")
 
         actual = get_trusted_relay_value(self.organization)
@@ -661,11 +663,11 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         changed_settings = {"trustedRelays": modified_trusted_relays}
 
         with self.feature("organizations:relay"), outbox_runner():
-            start_time = datetime.now(timezone.utc)
+            start_time = timezone.now()
             self.get_success_response(self.organization.slug, **initial_settings)
-            after_initial = datetime.now(timezone.utc)
+            after_initial = timezone.now()
             self.get_success_response(self.organization.slug, **changed_settings)
-            after_final = datetime.now(timezone.utc)
+            after_final = timezone.now()
 
         actual = get_trusted_relay_value(self.organization)
         assert len(actual) == len(modified_trusted_relays)
@@ -909,7 +911,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
 
         schedule = RegionScheduledDeletion.objects.get(object_id=org.id, model_name="Organization")
         # Delay is 24 hours but to avoid wobbling microseconds we compare with 23 hours.
-        assert schedule.date_scheduled >= django_timezone.now() + timedelta(hours=23)
+        assert schedule.date_scheduled >= timezone.now() + timedelta(hours=23)
 
         # Make sure we've emailed all owners
         assert len(mail.outbox) == len(owners)

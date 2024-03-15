@@ -100,6 +100,7 @@ export function ScreenLoadSampleContainer({
   const {data} = useSpanMetrics({
     filters: {...filters, ...additionalFilters},
     fields: [`avg(${SPAN_SELF_TIME})`, 'count()', SPAN_OP],
+    enabled: Boolean(groupId) && Boolean(transactionName),
     referrer: 'api.starfish.span-summary-panel-samples-table-avg',
   });
 

@@ -1,25 +1,19 @@
 from collections.abc import Sequence
 
-from snuba_sdk import (
-    AliasedExpression,
-    ArithmeticOperator,
-    Column,
-    Condition,
-    Formula,
-    Op,
-    Timeseries,
-)
+from snuba_sdk import AliasedExpression, Column, Condition, Formula, Op, Timeseries
 from snuba_sdk.conditions import ConditionGroup
 
 from sentry.models.environment import Environment
-from sentry.sentry_metrics.querying.errors import (
-    InvalidMetricsQueryError,
-    NonNormalizableUnitsError,
-)
+from sentry.sentry_metrics.querying.common import COEFFICIENT_OPERATORS
+from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
 from sentry.sentry_metrics.querying.types import QueryExpression
 from sentry.sentry_metrics.querying.units import (
-    MeasurementUnit,
-    UnitFamily,
+    Unit,
+    UnitMetadata,
+    WithFutureUnit,
+    WithNoUnit,
+    WithUnit,
+    get_reference_unit_for_unit_family,
     get_unit_family_and_unit,
 )
 from sentry.sentry_metrics.querying.visitors.base import (
@@ -56,6 +50,15 @@ class TimeseriesConditionInjectionVisitor(QueryExpressionVisitor[QueryExpression
 
     def __init__(self, condition_group: ConditionGroup):
         self._condition_group = condition_group
+
+    def _visit_formula(self, formula: Formula) -> QueryExpression:
+        if self._condition_group:
+            current_filters = formula.filters if formula.filters else []
+            current_filters.extend(self._condition_group)
+
+            return formula.set_filters(current_filters)
+
+        return formula
 
     def _visit_timeseries(self, timeseries: Timeseries) -> QueryExpression:
         if self._condition_group:
@@ -276,92 +279,161 @@ class UsedGroupBysVisitor(QueryExpressionVisitor[set[str]]):
         return string_group_bys
 
 
-class UnitsNormalizationVisitor(QueryExpressionVisitor[QueryExpression]):
+class UnitsNormalizationV2Visitor(QueryExpressionVisitor[tuple[UnitMetadata, QueryExpression]]):
     """
-    Visitor that recursively transforms the `QueryExpression` components to have the same unit. Throws an error in
-    case units are incompatible.
+    Visitor that recursively transforms the `QueryExpression` components to have the same unit.
     """
 
-    UNITLESS_FORMULA_FUNCTIONS = {
-        ArithmeticOperator.DIVIDE.value,
-        ArithmeticOperator.MULTIPLY.value,
-    }
     UNITLESS_AGGREGATES = {"count", "count_unique"}
 
     def __init__(self):
         self._unit_family = None
-        self._reference_unit = None
-        self._scaling_factor = None
 
-        self._is_formula = False
-
-    def _visit_formula(self, formula: Formula) -> QueryExpression:
-        self._is_formula = True
+    def _visit_formula(self, formula: Formula) -> tuple[UnitMetadata, QueryExpression]:
+        last_metadata: WithUnit | None = None
+        future_units = []
 
         has_all_timeseries_params = True
+        has_all_futures = True
+
         parameters = []
-        for parameter in formula.parameters:
+        for index, parameter in enumerate(formula.parameters):
             if not isinstance(parameter, Timeseries):
                 has_all_timeseries_params = False
 
-            parameters.append(self.visit(parameter))
+            unit_metadata, query_expression = self.visit(parameter)
+            if isinstance(unit_metadata, WithNoUnit):
+                return unit_metadata, formula
+            elif isinstance(unit_metadata, WithFutureUnit):
+                future_units.append((index, query_expression))
+                parameters.append(query_expression)
+            elif isinstance(unit_metadata, WithUnit):
+                has_all_futures = False
+                if (
+                    last_metadata is not None
+                    and unit_metadata.unit_family != last_metadata.unit_family
+                ):
+                    return WithNoUnit(), formula
 
-        # If we have all timeseries as parameters of a formula and the function is belonging to `*` or `/` we will
-        # not perform any units normalization.
-        # TODO: we might want to implement units normalization following a more mathematical approach like `ms^2` or
-        #  `byte/s` but this is going to come at a later point.
-        if formula.function_name in self.UNITLESS_FORMULA_FUNCTIONS and has_all_timeseries_params:
-            raise NonNormalizableUnitsError(
-                "A unitless formula function is being used and has at least one "
-                "timeseries in one of its operands"
-            )
+                last_metadata = unit_metadata
+                parameters.append(query_expression)
 
-        return formula.set_parameters(parameters)
+        # If we have only future unit types, we know that the formula will be a future itself.
+        # TODO: we might want to execute in-memory the formulas with all scalars to avoid making bigger queries.
+        if has_all_futures:
+            return WithFutureUnit(), formula
 
-    def _visit_timeseries(self, timeseries: Timeseries) -> QueryExpression:
+        # If we have no metadata here, it means that all parameters of the formula can't be normalized.
+        if last_metadata is None:
+            return WithNoUnit(), formula
+
+        has_coefficient_operators = formula.function_name in COEFFICIENT_OPERATORS
+
+        # If we have all timeseries as parameters of a formula and the function belongs to `*` or `/` we will
+        # not perform any normalization.
+        if has_coefficient_operators and has_all_timeseries_params:
+            return WithNoUnit(), formula
+
+        # We convert all scalars in the formula using the last seen scaling factor. Since we are always working with
+        # two operands, this means that if we found at least one numeric scalar, the scaling factor will belong to the
+        # other operand.
+        # It's important to note that we are not doing any scalar normalization if we have a coefficient operator, since
+        # we don't want to scale both operands.
+        # Example:
+        #  a * 2 with a scaling factor of 1000 must become a * 1000 * 2 and not a * 1000 * 2 * 1000
+        if not has_coefficient_operators and future_units and last_metadata.unit is not None:
+            for index, future_unit in future_units:
+                parameters[index] = self._normalize_future_units(last_metadata.unit, future_unit)
+
+        # We want to find the reference unit of the unit family in the formula.
+        formula_reference_unit = get_reference_unit_for_unit_family(last_metadata.unit_family)
+        if formula_reference_unit is None:
+            return WithNoUnit(), formula
+
+        # The new formula unit is the reference unit, since we know that all of its operands have been converted to
+        # the reference unit at this point.
+        return WithUnit(
+            unit_family=last_metadata.unit_family,
+            reference_unit=formula_reference_unit.name,
+            unit=formula_reference_unit,
+            from_formula=True,
+        ), formula.set_parameters(parameters)
+
+    def _visit_timeseries(self, timeseries: Timeseries) -> tuple[UnitMetadata, QueryExpression]:
         extracted_unit = self._extract_unit(timeseries=timeseries)
         if extracted_unit is not None:
-            unit_family, reference_unit, unit = get_unit_family_and_unit(extracted_unit)
-            # If we encounter multiple unit families in a `QueryExpression`, we want to unwind and not apply any
-            # units normalization.
-            if self._unit_family is not None and unit_family != self._unit_family:
-                raise NonNormalizableUnitsError("Multiple unit families are found in the formula")
+            unit_family_and_unit = get_unit_family_and_unit(extracted_unit)
+            if unit_family_and_unit is not None:
+                unit_family, reference_unit, unit = unit_family_and_unit
+                return WithUnit(
+                    unit_family=unit_family, reference_unit=reference_unit, unit=unit
+                ), unit.apply_on_query_expression(timeseries)
 
-            # We set the first seen unit family, irrespectively if a unit is found, since if it's not found, the family
-            # will be unknown.
-            self._unit_family = unit_family
+        return WithNoUnit(), timeseries
 
-            if reference_unit is not None and unit is not None:
-                self._reference_unit = reference_unit
-                self._scaling_factor = unit.scaling_factor
-                return unit.apply_on_timeseries(timeseries)
+    def _visit_int(self, int_number: float) -> tuple[UnitMetadata, QueryExpression]:
+        return WithFutureUnit(), int_number
 
-        return timeseries
+    def _visit_float(self, float_number: float) -> tuple[UnitMetadata, QueryExpression]:
+        return WithFutureUnit(), float_number
+
+    def _visit_string(self, string: str) -> tuple[UnitMetadata, QueryExpression]:
+        return WithNoUnit(), string
 
     def _extract_unit(self, timeseries: Timeseries) -> str | None:
-        # If the aggregate doesn't support unit normalization, we will skip it.
+        """
+        Extracts the unit from the timeseries, by parsing its MRI.
+        """
         if timeseries.aggregate in self.UNITLESS_AGGREGATES:
-            raise NonNormalizableUnitsError(
-                f"The aggregate {timeseries.aggregate} doesn't need unit normalization"
-            )
+            return None
 
         parsed_mri = parse_mri(timeseries.metric.mri)
         if parsed_mri is not None:
             return parsed_mri.unit
 
-        raise NonNormalizableUnitsError(
-            "Units normalization can't be run if not all components have a metric mri"
-        )
+        return None
 
-    def get_units_metadata(
-        self,
-    ) -> tuple[UnitFamily | None, MeasurementUnit | None, float | int | None]:
+    def _normalize_future_units(self, unit: Unit, value: QueryExpression) -> QueryExpression:
         """
-        Returns metadata of the units that were encountered during the traversal.
+        Normalizes all future units, which in our case are just numeric scalars, using a common unit. This assumes
+        that such numbers are used in the context of the unit and as such they need to be scaled by a certain factor
+        to be normalized to the reference unit.
         """
-        # If we have a formula, we do not return the scaling factor, since a formula technically has multiple scaling
-        # factors, but they won't be of use to the frontend.
-        if self._is_formula:
-            return self._unit_family, self._reference_unit, None
+        return NumericScalarsNormalizationVisitor(unit).visit(value)
 
-        return self._unit_family, self._reference_unit, self._scaling_factor
+
+class NumericScalarsNormalizationVisitor(QueryExpressionVisitor[QueryExpression]):
+    """
+    Visitor that recursively applies a unit transformation on all the numeric scalars in a `QueryExpression`.
+    """
+
+    def __init__(self, unit: Unit):
+        self._unit = unit
+
+    def _visit_formula(self, formula: Formula) -> QueryExpression:
+        has_coefficient_operators = formula.function_name in COEFFICIENT_OPERATORS
+
+        # In case the formula has a coefficient operator with all scalars, we want to scale the entire formula by
+        # wrapping it in another formula. For all the other cases, we just want to apply the scaling to each component
+        # of the formula, to make the formula less deep.
+        # Example:
+        #  scaling (a * b) by 1000 = (a * b) * 1000
+        #  scaling (a + b) by 1000 = (a * 1000 + b * 1000) in this case the multiplication is performed in-memory
+        if has_coefficient_operators:
+            has_all_scalars = True
+            for parameter in formula.parameters:
+                if not self._is_numeric_scalar(parameter):
+                    has_all_scalars = False
+
+            return self._unit.apply_on_query_expression(formula) if has_all_scalars else formula
+
+        return super()._visit_formula(formula)
+
+    def _visit_int(self, int_number: float) -> QueryExpression:
+        return self._unit.apply_on_query_expression(int_number)
+
+    def _visit_float(self, float_number: float) -> QueryExpression:
+        return self._unit.apply_on_query_expression(float_number)
+
+    def _is_numeric_scalar(self, value: QueryExpression) -> bool:
+        return isinstance(value, int) or isinstance(value, float)

@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import time
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from hashlib import md5
 from typing import Any
 from unittest import mock
@@ -12,7 +12,7 @@ from unittest.mock import Mock, patch
 import pytest
 from django.db import router
 from django.test import override_settings
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 
 from sentry import buffer
 from sentry.buffer.redis import RedisBuffer
@@ -403,11 +403,12 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
         MOCK_RULES = ("sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",)
 
         redis_buffer = RedisBuffer()
-        with mock.patch("sentry.buffer.backend.get", redis_buffer.get), mock.patch(
-            "sentry.buffer.backend.incr", redis_buffer.incr
-        ), patch("sentry.constants._SENTRY_RULES", MOCK_RULES), patch(
-            "sentry.rules.processor.rules", init_registry()
-        ) as rules:
+        with (
+            mock.patch("sentry.buffer.backend.get", redis_buffer.get),
+            mock.patch("sentry.buffer.backend.incr", redis_buffer.incr),
+            patch("sentry.constants._SENTRY_RULES", MOCK_RULES),
+            patch("sentry.rules.rules", init_registry()) as rules,
+        ):
             MockAction = mock.Mock()
             MockAction.id = "tests.sentry.tasks.post_process.tests.MockAction"
             MockAction.return_value = mock.Mock(spec=EventAction)
@@ -481,7 +482,7 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
 
     @patch("sentry.rules.processor.RuleProcessor")
     def test_group_last_seen_buffer(self, mock_processor):
-        first_event_date = datetime.now(timezone.utc) - timedelta(days=90)
+        first_event_date = timezone.now() - timedelta(days=90)
         event1 = self.create_event(
             data={"message": "testing"},
             project_id=self.project.id,
@@ -635,7 +636,7 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
                 "message": "Foo bar",
                 "exception": {"type": "Foo", "value": "oh no"},
                 "level": "error",
-                "timestamp": iso_format(django_timezone.now()),
+                "timestamp": iso_format(timezone.now()),
             },
             project_id=self.project.id,
             assert_no_errors=False,
@@ -669,7 +670,7 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
             data={
                 "message": "Foo bar",
                 "level": "info",
-                "timestamp": iso_format(django_timezone.now()),
+                "timestamp": iso_format(timezone.now()),
             },
             project_id=self.project.id,
             assert_no_errors=False,
@@ -690,7 +691,7 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
             data={
                 "message": "Foo bar",
                 "level": "info",
-                "timestamp": iso_format(django_timezone.now()),
+                "timestamp": iso_format(timezone.now()),
             },
             project_id=self.project.id,
             assert_no_errors=False,
@@ -713,7 +714,7 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
                 "message": "Foo bar",
                 "level": "error",
                 "exception": {"type": "Foo", "value": "oh no"},
-                "timestamp": iso_format(django_timezone.now()),
+                "timestamp": iso_format(timezone.now()),
             },
             project_id=self.project.id,
             assert_no_errors=False,
@@ -1390,7 +1391,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
 class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
     github_blame_return_value = {
         "commitId": "asdfwreqr",
-        "committedDate": (datetime.now(timezone.utc) - timedelta(days=2)),
+        "committedDate": (timezone.now() - timedelta(days=2)),
         "commitMessage": "placeholder commit message",
         "commitAuthorName": "",
         "commitAuthorEmail": "admin@localhost",
@@ -1451,7 +1452,7 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
                 repo=self.repo,
                 commit=CommitInfo(
                     commitId="asdfwreqr",
-                    committedDate=(datetime.now(timezone.utc) - timedelta(days=2)),
+                    committedDate=(timezone.now() - timedelta(days=2)),
                     commitMessage="placeholder commit message",
                     commitAuthorName="",
                     commitAuthorEmail="admin@localhost",
@@ -1459,7 +1460,6 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
             )
         ]
 
-    @with_feature("organizations:commit-context")
     @patch(
         "sentry.integrations.github.GitHubIntegration.get_commit_context_all_frames",
         return_value=github_blame_return_value,
@@ -1481,7 +1481,6 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
 
         assert not mock_get_commit_context.called
 
-    @with_feature("organizations:commit-context")
     @patch(
         "sentry.integrations.github_enterprise.GitHubEnterpriseIntegration.get_commit_context_all_frames",
     )
@@ -1517,7 +1516,6 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
             type=GroupOwnerType.SUSPECT_COMMIT.value,
         )
 
-    @with_feature("organizations:commit-context")
     @patch("sentry.integrations.github.GitHubIntegration.get_commit_context_all_frames")
     def test_skip_when_not_is_new(self, mock_get_commit_context):
         """
@@ -1538,7 +1536,6 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
             type=GroupOwnerType.SUSPECT_COMMIT.value,
         ).exists()
 
-    @with_feature("organizations:commit-context")
     @patch(
         "sentry.integrations.github.GitHubIntegration.get_commit_context_all_frames",
     )
@@ -1590,9 +1587,7 @@ class SnoozeTestSkipSnoozeMixin(BasePostProgressGroupMixin):
         group.status = GroupStatus.IGNORED
         group.substatus = GroupSubStatus.UNTIL_CONDITION_MET
         group.save(update_fields=["status", "substatus"])
-        snooze = GroupSnooze.objects.create(
-            group=group, until=django_timezone.now() - timedelta(hours=1)
-        )
+        snooze = GroupSnooze.objects.create(group=group, until=timezone.now() - timedelta(hours=1))
 
         # Check for has_reappeared=True if is_new=False
         self.call_post_process_group(
@@ -1656,9 +1651,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         group.status = GroupStatus.IGNORED
         group.substatus = GroupSubStatus.UNTIL_CONDITION_MET
         group.save(update_fields=["status", "substatus"])
-        snooze = GroupSnooze.objects.create(
-            group=group, until=django_timezone.now() - timedelta(hours=1)
-        )
+        snooze = GroupSnooze.objects.create(group=group, until=timezone.now() - timedelta(hours=1))
 
         # Check for has_reappeared=True if is_new=False
         self.call_post_process_group(
@@ -1687,8 +1680,9 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.rules.processor.RuleProcessor")
     def test_invalidates_snooze_with_buffers(self, mock_processor, send_robust):
         redis_buffer = RedisBuffer()
-        with mock.patch("sentry.buffer.backend.get", redis_buffer.get), mock.patch(
-            "sentry.buffer.backend.incr", redis_buffer.incr
+        with (
+            mock.patch("sentry.buffer.backend.get", redis_buffer.get),
+            mock.patch("sentry.buffer.backend.incr", redis_buffer.incr),
         ):
             event = self.create_event(
                 data={"message": "testing", "fingerprint": ["group-1"]}, project_id=self.project.id
@@ -1726,9 +1720,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         group = event.group
         assert group.status == GroupStatus.UNRESOLVED
         assert group.substatus == GroupSubStatus.ONGOING
-        snooze = GroupSnooze.objects.create(
-            group=group, until=django_timezone.now() + timedelta(hours=1)
-        )
+        snooze = GroupSnooze.objects.create(group=group, until=timezone.now() + timedelta(hours=1))
 
         self.call_post_process_group(
             is_new=True,
@@ -1780,7 +1772,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         group = event.group
         group.status = GroupStatus.IGNORED
         group.substatus = GroupSubStatus.UNTIL_ESCALATING
-        group.update(first_seen=django_timezone.now() - timedelta(hours=1))
+        group.update(first_seen=timezone.now() - timedelta(hours=1))
         group.save()
         self.call_post_process_group(
             is_new=False,
@@ -2031,7 +2023,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
         group.update(
-            first_seen=django_timezone.now() - timedelta(hours=1),
+            first_seen=timezone.now() - timedelta(hours=1),
             times_seen=10,
             priority=PriorityLevel.LOW,
         )
@@ -2057,7 +2049,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
     def test_has_escalated_no_flag(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
-        group.update(first_seen=django_timezone.now() - timedelta(hours=1), times_seen=10000)
+        group.update(first_seen=timezone.now() - timedelta(hours=1), times_seen=10000)
 
         self.call_post_process_group(
             is_new=True,
@@ -2077,7 +2069,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
     def test_has_escalated_old(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
-        group.update(first_seen=django_timezone.now() - timedelta(days=2), times_seen=10000)
+        group.update(first_seen=timezone.now() - timedelta(days=2), times_seen=10000)
 
         with self.feature("projects:first-event-severity-new-escalation"):
             self.call_post_process_group(
@@ -2100,7 +2092,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
         group.update(
-            first_seen=django_timezone.now() - timedelta(hours=1),
+            first_seen=timezone.now() - timedelta(hours=1),
             times_seen=10,
             priority=PriorityLevel.LOW,
         )
@@ -2124,7 +2116,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
     def test_has_escalated_locked(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
-        group.update(first_seen=django_timezone.now() - timedelta(hours=1), times_seen=10000)
+        group.update(first_seen=timezone.now() - timedelta(hours=1), times_seen=10000)
         lock = locks.get(f"detect_escalation:{group.id}", duration=10, name="detect_escalation")
         with self.feature("projects:first-event-severity-new-escalation"), lock.acquire():
             self.call_post_process_group(
@@ -2151,7 +2143,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
             event=event,
         )
         group.update(
-            first_seen=django_timezone.now() - timedelta(hours=1),
+            first_seen=timezone.now() - timedelta(hours=1),
             times_seen=10000,
             substatus=GroupSubStatus.ESCALATING,
             priority=PriorityLevel.MEDIUM,
@@ -2179,7 +2171,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
             event = self.create_event(data={}, project_id=self.project.id)
             group = event.group
             group.update(
-                first_seen=django_timezone.now() - timedelta(hours=1),
+                first_seen=timezone.now() - timedelta(hours=1),
                 times_seen=10000,
                 status=status,
                 substatus=substatus,
@@ -2204,7 +2196,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
     def test_no_escalation_less_than_floor(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
-        group.update(first_seen=django_timezone.now() - timedelta(hours=1), times_seen=9)
+        group.update(first_seen=timezone.now() - timedelta(hours=1), times_seen=9)
         event.group = Group.objects.get(id=group.id)
 
         with self.feature("projects:first-event-severity-new-escalation"):
@@ -2226,7 +2218,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
         # the group is less than an hour old, but we use 1 hr for the hourly event rate anyway
-        group.update(first_seen=django_timezone.now() - timedelta(minutes=1), times_seen=10)
+        group.update(first_seen=timezone.now() - timedelta(minutes=1), times_seen=10)
         event.group = Group.objects.get(id=group.id)
 
         with self.feature("projects:first-event-severity-new-escalation"):
@@ -2246,7 +2238,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
     def test_zero_escalation_rate(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
-        group.update(first_seen=django_timezone.now() - timedelta(hours=1), times_seen=10000)
+        group.update(first_seen=timezone.now() - timedelta(hours=1), times_seen=10000)
         with self.feature("projects:first-event-severity-new-escalation"):
             self.call_post_process_group(
                 is_new=True,
@@ -2754,7 +2746,7 @@ class PostProcessGroupFeedbackTest(
         return cache_key
 
     def test_not_ran_if_crash_report_option_disabled(self):
-        self.project.update_option("sentry:replay_rage_click_issues", False)
+        self.project.update_option("sentry:feedback_user_report_notifications", False)
         event = self.create_event(
             data={},
             project_id=self.project.id,
@@ -2776,11 +2768,10 @@ class PostProcessGroupFeedbackTest(
                 event=event,
                 cache_key="total_rubbish",
             )
-        # assert mock_process_rules is not called
         assert mock_process_func.call_count == 0
 
     def test_not_ran_if_crash_report_project_option_enabled(self):
-        self.project.update_option("sentry:replay_rage_click_issues", True)
+        self.project.update_option("sentry:feedback_user_report_notifications", True)
 
         event = self.create_event(
             data={},
@@ -2803,7 +2794,55 @@ class PostProcessGroupFeedbackTest(
                 event=event,
                 cache_key="total_rubbish",
             )
-        # assert mock_process_rules is not called
+        assert mock_process_func.call_count == 1
+
+    def test_not_ran_if_crash_report_setting_option_epoch_0(self):
+        self.project.update_option("sentry:option-epoch", 1)
+        event = self.create_event(
+            data={},
+            project_id=self.project.id,
+            feedback_type=FeedbackCreationSource.CRASH_REPORT_EMBED_FORM,
+        )
+        mock_process_func = Mock()
+        with patch(
+            "sentry.tasks.post_process.GROUP_CATEGORY_POST_PROCESS_PIPELINE",
+            {
+                GroupCategory.FEEDBACK: [
+                    feedback_filter_decorator(mock_process_func),
+                ]
+            },
+        ):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+                cache_key="total_rubbish",
+            )
+        assert mock_process_func.call_count == 0
+
+    def test_ran_if_default_on_new_projects(self):
+        event = self.create_event(
+            data={},
+            project_id=self.project.id,
+            feedback_type=FeedbackCreationSource.CRASH_REPORT_EMBED_FORM,
+        )
+        mock_process_func = Mock()
+        with patch(
+            "sentry.tasks.post_process.GROUP_CATEGORY_POST_PROCESS_PIPELINE",
+            {
+                GroupCategory.FEEDBACK: [
+                    feedback_filter_decorator(mock_process_func),
+                ]
+            },
+        ):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+                cache_key="total_rubbish",
+            )
         assert mock_process_func.call_count == 1
 
     def test_ran_if_crash_feedback_envelope(self):

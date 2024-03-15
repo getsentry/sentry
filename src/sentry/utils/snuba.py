@@ -37,7 +37,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
 from sentry.snuba.referrer import validate_referrer
 from sentry.utils import json, metrics
-from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
+from sentry.utils.dates import outside_retention_with_modified_start
 
 logger = logging.getLogger(__name__)
 
@@ -134,7 +134,8 @@ SPAN_COLUMN_MAP = {
     "segment.id": "segment_id",
     "transaction.op": "transaction_op",
     "user": "user",
-    "profile_id": "profile_id",
+    "profile_id": "profile_id",  # deprecated in favour of `profile.id`
+    "profile.id": "profile_id",
     "transaction.method": "sentry_tags[transaction.method]",
     "system": "sentry_tags[system]",
     "raw_domain": "sentry_tags[raw_domain]",
@@ -1480,7 +1481,7 @@ def get_json_type(snuba_type):
 def get_snuba_translators(filter_keys, is_grouprelease=False):
     """
     Some models are stored differently in snuba, eg. as the environment
-    name instead of the the environment ID. Here we create and return forward()
+    name instead of the environment ID. Here we create and return forward()
     and reverse() translation functions that perform all the required changes.
 
     forward() is designed to work on the filter_keys and so should be called
@@ -1572,7 +1573,7 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
     reverse = compose(
         reverse,
         lambda row: (
-            replace(row, "time", int(to_timestamp(parse_datetime(row["time"]))))
+            replace(row, "time", int(parse_datetime(row["time"]).timestamp()))
             if "time" in row
             else row
         ),
@@ -1581,7 +1582,7 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
     reverse = compose(
         reverse,
         lambda row: (
-            replace(row, "bucketed_end", int(to_timestamp(parse_datetime(row["bucketed_end"]))))
+            replace(row, "bucketed_end", int(parse_datetime(row["bucketed_end"]).timestamp()))
             if "bucketed_end" in row
             else row
         ),

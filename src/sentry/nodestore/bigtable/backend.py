@@ -66,6 +66,7 @@ class BigtableNodeStorage(NodeStorage):
         rv.update(self.store.get_many(id_list))
         return rv
 
+    @sentry_sdk.tracing.trace
     def _set_bytes(self, id, data, ttl=None):
         self.store.set(id, data, ttl)
 

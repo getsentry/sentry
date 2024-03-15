@@ -10,6 +10,8 @@ from sentry.grouping.api import (
 )
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
+from sentry.testutils.helpers.options import override_options
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
 from tests.sentry.grouping import with_grouping_input
 
@@ -59,6 +61,8 @@ def dump_variant(variant, lines=None, indent=0):
 
 @with_grouping_input("grouping_input")
 @pytest.mark.parametrize("config_name", CONFIGURATIONS.keys(), ids=lambda x: x.replace("-", "_"))
+@django_db_all  # because of `options` usage
+@override_options({"grouping.rust_enhancers.compare_components": 1.0})
 def test_event_hash_variant(config_name, grouping_input, insta_snapshot, log):
     grouping_config = get_default_grouping_config_dict(config_name)
     evt = grouping_input.create_event(grouping_config)

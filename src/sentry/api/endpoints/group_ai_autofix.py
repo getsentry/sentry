@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
+from typing import Any
 
 import requests
 from django.conf import settings
@@ -71,16 +72,16 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
 
         return list(repos.values())
 
-    def _get_event_entries(
+    def _get_serialized_event(
         self, event_id: int, group: Group, user: AbstractBaseUser | AnonymousUser
-    ) -> list | None:
+    ) -> dict[str, Any] | None:
         event = eventstore.backend.get_event_by_id(group.project.id, event_id, group_id=group.id)
 
         if not event:
             return None
 
         serialized_event = serialize(event, user, EventSerializer())
-        return serialized_event["entries"]
+        return serialized_event
 
     def _make_error_metadata(self, autofix: dict, reason: str):
         return {
@@ -110,7 +111,7 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
         user: User | AnonymousUser,
         group: Group,
         repos: list[dict],
-        event_entries: list[dict],
+        serialized_event: dict[str, Any],
         additional_context: str,
         timeout_secs: int,
     ):
@@ -125,7 +126,7 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
                         "id": group.id,
                         "title": group.title,
                         "short_id": group.qualified_short_id,
-                        "events": [{"entries": event_entries}],
+                        "events": [serialized_event],
                     },
                     "additional_context": additional_context,
                     "timeout_secs": timeout_secs,
@@ -135,7 +136,7 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
                             "id": user.id,
                             "display_name": user.get_display_name(),
                         }
-                        if isinstance(user, User)
+                        if not isinstance(user, AnonymousUser)
                         else None
                     ),
                 }
@@ -164,6 +165,7 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
                     "index": 1,
                     "title": "Waiting to be picked up...",
                     "status": "PROCESSING",
+                    "progress": [],
                 }
             ],
         }
@@ -174,14 +176,14 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
             )
 
         # For now we only send the event that the user is looking at, in the near future we want to send multiple events.
-        event_entries = self._get_event_entries(event_id, group, request.user)
+        serialized_event = self._get_serialized_event(event_id, group, request.user)
 
-        if event_entries is None:
+        if serialized_event is None:
             return self._respond_with_error(
                 group, metadata, "Cannot fix issues without an event.", 400
             )
 
-        if not any([exception.get("type") == "exception" for exception in event_entries]):
+        if not any([entry.get("type") == "exception" for entry in serialized_event["entries"]]):
             return self._respond_with_error(
                 group, metadata, "Cannot fix issues without a stacktrace.", 400
             )
@@ -190,7 +192,10 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
 
         if not repos:
             return self._respond_with_error(
-                group, metadata, "Found no Github repositories linked to this project.", 400
+                group,
+                metadata,
+                "Found no Github repositories linked to this project. Please set up the Github Integration and code mappings if you haven't",
+                400,
             )
 
         try:
@@ -198,7 +203,7 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
                 request.user,
                 group,
                 repos,
-                event_entries,
+                serialized_event,
                 data.get("additional_context", ""),
                 TIMEOUT_SECONDS,
             )

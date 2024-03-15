@@ -8,7 +8,6 @@ from sentry.issues.issue_velocity import (
     DEFAULT_TTL,
     FALLBACK_TTL,
     STALE_DATE_KEY,
-    STRING_TO_DATETIME,
     THRESHOLD_KEY,
     TIME_TO_USE_EXISTING_THRESHOLD,
     calculate_threshold,
@@ -19,13 +18,14 @@ from sentry.issues.issue_velocity import (
 )
 from sentry.tasks.post_process import locks
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import iso_format
+from sentry.testutils.helpers.datetime import freeze_time, iso_format
 from sentry.testutils.silo import region_silo_test
 
 WEEK_IN_HOURS = 7 * 24
 
 
 @region_silo_test
+@freeze_time()
 class IssueVelocityTests(TestCase, SnubaTestCase):
     def setUp(self):
         self.now = timezone.now()
@@ -183,7 +183,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
         redis_client.set(THRESHOLD_KEY.format(project_id=self.project.id), 1.2)
         redis_client.set(
             STALE_DATE_KEY.format(project_id=self.project.id),
-            str(self.utcnow - timedelta(days=1)),
+            str(self.utcnow - timedelta(days=1, seconds=1)),
         )
         mock_update.return_value = 1.5
         assert get_latest_threshold(self.project) == 1.5
@@ -245,12 +245,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
         assert redis_client.get("threshold-key") == "5"
         stored_date = redis_client.get("date-key")
         assert isinstance(stored_date, str)
-        # self.utcnow and the datetime.utcnow() used in the update method may vary in milliseconds so we can't do a direct comparison
-        assert (
-            0
-            <= (datetime.strptime(stored_date, STRING_TO_DATETIME) - self.utcnow).total_seconds()
-            < 1
-        )
+        assert datetime.fromisoformat(stored_date) == self.utcnow
         assert redis_client.ttl("threshold-key") == DEFAULT_TTL
         assert redis_client.ttl("date-key") == DEFAULT_TTL
 
@@ -285,11 +280,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
         assert redis_client.get("threshold-key") == "0"
         stored_date = redis_client.get("date-key")
         assert isinstance(stored_date, str)
-        assert (
-            0
-            <= (datetime.strptime(stored_date, STRING_TO_DATETIME) - self.utcnow).total_seconds()
-            < 1
-        )
+        assert datetime.fromisoformat(stored_date) == self.utcnow
         assert redis_client.ttl("threshold-key") == DEFAULT_TTL
 
     def test_fallback_to_stale(self):
@@ -304,17 +295,10 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
         assert redis_client.get("threshold-key") == "0.5"
         stored_date = redis_client.get("date-key")
         assert isinstance(stored_date, str)
-        assert (
-            0
-            <= (
-                datetime.strptime(stored_date, STRING_TO_DATETIME)
-                - (
-                    self.utcnow
-                    - timedelta(seconds=TIME_TO_USE_EXISTING_THRESHOLD)
-                    + timedelta(seconds=FALLBACK_TTL)
-                )
-            ).total_seconds()
-            < 1
+        assert datetime.fromisoformat(stored_date) == (
+            self.utcnow
+            - timedelta(seconds=TIME_TO_USE_EXISTING_THRESHOLD)
+            + timedelta(seconds=FALLBACK_TTL)
         )
 
         assert redis_client.ttl("threshold-key") == 86400
@@ -330,17 +314,10 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
         assert redis_client.get("threshold-key") == "0"
         stored_date = redis_client.get("date-key")
         assert isinstance(stored_date, str)
-        assert (
-            0
-            <= (
-                datetime.strptime(stored_date, STRING_TO_DATETIME)
-                - (
-                    self.utcnow
-                    - timedelta(seconds=TIME_TO_USE_EXISTING_THRESHOLD)
-                    + timedelta(seconds=FALLBACK_TTL)
-                )
-            ).total_seconds()
-            < 1
+        assert datetime.fromisoformat(stored_date) == (
+            self.utcnow
+            - timedelta(seconds=TIME_TO_USE_EXISTING_THRESHOLD)
+            + timedelta(seconds=FALLBACK_TTL)
         )
         assert redis_client.ttl("threshold-key") == FALLBACK_TTL
         assert redis_client.ttl("date-key") == FALLBACK_TTL
@@ -355,17 +332,10 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
         assert redis_client.get("threshold-key") == "0"
         stored_date = redis_client.get("date-key")
         assert isinstance(stored_date, str)
-        assert (
-            0
-            <= (
-                datetime.strptime(stored_date, STRING_TO_DATETIME)
-                - (
-                    self.utcnow
-                    - timedelta(seconds=TIME_TO_USE_EXISTING_THRESHOLD)
-                    + timedelta(seconds=FALLBACK_TTL)
-                )
-            ).total_seconds()
-            < 1
+        assert datetime.fromisoformat(stored_date) == (
+            self.utcnow
+            - timedelta(seconds=TIME_TO_USE_EXISTING_THRESHOLD)
+            + timedelta(seconds=FALLBACK_TTL)
         )
 
         assert redis_client.ttl("threshold-key") == FALLBACK_TTL

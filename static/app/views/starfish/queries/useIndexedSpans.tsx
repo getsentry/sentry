@@ -5,25 +5,30 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import type {SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
-import {SpanIndexedField} from 'sentry/views/starfish/types';
+import type {SpanIndexedField, SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
-const DEFAULT_LIMIT = 10;
-
-interface Filters {
-  [key: string]: string;
+export interface Filters {
+  [key: string]: string | string[];
 }
 
-export const useIndexedSpans = (
-  filters: Filters,
-  sorts: Sort[] = [{field: 'timestamp', kind: 'desc'}],
-  limit: number = DEFAULT_LIMIT,
-  enabled: boolean = true,
-  referrer: string = 'use-indexed-spans'
-) => {
+export const useIndexedSpans = ({
+  filters,
+  sorts,
+  limit,
+  enabled = true,
+  referrer,
+  fields,
+}: {
+  fields: SpanIndexedField[];
+  filters: Filters;
+  limit: number;
+  referrer: string;
+  sorts: Sort[];
+  enabled?: boolean;
+}) => {
   const location = useLocation();
-  const eventView = getEventView(filters, location, sorts);
+  const eventView = getEventView(filters, location, fields, sorts);
 
   return useSpansQuery<SpanIndexedFieldTypes[]>({
     eventView,
@@ -34,19 +39,29 @@ export const useIndexedSpans = (
   });
 };
 
-function getEventView(filters: Filters, location: Location, sorts?: Sort[]) {
+function getEventView(
+  filters: Filters,
+  location: Location,
+  fields: SpanIndexedField[],
+  sorts?: Sort[]
+) {
   // TODO: Add a `MutableSearch` constructor that accept a key-value mapping
   const search = new MutableSearch([]);
 
   for (const filterName in filters) {
-    search.addFilterValue(filterName, filters[filterName]);
+    const filter = filters[filterName];
+    if (Array.isArray(filter)) {
+      search.addFilterValues(filterName, filter);
+    } else {
+      search.addFilterValue(filterName, filter);
+    }
   }
 
   const eventView = EventView.fromNewQueryWithLocation(
     {
       name: '',
       query: search.formatString(),
-      fields: Object.values(SpanIndexedField),
+      fields,
       dataset: DiscoverDatasets.SPANS_INDEXED,
       version: 2,
     },

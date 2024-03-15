@@ -61,6 +61,7 @@ from sentry.grouping.ingest import (
     get_hash_values,
     maybe_run_background_grouping,
     maybe_run_secondary_grouping,
+    record_calculation_metric_with_result,
     record_hash_calculation_metrics,
     record_new_group_metrics,
     run_primary_grouping,
@@ -118,7 +119,7 @@ from sentry.usage_accountant import record
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
-from sentry.utils.dates import to_datetime, to_timestamp
+from sentry.utils.dates import to_datetime
 from sentry.utils.event import has_event_minified_stack_trace, has_stacktrace, is_handled
 from sentry.utils.eventuser import EventUser
 from sentry.utils.metrics import MutableTags
@@ -126,6 +127,7 @@ from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.performance_issues.performance_detection import detect_performance_problems
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
+from sentry.utils.sdk import set_measurement
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 
 if TYPE_CHECKING:
@@ -292,7 +294,7 @@ class ScoreClause(Func):
         if has_values:
             sql = "log(times_seen + %d) * 600 + %d" % (
                 self.times_seen,
-                to_timestamp(self.last_seen),
+                self.last_seen.timestamp(),
             )
         else:
             sql = "log(times_seen) * 600 + last_seen::abstime::int"
@@ -1418,6 +1420,7 @@ def _save_aggregate(
     project = event.project
 
     primary_hashes, secondary_hashes, hashes = get_hash_values(project, job, metric_tags)
+    has_secondary_hashes = len(extract_hashes(secondary_hashes)) > 0
 
     # Now that we've used the current and possibly secondary grouping config(s) to calculate the
     # hashes, we're free to perform a config update if needed. Future events will use the new
@@ -1492,12 +1495,10 @@ def _save_aggregate(
         ):
             raise HashDiscarded("Load shedding group creation", reason="load_shed")
 
-        with sentry_sdk.start_span(
-            op="event_manager.create_group_transaction"
-        ) as span, metrics.timer(
-            "event_manager.create_group_transaction"
-        ) as metric_tags, transaction.atomic(
-            router.db_for_write(GroupHash)
+        with (
+            sentry_sdk.start_span(op="event_manager.create_group_transaction") as span,
+            metrics.timer("event_manager.create_group_transaction") as metric_tags,
+            transaction.atomic(router.db_for_write(GroupHash)),
         ):
             span.set_tag("create_group_transaction.outcome", "no_group")
             metric_tags["create_group_transaction.outcome"] = "no_group"
@@ -1540,6 +1541,11 @@ def _save_aggregate(
 
                 span.set_tag("create_group_transaction.outcome", "new_group")
                 metric_tags["create_group_transaction.outcome"] = "new_group"
+                record_calculation_metric_with_result(
+                    project=project,
+                    has_secondary_hashes=has_secondary_hashes,
+                    result="new_group",
+                )
 
                 metrics.incr(
                     "group.created",
@@ -1594,6 +1600,18 @@ def _save_aggregate(
         new_hashes = [root_hierarchical_grouphash]
     else:
         new_hashes = []
+
+    primary_hash_values = set(extract_hashes(primary_hashes))
+    new_hash_values = {gh.hash for gh in new_hashes}
+    all_primary_hashes_are_new = primary_hash_values.issubset(new_hash_values)
+    record_calculation_metric_with_result(
+        project=project,
+        has_secondary_hashes=has_secondary_hashes,
+        # If at least one primary hash value isn't new, then we will have found it, since we check
+        # those before the secondary hash values. If the primary hash values are all new, then we
+        # must have found a secondary hash (or we'd be in the group-creation branch).
+        result="found_primary" if not all_primary_hashes_are_new else "found_secondary",
+    )
 
     if new_hashes:
         # There may still be secondary hashes that we did not use to find an
@@ -1652,6 +1670,7 @@ def _save_aggregate_new(
         group_info = handle_existing_grouphash(
             job, primary.existing_grouphash, primary.grouphashes, group_processing_kwargs
         )
+        result = "found_primary"
     # If we haven't, try again using the secondary config
     else:
         secondary = create_and_seek_grouphashes(job, maybe_run_secondary_grouping, metric_tags)
@@ -1662,10 +1681,13 @@ def _save_aggregate_new(
             group_info = handle_existing_grouphash(
                 job, secondary.existing_grouphash, all_grouphashes, group_processing_kwargs
             )
+            result = "found_secondary"
+
         else:
             group_info = create_group_with_grouphashes(
                 job, all_grouphashes, group_processing_kwargs
             )
+            result = "new_group"
 
     # From here on out, we're just doing housekeeping
 
@@ -1675,7 +1697,14 @@ def _save_aggregate_new(
     maybe_run_background_grouping(project, job)
 
     record_hash_calculation_metrics(
-        primary.config, primary.hashes, secondary.config, secondary.hashes
+        project, primary.config, primary.hashes, secondary.config, secondary.hashes
+    )
+    # TODO: Once the legacy `_save_aggregate` goes away, the logic inside of
+    # `record_calculation_metric_with_result` can be pulled into `record_hash_calculation_metrics`
+    record_calculation_metric_with_result(
+        project=project,
+        has_secondary_hashes=len(extract_hashes(secondary.hashes)) > 0,
+        result=result,
     )
 
     # Now that we've used the current and possibly secondary grouping config(s) to calculate the
@@ -2696,10 +2725,12 @@ def _calculate_span_grouping(jobs: Sequence[Job], projects: ProjectsMapping) -> 
 
 
 @metrics.wraps("save_event.detect_performance_problems")
-def _detect_performance_problems(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
+def _detect_performance_problems(
+    jobs: Sequence[Job], projects: ProjectsMapping, is_standalone_spans: bool = False
+) -> None:
     for job in jobs:
         job["performance_problems"] = detect_performance_problems(
-            job["data"], projects[job["project_id"]]
+            job["data"], projects[job["project_id"]], is_standalone_spans=is_standalone_spans
         )
 
 
@@ -2784,6 +2815,9 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
                 )
             except KeyError:
                 continue
+
+    set_measurement(measurement_name="jobs", value=len(jobs))
+    set_measurement(measurement_name="projects", value=len(projects))
 
     _get_or_create_release_many(jobs, projects)
     _get_event_user_many(jobs, projects)

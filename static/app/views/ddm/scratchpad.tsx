@@ -2,24 +2,29 @@ import {useCallback, useLayoutEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as echarts from 'echarts/core';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Field} from 'sentry/components/ddm/metricSamplesTable';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getMetricsCorrelationSpanUrl, unescapeMetricsFormula} from 'sentry/utils/metrics';
-import {MetricQueryType, type MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
+import {
+  MetricQueryType,
+  type MetricQueryWidgetParams,
+  type MetricWidgetQueryParams,
+} from 'sentry/utils/metrics/types';
 import type {MetricsQueryApiQueryParams} from 'sentry/utils/metrics/useMetricsQuery';
 import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {DDM_CHART_GROUP, MIN_WIDGET_WIDTH} from 'sentry/views/ddm/constants';
 import {useDDMContext} from 'sentry/views/ddm/context';
+import {getEquationSymbol} from 'sentry/views/ddm/equationSymbol copy';
 import {parseFormula} from 'sentry/views/ddm/formulaParser/parser';
 import {type TokenList, TokenType} from 'sentry/views/ddm/formulaParser/types';
 import {getQuerySymbol} from 'sentry/views/ddm/querySymbol';
 import {useGetCachedChartPalette} from 'sentry/views/ddm/utils/metricsChartPalette';
 
-import type {Sample} from './widget';
 import {MetricWidget} from './widget';
 
 interface WidgetDependencies {
@@ -33,7 +38,7 @@ function widgetToQuery(
 ): MetricsQueryApiQueryParams {
   return widget.type === MetricQueryType.FORMULA
     ? {
-        name: getQuerySymbol(widget.id),
+        name: getEquationSymbol(widget.id),
         formula: widget.formula,
       }
     : {
@@ -42,7 +47,7 @@ function widgetToQuery(
         op: widget.op,
         groupBy: widget.groupBy,
         query: widget.query,
-        isQueryOnly: isQueryOnly,
+        isQueryOnly: isQueryOnly || widget.isHidden,
       };
 }
 
@@ -62,7 +67,6 @@ export function MetricScratchpad() {
 
   const router = useRouter();
   const organization = useOrganization();
-  const {projects} = useProjects();
   const getChartPalette = useGetCachedChartPalette();
 
   // Make sure all charts are connected to the same group whenever the widgets definition changes
@@ -78,23 +82,11 @@ export function MetricScratchpad() {
   );
 
   const handleSampleClick = useCallback(
-    (sample: Sample) => {
-      const project = projects.find(p => parseInt(p.id, 10) === sample.projectId);
-      router.push(
-        getMetricsCorrelationSpanUrl(
-          organization,
-          project?.slug,
-          sample.spanId,
-          sample.transactionId,
-          sample.transactionSpanId
-        )
-      );
-    },
-    [projects, router, organization]
-  );
-
-  const handleSampleClickV2 = useCallback(
     (sample: MetricsSamplesResults<Field>['data'][number]) => {
+      if (!sample['transaction.id']) {
+        addErrorMessage(t('No matching transaction found'));
+        return;
+      }
       router.push(
         getMetricsCorrelationSpanUrl(
           organization,
@@ -116,9 +108,11 @@ export function MetricScratchpad() {
       : StyledMetricDashboard;
 
   const queriesLookup = useMemo(() => {
-    const lookup = new Map<string, MetricWidgetQueryParams>();
+    const lookup = new Map<string, MetricQueryWidgetParams>();
     widgets.forEach(widget => {
-      lookup.set(getQuerySymbol(widget.id), widget);
+      if (widget.type === MetricQueryType.QUERY) {
+        lookup.set(getQuerySymbol(widget.id), widget);
+      }
     });
     return lookup;
   }, [widgets]);
@@ -135,12 +129,12 @@ export function MetricScratchpad() {
       }
 
       const dependencies: MetricsQueryApiQueryParams[] = [];
-      let isError: boolean = false;
+      let isError = false;
 
       tokens.forEach(token => {
         if (token.type === TokenType.VARIABLE) {
           const widget = queriesLookup.get(token.content);
-          if (widget && widget.type === MetricQueryType.QUERY) {
+          if (widget) {
             dependencies.push(widgetToQuery(widget, true));
           } else {
             isError = true;
@@ -172,40 +166,41 @@ export function MetricScratchpad() {
   return (
     <Wrapper>
       {isMultiChartMode ? (
-        filteredWidgets.map((widget, index) => (
-          <MultiChartWidgetQueries
-            formulaDependencies={formulaDependencies}
-            widget={widget}
-            key={widget.id}
-          >
-            {queries => (
-              <MetricWidget
-                queryId={widget.id}
-                index={index}
-                getChartPalette={getChartPalette}
-                onSelect={setSelectedWidgetIndex}
-                displayType={widget.displayType}
-                focusedSeries={widget.focusedSeries}
-                tableSort={widget.sort}
-                queries={queries}
-                isSelected={selectedWidgetIndex === index}
-                hasSiblings={widgets.length > 1}
-                onChange={handleChange}
-                filters={selection}
-                focusAreaProps={focusArea}
-                showQuerySymbols={showQuerySymbols}
-                onSampleClick={handleSampleClick}
-                onSampleClickV2={handleSampleClickV2}
-                chartHeight={200}
-                highlightedSampleId={
-                  selectedWidgetIndex === index ? highlightedSampleId : undefined
-                }
-                metricsSamples={metricsSamples}
-                context="ddm"
-              />
-            )}
-          </MultiChartWidgetQueries>
-        ))
+        filteredWidgets.map((widget, index) =>
+          widget.isHidden ? null : (
+            <MultiChartWidgetQueries
+              formulaDependencies={formulaDependencies}
+              widget={widget}
+              key={`${widget.type}_${widget.id}`}
+            >
+              {queries => (
+                <MetricWidget
+                  queryId={widget.id}
+                  index={index}
+                  getChartPalette={getChartPalette}
+                  onSelect={setSelectedWidgetIndex}
+                  displayType={widget.displayType}
+                  focusedSeries={widget.focusedSeries}
+                  tableSort={widget.sort}
+                  queries={queries}
+                  isSelected={selectedWidgetIndex === index}
+                  hasSiblings={widgets.length > 1}
+                  onChange={handleChange}
+                  filters={selection}
+                  focusAreaProps={focusArea}
+                  showQuerySymbols={showQuerySymbols}
+                  onSampleClick={handleSampleClick}
+                  chartHeight={200}
+                  highlightedSampleId={
+                    selectedWidgetIndex === index ? highlightedSampleId : undefined
+                  }
+                  metricsSamples={metricsSamples}
+                  context="ddm"
+                />
+              )}
+            </MultiChartWidgetQueries>
+          )
+        )
       ) : (
         <MetricWidget
           index={0}
@@ -214,7 +209,9 @@ export function MetricScratchpad() {
           displayType={firstWidget.displayType}
           focusedSeries={firstWidget.focusedSeries}
           tableSort={firstWidget.sort}
-          queries={filteredWidgets.map(w => widgetToQuery(w))}
+          queries={filteredWidgets
+            .filter(w => !(w.type === MetricQueryType.FORMULA && w.isHidden))
+            .map(w => widgetToQuery(w))}
           isSelected
           hasSiblings={false}
           onChange={handleChange}
@@ -222,7 +219,6 @@ export function MetricScratchpad() {
           focusAreaProps={focusArea}
           showQuerySymbols={false}
           onSampleClick={handleSampleClick}
-          onSampleClickV2={handleSampleClickV2}
           chartHeight={200}
           highlightedSampleId={highlightedSampleId}
           metricsSamples={metricsSamples}

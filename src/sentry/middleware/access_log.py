@@ -7,6 +7,8 @@ from dataclasses import dataclass
 from typing import Any
 
 from django.conf import settings
+from django.utils.encoding import force_str
+from rest_framework.authentication import get_authorization_header
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -102,6 +104,9 @@ def _create_api_access_log(
             request_duration_seconds=access_log_metadata.get_request_duration(),
             **_get_rate_limit_stats_dict(request),
         )
+        auth = get_authorization_header(request).split()
+        if len(auth) == 2:
+            log_metrics["token_last_characters"] = force_str(auth[1])[-4:]
         api_access_logger.info("api.access", extra=log_metrics)
         metrics.incr("middleware.access_log.created")
     except Exception:
