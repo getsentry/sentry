@@ -4,7 +4,7 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict
 
 if TYPE_CHECKING:
-    from sentry_sdk._types import Event
+    from sentry_sdk._types import Event, Hint
 
 
 class SdkConfig(TypedDict):
@@ -18,8 +18,8 @@ class SdkConfig(TypedDict):
 
     send_client_reports: NotRequired[bool]
     traces_sampler: NotRequired[Callable[[dict[str, Any]], float]]
-    before_send: NotRequired[Callable[[Event, object], Event | None]]
-    before_send_transaction: NotRequired[Callable[[Event, object], Event | None]]
+    before_send: NotRequired[Callable[[Event, Hint], Event | None]]
+    before_send_transaction: NotRequired[Callable[[Event, Hint], Event | None]]
     profiles_sample_rate: NotRequired[float]
     profiler_mode: NotRequired[Literal["sleep", "thread", "gevent", "unknown"]]
     enable_db_query_source: NotRequired[bool]
