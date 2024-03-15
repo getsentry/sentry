@@ -179,7 +179,7 @@ def run_metrics_query(
     return result["data"]
 
 
-def _get_known_entity_of_metric_mri(metric_mri: str) -> EntityKey | None:
+def get_known_entity_of_metric_mri(metric_mri: str) -> EntityKey | None:
     # ToDo(ogi): Reimplement this
     try:
         SessionMRI(metric_mri)
@@ -191,6 +191,7 @@ def _get_known_entity_of_metric_mri(metric_mri: str) -> EntityKey | None:
         }[entity_prefix]
     except (ValueError, IndexError, KeyError):
         pass
+
     try:
         TransactionMRI(metric_mri)
         entity_prefix = metric_mri.split(":")[0]
@@ -201,6 +202,18 @@ def _get_known_entity_of_metric_mri(metric_mri: str) -> EntityKey | None:
         }[entity_prefix]
     except (ValueError, IndexError, KeyError):
         pass
+
+    try:
+        SpanMRI(metric_mri)
+        entity_prefix = metric_mri.split(":")[0]
+        return {
+            "c": EntityKey.GenericMetricsCounters,
+            "d": EntityKey.GenericMetricsDistributions,
+            "s": EntityKey.GenericMetricsSets,
+        }[entity_prefix]
+    except (ValueError, IndexError, KeyError):
+        pass
+
     try:
         entity_prefix, namespace = metric_mri.split(":")
         if namespace.startswith("custom"):
@@ -219,7 +232,7 @@ def _get_known_entity_of_metric_mri(metric_mri: str) -> EntityKey | None:
 def _get_entity_of_metric_mri(
     projects: Sequence[Project], metric_mri: str, use_case_id: UseCaseID
 ) -> EntityKey:
-    known_entity = _get_known_entity_of_metric_mri(metric_mri)
+    known_entity = get_known_entity_of_metric_mri(metric_mri)
     if known_entity is not None:
         return known_entity
 

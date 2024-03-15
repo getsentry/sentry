@@ -51,6 +51,7 @@ from sentry.snuba.metrics.fields.base import (
     SnubaDataType,
     build_metrics_query,
     get_derived_metrics,
+    get_known_entity_of_metric_mri,
     org_id_from_projects,
 )
 from sentry.snuba.metrics.naming_layer.mapping import get_mri
@@ -488,15 +489,15 @@ def get_custom_measurements(
 
 def _get_metrics_filter_ids(
     projects: Sequence[Project], metric_mris: Sequence[str], use_case_id: UseCaseID
-) -> set[int]:
+) -> dict[EntityKey, set[int]]:
     """
     Returns a set of metric_ids that map to input metric names and raises an exception if
     metric cannot be resolved in the indexer
     """
     if not metric_mris:
-        return set()
+        return {}
 
-    metric_ids = set()
+    metric_ids_by_entity = defaultdict()
     org_id = org_id_from_projects(projects)
 
     metric_mris_deque = deque(metric_mris)
@@ -504,6 +505,12 @@ def _get_metrics_filter_ids(
 
     while metric_mris_deque:
         mri = metric_mris_deque.popleft()
+
+        entity_key = get_known_entity_of_metric_mri(mri)
+        if entity_key is None:
+            continue
+        metric_ids = metric_ids_by_entity[entity_key]
+
         if mri not in all_derived_metrics:
             metric_ids.add(indexer.resolve(use_case_id, org_id, mri))
         else:
@@ -521,7 +528,7 @@ def _get_metrics_filter_ids(
         # A tag cannot appear in a metric if the metric is not even indexed.
         raise MetricDoesNotExistInIndexer()
 
-    return metric_ids
+    return metric_ids_by_entity
 
 
 def _validate_requested_derived_metrics_in_input_metrics(
@@ -596,15 +603,13 @@ def _fetch_tags_or_values_for_mri(
     org_id = projects[0].organization_id
 
     try:
-        metric_ids = _get_metrics_filter_ids(
+        metric_ids_by_entity_key = _get_metrics_filter_ids(
             projects=projects, metric_mris=metric_mris, use_case_id=use_case_id
         )
     except MetricDoesNotExistInIndexer:
         raise InvalidParams(
             f"Some or all of the metric names in {metric_mris} do not exist in the indexer"
         )
-    else:
-        where = [Condition(Column("metric_id"), Op.IN, list(metric_ids))] if metric_ids else []
 
     tag_or_value_ids_per_metric_id = defaultdict(list)
     # This dictionary is required as a mapping from an entity to the ids available in it to
@@ -614,6 +619,11 @@ def _fetch_tags_or_values_for_mri(
 
     entity_keys = get_entity_keys_of_use_case_id(use_case_id=use_case_id)
     for entity_key in entity_keys or ():
+        where = []
+        metric_ids = metric_ids_by_entity_key[entity_key]
+        if metric_ids:
+            where.append(Condition(Column("metric_id"), Op.IN, list(metric_ids)))
+
         rows = run_metrics_query(
             entity_key=entity_key,
             select=[Column("metric_id"), Column(column)],
