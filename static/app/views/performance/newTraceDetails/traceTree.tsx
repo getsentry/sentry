@@ -106,7 +106,7 @@ export declare namespace TraceTree {
   }
   type Trace = TraceSplitResults<Transaction>;
   type TraceError = TraceErrorType;
-  type Profile = {profile_id: string, space: [number, number]};
+  type Profile = {profile_id: string; space: [number, number]};
 
   interface MissingInstrumentationSpan {
     start_timestamp: number;
@@ -270,16 +270,10 @@ export class TraceTree {
       parent: TraceTreeNode<TraceTree.NodeValue | null>,
       value: TraceFullDetailed | TraceTree.TraceError
     ) {
-      const node = new TraceTreeNode(
-        parent,
-        {...value, profiles: [{profile_id: 'test'}]},
-        {
-          project_slug: value && 'project_slug' in value ? value.project_slug : undefined,
-          event_id: value && 'event_id' in value ? value.event_id : undefined,
-        }
-      );
-
-      node.canFetch = true;
+      const node = new TraceTreeNode(parent, value, {
+        project_slug: value && 'project_slug' in value ? value.project_slug : undefined,
+        event_id: value && 'event_id' in value ? value.event_id : undefined,
+      });
 
       if (parent) {
         parent.children.push(node as TraceTreeNode<TraceTree.NodeValue>);
@@ -1008,6 +1002,8 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
         value.start_timestamp * this.multiplier,
         (value.timestamp - value.start_timestamp) * this.multiplier,
       ];
+    } else if (value && 'timestamp' in value && typeof value.timestamp === 'number') {
+      this.space = [value.timestamp * this.multiplier, 0];
     }
 
     if (
@@ -1016,6 +1012,14 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
       typeof this.value.timestamp === 'number'
     ) {
       this.space = [this.value.timestamp * this.multiplier, 0];
+    }
+
+    if (value && 'profile_id' in value && typeof value.profile_id === 'string') {
+      this.profiles.push({profile_id: value.profile_id, space: this.space ?? [0, 0]});
+    }
+
+    if (isTransactionNode(this)) {
+      this.canFetch = true;
     }
 
     if (isTransactionNode(this) || isTraceNode(this) || isSpanNode(this)) {
