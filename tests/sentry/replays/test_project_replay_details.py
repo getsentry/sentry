@@ -152,6 +152,19 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase, TransactionTes
             )
             assert_expected_response(response_data["data"], expected_response)
 
+
+@region_silo_test
+class ProjectReplayDetailsDeleteTest(TransactionTestCase):
+    endpoint = "sentry-api-0-project-replay-details"
+
+    def setUp(self):
+        super().setUp()
+        self.login_as(user=self.user)
+        self.replay_id = uuid4().hex
+        self.url = reverse(
+            self.endpoint, args=(self.organization.slug, self.project.slug, self.replay_id)
+        )
+
     def test_delete(self):
         # test deleting as a member, as they should be able to
         user = self.create_user(is_superuser=False)
