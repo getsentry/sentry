@@ -7,13 +7,7 @@ from sentry.models.integrations.integration import Integration
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.options import override_options
-from sentry.testutils.outbox import (
-    assert_no_webhook_outboxes,
-    assert_no_webhook_payloads,
-    assert_webhook_outboxes_with_shard_id,
-    assert_webhook_payloads_for_mailbox,
-)
+from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_payloads_for_mailbox
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
@@ -63,7 +57,7 @@ class BitbucketRequestParserTest(TestCase):
             assert isinstance(response, HttpResponse)
             assert response.status_code == 200
             assert response.content == b"passthrough"
-            assert_no_webhook_outboxes()
+            assert_no_webhook_payloads()
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
@@ -83,7 +77,7 @@ class BitbucketRequestParserTest(TestCase):
         assert isinstance(response, HttpResponse)
         assert response.status_code == 200
         assert response.content == b"passthrough"
-        assert_no_webhook_outboxes()
+        assert_no_webhook_payloads()
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
@@ -99,29 +93,8 @@ class BitbucketRequestParserTest(TestCase):
         assert isinstance(response, HttpResponse)
         assert response.status_code == 202
         assert response.content == b""
-        assert_webhook_outboxes_with_shard_id(
-            factory_request=request,
-            expected_shard_id=self.organization.id,
-            region_names=[self.region.name],
-        )
-
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_regions(region_config)
-    @override_options({"hybridcloud.webhookpayload.rollout": 1.0})
-    def test_webhook_outbox_creation_webhookpayload(self):
-        self.get_integration()
-        path = reverse(
-            "sentry-extensions-bitbucket-webhook", kwargs={"organization_id": self.organization.id}
-        )
-        request = self.factory.post(path)
-        assert_no_webhook_payloads()
-        parser = BitbucketRequestParser(request=request, response_handler=self.get_response)
-
-        response = parser.get_response()
-        assert isinstance(response, HttpResponse)
-        assert response.status_code == 202
-        assert response.content == b""
-
         assert_webhook_payloads_for_mailbox(
-            mailbox_name=f"bitbucket:{self.organization.id}", region_names=["us"], request=request
+            request=request,
+            mailbox_name=f"bitbucket:{self.organization.id}",
+            region_names=[self.region.name],
         )

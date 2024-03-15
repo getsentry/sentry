@@ -16,7 +16,7 @@ from sentry.middleware.integrations.parsers.slack import SlackRequestParser
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.outbox import ControlOutbox, outbox_context
 from sentry.testutils.cases import TestCase
-from sentry.testutils.outbox import assert_no_webhook_outboxes
+from sentry.testutils.outbox import assert_no_webhook_payloads
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test, create_test_regions
 from sentry.utils import json
 from sentry.utils.signing import sign
@@ -65,7 +65,7 @@ class SlackRequestParserTest(TestCase):
         assert response.status_code == 201
         assert response.content == b"region_response"
         assert len(responses.calls) == 1
-        assert_no_webhook_outboxes()
+        assert_no_webhook_payloads()
 
         # ...even if it returns an error
         responses.add(
@@ -79,7 +79,7 @@ class SlackRequestParserTest(TestCase):
         assert response.status_code == 401
         assert response.content == b"error_response"
         assert len(responses.calls) == 2
-        assert_no_webhook_outboxes()
+        assert_no_webhook_payloads()
 
     @responses.activate
     def test_django_view(self):
@@ -101,7 +101,7 @@ class SlackRequestParserTest(TestCase):
         assert response.status_code == 200
         assert response.content == b"passthrough"
         assert len(responses.calls) == 0
-        assert_no_webhook_outboxes()
+        assert_no_webhook_payloads()
 
     @patch(
         "sentry.integrations.slack.requests.base.SlackRequest._check_signing_secret",
