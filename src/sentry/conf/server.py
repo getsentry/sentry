@@ -3473,6 +3473,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "metrics-subscription-results": "default",
     "ingest-events": "default",
     "ingest-feedback-events": "default",
+    "ingest-feedback-events-dlq": "default",
     "ingest-attachments": "default",
     "ingest-transactions": "default",
     "ingest-metrics": "default",
