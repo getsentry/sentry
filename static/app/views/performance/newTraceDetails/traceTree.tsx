@@ -97,15 +97,19 @@ import {
  */
 
 export declare namespace TraceTree {
-  type Transaction = TraceFullDetailed;
+  interface Transaction extends TraceFullDetailed {
+    profiles: TransactionProfile[];
+  }
   interface Span extends RawSpanType {
     childTransaction: Transaction | undefined;
     errors: TraceError[];
     event: EventTransaction;
     performance_issues: TracePerformanceIssue[];
+    profiles: TransactionProfile[];
   }
   type Trace = TraceSplitResults<Transaction>;
   type TraceError = TraceErrorType;
+  type TransactionProfile = {profile_id: string};
 
   interface MissingInstrumentationSpan {
     start_timestamp: number;
@@ -267,12 +271,17 @@ export class TraceTree {
 
     function visit(
       parent: TraceTreeNode<TraceTree.NodeValue | null>,
-      value: TraceTree.Transaction | TraceTree.TraceError
+      value: TraceFullDetailed | TraceTree.TraceError
     ) {
-      const node = new TraceTreeNode(parent, value, {
-        project_slug: value && 'project_slug' in value ? value.project_slug : undefined,
-        event_id: value && 'event_id' in value ? value.event_id : undefined,
-      });
+      const node = new TraceTreeNode(
+        parent,
+        {...value, profiles: [{profile_id: 'test'}]},
+        {
+          project_slug: value && 'project_slug' in value ? value.project_slug : undefined,
+          event_id: value && 'event_id' in value ? value.event_id : undefined,
+        }
+      );
+
       node.canFetch = true;
 
       if (parent) {
@@ -466,6 +475,7 @@ export class TraceTree {
         event: data as EventTransaction,
         errors: getRelatedSpanErrorsFromTransaction(span, parent),
         performance_issues: getRelatedPerformanceIssuesFromTransaction(span, parent),
+        profiles: [span.p]
         childTransaction: childTransaction?.value,
       };
       const node: TraceTreeNode<TraceTree.Span> = new TraceTreeNode(null, spanNodeValue, {
@@ -1397,6 +1407,7 @@ export class ParentAutogroupNode extends TraceTreeNode<TraceTree.ChildrenAutogro
 
   errors: TraceErrorType[] = [];
   performance_issues: TracePerformanceIssue[] = [];
+  profiles: TraceTree.TransactionProfile[] = [];
 
   private _autogroupedSegments: [number, number][] | undefined;
 
@@ -1447,8 +1458,10 @@ export class ParentAutogroupNode extends TraceTreeNode<TraceTree.ChildrenAutogro
 
 export class SiblingAutogroupNode extends TraceTreeNode<TraceTree.SiblingAutogroup> {
   groupCount: number = 0;
+
   errors: TraceErrorType[] = [];
   performance_issues: TracePerformanceIssue[] = [];
+  profiles: TraceTree.TransactionProfile[] = [];
 
   private _autogroupedSegments: [number, number][] | undefined;
 
@@ -1483,6 +1496,7 @@ function partialTransaction(
     timestamp: 0,
     errors: [],
     performance_issues: [],
+    profiles: [],
     parent_span_id: '',
     span_id: '',
     parent_event_id: '',

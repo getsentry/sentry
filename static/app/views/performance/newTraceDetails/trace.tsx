@@ -779,6 +779,7 @@ function RenderRow(props: {
             node_spaces={props.node.autogroupedSegments}
             errors={props.node.errors}
             performance_issues={props.node.performance_issues}
+            profiles={props.node.profiles}
           />
           <button
             ref={ref =>
@@ -894,6 +895,7 @@ function RenderRow(props: {
             node_space={props.node.space}
             errors={props.node.value.errors}
             performance_issues={props.node.value.performance_issues}
+            profiles={props.node.value.profiles}
           />
           <button
             ref={ref =>
@@ -1010,6 +1012,7 @@ function RenderRow(props: {
             node_space={props.node.space}
             errors={props.node.value.errors}
             performance_issues={props.node.value.performance_issues}
+            profiles={NO_ERRORS}
           />
           <button
             ref={ref =>
@@ -1084,8 +1087,9 @@ function RenderRow(props: {
             manager={props.manager}
             color={pickBarColor('missing-instrumentation')}
             node_space={props.node.space}
-            errors={NO_ERRORS}
             performance_issues={NO_ERRORS}
+            profiles={NO_ERRORS}
+            errors={NO_ERRORS}
           />
           <button
             ref={ref =>
@@ -1172,6 +1176,7 @@ function RenderRow(props: {
             node_space={props.node.space}
             errors={NO_ERRORS}
             performance_issues={NO_ERRORS}
+            profiles={NO_ERRORS}
           />
           <button
             ref={ref =>
@@ -1422,8 +1427,8 @@ interface TraceBarProps {
   manager: VirtualizedViewManager;
   node_space: [number, number] | null;
   performance_issues: TraceTreeNode<TraceTree.Transaction>['value']['performance_issues'];
+  profiles: TraceTreeNode<TraceTree.Transaction>['value']['profiles'];
   virtualized_index: number;
-  duration?: number;
 }
 
 function TraceBar(props: TraceBarProps) {
@@ -1454,6 +1459,7 @@ function TraceBar(props: TraceBarProps) {
           } as React.CSSProperties
         }
       >
+        {props.profiles.length > 0 ? null : null}
         {props.errors.length > 0 ? (
           <Errors
             node_space={props.node_space}
@@ -1609,8 +1615,8 @@ interface AutogroupedTraceBarProps {
   manager: VirtualizedViewManager;
   node_spaces: [number, number][];
   performance_issues: TraceTreeNode<TraceTree.Transaction>['value']['performance_issues'];
+  profiles: TraceTreeNode<TraceTree.Transaction>['value']['profiles'];
   virtualized_index: number;
-  duration?: number;
 }
 
 function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
@@ -1621,9 +1627,9 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
         node_space={props.entire_space}
         manager={props.manager}
         virtualized_index={props.virtualized_index}
-        duration={props.duration}
         errors={props.errors}
         performance_issues={props.performance_issues}
+        profiles={props.profiles}
       />
     );
   }
