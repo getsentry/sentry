@@ -205,7 +205,7 @@ class Fixtures:
             project = self.project
         return Factories.create_release(project=project, user=user, *args, **kwargs)
 
-    def create_group_release(self, project: Project = None, *args, **kwargs) -> GroupRelease:
+    def create_group_release(self, project: Project | None = None, *args, **kwargs) -> GroupRelease:
         if project is None:
             project = self.project
         return Factories.create_group_release(project, *args, **kwargs)
@@ -560,7 +560,7 @@ class Fixtures:
     def create_organization_mapping(self, *args, **kwargs):
         return Factories.create_org_mapping(*args, **kwargs)
 
-    def create_basic_auth_header(self, *args, **kwargs):
+    def create_basic_auth_header(self, *args, **kwargs) -> bytes:
         return Factories.create_basic_auth_header(*args, **kwargs)
 
     def snooze_rule(self, *args, **kwargs):

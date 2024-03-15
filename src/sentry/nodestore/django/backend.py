@@ -4,6 +4,7 @@ import logging
 import math
 import pickle
 
+import sentry_sdk
 from django.utils import timezone
 
 from sentry.db.models import create_or_update
@@ -50,6 +51,7 @@ class DjangoNodeStorage(NodeStorage):
         Node.objects.filter(id__in=id_list).delete()
         self._delete_cache_items(id_list)
 
+    @sentry_sdk.tracing.trace
     def _set_bytes(self, id, data, ttl=None):
         create_or_update(Node, id=id, values={"data": compress(data), "timestamp": timezone.now()})
 

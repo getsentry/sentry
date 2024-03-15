@@ -534,7 +534,11 @@ function getEventsSeriesRequest(
   const {displayType, limit} = widget;
   const {environments, projects} = pageFilters;
   const {start, end, period: statsPeriod} = pageFilters.datetime;
-  const interval = getWidgetInterval(displayType, {start, end, period: statsPeriod});
+  const interval = getWidgetInterval(
+    displayType,
+    {start, end, period: statsPeriod},
+    '1m'
+  );
   const isMEPEnabled = defined(mepSetting) && mepSetting !== MEPState.TRANSACTIONS_ONLY;
 
   let requestData;

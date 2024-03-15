@@ -140,7 +140,7 @@ class EventManagerGroupingMetricsTest(TestCase):
         assert hashes_calculated_calls[1].kwargs["amount"] == 2
 
     @mock.patch("sentry.event_manager.metrics.incr")
-    @mock.patch("sentry.grouping.ingest._should_run_secondary_grouping", return_value=True)
+    @mock.patch("sentry.grouping.ingest._is_in_transition", return_value=True)
     def test_records_hash_comparison(self, _, mock_metrics_incr: MagicMock):
         project = self.project
         project.update_option("sentry:grouping_config", NEWSTYLE_CONFIG)

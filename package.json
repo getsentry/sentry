@@ -155,7 +155,6 @@
     "react-popper": "^2.3.0",
     "react-router": "3.2.0",
     "react-select": "4.3.1",
-    "react-select-event": "5.5.0",
     "react-sparklines": "1.7.0",
     "react-virtualized": "^9.22.5",
     "reflux": "0.4.1",

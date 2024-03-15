@@ -1,4 +1,12 @@
-import {createContext, useCallback, useContext, useEffect, useRef, useState} from 'react';
+import {
+  createContext,
+  memo,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import {useTheme} from '@emotion/react';
 import {Replayer, ReplayerEvents} from '@sentry-internal/rrweb';
 
@@ -202,6 +210,11 @@ type Props = {
   replay: ReplayReader | null;
 
   /**
+   * Start the video as soon as it's ready
+   */
+  autoStart?: boolean;
+
+  /**
    * Time, in seconds, when the video should start
    */
   initialTimeOffsetMs?: ReturnType<typeof useInitialOffsetMs>;
@@ -218,13 +231,14 @@ function useCurrentTime(callback: () => number) {
   return currentTime;
 }
 
-export function Provider({
+function ProviderNonMemo({
   analyticsContext,
   children,
   initialTimeOffsetMs,
   isFetching,
   prefsStrategy,
   replay,
+  autoStart,
   value = {},
 }: Props) {
   const user = useUser();
@@ -242,7 +256,7 @@ export function Provider({
   const replayerRef = useRef<Replayer>(null);
   const [dimensions, setDimensions] = useState<Dimensions>({height: 0, width: 0});
   const [currentHoverTime, setCurrentHoverTime] = useState<undefined | number>();
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(!!autoStart);
   const [finishedAtMS, setFinishedAtMS] = useState<number>(-1);
   const [isSkippingInactive, setIsSkippingInactive] = useState(
     savedReplayConfigRef.current.isSkippingInactive
@@ -620,3 +634,5 @@ export function Provider({
 }
 
 export const useReplayContext = () => useContext(ReplayPlayerContext);
+
+export const Provider = memo(ProviderNonMemo);
