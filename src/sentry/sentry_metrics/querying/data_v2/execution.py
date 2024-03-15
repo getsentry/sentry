@@ -604,6 +604,7 @@ class QueryExecutor:
         # previous result in the `_query_results` array.
         bulk_results = self._bulk_run_query(bulk_requests)
         for query_index, query_result in zip(mappings, bulk_results):
+            query_result = cast(dict[str, Any], query_result)
             scheduled_query = self._scheduled_queries[query_index]
             if scheduled_query is None:
                 continue
