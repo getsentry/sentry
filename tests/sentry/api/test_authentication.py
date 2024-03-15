@@ -397,11 +397,6 @@ class TestRpcSignatureAuthentication(TestCase):
 
 @no_silo_test
 class TestAuthTokens(TestCase):
-    def setUp(self):
-        super().setUp()
-
-        self.auth = UserAuthTokenAuthentication()
-
     def test_system_tokens(self):
         sys_token = SystemToken()
         auth_token = AuthenticatedToken.from_token(sys_token)
