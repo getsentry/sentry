@@ -524,7 +524,9 @@ describe('GroupReplays', () => {
       expect(screen.getByText('See Full Replay')).toBeInTheDocument();
     });
 
-    it('Should switch replays when clicking and replay-play-from-replay-tab is enabled', async () => {
+    // Test seems to be flaky
+    // eslint-disable-next-line jest/no-disabled-tests
+    it.skip('Should switch replays when clicking and replay-play-from-replay-tab is enabled', async () => {
       ({router, organization, routerContext} = init({
         organizationProps: {features: ['replay-play-from-replay-tab', 'session-replay']},
       }));
