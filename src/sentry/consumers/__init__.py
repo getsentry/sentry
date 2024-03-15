@@ -267,6 +267,9 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "static_args": {
             "consumer_type": "feedback-events",
         },
+        "dlq_topic": Topic.INGEST_FEEDBACK_EVENTS_DLQ,
+        "dlq_max_invalid_ratio": 0.01,
+        "dlq_max_consecutive_count": 1000,
     },
     "ingest-attachments": {
         "topic": Topic.INGEST_ATTACHMENTS,
