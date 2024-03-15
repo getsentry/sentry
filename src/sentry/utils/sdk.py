@@ -29,6 +29,8 @@ from sentry.utils.rust import RustInfoIntegration
 
 # Can't import models in utils because utils should be the bottom of the food chain
 if TYPE_CHECKING:
+    from sentry_sdk._types import Event
+
     from sentry.models.organization import Organization
     from sentry.services.hybrid_cloud.organization import RpcOrganization
 
@@ -198,7 +200,7 @@ def traces_sampler(sampling_context):
     return float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
 
 
-def before_send_transaction(event, _):
+def before_send_transaction(event: Event, _: dict[str, Any]) -> Event | None:
     # Discard generic redirects.
     # This condition can be removed once https://github.com/getsentry/team-sdks/issues/48 is fixed.
     if (
@@ -216,7 +218,7 @@ def before_send_transaction(event, _):
     return event
 
 
-def before_send(event, _):
+def before_send(event: Event, _: dict[str, Any]) -> Event | None:
     if event.get("tags"):
         if settings.SILO_MODE:
             event["tags"]["silo_mode"] = str(settings.SILO_MODE)
@@ -609,9 +611,10 @@ def bind_organization_context(organization: Organization | RpcOrganization) -> N
     helper = settings.SENTRY_ORGANIZATION_CONTEXT_HELPER
 
     # XXX(dcramer): this is duplicated in organizationContext.jsx on the frontend
-    with configure_scope() as scope, sentry_sdk.start_span(
-        op="other", description="bind_organization_context"
-    ):
+    # fmt: off
+    with configure_scope() as scope, \
+         sentry_sdk.start_span(op="other", description="bind_organization_context"):
+        # fmt: on
         # This can be used to find errors that may have been mistagged
         check_tag_for_scope_bleed("organization.slug", organization.slug)
 
