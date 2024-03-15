@@ -46,7 +46,7 @@ def delete_replay_recording(project_id: int, replay_id: str) -> None:
         ).all()
         for segment_model in segments_from_django_models:
             futures.append(
-                segment_model.delete
+                executor.submit(segment_model.delete)
             )  # Three queries + one request to the message broker
         wait(futures, return_when=ALL_COMPLETED)  # wait to return
 
