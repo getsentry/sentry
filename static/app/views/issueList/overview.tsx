@@ -693,7 +693,7 @@ class IssueListOverview extends Component<Props, State> {
         if (this.undo) {
           GroupStore.loadInitialData(data);
         }
-        GroupStore.add(data);
+        GroupStore.add(data.filter(item => item != null));
 
         this.fetchStats(data.map((group: BaseGroup) => group.id));
 
