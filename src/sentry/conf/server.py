@@ -1485,7 +1485,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:crons-disable-ingest-endpoints": False,
     # Disables projects with zero monitors to create new ones
     "organizations:crons-disable-new-projects": False,
-    # Metrics: Enable ingestion and storage of custom metrics. See ddm-ui for UI.
+    # Metrics: Enable ingestion and storage of custom metrics. See ddm-ui and ddm-sidebar-item-hidden for UI.
     "organizations:custom-metrics": False,
     # Allow organizations to configure custom external symbol sources.
     "organizations:custom-symbol-sources": True,
@@ -1510,8 +1510,10 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enables experimental WIP ddm related features
     "organizations:ddm-experimental": False,
     # Delightful Developer Metrics (DDM):
-    # Enable sidebar menu item and all UI (requires custom-metrics flag as well)
+    # Enable UI (requires custom-metrics flag as well)
     "organizations:ddm-ui": False,
+    # Hides DDM sidebar item
+    "organizations:ddm-sidebar-item-hidden": False,
     # Enable the unit normalization in the metrics API
     "organizations:ddm-metrics-api-unit-normalization": False,
     # Enables import of metric dashboards
