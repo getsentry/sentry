@@ -57,10 +57,7 @@ def safe_extract_zip(
             if not member.startswith(prefix) or is_unsafe_path(member):
                 continue
             dst_path = os.path.join(path, member[len(prefix) :])
-            try:
-                os.makedirs(os.path.dirname(dst_path))
-            except OSError:
-                pass
+            os.makedirs(os.path.dirname(dst_path), exist_ok=True)
             with open(dst_path, "wb") as df:
                 with zf.open(member) as sf:
                     shutil.copyfileobj(sf, df)

@@ -728,6 +728,23 @@ class DetailedProjectSerializerTest(TestCase):
         assert "sentry:token" not in result["options"]
         assert "sentry:symbol_sources" not in result["options"]
 
+    def test_feedback_flag_with_epochs(self):
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+        # new projects with default epoch should have feedback_user_report_notifications enabled
+        assert result["options"]["sentry:feedback_user_report_notifications"] is True
+
+        self.project.update_option("sentry:option-epoch", 1)
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+        assert result["options"]["sentry:feedback_user_report_notifications"] is False
+
+        self.project.update_option("sentry:feedback_user_report_notifications", True)
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+        assert result["options"]["sentry:feedback_user_report_notifications"] is True
+
+        self.project.update_option("sentry:feedback_user_report_notifications", False)
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+        assert result["options"]["sentry:feedback_user_report_notifications"] is False
+
 
 @region_silo_test
 class BulkFetchProjectLatestReleases(TestCase):

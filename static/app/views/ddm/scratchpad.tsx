@@ -2,7 +2,9 @@ import {useCallback, useLayoutEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as echarts from 'echarts/core';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Field} from 'sentry/components/ddm/metricSamplesTable';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getMetricsCorrelationSpanUrl, unescapeMetricsFormula} from 'sentry/utils/metrics';
 import {
@@ -81,6 +83,10 @@ export function MetricScratchpad() {
 
   const handleSampleClick = useCallback(
     (sample: MetricsSamplesResults<Field>['data'][number]) => {
+      if (!sample['transaction.id']) {
+        addErrorMessage(t('No matching transaction found'));
+        return;
+      }
       router.push(
         getMetricsCorrelationSpanUrl(
           organization,

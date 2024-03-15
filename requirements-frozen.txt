@@ -122,7 +122,7 @@ sentry-arroyo==2.16.2
 sentry-kafka-schemas==0.1.61
 sentry-ophio==0.2.3
 sentry-redis-tools==0.1.7
-sentry-relay==0.8.49
+sentry-relay==0.8.50
 sentry-sdk==2.0.0rc2
 sentry-usage-accountant==0.0.10
 simplejson==3.17.6

@@ -427,6 +427,127 @@ def test_parse_replay_dead_click_actions(patch_rage_click_issue_with_replay_even
 
 
 @django_db_all
+def test_rage_click_issue_creation_no_component_name(
+    patch_rage_click_issue_with_replay_event, default_project
+):
+    events = [
+        {
+            "type": 5,
+            "timestamp": 1674291701348,
+            "data": {
+                "tag": "breadcrumb",
+                "payload": {
+                    "timestamp": 1.1,
+                    "type": "default",
+                    "category": "ui.slowClickDetected",
+                    "message": "div.container > div#root > div > ul > div",
+                    "data": {
+                        "endReason": "timeout",
+                        "timeafterclickms": 7000.0,
+                        "nodeId": 59,
+                        "url": "https://www.sentry.io",
+                        "node": {
+                            "id": 59,
+                            "tagName": "a",
+                            "attributes": {
+                                "id": "id",
+                                "class": "class1 class2",
+                                "role": "button",
+                                "aria-label": "test",
+                                "alt": "1",
+                                "data-testid": "2",
+                                "title": "3",
+                            },
+                            "textContent": "text",
+                        },
+                    },
+                },
+            },
+        },
+        {
+            "type": 5,
+            "timestamp": 1674291701348,
+            "data": {
+                "tag": "breadcrumb",
+                "payload": {
+                    "timestamp": 1.1,
+                    "type": "default",
+                    "category": "ui.slowClickDetected",
+                    "message": "div.container > div#root > div > ul > div",
+                    "data": {
+                        "clickcount": 5,
+                        "endReason": "timeout",
+                        "timeafterclickms": 7000.0,
+                        "nodeId": 59,
+                        "url": "https://www.sentry.io",
+                        "node": {
+                            "id": 59,
+                            "tagName": "a",
+                            "attributes": {
+                                "id": "id",
+                                "class": "class1 class2",
+                                "role": "button",
+                                "aria-label": "test",
+                                "alt": "1",
+                                "data-testid": "2",
+                                "title": "3",
+                            },
+                            "textContent": "text",
+                        },
+                    },
+                },
+            },
+        },
+        # New style slowClickDetected payload.
+        {
+            "type": 5,
+            "timestamp": 1674291701348,
+            "data": {
+                "tag": "breadcrumb",
+                "payload": {
+                    "timestamp": 1.1,
+                    "type": "default",
+                    "category": "ui.slowClickDetected",
+                    "message": "div.container > div#root > div > ul > div",
+                    "data": {
+                        "url": "https://www.sentry.io",
+                        "clickCount": 5,
+                        "endReason": "timeout",
+                        "timeAfterClickMs": 7000.0,
+                        "nodeId": 59,
+                        "node": {
+                            "id": 59,
+                            "tagName": "a",
+                            "attributes": {
+                                "id": "id",
+                                "class": "class1 class2",
+                                "role": "button",
+                                "aria-label": "test",
+                                "alt": "1",
+                                "data-testid": "2",
+                                "title": "3",
+                            },
+                            "textContent": "text",
+                        },
+                    },
+                },
+            },
+        },
+    ]
+
+    with Feature(
+        {
+            "organizations:session-replay-rage-click-issue-creation": True,
+        }
+    ):
+        default_project.update_option("sentry:replay_rage_click_issues", True)
+        parse_replay_actions(default_project.id, "1", 30, events, mock_replay_event())
+
+    # test that 2 rage click issues are still created
+    assert patch_rage_click_issue_with_replay_event.call_count == 2
+
+
+@django_db_all
 def test_parse_replay_click_actions_not_dead(
     patch_rage_click_issue_with_replay_event, default_project
 ):
