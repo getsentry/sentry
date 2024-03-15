@@ -9,4 +9,4 @@
 # library-name @ https://github.com/getsentry/<repo>/archive/<40 char sha>.zip
 
 # DO NOT MERGE: CI testing for pytest-sentry
-pytest-sentry @ https://github.com/getsentry/pytest-sentry/archive/28d3740d3b4ec847d8d89bd8f1ec2b2123fb128d.zip
+pytest-sentry @ https://github.com/getsentry/pytest-sentry/archive/a955884c062fad2697ba23cdd77a4bb3ec3a6f9e.zip
