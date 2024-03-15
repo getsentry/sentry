@@ -417,6 +417,8 @@ class QueryResult:
     @property
     def limit(self) -> int | None:
         # The totals limit is the only one that controls the number of groups that are returned.
+        # TODO: we might want to return the limit that is actually returned to users. In that, we would need to check
+        #  if the queries run have a dynamic interval, since in that case we might need to return limit - 1.
         if self.totals_query:
             return self.totals_query.metrics_query.limit.limit
 
