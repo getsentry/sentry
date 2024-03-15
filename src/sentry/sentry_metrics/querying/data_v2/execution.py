@@ -234,6 +234,8 @@ class ScheduledQuery:
             limit += 1
             dynamic_limit = True
 
+        # We want to modify only the limit of the actual query and not the one of the `ScheduledQuery` since we want
+        # to keep that as it was supplied by the executor.
         updated_metrics_query = updated_metrics_query.set_limit(limit)
 
         return updated_metrics_query, dynamic_limit
@@ -542,11 +544,12 @@ class QueryExecutor:
         #
         # Note that the mutation we do is not reflected in the queries that are returned as part of the
         # `QueryResult`(s) but since we do not need this data we can leave it out.
+        _, last_query_result, _ = partial_query_result.previous_queries[0]
         next_metrics_query = _push_down_group_filters(
             query,
             # For now, we take the last result which will be the only one since we run at most two chained queries,
             # namely totals and series.
-            _extract_groups_from_seq(partial_query_result.executed_results[0]["data"]),
+            _extract_groups_from_seq(last_query_result["data"]),
         )
 
         return self._build_request(next_metrics_query)
@@ -608,10 +611,12 @@ class QueryExecutor:
             has_more = False
             if scheduled_query.type == ScheduledQueryType.TOTALS and scheduled_query.dynamic_limit:
                 data = query_result["data"]
-                has_more = len(data) == scheduled_query.limit
+                limit = scheduled_query.metrics_query.limit.limit
+
                 # We take only the first n - 1 elements, since we have 1 element more of lookahead which is used to
                 # determine if there are more groups.
-                query_result["data"] = data[: scheduled_query.limit - 1]
+                query_result["data"] = data[: limit - 1]
+                has_more = len(data) >= limit
 
             previous_result = self._query_results[query_index]
             if scheduled_query.next is None:
