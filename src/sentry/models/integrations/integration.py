@@ -119,7 +119,7 @@ class Integration(DefaultFieldsModel):
         """
         Add an organization to this integration.
 
-        Returns False if the OrganizationIntegration was not created
+        Returns None if the OrganizationIntegration was not created
         """
         from sentry.models.integrations.organization_integration import OrganizationIntegration
 

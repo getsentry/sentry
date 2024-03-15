@@ -30,7 +30,7 @@ class UserSocialAuth(models.Model):
     user = models.ForeignKey(AUTH_USER_MODEL, related_name="social_auth", on_delete=models.CASCADE)
     provider = models.CharField(max_length=32)
     uid = models.CharField(max_length=UID_LENGTH)
-    extra_data: models.Field[dict[str, Any], dict[str, Any]] = JSONField(default="{}")
+    extra_data: models.Field[dict[str, Any] | None, dict[str, Any]] = JSONField(default="{}")
 
     class Meta:
         """Meta data"""
