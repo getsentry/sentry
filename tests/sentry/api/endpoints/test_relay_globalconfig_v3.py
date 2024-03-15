@@ -44,6 +44,10 @@ def test_global_config():
 
     config["options"]["profiling.generic_metrics.functions_ingestion.enabled"] = True
 
+    # Default coming from options `{}` is removed because empty in librelay
+    del config["options"]["relay.metric-bucket-distribution-encodings"]
+    del config["options"]["relay.metric-bucket-set-encodings"]
+
     normalized = normalize_global_config(config)
     assert normalized == config
 
