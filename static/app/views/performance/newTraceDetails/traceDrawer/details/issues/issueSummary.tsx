@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -13,7 +12,7 @@ import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group, Level, Organization} from 'sentry/types';
 import {getLocation, getMessage, isTombstone} from 'sentry/utils/events';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface EventOrGroupHeaderProps {
   data: Group;
@@ -24,63 +23,77 @@ interface EventOrGroupHeaderProps {
 /**
  * Displays an event or group/issue title (i.e. in Stream)
  */
-function IssueSummary({data, organization, event_id}: EventOrGroupHeaderProps) {
+interface TitleChildrenProps {
+  data: Group;
+  organization: Organization;
+}
+function TitleChildren(props: TitleChildrenProps) {
+  const hasIssuePriority = props.organization.features.includes('issue-priority-ui');
+  const {level, isBookmarked, hasSeen} = props.data;
+
+  return (
+    <Fragment>
+      {level && !hasIssuePriority && <GroupLevel level={level} />}
+      {isBookmarked && (
+        <IconWrapper>
+          <IconStar isSolid color="yellow400" />
+        </IconWrapper>
+      )}
+      <ErrorBoundary customComponent={<EventTitleError />} mini>
+        <StyledEventOrGroupTitle
+          data={props.data}
+          organization={props.organization}
+          // hasSeen is undefined for GroupTombstone
+          hasSeen={hasSeen === undefined ? true : hasSeen}
+          withStackTracePreview
+        />
+      </ErrorBoundary>
+    </Fragment>
+  );
+}
+
+interface TitleProps {
+  data: Group;
+  event_id: string;
+}
+function IssueTitle(props: TitleProps) {
+  const organization = useOrganization();
+  const commonEleProps = {
+    'data-test-id': status === 'resolved' ? 'resolved-issue' : null,
+  };
+
+  if (isTombstone(props.data)) {
+    return (
+      <TitleWithoutLink {...commonEleProps}>
+        <TitleChildren data={props.data} organization={organization} />
+      </TitleWithoutLink>
+    );
+  }
+
+  return (
+    <TitleWithLink
+      {...commonEleProps}
+      to={{
+        pathname: `/organizations/${organization.slug}/issues/${props.data.id}/events/${props.event_id}/`,
+      }}
+    >
+      <TitleChildren data={props.data} organization={organization} />
+    </TitleWithLink>
+  );
+}
+
+export function IssueSummary({data, event_id}: EventOrGroupHeaderProps) {
+  const organization = useOrganization();
   const hasIssuePriority = organization.features.includes('issue-priority-ui');
-
-  function getTitleChildren() {
-    const {level, isBookmarked, hasSeen} = data as Group;
-    return (
-      <Fragment>
-        {level && !hasIssuePriority && <GroupLevel level={level} />}
-        {isBookmarked && (
-          <IconWrapper>
-            <IconStar isSolid color="yellow400" />
-          </IconWrapper>
-        )}
-        <ErrorBoundary customComponent={<EventTitleError />} mini>
-          <StyledEventOrGroupTitle
-            data={data}
-            organization={organization}
-            // hasSeen is undefined for GroupTombstone
-            hasSeen={hasSeen === undefined ? true : hasSeen}
-            withStackTracePreview
-          />
-        </ErrorBoundary>
-      </Fragment>
-    );
-  }
-
-  function getTitle() {
-    const {id, status} = data as Group;
-
-    const commonEleProps = {
-      'data-test-id': status === 'resolved' ? 'resolved-issue' : null,
-    };
-
-    if (isTombstone(data)) {
-      return (
-        <TitleWithoutLink {...commonEleProps}>{getTitleChildren()}</TitleWithoutLink>
-      );
-    }
-
-    return (
-      <TitleWithLink
-        {...commonEleProps}
-        to={{
-          pathname: `/organizations/${organization.slug}/issues/${id}/events/${event_id}/`,
-        }}
-      >
-        {getTitleChildren()}
-      </TitleWithLink>
-    );
-  }
 
   const eventLocation = getLocation(data);
 
   return (
     <div data-test-id="event-issue-header">
-      <Title>{getTitle()}</Title>
-      {eventLocation && <Location>{eventLocation}</Location>}
+      <Title>
+        <IssueTitle data={data} event_id={event_id} />
+      </Title>
+      {eventLocation ? <Location>{eventLocation}</Location> : null}
       <StyledEventMessage
         level={hasIssuePriority && 'level' in data ? data.level : undefined}
         message={getMessage(data)}
@@ -90,13 +103,6 @@ function IssueSummary({data, organization, event_id}: EventOrGroupHeaderProps) {
     </div>
   );
 }
-
-const truncateStyles = css`
-  overflow: hidden;
-  max-width: 100%;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
 
 const Title = styled('div')`
   margin-bottom: ${space(0.25)};
@@ -109,7 +115,10 @@ const Title = styled('div')`
 `;
 
 const LocationWrapper = styled('div')`
-  ${truncateStyles};
+  overflow: hidden;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   margin: 0 0 5px;
   direction: rtl;
   text-align: left;
@@ -156,8 +165,6 @@ const TitleWithLink = styled(GlobalSelectionLink)`
 const TitleWithoutLink = styled('span')`
   display: inline-flex;
 `;
-
-export default withOrganization(IssueSummary);
 
 const StyledEventOrGroupTitle = styled(EventOrGroupTitle)<{
   hasSeen: boolean;

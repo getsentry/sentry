@@ -9,7 +9,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import type {TraceErrorOrIssue} from 'sentry/utils/performance/quickTrace/types';
 
-import Issue from './issue';
+import {Issue} from './issue';
 
 type Props = {
   event_id: string;

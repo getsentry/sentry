@@ -1,4 +1,3 @@
-import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
@@ -16,7 +15,7 @@ import type {Group, Organization} from 'sentry/types';
 import type {TraceErrorOrIssue} from 'sentry/utils/performance/quickTrace/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
-import IssueSummary from './issueSummary';
+import {IssueSummary} from './issueSummary';
 
 type Props = {
   event_id: string;
@@ -24,7 +23,7 @@ type Props = {
   organization: Organization;
 };
 
-function Issue(props: Props) {
+export function Issue(props: Props) {
   const {
     isLoading,
     data: fetchedIssue,
@@ -129,18 +128,12 @@ const ColumnWrapper = styled('div')`
   margin: 0 ${space(2)};
 `;
 
-const primaryStatStyle = (theme: Theme) => css`
-  font-size: ${theme.fontSizeLarge};
-  font-variant-numeric: tabular-nums;
-`;
-
 const PrimaryCount = styled(Count)`
-  ${p => primaryStatStyle(p.theme)};
+  font-size: ${p => p.theme.fontSizeLarge};
+  font-variant-numeric: tabular-nums;
 `;
 
 const StyledPanelItem = styled(PanelItem)`
   padding-top: ${space(1)};
   padding-bottom: ${space(1)};
 `;
-
-export default Issue;
