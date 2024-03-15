@@ -135,6 +135,8 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
         integration = Integration.objects.get(provider=self.provider.key)
         org_integration = OrganizationIntegration.objects.get(integration_id=integration.id)
 
+        responses.add(responses.GET, url="https://api.opsgenie.com/v2/teams", status=200, json={})
+
         data = {"team_table": [{"id": "", "team": "cool-team", "integration_key": "1234-5678"}]}
         installation.update_organization_config(data)
         team_id = str(org_integration.id) + "-" + "cool-team"
