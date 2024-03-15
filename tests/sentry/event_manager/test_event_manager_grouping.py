@@ -152,6 +152,52 @@ class EventManagerGroupingMetricsTest(TestCase):
             }
 
     @mock.patch("sentry.event_manager.metrics.incr")
+    def test_adds_correct_tags_to_avg_calculations_per_event_metrics(
+        self, mock_metrics_incr: MagicMock
+    ):
+        project = self.project
+
+        in_transition_cases: list[Any] = [
+            [LEGACY_CONFIG, None, None, "False"],  # Not in transition
+            [NEWSTYLE_CONFIG, LEGACY_CONFIG, time() + 3600, "True"],  # In transition
+        ]
+        optimized_logic_cases = [
+            [True, "True"],
+            [False, "False"],
+        ]
+
+        for (
+            primary_config,
+            secondary_config,
+            transition_expiry,
+            expected_in_transition,
+        ) in in_transition_cases:
+            for has_flag, expected_using_optimization in optimized_logic_cases:
+                with self.feature(
+                    {"organizations:grouping-suppress-unnecessary-secondary-hash": has_flag}
+                ):
+
+                    mock_metrics_incr.reset_mock()
+
+                    project.update_option("sentry:grouping_config", primary_config)
+                    project.update_option("sentry:secondary_grouping_config", secondary_config)
+                    project.update_option("sentry:secondary_grouping_expiry", transition_expiry)
+
+                    save_new_event({"message": "Dogs are great!"}, self.project)
+
+                    # Both metrics get the same tags, so we can check either one
+                    total_calculations_calls = get_relevant_metrics_calls(
+                        mock_metrics_incr, "grouping.total_calculations"
+                    )
+                    metric_tags = total_calculations_calls[0].kwargs["tags"]
+
+                    assert len(total_calculations_calls) == 1
+                    assert metric_tags["in_transition"] == expected_in_transition
+                    assert (
+                        metric_tags["using_transition_optimization"] == expected_using_optimization
+                    )
+
+    @mock.patch("sentry.event_manager.metrics.incr")
     @mock.patch("sentry.grouping.ingest._is_in_transition", return_value=True)
     def test_records_hash_comparison(self, _, mock_metrics_incr: MagicMock):
         project = self.project
