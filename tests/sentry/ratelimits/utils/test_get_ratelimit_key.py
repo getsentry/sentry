@@ -98,7 +98,7 @@ class GetRateLimitKeyTest(TestCase):
         )
 
     def test_user(self):
-        self.request.session = {}
+        self.request.session = SessionBase()
         self.request.user = self.user
 
         assert (
