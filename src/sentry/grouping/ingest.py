@@ -189,7 +189,7 @@ def _is_in_transition(project: Project) -> bool:
     secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
     secondary_grouping_expiry = project.get_option("sentry:secondary_grouping_expiry")
 
-    return secondary_grouping_config and (secondary_grouping_expiry or 0) >= time.time()
+    return bool(secondary_grouping_config) and (secondary_grouping_expiry or 0) >= time.time()
 
 
 def maybe_run_secondary_grouping(
