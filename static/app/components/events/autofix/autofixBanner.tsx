@@ -43,7 +43,7 @@ export function AutofixBanner({triggerAutofix}: Props) {
             {t('Gimme Fix')}
           </Button>
           <Button onClick={onClickGiveInstructions} size="sm">
-            {t('Give an Instruction')}
+            {t('Give Instructions')}
           </Button>
         </ContextArea>
         {isSentryEmployee && (
