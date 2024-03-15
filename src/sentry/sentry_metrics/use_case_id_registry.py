@@ -19,6 +19,7 @@ class UseCaseID(Enum):
     CUSTOM = "custom"
     PROFILES = "profiles"
     BUNDLE_ANALYSIS = "bundle_analysis"
+    METRIC_STATS = "metric_stats"
 
 
 # UseCaseKey will be renamed to MetricPathKey
@@ -30,6 +31,7 @@ METRIC_PATH_MAPPING: Mapping[UseCaseID, UseCaseKey] = {
     UseCaseID.CUSTOM: UseCaseKey.PERFORMANCE,
     UseCaseID.BUNDLE_ANALYSIS: UseCaseKey.PERFORMANCE,
     UseCaseID.PROFILES: UseCaseKey.PERFORMANCE,
+    UseCaseID.METRIC_STATS: UseCaseKey.PERFORMANCE,
 }
 
 # TODO: Remove this as soon as the entire indexer system is use case aware
