@@ -109,7 +109,11 @@ def get_queue_by_name(name: str) -> kombu.Queue:
             return queue
 
 
-backends: dict[str, type[_QueueBackend]] = {"redis": RedisBackend, "amqp": AmqpBackend}
+backends: dict[str, type[_QueueBackend]] = {
+    "redis": RedisBackend,
+    "amqp": AmqpBackend,
+    "amqps": AmqpBackend,
+}
 
 try:
     backend: _QueueBackend | None = get_backend_for_broker(settings.BROKER_URL)
