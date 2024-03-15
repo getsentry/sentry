@@ -48,7 +48,6 @@ USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS = {
     UseCaseID.SPANS: "sentry-metrics.cardinality-limiter.limits.spans.per-org",
     UseCaseID.CUSTOM: "sentry-metrics.cardinality-limiter.limits.custom.per-org",
     UseCaseID.PROFILES: "sentry-metrics.cardinality-limiter.limits.profiles.per-org",
-    UseCaseID.METRIC_STATS: "sentry-metrics.cardinality-limiter.limits.metric_stats.per-org",
 }
 
 USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS = {
