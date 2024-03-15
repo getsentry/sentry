@@ -1098,3 +1098,43 @@ def test_log_canvas_size():
 
     # No events.
     log_canvas_size(1, 1, "a", [])
+
+
+def test_emit_click_negative_node_id():
+    """Test "get_user_actions" function."""
+    events = [
+        {
+            "type": 5,
+            "timestamp": 1674298825,
+            "data": {
+                "tag": "breadcrumb",
+                "payload": {
+                    "timestamp": 1674298825.403,
+                    "type": "default",
+                    "category": "ui.click",
+                    "message": "div#hello.hello.world",
+                    "data": {
+                        "nodeId": 1,
+                        "node": {
+                            "id": -1,
+                            "tagName": "div",
+                            "attributes": {
+                                "id": "hello",
+                                "class": "hello world",
+                                "aria-label": "test",
+                                "role": "button",
+                                "alt": "1",
+                                "data-testid": "2",
+                                "title": "3",
+                                "data-sentry-component": "SignUpForm",
+                            },
+                            "textContent": "Hello, world!",
+                        },
+                    },
+                },
+            },
+        }
+    ]
+
+    user_actions = get_user_actions(1, uuid.uuid4().hex, events, None)
+    assert len(user_actions) == 0
