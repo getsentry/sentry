@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from typing import Literal
-from urllib.parse import quote
 
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.client import ApiClient
@@ -33,13 +32,9 @@ class OpsgenieClient(ApiClient):
     def _get_auth_headers(self):
         return {"Authorization": f"GenieKey {self.integration_key}"}
 
-    # This doesn't work if the team name is "." or "..", which Opsgenie allows for some reason
-    # despite their API not working with these names.
-    def get_team_id(self, team_name: str) -> BaseApiResponseX:
-        params = {"identifierType": "name"}
-        quoted_name = quote(team_name)
-        path = f"/teams/{quoted_name}"
-        return self.get(path=path, headers=self._get_auth_headers(), params=params)
+    def get_teams(self) -> BaseApiResponseX:
+        path = "/teams"
+        return self.get(path=path, headers=self._get_auth_headers())
 
     def authorize_integration(self, type: str) -> BaseApiResponseX:
         body = {"type": type}

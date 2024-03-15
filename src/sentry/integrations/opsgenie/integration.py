@@ -21,6 +21,7 @@ from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.pipeline import PipelineView
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
+from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, ApiUnauthorized
 from sentry.tasks.integrations import migrate_opsgenie_plugin
 from sentry.web.helpers import render_to_response
 
@@ -147,6 +148,8 @@ class OpsgenieIntegration(IntegrationInstallation):
         return fields
 
     def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
+        from sentry.services.hybrid_cloud.integration import integration_service
+
         # add the integration ID to a newly added row
         if not self.org_integration:
             return
@@ -156,10 +159,42 @@ class OpsgenieIntegration(IntegrationInstallation):
         # this is not instantaneous, so you could add the same team a bunch of times in a row
         # but I don't anticipate this being too much of an issue
         added_names = {team["team"] for team in teams if team not in unsaved_teams}
+
+        if unsaved_teams:
+            integration = integration_service.get_integration(
+                organization_integration_id=self.org_integration.id
+            )
+            if not integration:
+                raise ValidationError("Integration does not exist")
+
         for team in unsaved_teams:
             if team["team"] in added_names:
                 raise ValidationError({"duplicate_name": ["Duplicate team name."]})
             team["id"] = str(self.org_integration.id) + "-" + team["team"]
+
+            integration_key = team["integration_key"]
+
+            # validate integration keys
+            client = OpsgenieClient(
+                integration=integration,
+                integration_key=integration_key,
+            )
+            # call an API to test the integration key
+            try:
+                client.get_teams()
+            except ApiError as e:
+                logger.info(
+                    "opsgenie.authorization_error",
+                    extra={"error": str(e), "status_code": e.code},
+                )
+                if e.code == 429:
+                    raise ApiRateLimitedError(
+                        "Too many requests. Please try updating one team/key at a time."
+                    )
+                elif e.code == 401:
+                    raise ApiUnauthorized(f"Invalid integration key {integration_key}")
+                raise
+
         return super().update_organization_config(data)
 
     def schedule_migrate_opsgenie_plugin(self):
