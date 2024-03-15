@@ -48,7 +48,7 @@ describe('TeamKeyTransactionButton', function () {
     act(() => void TeamStore.loadInitialData(teams, false, null));
   });
 
-  it('fetches key transactions with project param', function () {
+  it('fetches key transactions with project param', async function () {
     const getTeamKeyTransactionsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/key-transactions-list/',
@@ -68,7 +68,9 @@ describe('TeamKeyTransactionButton', function () {
       />
     );
 
-    expect(getTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(getTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('renders with all teams checked', async function () {
