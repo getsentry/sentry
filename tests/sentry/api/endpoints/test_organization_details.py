@@ -425,6 +425,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "defaultRole": "owner",
             "require2FA": True,
             "allowJoinRequests": False,
+            "customMetricsAccess": True,
         }
 
         # needed to set require2FA
@@ -458,6 +459,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert options.get("sentry:scrape_javascript") is False
         assert options.get("sentry:join_requests") is False
         assert options.get("sentry:events_member_admin") is False
+        assert options.get("sentry:custom_metrics_access") is True
 
         # log created
         with assume_test_silo_mode_of(AuditLogEntry):
