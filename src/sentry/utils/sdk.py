@@ -200,7 +200,7 @@ def traces_sampler(sampling_context):
     return float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
 
 
-def before_send_transaction(event: Event, _: dict[str, Any]) -> Event | None:
+def before_send_transaction(event: dict[str, Any], _: dict[str, Any]) -> Event | None:
     # Discard generic redirects.
     # This condition can be removed once https://github.com/getsentry/team-sdks/issues/48 is fixed.
     if (
@@ -218,7 +218,7 @@ def before_send_transaction(event: Event, _: dict[str, Any]) -> Event | None:
     return event
 
 
-def before_send(event: Event, _: dict[str, Any]) -> Event | None:
+def before_send(event: dict[str, Any], _: dict[str, Any]) -> Event | None:
     if event.get("tags"):
         if settings.SILO_MODE:
             event["tags"]["silo_mode"] = str(settings.SILO_MODE)
