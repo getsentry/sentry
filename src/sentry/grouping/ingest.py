@@ -10,6 +10,7 @@ import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 
+from sentry import features
 from sentry.exceptions import HashDiscarded
 from sentry.features.rollout import in_random_rollout
 from sentry.grouping.api import (
@@ -484,8 +485,17 @@ def record_hash_calculation_metrics(
 
     # Track the total number of grouping calculations done overall, so we can divide by the
     # count to get an average number of calculations per event
-    metrics.incr("grouping.event_hashes_calculated")
-    metrics.incr("grouping.total_calculations", amount=2 if has_secondary_hashes else 1)
+    tags = {
+        "in_transition": str(_is_in_transition(project)),
+        "using_transition_optimization": str(
+            features.has(
+                "organizations:grouping-suppress-unnecessary-secondary-hash",
+                project.organization,
+            )
+        ),
+    }
+    metrics.incr("grouping.event_hashes_calculated", tags=tags)
+    metrics.incr("grouping.total_calculations", amount=2 if has_secondary_hashes else 1, tags=tags)
 
 
 def record_new_group_metrics(event: Event):
