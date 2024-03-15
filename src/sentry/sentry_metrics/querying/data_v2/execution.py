@@ -220,7 +220,7 @@ class ScheduledQuery:
 
         limit = self.limit
         dynamic_limit = False
-        if limit is None:
+        if limit is None and intervals_number is not None:
             # If no limit is specified, we want to compute the optimal number of groups rounded down. The idea is that
             # if you have a 10k limit of rows returned by Snuba and you request an interval of 100 elements, Snuba can
             # return you at most 100 groups, thus that will be the limit chosen for the totals query. This means that
@@ -635,15 +635,13 @@ class QueryExecutor:
                     merged_result.align_series_to_totals(self._organization)
                     self._query_results[query_index] = merged_result
             else:
-                previous_query = (scheduled_query, query_result, has_more)
+                current_query = (scheduled_query, query_result, has_more)
                 if previous_result is None:
                     self._query_results[query_index] = PartialQueryResult(
-                        previous_queries=[previous_query],
+                        previous_queries=[current_query],
                     )
                 elif isinstance(previous_result, PartialQueryResult):
-                    self._query_results[query_index] = previous_result.previous_queries.append(
-                        previous_query
-                    )
+                    previous_result.previous_queries.append(current_query)
 
             # We bump the next query after the results have been merged, so that the next call to the function will
             # execute the next queries in the chain.
