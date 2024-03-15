@@ -17,13 +17,14 @@ import withOrganization from 'sentry/utils/withOrganization';
 
 interface EventOrGroupHeaderProps {
   data: Group;
+  event_id: string;
   organization: Organization;
 }
 
 /**
  * Displays an event or group/issue title (i.e. in Stream)
  */
-function IssueSummary({data, organization}: EventOrGroupHeaderProps) {
+function IssueSummary({data, organization, event_id}: EventOrGroupHeaderProps) {
   const hasIssuePriority = organization.features.includes('issue-priority-ui');
 
   function getTitleChildren() {
@@ -66,7 +67,7 @@ function IssueSummary({data, organization}: EventOrGroupHeaderProps) {
       <TitleWithLink
         {...commonEleProps}
         to={{
-          pathname: `/organizations/${organization.slug}/issues/${id}`,
+          pathname: `/organizations/${organization.slug}/issues/${id}/events/${event_id}/`,
         }}
       >
         {getTitleChildren()}

@@ -19,6 +19,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import IssueSummary from './issueSummary';
 
 type Props = {
+  event_id: string;
   issue: TraceErrorOrIssue;
   organization: Organization;
 };
@@ -50,7 +51,11 @@ function Issue(props: Props) {
   ) : fetchedIssue ? (
     <StyledPanelItem>
       <IssueSummaryWrapper>
-        <IssueSummary data={fetchedIssue} organization={props.organization} />
+        <IssueSummary
+          data={fetchedIssue}
+          organization={props.organization}
+          event_id={props.event_id}
+        />
         <EventOrGroupExtraDetails data={fetchedIssue} />
       </IssueSummaryWrapper>
       <ChartWrapper>

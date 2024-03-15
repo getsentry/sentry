@@ -284,7 +284,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   }
 
   function renderSpanErrorMessage() {
-    const {span, organization, errors, performanceIssues} = props;
+    const {span, organization, errors, performanceIssues, event} = props;
 
     const hasErrors = errors.length > 0 || performanceIssues.length > 0;
 
@@ -293,7 +293,12 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
     }
 
     return (
-      <IssueList nodeType="span" organization={organization} issues={relatedIssues} />
+      <IssueList
+        nodeType="span"
+        organization={organization}
+        issues={relatedIssues}
+        event_id={event.id}
+      />
     );
   }
 

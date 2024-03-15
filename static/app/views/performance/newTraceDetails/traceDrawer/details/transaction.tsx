@@ -314,6 +314,7 @@ export function TransactionNodeDetails({
           nodeType="transaction"
           organization={organization}
           issues={relatedIssues}
+          event_id={event.id}
         />
       )}
 

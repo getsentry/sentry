@@ -12,6 +12,7 @@ import type {TraceErrorOrIssue} from 'sentry/utils/performance/quickTrace/types'
 import Issue from './issue';
 
 type Props = {
+  event_id: string;
   issues: TraceErrorOrIssue[];
   nodeType: 'span' | 'transaction';
   organization: Organization;
@@ -29,7 +30,7 @@ function IssueListHeader() {
   );
 }
 
-function IssueList({issues, organization, nodeType}: Props) {
+function IssueList({issues, organization, nodeType, event_id}: Props) {
   if (!issues.length) {
     return null;
   }
@@ -46,7 +47,12 @@ function IssueList({issues, organization, nodeType}: Props) {
       <StyledPanel>
         <IssueListHeader />
         {issues.map((issue, index) => (
-          <Issue key={index} issue={issue} organization={organization} />
+          <Issue
+            key={index}
+            issue={issue}
+            organization={organization}
+            event_id={event_id}
+          />
         ))}
       </StyledPanel>
     </Fragment>
