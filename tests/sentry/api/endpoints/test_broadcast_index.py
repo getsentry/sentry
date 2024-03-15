@@ -1,3 +1,5 @@
+from django.urls import reverse
+
 from sentry.models.broadcast import Broadcast, BroadcastSeen
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
@@ -59,6 +61,24 @@ class BroadcastListTest(APITestCase):
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(broadcast1.id)
+
+    def test_organization_filtering(self):
+        org = self.create_organization()
+        self.create_member(organization=org, user=self.user, role="admin")
+
+        broadcast1 = Broadcast.objects.create(message="foo", is_active=True)
+        broadcast2 = Broadcast.objects.create(message="bar", is_active=True)
+
+        self.add_user_permission(user=self.user, permission="broadcasts.admin")
+        self.login_as(user=self.user)
+
+        url = reverse("sentry-api-0-organization-broadcasts", args=[org.slug])
+
+        response = self.client.get(url)
+        assert response.status_code == 200
+        assert len(response.data) == 2
+        assert str(broadcast1.id) in [str(broadcast["id"]) for broadcast in response.data]
+        assert str(broadcast2.id) in [str(broadcast["id"]) for broadcast in response.data]
 
 
 @control_silo_test
