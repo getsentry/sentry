@@ -182,7 +182,7 @@ describe('ReleasesList', () => {
       />
     );
     expect(
-      screen.getByText("There are no releases that match: 'abc'.")
+      await screen.findByText("There are no releases that match: 'abc'.")
     ).toBeInTheDocument();
 
     location = {query: {sort: ReleasesSortOption.SESSIONS, statsPeriod: '7d'}};
@@ -195,7 +195,7 @@ describe('ReleasesList', () => {
       />
     );
     expect(
-      screen.getByText('There are no releases with data in the last 7 days.')
+      await screen.findByText('There are no releases with data in the last 7 days.')
     ).toBeInTheDocument();
 
     location = {query: {sort: ReleasesSortOption.USERS_24_HOURS, statsPeriod: '7d'}};
@@ -208,7 +208,7 @@ describe('ReleasesList', () => {
       />
     );
     expect(
-      screen.getByText(
+      await screen.findByText(
         'There are no releases with active user data (users in the last 24 hours).'
       )
     ).toBeInTheDocument();
@@ -223,7 +223,7 @@ describe('ReleasesList', () => {
       />
     );
     expect(
-      screen.getByText(
+      await screen.findByText(
         'There are no releases with active session data (sessions in the last 24 hours).'
       )
     ).toBeInTheDocument();
@@ -238,7 +238,7 @@ describe('ReleasesList', () => {
       />
     );
     expect(
-      screen.getByText('There are no releases with semantic versioning.')
+      await screen.findByText('There are no releases with semantic versioning.')
     ).toBeInTheDocument();
   });
 
@@ -443,20 +443,22 @@ describe('ReleasesList', () => {
     );
   });
 
-  it('calls api with only explicitly permitted query params', () => {
+  it('calls api with only explicitly permitted query params', async () => {
     render(<ReleasesList {...props} />, {
       context: routerContext,
       organization,
     });
 
-    expect(endpointMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/releases/',
-      expect.objectContaining({
-        query: expect.not.objectContaining({
-          somethingBad: 'XXX',
-        }),
-      })
-    );
+    await waitFor(() => {
+      expect(endpointMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/releases/',
+        expect.objectContaining({
+          query: expect.not.objectContaining({
+            somethingBad: 'XXX',
+          }),
+        })
+      );
+    });
   });
 
   it('calls session api for health data', async () => {

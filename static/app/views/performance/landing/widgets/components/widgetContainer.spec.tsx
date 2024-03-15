@@ -1,6 +1,6 @@
 import type {InitializeDataSettings} from 'sentry-test/performance/initializePerformanceData';
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -127,7 +127,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     }
   });
 
-  it('Check requests when changing widget props', function () {
+  it('Check requests when changing widget props', async function () {
     const data = initializeData();
 
     wrapper = render(
@@ -137,7 +137,9 @@ describe('Performance > Widgets > WidgetContainer', function () {
       />
     );
 
-    expect(eventStatsMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(eventStatsMock).toHaveBeenCalledTimes(1);
+    });
 
     // Change eventView reference
     data.eventView = data.eventView.clone();
@@ -149,7 +151,9 @@ describe('Performance > Widgets > WidgetContainer', function () {
       />
     );
 
-    expect(eventStatsMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(eventStatsMock).toHaveBeenCalledTimes(1);
+    });
 
     // Change eventView statsperiod
     const modifiedData = initializeData({
@@ -163,7 +167,9 @@ describe('Performance > Widgets > WidgetContainer', function () {
       />
     );
 
-    expect(eventStatsMock).toHaveBeenCalledTimes(2);
+    await waitFor(() => {
+      expect(eventStatsMock).toHaveBeenCalledTimes(2);
+    });
 
     expect(eventStatsMock).toHaveBeenNthCalledWith(
       2,
@@ -180,7 +186,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('Check requests when changing widget props for GenericDiscoverQuery based widget', function () {
+  it('Check requests when changing widget props for GenericDiscoverQuery based widget', async function () {
     const data = initializeData();
 
     wrapper = render(
@@ -192,7 +198,9 @@ describe('Performance > Widgets > WidgetContainer', function () {
       </MEPSettingProvider>
     );
 
-    expect(eventsTrendsStats).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(eventsTrendsStats).toHaveBeenCalledTimes(1);
+    });
 
     // Change eventView reference
     data.eventView = data.eventView.clone();
@@ -206,7 +214,9 @@ describe('Performance > Widgets > WidgetContainer', function () {
       </MEPSettingProvider>
     );
 
-    expect(eventsTrendsStats).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(eventsTrendsStats).toHaveBeenCalledTimes(1);
+    });
 
     // Change eventView statsperiod
     const modifiedData = initializeData({
@@ -222,7 +232,9 @@ describe('Performance > Widgets > WidgetContainer', function () {
       </MEPSettingProvider>
     );
 
-    expect(eventsTrendsStats).toHaveBeenCalledTimes(2);
+    await waitFor(() => {
+      expect(eventsTrendsStats).toHaveBeenCalledTimes(2);
+    });
 
     expect(eventsTrendsStats).toHaveBeenNthCalledWith(
       2,
