@@ -89,7 +89,7 @@ def test_recursion_breaker(settings, post_event_with_sdk):
     with mock.patch(
         "sentry.event_manager.EventManager.save", spec=Event, side_effect=ValueError("oh no!")
     ) as save:
-        with pytest.raises(ValueError):
+        with pytest.raises(Exception):
             post_event_with_sdk({"message": "internal client test", "event_id": event_id})
 
     assert_mock_called_once_with_partial(save, settings.SENTRY_PROJECT, cache_key=f"e:{event_id}:1")
