@@ -363,7 +363,6 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
             disabledReason: t(
               'You must have a GitHub integration to enable this feature.'
             ),
-            visible: ({features}) => features.includes('integrations-open-pr-comment'),
           },
           {
             name: 'githubNudgeInvite',
@@ -376,7 +375,6 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
             disabledReason: t(
               'You must have a GitHub integration to enable this feature.'
             ),
-            visible: ({features}) => features.includes('integrations-gh-invite'),
           },
         ],
       },
