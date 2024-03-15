@@ -16,6 +16,7 @@ from sentry.api.bases.organization import (
     OrganizationAndStaffPermission,
     OrganizationEndpoint,
     OrganizationMetricsPermission,
+    OrganizationPermission,
 )
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
@@ -93,6 +94,26 @@ def get_use_case_ids(request: Request) -> Sequence[UseCaseID]:
         raise ParseError(
             detail=f"Invalid useCase parameter. Please use one of: {[uc.value for uc in UseCaseID]}"
         )
+
+
+class OrganizationMetricsEnrollPermission(OrganizationPermission):
+    scope_map = {"PUT": ["org:read", "org:write", "org:admin"]}
+
+
+@region_silo_endpoint
+class OrganizationMetricsEnrollEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "PUT": ApiPublishStatus.PRIVATE,
+    }
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    permission_classes = (OrganizationMetricsEnrollPermission,)
+
+    """Enroll an organization in the custom metrics beta."""
+
+    def put(self, request: Request, organization) -> Response:
+        previous_state = organization.get_option("sentry:custom_metrics_access", False)
+        organization.update_option("sentry:custom_metrics_access", not previous_state)
+        return Response(status=200)
 
 
 @region_silo_endpoint
