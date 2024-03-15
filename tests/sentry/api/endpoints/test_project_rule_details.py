@@ -1023,7 +1023,8 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             }
         ]
         self.rule.update(
-            data={"conditions": conditions, "filters": filters, "actions": actions, "frequency": 5}, label="my rule"
+            data={"conditions": conditions, "filters": filters, "actions": actions, "frequency": 5},
+            label="my rule",
         )
 
         actions[0]["channel"] = "#new_channel_name"
