@@ -68,7 +68,7 @@ def _valid_staff_timestamp(request, limit: timedelta = STAFF_AUTH_FLOW_MAX_AGE) 
             "flag_datetime": flag_datetime,
             "time_difference": flag_datetime - current_time,
             "boolean_check": timedelta(0) < time_difference < limit,
-            "active_mode": SiloMode.get_current_mode(),
+            "active_silo": SiloMode.get_current_mode(),
         },
     )
 
@@ -248,7 +248,7 @@ class U2fInterface(AuthenticatorInterface):
                     if "staff_auth_flow" in request.session
                     else "missing"
                 ),
-                "active_mode": SiloMode.get_current_mode(),
+                "active_silo": SiloMode.get_current_mode(),
             },
         )
         # It is an intentional decision to not check whether or not the staff
@@ -271,7 +271,7 @@ class U2fInterface(AuthenticatorInterface):
                 ),
                 "has_state": "webauthn_authentication_state" in request.session,
                 "has_staff_state": "staff_webauthn_authentication_state" in request.session,
-                "active_mode": SiloMode.get_current_mode(),
+                "active_silo": SiloMode.get_current_mode(),
             },
         )
         return ActivationChallengeResult(challenge=cbor.encode(challenge["publicKey"]))
@@ -291,7 +291,7 @@ class U2fInterface(AuthenticatorInterface):
                         ),
                         "has_state": "webauthn_authentication_state" in request.session,
                         "has_staff_state": "staff_webauthn_authentication_state" in request.session,
-                        "active_mode": SiloMode.get_current_mode(),
+                        "active_silo": SiloMode.get_current_mode(),
                     },
                 )
             if _valid_staff_timestamp(request):
