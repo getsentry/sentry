@@ -49,7 +49,6 @@ def proxy_request_if_needed(
     returns None if proxying is not required, or a response if the proxy was successful.
     """
     current_silo_mode = SiloMode.get_current_mode()
-
     if current_silo_mode != SiloMode.CONTROL:
         return None
 
