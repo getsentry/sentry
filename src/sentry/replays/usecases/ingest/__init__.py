@@ -124,13 +124,14 @@ def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> Non
 
     # The first segment records an accepted outcome. This is for billing purposes. Subsequent
     # segments are not billed.
-    if headers["segment_id"] == 0 and message.replay_video is None:
+    if headers["segment_id"] == 0:
         track_initial_segment_event(
             message.org_id,
             message.project_id,
             message.replay_id,
             message.key_id,
             message.received,
+            is_replay_video=message.replay_video is not None,
         )
 
     transaction.finish()
@@ -142,6 +143,7 @@ def track_initial_segment_event(
     replay_id,
     key_id: int | None,
     received: int,
+    is_replay_video: bool,
 ) -> None:
     try:
         project = Project.objects.get_from_cache(id=project_id)
@@ -168,17 +170,19 @@ def track_initial_segment_event(
         )
         first_replay_received.send_robust(project=project, sender=Project)
 
-    track_outcome(
-        org_id=org_id,
-        project_id=project_id,
-        key_id=key_id,
-        outcome=Outcome.ACCEPTED,
-        reason=None,
-        timestamp=datetime.fromtimestamp(received, timezone.utc),
-        event_id=replay_id,
-        category=DataCategory.REPLAY,
-        quantity=1,
-    )
+    # Replay videos are not billed for now.
+    if not is_replay_video:
+        track_outcome(
+            org_id=org_id,
+            project_id=project_id,
+            key_id=key_id,
+            outcome=Outcome.ACCEPTED,
+            reason=None,
+            timestamp=datetime.fromtimestamp(received, timezone.utc),
+            event_id=replay_id,
+            category=DataCategory.REPLAY,
+            quantity=1,
+        )
 
 
 @metrics.wraps("replays.usecases.ingest.process_headers")
