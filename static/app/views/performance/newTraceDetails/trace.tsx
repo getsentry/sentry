@@ -18,7 +18,6 @@ import * as qs from 'query-string';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import Placeholder from 'sentry/components/placeholder';
-import {IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization, PlatformKey, Project} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
@@ -61,13 +60,27 @@ function Chevron(props: {direction: 'up' | 'down' | 'left'}) {
     <svg
       viewBox="0 0 16 16"
       style={{
-        fill: 'currentcolor',
-        color: 'currentcolor',
         transition: 'transform 120ms ease-in-out',
         transform: `rotate(${props.direction === 'up' ? 0 : props.direction === 'down' ? 180 : -90}deg)`,
       }}
     >
       <path d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z" />
+    </svg>
+  );
+}
+
+function Fire() {
+  return (
+    <svg viewBox="0 0 16 16">
+      <path d="M8.08,15.92A6.58,6.58,0,0,1,1.51,9.34a4.88,4.88,0,0,1,2.2-4.25.74.74,0,0,1,1,.34,6,6,0,0,1,4-5.3A.74.74,0,0,1,9.4.22a.73.73,0,0,1,.33.61v.31A15.07,15.07,0,0,0,10,4.93a3.72,3.72,0,0,1,2.3-1.7.74.74,0,0,1,.66.12.75.75,0,0,1,.3.6A6.21,6.21,0,0,0,14,6.79a5.78,5.78,0,0,1,.68,2.55A6.58,6.58,0,0,1,8.08,15.92ZM3.59,7.23A4.25,4.25,0,0,0,3,9.34a5.07,5.07,0,1,0,10.14,0,4.6,4.6,0,0,0-.54-1.94,8,8,0,0,1-.76-2.32A2,2,0,0,0,11.07,7a.75.75,0,0,1-1.32.58C8.4,6,8.25,4.22,8.23,2c-2,1.29-2.15,3.58-2.09,5.85A7.52,7.52,0,0,1,6.14,9a.74.74,0,0,1-.46.63.77.77,0,0,1-.76-.11A4.56,4.56,0,0,1,3.59,7.23Z" />
+    </svg>
+  );
+}
+
+function Profile() {
+  return (
+    <svg viewBox="0 0 16 16">
+      <path d="M15.25,0H.75C.33,0,0,.34,0,.75V5.59c0,.41,.34,.75,.75,.75h1.49v4.09c0,.41,.34,.75,.75,.75h1.73v4.09c0,.41,.34,.75,.75,.75h5.06c.41,0,.75-.34,.75-.75v-4.09h1.73c.41,0,.75-.34,.75-.75V6.34h1.49c.41,0,.75-.34,.75-.75V.75c0-.41-.34-.75-.75-.75Zm-5.47,14.52h-3.56v-3.34h3.56v3.34Zm2.48-4.84H3.74v-3.34H12.25v3.34Zm2.24-4.84H1.5V1.5H14.5v3.34Z" />
     </svg>
   );
 }
@@ -895,7 +908,7 @@ function RenderRow(props: {
             node_space={props.node.space}
             errors={props.node.value.errors}
             performance_issues={props.node.value.performance_issues}
-            profiles={props.node.value.profiles}
+            profiles={props.node.profiles}
           />
           <button
             ref={ref =>
@@ -1258,7 +1271,7 @@ function RenderRow(props: {
           >
             {typeof props.node.value.timestamp === 'number' ? (
               <div className="TraceError">
-                <IconFire color="errorText" size="xs" />
+                <Fire />
               </div>
             ) : null}
           </InvisibleTraceBar>
@@ -1427,7 +1440,7 @@ interface TraceBarProps {
   manager: VirtualizedViewManager;
   node_space: [number, number] | null;
   performance_issues: TraceTreeNode<TraceTree.Transaction>['value']['performance_issues'];
-  profiles: TraceTreeNode<TraceTree.Transaction>['value']['profiles'];
+  profiles: TraceTreeNode<TraceTree.NodeValue>['profiles'];
   virtualized_index: number;
 }
 
@@ -1459,7 +1472,13 @@ function TraceBar(props: TraceBarProps) {
           } as React.CSSProperties
         }
       >
-        {props.profiles.length > 0 ? null : null}
+        {props.profiles.length > 0 ? (
+          <Profiles
+            node_space={props.node_space}
+            profiles={props.profiles}
+            manager={props.manager}
+          />
+        ) : null}
         {props.errors.length > 0 ? (
           <Errors
             node_space={props.node_space}
@@ -1564,7 +1583,7 @@ function PerformanceIssues(props: PerformanceIssuesProps) {
             style={{left: left * 100 + '%', width: width + '%'}}
           >
             <div className="TraceError" style={{left: 0}}>
-              <IconFire color="errorText" size="xs" />
+              <Fire />
             </div>
           </div>
         );
@@ -1580,6 +1599,10 @@ interface ErrorsProps {
 }
 
 function Errors(props: ErrorsProps) {
+  if (!props.errors.length) {
+    return null;
+  }
+
   return (
     <Fragment>
       {props.errors.map((error, _i) => {
@@ -1600,7 +1623,45 @@ function Errors(props: ErrorsProps) {
             className="TraceError"
             style={{left: left * 100 + '%'}}
           >
-            <IconFire color="errorText" size="xs" />
+            <Fire />
+          </div>
+        );
+      })}
+    </Fragment>
+  );
+}
+
+interface ProfilesProps {
+  manager: VirtualizedViewManager;
+  node_space: [number, number] | null;
+  profiles: TraceTree.Profile[];
+}
+
+function Profiles(props: ProfilesProps) {
+  if (!props.profiles.length) {
+    return null;
+  }
+  return (
+    <Fragment>
+      {props.profiles.map((profile, _i) => {
+        const timestamp = profile.space[0];
+        // Clamp the profile timestamp to the span's timestamp
+        const left = props.manager.computeRelativeLeftPositionFromOrigin(
+          clamp(
+            timestamp,
+            props.node_space![0],
+            props.node_space![0] + props.node_space![1]
+          ),
+          props.node_space!
+        );
+
+        return (
+          <div
+            key={profile.profile_id}
+            className="TraceProfile"
+            style={{left: left * 100 + '%'}}
+          >
+            <Profile />
           </div>
         );
       })}
@@ -1615,7 +1676,7 @@ interface AutogroupedTraceBarProps {
   manager: VirtualizedViewManager;
   node_spaces: [number, number][];
   performance_issues: TraceTreeNode<TraceTree.Transaction>['value']['performance_issues'];
-  profiles: TraceTreeNode<TraceTree.Transaction>['value']['profiles'];
+  profiles: TraceTreeNode<TraceTree.NodeValue>['profiles'];
   virtualized_index: number;
 }
 
@@ -1679,7 +1740,13 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
             />
           );
         })}
-
+        {props.profiles.length > 0 ? (
+          <Profiles
+            node_space={props.entire_space}
+            profiles={props.profiles}
+            manager={props.manager}
+          />
+        ) : null}
         {props.errors.length > 0 ? (
           <Errors
             node_space={props.entire_space}
@@ -1883,6 +1950,11 @@ const TraceStylingWrapper = styled('div')`
     transition: none;
     font-size: ${p => p.theme.fontSizeSmall};
 
+    svg {
+      width: 14px;
+      height: 14px;
+    }
+
     .TraceError {
       position: absolute;
       top: 50%;
@@ -1891,6 +1963,24 @@ const TraceStylingWrapper = styled('div')`
       width: 18px !important;
       height: 18px !important;
       background-color: ${p => p.theme.error};
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      svg {
+        fill: ${p => p.theme.white};
+      }
+    }
+
+    .TraceProfile {
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%) scaleX(var(--inverse-span-scale));
+      background: ${p => p.theme.background};
+      width: 18px !important;
+      height: 18px !important;
+      background-color: ${p => p.theme.purple300};
       border-radius: 50%;
       display: flex;
       align-items: center;
