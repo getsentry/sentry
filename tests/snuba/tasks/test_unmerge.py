@@ -5,11 +5,11 @@ import hashlib
 import itertools
 import logging
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 from unittest import mock
 from unittest.mock import patch
 
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 
 from sentry import eventstream, tagstore, tsdb
 from sentry.eventstore.models import Event
@@ -60,7 +60,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         )
 
     def test_get_group_creation_attributes(self):
-        now = datetime.now(timezone.utc).replace(microsecond=0)
+        now = timezone.now().replace(microsecond=0)
         e1 = self.store_event(
             data={
                 "fingerprint": ["group1"],
@@ -119,7 +119,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         }
 
     def test_get_group_backfill_attributes(self):
-        now = datetime.now(timezone.utc).replace(microsecond=0)
+        now = timezone.now().replace(microsecond=0)
 
         assert get_group_backfill_attributes(
             get_caches(),
@@ -180,7 +180,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             return now + timedelta(seconds=offset)
 
         project = self.create_project()
-        project.date_added = django_timezone.now() - timedelta(minutes=10)
+        project.date_added = timezone.now() - timedelta(minutes=10)
         project.save()
         sequence = itertools.count(0)
         tag_values = itertools.cycle(["red", "green", "blue"])
