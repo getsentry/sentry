@@ -7,7 +7,7 @@ import bannerStars from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
-import {AutofixContextModal} from 'sentry/components/events/autofix/autofixContextModal';
+import {AutofixInstructionsModal} from 'sentry/components/events/autofix/autofixInstructionsModal';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
@@ -20,8 +20,10 @@ type Props = {
 
 export function AutofixBanner({triggerAutofix}: Props) {
   const isSentryEmployee = useIsSentryEmployee();
-  const onClickAdditionalContext = () => {
-    openModal(deps => <AutofixContextModal {...deps} triggerAutofix={triggerAutofix} />);
+  const onClickGiveInstructions = () => {
+    openModal(deps => (
+      <AutofixInstructionsModal {...deps} triggerAutofix={triggerAutofix} />
+    ));
   };
 
   return (
@@ -40,8 +42,8 @@ export function AutofixBanner({triggerAutofix}: Props) {
           <Button onClick={() => triggerAutofix('')} size="sm">
             {t('Gimme Fix')}
           </Button>
-          <Button onClick={onClickAdditionalContext} size="sm">
-            {t('Start With Some Context')}
+          <Button onClick={onClickGiveInstructions} size="sm">
+            {t('Give an Instruction')}
           </Button>
         </ContextArea>
         {isSentryEmployee && (
