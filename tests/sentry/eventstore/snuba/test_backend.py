@@ -1,7 +1,5 @@
 from unittest import mock
 
-import pytest
-
 from sentry.eventstore.base import Filter
 from sentry.eventstore.models import Event
 from sentry.eventstore.snuba.backend import SnubaEventStorage
@@ -221,7 +219,6 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
             event = self.eventstore.get_event_by_id(self.project2.id, "d" * 32)
             assert event is None
 
-    @pytest.mark.xfail(reason="fails in Snuba CI")
     def test_get_adjacent_event_ids(self):
         event = self.eventstore.get_event_by_id(self.project2.id, "b" * 32)
 
