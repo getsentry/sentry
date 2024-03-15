@@ -2,7 +2,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import GroupReplays from 'sentry/views/issueDetails/groupReplays';
@@ -599,7 +599,7 @@ describe('GroupReplays', () => {
 
       const mockReplace = jest.mocked(browserHistory.replace);
       const replayPlayPlause = screen.getAllByTestId('replay-table-play-button')[0];
-      await act(() => userEvent.click(replayPlayPlause));
+      await userEvent.click(replayPlayPlause);
 
       await waitFor(() =>
         expect(mockReplace).toHaveBeenCalledWith(
