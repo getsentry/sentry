@@ -177,14 +177,15 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                     # we already log at the repository layer, no need to log again here
                     pass
                 else:
-                    # If a parent notification exists for this rule and action, then we can reply in a thread
-                    # Make sure we track that this reply will be in relation to the parent row
-                    new_notification_message_object.parent_notification_message_id = (
-                        parent_notification_message.id
-                    )
-                    # To reply to a thread, use the specific key in the payload as referenced by the docs
-                    # https://api.slack.com/methods/chat.postMessage#arg_thread_ts
-                    payload["thread_ts"] = parent_notification_message.message_identifier
+                    if parent_notification_message:
+                        # If a parent notification exists for this rule and action, then we can reply in a thread
+                        # Make sure we track that this reply will be in relation to the parent row
+                        new_notification_message_object.parent_notification_message_id = (
+                            parent_notification_message.id
+                        )
+                        # To reply to a thread, use the specific key in the payload as referenced by the docs
+                        # https://api.slack.com/methods/chat.postMessage#arg_thread_ts
+                        payload["thread_ts"] = parent_notification_message.message_identifier
 
             client = SlackClient(integration_id=integration.id)
             try:
