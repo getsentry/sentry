@@ -127,7 +127,9 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                     "attachments": json.dumps(attachments),
                 }
 
-            rule_id = self.rule.id
+            rule = rules[0] if rules else None
+            rule_to_use = self.rule if self.rule else rule
+            rule_id = rule_to_use.id if rule_to_use else None
             rule_action_uuid = self.data.get("action_uuid", None)
             if not rule_action_uuid:
                 # We are logging because this should never happen, all actions should have an uuid
@@ -142,11 +144,10 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
             rule_fire_history_id = None
             try:
-                rule_fire_history_id = (
-                    RuleFireHistory.objects.filter(notification_uuid=notification_uuid)
-                    .values("id")
-                    .get()
-                )
+                rule_fire_history = RuleFireHistory.objects.get(notification_uuid=notification_uuid)
+                rule_fire_history_id = rule_fire_history.id
+                if not rule_id:
+                    rule_id = rule_fire_history.rule.id
             except Exception as err:
                 _default_logger.info(
                     "integration.slack.actions: Failed to get rule fire history", exc_info=err
@@ -157,12 +158,13 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             )
 
             # Only try to get the parent notification message if the organization is in the FF
-            # We need to search by rule action uuid, so only search if it exists
+            # We need to search by rule action uuid and rule id, so only search if they exist
             if (
                 features.has(
                     "organizations:slack-thread-issue-alert", event.group.project.organization
                 )
                 and rule_action_uuid
+                and rule_id
             ):
                 try:
                     parent_notification_message = self._repository.get_parent_notification_message(
@@ -250,8 +252,6 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                     # if there's an error trying to save a notification message, don't let that error block this flow
                     pass
 
-            # TODO: Why can't we just use self.rule?
-            rule = rules[0] if rules else None
             self.record_notification_sent(event, channel, rule, notification_uuid)
 
         key = f"slack:{integration.id}:{channel}"
