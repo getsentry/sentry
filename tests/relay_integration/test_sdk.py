@@ -36,15 +36,16 @@ def post_event_with_sdk(settings, relay_server, wait_for_ingest_consumer):
 
     configure_sdk()
 
+    scope = sentry_sdk.Scope.get_current_scope()
+
     wait_for_ingest_consumer = wait_for_ingest_consumer(settings)
 
     def inner(*args, **kwargs):
-        event_id = sentry_sdk.capture_event(*args, **kwargs)
+        event_id = scope.capture_event(*args, **kwargs)
         sentry_sdk.flush()
-        event = wait_for_ingest_consumer(
+        return wait_for_ingest_consumer(
             lambda: eventstore.backend.get_event_by_id(settings.SENTRY_PROJECT, event_id)
         )
-        return event
 
     yield inner
 
