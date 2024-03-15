@@ -1,3 +1,4 @@
+import type {StatusIndicatorProps} from 'sentry/components/statusIndicator';
 import {IconCheckmark, IconFire, IconTimer, IconUnsubscribed} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Aliases} from 'sentry/utils/theme';
@@ -38,4 +39,15 @@ export const statusIconColorMap: Record<
     color: 'subText',
     label: t('Muted'),
   },
+};
+
+export const checkStatusToIndicatorStatus: Record<
+  CheckInStatus,
+  StatusIndicatorProps['status']
+> = {
+  [CheckInStatus.OK]: 'success',
+  [CheckInStatus.ERROR]: 'error',
+  [CheckInStatus.IN_PROGRESS]: 'muted',
+  [CheckInStatus.MISSED]: 'warning',
+  [CheckInStatus.TIMEOUT]: 'error',
 };

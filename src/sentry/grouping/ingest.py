@@ -483,6 +483,16 @@ def record_hash_calculation_metrics(
                 },
             )
 
+
+# TODO: Once the legacy `_save_aggregate` goes away, this logic can be pulled into
+# `record_hash_calculation_metrics`. Right now it's split up because we don't know the value for
+# `result` at the time the legacy `_save_aggregate` (indirectly) calls `record_hash_calculation_metrics`
+def record_calculation_metric_with_result(
+    project: Project,
+    has_secondary_hashes: bool,
+    result: str,
+) -> None:
+
     # Track the total number of grouping calculations done overall, so we can divide by the
     # count to get an average number of calculations per event
     tags = {
@@ -493,6 +503,7 @@ def record_hash_calculation_metrics(
                 project.organization,
             )
         ),
+        "result": result,
     }
     metrics.incr("grouping.event_hashes_calculated", tags=tags)
     metrics.incr("grouping.total_calculations", amount=2 if has_secondary_hashes else 1, tags=tags)
