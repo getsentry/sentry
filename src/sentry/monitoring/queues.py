@@ -51,6 +51,7 @@ class _ConnectionParams(TypedDict):
     userid: str | None
     password: str | None
     virtual_host: str
+    ssl: bool
 
 
 class AmqpBackend:
@@ -59,11 +60,13 @@ class AmqpBackend:
         host, port = dsn.hostname, dsn.port
         if port is None:
             port = 5672
+        has_ssl = dsn.scheme == "amqps"
         self.conn_info: _ConnectionParams = dict(
             host="%s:%d" % (host, port),
             userid=dsn.username,
             password=dsn.password,
             virtual_host=dsn.path[1:] or "/",
+            ssl=has_ssl,
         )
 
     def get_conn(self) -> Connection:
