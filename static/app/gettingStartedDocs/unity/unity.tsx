@@ -12,6 +12,7 @@ import {
   getCrashReportApiIntroduction,
   getCrashReportInstallDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
+import {getUnityMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
@@ -161,6 +162,7 @@ const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi: feedbackOnboarding,
   crashReportOnboarding: feedbackOnboarding,
+  customMetricsOnboarding: getUnityMetricsOnboarding(),
 };
 
 export default docs;

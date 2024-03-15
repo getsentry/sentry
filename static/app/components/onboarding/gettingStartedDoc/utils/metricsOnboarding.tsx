@@ -580,13 +580,13 @@ export const getPythonMetricsOnboarding = ({
 
 const getDotnetConfigureSnippet = (params: DocsParams) => `
 SentrySdk.Init(options =>
+{
+  options.Dsn = "${params.dsn}";
+  options.ExperimentalMetrics = new ExperimentalMetricsOptions
   {
-    options.Dsn = "${params.dsn}";
-    options.ExperimentalMetrics = new ExperimentalMetricsOptions
-    {
-      EnableCodeLocations = true
-    };
-  });`;
+    EnableCodeLocations = true
+  };
+});`;
 
 const getDotnetVerifySnippet = () => `
 SentrySdk.Metrics.Increment(
@@ -603,7 +603,7 @@ export const getDotnetMetricsOnboarding = ({
     {
       type: StepType.INSTALL,
       description: tct(
-        'You need a minimum version [codeVersion:4.0.0] of the .NET SDK installed',
+        'You need a minimum version [codeVersion:4.0.0] of the .NET SDK installed.',
         {
           codeVersion: <code />,
         }
@@ -611,7 +611,7 @@ export const getDotnetMetricsOnboarding = ({
       configurations: [
         {
           language: 'powershell',
-          code: `dotnet add package ${packageName} -v 4.1.2`,
+          code: `dotnet add package ${packageName}`,
         },
       ],
     },
@@ -659,6 +659,78 @@ export const getDotnetMetricsOnboarding = ({
             {
               docsLink: (
                 <ExternalLink href="https://docs.sentry.io/platforms/dotnet/metrics/" />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
+});
+
+const getUnityConfigureSnippet = () => `
+public override void Configure(SentryUnityOptions options)
+{
+    options.ExperimentalMetrics = new ExperimentalMetricsOptions
+    {
+      EnableCodeLocations = true
+    };
+}`;
+export const getUnityMetricsOnboarding = (): OnboardingConfig => ({
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'You need a minimum version [codeVersion:2.0.0] of the Unity SDK installed.',
+        {
+          codeVersion: <code />,
+        }
+      ),
+    },
+  ],
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: t(
+        'Once the SDK is installed or updated, you can enable the experimental metrics feature and code locations being emitted in your RuntimeConfiguration.'
+      ),
+      configurations: [
+        {
+          language: 'csharp',
+          code: getUnityConfigureSnippet(),
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: tct(
+        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], [codeGauge:gauges], and [codeTimings:timings]. Try out this example:",
+        {
+          codeCounters: <code />,
+          codeSets: <code />,
+          codeDistribution: <code />,
+          codeGauge: <code />,
+          codeTimings: <code />,
+        }
+      ),
+      configurations: [
+        {
+          language: 'csharp',
+          code: getDotnetVerifySnippet(),
+        },
+        {
+          description: t(
+            'With a bit of delay you can see the data appear in the Sentry UI.'
+          ),
+        },
+        {
+          description: tct(
+            'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
+            {
+              docsLink: (
+                <ExternalLink href="https://docs.sentry.io/platforms/unity/metrics/" />
               ),
             }
           ),
