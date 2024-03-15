@@ -29,6 +29,21 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
     def factory(self):
         return RequestFactory()
 
+    class TestEndpoint(Endpoint):
+        enforce_rate_limit = True
+
+        def get(self):
+            return Response({"ok": True})
+
+    class TestEndpointNoRateLimits(Endpoint):
+        enforce_rate_limit = False
+
+        def get(self):
+            return Response({"ok": True})
+
+    _test_endpoint = TestEndpoint.as_view()
+    _test_endpoint_no_rate_limits = TestEndpointNoRateLimits.as_view()
+
     def _populate_public_integration_request(self, request) -> None:
         install = self.create_sentry_app_installation(organization=self.organization)
         token = install.api_token
@@ -51,21 +66,6 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
         with assume_test_silo_mode_of(User):
             request.user = User.objects.get(id=internal_integration.proxy_user_id)
         request.auth = token
-
-    class TestEndpoint(Endpoint):
-        enforce_rate_limit = True
-
-        def get(self):
-            return Response({"ok": True})
-
-    class TestEndpointNoRateLimits(Endpoint):
-        enforce_rate_limit = False
-
-        def get(self):
-            return Response({"ok": True})
-
-    _test_endpoint = TestEndpoint.as_view()
-    _test_endpoint_no_rate_limits = TestEndpointNoRateLimits.as_view()
 
     @patch("sentry.middleware.ratelimit.get_rate_limit_value", side_effect=Exception)
     def test_fails_open(self, default_rate_limit_mock):
