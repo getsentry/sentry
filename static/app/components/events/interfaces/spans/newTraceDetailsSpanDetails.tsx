@@ -292,7 +292,9 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
       return null;
     }
 
-    return <IssueList organization={organization} issues={relatedIssues} />;
+    return (
+      <IssueList nodeType="span" organization={organization} issues={relatedIssues} />
+    );
   }
 
   function partitionSizes(data): {

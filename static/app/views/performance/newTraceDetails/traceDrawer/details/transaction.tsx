@@ -309,7 +309,13 @@ export function TransactionNodeDetails({
         </TraceDrawerComponents.Actions>
       </TraceDrawerComponents.HeaderContainer>
 
-      {hasIssues && <IssueList organization={organization} issues={relatedIssues} />}
+      {hasIssues && (
+        <IssueList
+          nodeType="transaction"
+          organization={organization}
+          issues={relatedIssues}
+        />
+      )}
 
       <TraceDrawerComponents.Table className="table key-value">
         <tbody>
