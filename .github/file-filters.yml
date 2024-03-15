@@ -7,9 +7,6 @@ sentry_specific_test_files: &sentry_specific_test_files
   - 'fixtures/search-syntax/**/*'
   - 'fixtures/js-stubs/**/*'
 
-yarn_lockfile: &yarn_lockfile
-  - 'yarn.lock'
-
 # Provides list of changed app files to lint against (stylelint)
 lintable_css_in_js_modified: &lintable_css_in_js_modified
   - added|modified: 'static/**/*.[tj]{s,sx}'
