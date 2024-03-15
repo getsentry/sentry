@@ -272,6 +272,7 @@ class NodeStorage(local, Service):
             return self.cache.get_many(id_list)
         return {}
 
+    @sentry_sdk.tracing.trace
     def _set_cache_item(self, id, data):
         if self.cache and data:
             self.cache.set(id, data)
