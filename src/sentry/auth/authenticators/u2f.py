@@ -19,6 +19,7 @@ from u2flib_server.model import DeviceRegistration
 
 from sentry import options
 from sentry.auth.authenticators.base import EnrollmentStatus
+from sentry.silo.base import SiloMode
 from sentry.utils import json
 from sentry.utils.dates import to_datetime
 from sentry.utils.decorators import classproperty
@@ -66,8 +67,8 @@ def _valid_staff_timestamp(request, limit: timedelta = STAFF_AUTH_FLOW_MAX_AGE) 
             "current_time": current_time,
             "flag_datetime": flag_datetime,
             "time_difference": flag_datetime - current_time,
-            "limit": limit,
-            "boolean_check": time_difference > limit,
+            "boolean_check": timedelta(0) < time_difference < limit,
+            "active_mode": SiloMode.get_current_mode(),
         },
     )
 
@@ -247,6 +248,7 @@ class U2fInterface(AuthenticatorInterface):
                     if "staff_auth_flow" in request.session
                     else "missing"
                 ),
+                "active_mode": SiloMode.get_current_mode(),
             },
         )
         # It is an intentional decision to not check whether or not the staff
@@ -269,6 +271,7 @@ class U2fInterface(AuthenticatorInterface):
                 ),
                 "has_state": "webauthn_authentication_state" in request.session,
                 "has_staff_state": "staff_webauthn_authentication_state" in request.session,
+                "active_mode": SiloMode.get_current_mode(),
             },
         )
         return ActivationChallengeResult(challenge=cbor.encode(challenge["publicKey"]))
@@ -288,6 +291,7 @@ class U2fInterface(AuthenticatorInterface):
                         ),
                         "has_state": "webauthn_authentication_state" in request.session,
                         "has_staff_state": "staff_webauthn_authentication_state" in request.session,
+                        "active_mode": SiloMode.get_current_mode(),
                     },
                 )
             if _valid_staff_timestamp(request):
@@ -298,7 +302,10 @@ class U2fInterface(AuthenticatorInterface):
                 "webauthn_authentication_state"
             ):
                 logger.info(
-                    "Both staff and non-staff U2F states are set", extra={"user": request.user.id}
+                    "Both staff and non-staff U2F states are set",
+                    extra={
+                        "user": request.user.id,
+                    },
                 )
             self.webauthn_authentication_server.authenticate_complete(
                 state=state,
