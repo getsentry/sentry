@@ -666,7 +666,7 @@ def update_alert_rule(
     user=None,
     event_types=None,
     comparison_delta=NOT_SET,
-    monitor_type: AlertRuleMonitorType = None,
+    monitor_type: AlertRuleMonitorType | None = None,
     **kwargs,
 ):
     """

@@ -6,7 +6,7 @@ import {space} from 'sentry/styles/space';
 const SectionWrapper = styled('section')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1.5)};
+  gap: ${space(1)};
 `;
 
 const SectionTitle = styled('h3')`
@@ -34,19 +34,21 @@ export default function Section({
   contentRight,
 }: {
   children: ReactNode;
-  title: ReactNode;
   contentRight?: ReactNode;
   icon?: ReactNode;
+  title?: ReactNode;
 }) {
   return (
     <SectionWrapper>
-      <SectionTitle>
-        <LeftAlignedContent>
-          {icon}
-          {title}
-        </LeftAlignedContent>
-        {contentRight}
-      </SectionTitle>
+      {title ? (
+        <SectionTitle>
+          <LeftAlignedContent>
+            {icon}
+            {title}
+          </LeftAlignedContent>
+          {contentRight}
+        </SectionTitle>
+      ) : null}
       {children}
     </SectionWrapper>
   );

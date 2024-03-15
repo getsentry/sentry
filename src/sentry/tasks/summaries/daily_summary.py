@@ -41,6 +41,7 @@ from sentry.tasks.summaries.utils import (
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from sentry.types.integrations import ExternalProviders
+from sentry.utils import json
 from sentry.utils.dates import to_datetime
 from sentry.utils.outcomes import Outcome
 from sentry.utils.query import RangeQuerySetWrapper
@@ -242,6 +243,16 @@ def build_summary_data(
                     project_ctx.new_in_release = {
                         release.id: [group for group in new_groups_in_release]
                     }
+
+            new_in_release = json.dumps([group for group in project_ctx.new_in_release])
+            logger.info(
+                "daily_summary.new_in_release",
+                extra={
+                    "organization": ctx.organization.id,
+                    "project_id": project_id,
+                    "new_in_release": new_in_release,
+                },
+            )
     with sentry_sdk.start_span(op="daily_summary.fetch_key_error_groups"):
         fetch_key_error_groups(ctx)
 

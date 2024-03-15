@@ -190,6 +190,7 @@ const DropdownButton = styled(Button)`
   padding: 0;
   height: unset;
   border-radius: 10px;
+  box-shadow: none;
 `;
 
 const StyledTag = styled(Tag)`

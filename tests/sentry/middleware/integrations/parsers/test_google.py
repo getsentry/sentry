@@ -4,7 +4,7 @@ from django.test import RequestFactory
 
 from sentry.middleware.integrations.parsers.google import GoogleRequestParser
 from sentry.testutils.cases import TestCase
-from sentry.testutils.outbox import assert_no_webhook_outboxes
+from sentry.testutils.outbox import assert_no_webhook_payloads
 from sentry.testutils.silo import control_silo_test
 
 
@@ -31,4 +31,4 @@ class GoogleRequestParserTest(TestCase):
             assert response.status_code == 200
             assert response.content == b"passthrough"
             assert len(responses.calls) == 0
-            assert_no_webhook_outboxes()
+            assert_no_webhook_payloads()
