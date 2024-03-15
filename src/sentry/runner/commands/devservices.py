@@ -168,8 +168,7 @@ def ensure_interface(ports: dict[str, int | tuple[str, int]]) -> dict[str, tuple
 
 def ensure_docker_cli_context(context: str):
     # this is faster than running docker context use ...
-    config_dir = os.path.expanduser("~/.docker")
-    config_file = f"{config_dir}/config.json"
+    config_file = os.path.expanduser("~/.docker/config.json")
     config = {}
 
     if os.path.exists(config_file):
@@ -178,7 +177,7 @@ def ensure_docker_cli_context(context: str):
 
     config["currentContext"] = context
 
-    os.makedirs(config_dir, exist_ok=True)
+    os.makedirs(os.path.dirname(config_file), exist_ok=True)
     with open(config_file, "w") as f:
         f.write(json.dumps(config))
 
