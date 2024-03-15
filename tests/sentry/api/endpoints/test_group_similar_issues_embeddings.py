@@ -293,6 +293,67 @@ CHAINED_APP_DATA: dict[str, Any] = {
     }
 }
 
+MOBILE_THREAD_DATA = {
+    "app": {
+        "type": "component",
+        "description": "in-app thread stack-trace",
+        "hash": "hash",
+        "component": {
+            "id": "app",
+            "name": "in-app",
+            "contributes": True,
+            "hint": None,
+            "values": [
+                {
+                    "id": "threads",
+                    "name": "thread",
+                    "contributes": True,
+                    "hint": None,
+                    "values": [
+                        {
+                            "id": "stacktrace",
+                            "name": "stack-trace",
+                            "contributes": True,
+                            "hint": None,
+                            "values": [
+                                {
+                                    "id": "frame",
+                                    "name": None,
+                                    "contributes": True,
+                                    "hint": "marked out of app by stack trace rule (function:dbx v-group -group v-app -app)",
+                                    "values": [
+                                        {
+                                            "id": "module",
+                                            "name": None,
+                                            "contributes": True,
+                                            "hint": None,
+                                            "values": [],
+                                        },
+                                        {
+                                            "id": "filename",
+                                            "name": None,
+                                            "contributes": True,
+                                            "hint": None,
+                                            "values": [],
+                                        },
+                                        {
+                                            "id": "function",
+                                            "name": None,
+                                            "contributes": True,
+                                            "hint": "ignored unknown function",
+                                            "values": ["TestHandler"],
+                                        },
+                                    ],
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ],
+        },
+    }
+}
+
 
 @region_silo_test
 class GroupSimilarIssuesEmbeddingsTest(APITestCase):
@@ -440,6 +501,10 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         stacktrace_str = get_stacktrace_string(CHAINED_APP_DATA)
         expected_stacktrace_str = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", line divide_by_zero\n    divide = 1/0\nException: Catch divide by zero error\n  File "python_onboarding.py", line <module>\n    divide_by_zero()\n  File "python_onboarding.py", line divide_by_zero\n    raise Exception("Catch divide by zero error")'
         assert stacktrace_str == expected_stacktrace_str
+
+    def test_get_stacktrace_string_thread(self):
+        stacktrace_str = get_stacktrace_string(MOBILE_THREAD_DATA)
+        assert stacktrace_str == 'File "", line TestHandler'
 
     def test_get_stacktrace_string_system(self):
         data_system = copy.deepcopy(BASE_APP_DATA)
