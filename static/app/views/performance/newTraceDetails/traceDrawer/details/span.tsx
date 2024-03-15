@@ -67,6 +67,7 @@ export function SpanNodeDetails({
                 traceID={profileId || ''}
               >
                 <NewTraceDetailsSpanDetail
+                  node={node}
                   errors={errors}
                   performanceIssues={performance_issues}
                   childTransactions={childTransaction ? [childTransaction] : []}

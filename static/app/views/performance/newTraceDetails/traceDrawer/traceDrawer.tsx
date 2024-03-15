@@ -159,6 +159,7 @@ const PanelWrapper = styled('div')`
   grid-area: drawer;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   width: 100%;
   position: sticky;
   border-top: 1px solid ${p => p.theme.border};
