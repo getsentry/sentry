@@ -1179,9 +1179,7 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "weekly-escalating-forecast": {
         "task": "sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
-        # TODO: Change this to run weekly once we verify the results
         "schedule": crontab(minute="0", hour="*/6"),
-        # TODO: Increase expiry time to x4 once we change this to run weekly
         "options": {"expires": 60 * 60 * 3},
     },
     "schedule_auto_transition_to_ongoing": {
@@ -1485,7 +1483,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:crons-disable-ingest-endpoints": False,
     # Disables projects with zero monitors to create new ones
     "organizations:crons-disable-new-projects": False,
-    # Metrics: Enable ingestion and storage of custom metrics. See ddm-ui for UI.
+    # Metrics: Enable ingestion and storage of custom metrics. See ddm-ui and ddm-sidebar-item-hidden for UI.
     "organizations:custom-metrics": False,
     # Allow organizations to configure custom external symbol sources.
     "organizations:custom-symbol-sources": True,
@@ -1510,8 +1508,10 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enables experimental WIP ddm related features
     "organizations:ddm-experimental": False,
     # Delightful Developer Metrics (DDM):
-    # Enable sidebar menu item and all UI (requires custom-metrics flag as well)
+    # Enable UI (requires custom-metrics flag as well)
     "organizations:ddm-ui": False,
+    # Hides DDM sidebar item
+    "organizations:ddm-sidebar-item-hidden": False,
     # Enable the unit normalization in the metrics API
     "organizations:ddm-metrics-api-unit-normalization": False,
     # Enables import of metric dashboards
@@ -3584,17 +3584,15 @@ SENTRY_USE_UWSGI = True
 
 # Configure service wrapper for reprocessing2 state
 SENTRY_REPROCESSING_STORE = "sentry.eventstore.reprocessing.redis.RedisReprocessingStore"
+# Which cluster is used to store auxiliary data for reprocessing. Note that
+# this cluster is not used to store attachments etc, that still happens on
+# rc-processing. This is just for buffering up event IDs and storing a counter
+# for synchronization/progress report.
 SENTRY_REPROCESSING_STORE_OPTIONS = {"cluster": "default"}
 
 # When copying attachments for to-be-reprocessed events into processing store,
 # how large is an individual file chunk? Each chunk is stored as Redis key.
 SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE = 2**20
-
-# Which cluster is used to store auxiliary data for reprocessing. Note that
-# this cluster is not used to store attachments etc, that still happens on
-# rc-processing. This is just for buffering up event IDs and storing a counter
-# for synchronization/progress report.
-SENTRY_REPROCESSING_SYNC_REDIS_CLUSTER = "default"
 
 # How long tombstones from reprocessing will live.
 SENTRY_REPROCESSING_TOMBSTONES_TTL = 24 * 3600

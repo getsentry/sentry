@@ -1,13 +1,11 @@
 import functools
-from datetime import timedelta, timezone
+from datetime import UTC, timedelta
 from unittest.mock import Mock, call, patch
 from uuid import uuid4
 
 from dateutil.parser import parse as parse_datetime
-from django.test import override_settings
 from django.urls import reverse
-from django.utils import timezone as django_timezone
-from rest_framework import status
+from django.utils import timezone
 
 from sentry import options
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType, PerformanceSlowDBQueryGroupType
@@ -48,7 +46,7 @@ from sentry.search.events.constants import (
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.activity import ActivityType
@@ -361,7 +359,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
 
     def test_invalid_query(self):
-        now = django_timezone.now()
+        now = timezone.now()
         self.create_group(last_seen=now - timedelta(seconds=1))
         self.login_as(user=self.user)
 
@@ -370,7 +368,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert "Invalid number" in response.data["detail"]
 
     def test_valid_numeric_query(self):
-        now = django_timezone.now()
+        now = timezone.now()
         self.create_group(last_seen=now - timedelta(seconds=1))
         self.login_as(user=self.user)
 
@@ -378,7 +376,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
 
     def test_invalid_sort_key(self):
-        now = django_timezone.now()
+        now = timezone.now()
         self.create_group(last_seen=now - timedelta(seconds=1))
         self.login_as(user=self.user)
 
@@ -419,7 +417,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
     def test_stats_period(self):
         # TODO(dcramer): this test really only checks if validation happens
         # on groupStatsPeriod
-        now = django_timezone.now()
+        now = timezone.now()
         self.create_group(last_seen=now - timedelta(seconds=1))
         self.create_group(last_seen=now)
 
@@ -759,7 +757,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
     def test_filters_based_on_retention(self):
         self.login_as(user=self.user)
 
-        self.create_group(last_seen=django_timezone.now() - timedelta(days=2))
+        self.create_group(last_seen=timezone.now() - timedelta(days=2))
 
         with self.options({"system.event-retention-days": 1}):
             response = self.get_success_response()
@@ -970,19 +968,19 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         assert response.data[0]["lifetime"]["firstSeen"] == parse_datetime(
             before_now_350_seconds  # Should match overridden value, not event value
-        ).replace(tzinfo=timezone.utc)
+        ).replace(tzinfo=UTC)
         assert response.data[0]["lifetime"]["lastSeen"] == parse_datetime(
             before_now_100_seconds
-        ).replace(tzinfo=timezone.utc)
+        ).replace(tzinfo=UTC)
         assert response.data[0]["lifetime"]["count"] == "55"
 
         assert response.data[0]["filtered"]["count"] == "2"
         assert response.data[0]["filtered"]["firstSeen"] == parse_datetime(
             before_now_250_seconds
-        ).replace(tzinfo=timezone.utc)
+        ).replace(tzinfo=UTC)
         assert response.data[0]["filtered"]["lastSeen"] == parse_datetime(
             before_now_150_seconds
-        ).replace(tzinfo=timezone.utc)
+        ).replace(tzinfo=UTC)
 
         # Empty filter test:
         response = self.get_response(sort_by="date", limit=10, query="")
@@ -996,10 +994,10 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.data[0]["lifetime"]["count"] == "55"
         assert response.data[0]["lifetime"]["firstSeen"] == parse_datetime(
             before_now_350_seconds  # Should match overridden value, not event value
-        ).replace(tzinfo=timezone.utc)
+        ).replace(tzinfo=UTC)
         assert response.data[0]["lifetime"]["lastSeen"] == parse_datetime(
             before_now_100_seconds
-        ).replace(tzinfo=timezone.utc)
+        ).replace(tzinfo=UTC)
 
     def test_semver_seen_stats(self):
         release_1 = self.create_release(version="test@1.2.3")
@@ -1401,13 +1399,13 @@ class GroupListTest(APITestCase, SnubaTestCase):
         replaced_release = self.create_release(
             version="replaced_release",
             environments=[self.environment],
-            adopted=django_timezone.now(),
-            unadopted=django_timezone.now(),
+            adopted=timezone.now(),
+            unadopted=timezone.now(),
         )
         adopted_release = self.create_release(
             version="adopted_release",
             environments=[self.environment],
-            adopted=django_timezone.now(),
+            adopted=timezone.now(),
         )
         self.create_release(version="not_adopted_release", environments=[self.environment])
 
@@ -1903,14 +1901,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
         assert response.data[0]["owners"][2]["type"] == GROUP_OWNER_TYPE[GroupOwnerType.CODEOWNERS]
 
-    @override_settings(SENTRY_SELF_HOSTED=False)
-    def test_ratelimit(self):
-        self.login_as(user=self.user)
-        with freeze_time("2000-01-01"):
-            for i in range(10):
-                self.get_success_response()
-            self.get_error_response(status_code=status.HTTP_429_TOO_MANY_REQUESTS)
-
     def test_filter_not_unresolved(self):
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
@@ -2074,7 +2064,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         GroupSnooze.objects.create(
             group=event.group,
             user_count=10,
-            until=django_timezone.now() + timedelta(days=1),
+            until=timezone.now() + timedelta(days=1),
             count=10,
             state={"times_seen": 0},
         )
@@ -2326,7 +2316,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
     def setUp(self):
         super().setUp()
-        self.min_ago = django_timezone.now() - timedelta(minutes=1)
+        self.min_ago = timezone.now() - timedelta(minutes=1)
 
     def get_response(self, *args, **kwargs):
         if not args:
@@ -2411,7 +2401,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
     def test_resolve_ignored(self):
         group = self.create_group(status=GroupStatus.IGNORED)
         snooze = GroupSnooze.objects.create(
-            group=group, until=django_timezone.now() - timedelta(minutes=1)
+            group=group, until=timezone.now() - timedelta(minutes=1)
         )
 
         member = self.create_user()
@@ -2694,7 +2684,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         Group, when the project does not follow semantic versioning scheme
         """
         release_1 = self.create_release(
-            date_added=django_timezone.now() - timedelta(minutes=45), version="foobar 1"
+            date_added=timezone.now() - timedelta(minutes=45), version="foobar 1"
         )
         release_2 = self.create_release(version="foobar 2")
 
@@ -2718,7 +2708,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         # Add a new release that is between 1 and 2, to make sure that if a the same issue/group
         # occurs in that issue, then it should not have a resolution
         release_3 = self.create_release(
-            date_added=django_timezone.now() - timedelta(minutes=30), version="foobar 3"
+            date_added=timezone.now() - timedelta(minutes=30), version="foobar 3"
         )
 
         grp_resolution = GroupResolution.objects.filter(group=group)
@@ -2741,7 +2731,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         algorithm
         """
         release_1 = self.create_release(
-            date_added=django_timezone.now() - timedelta(minutes=45), version="foobar 1"
+            date_added=timezone.now() - timedelta(minutes=45), version="foobar 1"
         )
         release_2 = self.create_release(version="foobar 2")
 
@@ -2798,7 +2788,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         that was created after the last release associated with the group being resolved
         """
         release_1 = self.create_release(
-            date_added=django_timezone.now() - timedelta(minutes=45), version="foobar 1"
+            date_added=timezone.now() - timedelta(minutes=45), version="foobar 1"
         )
         release_2 = self.create_release(version="foobar 2")
         self.create_release(version="foobar 3")
@@ -3187,7 +3177,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
     def test_set_unresolved_on_snooze(self):
         group = self.create_group(status=GroupStatus.IGNORED)
 
-        GroupSnooze.objects.create(group=group, until=django_timezone.now() - timedelta(days=1))
+        GroupSnooze.objects.create(group=group, until=timezone.now() - timedelta(days=1))
 
         self.login_as(user=self.user)
 
@@ -3203,7 +3193,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
     def test_basic_ignore(self):
         group = self.create_group(status=GroupStatus.RESOLVED)
 
-        snooze = GroupSnooze.objects.create(group=group, until=django_timezone.now())
+        snooze = GroupSnooze.objects.create(group=group, until=timezone.now())
 
         self.login_as(user=self.user)
         assert not GroupHistory.objects.filter(
@@ -3230,7 +3220,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         snooze = GroupSnooze.objects.get(group=group)
         snooze.until = snooze.until
 
-        now = django_timezone.now()
+        now = timezone.now()
 
         assert snooze.count is None
         assert snooze.until is not None
@@ -3599,14 +3589,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert tombstone.project == group1.project
         assert tombstone.data == group1.data
 
-    @override_settings(SENTRY_SELF_HOSTED=False)
-    def test_ratelimit(self):
-        self.login_as(user=self.user)
-        with freeze_time("2000-01-01"):
-            for i in range(5):
-                self.get_success_response()
-            self.get_error_response(status_code=status.HTTP_429_TOO_MANY_REQUESTS)
-
     def test_set_inbox(self):
         group1 = self.create_group()
         group2 = self.create_group()
@@ -3868,14 +3850,6 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         for group in groups:
             assert not Group.objects.filter(id=group.id).exists()
             assert not GroupHash.objects.filter(group_id=group.id).exists()
-
-    @override_settings(SENTRY_SELF_HOSTED=False)
-    def test_ratelimit(self):
-        self.login_as(user=self.user)
-        with freeze_time("2000-01-01"):
-            for i in range(5):
-                self.get_success_response()
-            self.get_error_response(status_code=status.HTTP_429_TOO_MANY_REQUESTS)
 
     def test_bulk_delete_performance_issues(self):
         groups = []

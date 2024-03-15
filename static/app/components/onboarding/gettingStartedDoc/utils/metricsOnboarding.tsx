@@ -1,4 +1,5 @@
 import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import type {StepProps} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
@@ -38,72 +39,101 @@ export const getJSMetricsOnboarding = ({
       configurations: getInstallConfig(params),
     },
   ],
-  configure: params => [
-    {
-      type: StepType.CONFIGURE,
-      description: tct(
-        'To enable capturing metrics, you first need to add the metrics aggregator integration under the [codeNamespace:Sentry.metrics] namespace.',
-        {
-          codeNamespace: <code />,
-        }
-      ),
-      configurations: [
-        {
-          code: [
-            {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
-              code: getJSConfigureSnippet(params),
-            },
-          ],
-        },
-      ],
-    },
-  ],
-  verify: () => [
-    {
-      type: StepType.VERIFY,
-      description: tct(
-        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:Sentry.metrics] namespace. Try out this example:",
-        {
-          codeCounters: <code />,
-          codeSets: <code />,
-          codeDistribution: <code />,
-          codeGauge: <code />,
-          codeNamespace: <code />,
-        }
-      ),
-      configurations: [
-        {
-          code: [
-            {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
-              code: getJSVerifySnippet(),
-            },
-          ],
-        },
-        {
-          description: t(
-            'With a bit of delay you can see the data appear in the Sentry UI.'
-          ),
-        },
-        {
-          description: tct(
-            'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
-            {
-              docsLink: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/metrics/" />
-              ),
-            }
-          ),
-        },
-      ],
-    },
-  ],
+  configure: getJSMetricsOnboardingConfigure,
+  verify: () =>
+    getJSMetricsOnboardingVerify({
+      docsLink: 'https://docs.sentry.io/platforms/javascript/metrics/',
+    }),
 });
+
+export const getReactNativeMetricsOnboarding = ({
+  getInstallConfig,
+}: {
+  getInstallConfig: (params: DocsParams<any>) => StepProps['configurations'];
+}): OnboardingConfig => ({
+  install: params => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'You need a minimum version [codeVersion:5.19.0] of the Sentry React Native SDK installed.',
+        {
+          codeVersion: <code />,
+        }
+      ),
+      configurations: getInstallConfig(params),
+    },
+  ],
+  configure: getJSMetricsOnboardingConfigure,
+  verify: () =>
+    getJSMetricsOnboardingVerify({
+      docsLink: 'https://docs.sentry.io/platforms/react-native/metrics/',
+    }),
+});
+
+const getJSMetricsOnboardingConfigure = (params: DocsParams) => [
+  {
+    type: StepType.CONFIGURE,
+    description: tct(
+      'To enable capturing metrics, you first need to add the metrics aggregator integration under the [codeNamespace:Sentry.metrics] namespace.',
+      {
+        codeNamespace: <code />,
+      }
+    ),
+    configurations: [
+      {
+        code: [
+          {
+            label: 'JavaScript',
+            value: 'javascript',
+            language: 'javascript',
+            code: getJSConfigureSnippet(params),
+          },
+        ],
+      },
+    ],
+  },
+];
+
+const getJSMetricsOnboardingVerify = ({docsLink}: {docsLink: string}) => [
+  {
+    type: StepType.VERIFY,
+    description: tct(
+      "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:Sentry.metrics] namespace. Try out this example:",
+      {
+        codeCounters: <code />,
+        codeSets: <code />,
+        codeDistribution: <code />,
+        codeGauge: <code />,
+        codeNamespace: <code />,
+      }
+    ),
+    configurations: [
+      {
+        code: [
+          {
+            label: 'JavaScript',
+            value: 'javascript',
+            language: 'javascript',
+            code: getJSVerifySnippet(),
+          },
+        ],
+      },
+      {
+        description: t(
+          'With a bit of delay you can see the data appear in the Sentry UI.'
+        ),
+      },
+      {
+        description: tct(
+          'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
+          {
+            docsLink: <ExternalLink href={docsLink} />,
+          }
+        ),
+      },
+    ],
+  },
+];
 
 const getJSServerConfigureSnippet = (params: DocsParams) => `
 Sentry.init({
@@ -188,6 +218,253 @@ export const getJSServerMetricsOnboarding = (): OnboardingConfig => ({
             {
               docsLink: (
                 <ExternalLink href="https://docs.sentry.io/platforms/node/metrics/" />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
+});
+
+const getJvmKotlinConfigureSnippet = (params: DocsParams) => `
+import io.sentry.Sentry
+
+Sentry.init(this) { options ->
+  options.dsn = "${params.dsn}",
+  options.enableMetrics = true
+}`;
+
+const getJvmJavaConfigureSnippet = (params: DocsParams) => `
+import io.sentry.Sentry;
+
+Sentry.init(this, options -> {
+  options.setDsn("${params.dsn}");
+  options.setEnableMetrics(true);
+});`;
+
+const getAndroidKotlinConfigureSnippet = (params: DocsParams) => `
+import io.sentry.android.core.SentryAndroid
+
+SentryAndroid.init(this) { options ->
+  options.dsn = "${params.dsn}",
+  options.enableMetrics = true
+}`;
+
+const getAndroidJavaConfigureSnippet = (params: DocsParams) => `
+import io.sentry.android.core.SentryAndroid;
+
+SentryAndroid.init(this, options -> {
+  options.setDsn("${params.dsn}");
+  options.setEnableMetrics(true);
+});`;
+
+const getAndroidXmlConfigureSnippet = (params: DocsParams) => `
+<manifest>
+    <application>
+        <meta-data android:name="io.sentry.dsn" android:value="${params.dsn}" />
+        <meta-data android:name="io.sentry.enable-metrics" android:value="true" />
+    </application>
+</manifest>`;
+
+const getJvmPropertiesConfigureSnippet = (_: DocsParams) => `
+sentry.enable-metrics=true`;
+
+const getJvmJavaVerifySnippet = () => `
+// Add 4 to a counter named "hits"
+Sentry.metrics().increment("hits", 4);`;
+
+const getJvmKotlinVerifySnippet = () => `
+// Add 4 to a counter named "hits"
+Sentry.metrics().increment("hits", 4)`;
+
+export const getAndroidMetricsOnboarding = (): OnboardingConfig => ({
+  install: (params: DocsParams) => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'You need [package:sentry-java] version [codeVersion:7.6.0] or higher. Follow our [docsLink:setup wizard] to learn more about setting up the Android SDK.',
+        {
+          package: <code />,
+          codeVersion: <code />,
+          docsLink: <Link to={`/projects/${params.projectSlug}/getting-started/`} />,
+        }
+      ),
+    },
+  ],
+  configure: (params: DocsParams) => [
+    {
+      type: StepType.CONFIGURE,
+      description: 'To enable capturing metrics, you need to enable the metrics feature.',
+      configurations: [
+        {
+          code: [
+            {
+              label: 'Kotlin',
+              value: 'java',
+              language: 'java',
+              code: getAndroidKotlinConfigureSnippet(params),
+            },
+            {
+              label: 'Java',
+              value: 'kotlin',
+              language: 'java',
+              code: getAndroidJavaConfigureSnippet(params),
+            },
+            {
+              label: 'XML',
+              value: 'xml',
+              language: 'java',
+              code: getAndroidXmlConfigureSnippet(params),
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: tct(
+        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:Sentry.metrics()] namespace. Try out this example:",
+        {
+          codeCounters: <code />,
+          codeSets: <code />,
+          codeDistribution: <code />,
+          codeGauge: <code />,
+          codeNamespace: <code />,
+        }
+      ),
+      configurations: [
+        {
+          configurations: [
+            {
+              code: [
+                {
+                  label: 'Kotlin',
+                  value: 'kotlin',
+                  language: 'java',
+                  code: getJvmKotlinVerifySnippet(),
+                },
+                {
+                  label: 'Java',
+                  value: 'java',
+                  language: 'java',
+                  code: getJvmJavaVerifySnippet(),
+                },
+              ],
+            },
+          ],
+        },
+        {
+          description: t(
+            'With a bit of delay you can see the data appear in the Sentry UI.'
+          ),
+        },
+        {
+          description: tct(
+            'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
+            {
+              docsLink: (
+                <ExternalLink href="https://docs.sentry.io/platforms/android/metrics/" />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
+});
+
+export const getJavaMetricsOnboarding = (): OnboardingConfig => ({
+  install: (params: DocsParams) => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'You need [package:sentry-java] version [codeVersion:7.6.0] or higher. Follow our [docsLink:setup wizard] to learn more about setting up the Java SDK.',
+        {
+          package: <code />,
+          codeVersion: <code />,
+          docsLink: <Link to={`/projects/${params.projectSlug}/getting-started`} />,
+        }
+      ),
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      description: 'To enable capturing metrics, you need to enable the metrics feature.',
+      configurations: [
+        {
+          code: [
+            {
+              label: 'Java',
+              value: 'java',
+              language: 'java',
+              code: getJvmJavaConfigureSnippet(params),
+            },
+            {
+              label: 'Kotlin',
+              value: 'kotlin',
+              language: 'java',
+              code: getJvmKotlinConfigureSnippet(params),
+            },
+            {
+              label: 'properties',
+              value: 'properties',
+              language: 'properties',
+              code: getJvmPropertiesConfigureSnippet(params),
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: tct(
+        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:Sentry.metrics()] namespace. Try out this example:",
+        {
+          codeCounters: <code />,
+          codeSets: <code />,
+          codeDistribution: <code />,
+          codeGauge: <code />,
+          codeNamespace: <code />,
+        }
+      ),
+      configurations: [
+        {
+          configurations: [
+            {
+              code: [
+                {
+                  label: 'Java',
+                  value: 'java',
+                  language: 'java',
+                  code: getJvmJavaVerifySnippet(),
+                },
+                {
+                  label: 'Kotlin',
+                  value: 'kotlin',
+                  language: 'java',
+                  code: getJvmKotlinVerifySnippet(),
+                },
+              ],
+            },
+          ],
+        },
+        {
+          description: t(
+            'With a bit of delay you can see the data appear in the Sentry UI.'
+          ),
+        },
+        {
+          description: tct(
+            'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
+            {
+              docsLink: (
+                <ExternalLink href="https://docs.sentry.io/platforms/java/metrics/" />
               ),
             }
           ),
