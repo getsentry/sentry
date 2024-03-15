@@ -12,7 +12,7 @@ interface AutofixContextModalProps extends ModalRenderProps {
   triggerAutofix: (value: string) => void;
 }
 
-export function AutofixContextModal({
+export function AutofixInstructionsModal({
   Header,
   Footer,
   closeModal,
@@ -22,26 +22,24 @@ export function AutofixContextModal({
     <Form
       hideFooter
       onSubmit={data => {
-        triggerAutofix(data.additionalContext ?? '');
+        triggerAutofix(data.instruction ?? '');
         closeModal();
       }}
     >
       <Header>
-        <h4>{t('Give the Autofix Agent More Context')}</h4>
+        <h4>{t('Give the Autofix Agent Some Instructions')}</h4>
       </Header>
 
       <div>
-        <FullSizeFieldGroup
-          name="additionalContext"
-          inline={false}
-          flexibleControlStateSize
-        >
+        <FullSizeFieldGroup name="instruction" inline={false} flexibleControlStateSize>
           {({id, name, onChange, onBlur, disabled, value}) => (
             <FullSizeTextAreaField
               id={id}
               name={name}
-              aria-label={t('Provide additional context')}
-              placeholder={t('Include any text content that might be relevant…')}
+              aria-label={t('Provide instructions')}
+              placeholder={t(
+                'This error seems to be caused by ... go look at path/file to make sure it does …'
+              )}
               onChange={e => onChange((e.target as HTMLTextAreaElement).value, e)}
               disabled={disabled}
               value={value}
