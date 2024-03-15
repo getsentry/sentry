@@ -63,16 +63,13 @@ class BroadcastListTest(APITestCase):
         assert response.data[0]["id"] == str(broadcast1.id)
 
     def test_organization_filtering(self):
-        org = self.create_organization()
-        self.create_member(organization=org, user=self.user, role="admin")
-
         broadcast1 = Broadcast.objects.create(message="foo", is_active=True)
         broadcast2 = Broadcast.objects.create(message="bar", is_active=True)
 
         self.add_user_permission(user=self.user, permission="broadcasts.admin")
         self.login_as(user=self.user)
 
-        url = reverse("sentry-api-0-organization-broadcasts", args=[org.slug])
+        url = reverse("sentry-api-0-organization-broadcasts", args=[self.organization.slug])
 
         response = self.client.get(url)
         assert response.status_code == 200
