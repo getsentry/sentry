@@ -17,8 +17,9 @@ from sentry.testutils.silo import control_silo_test
 @control_silo_test
 class U2FInterfaceTest(TestCase):
     CURRENT_TIME = datetime(2024, 3, 11, 0, 0)
-    VALID_TIMESTAMP = (CURRENT_TIME - timedelta(minutes=1)).timestamp()
-    INVALID_TIMESTAMP = (CURRENT_TIME - timedelta(minutes=3)).timestamp()
+    VALID_TIMESTAMP = (CURRENT_TIME + timedelta(minutes=1)).timestamp()
+    INVALID_EXPIRED_TIMESTAMP = (CURRENT_TIME - timedelta(minutes=3)).timestamp()
+    INVALID_FUTURE_TIMESTAMP = (CURRENT_TIME + timedelta(minutes=3)).timestamp()
 
     def setUp(self):
         self.u2f = U2fInterface()
@@ -98,7 +99,7 @@ class U2FInterfaceTest(TestCase):
     def test_activate_staff_webauthn_invalid_timestamp(self):
         self.test_try_enroll_webauthn()
 
-        self.request.session["staff_auth_flow"] = self.INVALID_TIMESTAMP
+        self.request.session["staff_auth_flow"] = self.INVALID_EXPIRED_TIMESTAMP
 
         result = self.u2f.activate(self.request)
 
@@ -141,9 +142,18 @@ class U2FInterfaceTest(TestCase):
         mock_state = Mock()
         self.u2f.webauthn_authentication_server.authenticate_complete = mock_state
 
+        # Test expired timestamp
         self.request.session["webauthn_authentication_state"] = "non-staff state"
-        self.request.session["staff_auth_flow"] = self.INVALID_TIMESTAMP
+        self.request.session["staff_auth_flow"] = self.INVALID_EXPIRED_TIMESTAMP
 
+        assert self.u2f.validate_response(self.request, None, self.response)
+        _, kwargs = mock_state.call_args
+        assert kwargs.get("state") == "non-staff state"
+        assert "webauthn_authentication_state" not in self.request.session
+
+        # Test timestamp too far in the future
+        self.request.session["webauthn_authentication_state"] = "non-staff state"
+        self.request.session["staff_auth_flow"] = self.INVALID_FUTURE_TIMESTAMP
         assert self.u2f.validate_response(self.request, None, self.response)
         _, kwargs = mock_state.call_args
         assert kwargs.get("state") == "non-staff state"
