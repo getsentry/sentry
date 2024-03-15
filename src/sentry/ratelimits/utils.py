@@ -89,8 +89,8 @@ def get_rate_limit_key(
             token_id = request_auth.id
         elif isinstance(request_auth, AuthenticatedToken) and request_auth.entity_id is not None:
             token_id = request_auth.entity_id
-        elif isinstance(request_auth, ApiTokenReplica) and request_auth.api_token_id is not None:
-            token_id = request_auth.api_token_id
+        elif isinstance(request_auth, ApiTokenReplica) and request_auth.apitoken_id is not None:
+            token_id = request_auth.apitoken_id
         else:
             assert False  # Can't happen as asserted by is_api_token_auth check
 
