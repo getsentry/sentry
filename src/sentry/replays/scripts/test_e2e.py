@@ -13,7 +13,7 @@ logger = logging.getLogger()
 def produce_replay_video_envelope(dsn: str, replay_video: bytes) -> None:
     parts = dsn.split("/")
     project_id = parts.pop()
-    dsn_url = parts.join("/") + f"/api/{project_id}/envelope/"
+    dsn_url = "/".join(parts) + f"/api/{project_id}/envelope/"
 
     replay_id = uuid.uuid4().hex
     logger.info("Replay envelope emitted with ID: %s", replay_id)
