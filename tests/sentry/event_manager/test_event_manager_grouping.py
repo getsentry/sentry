@@ -140,6 +140,7 @@ class EventManagerGroupingMetricsTest(TestCase):
             assert set(total_calculations_calls[0].kwargs["tags"].keys()) == {
                 "in_transition",
                 "using_transition_optimization",
+                "result",
             }
 
             event_hashes_calculated_calls = get_relevant_metrics_calls(
@@ -149,6 +150,7 @@ class EventManagerGroupingMetricsTest(TestCase):
             assert set(event_hashes_calculated_calls[0].kwargs["tags"].keys()) == {
                 "in_transition",
                 "using_transition_optimization",
+                "result",
             }
 
     @mock.patch("sentry.event_manager.metrics.incr")
@@ -192,6 +194,7 @@ class EventManagerGroupingMetricsTest(TestCase):
                     metric_tags = total_calculations_calls[0].kwargs["tags"]
 
                     assert len(total_calculations_calls) == 1
+                    # The `result` tag is tested in `test_assign_to_group.py`
                     assert metric_tags["in_transition"] == expected_in_transition
                     assert (
                         metric_tags["using_transition_optimization"] == expected_using_optimization
