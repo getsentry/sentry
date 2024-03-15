@@ -711,7 +711,7 @@ function RenderRow(props: {
             : null
         }
         tabIndex={props.tabIndex === props.index ? 0 : -1}
-        className={`Autogrouped TraceRow ${rowSearchClassName}`}
+        className={`Autogrouped TraceRow ${rowSearchClassName} ${props.node.has_errors ? 'Errored' : ''}`}
         onClick={e => props.onRowClick(e, props.index, props.node)}
         onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
         style={{
@@ -729,7 +729,7 @@ function RenderRow(props: {
           }}
         >
           <div
-            className={`TraceLeftColumnInner ${props.node.has_errors ? 'Errored' : ''}`}
+            className={`TraceLeftColumnInner`}
             style={{
               paddingLeft: props.node.depth * props.manager.row_depth_padding,
             }}
@@ -810,7 +810,7 @@ function RenderRow(props: {
             : null
         }
         tabIndex={props.tabIndex === props.index ? 0 : -1}
-        className={`TraceRow ${rowSearchClassName}`}
+        className={`TraceRow ${rowSearchClassName} ${errored ? 'Errored' : ''}`}
         onClick={e => props.onRowClick(e, props.index, props.node)}
         onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
         style={{
@@ -828,7 +828,7 @@ function RenderRow(props: {
           }}
         >
           <div
-            className={`TraceLeftColumnInner ${errored ? 'Errored' : ''}`}
+            className={`TraceLeftColumnInner`}
             style={{
               paddingLeft: props.node.depth * props.manager.row_depth_padding,
             }}
@@ -924,7 +924,7 @@ function RenderRow(props: {
             : null
         }
         tabIndex={props.tabIndex === props.index ? 0 : -1}
-        className={`TraceRow ${rowSearchClassName}`}
+        className={`TraceRow ${rowSearchClassName} ${errored ? 'Errored' : ''}`}
         onClick={e => props.onRowClick(e, props.index, props.node)}
         onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
         style={{
@@ -942,7 +942,7 @@ function RenderRow(props: {
           }}
         >
           <div
-            className={`TraceLeftColumnInner ${errored ? 'Errored' : ''}`}
+            className={`TraceLeftColumnInner`}
             style={{
               paddingLeft: props.node.depth * props.manager.row_depth_padding,
             }}
@@ -1113,7 +1113,7 @@ function RenderRow(props: {
             : null
         }
         tabIndex={props.tabIndex === props.index ? 0 : -1}
-        className={`TraceRow ${rowSearchClassName}`}
+        className={`TraceRow ${rowSearchClassName} ${props.node.has_errors ? 'Errored' : ''}`}
         onClick={e => props.onRowClick(e, props.index, props.node)}
         onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
         style={{
@@ -1228,9 +1228,9 @@ function RenderRow(props: {
             <PlatformIcon
               platform={props.projects[props.node.value.project_slug] ?? 'default'}
             />
-            <span className="TraceOperation Errored">{t('Error')}</span>
-            <strong className="TraceEmDash Errored"> — </strong>
-            <span className="TraceDescription Errored">{props.node.value.title}</span>
+            <span className="TraceOperation">{t('Error')}</span>
+            <strong className="TraceEmDash"> — </strong>
+            <span className="TraceDescription">{props.node.value.title}</span>
           </div>
         </div>
         <div
@@ -1877,10 +1877,6 @@ const TraceStylingWrapper = styled('div')`
     transition: none;
     font-size: ${p => p.theme.fontSizeSmall};
 
-    .Errored {
-      color: ${p => p.theme.error};
-    }
-
     .TraceError {
       position: absolute;
       top: 50%;
@@ -1948,6 +1944,23 @@ const TraceStylingWrapper = styled('div')`
       }
     }
 
+    &.Errored {
+      color: ${p => p.theme.error};
+
+      .TraceChildrenCount {
+        border: 2px solid ${p => p.theme.error};
+      }
+
+      &:focus,
+      &[tabindex='0'] {
+        box-shadow: inset 0 0 0 1px ${p => p.theme.red300} !important;
+
+        .TraceLeftColumn {
+          box-shadow: inset 0px 0 0px 1px ${p => p.theme.red300} !important;
+        }
+      }
+    }
+
     &.SearchResult {
       background-color: ${p => p.theme.yellow100};
 
@@ -1958,9 +1971,17 @@ const TraceStylingWrapper = styled('div')`
 
     &.Autogrouped {
       color: ${p => p.theme.blue300};
+
+      &.Errored {
+        .TraceChildrenCount {
+          background-color: ${p => p.theme.error} !important;
+        }
+      }
+
       .TraceDescription {
         font-weight: bold;
       }
+
       .TraceChildrenCountWrapper {
         button {
           color: ${p => p.theme.white};
@@ -2087,11 +2108,6 @@ const TraceStylingWrapper = styled('div')`
     font-size: 10px;
     box-shadow: ${p => p.theme.dropShadowLight};
     margin-right: 8px;
-
-    &.Errored {
-      border: 2px solid ${p => p.theme.error};
-      background-color: ${p => p.theme.error} !important;
-    }
 
     .TraceChildrenCountContent {
       + .TraceChildrenCountAction {
