@@ -107,7 +107,7 @@ def get_metric_extraction_config(project: Project) -> MetricExtractionConfig | N
 
     with sentry_sdk.start_span(op="get_alert_metric_specs"):
         alert_specs = _get_alert_metric_specs(project, enabled_features, prefilling)
-    with sentry_sdk.start_span(op="get_alert_metric_specs"):
+    with sentry_sdk.start_span(op="get_widget_metric_specs"):
         widget_specs = _get_widget_metric_specs(project, enabled_features, prefilling)
 
     with sentry_sdk.start_span(op="merge_metric_specs"):
