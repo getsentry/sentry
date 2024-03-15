@@ -37,7 +37,6 @@ def produce_segment_to_kafka(segments) -> None:
         return
 
     payload_data = prepare_message(segments)
-
     payload = KafkaPayload(None, payload_data, [])
     if settings.SENTRY_EVENTSTREAM != "sentry.eventstream.kafka.KafkaEventStream":
         # If we're not running Kafka then we're just in dev.
@@ -46,6 +45,7 @@ def produce_segment_to_kafka(segments) -> None:
         return
 
     try:
-        _segments_producer.produce(ArroyoTopic(Topic.BUFFERED_SEGMENT), payload)
+        topic = get_topic_definition(Topic.BUFFERED_SEGMENT)["real_topic_name"]
+        _segments_producer.produce(ArroyoTopic(topic), payload)
     except KafkaException:
         logger.exception("Failed to produce segment to Kafka")

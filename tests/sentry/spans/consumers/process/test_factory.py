@@ -1,14 +1,17 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest import mock
 
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition
 from arroyo.types import Topic as ArroyoTopic
+from django.test import override_settings
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.spans.buffer.redis import get_redis_client
 from sentry.spans.consumers.process.factory import ProcessSpansStrategyFactory
+from sentry.spans.consumers.recombine.factory import BUFFERED_SEGMENT_SCHEMA
 from sentry.utils import json
+from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.kafka_config import get_topic_definition
 
 
@@ -95,3 +98,51 @@ def test_consumer_pushes_to_redis():
         message1.value().encode("utf-8"),
         message2.value().encode("utf-8"),
     ]
+
+
+@override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
+@mock.patch.object(SingletonProducer, "produce")
+def test_produces_valid_segment_to_kafka(mock_produce):
+
+    topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_SPANS)["real_topic_name"])
+    partition = Partition(topic, 0)
+    strategy = ProcessSpansStrategyFactory().create_with_partitions(
+        commit=mock.Mock(),
+        partitions={},
+    )
+
+    span_data = build_mock_span(is_segment=True)
+    message1 = build_mock_message(span_data, topic)
+
+    strategy.submit(
+        Message(
+            BrokerValue(
+                KafkaPayload(b"key", message1.value().encode("utf-8"), []),
+                partition,
+                1,
+                datetime.now() - timedelta(minutes=3),
+            )
+        )
+    )
+
+    span_data = build_mock_span()
+    message2 = build_mock_message(span_data, topic)
+
+    strategy.submit(
+        Message(
+            BrokerValue(
+                KafkaPayload(b"key", message2.value().encode("utf-8"), []),
+                partition,
+                1,
+                datetime.now(),
+            )
+        )
+    )
+
+    strategy.poll()
+    strategy.join(1)
+    strategy.terminate()
+
+    mock_produce.assert_called_once()
+    BUFFERED_SEGMENT_SCHEMA.decode(mock_produce.call_args.args[1].value)
+    assert mock_produce.call_args.args[0] == ArroyoTopic("buffered-segment")

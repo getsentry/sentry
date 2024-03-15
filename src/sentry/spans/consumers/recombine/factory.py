@@ -25,23 +25,23 @@ def _deserialize_segment(value: bytes) -> Mapping[str, Any]:
 
 
 def process_message(message: Message[KafkaPayload]):
-
     try:
         segment = _deserialize_segment(message.payload.value)
     except Exception:
         logger.exception("Failed to process segment payload")
         return
 
-    try:
-        process_segment(segment.spans)
-    except Exception as e:
-        if random.random() < 0.05:
-            sentry_sdk.capture_exception(e)
+    process_segment(segment["spans"])
 
 
 def _process_segment(message: Message[KafkaPayload]):
     assert isinstance(message.value, BrokerValue)
-    process_message(message)
+
+    try:
+        process_message(message)
+    except Exception as e:
+        if random.random() < 0.05:
+            sentry_sdk.capture_exception(e)
 
 
 class RecombineSegmentStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):

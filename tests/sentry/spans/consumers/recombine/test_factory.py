@@ -50,8 +50,7 @@ def build_mock_message(data, topic=None):
 
 
 @mock.patch("sentry.spans.consumers.recombine.factory.process_segment")
-def test_consumer_pushes_to_redis(mock_process_segment):
-
+def test_segment_deserialized_correctly(mock_process_segment):
     topic = ArroyoTopic(get_topic_definition(Topic.BUFFERED_SEGMENT)["real_topic_name"])
     partition = Partition(topic, 0)
     strategy = RecombineSegmentStrategyFactory().create_with_partitions(
@@ -59,8 +58,8 @@ def test_consumer_pushes_to_redis(mock_process_segment):
         partitions={},
     )
 
-    span_data = build_mock_span()
-    segment_data = [span_data]
+    span_data = build_mock_span(is_segment=True)
+    segment_data = {"spans": [span_data]}
     message = build_mock_message(segment_data, topic)
 
     strategy.submit(
@@ -78,4 +77,4 @@ def test_consumer_pushes_to_redis(mock_process_segment):
     strategy.join(1)
     strategy.terminate()
 
-    mock_process_segment.assert_called_once_with(segment_data)
+    mock_process_segment.assert_called_once_with([span_data])

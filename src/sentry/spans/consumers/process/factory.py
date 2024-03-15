@@ -12,7 +12,7 @@ from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
 
 from sentry.spans.buffer.redis import RedisSpansBuffer
-from sentry.spans.producer import produce_segment_to_kafka
+from sentry.spans.produce_segment import produce_segment_to_kafka
 
 logger = logging.getLogger(__name__)
 SPAN_SCHEMA: Codec[SpanEvent] = get_codec("snuba-spans")
