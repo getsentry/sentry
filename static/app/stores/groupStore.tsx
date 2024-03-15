@@ -119,7 +119,9 @@ const storeConfig: GroupStoreDefinition = {
   },
 
   mergeItems(items: Item[]) {
-    const itemsById = items.reduce((acc, item) => ({...acc, [item.id]: item}), {});
+    const itemsById = items
+      .filter(item => item && typeof item.id !== 'undefined')
+      .reduce((acc, item) => ({...acc, [item.id]: item}), {});
 
     // Merge these items into the store and return a mapping of any that aren't already in the store
     this.items.forEach((item, itemIndex) => {
