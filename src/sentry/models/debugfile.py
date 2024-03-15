@@ -595,7 +595,7 @@ def create_files_from_dif_zip(
 
     scratchpad = tempfile.mkdtemp()
     try:
-        safe_extract_zip(fileobj, scratchpad, strip_toplevel=False)
+        safe_extract_zip(fileobj, scratchpad)
         to_create: list[DifMeta] = []
 
         for dirpath, dirnames, filenames in os.walk(scratchpad):
