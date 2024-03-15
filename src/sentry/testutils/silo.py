@@ -108,8 +108,8 @@ def _monkey_patch_silo_lock_into_settings_override():
             SILO_LOCK.release()
         return old_disable(self)
 
-    override_settings.enable = new_enable
-    override_settings.disable = new_disable
+    override_settings.enable = new_enable  # type: ignore
+    override_settings.disable = new_disable  # type: ignore
 
 
 def create_test_regions(*names: str, single_tenants: Iterable[str] = ()) -> tuple[Region, ...]:
