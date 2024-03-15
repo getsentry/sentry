@@ -663,13 +663,16 @@ export class VirtualizedViewManager {
     }
 
     this.enqueueOnScrollEndOutOfBoundsCheck();
-    const columnWidth = this.columns.list.width * this.container_physical_space.width;
 
-    this.columns.list.translate[0] = clamp(
-      this.columns.list.translate[0] - event.deltaX,
-      -(this.row_measurer.max - columnWidth + 16), // 16px margin so we dont scroll right to the last px
-      0
+    const newTransform = this.clampRowTransform(
+      this.columns.list.translate[0] - event.deltaX
     );
+
+    if (newTransform === this.columns.list.translate[0]) {
+      return;
+    }
+
+    this.columns.list.translate[0] = newTransform;
 
     if (this.scrollSyncRaf) {
       window.cancelAnimationFrame(this.scrollSyncRaf);
@@ -684,6 +687,25 @@ export class VirtualizedViewManager {
         }
       }
     });
+  }
+
+  clampRowTransform(transform: number): number {
+    const columnWidth = this.columns.list.width * this.container_physical_space.width;
+    const max = this.row_measurer.max - columnWidth + 16;
+
+    if (this.row_measurer.max < columnWidth) {
+      return 0;
+    }
+
+    // Sometimes the wheel event glitches or jumps to a very high value
+    if (transform > 0) {
+      return 0;
+    }
+    if (transform < -max) {
+      return -max;
+    }
+
+    return transform;
   }
 
   scrollEndSyncRaf: number | null = null;
@@ -760,12 +782,11 @@ export class VirtualizedViewManager {
     duration: number = 600,
     offset_px: number = 0
   ) {
-    const VISUAL_OFFSET = this.row_depth_padding / 2;
-    const target = Math.min(
-      -node.depth * this.row_depth_padding + VISUAL_OFFSET + offset_px,
-      0
+    const newTransform = this.clampRowTransform(
+      -node.depth * this.row_depth_padding + offset_px
     );
-    this.animateScrollColumnTo(target, duration);
+
+    this.animateScrollColumnTo(newTransform, duration);
   }
 
   bringRowIntoViewAnimation: number | null = null;
@@ -1407,7 +1428,7 @@ export class VirtualizedList {
   scrollHeight: number = 0;
   scrollTop: number = 0;
 
-  scrollToRow(index: number, anchor = 'top') {
+  scrollToRow(index: number, anchor?: 'top') {
     if (!this.container) {
       return;
     }
@@ -1422,14 +1443,14 @@ export class VirtualizedList {
     const height = this.scrollHeight;
 
     if (position < top) {
-      // above view
+      // Row is above the view
+      this.container.scrollTop = index * 24;
     } else if (position > top + height) {
-      // under view
+      // Row is under the view
+      this.container.scrollTop = index * 24 - height + 24;
     } else {
       return;
     }
-
-    this.container.scrollTop = index * 24;
   }
 }
 

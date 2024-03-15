@@ -3,6 +3,7 @@ from uuid import uuid4
 from sentry.integrations.repository.issue_alert import (
     IssueAlertNotificationMessage,
     IssueAlertNotificationMessageRepository,
+    NewIssueAlertNotificationMessage,
 )
 from sentry.models.notificationmessage import NotificationMessage
 from sentry.models.rulefirehistory import RuleFireHistory
@@ -76,3 +77,62 @@ class TestGetParentNotificationMessage(TestCase):
         assert instance == IssueAlertNotificationMessage.from_model(
             self.parent_notification_message
         )
+
+
+class TestCreateNotificationMessage(TestCase):
+    def setUp(self):
+        self.action_uuid = str(uuid4())
+        self.notify_issue_owners_action = [
+            {
+                "targetType": "IssueOwners",
+                "fallthroughType": "ActiveMembers",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": "",
+                "uuid": self.action_uuid,
+            }
+        ]
+        self.rule = self.create_project_rule(
+            project=self.project, action_match=self.notify_issue_owners_action
+        )
+        self.event_id = 456
+        self.notification_uuid = str(uuid4())
+        self.rule_fire_history = RuleFireHistory.objects.create(
+            project=self.project,
+            rule=self.rule,
+            group=self.group,
+            event_id=self.event_id,
+            notification_uuid=self.notification_uuid,
+        )
+        self.repository = IssueAlertNotificationMessageRepository.default()
+
+    def test_simple(self) -> None:
+        message_identifier = "1a2b3c"
+        data = NewIssueAlertNotificationMessage(
+            rule_fire_history_id=self.rule_fire_history.id,
+            rule_action_uuid=self.action_uuid,
+            message_identifier=message_identifier,
+        )
+
+        result = self.repository.create_notification_message(data=data)
+        assert result is not None
+        assert result.message_identifier == message_identifier
+
+    def test_with_error_details(self) -> None:
+        error_detail = {
+            "message": "message",
+            "some_nested_obj": {
+                "some_nested_key": "some_nested_value",
+                "some_array": ["some_array"],
+                "int": 203,
+            },
+        }
+        data = NewIssueAlertNotificationMessage(
+            rule_fire_history_id=self.rule_fire_history.id,
+            rule_action_uuid=self.action_uuid,
+            error_code=405,
+            error_details=error_detail,
+        )
+
+        result = self.repository.create_notification_message(data=data)
+        assert result is not None
+        assert result.error_details == error_detail

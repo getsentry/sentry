@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import * as qs from 'query-string';
@@ -11,21 +11,12 @@ import DiscoverButton from 'sentry/components/discoverButton';
 import SpanSummaryButton from 'sentry/components/events/interfaces/spans/spanSummaryButton';
 import FileSize from 'sentry/components/fileSize';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {
-  ErrorDot,
-  ErrorLevel,
-  ErrorMessageContent,
-  ErrorMessageTitle,
-  ErrorTitle,
-} from 'sentry/components/performance/waterfall/rowDetails';
 import Pill from 'sentry/components/pill';
 import Pills from 'sentry/components/pills';
 import {TransactionToProfileButton} from 'sentry/components/profiling/transactionToProfileButton';
-import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {ALL_ACCESS_PROJECTS, PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
-import {t, tn} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import type {EventTransaction} from 'sentry/types/event';
@@ -37,7 +28,6 @@ import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import type {
   TraceError,
-  TraceErrorOrIssue,
   TraceFullDetailed,
   TracePerformanceIssue,
 } from 'sentry/utils/performance/quickTrace/types';
@@ -45,6 +35,7 @@ import {safeURL} from 'sentry/utils/url/safeURL';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {CustomMetricsEventData} from 'sentry/views/ddm/customMetricsEventData';
+import IssueList from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issueList';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils';
@@ -62,18 +53,14 @@ import type {ParsedTraceType, RawSpanType} from './types';
 import {rawSpanKeys} from './types';
 import type {SubTimingInfo} from './utils';
 import {
-  getCumulativeAlertLevelFromErrors,
   getFormattedTimeRangeWithLeadingAndTrailingZero,
   getSpanSubTimings,
   getTraceDateTimeRange,
-  isErrorPerformanceError,
   isGapSpan,
   isHiddenDataKey,
   isOrphanSpan,
   scrollToSpan,
 } from './utils';
-
-const MAX_DEFAULT_ERRORS_VISIBLE = 5;
 
 const SIZE_DATA_KEYS = [
   'Encoded Body Size',
@@ -104,7 +91,6 @@ export type SpanDetailProps = {
 };
 
 function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
-  const [errorsOpened, setErrorsOpened] = useState(false);
   const location = useLocation();
   const profileId = props.event.contexts.profile?.profile_id || '';
   const {projects} = useProjects();
@@ -113,6 +99,10 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
     props.span.sentry_tags?.op,
     props.span.sentry_tags?.category
   );
+
+  const relatedIssues = useMemo(() => {
+    return [...props.errors, ...props.performanceIssues];
+  }, [props.errors, props.performanceIssues]);
 
   useEffect(() => {
     // Run on mount.
@@ -293,10 +283,6 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
     );
   }
 
-  function toggleErrors() {
-    setErrorsOpened(prevErrorsOpened => !prevErrorsOpened);
-  }
-
   function renderSpanErrorMessage() {
     const {span, organization, errors, performanceIssues} = props;
 
@@ -306,54 +292,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
       return null;
     }
 
-    const totalErrorsCount = errors.length + performanceIssues.length;
-    const allErrors = errors.concat(
-      ...(performanceIssues as any)
-    ) as unknown as TraceErrorOrIssue[];
-
-    const visibleErrors = errorsOpened
-      ? allErrors
-      : allErrors.slice(0, MAX_DEFAULT_ERRORS_VISIBLE);
-
-    return (
-      <Alert type={getCumulativeAlertLevelFromErrors(allErrors)} system>
-        <ErrorMessageTitle>
-          {tn(
-            '%s error event or performance issue is associated with this span.',
-            '%s error events or performance issues are associated with this span.',
-            totalErrorsCount
-          )}
-        </ErrorMessageTitle>
-        <Fragment>
-          {visibleErrors.map(error => (
-            <ErrorMessageContent
-              key={error.event_id}
-              excludeLevel={isErrorPerformanceError(error)}
-            >
-              {isErrorPerformanceError(error) ? (
-                <ErrorDot level="error" />
-              ) : (
-                <Fragment>
-                  <ErrorDot level={error.level} />
-                  <ErrorLevel>{error.level}</ErrorLevel>
-                </Fragment>
-              )}
-
-              <ErrorTitle>
-                <Link to={generateIssueEventTarget(error, organization)}>
-                  {error.title}
-                </Link>
-              </ErrorTitle>
-            </ErrorMessageContent>
-          ))}
-        </Fragment>
-        {totalErrorsCount > MAX_DEFAULT_ERRORS_VISIBLE && (
-          <ErrorToggle size="xs" onClick={toggleErrors}>
-            {errorsOpened ? t('Show less') : t('Show more')}
-          </ErrorToggle>
-        )}
-      </Alert>
-    );
+    return <IssueList organization={organization} issues={relatedIssues} />;
   }
 
   function partitionSizes(data): {
@@ -695,10 +634,6 @@ function TextTr({children}) {
     </tr>
   );
 }
-
-const ErrorToggle = styled(Button)`
-  margin-top: ${space(0.75)};
-`;
 
 const SpanIdTitle = styled('a')`
   display: flex;

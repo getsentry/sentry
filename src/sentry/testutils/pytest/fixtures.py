@@ -370,8 +370,7 @@ def insta_snapshot(request, log):
         is_unequal = inequality_comparator(refval, output)
 
         if _snapshot_writeback is not None and is_unequal:
-            if not os.path.isdir(os.path.dirname(reference_file)):
-                os.makedirs(os.path.dirname(reference_file))
+            os.makedirs(os.path.dirname(reference_file), exist_ok=True)
             source = os.path.realpath(str(request.node.fspath))
             if source.startswith(_test_base + os.path.sep):
                 source = source[len(_test_base) + 1 :]

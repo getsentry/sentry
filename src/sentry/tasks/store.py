@@ -615,17 +615,18 @@ def delete_raw_event(project_id: int, event_id: str | None, allow_hint_clear: bo
 
     # Clear the sent notification if we reprocessed everything
     # successfully and reprocessing is enabled
-    reprocessing_active = ProjectOption.objects.get_value(
-        project_id, "sentry:reprocessing_active", REPROCESSING_DEFAULT
-    )
+    reprocessing_active = ProjectOption.objects.filter(
+        project_id=project_id, key="sentry:reprocessing_active"
+    ).exists()
     if reprocessing_active:
-        sent_notification = ProjectOption.objects.get_value(
-            project_id, "sentry:sent_failed_event_hint", False
-        )
+        sent_notification = ProjectOption.objects.filter(
+            project_id=project_id, key="sentry:sent_failed_event_hint"
+        ).exists()
         if sent_notification:
             if ReprocessingReport.objects.filter(project_id=project_id, event_id=event_id).exists():
-                project = Project.objects.get_from_cache(id=project_id)
-                ProjectOption.objects.set_value(project, "sentry:sent_failed_event_hint", False)
+                ProjectOption.objects.update_value(
+                    project_id=project_id, key="sentry:sent_failed_event_hint", value=False
+                )
 
 
 def create_failed_event(
@@ -843,6 +844,7 @@ def _do_save_event(
             time_synthetic_monitoring_event(data, project_id, start_time)
 
 
+@sentry_sdk.tracing.trace
 def time_synthetic_monitoring_event(data: Event, project_id: int, start_time: float | None) -> bool:
     """
     For special events produced by the recurring synthetic monitoring
