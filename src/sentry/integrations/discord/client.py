@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-# to avoid a circular import
 import logging
 from collections.abc import Mapping
 from urllib.parse import urlencode
@@ -11,7 +10,10 @@ from rest_framework.response import Response
 from sentry import options
 from sentry.integrations.client import ApiClient
 from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
-from sentry.utils import metrics
+from sentry.integrations.discord.utils.consts import DISCORD_ERROR_CODES, DISCORD_USER_ERRORS
+
+# to avoid a circular import
+from sentry.utils import json, metrics
 
 logger = logging.getLogger("sentry.integrations.discord")
 
@@ -115,17 +117,27 @@ class DiscordClient(ApiClient):
         resp: Response | None = None,
         extra: Mapping[str, str] | None = None,
     ) -> None:
+        discord_code = ""
+        code_message = ""
+
+        try:
+            discord_response = json.loads(resp.content.decode("utf-8")) if resp else {}
+            discord_code = discord_response.get("code")
+            if discord_code in DISCORD_ERROR_CODES:
+                code_message = DISCORD_ERROR_CODES[discord_code]
+
+        except Exception:
+            pass
+
         is_ok = code in {
             status.HTTP_200_OK,
             status.HTTP_201_CREATED,
             status.HTTP_202_ACCEPTED,
             status.HTTP_204_NO_CONTENT,
         }
-        include_in_slo = code not in {
-            status.HTTP_429_TOO_MANY_REQUESTS,
-            status.HTTP_403_FORBIDDEN,  # Is user error
-        }
 
+        # These are excluded since they are not actionable from our side
+        include_in_slo = discord_code not in DISCORD_USER_ERRORS
         metrics.incr(
             f"{self.metrics_prefix}.http_response",
             sample_rate=1.0,
@@ -134,6 +146,7 @@ class DiscordClient(ApiClient):
                 "status": code,
                 "is_ok": is_ok,
                 "include_in_slo": include_in_slo,
+                "discord_code": discord_code,
             },
         )
 
@@ -141,7 +154,10 @@ class DiscordClient(ApiClient):
             **(extra or {}),
             "status_string": str(code),
             "error": str(error)[:256] if error else None,
+            "discord_code": discord_code,
+            "code_message": code_message,
         }
+
         if self.integration_type:
             log_params[self.integration_type] = self.name
 
