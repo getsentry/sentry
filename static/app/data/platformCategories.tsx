@@ -461,6 +461,14 @@ const customMetricBackendPlatforms: readonly PlatformKey[] = [
   'dotnet-uwp',
   'dotnet-winforms',
   'dotnet-wpf',
+  'java',
+  'java-appengine',
+  'java-log4j',
+  'java-log4j2',
+  'java-logback',
+  'java-logging',
+  'java-spring',
+  'java-spring-boot',
   'php',
   'php-laravel',
   // TODO: Enable once metrics are available for Symfony
@@ -499,7 +507,9 @@ const customMetricBackendPlatforms: readonly PlatformKey[] = [
 ];
 
 const customMetricFrontendPlatforms: readonly PlatformKey[] = [
+  'android',
   'electron',
+  'java-android',
   'javascript-angular',
   'javascript-astro',
   'javascript-backbone',
