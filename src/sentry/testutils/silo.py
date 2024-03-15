@@ -55,29 +55,27 @@ def monkey_patch_single_process_silo_mode_state():
             "to explicit pass 'fake' RPC boundaries."
         )
 
-        with SILO_LOCK:
-            old_mode = state.mode
-            old_region = state.region
-            state.mode = mode
-            state.region = region
-            try:
-                yield
-            finally:
-                state.mode = old_mode
-                state.region = old_region
+        old_mode = state.mode
+        old_region = state.region
+        state.mode = mode
+        state.region = region
+        try:
+            yield
+        finally:
+            state.mode = old_mode
+            state.region = old_region
 
     @contextlib.contextmanager
     def exit() -> Generator[None, None, None]:
-        with SILO_LOCK:
-            old_mode = state.mode
-            old_region = state.region
-            state.mode = None
-            state.region = None
-            try:
-                yield
-            finally:
-                state.mode = old_mode
-                state.region = old_region
+        old_mode = state.mode
+        old_region = state.region
+        state.mode = None
+        state.region = None
+        try:
+            yield
+        finally:
+            state.mode = old_mode
+            state.region = old_region
 
     def get_mode() -> SiloMode | None:
         return state.mode
@@ -96,8 +94,6 @@ def _monkey_patch_silo_lock_into_settings_override():
     when the SILO_MODE is manipulated.
     """
     from django.test.utils import override_settings
-
-    from sentry.silo import SILO_LOCK
 
     old_enable = override_settings.enable
     old_disable = override_settings.disable

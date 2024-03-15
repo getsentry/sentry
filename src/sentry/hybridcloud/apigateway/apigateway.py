@@ -48,10 +48,6 @@ def proxy_request_if_needed(
     Main execution flow for the API Gateway.
     returns None if proxying is not required, or a response if the proxy was successful.
     """
-    import random
-    import time
-
-    time.sleep(random.random() / 2.0 + 0.5)
     current_silo_mode = SiloMode.get_current_mode()
 
     if current_silo_mode != SiloMode.CONTROL:
