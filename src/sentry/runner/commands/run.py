@@ -340,7 +340,6 @@ def cron(**options):
         "--no-strict-offset-reset will use the auto offset reset even in that case. "
         "This is useful in development, but not desirable in production since expired "
         "offsets mean data-loss.\n\n"
-        "Most consumers that do not have this option at all default to 'Not Strict'."
     ),
 )
 @configuration
