@@ -1,5 +1,6 @@
 from sentry.models.broadcast import Broadcast
 from sentry.models.environment import Environment
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.team import Team
@@ -39,6 +40,9 @@ def test_get_organization() -> None:
     org = mockdata.get_organization()
     assert org
     assert "default" == org.slug
+
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        assert OrganizationMapping.objects.get(slug=org.slug)
 
 
 @region_silo_test
