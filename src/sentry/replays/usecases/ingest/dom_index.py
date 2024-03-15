@@ -243,7 +243,7 @@ def create_click_event(
     # before truncating the list.
     classes = _parse_classes(attributes.get("class", ""))
 
-    event = {
+    event: ReplayActionsEventPayloadClick = {
         "node_id": node["id"],
         "tag": node["tagName"][:32],
         "id": attributes.get("id", "")[:64],
