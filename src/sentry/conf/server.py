@@ -3586,17 +3586,15 @@ SENTRY_USE_UWSGI = True
 
 # Configure service wrapper for reprocessing2 state
 SENTRY_REPROCESSING_STORE = "sentry.eventstore.reprocessing.redis.RedisReprocessingStore"
+# Which cluster is used to store auxiliary data for reprocessing. Note that
+# this cluster is not used to store attachments etc, that still happens on
+# rc-processing. This is just for buffering up event IDs and storing a counter
+# for synchronization/progress report.
 SENTRY_REPROCESSING_STORE_OPTIONS = {"cluster": "default"}
 
 # When copying attachments for to-be-reprocessed events into processing store,
 # how large is an individual file chunk? Each chunk is stored as Redis key.
 SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE = 2**20
-
-# Which cluster is used to store auxiliary data for reprocessing. Note that
-# this cluster is not used to store attachments etc, that still happens on
-# rc-processing. This is just for buffering up event IDs and storing a counter
-# for synchronization/progress report.
-SENTRY_REPROCESSING_SYNC_REDIS_CLUSTER = "default"
 
 # How long tombstones from reprocessing will live.
 SENTRY_REPROCESSING_TOMBSTONES_TTL = 24 * 3600
