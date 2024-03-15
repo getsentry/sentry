@@ -526,7 +526,7 @@ describe('GroupReplays', () => {
 
     // Test seems to be flaky
     // eslint-disable-next-line jest/no-disabled-tests
-    it.skip('Should switch replays when clicking and replay-play-from-replay-tab is enabled', async () => {
+    it('Should switch replays when clicking and replay-play-from-replay-tab is enabled', async () => {
       ({router, organization, routerContext} = init({
         organizationProps: {features: ['replay-play-from-replay-tab', 'session-replay']},
       }));
@@ -597,15 +597,12 @@ describe('GroupReplays', () => {
         );
       });
 
-      // browserHistory.replace = jest.fn();
-
       const mockReplace = jest.mocked(browserHistory.replace);
       await waitFor(() => {
         const replayPlayPlause = screen.getAllByTestId('replay-table-play-button')[0];
         return act(() => userEvent.click(replayPlayPlause));
       });
 
-      await tick();
       expect(mockReplace).toHaveBeenCalledWith(
         expect.objectContaining({
           pathname: '/organizations/org-slug/replays/',
