@@ -244,7 +244,7 @@ BUNDLE_ANALYSIS_METRIC_NAMES = {
 
 # 800-899
 METRIC_STATS_METRIC_NAMES = {
-    "g:metric_stats/volume@none": PREFIX + 800,
+    "c:metric_stats/volume@none": PREFIX + 800,
     "g:metric_stats/cardinality@none": PREFIX + 801,
 }
 
