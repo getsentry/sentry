@@ -18,7 +18,7 @@ REPLAYS_FEATURES = {"organizations:session-replay": True}
 
 
 @region_silo_test
-class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase, TransactionTestCase):
+class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
     endpoint = "sentry-api-0-project-replay-details"
 
     def setUp(self):
