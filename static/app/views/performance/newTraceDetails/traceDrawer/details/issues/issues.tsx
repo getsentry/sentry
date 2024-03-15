@@ -11,12 +11,18 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {IconWrapper} from 'sentry/components/sidebarSection';
 import GroupChart from 'sentry/components/stream/groupChart';
 import {IconUser} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group, Organization} from 'sentry/types';
 import type {TraceErrorOrIssue} from 'sentry/utils/performance/quickTrace/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {
+  isAutogroupedNode,
+  isSpanNode,
+  isTraceErrorNode,
+  isTransactionNode,
+} from 'sentry/views/performance/newTraceDetails/guards';
+import type {
   TraceTree,
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceTree';
@@ -128,10 +134,51 @@ export function IssueList({issues, node, organization, event_id}: IssueListProps
 }
 
 function IssueListHeader({node}: {node: TraceTreeNode<TraceTree.NodeValue>}) {
-  console.log(node);
+  const errors =
+    isSpanNode(node) || isTransactionNode(node)
+      ? node.value.errors.length
+      : isAutogroupedNode(node)
+        ? node.errors.length
+        : isTraceErrorNode(node)
+          ? 1
+          : 0;
+
+  const performance_issues =
+    isSpanNode(node) || isTransactionNode(node)
+      ? node.value.performance_issues.length
+      : isAutogroupedNode(node)
+        ? node.performance_issues.length
+        : isTraceErrorNode(node)
+          ? 1
+          : 0;
+
   return (
     <StyledPanelHeader disablePadding>
-      <IssueHeading>{t('Issue')}</IssueHeading>
+      <IssueHeading>
+        {errors > 0 && performance_issues === 0
+          ? tct('[count] [text]', {
+              count: errors,
+              text: tn('Error', 'Errors', errors),
+            })
+          : performance_issues > 0 && errors === 0
+            ? tct('[count] [text]', {
+                count: errors,
+                text: tn('Performance issue', 'Performance Issues', errors),
+              })
+            : tct(
+                '[errors] [errorsText] and [performance_issues] [performanceIssuesText]',
+                {
+                  errors,
+                  performance_issues,
+                  errorsText: tn('Error', 'Errors', errors),
+                  performanceIssuesText: tn(
+                    'performance issue',
+                    'performance issues',
+                    performance_issues
+                  ),
+                }
+              )}
+      </IssueHeading>
       <GraphHeading>{t('Graph')}</GraphHeading>
       <Heading>{t('Events')}</Heading>
       <UsersHeading>{t('Users')}</UsersHeading>
