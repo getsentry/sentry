@@ -23,11 +23,11 @@ interface EventOrGroupHeaderProps {
 /**
  * Displays an event or group/issue title (i.e. in Stream)
  */
-interface TitleChildrenProps {
+interface IssueTitleChildrenProps {
   data: Group;
   organization: Organization;
 }
-function TitleChildren(props: TitleChildrenProps) {
+function IssueTitleChildren(props: IssueTitleChildrenProps) {
   const hasIssuePriority = props.organization.features.includes('issue-priority-ui');
   const {level, isBookmarked, hasSeen} = props.data;
 
@@ -52,11 +52,11 @@ function TitleChildren(props: TitleChildrenProps) {
   );
 }
 
-interface TitleProps {
+interface IssueTitleProps {
   data: Group;
   event_id: string;
 }
-function IssueTitle(props: TitleProps) {
+function IssueTitle(props: IssueTitleProps) {
   const organization = useOrganization();
   const commonEleProps = {
     'data-test-id': status === 'resolved' ? 'resolved-issue' : null,
@@ -65,7 +65,7 @@ function IssueTitle(props: TitleProps) {
   if (isTombstone(props.data)) {
     return (
       <TitleWithoutLink {...commonEleProps}>
-        <TitleChildren data={props.data} organization={organization} />
+        <IssueTitleChildren data={props.data} organization={organization} />
       </TitleWithoutLink>
     );
   }
@@ -77,7 +77,7 @@ function IssueTitle(props: TitleProps) {
         pathname: `/organizations/${organization.slug}/issues/${props.data.id}/events/${props.event_id}/`,
       }}
     >
-      <TitleChildren data={props.data} organization={organization} />
+      <IssueTitleChildren data={props.data} organization={organization} />
     </TitleWithLink>
   );
 }

@@ -5,6 +5,8 @@ import Count from 'sentry/components/count';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Panel from 'sentry/components/panels/panel';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconWrapper} from 'sentry/components/sidebarSection';
 import GroupChart from 'sentry/components/stream/groupChart';
@@ -14,16 +16,20 @@ import {space} from 'sentry/styles/space';
 import type {Group, Organization} from 'sentry/types';
 import type {TraceErrorOrIssue} from 'sentry/utils/performance/quickTrace/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {
+  TraceTree,
+  TraceTreeNode,
+} from 'sentry/views/performance/newTraceDetails/traceTree';
 
 import {IssueSummary} from './issueSummary';
 
-type Props = {
+type IssueProps = {
   event_id: string;
   issue: TraceErrorOrIssue;
   organization: Organization;
 };
 
-export function Issue(props: Props) {
+function Issue(props: IssueProps) {
   const {
     isLoading,
     data: fetchedIssue,
@@ -94,11 +100,91 @@ export function Issue(props: Props) {
   ) : null;
 }
 
+type IssueListProps = {
+  event_id: string;
+  issues: TraceErrorOrIssue[];
+  node: TraceTreeNode<TraceTree.NodeValue>;
+  organization: Organization;
+};
+
+export function IssueList({issues, node, organization, event_id}: IssueListProps) {
+  if (!issues.length) {
+    return null;
+  }
+
+  return (
+    <StyledPanel>
+      <IssueListHeader node={node} />
+      {issues.map((issue, index) => (
+        <Issue
+          key={index}
+          issue={issue}
+          organization={organization}
+          event_id={event_id}
+        />
+      ))}
+    </StyledPanel>
+  );
+}
+
+function IssueListHeader({node}: {node: TraceTreeNode<TraceTree.NodeValue>}) {
+  console.log(node);
+  return (
+    <StyledPanelHeader disablePadding>
+      <IssueHeading>{t('Issue')}</IssueHeading>
+      <GraphHeading>{t('Graph')}</GraphHeading>
+      <Heading>{t('Events')}</Heading>
+      <UsersHeading>{t('Users')}</UsersHeading>
+      <Heading>{t('Assignee')}</Heading>
+    </StyledPanelHeader>
+  );
+}
+
+const Heading = styled('div')`
+  display: flex;
+  align-self: center;
+  margin: 0 ${space(2)};
+  width: 60px;
+  color: ${p => p.theme.subText};
+`;
+
+const IssueHeading = styled(Heading)`
+  flex: 1;
+  width: 66.66%;
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    width: 50%;
+  }
+`;
+
+const GraphHeading = styled(Heading)`
+  width: 160px;
+  display: flex;
+  justify-content: center;
+`;
+
+const UsersHeading = styled(Heading)`
+  display: flex;
+  justify-content: center;
+`;
+
+const StyledPanel = styled(Panel)`
+  margin-bottom: 0;
+  border: 1px solid ${p => p.theme.red200};
+`;
+
+const StyledPanelHeader = styled(PanelHeader)`
+  padding-top: ${space(1)};
+  padding-bottom: ${space(1)};
+  border-bottom: 1px solid ${p => p.theme.red200};
+`;
+
 const StyledLoadingIndicatorWrapper = styled('div')`
   display: flex;
   justify-content: center;
   width: 100%;
   padding: ${space(2)} 0;
+  height: 84px;
 `;
 
 const StyledIconWrapper = styled(IconWrapper)`
@@ -136,4 +222,5 @@ const PrimaryCount = styled(Count)`
 const StyledPanelItem = styled(PanelItem)`
   padding-top: ${space(1)};
   padding-bottom: ${space(1)};
+  height: 84px;
 `;
