@@ -1013,7 +1013,9 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
                 "channel": "#old_channel_name",
             }
         ]
-        self.rule.update(data={"conditions": conditions, "actions": actions}, label="my rule")
+        self.rule.update(
+            data={"conditions": conditions, "actions": actions, "frequency": 5}, label="my rule"
+        )
 
         actions[0]["channel"] = "#new_channel_name"
         actions[0]["channel_id"] = "new_channel_id"
@@ -1063,7 +1065,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             "filterMatch": "any",
             "actions": actions,
             "conditions": conditions,
-            "frequency": 30,
+            "frequency": 180,
             "environment": staging_env.name,
             "owner": get_actor_for_user(self.user).get_actor_identifier(),
         }
@@ -1081,7 +1083,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         changes = "*Changes*\n"
         changes += "• Added action 'Send a notification to the Awesome Team Slack workspace to new_channel_name (optionally, an ID: new_channel_id) and show tags [] in notification'\n"
         changes += "• Removed action 'Send a notification to the Awesome Team Slack workspace to #old_channel_name (optionally, an ID: old_channel_id) and show tags [] in notification'\n"
-        changes += "• Changed frequency from *None* to *30*\n"
+        changes += "• Changed frequency from *5 minutes* to *3 hours*\n"
         changes += f"• Added *{staging_env.name}* environment\n"
         changes += "• Changed rule name from *my rule* to *new rule*\n"
         changes += "• Changed trigger from *None* to *any*\n"
