@@ -174,6 +174,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                     )
                 except Exception:
                     # if there's an error trying to grab a parent notification, don't let that error block this flow
+                    # we already log at the repository layer, no need to log again here
                     pass
                 else:
                     # If a parent notification exists for this rule and action, then we can reply in a thread
@@ -239,17 +240,24 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                     "organizations:slack-thread-issue-alert", event.group.project.organization
                 )
                 and rule_action_uuid
+                and rule_id
             ):
                 try:
                     self._repository.create_notification_message(
                         data=new_notification_message_object
                     )
                 except NotificationMessageValidationError as err:
+                    extra = (
+                        new_notification_message_object.__dict__
+                        if new_notification_message_object
+                        else None
+                    )
                     _default_logger.info(
-                        "integration.slack.actions: Validation error", exc_info=err
+                        "integration.slack.actions: Validation error", exc_info=err, extra=extra
                     )
                 except Exception:
                     # if there's an error trying to save a notification message, don't let that error block this flow
+                    # we already log at the repository layer, no need to log again here
                     pass
 
             self.record_notification_sent(event, channel, rule, notification_uuid)
