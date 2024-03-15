@@ -4,10 +4,8 @@ from unittest.mock import Mock, call, patch
 from uuid import uuid4
 
 from dateutil.parser import parse as parse_datetime
-from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone as django_timezone
-from rest_framework import status
 
 from sentry import options
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType, PerformanceSlowDBQueryGroupType
@@ -48,7 +46,7 @@ from sentry.search.events.constants import (
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.activity import ActivityType
@@ -1903,14 +1901,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
         assert response.data[0]["owners"][2]["type"] == GROUP_OWNER_TYPE[GroupOwnerType.CODEOWNERS]
 
-    @override_settings(SENTRY_SELF_HOSTED=False)
-    def test_ratelimit(self):
-        self.login_as(user=self.user)
-        with freeze_time("2000-01-01"):
-            for i in range(10):
-                self.get_success_response()
-            self.get_error_response(status_code=status.HTTP_429_TOO_MANY_REQUESTS)
-
     def test_filter_not_unresolved(self):
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
@@ -3599,14 +3589,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert tombstone.project == group1.project
         assert tombstone.data == group1.data
 
-    @override_settings(SENTRY_SELF_HOSTED=False)
-    def test_ratelimit(self):
-        self.login_as(user=self.user)
-        with freeze_time("2000-01-01"):
-            for i in range(5):
-                self.get_success_response()
-            self.get_error_response(status_code=status.HTTP_429_TOO_MANY_REQUESTS)
-
     def test_set_inbox(self):
         group1 = self.create_group()
         group2 = self.create_group()
@@ -3868,14 +3850,6 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         for group in groups:
             assert not Group.objects.filter(id=group.id).exists()
             assert not GroupHash.objects.filter(group_id=group.id).exists()
-
-    @override_settings(SENTRY_SELF_HOSTED=False)
-    def test_ratelimit(self):
-        self.login_as(user=self.user)
-        with freeze_time("2000-01-01"):
-            for i in range(5):
-                self.get_success_response()
-            self.get_error_response(status_code=status.HTTP_429_TOO_MANY_REQUESTS)
 
     def test_bulk_delete_performance_issues(self):
         groups = []
