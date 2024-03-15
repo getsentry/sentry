@@ -10,14 +10,15 @@ import {IconAdd, IconClose, IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types';
+import {MonitorType} from 'sentry/types/alerts';
 import {getExactDuration, parseLargestSuffix} from 'sentry/utils/formatters';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
-  Dataset,
   AlertRuleThresholdType,
   AlertRuleTriggerType,
+  Dataset,
   EventTypes,
   type UnsavedMetricRule,
 } from 'sentry/views/alerts/rules/metric/types';
@@ -219,8 +220,10 @@ export function ThresholdGroupRows({
         method = 'POST';
       }
 
-      const metricAlertData: UnsavedMetricRule & { name: string; } = {
+      // TODO - make sure this is behind the flag for organizations:activated-alert-rules
+      const metricAlertData: UnsavedMetricRule & {name: string} = {
         name: `Release Alert Rule for ${thresholdData.project.slug} in ${submitData.environmentName}`,
+        monitorType: MonitorType.ACTIVATED,
         aggregate: 'count()',
         dataset: Dataset.ERRORS,
         environment: submitData.environmentName || null,
@@ -234,7 +237,9 @@ export function ThresholdGroupRows({
           {
             label: AlertRuleTriggerType.CRITICAL,
             alertThreshold: submitData.value,
-            actions: [/* TODO - need to ask nathan about this */],
+            actions: [
+              /* TODO - need to ask nathan about this */
+            ],
           },
         ],
         comparisonDelta: null,
