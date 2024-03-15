@@ -20,7 +20,7 @@ from django.db.models import Model
 from django.db.models.fields.related import RelatedField
 from django.test import override_settings
 
-from sentry.silo import SiloMode, SingleProcessSiloModeState, match_fence_query
+from sentry.silo import SILO_LOCK, SiloMode, SingleProcessSiloModeState, match_fence_query
 from sentry.testutils.region import get_test_env_directory, override_regions
 from sentry.types.region import Region, RegionCategory
 from sentry.utils.snowflake import SnowflakeIdMixin
@@ -38,7 +38,15 @@ def monkey_patch_single_process_silo_mode_state():
         mode: SiloMode | None = None
         region: Region | None = None
 
+    _monkey_patch_silo_lock_into_settings_override()
+
     state = LocalSiloModeState()
+
+    # We need to ensure that the silo code actually honors the lock on the
+    # read path, so we turn it on here.
+    from sentry.silo import base
+
+    base.LOCK_ON_READ = True
 
     @contextlib.contextmanager
     def enter(mode: SiloMode, region: Region | None = None) -> Generator[None, None, None]:
@@ -47,27 +55,29 @@ def monkey_patch_single_process_silo_mode_state():
             "to explicit pass 'fake' RPC boundaries."
         )
 
-        old_mode = state.mode
-        old_region = state.region
-        state.mode = mode
-        state.region = region
-        try:
-            yield
-        finally:
-            state.mode = old_mode
-            state.region = old_region
+        with SILO_LOCK:
+            old_mode = state.mode
+            old_region = state.region
+            state.mode = mode
+            state.region = region
+            try:
+                yield
+            finally:
+                state.mode = old_mode
+                state.region = old_region
 
     @contextlib.contextmanager
     def exit() -> Generator[None, None, None]:
-        old_mode = state.mode
-        old_region = state.region
-        state.mode = None
-        state.region = None
-        try:
-            yield
-        finally:
-            state.mode = old_mode
-            state.region = old_region
+        with SILO_LOCK:
+            old_mode = state.mode
+            old_region = state.region
+            state.mode = None
+            state.region = None
+            try:
+                yield
+            finally:
+                state.mode = old_mode
+                state.region = old_region
 
     def get_mode() -> SiloMode | None:
         return state.mode
@@ -79,6 +89,31 @@ def monkey_patch_single_process_silo_mode_state():
     SingleProcessSiloModeState.exit = staticmethod(exit)  # type: ignore[method-assign]
     SingleProcessSiloModeState.get_mode = staticmethod(get_mode)  # type: ignore[method-assign]
     SingleProcessSiloModeState.get_region = staticmethod(get_region)  # type: ignore[method-assign]
+
+
+def _monkey_patch_silo_lock_into_settings_override():
+    """This patches the django override_settings function so that a lock is acquired
+    when the SILO_MODE is manipulated.
+    """
+    from django.test.utils import override_settings
+
+    from sentry.silo import SILO_LOCK
+
+    old_enable = override_settings.enable
+    old_disable = override_settings.disable
+
+    def new_enable(self):
+        if "SILO_MODE" in self.options:
+            SILO_LOCK.acquire()
+        return old_enable(self)
+
+    def new_disable(self):
+        if "SILO_MODE" in self.options:
+            SILO_LOCK.release()
+        return old_disable(self)
+
+    override_settings.enable = new_enable
+    override_settings.disable = new_disable
 
 
 def create_test_regions(*names: str, single_tenants: Iterable[str] = ()) -> tuple[Region, ...]:

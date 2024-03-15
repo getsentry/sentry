@@ -14,6 +14,22 @@ if typing.TYPE_CHECKING:
     from sentry.types.region import Region
 
 
+# Because tests like to rebind the silo mode with django settings it's
+# possible that someone is doing this in a background thread.  We have
+# seen this happen and cause flaky tests.  While the tests do in many
+# cases use a thread local override to influence this (see the comment
+# in `SingleProcessSiloModeState`) there are other cases to.  For this
+# we patch the `override_settings` function from django in the testutils.
+# However this requires a lock to function which is defined here.
+#
+# For more information see `sentry.testutils.silo`
+SILO_LOCK = threading.RLock()
+
+# For the lock to be honored by the `SiloMode` it needs to be turned on
+# here as otherwise the reads never acquire the lock.
+LOCK_ON_READ = False
+
+
 class SiloMode(Enum):
     """Defines which "silo" component the application is acting as.
 
@@ -40,9 +56,15 @@ class SiloMode(Enum):
     def get_current_mode(cls) -> SiloMode:
         from django.conf import settings
 
-        configured_mode: str | SiloMode | None = settings.SILO_MODE  # type: ignore[misc]
-        process_level_silo_mode = cls.resolve(configured_mode)
-        return SingleProcessSiloModeState.get_mode() or process_level_silo_mode
+        if LOCK_ON_READ:
+            SILO_LOCK.acquire()
+        try:
+            configured_mode: str | SiloMode | None = settings.SILO_MODE  # type: ignore[misc]
+            process_level_silo_mode = cls.resolve(configured_mode)
+            return SingleProcessSiloModeState.get_mode() or process_level_silo_mode
+        finally:
+            if LOCK_ON_READ:
+                SILO_LOCK.release()
 
 
 class SingleProcessSiloModeState(threading.local):
