@@ -105,10 +105,6 @@ def mark_failed_threshold(
 
     monitor_env = failed_checkin.monitor_environment
 
-    monitor_muted = monitor_env.monitor.is_muted or monitor_env.is_muted
-
-    fingerprint = None
-
     # check to see if we need to update the status
     if monitor_env.status in [MonitorStatus.OK, MonitorStatus.ACTIVE]:
         if failure_issue_threshold == 1:
@@ -141,11 +137,6 @@ def mark_failed_threshold(
         monitor_env.status = MonitorStatus.ERROR
         monitor_env.save(update_fields=("status",))
 
-        # Do not create incident if monitor is muted. This check happens late
-        # as we still want the status to have been updated
-        if monitor_muted:
-            return True
-
         starting_checkin = previous_checkins[0]
 
         incident, _ = MonitorIncident.objects.get_or_create(
@@ -157,7 +148,6 @@ def mark_failed_threshold(
                 "starting_timestamp": starting_checkin["date_added"],
             },
         )
-        fingerprint = incident.grouphash
 
     elif monitor_env.status == MonitorStatus.ERROR:
         # if monitor environment has a failed status, use the failed
@@ -170,23 +160,21 @@ def mark_failed_threshold(
             }
         ]
 
-        # get the existing grouphash from the monitor environment
+        # get the active incident from the monitor environment
         incident = monitor_env.active_incident
-        if incident:
-            fingerprint = incident.grouphash
     else:
         # don't send occurrence for other statuses
         return False
 
-    # Do not create event/occurrence if monitor is muted
-    if monitor_muted:
-        return True
-
-    # Do not create event/occurrence if we don't have a fingerprint
-    if fingerprint:
+    # Only create an occurrence if:
+    # - We have an active incident and fingerprint
+    # - The monitor and env are not muted
+    if not monitor_env.monitor.is_muted and not monitor_env.is_muted and incident:
         checkins = MonitorCheckIn.objects.filter(id__in=[c["id"] for c in previous_checkins])
         for previous_checkin in checkins:
-            create_issue_platform_occurrence(previous_checkin, fingerprint, received=received)
+            create_issue_platform_occurrence(
+                previous_checkin, incident.grouphash, received=received
+            )
 
     monitor_environment_failed.send(monitor_environment=monitor_env, sender=type(monitor_env))
 
