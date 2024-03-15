@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest import mock
 from unittest.mock import Mock, patch
 
@@ -6,7 +6,7 @@ import pytest
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
 from django.test import override_settings
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 
 from sentry.auth.superuser import (
     COOKIE_DOMAIN,
@@ -41,7 +41,7 @@ from sentry.utils.auth import mark_sso_complete
 
 UNSET = object()
 
-BASETIME = datetime(2022, 3, 21, 0, 0, tzinfo=timezone.utc)
+BASETIME = datetime(2022, 3, 21, 0, 0, tzinfo=UTC)
 
 EXPIRE_TIME = timedelta(hours=4, minutes=1)
 
@@ -55,7 +55,7 @@ IDLE_EXPIRE_TIME = OUTSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME = timedelta(hours=2)
 class SuperuserTestCase(TestCase):
     def setUp(self):
         super().setUp()
-        self.current_datetime = django_timezone.now()
+        self.current_datetime = timezone.now()
         self.default_token = "abcdefghjiklmnog"
         self.superuser = self.create_user(is_superuser=True)
 

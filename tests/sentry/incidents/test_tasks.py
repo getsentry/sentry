@@ -5,7 +5,7 @@ from unittest.mock import Mock, call, patch
 
 import pytest
 from django.urls import reverse
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
@@ -252,7 +252,7 @@ class TestHandleSubscriptionMetricsLogger(TestCase):
         return create_snuba_subscription(self.project, SUBSCRIPTION_METRICS_LOGGER, snuba_query)
 
     def build_subscription_update(self):
-        timestamp = django_timezone.now().replace(microsecond=0)
+        timestamp = timezone.now().replace(microsecond=0)
         data = {
             "count": 100,
             "crashed": 2.0,
@@ -293,7 +293,7 @@ class TestHandleSubscriptionMetricsLoggerV1(TestHandleSubscriptionMetricsLogger)
     """
 
     def build_subscription_update(self):
-        timestamp = django_timezone.now().replace(microsecond=0)
+        timestamp = timezone.now().replace(microsecond=0)
         values = {
             "data": [
                 {

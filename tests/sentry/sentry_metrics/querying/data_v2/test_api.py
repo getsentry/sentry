@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import pytest
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
@@ -32,7 +32,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 
 pytestmark = pytest.mark.sentry_metrics
 
-MOCK_DATETIME = (django_timezone.now() - timedelta(days=1)).replace(
+MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
     hour=10, minute=0, second=0, microsecond=0
 )
 

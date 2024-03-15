@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
@@ -388,14 +388,14 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
 
     def test_invalid_period(self):
         self.login_as(user=self.user)
-        first_seen = django_timezone.now() - timedelta(days=5)
+        first_seen = timezone.now() - timedelta(days=5)
         group = self.create_group(first_seen=first_seen)
         response = self.client.get(f"/api/0/issues/{group.id}/events/", data={"statsPeriod": "lol"})
         assert response.status_code == 400
 
     def test_invalid_query(self):
         self.login_as(user=self.user)
-        first_seen = django_timezone.now() - timedelta(days=5)
+        first_seen = timezone.now() - timedelta(days=5)
         group = self.create_group(first_seen=first_seen)
         response = self.client.get(
             f"/api/0/issues/{group.id}/events/",

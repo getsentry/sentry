@@ -4,7 +4,7 @@ from uuid import uuid4
 
 import requests
 from django.urls import reverse
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 from rest_framework.exceptions import ParseError
 
 from sentry.testutils.cases import APITestCase, SnubaTestCase
@@ -271,7 +271,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         self.store_event(
             data={
                 "event_id": uuid4().hex,
-                "timestamp": iso_format(django_timezone.now()),
+                "timestamp": iso_format(timezone.now()),
                 "tags": {"color": "red"},
             },
             project_id=self.project2.id,

@@ -8,7 +8,7 @@ from uuid import uuid4
 import pytest
 from django.test import override_settings
 from django.urls import reverse
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 from snuba_sdk.column import Column
 from snuba_sdk.function import Function
 
@@ -1372,13 +1372,13 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         replaced_release = self.create_release(
             version="replaced_release",
             environments=[self.environment],
-            adopted=django_timezone.now(),
-            unadopted=django_timezone.now(),
+            adopted=timezone.now(),
+            unadopted=timezone.now(),
         )
         adopted_release = self.create_release(
             version="adopted_release",
             environments=[self.environment],
-            adopted=django_timezone.now(),
+            adopted=timezone.now(),
         )
         self.create_release(version="not_adopted_release", environments=[self.environment])
 

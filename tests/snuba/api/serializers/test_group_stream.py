@@ -2,7 +2,7 @@ import time
 from datetime import timedelta
 from unittest import mock
 
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.api.serializers import serialize
@@ -216,8 +216,8 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
                 environment_ids=[dev_environment.id],
                 stats_period="14d",
                 expand=["sessions"],
-                start=django_timezone.now() - timedelta(days=30),
-                end=django_timezone.now() - timedelta(days=15),
+                start=timezone.now() - timedelta(days=30),
+                end=timezone.now() - timedelta(days=15),
                 organization_id=organization_id,
             ),
             request=self.make_request(),
@@ -232,7 +232,7 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
         )
         data = {
             "fingerprint": ["meow"],
-            "timestamp": iso_format(django_timezone.now()),
+            "timestamp": iso_format(timezone.now()),
             "type": "error",
             "exception": [{"type": "Foo"}],
         }

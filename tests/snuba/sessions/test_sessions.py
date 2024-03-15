@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest import mock
 
 import pytest
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 
 from sentry.release_health.base import OverviewStat
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
@@ -48,7 +48,7 @@ def format_timestamp(dt):
 
 
 def make_24h_stats(ts, adjust_start=False):
-    ret_val = _make_stats(datetime.fromtimestamp(ts, timezone.utc), 3600, 24)
+    ret_val = _make_stats(datetime.fromtimestamp(ts, UTC), 3600, 24)
 
     if adjust_start:
         # HACK this adds another interval at the beginning in accordance with the new way of calculating intervals
@@ -498,7 +498,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         }
 
     def test_get_crash_free_breakdown(self):
-        start = django_timezone.now() - timedelta(days=4)
+        start = timezone.now() - timedelta(days=4)
 
         # it should work with and without environments
         for environments in [None, ["prod"]]:
@@ -511,7 +511,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
 
             # Last returned date is generated within function, should be close to now:
             last_date = data[-1]["date"]
-            assert django_timezone.now() - last_date < timedelta(seconds=1)
+            assert timezone.now() - last_date < timedelta(seconds=1)
 
             assert data == [
                 {
@@ -658,7 +658,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
     def _test_get_project_release_stats(
         self, stat: OverviewStat, release: str, expected_series, expected_totals
     ):
-        end = django_timezone.now()
+        end = timezone.now()
         start = end - timedelta(days=4)
         stats, totals = self.backend.get_project_release_stats(
             self.project.id,
@@ -1086,7 +1086,7 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
             )
 
     def test_get_current_and_previous_crash_free_rates(self):
-        now = django_timezone.now().replace(minute=15, second=23)
+        now = timezone.now().replace(minute=15, second=23)
         last_24h_start = now - 24 * timedelta(hours=1)
         last_48h_start = now - 2 * 24 * timedelta(hours=1)
 
@@ -1110,7 +1110,7 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
         }
 
     def test_get_current_and_previous_crash_free_rates_with_zero_sessions(self):
-        now = django_timezone.now().replace(minute=15, second=23)
+        now = timezone.now().replace(minute=15, second=23)
         last_48h_start = now - 2 * 24 * timedelta(hours=1)
         last_72h_start = now - 3 * 24 * timedelta(hours=1)
         last_96h_start = now - 4 * 24 * timedelta(hours=1)
@@ -1287,7 +1287,7 @@ class CheckNumberOfSessions(TestCase, SnubaTestCase):
 
         # now_dt should be set to 17:40 of some day not in the future and (system time - now_dt)
         # must be less than 90 days for the metrics DB TTL
-        ONE_DAY_AGO = datetime.now(tz=timezone.utc) - timedelta(days=1)
+        ONE_DAY_AGO = timezone.now() - timedelta(days=1)
         self.now_dt = ONE_DAY_AGO.replace(hour=17, minute=40, second=0)
         self._5_min_ago_dt = self.now_dt - timedelta(minutes=5)
         self._30_min_ago_dt = self.now_dt - timedelta(minutes=30)
@@ -1644,7 +1644,7 @@ class InitWithoutUserTestCase(TestCase, SnubaTestCase):
         assert inner["total_project_users_24h"] == 3
 
     def test_get_crash_free_breakdown(self):
-        start = django_timezone.now() - timedelta(days=4)
+        start = timezone.now() - timedelta(days=4)
         data = self.backend.get_crash_free_breakdown(
             project_id=self.project.id,
             release=self.session_release,
@@ -1655,7 +1655,7 @@ class InitWithoutUserTestCase(TestCase, SnubaTestCase):
         # Last returned date is generated within function, should be close to now:
         last_date = data[-1]["date"]
 
-        assert django_timezone.now() - last_date < timedelta(seconds=1)
+        assert timezone.now() - last_date < timedelta(seconds=1)
 
         assert data == [
             {
@@ -1682,7 +1682,7 @@ class InitWithoutUserTestCase(TestCase, SnubaTestCase):
         ]
 
     def test_get_project_release_stats_users(self):
-        end = django_timezone.now()
+        end = timezone.now()
         start = end - timedelta(days=4)
         stats, totals = self.backend.get_project_release_stats(
             self.project.id,
