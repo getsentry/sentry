@@ -184,7 +184,7 @@ export type ComponentHooks = {
   'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;
   'component:crons-list-page-header': () => React.ComponentType<CronsBillingBannerProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
-  'component:data-consent-banner': DataConsentBanner;
+  'component:data-consent-banner': () => React.ComponentType<{source: string}> | null;
   'component:ddm-metrics-samples-list': () => React.ComponentType<DDMMetricsSamplesListProps>;
   'component:disabled-app-store-connect-multiple': () => React.ComponentType<DisabledAppStoreConnectMultiple>;
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
@@ -405,11 +405,6 @@ type FeatureDisabledHook = (opts: {
  * Called to check if the superuser warning should be excluded for the given organization.
  */
 type SuperuserWarningExcluded = (organization: Organization | null) => boolean;
-
-/**
- * Called to show data consent banner
- */
-type DataConsentBanner = ({source}: {source: string}) => React.ReactNode;
 
 /**
  * Called when the app is mounted.
