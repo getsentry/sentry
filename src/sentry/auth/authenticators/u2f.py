@@ -1,6 +1,6 @@
 import logging
 from base64 import urlsafe_b64encode
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from functools import cached_property
 from time import time
 from urllib.parse import urlparse
@@ -56,24 +56,24 @@ def _valid_staff_timestamp(request, limit: timedelta = STAFF_AUTH_FLOW_MAX_AGE) 
     if not timestamp:
         return False
 
-    flag_datetime = datetime.fromtimestamp(timestamp, timezone.utc)
-    current_time = datetime.now(timezone.utc)
-    time_difference = current_time - flag_datetime
+    flag_datetime = datetime.fromtimestamp(timestamp, UTC)
+    current_time = datetime.now(UTC)
+    time_difference = flag_datetime - current_time
     logger.info(
         "Validating staff timestamp",
         extra={
             "user": request.user.id,
             "current_time": current_time,
             "flag_datetime": flag_datetime,
-            "time_difference": current_time - flag_datetime,
+            "time_difference": flag_datetime - current_time,
             "limit": limit,
             "boolean_check": time_difference > limit,
         },
     )
-    if time_difference > limit:
-        return False
 
-    return True
+    # For a valid timestamp, the time difference must be positive (timestamp is in the future)
+    # and less than the limit (timestamp is within the valid limit, e.g. within the last 2 minutes)
+    return timedelta(0) < time_difference < limit
 
 
 class U2fInterface(AuthenticatorInterface):
@@ -243,7 +243,7 @@ class U2fInterface(AuthenticatorInterface):
             extra={
                 "user": request.user.id,
                 "staff_flag": (
-                    datetime.utcfromtimestamp(request.session["staff_auth_flow"])
+                    datetime.fromtimestamp(request.session["staff_auth_flow"], UTC)
                     if "staff_auth_flow" in request.session
                     else "missing"
                 ),
@@ -263,7 +263,7 @@ class U2fInterface(AuthenticatorInterface):
             extra={
                 "user": request.user.id,
                 "staff_flag": (
-                    datetime.utcfromtimestamp(request.session["staff_auth_flow"])
+                    datetime.fromtimestamp(request.session["staff_auth_flow"], UTC)
                     if "staff_auth_flow" in request.session
                     else "missing"
                 ),
@@ -282,7 +282,7 @@ class U2fInterface(AuthenticatorInterface):
                     extra={
                         "user": request.user.id,
                         "staff_flag": (
-                            datetime.utcfromtimestamp(request.session["staff_auth_flow"])
+                            datetime.fromtimestamp(request.session["staff_auth_flow"], UTC)
                             if "staff_auth_flow" in request.session
                             else "missing"
                         ),
