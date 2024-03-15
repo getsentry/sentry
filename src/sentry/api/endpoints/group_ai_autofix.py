@@ -112,7 +112,7 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
         group: Group,
         repos: list[dict],
         serialized_event: dict[str, Any],
-        additional_context: str,
+        instruction: str,
         timeout_secs: int,
     ):
         response = requests.post(
@@ -128,7 +128,7 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
                         "short_id": group.qualified_short_id,
                         "events": [serialized_event],
                     },
-                    "additional_context": additional_context,
+                    "instruction": instruction,
                     "timeout_secs": timeout_secs,
                     "last_updated": datetime.now().isoformat(),
                     "invoking_user": (
@@ -204,7 +204,7 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
                 group,
                 repos,
                 serialized_event,
-                data.get("additional_context", ""),
+                data.get("instruction", data.get("additional_context", "")),
                 TIMEOUT_SECONDS,
             )
 
