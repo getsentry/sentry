@@ -524,6 +524,7 @@ const customMetricFrontendPlatforms: readonly PlatformKey[] = [
   'javascript-sveltekit',
   'javascript-vue',
   'javascript',
+  'react-native',
 ];
 
 // These are all the platforms that can set up custom metrics.
