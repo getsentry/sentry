@@ -54,7 +54,18 @@
     }
   },
 
-  "[json][yaml]": {
+  "[json]": {
+    "editor.insertSpaces": true,
+    "editor.detectIndentation": false,
+    "editor.tabSize": 2,
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "biomejs.biome",
+    "editor.codeActionsOnSave": {
+      "quickfix.biome": "explicit"
+    }
+  },
+
+  "[yaml]": {
     "editor.insertSpaces": true,
     "editor.detectIndentation": false,
     "editor.tabSize": 2,
