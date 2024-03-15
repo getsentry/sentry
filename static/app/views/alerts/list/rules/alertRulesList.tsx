@@ -237,9 +237,13 @@ function AlertRulesList() {
                 <Projects orgId={organization.slug} slugs={projectsFromResults}>
                   {({initiallyLoaded, projects}) =>
                     ruleList.map(rule => {
-                      // TODO - Delete this code once we support ACTIVATED monitorType for metric alerts
+                      const isIssueAlertInstance = isIssueAlert(rule);
+                      const ruleKey = isIssueAlertInstance
+                        ? AlertRuleType.ISSUE
+                        : AlertRuleType.METRIC;
+
                       if (
-                        !isIssueAlert(rule) &&
+                        !isIssueAlertInstance &&
                         rule.monitorType === MonitorType.ACTIVATED
                       ) {
                         return null;
@@ -248,11 +252,7 @@ function AlertRulesList() {
                       return (
                         <RuleListRow
                           // Metric and issue alerts can have the same id
-                          key={`${
-                            isIssueAlert(rule)
-                              ? AlertRuleType.METRIC
-                              : AlertRuleType.ISSUE
-                          }-${rule.id}`}
+                          key={`${ruleKey}-${rule.id}`}
                           projectsLoaded={initiallyLoaded}
                           projects={projects as Project[]}
                           rule={rule}
