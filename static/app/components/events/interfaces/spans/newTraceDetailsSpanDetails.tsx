@@ -36,6 +36,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {CustomMetricsEventData} from 'sentry/views/ddm/customMetricsEventData';
 import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
+import type {
+  TraceTree,
+  TraceTreeNode,
+} from 'sentry/views/performance/newTraceDetails/traceTree';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils';
@@ -83,6 +87,7 @@ export type SpanDetailProps = {
   childTransactions: TraceFullDetailed[] | null;
   errors: TraceError[];
   event: Readonly<EventTransaction>;
+  node: TraceTreeNode<TraceTree.NodeValue>;
   openPanel: string | undefined;
   organization: Organization;
   performanceIssues: TracePerformanceIssue[];
@@ -294,10 +299,10 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
 
     return (
       <IssueList
-        nodeType="span"
         organization={organization}
         issues={relatedIssues}
         event_id={event.id}
+        node={props.node}
       />
     );
   }
