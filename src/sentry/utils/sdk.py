@@ -211,7 +211,7 @@ def before_send_transaction(event: Event, _: Hint) -> Event | None:
 
     # Occasionally the span limit is hit and we drop spans from transactions, this helps find transactions where this occurs.
     num_of_spans = len(event["spans"])
-    event["tags"]["spans_over_limit"] = num_of_spans >= 1000
+    event["tags"]["spans_over_limit"] = str(num_of_spans >= 1000)
     if not event["measurements"]:
         event["measurements"] = {}
     event["measurements"]["num_of_spans"] = {"value": num_of_spans}
