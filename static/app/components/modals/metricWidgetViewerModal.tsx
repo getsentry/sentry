@@ -4,7 +4,10 @@ import {css} from '@emotion/react';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {WidgetTitle} from 'sentry/components/modals/metricWidgetViewerModal/header';
+import {
+  type TitleState,
+  WidgetTitle,
+} from 'sentry/components/modals/metricWidgetViewerModal/header';
 import {Queries} from 'sentry/components/modals/metricWidgetViewerModal/queries';
 import {MetricVisualization} from 'sentry/components/modals/metricWidgetViewerModal/visualization';
 import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
@@ -48,7 +51,6 @@ function MetricWidgetViewerModal({
 }: Props) {
   const {selection} = usePageFilters();
   const [displayType, setDisplayType] = useState(widget.displayType);
-  const [editedTitle, setEditedTitle] = useState<string>(widget.title);
   const [metricQueries, setMetricQueries] = useState<DashboardMetricsQuery[]>(() =>
     getMetricQueries(widget, dashboardFilters)
   );
@@ -82,8 +84,18 @@ function MetricWidgetViewerModal({
     [filteredQueries, filteredEquations]
   );
 
-  // If user renamed the widget, dislay that title, otherwise display the MQL
-  const titleToDisplay = editedTitle === '' ? widgetMQL : editedTitle;
+  const [title, setTitle] = useState<TitleState>({
+    stored: widget.title,
+    edited: widget.title,
+    isEditing: false,
+  });
+
+  const handleTitleChange = useCallback(
+    (patch: Partial<TitleState>) => {
+      setTitle(curr => ({...curr, ...patch}));
+    },
+    [setTitle]
+  );
 
   const handleQueryChange = useCallback(
     (data: Partial<DashboardMetricsQuery>, index: number) => {
@@ -115,13 +127,6 @@ function MetricWidgetViewerModal({
       });
     });
   }, []);
-
-  const handleTitleChange = useCallback(
-    (value: string) => {
-      setEditedTitle(value || widgetMQL);
-    },
-    [setEditedTitle, widgetMQL]
-  );
 
   const addQuery = useCallback(() => {
     setMetricQueries(curr => {
@@ -173,7 +178,7 @@ function MetricWidgetViewerModal({
   const handleSubmit = useCallback(() => {
     const convertedWidget = expressionsToWidget(
       [...filteredQueries, ...filteredEquations],
-      titleToDisplay,
+      title.edited,
       toDisplayType(displayType)
     );
 
@@ -183,7 +188,7 @@ function MetricWidgetViewerModal({
   }, [
     filteredQueries,
     filteredEquations,
-    titleToDisplay,
+    title.edited,
     displayType,
     onMetricWidgetEdit,
     closeModal,
@@ -194,10 +199,9 @@ function MetricWidgetViewerModal({
       <OrganizationContext.Provider value={organization}>
         <Header closeButton>
           <WidgetTitle
-            value={editedTitle}
-            displayValue={titleToDisplay}
+            title={title}
+            onTitleChange={handleTitleChange}
             placeholder={widgetMQL}
-            onSubmit={handleTitleChange}
             description={widget.description}
           />
         </Header>
