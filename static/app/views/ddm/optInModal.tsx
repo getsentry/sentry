@@ -2,7 +2,7 @@ import {useCallback} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import metricsOptInImg from 'sentry-images/spot/illustration-metrics.png';
+import HeroImg from 'sentry-images/spot/custom-metrics-opt-in-modal-hero.png';
 
 import {type ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
 import {Button, LinkButton} from 'sentry/components/button';
@@ -76,7 +76,7 @@ function OptInModal({}: ModalRenderProps) {
 }
 
 const Content = styled('div')`
-  background: top no-repeat url('${metricsOptInImg}');
+  background: top no-repeat url('${HeroImg}');
   background-size: contain;
   margin-inline: -46px;
   padding: 170px 46px 32px 46px;

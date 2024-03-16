@@ -209,7 +209,6 @@ export function MetricScratchpad() {
                     selectedWidgetIndex === index ? highlightedSampleId : undefined
                   }
                   metricsSamples={metricsSamples}
-                  context="ddm"
                 />
               )}
             </MultiChartWidgetQueries>
@@ -237,7 +236,6 @@ export function MetricScratchpad() {
           chartHeight={200}
           highlightedSampleId={highlightedSampleId}
           metricsSamples={metricsSamples}
-          context="ddm"
         />
       )}
     </Wrapper>
