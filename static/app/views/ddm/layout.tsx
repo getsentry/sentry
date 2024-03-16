@@ -26,7 +26,7 @@ import {Queries} from 'sentry/views/ddm/queries';
 import {MetricScratchpad} from 'sentry/views/ddm/scratchpad';
 import {WidgetDetails} from 'sentry/views/ddm/widgetDetails';
 
-export const DDMLayout = memo(() => {
+export const MetricsLayout = memo(() => {
   const organization = useOrganization();
   const {hasMetrics} = useDDMContext();
   const {activateSidebar} = useMetricsOnboardingSidebar();

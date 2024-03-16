@@ -45,7 +45,9 @@ export interface Organization extends OrganizationSummary {
   allowJoinRequests: boolean;
   allowSharedIssues: boolean;
   attachmentsRole: string;
-  availableRoles: {id: string; name: string}[]; // Deprecated, use orgRoleList
+  availableRoles: {id: string; name: string}[];
+  customMetricsAccess: boolean;
+  // Deprecated, use orgRoleList
   dataScrubber: boolean;
   dataScrubberDefaults: boolean;
   debugFilesRole: string;

@@ -43,6 +43,7 @@ import type {Organization} from 'sentry/types';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {hasMetricsSidebarItem} from 'sentry/utils/metrics/features';
 import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
@@ -432,8 +433,8 @@ function Sidebar() {
     </Feature>
   );
 
-  const ddmPath = `/organizations/${organization?.slug}/ddm/`;
-  const ddm = hasOrganization && (
+  const metricsPath = `/organizations/${organization?.slug}/metrics/`;
+  const metrics = hasOrganization && hasMetricsSidebarItem(organization) && (
     <Feature
       features={['ddm-ui', 'custom-metrics']}
       organization={organization}
@@ -443,9 +444,9 @@ function Sidebar() {
         {...sidebarItemProps}
         icon={<IconGraph />}
         label={t('Metrics')}
-        to={ddmPath}
-        search={location.pathname === normalizeUrl(ddmPath) ? location.search : ''}
-        id="ddm"
+        to={metricsPath}
+        search={location.pathname === normalizeUrl(metricsPath) ? location.search : ''}
+        id="metrics"
         isBeta
       />
     </Feature>
@@ -530,7 +531,7 @@ function Sidebar() {
                 {performance}
                 {starfish}
                 {profiling}
-                {ddm}
+                {metrics}
                 {replays}
                 {feedback}
                 {monitors}
