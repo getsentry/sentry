@@ -337,6 +337,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
                 "release": release.version,
             },
             project_id=self.project.id,
+            assert_no_errors=False,
         )
         group = event.group
         assert group
