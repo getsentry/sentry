@@ -1842,8 +1842,8 @@ describe('TraceTree', () => {
           project_slug: '',
           event_id: '',
         });
-        node.value.errors = [makeTraceError()];
-        node.value.performance_issues = [makeTracePerformanceIssue()];
+        node.errors = [makeTraceError()];
+        node.performance_issues = [makeTracePerformanceIssue()];
         root.children.push(node);
       }
 
@@ -1997,8 +1997,8 @@ describe('TraceTree', () => {
             event_id: '',
           }
         );
-        node.value.errors = [makeTraceError()];
-        node.value.performance_issues = [makeTracePerformanceIssue()];
+        node.errors = [makeTraceError()];
+        node.performance_issues = [makeTracePerformanceIssue()];
         last.children.push(node);
         last = node;
       }

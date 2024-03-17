@@ -16,12 +16,6 @@ import {space} from 'sentry/styles/space';
 import type {Group, Organization} from 'sentry/types';
 import type {TraceErrorOrIssue} from 'sentry/utils/performance/quickTrace/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {
-  isAutogroupedNode,
-  isSpanNode,
-  isTraceErrorNode,
-  isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/guards';
 import type {
   TraceTree,
   TraceTreeNode,
@@ -134,47 +128,35 @@ export function IssueList({issues, node, organization, event_id}: IssueListProps
 }
 
 function IssueListHeader({node}: {node: TraceTreeNode<TraceTree.NodeValue>}) {
-  const errors =
-    isSpanNode(node) || isTransactionNode(node)
-      ? node.value.errors.length
-      : isAutogroupedNode(node)
-        ? node.errors.length
-        : isTraceErrorNode(node)
-          ? 1
-          : 0;
-
-  const performance_issues =
-    isSpanNode(node) || isTransactionNode(node)
-      ? node.value.performance_issues.length
-      : isAutogroupedNode(node)
-        ? node.performance_issues.length
-        : isTraceErrorNode(node)
-          ? 1
-          : 0;
+  const {errors, performance_issues} = node;
 
   return (
     <StyledPanelHeader disablePadding>
       <IssueHeading>
-        {errors > 0 && performance_issues === 0
+        {errors.length > 0 && performance_issues.length === 0
           ? tct('[count] [text]', {
-              count: errors,
-              text: tn('Error', 'Errors', errors),
+              count: errors.length,
+              text: tn('Error', 'Errors', errors.length),
             })
-          : performance_issues > 0 && errors === 0
+          : performance_issues.length > 0 && errors.length === 0
             ? tct('[count] [text]', {
-                count: errors,
-                text: tn('Performance issue', 'Performance Issues', errors),
+                count: performance_issues.length,
+                text: tn(
+                  'Performance issue',
+                  'Performance Issues',
+                  performance_issues.length
+                ),
               })
             : tct(
                 '[errors] [errorsText] and [performance_issues] [performanceIssuesText]',
                 {
-                  errors,
-                  performance_issues,
-                  errorsText: tn('Error', 'Errors', errors),
+                  errors: errors.length,
+                  performance_issues: performance_issues.length,
+                  errorsText: tn('Error', 'Errors', errors.length),
                   performanceIssuesText: tn(
                     'performance issue',
                     'performance issues',
-                    performance_issues
+                    performance_issues.length
                   ),
                 }
               )}

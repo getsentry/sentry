@@ -913,8 +913,7 @@ function RenderRow(props: {
 
   if (isSpanNode(props.node)) {
     const errored =
-      props.node.value.errors.length > 0 ||
-      props.node.value.performance_issues.length > 0;
+      props.node.errors.length > 0 || props.node.performance_issues.length > 0;
     return (
       <div
         key={props.index}
@@ -1008,8 +1007,8 @@ function RenderRow(props: {
             manager={props.manager}
             color={pickBarColor(props.node.value.op)}
             node_space={props.node.space}
-            errors={props.node.value.errors}
-            performance_issues={props.node.value.performance_issues}
+            errors={props.node.errors}
+            performance_issues={props.node.performance_issues}
           />
           <button
             ref={ref =>

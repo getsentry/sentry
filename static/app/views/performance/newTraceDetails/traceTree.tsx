@@ -8,7 +8,10 @@ import type {
   TracePerformanceIssue,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
-import {isTraceError} from 'sentry/utils/performance/quickTrace/utils';
+import {
+  isTraceError,
+  isTraceTransaction,
+} from 'sentry/utils/performance/quickTrace/utils';
 
 import {TraceType} from '../traceDetails/newTraceDetailsContent';
 import {isRootTransaction} from '../traceDetails/utils';
@@ -100,9 +103,7 @@ export declare namespace TraceTree {
   type Transaction = TraceFullDetailed;
   interface Span extends RawSpanType {
     childTransaction: Transaction | undefined;
-    errors: TraceError[];
     event: EventTransaction;
-    performance_issues: TracePerformanceIssue[];
   }
   type Trace = TraceSplitResults<Transaction>;
   type TraceError = TraceErrorType;
@@ -274,6 +275,13 @@ export class TraceTree {
         event_id: value && 'event_id' in value ? value.event_id : undefined,
       });
       node.canFetch = true;
+
+      if (isTraceTransaction(value)) {
+        node.errors = value.errors;
+        node.performance_issues = value.performance_issues;
+      } else {
+        node.errors = [value];
+      }
 
       if (parent) {
         parent.children.push(node as TraceTreeNode<TraceTree.NodeValue>);
@@ -464,14 +472,15 @@ export class TraceTree {
       const spanNodeValue: TraceTree.Span = {
         ...span,
         event: data as EventTransaction,
-        errors: getRelatedSpanErrorsFromTransaction(span, parent),
-        performance_issues: getRelatedPerformanceIssuesFromTransaction(span, parent),
         childTransaction: childTransaction?.value,
       };
       const node: TraceTreeNode<TraceTree.Span> = new TraceTreeNode(null, spanNodeValue, {
         event_id: undefined,
         project_slug: undefined,
       });
+
+      node.errors = getRelatedSpanErrorsFromTransaction(span, parent);
+      node.performance_issues = getRelatedPerformanceIssuesFromTransaction(span, parent);
 
       // This is the case where the current span is the parent of a txn at the
       // trace level. When zooming into the parent of the txn, we want to place a copy
@@ -543,11 +552,11 @@ export class TraceTree {
         isSpanNode(tail.children[0]) &&
         tail.children[0].value.op === head.value.op
       ) {
-        if ((tail?.value?.errors?.length ?? 0) > 0) {
-          errors.push(...tail?.value?.errors);
+        if ((tail?.errors?.length ?? 0) > 0) {
+          errors.push(...tail?.errors);
         }
-        if ((tail?.value?.performance_issues?.length ?? 0) > 0) {
-          performance_issues.push(...tail.value.performance_issues);
+        if ((tail?.performance_issues?.length ?? 0) > 0) {
+          performance_issues.push(...tail.performance_issues);
         }
 
         // Collect start/end of all nodes in the list
@@ -565,11 +574,11 @@ export class TraceTree {
 
       // Checking the tail node for errors as it is not included in the grouping
       // while loop, but is hidden when the autogrouped node is collapsed
-      if ((tail?.value?.errors?.length ?? 0) > 0) {
-        errors.push(...tail?.value?.errors);
+      if ((tail?.errors?.length ?? 0) > 0) {
+        errors.push(...tail?.errors);
       }
-      if ((tail?.value?.performance_issues?.length ?? 0) > 0) {
-        performance_issues.push(...tail.value.performance_issues);
+      if ((tail?.performance_issues?.length ?? 0) > 0) {
+        performance_issues.push(...tail.performance_issues);
       }
 
       if (groupMatchCount < 1) {
@@ -706,16 +715,14 @@ export class TraceTree {
                 'errors' in child.value &&
                 Array.isArray(child.value.errors)
               ) {
-                autoGroupedNode.errors.push(...child.value.errors);
+                autoGroupedNode.errors.push(...child.errors);
               }
               if (
                 child.value &&
                 'performance_issues' in child.value &&
-                Array.isArray(child.value.performance_issues)
+                Array.isArray(child.performance_issues)
               ) {
-                autoGroupedNode.performance_issues.push(
-                  ...child.value.performance_issues
-                );
+                autoGroupedNode.performance_issues.push(...child.performance_issues);
               }
             }
 
@@ -973,6 +980,8 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     project_slug: undefined,
     event_id: undefined,
   };
+  errors: TraceErrorType[] = [];
+  performance_issues: TracePerformanceIssue[] = [];
 
   space: [number, number] | null = null;
 
@@ -1115,11 +1124,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
   }
 
   get has_errors(): boolean {
-    return (
-      this.value &&
-      (('errors' in this.value && this.value.errors.length > 0) ||
-        ('performance_issues' in this.value && this.value.performance_issues.length > 0))
-    );
+    return this.errors.length > 0 || this.performance_issues.length > 0;
   }
 
   /**
@@ -1394,10 +1399,6 @@ export class ParentAutogroupNode extends TraceTreeNode<TraceTree.ChildrenAutogro
   head: TraceTreeNode<TraceTree.Span>;
   tail: TraceTreeNode<TraceTree.Span>;
   groupCount: number = 0;
-
-  errors: TraceErrorType[] = [];
-  performance_issues: TracePerformanceIssue[] = [];
-
   private _autogroupedSegments: [number, number][] | undefined;
 
   constructor(
@@ -1447,8 +1448,6 @@ export class ParentAutogroupNode extends TraceTreeNode<TraceTree.ChildrenAutogro
 
 export class SiblingAutogroupNode extends TraceTreeNode<TraceTree.SiblingAutogroup> {
   groupCount: number = 0;
-  errors: TraceErrorType[] = [];
-  performance_issues: TracePerformanceIssue[] = [];
 
   private _autogroupedSegments: [number, number][] | undefined;
 
