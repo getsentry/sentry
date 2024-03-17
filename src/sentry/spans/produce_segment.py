@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 def _get_producer() -> KafkaProducer:
-    cluster_name = get_topic_definition(Topic.BUFFERED_SEGMENT)["cluster"]
+    cluster_name = get_topic_definition(Topic.BUFFERED_SEGMENTS)["cluster"]
     producer_config = get_kafka_producer_cluster_options(cluster_name)
     producer_config.pop("compression.type", None)
     producer_config.pop("message.max.bytes", None)
@@ -45,7 +45,7 @@ def produce_segment_to_kafka(segments) -> None:
         return
 
     try:
-        topic = get_topic_definition(Topic.BUFFERED_SEGMENT)["real_topic_name"]
+        topic = get_topic_definition(Topic.BUFFERED_SEGMENTS)["real_topic_name"]
         _segments_producer.produce(ArroyoTopic(topic), payload)
     except KafkaException:
         logger.exception("Failed to produce segment to Kafka")
