@@ -198,15 +198,20 @@ class DatabaseBackedAppService(AppService):
                 query = query.filter(status=filters["status"])
             if "api_token_id" in filters:
                 query = query.filter(api_token_id=filters["api_token_id"])
-            if "installation_token_api_token_id" in filters:
-                # When we want to fetch installations related to a specific
-                # internal integration token, we need to look in SentryAppInstallationToken
-                installations_with_token_id = (
-                    SentryAppInstallationToken.objects.select_related("sentry_app_installation")
-                    .filter(api_token_id=filters["installation_token_api_token_id"])
-                    .values_list("sentry_app_installation", flat=True)
+            if "api_installation_token_id" in filters:
+                # NOTE: This is similar to 'api_token_id' above, but if we are unable to find
+                # the installation by token id in SentryAppInstallation, we also search
+                # SentryAppInstallationToken by token id, then fetch  the linked installation.
+                # Internal Integrations follow this pattern because they can have multiple tokens.
+                from django.db.models import Q, Subquery
+
+                subquery = SentryAppInstallationToken.objects.filter(
+                    api_token_id=filters["api_installation_token_id"],
+                ).values("sentry_app_installation_id")
+                query = query.filter(
+                    Q(api_token_id=filters["api_installation_token_id"])
+                    | Q(id__in=Subquery(subquery))
                 )
-                query = query.filter(id__in=installations_with_token_id)
 
             return query
 

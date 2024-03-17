@@ -197,7 +197,7 @@ class GetRateLimitKeyTest(TestCase):
             == f"user:default:APITestEndpoint:GET:{self.user.id}"
         )
 
-    def test_rate_limit_key_for_integration_tokens(self):
+    def test_integration_tokens(self):
         # Test for PUBLIC Integration api tokens
         self._populate_public_integration_request(self.request)
         assert (
@@ -209,7 +209,6 @@ class GetRateLimitKeyTest(TestCase):
 
         # Test for INTERNAL Integration api tokens
         self._populate_internal_integration_request(self.request)
-
         with assume_test_silo_mode_of(SentryAppInstallation, SentryAppInstallationToken):
             # Ensure that the internal integration token lives in
             # SentryAppInstallationToken instead of SentryAppInstallation

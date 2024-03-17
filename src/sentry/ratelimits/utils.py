@@ -139,20 +139,9 @@ def get_organization_id_from_token(token_id: int) -> int | None:
     installations = app_service.get_many(
         filter={
             "status": SentryAppInstallationStatus.INSTALLED,
-            "api_token_id": token_id,
+            "api_installation_token_id": token_id,
         }
     )
-
-    if not installations:
-        # If we can't find the installation with the token, we need to check if
-        # the token exists in the SentryAppInstallationToken, which has as a
-        # foreign key to the relevant SentryAppInstallation.
-        installations = app_service.get_many(
-            filter={
-                "status": SentryAppInstallationStatus.INSTALLED,
-                "installation_token_api_token_id": token_id,
-            }
-        )
 
     installation = installations[0] if installations else None
 
