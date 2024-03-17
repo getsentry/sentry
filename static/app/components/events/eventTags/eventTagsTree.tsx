@@ -153,7 +153,7 @@ function TagTreeRow({
         <TreeValueDropdown
           preventOverflowOptions={{padding: 4}}
           className={isVisible ? '' : 'invisible'}
-          position="bottom-start"
+          position="bottom-end"
           onOpenChange={isOpen => setIsVisible(isOpen)}
           triggerProps={{
             'aria-label': t('Tag Actions Menu'),

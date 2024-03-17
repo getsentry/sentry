@@ -9,6 +9,7 @@ import type {
   SuggestedAssignee,
 } from 'sentry/components/assigneeSelectorDropdown';
 import {AssigneeSelectorDropdown} from 'sentry/components/assigneeSelectorDropdown';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {Button} from 'sentry/components/button';
 import {AutoCompleteRoot} from 'sentry/components/dropdownAutoComplete/menu';
@@ -219,20 +220,22 @@ function AssignedTo({
       <StyledSidebarTitle>
         {t('Assigned To')}
         <Access access={['project:read']}>
-          <Button
-            onClick={() => {
-              openIssueOwnershipRuleModal({
-                project,
-                organization,
-                issueId: group.id,
-                eventData: event!,
-              });
-            }}
-            aria-label={t('Create Ownership Rule')}
-            icon={<IconSettings />}
-            borderless
-            size="xs"
-          />
+          <GuideAnchor target="issue_sidebar_owners" position="bottom">
+            <Button
+              onClick={() => {
+                openIssueOwnershipRuleModal({
+                  project,
+                  organization,
+                  issueId: group.id,
+                  eventData: event!,
+                });
+              }}
+              aria-label={t('Create Ownership Rule')}
+              icon={<IconSettings />}
+              borderless
+              size="xs"
+            />
+          </GuideAnchor>
         </Access>
       </StyledSidebarTitle>
       <StyledSidebarSectionContent>

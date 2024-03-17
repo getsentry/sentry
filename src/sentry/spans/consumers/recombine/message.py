@@ -100,8 +100,8 @@ def _update_occurrence_group_type(jobs: Sequence[Job], projects: ProjectsMapping
 
 
 def transform_spans_to_event_dict(spans):
-    event: dict[str, Any] = {"type": "transaction", "level": "info", "contexts": {}}
-    spans: list[dict[str, Any]] = []
+    event: dict[str, Any] = {"type": "transaction", "contexts": {}}
+    processed_spans: list[dict[str, Any]] = []
     for span in spans:
         sentry_tags = span.get("sentry_tags", {})
 
@@ -109,6 +109,11 @@ def transform_spans_to_event_dict(spans):
             event["event_id"] = span.get("event_id")
             event["project_id"] = span["project_id"]
             event["transaction"] = sentry_tags.get("transaction")
+            event["release"] = sentry_tags.get("release")
+            event["environment"] = sentry_tags.get("environment")
+
+            event["platform"] = sentry_tags.get("platform")
+
             event["contexts"]["trace"] = {
                 "trace_id": span["trace_id"],
                 "type": "trace",
@@ -117,6 +122,7 @@ def transform_spans_to_event_dict(spans):
             }
             event["received"] = span["received"]
             event["timestamp"] = (span["start_timestamp_ms"] + span["duration_ms"]) / 1000
+            event["start_timestamp"] = span["start_timestamp_ms"] / 1000
 
             if (profile_id := span.get("profile_id")) is not None:
                 event["contexts"]["profile"] = {"profile_id": profile_id, "type": "profile"}
@@ -127,21 +133,21 @@ def transform_spans_to_event_dict(spans):
         span["start_timestamp"] = span["start_timestamp_ms"] / 1000
         span["timestamp"] = (span["start_timestamp_ms"] + span["duration_ms"]) / 1000
 
-        spans.append(span)
+        processed_spans.append(span)
 
     # The performance detectors expect the span list to be ordered/flattened in the way they
     # are structured in the tree. This is an implicit assumption in the performance detectors.
     # So we build a tree and flatten it depth first.
     # TODO: See if we can update the detectors to work without this assumption so we can
     # just pass it a list of spans.
-    tree, root_span_id = build_tree(spans)
+    tree, root_span_id = build_tree(processed_spans)
     flattened_spans = flatten_tree(tree, root_span_id)
     event["spans"] = flattened_spans
 
     return event
 
 
-def process_segment(spans: list[str | bytes]):
+def process_segment(spans: dict[str, Any]):
     with sentry_sdk.start_span(
         op="sentry.consumers.recombine.process_segment.transform_spans_to_event_dict"
     ):

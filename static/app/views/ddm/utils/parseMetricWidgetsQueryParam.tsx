@@ -167,6 +167,29 @@ function parseFormulaWidget(
   };
 }
 
+function parseQueryId(widget: Record<string, unknown>, key: string): number {
+  const value = parseNumberParam(widget, key);
+  return isValidId(value) ? value : NO_QUERY_ID;
+}
+
+function fillIds(
+  entries: MetricWidgetQueryParams[],
+  indezesWithoutId: Set<number>,
+  usedIds: Set<number>
+): MetricWidgetQueryParams[] {
+  if (indezesWithoutId.size > 0) {
+    const generateId = getUniqueQueryIdGenerator(usedIds);
+    for (const index of indezesWithoutId) {
+      const widget = entries[index];
+      if (!widget) {
+        continue;
+      }
+      widget.id = generateId.next().value;
+    }
+  }
+  return entries;
+}
+
 export function parseMetricWidgetsQueryParam(
   queryParam?: string
 ): MetricWidgetQueryParams[] {
@@ -183,75 +206,92 @@ export function parseMetricWidgetsQueryParam(
     currentWidgets = [];
   }
 
-  const usedIds = new Set<number>();
-  const indezesWithoutId = new Set<number>();
+  const queries: MetricQueryWidgetParams[] = [];
+  const usedQueryIds = new Set<number>();
+  const queryIndezesWithoutId = new Set<number>();
 
-  const parsedWidgets = (currentWidgets as unknown[]).map(
-    (widget: unknown, index): MetricWidgetQueryParams | null => {
-      if (!isRecord(widget)) {
-        return null;
-      }
+  const formulas: MetricFormulaWidgetParams[] = [];
+  const usedFormulaIds = new Set<number>();
+  const formulaIndezesWithoutId = new Set<number>();
 
-      const type = parseQueryType(widget, 'type') ?? MetricQueryType.QUERY;
+  (currentWidgets as unknown[]).forEach((widget: unknown) => {
+    if (!isRecord(widget)) {
+      return;
+    }
 
-      const id = parseNumberParam(widget, 'id');
-      if (!isValidId(id)) {
-        indezesWithoutId.add(index);
-      } else if (usedIds.has(id)) {
-        // We drop qidgets with duplicate ids
-        return null;
+    const type = parseQueryType(widget, 'type') ?? MetricQueryType.QUERY;
+
+    const id = parseQueryId(widget, 'id');
+    if (type === MetricQueryType.QUERY ? usedQueryIds.has(id) : usedFormulaIds.has(id)) {
+      // We drop widgets with duplicate ids
+      return;
+    }
+    if (id !== NO_QUERY_ID) {
+      if (type === MetricQueryType.QUERY) {
+        usedQueryIds.add(id);
       } else {
-        usedIds.add(id);
-      }
-
-      const displayType = parseStringParam(widget, 'displayType');
-
-      const baseWidgetParams: BaseWidgetParams = {
-        type,
-        id: !isValidId(id) ? NO_QUERY_ID : id,
-        displayType: isMetricDisplayType(displayType)
-          ? displayType
-          : MetricDisplayType.LINE,
-        focusedSeries: parseArrayParam(widget, 'focusedSeries', parseFocusedSeries),
-        sort: parseSortParam(widget, 'sort'),
-        isHidden: parseBooleanParam(widget, 'isHidden') ?? false,
-      };
-
-      switch (type) {
-        case MetricQueryType.QUERY:
-          return parseQueryWidget(widget, baseWidgetParams);
-        case MetricQueryType.FORMULA:
-          return parseFormulaWidget(widget, baseWidgetParams);
-        default:
-          return null;
+        usedFormulaIds.add(id);
       }
     }
-  );
+
+    const displayType = parseStringParam(widget, 'displayType');
+
+    const baseWidgetParams: BaseWidgetParams = {
+      type,
+      id: !isValidId(id) ? NO_QUERY_ID : id,
+      displayType: isMetricDisplayType(displayType)
+        ? displayType
+        : MetricDisplayType.LINE,
+      focusedSeries: parseArrayParam(widget, 'focusedSeries', parseFocusedSeries),
+      sort: parseSortParam(widget, 'sort'),
+      isHidden: parseBooleanParam(widget, 'isHidden') ?? false,
+    };
+
+    switch (type) {
+      case MetricQueryType.QUERY: {
+        const query = parseQueryWidget(widget, baseWidgetParams);
+        if (!query) {
+          break;
+        }
+        queries.push(query);
+        if (query.id === NO_QUERY_ID) {
+          queryIndezesWithoutId.add(queries.length - 1);
+        }
+        break;
+      }
+      case MetricQueryType.FORMULA: {
+        const formula = parseFormulaWidget(widget, baseWidgetParams);
+        if (!formula) {
+          break;
+        }
+        formulas.push(formula);
+        if (formula.id === NO_QUERY_ID) {
+          formulaIndezesWithoutId.add(formulas.length - 1);
+        }
+        break;
+      }
+      default:
+        break;
+    }
+  });
 
   // Iterate over the widgets without an id and assign them a unique one
-  if (indezesWithoutId.size > 0) {
-    const generateId = getUniqueQueryIdGenerator(usedIds);
-    for (const index of indezesWithoutId) {
-      const widget = parsedWidgets[index];
-      if (!widget) {
-        continue;
-      }
-      widget.id = generateId.next().value;
-    }
-  }
 
-  const filteredWidgets = parsedWidgets.filter(
-    (widget): widget is MetricWidgetQueryParams => widget !== null
-  );
-
-  if (filteredWidgets.length === 0) {
-    filteredWidgets.push(emptyMetricsQueryWidget);
+  if (queries.length === 0) {
+    queries.push(emptyMetricsQueryWidget);
   }
 
   // We can reset the id if there is only one widget
-  if (filteredWidgets.length === 1) {
-    filteredWidgets[0].id = 0;
+  if (queries.length === 1) {
+    queries[0].id = 0;
   }
 
-  return filteredWidgets;
+  if (formulas.length === 1) {
+    formulas[0].id = 0;
+  }
+
+  return [
+    ...fillIds(queries, queryIndezesWithoutId, usedQueryIds),
+    ...fillIds(formulas, formulaIndezesWithoutId, usedFormulaIds),
+  ];
 }

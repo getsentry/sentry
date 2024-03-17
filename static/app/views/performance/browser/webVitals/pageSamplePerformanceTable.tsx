@@ -25,6 +25,7 @@ import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useReplayExists from 'sentry/utils/replayCount/useReplayExists';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -152,6 +153,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     transaction,
     enabled: datatype === Datatype.INTERACTIONS,
     limit,
+    filters: new MutableSearch(query ?? '').filters,
   });
 
   const {profileExists} = useProfileExists(

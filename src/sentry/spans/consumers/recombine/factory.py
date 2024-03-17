@@ -1,16 +1,14 @@
 import logging
-import random
 from collections.abc import Mapping
 from typing import Any
 
-import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import BrokerValue, Commit, Message, Partition
 from sentry_kafka_schemas import get_codec
-from sentry_kafka_schemas.codecs import Codec
+from sentry_kafka_schemas.codecs import Codec, ValidationError
 from sentry_kafka_schemas.schema_types.buffered_segments_v1 import BufferedSegment
 
 from sentry.spans.consumers.recombine.message import process_segment
@@ -27,21 +25,20 @@ def _deserialize_segment(value: bytes) -> Mapping[str, Any]:
 def process_message(message: Message[KafkaPayload]):
     try:
         segment = _deserialize_segment(message.payload.value)
-    except Exception:
-        logger.exception("Failed to process segment payload")
+    except ValidationError:
+        logger.exception("Failed to deserialize segment payload")
         return
 
     process_segment(segment["spans"])
 
 
-def _process_segment(message: Message[KafkaPayload]):
+def _process_message(message: Message[KafkaPayload]):
     assert isinstance(message.value, BrokerValue)
 
     try:
         process_message(message)
-    except Exception as e:
-        if random.random() < 0.05:
-            sentry_sdk.capture_exception(e)
+    except Exception:
+        logger.exception("Failed to process segment payload")
 
 
 class RecombineSegmentStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
@@ -51,6 +48,6 @@ class RecombineSegmentStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
         return RunTask(
-            function=_process_segment,
+            function=_process_message,
             next_step=CommitOffsets(commit),
         )
