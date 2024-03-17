@@ -52,7 +52,7 @@ def build_mock_message(data, topic=None):
 @mock.patch("sentry.spans.consumers.recombine.factory.process_segment")
 def test_consumer_pushes_to_redis(mock_process_segment):
 
-    topic = ArroyoTopic(get_topic_definition(Topic.BUFFERED_SEGMENT)["real_topic_name"])
+    topic = ArroyoTopic(get_topic_definition(Topic.BUFFERED_SEGMENTS)["real_topic_name"])
     partition = Partition(topic, 0)
     strategy = RecombineSegmentStrategyFactory().create_with_partitions(
         commit=mock.Mock(),
