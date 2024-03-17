@@ -370,7 +370,9 @@ function TraceViewContent(props: TraceViewContentProps) {
     [api, props.organization, tree, viewManager, searchState, onTraceSearch]
   );
 
-  const scrollQueueRef = useRef<TraceTree.NodePath[] | null>(null);
+  const scrollQueueRef = useRef<{eventId?: string; path?: TraceTree.NodePath[]} | null>(
+    null
+  );
 
   return (
     <TraceExternalLayout>

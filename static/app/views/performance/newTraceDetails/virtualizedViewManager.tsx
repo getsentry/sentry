@@ -898,7 +898,22 @@ export class VirtualizedViewManager {
       return Promise.resolve(null);
     }
 
-    return this.scrollToPath(tree, node.path, rerender, {api, organization});
+    return this.scrollToPath(tree, node.path, rerender, {api, organization}).then(
+      async result => {
+        // When users are coming off an eventID link, we want to fetch the children
+        // of the node that the eventID points to. This is because the eventID link
+        // only points to the transaction, but we want to fetch the children of the
+        // transaction to show the user the list of spans in that transaction
+        if (result?.node?.canFetch) {
+          await tree.zoomIn(result.node, true, {api, organization}).catch(_e => {
+            Sentry.captureMessage('Failed to fetch children of eventId on mount');
+          });
+          return result;
+        }
+
+        return null;
+      }
+    );
   }
 
   scrollToPath(
