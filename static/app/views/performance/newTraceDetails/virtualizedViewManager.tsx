@@ -573,6 +573,10 @@ export class VirtualizedViewManager {
     this.zoomIntoSpaceRaf = window.requestAnimationFrame(rafCallback);
   }
 
+  resetZoom() {
+    this.onZoomIntoSpace([this.to_origin, this.trace_space.width]);
+  }
+
   onWheelEndRaf: number | null = null;
   enqueueOnWheelEndRaf() {
     if (this.onWheelEndRaf !== null) {
