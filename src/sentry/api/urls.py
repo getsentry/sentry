@@ -16,6 +16,7 @@ from sentry.api.endpoints.organization_events_root_cause_analysis import (
 from sentry.api.endpoints.organization_integration_migrate_opsgenie import (
     OrganizationIntegrationMigrateOpsgenieEndpoint,
 )
+from sentry.api.endpoints.organization_minimal_projects import OrganizationMinimalProjectsEndpoint
 from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
 from sentry.api.endpoints.organization_projects_experiment import (
     OrganizationProjectsExperimentEndpoint,
@@ -334,7 +335,6 @@ from .endpoints.organization_dashboard_widget_details import (
     OrganizationDashboardWidgetDetailsEndpoint,
 )
 from .endpoints.organization_dashboards import OrganizationDashboardsEndpoint
-from .endpoints.organization_ddm import OrganizationDDMMetaEndpoint
 from .endpoints.organization_derive_code_mappings import OrganizationDeriveCodeMappingsEndpoint
 from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
@@ -1690,6 +1690,11 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-projects",
     ),
     re_path(
+        r"^(?P<organization_slug>[^\/]+)/minimal-projects/$",
+        OrganizationMinimalProjectsEndpoint.as_view(),
+        name="sentry-api-0-organization-minimal-projects",
+    ),
+    re_path(
         r"^(?P<organization_slug>[^\/]+)/experimental/projects/$",
         OrganizationProjectsExperimentEndpoint.as_view(),
         name="sentry-api-0-organization-projects-experiment",
@@ -1972,11 +1977,6 @@ ORGANIZATION_URLS = [
                 ),
             ]
         ),
-    ),
-    re_path(
-        r"^(?P<organization_slug>[^/]+)/ddm/meta/$",
-        OrganizationDDMMetaEndpoint.as_view(),
-        name="sentry-api-0-organization-ddm-meta",
     ),
     re_path(
         r"^(?P<organization_slug>[^/]+)/metrics/code-locations/$",

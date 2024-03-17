@@ -156,8 +156,10 @@ const ResizeableHandle = styled('div')`
 `;
 
 const PanelWrapper = styled('div')`
+  grid-area: drawer;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   width: 100%;
   position: sticky;
   border-top: 1px solid ${p => p.theme.border};
@@ -166,7 +168,7 @@ const PanelWrapper = styled('div')`
   background: ${p => p.theme.background};
   color: ${p => p.theme.textColor};
   text-align: left;
-  z-index: ${p => p.theme.zIndex.sidebar - 1};
+  z-index: 10;
 `;
 
 const TabsContainer = styled('ul')`

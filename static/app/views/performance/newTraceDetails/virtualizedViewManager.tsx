@@ -709,13 +709,16 @@ export class VirtualizedViewManager {
     }
 
     this.enqueueOnScrollEndOutOfBoundsCheck();
-    const columnWidth = this.columns.list.width * this.container_physical_space.width;
 
-    this.columns.list.translate[0] = clamp(
-      this.columns.list.translate[0] - event.deltaX,
-      -(this.row_measurer.max - columnWidth + 16), // 16px margin so we dont scroll right to the last px
-      0
+    const newTransform = this.clampRowTransform(
+      this.columns.list.translate[0] - event.deltaX
     );
+
+    if (newTransform === this.columns.list.translate[0]) {
+      return;
+    }
+
+    this.columns.list.translate[0] = newTransform;
 
     if (this.scrollSyncRaf) {
       window.cancelAnimationFrame(this.scrollSyncRaf);
@@ -730,6 +733,25 @@ export class VirtualizedViewManager {
         }
       }
     });
+  }
+
+  clampRowTransform(transform: number): number {
+    const columnWidth = this.columns.list.width * this.container_physical_space.width;
+    const max = this.row_measurer.max - columnWidth + 16;
+
+    if (this.row_measurer.max < columnWidth) {
+      return 0;
+    }
+
+    // Sometimes the wheel event glitches or jumps to a very high value
+    if (transform > 0) {
+      return 0;
+    }
+    if (transform < -max) {
+      return -max;
+    }
+
+    return transform;
   }
 
   scrollEndSyncRaf: number | null = null;
@@ -806,12 +828,11 @@ export class VirtualizedViewManager {
     duration: number = 600,
     offset_px: number = 0
   ) {
-    const VISUAL_OFFSET = this.row_depth_padding / 2;
-    const target = Math.min(
-      -node.depth * this.row_depth_padding + VISUAL_OFFSET + offset_px,
-      0
+    const newTransform = this.clampRowTransform(
+      -node.depth * this.row_depth_padding + offset_px
     );
-    this.animateScrollColumnTo(target, duration);
+
+    this.animateScrollColumnTo(newTransform, duration);
   }
 
   bringRowIntoViewAnimation: number | null = null;
@@ -874,6 +895,10 @@ export class VirtualizedViewManager {
       traceViewToSpace,
       tracePhysicalToView
     );
+  }
+
+  computeRelativeLeftPositionFromOrigin(timestamp: number, node_space: [number, number]) {
+    return (timestamp - node_space[0]) / node_space[1];
   }
 
   recomputeTimelineIntervals() {
@@ -1140,6 +1165,10 @@ export class VirtualizedViewManager {
       if (span_bar) {
         const span_transform = this.computeSpanCSSMatrixTransform(span_bar.space);
         span_bar.ref.style.transform = `matrix(${span_transform.join(',')}`;
+        span_bar.ref.style.setProperty(
+          '--inverse-span-scale',
+          1 / span_transform[0] + ''
+        );
       }
       const span_text = this.span_text[i];
       if (span_text) {
@@ -1445,24 +1474,29 @@ export class VirtualizedList {
   scrollHeight: number = 0;
   scrollTop: number = 0;
 
-  scrollToRow(index: number, rowHeight: number = 24) {
+  scrollToRow(index: number, anchor?: 'top') {
     if (!this.container) {
       return;
     }
 
-    const top = this.container.scrollTop;
-    const height = this.scrollHeight;
-    const position = index * rowHeight;
-
-    if (position < top) {
-      // above view
-    } else if (position > top + height) {
-      // under view
-    } else {
+    if (anchor === 'top') {
+      this.container.scrollTop = index * 24;
       return;
     }
 
-    this.container.scrollTop = index * rowHeight;
+    const position = index * 24;
+    const top = this.container.scrollTop;
+    const height = this.scrollHeight;
+
+    if (position < top) {
+      // Row is above the view
+      this.container.scrollTop = index * 24;
+    } else if (position > top + height) {
+      // Row is under the view
+      this.container.scrollTop = index * 24 - height + 24;
+    } else {
+      return;
+    }
   }
 }
 
@@ -1600,6 +1634,7 @@ export const useVirtualizedList = (
       }
 
       managerRef.current.isScrolling = true;
+      managerRef.current.enqueueOnScrollEndOutOfBoundsCheck();
 
       rafId.current = window.requestAnimationFrame(() => {
         scrollTopRef.current = Math.max(0, event.target?.scrollTop ?? 0);
