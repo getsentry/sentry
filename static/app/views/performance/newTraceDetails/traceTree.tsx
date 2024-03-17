@@ -1,5 +1,8 @@
+import type {Theme} from '@emotion/react';
+
 import type {Client} from 'sentry/api';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
+import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import type {Organization} from 'sentry/types';
 import type {Event, EventTransaction, Measurement} from 'sentry/types/event';
 import type {
@@ -211,6 +214,28 @@ function maybeInsertMissingInstrumentationSpan(
   );
 
   parent.spanChildren.push(missingInstrumentationSpan);
+}
+
+export function makeTraceNodeBarColor(
+  theme: Theme,
+  node: TraceTreeNode<TraceTree.NodeValue>
+): string {
+  if (isTransactionNode(node)) {
+    return pickBarColor(node.value['transaction.op']);
+  }
+  if (isSpanNode(node)) {
+    return pickBarColor(node.value.op);
+  }
+  if (isAutogroupedNode(node)) {
+    return theme.blue300;
+  }
+  if (isMissingInstrumentationNode(node)) {
+    return theme.gray300;
+  }
+  if (isTraceErrorNode(node)) {
+    return theme.red300;
+  }
+  return pickBarColor('default');
 }
 
 function shouldCollapseNodeByDefault(node: TraceTreeNode<TraceTree.NodeValue>) {

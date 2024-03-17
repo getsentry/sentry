@@ -6,7 +6,6 @@ import {
   useMemo,
   useReducer,
   useRef,
-  useState,
 } from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
@@ -46,12 +45,12 @@ import {
   traceSearchReducer,
 } from 'sentry/views/performance/newTraceDetails/traceSearch';
 import {TraceSearchInput} from 'sentry/views/performance/newTraceDetails/traceSearchInput';
+import {traceTabsReducer} from 'sentry/views/performance/newTraceDetails/traceTabs';
 import {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/virtualizedViewManager';
 
 import Breadcrumb from '../breadcrumb';
 
 import TraceDrawer from './traceDrawer/traceDrawer';
-import {isTraceNode} from './guards';
 import Trace from './trace';
 import TraceHeader from './traceHeader';
 import {TraceTree, type TraceTreeNode} from './traceTree';
@@ -139,7 +138,6 @@ type TraceViewContentProps = {
 
 function TraceViewContent(props: TraceViewContentProps) {
   const api = useApi();
-  const [activeTab, setActiveTab] = useState<'trace' | 'node'>('trace');
   const {projects} = useProjects();
 
   const rootEvent = useRootEvent(props.trace);
@@ -232,15 +230,18 @@ function TraceViewContent(props: TraceViewContentProps) {
     resultsLookup: new Map(),
   });
 
-  const [clickedNode, setClickedNode] = useState<TraceTreeNode<TraceTree.NodeValue>[]>(
-    []
-  );
+  const [tabs, tabsDispatch] = useReducer(traceTabsReducer, {
+    tabs: [],
+  });
 
   const onSetClickedNode = useCallback(
     (node: TraceTreeNode<TraceTree.NodeValue> | null) => {
-      // Clicking on trace node defaults to the trace tab
-      setActiveTab(node && !isTraceNode(node ?? null) ? 'node' : 'trace');
-      setClickedNode(node && !isTraceNode(node) ? [node] : []);
+      if (!node) {
+        tabsDispatch({type: 'clear active tab'});
+        return;
+      }
+
+      tabsDispatch({type: 'set active tab', payload: node});
       maybeFocusRow();
     },
     []
@@ -446,12 +447,11 @@ function TraceViewContent(props: TraceViewContentProps) {
           ) : null}
 
           <TraceDrawer
+            tabs={tabs}
             trace={tree}
-            scrollToNode={scrollToNode}
             manager={viewManager}
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            nodes={clickedNode}
+            scrollToNode={scrollToNode}
+            tabsDispatch={tabsDispatch}
             rootEventResults={rootEvent}
             organization={props.organization}
             location={props.location}

@@ -16,7 +16,6 @@ import {PlatformIcon} from 'platformicons';
 import * as qs from 'query-string';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import Placeholder from 'sentry/components/placeholder';
 import {IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -49,7 +48,12 @@ import {
   isTraceNode,
   isTransactionNode,
 } from './guards';
-import {ParentAutogroupNode, type TraceTree, type TraceTreeNode} from './traceTree';
+import {
+  makeTraceNodeBarColor,
+  ParentAutogroupNode,
+  type TraceTree,
+  type TraceTreeNode,
+} from './traceTree';
 import {
   useVirtualizedList,
   type VirtualizedRow,
@@ -890,7 +894,7 @@ function RenderRow(props: {
           <TraceBar
             virtualized_index={virtualized_index}
             manager={props.manager}
-            color={pickBarColor(props.node.value['transaction.op'])}
+            color={makeTraceNodeBarColor(props.theme, props.node)}
             node_space={props.node.space}
             errors={props.node.value.errors}
             performance_issues={props.node.value.performance_issues}
@@ -1006,7 +1010,7 @@ function RenderRow(props: {
           <TraceBar
             virtualized_index={virtualized_index}
             manager={props.manager}
-            color={pickBarColor(props.node.value.op)}
+            color={makeTraceNodeBarColor(props.theme, props.node)}
             node_space={props.node.space}
             errors={props.node.value.errors}
             performance_issues={props.node.value.performance_issues}
@@ -1082,7 +1086,7 @@ function RenderRow(props: {
           <TraceBar
             virtualized_index={virtualized_index}
             manager={props.manager}
-            color={pickBarColor('missing-instrumentation')}
+            color={makeTraceNodeBarColor(props.theme, props.node)}
             node_space={props.node.space}
             errors={NO_ERRORS}
             performance_issues={NO_ERRORS}
@@ -1168,7 +1172,7 @@ function RenderRow(props: {
           <TraceBar
             virtualized_index={virtualized_index}
             manager={props.manager}
-            color={pickBarColor('missing-instrumentation')}
+            color={makeTraceNodeBarColor(props.theme, props.node)}
             node_space={props.node.space}
             errors={NO_ERRORS}
             performance_issues={NO_ERRORS}
