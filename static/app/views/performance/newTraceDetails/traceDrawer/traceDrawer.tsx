@@ -138,7 +138,12 @@ function TraceDrawer(props: TraceDrawerProps) {
   return (
     <PanelWrapper ref={panelRef} layout={props.layout}>
       <ResizeableHandle layout={props.layout} onMouseDown={onMouseDown} />
-      <TabsContainer>
+      <TabsContainer
+        hasIndicators={
+          // Syncs the height of the tabs with the trace indicators
+          props.trace.indicators.length > 0 && props.layout !== 'drawer bottom'
+        }
+      >
         <Tab
           active={props.activeTab === 'trace'}
           onClick={() => props.setActiveTab('trace')}
@@ -255,10 +260,10 @@ const PanelWrapper = styled('div')<{
   z-index: 10;
 `;
 
-const TabsContainer = styled('ul')`
+const TabsContainer = styled('ul')<{hasIndicators: boolean}>`
   list-style-type: none;
   width: 100%;
-  min-height: 30px;
+  height: ${p => (p.hasIndicators ? '44px' : '26px')};
   border-bottom: 1px solid ${p => p.theme.border};
   background-color: ${p => p.theme.backgroundSecondary};
   display: flex;

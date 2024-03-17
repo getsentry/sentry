@@ -1727,7 +1727,7 @@ const TraceStylingWrapper = styled('div')`
   height: 100%;
   grid-area: trace;
 
-  padding-top: 22px;
+  padding-top: 26px;
 
   &.WithIndicators {
     padding-top: 44px;
@@ -1753,7 +1753,7 @@ const TraceStylingWrapper = styled('div')`
     left: 0;
     top: 0;
     width: 100%;
-    height: 22px;
+    height: 26px;
     background-color: ${p => p.theme.backgroundSecondary};
     border-bottom: 1px solid ${p => p.theme.border};
   }
@@ -1854,7 +1854,7 @@ const TraceStylingWrapper = styled('div')`
       .TraceIndicatorLabel {
         font-weight: normal;
         min-width: 0;
-        top: 2px;
+        top: 8px;
         width: auto;
         border: none;
         background-color: transparent;
@@ -1863,7 +1863,7 @@ const TraceStylingWrapper = styled('div')`
 
       .TraceIndicatorLine {
         background: ${p => p.theme.translucentGray100};
-        top: 4px;
+        top: 8px;
       }
     }
   }
