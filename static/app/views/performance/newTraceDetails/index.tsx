@@ -49,6 +49,10 @@ import {
 import {TraceSearchInput} from 'sentry/views/performance/newTraceDetails/traceSearchInput';
 import {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/virtualizedViewManager';
 
+import {
+  cancelAnimationTimeout,
+  requestAnimationTimeout,
+} from '../../../utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import Breadcrumb from '../breadcrumb';
 
 import TraceDrawer from './traceDrawer/traceDrawer';
@@ -143,10 +147,15 @@ function TraceViewContent(props: TraceViewContentProps) {
   const [activeTab, setActiveTab] = useState<'trace' | 'node'>('trace');
   const {projects} = useProjects();
 
-  const [tracePreferences, setTracePreferences] = useLocalStorageState(
-    'trace_preferences',
-    {list_width: 0.5}
-  );
+  const [tracePreferences, setTracePreferences] = useLocalStorageState<{
+    drawer: number;
+    layout: 'drawer right' | 'drawer bottom' | 'drawer left';
+    list_width: number;
+  }>('trace_preferences', {
+    layout: 'drawer bottom',
+    list_width: 0.66,
+    drawer: 0,
+  });
 
   const rootEvent = useRootEvent(props.trace);
 
@@ -390,6 +399,49 @@ function TraceViewContent(props: TraceViewContentProps) {
     [api, props.organization, tree, viewManager, searchState, onTraceSearch]
   );
 
+  const onLayoutChange = useCallback(
+    (layout: 'drawer bottom' | 'drawer left' | 'drawer right') => {
+      setTracePreferences(previousPreferences => {
+        return {...previousPreferences, layout, drawer: 0};
+      });
+    },
+    [setTracePreferences]
+  );
+
+  const resizeAnimationTimeoutRef = useRef<{id: number} | null>(null);
+  const onDrawerResize = useCallback(
+    (size: number) => {
+      if (resizeAnimationTimeoutRef.current !== null) {
+        cancelAnimationTimeout(resizeAnimationTimeoutRef.current);
+      }
+      resizeAnimationTimeoutRef.current = requestAnimationTimeout(() => {
+        setTracePreferences(previousPreferences => {
+          return {
+            ...previousPreferences,
+            drawer:
+              size /
+              (previousPreferences.layout === 'drawer bottom'
+                ? window.innerHeight
+                : window.innerWidth),
+          };
+        });
+      }, 1000);
+    },
+    [setTracePreferences]
+  );
+
+  const initialDrawerSize = useMemo(() => {
+    if (tracePreferences.drawer < 0) {
+      return 0;
+    }
+
+    const base =
+      tracePreferences.layout === 'drawer bottom'
+        ? window.innerHeight
+        : window.innerWidth;
+    return tracePreferences.drawer * base;
+  }, [tracePreferences.drawer, tracePreferences.layout]);
+
   const scrollQueueRef = useRef<TraceTree.NodePath[] | null>(null);
 
   return (
@@ -438,7 +490,10 @@ function TraceViewContent(props: TraceViewContentProps) {
             resultIteratorIndex={searchState.resultIteratorIndex}
           />
         </TraceToolbar>
-        <TraceGrid ref={r => (traceContainerRef.current = r)}>
+        <TraceGrid
+          layout={tracePreferences.layout}
+          ref={r => (traceContainerRef.current = r)}
+        >
           <Trace
             trace={tree}
             trace_id={props.traceSlug}
@@ -472,6 +527,10 @@ function TraceViewContent(props: TraceViewContentProps) {
             activeTab={activeTab}
             setActiveTab={setActiveTab}
             nodes={clickedNode}
+            drawerSize={initialDrawerSize}
+            layout={tracePreferences.layout}
+            onLayoutChange={onLayoutChange}
+            onDrawerResize={onDrawerResize}
             rootEventResults={rootEvent}
             organization={props.organization}
             location={props.location}
@@ -561,7 +620,9 @@ const TraceToolbar = styled('div')`
   flex-grow: 0;
 `;
 
-const TraceGrid = styled('div')`
+const TraceGrid = styled('div')<{
+  layout: 'drawer bottom' | 'drawer left' | 'drawer right';
+}>`
   box-shadow: 0 0 0 1px ${p => p.theme.border};
   flex: 1 1 100%;
   display: grid;
@@ -569,9 +630,23 @@ const TraceGrid = styled('div')`
   border-top-right-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
   position: relative;
-  grid-template-areas:
-    'trace'
-    'drawer';
+  /* false positive for grid layout */
+  /* stylelint-disable */
+  grid-template-areas: ${p =>
+    p.layout === 'drawer bottom'
+      ? `
+      'trace'
+      'drawer'
+      `
+      : p.layout === 'drawer left'
+        ? `'drawer trace'`
+        : `'trace drawer'`};
+  grid-template-columns: ${p =>
+    p.layout === 'drawer bottom'
+      ? '1fr'
+      : p.layout === 'drawer left'
+        ? 'min-content 1fr'
+        : '1fr min-content'};
   grid-template-rows: 1fr auto;
 `;
 
