@@ -81,44 +81,6 @@ def test_consumer_pushes_to_redis():
         )
     )
 
-    strategy.poll()
-    strategy.join(1)
-    strategy.terminate()
-    assert redis_client.lrange("segment:ace31e54d65652aa:1:process-segment", 0, -1) == [
-        message.value()
-    ]
-
-
-@override_options(
-    {
-        "standalone-spans.process-spans-consumer.enable": True,
-        "standalone-spans.process-spans-consumer.project-allowlist": [1],
-    }
-)
-def test_second_span_in_segment_does_not_queue_task():
-    redis_client = get_redis_client()
-
-    topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_SPANS)["real_topic_name"])
-    partition = Partition(topic, 0)
-    strategy = ProcessSpansStrategyFactory().create_with_partitions(
-        commit=mock.Mock(),
-        partitions={},
-    )
-
-    span_data = build_mock_span()
-    message = build_mock_message(span_data, topic)
-
-    strategy.submit(
-        Message(
-            BrokerValue(
-                KafkaPayload(b"key", message.value().encode("utf-8"), []),
-                partition,
-                1,
-                datetime.now(),
-            )
-        )
-    )
-
     strategy.submit(
         Message(
             BrokerValue(
