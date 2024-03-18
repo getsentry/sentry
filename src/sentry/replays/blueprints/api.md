@@ -616,7 +616,7 @@ Retrieve a collection of click events associated with a replay.
   - project (optional, string)
   - id (required, array[string]) - The id of the replay to retrieve. Can be specified multiple times. A maximum of 100 id's can be specified.
 
-### Browse Replays Viewed [GET]
+### Browse Replays Viewed Status [GET]
 
 Returns a collection of replays and their viewed state. The user is targetted based on the authorization context. Replay-ids are specified in the URL parameters.
 
