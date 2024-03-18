@@ -7,7 +7,8 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DDMContextProvider, useDDMContext} from 'sentry/views/ddm/context';
-import {DDMLayout} from 'sentry/views/ddm/layout';
+import {MetricsLayout} from 'sentry/views/ddm/layout';
+import {useOptInModal} from 'sentry/views/ddm/optInModal';
 
 function WrappedPageFiltersContainer({children}: {children: React.ReactNode}) {
   const {isDefaultQuery} = useDDMContext();
@@ -18,8 +19,9 @@ function WrappedPageFiltersContainer({children}: {children: React.ReactNode}) {
   );
 }
 
-function DDM() {
+function Metrics() {
   const organization = useOrganization();
+  useOptInModal();
 
   useEffect(() => {
     trackAnalytics('ddm.page-view', {
@@ -33,11 +35,11 @@ function DDM() {
     <SentryDocumentTitle title={t('Metrics')} orgSlug={organization.slug}>
       <DDMContextProvider>
         <WrappedPageFiltersContainer>
-          <DDMLayout />
+          <MetricsLayout />
         </WrappedPageFiltersContainer>
       </DDMContextProvider>
     </SentryDocumentTitle>
   );
 }
 
-export default DDM;
+export default Metrics;

@@ -13,7 +13,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {hasDDMFeature} from 'sentry/utils/metrics/features';
+import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AddWidgetButton} from 'sentry/views/dashboards/addWidget';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
@@ -171,7 +171,7 @@ function Controls({
                 })}
                 disabled={!widgetLimitReached}
               >
-                {hasDDMFeature(organization) ? (
+                {hasCustomMetrics(organization) ? (
                   <AddWidgetButton
                     onAddWidget={onAddWidget}
                     aria-label="Add Widget"

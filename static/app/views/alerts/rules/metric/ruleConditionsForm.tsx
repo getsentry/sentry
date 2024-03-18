@@ -25,7 +25,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Environment, Organization, Project, SelectValue} from 'sentry/types';
 import {getDisplayName} from 'sentry/utils/environment';
-import {hasDDMFeature} from 'sentry/utils/metrics/features';
+import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import {getMRI} from 'sentry/utils/metrics/mri';
 import {getOnDemandKeys, isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
@@ -466,7 +466,8 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 flexibleControlStateSize
               >
                 {({onChange, onBlur, onKeyDown, initialData, value}) => {
-                  return hasDDMFeature(organization) && alertType === 'custom_metrics' ? (
+                  return hasCustomMetrics(organization) &&
+                    alertType === 'custom_metrics' ? (
                     <MetricSearchBar
                       mri={getMRI(aggregate)}
                       projectIds={[project.id]}

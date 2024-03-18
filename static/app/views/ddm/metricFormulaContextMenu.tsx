@@ -6,7 +6,7 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconClose, IconCopy, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {hasDDMFeature} from 'sentry/utils/metrics/features';
+import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useDDMContext} from 'sentry/views/ddm/context';
 
@@ -47,7 +47,7 @@ export function MetricFormulaContextMenu({widgetIndex}: ContextMenuProps) {
     [canDelete, organization, duplicateWidget, widgetIndex, removeWidget]
   );
 
-  if (!hasDDMFeature(organization)) {
+  if (!hasCustomMetrics(organization)) {
     return null;
   }
 

@@ -17,7 +17,7 @@ import type {Series} from 'sentry/types/echarts';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
-import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
+import {hasMetricsExperimentalFeature} from 'sentry/utils/metrics/features';
 import {
   MEPConsumer,
   MEPState,
@@ -93,7 +93,7 @@ function WidgetCardContextMenu({
   };
 
   const openWidgetViewerIcon =
-    hasDDMExperimentalFeature(organization) &&
+    hasMetricsExperimentalFeature(organization) &&
     widget.widgetType === WidgetType.METRICS ? (
       <IconEdit />
     ) : (

@@ -54,7 +54,7 @@ import {EventOrGroupType} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
-import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
+import {hasMetricsExperimentalFeature} from 'sentry/utils/metrics/features';
 import toPercent from 'sentry/utils/number/toPercent';
 import type {QuickTraceContextChildrenProps} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import type {
@@ -698,7 +698,7 @@ export class NewTraceDetailsSpanBar extends Component<
     const hasMetrics =
       '_metrics_summary' in span && Object.keys(span._metrics_summary ?? {}).length > 0;
 
-    return hasMetrics && hasDDMExperimentalFeature(this.props.organization) ? (
+    return hasMetrics && hasMetricsExperimentalFeature(this.props.organization) ? (
       <MetricsBadge />
     ) : null;
   }
