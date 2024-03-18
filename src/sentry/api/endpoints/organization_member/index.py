@@ -22,7 +22,7 @@ from sentry.apidocs.examples.organization_member_examples import OrganizationMem
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.authenticators import available_authenticators
-from sentry.auth.superuser import superuser_has_permission
+from sentry.auth.staff import is_active_staff
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.team import Team, TeamStatus
@@ -375,7 +375,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                 status=400,
             )
 
-        if superuser_has_permission(request):
+        if is_active_staff(request):
             with transaction.atomic(router.db_for_write(OrganizationMember)):
                 om = OrganizationMember.objects.create(
                     organization=organization,
@@ -418,7 +418,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             )
             save_team_assignments(om, teams)
 
-        if superuser_has_permission(request):
+        if is_active_staff(request):
             self.create_audit_entry(
                 request=request,
                 organization_id=organization.id,
