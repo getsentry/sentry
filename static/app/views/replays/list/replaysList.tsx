@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import Pagination from 'sentry/components/pagination';
+import {mobile} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -15,6 +16,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 import ReplayTable from 'sentry/views/replays/replayTable';
 import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
@@ -70,13 +72,16 @@ function ReplaysListTable({
   });
 
   const {
-    selection: {projects},
+    selection: {projects: projectIds},
   } = usePageFilters();
+
+  const {projects} = useProjects();
+  const projectsSelected = projects.filter(p => projectIds.map(String).includes(p.id));
 
   const {needsUpdate: allSelectedProjectsNeedUpdates} = useProjectSdkNeedsUpdate({
     minVersion: MIN_REPLAY_CLICK_SDK,
     organization,
-    projectId: projects.map(String),
+    projectId: projectIds.map(String),
   });
 
   const conditions = useMemo(() => {
@@ -85,16 +90,30 @@ function ReplaysListTable({
 
   const hasReplayClick = conditions.getFilterKeys().some(k => k.startsWith('click.'));
 
-  const visibleCols = [
-    ReplayColumn.REPLAY,
-    ReplayColumn.OS,
-    ReplayColumn.BROWSER,
-    ReplayColumn.DURATION,
-    ReplayColumn.COUNT_DEAD_CLICKS,
-    ReplayColumn.COUNT_RAGE_CLICKS,
-    ReplayColumn.COUNT_ERRORS,
-    ReplayColumn.ACTIVITY,
-  ];
+  const allMobileProj =
+    organization.features.includes('session-replay-mobile-player') &&
+    projectsSelected.every(p => mobile.includes(p.platform ?? 'other'));
+
+  // browser isn't applicable for mobile projects
+  // rage and dead clicks not available yet
+  const visibleCols = allMobileProj
+    ? [
+        ReplayColumn.REPLAY,
+        ReplayColumn.OS,
+        ReplayColumn.DURATION,
+        ReplayColumn.COUNT_ERRORS,
+        ReplayColumn.ACTIVITY,
+      ]
+    : [
+        ReplayColumn.REPLAY,
+        ReplayColumn.OS,
+        ReplayColumn.BROWSER,
+        ReplayColumn.DURATION,
+        ReplayColumn.COUNT_DEAD_CLICKS,
+        ReplayColumn.COUNT_RAGE_CLICKS,
+        ReplayColumn.COUNT_ERRORS,
+        ReplayColumn.ACTIVITY,
+      ];
 
   return (
     <Fragment>
