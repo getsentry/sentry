@@ -55,6 +55,7 @@ import {
   type VirtualizedRow,
   type VirtualizedViewManager,
 } from './virtualizedViewManager';
+import {useLocation} from 'sentry/utils/useLocation';
 
 function Chevron(props: {direction: 'up' | 'down' | 'left'}) {
   return (
@@ -165,6 +166,7 @@ function Trace({
   const api = useApi();
   const {projects} = useProjects();
   const organization = useOrganization();
+  const location = useLocation();
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [_rerender, setRender] = useState(0);
@@ -208,7 +210,7 @@ function Trace({
     }
 
     const promise =
-      eventId && typeof eventId === 'string'
+      eventId && typeof eventId === 'string' && !location.query.node
         ? manager.scrollToEventID(eventId, trace, () => setRender(a => (a + 1) % 2), {
             api,
             organization,
