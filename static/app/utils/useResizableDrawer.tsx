@@ -82,6 +82,7 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   // invoke the onResize callback with the previously stored dimensions.
   useLayoutEffect(() => {
     options.onResize(options.initialSize ?? 0, size);
+    setSize(options.initialSize ?? 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options.direction]);
 
