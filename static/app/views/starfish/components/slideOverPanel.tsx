@@ -74,6 +74,7 @@ const _SlideOverPanel = styled(motion.div, {
       position: fixed;
       top: 0;
     `}
+  box-shadow: ${p => p.theme.dropShadowHeavy};
   bottom: 0;
   right: 0;
   background: ${p => p.theme.background};
