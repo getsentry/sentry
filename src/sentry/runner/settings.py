@@ -53,7 +53,7 @@ def get_sentry_conf():
             return "~/.sentry"
 
 
-def discover_configs():
+def discover_configs() -> tuple[str, str, str | None]:
     """
     Discover the locations of three configuration components:
      * Config directory (~/.sentry)

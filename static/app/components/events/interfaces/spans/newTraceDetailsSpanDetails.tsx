@@ -35,7 +35,11 @@ import {safeURL} from 'sentry/utils/url/safeURL';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {CustomMetricsEventData} from 'sentry/views/ddm/customMetricsEventData';
-import IssueList from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issueList';
+import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
+import type {
+  TraceTree,
+  TraceTreeNode,
+} from 'sentry/views/performance/newTraceDetails/traceTree';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils';
@@ -83,6 +87,7 @@ export type SpanDetailProps = {
   childTransactions: TraceFullDetailed[] | null;
   errors: TraceError[];
   event: Readonly<EventTransaction>;
+  node: TraceTreeNode<TraceTree.NodeValue>;
   openPanel: string | undefined;
   organization: Organization;
   performanceIssues: TracePerformanceIssue[];
@@ -284,7 +289,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   }
 
   function renderSpanErrorMessage() {
-    const {span, organization, errors, performanceIssues} = props;
+    const {span, organization, errors, performanceIssues, event} = props;
 
     const hasErrors = errors.length > 0 || performanceIssues.length > 0;
 
@@ -292,7 +297,14 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
       return null;
     }
 
-    return <IssueList organization={organization} issues={relatedIssues} />;
+    return (
+      <IssueList
+        organization={organization}
+        issues={relatedIssues}
+        event_id={event.id}
+        node={props.node}
+      />
+    );
   }
 
   function partitionSizes(data): {

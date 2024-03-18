@@ -1090,22 +1090,6 @@ function buildRoutes() {
     </Route>
   );
 
-  const dashboardWidgetRoutes = (
-    <Fragment>
-      <Route
-        path="widget/:widgetIndex/edit/"
-        component={make(() => import('sentry/views/dashboards/widgetBuilder'))}
-      />
-      <Route
-        path="widget/new/"
-        component={make(() => import('sentry/views/dashboards/widgetBuilder'))}
-      />
-      <Route
-        path="widget/:widgetId/"
-        component={make(() => import('sentry/views/dashboards/view'))}
-      />
-    </Fragment>
-  );
   const dashboardRoutes = (
     <Fragment>
       <Fragment>
@@ -1199,28 +1183,24 @@ function buildRoutes() {
       {USING_CUSTOMER_DOMAIN && (
         <Redirect from="/dashboards/:dashboardId/" to="/dashboard/:dashboardId/" />
       )}
-      <Fragment>
-        {USING_CUSTOMER_DOMAIN && (
-          <Route
-            path="/dashboard/:dashboardId/"
-            component={withDomainRequired(
-              make(() => import('sentry/views/dashboards/view'))
-            )}
-            key="orgless-dashboards-dashboard-id-route"
-          >
-            {dashboardWidgetRoutes}
-          </Route>
-        )}
+      <Route
+        path="/dashboard/:dashboardId/"
+        component={make(() => import('sentry/views/dashboards/view'))}
+        withOrgPath
+      >
         <Route
-          path="/organizations/:orgId/dashboard/:dashboardId/"
-          component={withDomainRedirect(
-            make(() => import('sentry/views/dashboards/view'))
-          )}
-          key="org-dashboards-dashboard-id"
-        >
-          {dashboardWidgetRoutes}
-        </Route>
-      </Fragment>
+          path="widget/:widgetIndex/edit/"
+          component={make(() => import('sentry/views/dashboards/widgetBuilder'))}
+        />
+        <Route
+          path="widget/new/"
+          component={make(() => import('sentry/views/dashboards/widgetBuilder'))}
+        />
+        <Route
+          path="widget/:widgetId/"
+          component={make(() => import('sentry/views/dashboards/view'))}
+        />
+      </Route>
     </Fragment>
   );
 
@@ -1475,54 +1455,31 @@ function buildRoutes() {
     />
   );
 
-  const statsChildRoutes = ({forCustomerDomain}: {forCustomerDomain: boolean}) => {
-    return (
-      <Fragment>
+  const statsRoutes = (
+    <Fragment>
+      <Route path="/stats/" withOrgPath>
         <IndexRoute component={make(() => import('sentry/views/organizationStats'))} />
         <Route
-          path="issues/"
           component={make(() => import('sentry/views/organizationStats/teamInsights'))}
         >
-          <IndexRoute
+          <Route
+            path="issues/"
             component={make(
               () => import('sentry/views/organizationStats/teamInsights/issues')
             )}
           />
-        </Route>
-        <Route
-          path="health/"
-          component={make(() => import('sentry/views/organizationStats/teamInsights'))}
-        >
-          <IndexRoute
+          <Route
+            path="health/"
             component={make(
               () => import('sentry/views/organizationStats/teamInsights/health')
             )}
           />
         </Route>
-        {forCustomerDomain ? null : (
-          <Redirect from="team/" to="/organizations/:orgId/stats/issues/" />
-        )}
-      </Fragment>
-    );
-  };
-  const statsRoutes = (
-    <Fragment>
-      {USING_CUSTOMER_DOMAIN && (
-        <Route
-          path="/stats/"
-          component={withDomainRequired(NoOp)}
-          key="orgless-stats-route"
-        >
-          {statsChildRoutes({forCustomerDomain: true})}
-        </Route>
-      )}
-      <Route
-        path="/organizations/:orgId/stats/"
-        component={withDomainRedirect(NoOp)}
-        key="org-stats"
-      >
-        {statsChildRoutes({forCustomerDomain: false})}
       </Route>
+      <Redirect
+        from="/organizations/:orgId/stats/team/"
+        to="/organizations/:orgId/stats/issues/"
+      />
     </Fragment>
   );
 
@@ -2087,10 +2044,18 @@ function buildRoutes() {
     </Route>
   );
 
-  const ddmRoutes = (
-    <Route path="/ddm/" component={make(() => import('sentry/views/ddm'))} withOrgPath>
-      <IndexRoute component={make(() => import('sentry/views/ddm/ddm'))} />
-    </Route>
+  const metricsRoutes = (
+    <Fragment>
+      <Route
+        path="/metrics/"
+        component={make(() => import('sentry/views/ddm'))}
+        withOrgPath
+      >
+        <IndexRoute component={make(() => import('sentry/views/ddm/ddm'))} />
+      </Route>
+      {/* TODO(ddm): fade this out */}
+      <Redirect from="/ddm/" to="/metrics/" />
+    </Fragment>
   );
 
   // Support for deprecated URLs (pre-Sentry 10). We just redirect users to new
@@ -2201,7 +2166,7 @@ function buildRoutes() {
       {performanceRoutes}
       {starfishRoutes}
       {profilingRoutes}
-      {ddmRoutes}
+      {metricsRoutes}
       {gettingStartedRoutes}
       {adminManageRoutes}
       {legacyOrganizationRootRoutes}

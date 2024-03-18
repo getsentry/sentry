@@ -106,6 +106,7 @@ export declare namespace TraceTree {
   }
   type Trace = TraceSplitResults<Transaction>;
   type TraceError = TraceErrorType;
+  type Profile = {profile_id: string; space: [number, number]};
 
   interface MissingInstrumentationSpan {
     start_timestamp: number;
@@ -267,13 +268,12 @@ export class TraceTree {
 
     function visit(
       parent: TraceTreeNode<TraceTree.NodeValue | null>,
-      value: TraceTree.Transaction | TraceTree.TraceError
+      value: TraceFullDetailed | TraceTree.TraceError
     ) {
       const node = new TraceTreeNode(parent, value, {
         project_slug: value && 'project_slug' in value ? value.project_slug : undefined,
         event_id: value && 'event_id' in value ? value.event_id : undefined,
       });
-      node.canFetch = true;
 
       if (parent) {
         parent.children.push(node as TraceTreeNode<TraceTree.NodeValue>);
@@ -530,7 +530,12 @@ export class TraceTree {
       const head = node;
       let tail = node;
       let groupMatchCount = 0;
-      const erroredChildren: TraceTreeNode<TraceTree.NodeValue>[] = [];
+
+      const errors: TraceErrorType[] = [];
+      const performance_issues: TracePerformanceIssue[] = [];
+
+      let start = head.value.start_timestamp;
+      let end = head.value.timestamp;
 
       while (
         tail &&
@@ -538,21 +543,33 @@ export class TraceTree {
         isSpanNode(tail.children[0]) &&
         tail.children[0].value.op === head.value.op
       ) {
-        if (
-          isTraceErrorNode(tail) &&
-          (tail.value.errors.length > 0 || tail.value.performance_issues.length > 0)
-        ) {
-          erroredChildren.push(tail);
+        if ((tail?.value?.errors?.length ?? 0) > 0) {
+          errors.push(...tail?.value?.errors);
+        }
+        if ((tail?.value?.performance_issues?.length ?? 0) > 0) {
+          performance_issues.push(...tail.value.performance_issues);
         }
 
+        // Collect start/end of all nodes in the list
+        // so that we can properly render a autogrouped bar that
+        // encapsulates all the nodes in the list
+        if (tail.value.start_timestamp < start) {
+          start = tail.value.start_timestamp;
+        }
+        if (tail.value.timestamp > end) {
+          end = tail.value.timestamp;
+        }
         groupMatchCount++;
         tail = tail.children[0];
       }
 
       // Checking the tail node for errors as it is not included in the grouping
       // while loop, but is hidden when the autogrouped node is collapsed
-      if (tail.hasErrors()) {
-        erroredChildren.push(tail);
+      if ((tail?.value?.errors?.length ?? 0) > 0) {
+        errors.push(...tail?.value?.errors);
+      }
+      if ((tail?.value?.performance_issues?.length ?? 0) > 0) {
+        performance_issues.push(...tail.value.performance_issues);
       }
 
       if (groupMatchCount < 1) {
@@ -566,6 +583,8 @@ export class TraceTree {
         node.parent,
         {
           ...head.value,
+          start_timestamp: start,
+          timestamp: end,
           autogrouped_by: {
             op: head.value && 'op' in head.value ? head.value.op ?? '' : '',
           },
@@ -583,14 +602,11 @@ export class TraceTree {
       }
 
       autoGroupedNode.groupCount = groupMatchCount + 1;
-      autoGroupedNode.errored_children = erroredChildren;
+      autoGroupedNode.errors = errors;
+      autoGroupedNode.performance_issues = performance_issues;
       autoGroupedNode.space = [
-        Math.min(head.value.start_timestamp, tail.value.timestamp) *
-          autoGroupedNode.multiplier,
-        Math.max(
-          tail.value.timestamp - head.value.start_timestamp,
-          head.value.timestamp - tail.value.timestamp
-        ) * autoGroupedNode.multiplier,
+        start * autoGroupedNode.multiplier,
+        (end - start) * autoGroupedNode.multiplier,
       ];
 
       for (const c of tail.children) {
@@ -684,8 +700,23 @@ export class TraceTree {
               );
             }
 
-            if (child.hasErrors()) {
-              autoGroupedNode.errored_children.push(child);
+            if (child.has_errors) {
+              if (
+                child.value &&
+                'errors' in child.value &&
+                Array.isArray(child.value.errors)
+              ) {
+                autoGroupedNode.errors.push(...child.value.errors);
+              }
+              if (
+                child.value &&
+                'performance_issues' in child.value &&
+                Array.isArray(child.value.performance_issues)
+              ) {
+                autoGroupedNode.performance_issues.push(
+                  ...child.value.performance_issues
+                );
+              }
             }
 
             autoGroupedNode.children.push(node.children[j]);
@@ -943,11 +974,12 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     event_id: undefined,
   };
 
+  multiplier: number;
   space: [number, number] | null = null;
 
-  multiplier: number;
-  private unit: 'milliseconds' = 'milliseconds';
+  profiles: TraceTree.Profile[] = [];
 
+  private unit: 'milliseconds' = 'milliseconds';
   private _depth: number | undefined;
   private _children: TraceTreeNode<TraceTree.NodeValue>[] = [];
   private _spanChildren: TraceTreeNode<
@@ -970,6 +1002,8 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
         value.start_timestamp * this.multiplier,
         (value.timestamp - value.start_timestamp) * this.multiplier,
       ];
+    } else if (value && 'timestamp' in value && typeof value.timestamp === 'number') {
+      this.space = [value.timestamp * this.multiplier, 0];
     }
 
     if (
@@ -978,6 +1012,14 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
       typeof this.value.timestamp === 'number'
     ) {
       this.space = [this.value.timestamp * this.multiplier, 0];
+    }
+
+    if (value && 'profile_id' in value && typeof value.profile_id === 'string') {
+      this.profiles.push({profile_id: value.profile_id, space: this.space ?? [0, 0]});
+    }
+
+    if (isTransactionNode(this)) {
+      this.canFetch = true;
     }
 
     if (isTransactionNode(this) || isTraceNode(this) || isSpanNode(this)) {
@@ -1083,7 +1125,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     return this._depth;
   }
 
-  hasErrors(): boolean {
+  get has_errors(): boolean {
     return (
       this.value &&
       (('errors' in this.value && this.value.errors.length > 0) ||
@@ -1362,8 +1404,11 @@ export class MissingInstrumentationNode extends TraceTreeNode<TraceTree.MissingI
 export class ParentAutogroupNode extends TraceTreeNode<TraceTree.ChildrenAutogroup> {
   head: TraceTreeNode<TraceTree.Span>;
   tail: TraceTreeNode<TraceTree.Span>;
-  errored_children: TraceTreeNode<TraceTree.NodeValue>[] = [];
   groupCount: number = 0;
+
+  errors: TraceErrorType[] = [];
+  performance_issues: TracePerformanceIssue[] = [];
+  profiles: TraceTree.Profile[] = [];
 
   private _autogroupedSegments: [number, number][] | undefined;
 
@@ -1388,8 +1433,8 @@ export class ParentAutogroupNode extends TraceTreeNode<TraceTree.ChildrenAutogro
     return this.tail.children;
   }
 
-  get has_error(): boolean {
-    return this.errored_children.length > 0;
+  get has_errors(): boolean {
+    return this.errors.length > 0 || this.performance_issues.length > 0;
   }
 
   get autogroupedSegments(): [number, number][] {
@@ -1414,7 +1459,11 @@ export class ParentAutogroupNode extends TraceTreeNode<TraceTree.ChildrenAutogro
 
 export class SiblingAutogroupNode extends TraceTreeNode<TraceTree.SiblingAutogroup> {
   groupCount: number = 0;
-  errored_children: TraceTreeNode<TraceTree.NodeValue>[] = [];
+
+  errors: TraceErrorType[] = [];
+  performance_issues: TracePerformanceIssue[] = [];
+  profiles: TraceTree.Profile[] = [];
+
   private _autogroupedSegments: [number, number][] | undefined;
 
   constructor(
@@ -1426,8 +1475,8 @@ export class SiblingAutogroupNode extends TraceTreeNode<TraceTree.SiblingAutogro
     this.expanded = false;
   }
 
-  get has_error(): boolean {
-    return this.errored_children.length > 0;
+  get has_errors(): boolean {
+    return this.errors.length > 0 || this.performance_issues.length > 0;
   }
 
   get autogroupedSegments(): [number, number][] {

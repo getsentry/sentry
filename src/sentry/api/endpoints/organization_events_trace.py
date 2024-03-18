@@ -333,6 +333,7 @@ class TraceEvent:
         if self.span_serialized:
             result["timestamp"] = self.event["precise.finish_ts"]
             result["start_timestamp"] = self.event["precise.start_ts"]
+            result["profile_id"] = self.event["profile.id"]
         if self.nodestore_event:
             result["timestamp"] = self.nodestore_event.data.get("timestamp")
             result["start_timestamp"] = self.nodestore_event.data.get("start_timestamp")
@@ -438,6 +439,7 @@ def query_trace_data(
         "precise.finish_ts",
         "project",
         "project.id",
+        "profile.id",
         "trace.span",
         "trace.parent_span",
         'to_other(trace.parent_span, "", 0, 1) AS root',

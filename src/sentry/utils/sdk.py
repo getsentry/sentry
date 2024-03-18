@@ -37,8 +37,8 @@ logger = logging.getLogger(__name__)
 
 UNSAFE_FILES = (
     "sentry/event_manager.py",
-    "/sentry/spans/consumers/process/factory.py",
-    "/sentry/spans/consumers/recombine/factory.py",
+    "sentry/spans/consumers/process/factory.py",
+    "sentry/spans/consumers/recombine/factory.py",
     "sentry/tasks/process_buffer.py",
     "sentry/ingest/consumer/processors.py",
     # This consumer lives outside of sentry but is just as unsafe.
@@ -613,8 +613,9 @@ def bind_organization_context(organization: Organization | RpcOrganization) -> N
     helper = settings.SENTRY_ORGANIZATION_CONTEXT_HELPER
 
     # XXX(dcramer): this is duplicated in organizationContext.jsx on the frontend
-    with configure_scope() as scope, sentry_sdk.start_span(
-        op="other", description="bind_organization_context"
+    with (
+        configure_scope() as scope,
+        sentry_sdk.start_span(op="other", description="bind_organization_context"),
     ):
         # This can be used to find errors that may have been mistagged
         check_tag_for_scope_bleed("organization.slug", organization.slug)
