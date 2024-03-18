@@ -11,18 +11,34 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import useOrganization from 'sentry/utils/useOrganization';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-export function openMetricsOptInModal(organization: Organization) {
+export function useOptInModal() {
+  const organization = useOrganization();
+  const [dismissedModal, setDismissedModal] = useLocalStorageState(
+    'sentry:metrics-opt-in-modal-dismissed',
+    false
+  );
+
+  if (!dismissedModal) {
+    openMetricsOptInModal(organization, setDismissedModal);
+  }
+}
+
+function openMetricsOptInModal(
+  organization: Organization,
+  setDismissedModal: (value: boolean) => void
+) {
   return openModal(
     deps => (
       <OrganizationContext.Provider value={organization}>
         <OptInModal
           {...deps}
           closeModal={() => {
-            localStorage.setItem('sentry:metrics-opt-in-modal-dismissed', 'true');
+            setDismissedModal(true);
             deps.closeModal();
           }}
         />
