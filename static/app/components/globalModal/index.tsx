@@ -232,7 +232,7 @@ const fullPageCss = css`
   left: 0;
 `;
 
-const Backdrop = styled('div')`
+export const Backdrop = styled('div')`
   ${fullPageCss};
   z-index: ${p => p.theme.zIndex.modal};
   background: ${p => p.theme.black};
