@@ -27,7 +27,6 @@ import type {
 } from 'sentry/utils/performance/quickTrace/types';
 import {clamp} from 'sentry/utils/profiling/colors/utils';
 import useApi from 'sentry/utils/useApi';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {
@@ -182,7 +181,6 @@ function Trace({
   const api = useApi();
   const {projects} = useProjects();
   const organization = useOrganization();
-  const location = useLocation();
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [_rerender, setRender] = useState(0);
@@ -294,8 +292,6 @@ function Trace({
     manager,
     search_state.query,
     onTraceSearch,
-    location.query.node,
-    location.search,
     setDetailNode,
     roving_dispatch,
   ]);
@@ -453,8 +449,6 @@ function Trace({
       roving_dispatch,
       setDetailNode,
       search_state,
-      location.pathname,
-      location.search,
       search_dispatch,
       previouslyFocusedIndexRef,
       previousSearchResultIndexRef,
