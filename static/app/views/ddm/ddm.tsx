@@ -9,7 +9,7 @@ import {hasMetricsUI} from 'sentry/utils/metrics/features';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DDMContextProvider, useDDMContext} from 'sentry/views/ddm/context';
 import {MetricsLayout} from 'sentry/views/ddm/layout';
-import {openOptInModal} from 'sentry/views/ddm/optInModal';
+import {openMetricsOptInModal} from 'sentry/views/ddm/optInModal';
 
 function WrappedPageFiltersContainer({children}: {children: React.ReactNode}) {
   const {isDefaultQuery} = useDDMContext();
@@ -32,7 +32,7 @@ function Metrics() {
   }, []);
 
   if (!hasMetricsUI(organization)) {
-    openOptInModal(organization);
+    openMetricsOptInModal(organization);
   }
 
   return (

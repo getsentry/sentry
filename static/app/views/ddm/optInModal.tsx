@@ -15,7 +15,7 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import {updateOrganization} from '../../actionCreators/organizations';
 
-export function openOptInModal(organization: Organization) {
+export function openMetricsOptInModal(organization: Organization) {
   return openModal(
     deps => (
       <OrganizationContext.Provider value={organization}>
