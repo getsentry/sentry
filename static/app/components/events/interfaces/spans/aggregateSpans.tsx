@@ -7,9 +7,11 @@ import {useSpanWaterfallModelFromTransaction} from 'sentry/components/events/int
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
+import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {IconClose} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -32,6 +34,23 @@ type AggregateSpanRow = {
   start_ms: number;
 };
 
+const INDEXED_SPANS_CUTOVER_DATE = new Date('2024-02-15');
+function getStartEndDates(selection: PageFilters) {
+  if (selection.datetime.period) {
+    const {start, end} = parseStatsPeriod(selection.datetime.period);
+
+    return {
+      start: new Date(start),
+      end: new Date(end),
+    };
+  }
+
+  const end = selection.datetime.end ? new Date(selection.datetime.end) : null;
+  const start = selection.datetime.start ? new Date(selection.datetime.start) : null;
+
+  return {start: start, end: end};
+}
+
 export function useAggregateSpans({
   transaction,
   httpMethod,
@@ -41,6 +60,16 @@ export function useAggregateSpans({
 }) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  let useIndexedSpansBackend = true;
+
+  const {start, end} = getStartEndDates(selection);
+
+  if (
+    (end && end < INDEXED_SPANS_CUTOVER_DATE) ||
+    (start && start < INDEXED_SPANS_CUTOVER_DATE)
+  ) {
+    useIndexedSpansBackend = false;
+  }
 
   const endpointOptions = {
     query: {
@@ -48,6 +77,7 @@ export function useAggregateSpans({
       ...(defined(httpMethod) ? {'http.method': httpMethod} : null),
       project: selection.projects,
       environment: selection.environments,
+      backend: useIndexedSpansBackend ? 'indexedSpans' : 'nodestore',
       ...normalizeDateTimeParams(selection.datetime),
     },
   };
