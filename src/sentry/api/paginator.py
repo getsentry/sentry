@@ -45,6 +45,16 @@ class BadPaginationError(Exception):
     pass
 
 
+class MissingPaginationError(Exception):
+    error_message: str = """Response is not paginated correctly in {func_name}.
+                    List API response should be paginated, as lack of pagination can break the product in the future due to eventual growth.
+                    Learn more about pagination in https://develop.sentry.dev/api/concepts/#paginating-responses and reach out to #discuss-api if you have any questions."""
+
+    def __init__(self, func_name: str) -> None:
+        self.func_name = func_name
+        super().__init__(self.error_message.format(func_name=func_name))
+
+
 class BasePaginator:
     def __init__(
         self, queryset, order_by=None, max_limit=MAX_LIMIT, on_results=None, post_query_filter=None
@@ -763,7 +773,7 @@ class CallbackPaginator:
         self.callback = callback
         self.on_results = on_results
 
-    def get_result(self, limit: int, cursor: Cursor = None):
+    def get_result(self, limit: int, cursor: Cursor | None = None):
         if cursor is None:
             cursor = Cursor(0, 0, 0)
 

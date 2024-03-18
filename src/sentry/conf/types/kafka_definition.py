@@ -26,6 +26,8 @@ class Topic(Enum):
     METRICS_SUBSCRIPTIONS_RESULTS = "metrics-subscription-results"
     INGEST_EVENTS = "ingest-events"
     INGEST_EVENTS_DLQ = "ingest-events-dlq"
+    INGEST_FEEDBACK_EVENTS = "ingest-feedback-events"
+    INGEST_FEEDBACK_EVENTS_DLQ = "ingest-feedback-events-dlq"
     INGEST_ATTACHMENTS = "ingest-attachments"
     INGEST_TRANSACTIONS = "ingest-transactions"
     INGEST_METRICS = "ingest-metrics"

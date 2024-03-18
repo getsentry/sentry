@@ -6,6 +6,7 @@ from unittest import mock
 
 import pytest
 
+from sentry.replays.testutils import mock_replay_event
 from sentry.replays.usecases.ingest.dom_index import (
     _get_testid,
     _parse_classes,
@@ -17,13 +18,6 @@ from sentry.replays.usecases.ingest.dom_index import (
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
-
-
-def mock_replay_event():
-    return {
-        "user": {"id": "1", "email": "test@test.com"},
-        "environment": "production",
-    }
 
 
 @pytest.fixture(autouse=True)
@@ -430,6 +424,127 @@ def test_parse_replay_dead_click_actions(patch_rage_click_issue_with_replay_even
     action = payload["clicks"][2]
     assert action["is_dead"] == 1
     assert action["is_rage"] == 1
+
+
+@django_db_all
+def test_rage_click_issue_creation_no_component_name(
+    patch_rage_click_issue_with_replay_event, default_project
+):
+    events = [
+        {
+            "type": 5,
+            "timestamp": 1674291701348,
+            "data": {
+                "tag": "breadcrumb",
+                "payload": {
+                    "timestamp": 1.1,
+                    "type": "default",
+                    "category": "ui.slowClickDetected",
+                    "message": "div.container > div#root > div > ul > div",
+                    "data": {
+                        "endReason": "timeout",
+                        "timeafterclickms": 7000.0,
+                        "nodeId": 59,
+                        "url": "https://www.sentry.io",
+                        "node": {
+                            "id": 59,
+                            "tagName": "a",
+                            "attributes": {
+                                "id": "id",
+                                "class": "class1 class2",
+                                "role": "button",
+                                "aria-label": "test",
+                                "alt": "1",
+                                "data-testid": "2",
+                                "title": "3",
+                            },
+                            "textContent": "text",
+                        },
+                    },
+                },
+            },
+        },
+        {
+            "type": 5,
+            "timestamp": 1674291701348,
+            "data": {
+                "tag": "breadcrumb",
+                "payload": {
+                    "timestamp": 1.1,
+                    "type": "default",
+                    "category": "ui.slowClickDetected",
+                    "message": "div.container > div#root > div > ul > div",
+                    "data": {
+                        "clickcount": 5,
+                        "endReason": "timeout",
+                        "timeafterclickms": 7000.0,
+                        "nodeId": 59,
+                        "url": "https://www.sentry.io",
+                        "node": {
+                            "id": 59,
+                            "tagName": "a",
+                            "attributes": {
+                                "id": "id",
+                                "class": "class1 class2",
+                                "role": "button",
+                                "aria-label": "test",
+                                "alt": "1",
+                                "data-testid": "2",
+                                "title": "3",
+                            },
+                            "textContent": "text",
+                        },
+                    },
+                },
+            },
+        },
+        # New style slowClickDetected payload.
+        {
+            "type": 5,
+            "timestamp": 1674291701348,
+            "data": {
+                "tag": "breadcrumb",
+                "payload": {
+                    "timestamp": 1.1,
+                    "type": "default",
+                    "category": "ui.slowClickDetected",
+                    "message": "div.container > div#root > div > ul > div",
+                    "data": {
+                        "url": "https://www.sentry.io",
+                        "clickCount": 5,
+                        "endReason": "timeout",
+                        "timeAfterClickMs": 7000.0,
+                        "nodeId": 59,
+                        "node": {
+                            "id": 59,
+                            "tagName": "a",
+                            "attributes": {
+                                "id": "id",
+                                "class": "class1 class2",
+                                "role": "button",
+                                "aria-label": "test",
+                                "alt": "1",
+                                "data-testid": "2",
+                                "title": "3",
+                            },
+                            "textContent": "text",
+                        },
+                    },
+                },
+            },
+        },
+    ]
+
+    with Feature(
+        {
+            "organizations:session-replay-rage-click-issue-creation": True,
+        }
+    ):
+        default_project.update_option("sentry:replay_rage_click_issues", True)
+        parse_replay_actions(default_project.id, "1", 30, events, mock_replay_event())
+
+    # test that 2 rage click issues are still created
+    assert patch_rage_click_issue_with_replay_event.call_count == 2
 
 
 @django_db_all
@@ -879,7 +994,7 @@ def test_log_sdk_options():
     ):
         randint.return_value = 0
         parse_replay_actions(1, "1", 30, events, None)
-        assert logger.info.call_args_list == [mock.call("SDK Options:", extra=log)]
+        assert logger.info.call_args_list == [mock.call("sentry.replays.slow_click", extra=log)]
 
 
 def test_log_large_dom_mutations():
@@ -983,3 +1098,43 @@ def test_log_canvas_size():
 
     # No events.
     log_canvas_size(1, 1, "a", [])
+
+
+def test_emit_click_negative_node_id():
+    """Test "get_user_actions" function."""
+    events = [
+        {
+            "type": 5,
+            "timestamp": 1674298825,
+            "data": {
+                "tag": "breadcrumb",
+                "payload": {
+                    "timestamp": 1674298825.403,
+                    "type": "default",
+                    "category": "ui.click",
+                    "message": "div#hello.hello.world",
+                    "data": {
+                        "nodeId": 1,
+                        "node": {
+                            "id": -1,
+                            "tagName": "div",
+                            "attributes": {
+                                "id": "hello",
+                                "class": "hello world",
+                                "aria-label": "test",
+                                "role": "button",
+                                "alt": "1",
+                                "data-testid": "2",
+                                "title": "3",
+                                "data-sentry-component": "SignUpForm",
+                            },
+                            "textContent": "Hello, world!",
+                        },
+                    },
+                },
+            },
+        }
+    ]
+
+    user_actions = get_user_actions(1, uuid.uuid4().hex, events, None)
+    assert len(user_actions) == 0

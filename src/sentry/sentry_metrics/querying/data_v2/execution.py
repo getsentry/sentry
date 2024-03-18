@@ -11,9 +11,9 @@ from snuba_sdk.conditions import BooleanCondition, BooleanOp, Condition, Op
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.common import SNUBA_QUERY_LIMIT
-from sentry.sentry_metrics.querying.data_v2.preparation import IntermediateQuery
+from sentry.sentry_metrics.querying.data_v2.preparation.base import IntermediateQuery
 from sentry.sentry_metrics.querying.errors import MetricsQueryExecutionError
-from sentry.sentry_metrics.querying.types import GroupKey, GroupsCollection, QueryOrder
+from sentry.sentry_metrics.querying.types import GroupKey, GroupsCollection, QueryOrder, QueryType
 from sentry.sentry_metrics.querying.units import MeasurementUnit, UnitFamily
 from sentry.sentry_metrics.querying.visitors import (
     QueriedMetricsVisitor,
@@ -202,10 +202,7 @@ class ScheduledQuery:
                 replace(updated_metrics_query.rollup, orderby=self.order.to_snuba_order())
             )
 
-        if self.limit:
-            updated_metrics_query = updated_metrics_query.set_limit(self.limit)
-        else:
-            updated_metrics_query = updated_metrics_query.set_limit(SNUBA_QUERY_LIMIT)
+        updated_metrics_query = updated_metrics_query.set_limit(self.limit or SNUBA_QUERY_LIMIT)
 
         return updated_metrics_query
 
@@ -395,7 +392,7 @@ class QueryResult:
     def scaling_factor(self) -> float | None:
         return self._any_query().scaling_factor
 
-    def align_series_to_totals(self) -> "QueryResult":
+    def align_series_to_totals(self, organization: Organization) -> "QueryResult":
         """
         Aligns the series to the totals of the same query.
 
@@ -416,6 +413,17 @@ class QueryResult:
         for data in self.totals:
             composite_key = _build_composite_key_from_dict(data, alignment_keys)
             indexes = indexed_series.get(composite_key)
+            # It can happen that the groups in series are not matching the groups in totals, due to Snuba bugs or just
+            # limiting taking place in queries. Since this is a problem, we want to keep track of it.
+            if indexes is None:
+                with sentry_sdk.push_scope() as scope:
+                    scope.set_tag("organization_id", organization.id)
+                    scope.set_extra("totals_query", self.totals_query)
+                    scope.set_extra("series_query", self.series_query)
+                    sentry_sdk.capture_message(
+                        "The series groups are not matching the totals groups"
+                    )
+
             for index in indexes or ():
                 aligned_series.append(self.series[index])
 
@@ -571,7 +579,7 @@ class QueryExecutor:
                     first_result = previous_result.to_query_result()
                     second_result = QueryResult.from_scheduled_query(scheduled_query, query_result)
                     merged_result = first_result.merge(second_result)
-                    merged_result.align_series_to_totals()
+                    merged_result.align_series_to_totals(self._organization)
                     self._query_results[query_index] = merged_result
             else:
                 if previous_result is None:
@@ -615,16 +623,15 @@ class QueryExecutor:
 
         return cast(Sequence[QueryResult], self._query_results)
 
-    def schedule(self, intermediate_query: IntermediateQuery):
+    def schedule(self, intermediate_query: IntermediateQuery, query_type: QueryType):
         """
         Lazily schedules a query for execution.
 
         Note that this method won't execute the query, since it's lazy in nature.
         """
-        # For now, we are always building a (totals -> series) query, but the execution engine is fully capable of
-        # supporting either a single totals or series query.
-        series_query = ScheduledQuery(
-            type=ScheduledQueryType.SERIES,
+        # By default, we always want to have a totals query.
+        totals_query = ScheduledQuery(
+            type=ScheduledQueryType.TOTALS,
             metrics_query=intermediate_query.metrics_query,
             order=intermediate_query.order,
             limit=intermediate_query.limit,
@@ -632,12 +639,19 @@ class QueryExecutor:
             unit=intermediate_query.unit,
             scaling_factor=intermediate_query.scaling_factor,
         )
-        totals_query = replace(series_query, type=ScheduledQueryType.TOTALS, next=series_query)
+
+        # In case the user chooses to run also a series query, we will duplicate the query and chain it after totals.
+        series_query = None
+        if query_type == QueryType.TOTALS_AND_SERIES:
+            series_query = replace(totals_query, type=ScheduledQueryType.SERIES)
+
+        final_query = replace(totals_query, next=series_query)
 
         # We initialize the query by performing type-aware mutations that prepare the query to be executed correctly
         # (e.g., adding `totals` to a totals query...).
-        executable_query = totals_query.initialize(
-            self._organization, self._projects, self._blocked_metrics_for_projects
+        self._scheduled_queries.append(
+            final_query.initialize(
+                self._organization, self._projects, self._blocked_metrics_for_projects
+            )
         )
-        self._scheduled_queries.append(executable_query)
         self._query_results.append(None)

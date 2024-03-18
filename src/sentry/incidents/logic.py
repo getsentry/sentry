@@ -20,7 +20,6 @@ from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, ObjectStatus
 from sentry.incidents import tasks
 from sentry.incidents.models.alert_rule import (
     AlertRule,
-    AlertRuleActivationCondition,
     AlertRuleActivity,
     AlertRuleActivityType,
     AlertRuleExcludedProjects,
@@ -30,6 +29,10 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTrigger,
     AlertRuleTriggerAction,
     AlertRuleTriggerExclusion,
+)
+from sentry.incidents.models.alert_rule_activations import (
+    AlertRuleActivationCondition,
+    AlertRuleActivations,
 )
 from sentry.incidents.models.incident import (
     Incident,
@@ -663,7 +666,7 @@ def update_alert_rule(
     user=None,
     event_types=None,
     comparison_delta=NOT_SET,
-    monitor_type: AlertRuleMonitorType = None,
+    monitor_type: AlertRuleMonitorType | None = None,
     **kwargs,
 ):
     """
@@ -946,6 +949,21 @@ def create_alert_rule_activation_condition(
     return condition
 
 
+def create_alert_rule_activation(
+    alert_rule: AlertRule,
+    metric_value: int | None = None,
+    finished_at: datetime | None = None,
+):
+    with transaction.atomic(router.db_for_write(AlertRuleActivations)):
+        activation = AlertRuleActivations.objects.create(
+            alert_rule=alert_rule,
+            metric_value=metric_value,
+            finished_at=finished_at,
+        )
+
+    return activation
+
+
 def create_alert_rule_trigger(alert_rule, label, alert_threshold, excluded_projects=None):
     """
     Creates a new AlertRuleTrigger
@@ -1167,6 +1185,7 @@ def create_alert_rule_trigger_action(
     sentry_app_config=None,
     installations: list[RpcSentryAppInstallation] | None = None,
     integrations: list[RpcIntegration] | None = None,
+    priority: str | None = None,
 ) -> AlertRuleTriggerAction:
     """
     Creates an AlertRuleTriggerAction
@@ -1203,6 +1222,13 @@ def create_alert_rule_trigger_action(
             trigger.alert_rule.organization, sentry_app_id, installations
         )
 
+    # store priority in the json sentry_app_config
+    if priority is not None and type in [ActionService.PAGERDUTY, ActionService.OPSGENIE]:
+        if sentry_app_config:
+            sentry_app_config.update({"priority": priority})
+        else:
+            sentry_app_config = {"priority": priority}
+
     return AlertRuleTriggerAction.objects.create(
         alert_rule_trigger=trigger,
         type=type.value,
@@ -1227,6 +1253,7 @@ def update_alert_rule_trigger_action(
     sentry_app_config=None,
     installations: list[RpcSentryAppInstallation] | None = None,
     integrations: list[RpcIntegration] | None = None,
+    priority: str | None = None,
 ) -> AlertRuleTriggerAction:
     """
     Updates values on an AlertRuleTriggerAction
@@ -1279,6 +1306,14 @@ def update_alert_rule_trigger_action(
             updated_fields["target_display"] = target_display
 
         updated_fields["target_identifier"] = target_identifier
+
+    # store priority in the json sentry_app_config
+    if priority is not None and type in [ActionService.PAGERDUTY, ActionService.OPSGENIE]:
+        if updated_fields.get("sentry_app_config"):
+            updated_fields["sentry_app_config"].update({"priority": priority})
+        else:
+            updated_fields["sentry_app_config"] = {"priority": priority}
+
     trigger_action.update(**updated_fields)
     return trigger_action
 

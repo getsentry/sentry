@@ -93,11 +93,8 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
         except NoProjects:
             return Response({})
 
-        if features.has(
-            "organizations:session-replay-count-query-optimize", organization, actor=request.user
-        ):
-            if not project_in_org_has_sent_replay(organization):
-                return Response({})
+        if not project_in_org_has_sent_replay(organization):
+            return Response({})
 
         result = ReplayDataSourceValidator(data=request.GET)
         if not result.is_valid():

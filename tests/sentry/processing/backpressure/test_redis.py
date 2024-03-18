@@ -6,8 +6,7 @@ from sentry.processing.backpressure.monitor import (
     check_service_health,
     load_service_definitions,
 )
-from sentry.testutils.helpers import override_options
-from sentry.testutils.helpers.redis import get_redis_cluster_default_options
+from sentry.testutils.helpers.redis import use_redis_cluster
 
 
 @override_settings(SENTRY_PROCESSING_SERVICES={"redis": {"redis": "default"}})
@@ -24,8 +23,7 @@ def test_rb_cluster_returns_some_usage() -> None:
     assert 0.0 < memory.percentage < 1.0
 
 
-@override_settings(SENTRY_PROCESSING_SERVICES={"redis": {"redis": "cluster"}})
-@override_options(get_redis_cluster_default_options(id="cluster"))
+@use_redis_cluster()
 def test_redis_cluster_cluster_returns_some_usage() -> None:
     services = load_service_definitions()
     redis_service = services["redis"]
@@ -39,8 +37,7 @@ def test_redis_cluster_cluster_returns_some_usage() -> None:
     assert 0.0 < memory.percentage < 1.0
 
 
-@override_settings(SENTRY_PROCESSING_SERVICES={"redis": {"redis": "cluster"}})
-@override_options(get_redis_cluster_default_options(id="cluster", high_watermark=100))
+@use_redis_cluster(high_watermark=100)
 def test_redis_health():
     services = load_service_definitions()
     assert isinstance(services["redis"], Redis)
@@ -51,8 +48,7 @@ def test_redis_health():
     assert len(redis_services) == 0
 
 
-@override_settings(SENTRY_PROCESSING_SERVICES={"redis": {"redis": "cluster"}})
-@override_options(get_redis_cluster_default_options(id="cluster", high_watermark=0))
+@use_redis_cluster(high_watermark=0)
 def test_redis_unhealthy_state():
     services = load_service_definitions()
     assert isinstance(services["redis"], Redis)

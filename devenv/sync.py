@@ -29,6 +29,7 @@ def run_procs(
                 subprocess.Popen(
                     cmd,
                     stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
                     env={
                         **constants.user_environ,
                         **proc.base_env,
@@ -43,13 +44,10 @@ def run_procs(
 
     all_good = True
     for name, final_cmd, p in procs:
-        p.wait()
+        out, _ = p.communicate()
         if p.returncode != 0:
             all_good = False
-            if p.stdout is None:
-                out = ""
-            else:
-                out = p.stdout.read().decode()
+            out_str = "" if out is None else out.decode()
             print(
                 f"""
 ❌ {name}
@@ -58,7 +56,7 @@ failed command (code p.returncode):
     {proc.quote(final_cmd)}
 
 Output:
-{out}
+{out_str}
 
 """
             )
@@ -136,7 +134,7 @@ def main(context: dict[str, str]) -> int:
     if not os.path.exists(f"{constants.home}/.sentry/config.yml") or not os.path.exists(
         f"{constants.home}/.sentry/sentry.conf.py"
     ):
-        proc.run((f"{venv_dir}/bin/{repo}", "init", "--dev"))
+        proc.run((f"{venv_dir}/bin/sentry", "init", "--dev"))
 
     # TODO: check healthchecks for redis and postgres to short circuit this
     proc.run(

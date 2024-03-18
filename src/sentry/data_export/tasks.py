@@ -352,7 +352,7 @@ def merge_export_blobs(data_export_id, **kwargs):
 
                 # This is in a separate atomic transaction because in prod, files exist
                 # outside of the primary database which means that the transaction to
-                # the primary database is idle the entire time the writes the the files
+                # the primary database is idle the entire time the writes the files
                 # database is happening. In the event the writes to the files database
                 # takes longer than the idle timeout, the connection to the primary
                 # database can timeout causing a failure.

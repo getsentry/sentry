@@ -45,7 +45,7 @@ class Fixtures:
 
     @cached_property
     def user(self):
-        return self.create_user("admin@localhost", is_superuser=True)
+        return self.create_user("admin@localhost", is_superuser=True, is_staff=True)
 
     @cached_property
     def organization(self):
@@ -205,7 +205,7 @@ class Fixtures:
             project = self.project
         return Factories.create_release(project=project, user=user, *args, **kwargs)
 
-    def create_group_release(self, project: Project = None, *args, **kwargs) -> GroupRelease:
+    def create_group_release(self, project: Project | None = None, *args, **kwargs) -> GroupRelease:
         if project is None:
             project = self.project
         return Factories.create_group_release(project, *args, **kwargs)
@@ -399,6 +399,13 @@ class Fixtures:
             alert_rule=alert_rule, *args, **kwargs
         )
 
+    def create_alert_rule_activation(self, alert_rule=None, *args, **kwargs):
+        if not alert_rule:
+            alert_rule = self.create_alert_rule(
+                monitor_type=AlertRuleMonitorType.ACTIVATED,
+            )
+        return Factories.create_alert_rule_activation(alert_rule=alert_rule, *args, **kwargs)
+
     def create_alert_rule_trigger(self, alert_rule=None, *args, **kwargs):
         if not alert_rule:
             alert_rule = self.create_alert_rule()
@@ -553,7 +560,7 @@ class Fixtures:
     def create_organization_mapping(self, *args, **kwargs):
         return Factories.create_org_mapping(*args, **kwargs)
 
-    def create_basic_auth_header(self, *args, **kwargs):
+    def create_basic_auth_header(self, *args, **kwargs) -> bytes:
         return Factories.create_basic_auth_header(*args, **kwargs)
 
     def snooze_rule(self, *args, **kwargs):

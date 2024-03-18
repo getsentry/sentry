@@ -223,42 +223,34 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "topic": Topic.EVENTS_SUBSCRIPTIONS_RESULTS,
         "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
-        "static_args": {
-            "topic": settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
-        },
+        "static_args": {"dataset": "events"},
     },
     "transactions-subscription-results": {
         "topic": Topic.TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
         "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
-        "static_args": {
-            "topic": settings.KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
-        },
+        "static_args": {"dataset": "transactions"},
     },
     "generic-metrics-subscription-results": {
         "topic": Topic.GENERIC_METRICS_SUBSCRIPTIONS_RESULTS,
         "validate_schema": True,
         "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
-        "static_args": {
-            "topic": settings.KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS,
-        },
+        "static_args": {"dataset": "generic_metrics"},
     },
     "sessions-subscription-results": {
         "topic": Topic.SESSIONS_SUBSCRIPTIONS_RESULTS,
         "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
         "click_options": multiprocessing_options(),
         "static_args": {
-            "topic": settings.KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS,
+            "dataset": "events",
         },
     },
     "metrics-subscription-results": {
         "topic": Topic.METRICS_SUBSCRIPTIONS_RESULTS,
         "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
-        "static_args": {
-            "topic": settings.KAFKA_METRICS_SUBSCRIPTIONS_RESULTS,
-        },
+        "static_args": {"dataset": "metrics"},
     },
     "ingest-events": {
         "topic": Topic.INGEST_EVENTS,
@@ -267,6 +259,16 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "static_args": {
             "consumer_type": "events",
         },
+        "dlq_topic": Topic.INGEST_EVENTS_DLQ,
+    },
+    "ingest-feedback-events": {
+        "topic": Topic.INGEST_FEEDBACK_EVENTS,
+        "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
+        "click_options": ingest_events_options(),
+        "static_args": {
+            "consumer_type": "feedback-events",
+        },
+        "dlq_topic": Topic.INGEST_FEEDBACK_EVENTS_DLQ,
     },
     "ingest-attachments": {
         "topic": Topic.INGEST_ATTACHMENTS,
@@ -374,7 +376,7 @@ def get_stream_processor(
     synchronize_commit_group: str | None = None,
     healthcheck_file_path: str | None = None,
     enable_dlq: bool = False,
-    validate_schema: bool = False,
+    enforce_schema: bool = False,
     group_instance_id: str | None = None,
 ) -> StreamProcessor:
     from sentry.utils import kafka_config
@@ -472,12 +474,12 @@ def get_stream_processor(
             "--synchronize_commit_group and --synchronize_commit_log_topic are required arguments for this consumer"
         )
 
-    # Validate schema if "validate_schema" is set
-    validate_schema = consumer_definition.get("validate_schema") or False
+    # Validate schema if enforce_schema is true or "validate_schema" is set
+    validate_schema = enforce_schema or consumer_definition.get("validate_schema") or False
 
     if validate_schema:
         strategy_factory = ValidateSchemaStrategyFactoryWrapper(
-            consumer_topic.value, validate_schema, strategy_factory
+            consumer_topic.value, enforce_schema, strategy_factory
         )
 
     if healthcheck_file_path is not None:

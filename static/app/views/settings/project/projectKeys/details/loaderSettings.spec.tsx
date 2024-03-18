@@ -278,7 +278,8 @@ describe('Loader Script Settings', function () {
 
     expect(
       screen.getByText(
-        'When using Replay, the loader will load the ES6 bundle instead of the ES5 bundle.'
+        'When using Replay, the loader will load the ES6 bundle instead of the ES5 bundle.',
+        {exact: false}
       )
     ).toBeInTheDocument();
 
@@ -296,7 +297,8 @@ describe('Loader Script Settings', function () {
 
     expect(
       screen.queryByText(
-        'When using Replay, the loader will load the ES6 bundle instead of the ES5 bundle.'
+        'When using Replay, the loader will load the ES6 bundle instead of the ES5 bundle.',
+        {exact: false}
       )
     ).not.toBeInTheDocument();
   });

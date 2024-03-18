@@ -158,8 +158,12 @@ class DiscoverDatasetConfig(DatasetConfig):
             TOTAL_COUNT_ALIAS: self._resolve_total_count,
             TOTAL_TRANSACTION_DURATION_ALIAS: self._resolve_total_sum_transaction_duration,
             DEVICE_CLASS_ALIAS: self._resolve_device_class,
-            PRECISE_FINISH_TS: self._resolve_precise_finish_ts,
-            PRECISE_START_TS: self._resolve_precise_start_ts,
+            PRECISE_FINISH_TS: lambda alias: field_aliases.resolve_precise_timestamp(
+                Column("finish_ts"), Column("finish_ms"), alias
+            ),
+            PRECISE_START_TS: lambda alias: field_aliases.resolve_precise_timestamp(
+                Column("start_ts"), Column("start_ms"), alias
+            ),
         }
 
     @property
@@ -200,9 +204,11 @@ class DiscoverDatasetConfig(DatasetConfig):
                     calculated_args=[
                         {
                             "name": "tolerated",
-                            "fn": lambda args: args["satisfaction"] * 4.0
-                            if args["satisfaction"] is not None
-                            else None,
+                            "fn": lambda args: (
+                                args["satisfaction"] * 4.0
+                                if args["satisfaction"] is not None
+                                else None
+                            ),
                         }
                     ],
                     snql_aggregate=self._resolve_count_miserable_function,
@@ -224,9 +230,11 @@ class DiscoverDatasetConfig(DatasetConfig):
                     calculated_args=[
                         {
                             "name": "tolerated",
-                            "fn": lambda args: args["satisfaction"] * 4.0
-                            if args["satisfaction"] is not None
-                            else None,
+                            "fn": lambda args: (
+                                args["satisfaction"] * 4.0
+                                if args["satisfaction"] is not None
+                                else None
+                            ),
                         },
                         {"name": "parameter_sum", "fn": lambda args: args["alpha"] + args["beta"]},
                     ],
@@ -369,7 +377,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                 SnQLFunction(
                     "to_other",
                     required_args=[
-                        ColumnArg("column", allowed_columns=["release", "trace.parent_span"]),
+                        ColumnArg("column", allowed_columns=["release", "trace.parent_span", "id"]),
                         SnQLStringArg("value", unquote=True, unescape_quotes=True),
                     ],
                     optional_args=[
@@ -1005,9 +1013,10 @@ class DiscoverDatasetConfig(DatasetConfig):
                     default_result_type="integer",
                 ),
                 SnQLFunction(
-                    "example",
+                    "examples",
                     required_args=[NumericColumn("column")],
-                    snql_aggregate=self._resolve_random_sample,
+                    optional_args=[with_default(1, NumberRange("count", 1, None))],
+                    snql_aggregate=self._resolve_random_samples,
                     private=True,
                 ),
                 SnQLFunction(
@@ -1016,6 +1025,18 @@ class DiscoverDatasetConfig(DatasetConfig):
                     snql_column=lambda args, alias: function_aliases.resolve_rounded_timestamp(
                         args["interval"], alias
                     ),
+                    private=True,
+                ),
+                SnQLFunction(
+                    "column_hash",
+                    # TODO: this supports only one column, but hash functions can support arbitrary parameters
+                    required_args=[ColumnArg("column")],
+                    snql_aggregate=lambda args, alias: Function(
+                        "farmFingerprint64",  # farmFingerprint64 aka farmHash64 is a newer, faster replacement for cityHash64
+                        [args["column"]],
+                        alias,
+                    ),
+                    default_result_type="integer",
                     private=True,
                 ),
             ]
@@ -1389,26 +1410,6 @@ class DiscoverDatasetConfig(DatasetConfig):
                 None,
             ],
             DEVICE_CLASS_ALIAS,
-        )
-
-    def _resolve_precise_start_ts(self, alias: str) -> SelectType:
-        return Function(
-            "plus",
-            [
-                Function("toUnixTimestamp", [Column("start_ts")]),
-                Function("divide", [Column("start_ms"), 1000]),
-            ],
-            alias,
-        )
-
-    def _resolve_precise_finish_ts(self, alias: str) -> SelectType:
-        return Function(
-            "plus",
-            [
-                Function("toUnixTimestamp", [Column("finish_ts")]),
-                Function("divide", [Column("finish_ms"), 1000]),
-            ],
-            alias,
         )
 
     # Functions
@@ -1811,18 +1812,27 @@ class DiscoverDatasetConfig(DatasetConfig):
             alias,
         )
 
-    def _resolve_random_sample(
+    def _resolve_random_samples(
         self,
         args: Mapping[str, str | Column | SelectType | int | float],
         alias: str,
     ) -> SelectType:
         offset = 0 if self.builder.offset is None else self.builder.offset.offset
         limit = 0 if self.builder.limit is None else self.builder.limit.limit
-        return function_aliases.resolve_random_sample(
-            ["timestamp", "span_id", args["column"].name],
+        return function_aliases.resolve_random_samples(
+            [
+                # DO NOT change the order of these columns as it
+                # changes the order of the tuple in the response
+                # which WILL cause errors where it assumes this
+                # order
+                self.builder.resolve_column("timestamp"),
+                self.builder.resolve_column("span_id"),
+                args["column"],
+            ],
             alias,
             offset,
             limit,
+            size=int(args["count"]),
         )
 
     # Query Filters

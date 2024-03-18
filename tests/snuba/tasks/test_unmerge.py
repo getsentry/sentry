@@ -5,11 +5,11 @@ import hashlib
 import itertools
 import logging
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 from unittest import mock
 from unittest.mock import patch
 
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 
 from sentry import eventstream, tagstore, tsdb
 from sentry.eventstore.models import Event
@@ -34,7 +34,6 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.tsdb.base import TSDBModel
 from sentry.utils import redis
-from sentry.utils.dates import to_timestamp
 
 # Use the default redis client as a cluster client in the similarity index
 index = _make_index_backend(redis.clusters.get("default").get_local_client(0))
@@ -61,7 +60,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         )
 
     def test_get_group_creation_attributes(self):
-        now = datetime.now(timezone.utc).replace(microsecond=0)
+        now = timezone.now().replace(microsecond=0)
         e1 = self.store_event(
             data={
                 "fingerprint": ["group1"],
@@ -120,7 +119,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         }
 
     def test_get_group_backfill_attributes(self):
-        now = datetime.now(timezone.utc).replace(microsecond=0)
+        now = timezone.now().replace(microsecond=0)
 
         assert get_group_backfill_attributes(
             get_caches(),
@@ -136,7 +135,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 times_seen=1,
                 first_release=None,
                 culprit="",
-                data={"type": "default", "last_received": to_timestamp(now), "metadata": {}},
+                data={"type": "default", "last_received": now.timestamp(), "metadata": {}},
             ),
             [
                 self.store_event(
@@ -181,7 +180,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             return now + timedelta(seconds=offset)
 
         project = self.create_project()
-        project.date_added = django_timezone.now() - timedelta(minutes=10)
+        project.date_added = timezone.now() - timedelta(minutes=10)
         project.save()
         sequence = itertools.count(0)
         tag_values = itertools.cycle(["red", "green", "blue"])
@@ -405,7 +404,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
             expected: dict[float, float] = {}
             for event in events:
-                k = float((to_timestamp(event.datetime) // rollup_duration) * rollup_duration)
+                k = float((event.datetime.timestamp() // rollup_duration) * rollup_duration)
                 expected[k] = function(expected.get(k), event)
 
             return expected

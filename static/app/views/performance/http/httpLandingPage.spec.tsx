@@ -137,6 +137,35 @@ describe('HTTPLandingPage', function () {
       })
     );
 
+    expect(spanChartsRequestMock).toHaveBeenNthCalledWith(
+      3,
+      `/organizations/${organization.slug}/events-stats/`,
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          cursor: undefined,
+          dataset: 'spansMetrics',
+          environment: [],
+          excludeOther: 0,
+          field: [],
+          interval: '30m',
+          orderby: undefined,
+          partial: 1,
+          per_page: 50,
+          project: [],
+          query: 'span.module:http has:span.domain',
+          referrer: 'api.starfish.http-module-landing-response-code-chart',
+          statsPeriod: '10d',
+          topEvents: undefined,
+          yAxis: [
+            'http_response_rate(3)',
+            'http_response_rate(4)',
+            'http_response_rate(5)',
+          ],
+        },
+      })
+    );
+
     expect(spanListRequestMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/events/`,
       expect.objectContaining({
@@ -148,6 +177,9 @@ describe('HTTPLandingPage', function () {
             'project.id',
             'span.domain',
             'spm()',
+            'http_response_rate(2)',
+            'http_response_rate(4)',
+            'http_response_rate(5)',
             'avg(span.self_time)',
             'sum(span.self_time)',
             'time_spent_percentage()',

@@ -5,7 +5,11 @@ from logging import Logger, getLogger
 
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident
-from sentry.integrations.repository.base import BaseNewNotificationMessage, BaseNotificationMessage
+from sentry.integrations.repository.base import (
+    BaseNewNotificationMessage,
+    BaseNotificationMessage,
+    NotificationMessageValidationError,
+)
 from sentry.models.notificationmessage import NotificationMessage
 
 _default_logger: Logger = getLogger(__name__)
@@ -13,7 +17,9 @@ _default_logger: Logger = getLogger(__name__)
 
 @dataclass(frozen=True)
 class MetricAlertNotificationMessage(BaseNotificationMessage):
+    # TODO: https://github.com/getsentry/sentry/issues/66751
     incident: Incident | None = None
+    # TODO: https://github.com/getsentry/sentry/issues/66751
     trigger_action: AlertRuleTriggerAction | None = None
 
     @classmethod
@@ -34,18 +40,12 @@ class MetricAlertNotificationMessage(BaseNotificationMessage):
         )
 
 
-class NewMetricAlertNotificationMessageValidationError(Exception):
+class NewMetricAlertNotificationMessageValidationError(NotificationMessageValidationError):
     pass
 
 
 class IncidentAndTriggerActionValidationError(NewMetricAlertNotificationMessageValidationError):
     message = "both incident and trigger action need to exist together with a reference"
-
-
-class MessageIdentifierWithErrorValidationError(NewMetricAlertNotificationMessageValidationError):
-    message = (
-        "cannot create a new notification message with message identifier when an error exists"
-    )
 
 
 @dataclass
@@ -54,25 +54,19 @@ class NewMetricAlertNotificationMessage(BaseNewNotificationMessage):
     trigger_action_id: int | None = None
 
     def get_validation_error(self) -> Exception | None:
-        """
-        Helper method for getting any potential validation errors based on the state of the data.
-        There are particular restrictions about the various fields, and this is to help the user check before
-        trying to instantiate a new instance in the datastore.
-        """
-        if self.message_identifier is not None:
-            if self.error_code is not None or self.error_details is not None:
-                return MessageIdentifierWithErrorValidationError()
+        error = super().get_validation_error()
+        if error is not None:
+            return error
 
+        if self.message_identifier is not None:
+            # If a message_identifier exists, that means a successful notification happened for an incident and trigger
+            # This means that neither of them can be empty
             if self.incident_id is None or self.trigger_action_id is None:
                 return IncidentAndTriggerActionValidationError()
 
-        incident_exists_without_trigger = (
-            self.incident_id is not None and self.trigger_action_id is None
-        )
-        trigger_exists_without_incident = (
-            self.incident_id is None and self.trigger_action_id is not None
-        )
-        if incident_exists_without_trigger or trigger_exists_without_incident:
+        # We can create a NotificationMessage if it has both, or neither, of incident and trigger.
+        # The following is an XNOR check for incident and trigger
+        if (self.incident_id is not None) != (self.trigger_action_id is not None):
             return IncidentAndTriggerActionValidationError()
 
         return None

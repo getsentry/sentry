@@ -251,7 +251,7 @@ def get_metrics_config(project: Project) -> Mapping[str, Any] | None:
 
     if features.has("organizations:relay-cardinality-limiter", project.organization):
         passive_limits = options.get("relay.cardinality-limiter.passive-limits-by-org").get(
-            project.organization.id, []
+            str(project.organization.id), []
         )
 
         cardinality_limits: list[CardinalityLimit] = []
@@ -305,7 +305,10 @@ def get_project_config(
     """
     with sentry_sdk.push_scope() as scope:
         scope.set_tag("project", project.id)
-        with metrics.timer("relay.config.get_project_config.duration"):
+        with (
+            sentry_sdk.start_transaction(op="get_project_config"),
+            metrics.timer("relay.config.get_project_config.duration"),
+        ):
             return _get_project_config(project, full_config=full_config, project_keys=project_keys)
 
 
@@ -435,8 +438,9 @@ def _get_project_config(
 
     config = cfg["config"]
 
-    if exposed_features := get_exposed_features(project):
-        config["features"] = exposed_features
+    with sentry_sdk.start_span(op="get_exposed_features"):
+        if exposed_features := get_exposed_features(project):
+            config["features"] = exposed_features
 
     # NOTE: Omitting dynamicSampling because of a failure increases the number
     # of events forwarded by Relay, because dynamic sampling will stop filtering

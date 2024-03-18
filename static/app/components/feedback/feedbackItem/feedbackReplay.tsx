@@ -1,12 +1,10 @@
-import {Fragment} from 'react';
-
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
 import ReplayInlineCTAPanel from 'sentry/components/feedback/feedbackItem/replayInlineCTAPanel';
 import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection';
 import Placeholder from 'sentry/components/placeholder';
-import MissingReplayAlert from 'sentry/components/replays/alerts/missingReplayAlert';
-import ReplayUnsupportedAlert from 'sentry/components/replays/alerts/replayUnsupportedAlert';
 import {replayPlatforms} from 'sentry/data/platformCategories';
+import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, Organization} from 'sentry/types';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
@@ -28,38 +26,35 @@ export default function FeedbackReplay({eventData, feedbackItem, organization}: 
     useHaveSelectedProjectsSentAnyReplayEvents();
   const platformSupported = replayPlatforms.includes(feedbackItem.platform);
 
-  if (!platformSupported && !(feedbackItem.platform === 'other')) {
-    return (
-      <ReplayUnsupportedAlert
-        primaryAction="create"
-        projectSlug={feedbackItem.project.slug}
-      />
-    );
-  }
-
   if (replayId && hasReplayId) {
     return (
-      <ErrorBoundary mini>
-        <ReplaySection
-          eventTimestampMs={new Date(feedbackItem.firstSeen).getTime()}
-          organization={organization}
-          replayId={replayId}
-        />
-      </ErrorBoundary>
+      <Section icon={<IconPlay size="xs" />} title={t('Linked Replay')}>
+        <ErrorBoundary mini>
+          <ReplaySection
+            eventTimestampMs={new Date(feedbackItem.firstSeen).getTime()}
+            organization={organization}
+            replayId={replayId}
+          />
+        </ErrorBoundary>
+      </Section>
     );
   }
 
   if ((replayId && hasReplayId === undefined) || isFetchingSentOneReplay) {
-    return <Placeholder />;
+    return (
+      <Section icon={<IconPlay size="xs" />} title={t('Linked Replay')}>
+        <Placeholder />
+      </Section>
+    );
   }
 
   if (!hasSentOneReplay && platformSupported) {
-    return <ReplayInlineCTAPanel />;
+    return (
+      <Section icon={<IconPlay size="xs" />} title={t('Linked Replay')}>
+        <ReplayInlineCTAPanel />
+      </Section>
+    );
   }
 
-  if (replayId) {
-    return <MissingReplayAlert orgSlug={organization.slug} />;
-  }
-
-  return <Fragment>{t('No replay captured')}</Fragment>;
+  return null;
 }
