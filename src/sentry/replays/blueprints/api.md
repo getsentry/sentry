@@ -614,7 +614,7 @@ Retrieve a collection of click events associated with a replay.
 - Parameters
 
   - project (optional, string)
-  - id (required, array[string]) - The id of the replay to retrieve. Can be specified multiple times. A maximum of 100 id's can be specified.
+  - id (required, string) - The id(s) of the replay to retrieve. To specify multiple ids, use the format `?id=a&id=b ...`. A maximum of 100 id's can be specified.
 
 ### Browse Replays Viewed Status [GET]
 
