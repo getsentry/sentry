@@ -485,7 +485,6 @@ module = [
     "sentry.templatetags.sentry_plugins",
     "sentry.testutils.asserts",
     "sentry.testutils.cases",
-    "sentry.testutils.factories",
     "sentry.testutils.fixtures",
     "sentry.testutils.helpers.features",
     "sentry.testutils.helpers.notifications",

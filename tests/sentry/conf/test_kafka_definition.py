@@ -16,13 +16,9 @@ def test_topic_definition() -> None:
     # TODO: Remove this once these topics are actually registered in sentry-kafka-schemas
     currently_unregistered_topics = [
         "outcomes-billing",
-        "ingest-events",
-        "ingest-events-dlq",
         "ingest-attachments",
         "ingest-transactions",
-        "ingest-metrics-dlq",
         "profiles",
-        "ingest-generic-metrics-dlq",
         "ingest-occurrences",
         "ingest-monitors",
     ]

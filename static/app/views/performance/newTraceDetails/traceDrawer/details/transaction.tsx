@@ -54,7 +54,7 @@ import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transac
 
 import type {TraceTree, TraceTreeNode} from '../../traceTree';
 
-import IssueList from './issues/issueList';
+import {IssueList} from './issues/issues';
 import {TraceDrawerComponents} from './styles';
 
 function OpsBreakdown({event}: {event: EventTransaction}) {
@@ -172,6 +172,9 @@ export function TransactionNodeDetails({
   scrollToNode,
 }: TransactionDetailProps) {
   const {projects} = useProjects();
+  const issues = useMemo(() => {
+    return [...node.errors, ...node.performance_issues];
+  }, [node.errors, node.performance_issues]);
   const {data: event} = useApiQuery<EventTransaction>(
     [
       `/organizations/${organization.slug}/events/${node.value.project_slug}:${node.value.event_id}/`,
@@ -186,10 +189,6 @@ export function TransactionNodeDetails({
       enabled: !!node,
     }
   );
-
-  const relatedIssues = useMemo(() => {
-    return [...node.value.errors, ...node.value.performance_issues];
-  }, [node.value.errors, node.value.performance_issues]);
 
   if (!event) {
     return <LoadingIndicator />;
@@ -293,6 +292,10 @@ export function TransactionNodeDetails({
           <Button size="xs" onClick={_e => scrollToNode(node)}>
             {t('Show in view')}
           </Button>
+          <TraceDrawerComponents.EventDetailsLink
+            eventId={node.value.event_id}
+            projectSlug={node.metadata.project_slug}
+          />
           <Button
             size="xs"
             icon={<IconOpen />}
@@ -309,7 +312,9 @@ export function TransactionNodeDetails({
         </TraceDrawerComponents.Actions>
       </TraceDrawerComponents.HeaderContainer>
 
-      {hasIssues && <IssueList organization={organization} issues={relatedIssues} />}
+      {hasIssues ? (
+        <IssueList node={node} organization={organization} issues={issues} />
+      ) : null}
 
       <TraceDrawerComponents.Table className="table key-value">
         <tbody>
