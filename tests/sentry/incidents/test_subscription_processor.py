@@ -1,5 +1,5 @@
 import unittest
-from datetime import UTC, timedelta
+from datetime import timedelta
 from functools import cached_property
 from random import randint
 from unittest import mock
@@ -257,7 +257,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             timestamp = timezone.now() + time_delta
         else:
             timestamp = timezone.now()
-        timestamp = timestamp.replace(tzinfo=UTC, microsecond=0)
+        timestamp = timestamp.replace(microsecond=0)
 
         data = {}
 
@@ -2270,7 +2270,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
             timestamp = timezone.now() + time_delta
         else:
             timestamp = timezone.now()
-        timestamp = timestamp.replace(tzinfo=UTC, microsecond=0)
+        timestamp = timestamp.replace(microsecond=0)
 
         with (
             self.feature(["organizations:incidents", "organizations:performance-view"]),
@@ -2780,7 +2780,7 @@ class MetricsCrashRateAlertProcessUpdateV1Test(MetricsCrashRateAlertProcessUpdat
             timestamp = timezone.now() + time_delta
         else:
             timestamp = timezone.now()
-        timestamp = timestamp.replace(tzinfo=UTC, microsecond=0)
+        timestamp = timestamp.replace(microsecond=0)
 
         with (
             self.feature(["organizations:incidents", "organizations:performance-view"]),

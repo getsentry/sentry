@@ -73,6 +73,7 @@ export function MissingFrame() {
 
 export const FrameContainer = styled('div')`
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: ${space(0.5)};
   padding: ${space(1.5)} ${space(2)};

@@ -107,6 +107,7 @@ export declare namespace TraceTree {
   }
   type Trace = TraceSplitResults<Transaction>;
   type TraceError = TraceErrorType;
+  type Profile = {profile_id: string; space: [number, number]};
 
   interface MissingInstrumentationSpan {
     start_timestamp: number;
@@ -272,7 +273,7 @@ export class TraceTree {
 
     function visit(
       parent: TraceTreeNode<TraceTree.NodeValue | null>,
-      value: TraceTree.Transaction | TraceTree.TraceError
+      value: TraceFullDetailed | TraceTree.TraceError
     ) {
       const node = new TraceTreeNode(parent, value, {
         project_slug: value && 'project_slug' in value ? value.project_slug : undefined,
@@ -996,11 +997,12 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
   errors: TraceErrorType[] = [];
   performance_issues: TracePerformanceIssue[] = [];
 
+  multiplier: number;
   space: [number, number] | null = null;
 
-  multiplier: number;
-  private unit: 'milliseconds' = 'milliseconds';
+  profiles: TraceTree.Profile[] = [];
 
+  private unit: 'milliseconds' = 'milliseconds';
   private _depth: number | undefined;
   private _children: TraceTreeNode<TraceTree.NodeValue>[] = [];
   private _spanChildren: TraceTreeNode<
@@ -1023,6 +1025,8 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
         value.start_timestamp * this.multiplier,
         (value.timestamp - value.start_timestamp) * this.multiplier,
       ];
+    } else if (value && 'timestamp' in value && typeof value.timestamp === 'number') {
+      this.space = [value.timestamp * this.multiplier, 0];
     }
 
     if (
@@ -1031,6 +1035,14 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
       typeof this.value.timestamp === 'number'
     ) {
       this.space = [this.value.timestamp * this.multiplier, 0];
+    }
+
+    if (value && 'profile_id' in value && typeof value.profile_id === 'string') {
+      this.profiles.push({profile_id: value.profile_id, space: this.space ?? [0, 0]});
+    }
+
+    if (isTransactionNode(this)) {
+      this.canFetch = true;
     }
 
     if (isTransactionNode(this) || isTraceNode(this) || isSpanNode(this)) {
@@ -1412,6 +1424,8 @@ export class ParentAutogroupNode extends TraceTreeNode<TraceTree.ChildrenAutogro
   head: TraceTreeNode<TraceTree.Span>;
   tail: TraceTreeNode<TraceTree.Span>;
   groupCount: number = 0;
+  profiles: TraceTree.Profile[] = [];
+
   private _autogroupedSegments: [number, number][] | undefined;
 
   constructor(
@@ -1461,6 +1475,7 @@ export class ParentAutogroupNode extends TraceTreeNode<TraceTree.ChildrenAutogro
 
 export class SiblingAutogroupNode extends TraceTreeNode<TraceTree.SiblingAutogroup> {
   groupCount: number = 0;
+  profiles: TraceTree.Profile[] = [];
 
   private _autogroupedSegments: [number, number][] | undefined;
 

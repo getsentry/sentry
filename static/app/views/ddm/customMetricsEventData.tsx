@@ -17,7 +17,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MRI, Organization} from 'sentry/types';
 import {getDdmUrl, getDefaultMetricOp} from 'sentry/utils/metrics';
-import {hasDDMFeature} from 'sentry/utils/metrics/features';
+import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import {
   formatMetricUsingUnit,
   getReadableMetricType,
@@ -59,7 +59,7 @@ export function CustomMetricsEventData({
   const widgetStart = new Date(startTimestamp * 1000 - HALF_HOUR_IN_MS);
   const widgetEnd = new Date(startTimestamp * 1000 + HALF_HOUR_IN_MS);
 
-  if (!hasDDMFeature(organization) || metricsSummaryEntries.length === 0) {
+  if (!hasCustomMetrics(organization) || metricsSummaryEntries.length === 0) {
     return null;
   }
 
