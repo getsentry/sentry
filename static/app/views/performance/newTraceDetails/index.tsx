@@ -13,6 +13,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DiscoverButton from 'sentry/components/discoverButton';
 import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
@@ -442,7 +443,13 @@ function TraceViewContent(props: TraceViewContentProps) {
     return tracePreferences.drawer * base;
   }, [tracePreferences.drawer, tracePreferences.layout]);
 
-  const scrollQueueRef = useRef<TraceTree.NodePath[] | null>(null);
+  const scrollQueueRef = useRef<{eventId?: string; path?: TraceTree.NodePath[]} | null>(
+    null
+  );
+
+  const onResetZoom = useCallback(() => {
+    viewManager.resetZoom();
+  }, [viewManager]);
 
   return (
     <TraceExternalLayout>
@@ -489,6 +496,9 @@ function TraceViewContent(props: TraceViewContentProps) {
             resultCount={searchState.results?.length}
             resultIteratorIndex={searchState.resultIteratorIndex}
           />
+          <Button size="xs" onClick={onResetZoom}>
+            {t('Reset Zoom')}
+          </Button>
         </TraceToolbar>
         <TraceGrid
           layout={tracePreferences.layout}
@@ -618,6 +628,9 @@ const TraceInnerLayout = styled('div')`
 
 const TraceToolbar = styled('div')`
   flex-grow: 0;
+  display: grid;
+  grid-template-columns: 1fr min-content;
+  gap: ${space(1)};
 `;
 
 const TraceGrid = styled('div')<{
