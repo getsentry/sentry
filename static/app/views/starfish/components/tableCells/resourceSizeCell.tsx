@@ -5,7 +5,7 @@ type Props = {
   bytes?: number;
 };
 
-function ResourceSizeCell(props: Props) {
+export function ResourceSizeCell(props: Props) {
   const {bytes} = props;
   return (
     <NumberContainer>
