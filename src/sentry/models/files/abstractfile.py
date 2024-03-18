@@ -244,10 +244,7 @@ class AbstractFile(Model):
         """
         path = os.path.abspath(path)
         base = os.path.dirname(path)
-        try:
-            os.makedirs(base)
-        except OSError:
-            pass
+        os.makedirs(base, exist_ok=True)
 
         f = None
         try:

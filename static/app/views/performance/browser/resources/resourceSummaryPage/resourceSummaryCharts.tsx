@@ -3,6 +3,7 @@ import type {Series} from 'sentry/types/echarts';
 import {formatBytesBase2} from 'sentry/utils';
 import {formatRate} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
 import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {AVG_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
@@ -35,12 +36,12 @@ function ResourceSummaryCharts(props: {groupId: string}) {
 
   const {data: spanMetricsSeriesData, isLoading: areSpanMetricsSeriesLoading} =
     useSpanMetricsSeries({
-      filters: {
+      search: MutableSearch.fromQueryObject({
         'span.group': props.groupId,
         ...(filters[RESOURCE_RENDER_BLOCKING_STATUS]
           ? {[RESOURCE_RENDER_BLOCKING_STATUS]: filters[RESOURCE_RENDER_BLOCKING_STATUS]}
           : {}),
-      },
+      }),
       yAxis: [
         `spm()`,
         `avg(${SPAN_SELF_TIME})`,

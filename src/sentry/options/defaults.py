@@ -1004,6 +1004,13 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "organization-abuse-quota.custom-metric-bucket-limit",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 register(
     "global-abuse-quota.metric-bucket-limit",
@@ -1619,6 +1626,18 @@ register("hybridcloud.integrationproxy.retries", default=5, flags=FLAG_AUTOMATOR
 
 # Break glass controls
 register("hybrid_cloud.rpc.disabled-service-methods", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+register(
+    "hybridcloud.webhookpayload.use_parallel",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "hybridcloud.webhookpayload.worker_threads",
+    default=4,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # == End hybrid cloud subsystem
 
 # Decides whether an incoming transaction triggers an update of the clustering rule applied to it.
@@ -1844,9 +1863,23 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# IDs of orgs that will stop ingesting custom metrics.
+register(
+    "custom-metrics-ingestion-disabled-orgs",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# IDs of projects that will stop ingesting custom metrics.
+register(
+    "custom-metrics-ingestion-disabled-projects",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # IDs of orgs that will be disabled from querying metrics via `/metrics/query` endpoint.
 register(
-    "custom-metrics-querying-killswitched-orgs",
+    "custom-metrics-querying-disabled-orgs",
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -2075,31 +2108,16 @@ register(
 
 # Sampling rates for testing Rust-based grouping enhancers
 
-# Rate at which to parse enhancers in Rust in addition to Python
-register(
-    "grouping.rust_enhancers.parse_rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Rate at which to run the Rust implementation of `apply_modifications_to_frames`
-# and compare the results
-register(
-    "grouping.rust_enhancers.modify_frames_rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Rate at which to prefer the `apply_modifications_to_frames` result of the Rust implementation.
-register(
-    "grouping.rust_enhancers.prefer_rust_result",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Rate at which to run the Rust implementation of `assemble_stacktrace_component`
 # and compare the results
 register(
     "grouping.rust_enhancers.compare_components",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Rate at which to prefer the Rust implementation of `assemble_stacktrace_component`.
+register(
+    "grouping.rust_enhancers.prefer_rust_components",
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

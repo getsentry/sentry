@@ -18,7 +18,6 @@ import * as qs from 'query-string';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import Placeholder from 'sentry/components/placeholder';
-import {IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization, PlatformKey, Project} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
@@ -61,13 +60,27 @@ function Chevron(props: {direction: 'up' | 'down' | 'left'}) {
     <svg
       viewBox="0 0 16 16"
       style={{
-        fill: 'currentcolor',
-        color: 'currentcolor',
         transition: 'transform 120ms ease-in-out',
         transform: `rotate(${props.direction === 'up' ? 0 : props.direction === 'down' ? 180 : -90}deg)`,
       }}
     >
       <path d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z" />
+    </svg>
+  );
+}
+
+function Fire() {
+  return (
+    <svg viewBox="0 0 16 16">
+      <path d="M8.08,15.92A6.58,6.58,0,0,1,1.51,9.34a4.88,4.88,0,0,1,2.2-4.25.74.74,0,0,1,1,.34,6,6,0,0,1,4-5.3A.74.74,0,0,1,9.4.22a.73.73,0,0,1,.33.61v.31A15.07,15.07,0,0,0,10,4.93a3.72,3.72,0,0,1,2.3-1.7.74.74,0,0,1,.66.12.75.75,0,0,1,.3.6A6.21,6.21,0,0,0,14,6.79a5.78,5.78,0,0,1,.68,2.55A6.58,6.58,0,0,1,8.08,15.92ZM3.59,7.23A4.25,4.25,0,0,0,3,9.34a5.07,5.07,0,1,0,10.14,0,4.6,4.6,0,0,0-.54-1.94,8,8,0,0,1-.76-2.32A2,2,0,0,0,11.07,7a.75.75,0,0,1-1.32.58C8.4,6,8.25,4.22,8.23,2c-2,1.29-2.15,3.58-2.09,5.85A7.52,7.52,0,0,1,6.14,9a.74.74,0,0,1-.46.63.77.77,0,0,1-.76-.11A4.56,4.56,0,0,1,3.59,7.23Z" />
+    </svg>
+  );
+}
+
+function Profile() {
+  return (
+    <svg viewBox="0 0 20 16">
+      <path d="M15.25,0H.75C.33,0,0,.34,0,.75V5.59c0,.41,.34,.75,.75,.75h1.49v4.09c0,.41,.34,.75,.75,.75h1.73v4.09c0,.41,.34,.75,.75,.75h5.06c.41,0,.75-.34,.75-.75v-4.09h1.73c.41,0,.75-.34,.75-.75V6.34h1.49c.41,0,.75-.34,.75-.75V.75c0-.41-.34-.75-.75-.75Zm-5.47,14.52h-3.56v-3.34h3.56v3.34Zm2.48-4.84H3.74v-3.34H12.25v3.34Zm2.24-4.84H1.5V1.5H14.5v3.34Z" />
     </svg>
   );
 }
@@ -136,7 +149,10 @@ interface TraceProps {
   previouslyFocusedIndexRef: React.MutableRefObject<number | null>;
   roving_dispatch: React.Dispatch<RovingTabIndexAction>;
   roving_state: RovingTabIndexState;
-  scrollQueueRef: React.MutableRefObject<TraceTree.NodePath[] | null>;
+  scrollQueueRef: React.MutableRefObject<{
+    eventId?: string;
+    path?: TraceTree.NodePath[];
+  } | null>;
   searchResultsIteratorIndex: number | undefined;
   searchResultsMap: Map<TraceTreeNode<TraceTree.NodeValue>, number>;
   search_dispatch: React.Dispatch<TraceSearchAction>;
@@ -185,7 +201,14 @@ function Trace({
       trace.root.space[1] !== manager.trace_space.width)
   ) {
     manager.initializeTraceSpace([trace.root.space[0], 0, trace.root.space[1], 1]);
-    scrollQueueRef.current = decodeScrollQueue(qs.parse(location.search).node);
+    const maybeQueue = decodeScrollQueue(qs.parse(location.search).node);
+    const maybeEventId = qs.parse(location.search)?.eventId;
+    if (maybeQueue || maybeEventId) {
+      scrollQueueRef.current = {
+        eventId: maybeEventId as string,
+        path: maybeQueue as TraceTreeNode<TraceTree.NodeValue>['path'],
+      };
+    }
   }
 
   const loadedRef = useRef(false);
@@ -199,31 +222,34 @@ function Trace({
 
     loadedRef.current = true;
 
-    const eventId = qs.parse(location.search)?.eventId;
-    if (!scrollQueueRef.current && !scrollQueueRef.current && !eventId) {
+    if (!scrollQueueRef.current) {
       if (search_state.query) {
         onTraceSearch(search_state.query);
       }
       return;
     }
 
-    const promise =
-      eventId && typeof eventId === 'string'
-        ? manager.scrollToEventID(eventId, trace, () => setRender(a => (a + 1) % 2), {
+    const promise = scrollQueueRef.current?.eventId
+      ? manager.scrollToEventID(
+          scrollQueueRef?.current?.eventId,
+          trace,
+          () => setRender(a => (a + 1) % 2),
+          {
             api,
             organization,
-          })
-        : scrollQueueRef.current
-          ? manager.scrollToPath(
-              trace,
-              scrollQueueRef.current,
-              () => setRender(a => (a + 1) % 2),
-              {
-                api,
-                organization,
-              }
-            )
-          : Promise.resolve(null);
+          }
+        )
+      : scrollQueueRef?.current?.path
+        ? manager.scrollToPath(
+            trace,
+            scrollQueueRef.current.path,
+            () => setRender(a => (a + 1) % 2),
+            {
+              api,
+              organization,
+            }
+          )
+        : Promise.resolve(null);
 
     promise.then(maybeNode => {
       // Important to set scrollQueueRef.current to null and trigger a rerender
@@ -711,7 +737,7 @@ function RenderRow(props: {
             : null
         }
         tabIndex={props.tabIndex === props.index ? 0 : -1}
-        className={`Autogrouped TraceRow ${rowSearchClassName}`}
+        className={`Autogrouped TraceRow ${rowSearchClassName} ${props.node.has_errors ? 'Errored' : ''}`}
         onClick={e => props.onRowClick(e, props.index, props.node)}
         onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
         style={{
@@ -729,7 +755,7 @@ function RenderRow(props: {
           }}
         >
           <div
-            className={`TraceLeftColumnInner ${props.node.has_errors ? 'Errored' : ''}`}
+            className={`TraceLeftColumnInner`}
             style={{
               paddingLeft: props.node.depth * props.manager.row_depth_padding,
             }}
@@ -779,6 +805,7 @@ function RenderRow(props: {
             node_spaces={props.node.autogroupedSegments}
             errors={props.node.errors}
             performance_issues={props.node.performance_issues}
+            profiles={props.node.profiles}
           />
           <button
             ref={ref =>
@@ -810,7 +837,7 @@ function RenderRow(props: {
             : null
         }
         tabIndex={props.tabIndex === props.index ? 0 : -1}
-        className={`TraceRow ${rowSearchClassName}`}
+        className={`TraceRow ${rowSearchClassName} ${errored ? 'Errored' : ''}`}
         onClick={e => props.onRowClick(e, props.index, props.node)}
         onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
         style={{
@@ -828,7 +855,7 @@ function RenderRow(props: {
           }}
         >
           <div
-            className={`TraceLeftColumnInner ${errored ? 'Errored' : ''}`}
+            className={`TraceLeftColumnInner`}
             style={{
               paddingLeft: props.node.depth * props.manager.row_depth_padding,
             }}
@@ -894,6 +921,7 @@ function RenderRow(props: {
             node_space={props.node.space}
             errors={props.node.value.errors}
             performance_issues={props.node.value.performance_issues}
+            profiles={props.node.profiles}
           />
           <button
             ref={ref =>
@@ -924,7 +952,7 @@ function RenderRow(props: {
             : null
         }
         tabIndex={props.tabIndex === props.index ? 0 : -1}
-        className={`TraceRow ${rowSearchClassName}`}
+        className={`TraceRow ${rowSearchClassName} ${errored ? 'Errored' : ''}`}
         onClick={e => props.onRowClick(e, props.index, props.node)}
         onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
         style={{
@@ -942,7 +970,7 @@ function RenderRow(props: {
           }}
         >
           <div
-            className={`TraceLeftColumnInner ${errored ? 'Errored' : ''}`}
+            className={`TraceLeftColumnInner`}
             style={{
               paddingLeft: props.node.depth * props.manager.row_depth_padding,
             }}
@@ -1010,6 +1038,7 @@ function RenderRow(props: {
             node_space={props.node.space}
             errors={props.node.value.errors}
             performance_issues={props.node.value.performance_issues}
+            profiles={NO_ERRORS}
           />
           <button
             ref={ref =>
@@ -1084,8 +1113,9 @@ function RenderRow(props: {
             manager={props.manager}
             color={pickBarColor('missing-instrumentation')}
             node_space={props.node.space}
-            errors={NO_ERRORS}
             performance_issues={NO_ERRORS}
+            profiles={NO_ERRORS}
+            errors={NO_ERRORS}
           />
           <button
             ref={ref =>
@@ -1113,7 +1143,7 @@ function RenderRow(props: {
             : null
         }
         tabIndex={props.tabIndex === props.index ? 0 : -1}
-        className={`TraceRow ${rowSearchClassName}`}
+        className={`TraceRow ${rowSearchClassName} ${props.node.has_errors ? 'Errored' : ''}`}
         onClick={e => props.onRowClick(e, props.index, props.node)}
         onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
         style={{
@@ -1172,6 +1202,7 @@ function RenderRow(props: {
             node_space={props.node.space}
             errors={NO_ERRORS}
             performance_issues={NO_ERRORS}
+            profiles={NO_ERRORS}
           />
           <button
             ref={ref =>
@@ -1228,9 +1259,9 @@ function RenderRow(props: {
             <PlatformIcon
               platform={props.projects[props.node.value.project_slug] ?? 'default'}
             />
-            <span className="TraceOperation Errored">{t('Error')}</span>
-            <strong className="TraceEmDash Errored"> — </strong>
-            <span className="TraceDescription Errored">{props.node.value.title}</span>
+            <span className="TraceOperation">{t('Error')}</span>
+            <strong className="TraceEmDash"> — </strong>
+            <span className="TraceDescription">{props.node.value.title}</span>
           </div>
         </div>
         <div
@@ -1253,7 +1284,7 @@ function RenderRow(props: {
           >
             {typeof props.node.value.timestamp === 'number' ? (
               <div className="TraceError">
-                <IconFire color="errorText" size="xs" />
+                <Fire />
               </div>
             ) : null}
           </InvisibleTraceBar>
@@ -1422,8 +1453,8 @@ interface TraceBarProps {
   manager: VirtualizedViewManager;
   node_space: [number, number] | null;
   performance_issues: TraceTreeNode<TraceTree.Transaction>['value']['performance_issues'];
+  profiles: TraceTreeNode<TraceTree.NodeValue>['profiles'];
   virtualized_index: number;
-  duration?: number;
 }
 
 function TraceBar(props: TraceBarProps) {
@@ -1454,6 +1485,13 @@ function TraceBar(props: TraceBarProps) {
           } as React.CSSProperties
         }
       >
+        {props.profiles.length > 0 ? (
+          <Profiles
+            node_space={props.node_space}
+            profiles={props.profiles}
+            manager={props.manager}
+          />
+        ) : null}
         {props.errors.length > 0 ? (
           <Errors
             node_space={props.node_space}
@@ -1558,7 +1596,7 @@ function PerformanceIssues(props: PerformanceIssuesProps) {
             style={{left: left * 100 + '%', width: width + '%'}}
           >
             <div className="TraceError" style={{left: 0}}>
-              <IconFire color="errorText" size="xs" />
+              <Fire />
             </div>
           </div>
         );
@@ -1574,6 +1612,10 @@ interface ErrorsProps {
 }
 
 function Errors(props: ErrorsProps) {
+  if (!props.errors.length) {
+    return null;
+  }
+
   return (
     <Fragment>
       {props.errors.map((error, _i) => {
@@ -1594,7 +1636,45 @@ function Errors(props: ErrorsProps) {
             className="TraceError"
             style={{left: left * 100 + '%'}}
           >
-            <IconFire color="errorText" size="xs" />
+            <Fire />
+          </div>
+        );
+      })}
+    </Fragment>
+  );
+}
+
+interface ProfilesProps {
+  manager: VirtualizedViewManager;
+  node_space: [number, number] | null;
+  profiles: TraceTree.Profile[];
+}
+
+function Profiles(props: ProfilesProps) {
+  if (!props.profiles.length) {
+    return null;
+  }
+  return (
+    <Fragment>
+      {props.profiles.map((profile, _i) => {
+        const timestamp = profile.space[0];
+        // Clamp the profile timestamp to the span's timestamp
+        const left = props.manager.computeRelativeLeftPositionFromOrigin(
+          clamp(
+            timestamp,
+            props.node_space![0],
+            props.node_space![0] + props.node_space![1]
+          ),
+          props.node_space!
+        );
+
+        return (
+          <div
+            key={profile.profile_id}
+            className="TraceProfile"
+            style={{left: left * 100 + '%'}}
+          >
+            <Profile />
           </div>
         );
       })}
@@ -1609,8 +1689,8 @@ interface AutogroupedTraceBarProps {
   manager: VirtualizedViewManager;
   node_spaces: [number, number][];
   performance_issues: TraceTreeNode<TraceTree.Transaction>['value']['performance_issues'];
+  profiles: TraceTreeNode<TraceTree.NodeValue>['profiles'];
   virtualized_index: number;
-  duration?: number;
 }
 
 function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
@@ -1621,9 +1701,9 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
         node_space={props.entire_space}
         manager={props.manager}
         virtualized_index={props.virtualized_index}
-        duration={props.duration}
         errors={props.errors}
         performance_issues={props.performance_issues}
+        profiles={props.profiles}
       />
     );
   }
@@ -1673,7 +1753,13 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
             />
           );
         })}
-
+        {props.profiles.length > 0 ? (
+          <Profiles
+            node_space={props.entire_space}
+            profiles={props.profiles}
+            manager={props.manager}
+          />
+        ) : null}
         {props.errors.length > 0 ? (
           <Errors
             node_space={props.entire_space}
@@ -1727,7 +1813,7 @@ const TraceStylingWrapper = styled('div')`
   height: 100%;
   grid-area: trace;
 
-  padding-top: 22px;
+  padding-top: 26px;
 
   &.WithIndicators {
     padding-top: 44px;
@@ -1753,7 +1839,7 @@ const TraceStylingWrapper = styled('div')`
     left: 0;
     top: 0;
     width: 100%;
-    height: 22px;
+    height: 26px;
     background-color: ${p => p.theme.backgroundSecondary};
     border-bottom: 1px solid ${p => p.theme.border};
   }
@@ -1854,7 +1940,7 @@ const TraceStylingWrapper = styled('div')`
       .TraceIndicatorLabel {
         font-weight: normal;
         min-width: 0;
-        top: 2px;
+        top: 8px;
         width: auto;
         border: none;
         background-color: transparent;
@@ -1863,7 +1949,7 @@ const TraceStylingWrapper = styled('div')`
 
       .TraceIndicatorLine {
         background: ${p => p.theme.translucentGray100};
-        top: 4px;
+        top: 8px;
       }
     }
   }
@@ -1877,10 +1963,6 @@ const TraceStylingWrapper = styled('div')`
     transition: none;
     font-size: ${p => p.theme.fontSizeSmall};
 
-    .Errored {
-      color: ${p => p.theme.error};
-    }
-
     .TraceError {
       position: absolute;
       top: 50%;
@@ -1889,6 +1971,24 @@ const TraceStylingWrapper = styled('div')`
       width: 18px !important;
       height: 18px !important;
       background-color: ${p => p.theme.error};
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      svg {
+        fill: ${p => p.theme.white};
+      }
+    }
+
+    .TraceProfile {
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%) scaleX(var(--inverse-span-scale));
+      background: ${p => p.theme.background};
+      width: 18px !important;
+      height: 18px !important;
+      background-color: ${p => p.theme.purple300};
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -1948,6 +2048,23 @@ const TraceStylingWrapper = styled('div')`
       }
     }
 
+    &.Errored {
+      color: ${p => p.theme.error};
+
+      .TraceChildrenCount {
+        border: 2px solid ${p => p.theme.error};
+      }
+
+      &:focus,
+      &[tabindex='0'] {
+        box-shadow: inset 0 0 0 1px ${p => p.theme.red300} !important;
+
+        .TraceLeftColumn {
+          box-shadow: inset 0px 0 0px 1px ${p => p.theme.red300} !important;
+        }
+      }
+    }
+
     &.SearchResult {
       background-color: ${p => p.theme.yellow100};
 
@@ -1958,9 +2075,17 @@ const TraceStylingWrapper = styled('div')`
 
     &.Autogrouped {
       color: ${p => p.theme.blue300};
+
+      &.Errored {
+        .TraceChildrenCount {
+          background-color: ${p => p.theme.error} !important;
+        }
+      }
+
       .TraceDescription {
         font-weight: bold;
       }
+
       .TraceChildrenCountWrapper {
         button {
           color: ${p => p.theme.white};
@@ -2032,6 +2157,11 @@ const TraceStylingWrapper = styled('div')`
         transform: translate(-50%, 0);
       }
     }
+
+    svg {
+      width: 14px;
+      height: 14px;
+    }
   }
 
   .TraceArrow {
@@ -2087,11 +2217,6 @@ const TraceStylingWrapper = styled('div')`
     font-size: 10px;
     box-shadow: ${p => p.theme.dropShadowLight};
     margin-right: 8px;
-
-    &.Errored {
-      border: 2px solid ${p => p.theme.error};
-      background-color: ${p => p.theme.error} !important;
-    }
 
     .TraceChildrenCountContent {
       + .TraceChildrenCountAction {
