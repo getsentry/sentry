@@ -440,6 +440,13 @@ def symbolicate(
             dist=profile.get("dist"),
             apply_source_context=False,
         )
+    elif platform == "android":
+        return symbolicator.process_jvm(
+            exceptions=[],
+            stacktraces=stacktraces,
+            modules=modules,
+            release_package=profile.get("release"),
+        )
     return symbolicator.process_payload(
         stacktraces=stacktraces, modules=modules, apply_source_context=False
     )
@@ -721,6 +728,53 @@ def get_frame_index_map(frames: list[dict[str, Any]]) -> dict[int, list[int]]:
     return index_map
 
 
+@metrics.wraps("process_profile.deobfuscate.with_symbolicator")
+def _deobfuscate_using_symbolicator(project: Project, profile: Profile) -> None:
+    symbolication_start_time = time()
+
+    def on_symbolicator_request():
+        duration = time() - symbolication_start_time
+        if duration > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
+            raise SymbolicationTimeout
+
+    symbolicator = Symbolicator(
+        task_kind=SymbolicatorTaskKind(),
+        on_request=on_symbolicator_request,
+        project=project,
+        event_id=profile["event_id"],
+    )
+
+    try:
+        with sentry_sdk.start_span(op="task.profiling.symbolicate.process_payload"):
+            response = symbolicate(
+                symbolicator=symbolicator,
+                profile=profile,
+                modules=[
+                    {
+                        "uuid": profile["build_id"],
+                    }
+                ],
+                stacktraces=[
+                    {"frames": profile["profile"]["methods"]},
+                ],
+                platform=profile["platform"],
+            )
+
+            if not response:
+                profile["symbolicator_error"] = {
+                    "type": EventError.NATIVE_INTERNAL_FAILURE,
+                }
+                return
+            elif len(response["errors"]) > 0:
+                profile["symbolicator_error"] = response["errors"][0]
+                return
+            else:
+                assert len(profile["profile"]["methods"]) == len(response["stacktraces"])
+                profile["profile"]["methods"] = response["stacktraces"]
+    except SymbolicationTimeout:
+        metrics.incr("process_profile.symbolicate.timeout", sample_rate=1.0)
+
+
 @metrics.wraps("process_profile.deobfuscate")
 def _deobfuscate(profile: Profile, project: Project) -> None:
     debug_file_id = profile.get("build_id")
@@ -731,6 +785,12 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                 types = deobfuscate_signature(m["signature"])
                 m["signature"] = format_signature(types)
         return
+
+    if options.get("profiling.deobfuscate-using-symbolicator.enabled"):
+        return _deobfuscate_using_symbolicator(
+            project=project,
+            profile=profile,
+        )
 
     with sentry_sdk.start_span(op="proguard.fetch_debug_files"):
         dif_paths = ProjectDebugFile.difcache.fetch_difs(
@@ -771,9 +831,9 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                 method["class_name"] = new_frame.class_name
                 method["name"] = new_frame.method
                 method["data"] = {
-                    "deobfuscation_status": "deobfuscated"
-                    if method.get("signature", None)
-                    else "partial"
+                    "deobfuscation_status": (
+                        "deobfuscated" if method.get("signature", None) else "partial"
+                    )
                 }
 
                 if new_frame.file:
@@ -794,9 +854,9 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                         "class_name": new_frame.class_name,
                         "data": {"deobfuscation_status": "deobfuscated"},
                         "name": new_frame.method,
-                        "source_file": method["source_file"]
-                        if bottom_class == new_frame.class_name
-                        else "",
+                        "source_file": (
+                            method["source_file"] if bottom_class == new_frame.class_name else ""
+                        ),
                         "source_line": new_frame.line,
                     }
                     for new_frame in reversed(mapped)
