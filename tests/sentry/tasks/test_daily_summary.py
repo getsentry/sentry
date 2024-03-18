@@ -2,6 +2,7 @@ import copy
 from datetime import UTC, datetime, timedelta
 from typing import cast
 from unittest import mock
+from urllib.parse import urlencode
 
 import responses
 from django.conf import settings
@@ -542,6 +543,16 @@ class DailySummaryTest(
                 project_context=top_projects_context_map,
             ).send()
         blocks, fallback_text = get_blocks_and_fallback_text()
+        query_params = {
+            "field": ["title", "event.type", "project", "user.display", "timestamp"],
+            "name": "All Events",
+            "project": self.project.id,
+            "query": "event.type:error",
+            "sort": "-timestamp",
+            "statsPeriod": "24h",
+            "yAxis": "count()",
+        }
+        query_string = urlencode(query_params, doseq=True)
         assert fallback_text == "Daily Summary for Your Projects (internal only!!!)"
         assert f":bell: *{fallback_text}*" in blocks[0]["text"]["text"]
         assert (
@@ -552,7 +563,7 @@ class DailySummaryTest(
         # check the today's event count section
         assert "*Today’s Event Count*" in blocks[3]["fields"][0]["text"]
         assert (
-            f"/organizations/{self.organization.slug}/discover/homepage/"
+            f"/organizations/{self.organization.slug}/discover/homepage/?{query_string}"
             in blocks[3]["fields"][0]["text"]
         )
         assert "higher than last 14d avg" in blocks[3]["fields"][1]["text"]

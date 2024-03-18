@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from typing import Any
+from urllib.parse import urlencode
 
 from sentry_relay.processing import parse_release
 
@@ -58,13 +59,18 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
         return attachment_text
 
     def build_discover_url(self, project):
-        query_params = "?"
-        for field in ["title", "event.type", "project", "user.display", "timestamp"]:
-            query_params += f"field={field}&"
-        query_params += "name=All+Events"
-        query_params += f"&project={project.id}&query=event.type%3Aerror&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29"
+        query_params = {
+            "field": ["title", "event.type", "project", "user.display", "timestamp"],
+            "name": "All Events",
+            "project": project.id,
+            "query": "event.type:error",
+            "sort": "-timestamp",
+            "statsPeriod": "24h",
+            "yAxis": "count()",
+        }
+        query_string = urlencode(query_params, doseq=True)
         url = absolute_uri(
-            f"/organizations/{project.organization.slug}/discover/homepage/{query_params}"
+            f"/organizations/{project.organization.slug}/discover/homepage/?{query_string}"
         )
         return url
 
