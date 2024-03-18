@@ -1,10 +1,11 @@
 import logging
 from base64 import urlsafe_b64encode
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 from functools import cached_property
 from time import time
 from urllib.parse import urlparse
 
+import sentry_sdk
 from cryptography.exceptions import InvalidKey, InvalidSignature
 from django.http.request import HttpRequest
 from django.urls import reverse
@@ -255,10 +256,11 @@ class U2fInterface(AuthenticatorInterface):
         # timestamp is valid here if it exists. The reason for this is we prefer
         # the failure to occur and present itself when tapping the U2F device,
         # not immediately upon generating the challenge/response.
+        timestamp = int(datetime.now(timezone.utc).timestamp())
         if request.session.get("staff_auth_flow"):
-            request.session["staff_webauthn_authentication_state"] = state
+            request.session["staff_webauthn_authentication_state"] = (state, timestamp)
         else:
-            request.session["webauthn_authentication_state"] = state
+            request.session["webauthn_authentication_state"] = (state, timestamp)
 
         logger.info(
             "U2F activate after setting state",
@@ -279,6 +281,8 @@ class U2fInterface(AuthenticatorInterface):
     def validate_response(self, request: HttpRequest, challenge, response):
         try:
             credentials = self.credentials()
+            staff_state = request.session.get("staff_webauthn_authentication_state")
+            default_state = request.session.get("webauthn_authentication_state")
             if hasattr(request, "user") and request.user.is_staff:
                 logger.info(
                     "Validating U2F for staff",
@@ -289,15 +293,19 @@ class U2fInterface(AuthenticatorInterface):
                             if "staff_auth_flow" in request.session
                             else "missing"
                         ),
-                        "has_state": "webauthn_authentication_state" in request.session,
-                        "has_staff_state": "staff_webauthn_authentication_state" in request.session,
+                        "state_timestamp": (
+                            datetime.fromtimestamp(default_state[1]) if default_state else 0
+                        ),
+                        "staff_timestamp": (
+                            datetime.fromtimestamp(staff_state[1]) if staff_state else 0
+                        ),
                         "active_silo": SiloMode.get_current_mode(),
                     },
                 )
             if _valid_staff_timestamp(request):
-                state = request.session["staff_webauthn_authentication_state"]
+                state, _ = request.session["staff_webauthn_authentication_state"]
             else:
-                state = request.session["webauthn_authentication_state"]
+                state, _ = request.session["webauthn_authentication_state"]
             if request.session.get("staff_webauthn_authentication_state") and request.session.get(
                 "webauthn_authentication_state"
             ):
@@ -315,11 +323,26 @@ class U2fInterface(AuthenticatorInterface):
                 auth_data=AuthenticatorData(websafe_decode(response["authenticatorData"])),
                 signature=websafe_decode(response["signatureData"]),
             )
-        except (InvalidSignature, InvalidKey, StopIteration):
+        except (InvalidSignature, InvalidKey, StopIteration) as err:
+            sentry_sdk.capture_exception(err)
             return False
         finally:
+            staff_state = request.session.get("staff_webauthn_authentication_state")
+            default_state = request.session.get("webauthn_authentication_state")
+            logger.info(
+                "State in finally",
+                extra={
+                    "user": request.user.id,
+                    "state_timestamp": (
+                        datetime.fromtimestamp(default_state[1]) if default_state else 0
+                    ),
+                    "staff_timestamp": (
+                        datetime.fromtimestamp(staff_state[1]) if staff_state else 0
+                    ),
+                },
+            )
             # Cleanup the U2F state from the session
-            request.session.pop("webauthn_authentication_state", None)
-            request.session.pop("staff_webauthn_authentication_state", None)
-            request.session.pop("staff_auth_flow", None)
+            # request.session.pop("webauthn_authentication_state", None)
+            # request.session.pop("staff_webauthn_authentication_state", None)
+            # request.session.pop("staff_auth_flow", None)
         return True
