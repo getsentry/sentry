@@ -160,6 +160,7 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
             organization=organization,
             application_is_active=api_token.application_is_active,
             token=api_token.token,
+            hashed_token=api_token.hashed_token,
             expires_at=api_token.expires_at,
             apitoken_id=api_token.id,
             scope_list=api_token.scope_list,
