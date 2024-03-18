@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
+from typing import cast
 
 import sentry_sdk
 
 from sentry.integrations.pagerduty.actions import PagerDutyNotifyServiceForm
+from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_PRIORITY, PagerdutyPriority
 from sentry.rules.actions import IntegrationEventAction
 from sentry.shared_integrations.exceptions import ApiError
 
@@ -15,7 +17,7 @@ logger = logging.getLogger("sentry.integrations.pagerduty")
 class PagerDutyNotifyServiceAction(IntegrationEventAction):
     id = "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction"
     form_cls = PagerDutyNotifyServiceForm
-    label = "Send a notification to PagerDuty account {account} and service {service}"
+    label = "Send a notification to PagerDuty account {account} and service {service}with {severity} severity"
     prompt = "Send a PagerDuty notification"
     provider = "pagerduty"
     integration_key = "account"
@@ -28,6 +30,16 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
                 "choices": [(i.id, i.name) for i in self.get_integrations()],
             },
             "service": {"type": "choice", "choices": self.get_services()},
+            "severity": {
+                "type": "choice",
+                "choices": [
+                    ("default", "default"),
+                    ("critical", "critical"),
+                    ("warning", "warning"),
+                    ("error", "error"),
+                    ("info", "info"),
+                ],
+            },
         }
 
     def _get_service(self):
@@ -56,6 +68,10 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
             logger.info("pagerduty.service_missing", extra=log_context)
             return
 
+        severity = cast(
+            PagerdutyPriority, self.get_option("priority", default=PAGERDUTY_DEFAULT_PRIORITY)
+        )
+
         def send_notification(event, futures):
             installation = integration.get_installation(self.project.organization_id)
             try:
@@ -65,7 +81,9 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
                 return
 
             try:
-                resp = client.send_trigger(event, notification_uuid=notification_uuid)
+                resp = client.send_trigger(
+                    event, notification_uuid=notification_uuid, severity=severity
+                )
             except ApiError as e:
                 self.logger.info(
                     "rule.fail.pagerduty_trigger",
@@ -95,7 +113,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
                 },
             )
 
-        key = f"pagerduty:{integration.id}:{service['id']}"
+        key = f"pagerduty:{integration.id}:{service['id']}:{severity}"
         yield self.future(send_notification, key=key)
 
     def get_services(self) -> Sequence[tuple[int, str]]:
@@ -117,7 +135,11 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
         else:
             service_name = "[removed]"
 
-        return self.label.format(account=self.get_integration_name(), service=service_name)
+        severity = self.get_option("priority", default=PAGERDUTY_DEFAULT_PRIORITY)
+
+        return self.label.format(
+            account=self.get_integration_name(), service=service_name, severity=severity
+        )
 
     def get_form_instance(self):
         return self.form_cls(

@@ -173,21 +173,36 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         assert data["payload"]["custom_details"]["title"] == group_event.occurrence.issue_title
 
     def test_render_label(self):
-        rule = self.get_rule(data={"account": self.integration.id, "service": self.service["id"]})
+        rule = self.get_rule(
+            data={
+                "account": self.integration.id,
+                "service": self.service["id"],
+                "severity": "warning",
+            }
+        )
 
         assert (
             rule.render_label()
-            == "Send a notification to PagerDuty account Example and service Critical"
+            == "Send a notification to PagerDuty account Example and service Critical with warning severity"
         )
 
     def test_render_label_without_integration(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.delete()
 
-        rule = self.get_rule(data={"account": self.integration.id, "service": self.service["id"]})
+        rule = self.get_rule(
+            data={
+                "account": self.integration.id,
+                "service": self.service["id"],
+                "severity": "default",
+            }
+        )
 
         label = rule.render_label()
-        assert label == "Send a notification to PagerDuty account [removed] and service [removed]"
+        assert (
+            label
+            == "Send a notification to PagerDuty account [removed] and service [removed] with default severity"
+        )
 
     def test_valid_service_options(self):
         # create new org that has the same pd account but different a service added
