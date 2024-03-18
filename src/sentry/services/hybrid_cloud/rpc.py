@@ -67,8 +67,23 @@ class RpcMethodSignature(SerializableFunctionSignature):
             self.base_service_cls.__name__, self.base_function.__name__, message
         )
 
+    @property
+    def service_key(self) -> str:
+        return self.base_service_cls.key
+
+    @property
+    def service_name(self) -> str:
+        return self.base_service_cls.__name__
+
+    @property
+    def method_name(self) -> str:
+        return self.base_function.__name__
+
+    def __repr__(self):
+        return f"{type(self).__name__}({self.service_name!r}, {self.method_name!r})"
+
     def get_name_segments(self) -> Sequence[str]:
-        return (self.base_service_cls.__name__, self.base_function.__name__)
+        return self.service_name, self.method_name
 
     def _extract_region_resolution(self) -> RegionResolutionStrategy | None:
         region_resolution = getattr(self.base_function, _REGION_RESOLUTION_ATTR, None)
@@ -123,6 +138,9 @@ class DelegatingRpcService(DelegatedBySiloMode["RpcService"]):
     def local_mode(self) -> SiloMode:
         return self._base_service_cls.local_mode
 
+    def __repr__(self):
+        return f"{type(self).__name__}({self._base_service_cls.__name__})"
+
     def deserialize_rpc_arguments(
         self, method_name: str, serial_arguments: ArgumentDict
     ) -> pydantic.BaseModel:
@@ -132,6 +150,9 @@ class DelegatingRpcService(DelegatedBySiloMode["RpcService"]):
     def deserialize_rpc_response(self, method_name: str, serial_response: Any) -> Any:
         signature = self._signatures[method_name]
         return signature.deserialize_return_value(serial_response)
+
+    def get_all_signatures(self) -> Iterable[RpcMethodSignature]:
+        return self._signatures.values()
 
 
 def rpc_method(method: Callable[..., _T]) -> Callable[..., _T]:
@@ -200,7 +221,7 @@ class RpcService(abc.ABC):
                 raise RpcServiceSetupException(
                     cls.key, None, "`local_mode` class attribute (SiloMode) is required"
                 )
-        cls._signatures = cls._create_signatures()
+        cls._signatures = {sig.method_name: sig for sig in cls._create_signatures()}
 
     @classmethod
     def _get_all_rpc_methods(cls) -> Iterator[Callable[..., Any]]:
@@ -236,8 +257,7 @@ class RpcService(abc.ABC):
         raise NotImplementedError
 
     @classmethod
-    def _create_signatures(cls) -> Mapping[str, RpcMethodSignature]:
-        model_table = {}
+    def _create_signatures(cls) -> Iterable[RpcMethodSignature]:
         for base_method in cls._get_all_rpc_methods():
             try:
                 signature = RpcMethodSignature(cls, base_method)
@@ -246,8 +266,7 @@ class RpcService(abc.ABC):
                     cls.key, base_method.__name__, "Error on parameter model"
                 ) from e
             else:
-                model_table[base_method.__name__] = signature
-        return model_table
+                yield signature
 
     @classmethod
     def _get_and_validate_local_implementation(cls) -> RpcService:
@@ -348,6 +367,25 @@ class RpcService(abc.ABC):
         _global_service_registry[cls.key] = service
         # this returns a proxy which simulates the given class
         return service  # type: ignore[return-value]
+
+
+def list_all_service_method_signatures() -> Iterable[RpcMethodSignature]:
+    """List signatures of all RPC methods in the global registry."""
+
+    yielded: set[DelegatingRpcService] = set()
+    while True:
+        # Kludge around new services being registered as a side effect of import
+        # statements during iteration.
+        #
+        # TODO: This suggests we can't rely on the registry being fully populated at
+        #  the time this method is called, even with the kludge. Investigate?
+        to_yield = set(_global_service_registry.values()).difference(yielded)
+        if not to_yield:
+            return
+
+        for service_obj in to_yield:
+            yielded.add(service_obj)
+            yield from service_obj.get_all_signatures()
 
 
 class RpcResolutionException(Exception):
