@@ -21,6 +21,7 @@ import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import Tags from 'sentry/views/discover/tags';
 
+import {isTraceNode} from '../../guards';
 import type {TraceTree, TraceTreeNode} from '../../traceTree';
 import {IssueList} from '../details/issues/issues';
 
@@ -90,6 +91,10 @@ export function TraceLevelDetails(props: TraceFooterProps) {
   const issues = useMemo(() => {
     return [...props.node.errors, ...props.node.performance_issues];
   }, [props.node.errors, props.node.performance_issues]);
+
+  if (!(props.node && isTraceNode(props.node))) {
+    throw new Error('Expected a trace node');
+  }
 
   if (!props.traces) {
     return <TraceDataLoading />;

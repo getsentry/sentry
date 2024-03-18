@@ -267,9 +267,14 @@ export class TraceTree {
     const tree = new TraceTree();
     let traceStart = Number.POSITIVE_INFINITY;
     let traceEnd = Number.NEGATIVE_INFINITY;
-    const traceErrors: TraceErrorType[] = [];
-    const tracePerformanceIssues: TracePerformanceIssue[] = [];
-    let traceEventsCount = 0;
+
+    const traceNode = new TraceTreeNode(tree.root, trace, {
+      event_id: undefined,
+      project_slug: undefined,
+    });
+
+    // Trace is always expanded by default
+    tree.root.children.push(traceNode);
 
     function visit(
       parent: TraceTreeNode<TraceTree.NodeValue | null>,
@@ -280,13 +285,13 @@ export class TraceTree {
         event_id: value && 'event_id' in value ? value.event_id : undefined,
       });
       node.canFetch = true;
-      traceEventsCount += 1;
+      tree.eventsCount += 1;
 
       if (isTraceTransaction(value)) {
-        traceErrors.push(...value.errors);
-        tracePerformanceIssues.push(...value.performance_issues);
+        traceNode.errors.push(...value.errors);
+        traceNode.performance_issues.push(...value.performance_issues);
       } else {
-        traceErrors.push(value);
+        traceNode.errors.push(value);
       }
 
       if (parent) {
@@ -314,14 +319,6 @@ export class TraceTree {
 
       return node;
     }
-
-    const traceNode = new TraceTreeNode(tree.root, trace, {
-      event_id: undefined,
-      project_slug: undefined,
-    });
-
-    // Trace is always expanded by default
-    tree.root.children.push(traceNode);
 
     const transactionQueue = trace.transactions ?? [];
     const orphanErrorsQueue = trace.orphan_errors ?? [];
@@ -376,14 +373,10 @@ export class TraceTree {
       (traceEnd - traceStart) * traceNode.multiplier,
     ];
 
-    traceNode.errors = traceErrors;
-    traceNode.performance_issues = tracePerformanceIssues;
-
     tree.root.space = [
       traceStart * traceNode.multiplier,
       (traceEnd - traceStart) * traceNode.multiplier,
     ];
-    tree.eventsCount = traceEventsCount;
 
     return tree.build();
   }
