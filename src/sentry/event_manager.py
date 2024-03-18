@@ -61,6 +61,7 @@ from sentry.grouping.ingest import (
     get_hash_values,
     maybe_run_background_grouping,
     maybe_run_secondary_grouping,
+    project_uses_optimized_grouping,
     record_calculation_metric_with_result,
     record_hash_calculation_metrics,
     record_new_group_metrics,
@@ -464,6 +465,8 @@ class EventManager:
 
             return jobs[0]["event"]
         else:
+            project = job["event"].project
+            job["optimized_grouping"] = project_uses_optimized_grouping(project)
             metric_tags = {
                 "platform": job["event"].platform or "unknown",
                 "sdk": normalized_sdk_tag_from_event(job["event"]),
@@ -1376,19 +1379,7 @@ def get_culprit(data: Mapping[str, Any]) -> str:
 
 
 def assign_event_to_group(event: Event, job: Job, metric_tags: MutableTags) -> GroupInfo | None:
-    project = event.project
-
-    primary_grouping_config = project.get_option("sentry:grouping_config")
-    secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
-    has_mobile_config = "mobile:2021-02-12" in [primary_grouping_config, secondary_grouping_config]
-
-    if (
-        features.has(
-            "organizations:grouping-suppress-unnecessary-secondary-hash",
-            project.organization,
-        )
-        and not has_mobile_config
-    ):
+    if job["optimized_grouping"]:
         group_info = _save_aggregate_new(
             event=event,
             job=job,

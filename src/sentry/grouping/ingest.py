@@ -581,3 +581,14 @@ def check_for_category_mismatch(group: Group) -> bool:
 
 def extract_hashes(calculated_hashes: CalculatedHashes | None) -> list[str]:
     return [] if not calculated_hashes else list(calculated_hashes.hashes)
+
+
+def project_uses_optimized_grouping(project: Project) -> bool:
+    primary_grouping_config = project.get_option("sentry:grouping_config")
+    secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
+    has_mobile_config = "mobile:2021-02-12" in [primary_grouping_config, secondary_grouping_config]
+
+    return not has_mobile_config and features.has(
+        "organizations:grouping-suppress-unnecessary-secondary-hash",
+        project.organization,
+    )
