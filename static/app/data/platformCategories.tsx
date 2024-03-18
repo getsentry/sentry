@@ -504,6 +504,9 @@ const customMetricBackendPlatforms: readonly PlatformKey[] = [
   'node-express',
   'node-gcpfunctions',
   'node-koa',
+  'ruby',
+  'ruby-rails',
+  'ruby-rack',
 ];
 
 const customMetricFrontendPlatforms: readonly PlatformKey[] = [
