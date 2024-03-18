@@ -313,7 +313,7 @@ Required if **service_type** is `slack` or `opsgenie`.
 
             raise serializers.ValidationError(
                 {
-                    "target_identifier": f" Did not recieve PagerDuty service id for the '{self.integration.name}' account, Choose from {oxfordize_list(pd_service_options)}"
+                    "target_identifier": f" Did not receive PagerDuty service id for the '{self.integration.name}' account, Choose from {oxfordize_list(pd_service_options)}"
                 }
             )
 
