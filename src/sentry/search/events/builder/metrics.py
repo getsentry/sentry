@@ -155,6 +155,24 @@ class MetricsQueryBuilder(QueryBuilder):
 
         return super().are_columns_resolved()
 
+    def _is_on_demand_extraction_disabled(self, query_hash: str) -> bool:
+        spec_version = OnDemandMetricSpecVersioning.get_query_spec_version(self.organization_id)
+        on_demand_entries = DashboardWidgetQueryOnDemand.objects.filter(
+            spec_hashes__contains=[query_hash],
+            spec_version=spec_version.version,
+            dashboard_widget_query__widget__dashboard__organization_id=self.organization_id,
+        )
+        if any(not entry.extraction_enabled() for entry in on_demand_entries):
+            with sentry_sdk.push_scope() as scope:
+                scope.set_extra("entries", on_demand_entries)
+                scope.set_extra("hash", query_hash)
+                sentry_sdk.capture_message(
+                    "extraction disabled for one of the matching on-demand rows"
+                )
+            return True
+
+        return False
+
     def _get_on_demand_metric_spec(self, field: str) -> OnDemandMetricSpec | None:
         if not field:
             return None
@@ -189,19 +207,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 spec_type=self.builder_config.on_demand_metrics_type,
             )
 
-            spec_version = OnDemandMetricSpecVersioning.get_query_spec_version(self.organization_id)
-            on_demand_entries = DashboardWidgetQueryOnDemand.objects.filter(
-                spec_hashes__contains=[metric_spec.query_hash],
-                spec_version=spec_version,
-                dashboard_widget_query__widget__dashboard__organizationi_id=self.organization_id,
-            )
-            if any(not entry.extraction_enabled() for entry in on_demand_entries):
-                with sentry_sdk.push_scope() as scope:
-                    scope.set_extra("entries", on_demand_entries)
-                    scope.set_extra("spec", metric_spec)
-                    sentry_sdk.capture_message(
-                        "Extraction disabled for one of the matching on-demand rows"
-                    )
+            if self._is_on_demand_extraction_disabled(metric_spec.query_hash):
                 return None
 
             return metric_spec
