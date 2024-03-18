@@ -4,10 +4,10 @@ module.exports = {
   root: true,
   extends: ['sentry-app/strict'],
   globals: {
-    require: false,
     expect: false,
     jest: true,
     MockApiClient: true,
+    require: false,
     tick: true,
   },
   rules: {
