@@ -226,7 +226,7 @@ class ScheduledQuery:
             # return you at most 100 groups, thus that will be the limit chosen for the totals query. This means that
             # the executor will load 100 entries from totals which will result in the worst case in 100 * 100 = 10k
             # entries in the series query.
-            limit = int(SNUBA_QUERY_LIMIT / intervals_number)
+            limit = SNUBA_QUERY_LIMIT // intervals_number
             if limit <= 0:
                 raise InvalidMetricsQueryError("Your date range contains too many intervals")
 
