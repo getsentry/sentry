@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {useCallback, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -10,7 +10,9 @@ import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
+import useOrganization from 'sentry/utils/useOrganization';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 export function openMetricsOptInModal(organization: Organization) {
@@ -31,14 +33,24 @@ export function openMetricsOptInModal(organization: Organization) {
 }
 
 function OptInModal({closeModal}: ModalRenderProps) {
+  const organization = useOrganization();
   const ref = useRef<HTMLDivElement>(null);
-  useOnClickOutside(ref, closeModal);
+
+  const handleCloseModal = useCallback(
+    source => {
+      trackAnalytics('ddm.opt_in_modal_closed', {organization, source});
+      closeModal();
+    },
+    [organization, closeModal]
+  );
+
+  useOnClickOutside(ref, () => handleCloseModal('click_outside'));
 
   return (
     <Content ref={ref}>
       <Subheader>{t('Sentry Metrics: Now in Beta')}</Subheader>
       <Header>{t('Track and solve what matters')}</Header>
-      <CloseButton onClick={closeModal} />
+      <CloseButton onClick={() => handleCloseModal('close_button')} />
       <p>
         {t(
           'Create custom metrics to track and visualize the data points you care about over time, like processing time, checkout conversion rate, or user signups, and pinpoint and solve issues faster by using correlated traces.'
@@ -60,10 +72,16 @@ function OptInModal({closeModal}: ModalRenderProps) {
         <LinkButton
           external
           href="https://help.sentry.io/product-features/other/metrics-beta-faqs/"
+          onClick={() => {
+            trackAnalytics('ddm.opt_in_modal_closed', {
+              organization,
+              source: 'learn_more',
+            });
+          }}
         >
           {t('Learn more')}
         </LinkButton>
-        <Button onClick={closeModal} priority="primary">
+        <Button onClick={() => handleCloseModal('im_in')} priority="primary">
           {t("I'm In")}
         </Button>
       </ButtonGroup>
