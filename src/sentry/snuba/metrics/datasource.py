@@ -621,6 +621,12 @@ def _fetch_tags_or_values_for_mri(
     for entity_key in entity_keys or ():
         where = []
         metric_ids = metric_ids_by_entity_key[entity_key]
+
+        if not metric_ids and metric_mris:
+            # This means non of the specified MRIs exist on this entity,
+            # so we can skip querying it
+            continue
+
         if metric_ids:
             where.append(Condition(Column("metric_id"), Op.IN, list(metric_ids)))
 

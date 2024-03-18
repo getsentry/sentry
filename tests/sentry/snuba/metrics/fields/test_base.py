@@ -20,7 +20,7 @@ from sentry.snuba.metrics.fields.base import (
     COMPOSITE_ENTITY_CONSTITUENT_ALIAS,
     DERIVED_ALIASES,
     CompositeEntityDerivedMetric,
-    _get_known_entity_of_metric_mri,
+    get_known_entity_of_metric_mri,
 )
 from sentry.snuba.metrics.fields.snql import (
     abnormal_sessions,
@@ -647,10 +647,15 @@ class DerivedMetricAliasTestCase(TestCase):
         ("d:sessions/duration@second", EntityKey.MetricsDistributions),
         ("d:sessions/unknown_metric@second", None),
         ("e:sessions/all@none", None),  # derived metric
+        ("c:transactions/count_per_root_project@none", EntityKey.GenericMetricsCounters),
+        ("d:transactions/duration@millisecond", EntityKey.GenericMetricsDistributions),
+        ("s:transactions/user@none", EntityKey.GenericMetricsSets),
+        ("d:spans/duration@millisecond", EntityKey.GenericMetricsDistributions),
+        ("s:spans/user@none", EntityKey.GenericMetricsSets),
         ("", None),
         ("foo", None),
         ("foo:foo:foo", None),
     ],
 )
 def test_known_entity_of_metric_mri(metric_mri, expected_entity):
-    assert _get_known_entity_of_metric_mri(metric_mri) == expected_entity
+    assert get_known_entity_of_metric_mri(metric_mri) == expected_entity
