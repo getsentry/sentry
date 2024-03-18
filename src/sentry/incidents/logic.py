@@ -5,7 +5,7 @@ from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
-from typing import Any, cast
+from typing import Any
 from uuid import uuid4
 
 from django.db import router, transaction
@@ -58,7 +58,6 @@ from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation, app_servi
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
 from sentry.shared_integrations.exceptions import (
-    ApiError,
     ApiTimeoutError,
     DuplicateDisplayNameError,
     IntegrationError,
@@ -1476,7 +1475,6 @@ def get_alert_rule_trigger_action_opsgenie_team(
     input_channel_id=None,
     integrations=None,
 ) -> tuple[str, str]:
-    from sentry.integrations.opsgenie.integration import OpsgenieIntegration
     from sentry.integrations.opsgenie.utils import get_team
 
     integration, oi = integration_service.get_organization_context(
@@ -1489,17 +1487,6 @@ def get_alert_rule_trigger_action_opsgenie_team(
     if not team:
         raise InvalidTriggerActionError("No Opsgenie team found.")
 
-    install = cast(
-        "OpsgenieIntegration",
-        integration.get_installation(organization_id=organization.id),
-    )
-    client = install.get_keyring_client(keyid=team["id"])
-
-    try:
-        client.authorize_integration(type="sentry")
-    except ApiError as e:
-        logger.info("opsgenie.authorization_error", extra={"error": str(e)})
-        raise InvalidTriggerActionError("Invalid integration key.")
     return team["id"], team["team"]
 
 

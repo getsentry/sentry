@@ -1,8 +1,12 @@
+from unittest.mock import patch
+
+from sentry.integrations.base import IntegrationInstallation
 from sentry.models.identity import Identity
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.repository import Repository
 from sentry.models.scheduledeletion import ScheduledDeletion
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -57,6 +61,22 @@ class OrganizationIntegrationDetailsPostTest(OrganizationIntegrationDetailsTest)
         )
 
         assert org_integration.config == config
+
+    @patch.object(IntegrationInstallation, "update_organization_config")
+    def test_update_config_error(self, mock_update_config):
+        config = {"setting": "new_value", "setting2": "baz"}
+
+        mock_update_config.side_effect = IntegrationError("hello")
+        response = self.get_error_response(
+            self.organization.slug, self.integration.id, **config, status_code=400
+        )
+        assert response.data["detail"] == ["hello"]
+
+        mock_update_config.side_effect = ApiError("hi")
+        response = self.get_error_response(
+            self.organization.slug, self.integration.id, **config, status_code=400
+        )
+        assert response.data["detail"] == ["hi"]
 
 
 @control_silo_test
