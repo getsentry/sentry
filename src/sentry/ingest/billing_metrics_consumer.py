@@ -179,7 +179,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
                     scope.set_tag("organization_id", org_id)
                     scope.set_tag("project_id", project_id)
                     sentry_sdk.capture_message(
-                        "A new project has sent the first custom metric",
+                        f"Project {project_id} of organization {org_id} has sent the first custom metric",
                         fingerprint=["new-first-custom-metric"],
                     )
 
