@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import type {MonitorType} from 'sentry/types/alerts';
 import type {MEPAlertsQueryType} from 'sentry/views/alerts/wizard/options';
 import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
@@ -97,6 +98,7 @@ export type UnsavedMetricRule = {
   triggers: Trigger[];
   comparisonDelta?: number | null;
   eventTypes?: EventTypes[];
+  monitorType?: MonitorType;
   owner?: string | null;
   queryType?: MEPAlertsQueryType | null;
 };

@@ -286,3 +286,8 @@ export enum RuleActionsCategories {
   SOME_DEFAULT = 'some_default',
   NO_DEFAULT = 'no_default',
 }
+
+export enum MonitorType {
+  CONTINUOUS = 0,
+  ACTIVATED = 1,
+}
