@@ -2090,6 +2090,9 @@ const TraceStylingWrapper = styled('div')`
           color: ${p => p.theme.white};
           background-color: ${p => p.theme.blue300};
         }
+        svg {
+          fill: ${p => p.theme.white};
+        }
       }
     }
   }
