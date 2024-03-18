@@ -6,8 +6,9 @@ from typing import cast
 
 import sentry_sdk
 
+from sentry import features
 from sentry.integrations.pagerduty.actions import PagerDutyNotifyServiceForm
-from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_PRIORITY, PagerdutyPriority
+from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY, PagerdutySeverity
 from sentry.rules.actions import IntegrationEventAction
 from sentry.shared_integrations.exceptions import ApiError
 
@@ -17,13 +18,17 @@ logger = logging.getLogger("sentry.integrations.pagerduty")
 class PagerDutyNotifyServiceAction(IntegrationEventAction):
     id = "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction"
     form_cls = PagerDutyNotifyServiceForm
-    label = "Send a notification to PagerDuty account {account} and service {service} with {severity} severity"
+    old_label = "Send a notification to PagerDuty account {account} and service {service}"
+    new_label = "Send a notification to PagerDuty account {account} and service {service} with {severity} severity"
     prompt = "Send a PagerDuty notification"
     provider = "pagerduty"
     integration_key = "account"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.has_feature_flag = features.has(
+            "organizations:integrations-custom-alert-priorities", self.project.organization
+        )
         self.form_fields = {
             "account": {
                 "type": "choice",
@@ -41,6 +46,13 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
                 ],
             },
         }
+
+    @property
+    def label(self) -> str:
+        if self.has_feature_flag:
+            return self.new_label
+        else:
+            return self.old_label
 
     def _get_service(self):
         oi = self.get_organization_integration()
@@ -69,7 +81,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
             return
 
         severity = cast(
-            PagerdutyPriority, self.get_option("priority", default=PAGERDUTY_DEFAULT_PRIORITY)
+            PagerdutySeverity, self.get_option("severity", default=PAGERDUTY_DEFAULT_SEVERITY)
         )
 
         def send_notification(event, futures):
@@ -135,7 +147,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
         else:
             service_name = "[removed]"
 
-        severity = self.get_option("priority", default=PAGERDUTY_DEFAULT_PRIORITY)
+        severity = self.get_option("severity", default=PAGERDUTY_DEFAULT_SEVERITY)
 
         return self.label.format(
             account=self.get_integration_name(), service=service_name, severity=severity

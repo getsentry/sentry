@@ -14,8 +14,8 @@ LEVEL_SEVERITY_MAP = {
     "error": "error",
     "fatal": "critical",
 }
-PAGERDUTY_DEFAULT_PRIORITY = "default"  # represents using LEVEL_SEVERITY_MAP
-PagerdutyPriority = Literal["default", "critical", "warning", "error", "info"]
+PAGERDUTY_DEFAULT_SEVERITY = "default"  # represents using LEVEL_SEVERITY_MAP
+PagerdutySeverity = Literal["default", "critical", "warning", "error", "info"]
 
 
 class PagerDutyClient(ApiClient):
@@ -37,7 +37,7 @@ class PagerDutyClient(ApiClient):
         self,
         data,
         notification_uuid: str | None = None,
-        severity: PagerdutyPriority | None = None,
+        severity: PagerdutySeverity | None = None,
     ):
         # expected payload: https://v2.developer.pagerduty.com/docs/send-an-event-events-api-v2
         if isinstance(data, (Event, GroupEvent)):
@@ -50,7 +50,7 @@ class PagerDutyClient(ApiClient):
             if notification_uuid:
                 link_params["notification_uuid"] = notification_uuid
 
-            if severity == PAGERDUTY_DEFAULT_PRIORITY:
+            if severity == PAGERDUTY_DEFAULT_SEVERITY:
                 severity = LEVEL_SEVERITY_MAP[level]
 
             payload = {
