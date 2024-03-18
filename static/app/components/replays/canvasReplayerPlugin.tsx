@@ -223,7 +223,7 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
       isSync: boolean,
       {replayer}: {replayer: Replayer}
     ) => {
-      // isSync = =true means it is fast forwarding vs playing
+      // isSync = true means it is fast forwarding vs playing
       // nothing to do when fast forwarding since canvas mutations for us are
       // image snapshots and do not depend on past events
       if (isSync || !isCanvasMutationEvent(e)) {
