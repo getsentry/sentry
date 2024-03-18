@@ -289,6 +289,7 @@ export class TraceTree {
         tracePerformanceIssues.push(...value.performance_issues);
       } else {
         node.errors = [value];
+        traceErrors.push(value);
       }
 
       if (parent) {

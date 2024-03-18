@@ -17,7 +17,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 interface EventOrGroupHeaderProps {
   data: Group;
   organization: Organization;
-  event_id?: string;
+  event_id: string;
 }
 
 /**
@@ -54,7 +54,7 @@ function IssueTitleChildren(props: IssueTitleChildrenProps) {
 
 interface IssueTitleProps {
   data: Group;
-  event_id?: string;
+  event_id: string;
 }
 function IssueTitle(props: IssueTitleProps) {
   const organization = useOrganization();

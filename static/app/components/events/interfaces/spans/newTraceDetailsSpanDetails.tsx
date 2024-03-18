@@ -282,7 +282,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   }
 
   function renderSpanErrorMessage() {
-    const {span, organization, node, event} = props;
+    const {span, organization, node} = props;
 
     const hasErrors = node.errors.length > 0 || node.performance_issues.length > 0;
 
@@ -290,14 +290,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
       return null;
     }
 
-    return (
-      <IssueList
-        organization={organization}
-        issues={issues}
-        event_id={event.id}
-        node={props.node}
-      />
-    );
+    return <IssueList organization={organization} issues={issues} node={props.node} />;
   }
 
   function partitionSizes(data): {

@@ -54,12 +54,18 @@ export function ErrorNodeDetails({
   ) : data ? (
     <TraceDrawerComponents.DetailContainer>
       <TraceDrawerComponents.HeaderContainer>
-        <TraceDrawerComponents.IconTitleWrapper>
+        <TraceDrawerComponents.Title>
           <TraceDrawerComponents.IconBorder errored>
             <IconFire color="errorText" size="md" />
           </TraceDrawerComponents.IconBorder>
-          <div style={{fontWeight: 'bold'}}>{t('Error')}</div>
-        </TraceDrawerComponents.IconTitleWrapper>
+          <div>
+            <div>{t('error')}</div>
+            <TraceDrawerComponents.TitleOp>
+              {' '}
+              {node.value.title}
+            </TraceDrawerComponents.TitleOp>
+          </div>
+        </TraceDrawerComponents.Title>
         <TraceDrawerComponents.Actions>
           <Button size="xs" onClick={_e => scrollToNode(node)}>
             {t('Show in view')}

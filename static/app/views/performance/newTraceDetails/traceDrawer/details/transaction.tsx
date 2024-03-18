@@ -309,12 +309,7 @@ export function TransactionNodeDetails({
       </TraceDrawerComponents.HeaderContainer>
 
       {hasIssues ? (
-        <IssueList
-          node={node}
-          organization={organization}
-          issues={issues}
-          event_id={event.id}
-        />
+        <IssueList node={node} organization={organization} issues={issues} />
       ) : null}
 
       <TraceDrawerComponents.Table className="table key-value">

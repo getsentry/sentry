@@ -26,7 +26,6 @@ import {IssueSummary} from './issueSummary';
 type IssueProps = {
   issue: TraceErrorOrIssue;
   organization: Organization;
-  event_id?: string;
 };
 
 function Issue(props: IssueProps) {
@@ -59,7 +58,7 @@ function Issue(props: IssueProps) {
         <IssueSummary
           data={fetchedIssue}
           organization={props.organization}
-          event_id={props.event_id}
+          event_id={props.issue.event_id}
         />
         <EventOrGroupExtraDetails data={fetchedIssue} />
       </IssueSummaryWrapper>
@@ -104,10 +103,9 @@ type IssueListProps = {
   issues: TraceErrorOrIssue[];
   node: TraceTreeNode<TraceTree.NodeValue>;
   organization: Organization;
-  event_id?: string;
 };
 
-export function IssueList({issues, node, organization, event_id}: IssueListProps) {
+export function IssueList({issues, node, organization}: IssueListProps) {
   if (!issues.length) {
     return null;
   }
@@ -116,12 +114,7 @@ export function IssueList({issues, node, organization, event_id}: IssueListProps
     <StyledPanel>
       <IssueListHeader node={node} />
       {issues.map((issue, index) => (
-        <Issue
-          key={index}
-          issue={issue}
-          organization={organization}
-          event_id={event_id}
-        />
+        <Issue key={index} issue={issue} organization={organization} />
       ))}
     </StyledPanel>
   );
