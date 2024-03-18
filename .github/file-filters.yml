@@ -1,11 +1,11 @@
 # This is used by the action https://github.com/dorny/paths-filter
 
 sentry_specific_workflow: &sentry_specific_workflow
-  - '.github/workflows/frontend.yml'
+  - added|modified: '.github/workflows/frontend.yml'
 sentry_specific_test_files: &sentry_specific_test_files
-  - 'tests/js/**/*'
-  - 'fixtures/search-syntax/**/*'
-  - 'fixtures/js-stubs/**/*'
+  - added|modified: 'tests/js/**/*'
+  - added|deleted|modified: 'fixtures/search-syntax/**/*'
+  - added|deleted|modified: 'fixtures/js-stubs/**/*'
 
 # Provides list of changed app files to lint against (stylelint)
 lintable_css_in_js_modified: &lintable_css_in_js_modified
@@ -13,6 +13,7 @@ lintable_css_in_js_modified: &lintable_css_in_js_modified
 
 # Trigger for when we must run full lint (stylelint)
 lintable_css_in_js_rules_changed:
+  - added|modified: '.github/file-filters.yml'
   - added|modified: 'yarn.lock'
   - added|deleted|modified: 'stylelint.*'
   - *lintable_css_in_js_modified
@@ -24,6 +25,7 @@ lintable_modified: &lintable_modified
 
 # Trigger for when we must run full lint (eslint)
 lintable_rules_changed:
+  - added|modified: '.github/file-filters.yml'
   - added|modified: 'yarn.lock'
   - added|deleted|modified: '.eslint*'
   - *lintable_modified
@@ -31,33 +33,35 @@ lintable_rules_changed:
 # Provides list of changed files to test (jest)
 # getsentry/sentry does not use this directly, instead we shard tests inside jest.config.js
 testable_and_modified: &testable_and_modified
-  - 'package.json'
-  - 'static/**/*.[tj]{s,sx}'
+  - added|modified: 'package.json'
+  - added|modified: 'static/**/*.[tj]{s,sx}'
   - *sentry_specific_test_files
 
 # Trigger for when we must run full tests (jest)
 testable_rules_changed:
-  - jest.config.ts
+  - added|modified: '.github/file-filters.yml'
+  - added|modified: 'jest.config.ts'
   - *testable_and_modified
 
 # Trigger whether to run tsc or not
 # There's no "rules_changed" for this, because we run it for all files always
 # getsentry/sentry does not use this directly, instead frontend_src is a superset to trigger tsc
 typecheckable:
-  - '**/tsconfig*.json'
-  - 'static/**/*.[tj]{s,sx}'
+  - added|modified: '.github/file-filters.yml'
+  - added|deleted|modified: '**/tsconfig*.json'
+  - added|deleted|modified: 'static/**/*.[tj]{s,sx}'
   - *sentry_specific_test_files
 
 # Trigger to apply the 'Scope: Frontend' label to PRs
 frontend_src: &frontend_src
-  - 'package.json'
-  - 'yarn.lock'
-  - 'stylelint.*'
-  - '.eslint*'
-  - 'jest.config.ts'
-  - '**/tsconfig*.json'
-  - 'static/**' # Broader than *frontend_components_lintable, accept anything in static/
-  - '{.volta,vercel}.json'
+  - added|modified: 'package.json'
+  - added|modified: 'yarn.lock'
+  - added|modified: 'stylelint.*'
+  - added|modified: '.eslint*'
+  - added|modified: 'jest.config.ts'
+  - added|modified: '**/tsconfig*.json'
+  - added|modified: 'static/**' # Broader than *frontend_components_lintable, accept anything in static/
+  - added|modified: '{.volta,vercel}.json'
   - *sentry_specific_workflow
   - *sentry_specific_test_files
 
