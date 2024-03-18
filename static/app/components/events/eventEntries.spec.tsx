@@ -4,7 +4,7 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {EventEntries} from 'sentry/components/events/eventEntries';
 
@@ -49,11 +49,11 @@ describe('EventEntries', function () {
       {organization: OrganizationFixture({features: ['session-replay']})}
     );
 
-    await screen.findByText(/message/i);
+    await waitFor(() => {
+      expect(screen.getAllByTestId(/event-section/)).toHaveLength(5); //  event tags + 3 entries + event grouping
+    });
 
     const sections = screen.getAllByTestId(/event-section/);
-
-    expect(sections).toHaveLength(5); //  event tags + 3 entries + event grouping
 
     // Replay should be after message but before images loaded
     expect(sections[1]).toHaveTextContent(/message/i);
