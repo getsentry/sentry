@@ -302,12 +302,12 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         self.one_alert_rule = self.create_alert_rule(
             organization=self.org,
             projects=[self.project, self.project2],
-            date_added=date_added.replace(tzinfo=UTC),
+            date_added=date_added,
         )
         self.two_alert_rule = self.create_alert_rule(
             organization=self.org,
             projects=[self.project2],
-            date_added=date_added.replace(tzinfo=UTC),
+            date_added=date_added,
         )
         self.three_alert_rule = self.create_alert_rule(
             organization=self.org, projects=[self.project]
@@ -351,12 +351,12 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         self.one_alert_rule = self.create_alert_rule(
             organization=self.org,
             projects=[self.project, self.project2],
-            date_added=date_added.replace(tzinfo=UTC),
+            date_added=date_added,
         )
         self.two_alert_rule = self.create_alert_rule(
             organization=self.org,
             projects=[self.project],
-            date_added=date_added.replace(tzinfo=UTC),
+            date_added=date_added,
         )
         self.three_alert_rule = self.create_alert_rule(
             organization=self.org, projects=[self.project2]

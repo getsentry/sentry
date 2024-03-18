@@ -1,6 +1,6 @@
 import itertools
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest import mock
 
 import pytest
@@ -54,7 +54,7 @@ from sentry.utils.snuba import SnubaTSResult
 
 @pytest.fixture
 def timestamp():
-    return datetime(2023, 8, 1, 12, 7, 42, 521000, tzinfo=timezone.utc)
+    return datetime(2023, 8, 1, 12, 7, 42, 521000, tzinfo=UTC)
 
 
 @pytest.fixture
@@ -263,8 +263,8 @@ def test_detect_function_trends_query_timerange(functions_query, timestamp, proj
 
     assert functions_query.called
     params = functions_query.mock_calls[0].kwargs["params"]
-    assert params["start"] == datetime(2023, 8, 1, 11, 0, tzinfo=timezone.utc)
-    assert params["end"] == datetime(2023, 8, 1, 11, 1, tzinfo=timezone.utc)
+    assert params["start"] == datetime(2023, 8, 1, 11, 0, tzinfo=UTC)
+    assert params["end"] == datetime(2023, 8, 1, 11, 1, tzinfo=UTC)
 
 
 @mock.patch("sentry.tasks.statistical_detectors.query_transactions")
@@ -893,7 +893,7 @@ def test_detect_function_change_points(
     timestamp,
     project,
 ):
-    start_of_hour = timestamp.replace(minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
+    start_of_hour = timestamp.replace(minute=0, second=0, microsecond=0)
 
     fingerprint = 12345
 
@@ -1294,9 +1294,7 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
         super().setUp()
 
         self.now = before_now(minutes=10)
-        self.hour_ago = (self.now - timedelta(hours=1)).replace(
-            minute=0, second=0, microsecond=0, tzinfo=timezone.utc
-        )
+        self.hour_ago = (self.now - timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
         self.projects = [
             self.create_project(organization=self.organization, teams=[self.team], name="Foo"),
             self.create_project(organization=self.organization, teams=[self.team], name="Bar"),
@@ -1389,9 +1387,7 @@ class TestTransactionsQuery(MetricsAPIBaseTestCase):
         self.num_projects = 2
         self.num_transactions = 4
 
-        self.hour_ago = (self.now - timedelta(hours=1)).replace(
-            minute=0, second=0, microsecond=0, tzinfo=timezone.utc
-        )
+        self.hour_ago = (self.now - timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
         self.hour_ago_seconds = int(self.hour_ago.timestamp())
         self.org = self.create_organization(owner=self.user)
         self.projects = [
@@ -1473,9 +1469,7 @@ class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
         self.num_projects = 2
         self.num_transactions = 4
 
-        self.hour_ago = (self.now - timedelta(hours=1)).replace(
-            minute=0, second=0, microsecond=0, tzinfo=timezone.utc
-        )
+        self.hour_ago = (self.now - timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
         self.hour_ago_seconds = int(self.hour_ago.timestamp())
         self.org = self.create_organization(owner=self.user)
         self.projects = [
