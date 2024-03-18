@@ -4,43 +4,52 @@ import styled from '@emotion/styled';
 
 import HeroImg from 'sentry-images/spot/custom-metrics-opt-in-modal-hero.png';
 
-import {type ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {openModal} from 'sentry/actionCreators/modal';
 import {Button, LinkButton} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import useRouter from 'sentry/utils/useRouter';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import {updateOrganization} from '../../actionCreators/organizations';
 
 export function openMetricsOptInModal(organization: Organization) {
   return openModal(
-    deps => (
+    () => (
       <OrganizationContext.Provider value={organization}>
-        <OptInModal {...deps} closeModal={() => {}} />
+        <OptInModal />
       </OrganizationContext.Provider>
     ),
     {modalCss}
   );
 }
 
-function OptInModal({}: ModalRenderProps) {
+function OptInModal() {
   const organization = useOrganization();
   const api = useApi();
+  const router = useRouter();
 
   const handleOptIn = useCallback(async () => {
-    await api.requestPromise(`/organizations/${organization.slug}/metrics/emroll`, {
-      method: 'PUT',
-    });
+    try {
+      await api.requestPromise(`/organizations/${organization.slug}/metrics/enroll`, {
+        method: 'PUT',
+        query: {enroll: true},
+      });
 
-    updateOrganization({
-      id: organization.id,
-      customMetricsAccess: true,
-      features: organization.features?.concat('ddm-ui'),
-    });
-  }, [api, organization.features, organization.id, organization.slug]);
+      updateOrganization({
+        id: organization.id,
+        customMetricsAccess: true,
+        features: organization.features?.concat('ddm-ui'),
+      });
+    } catch (error) {
+      addErrorMessage(t('Failed to enable custom metrics'));
+      router.push(`/issues/`);
+    }
+  }, [api, organization.features, organization.id, organization.slug, router]);
 
   return (
     <Content>
