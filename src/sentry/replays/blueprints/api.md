@@ -648,7 +648,7 @@ Returns a collection of replays and their viewed state. The user is targetted ba
 
 ## Replay Viewed [/organizations/<organization_slug>/replays/<replay_id>/viewed/]
 
-### Fetch Replay Viewed [GET]
+### Fetch Replay Viewed By [GET]
 
 | Column  | Type        | Description                                        |
 | ------- | ----------- | -------------------------------------------------- |
