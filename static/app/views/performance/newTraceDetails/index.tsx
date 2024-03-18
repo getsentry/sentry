@@ -13,6 +13,8 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
+import Alert from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DiscoverButton from 'sentry/components/discoverButton';
 import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
@@ -22,7 +24,8 @@ import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {t} from 'sentry/locale';
+import {IconClose} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction, Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -391,9 +394,39 @@ function TraceViewContent(props: TraceViewContentProps) {
   );
 
   const scrollQueueRef = useRef<TraceTree.NodePath[] | null>(null);
+  const [dismiss, setDismissed] = useLocalStorageState(
+    'trace-view-alert-dismissed',
+    false
+  );
 
   return (
     <TraceExternalLayout>
+      {dismiss ? null : (
+        <Alert
+          type="info"
+          system
+          trailingItems={
+            <Button
+              aria-label="dismiss"
+              priority="link"
+              size="xs"
+              icon={<IconClose />}
+              onClick={() => setDismissed(true)}
+            />
+          }
+        >
+          {tct(
+            'Events now provide richer context by linking directly inside traces. Read [why] we are doing this and what it enables.',
+            {
+              why: (
+                <a href="https://docs.sentry.io/product/sentry-basics/concepts/tracing/trace-view/">
+                  {t('why')}
+                </a>
+              ),
+            }
+          )}
+        </Alert>
+      )}
       <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumb
