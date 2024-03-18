@@ -5,7 +5,7 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {hasMetricsUI} from 'sentry/utils/metrics/features';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DDMContextProvider, useDDMContext} from 'sentry/views/ddm/context';
 import {MetricsLayout} from 'sentry/views/ddm/layout';
@@ -22,6 +22,10 @@ function WrappedPageFiltersContainer({children}: {children: React.ReactNode}) {
 
 function Metrics() {
   const organization = useOrganization();
+  const [dismissedModal] = useLocalStorageState(
+    'sentry:metrics-opt-in-modal-dismissed',
+    false
+  );
 
   useEffect(() => {
     trackAnalytics('ddm.page-view', {
@@ -31,7 +35,7 @@ function Metrics() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (!hasMetricsUI(organization)) {
+  if (!dismissedModal) {
     openMetricsOptInModal(organization);
   }
 

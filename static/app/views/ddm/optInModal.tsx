@@ -1,60 +1,44 @@
-import {useCallback} from 'react';
+import {useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import HeroImg from 'sentry-images/spot/custom-metrics-opt-in-modal-hero.png';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
-import {Button, LinkButton} from 'sentry/components/button';
+import {type ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
+import {Button, type ButtonProps, LinkButton} from 'sentry/components/button';
+import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
+import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import {OrganizationContext} from 'sentry/views/organizationContext';
-
-import {updateOrganization} from '../../actionCreators/organizations';
 
 export function openMetricsOptInModal(organization: Organization) {
   return openModal(
-    () => (
+    deps => (
       <OrganizationContext.Provider value={organization}>
-        <OptInModal />
+        <OptInModal
+          {...deps}
+          closeModal={() => {
+            localStorage.setItem('sentry:metrics-opt-in-modal-dismissed', 'true');
+            deps.closeModal();
+          }}
+        />
       </OrganizationContext.Provider>
     ),
     {modalCss}
   );
 }
 
-function OptInModal() {
-  const organization = useOrganization();
-  const api = useApi();
-  const router = useRouter();
-
-  const handleOptIn = useCallback(async () => {
-    try {
-      await api.requestPromise(`/organizations/${organization.slug}/metrics/enroll`, {
-        method: 'PUT',
-        query: {enroll: true},
-      });
-
-      updateOrganization({
-        id: organization.id,
-        customMetricsAccess: true,
-        features: organization.features?.concat('ddm-ui'),
-      });
-    } catch (error) {
-      addErrorMessage(t('Failed to enable custom metrics'));
-      router.push(`/issues/`);
-    }
-  }, [api, organization.features, organization.id, organization.slug, router]);
+function OptInModal({closeModal}: ModalRenderProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  useOnClickOutside(ref, closeModal);
 
   return (
-    <Content>
+    <Content ref={ref}>
       <Subheader>{t('Sentry Metrics: Now in Beta')}</Subheader>
       <Header>{t('Track and solve what matters')}</Header>
+      <CloseButton onClick={closeModal} />
       <p>
         {t(
           'Create custom metrics to track and visualize the data points you care about over time, like processing time, checkout conversion rate, or user signups, and pinpoint and solve issues faster by using correlated traces.'
@@ -79,10 +63,15 @@ function OptInModal() {
         >
           {t('Learn more')}
         </LinkButton>
-        <Button onClick={handleOptIn} priority="primary">
+        <Button onClick={closeModal} priority="primary">
           {t("I'm In")}
         </Button>
       </ButtonGroup>
+      <Note>
+        {t(
+          'Metrics is currently supported in the following SDKs, with more coming soon: JavaScript, Node.js, Python, PHP, Ruby, Rust, Java, React Native, Unity, .NET.'
+        )}
+      </Note>
     </Content>
   );
 }
@@ -93,6 +82,7 @@ const Content = styled('div')`
   margin-inline: -46px;
   padding: 170px 46px 32px 46px;
   font-size: ${p => p.theme.fontSizeMedium};
+  border-radius: ${p => p.theme.borderRadius};
   p,
   ul {
     line-height: 1.6rem;
@@ -127,6 +117,31 @@ const ButtonGroup = styled('div')`
   gap: ${space(1)};
 `;
 
+const Note = styled('div')`
+  text-align: center;
+  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  margin-top: ${space(2)};
+  line-height: 1rem;
+`;
+
+const CloseButton = styled((p: Omit<ButtonProps, 'aria-label'>) => (
+  <Button
+    aria-label={t('Close Modal')}
+    icon={<IconClose legacySize="10px" />}
+    size="zero"
+    {...p}
+  />
+))`
+  position: absolute;
+  top: 0;
+  right: 0;
+  transform: translate(50%, -50%);
+  border-radius: 50%;
+  height: 24px;
+  width: 24px;
+`;
+
 export const modalCss = css`
   width: 100%;
   max-width: 532px;
@@ -134,7 +149,6 @@ export const modalCss = css`
   [role='document'] {
     position: relative;
     padding: 0 45px;
-    overflow: hidden;
     box-shadow: none;
   }
 `;
