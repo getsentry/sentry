@@ -18,9 +18,7 @@ def test_topic_definition() -> None:
         "outcomes-billing",
         "ingest-attachments",
         "ingest-transactions",
-        "ingest-metrics-dlq",
         "profiles",
-        "ingest-generic-metrics-dlq",
         "ingest-occurrences",
         "ingest-monitors",
     ]
