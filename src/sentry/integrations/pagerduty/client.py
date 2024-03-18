@@ -33,7 +33,12 @@ class PagerDutyClient(ApiClient):
             headers = {"Content-Type": "application/json"}
         return self._request(method, *args, headers=headers, **kwargs)
 
-    def send_trigger(self, data, severity: PagerdutyPriority, notification_uuid: str | None = None):
+    def send_trigger(
+        self,
+        data,
+        notification_uuid: str | None = None,
+        severity: PagerdutyPriority | None = None,
+    ):
         # expected payload: https://v2.developer.pagerduty.com/docs/send-an-event-events-api-v2
         if isinstance(data, (Event, GroupEvent)):
             source = data.transaction or data.culprit or "<unknown>"
