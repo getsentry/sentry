@@ -47,9 +47,9 @@ export default function TraceHeader({
     throw new Error('Expected a trace node');
   }
 
-  const errors = traceNode?.errors.length || metaResults.data?.errors || 0;
+  const errors = traceNode.errors.length || metaResults.data?.errors || 0;
   const performanceIssues =
-    traceNode?.performance_issues.length || metaResults.data?.performance_issues || 0;
+    traceNode.performance_issues.length || metaResults.data?.performance_issues || 0;
   const errorsAndIssuesCount = errors + performanceIssues;
 
   const replay_id = rootEventResults?.data?.contexts.replay?.replay_id;
@@ -173,7 +173,7 @@ export default function TraceHeader({
               getDuration(0, 2, true)
             ) : metaResults.isLoading ? (
               <LoadingIndicator size={20} mini />
-            ) : traceNode?.space?.[1] ? (
+            ) : traceNode.space?.[1] ? (
               getDuration(traceNode.space[1] / 1000, 2, true)
             ) : (
               '\u2014'
