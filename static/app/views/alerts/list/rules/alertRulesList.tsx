@@ -238,7 +238,7 @@ function AlertRulesList() {
                   {({initiallyLoaded, projects}) =>
                     ruleList.map(rule => {
                       const isIssueAlertInstance = isIssueAlert(rule);
-                      const ruleKey = isIssueAlertInstance
+                      const keyPrefix = isIssueAlertInstance
                         ? AlertRuleType.ISSUE
                         : AlertRuleType.METRIC;
 
@@ -252,7 +252,7 @@ function AlertRulesList() {
                       return (
                         <RuleListRow
                           // Metric and issue alerts can have the same id
-                          key={`${ruleKey}-${rule.id}`}
+                          key={`${keyPrefix}-${rule.id}`}
                           projectsLoaded={initiallyLoaded}
                           projects={projects as Project[]}
                           rule={rule}
