@@ -66,11 +66,11 @@ export default function NodeDetail({
   }
 
   if (isParentAutogroupedNode(node)) {
-    return <ParentAutogroupNodeDetails node={node} />;
+    return <ParentAutogroupNodeDetails organization={organization} node={node} />;
   }
 
   if (isSiblingAutogroupedNode(node)) {
-    return <SiblingAutogroupNodeDetails node={node} />;
+    return <SiblingAutogroupNodeDetails organization={organization} node={node} />;
   }
 
   if (isMissingInstrumentationNode(node)) {
