@@ -1,7 +1,7 @@
 import uuid
 
 from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
-from sentry.spans.consumers.recombine.message import process_segment
+from sentry.spans.consumers.detect_performance_issues.message import process_segment
 from sentry.testutils.cases import TestCase
 from tests.sentry.spans.consumers.process.test_factory import build_mock_span
 
