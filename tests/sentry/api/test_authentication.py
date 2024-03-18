@@ -1,4 +1,3 @@
-import hashlib
 import uuid
 from datetime import UTC, datetime
 
@@ -31,11 +30,8 @@ from sentry.services.hybrid_cloud.rpc import (
 )
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import override_options
-from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, no_silo_test
-from sentry.types.token import AuthTokenType
 from sentry.utils.security.orgauthtoken_token import hash_token
 
 
@@ -205,71 +201,6 @@ class TestTokenAuthentication(TestCase):
 
         with pytest.raises(AuthenticationFailed):
             self.auth.authenticate(request)
-
-    @override_options({"apitoken.save-hash-on-create": False})
-    def test_token_hashed_with_option_off(self):
-        # see https://github.com/getsentry/sentry/pull/65941
-        # the UserAuthTokenAuthentication middleware was updated to hash tokens as
-        # they were used, this test verifies the hash
-        api_token = ApiToken.objects.create(user=self.user, token_type=AuthTokenType.USER)
-        expected_hash = hashlib.sha256(api_token.token.encode()).hexdigest()
-
-        # we haven't authenticated to the API endpoint yet, so this value should be empty
-        assert api_token.hashed_token is None
-
-        request = HttpRequest()
-        request.META["HTTP_AUTHORIZATION"] = f"Bearer {api_token.token}"
-
-        # trigger the authentication middleware, and thus the hashing
-        result = self.auth.authenticate(request)
-        assert result is not None
-
-        # check for the expected hash value
-        api_token.refresh_from_db()
-        assert api_token.hashed_token == expected_hash
-
-
-@no_silo_test
-class TestTokenAuthenticationReplication(TestCase):
-    def setUp(self):
-        super().setUp()
-
-        self.auth = UserAuthTokenAuthentication()
-
-    @override_options({"apitoken.save-hash-on-create": False})
-    def test_hash_is_replicated(self):
-        api_token = ApiToken.objects.create(user=self.user, token_type=AuthTokenType.USER)
-        expected_hash = hashlib.sha256(api_token.token.encode()).hexdigest()
-
-        # we haven't authenticated to the API endpoint yet, so this value should be empty
-        assert api_token.hashed_token is None
-
-        request = HttpRequest()
-        request.META["HTTP_AUTHORIZATION"] = f"Bearer {api_token.token}"
-
-        with assume_test_silo_mode(SiloMode.REGION):
-            with outbox_runner():
-                # make sure the token was replicated
-                api_token_replica = ApiTokenReplica.objects.get(apitoken_id=api_token.id)
-                assert api_token.token == api_token_replica.token
-                assert (
-                    api_token_replica.hashed_token is None
-                )  # we don't expect to have a hashed value yet
-
-                # trigger the authentication middleware, and thus the hashing backfill
-                result = self.auth.authenticate(request)
-                assert result is not None
-
-                # check for the expected hash value
-                api_token.refresh_from_db()
-                assert api_token.hashed_token == expected_hash
-
-                # ApiTokenReplica should also be updated
-                api_token_replica.refresh_from_db()
-                assert api_token_replica.hashed_token == expected_hash
-
-                # just for good measure
-                assert api_token.hashed_token == api_token_replica.hashed_token
 
 
 @django_db_all

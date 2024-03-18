@@ -34,7 +34,6 @@ class RpcApiToken(RpcModel):
     application_id: int | None = None
     application_is_active: bool = False
     token: str = ""
-    hashed_token: str | None = None
     expires_at: datetime.datetime | None = None
     allowed_origins: list[str] = Field(default_factory=list)
     scope_list: list[str] = Field(default_factory=list)
