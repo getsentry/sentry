@@ -29,12 +29,10 @@ export function MetricTableContainer({
   isLoading,
 }: MetricTableContainerProps) {
   const tableData = useMemo(() => {
-    return timeseriesData ? getTableData(timeseriesData, metricQueries) : undefined;
+    return timeseriesData
+      ? getTableData(timeseriesData, metricQueries)
+      : {headers: [], rows: []};
   }, [timeseriesData, metricQueries]);
-
-  if (!tableData) {
-    return null;
-  }
 
   return (
     <Fragment>
@@ -88,6 +86,10 @@ export function MetricTable({
     });
   }
 
+  if (isLoading) {
+    return <LoadingScreen loading />;
+  }
+
   return (
     <StyledPanelTable
       borderless={borderless}
@@ -108,7 +110,6 @@ export function MetricTable({
         );
       })}
       stickyHeaders
-      isLoading={isLoading}
       emptyMessage={t('No results')}
     >
       {data.rows.map(renderRow)}
