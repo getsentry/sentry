@@ -5,6 +5,7 @@ from threading import local
 import sentry_sdk
 from django.core.cache import InvalidCacheBackendError, caches
 
+from sentry.features.rollout import in_random_rollout
 from sentry.utils import json
 from sentry.utils.cache import memoize
 from sentry.utils.services import Service
@@ -251,6 +252,8 @@ class NodeStorage(local, Service):
             sentry_sdk.set_tag("nodestore.set_subkeys", True)
             span.set_tag("node_id", id)
             span.set_data("subkeys_count", len(data))
+            # The `None` key here is actually the "processed" Event data,
+            # which is being persisted into the cache.
             cache_item = data.get(None)
             bytes_data = self._encode(data)
             self._set_bytes(id, bytes_data, ttl=ttl)
@@ -274,11 +277,11 @@ class NodeStorage(local, Service):
 
     @sentry_sdk.tracing.trace
     def _set_cache_item(self, id, data):
-        if self.cache and data:
+        if self.cache and data and in_random_rollout("nodedata.cache-sample-rate"):
             self.cache.set(id, data)
 
     def _set_cache_items(self, items):
-        if self.cache:
+        if self.cache and in_random_rollout("nodedata.cache-sample-rate"):
             self.cache.set_many(items)
 
     def _delete_cache_item(self, id):
