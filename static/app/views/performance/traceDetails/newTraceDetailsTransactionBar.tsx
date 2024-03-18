@@ -65,7 +65,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
+import {hasMetricsExperimentalFeature} from 'sentry/utils/metrics/features';
 import toPercent from 'sentry/utils/number/toPercent';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
 import type {
@@ -777,7 +777,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
     const hasMetrics = Object.keys(embeddedChildren?._metrics_summary ?? {}).length > 0;
 
     if (
-      !hasDDMExperimentalFeature(organization) ||
+      !hasMetricsExperimentalFeature(organization) ||
       isTraceRoot(transaction) ||
       isTraceError(transaction) ||
       !hasMetrics
