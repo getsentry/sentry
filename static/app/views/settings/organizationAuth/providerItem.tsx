@@ -117,14 +117,18 @@ function ProviderItem({provider, active, onConfigure}: Props) {
           <FeatureBadge>
             {!hasFeature &&
               // renderDisabled is overridden by renderDisabled above
-              (renderDisabled as any as typeof renderDisabledLock)({provider, features})}
+              (renderDisabled as typeof renderDisabledLock)({provider, features})}
           </FeatureBadge>
 
           <div>
             {active ? (
               <ActiveIndicator />
             ) : (
-              (renderInstallButton ?? defaultRenderInstallButton)({provider, hasFeature})
+              // renderInstallButton is overridden by renderDisabled above
+              (
+                (renderInstallButton as typeof defaultRenderInstallButton) ??
+                defaultRenderInstallButton
+              )({provider, hasFeature})
             )}
           </div>
         </PanelItem>
