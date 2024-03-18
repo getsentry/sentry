@@ -482,7 +482,9 @@ describe('AlertRulesList', () => {
     const {routerContext, organization} = initializeOrg({organization: defaultOrg});
     render(<AlertRulesList />, {context: routerContext, organization});
 
-    await screen.findByText('Test Metric Alert 2'); // this fails the test if it doesn't find the text as well
+    expect(await screen.findByText('Test Metric Alert 2')).toBeInTheDocument();
+    expect(await screen.findByText('First Issue Alert')).toBeInTheDocument();
+
     expect(screen.queryByText('Omitted Test Metric Alert')).not.toBeInTheDocument();
   });
 });
