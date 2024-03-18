@@ -27,6 +27,7 @@ function SentryAppExternalIssueForm({
   sentryAppInstallation,
 }: Props) {
   const contentArr = getStacktraceBody(event);
+  const isFeedback = (group.issueCategory as string) === 'feedback';
 
   const stackTrace =
     contentArr && contentArr.length > 0 ? '\n\n```\n' + contentArr[0] + '\n```' : '';
@@ -57,7 +58,15 @@ function SentryAppExternalIssueForm({
             const queryParams = {referrer: appName};
             const url = addQueryParamsToExistingUrl(group.permalink, queryParams);
             const shortId = group.shortId;
-            return t('Sentry Issue: [%s](%s)%s', shortId, url, stackTrace);
+            return isFeedback
+              ? t(
+                  'Sentry Feedback: [%s](%s)%s \n\n%s',
+                  shortId,
+                  url,
+                  stackTrace,
+                  group.metadata.message
+                )
+              : t('Sentry Issue: [%s](%s)%s', shortId, url, stackTrace);
           default:
             return '';
         }
