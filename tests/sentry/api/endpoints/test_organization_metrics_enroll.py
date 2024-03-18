@@ -18,10 +18,10 @@ class OrganizationMetricsEnrollTest(APITestCase):
         self.login_as(user=self.user)
 
     def test_enroll(self):
-        self.get_success_response(self.organization.slug, status_code=200)
+        self.get_success_response(self.organization.slug, status_code=200, qs_params={"enroll": "true"})
         assert self.organization.get_option("sentry:custom_metrics_access")
 
-        self.get_success_response(self.organization.slug, status_code=200)
+        self.get_success_response(self.organization.slug, status_code=200, qs_params={"enroll": "false"})
         assert not self.organization.get_option("sentry:custom_metrics_access")
 
     def test_permissions(self):
