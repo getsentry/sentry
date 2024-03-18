@@ -186,8 +186,10 @@ describe('Performance > Transaction Tags', function () {
       organization,
     });
 
-    // Table is loaded.
-    expect(await screen.findByRole('table')).toBeInTheDocument();
+    await waitFor(() => {
+      // Table is loaded.
+      expect(screen.getByRole('table')).toBeInTheDocument();
+    });
 
     expect(browserHistory.replace).toHaveBeenCalledWith({
       query: {
@@ -221,8 +223,10 @@ describe('Performance > Transaction Tags', function () {
       organization,
     });
 
-    // Table is loaded.
-    expect(await screen.findByRole('table')).toBeInTheDocument();
+    await waitFor(() => {
+      // Table is loaded.
+      expect(screen.getByRole('table')).toBeInTheDocument();
+    });
 
     expect(browserHistory.replace).toHaveBeenCalledWith({
       query: {
@@ -254,8 +258,10 @@ describe('Performance > Transaction Tags', function () {
       organization: initialData.organization,
     });
 
-    // Table is loaded.
-    expect(await screen.findByRole('table')).toBeInTheDocument();
+    await waitFor(() => {
+      // Table is loaded.
+      expect(screen.getByRole('table')).toBeInTheDocument();
+    });
 
     // Release link is properly setup
     expect(await screen.findByText(TEST_RELEASE_NAME)).toBeInTheDocument();
@@ -335,7 +341,10 @@ describe('Performance > Transaction Tags', function () {
       organization,
     });
 
-    expect(await screen.findByRole('table')).toBeInTheDocument();
+    await waitFor(() => {
+      // Table is loaded.
+      expect(screen.getByRole('table')).toBeInTheDocument();
+    });
 
     await waitFor(() => expect(histogramMock).toHaveBeenCalledTimes(1));
 
