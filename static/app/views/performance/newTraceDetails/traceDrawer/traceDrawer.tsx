@@ -278,6 +278,8 @@ const TabsContainer = styled('ul')<{hasIndicators: boolean}>`
 const TabLayoutControlsContainer = styled('ul')`
   list-style-type: none;
   padding-left: 0;
+  margin-left: auto;
+  margin-right: ${space(1.5)};
 
   button {
     padding: ${space(0.5)};
