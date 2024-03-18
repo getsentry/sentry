@@ -111,7 +111,6 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
 
   useEffect(() => {
     // Run on mount.
-
     const {span, organization, event} = props;
     if (!('op' in span)) {
       return;
@@ -289,7 +288,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   }
 
   function renderSpanErrorMessage() {
-    const {span, organization, errors, performanceIssues, event} = props;
+    const {span, organization, errors, performanceIssues} = props;
 
     const hasErrors = errors.length > 0 || performanceIssues.length > 0;
 
@@ -298,12 +297,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
     }
 
     return (
-      <IssueList
-        organization={organization}
-        issues={relatedIssues}
-        event_id={event.id}
-        node={props.node}
-      />
+      <IssueList organization={organization} issues={relatedIssues} node={props.node} />
     );
   }
 

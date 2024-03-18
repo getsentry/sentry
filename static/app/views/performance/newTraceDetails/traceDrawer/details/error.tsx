@@ -18,6 +18,7 @@ import {Row, Tags} from 'sentry/views/performance/traceDetails/styles';
 
 import type {TraceTree, TraceTreeNode} from '../../traceTree';
 
+import {IssueList} from './issues/issues';
 import {TraceDrawerComponents} from './styles';
 
 export function ErrorNodeDetails({
@@ -48,17 +49,26 @@ export function ErrorNodeDetails({
     return null;
   }, [data]);
 
+  // In error nodes, the `value` is the error object
+  const errors = useMemo(() => [node.value], [node.value]);
+
   return isLoading ? (
     <LoadingIndicator />
   ) : data ? (
     <TraceDrawerComponents.DetailContainer>
       <TraceDrawerComponents.HeaderContainer>
-        <TraceDrawerComponents.IconTitleWrapper>
+        <TraceDrawerComponents.Title>
           <TraceDrawerComponents.IconBorder errored>
             <IconFire color="errorText" size="md" />
           </TraceDrawerComponents.IconBorder>
-          <div style={{fontWeight: 'bold'}}>{t('Error')}</div>
-        </TraceDrawerComponents.IconTitleWrapper>
+          <div>
+            <div>{t('error')}</div>
+            <TraceDrawerComponents.TitleOp>
+              {' '}
+              {node.value.title}
+            </TraceDrawerComponents.TitleOp>
+          </div>
+        </TraceDrawerComponents.Title>
         <TraceDrawerComponents.Actions>
           <Button size="xs" onClick={_e => scrollToNode(node)}>
             {t('Show in view')}
@@ -69,6 +79,9 @@ export function ErrorNodeDetails({
         </TraceDrawerComponents.Actions>
       </TraceDrawerComponents.HeaderContainer>
 
+      {errors.length > 0 ? (
+        <IssueList organization={organization} issues={errors} node={node} />
+      ) : null}
       <TraceDrawerComponents.Table className="table key-value">
         <tbody>
           {stackTrace && (

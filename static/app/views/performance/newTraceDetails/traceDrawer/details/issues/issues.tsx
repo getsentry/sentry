@@ -107,13 +107,12 @@ function Issue(props: IssueProps) {
 }
 
 type IssueListProps = {
-  event_id: string;
   issues: TraceErrorOrIssue[];
   node: TraceTreeNode<TraceTree.NodeValue>;
   organization: Organization;
 };
 
-export function IssueList({issues, node, organization, event_id}: IssueListProps) {
+export function IssueList({issues, node, organization}: IssueListProps) {
   if (!issues.length) {
     return null;
   }
@@ -126,7 +125,7 @@ export function IssueList({issues, node, organization, event_id}: IssueListProps
           key={index}
           issue={issue}
           organization={organization}
-          event_id={event_id}
+          event_id={issue.event_id}
         />
       ))}
     </StyledPanel>
@@ -149,7 +148,7 @@ function IssueListHeader({node}: {node: TraceTreeNode<TraceTree.NodeValue>}) {
       : isAutogroupedNode(node)
         ? node.performance_issues.length
         : isTraceErrorNode(node)
-          ? 1
+          ? 0
           : 0;
 
   return (

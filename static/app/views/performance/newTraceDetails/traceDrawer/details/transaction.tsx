@@ -199,8 +199,6 @@ export function TransactionNodeDetails({
   const {feedback} = contexts ?? {};
   const eventJsonUrl = `/api/0/projects/${organization.slug}/${node.value.project_slug}/events/${node.value.event_id}/json/`;
   const project = projects.find(proj => proj.slug === event?.projectSlug);
-  const {errors, performance_issues} = node.value;
-  const hasIssues = errors.length + performance_issues.length > 0;
   const startTimestamp = Math.min(node.value.start_timestamp, node.value.timestamp);
   const endTimestamp = Math.max(node.value.start_timestamp, node.value.timestamp);
   const {start: startTimeWithLeadingZero, end: endTimeWithLeadingZero} =
@@ -309,13 +307,8 @@ export function TransactionNodeDetails({
         </TraceDrawerComponents.Actions>
       </TraceDrawerComponents.HeaderContainer>
 
-      {hasIssues ? (
-        <IssueList
-          node={node}
-          organization={organization}
-          issues={relatedIssues}
-          event_id={event.id}
-        />
+      {node.value.errors.length > 0 || node.value.performance_issues.length > 0 ? (
+        <IssueList node={node} organization={organization} issues={relatedIssues} />
       ) : null}
 
       <TraceDrawerComponents.Table className="table key-value">

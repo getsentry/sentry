@@ -1,12 +1,27 @@
+import {useMemo} from 'react';
+
 import {IconGroup} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import type {Organization} from 'sentry/types';
+import type {TraceErrorOrIssue} from 'sentry/utils/performance/quickTrace/types';
 import {Row} from 'sentry/views/performance/traceDetails/styles';
 
 import type {SiblingAutogroupNode} from '../../traceTree';
 
+import {IssueList} from './issues/issues';
 import {TraceDrawerComponents} from './styles';
 
-export function SiblingAutogroupNodeDetails({node}: {node: SiblingAutogroupNode}) {
+export function SiblingAutogroupNodeDetails({
+  node,
+  organization,
+}: {
+  node: SiblingAutogroupNode;
+  organization: Organization;
+}) {
+  const issues: TraceErrorOrIssue[] = useMemo(() => {
+    return [...node.errors, ...node.performance_issues];
+  }, [node.errors, node.performance_issues]);
+
   return (
     <TraceDrawerComponents.DetailContainer>
       <TraceDrawerComponents.IconTitleWrapper>
@@ -15,6 +30,10 @@ export function SiblingAutogroupNodeDetails({node}: {node: SiblingAutogroupNode}
         </TraceDrawerComponents.IconBorder>
         <div style={{fontWeight: 'bold'}}>{t('Autogroup')}</div>
       </TraceDrawerComponents.IconTitleWrapper>
+
+      {node.errors.length > 0 || node.performance_issues.length > 0 ? (
+        <IssueList organization={organization} issues={issues} node={node} />
+      ) : null}
 
       <TraceDrawerComponents.Table className="table key-value">
         <tbody>
