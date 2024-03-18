@@ -608,3 +608,107 @@ Retrieve a collection of click events associated with a replay.
     ]
   }
   ```
+
+## Replays Viewed [/organizations/<organization_slug>/replays-viewed/]
+
+- Parameters
+
+  - project (optional, string)
+  - id (required, array[string]) - The id of the replay to retrieve. Can be specified multiple times.
+  - per_page (optional, number) - The per page limit should match the number of ids requested.
+    Default: 10
+  - offset (optional, number)
+    Default: 0
+
+### Browse Replays Viewed [GET]
+
+Returns a collection of replays and their viewed state. The user is targetted based on the authorization context. Replay-ids are specified in the URL parameters.
+
+**Attributes**
+
+| Column   | Type   | Description                                              |
+| -------- | ------ | -------------------------------------------------------- |
+| id       | string | A replay-id.                                             |
+| has_seen | bool   | Returns true if the authorized user has seen the replay. |
+
+- Request
+
+  - Headers
+
+    Cookie: \_ga=GA1.2.17576183...
+
+- Response 200
+
+  ```json
+  {
+    "data": [
+      {
+        "id": "81220fbf68494b30a5129ceb4cc5937d",
+        "has_seen": true
+      }
+    ]
+  }
+  ```
+
+## Replay Viewed [/organizations/<organization_slug>/replays/<replay_id>/viewed/]
+
+### Fetch Replay Viewed [GET]
+
+| Column  | Type        | Description                                        |
+| ------- | ----------- | -------------------------------------------------- |
+| id      | string      | A replay-id.                                       |
+| seen_by | array[User] | An array of user types who have viewed the replay. |
+
+- Response 200
+
+  ```json
+  {
+    "data": {
+      "id": "81220fbf68494b30a5129ceb4cc5937d",
+      "seen_by": [
+        {
+          "id": "884411",
+          "name": "some.body@sentry.io",
+          "username": "d93522a35cb64c13991104bd73d44519",
+          "email": "some.body@sentry.io",
+          "avatarUrl": "https://gravatar.com/avatar/d93522a35cb64c13991104bd73d44519d93522a35cb64c13991104bd73d44519?s=32&d=mm",
+          "isActive": true,
+          "hasPasswordAuth": false,
+          "isManaged": false,
+          "dateJoined": "2022-07-25T23:36:29.593212Z",
+          "lastLogin": "2024-03-14T18:11:28.740309Z",
+          "has2fa": true,
+          "lastActive": "2024-03-15T22:22:06.925934Z",
+          "isSuperuser": true,
+          "isStaff": false,
+          "experiments": {},
+          "emails": [
+            {
+              "id": "2231333",
+              "email": "some.body@sentry.io",
+              "is_verified": true
+            }
+          ],
+          "avatar": {
+            "avatarType": "upload",
+            "avatarUuid": "499dcd0764da42a589654a2224086e67",
+            "avatarUrl": "https://sentry.io/avatar/499dcd0764da42a589654a2224086e67/"
+          },
+          "type": "user"
+        }
+      ]
+    }
+  }
+  ```
+
+### Create Replay Viewed [POST]
+
+A POST request is issued with no body. The URL and authorization context is used to construct a new viewed replay entry.
+
+- Request
+
+  - Headers
+
+    Cookie: \_ga=GA1.2.17576183...
+
+- Response 204
