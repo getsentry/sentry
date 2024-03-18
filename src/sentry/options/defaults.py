@@ -2087,31 +2087,16 @@ register(
 
 # Sampling rates for testing Rust-based grouping enhancers
 
-# Rate at which to parse enhancers in Rust in addition to Python
-register(
-    "grouping.rust_enhancers.parse_rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Rate at which to run the Rust implementation of `apply_modifications_to_frames`
-# and compare the results
-register(
-    "grouping.rust_enhancers.modify_frames_rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Rate at which to prefer the `apply_modifications_to_frames` result of the Rust implementation.
-register(
-    "grouping.rust_enhancers.prefer_rust_result",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Rate at which to run the Rust implementation of `assemble_stacktrace_component`
 # and compare the results
 register(
     "grouping.rust_enhancers.compare_components",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Rate at which to prefer the Rust implementation of `assemble_stacktrace_component`.
+register(
+    "grouping.rust_enhancers.prefer_rust_components",
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
