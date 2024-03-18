@@ -266,6 +266,8 @@ function Trace({
     manager,
     search_state.query,
     onTraceSearch,
+    location.query.node,
+    location.search,
     setDetailNode,
     roving_dispatch,
   ]);
@@ -423,6 +425,8 @@ function Trace({
       roving_dispatch,
       setDetailNode,
       search_state,
+      location.pathname,
+      location.search,
       search_dispatch,
       previouslyFocusedIndexRef,
       previousSearchResultIndexRef,
