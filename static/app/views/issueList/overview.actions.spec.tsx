@@ -360,8 +360,7 @@ describe('IssueListOverview (actions)', function () {
         headers: {Link: DEFAULT_LINKS_HEADER},
       });
 
-      await userEvent.click(screen.getByRole('button', {name: /more issue actions/i}));
-      await userEvent.hover(screen.getByRole('menuitemradio', {name: /priority/i}));
+      await userEvent.click(screen.getByRole('button', {name: /set priority/i}));
       await userEvent.click(screen.getByRole('menuitemradio', {name: /low/i}));
 
       expect(updateIssueMock).toHaveBeenCalledWith(
@@ -439,8 +438,7 @@ describe('IssueListOverview (actions)', function () {
 
       expect(screen.getByText('Medium priority issue')).toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('button', {name: /more issue actions/i}));
-      await userEvent.hover(screen.getByRole('menuitemradio', {name: /priority/i}));
+      await userEvent.click(screen.getByRole('button', {name: /set priority/i}));
       await userEvent.click(screen.getByRole('menuitemradio', {name: /low/i}));
 
       expect(updateIssueMock).toHaveBeenCalledWith(
