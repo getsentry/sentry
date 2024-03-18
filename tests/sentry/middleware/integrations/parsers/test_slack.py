@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import dataclasses
 from unittest.mock import patch
 from urllib.parse import urlencode
 
@@ -12,9 +11,12 @@ from django.urls import reverse
 from rest_framework import status
 
 from sentry.integrations.slack.utils.auth import _encode_data
-from sentry.middleware.integrations.parsers.slack import SlackRequestParser
+from sentry.middleware.integrations.parsers.slack import (
+    SlackRequestParser,
+    create_async_request_payload,
+)
 from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.models.outbox import ControlOutbox, outbox_context
+from sentry.models.outbox import outbox_context
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import assert_no_webhook_payloads
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test, create_test_regions
@@ -118,12 +120,10 @@ class SlackRequestParserTest(TestCase):
         request = self.factory.post(reverse("sentry-integration-slack-action"), data=data)
         parser = SlackRequestParser(request, self.get_response)
         response = parser.get_response()
-        webhook_payload = ControlOutbox.get_webhook_payload_from_request(request=request)
-        payload = dataclasses.asdict(webhook_payload)
         mock_slack_task.apply_async.assert_called_once_with(
             kwargs={
                 "region_names": ["us"],
-                "payload": payload,
+                "payload": create_async_request_payload(request),
                 "response_url": response_url,
             }
         )
@@ -153,3 +153,26 @@ class SlackRequestParserTest(TestCase):
         response = parser.get_response()
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert mock_slack_task.apply_async.call_count == 0
+
+    def test_async_request_payload(self):
+        data = {
+            "payload": json.dumps(
+                {
+                    "team_id": self.integration.external_id,
+                    "response_url": "https://hooks.slack.com/commands/TXXXXX1/12345678/something",
+                }
+            )
+        }
+        request = self.factory.post(reverse("sentry-integration-slack-action"), data=data)
+        result = create_async_request_payload(request)
+
+        assert "method" in result
+        assert result["method"] == request.method
+        assert "path" in result
+        assert result["path"] == request.get_full_path()
+        assert "uri" in result
+        assert result["uri"] == request.build_absolute_uri()
+        assert "headers" in result
+        assert isinstance(result["headers"], dict)
+        assert "body" in result
+        assert result["body"] == request.body.decode("utf8")
