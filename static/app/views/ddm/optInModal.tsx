@@ -73,7 +73,10 @@ function OptInModal() {
         </li>
       </List>
       <ButtonGroup>
-        <LinkButton external href="https://help.sentry.io">
+        <LinkButton
+          external
+          href="https://help.sentry.io/product-features/other/metrics-beta-faqs/"
+        >
           {t('Learn more')}
         </LinkButton>
         <Button onClick={handleOptIn} priority="primary">
