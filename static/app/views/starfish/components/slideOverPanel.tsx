@@ -67,14 +67,12 @@ const _SlideOverPanel = styled(motion.div, {
       width: 100%;
       height: ${PANEL_HEIGHT};
       position: sticky;
-      border-top: 1px solid ${p.theme.border};
     `
       : `
       width: ${PANEL_WIDTH};
       height: 100%;
       position: fixed;
       top: 0;
-      border-left: 1px solid ${p.theme.border};
     `}
   bottom: 0;
   right: 0;
