@@ -24,7 +24,12 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type OnTapProps = NonNullable<React.ComponentProps<typeof U2fContainer>['onTap']>;
 
+type DefaultProps = {
+  closeButton?: boolean;
+};
+
 type Props = WithRouterProps &
+  DefaultProps &
   Pick<ModalRenderProps, 'Body' | 'Header'> & {
     api: Client;
     closeModal: () => void;
@@ -50,6 +55,10 @@ type State = {
 };
 
 class SudoModal extends Component<Props, State> {
+  static defaultProps: DefaultProps = {
+    closeButton: true,
+  };
+
   state: State = {
     authenticators: [],
     busy: false,
@@ -313,11 +322,11 @@ class SudoModal extends Component<Props, State> {
   }
 
   render() {
-    const {Header, Body} = this.props;
+    const {Header, Body, closeButton} = this.props;
 
     return (
       <Fragment>
-        <Header closeButton>{t('Confirm Password to Continue')}</Header>
+        <Header closeButton={closeButton}>{t('Confirm Password to Continue')}</Header>
         <Body>{this.renderBodyContent()}</Body>
       </Fragment>
     );
