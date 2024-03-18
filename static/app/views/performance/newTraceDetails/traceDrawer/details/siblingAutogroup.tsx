@@ -7,7 +7,7 @@ import type {SiblingAutogroupNode} from '../../traceTree';
 
 import {IssueList} from './issues/issues';
 import {TraceDrawerComponents} from './styles';
-import { useMemo } from 'react';
+import {useMemo} from 'react';
 
 export function SiblingAutogroupNodeDetails({
   node,
