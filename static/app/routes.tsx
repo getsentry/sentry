@@ -2044,10 +2044,18 @@ function buildRoutes() {
     </Route>
   );
 
-  const ddmRoutes = (
-    <Route path="/ddm/" component={make(() => import('sentry/views/ddm'))} withOrgPath>
-      <IndexRoute component={make(() => import('sentry/views/ddm/ddm'))} />
-    </Route>
+  const metricsRoutes = (
+    <Fragment>
+      <Route
+        path="/metrics/"
+        component={make(() => import('sentry/views/ddm'))}
+        withOrgPath
+      >
+        <IndexRoute component={make(() => import('sentry/views/ddm/ddm'))} />
+      </Route>
+      {/* TODO(ddm): fade this out */}
+      <Redirect from="/ddm/" to="/metrics/" />
+    </Fragment>
   );
 
   // Support for deprecated URLs (pre-Sentry 10). We just redirect users to new
@@ -2158,7 +2166,7 @@ function buildRoutes() {
       {performanceRoutes}
       {starfishRoutes}
       {profilingRoutes}
-      {ddmRoutes}
+      {metricsRoutes}
       {gettingStartedRoutes}
       {adminManageRoutes}
       {legacyOrganizationRootRoutes}
