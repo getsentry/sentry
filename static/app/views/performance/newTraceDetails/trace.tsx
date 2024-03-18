@@ -136,7 +136,10 @@ interface TraceProps {
   previouslyFocusedIndexRef: React.MutableRefObject<number | null>;
   roving_dispatch: React.Dispatch<RovingTabIndexAction>;
   roving_state: RovingTabIndexState;
-  scrollQueueRef: React.MutableRefObject<TraceTree.NodePath[] | null>;
+  scrollQueueRef: React.MutableRefObject<{
+    eventId?: string;
+    path?: TraceTree.NodePath[];
+  } | null>;
   searchResultsIteratorIndex: number | undefined;
   searchResultsMap: Map<TraceTreeNode<TraceTree.NodeValue>, number>;
   search_dispatch: React.Dispatch<TraceSearchAction>;
@@ -185,7 +188,14 @@ function Trace({
       trace.root.space[1] !== manager.trace_space.width)
   ) {
     manager.initializeTraceSpace([trace.root.space[0], 0, trace.root.space[1], 1]);
-    scrollQueueRef.current = decodeScrollQueue(qs.parse(location.search).node);
+    const maybeQueue = decodeScrollQueue(qs.parse(location.search).node);
+    const maybeEventId = qs.parse(location.search)?.eventId;
+    if (maybeQueue || maybeEventId) {
+      scrollQueueRef.current = {
+        eventId: maybeEventId as string,
+        path: maybeQueue as TraceTreeNode<TraceTree.NodeValue>['path'],
+      };
+    }
   }
 
   const loadedRef = useRef(false);
@@ -199,31 +209,34 @@ function Trace({
 
     loadedRef.current = true;
 
-    const eventId = qs.parse(location.search)?.eventId;
-    if (!scrollQueueRef.current && !scrollQueueRef.current && !eventId) {
+    if (!scrollQueueRef.current) {
       if (search_state.query) {
         onTraceSearch(search_state.query);
       }
       return;
     }
 
-    const promise =
-      eventId && typeof eventId === 'string'
-        ? manager.scrollToEventID(eventId, trace, () => setRender(a => (a + 1) % 2), {
+    const promise = scrollQueueRef.current?.eventId
+      ? manager.scrollToEventID(
+          scrollQueueRef?.current?.eventId,
+          trace,
+          () => setRender(a => (a + 1) % 2),
+          {
             api,
             organization,
-          })
-        : scrollQueueRef.current
-          ? manager.scrollToPath(
-              trace,
-              scrollQueueRef.current,
-              () => setRender(a => (a + 1) % 2),
-              {
-                api,
-                organization,
-              }
-            )
-          : Promise.resolve(null);
+          }
+        )
+      : scrollQueueRef?.current?.path
+        ? manager.scrollToPath(
+            trace,
+            scrollQueueRef.current.path,
+            () => setRender(a => (a + 1) % 2),
+            {
+              api,
+              organization,
+            }
+          )
+        : Promise.resolve(null);
 
     promise.then(maybeNode => {
       // Important to set scrollQueueRef.current to null and trigger a rerender
