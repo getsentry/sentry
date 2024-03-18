@@ -293,6 +293,10 @@ export function TransactionNodeDetails({
           <Button size="xs" onClick={_e => scrollToNode(node)}>
             {t('Show in view')}
           </Button>
+          <TraceDrawerComponents.EventDetailsLink
+            eventId={node.value.event_id}
+            projectSlug={node.metadata.project_slug}
+          />
           <Button
             size="xs"
             icon={<IconOpen />}
