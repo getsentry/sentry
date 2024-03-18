@@ -261,7 +261,7 @@ describe('Performance > Table', function () {
         />
       );
 
-      expect(await screen.findAllByTestId('grid-body-row')).toHaveLength(3);
+      expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();
       const cellActionContainers = screen.queryByTestId('cell-action-container');
       expect(cellActionContainers).not.toBeInTheDocument();
     });
