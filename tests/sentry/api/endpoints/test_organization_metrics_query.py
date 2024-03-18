@@ -52,8 +52,9 @@ class OrganizationMetricsQueryTest(MetricsAPIBaseTestCase):
                 {"name": "aggregate_value", "type": "Float64"},
                 {
                     "group_bys": [],
-                    "limit": 20,
-                    "order": None,
+                    "limit": 3334,
+                    "has_more": False,
+                    "order": "DESC",
                     "scaling_factor": None,
                     "unit": None,
                     "unit_family": None,
@@ -82,8 +83,9 @@ class OrganizationMetricsQueryTest(MetricsAPIBaseTestCase):
                 {"name": "aggregate_value", "type": "Float64"},
                 {
                     "group_bys": [],
-                    "limit": 20,
-                    "order": None,
+                    "limit": 3334,
+                    "has_more": False,
+                    "order": "DESC",
                     "scaling_factor": None,
                     "unit": None,
                     "unit_family": None,
