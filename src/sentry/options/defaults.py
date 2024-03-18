@@ -1823,21 +1823,21 @@ register(
 
 # IDs of orgs that will stop ingesting custom metrics.
 register(
-    "custom-metrics-ingestion-killswitched-orgs",
+    "custom-metrics-ingestion-disabled-orgs",
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # IDs of projects that will stop ingesting custom metrics.
 register(
-    "custom-metrics-ingestion-killswitched-projects",
+    "custom-metrics-ingestion-disabled-projects",
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # IDs of orgs that will be disabled from querying metrics via `/metrics/query` endpoint.
 register(
-    "custom-metrics-querying-killswitched-orgs",
+    "custom-metrics-querying-disabled-orgs",
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

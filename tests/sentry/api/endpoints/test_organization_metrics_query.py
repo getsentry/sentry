@@ -91,8 +91,8 @@ class OrganizationMetricsQueryTest(MetricsAPIBaseTestCase):
             ]
         ]
 
-    def test_query_with_killswitched_org(self):
-        with self.options({"custom-metrics-querying-killswitched-orgs": [self.organization.id]}):
+    def test_query_with_disabled_org(self):
+        with self.options({"custom-metrics-querying-disabled-orgs": [self.organization.id]}):
             self.get_error_response(
                 self.project.organization.slug,
                 status_code=401,

@@ -424,7 +424,7 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
 
     def post(self, request: Request, organization) -> Response:
         try:
-            if organization.id in (options.get("custom-metrics-querying-killswitched-orgs") or ()):
+            if organization.id in (options.get("custom-metrics-querying-disabled-orgs") or ()):
                 return Response(
                     status=401, data={"detail": "The organization is not allowed to query metrics"}
                 )

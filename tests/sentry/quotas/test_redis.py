@@ -288,14 +288,14 @@ class RedisQuotaTest(TestCase):
         assert quotas[0].window == 10
         assert quotas[0].reason_code == "project_abuse_limit"
 
-    def test_custom_metrics_ingestion_killswitch_quota(self):
+    def test_custom_metrics_ingestion_disabled_quota(self):
         # These legacy options need to be set, otherwise we'll run into
         # AssertionError: reject-all quotas cannot be tracked
         self.get_project_quota.return_value = (100, 10)
         self.get_organization_quota.return_value = (1000, 10)
         self.get_monitor_quota.return_value = (15, 60)
 
-        with self.options({"custom-metrics-ingestion-killswitched-orgs": [self.organization.id]}):
+        with self.options({"custom-metrics-ingestion-disabled-orgs": [self.organization.id]}):
             quotas = self.quota.get_quotas(self.project)
 
             assert quotas[0].scope == QuotaScope.ORGANIZATION
@@ -304,7 +304,7 @@ class RedisQuotaTest(TestCase):
             assert quotas[0].limit == 0
             assert quotas[0].reason_code == "custom_metrics_ingestion_disabled"
 
-        with self.options({"custom-metrics-ingestion-killswitched-projects": [self.project.id]}):
+        with self.options({"custom-metrics-ingestion-disabled-projects": [self.project.id]}):
             quotas = self.quota.get_quotas(self.project)
 
             assert quotas[0].scope == QuotaScope.PROJECT

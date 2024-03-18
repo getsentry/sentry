@@ -68,10 +68,8 @@ class RedisQuota(Quota):
 
         results = [*self.get_abuse_quotas(project.organization)]
 
-        # If the organization belongs to the killswitched list, we want to stop ingesting custom metrics.
-        if project.organization.id in (
-            options.get("custom-metrics-ingestion-killswitched-orgs") or ()
-        ):
+        # If the organization belongs to the disabled list, we want to stop ingesting custom metrics.
+        if project.organization.id in (options.get("custom-metrics-ingestion-disabled-orgs") or ()):
             results.append(
                 QuotaConfig(
                     limit=0,
@@ -82,8 +80,8 @@ class RedisQuota(Quota):
                 )
             )
 
-        # If the project belongs to the killswitched list, we want to stop ingesting custom metrics.
-        if project.id in (options.get("custom-metrics-ingestion-killswitched-projects") or ()):
+        # If the project belongs to the disabled list, we want to stop ingesting custom metrics.
+        if project.id in (options.get("custom-metrics-ingestion-disabled-projects") or ()):
             results.append(
                 QuotaConfig(
                     limit=0,
