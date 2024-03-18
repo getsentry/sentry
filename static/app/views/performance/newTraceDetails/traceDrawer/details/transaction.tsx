@@ -54,7 +54,7 @@ import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transac
 
 import type {TraceTree, TraceTreeNode} from '../../traceTree';
 
-import IssueList from './issues/issueList';
+import {IssueList} from './issues/issues';
 import {TraceDrawerComponents} from './styles';
 
 function OpsBreakdown({event}: {event: EventTransaction}) {
@@ -293,6 +293,10 @@ export function TransactionNodeDetails({
           <Button size="xs" onClick={_e => scrollToNode(node)}>
             {t('Show in view')}
           </Button>
+          <TraceDrawerComponents.EventDetailsLink
+            eventId={node.value.event_id}
+            projectSlug={node.metadata.project_slug}
+          />
           <Button
             size="xs"
             icon={<IconOpen />}
@@ -309,7 +313,14 @@ export function TransactionNodeDetails({
         </TraceDrawerComponents.Actions>
       </TraceDrawerComponents.HeaderContainer>
 
-      {hasIssues && <IssueList organization={organization} issues={relatedIssues} />}
+      {hasIssues ? (
+        <IssueList
+          node={node}
+          organization={organization}
+          issues={relatedIssues}
+          event_id={event.id}
+        />
+      ) : null}
 
       <TraceDrawerComponents.Table className="table key-value">
         <tbody>

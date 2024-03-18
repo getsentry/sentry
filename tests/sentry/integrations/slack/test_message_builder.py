@@ -893,7 +893,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
                 assert ":red_circle:" in section["text"]["text"]
 
     @with_feature("organizations:slack-block-kit")
-    @with_feature("organizations:slack-block-kit-improvements")
     def test_build_group_generic_issue_block_no_escaping(self):
         """Test that a generic issue type's Slack alert contains the expected values"""
         event = self.store_event(

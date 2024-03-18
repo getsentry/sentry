@@ -133,7 +133,7 @@ export function useMetricChartSamples({
 
   const handleClick = useCallback<EChartClickHandler>(
     (event: EChartMouseEventParam) => {
-      const sample = samplesById[event.seriesId];
+      const sample = samplesById[event.seriesName];
       if (defined(onSampleClick) && defined(sample)) {
         onSampleClick(sample);
       }
@@ -189,7 +189,7 @@ export function useMetricChartSamples({
                 value: yPosition,
               },
             ],
-            z: timeseries.length + 1,
+            z: baseProps.series.length + 1,
           };
         });
       }
@@ -244,7 +244,6 @@ export function useMetricChartSamples({
       valueRect,
       xAxis,
       yAxis,
-      timeseries.length,
     ]
   );
 

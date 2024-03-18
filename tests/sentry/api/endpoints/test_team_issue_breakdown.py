@@ -1,6 +1,4 @@
-from datetime import timedelta, timezone
-
-from django.utils.timezone import now
+from django.utils import timezone
 
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupenvironment import GroupEnvironment
@@ -8,6 +6,7 @@ from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.dates import floor_to_utc_day
 
 
 @freeze_time()
@@ -42,21 +41,9 @@ class TeamIssueBreakdownTest(APITestCase):
         self.create_group_history(group=group2, status=GroupHistoryStatus.RESOLVED)
         self.create_group_history(group=group2, status=GroupHistoryStatus.IGNORED)
 
-        today = str(
-            now()
-            .replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
-            .isoformat()
-        )
-        yesterday = str(
-            (now() - timedelta(days=1))
-            .replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
-            .isoformat()
-        )
-        two_days_ago = str(
-            (now() - timedelta(days=2))
-            .replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
-            .isoformat()
-        )
+        today = floor_to_utc_day(timezone.now()).isoformat()
+        yesterday = floor_to_utc_day(before_now(days=1)).isoformat()
+        two_days_ago = floor_to_utc_day(before_now(days=2)).isoformat()
         self.login_as(user=self.user)
         statuses = ["resolved", "regressed", "unresolved", "ignored"]
         response = self.get_success_response(
@@ -111,20 +98,16 @@ class TeamIssueBreakdownTest(APITestCase):
         GroupEnvironment.objects.create(group_id=group1.id, environment_id=env1.id)
 
         self.create_group_history(
-            group=group1, date_added=now(), status=GroupHistoryStatus.UNRESOLVED
+            group=group1, date_added=timezone.now(), status=GroupHistoryStatus.UNRESOLVED
         )
         self.create_group_history(
-            group=group1, date_added=now(), status=GroupHistoryStatus.RESOLVED
+            group=group1, date_added=timezone.now(), status=GroupHistoryStatus.RESOLVED
         )
         self.create_group_history(
-            group=group1, date_added=now(), status=GroupHistoryStatus.REGRESSED
+            group=group1, date_added=timezone.now(), status=GroupHistoryStatus.REGRESSED
         )
 
-        today = str(
-            now()
-            .replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
-            .isoformat()
-        )
+        today = floor_to_utc_day(timezone.now()).isoformat()
         self.login_as(user=self.user)
         statuses = ["regressed", "resolved"]
         response = self.get_success_response(
@@ -181,21 +164,9 @@ class TeamIssueBreakdownTest(APITestCase):
         self.create_group_history(group=group2, status=GroupHistoryStatus.RESOLVED)
         self.create_group_history(group=group2, status=GroupHistoryStatus.IGNORED)
 
-        today = str(
-            now()
-            .replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
-            .isoformat()
-        )
-        yesterday = str(
-            (now() - timedelta(days=1))
-            .replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
-            .isoformat()
-        )
-        two_days_ago = str(
-            (now() - timedelta(days=2))
-            .replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
-            .isoformat()
-        )
+        today = floor_to_utc_day(timezone.now()).isoformat()
+        yesterday = floor_to_utc_day(before_now(days=1)).isoformat()
+        two_days_ago = floor_to_utc_day(before_now(days=2)).isoformat()
         self.login_as(user=self.user)
         response = self.get_success_response(
             self.team.organization.slug, self.team.slug, statsPeriod="7d"

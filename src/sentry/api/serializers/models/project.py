@@ -232,39 +232,6 @@ def get_features_for_projects(
     return features_by_project
 
 
-def format_options(attrs: dict[str, Any]) -> dict[str, Any]:
-    options = attrs["options"]
-    return {
-        "sentry:csp_ignored_sources_defaults": bool(
-            options.get("sentry:csp_ignored_sources_defaults", True)
-        ),
-        "sentry:csp_ignored_sources": "\n".join(
-            options.get("sentry:csp_ignored_sources", []) or []
-        ),
-        "sentry:reprocessing_active": bool(options.get("sentry:reprocessing_active", False)),
-        "filters:blacklisted_ips": "\n".join(options.get("sentry:blacklisted_ips", [])),
-        # This option was defaulted to string but was changed at runtime to a boolean due to an error in the
-        # implementation. In order to bring it back to a string, we need to repair on read stored options. This is
-        # why the value true is determined by either "1" or True.
-        "filters:react-hydration-errors": options.get("filters:react-hydration-errors", "1")
-        in ("1", True),
-        "filters:chunk-load-error": options.get("filters:chunk-load-error", "1") == "1",
-        f"filters:{FilterTypes.RELEASES}": "\n".join(
-            options.get(f"sentry:{FilterTypes.RELEASES}", [])
-        ),
-        f"filters:{FilterTypes.ERROR_MESSAGES}": "\n".join(
-            options.get(f"sentry:{FilterTypes.ERROR_MESSAGES}", [])
-        ),
-        "feedback:branding": options.get("feedback:branding", "1") == "1",
-        "sentry:feedback_user_report_notifications": bool(
-            options.get("sentry:feedback_user_report_notifications")
-        ),
-        "sentry:feedback_ai_spam_detection": bool(options.get("sentry:feedback_ai_spam_detection")),
-        "sentry:replay_rage_click_issues": options.get("sentry:replay_rage_click_issues"),
-        "quotas:spike-protection-disabled": options.get("quotas:spike-protection-disabled"),
-    }
-
-
 class _ProjectSerializerOptionalBaseResponse(TypedDict, total=False):
     stats: Any
     transactionStats: Any
@@ -948,19 +915,11 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
     ) -> DetailedProjectResponse:
         from sentry.plugins.base import plugins
 
-        def get_value_with_default(key):
-            value = attrs["options"].get(key)
-            if value is not None:
-                return value
-            return projectoptions.get_well_known_default(
-                key, epoch=attrs["options"].get("sentry:option-epoch")
-            )
-
         data = super().serialize(obj, attrs, user)
         data.update(
             {
                 "latestRelease": attrs["latest_release"],
-                "options": format_options(attrs),
+                "options": self.format_options(attrs),
                 "digestsMinDelay": attrs["options"].get(
                     "digests:mail:minimum_delay", digests.minimum_delay
                 ),
@@ -975,7 +934,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "dataScrubber": bool(attrs["options"].get("sentry:scrub_data", True)),
                 "dataScrubberDefaults": bool(attrs["options"].get("sentry:scrub_defaults", True)),
                 "safeFields": attrs["options"].get("sentry:safe_fields", []),
-                "recapServerUrl": attrs["options"].get("sentry:recap_server_url"),
                 "storeCrashReports": convert_crashreport_count(
                     attrs["options"].get("sentry:store_crash_reports"), allow_none=True
                 ),
@@ -987,19 +945,25 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "verifySSL": bool(attrs["options"].get("sentry:verify_ssl", False)),
                 "scrubIPAddresses": bool(attrs["options"].get("sentry:scrub_ip_address", False)),
                 "scrapeJavaScript": bool(attrs["options"].get("sentry:scrape_javascript", True)),
-                "groupingConfig": get_value_with_default("sentry:grouping_config"),
-                "groupingEnhancements": get_value_with_default("sentry:grouping_enhancements"),
-                "groupingEnhancementsBase": get_value_with_default(
-                    "sentry:grouping_enhancements_base"
+                "groupingConfig": self.get_value_with_default(attrs, "sentry:grouping_config"),
+                "groupingEnhancements": self.get_value_with_default(
+                    attrs, "sentry:grouping_enhancements"
                 ),
-                "secondaryGroupingExpiry": get_value_with_default(
-                    "sentry:secondary_grouping_expiry"
+                "groupingEnhancementsBase": self.get_value_with_default(
+                    attrs, "sentry:grouping_enhancements_base"
                 ),
-                "secondaryGroupingConfig": get_value_with_default(
-                    "sentry:secondary_grouping_config"
+                "secondaryGroupingExpiry": self.get_value_with_default(
+                    attrs, "sentry:secondary_grouping_expiry"
                 ),
-                "groupingAutoUpdate": get_value_with_default("sentry:grouping_auto_update"),
-                "fingerprintingRules": get_value_with_default("sentry:fingerprinting_rules"),
+                "secondaryGroupingConfig": self.get_value_with_default(
+                    attrs, "sentry:secondary_grouping_config"
+                ),
+                "groupingAutoUpdate": self.get_value_with_default(
+                    attrs, "sentry:grouping_auto_update"
+                ),
+                "fingerprintingRules": self.get_value_with_default(
+                    attrs, "sentry:fingerprinting_rules"
+                ),
                 "organization": attrs["org"],
                 "plugins": serialize(
                     [
@@ -1014,8 +978,12 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "processingIssues": attrs["processing_issues"],
                 "defaultEnvironment": attrs["options"].get("sentry:default_environment"),
                 "relayPiiConfig": attrs["options"].get("sentry:relay_pii_config"),
-                "builtinSymbolSources": get_value_with_default("sentry:builtin_symbol_sources"),
-                "dynamicSamplingBiases": get_value_with_default("sentry:dynamic_sampling_biases"),
+                "builtinSymbolSources": self.get_value_with_default(
+                    attrs, "sentry:builtin_symbol_sources"
+                ),
+                "dynamicSamplingBiases": self.get_value_with_default(
+                    attrs, "sentry:dynamic_sampling_biases"
+                ),
                 "eventProcessing": {
                     "symbolicationDegraded": False,
                 },
@@ -1049,6 +1017,49 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "status": self.status,
             "public": self.public,
         }
+
+    def format_options(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        options = attrs["options"]
+
+        return {
+            "sentry:csp_ignored_sources_defaults": bool(
+                options.get("sentry:csp_ignored_sources_defaults", True)
+            ),
+            "sentry:csp_ignored_sources": "\n".join(
+                options.get("sentry:csp_ignored_sources", []) or []
+            ),
+            "sentry:reprocessing_active": bool(options.get("sentry:reprocessing_active", False)),
+            "filters:blacklisted_ips": "\n".join(options.get("sentry:blacklisted_ips", [])),
+            # This option was defaulted to string but was changed at runtime to a boolean due to an error in the
+            # implementation. In order to bring it back to a string, we need to repair on read stored options. This is
+            # why the value true is determined by either "1" or True.
+            "filters:react-hydration-errors": options.get("filters:react-hydration-errors", "1")
+            in ("1", True),
+            "filters:chunk-load-error": options.get("filters:chunk-load-error", "1") == "1",
+            f"filters:{FilterTypes.RELEASES}": "\n".join(
+                options.get(f"sentry:{FilterTypes.RELEASES}", [])
+            ),
+            f"filters:{FilterTypes.ERROR_MESSAGES}": "\n".join(
+                options.get(f"sentry:{FilterTypes.ERROR_MESSAGES}", [])
+            ),
+            "feedback:branding": options.get("feedback:branding", "1") == "1",
+            "sentry:feedback_user_report_notifications": bool(
+                self.get_value_with_default(attrs, "sentry:feedback_user_report_notifications")
+            ),
+            "sentry:feedback_ai_spam_detection": bool(
+                options.get("sentry:feedback_ai_spam_detection")
+            ),
+            "sentry:replay_rage_click_issues": options.get("sentry:replay_rage_click_issues"),
+            "quotas:spike-protection-disabled": options.get("quotas:spike-protection-disabled"),
+        }
+
+    def get_value_with_default(self, attrs, key):
+        value = attrs["options"].get(key)
+        if value is not None:
+            return value
+        return projectoptions.get_well_known_default(
+            key, epoch=attrs["options"].get("sentry:option-epoch")
+        )
 
 
 class SharedProjectSerializer(Serializer):

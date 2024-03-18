@@ -10,6 +10,14 @@ logger = logging.getLogger(__name__)
 class AlertRuleTriggerActionSerializer(Serializer):
     def human_desc(self, action):
         # Returns a human readable description to display in the UI
+        priority = (
+            action.sentry_app_config.get("priority")
+            if isinstance(action.sentry_app_config, dict)
+            else ""
+        )
+        if priority:
+            priority += " level"
+
         if action.type == action.Type.EMAIL.value:
             if action.target:
                 if action.target_type == action.TargetType.USER.value:
@@ -17,7 +25,7 @@ class AlertRuleTriggerActionSerializer(Serializer):
                 elif action.target_type == action.TargetType.TEAM.value:
                     return "Send an email to members of #" + action.target.slug
         elif action.type == action.Type.PAGERDUTY.value:
-            return "Send a PagerDuty notification to " + action.target_display
+            return f"Send a {priority} PagerDuty notification to " + action.target_display
         elif action.type == action.Type.SLACK.value:
             return "Send a Slack notification to " + action.target_display
         elif action.type == action.Type.MSTEAMS.value:
@@ -25,6 +33,8 @@ class AlertRuleTriggerActionSerializer(Serializer):
         elif action.type == action.Type.SENTRY_APP.value:
             return "Send a notification via " + action.target_display
         elif action.type == action.Type.OPSGENIE.value:
+            if priority:
+                return f"Send a {priority} Opsgenie notification to " + action.target_display
             return "Send an Opsgenie notification to " + action.target_display
         elif action.type == action.Type.DISCORD.value:
             if not action.target_display:
@@ -72,6 +82,11 @@ class AlertRuleTriggerActionSerializer(Serializer):
             "sentryAppId": obj.sentry_app_id,
             "dateCreated": obj.date_added,
             "desc": self.human_desc(obj),
+            "priority": (
+                obj.sentry_app_config.get("priority", None)
+                if isinstance(obj.sentry_app_config, dict)
+                else None
+            ),
         }
 
         # Check if action is a Sentry App that has Alert Rule UI Component settings

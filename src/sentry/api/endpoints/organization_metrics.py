@@ -6,7 +6,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -16,6 +16,7 @@ from sentry.api.bases.organization import (
     OrganizationAndStaffPermission,
     OrganizationEndpoint,
     OrganizationMetricsPermission,
+    OrganizationPermission,
 )
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
@@ -93,6 +94,10 @@ def get_use_case_ids(request: Request) -> Sequence[UseCaseID]:
         raise ParseError(
             detail=f"Invalid useCase parameter. Please use one of: {[uc.value for uc in UseCaseID]}"
         )
+
+
+class OrganizationMetricsEnrollPermission(OrganizationPermission):
+    scope_map = {"PUT": ["org:read", "org:write", "org:admin"]}
 
 
 @region_silo_endpoint
@@ -326,9 +331,6 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
         },
     }
 
-    # Number of groups returned by default for each query.
-    default_limit = 20
-
     def _time_equal_within_bound(
         self, time_1: datetime, time_2: datetime, bound: timedelta
     ) -> bool:
@@ -365,7 +367,8 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
 
     def _validate_order(self, order: str | None) -> QueryOrder | None:
         if order is None:
-            return None
+            # By default, we want to show highest valued metrics.
+            return QueryOrder.DESC
 
         formula_order = QueryOrder.from_string(order)
         if formula_order is None:
@@ -376,9 +379,9 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
 
         return formula_order
 
-    def _validate_limit(self, limit: str | None) -> int:
+    def _validate_limit(self, limit: str | None) -> int | None:
         if not limit:
-            return self.default_limit
+            return None
 
         try:
             return int(limit)
@@ -424,6 +427,11 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
 
     def post(self, request: Request, organization) -> Response:
         try:
+            if organization.id in (options.get("custom-metrics-querying-disabled-orgs") or ()):
+                return Response(
+                    status=401, data={"detail": "The organization is not allowed to query metrics"}
+                )
+
             start, end = get_date_range_from_params(request.GET)
             interval = self._interval_from_request(request)
             metrics_queries_plan = self._metrics_queries_plan_from_request(request)

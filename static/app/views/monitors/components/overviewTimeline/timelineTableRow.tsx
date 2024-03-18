@@ -16,6 +16,7 @@ import {space} from 'sentry/styles/space';
 import type {ObjectStatus} from 'sentry/types';
 import {trimSlug} from 'sentry/utils/trimSlug';
 import useOrganization from 'sentry/utils/useOrganization';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {StatusToggleButton} from 'sentry/views/monitors/components/statusToggleButton';
 import type {Monitor} from 'sentry/views/monitors/types';
 import {MonitorStatus} from 'sentry/views/monitors/types';
@@ -66,7 +67,9 @@ export function TimelineTableRow({
   const monitorDetails = singleMonitorView ? null : (
     <DetailsArea>
       <DetailsLink
-        to={`/organizations/${organization.slug}/crons/${monitor.project.slug}/${monitor.slug}/`}
+        to={normalizeUrl(
+          `/organizations/${organization.slug}/crons/${monitor.project.slug}/${monitor.slug}/`
+        )}
       >
         <DetailsHeadline>
           <Name>{monitor.name}</Name>
@@ -101,7 +104,9 @@ export function TimelineTableRow({
     (env: string) => ({
       label: t('View Environment'),
       key: 'view',
-      to: `/organizations/${organization.slug}/crons/${monitor.project.slug}/${monitor.slug}/?environment=${env}`,
+      to: normalizeUrl(
+        `/organizations/${organization.slug}/crons/${monitor.project.slug}/${monitor.slug}/?environment=${env}`
+      ),
     }),
     ...(onToggleMuteEnvironment
       ? [
