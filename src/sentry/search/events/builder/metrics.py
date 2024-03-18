@@ -30,6 +30,7 @@ from snuba_sdk import (
 from sentry import features
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
+from sentry.models.dashboard_widget import DashboardWidgetQueryOnDemand
 from sentry.models.organization import Organization
 from sentry.search.events import constants, fields
 from sentry.search.events.builder import QueryBuilder
@@ -58,6 +59,7 @@ from sentry.snuba.metrics.extraction import (
     QUERY_HASH_KEY,
     MetricSpecType,
     OnDemandMetricSpec,
+    OnDemandMetricSpecVersioning,
     fetch_on_demand_metric_spec,
     should_use_on_demand_metrics_for_querying,
 )
@@ -178,7 +180,7 @@ class MetricsQueryBuilder(QueryBuilder):
                     "Must include on demand metrics type when querying on demand"
                 )
 
-            return fetch_on_demand_metric_spec(
+            metric_spec = fetch_on_demand_metric_spec(
                 self.organization_id,
                 field=field,
                 query=self.query,
@@ -186,6 +188,23 @@ class MetricsQueryBuilder(QueryBuilder):
                 groupbys=groupby_columns,
                 spec_type=self.builder_config.on_demand_metrics_type,
             )
+
+            spec_version = OnDemandMetricSpecVersioning.get_query_spec_version(self.organization_id)
+            on_demand_entries = DashboardWidgetQueryOnDemand.objects.filter(
+                spec_hashes__contains=[metric_spec.query_hash],
+                spec_version=spec_version,
+                dashboard_widget_query__widget__dashboard__organizationi_id=self.organization_id,
+            )
+            if any(not entry.extraction_enabled() for entry in on_demand_entries):
+                with sentry_sdk.push_scope() as scope:
+                    scope.set_extra("entries", on_demand_entries)
+                    scope.set_extra("spec", metric_spec)
+                    sentry_sdk.capture_message(
+                        "Extraction disabled for one of the matching on-demand rows"
+                    )
+                return None
+
+            return metric_spec
         except Exception as e:
             sentry_sdk.capture_exception(e)
             return None
