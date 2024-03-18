@@ -786,7 +786,7 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                 m["signature"] = format_signature(types)
         return
 
-    if options.get("profiling.deobfuscate-using-symbolicator.enabled"):
+    if project.id in options.get("profiling.deobfuscate-using-symbolicator.enable-for-project"):
         return _deobfuscate_using_symbolicator(
             project=project,
             profile=profile,
