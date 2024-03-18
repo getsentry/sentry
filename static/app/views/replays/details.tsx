@@ -144,9 +144,9 @@ function ReplayDetails({params: {replaySlug}}: Props) {
     );
   }
 
-  const videoEvents = replay?.getVideoEvents();
   const isVideoReplay = Boolean(
-    organization.features.includes('session-replay-mobile-player') && videoEvents?.length
+    organization.features.includes('session-replay-mobile-player') &&
+      replay?.isVideoReplay
   );
 
   return (
