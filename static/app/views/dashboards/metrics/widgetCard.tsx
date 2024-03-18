@@ -105,19 +105,20 @@ export function MetricWidgetCard({
     );
   }, [widget.displayType, metricQueries, timeseriesData, isLoading, showContextMenu]);
 
-  if (isError) {
-    const errorMessage =
-      error?.responseJSON?.detail?.toString() || t('Error while fetching metrics data');
-    return (
-      <Fragment>
-        {renderErrorMessage?.(errorMessage)}
-        <ErrorPanel>
-          <IconWarning color="gray500" size="lg" />
-        </ErrorPanel>
-      </Fragment>
-    );
+  if (!timeseriesData || isError) {
+    if (isError) {
+      const errorMessage =
+        error?.responseJSON?.detail?.toString() || t('Error while fetching metrics data');
+      return (
+        <Fragment>
+          {renderErrorMessage?.(errorMessage)}
+          <ErrorPanel>
+            <IconWarning color="gray500" size="lg" />
+          </ErrorPanel>
+        </Fragment>
+      );
+    }
   }
-
   return (
     <DashboardsMEPContext.Provider
       value={{

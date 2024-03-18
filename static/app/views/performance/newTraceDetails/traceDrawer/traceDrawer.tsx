@@ -1,11 +1,11 @@
-import {useCallback, useRef} from 'react';
+import {useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {IconEllipsis} from 'sentry/icons';
+import {Button} from 'sentry/components/button';
+import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction, Organization} from 'sentry/types';
@@ -16,7 +16,10 @@ import type {
 } from 'sentry/utils/performance/quickTrace/types';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
+import {
+  useResizableDrawer,
+  type UseResizableDrawerOptions,
+} from 'sentry/utils/useResizableDrawer';
 import type {
   TraceTabsReducerAction,
   TraceTabsReducerState,
@@ -35,9 +38,6 @@ import {makeTraceNodeBarColor, type TraceTree, type TraceTreeNode} from '../trac
 
 import NodeDetail from './tabs/details';
 import {TraceLevelDetails} from './tabs/trace';
-
-const MIN_PANEL_HEIGHT = 31;
-const DEFAULT_PANEL_HEIGHT = 200;
 
 function getTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
   if (isTransactionNode(node)) {
@@ -71,9 +71,15 @@ function getTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
   return 'Unknown';
 }
 
+const MIN_TRACE_DRAWER_DIMENSTIONS: [number, number] = [480, 30];
+
 type TraceDrawerProps = {
+  drawerSize: number;
+  layout: 'drawer bottom' | 'drawer left' | 'drawer right';
   location: Location;
   manager: VirtualizedViewManager;
+  onDrawerResize: (size: number) => void;
+  onLayoutChange: (layout: 'drawer bottom' | 'drawer left' | 'drawer right') => void;
   organization: Organization;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
   scrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
@@ -87,27 +93,63 @@ type TraceDrawerProps = {
 function TraceDrawer(props: TraceDrawerProps) {
   const theme = useTheme();
   const panelRef = useRef<HTMLDivElement>(null);
-  const onResize = useCallback((newSize: number, maybeOldSize: number | undefined) => {
-    if (!panelRef.current) {
-      return;
+
+  const onDrawerResize = props.onDrawerResize;
+  const resizableDrawerOptions: UseResizableDrawerOptions = useMemo(() => {
+    const isSidebarLayout =
+      props.layout === 'drawer left' || props.layout === 'drawer right';
+
+    const initialSize =
+      props.drawerSize > 0
+        ? props.drawerSize
+        : isSidebarLayout
+          ? // Half the screen minus the ~sidebar width
+            Math.max(window.innerWidth * 0.5 - 220, MIN_TRACE_DRAWER_DIMENSTIONS[0])
+          : // 30% of the screen height
+            Math.max(window.innerHeight * 0.3);
+
+    const min = isSidebarLayout ? window.innerWidth * 0.2 : 30;
+
+    function onResize(newSize: number) {
+      onDrawerResize(newSize);
+      if (!panelRef.current) {
+        return;
+      }
+
+      if (isSidebarLayout) {
+        panelRef.current.style.width = `${newSize}px`;
+        panelRef.current.style.height = `100%`;
+      } else {
+        panelRef.current.style.height = `${newSize}px`;
+        panelRef.current.style.width = `100%`;
+      }
+      // @TODO This can visual delays as the rest of the view uses a resize observer
+      // to adjust the layout. We should force a sync layout update + draw here to fix that.
     }
 
-    panelRef.current.style.height = `${maybeOldSize ?? newSize}px`;
-    panelRef.current.style.width = `100%`;
-  }, []);
+    return {
+      initialSize,
+      onResize,
+      direction:
+        props.layout === 'drawer left'
+          ? 'left'
+          : props.layout === 'drawer right'
+            ? 'right'
+            : 'up',
+      min,
+    };
+  }, [props.layout, onDrawerResize, props.drawerSize]);
 
-  const {onMouseDown} = useResizableDrawer({
-    direction: 'up',
-    initialSize: DEFAULT_PANEL_HEIGHT,
-    min: MIN_PANEL_HEIGHT,
-    sizeStorageKey: 'trace-drawer',
-    onResize,
-  });
+  const {onMouseDown} = useResizableDrawer(resizableDrawerOptions);
 
   return (
-    <PanelWrapper ref={panelRef}>
-      <ResizeableHandle onMouseDown={onMouseDown} />
+    <PanelWrapper layout={props.layout} ref={panelRef}>
+      <ResizeableHandle layout={props.layout} onMouseDown={onMouseDown} />
       <TabsContainer
+        hasIndicators={
+          // Syncs the height of the tabs with the trace indicators
+          props.trace.indicators.length > 0 && props.layout !== 'drawer bottom'
+        }
         style={{
           gridTemplateColumns: `auto repeat(${props.tabs.tabs.length + 1}, minmax(0, min-content))`,
         }}
@@ -128,31 +170,41 @@ function TraceDrawer(props: TraceDrawerProps) {
                 />
               )}
               <TabButton>{title}</TabButton>
-              <DropdownMenu
-                position="bottom-end"
-                trigger={triggerProps => (
-                  <button {...triggerProps}>
-                    <IconEllipsis />
-                  </button>
-                )}
-                items={[
-                  {
-                    key: 'persist',
-                    label: t('Persist tab'),
-                    onAction: () => {
-                      props.tabsDispatch({type: 'clear active tab'});
-                    },
-                  },
-                  {
-                    key: 'close',
-                    label: t('Close tab'),
-                    onAction: () => props.tabsDispatch({type: 'close tab', payload: i}),
-                  },
-                ]}
-              />
             </Tab>
           );
         })}
+        <TabLayoutControlsContainer>
+          <TabLayoutControlItem>
+            <DrawerButton
+              active={props.layout === 'drawer left'}
+              onClick={() => props.onLayoutChange('drawer left')}
+              size="xs"
+              title={t('Drawer left')}
+            >
+              <IconPanel size="xs" direction="left" />
+            </DrawerButton>
+          </TabLayoutControlItem>
+          <TabLayoutControlItem>
+            <DrawerButton
+              active={props.layout === 'drawer bottom'}
+              onClick={() => props.onLayoutChange('drawer bottom')}
+              size="xs"
+              title={t('Drawer bottom')}
+            >
+              <IconPanel size="xs" direction="down" />
+            </DrawerButton>
+          </TabLayoutControlItem>
+          <TabLayoutControlItem>
+            <DrawerButton
+              active={props.layout === 'drawer right'}
+              onClick={() => props.onLayoutChange('drawer right')}
+              size="xs"
+              title={t('Drawer right')}
+            >
+              <IconPanel size="xs" direction="right" />
+            </DrawerButton>
+          </TabLayoutControlItem>
+        </TabLayoutControlsContainer>
       </TabsContainer>
       <Content>
         {props.tabs.tabs.map((n, i) => {
@@ -161,6 +213,7 @@ function TraceDrawer(props: TraceDrawerProps) {
             return (
               <TraceLevelDetails
                 key={i}
+                node={n.node}
                 tree={props.trace}
                 rootEventResults={props.rootEventResults}
                 organization={props.organization}
@@ -186,37 +239,49 @@ function TraceDrawer(props: TraceDrawerProps) {
   );
 }
 
-const ResizeableHandle = styled('div')`
-  width: 100%;
-  height: 12px;
-  cursor: ns-resize;
+const ResizeableHandle = styled('div')<{
+  layout: 'drawer bottom' | 'drawer left' | 'drawer right';
+}>`
+  width: ${p => (p.layout === 'drawer bottom' ? '100%' : '12px')};
+  height: ${p => (p.layout === 'drawer bottom' ? '12px' : '100%')};
+  cursor: ${p => (p.layout === 'drawer bottom' ? 'ns-resize' : 'ew-resize')};
   position: absolute;
-  top: -6px;
-  left: 0;
+  top: ${p => (p.layout === 'drawer bottom' ? '-6px' : 0)};
+  left: ${p =>
+    p.layout === 'drawer bottom' ? 0 : p.layout === 'drawer right' ? '-6px' : 'initial'};
+  right: ${p => (p.layout === 'drawer left' ? '-6px' : 0)};
+
   z-index: 1;
 `;
 
-const PanelWrapper = styled('div')`
+const PanelWrapper = styled('div')<{
+  layout: 'drawer bottom' | 'drawer left' | 'drawer right';
+}>`
   grid-area: drawer;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   width: 100%;
-  position: sticky;
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: ${p =>
+    p.layout === 'drawer bottom' ? `1px solid ${p.theme.border}` : 'none'};
+  border-left: ${p =>
+    p.layout === 'drawer right' ? `1px solid ${p.theme.border}` : 'none'};
+  border-right: ${p =>
+    p.layout === 'drawer left' ? `1px solid ${p.theme.border}` : 'none'};
   bottom: 0;
   right: 0;
+  position: relative;
   background: ${p => p.theme.background};
   color: ${p => p.theme.textColor};
   text-align: left;
   z-index: 10;
 `;
 
-const TabsContainer = styled('ul')`
+const TabsContainer = styled('ul')<{hasIndicators: boolean}>`
   display: grid;
-  width: 100%;
   list-style-type: none;
-  min-height: 30px;
+  width: 100%;
+  height: ${p => (p.hasIndicators ? '44px' : '26px')};
   border-bottom: 1px solid ${p => p.theme.border};
   background-color: ${p => p.theme.backgroundSecondary};
   align-items: center;
@@ -224,6 +289,20 @@ const TabsContainer = styled('ul')`
   padding-left: ${space(1)};
   gap: ${space(1)};
   margin-bottom: 0;
+`;
+
+const TabLayoutControlsContainer = styled('ul')`
+  list-style-type: none;
+  padding-left: 0;
+
+  button {
+    padding: ${space(0.5)};
+  }
+`;
+
+const TabLayoutControlItem = styled('li')`
+  display: inline-block;
+  margin: 0;
 `;
 
 const Tab = styled('li')<{active: boolean}>`
@@ -276,6 +355,25 @@ const Content = styled('div')`
   overflow: scroll;
   padding: ${space(1)};
   flex: 1;
+`;
+
+const DrawerButton = styled(Button)<{active: boolean}>`
+  border: none;
+  background-color: transparent;
+  box-shadow: none;
+  transition: none !important;
+  opacity: ${p => (p.active ? 0.7 : 0.5)};
+
+  &:not(:last-child) {
+    margin-right: ${space(1)};
+  }
+
+  &:hover {
+    border: none;
+    background-color: transparent;
+    box-shadow: none;
+    opacity: ${p => (p.active ? 0.6 : 0.5)};
+  }
 `;
 
 export default TraceDrawer;
