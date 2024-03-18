@@ -14,7 +14,6 @@ import {
 } from 'sentry/utils/performance/quickTrace/utils';
 
 import {TraceType} from '../traceDetails/newTraceDetailsContent';
-import type {TraceInfo} from '../traceDetails/types';
 import {isRootTransaction} from '../traceDetails/utils';
 
 import {
@@ -232,6 +231,7 @@ export class TraceTree {
   type: 'loading' | 'empty' | 'error' | 'trace' = 'trace';
   root: TraceTreeNode<null> = TraceTreeNode.Root();
   indicators: TraceTree.Indicator[] = [];
+  eventsCount: number = 0;
 
   private _spanPromises: Map<string, Promise<Event>> = new Map();
   private _list: TraceTreeNode<TraceTree.NodeValue>[] = [];
@@ -262,14 +262,13 @@ export class TraceTree {
     return newTree;
   }
 
-  static FromTrace(
-    trace: TraceTree.Trace,
-    event?: EventTransaction,
-    traceInfo?: TraceInfo
-  ): TraceTree {
+  static FromTrace(trace: TraceTree.Trace, event?: EventTransaction): TraceTree {
     const tree = new TraceTree();
     let traceStart = Number.POSITIVE_INFINITY;
     let traceEnd = Number.NEGATIVE_INFINITY;
+    const traceErrors: TraceErrorType[] = [];
+    const tracePerformanceIssues: TracePerformanceIssue[] = [];
+    let traceEventCount = 0;
 
     function visit(
       parent: TraceTreeNode<TraceTree.NodeValue | null>,
@@ -280,10 +279,14 @@ export class TraceTree {
         event_id: value && 'event_id' in value ? value.event_id : undefined,
       });
       node.canFetch = true;
+      traceEventCount += 1;
 
       if (isTraceTransaction(value)) {
         node.errors = value.errors;
+        traceErrors.push(...value.errors);
+
         node.performance_issues = value.performance_issues;
+        tracePerformanceIssues.push(...value.performance_issues);
       } else {
         node.errors = [value];
       }
@@ -319,8 +322,8 @@ export class TraceTree {
       project_slug: undefined,
     });
 
-    traceNode.errors = traceInfo?.errors ?? [];
-    traceNode.performance_issues = traceInfo?.performanceIssues ?? [];
+    // traceNode.errors = traceInfo?.errors ?? [];
+    // traceNode.performance_issues = traceInfo?.performanceIssues ?? [];
 
     // Trace is always expanded by default
     tree.root.children.push(traceNode);
@@ -378,10 +381,14 @@ export class TraceTree {
       (traceEnd - traceStart) * traceNode.multiplier,
     ];
 
+    traceNode.errors = traceErrors;
+    traceNode.performance_issues = tracePerformanceIssues;
+
     tree.root.space = [
       traceStart * traceNode.multiplier,
       (traceEnd - traceStart) * traceNode.multiplier,
     ];
+    tree.eventsCount = traceEventCount;
 
     return tree.build();
   }

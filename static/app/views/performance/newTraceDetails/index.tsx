@@ -49,7 +49,6 @@ import {TraceSearchInput} from 'sentry/views/performance/newTraceDetails/traceSe
 import {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/virtualizedViewManager';
 
 import Breadcrumb from '../breadcrumb';
-import {getTraceInfo} from '../traceDetails/utils';
 
 import TraceDrawer from './traceDrawer/traceDrawer';
 import {isTraceNode} from './guards';
@@ -154,10 +153,6 @@ function TraceViewContent(props: TraceViewContentProps) {
 
   const loadingTraceRef = useRef<TraceTree | null>(null);
 
-  const traceInfo = useMemo(() => {
-    return getTraceInfo(props.trace?.transactions, props.trace?.orphan_errors);
-  }, [props.trace?.transactions, props.trace?.orphan_errors]);
-
   const tree = useMemo(() => {
     if (props.status === 'error') {
       const errorTree = TraceTree.Error(
@@ -186,7 +181,7 @@ function TraceViewContent(props: TraceViewContentProps) {
     }
 
     if (props.trace && rootEvent.status === 'success') {
-      return TraceTree.FromTrace(props.trace, rootEvent.data, traceInfo);
+      return TraceTree.FromTrace(props.trace, rootEvent.data);
     }
 
     return TraceTree.Empty();
@@ -197,7 +192,6 @@ function TraceViewContent(props: TraceViewContentProps) {
     projects,
     rootEvent.data,
     rootEvent.status,
-    traceInfo,
   ]);
 
   const [rovingTabIndexState, rovingTabIndexDispatch] = useReducer(
@@ -406,7 +400,7 @@ function TraceViewContent(props: TraceViewContentProps) {
       </Layout.Header>
       <TraceInnerLayout>
         <TraceHeader
-          traceInfo={traceInfo}
+          tree={tree}
           rootEventResults={rootEvent}
           metaResults={props.metaResults}
           organization={props.organization}
@@ -453,7 +447,6 @@ function TraceViewContent(props: TraceViewContentProps) {
           ) : null}
 
           <TraceDrawer
-            traceInfo={traceInfo}
             trace={tree}
             scrollToNode={scrollToNode}
             manager={viewManager}

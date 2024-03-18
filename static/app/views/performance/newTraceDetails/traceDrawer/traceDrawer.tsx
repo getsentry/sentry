@@ -15,7 +15,6 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/virtualizedViewManager';
 
-import type {TraceInfo} from '../../traceDetails/types';
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
@@ -74,7 +73,6 @@ type TraceDrawerProps = {
   setActiveTab: (tab: 'trace' | 'node') => void;
   trace: TraceTree;
   traceEventView: EventView;
-  traceInfo: TraceInfo;
   traces: TraceSplitResults<TraceFullDetailed> | null;
 };
 
@@ -123,7 +121,7 @@ function TraceDrawer(props: TraceDrawerProps) {
       <Content>
         {props.activeTab === 'trace' ? (
           <TraceLevelDetails
-            traceInfo={props.traceInfo}
+            tree={props.trace}
             node={props.trace.root.children[0]}
             rootEventResults={props.rootEventResults}
             organization={props.organization}

@@ -20,7 +20,6 @@ import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import Tags from 'sentry/views/discover/tags';
-import type {TraceInfo} from 'sentry/views/performance/traceDetails/types';
 
 import type {TraceTree, TraceTreeNode} from '../../traceTree';
 import {IssueList} from '../details/issues/issues';
@@ -34,12 +33,12 @@ const WEB_VITALS = [
 ];
 
 type TraceFooterProps = {
+  tree: TraceTree;
   location: Location;
   node: TraceTreeNode<TraceTree.NodeValue>;
   organization: Organization;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
   traceEventView: EventView;
-  traceInfo: TraceInfo;
   traces: TraceSplitResults<TraceFullDetailed> | null;
 };
 
@@ -97,19 +96,13 @@ export function TraceLevelDetails(props: TraceFooterProps) {
   }
 
   const {data: rootEvent} = props.rootEventResults;
-  const totalNumOfEvents =
-    props.traceInfo.trailingOrphansCount + props.traceInfo.transactions.size;
   const webVitals = Object.keys(rootEvent?.measurements ?? {})
     .filter(name => Boolean(WEB_VITAL_DETAILS[`measurements.${name}`]))
     .sort();
 
   return (
     <Wrapper>
-      <IssueList
-        issues={issues}
-        node={props.node}
-        organization={props.organization}
-      />
+      <IssueList issues={issues} node={props.node} organization={props.organization} />
       {rootEvent ? (
         <WebVitalsAndTags>
           {webVitals.length > 0 ? (
@@ -132,7 +125,7 @@ export function TraceLevelDetails(props: TraceFooterProps) {
                 });
                 return url;
               }}
-              totalValues={totalNumOfEvents}
+              totalValues={props.tree.eventsCount}
               eventView={props.traceEventView}
               organization={props.organization}
               location={props.location}
