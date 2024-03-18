@@ -18,8 +18,8 @@ import {Row, Tags} from 'sentry/views/performance/traceDetails/styles';
 
 import type {TraceTree, TraceTreeNode} from '../../traceTree';
 
-import {TraceDrawerComponents} from './styles';
 import {IssueList} from './issues/issues';
+import {TraceDrawerComponents} from './styles';
 
 export function ErrorNodeDetails({
   node,

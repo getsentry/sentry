@@ -20,16 +20,16 @@ import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
+import type {TraceInfo} from '../traceDetails/types';
 import {BrowserDisplay} from '../transactionDetails/eventMetas';
 import {MetaData} from '../transactionDetails/styles';
-import type {TraceInfo} from '../traceDetails/types';
 
 type TraceHeaderProps = {
   metaResults: UseApiQueryResult<TraceMeta | null, any>;
   organization: Organization;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
-  traces: TraceSplitResults<TraceFullDetailed> | null;
   traceInfo: TraceInfo;
+  traces: TraceSplitResults<TraceFullDetailed> | null;
 };
 
 export default function TraceHeader({

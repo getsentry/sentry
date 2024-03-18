@@ -49,6 +49,7 @@ import {TraceSearchInput} from 'sentry/views/performance/newTraceDetails/traceSe
 import {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/virtualizedViewManager';
 
 import Breadcrumb from '../breadcrumb';
+import {getTraceInfo} from '../traceDetails/utils';
 
 import TraceDrawer from './traceDrawer/traceDrawer';
 import {isTraceNode} from './guards';
@@ -57,7 +58,6 @@ import TraceHeader from './traceHeader';
 import {TraceTree, type TraceTreeNode} from './traceTree';
 import {useTrace} from './useTrace';
 import {useTraceMeta} from './useTraceMeta';
-import {getTraceInfo} from '../traceDetails/utils';
 
 const DOCUMENT_TITLE = [t('Trace Details'), t('Performance')].join(' — ');
 

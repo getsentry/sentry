@@ -21,8 +21,9 @@ import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import Tags from 'sentry/views/discover/tags';
 import type {TraceInfo} from 'sentry/views/performance/traceDetails/types';
-import {IssueList} from '../details/issues/issues';
+
 import type {TraceTree, TraceTreeNode} from '../../traceTree';
+import {IssueList} from '../details/issues/issues';
 
 const WEB_VITALS = [
   WEB_VITAL_DETAILS['measurements.cls'],
@@ -34,12 +35,12 @@ const WEB_VITALS = [
 
 type TraceFooterProps = {
   location: Location;
+  node: TraceTreeNode<TraceTree.NodeValue>;
   organization: Organization;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
   traceEventView: EventView;
-  traces: TraceSplitResults<TraceFullDetailed> | null;
   traceInfo: TraceInfo;
-  node: TraceTreeNode<TraceTree.NodeValue>;
+  traces: TraceSplitResults<TraceFullDetailed> | null;
 };
 
 function NoWebVitals() {

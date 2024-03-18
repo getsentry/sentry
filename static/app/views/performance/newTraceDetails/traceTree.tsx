@@ -3,8 +3,8 @@ import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types'
 import type {Organization} from 'sentry/types';
 import type {Event, EventTransaction, Measurement} from 'sentry/types/event';
 import type {
-  TraceErrorOrIssue,
   TraceError as TraceErrorType,
+  TraceErrorOrIssue,
   TraceFullDetailed,
   TracePerformanceIssue,
   TraceSplitResults,
@@ -15,6 +15,7 @@ import {
 } from 'sentry/utils/performance/quickTrace/utils';
 
 import {TraceType} from '../traceDetails/newTraceDetailsContent';
+import type {TraceInfo} from '../traceDetails/types';
 import {isRootTransaction} from '../traceDetails/utils';
 
 import {
@@ -29,7 +30,6 @@ import {
   isTransactionNode,
   shouldAddMissingInstrumentationSpan,
 } from './guards';
-import type {TraceInfo} from '../traceDetails/types';
 
 /**
  *

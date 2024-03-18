@@ -1,12 +1,12 @@
 import {IconGroup} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types';
 import {Row} from 'sentry/views/performance/traceDetails/styles';
 
 import type {ParentAutogroupNode} from '../../traceTree';
 
-import {TraceDrawerComponents} from './styles';
-import type {Organization} from 'sentry/types';
 import {IssueList} from './issues/issues';
+import {TraceDrawerComponents} from './styles';
 
 export function ParentAutogroupNodeDetails({
   node,
