@@ -1938,6 +1938,7 @@ function buildRoutes() {
       <Redirect from="/organizations/:orgId/teams/new/" to="/settings/:orgId/teams/" />
       <Route path="/organizations/:orgId/">
         {hook('routes:organization')}
+        <IndexRedirect to="/organizations/:orgId/issues/" />
         <Redirect from="/organizations/:orgId/teams/" to="/settings/:orgId/teams/" />
         <Redirect
           from="/organizations/:orgId/teams/your-teams/"
