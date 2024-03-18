@@ -73,11 +73,15 @@ jobs:
 
       - name: lint
         if: github.ref == 'refs/heads/master' || needs.files-changed.outputs.lintable_rules_changed != 'true' || needs.files-changed.outputs.lintable_css_in_js_rules_changed != 'true'
-        run: yarn lint
+        run: |
+          yarn lint:biome
+          yarn lint:prettier
+          yarn lint:js
+          yarn lint:css
 
       - name: biome
         if: github.ref != 'refs/heads/master'
-        run: yarn biome check . --apply
+        run: yarn fix:biome
 
       - name: prettier (changed files only)
         if: github.ref != 'refs/heads/master' && needs.files-changed.outputs.lintable_rules_changed != 'true'

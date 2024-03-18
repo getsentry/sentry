@@ -76,7 +76,7 @@
     ]
   },
   "formatter": {
-    "enabled": true,
+    "enabled": false,
     "formatWithErrors": true,
     "indentStyle": "space",
     "indentWidth": 2,
