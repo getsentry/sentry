@@ -22,6 +22,7 @@ from sentry.apidocs.examples.organization_member_examples import OrganizationMem
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.authenticators import available_authenticators
+from sentry.auth.superuser import superuser_has_permission
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.team import Team, TeamStatus
@@ -374,7 +375,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                 status=400,
             )
 
-        if getattr(request, "superuser", False):
+        if superuser_has_permission(request):
             with transaction.atomic(router.db_for_write(OrganizationMember)):
                 om = OrganizationMember.objects.create(
                     organization=organization,
@@ -417,24 +418,32 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             )
             save_team_assignments(om, teams)
 
-        if not getattr(request, "superuser", False):
+        if superuser_has_permission(request):
+            self.create_audit_entry(
+                request=request,
+                organization_id=organization.id,
+                target_object=om.id,
+                data=om.get_audit_log_data(),
+                event=(audit_log.get_event_id("MEMBER_ADD")),
+            )
+
+        else:
             if settings.SENTRY_ENABLE_INVITES and result.get("sendInvite"):
                 referrer = request.query_params.get("referrer")
                 om.send_invite_email(referrer)
                 member_invited.send_robust(
                     member=om, user=request.user, sender=self, referrer=request.data.get("referrer")
                 )
-
-        self.create_audit_entry(
-            request=request,
-            organization_id=organization.id,
-            target_object=om.id,
-            data=om.get_audit_log_data(),
-            event=(
-                audit_log.get_event_id("MEMBER_INVITE")
-                if settings.SENTRY_ENABLE_INVITES
-                else audit_log.get_event_id("MEMBER_ADD")
-            ),
-        )
+            self.create_audit_entry(
+                request=request,
+                organization_id=organization.id,
+                target_object=om.id,
+                data=om.get_audit_log_data(),
+                event=(
+                    audit_log.get_event_id("MEMBER_INVITE")
+                    if settings.SENTRY_ENABLE_INVITES
+                    else audit_log.get_event_id("MEMBER_ADD")
+                ),
+            )
 
         return Response(serialize(om), status=201)
