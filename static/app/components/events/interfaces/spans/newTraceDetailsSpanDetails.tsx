@@ -26,16 +26,16 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import type {
-  TraceError,
-  TraceFullDetailed,
-  TracePerformanceIssue,
-} from 'sentry/utils/performance/quickTrace/types';
+import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {CustomMetricsEventData} from 'sentry/views/ddm/customMetricsEventData';
-import IssueList from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issueList';
+import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
+import type {
+  TraceTree,
+  TraceTreeNode,
+} from 'sentry/views/performance/newTraceDetails/traceTree';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils';
@@ -81,11 +81,10 @@ type TransactionResult = {
 
 export type SpanDetailProps = {
   childTransactions: TraceFullDetailed[] | null;
-  errors: TraceError[];
   event: Readonly<EventTransaction>;
+  node: TraceTreeNode<TraceTree.NodeValue>;
   openPanel: string | undefined;
   organization: Organization;
-  performanceIssues: TracePerformanceIssue[];
   span: RawSpanType;
   trace: Readonly<ParsedTraceType>;
 };
@@ -93,16 +92,15 @@ export type SpanDetailProps = {
 function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   const location = useLocation();
   const profileId = props.event.contexts.profile?.profile_id || '';
+  const issues = useMemo(() => {
+    return [...props.node.errors, ...props.node.performance_issues];
+  }, [props.node.errors, props.node.performance_issues]);
   const {projects} = useProjects();
   const project = projects.find(p => p.id === props.event.projectID);
   const resolvedModule: ModuleName = resolveSpanModule(
     props.span.sentry_tags?.op,
     props.span.sentry_tags?.category
   );
-
-  const relatedIssues = useMemo(() => {
-    return [...props.errors, ...props.performanceIssues];
-  }, [props.errors, props.performanceIssues]);
 
   useEffect(() => {
     // Run on mount.
@@ -284,15 +282,15 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   }
 
   function renderSpanErrorMessage() {
-    const {span, organization, errors, performanceIssues} = props;
+    const {span, organization, node} = props;
 
-    const hasErrors = errors.length > 0 || performanceIssues.length > 0;
+    const hasErrors = node.errors.length > 0 || node.performance_issues.length > 0;
 
     if (!hasErrors || isGapSpan(span)) {
       return null;
     }
 
-    return <IssueList organization={organization} issues={relatedIssues} />;
+    return <IssueList organization={organization} issues={issues} node={props.node} />;
   }
 
   function partitionSizes(data): {
