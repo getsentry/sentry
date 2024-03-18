@@ -349,9 +349,9 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "topic": Topic.SNUBA_SPANS,
         "strategy_factory": "sentry.spans.consumers.process.factory.ProcessSpansStrategyFactory",
     },
-    "recombine-segment": {
+    "detect-performance-issues": {
         "topic": Topic.BUFFERED_SEGMENTS,
-        "strategy_factory": "sentry.spans.consumers.recombine.factory.RecombineSegmentStrategyFactory",
+        "strategy_factory": "sentry.spans.consumers.detect_performance_issues.factory.DetectPerformanceIssuesStrategyFactory",
     },
     **settings.SENTRY_KAFKA_CONSUMERS,
 }

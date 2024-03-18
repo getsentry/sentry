@@ -9,7 +9,7 @@ from confluent_kafka import KafkaException
 from django.conf import settings
 
 from sentry.conf.types.kafka_definition import Topic
-from sentry.spans.consumers.recombine.factory import process_message
+from sentry.spans.consumers.detect_performance_issues.factory import process_message
 from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 

@@ -8,8 +8,8 @@ from django.test import override_settings
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.spans.buffer.redis import get_redis_client
+from sentry.spans.consumers.detect_performance_issues.factory import BUFFERED_SEGMENT_SCHEMA
 from sentry.spans.consumers.process.factory import ProcessSpansStrategyFactory
-from sentry.spans.consumers.recombine.factory import BUFFERED_SEGMENT_SCHEMA
 from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 from sentry.utils.arroyo_producer import SingletonProducer
