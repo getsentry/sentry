@@ -36,9 +36,8 @@ function ReplayPreviewPlayer({
   replayRecord,
   handleBackClick,
   handleForwardClick,
-  overlayText,
+  overlayContent,
   showNextAndPrevious,
-  onClickNextReplay,
   playPausePriority,
 }: {
   replayId: string;
@@ -46,8 +45,7 @@ function ReplayPreviewPlayer({
   fullReplayButtonProps?: Partial<ComponentProps<typeof LinkButton>>;
   handleBackClick?: () => void;
   handleForwardClick?: () => void;
-  onClickNextReplay?: () => void;
-  overlayText?: string;
+  overlayContent?: React.ReactNode;
   playPausePriority?: ComponentProps<typeof ReplayPlayPauseButton>['priority'];
   showNextAndPrevious?: boolean;
 }) {
@@ -102,10 +100,7 @@ function ReplayPreviewPlayer({
               </ContextContainer>
             ) : null}
             <StaticPanel>
-              <ReplayPlayer
-                overlayText={overlayText}
-                onClickNextReplay={onClickNextReplay}
-              />
+              <ReplayPlayer overlayContent={overlayContent} />
             </StaticPanel>
           </PlayerContextContainer>
           {isFullscreen && isSidebarOpen ? <Breadcrumbs /> : null}
