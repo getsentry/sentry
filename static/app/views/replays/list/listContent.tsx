@@ -12,6 +12,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 import DeadRageSelectorCards from 'sentry/views/replays/deadRageClick/deadRageSelectorCards';
+import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
 import ReplaysFilters from 'sentry/views/replays/list/filters';
 import ReplayOnboardingPanel from 'sentry/views/replays/list/replayOnboardingPanel';
 import ReplaysList from 'sentry/views/replays/list/replaysList';
@@ -30,6 +31,9 @@ export default function ListContent() {
     organization,
     projectId: projects.map(String),
   });
+
+  const {allMobileProj} = useAllMobileProj();
+
   const [widgetIsOpen, setWidgetIsOpen] = useState(true);
 
   useRouteAnalyticsParams({
@@ -73,12 +77,14 @@ export default function ListContent() {
         <ReplaysFilters />
         <SearchWrapper>
           <ReplaysSearch />
-          <Button onClick={() => setWidgetIsOpen(!widgetIsOpen)}>
-            {widgetIsOpen ? t('Hide Widgets') : t('Show Widgets')}
-          </Button>
+          {!allMobileProj && (
+            <Button onClick={() => setWidgetIsOpen(!widgetIsOpen)}>
+              {widgetIsOpen ? t('Hide Widgets') : t('Show Widgets')}
+            </Button>
+          )}
         </SearchWrapper>
       </FiltersContainer>
-      {widgetIsOpen ? <DeadRageSelectorCards /> : null}
+      {widgetIsOpen && !allMobileProj ? <DeadRageSelectorCards /> : null}
       <ReplaysList />
     </Fragment>
   );
