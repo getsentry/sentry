@@ -7,6 +7,7 @@ import type {ParentAutogroupNode} from '../../traceTree';
 
 import {IssueList} from './issues/issues';
 import {TraceDrawerComponents} from './styles';
+import { useMemo } from 'react';
 
 export function ParentAutogroupNodeDetails({
   node,
@@ -15,6 +16,10 @@ export function ParentAutogroupNodeDetails({
   node: ParentAutogroupNode;
   organization: Organization;
 }) {
+  const issues = useMemo(() => {
+    return [...node.errors, ...node.performance_issues];
+  }, [node.errors, node.performance_issues]);
+  
   return (
     <TraceDrawerComponents.DetailContainer>
       <TraceDrawerComponents.IconTitleWrapper>
@@ -24,7 +29,7 @@ export function ParentAutogroupNodeDetails({
         <div style={{fontWeight: 'bold'}}>{t('Autogroup')}</div>
       </TraceDrawerComponents.IconTitleWrapper>
 
-      <IssueList issues={node.related_issues} node={node} organization={organization} />
+      <IssueList issues={issues} node={node} organization={organization} />
 
       <TraceDrawerComponents.Table className="table key-value">
         <tbody>

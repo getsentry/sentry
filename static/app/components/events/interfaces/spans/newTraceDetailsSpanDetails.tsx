@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import * as qs from 'query-string';
@@ -92,6 +92,9 @@ export type SpanDetailProps = {
 function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   const location = useLocation();
   const profileId = props.event.contexts.profile?.profile_id || '';
+  const issues = useMemo(() => {
+    return [...props.node.errors, ...props.node.performance_issues];
+  }, [props.node.errors, props.node.performance_issues]);
   const {projects} = useProjects();
   const project = projects.find(p => p.id === props.event.projectID);
   const resolvedModule: ModuleName = resolveSpanModule(
@@ -290,7 +293,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
     return (
       <IssueList
         organization={organization}
-        issues={node.related_issues}
+        issues={issues}
         event_id={event.id}
         node={props.node}
       />

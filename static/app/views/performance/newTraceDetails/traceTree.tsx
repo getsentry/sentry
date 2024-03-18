@@ -4,7 +4,6 @@ import type {Organization} from 'sentry/types';
 import type {Event, EventTransaction, Measurement} from 'sentry/types/event';
 import type {
   TraceError as TraceErrorType,
-  TraceErrorOrIssue,
   TraceFullDetailed,
   TracePerformanceIssue,
   TraceSplitResults,
@@ -1134,10 +1133,6 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
 
   get has_errors(): boolean {
     return this.errors.length > 0 || this.performance_issues.length > 0;
-  }
-
-  get related_issues(): TraceErrorOrIssue[] {
-    return [...this.errors, ...this.performance_issues];
   }
 
   /**

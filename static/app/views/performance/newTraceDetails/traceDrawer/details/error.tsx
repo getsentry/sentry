@@ -70,7 +70,7 @@ export function ErrorNodeDetails({
         </TraceDrawerComponents.Actions>
       </TraceDrawerComponents.HeaderContainer>
 
-      <IssueList issues={node.related_issues} node={node} organization={organization} />
+      <IssueList issues={node.errors} node={node} organization={organization} />
 
       <TraceDrawerComponents.Table className="table key-value">
         <tbody>

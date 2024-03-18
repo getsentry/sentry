@@ -1,4 +1,4 @@
-import {createRef, Fragment, useEffect, useState} from 'react';
+import {createRef, Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
@@ -172,6 +172,9 @@ export function TransactionNodeDetails({
   scrollToNode,
 }: TransactionDetailProps) {
   const {projects} = useProjects();
+  const issues = useMemo(() => {
+    return [...node.errors, ...node.performance_issues];
+  }, [node.errors, node.performance_issues]);
   const {data: event} = useApiQuery<EventTransaction>(
     [
       `/organizations/${organization.slug}/events/${node.value.project_slug}:${node.value.event_id}/`,
@@ -309,7 +312,7 @@ export function TransactionNodeDetails({
         <IssueList
           node={node}
           organization={organization}
-          issues={node.related_issues}
+          issues={issues}
           event_id={event.id}
         />
       ) : null}

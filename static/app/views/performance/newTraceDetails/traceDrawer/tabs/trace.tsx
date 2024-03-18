@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -88,6 +88,10 @@ function TraceDataLoading() {
 }
 
 export function TraceLevelDetails(props: TraceFooterProps) {
+  const issues = useMemo(() => {
+    return [...props.node.errors, ...props.node.performance_issues];
+  }, [props.node.errors, props.node.performance_issues]);
+  
   if (!props.traces) {
     return <TraceDataLoading />;
   }
@@ -102,7 +106,7 @@ export function TraceLevelDetails(props: TraceFooterProps) {
   return (
     <Wrapper>
       <IssueList
-        issues={props.node.related_issues}
+        issues={issues}
         node={props.node}
         organization={props.organization}
       />
