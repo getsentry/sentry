@@ -101,22 +101,6 @@ class OrganizationMetricsEnrollPermission(OrganizationPermission):
 
 
 @region_silo_endpoint
-class OrganizationMetricsEnrollEndpoint(OrganizationEndpoint):
-    publish_status = {
-        "PUT": ApiPublishStatus.PRIVATE,
-    }
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
-    permission_classes = (OrganizationMetricsEnrollPermission,)
-
-    """Enroll an organization in the custom metrics beta."""
-
-    def put(self, request: Request, organization) -> Response:
-        enroll = (request.GET.get("enroll") or "true") == "true"
-        organization.update_option("sentry:custom_metrics_access", enroll)
-        return Response(status=200)
-
-
-@region_silo_endpoint
 class OrganizationMetricsDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,

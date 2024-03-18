@@ -402,7 +402,6 @@ from .endpoints.organization_metrics import (
     OrganizationMetricsCodeLocationsEndpoint,
     OrganizationMetricsDataEndpoint,
     OrganizationMetricsDetailsEndpoint,
-    OrganizationMetricsEnrollEndpoint,
     OrganizationMetricsQueryEndpoint,
     OrganizationMetricsSamplesEndpoint,
     OrganizationMetricsTagDetailsEndpoint,
@@ -1978,11 +1977,6 @@ ORGANIZATION_URLS = [
                 ),
             ]
         ),
-    ),
-    re_path(
-        r"^(?P<organization_slug>[^/]+)/metrics/enroll/$",
-        OrganizationMetricsEnrollEndpoint.as_view(),
-        name="sentry-api-0-organization-metrics-enroll",
     ),
     re_path(
         r"^(?P<organization_slug>[^/]+)/metrics/code-locations/$",
