@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from functools import cached_property
 from typing import Any
 
@@ -324,6 +324,23 @@ class _ClientConfig:
             user_details["isSuperuser"] = self.user.is_superuser
         return user_details
 
+    @cached_property
+    def _member_region_names(self) -> frozenset[str]:
+        # If the user is not authenticated they have no region membership
+        if not self.user or not self.user.id:
+            return frozenset()
+
+        region_names = user_service.get_member_region_names(user_id=self.user.id)
+        return frozenset(region_names)
+
+    @staticmethod
+    def _serialize_regions(
+        region_names: Iterable[str], display_order: Callable[[Region], Any]
+    ) -> list[Mapping[str, Any]]:
+        regions = [get_region_by_name(name) for name in region_names]
+        regions.sort(key=display_order)
+        return [region.api_serialize() for region in regions]
+
     @property
     def regions(self) -> list[Mapping[str, Any]]:
         """
@@ -332,7 +349,6 @@ class _ClientConfig:
         This will include *all* multi-tenant regions, and if the user
         has membership on any single-tenant regions those will also be included.
         """
-        user = self.user
 
         # Only expose visible regions.
         # When new regions are added they can take some work to get working correctly.
@@ -343,17 +359,6 @@ class _ClientConfig:
         if not region_names:
             return [{"name": "default", "url": options.get("system.url-prefix")}]
 
-        # Show all visible multi-tenant regions to unauthenticated users as they could
-        # create a new account
-        if not user or not user.id:
-            return [get_region_by_name(name).api_serialize() for name in region_names]
-
-        # TODO(hybridcloud) Have a an RPC for regionmembership for efficiency
-        # Ensure all regions the current user is in are included as there
-        # could be single tenants or hidden regions
-        memberships = user_service.get_organizations(user_id=user.id)
-        unique_regions = set(region_names) | {membership.region_name for membership in memberships}
-
         def region_display_order(region: Region) -> tuple[bool, bool, str]:
             return (
                 not region.is_historic_monolith_region(),  # default region comes first
@@ -361,26 +366,18 @@ class _ClientConfig:
                 region.name,  # then sort alphabetically
             )
 
-        regions = [get_region_by_name(name) for name in unique_regions]
-        regions.sort(key=region_display_order)
-        return [region.api_serialize() for region in regions]
+        # Show all visible multi-tenant regions to unauthenticated users as they could
+        # create a new account. Else, ensure all regions the current user is in are
+        # included as there could be single tenants or hidden regions.
+        unique_regions = set(region_names) | self._member_region_names
+        return self._serialize_regions(unique_regions, region_display_order)
 
     @property
     def member_regions(self) -> list[Mapping[str, Any]]:
         """
         The regions the user has membership in. Includes single-tenant regions.
         """
-        user = self.user
-        # If the user is not authenticated they have no region membership
-        if not user or not user.id:
-            return []
-
-        # TODO(hybridcloud) Have a an RPC for regionmembership for efficiency
-        memberships = user_service.get_organizations(user_id=user.id)
-        region_names = {membership.region_name for membership in memberships}
-        regions = [get_region_by_name(name) for name in region_names]
-        regions.sort(key=lambda r: r.name)
-        return [r.api_serialize() for r in regions]
+        return self._serialize_regions(self._member_region_names, lambda r: r.name)
 
     def get_context(self) -> Mapping[str, Any]:
         return {

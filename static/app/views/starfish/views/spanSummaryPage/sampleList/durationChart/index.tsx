@@ -8,6 +8,7 @@ import type {
   Series,
 } from 'sentry/types/echarts';
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {AVG_COLOR} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
@@ -106,7 +107,7 @@ function DurationChart({
     data: spanMetricsSeriesData,
     error: spanMetricsSeriesError,
   } = useSpanMetricsSeries({
-    filters: {...filters, ...additionalFilters},
+    search: MutableSearch.fromQueryObject({...filters, ...additionalFilters}),
     yAxis: [`avg(${SPAN_SELF_TIME})`],
     enabled: Object.values({...filters, ...additionalFilters}).every(value =>
       Boolean(value)
@@ -115,7 +116,7 @@ function DurationChart({
   });
 
   const {data, error: spanMetricsError} = useSpanMetrics({
-    filters,
+    search: MutableSearch.fromQueryObject(filters),
     fields: [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
     enabled: Object.values(filters).every(value => Boolean(value)),
     referrer: 'api.starfish.span-summary-panel-samples-table-avg',

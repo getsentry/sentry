@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Any
 
 import pytest
+from django.utils import timezone
 from django.utils.functional import cached_property
 
 from sentry.eventstore.models import Event
@@ -112,7 +113,7 @@ class Fixtures:
             external_id="github:1",
             metadata={
                 "access_token": "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-                "expires_at": iso_format(datetime.utcnow() + timedelta(days=14)),
+                "expires_at": iso_format(timezone.now() + timedelta(days=14)),
             },
         )
         integration.add_organization(self.organization, self.user)
@@ -560,7 +561,7 @@ class Fixtures:
     def create_organization_mapping(self, *args, **kwargs):
         return Factories.create_org_mapping(*args, **kwargs)
 
-    def create_basic_auth_header(self, *args, **kwargs):
+    def create_basic_auth_header(self, *args, **kwargs) -> bytes:
         return Factories.create_basic_auth_header(*args, **kwargs)
 
     def snooze_rule(self, *args, **kwargs):
