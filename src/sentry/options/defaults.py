@@ -1004,6 +1004,13 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "organization-abuse-quota.custom-metric-bucket-limit",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 register(
     "global-abuse-quota.metric-bucket-limit",
@@ -1856,9 +1863,23 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# IDs of orgs that will stop ingesting custom metrics.
+register(
+    "custom-metrics-ingestion-disabled-orgs",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# IDs of projects that will stop ingesting custom metrics.
+register(
+    "custom-metrics-ingestion-disabled-projects",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # IDs of orgs that will be disabled from querying metrics via `/metrics/query` endpoint.
 register(
-    "custom-metrics-querying-killswitched-orgs",
+    "custom-metrics-querying-disabled-orgs",
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
