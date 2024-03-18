@@ -51,8 +51,6 @@ class IssueCategoryFilter(EventFilter):
 
     def render_label(self) -> str:
         value = self.data["value"]
-        group_category_name = ""
-        for id, title in CATEGORY_CHOICES.items():
-            if id == value:
-                group_category_name = title.title()
+        title = CATEGORY_CHOICES.get(value)
+        group_category_name = title.title() if title else ""
         return self.label.format(value=group_category_name)
