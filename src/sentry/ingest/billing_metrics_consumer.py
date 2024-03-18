@@ -178,6 +178,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
                 with sentry_sdk.push_scope() as scope:
                     scope.set_tag("organization_id", org_id)
                     scope.set_tag("project_id", project_id)
+                    scope.fingerprint = [org_id, project_id]
                     sentry_sdk.capture_message("A new project has sent the first custom metric")
 
                 # We assume that the flag update is reflected in the cache, so that upcoming calls will get the up-to-
