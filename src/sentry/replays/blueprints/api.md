@@ -614,11 +614,7 @@ Retrieve a collection of click events associated with a replay.
 - Parameters
 
   - project (optional, string)
-  - id (required, array[string]) - The id of the replay to retrieve. Can be specified multiple times.
-  - per_page (optional, number) - The per page limit should match the number of ids requested.
-    Default: 10
-  - offset (optional, number)
-    Default: 0
+  - id (required, array[string]) - The id of the replay to retrieve. Can be specified multiple times. A maximum of 100 id's can be specified.
 
 ### Browse Replays Viewed [GET]
 
