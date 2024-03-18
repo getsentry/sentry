@@ -46,13 +46,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
                 ],
             },
         }
-
-    @property
-    def label(self) -> str:
-        if self.has_feature_flag:
-            return self.new_label
-        else:
-            return self.old_label
+        self.__class__.label = self.new_label if self.has_feature_flag else self.old_label
 
     def _get_service(self):
         oi = self.get_organization_integration()
