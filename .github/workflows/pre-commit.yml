@@ -81,7 +81,7 @@ jobs:
       - name: Apply any pre-commit fixed files
         # note: this runs "always" or else it's skipped when pre-commit fails
         if: env.SECRET_ACCESS == 'true' && startsWith(github.ref, 'refs/pull') && always()
-        uses: getsentry/action-github-commit@748c31dd78cffe76f51bef49a0be856b6effeda7 # v1.1.0
+        uses: getsentry/action-github-commit@31f6706ca1a7b9ad6d22c1b07bf3a92eabb05632 # v2.0.0
         with:
           github-token: ${{ steps.token.outputs.token }}
           message: ':hammer_and_wrench: apply pre-commit fixes'
