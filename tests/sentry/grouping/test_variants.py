@@ -81,8 +81,32 @@ def test_event_hash_variant(config_name, grouping_input, insta_snapshot, log):
         rv.append("%s:" % key)
         dump_variant(value, rv, 1)
     output = "\n".join(rv)
-    log(repr(evt.get_hashes()))
+
+    hashes = evt.get_hashes()
+    log(repr(hashes))
 
     assert evt.get_grouping_config() == grouping_config
 
     insta_snapshot(output)
+
+    with override_options(
+        {
+            "grouping.rust_enhancers.prefer_rust_components": 1.0,
+        }
+    ):
+        evt = grouping_input.create_event(grouping_config)
+        evt.project = None
+
+        rust_hashes = evt.get_hashes()
+        assert rust_hashes.hashes == hashes.hashes
+
+        # rv = []
+        # for key, value in sorted(evt.get_grouping_variants().items()):
+        #     if rv:
+        #         rv.append("-" * 74)
+        #     rv.append("%s:" % key)
+        #     dump_variant(value, rv, 1)
+        # rust_output = "\n".join(rv)
+
+        # FIXME: the `hint` output does not (yet) fully match what Python produces
+        # assert rust_output == output

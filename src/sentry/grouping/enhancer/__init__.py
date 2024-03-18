@@ -268,6 +268,7 @@ def assemble_rust_components(
         rust_results = rust_enhancements.assemble_stacktrace_component(
             match_frames, make_rust_exception_data(exception_data), rust_components
         )
+        metrics.incr("rust_enhancements.assembling_run")
 
         return (
             rust_results.contributes,
@@ -314,6 +315,27 @@ def compare_rust_components(
             scope.set_extra("frames", frames)
 
             sentry_sdk.capture_message("Rust Enhancements mismatch")
+
+
+def fully_assemble_rust_component(
+    rust_results: RustAssembleResult,
+    components: list[GroupingComponent],
+):
+    contributes, hint, invert, rust_components = rust_results
+
+    for py_component, rust_component in zip(components, rust_components):
+        py_component.update(
+            contributes=rust_component.contributes,
+            hint=rust_component.hint,
+            is_prefix_frame=rust_component.is_prefix_frame,
+            is_sentinel_frame=rust_component.is_sentinel_frame,
+        )
+
+    component = GroupingComponent(
+        id="stacktrace", values=components, hint=hint, contributes=contributes
+    )
+
+    return component, invert
 
 
 class Enhancements:
@@ -437,9 +459,7 @@ class Enhancements:
 
         return stacktrace_state
 
-    def assemble_stacktrace_component(
-        self, components, frames, platform, exception_data=None, **kw
-    ):
+    def assemble_stacktrace_component(self, components, frames, platform, exception_data=None):
         """
         This assembles a `stacktrace` grouping component out of the given
         `frame` components and source frames.
@@ -454,6 +474,11 @@ class Enhancements:
             rust_results = assemble_rust_components(
                 self.rust_enhancements, match_frames, exception_data, components
             )
+
+        if rust_results is not None and in_random_rollout(
+            "grouping.rust_enhancers.prefer_rust_components"
+        ):
+            return fully_assemble_rust_component(rust_results, components)
 
         hint = None
         contributes = None
@@ -475,7 +500,7 @@ class Enhancements:
 
         invert_stacktrace = stacktrace_state.get("invert-stacktrace")
         component = GroupingComponent(
-            id="stacktrace", values=components, hint=hint, contributes=contributes, **kw
+            id="stacktrace", values=components, hint=hint, contributes=contributes
         )
 
         compare_rust_components(component, invert_stacktrace, rust_results, frames)

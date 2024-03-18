@@ -464,7 +464,12 @@ def test_range_matching_direct():
 @pytest.mark.parametrize("action", ["+", "-"])
 @pytest.mark.parametrize("type", ["prefix", "sentinel"])
 @django_db_all  # because of `options` usage
-@override_options({"grouping.rust_enhancers.compare_components": 1.0})
+@override_options(
+    {
+        "grouping.rust_enhancers.compare_components": 1.0,
+        "grouping.rust_enhancers.prefer_rust_components": 1.0,
+    }
+)
 def test_sentinel_and_prefix(action, type):
     enhancements = Enhancements.from_config_string(f"function:foo {action}{type}")
 
