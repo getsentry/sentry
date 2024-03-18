@@ -13,6 +13,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DiscoverButton from 'sentry/components/discoverButton';
 import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
@@ -394,6 +395,10 @@ function TraceViewContent(props: TraceViewContentProps) {
     null
   );
 
+  const onResetZoom = useCallback(() => {
+    viewManager.resetZoom();
+  }, [viewManager]);
+
   return (
     <TraceExternalLayout>
       <Layout.Header>
@@ -439,6 +444,9 @@ function TraceViewContent(props: TraceViewContentProps) {
             resultCount={searchState.results?.length}
             resultIteratorIndex={searchState.resultIteratorIndex}
           />
+          <Button size="xs" onClick={onResetZoom}>
+            {t('Reset Zoom')}
+          </Button>
         </TraceToolbar>
         <TraceGrid ref={r => (traceContainerRef.current = r)}>
           <Trace
@@ -561,6 +569,9 @@ const TraceInnerLayout = styled('div')`
 
 const TraceToolbar = styled('div')`
   flex-grow: 0;
+  display: grid;
+  grid-template-columns: 1fr min-content;
+  gap: ${space(1)};
 `;
 
 const TraceGrid = styled('div')`
