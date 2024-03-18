@@ -6,6 +6,10 @@ import type {Client} from 'sentry/api';
 import type {Organization} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
 import clamp from 'sentry/utils/number/clamp';
+import type {
+  TraceError,
+  TracePerformanceIssue,
+} from 'sentry/utils/performance/quickTrace/types';
 import {requestAnimationTimeout} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import {lightTheme as theme} from 'sentry/utils/theme';
 import {
@@ -1834,25 +1838,55 @@ function findInTreeFromSegment(
   });
 }
 
+function hasEventWithEventId(
+  node: TraceTreeNode<TraceTree.NodeValue>,
+  eventId: string
+): boolean {
+  // Search in errors
+  const errors: TraceError[] = isAutogroupedNode(node)
+    ? node.errors
+    : node.value && 'errors' in node.value && Array.isArray(node.value.errors)
+      ? node.value.errors
+      : [];
+
+  if (errors.length > 0) {
+    for (const e of errors) {
+      if (e.event_id === eventId) {
+        return true;
+      }
+    }
+  }
+
+  // Search in performance issues
+  const performance_issues: TracePerformanceIssue[] = isAutogroupedNode(node)
+    ? node.performance_issues
+    : node.value &&
+        'performance_issues' in node.value &&
+        Array.isArray(node.value.performance_issues)
+      ? node.value.performance_issues
+      : [];
+
+  if (performance_issues.length > 0) {
+    for (const p of performance_issues) {
+      if (p.event_id === eventId) {
+        return true;
+      }
+    }
+  }
+
+  // Check if we are maybe looking for the profile_id
+  if (node.value && 'profile_id' in node.value && node.value.profile_id === eventId) {
+    return true;
+  }
+
+  return false;
+}
+
 function findInTreeByEventId(start: TraceTreeNode<TraceTree.NodeValue>, eventId: string) {
   return TraceTreeNode.Find(start, node => {
     if (isTransactionNode(node)) {
       if (node.value.event_id === eventId) {
         return true;
-      }
-      if (node.value.performance_issues.length > 0) {
-        for (const p of node.value.performance_issues) {
-          if (p.event_id === eventId) {
-            return true;
-          }
-        }
-      }
-      if (node.value.errors.length > 0) {
-        for (const e of node.value.errors) {
-          if (e.event_id === eventId) {
-            return true;
-          }
-        }
       }
     } else if (isSpanNode(node)) {
       return node.value.span_id === eventId;
@@ -1860,6 +1894,6 @@ function findInTreeByEventId(start: TraceTreeNode<TraceTree.NodeValue>, eventId:
       return node.value.event_id === eventId;
     }
 
-    return false;
+    return hasEventWithEventId(node, eventId);
   });
 }
