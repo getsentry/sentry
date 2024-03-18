@@ -8,11 +8,17 @@ import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/te
 
 interface Props {
   domain?: string;
+  project?: string;
   transaction?: string;
   transactionMethod?: string;
 }
 
-export function TransactionCell({domain, transaction, transactionMethod}: Props) {
+export function TransactionCell({
+  domain,
+  project,
+  transaction,
+  transactionMethod,
+}: Props) {
   const location = useLocation();
   const organization = useOrganization();
 
@@ -33,6 +39,7 @@ export function TransactionCell({domain, transaction, transactionMethod}: Props)
   const query = {
     ...location.query,
     domain,
+    project,
     transaction,
     transactionMethod,
   };

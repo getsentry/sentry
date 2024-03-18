@@ -23,6 +23,7 @@ import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Row = Pick<
   MetricsResponse,
+  | 'project.id'
   | 'transaction'
   | 'transaction.method'
   | 'spm()'
@@ -173,6 +174,7 @@ function renderBodyCell(
     return (
       <TransactionCell
         domain={domain}
+        project={String(row['project.id'])}
         transaction={row.transaction}
         transactionMethod={row['transaction.method']}
       />

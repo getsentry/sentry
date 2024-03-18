@@ -190,6 +190,7 @@ describe('HTTPSummaryPage', function () {
           dataset: 'spansMetrics',
           environment: [],
           field: [
+            'project.id',
             'transaction',
             'transaction.method',
             'spm()',
@@ -227,6 +228,7 @@ describe('HTTPSummaryPage', function () {
       body: {
         data: [
           {
+            'project.id': 8,
             transaction: '/api/users',
             'transaction.method': 'GET',
             'spm()': 17.88,
@@ -269,7 +271,7 @@ describe('HTTPSummaryPage', function () {
     expect(screen.getByRole('cell', {name: 'GET /api/users'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'GET /api/users'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/performance/http/domains/?domain=%2A.sentry.dev&statsPeriod=10d&transaction=%2Fapi%2Fusers&transactionMethod=GET&transactionsCursor=0%3A20%3A0'
+      '/organizations/org-slug/performance/http/domains/?domain=%2A.sentry.dev&project=8&statsPeriod=10d&transaction=%2Fapi%2Fusers&transactionMethod=GET&transactionsCursor=0%3A20%3A0'
     );
     expect(screen.getByRole('cell', {name: '17.9/s'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '97%'})).toBeInTheDocument();

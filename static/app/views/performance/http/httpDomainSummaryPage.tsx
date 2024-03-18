@@ -115,6 +115,7 @@ export function HTTPDomainSummaryPage() {
   } = useSpanMetrics({
     search: MutableSearch.fromQueryObject(filters),
     fields: [
+      'project.id',
       'transaction',
       'transaction.method',
       'spm()',
