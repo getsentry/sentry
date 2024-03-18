@@ -1341,14 +1341,8 @@ function buildRoutes() {
         path="create/"
         component={make(() => import('sentry/views/monitors/create'))}
       />
-      <Route
-        path=":monitorSlug/"
-        component={make(() => import('sentry/views/monitors/details'))}
-      />
-      <Route
-        path=":monitorSlug/edit/"
-        component={make(() => import('sentry/views/monitors/edit'))}
-      />
+      <Redirect from=":monitorSlug/" to="/crons/" />
+      <Redirect from=":monitorSlug/edit/" to="/crons/" />
       <Route
         path=":projectId/:monitorSlug/"
         component={make(() => import('sentry/views/monitors/details'))}
