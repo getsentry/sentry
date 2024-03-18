@@ -28,6 +28,7 @@ import type {
 } from 'sentry/utils/performance/quickTrace/types';
 import {clamp} from 'sentry/utils/profiling/colors/utils';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {
@@ -55,7 +56,6 @@ import {
   type VirtualizedRow,
   type VirtualizedViewManager,
 } from './virtualizedViewManager';
-import {useLocation} from 'sentry/utils/useLocation';
 
 function Chevron(props: {direction: 'up' | 'down' | 'left'}) {
   return (
