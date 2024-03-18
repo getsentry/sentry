@@ -472,6 +472,8 @@ class EventManager:
             metric_tags = {
                 "platform": job["event"].platform or "unknown",
                 "sdk": normalized_sdk_tag_from_event(job["event"]),
+                "using_transition_optimization": job["optimized_grouping"],
+                "in_transition": job["in_grouping_transition"],
             }
             # This metric allows differentiating from all calls to the `event_manager.save` metric
             # and adds support for differentiating based on platforms
