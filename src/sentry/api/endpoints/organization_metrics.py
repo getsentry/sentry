@@ -111,7 +111,7 @@ class OrganizationMetricsEnrollEndpoint(OrganizationEndpoint):
     """Enroll an organization in the custom metrics beta."""
 
     def put(self, request: Request, organization) -> Response:
-        enroll = request.GET.get("enroll", "true") == "true"
+        enroll = (request.GET.get("enroll") or "true") == "true"
         organization.update_option("sentry:custom_metrics_access", enroll)
         return Response(status=200)
 
