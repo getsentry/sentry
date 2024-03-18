@@ -163,7 +163,6 @@ describe('HTTPSummaryPage', function () {
           dataset: 'spansMetrics',
           environment: [],
           field: [
-            'span.domain',
             'spm()',
             'avg(span.self_time)',
             'sum(span.self_time)',

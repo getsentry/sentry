@@ -61,7 +61,6 @@ export function HTTPDomainSummaryPage() {
   const {data: domainMetrics, isLoading: areDomainMetricsLoading} = useSpanMetrics({
     search: MutableSearch.fromQueryObject(filters),
     fields: [
-      SpanMetricsField.SPAN_DOMAIN,
       `${SpanFunction.SPM}()`,
       `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
       `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
