@@ -4,26 +4,19 @@ import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 
 interface Props {
-  primaryAction: 'create' | 'setup';
   projectSlug: string;
 }
 
-export default function ReplayUnsupportedAlert({primaryAction, projectSlug}: Props) {
+export default function ReplayUnsupportedAlert({projectSlug}: Props) {
   const link = (
-    <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/" />
+    <ExternalLink href="https://docs.sentry.io/product/session-replay/getting-started/" />
   );
   return (
     <Alert icon={<IconInfo />}>
       <strong>{t(`Session Replay isn't available for %s.`, projectSlug)}</strong>{' '}
-      {primaryAction === 'create'
-        ? tct(
-            `Create a project using our [link:Sentry browser SDK package], or equivalent framework SDK.`,
-            {link}
-          )
-        : tct(
-            `Select a project using our [link:Sentry browser SDK package], or equivalent framework SDK.`,
-            {link}
-          )}
+      {tct(`To learn more about which SDKs we support, please visit our [link:docs].`, {
+        link,
+      })}
     </Alert>
   );
 }

@@ -94,10 +94,7 @@ export default function ReplayOnboardingPanel() {
     <Fragment>
       <OnboardingAlertHook>
         {hasSelectedProjects && allSelectedProjectsUnsupported && (
-          <ReplayUnsupportedAlert
-            primaryAction={primaryAction}
-            projectSlug={selectedProjects[0].slug}
-          />
+          <ReplayUnsupportedAlert projectSlug={selectedProjects[0].slug} />
         )}
       </OnboardingAlertHook>
       <ReplayPanel image={<HeroImage src={emptyStateImg} breakpoints={breakpoints} />}>
