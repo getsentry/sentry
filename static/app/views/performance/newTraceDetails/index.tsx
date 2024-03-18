@@ -35,6 +35,7 @@ import type {
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -142,17 +143,36 @@ function TraceViewContent(props: TraceViewContentProps) {
   const [activeTab, setActiveTab] = useState<'trace' | 'node'>('trace');
   const {projects} = useProjects();
 
+  const [tracePreferences, setTracePreferences] = useLocalStorageState(
+    'trace_preferences',
+    {list_width: 0.5}
+  );
+
   const rootEvent = useRootEvent(props.trace);
 
   const viewManager = useMemo(() => {
     return new VirtualizedViewManager({
-      list: {width: 0.5},
-      span_list: {width: 0.5},
+      list: {width: tracePreferences.list_width},
+      span_list: {width: 1 - tracePreferences.list_width},
     });
+    // We only care about initial state when we initialize the view manager
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loadingTraceRef = useRef<TraceTree | null>(null);
+  useEffect(() => {
+    function onDividerResizeEnd(list_width: number) {
+      setTracePreferences(previousPreferences => {
+        return {...previousPreferences, list_width};
+      });
+    }
+    viewManager.on('divider resize end', onDividerResizeEnd);
 
+    return () => {
+      viewManager.off('divider resize end', onDividerResizeEnd);
+    };
+  }, [viewManager, setTracePreferences]);
+
+  const loadingTraceRef = useRef<TraceTree | null>(null);
   const tree = useMemo(() => {
     if (props.status === 'error') {
       const errorTree = TraceTree.Error(
