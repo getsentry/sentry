@@ -1,4 +1,4 @@
-import {useCallback, useRef} from 'react';
+import {useCallback} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -12,7 +12,6 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import useOrganization from 'sentry/utils/useOrganization';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
@@ -44,13 +43,12 @@ function openMetricsOptInModal(
         />
       </OrganizationContext.Provider>
     ),
-    {modalCss}
+    {modalCss, closeEvents: 'none'}
   );
 }
 
 function OptInModal({closeModal}: ModalRenderProps) {
   const organization = useOrganization();
-  const ref = useRef<HTMLDivElement>(null);
 
   const handleCloseModal = useCallback(
     source => {
@@ -60,10 +58,8 @@ function OptInModal({closeModal}: ModalRenderProps) {
     [organization, closeModal]
   );
 
-  useOnClickOutside(ref, () => handleCloseModal('click_outside'));
-
   return (
-    <Content ref={ref}>
+    <Content>
       <Subheader>{t('Sentry Metrics: Now in Beta')}</Subheader>
       <Header>{t('Track and solve what matters')}</Header>
       <CloseButton onClick={() => handleCloseModal('close_button')} />
