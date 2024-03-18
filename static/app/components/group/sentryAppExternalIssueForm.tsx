@@ -2,6 +2,7 @@ import {t} from 'sentry/locale';
 import ExternalIssueStore from 'sentry/stores/externalIssueStore';
 import type {Group, PlatformExternalIssue, SentryAppInstallation} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import getStacktraceBody from 'sentry/utils/getStacktraceBody';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
@@ -27,6 +28,7 @@ function SentryAppExternalIssueForm({
   sentryAppInstallation,
 }: Props) {
   const contentArr = getStacktraceBody(event);
+  const isFeedback = (group.issueCategory as string) === 'feedback';
 
   const stackTrace =
     contentArr && contentArr.length > 0 ? '\n\n```\n' + contentArr[0] + '\n```' : '';
@@ -57,7 +59,28 @@ function SentryAppExternalIssueForm({
             const queryParams = {referrer: appName};
             const url = addQueryParamsToExistingUrl(group.permalink, queryParams);
             const shortId = group.shortId;
-            return t('Sentry Issue: [%s](%s)%s', shortId, url, stackTrace);
+
+            const tableHeader = '|  |  |\n| ------------- | --------------- |\n';
+            const feedback = group as unknown as FeedbackIssue;
+            const email = feedback.metadata.contact_email;
+            const name = feedback.metadata.name;
+            const source = feedback.metadata.source;
+            const emailRow = email ? `| **contact_email** | ${email} |\n` : '';
+            const nameRow = name ? `| **name** | ${name} |\n` : '';
+            const sourceRow = source ? `| **source** | ${source} |\n` : '';
+
+            return isFeedback
+              ? t(
+                  'Sentry Feedback: [%s](%s)\n\n%s \n\n%s%s%s%s',
+                  shortId,
+                  url,
+                  group.metadata.message,
+                  tableHeader,
+                  emailRow,
+                  nameRow,
+                  sourceRow
+                )
+              : t('Sentry Issue: [%s](%s)%s', shortId, url, stackTrace);
           default:
             return '';
         }
