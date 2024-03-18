@@ -673,6 +673,8 @@ def get_entity_subscription_from_snuba_query(
     snuba_query: SnubaQuery, organization_id: int
 ) -> EntitySubscription:
     query_dataset = Dataset(snuba_query.dataset)
+    entity_key = get_entity_key_from_snuba_query(snuba_query, organization_id, project_id)
+    time_column = ENTITY_TIME_COLUMNS.get(entity_key, "timestamp")
     return get_entity_subscription(
         SnubaQuery.Type(snuba_query.type),
         query_dataset,
@@ -681,6 +683,7 @@ def get_entity_subscription_from_snuba_query(
         extra_fields={
             "org_id": organization_id,
             "event_types": snuba_query.event_types,
+            "time_column": time_column,
         },
     )
 
