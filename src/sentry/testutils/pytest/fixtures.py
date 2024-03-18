@@ -10,13 +10,13 @@ import os
 import re
 import sys
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
 from string import Template
 
 import pytest
 import requests
 import yaml
 from django.core.cache import cache
+from django.utils import timezone
 
 import sentry
 
@@ -382,7 +382,7 @@ def insta_snapshot(request, log):
                     % (
                         yaml.safe_dump(
                             {
-                                "created": datetime.utcnow().isoformat() + "Z",
+                                "created": timezone.now().isoformat(),
                                 "creator": "sentry",
                                 "source": source,
                             },
