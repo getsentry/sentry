@@ -340,6 +340,11 @@ function TraceViewContent(props: TraceViewContentProps) {
   useQueryParamSync(syncQuery);
 
   const onOutsideClick = useCallback(() => {
+    if (tree.type !== 'trace') {
+      // Dont clear the URL in case the trace is still loading or failed for some reason,
+      // we want to keep the eventId in the URL so the user can share the URL with support
+      return;
+    }
     // we will drop eventId such that after users clicks outside and shares the URL,
     // we will no longer scroll to the event or node
     const {
