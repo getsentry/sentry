@@ -268,7 +268,7 @@ export class TraceTree {
     let traceEnd = Number.NEGATIVE_INFINITY;
     const traceErrors: TraceErrorType[] = [];
     const tracePerformanceIssues: TracePerformanceIssue[] = [];
-    let traceEventCount = 0;
+    let traceEventsCount = 0;
 
     function visit(
       parent: TraceTreeNode<TraceTree.NodeValue | null>,
@@ -279,7 +279,7 @@ export class TraceTree {
         event_id: value && 'event_id' in value ? value.event_id : undefined,
       });
       node.canFetch = true;
-      traceEventCount += 1;
+      traceEventsCount += 1;
 
       if (isTraceTransaction(value)) {
         node.errors = value.errors;
@@ -321,9 +321,6 @@ export class TraceTree {
       event_id: undefined,
       project_slug: undefined,
     });
-
-    // traceNode.errors = traceInfo?.errors ?? [];
-    // traceNode.performance_issues = traceInfo?.performanceIssues ?? [];
 
     // Trace is always expanded by default
     tree.root.children.push(traceNode);
@@ -388,7 +385,7 @@ export class TraceTree {
       traceStart * traceNode.multiplier,
       (traceEnd - traceStart) * traceNode.multiplier,
     ];
-    tree.eventsCount = traceEventCount;
+    tree.eventsCount = traceEventsCount;
 
     return tree.build();
   }
