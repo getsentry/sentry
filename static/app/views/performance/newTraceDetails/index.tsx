@@ -13,6 +13,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DiscoverButton from 'sentry/components/discoverButton';
 import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
@@ -35,6 +36,7 @@ import type {
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -142,17 +144,36 @@ function TraceViewContent(props: TraceViewContentProps) {
   const [activeTab, setActiveTab] = useState<'trace' | 'node'>('trace');
   const {projects} = useProjects();
 
+  const [tracePreferences, setTracePreferences] = useLocalStorageState(
+    'trace_preferences',
+    {list_width: 0.5}
+  );
+
   const rootEvent = useRootEvent(props.trace);
 
   const viewManager = useMemo(() => {
     return new VirtualizedViewManager({
-      list: {width: 0.5},
-      span_list: {width: 0.5},
+      list: {width: tracePreferences.list_width},
+      span_list: {width: 1 - tracePreferences.list_width},
     });
+    // We only care about initial state when we initialize the view manager
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loadingTraceRef = useRef<TraceTree | null>(null);
+  useEffect(() => {
+    function onDividerResizeEnd(list_width: number) {
+      setTracePreferences(previousPreferences => {
+        return {...previousPreferences, list_width};
+      });
+    }
+    viewManager.on('divider resize end', onDividerResizeEnd);
 
+    return () => {
+      viewManager.off('divider resize end', onDividerResizeEnd);
+    };
+  }, [viewManager, setTracePreferences]);
+
+  const loadingTraceRef = useRef<TraceTree | null>(null);
   const tree = useMemo(() => {
     if (props.status === 'error') {
       const errorTree = TraceTree.Error(
@@ -319,6 +340,11 @@ function TraceViewContent(props: TraceViewContentProps) {
   useQueryParamSync(syncQuery);
 
   const onOutsideClick = useCallback(() => {
+    if (tree.type !== 'trace') {
+      // Dont clear the URL in case the trace is still loading or failed for some reason,
+      // we want to keep the eventId in the URL so the user can share the URL with support
+      return;
+    }
     // we will drop eventId such that after users clicks outside and shares the URL,
     // we will no longer scroll to the event or node
     const {
@@ -370,7 +396,13 @@ function TraceViewContent(props: TraceViewContentProps) {
     [api, props.organization, tree, viewManager, searchState, onTraceSearch]
   );
 
-  const scrollQueueRef = useRef<TraceTree.NodePath[] | null>(null);
+  const scrollQueueRef = useRef<{eventId?: string; path?: TraceTree.NodePath[]} | null>(
+    null
+  );
+
+  const onResetZoom = useCallback(() => {
+    viewManager.resetZoom();
+  }, [viewManager]);
 
   return (
     <TraceExternalLayout>
@@ -417,6 +449,9 @@ function TraceViewContent(props: TraceViewContentProps) {
             resultCount={searchState.results?.length}
             resultIteratorIndex={searchState.resultIteratorIndex}
           />
+          <Button size="xs" onClick={onResetZoom}>
+            {t('Reset Zoom')}
+          </Button>
         </TraceToolbar>
         <TraceGrid ref={r => (traceContainerRef.current = r)}>
           <Trace
@@ -539,6 +574,9 @@ const TraceInnerLayout = styled('div')`
 
 const TraceToolbar = styled('div')`
   flex-grow: 0;
+  display: grid;
+  grid-template-columns: 1fr min-content;
+  gap: ${space(1)};
 `;
 
 const TraceGrid = styled('div')`

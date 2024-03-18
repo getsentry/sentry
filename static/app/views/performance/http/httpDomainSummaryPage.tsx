@@ -27,6 +27,7 @@ import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
+import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
@@ -63,6 +64,9 @@ export function HTTPDomainSummaryPage() {
       `${SpanFunction.SPM}()`,
       `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
       `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
+      'http_response_rate(3)',
+      'http_response_rate(4)',
+      'http_response_rate(5)',
       `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
     ],
     enabled: Boolean(domain),
@@ -178,6 +182,38 @@ export function HTTPDomainSummaryPage() {
                       domainMetrics?.[0]?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]
                     }
                     unit={DurationUnit.MILLISECOND}
+                    isLoading={areDomainMetricsLoading}
+                  />
+
+                  <MetricReadout
+                    title={t('3XXs')}
+                    value={domainMetrics?.[0]?.[`http_response_rate(3)`]}
+                    unit="percentage"
+                    isLoading={areDomainMetricsLoading}
+                  />
+
+                  <MetricReadout
+                    title={t('4XXs')}
+                    value={domainMetrics?.[0]?.[`http_response_rate(4)`]}
+                    unit="percentage"
+                    isLoading={areDomainMetricsLoading}
+                  />
+
+                  <MetricReadout
+                    title={t('5XXs')}
+                    value={domainMetrics?.[0]?.[`http_response_rate(5)`]}
+                    unit="percentage"
+                    isLoading={areDomainMetricsLoading}
+                  />
+
+                  <MetricReadout
+                    title={DataTitles.timeSpent}
+                    value={domainMetrics?.[0]?.['sum(span.self_time)']}
+                    unit={DurationUnit.MILLISECOND}
+                    tooltip={getTimeSpentExplanation(
+                      domainMetrics?.[0]?.['time_spent_percentage()'],
+                      'db'
+                    )}
                     isLoading={areDomainMetricsLoading}
                   />
                 </MetricsRibbon>
