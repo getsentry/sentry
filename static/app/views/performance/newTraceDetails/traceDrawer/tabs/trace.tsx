@@ -91,7 +91,7 @@ export function TraceLevelDetails(props: TraceFooterProps) {
   const issues = useMemo(() => {
     return [...props.node.errors, ...props.node.performance_issues];
   }, [props.node.errors, props.node.performance_issues]);
-  
+
   if (!props.traces) {
     return <TraceDataLoading />;
   }

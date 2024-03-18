@@ -19,7 +19,7 @@ export function SiblingAutogroupNodeDetails({
   const issues = useMemo(() => {
     return [...node.errors, ...node.performance_issues];
   }, [node.errors, node.performance_issues]);
-  
+
   return (
     <TraceDrawerComponents.DetailContainer>
       <TraceDrawerComponents.IconTitleWrapper>
