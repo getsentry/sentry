@@ -157,11 +157,11 @@ class BaseAggregateSpans:
                 "avg(duration)": span_tree["duration"],
                 "is_segment": span_tree["is_segment"],
                 "avg(relative_offset)": start_timestamp - parent_timestamp,
-                "avg(absolute_offset)": parent_node["avg(absolute_offset)"]
-                + start_timestamp
-                - parent_timestamp
-                if parent_node
-                else start_timestamp - parent_timestamp,
+                "avg(absolute_offset)": (
+                    parent_node["avg(absolute_offset)"] + start_timestamp - parent_timestamp
+                    if parent_node
+                    else start_timestamp - parent_timestamp
+                ),
                 "count()": 1,
                 "samples": sample,
             }
@@ -317,6 +317,8 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
             )
 
         backend = request.query_params.get("backend", "nodestore")
+        sentry_sdk.set_tag("aggregate_spans.backend", backend)
+
         if backend not in ALLOWED_BACKENDS:
             return Response(
                 status=status.HTTP_400_BAD_REQUEST, data={"details": "Backend not supported"}
