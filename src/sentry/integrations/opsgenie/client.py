@@ -32,8 +32,8 @@ class OpsgenieClient(ApiClient):
     def _get_auth_headers(self):
         return {"Authorization": f"GenieKey {self.integration_key}"}
 
-    def get_teams(self) -> BaseApiResponseX:
-        path = "/teams"
+    def get_alerts(self, limit: int | None = 1) -> BaseApiResponseX:
+        path = f"/alerts?limit={limit}"
         return self.get(path=path, headers=self._get_auth_headers())
 
     def authorize_integration(self, type: str) -> BaseApiResponseX:

@@ -118,9 +118,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
         )
         try:
             installation.update_organization_config(request.data)
-        except IntegrationError as e:
-            return self.respond({"detail": [str(e)]}, status=400)
-        except ApiError as e:
+        except (IntegrationError, ApiError) as e:
             return self.respond({"detail": [str(e)]}, status=400)
 
         return self.respond(status=200)

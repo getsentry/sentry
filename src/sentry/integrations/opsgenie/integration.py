@@ -179,6 +179,7 @@ class OpsgenieIntegration(IntegrationInstallation):
                 raise ValidationError({"duplicate_name": ["Duplicate team name."]})
             team["id"] = str(self.org_integration.id) + "-" + team["team"]
 
+        invalid_keys = []
         for team in teams:
             # skip if team, key pair already exist in config
             if (team["team"], team["integration_key"]) in existing_team_key_pairs:
@@ -193,7 +194,7 @@ class OpsgenieIntegration(IntegrationInstallation):
             )
             # call an API to test the integration key
             try:
-                client.get_teams()
+                client.get_alerts()
             except ApiError as e:
                 logger.info(
                     "opsgenie.authorization_error",
@@ -204,11 +205,15 @@ class OpsgenieIntegration(IntegrationInstallation):
                         "Too many requests. Please try updating one team/key at a time."
                     )
                 elif e.code == 401:
-                    raise ApiUnauthorized(f"Invalid integration key {integration_key}")
-
-                if e.json and e.json.get("message"):
+                    invalid_keys.append(integration_key)
+                    pass
+                elif e.json and e.json.get("message"):
                     raise ApiError(e.json["message"])
-                raise
+                else:
+                    raise
+
+        if invalid_keys:
+            raise ApiUnauthorized(f"Invalid integration key: {str(invalid_keys)}")
 
         return super().update_organization_config(data)
 
