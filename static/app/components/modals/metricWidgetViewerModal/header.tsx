@@ -1,4 +1,3 @@
-import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -8,49 +7,53 @@ import {IconCheckmark, IconEdit} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {WidgetDescription} from 'sentry/views/dashboards/widgetCard';
 
-type Props = {
-  displayValue: string;
-  placeholder: string;
-  value: string;
+export interface MetricWidgetTitleState {
+  edited: string;
+  isEditing: boolean;
+  stored: string;
+}
+interface Props {
+  onTitleChange: (val: Partial<MetricWidgetTitleState>) => void;
+  title: MetricWidgetTitleState;
   description?: string;
-  onSubmit?: (value: string) => void;
-};
+  placeholder?: string;
+}
 
-export function WidgetTitle({
-  value,
-  displayValue,
+export function MetricWidgetTitle({
+  title,
+  onTitleChange,
   placeholder,
   description,
-  onSubmit,
 }: Props) {
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [title, setTitle] = useState<string>(value);
+  const titleToDisplay =
+    title.edited === ''
+      ? title.stored === ''
+        ? placeholder
+        : title.stored
+      : title.edited;
 
   return (
     <WidgetHeader>
       <WidgetTitleRow>
-        {isEditingTitle ? (
+        {title.isEditing ? (
           <Input
-            value={title}
+            value={title.edited}
             placeholder={placeholder}
             onChange={e => {
-              setTitle?.(e.target.value);
+              onTitleChange({edited: e.target.value});
             }}
           />
         ) : (
-          <h3>{displayValue}</h3>
+          <h3>{titleToDisplay}</h3>
         )}
         <Button
           aria-label="Edit Title"
           size="sm"
           borderless
-          icon={isEditingTitle ? <IconCheckmark size="sm" /> : <IconEdit size="sm" />}
-          priority={isEditingTitle ? 'primary' : 'default'}
+          icon={title.isEditing ? <IconCheckmark size="sm" /> : <IconEdit size="sm" />}
+          priority={title.isEditing ? 'primary' : 'default'}
           onClick={() => {
-            if (isEditingTitle) {
-              onSubmit?.(title);
-            }
-            setIsEditingTitle(curr => !curr);
+            onTitleChange({isEditing: !title.isEditing});
           }}
         />
       </WidgetTitleRow>
