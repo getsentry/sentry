@@ -149,7 +149,7 @@ def transform_spans_to_event_dict(spans):
 
 def process_segment(spans: list[dict[str, Any]]):
     with sentry_sdk.start_span(
-        op="sentry.consumers.recombine.process_segment.transform_spans_to_event_dict"
+        op="sentry.consumers.detect_performance_issues.process_segment.transform_spans_to_event_dict"
     ):
         event = transform_spans_to_event_dict(spans)
 
