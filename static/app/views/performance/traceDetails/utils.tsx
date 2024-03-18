@@ -55,10 +55,10 @@ export function getTraceDetailsUrl(
 function transactionVisitor() {
   return (accumulator: TraceInfo, event: TraceFullDetailed) => {
     for (const error of event.errors ?? []) {
-      accumulator.errors.push(error);
+      accumulator.errors.add(error.event_id);
     }
     for (const performanceIssue of event.performance_issues ?? []) {
-      accumulator.performanceIssues.push(performanceIssue);
+      accumulator.performanceIssues.add(performanceIssue.event_id);
     }
 
     accumulator.transactions.add(event.event_id);
@@ -109,8 +109,8 @@ export function getTraceInfo(
 ) {
   const initial = {
     projects: new Set<string>(),
-    errors: [],
-    performanceIssues: [],
+    errors: new Set<string>(),
+    performanceIssues: new Set<string>(),
     transactions: new Set<string>(),
     startTimestamp: Number.MAX_SAFE_INTEGER,
     endTimestamp: 0,
@@ -126,7 +126,7 @@ export function getTraceInfo(
 
   // Accumulate orphan error information.
   return orphanErrors.reduce((accumulator: TraceInfo, event: TraceError) => {
-    accumulator.errors.push(event);
+    accumulator.errors.add(event.event_id);
     accumulator.trailingOrphansCount++;
 
     if (event.timestamp) {

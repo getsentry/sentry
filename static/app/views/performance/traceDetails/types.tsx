@@ -1,8 +1,4 @@
-import type {
-  TraceError,
-  TraceFullDetailed,
-  TracePerformanceIssue,
-} from 'sentry/utils/performance/quickTrace/types';
+import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 
 export type TraceInfo = {
   /**
@@ -12,7 +8,7 @@ export type TraceInfo = {
   /**
    * The errors in the trace.
    */
-  errors: TraceError[];
+  errors: Set<string>;
   /**
    * The maximum generation in the trace.
    */
@@ -20,7 +16,7 @@ export type TraceInfo = {
   /**
    * The performance Issues on the trace
    */
-  performanceIssues: TracePerformanceIssue[];
+  performanceIssues: Set<string>;
   /**
    * The projects in the trace
    */

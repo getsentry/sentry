@@ -283,13 +283,9 @@ export class TraceTree {
       traceEventsCount += 1;
 
       if (isTraceTransaction(value)) {
-        node.errors = value.errors;
         traceErrors.push(...value.errors);
-
-        node.performance_issues = value.performance_issues;
         tracePerformanceIssues.push(...value.performance_issues);
       } else {
-        node.errors = [value];
         traceErrors.push(value);
       }
 
@@ -1051,6 +1047,16 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
 
     if (shouldCollapseNodeByDefault(this)) {
       this.expanded = false;
+    }
+
+    if (isTransactionNode(this)) {
+      this.errors = this.value.errors;
+      this.performance_issues = this.value.performance_issues;
+    }
+
+    // For error nodes, its value is the only associated issue.
+    if (isTraceErrorNode(this)) {
+      this.errors = [this.value];
     }
   }
 

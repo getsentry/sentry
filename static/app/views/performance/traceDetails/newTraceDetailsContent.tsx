@@ -115,9 +115,9 @@ function NewTraceDetailsContent(props: Props) {
 
   const renderTraceHeader = () => {
     const {meta} = props;
-    const errors = meta?.errors ?? traceInfo.errors.length;
+    const errors = meta?.errors ?? traceInfo.errors.size;
     const performanceIssues =
-      meta?.performance_issues ?? traceInfo.performanceIssues.length;
+      meta?.performance_issues ?? traceInfo.performanceIssues.size;
     const replay_id = rootEvent?.contexts.replay?.replay_id ?? '';
     return (
       <TraceHeaderContainer>
