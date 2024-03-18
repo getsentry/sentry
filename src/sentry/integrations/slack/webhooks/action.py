@@ -773,6 +773,14 @@ class SlackActionEndpoint(Endpoint):
             )
             return self.respond(status=e.status)
 
+        logger.info(
+            "slack.action.request",
+            extra={
+                "trigger_id": slack_request.data.get("trigger_id"),
+                "integration_id": slack_request.integration.id,
+            },
+        )
+
         # Set organization scope
 
         bind_org_context_from_integration(slack_request.integration.id)
@@ -822,15 +830,6 @@ class SlackActionEndpoint(Endpoint):
                         for oi in org_integrations
                     ]
                 )
-
-        logger.info(
-            "slack.action.request",
-            extra={
-                "trigger_id": slack_request.data.get("trigger_id"),
-                "organization_id": org_context.organization.id,
-                "integration_id": slack_request.integration.id,
-            },
-        )
 
         action_list = self.get_action_list(slack_request=slack_request, use_block_kit=use_block_kit)
         return self._handle_group_actions(slack_request, request, action_list)
