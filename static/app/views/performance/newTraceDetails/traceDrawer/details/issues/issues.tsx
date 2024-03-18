@@ -24,9 +24,9 @@ import type {
 import {IssueSummary} from './issueSummary';
 
 type IssueProps = {
-  event_id: string;
   issue: TraceErrorOrIssue;
   organization: Organization;
+  event_id?: string;
 };
 
 function Issue(props: IssueProps) {
@@ -101,10 +101,10 @@ function Issue(props: IssueProps) {
 }
 
 type IssueListProps = {
-  event_id: string;
   issues: TraceErrorOrIssue[];
   node: TraceTreeNode<TraceTree.NodeValue>;
   organization: Organization;
+  event_id?: string;
 };
 
 export function IssueList({issues, node, organization, event_id}: IssueListProps) {

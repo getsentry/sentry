@@ -5,8 +5,16 @@ import {Row} from 'sentry/views/performance/traceDetails/styles';
 import type {ParentAutogroupNode} from '../../traceTree';
 
 import {TraceDrawerComponents} from './styles';
+import type {Organization} from 'sentry/types';
+import {IssueList} from './issues/issues';
 
-export function ParentAutogroupNodeDetails({node}: {node: ParentAutogroupNode}) {
+export function ParentAutogroupNodeDetails({
+  node,
+  organization,
+}: {
+  node: ParentAutogroupNode;
+  organization: Organization;
+}) {
   return (
     <TraceDrawerComponents.DetailContainer>
       <TraceDrawerComponents.IconTitleWrapper>
@@ -15,6 +23,8 @@ export function ParentAutogroupNodeDetails({node}: {node: ParentAutogroupNode}) 
         </TraceDrawerComponents.IconBorder>
         <div style={{fontWeight: 'bold'}}>{t('Autogroup')}</div>
       </TraceDrawerComponents.IconTitleWrapper>
+
+      <IssueList issues={node.related_issues} node={node} organization={organization} />
 
       <TraceDrawerComponents.Table className="table key-value">
         <tbody>

@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import * as qs from 'query-string';
@@ -98,10 +98,6 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
     props.span.sentry_tags?.op,
     props.span.sentry_tags?.category
   );
-
-  const relatedIssues = useMemo(() => {
-    return [...props.node.errors, ...props.node.performance_issues];
-  }, [props.node.errors, props.node.performance_issues]);
 
   useEffect(() => {
     // Run on mount.
@@ -294,7 +290,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
     return (
       <IssueList
         organization={organization}
-        issues={relatedIssues}
+        issues={node.related_issues}
         event_id={event.id}
         node={props.node}
       />

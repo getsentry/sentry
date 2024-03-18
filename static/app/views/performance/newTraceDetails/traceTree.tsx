@@ -3,6 +3,7 @@ import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types'
 import type {Organization} from 'sentry/types';
 import type {Event, EventTransaction, Measurement} from 'sentry/types/event';
 import type {
+  TraceErrorOrIssue,
   TraceError as TraceErrorType,
   TraceFullDetailed,
   TracePerformanceIssue,
@@ -28,6 +29,7 @@ import {
   isTransactionNode,
   shouldAddMissingInstrumentationSpan,
 } from './guards';
+import type {TraceInfo} from '../traceDetails/types';
 
 /**
  *
@@ -261,7 +263,11 @@ export class TraceTree {
     return newTree;
   }
 
-  static FromTrace(trace: TraceTree.Trace, event?: EventTransaction): TraceTree {
+  static FromTrace(
+    trace: TraceTree.Trace,
+    event?: EventTransaction,
+    traceInfo?: TraceInfo
+  ): TraceTree {
     const tree = new TraceTree();
     let traceStart = Number.POSITIVE_INFINITY;
     let traceEnd = Number.NEGATIVE_INFINITY;
@@ -313,6 +319,9 @@ export class TraceTree {
       event_id: undefined,
       project_slug: undefined,
     });
+
+    traceNode.errors = traceInfo?.errors ?? [];
+    traceNode.performance_issues = traceInfo?.performanceIssues ?? [];
 
     // Trace is always expanded by default
     tree.root.children.push(traceNode);
@@ -1125,6 +1134,10 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
 
   get has_errors(): boolean {
     return this.errors.length > 0 || this.performance_issues.length > 0;
+  }
+
+  get related_issues(): TraceErrorOrIssue[] {
+    return [...this.errors, ...this.performance_issues];
   }
 
   /**

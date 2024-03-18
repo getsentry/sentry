@@ -26,6 +26,7 @@ import type {TraceTree, TraceTreeNode} from '../traceTree';
 
 import NodeDetail from './tabs/details';
 import {TraceLevelDetails} from './tabs/trace';
+import type {TraceInfo} from '../../traceDetails/types';
 
 const MIN_PANEL_HEIGHT = 31;
 const DEFAULT_PANEL_HEIGHT = 200;
@@ -74,6 +75,7 @@ type TraceDrawerProps = {
   trace: TraceTree;
   traceEventView: EventView;
   traces: TraceSplitResults<TraceFullDetailed> | null;
+  traceInfo: TraceInfo;
 };
 
 function TraceDrawer(props: TraceDrawerProps) {
@@ -121,7 +123,8 @@ function TraceDrawer(props: TraceDrawerProps) {
       <Content>
         {props.activeTab === 'trace' ? (
           <TraceLevelDetails
-            tree={props.trace}
+            traceInfo={props.traceInfo}
+            node={props.trace.root.children[0]}
             rootEventResults={props.rootEventResults}
             organization={props.organization}
             location={props.location}

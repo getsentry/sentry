@@ -32,7 +32,7 @@ function LimitExceededMessage({
 }: LimitExceededMessageProps) {
   // Number of events part of the traceView. Includes errors/issues appearing within txn details ui
   // that appears when you click into a txn row.
-  const displayedEventsCount = traceInfo.transactions.size + traceInfo.errors.size;
+  const displayedEventsCount = traceInfo.transactions.size + traceInfo.errors.length;
 
   const traceMetaEventsCount =
     (meta && meta.transactions + meta.errors) ?? displayedEventsCount;

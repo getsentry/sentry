@@ -57,6 +57,7 @@ import TraceHeader from './traceHeader';
 import {TraceTree, type TraceTreeNode} from './traceTree';
 import {useTrace} from './useTrace';
 import {useTraceMeta} from './useTraceMeta';
+import {getTraceInfo} from '../traceDetails/utils';
 
 const DOCUMENT_TITLE = [t('Trace Details'), t('Performance')].join(' — ');
 
@@ -153,6 +154,10 @@ function TraceViewContent(props: TraceViewContentProps) {
 
   const loadingTraceRef = useRef<TraceTree | null>(null);
 
+  const traceInfo = useMemo(() => {
+    return getTraceInfo(props.trace?.transactions, props.trace?.orphan_errors);
+  }, [props.trace?.transactions, props.trace?.orphan_errors]);
+
   const tree = useMemo(() => {
     if (props.status === 'error') {
       const errorTree = TraceTree.Error(
@@ -181,7 +186,7 @@ function TraceViewContent(props: TraceViewContentProps) {
     }
 
     if (props.trace && rootEvent.status === 'success') {
-      return TraceTree.FromTrace(props.trace, rootEvent.data);
+      return TraceTree.FromTrace(props.trace, rootEvent.data, traceInfo);
     }
 
     return TraceTree.Empty();
@@ -232,7 +237,7 @@ function TraceViewContent(props: TraceViewContentProps) {
     resultsLookup: new Map(),
   });
 
-  const [clickedNode, setClickedNode] = useState<TraceTreeNode<TraceTree.NodeValue>[]>(
+  const [clickedNodes, setClickedNodes] = useState<TraceTreeNode<TraceTree.NodeValue>[]>(
     []
   );
 
@@ -240,7 +245,7 @@ function TraceViewContent(props: TraceViewContentProps) {
     (node: TraceTreeNode<TraceTree.NodeValue> | null) => {
       // Clicking on trace node defaults to the trace tab
       setActiveTab(node && !isTraceNode(node ?? null) ? 'node' : 'trace');
-      setClickedNode(node && !isTraceNode(node) ? [node] : []);
+      setClickedNodes(node && !isTraceNode(node) ? [node] : []);
       maybeFocusRow();
     },
     []
@@ -400,6 +405,7 @@ function TraceViewContent(props: TraceViewContentProps) {
       </Layout.Header>
       <TraceInnerLayout>
         <TraceHeader
+          traceInfo={traceInfo}
           rootEventResults={rootEvent}
           metaResults={props.metaResults}
           organization={props.organization}
@@ -446,12 +452,13 @@ function TraceViewContent(props: TraceViewContentProps) {
           ) : null}
 
           <TraceDrawer
+            traceInfo={traceInfo}
             trace={tree}
             scrollToNode={scrollToNode}
             manager={viewManager}
             activeTab={activeTab}
             setActiveTab={setActiveTab}
-            nodes={clickedNode}
+            nodes={clickedNodes}
             rootEventResults={rootEvent}
             organization={props.organization}
             location={props.location}

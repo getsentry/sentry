@@ -19,6 +19,7 @@ import {Row, Tags} from 'sentry/views/performance/traceDetails/styles';
 import type {TraceTree, TraceTreeNode} from '../../traceTree';
 
 import {TraceDrawerComponents} from './styles';
+import {IssueList} from './issues/issues';
 
 export function ErrorNodeDetails({
   node,
@@ -68,6 +69,8 @@ export function ErrorNodeDetails({
           </Button>
         </TraceDrawerComponents.Actions>
       </TraceDrawerComponents.HeaderContainer>
+
+      <IssueList issues={node.related_issues} node={node} organization={organization} />
 
       <TraceDrawerComponents.Table className="table key-value">
         <tbody>

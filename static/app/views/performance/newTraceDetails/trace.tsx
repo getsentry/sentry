@@ -1198,7 +1198,7 @@ function RenderRow(props: {
             : null
         }
         tabIndex={props.tabIndex === props.index ? 0 : -1}
-        className={`TraceRow ${rowSearchClassName}`}
+        className={`TraceRow ${rowSearchClassName} Errored`}
         onClick={e => props.onRowClick(e, props.index, props.node)}
         onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
         style={{

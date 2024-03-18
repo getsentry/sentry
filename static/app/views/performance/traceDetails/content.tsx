@@ -225,9 +225,9 @@ class TraceDetailsContent extends Component<Props, State> {
 
   renderTraceHeader(traceInfo: TraceInfo) {
     const {meta} = this.props;
-    const errors = meta?.errors ?? traceInfo.errors.size;
+    const errors = meta?.errors ?? traceInfo.errors.length;
     const performanceIssues =
-      meta?.performance_issues ?? traceInfo.performanceIssues.size;
+      meta?.performance_issues ?? traceInfo.performanceIssues.length;
     return (
       <TraceDetailHeader>
         <GuideAnchor target="trace_view_guide_breakdown">
