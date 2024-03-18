@@ -16,8 +16,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 interface EventOrGroupHeaderProps {
   data: Group;
-  organization: Organization;
   event_id: string;
+  organization: Organization;
 }
 
 /**

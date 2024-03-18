@@ -1,3 +1,5 @@
+import {useMemo} from 'react';
+
 import {IconGroup} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
@@ -7,7 +9,6 @@ import type {ParentAutogroupNode} from '../../traceTree';
 
 import {IssueList} from './issues/issues';
 import {TraceDrawerComponents} from './styles';
-import {useMemo} from 'react';
 
 export function ParentAutogroupNodeDetails({
   node,

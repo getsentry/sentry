@@ -22,14 +22,15 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import {BrowserDisplay} from '../transactionDetails/eventMetas';
 import {MetaData} from '../transactionDetails/styles';
+
 import type {TraceTree} from './traceTree';
 
 type TraceHeaderProps = {
-  tree: TraceTree;
   metaResults: UseApiQueryResult<TraceMeta | null, any>;
   organization: Organization;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
   traces: TraceSplitResults<TraceFullDetailed> | null;
+  tree: TraceTree;
 };
 
 export default function TraceHeader({

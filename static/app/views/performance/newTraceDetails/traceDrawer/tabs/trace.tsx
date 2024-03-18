@@ -33,13 +33,13 @@ const WEB_VITALS = [
 ];
 
 type TraceFooterProps = {
-  tree: TraceTree;
   location: Location;
   node: TraceTreeNode<TraceTree.NodeValue>;
   organization: Organization;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
   traceEventView: EventView;
   traces: TraceSplitResults<TraceFullDetailed> | null;
+  tree: TraceTree;
 };
 
 function NoWebVitals() {
