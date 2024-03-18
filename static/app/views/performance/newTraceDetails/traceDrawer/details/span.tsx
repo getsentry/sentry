@@ -26,7 +26,7 @@ export function SpanNodeDetails({
   scrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
 }) {
   const {projects} = useProjects();
-  const {event, errors, performance_issues, childTransaction, ...span} = node.value;
+  const {event, childTransaction, ...span} = node.value;
   const project = projects.find(proj => proj.slug === event?.projectSlug);
   const profileId = event?.contexts?.profile?.profile_id ?? null;
 
@@ -72,8 +72,6 @@ export function SpanNodeDetails({
               >
                 <NewTraceDetailsSpanDetail
                   node={node}
-                  errors={errors}
-                  performanceIssues={performance_issues}
                   childTransactions={childTransaction ? [childTransaction] : []}
                   event={event}
                   openPanel="open"

@@ -264,7 +264,7 @@ function TraceViewContent(props: TraceViewContentProps) {
     resultsLookup: new Map(),
   });
 
-  const [clickedNode, setClickedNode] = useState<TraceTreeNode<TraceTree.NodeValue>[]>(
+  const [clickedNodes, setClickedNodes] = useState<TraceTreeNode<TraceTree.NodeValue>[]>(
     []
   );
 
@@ -272,7 +272,7 @@ function TraceViewContent(props: TraceViewContentProps) {
     (node: TraceTreeNode<TraceTree.NodeValue> | null) => {
       // Clicking on trace node defaults to the trace tab
       setActiveTab(node && !isTraceNode(node ?? null) ? 'node' : 'trace');
-      setClickedNode(node && !isTraceNode(node) ? [node] : []);
+      setClickedNodes(node && !isTraceNode(node) ? [node] : []);
       maybeFocusRow();
     },
     []
@@ -514,6 +514,7 @@ function TraceViewContent(props: TraceViewContentProps) {
       </Layout.Header>
       <TraceInnerLayout>
         <TraceHeader
+          tree={tree}
           rootEventResults={rootEvent}
           metaResults={props.metaResults}
           organization={props.organization}
@@ -571,7 +572,7 @@ function TraceViewContent(props: TraceViewContentProps) {
             manager={viewManager}
             activeTab={activeTab}
             setActiveTab={setActiveTab}
-            nodes={clickedNode}
+            nodes={clickedNodes}
             drawerSize={initialDrawerSize}
             layout={tracePreferences.layout}
             onLayoutChange={onLayoutChange}
