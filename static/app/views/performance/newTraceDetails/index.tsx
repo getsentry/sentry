@@ -197,6 +197,7 @@ function TraceViewContent(props: TraceViewContentProps) {
     projects,
     rootEvent.data,
     rootEvent.status,
+    traceInfo,
   ]);
 
   const [rovingTabIndexState, rovingTabIndexDispatch] = useReducer(

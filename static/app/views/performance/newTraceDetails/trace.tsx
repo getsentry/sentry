@@ -1081,7 +1081,7 @@ function RenderRow(props: {
           <TraceBar
             virtualized_index={virtualized_index}
             manager={props.manager}
-            color={pickBarColor('missing-instrumentation')}
+            color={props.theme.gray300}
             node_space={props.node.space}
             errors={NO_ERRORS}
             performance_issues={NO_ERRORS}
