@@ -5,8 +5,8 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {
-  type TitleState,
-  WidgetTitle,
+  MetricWidgetTitle,
+  type MetricWidgetTitleState,
 } from 'sentry/components/modals/metricWidgetViewerModal/header';
 import {Queries} from 'sentry/components/modals/metricWidgetViewerModal/queries';
 import {MetricVisualization} from 'sentry/components/modals/metricWidgetViewerModal/visualization';
@@ -84,14 +84,14 @@ function MetricWidgetViewerModal({
     [filteredQueries, filteredEquations]
   );
 
-  const [title, setTitle] = useState<TitleState>({
+  const [title, setTitle] = useState<MetricWidgetTitleState>({
     stored: widget.title,
     edited: widget.title,
     isEditing: false,
   });
 
   const handleTitleChange = useCallback(
-    (patch: Partial<TitleState>) => {
+    (patch: Partial<MetricWidgetTitleState>) => {
       setTitle(curr => ({...curr, ...patch}));
     },
     [setTitle]
@@ -198,7 +198,7 @@ function MetricWidgetViewerModal({
     <Fragment>
       <OrganizationContext.Provider value={organization}>
         <Header closeButton>
-          <WidgetTitle
+          <MetricWidgetTitle
             title={title}
             onTitleChange={handleTitleChange}
             placeholder={widgetMQL}

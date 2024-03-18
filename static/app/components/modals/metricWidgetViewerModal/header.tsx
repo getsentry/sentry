@@ -7,19 +7,24 @@ import {IconCheckmark, IconEdit} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {WidgetDescription} from 'sentry/views/dashboards/widgetCard';
 
-export interface TitleState {
+export interface MetricWidgetTitleState {
   edited: string;
   isEditing: boolean;
   stored: string;
 }
 interface Props {
-  onTitleChange: (val: Partial<TitleState>) => void;
-  title: TitleState;
+  onTitleChange: (val: Partial<MetricWidgetTitleState>) => void;
+  title: MetricWidgetTitleState;
   description?: string;
   placeholder?: string;
 }
 
-export function WidgetTitle({title, onTitleChange, placeholder, description}: Props) {
+export function MetricWidgetTitle({
+  title,
+  onTitleChange,
+  placeholder,
+  description,
+}: Props) {
   const titleToDisplay =
     title.edited === ''
       ? title.stored === ''
@@ -48,11 +53,7 @@ export function WidgetTitle({title, onTitleChange, placeholder, description}: Pr
           icon={title.isEditing ? <IconCheckmark size="sm" /> : <IconEdit size="sm" />}
           priority={title.isEditing ? 'primary' : 'default'}
           onClick={() => {
-            if (title.isEditing) {
-              onTitleChange({isEditing: false});
-            } else {
-              onTitleChange({isEditing: true});
-            }
+            onTitleChange({isEditing: !title.isEditing});
           }}
         />
       </WidgetTitleRow>
