@@ -6,6 +6,7 @@ import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import {QueryClientProvider} from 'sentry/utils/queryClient';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -89,7 +90,14 @@ describe('useSpanMetrics', () => {
 
     const {result, waitFor} = reactHooks.renderHook(
       ({filters, fields, sorts, limit, cursor, referrer}) =>
-        useSpanMetrics({filters, fields, sorts, limit, cursor, referrer}),
+        useSpanMetrics({
+          search: MutableSearch.fromQueryObject(filters),
+          fields,
+          sorts,
+          limit,
+          cursor,
+          referrer,
+        }),
       {
         wrapper: Wrapper,
         initialProps: {
