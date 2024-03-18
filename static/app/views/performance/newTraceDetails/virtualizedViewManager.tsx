@@ -1837,14 +1837,29 @@ function findInTreeFromSegment(
 function findInTreeByEventId(start: TraceTreeNode<TraceTree.NodeValue>, eventId: string) {
   return TraceTreeNode.Find(start, node => {
     if (isTransactionNode(node)) {
-      return node.value.event_id === eventId;
-    }
-    if (isSpanNode(node)) {
+      if (node.value.event_id === eventId) {
+        return true;
+      }
+      if (node.value.performance_issues.length > 0) {
+        for (const p of node.value.performance_issues) {
+          if (p.event_id === eventId) {
+            return true;
+          }
+        }
+      }
+      if (node.value.errors.length > 0) {
+        for (const e of node.value.errors) {
+          if (e.event_id === eventId) {
+            return true;
+          }
+        }
+      }
+    } else if (isSpanNode(node)) {
       return node.value.span_id === eventId;
-    }
-    if (isTraceErrorNode(node)) {
+    } else if (isTraceErrorNode(node)) {
       return node.value.event_id === eventId;
     }
+
     return false;
   });
 }
