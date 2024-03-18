@@ -1179,9 +1179,7 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "weekly-escalating-forecast": {
         "task": "sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
-        # TODO: Change this to run weekly once we verify the results
         "schedule": crontab(minute="0", hour="*/6"),
-        # TODO: Increase expiry time to x4 once we change this to run weekly
         "options": {"expires": 60 * 60 * 3},
     },
     "schedule_auto_transition_to_ongoing": {
@@ -1485,7 +1483,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:crons-disable-ingest-endpoints": False,
     # Disables projects with zero monitors to create new ones
     "organizations:crons-disable-new-projects": False,
-    # Metrics: Enable ingestion and storage of custom metrics. See ddm-ui for UI.
+    # Metrics: Enable ingestion and storage of custom metrics. See ddm-ui and ddm-sidebar-item-hidden for UI.
     "organizations:custom-metrics": False,
     # Allow organizations to configure custom external symbol sources.
     "organizations:custom-symbol-sources": True,
@@ -1510,8 +1508,10 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enables experimental WIP ddm related features
     "organizations:ddm-experimental": False,
     # Delightful Developer Metrics (DDM):
-    # Enable sidebar menu item and all UI (requires custom-metrics flag as well)
+    # Enable UI (requires custom-metrics flag as well)
     "organizations:ddm-ui": False,
+    # Hides DDM sidebar item
+    "organizations:ddm-sidebar-item-hidden": False,
     # Enable the unit normalization in the metrics API
     "organizations:ddm-metrics-api-unit-normalization": False,
     # Enables import of metric dashboards
@@ -1841,8 +1841,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-accessibility-issues": False,
     # Enable combined envelope Kafka items in Relay
     "organizations:session-replay-combined-envelope-items": False,
-    # Enable core Session Replay SDK for recording onError events on sentry.io
-    "organizations:session-replay-count-query-optimize": False,
     # Enable canvas recording
     "organizations:session-replay-enable-canvas": False,
     # Enable canvas replaying
@@ -3089,7 +3087,7 @@ STATUS_PAGE_API_HOST = "statuspage.io"
 SENTRY_SELF_HOSTED = True
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "24.2.0"
+SELF_HOSTED_STABLE_VERSION = "24.3.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -3475,6 +3473,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "metrics-subscription-results": "default",
     "ingest-events": "default",
     "ingest-feedback-events": "default",
+    "ingest-feedback-events-dlq": "default",
     "ingest-attachments": "default",
     "ingest-transactions": "default",
     "ingest-metrics": "default",
@@ -3584,17 +3583,15 @@ SENTRY_USE_UWSGI = True
 
 # Configure service wrapper for reprocessing2 state
 SENTRY_REPROCESSING_STORE = "sentry.eventstore.reprocessing.redis.RedisReprocessingStore"
+# Which cluster is used to store auxiliary data for reprocessing. Note that
+# this cluster is not used to store attachments etc, that still happens on
+# rc-processing. This is just for buffering up event IDs and storing a counter
+# for synchronization/progress report.
 SENTRY_REPROCESSING_STORE_OPTIONS = {"cluster": "default"}
 
 # When copying attachments for to-be-reprocessed events into processing store,
 # how large is an individual file chunk? Each chunk is stored as Redis key.
 SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE = 2**20
-
-# Which cluster is used to store auxiliary data for reprocessing. Note that
-# this cluster is not used to store attachments etc, that still happens on
-# rc-processing. This is just for buffering up event IDs and storing a counter
-# for synchronization/progress report.
-SENTRY_REPROCESSING_SYNC_REDIS_CLUSTER = "default"
 
 # How long tombstones from reprocessing will live.
 SENTRY_REPROCESSING_TOMBSTONES_TTL = 24 * 3600
@@ -3753,7 +3750,7 @@ DEVSERVER_REQUEST_LOG_EXCLUDES: list[str] = []
 LOG_API_ACCESS = not IS_DEV or os.environ.get("SENTRY_LOG_API_ACCESS")
 
 VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = True
-DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = DISABLE_SU_STAFF_FORM_U2F_CHECK_FOR_LOCAL = False
+DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = False
 
 # determines if we enable analytics or not
 ENABLE_ANALYTICS = False

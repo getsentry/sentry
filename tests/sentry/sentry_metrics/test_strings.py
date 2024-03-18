@@ -115,6 +115,7 @@ def test_shared_mri_string_range(mri, id):
             "escalating_issues": (500, 599),
             "profiles": (600, 699),
             "bundle_analysis": (700, 799),
+            "metric_stats": (800, 899),
         }[parsed_mri.namespace]
     except KeyError:
         raise Exception(f"Unknown namespace: {parsed_mri.namespace}")

@@ -47,7 +47,7 @@ export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
   });
 
   const triggerAutofix = useCallback(
-    async (additionalContext: string) => {
+    async (instruction: string) => {
       setIsReset(false);
       setApiQueryData<AutofixResponse>(queryClient, makeAutofixQueryKey(group.id), {
         autofix: {
@@ -70,7 +70,7 @@ export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
           method: 'POST',
           data: {
             event_id: event.id,
-            additional_context: additionalContext,
+            instruction,
           },
         });
       } catch (e) {
