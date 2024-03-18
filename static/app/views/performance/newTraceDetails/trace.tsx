@@ -941,8 +941,7 @@ function RenderRow(props: {
 
   if (isSpanNode(props.node)) {
     const errored =
-      props.node.value.errors.length > 0 ||
-      props.node.value.performance_issues.length > 0;
+      props.node.errors.length > 0 || props.node.performance_issues.length > 0;
     return (
       <div
         key={props.index}
@@ -1036,8 +1035,8 @@ function RenderRow(props: {
             manager={props.manager}
             color={pickBarColor(props.node.value.op)}
             node_space={props.node.space}
-            errors={props.node.value.errors}
-            performance_issues={props.node.value.performance_issues}
+            errors={props.node.errors}
+            performance_issues={props.node.performance_issues}
             profiles={NO_ERRORS}
           />
           <button
@@ -1111,7 +1110,7 @@ function RenderRow(props: {
           <TraceBar
             virtualized_index={virtualized_index}
             manager={props.manager}
-            color={pickBarColor('missing-instrumentation')}
+            color={props.theme.gray300}
             node_space={props.node.space}
             performance_issues={NO_ERRORS}
             profiles={NO_ERRORS}
@@ -1230,7 +1229,7 @@ function RenderRow(props: {
             : null
         }
         tabIndex={props.tabIndex === props.index ? 0 : -1}
-        className={`TraceRow ${rowSearchClassName}`}
+        className={`TraceRow ${rowSearchClassName} Errored`}
         onClick={e => props.onRowClick(e, props.index, props.node)}
         onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
         style={{

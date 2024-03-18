@@ -199,6 +199,7 @@ function TraceDrawer(props: TraceDrawerProps) {
         {props.activeTab === 'trace' ? (
           <TraceLevelDetails
             tree={props.trace}
+            node={props.trace.root.children[0]}
             rootEventResults={props.rootEventResults}
             organization={props.organization}
             location={props.location}
