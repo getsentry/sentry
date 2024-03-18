@@ -458,6 +458,8 @@ function TraceViewContent(props: TraceViewContentProps) {
     viewManager.resetZoom();
   }, [viewManager]);
 
+  const [dismiss, setDismissed] = useLocalStorageState('trace-view-dismissed', false);
+
   return (
     <TraceExternalLayout>
       {dismiss ? null : (
