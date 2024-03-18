@@ -175,7 +175,7 @@ describe('Performance > Transaction Tags', function () {
       },
     });
 
-    expect(screen.getByRole('radio', {name: 'hardwareConcurrency'})).toBeChecked();
+    expect(await screen.findByRole('radio', {name: 'hardwareConcurrency'})).toBeChecked();
   });
 
   it('Default tagKey is set when loading the page without one', async function () {
@@ -186,10 +186,8 @@ describe('Performance > Transaction Tags', function () {
       organization,
     });
 
-    await waitFor(() => {
-      // Table is loaded.
-      expect(screen.getByRole('table')).toBeInTheDocument();
-    });
+    // Table is loaded.
+    expect(await screen.findByRole('table')).toBeInTheDocument();
 
     expect(browserHistory.replace).toHaveBeenCalledWith({
       query: {
@@ -200,7 +198,7 @@ describe('Performance > Transaction Tags', function () {
       },
     });
 
-    expect(histogramMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(histogramMock).toHaveBeenCalledTimes(1));
     expect(histogramMock).toHaveBeenNthCalledWith(
       1,
       expect.anything(),
@@ -223,10 +221,8 @@ describe('Performance > Transaction Tags', function () {
       organization,
     });
 
-    await waitFor(() => {
-      // Table is loaded.
-      expect(screen.getByRole('table')).toBeInTheDocument();
-    });
+    // Table is loaded.
+    expect(await screen.findByRole('table')).toBeInTheDocument();
 
     expect(browserHistory.replace).toHaveBeenCalledWith({
       query: {
@@ -237,7 +233,7 @@ describe('Performance > Transaction Tags', function () {
       },
     });
 
-    expect(histogramMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(histogramMock).toHaveBeenCalledTimes(1));
     expect(histogramMock).toHaveBeenNthCalledWith(
       1,
       expect.anything(),
@@ -258,13 +254,11 @@ describe('Performance > Transaction Tags', function () {
       organization: initialData.organization,
     });
 
-    await waitFor(() => {
-      // Table is loaded.
-      expect(screen.getByRole('table')).toBeInTheDocument();
-    });
+    // Table is loaded.
+    expect(await screen.findByRole('table')).toBeInTheDocument();
 
     // Release link is properly setup
-    expect(screen.getByText(TEST_RELEASE_NAME)).toBeInTheDocument();
+    expect(await screen.findByText(TEST_RELEASE_NAME)).toBeInTheDocument();
     expect(screen.getByText(TEST_RELEASE_NAME).parentElement).toHaveAttribute(
       'href',
       `/organizations/${initialData.organization.slug}/releases/${encodeURIComponent(
@@ -297,8 +291,8 @@ describe('Performance > Transaction Tags', function () {
       },
     });
 
-    expect(screen.getByRole('radio', {name: 'hardwareConcurrency'})).toBeChecked();
-    expect(screen.getByRole('button', {name: 'Next'})).toHaveAttribute(
+    expect(await screen.findByRole('radio', {name: 'hardwareConcurrency'})).toBeChecked();
+    expect(await screen.findByRole('button', {name: 'Next'})).toHaveAttribute(
       'aria-disabled',
       'false'
     );
@@ -341,11 +335,9 @@ describe('Performance > Transaction Tags', function () {
       organization,
     });
 
-    await waitFor(() => {
-      expect(screen.getByRole('table')).toBeInTheDocument();
-    });
+    expect(await screen.findByRole('table')).toBeInTheDocument();
 
-    expect(histogramMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(histogramMock).toHaveBeenCalledTimes(1));
 
     expect(histogramMock).toHaveBeenNthCalledWith(
       1,
@@ -359,9 +351,7 @@ describe('Performance > Transaction Tags', function () {
 
     await selectEvent.select(screen.getByText('X-Axis'), 'LCP');
 
-    await waitFor(() => {
-      expect(screen.getByRole('table')).toBeInTheDocument();
-    });
+    expect(await screen.findByRole('table')).toBeInTheDocument();
 
     expect(histogramMock).toHaveBeenCalledTimes(2);
 
