@@ -49,7 +49,6 @@ export function OrganizationFixture(
       avatarUrl: null,
     },
     codecovAccess: false,
-    customMetricsAccess: false,
     dataScrubber: false,
     dataScrubberDefaults: false,
     dateCreated: new Date().toISOString(),
@@ -81,6 +80,7 @@ export function OrganizationFixture(
     teams: [],
     projects: [],
     ...params,
+
     orgRoleList: OrgRoleListFixture(),
     teamRoleList: TeamRoleListFixture(),
   };
