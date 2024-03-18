@@ -7,12 +7,21 @@ import FileSize from 'sentry/components/fileSize';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
 import {defined} from 'sentry/utils';
-import type {CountUnit} from 'sentry/utils/discover/fields';
+import type {CountUnit, PercentageUnit} from 'sentry/utils/discover/fields';
 import {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
-import {formatAbbreviatedNumber, formatRate} from 'sentry/utils/formatters';
+import {
+  formatAbbreviatedNumber,
+  formatPercentage,
+  formatRate,
+} from 'sentry/utils/formatters';
 import {Block} from 'sentry/views/starfish/views/spanSummaryPage/block';
 
-type Unit = DurationUnit.MILLISECOND | SizeUnit.BYTE | RateUnit | CountUnit;
+type Unit =
+  | DurationUnit.MILLISECOND
+  | SizeUnit.BYTE
+  | RateUnit
+  | CountUnit
+  | PercentageUnit;
 
 interface Props {
   title: string;
@@ -80,6 +89,14 @@ function ReadoutContent({unit, value, tooltip, align = 'right', isLoading}: Prop
     renderedValue = (
       <NumberContainer align={align}>
         {formatAbbreviatedNumber(typeof value === 'string' ? parseInt(value, 10) : value)}
+      </NumberContainer>
+    );
+  }
+
+  if (unit === 'percentage') {
+    renderedValue = (
+      <NumberContainer align={align}>
+        {formatPercentage(typeof value === 'string' ? parseFloat(value) : value)}
       </NumberContainer>
     );
   }
