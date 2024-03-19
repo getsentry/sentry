@@ -51,7 +51,7 @@
     "@rsdoctor/webpack-plugin": "^0.1.0",
     "@sentry-internal/global-search": "^0.5.7",
     "@sentry-internal/react-inspector": "6.0.1-4",
-    "@sentry-internal/rrweb": "2.9.0",
+    "@sentry-internal/rrweb": "2.11.0",
     "@sentry-internal/rrweb-player": "2.9.0",
     "@sentry-internal/rrweb-snapshot": "2.9.0",
     "@sentry/babel-plugin-component-annotate": "^2.14.0",

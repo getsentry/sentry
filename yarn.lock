@@ -2861,6 +2861,13 @@
     "@sentry/types" "7.105.0"
     "@sentry/utils" "7.105.0"
 
+"@sentry-internal/rrdom@2.11.0":
+  version "2.11.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrdom/-/rrdom-2.11.0.tgz#f7c8f54705ad84ece0e97e53f12e87c687749b32"
+  integrity sha512-BZnkTrbLm9Y3R70W1+8TnImys0RbKsgyB70WQoFdUervGvPw1kLcWJOJrPcDWgVe7nlbG+bEWb6iQrvLqldycw==
+  dependencies:
+    "@sentry-internal/rrweb-snapshot" "2.11.0"
+
 "@sentry-internal/rrdom@2.9.0":
   version "2.9.0"
   resolved "https://registry.yarnpkg.com/@sentry-internal/rrdom/-/rrdom-2.9.0.tgz#dbb30c00a859156e9bfdfe701af85477fa082cbf"
@@ -2876,10 +2883,22 @@
     "@sentry-internal/rrweb" "2.9.0"
     "@tsconfig/svelte" "^1.0.0"
 
+"@sentry-internal/rrweb-snapshot@2.11.0":
+  version "2.11.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-snapshot/-/rrweb-snapshot-2.11.0.tgz#1af79130604afea989d325465b209ac015b27c9a"
+  integrity sha512-1nP22QlplMNooSNvTh+L30NSZ+E3UcfaJyxXSMLxUjQHTGPyM1VkndxZMmxlKhyR5X+rLbxi/+RvuAcpM43VoA==
+
 "@sentry-internal/rrweb-snapshot@2.9.0":
   version "2.9.0"
   resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-snapshot/-/rrweb-snapshot-2.9.0.tgz#f7b682992e70174547c495a4a6deae39136cecf2"
   integrity sha512-oK8L3g41PFli1MpItYIFYCisCB+XjpqbEup0lVyTa/6wvKe0SOxZK9aUb/y03/2onSMmQ+FRkKLL6Kd0gHYJOA==
+
+"@sentry-internal/rrweb-types@2.11.0":
+  version "2.11.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-types/-/rrweb-types-2.11.0.tgz#e598c133b87be1fb04d31d09773b86142b095072"
+  integrity sha512-foCf9DGfN5ffzwykEtIXsV1P5d+XLDVGaQUnKF5ecGn+g5JzKTe/rPC92rL8/gEy2unL5sCTvlYL3DQvUFM4dA==
+  dependencies:
+    "@sentry-internal/rrweb-snapshot" "2.11.0"
 
 "@sentry-internal/rrweb-types@2.9.0":
   version "2.9.0"
@@ -2887,6 +2906,20 @@
   integrity sha512-s3YhCvXzMM7byAfjHyCWmSOUBDbzUpWHWZj7FR6G8xa3nIrIePceziMc9wxEdqi7nCcmDHPc+kZ2GzDaZIrebA==
   dependencies:
     "@sentry-internal/rrweb-snapshot" "2.9.0"
+
+"@sentry-internal/rrweb@2.11.0":
+  version "2.11.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb/-/rrweb-2.11.0.tgz#be8e8dfff2acf64d418b625d35a20fdcd7daeb96"
+  integrity sha512-QuEqpKmRDb0xQe9fhJ3j/JHO6uxFMWBowADJBA4rvVU5HbExIg9gor1tZ0b3gDuChXnnx7pxFj9/QXZjQQ75zg==
+  dependencies:
+    "@sentry-internal/rrdom" "2.11.0"
+    "@sentry-internal/rrweb-snapshot" "2.11.0"
+    "@sentry-internal/rrweb-types" "2.11.0"
+    "@types/css-font-loading-module" "0.0.7"
+    "@xstate/fsm" "^1.4.0"
+    base64-arraybuffer "^1.0.1"
+    fflate "^0.4.4"
+    mitt "^3.0.0"
 
 "@sentry-internal/rrweb@2.9.0":
   version "2.9.0"
