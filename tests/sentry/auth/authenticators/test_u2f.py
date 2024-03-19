@@ -77,8 +77,8 @@ class U2FInterfaceTest(TestCase):
         result = self.u2f.activate(self.request)
 
         assert isinstance(result, ActivationChallengeResult)
-        assert len(self.request.session["webauthn_authentication_state"][0]["challenge"]) == 43
-        assert self.request.session["webauthn_authentication_state"][0]["user_verification"] is None
+        assert len(self.request.session["webauthn_authentication_state"]["challenge"]) == 43
+        assert self.request.session["webauthn_authentication_state"]["user_verification"] is None
 
     @freeze_time(CURRENT_TIME)
     def test_activate_staff_webauthn_valid_timestamp(self):
@@ -90,12 +90,9 @@ class U2FInterfaceTest(TestCase):
 
         assert isinstance(result, ActivationChallengeResult)
         assert "webauthn_authentication_state" not in self.request.session
+        assert len(self.request.session["staff_webauthn_authentication_state"]["challenge"]) == 43
         assert (
-            len(self.request.session["staff_webauthn_authentication_state"][0]["challenge"]) == 43
-        )
-        assert (
-            self.request.session["staff_webauthn_authentication_state"][0]["user_verification"]
-            is None
+            self.request.session["staff_webauthn_authentication_state"]["user_verification"] is None
         )
 
     @freeze_time(CURRENT_TIME)
@@ -108,12 +105,9 @@ class U2FInterfaceTest(TestCase):
 
         assert isinstance(result, ActivationChallengeResult)
         assert "webauthn_authentication_state" not in self.request.session
+        assert len(self.request.session["staff_webauthn_authentication_state"]["challenge"]) == 43
         assert (
-            len(self.request.session["staff_webauthn_authentication_state"][0]["challenge"]) == 43
-        )
-        assert (
-            self.request.session["staff_webauthn_authentication_state"][0]["user_verification"]
-            is None
+            self.request.session["staff_webauthn_authentication_state"]["user_verification"] is None
         )
 
     def test_validate_response_normal_state(self):
@@ -121,7 +115,7 @@ class U2FInterfaceTest(TestCase):
         mock_state = Mock()
         self.u2f.webauthn_authentication_server.authenticate_complete = mock_state
 
-        self.request.session["webauthn_authentication_state"] = ("normal state", 5)
+        self.request.session["webauthn_authentication_state"] = "normal state"
 
         assert self.u2f.validate_response(self.request, None, self.response)
         _, kwargs = mock_state.call_args
@@ -134,7 +128,7 @@ class U2FInterfaceTest(TestCase):
         mock_state = Mock()
         self.u2f.webauthn_authentication_server.authenticate_complete = mock_state
 
-        self.request.session["staff_webauthn_authentication_state"] = ("staff state", 5)
+        self.request.session["staff_webauthn_authentication_state"] = "staff state"
         self.request.session["staff_auth_flow"] = self.VALID_TIMESTAMP
 
         assert self.u2f.validate_response(self.request, None, self.response)
@@ -149,7 +143,7 @@ class U2FInterfaceTest(TestCase):
         self.u2f.webauthn_authentication_server.authenticate_complete = mock_state
 
         # Test expired timestamp
-        self.request.session["webauthn_authentication_state"] = ("non-staff state", 5)
+        self.request.session["webauthn_authentication_state"] = "non-staff state"
         self.request.session["staff_auth_flow"] = self.INVALID_EXPIRED_TIMESTAMP
 
         assert self.u2f.validate_response(self.request, None, self.response)
@@ -158,7 +152,7 @@ class U2FInterfaceTest(TestCase):
         assert "webauthn_authentication_state" not in self.request.session
 
         # Test timestamp too far in the future
-        self.request.session["webauthn_authentication_state"] = ("non-staff state", 5)
+        self.request.session["webauthn_authentication_state"] = "non-staff state"
         self.request.session["staff_auth_flow"] = self.INVALID_FUTURE_TIMESTAMP
         assert self.u2f.validate_response(self.request, None, self.response)
         _, kwargs = mock_state.call_args
@@ -171,8 +165,8 @@ class U2FInterfaceTest(TestCase):
         mock_state = Mock(side_effect=ValueError("test"))
         self.u2f.webauthn_authentication_server.authenticate_complete = mock_state
 
-        self.request.session["webauthn_authentication_state"] = ("non-staff state", 5)
-        self.request.session["staff_webauthn_authentication_state"] = ("staff state", 5)
+        self.request.session["webauthn_authentication_state"] = "non-staff state"
+        self.request.session["staff_webauthn_authentication_state"] = "staff state"
         self.request.session["staff_auth_flow"] = self.VALID_TIMESTAMP
 
         with raises(ValueError):
