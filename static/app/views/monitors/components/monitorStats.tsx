@@ -45,7 +45,7 @@ function MonitorStats({monitor, monitorEnvs, orgSlug}: Props) {
   }
 
   const queryKey = [
-    `/organizations/${orgSlug}/monitors/${monitor.slug}/stats/`,
+    `/projects/${orgSlug}/${monitor.project.slug}/monitors/${monitor.slug}/stats/`,
     {
       query: {
         since: since.toString(),

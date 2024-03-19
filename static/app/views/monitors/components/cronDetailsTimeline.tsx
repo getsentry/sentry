@@ -78,17 +78,15 @@ export function CronDetailsTimeline({monitor, organization}: Props) {
     }
   );
 
-  const monitorDetailsQueryKey = makeMonitorDetailsQueryKey(organization, monitor.slug, {
-    ...location.query,
-  });
+  const monitorDetailsQueryKey = makeMonitorDetailsQueryKey(
+    organization,
+    monitor.project.id,
+    monitor.slug,
+    {...location.query}
+  );
 
   const handleDeleteEnvironment = async (env: string) => {
-    const success = await deleteMonitorEnvironment(
-      api,
-      organization.slug,
-      monitor.slug,
-      env
-    );
+    const success = await deleteMonitorEnvironment(api, organization.slug, monitor, env);
     if (!success) {
       return;
     }
@@ -108,7 +106,7 @@ export function CronDetailsTimeline({monitor, organization}: Props) {
     const resp = await setEnvironmentIsMuted(
       api,
       organization.slug,
-      monitor.slug,
+      monitor,
       env,
       isMuted
     );

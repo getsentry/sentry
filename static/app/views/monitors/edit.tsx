@@ -20,12 +20,12 @@ import MonitorForm from './components/monitorForm';
 import type {Monitor} from './types';
 
 export default function EditMonitor() {
-  const {monitorSlug} = useParams();
+  const {monitorSlug, projectId} = useParams<{monitorSlug: string; projectId: string}>();
   const {selection} = usePageFilters();
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
-  const queryKey = makeMonitorDetailsQueryKey(organization, monitorSlug, {
+  const queryKey = makeMonitorDetailsQueryKey(organization, projectId, monitorSlug, {
     expand: ['alertRule'],
   });
 
@@ -108,7 +108,7 @@ export default function EditMonitor() {
             <MonitorForm
               monitor={monitor}
               apiMethod="PUT"
-              apiEndpoint={`/organizations/${organization.slug}/monitors/${monitor.slug}/`}
+              apiEndpoint={`/projects/${organization.slug}/${projectId}/monitors/${monitor.slug}/`}
               onSubmitSuccess={onSubmitSuccess}
             />
           </Layout.Main>
