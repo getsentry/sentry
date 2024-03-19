@@ -202,7 +202,11 @@ export enum OpsgeniePriorities {
   P5 = 'P5',
 }
 
-export const PriorityOptions = {
+export type PriorityLookup = {
+  [K in ActionType]?: string[];
+};
+
+export const PriorityOptions: PriorityLookup = {
   [ActionType.PAGERDUTY]: [
     PagerDutyPriorities.CRITICAL,
     PagerDutyPriorities.WARNING,
@@ -219,7 +223,7 @@ export const PriorityOptions = {
 };
 
 // default priorities per threshold (0 = critical, 1 = warning)
-export const DefaultPriorities = {
+export const DefaultPriorities: PriorityLookup = {
   [ActionType.PAGERDUTY]: [PagerDutyPriorities.CRITICAL, PagerDutyPriorities.WARNING],
   [ActionType.OPSGENIE]: [OpsgeniePriorities.P1, OpsgeniePriorities.P2],
 };
