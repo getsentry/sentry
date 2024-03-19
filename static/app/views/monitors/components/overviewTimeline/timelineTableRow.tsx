@@ -259,15 +259,20 @@ interface TimelineRowProps {
 }
 
 const TimelineRow = styled('div')<TimelineRowProps>`
-  display: contents;
+  grid-column: 1/-1;
+
+  display: grid;
+  grid-template-columns: subgrid;
 
   ${p =>
     !p.singleMonitorView &&
     css`
-      &:nth-child(odd) > * {
+      transition: background 50ms ease-in-out;
+
+      &:nth-child(odd) {
         background: ${p.theme.backgroundSecondary};
       }
-      &:hover > * {
+      &:hover {
         background: ${p.theme.backgroundTertiary};
       }
     `}
@@ -285,16 +290,9 @@ const TimelineRow = styled('div')<TimelineRowProps>`
   /* Disabled monitors become more opaque */
   --disabled-opacity: ${p => (p.isDisabled ? '0.6' : 'unset')};
 
-  &:last-child > *:first-child {
+  &:last-child {
     border-bottom-left-radius: ${p => p.theme.borderRadius};
-  }
-
-  &:last-child > *:last-child {
     border-bottom-right-radius: ${p => p.theme.borderRadius};
-  }
-
-  > * {
-    transition: background 50ms ease-in-out;
   }
 `;
 

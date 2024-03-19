@@ -14,6 +14,7 @@ import {IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventError, Organization} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceTabs';
 import {Row, Tags} from 'sentry/views/performance/traceDetails/styles';
 
 import type {TraceTree, TraceTreeNode} from '../../traceTree';
@@ -26,9 +27,11 @@ export function ErrorNodeDetails({
   organization,
   location,
   scrollToNode,
+  onParentClick,
 }: {
   location: Location;
   node: TraceTreeNode<TraceTree.TraceError>;
+  onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   organization: Organization;
   scrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
 }) {
@@ -48,6 +51,8 @@ export function ErrorNodeDetails({
 
     return null;
   }, [data]);
+
+  const parentTransaction = node.parent_transaction;
 
   return isLoading ? (
     <LoadingIndicator />
@@ -84,13 +89,17 @@ export function ErrorNodeDetails({
 
       <TraceDrawerComponents.Table className="table key-value">
         <tbody>
-          {stackTrace && (
+          {stackTrace ? (
             <tr>
               <StackTraceTitle>{t('Stack Trace')}</StackTraceTitle>
               <StackTraceWrapper>
                 <StackTracePreviewContent event={data} stacktrace={stackTrace} />
               </StackTraceWrapper>
             </tr>
+          ) : (
+            <Row title={t('Stack Trace')}>
+              {t('No stack trace has been reported with this error')}
+            </Row>
           )}
           <Tags
             enableHiding
@@ -105,6 +114,15 @@ export function ErrorNodeDetails({
           >
             {node.value.title}
           </Row>
+          {parentTransaction ? (
+            <Row title="Parent Transaction">
+              <td className="value">
+                <a href="#" onClick={() => onParentClick(parentTransaction)}>
+                  {getTraceTabTitle(parentTransaction)}
+                </a>
+              </td>
+            </Row>
+          ) : null}
         </tbody>
       </TraceDrawerComponents.Table>
     </TraceDrawerComponents.DetailContainer>

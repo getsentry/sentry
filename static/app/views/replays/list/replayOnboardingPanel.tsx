@@ -269,7 +269,7 @@ export function SetupReplaysCTA({
         {renderCTA()}
         <OnboardingCTAButton />
         <Button
-          href="https://docs.sentry.io/platforms/javascript/session-replay/"
+          href="https://docs.sentry.io/product/session-replay/getting-started/"
           external
         >
           {t('Read Docs')}
