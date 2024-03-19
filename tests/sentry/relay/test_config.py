@@ -140,7 +140,7 @@ SOME_EXCEPTION = RuntimeError("foo")
 @django_db_all
 @region_silo_test
 @mock.patch("sentry.relay.config.generate_rules", side_effect=SOME_EXCEPTION)
-@mock.patch("sentry.relay.config.logger")
+@mock.patch("sentry.relay.config.experimental.logger")
 def test_get_experimental_config_dyn_sampling(mock_logger, _, default_project):
     keys = ProjectKey.objects.filter(project=default_project)
     with Feature({"organizations:dynamic-sampling": True}):
