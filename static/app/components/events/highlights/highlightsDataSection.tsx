@@ -21,7 +21,6 @@ export default function HighlightsDataSection({event}: HighlightsSectionProps) {
     <EventDataSection
       title={t('Highlighted Event Data')}
       data-test-id="highlighted-event-data"
-      guideTarget="highlighted-event-data"
       type="highlighted-event-data"
     >
       <ContextSummary event={event} />
