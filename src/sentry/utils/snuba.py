@@ -1358,6 +1358,17 @@ def resolve_conditions(
     return replacement_conditions
 
 
+def estimate_query_size(snuba_param_list: Sequence[RequestQueryBody]) -> int:
+    """
+    Estimates the size of the query by serializing the snuba_param_list
+    and measuring its length. This function will be used to decide if a query
+    needs to be split.
+    """
+    import json
+    serialized_query = json.dumps([query[0] for query in snuba_param_list])
+    return len(serialized_query)
+
+
 def aliased_query_params(
     start=None,
     end=None,
