@@ -125,14 +125,14 @@ class DiscordClient(ApiClient):
         discord_code = ""
         code_message = ""
 
-        try:
-            discord_response: dict = json.loads(resp.content.decode("utf-8")) or {}
-            discord_code = discord_response.get("code") or ""
-            if discord_code in DISCORD_ERROR_CODES:
-                code_message = DISCORD_ERROR_CODES[discord_code]
-
-        except Exception:
-            pass
+        if resp and resp.content:
+            try:
+                discord_response: dict = json.loads(resp.content.decode("utf-8"))
+                discord_code = discord_response.get("code") or ""
+                if discord_code in DISCORD_ERROR_CODES:
+                    code_message = DISCORD_ERROR_CODES[discord_code]
+            except Exception:
+                pass
 
         is_ok = code in {
             status.HTTP_200_OK,
