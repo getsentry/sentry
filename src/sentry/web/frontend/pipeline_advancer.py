@@ -20,12 +20,6 @@ from sentry.web.frontend.base import BaseView
 PIPELINE_CLASSES = [IntegrationPipeline, IdentityProviderPipeline]
 
 
-# GitHub apps may be installed directly from GitHub, in which case
-# they will redirect here *without* being in the pipeline. If that happens
-# redirect to the integration install org picker.
-FORWARD_INSTALL_FOR = ["github"]
-
-
 from rest_framework.request import Request
 
 
@@ -44,8 +38,11 @@ class PipelineAdvancerView(BaseView):
             if pipeline:
                 break
 
+        # GitHub apps may be installed directly from GitHub, in which case
+        # they will redirect here *without* being in the pipeline. If that happens
+        # redirect to the integration install org picker.
         if (
-            provider_id in FORWARD_INSTALL_FOR
+            provider_id == "github"
             and request.GET.get("setup_action") == "install"
             and pipeline is None
         ):
