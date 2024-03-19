@@ -219,27 +219,29 @@ function TraceDrawer(props: TraceDrawerProps) {
         </TabLayoutControlsContainer>
       </TabsLayout>
       <Content>
-        {props.tabs.current ? (
-          props.tabs.current.node === 'Trace' ? (
-            <TraceLevelDetails
-              node={props.trace.root.children[0]}
-              tree={props.trace}
-              rootEventResults={props.rootEventResults}
-              organization={props.organization}
-              location={props.location}
-              traces={props.traces}
-              traceEventView={props.traceEventView}
-            />
-          ) : (
-            <NodeDetail
-              node={props.tabs.current.node}
-              organization={props.organization}
-              location={props.location}
-              manager={props.manager}
-              scrollToNode={props.scrollToNode}
-            />
-          )
-        ) : null}
+        <ContentWrapper>
+          {props.tabs.current ? (
+            props.tabs.current.node === 'Trace' ? (
+              <TraceLevelDetails
+                node={props.trace.root.children[0]}
+                tree={props.trace}
+                rootEventResults={props.rootEventResults}
+                organization={props.organization}
+                location={props.location}
+                traces={props.traces}
+                traceEventView={props.traceEventView}
+              />
+            ) : (
+              <NodeDetail
+                node={props.tabs.current.node}
+                organization={props.organization}
+                location={props.location}
+                manager={props.manager}
+                scrollToNode={props.scrollToNode}
+              />
+            )
+          ) : null}
+        </ContentWrapper>
       </Content>
     </PanelWrapper>
   );
@@ -417,7 +419,8 @@ const TabButton = styled('button')`
 `;
 
 const Content = styled('div')`
-  overflow: scroll;
+  position: relative;
+  overflow: auto;
   padding: ${space(1)};
   flex: 1;
 `;
@@ -466,6 +469,11 @@ const PinButton = styled(Button)`
 const StyledIconPin = styled(IconPin)`
   background-color: transparent;
   border: none;
+`;
+
+const ContentWrapper = styled('div')`
+  inset: 0;
+  position: absolute;
 `;
 
 export default TraceDrawer;
