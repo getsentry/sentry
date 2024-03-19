@@ -409,6 +409,9 @@ class Endpoint(APIView):
                         self.response = self.finalize_response(request, response, *args, **kwargs)
                         return self.response
 
+                if request.auth:
+                    update_token_access_record(request.auth)
+
                 self.initial(request, *args, **kwargs)
 
                 # Get the appropriate handler method
@@ -441,9 +444,6 @@ class Endpoint(APIView):
 
         if origin:
             self.add_cors_headers(request, response)
-
-        if request.auth:
-            update_token_access_record(request.auth)
 
         self.response = self.finalize_response(request, response, *args, **kwargs)
 
