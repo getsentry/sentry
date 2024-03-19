@@ -4,6 +4,7 @@ from collections.abc import Sequence
 from datetime import datetime
 
 from sentry.api.event_search import SearchFilter, parse_search_query
+from sentry.models.organization import Organization
 from sentry.replays.post_process import generate_normalized_output
 from sentry.replays.query import query_replays_collection, replay_url_parser_config
 from sentry.replays.tasks import delete_replay_recording
@@ -18,9 +19,9 @@ def delete_replays(
     start_utc: datetime,
     end_utc: datetime,
 ) -> None:
+    """Delete a set of replays from a query."""
     search_filters = translate_cli_tags_param_to_snuba_tag_param(tags)
-    count = 0
-    from sentry.models.organization import Organization
+    offset = 0
 
     while True:
         replays = list(
@@ -32,31 +33,33 @@ def delete_replays(
                     fields=["id"],
                     limit=batch_size,
                     environment=environment,
-                    offset=count,
+                    offset=offset,
                     search_filters=search_filters,
                     sort="started_at",
                     organization=Organization.objects.filter(project__id=project_id).get(),
                 )
             )
         )
-        count += len(replays)
-        if replays:
-            replay_ids = [r["id"] for r in replays]
 
-            if dry_run:
-                print_message = "Replays to be deleted (dry run): "
-            else:
-                print_message = "Replays deleted: "
-                for replay_id in replay_ids:
-                    delete_replay_recording(project_id, replay_id)
+        # Exit early if no replays were found.
+        if not replays:
+            return None
 
-            print(print_message, ", ".join(replay_ids))  # NOQA
+        offset += len(replays)
+
+        if dry_run:
+            print(f"Replays to be deleted (dry run): {len(replays)}")  # NOQA
         else:
-            print(f"All rows were successfully deleted. Total replays deleted: {count}")  # NOQA
-            return
+            delete_replay_ids(project_id, replay_ids=[r["id"] for r in replays])
 
 
 def translate_cli_tags_param_to_snuba_tag_param(tags: list[str]) -> Sequence[SearchFilter]:
-    search_query = " AND ".join(tags)
+    return parse_search_query(" AND ".join(tags), config=replay_url_parser_config)
 
-    return parse_search_query(search_query, config=replay_url_parser_config)
+
+def delete_replay_ids(project_id: int, replay_ids: list[str]) -> None:
+    """Delete a set of replay-ids for a specific project."""
+    for replay_id in replay_ids:
+        delete_replay_recording(project_id, replay_id)
+
+    print(f"Deleted {len(replay_ids)} replays.")  # NOQA
