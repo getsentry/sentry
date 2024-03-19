@@ -364,75 +364,73 @@ class GitHubInstallationRedirect(PipelineView):
         if "reinstall_id" in request.GET:
             pipeline.bind_state("reinstall_id", request.GET["reinstall_id"])
 
-        if "installation_id" in request.GET:
-            self.determine_active_organization(request)
+        if "installation_id" not in request.GET:
+            return self.redirect(self.get_app_url())
 
-            integration_pending_deletion_exists = False
-            if self.active_organization:
-                # We want to wait until the scheduled deletions finish or else the
-                # post install to migrate repos do not work.
-                integration_pending_deletion_exists = OrganizationIntegration.objects.filter(
-                    integration__provider=GitHubIntegrationProvider.key,
-                    organization_id=self.active_organization.organization.id,
-                    status=ObjectStatus.PENDING_DELETION,
-                ).exists()
+        self.determine_active_organization(request)
 
-            if integration_pending_deletion_exists:
-                document_origin = "document.origin"
-                if self.active_organization and features.has(
-                    "organizations:customer-domains", self.active_organization.organization
-                ):
-                    document_origin = (
-                        f'"{generate_organization_url(self.active_organization.organization.slug)}"'
-                    )
-                return render_to_response(
-                    "sentry/integrations/github-integration-failed.html",
-                    context={
-                        "error": ERR_INTEGRATION_PENDING_DELETION,
-                        "payload": {
-                            "success": False,
-                            "data": {"error": _("GitHub installation pending deletion.")},
-                        },
-                        "document_origin": document_origin,
-                    },
-                    request=request,
+        integration_pending_deletion_exists = False
+        if self.active_organization:
+            # We want to wait until the scheduled deletions finish or else the
+            # post install to migrate repos do not work.
+            integration_pending_deletion_exists = OrganizationIntegration.objects.filter(
+                integration__provider=GitHubIntegrationProvider.key,
+                organization_id=self.active_organization.organization.id,
+                status=ObjectStatus.PENDING_DELETION,
+            ).exists()
+
+        if integration_pending_deletion_exists:
+            document_origin = "document.origin"
+            if self.active_organization and features.has(
+                "organizations:customer-domains", self.active_organization.organization
+            ):
+                document_origin = (
+                    f'"{generate_organization_url(self.active_organization.organization.slug)}"'
                 )
-
-            try:
-                # We want to limit GitHub integrations to 1 organization
-                installations_exist = OrganizationIntegration.objects.filter(
-                    integration=Integration.objects.get(external_id=request.GET["installation_id"])
-                ).exists()
-
-            except Integration.DoesNotExist:
-                pipeline.bind_state("installation_id", request.GET["installation_id"])
-                return pipeline.next_step()
-
-            if installations_exist:
-                document_origin = "document.origin"
-                if self.active_organization and features.has(
-                    "organizations:customer-domains", self.active_organization.organization
-                ):
-                    document_origin = (
-                        f'"{generate_organization_url(self.active_organization.organization.slug)}"'
-                    )
-                return render_to_response(
-                    "sentry/integrations/github-integration-failed.html",
-                    context={
-                        "error": ERR_INTEGRATION_EXISTS_ON_ANOTHER_ORG,
-                        "payload": {
-                            "success": False,
-                            "data": {
-                                "error": _("Github installed on another Sentry organization.")
-                            },
-                        },
-                        "document_origin": document_origin,
+            return render_to_response(
+                "sentry/integrations/github-integration-failed.html",
+                context={
+                    "error": ERR_INTEGRATION_PENDING_DELETION,
+                    "payload": {
+                        "success": False,
+                        "data": {"error": _("GitHub installation pending deletion.")},
                     },
-                    request=request,
-                )
-            else:
-                # OrganizationIntegration does not exist, but Integration does exist.
-                pipeline.bind_state("installation_id", request.GET["installation_id"])
-                return pipeline.next_step()
+                    "document_origin": document_origin,
+                },
+                request=request,
+            )
 
-        return self.redirect(self.get_app_url())
+        try:
+            # We want to limit GitHub integrations to 1 organization
+            installations_exist = OrganizationIntegration.objects.filter(
+                integration=Integration.objects.get(external_id=request.GET["installation_id"])
+            ).exists()
+
+        except Integration.DoesNotExist:
+            pipeline.bind_state("installation_id", request.GET["installation_id"])
+            return pipeline.next_step()
+
+        if installations_exist:
+            document_origin = "document.origin"
+            if self.active_organization and features.has(
+                "organizations:customer-domains", self.active_organization.organization
+            ):
+                document_origin = (
+                    f'"{generate_organization_url(self.active_organization.organization.slug)}"'
+                )
+            return render_to_response(
+                "sentry/integrations/github-integration-failed.html",
+                context={
+                    "error": ERR_INTEGRATION_EXISTS_ON_ANOTHER_ORG,
+                    "payload": {
+                        "success": False,
+                        "data": {"error": _("Github installed on another Sentry organization.")},
+                    },
+                    "document_origin": document_origin,
+                },
+                request=request,
+            )
+
+        # OrganizationIntegration does not exist, but Integration does exist.
+        pipeline.bind_state("installation_id", request.GET["installation_id"])
+        return pipeline.next_step()
