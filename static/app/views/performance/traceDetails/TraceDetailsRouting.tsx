@@ -41,9 +41,21 @@ function TraceDetailsRouting(props: Props) {
         event.eventID
       );
 
+      const query = {...traceDetailsLocation.query};
+      if (location.hash.includes('span')) {
+        const spanHashValue = location.hash
+          .split('#')
+          .filter(value => value.includes('span'))[0];
+        const spanId = spanHashValue.split('-')[1];
+
+        if (spanId) {
+          query.node = [`span:${spanId}`, `txn:${event.eventID}`];
+        }
+      }
+
       browserHistory.replace({
         pathname: traceDetailsLocation.pathname,
-        query: traceDetailsLocation.query,
+        query,
       });
     }
   }
