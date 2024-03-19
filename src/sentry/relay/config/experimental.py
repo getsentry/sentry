@@ -9,9 +9,6 @@ logger = logging.getLogger(__name__)
 
 
 class TimeoutException(Exception):
-    _elapsed: timedelta
-    _timeout: timedelta
-
     def __init__(self, elapsed: timedelta, timeout: timedelta, *args: object) -> None:
         super().__init__(*args)
         self._elapsed = elapsed
@@ -26,9 +23,6 @@ class TimeChecker:
     timeout, and raises a `TimeoutException` if it's hit. The timeout starts at
     the moment the class is initialized.
     """
-
-    _hard_timeout: timedelta
-    _start: datetime
 
     def __init__(self, hard_timeout: timedelta) -> None:
         self._hard_timeout = hard_timeout

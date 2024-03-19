@@ -980,7 +980,7 @@ def _should_extract_transaction_metrics(project: Project) -> bool:
 
 
 def get_transaction_metrics_settings(
-    timeout: Any, project: Project, breakdowns_config: Mapping[str, Any] | None
+    timeout: TimeChecker, project: Project, breakdowns_config: Mapping[str, Any] | None
 ) -> TransactionMetricsSettings:
     """This function assumes that the corresponding feature flag has been checked.
     See _should_extract_transaction_metrics.
