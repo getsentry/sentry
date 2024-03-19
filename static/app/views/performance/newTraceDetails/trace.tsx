@@ -149,6 +149,10 @@ function maybeFocusRow(
 
 interface TraceProps {
   manager: VirtualizedViewManager;
+  onRowClick: (
+    node: TraceTreeNode<TraceTree.NodeValue> | null,
+    event: React.MouseEvent<HTMLElement> | null
+  ) => void;
   onTraceSearch: (query: string) => void;
   previouslyFocusedIndexRef: React.MutableRefObject<number | null>;
   roving_dispatch: React.Dispatch<RovingTabIndexAction>;
@@ -161,7 +165,6 @@ interface TraceProps {
   searchResultsMap: Map<TraceTreeNode<TraceTree.NodeValue>, number>;
   search_dispatch: React.Dispatch<TraceSearchAction>;
   search_state: TraceSearchState;
-  setClickedNode: (node: TraceTreeNode<TraceTree.NodeValue> | null) => void;
   trace: TraceTree;
   trace_id: string;
 }
@@ -173,7 +176,7 @@ function Trace({
   roving_dispatch,
   search_state,
   search_dispatch,
-  setClickedNode: setDetailNode,
+  onRowClick,
   manager,
   scrollQueueRef,
   searchResultsIteratorIndex,
@@ -270,8 +273,7 @@ function Trace({
         manager.animateViewTo(maybeNode.node.space);
       }
 
-      manager.onScrollEndOutOfBoundsCheck();
-      setDetailNode(maybeNode.node);
+      onRowClick(maybeNode.node, null);
       roving_dispatch({
         type: 'set index',
         index: maybeNode.index,
@@ -279,7 +281,7 @@ function Trace({
       });
 
       manager.list?.scrollToRow(maybeNode.index, 'top');
-      manager.scrollRowIntoViewHorizontally(maybeNode.node, 0);
+      manager.scrollRowIntoViewHorizontally(maybeNode.node, 0, 12, 'exact');
 
       if (search_state.query) {
         onTraceSearch(search_state.query);
@@ -294,7 +296,7 @@ function Trace({
     manager,
     search_state.query,
     onTraceSearch,
-    setDetailNode,
+    onRowClick,
     roving_dispatch,
   ]);
 
@@ -336,7 +338,8 @@ function Trace({
         manager.scrollRowIntoViewHorizontally(
           treeRef.current.list[search_state.resultIndex],
           0,
-          offset
+          offset,
+          'measured'
         );
       }
     }
@@ -416,9 +419,9 @@ function Trace({
     [search_state, search_dispatch, onTraceSearch]
   );
 
-  const onRowClick = useCallback(
+  const onVirtulizedRowClick = useCallback(
     (
-      _event: React.MouseEvent,
+      event: React.MouseEvent<HTMLElement>,
       index: number,
       node: TraceTreeNode<TraceTree.NodeValue>
     ) => {
@@ -432,7 +435,7 @@ function Trace({
           node: node.path,
         },
       });
-      setDetailNode(node);
+      onRowClick(node, event);
       roving_dispatch({type: 'set index', index, node});
 
       if (search_state.resultsLookup.has(node)) {
@@ -449,7 +452,7 @@ function Trace({
     },
     [
       roving_dispatch,
-      setDetailNode,
+      onRowClick,
       search_state,
       search_dispatch,
       previouslyFocusedIndexRef,
@@ -589,7 +592,7 @@ function Trace({
           theme={theme}
           onExpand={handleExpandNode}
           onZoomIn={handleZoomIn}
-          onRowClick={onRowClick}
+          onRowClick={onVirtulizedRowClick}
           onRowKeyDown={onRowKeyDown}
         />
       );
@@ -600,7 +603,7 @@ function Trace({
       handleExpandNode,
       handleZoomIn,
       manager,
-      onRowClick,
+      onVirtulizedRowClick,
       onRowKeyDown,
       organization,
       projectLookup,
@@ -701,7 +704,7 @@ function RenderRow(props: {
     value: boolean
   ) => void;
   onRowClick: (
-    event: React.MouseEvent<Element>,
+    event: React.MouseEvent<HTMLElement>,
     index: number,
     node: TraceTreeNode<TraceTree.NodeValue>
   ) => void;
