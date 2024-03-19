@@ -748,7 +748,13 @@ urlpatterns += [
         react_page_view,
         name="discover",
     ),
-    # DDM
+    # DDM new
+    re_path(
+        r"^metrics/",
+        react_page_view,
+        name="metrics",
+    ),
+    # TODO(metrics): fade this out
     re_path(
         r"^ddm/",
         react_page_view,
