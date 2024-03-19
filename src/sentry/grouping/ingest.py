@@ -471,20 +471,27 @@ def record_hash_calculation_metrics(
             "primary_config": primary_config["id"],
             "secondary_config": secondary_config["id"],
         }
-        current_values = primary_hashes.hashes
-        secondary_values = secondary_hashes.hashes
-        hashes_match = current_values == secondary_values
 
-        if hashes_match:
-            tags["result"] = "no change"
-        else:
-            shared_hashes = set(current_values) & set(secondary_values)
-            if len(shared_hashes) > 0:
-                tags["result"] = "partial change"
+        # If the configs are the same, *of course* the values are going to match, so no point in
+        # recording a metric
+        #
+        # TODO: If we fix the issue outlined in https://github.com/getsentry/sentry/pull/65116, we
+        # can ditch both this check and the logging below
+        if tags["primary_config"] != tags["secondary_config"]:
+            current_values = primary_hashes.hashes
+            secondary_values = secondary_hashes.hashes
+            hashes_match = current_values == secondary_values
+
+            if hashes_match:
+                tags["result"] = "no change"
             else:
-                tags["result"] = "full change"
+                shared_hashes = set(current_values) & set(secondary_values)
+                if len(shared_hashes) > 0:
+                    tags["result"] = "partial change"
+                else:
+                    tags["result"] = "full change"
 
-        metrics.incr("grouping.hash_comparison", tags=tags)
+            metrics.incr("grouping.hash_comparison", tags=tags)
 
         # TODO: This is temporary, just until we can figure out how we're recording a hash
         # comparison metric showing projects calculating both primary and secondary hashes using the
