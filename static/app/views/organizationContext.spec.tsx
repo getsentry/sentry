@@ -199,7 +199,7 @@ describe('OrganizationContext', function () {
 
     await waitFor(() => !OrganizationStore.getState().loading);
 
-    expect(openSudo).toHaveBeenCalled();
+    await waitFor(() => expect(openSudo).toHaveBeenCalled());
   });
 
   it('opens sudo modal for superusers on 403s', async function () {
