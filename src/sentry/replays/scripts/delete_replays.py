@@ -41,6 +41,10 @@ def delete_replays(
             )
         )
 
+        # Exit early if no replays were found.
+        if not replays:
+            return None
+
         offset += len(replays)
 
         if dry_run:
