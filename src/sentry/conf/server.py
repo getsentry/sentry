@@ -3065,6 +3065,14 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             "only_if": settings.SENTRY_USE_SPOTLIGHT,
         }
     ),
+    "peanutbutter": lambda settings, options: (
+        {
+            "image": "us.gcr.io/sentryio/peanutbutter:latest",
+            "environment": {},
+            "ports": {"4433/tcp": 4433},
+            "only_if": False,  # TODO: we do not want/need this in normal devservices, but we need it for certain tests
+        }
+    ),
 }
 
 # Max file size for serialized file uploads in API
