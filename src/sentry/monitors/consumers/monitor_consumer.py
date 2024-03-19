@@ -293,7 +293,7 @@ def update_existing_check_in(
         )
         return
 
-    # update date_added for heartbeat
+    # update date_updated for heartbeat
     date_updated = existing_check_in.date_updated
     if updated_status == CheckInStatus.IN_PROGRESS:
         date_updated = start_time
