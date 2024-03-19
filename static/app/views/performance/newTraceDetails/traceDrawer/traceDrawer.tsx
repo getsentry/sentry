@@ -280,7 +280,7 @@ const TabLayoutControlsContainer = styled('ul')`
   padding-left: 0;
   margin-left: auto;
   margin-right: ${space(1.5)};
-  min-width: 60px;
+  flex: none;
 
   button {
     padding: ${space(0.5)};
@@ -325,6 +325,10 @@ const Content = styled('div')<{layout: 'drawer bottom' | 'drawer left' | 'drawer
   padding: ${space(1)};
   flex: 1;
 
+  td {
+    max-width: 100% !important;
+  }
+
   ${p =>
     p.layout !== 'drawer bottom' &&
     `
@@ -338,10 +342,6 @@ const Content = styled('div')<{layout: 'drawer bottom' | 'drawer left' | 'drawer
 
         tr {
           display: grid;
-        }
-
-        td{
-          max-width: 100% !important;
         }
       `}
 `;
