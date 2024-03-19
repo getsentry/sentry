@@ -203,14 +203,16 @@ class DatabaseBackedAppService(AppService):
                 # the installation by token id in SentryAppInstallation, we also search
                 # SentryAppInstallationToken by token id, then fetch  the linked installation.
                 # Internal Integrations follow this pattern because they can have multiple tokens.
-                from django.db.models import Q, Subquery
+                from django.db.models import Q
 
-                subquery = SentryAppInstallationToken.objects.filter(
+                # Decompose this query instead of using a subquery for performance.
+                install_token_list = SentryAppInstallationToken.objects.filter(
                     api_token_id=filters["api_installation_token_id"],
-                ).values("sentry_app_installation_id")
+                ).values_list("sentry_app_installation_id", flat=True)
+
                 query = query.filter(
                     Q(api_token_id=filters["api_installation_token_id"])
-                    | Q(id__in=Subquery(subquery))
+                    | Q(id__in=install_token_list)
                 )
 
             return query
