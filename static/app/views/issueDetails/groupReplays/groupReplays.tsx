@@ -1,12 +1,13 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Button} from 'sentry/components/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {StaticReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
-import {IconUser} from 'sentry/icons';
+import {IconPlay, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group, Organization} from 'sentry/types';
@@ -96,7 +97,7 @@ function GroupReplaysTableInner({
   replaySlug: string;
   selectedReplayIndex: number;
   setSelectedReplayIndex: (index: number) => void;
-  nextReplayText?: string;
+  overlayContent?: React.ReactNode;
 } & ReturnType<typeof useReplayList>) {
   const orgSlug = organization.slug;
   const {fetching, replay} = useReplayReader({
@@ -122,7 +123,7 @@ function GroupReplaysTableInner({
         selectedReplayIndex={props.selectedReplayIndex}
         setSelectedReplayIndex={props.setSelectedReplayIndex}
         visibleColumns={VISIBLE_COLUMNS_WITH_PLAY}
-        nextReplayText={props.nextReplayText}
+        overlayContent={props.overlayContent}
         replays={props.replays}
         isFetching={props.isFetching}
         fetchError={props.fetchError}
@@ -194,10 +195,27 @@ function GroupReplaysTable({
     }
   }, [forceHideReplay]);
 
+  const replayCount = getReplayCountForIssue(group.id, group.issueCategory);
   const nextReplay = replays?.[selectedReplayIndex + 1];
   const nextReplayText = nextReplay?.id
     ? `${nextReplay.user.display_name || t('Anonymous User')}`
     : undefined;
+
+  const overlayContent =
+    nextReplayText && replayCount && replayCount > 1 ? (
+      <Fragment>
+        <UpNext>{t('Up Next')}</UpNext>
+        <OverlayText>{nextReplayText}</OverlayText>
+        <Button
+          onClick={() => {
+            setSelectedReplayIndex(selectedReplayIndex + 1);
+          }}
+          icon={<IconPlay size="md" />}
+        >
+          {t('Play Now')}
+        </Button>
+      </Fragment>
+    ) : undefined;
 
   const hasFeature = organization.features.includes('replay-play-from-replay-tab');
 
@@ -206,7 +224,7 @@ function GroupReplaysTable({
       <GroupReplaysTableInner
         setSelectedReplayIndex={setSelectedReplayIndex}
         selectedReplayIndex={selectedReplayIndex}
-        nextReplayText={nextReplayText}
+        overlayContent={overlayContent}
         organization={organization}
         group={group}
         replaySlug={selectedReplay.id}
@@ -233,7 +251,7 @@ function GroupReplaysTable({
         <StyledIconUser size="sm" />
         {t(
           'Replay captured %s users experiencing this issue across %s events.',
-          getReplayCountForIssue(group.id, group.issueCategory),
+          replayCount,
           group.count
         )}
       </ReplayCountHeader>
@@ -258,6 +276,14 @@ const StyledIconUser = styled(IconUser)`
   margin-right: ${p => p.theme.grid}px;
   height: 16px;
   width: 16px;
+`;
+
+const OverlayText = styled('div')`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+`;
+
+const UpNext = styled('div')`
+  line-height: 0;
 `;
 
 export default GroupReplays;
