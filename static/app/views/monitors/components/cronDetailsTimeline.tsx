@@ -80,7 +80,7 @@ export function CronDetailsTimeline({monitor, organization}: Props) {
 
   const monitorDetailsQueryKey = makeMonitorDetailsQueryKey(
     organization,
-    monitor.project.id,
+    monitor.project.slug,
     monitor.slug,
     {...location.query}
   );
