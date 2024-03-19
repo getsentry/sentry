@@ -217,8 +217,20 @@ class DailySummaryTest(
             mock_prepare_summary_data.delay.call_count == 1
         )  # note this didn't fire again, it just didn't increase from before
 
-    def test_build_summary_data(self):
+    def test_build_summary_data_only(self):
         self.populate_event_data()
+
+        # add another release to make sure new issues in multiple releases show up
+        release2 = self.create_release(project=self.project, date_added=self.now)
+        for _ in range(2):
+            release2_group = self.store_event_and_outcomes(
+                self.project.id,
+                self.now,
+                fingerprint="group-12",
+                category=DataCategory.ERROR,
+                release=release2.version,
+                resolve=False,
+            )
         summary = build_summary_data(
             timestamp=self.now.timestamp(),
             duration=ONE_DAY,
@@ -229,7 +241,7 @@ class DailySummaryTest(
         project_context_map = cast(
             DailySummaryProjectContext, summary.projects_context_map[project_id]
         )
-        assert project_context_map.total_today == 15  # total outcomes from today
+        assert project_context_map.total_today == 17  # total outcomes from today
         assert project_context_map.comparison_period_avg == 1
         assert len(project_context_map.key_errors) == 3
         assert (self.group1, None, 3) in project_context_map.key_errors
@@ -240,8 +252,10 @@ class DailySummaryTest(
         assert (self.perf_event2.group, None, 1) in project_context_map.key_performance_issues
         assert project_context_map.escalated_today == [self.group3]
         assert project_context_map.regressed_today == [self.group2]
+        assert len(project_context_map.new_in_release) == 2
         assert self.group2 in project_context_map.new_in_release[self.release.id]
         assert self.group3 in project_context_map.new_in_release[self.release.id]
+        assert release2_group in project_context_map.new_in_release[release2.id]
 
         project_id2 = self.project2.id
         project_context_map2 = cast(

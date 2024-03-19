@@ -243,9 +243,9 @@ def build_summary_data(
                         project=project, first_release=release
                     )
                     if new_groups_in_release:
-                        project_ctx.new_in_release = {
-                            release.id: [group for group in new_groups_in_release]
-                        }
+                        project_ctx.new_in_release[release.id] = [
+                            group for group in new_groups_in_release
+                        ]
 
             new_in_release = json.dumps([group for group in project_ctx.new_in_release])
             logger.info(
