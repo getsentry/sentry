@@ -115,14 +115,14 @@ describe('EnvironmentPageFilter', function () {
     expect(onReset).toHaveBeenCalled();
   });
 
-  it('responds to page filter changes, async e.g. from back button nav', function () {
+  it('responds to page filter changes, async e.g. from back button nav', async function () {
     render(<EnvironmentPageFilter />, {
       context: routerContext,
       organization,
     });
 
     // Confirm initial selection
-    expect(screen.getByRole('button', {name: 'All Envs'})).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'All Envs'})).toBeInTheDocument();
 
     // Edit store value
     act(() => updateEnvironments(['prod'], router));

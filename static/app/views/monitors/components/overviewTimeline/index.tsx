@@ -68,12 +68,7 @@ export function OverviewTimeline({monitorList}: Props) {
   );
 
   const handleDeleteEnvironment = async (monitor: Monitor, env: string) => {
-    const success = await deleteMonitorEnvironment(
-      api,
-      organization.slug,
-      monitor.slug,
-      env
-    );
+    const success = await deleteMonitorEnvironment(api, organization.slug, monitor, env);
     if (!success) {
       return;
     }
@@ -87,16 +82,19 @@ export function OverviewTimeline({monitorList}: Props) {
 
       const oldMonitor = oldMonitorList[oldMonitorIdx];
       const newEnvList = oldMonitor.environments.filter(e => e.name !== env);
-      const newMonitor = {
+      const updatedMonitor = {
         ...oldMonitor,
         environments: newEnvList,
       };
 
-      return [
-        ...oldMonitorList.slice(0, oldMonitorIdx),
-        newMonitor,
-        ...oldMonitorList.slice(oldMonitorIdx + 1),
-      ];
+      const left = oldMonitorList.slice(0, oldMonitorIdx);
+      const right = oldMonitorList.slice(oldMonitorIdx + 1);
+
+      if (newEnvList.length === 0) {
+        return [...left, ...right];
+      }
+
+      return [...left, updatedMonitor, ...right];
     });
   };
 
@@ -108,7 +106,7 @@ export function OverviewTimeline({monitorList}: Props) {
     const resp = await setEnvironmentIsMuted(
       api,
       organization.slug,
-      monitor.slug,
+      monitor,
       env,
       isMuted
     );
@@ -128,7 +126,7 @@ export function OverviewTimeline({monitorList}: Props) {
 
   const handleToggleStatus = async (monitor: Monitor) => {
     const status = monitor.status === 'active' ? 'disabled' : 'active';
-    const resp = await updateMonitor(api, organization.slug, monitor.slug, {status});
+    const resp = await updateMonitor(api, organization.slug, monitor, {status});
 
     if (resp === null) {
       return;
