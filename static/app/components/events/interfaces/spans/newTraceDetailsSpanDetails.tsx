@@ -614,6 +614,10 @@ export const SpanDetails = styled('div')`
   table.table.key-value td.key {
     max-width: 280px;
   }
+
+  pre {
+    overflow: hidden !important;
+  }
 `;
 
 const ValueTd = styled('td')`

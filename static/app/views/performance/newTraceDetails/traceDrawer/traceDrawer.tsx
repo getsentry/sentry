@@ -1,4 +1,4 @@
-import {useMemo, useRef} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -102,6 +102,18 @@ function TraceDrawer(props: TraceDrawerProps) {
 
   const {onMouseDown} = useResizableDrawer(resizableDrawerOptions);
 
+  const onParentClick = useCallback(
+    (node: TraceTreeNode<TraceTree.NodeValue>) => {
+      props.scrollToNode(node);
+      props.tabsDispatch({
+        type: 'activate tab',
+        payload: props.tabs.tabs.length,
+        pin_previous: true,
+      });
+    },
+    [props]
+  );
+
   return (
     <PanelWrapper layout={props.layout} ref={panelRef}>
       <ResizeableHandle layout={props.layout} onMouseDown={onMouseDown} />
@@ -178,7 +190,7 @@ function TraceDrawer(props: TraceDrawerProps) {
           </TabLayoutControlItem>
         </TabLayoutControlsContainer>
       </TabsLayout>
-      <Content>
+      <Content layout={props.layout}>
         <ContentWrapper>
           {props.tabs.current ? (
             props.tabs.current.node === 'Trace' ? (
@@ -198,14 +210,7 @@ function TraceDrawer(props: TraceDrawerProps) {
                 location={props.location}
                 manager={props.manager}
                 scrollToNode={props.scrollToNode}
-                onParentClick={node => {
-                  props.scrollToNode(node);
-                  props.tabsDispatch({
-                    type: 'activate tab',
-                    payload: node,
-                    pin_previous: true,
-                  });
-                }}
+                onParentClick={onParentClick}
               />
             )
           ) : null}
@@ -332,6 +337,7 @@ const TabLayoutControlsContainer = styled('ul')`
   list-style-type: none;
   padding-left: 0;
   margin-bottom: 0;
+  flex: none;
 
   button {
     padding: 0 ${space(0.5)};
@@ -385,11 +391,31 @@ const TabButton = styled('button')`
   background: transparent;
 `;
 
-const Content = styled('div')`
+const Content = styled('div')<{layout: 'drawer bottom' | 'drawer left' | 'drawer right'}>`
   position: relative;
   overflow: auto;
   padding: ${space(1)};
   flex: 1;
+
+  td {
+    max-width: 100% !important;
+  }
+
+  ${p =>
+    p.layout !== 'drawer bottom' &&
+    `
+        table {
+          display: flex;
+        }
+
+        tbody {
+          flex: 1;
+        }
+
+        tr {
+          display: grid;
+        }
+      `}
 `;
 
 const DrawerButton = styled(Button)<{active: boolean}>`
