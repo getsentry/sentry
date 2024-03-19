@@ -105,6 +105,13 @@ API_ERRORS = {
     401: ERR_UNAUTHORIZED,
 }
 
+ERR_INTEGRATION_EXISTS_ON_ANOTHER_ORG = _(
+    "It seems that your GitHub account has been installed on another Sentry organization. Please uninstall and try again."
+)
+ERR_INTEGRATION_PENDING_DELETION = _(
+    "It seems that your Sentry organization has an installation pending deletion. Please wait ~15min for the uninstall to complete and try again."
+)
+
 
 def build_repository_query(metadata: Mapping[str, Any], name: str, query: str) -> bytes:
     account_type = "user" if metadata["account_type"] == "User" else "org"
@@ -379,8 +386,9 @@ class GitHubInstallationRedirect(PipelineView):
                         f'"{generate_organization_url(self.active_organization.organization.slug)}"'
                     )
                 return render_to_response(
-                    "sentry/integrations/integration-pending-deletion.html",
+                    "sentry/integrations/github-integration-failed.html",
                     context={
+                        "error": ERR_INTEGRATION_PENDING_DELETION,
                         "payload": {
                             "success": False,
                             "data": {"error": _("GitHub installation pending deletion.")},
@@ -409,8 +417,9 @@ class GitHubInstallationRedirect(PipelineView):
                         f'"{generate_organization_url(self.active_organization.organization.slug)}"'
                     )
                 return render_to_response(
-                    "sentry/integrations/github-integration-exists-on-another-org.html",
+                    "sentry/integrations/github-integration-failed.html",
                     context={
+                        "error": ERR_INTEGRATION_EXISTS_ON_ANOTHER_ORG,
                         "payload": {
                             "success": False,
                             "data": {
