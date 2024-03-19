@@ -20,3 +20,9 @@ class RpcExternalActor(RpcModel):
     external_name: str = ""
     # The unique identifier i.e user ID, channel ID.
     external_id: str | None = None
+
+
+class RpcGroupSubscriptionStatus(RpcModel):
+    is_disabled: bool
+    is_active: bool
+    has_only_inactive_subscriptions: bool
