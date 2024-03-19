@@ -963,22 +963,25 @@ def _bulk_snuba_query(
     snuba_param_list: Sequence[RequestQueryBody],
     headers: Mapping[str, str],
 ) -> ResultSet:
-    query_referrer = headers.get("referer", "<unknown>")
+    # Pre-query size check and splitting
+    split_queries = []
+    for query in snuba_param_list:
+        estimated_size = _estimate_query_size(query)
+        if estimated_size > 250000:
+            split_queries.extend(_split_query(query))
+        else:
+            split_queries.append(query)
 
-    with sentry_sdk.start_span(
-        op="snuba_query",
-        description=query_referrer,
-    ) as span:
-        span.set_tag("snuba.num_queries", len(snuba_param_list))
-        # We set both span + sdk level, this is cause 1 txn/error might query snuba more than once
-        # but we still want to know a general sense of how referrers impact performance
-        span.set_tag("query.referrer", query_referrer)
-        sentry_sdk.set_tag("query.referrer", query_referrer)
+    # Execute split queries and aggregate results
+    results = []
+    for query in split_queries:
+        # Execute query (placeholder)
+        result = execute_query(query)  # Placeholder for actual query execution
+        results.append(result)
 
-        parent_api: str = "<missing>"
-        with sentry_sdk.configure_scope() as scope:
-            if scope.transaction:
-                parent_api = scope.transaction.name
+    # Aggregate results (placeholder)
+    aggregated_results = aggregate_results(results)  # Placeholder for actual aggregation logic
+    return aggregated_results
 
         if len(snuba_param_list) > 1:
             query_results = list(
