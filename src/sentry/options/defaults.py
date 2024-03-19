@@ -703,6 +703,20 @@ register(
 )
 
 register(
+    "issues.severity.first-event-severity-calculation-projects-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.severity.default-high-priority-alerts-orgs-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "issues.priority.projects-allowlist",
     type=Sequence,
     default=[],
