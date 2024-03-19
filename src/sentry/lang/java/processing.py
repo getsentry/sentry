@@ -13,7 +13,7 @@ from sentry.utils.safe import get_path
 logger = logging.getLogger(__name__)
 
 
-def deobfuscate_exception_value(data):
+def deobfuscate_exception_value(data: Any) -> Any:
     # Deobfuscate the exception value by regex replacing
     # Mapping constructed by taking the last lines from the deobfuscated stacktrace and raw stacktrace
     exception = get_path(data, "exception", "values", -1)
@@ -35,7 +35,7 @@ def deobfuscate_exception_value(data):
     return data
 
 
-def _merge_frame_context(new_frame, symbolicated):
+def _merge_frame_context(new_frame: dict[str, Any], symbolicated: dict[str, Any]):
     if symbolicated.get("pre_context"):
         new_frame["pre_context"] = symbolicated["pre_context"]
     if symbolicated.get("context_line"):
@@ -43,10 +43,8 @@ def _merge_frame_context(new_frame, symbolicated):
     if symbolicated.get("post_context"):
         new_frame["post_context"] = symbolicated["post_context"]
 
-    return new_frame
 
-
-def _merge_frame(new_frame, symbolicated):
+def _merge_frame(new_frame: dict[str, Any], symbolicated: dict[str, Any]):
     _merge_frame_context(new_frame, symbolicated)
 
     if symbolicated.get("function"):
@@ -63,7 +61,7 @@ def _merge_frame(new_frame, symbolicated):
         new_frame["in_app"] = symbolicated["in_app"]
 
 
-def _handles_frame(frame, data):
+def _handles_frame(frame: dict[str, Any]) -> bool:
     # Skip frames without function or module
     return "function" in frame and "module" in frame
 
@@ -80,19 +78,16 @@ def _normalize_frame(raw_frame: Any) -> dict:
     return frame
 
 
-def get_frames_for_symbolication(frames, data):
-    return [dict(frame) for frame in reversed(frames)]
-
-
-def _get_exceptions_for_symbolication(data):
+def _get_exceptions_for_symbolication(data: Any) -> list[dict[str, Any]]:
     exceptions = []
 
     for exc in get_path(data, "exception", "values", filter=True, default=()):
         if exc.get("type") is not None and exc.get("module") is not None:
             exceptions.append({"type": exc["type"], "module": exc["module"]})
+    return exceptions
 
 
-def _handle_response_status(event_data, response_json):
+def _handle_response_status(event_data: Any, response_json: dict[str, Any]):
     if not response_json:
         error = SymbolicationFailed(type=EventError.NATIVE_INTERNAL_FAILURE)
     elif response_json["status"] == "completed":
@@ -109,7 +104,9 @@ def _handle_response_status(event_data, response_json):
     write_error(error, event_data)
 
 
-def map_symbolicator_process_jvm_errors(errors):
+def map_symbolicator_process_jvm_errors(
+    errors: list[dict[str, Any]] | None,
+) -> list[dict[str, Any]]:
     if errors is None:
         return []
 
@@ -151,7 +148,7 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
             "frames": [
                 _normalize_frame(frame)
                 for frame in sinfo.stacktrace.get("frames") or ()
-                if _handles_frame(frame, data)
+                if _handles_frame(frame)
             ],
         }
         for sinfo in stacktrace_infos
@@ -189,15 +186,15 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         new_frames = []
         raw_frames = sinfo.stacktrace["frames"]
         for sinfo_frame in sinfo.stacktrace["frames"]:
-            if not _handles_frame(sinfo_frame, data):
+            if not _handles_frame(sinfo_frame):
                 new_frames.append(sinfo_frame)
                 continue
 
             complete_frame = complete_stacktrace["frames"][processed_frame_idx]
             processed_frame_idx += 1
 
-            merged_frame = _merge_frame(sinfo_frame, complete_frame)
-            new_frames.append(merged_frame)
+            _merge_frame(sinfo_frame, complete_frame)
+            new_frames.append(sinfo_frame)
 
         sinfo.stacktrace["frames"] = new_frames
 
@@ -210,7 +207,8 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
 
     # NOTE: we are using the `data.exception.values` directory here
     for exception, complete_exception in zip(
-        get_path(data, "exception", "values", filter=True, default=()), response["exceptions"]
+        get_path(data, "exception", "values", filter=True, default=()),
+        response["exceptions"],
     ):
         exception["type"] = complete_exception["type"]
         exception["module"] = complete_exception["module"]
