@@ -200,7 +200,7 @@ export function TransactionNodeDetails({
   }
 
   if (isError) {
-    return <LoadingError message={t('Could not fetch details for the transaction')} />;
+    return <LoadingError message={t('Failed to fetch transaction details')} />;
   }
 
   const {user, contexts, projectSlug} = event;
