@@ -226,7 +226,7 @@ def build_summary_data(
                     )
 
             for activity_type, groups in deduped_groups_by_activity_type.items():
-                for group in list(groups)[:4]:
+                for group in list(groups)[:3]:
                     if activity_type == ActivityType.SET_REGRESSION:
                         project_ctx.regressed_today.append(group)
                     else:
