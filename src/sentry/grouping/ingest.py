@@ -186,7 +186,7 @@ def _calculate_background_grouping(
         return _calculate_event_grouping(project, event, config)
 
 
-def _is_in_transition(project: Project) -> bool:
+def is_in_transition(project: Project) -> bool:
     secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
     secondary_grouping_expiry = project.get_option("sentry:secondary_grouping_expiry")
 
@@ -204,7 +204,7 @@ def maybe_run_secondary_grouping(
     secondary_grouping_config = NULL_GROUPING_CONFIG
     secondary_hashes = NULL_HASHES
 
-    if _is_in_transition(project):
+    if is_in_transition(project):
         with metrics.timer("event_manager.secondary_grouping", tags=metric_tags):
             secondary_grouping_config = SecondaryGroupingConfigLoader().get_config_dict(project)
             secondary_hashes = _calculate_secondary_hash(project, job, secondary_grouping_config)
@@ -496,7 +496,7 @@ def record_calculation_metric_with_result(
     # Track the total number of grouping calculations done overall, so we can divide by the
     # count to get an average number of calculations per event
     tags = {
-        "in_transition": str(_is_in_transition(project)),
+        "in_transition": str(is_in_transition(project)),
         "using_transition_optimization": str(
             features.has(
                 "organizations:grouping-suppress-unnecessary-secondary-hash",
@@ -581,3 +581,14 @@ def check_for_category_mismatch(group: Group) -> bool:
 
 def extract_hashes(calculated_hashes: CalculatedHashes | None) -> list[str]:
     return [] if not calculated_hashes else list(calculated_hashes.hashes)
+
+
+def project_uses_optimized_grouping(project: Project) -> bool:
+    primary_grouping_config = project.get_option("sentry:grouping_config")
+    secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
+    has_mobile_config = "mobile:2021-02-12" in [primary_grouping_config, secondary_grouping_config]
+
+    return not has_mobile_config and features.has(
+        "organizations:grouping-suppress-unnecessary-secondary-hash",
+        project.organization,
+    )

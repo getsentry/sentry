@@ -72,6 +72,6 @@ const Blockquote = styled('blockquote')`
     line-height: 1.6;
     padding: 0;
     word-break: break-word;
-    color: ${p => p.theme.purple400};
+    color: ${p => p.theme.textColor};
   }
 `;

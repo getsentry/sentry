@@ -1597,6 +1597,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable interface functionality to synchronize groups between sentry and
     # issues on external services.
     "organizations:integrations-issue-sync": True,
+    # Allow tenant type installations through issue alert actions
+    "organizations:integrations-msteams-tenant": False,
     # Enable comments of related issues on open PRs for beta languages
     "organizations:integrations-open-pr-comment-beta-langs": False,
     # Enable Opsgenie integration
@@ -3475,7 +3477,9 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "ingest-feedback-events": "default",
     "ingest-feedback-events-dlq": "default",
     "ingest-attachments": "default",
+    "ingest-attachments-dlq": "default",
     "ingest-transactions": "default",
+    "ingest-transactions-dlq": "default",
     "ingest-metrics": "default",
     "ingest-metrics-dlq": "default",
     "snuba-metrics": "default",

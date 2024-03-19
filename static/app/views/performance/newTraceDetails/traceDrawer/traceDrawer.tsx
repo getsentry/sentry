@@ -199,6 +199,7 @@ function TraceDrawer(props: TraceDrawerProps) {
         {props.activeTab === 'trace' ? (
           <TraceLevelDetails
             tree={props.trace}
+            node={props.trace.root.children[0]}
             rootEventResults={props.rootEventResults}
             organization={props.organization}
             location={props.location}
@@ -277,6 +278,8 @@ const TabsContainer = styled('ul')<{hasIndicators: boolean}>`
 const TabLayoutControlsContainer = styled('ul')`
   list-style-type: none;
   padding-left: 0;
+  margin-left: auto;
+  margin-right: ${space(1.5)};
 
   button {
     padding: ${space(0.5)};
