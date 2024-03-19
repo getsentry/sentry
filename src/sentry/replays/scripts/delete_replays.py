@@ -56,7 +56,7 @@ def delete_replays(
             return
 
 
-def translate_cli_tags_param_to_snuba_tag_param(tags: tuple[str]) -> Sequence[SearchFilter]:
+def translate_cli_tags_param_to_snuba_tag_param(tags: list[str]) -> Sequence[SearchFilter]:
     search_query = " AND ".join(tags)
 
     return parse_search_query(search_query, config=replay_url_parser_config)
