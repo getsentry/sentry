@@ -137,6 +137,7 @@ interface EndpointParams extends Partial<PageFilters['datetime']> {
   query?: string;
   sort?: string;
   statsPeriod?: string | null;
+  useGroupSnubaDataset?: boolean;
 }
 
 type CountsEndpointParams = Omit<EndpointParams, 'cursor' | 'page' | 'query'> & {
@@ -430,6 +431,10 @@ class IssueListOverview extends Component<Props, State> {
     const groupStatsPeriod = this.getGroupStatsPeriod();
     if (groupStatsPeriod !== DEFAULT_GRAPH_STATS_PERIOD) {
       params.groupStatsPeriod = groupStatsPeriod;
+    }
+
+    if (this.props.location.query.useGroupSnubaDataset) {
+      params.useGroupSnubaDataset = true;
     }
 
     // only include defined values.
