@@ -56,6 +56,7 @@ from .authentication import (
     ApiKeyAuthentication,
     OrgAuthTokenAuthentication,
     UserAuthTokenAuthentication,
+    update_token_access_record,
 )
 from .paginator import BadPaginationError, MissingPaginationError, Paginator
 from .permissions import (
@@ -407,6 +408,9 @@ class Endpoint(APIView):
                         response = Response(f"Invalid origin: {origin}", status=400)
                         self.response = self.finalize_response(request, response, *args, **kwargs)
                         return self.response
+
+                if request.auth:
+                    update_token_access_record(request.auth)
 
                 self.initial(request, *args, **kwargs)
 
