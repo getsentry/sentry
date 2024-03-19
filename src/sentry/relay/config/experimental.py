@@ -1,6 +1,6 @@
 import logging
-import time
 from collections.abc import MutableMapping
+from datetime import datetime, timedelta, timezone
 from typing import Any, Protocol
 
 import sentry_sdk
@@ -8,17 +8,17 @@ import sentry_sdk
 logger = logging.getLogger(__name__)
 
 
-class TimeoutException(BaseException):
-    _elapsed: float
-    _timeout: float
+class TimeoutException(Exception):
+    _elapsed: timedelta
+    _timeout: timedelta
 
-    def __init__(self, elapsed: float, timeout: float, *args: object) -> None:
+    def __init__(self, elapsed: timedelta, timeout: timedelta, *args: object) -> None:
         super().__init__(*args)
         self._elapsed = elapsed
         self._timeout = timeout
 
 
-class BuildTimeChecker:
+class TimeChecker:
     """Interface to check whether a timeout has been hit.
 
     The class is initialized with the provided hard timeout, in seconds. If it's
@@ -27,34 +27,30 @@ class BuildTimeChecker:
     the moment the class is initialized.
     """
 
-    _hard_timeout: int | None
-    _start: float
+    _hard_timeout: timedelta
+    _start: datetime
 
-    def __init__(self, hard_timeout: int) -> None:
-        if hard_timeout > 0:
-            self._hard_timeout = hard_timeout
-            self._start = time.monotonic()
-        else:
-            self._hard_timeout = None
-            self._start = -1
+    def __init__(self, hard_timeout: timedelta) -> None:
+        self._hard_timeout = hard_timeout
+        self._start = datetime.now(timezone.utc)
 
     def check(self) -> None:
-        if self._hard_timeout is None:
+        if self._hard_timeout <= timedelta(0):
             return
 
-        now = time.monotonic()
+        now = datetime.now(timezone.utc)
         elapsed = now - self._start
         if elapsed >= self._hard_timeout:
             raise TimeoutException(elapsed, self._hard_timeout)
 
 
 class ExperimentalConfigBuilder(Protocol):
-    def __call__(self, timeout: BuildTimeChecker, *args, **kwargs) -> Any:
+    def __call__(self, timeout: TimeChecker, *args, **kwargs) -> Any:
         pass
 
 
-#: Timeout for an experimental feature build, in seconds.
-_FEATURE_BUILD_TIMEOUT = 15
+#: Timeout for an experimental feature build.
+_FEATURE_BUILD_TIMEOUT = timedelta(seconds=15)
 
 
 def add_experimental_config(
@@ -70,7 +66,7 @@ def add_experimental_config(
     NOTE: Only use this function if you expect Relay to behave reasonably
     if ``key`` is missing from the config.
     """
-    timeout = BuildTimeChecker(_FEATURE_BUILD_TIMEOUT)
+    timeout = TimeChecker(_FEATURE_BUILD_TIMEOUT)
 
     with sentry_sdk.start_span(op=f"project_config.experimental_config.{key}"):
         try:

@@ -37,7 +37,7 @@ from sentry.ingest.transaction_clusterer.rules import (
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
-from sentry.relay.config.experimental import BuildTimeChecker, add_experimental_config
+from sentry.relay.config.experimental import TimeChecker, add_experimental_config
 from sentry.relay.config.metric_extraction import (
     get_metric_conditional_tagging_rules,
     get_metric_extraction_config,
@@ -247,7 +247,7 @@ class CardinalityLimit(TypedDict):
     namespace: str | None
 
 
-def get_metrics_config(timeout: BuildTimeChecker, project: Project) -> Mapping[str, Any] | None:
+def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, Any] | None:
     metrics_config = {}
 
     if features.has("organizations:relay-cardinality-limiter", project.organization):
@@ -312,9 +312,7 @@ def get_project_config(
             return _get_project_config(project, full_config=full_config, project_keys=project_keys)
 
 
-def get_dynamic_sampling_config(
-    timeout: BuildTimeChecker, project: Project
-) -> Mapping[str, Any] | None:
+def get_dynamic_sampling_config(timeout: TimeChecker, project: Project) -> Mapping[str, Any] | None:
     if features.has("organizations:dynamic-sampling", project.organization):
         # For compatibility reasons we want to return an empty list of old rules. This has been done in order to make
         # old Relays use empty configs which will result in them forwarding sampling decisions to upstream Relays.
@@ -339,7 +337,7 @@ class TransactionNameRule(TypedDict):
 
 
 def get_transaction_names_config(
-    timeout: BuildTimeChecker, project: Project
+    timeout: TimeChecker, project: Project
 ) -> Sequence[TransactionNameRule] | None:
     if not features.has("organizations:transaction-name-normalize", project.organization):
         return None

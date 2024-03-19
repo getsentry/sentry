@@ -28,7 +28,7 @@ from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
-from sentry.relay.config.experimental import BuildTimeChecker
+from sentry.relay.config.experimental import TimeChecker
 from sentry.search.events import fields
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
@@ -91,7 +91,7 @@ def get_max_widget_specs(organization: Organization) -> int:
 
 @metrics.wraps("on_demand_metrics.get_metric_extraction_config")
 def get_metric_extraction_config(
-    timeout: BuildTimeChecker, project: Project
+    timeout: TimeChecker, project: Project
 ) -> MetricExtractionConfig | None:
     """
     Returns generic metric extraction config for the given project.
