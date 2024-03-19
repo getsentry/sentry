@@ -1,0 +1,3 @@
+**/tests/**/fixtures/**/*
+fixtures/**/*
+tests/relay_integration/**/*

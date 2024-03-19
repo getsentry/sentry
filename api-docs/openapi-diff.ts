@@ -1,11 +1,10 @@
 /* eslint-env node */
 /* eslint import/no-unresolved:0 */
 
-import fs from 'node:fs';
-import https from 'node:https';
-
 import yaml from 'js-yaml';
 import jsonDiff from 'json-diff';
+import fs from 'node:fs';
+import https from 'node:https';
 
 async function main() {
   const openApiData = await new Promise((resolve, reject) =>
