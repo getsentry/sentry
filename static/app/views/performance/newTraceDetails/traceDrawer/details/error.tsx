@@ -93,7 +93,7 @@ export function ErrorNodeDetails({
             </tr>
           ) : (
             <Row title={t('Stack Trace')}>
-              {t('There is no stack trace available for this error')}
+              {t('No stack trace has been reported with this error')}
             </Row>
           )}
           <Tags
