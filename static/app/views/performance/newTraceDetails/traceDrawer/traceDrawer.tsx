@@ -1,7 +1,6 @@
 import {useMemo, useRef} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 
 import {Button} from 'sentry/components/button';
@@ -20,56 +19,17 @@ import {
   useResizableDrawer,
   type UseResizableDrawerOptions,
 } from 'sentry/utils/useResizableDrawer';
-import type {
-  TraceTabsReducerAction,
-  TraceTabsReducerState,
+import {
+  getTraceTabTitle,
+  type TraceTabsReducerAction,
+  type TraceTabsReducerState,
 } from 'sentry/views/performance/newTraceDetails/traceTabs';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/virtualizedViewManager';
 
-import {
-  isAutogroupedNode,
-  isMissingInstrumentationNode,
-  isSpanNode,
-  isTraceErrorNode,
-  isTraceNode,
-  isTransactionNode,
-} from '../guards';
 import {makeTraceNodeBarColor, type TraceTree, type TraceTreeNode} from '../traceTree';
 
 import NodeDetail from './tabs/details';
 import {TraceLevelDetails} from './tabs/trace';
-
-function getTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
-  if (isTransactionNode(node)) {
-    return (
-      node.value['transaction.op'] +
-      (node.value.transaction ? ' - ' + node.value.transaction : '')
-    );
-  }
-
-  if (isSpanNode(node)) {
-    return node.value.op + (node.value.description ? ' - ' + node.value.description : '');
-  }
-
-  if (isAutogroupedNode(node)) {
-    return t('Autogroup');
-  }
-
-  if (isMissingInstrumentationNode(node)) {
-    return t('Missing Instrumentation');
-  }
-
-  if (isTraceErrorNode(node)) {
-    return node.value.title || 'Error';
-  }
-
-  if (isTraceNode(node)) {
-    return t('Trace');
-  }
-
-  Sentry.captureMessage('Unknown node type in trace drawer');
-  return 'Unknown';
-}
 
 const MIN_TRACE_DRAWER_DIMENSTIONS: [number, number] = [480, 30];
 
@@ -238,6 +198,14 @@ function TraceDrawer(props: TraceDrawerProps) {
                 location={props.location}
                 manager={props.manager}
                 scrollToNode={props.scrollToNode}
+                onParentClick={node => {
+                  props.scrollToNode(node);
+                  props.tabsDispatch({
+                    type: 'activate tab',
+                    payload: node,
+                    pin_previous: true,
+                  });
+                }}
               />
             )
           ) : null}
@@ -280,7 +248,6 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
     );
   }
 
-  const title = getTabTitle(node);
   return (
     <Tab
       active={props.tab === props.tabs.current}
@@ -290,7 +257,7 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
       }}
     >
       <TabButtonIndicator backgroundColor={makeTraceNodeBarColor(props.theme, node)} />
-      <TabButton>{title}</TabButton>
+      <TabButton>{getTraceTabTitle(node)}</TabButton>
       <TabPinButton
         pinned={props.pinned}
         onClick={e => {
@@ -472,7 +439,7 @@ const StyledIconPin = styled(IconPin)`
 `;
 
 const ContentWrapper = styled('div')`
-  inset: 0;
+  inset: ${space(1)};
   position: absolute;
 `;
 
