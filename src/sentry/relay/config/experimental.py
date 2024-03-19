@@ -21,7 +21,7 @@ class TimeoutException(Exception):
 class TimeChecker:
     """Interface to check whether a timeout has been hit.
 
-    The class is initialized with the provided hard timeout, in seconds. If it's
+    The class is initialized with the provided hard timeout. If the timedelta is
     not bigger than `0`, no checks are performed.  Calling `check` checks the
     timeout, and raises a `TimeoutException` if it's hit. The timeout starts at
     the moment the class is initialized.
