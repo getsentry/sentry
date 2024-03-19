@@ -327,22 +327,8 @@ class U2fInterface(AuthenticatorInterface):
             sentry_sdk.capture_exception(err)
             return False
         finally:
-            staff_state = request.session.get("staff_webauthn_authentication_state")
-            default_state = request.session.get("webauthn_authentication_state")
-            logger.info(
-                "State in finally",
-                extra={
-                    "user": request.user.id,
-                    "state_timestamp": (
-                        datetime.fromtimestamp(default_state[1]) if default_state else 0
-                    ),
-                    "staff_timestamp": (
-                        datetime.fromtimestamp(staff_state[1]) if staff_state else 0
-                    ),
-                },
-            )
             # Cleanup the U2F state from the session
-            # request.session.pop("webauthn_authentication_state", None)
-            # request.session.pop("staff_webauthn_authentication_state", None)
-            # request.session.pop("staff_auth_flow", None)
+            request.session.pop("webauthn_authentication_state", None)
+            request.session.pop("staff_webauthn_authentication_state", None)
+            request.session.pop("staff_auth_flow", None)
         return True
