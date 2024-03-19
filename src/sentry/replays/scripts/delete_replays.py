@@ -39,24 +39,20 @@ def delete_replays(
                 )
             )
         )
-        count += len(replays)
-        if replays:
-            replay_ids = [r["id"] for r in replays]
 
-            if dry_run:
-                print_message = "Replays to be deleted (dry run): "
-            else:
-                print_message = "Replays deleted: "
-                for replay_id in replay_ids:
-                    delete_replay_recording(project_id, replay_id)
-
-            print(print_message, ", ".join(replay_ids))  # NOQA
+        if dry_run:
+            print(f"Replays to be deleted (dry run): {len(replays)}")  # NOQA
         else:
-            print(f"All rows were successfully deleted. Total replays deleted: {count}")  # NOQA
-            return
+            delete_replay_ids(project_id, replay_ids=[r["id"] for r in replays])
 
 
 def translate_cli_tags_param_to_snuba_tag_param(tags: list[str]) -> Sequence[SearchFilter]:
-    search_query = " AND ".join(tags)
+    return parse_search_query(" AND ".join(tags), config=replay_url_parser_config)
 
-    return parse_search_query(search_query, config=replay_url_parser_config)
+
+def delete_replay_ids(project_id: int, replay_ids: list[str]) -> None:
+    """Delete specific replay-ids from a project."""
+    for replay_id in replay_ids:
+        delete_replay_recording(project_id, replay_id)
+
+    print(f"Total replays deleted: {len(replay_ids)}")  # NOQA
