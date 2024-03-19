@@ -11,24 +11,27 @@ import {space} from 'sentry/styles/space';
 import type {EventTransaction, Organization} from 'sentry/types';
 import {getShortEventId} from 'sentry/utils/events';
 import {getDuration} from 'sentry/utils/formatters';
-import type {TraceMetaQueryChildrenProps} from 'sentry/utils/performance/quickTrace/traceMetaQuery';
 import type {
   TraceFullDetailed,
+  TraceMeta,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
-import {getTraceInfo} from '../traceDetails/utils';
 import {BrowserDisplay} from '../transactionDetails/eventMetas';
 import {MetaData} from '../transactionDetails/styles';
 
+import {isTraceNode} from './guards';
+import type {TraceTree} from './traceTree';
+
 type TraceHeaderProps = {
-  metaResults: TraceMetaQueryChildrenProps;
+  metaResults: UseApiQueryResult<TraceMeta | null, any>;
   organization: Organization;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
   traces: TraceSplitResults<TraceFullDetailed> | null;
+  tree: TraceTree;
 };
 
 export default function TraceHeader({
@@ -36,11 +39,18 @@ export default function TraceHeader({
   rootEventResults,
   traces,
   organization,
+  tree,
 }: TraceHeaderProps) {
-  const errors = metaResults.meta?.errors || 0;
-  const performanceIssues = metaResults.meta?.performance_issues || 0;
+  const traceNode = tree.root.children[0];
+
+  if (!(traceNode && isTraceNode(traceNode))) {
+    throw new Error('Expected a trace node');
+  }
+
+  const errors = traceNode.errors.length || metaResults.data?.errors || 0;
+  const performanceIssues =
+    traceNode.performance_issues.length || metaResults.data?.performance_issues || 0;
   const errorsAndIssuesCount = errors + performanceIssues;
-  const traceInfo = getTraceInfo(traces?.transactions, traces?.orphan_errors);
 
   const replay_id = rootEventResults?.data?.contexts.replay?.replay_id;
 
@@ -113,8 +123,8 @@ export default function TraceHeader({
             bodyText={
               metaResults.isLoading ? (
                 <LoadingIndicator size={20} mini />
-              ) : metaResults.meta ? (
-                metaResults.meta.transactions + metaResults.meta.errors
+              ) : metaResults.data ? (
+                metaResults.data.transactions + metaResults.data.errors
               ) : (
                 '\u2014'
               )
@@ -146,7 +156,7 @@ export default function TraceHeader({
             >
               {metaResults.isLoading ? (
                 <LoadingIndicator size={20} mini />
-              ) : errorsAndIssuesCount > 0 ? (
+              ) : errorsAndIssuesCount >= 0 ? (
                 errorsAndIssuesCount
               ) : (
                 '\u2014'
@@ -161,10 +171,10 @@ export default function TraceHeader({
           bodyText={
             isEmptyTrace ? (
               getDuration(0, 2, true)
-            ) : traceInfo.startTimestamp && traceInfo.endTimestamp ? (
-              getDuration(traceInfo.endTimestamp - traceInfo.startTimestamp, 2, true)
             ) : metaResults.isLoading ? (
               <LoadingIndicator size={20} mini />
+            ) : traceNode.space?.[1] ? (
+              getDuration(traceNode.space[1] / 1000, 2, true)
             ) : (
               '\u2014'
             )

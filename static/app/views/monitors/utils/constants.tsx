@@ -1,14 +1,8 @@
-import {
-  IconCheckmark,
-  IconFire,
-  IconTimer,
-  IconUnsubscribed,
-  IconWarning,
-} from 'sentry/icons';
+import type {StatusIndicatorProps} from 'sentry/components/statusIndicator';
+import {IconCheckmark, IconFire, IconTimer, IconUnsubscribed} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Aliases} from 'sentry/utils/theme';
 import type {StatsBucket} from 'sentry/views/monitors/components/overviewTimeline/types';
-import type {MonitorStatus} from 'sentry/views/monitors/types';
+import type {MonitorStatus, StatusNotice} from 'sentry/views/monitors/types';
 import {CheckInStatus} from 'sentry/views/monitors/types';
 
 // Orders the status in terms of ascending precedence for showing to the user
@@ -20,10 +14,7 @@ export const CHECKIN_STATUS_PRECEDENT = [
   CheckInStatus.ERROR,
 ] satisfies Array<keyof StatsBucket>;
 
-export const statusIconColorMap: Record<
-  MonitorStatus,
-  {color: keyof Aliases; icon: React.ReactNode; label: string}
-> = {
+export const statusIconColorMap: Record<MonitorStatus, StatusNotice> = {
   ok: {
     icon: <IconCheckmark color="successText" />,
     color: 'successText',
@@ -33,16 +24,6 @@ export const statusIconColorMap: Record<
     icon: <IconFire color="errorText" />,
     color: 'errorText',
     label: t('Error'),
-  },
-  timeout: {
-    icon: <IconFire color="errorText" />,
-    color: 'errorText',
-    label: t('Timed Out'),
-  },
-  missed_checkin: {
-    icon: <IconWarning color="warningText" />,
-    color: 'warningText',
-    label: t('Missed'),
   },
   active: {
     icon: <IconTimer color="subText" />,
@@ -54,4 +35,15 @@ export const statusIconColorMap: Record<
     color: 'subText',
     label: t('Muted'),
   },
+};
+
+export const checkStatusToIndicatorStatus: Record<
+  CheckInStatus,
+  StatusIndicatorProps['status']
+> = {
+  [CheckInStatus.OK]: 'success',
+  [CheckInStatus.ERROR]: 'error',
+  [CheckInStatus.IN_PROGRESS]: 'muted',
+  [CheckInStatus.MISSED]: 'warning',
+  [CheckInStatus.TIMEOUT]: 'error',
 };

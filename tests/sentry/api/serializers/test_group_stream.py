@@ -1,4 +1,3 @@
-import datetime
 from unittest import mock
 
 from sentry import tsdb
@@ -68,7 +67,7 @@ class StreamGroupSerializerTestCase(
     @freeze_time(before_now(days=1).replace(hour=13, minute=30, second=0, microsecond=0))
     def test_profiling_issue(self):
         proj = self.create_project()
-        cur_time = before_now(minutes=5).replace(tzinfo=datetime.UTC)
+        cur_time = before_now(minutes=5)
         event, occurrence, group_info = self.store_search_issue(
             proj.id, 1, [f"{ProfileFileIOGroupType.type_id}-group100"], None, cur_time
         )

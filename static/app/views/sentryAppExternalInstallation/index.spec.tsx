@@ -79,7 +79,7 @@ describe('SentryAppExternalInstallation', () => {
       });
     });
 
-    it('sets the org automatically', () => {
+    it('sets the org automatically', async () => {
       render(
         <SentryAppExternalInstallation
           {...RouteComponentPropsFixture()}
@@ -87,17 +87,17 @@ describe('SentryAppExternalInstallation', () => {
         />
       );
 
-      expect(getAppMock).toHaveBeenCalled();
-      expect(getOrgsMock).toHaveBeenCalled();
-      expect(getOrgMock).toHaveBeenCalled();
-      expect(getInstallationsMock).toHaveBeenCalled();
       expect(
-        screen.getByText(
+        await screen.findByText(
           textWithMarkupMatcher(
             'You are installing Sample App for organization Organization 1'
           )
         )
       ).toBeInTheDocument();
+      expect(getAppMock).toHaveBeenCalled();
+      expect(getOrgsMock).toHaveBeenCalled();
+      expect(getOrgMock).toHaveBeenCalled();
+      expect(getInstallationsMock).toHaveBeenCalled();
       expect(screen.queryByText('Select an organization')).not.toBeInTheDocument();
     });
 

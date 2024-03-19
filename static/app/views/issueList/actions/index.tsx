@@ -2,10 +2,15 @@ import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {bulkDelete, bulkUpdate, mergeGroups} from 'sentry/actionCreators/group';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  clearIndicators,
+} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/alert';
 import Checkbox from 'sentry/components/checkbox';
 import {Sticky} from 'sentry/components/sticky';
-import {tct, tn} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
@@ -158,6 +163,13 @@ function IssueListActions({
       });
     }
 
+    if ('priority' in data) {
+      trackAnalytics('issues_stream.updated_priority', {
+        organization,
+        priority: data.priority,
+      });
+    }
+
     actionSelectedGroups(itemIds => {
       // If `itemIds` is undefined then it means we expect to bulk update all items
       // that match the query.
@@ -167,6 +179,10 @@ function IssueListActions({
       // * users with global views need to be explicit about what projects the query will run against
       const projectConstraints = {project: selection.projects};
 
+      if (itemIds?.length) {
+        addLoadingMessage(t('Saving changes\u2026'));
+      }
+
       bulkUpdate(
         api,
         {
@@ -175,12 +191,18 @@ function IssueListActions({
           data,
           query,
           environment: selection.environments,
+          failSilently: true,
           ...projectConstraints,
           ...selection.datetime,
         },
         {
-          complete: () => {
+          success: () => {
+            clearIndicators();
             onActionTaken?.(itemIds ?? [], data);
+          },
+          error: () => {
+            clearIndicators();
+            addErrorMessage(t('Unable to update issues'));
           },
         }
       );

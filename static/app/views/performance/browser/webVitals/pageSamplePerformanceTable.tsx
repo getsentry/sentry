@@ -25,6 +25,7 @@ import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useReplayExists from 'sentry/utils/replayCount/useReplayExists';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -57,7 +58,6 @@ const PAGELOADS_COLUMN_ORDER: GridColumnOrder<keyof TransactionSampleRowWithScor
   {key: 'user.display', width: COL_WIDTH_UNDEFINED, name: t('User')},
   {key: 'measurements.lcp', width: COL_WIDTH_UNDEFINED, name: 'LCP'},
   {key: 'measurements.fcp', width: COL_WIDTH_UNDEFINED, name: 'FCP'},
-  {key: 'measurements.fid', width: COL_WIDTH_UNDEFINED, name: 'FID'},
   {key: 'measurements.cls', width: COL_WIDTH_UNDEFINED, name: 'CLS'},
   {key: 'measurements.ttfb', width: COL_WIDTH_UNDEFINED, name: 'TTFB'},
   {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: t('Profile')},
@@ -152,6 +152,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     transaction,
     enabled: datatype === Datatype.INTERACTIONS,
     limit,
+    filters: new MutableSearch(query ?? '').filters,
   });
 
   const {profileExists} = useProfileExists(

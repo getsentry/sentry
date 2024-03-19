@@ -55,15 +55,22 @@ export default function NodeDetail({
   }
 
   if (isTraceErrorNode(node)) {
-    return <ErrorNodeDetails node={node} organization={organization} />;
+    return (
+      <ErrorNodeDetails
+        node={node}
+        organization={organization}
+        location={location}
+        scrollToNode={scrollToNode}
+      />
+    );
   }
 
   if (isParentAutogroupedNode(node)) {
-    return <ParentAutogroupNodeDetails node={node} />;
+    return <ParentAutogroupNodeDetails node={node} organization={organization} />;
   }
 
   if (isSiblingAutogroupedNode(node)) {
-    return <SiblingAutogroupNodeDetails node={node} />;
+    return <SiblingAutogroupNodeDetails node={node} organization={organization} />;
   }
 
   if (isMissingInstrumentationNode(node)) {

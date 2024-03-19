@@ -1,64 +1,51 @@
-import {useEffect} from 'react';
 import {browserHistory} from 'react-router';
 import type {LocationDescriptorObject} from 'history';
 
-import {transactionTargetHash} from 'sentry/components/events/interfaces/spans/utils';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {getEventTimestamp} from 'sentry/components/quickTrace/utils';
 import type {Event} from 'sentry/types';
-import type {TraceMetaQueryChildrenProps} from 'sentry/utils/performance/quickTrace/traceMetaQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {DEFAULT_TRACE_ROWS_LIMIT} from './limitExceededMessage';
 import {getTraceDetailsUrl} from './utils';
 
 type Props = {
   children: JSX.Element;
   event: Event;
-  metaResults: TraceMetaQueryChildrenProps | undefined;
 };
 
 function TraceDetailsRouting(props: Props) {
-  const {metaResults, event, children} = props;
+  const {event, children} = props;
   const organization = useOrganization();
   const location = useLocation();
   const datetimeSelection = normalizeDateTimeParams(location.query);
+  const traceId = event.contexts?.trace?.trace_id ?? '';
 
-  useEffect(() => {
-    const traceId = event.contexts?.trace?.trace_id ?? '';
+  if (location.query?.legacy) {
+    return children;
+  }
 
-    if (organization.features.includes('performance-trace-details')) {
-      if (event?.groupID && event?.eventID) {
-        const issuesLocation = `/organizations/${organization.slug}/issues/${event.groupID}/events/${event.eventID}`;
-        browserHistory.replace({
-          pathname: issuesLocation,
-        });
-      } else if (
-        metaResults?.meta &&
-        metaResults?.meta.transactions <= DEFAULT_TRACE_ROWS_LIMIT
-      ) {
-        const traceDetailsLocation: LocationDescriptorObject = getTraceDetailsUrl(
-          organization,
-          traceId,
-          datetimeSelection,
-          location.query
-        );
+  if (organization.features.includes('trace-view-v1')) {
+    if (event?.groupID && event?.eventID) {
+      const issuesLocation = `/organizations/${organization.slug}/issues/${event.groupID}/events/${event.eventID}`;
+      browserHistory.replace({
+        pathname: issuesLocation,
+      });
+    } else {
+      const traceDetailsLocation: LocationDescriptorObject = getTraceDetailsUrl(
+        organization,
+        traceId,
+        datetimeSelection,
+        location.query,
+        getEventTimestamp(event),
+        event.eventID
+      );
 
-        browserHistory.replace({
-          pathname: traceDetailsLocation.pathname,
-          query: traceDetailsLocation.query,
-          hash: transactionTargetHash(event.eventID) + location.hash,
-        });
-      }
+      browserHistory.replace({
+        pathname: traceDetailsLocation.pathname,
+        query: traceDetailsLocation.query,
+      });
     }
-  }, [event, metaResults, location, organization, datetimeSelection]);
-
-  if (
-    metaResults?.isLoading &&
-    organization.features.includes('performance-trace-details')
-  ) {
-    return <LoadingIndicator />;
   }
 
   return children;

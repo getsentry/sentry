@@ -26,7 +26,7 @@ import {Queries} from 'sentry/views/ddm/queries';
 import {MetricScratchpad} from 'sentry/views/ddm/scratchpad';
 import {WidgetDetails} from 'sentry/views/ddm/widgetDetails';
 
-export const DDMLayout = memo(() => {
+export const MetricsLayout = memo(() => {
   const organization = useOrganization();
   const {hasMetrics} = useDDMContext();
   const {activateSidebar} = useMetricsOnboardingSidebar();
@@ -59,7 +59,7 @@ export const DDMLayout = memo(() => {
                 'Metrics help you track and visualize the data points you care about, making it easier to monitor your application health and identify issues.'
               )}
             />
-            <FeatureBadge type="alpha" />
+            <FeatureBadge type="beta" />
           </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>

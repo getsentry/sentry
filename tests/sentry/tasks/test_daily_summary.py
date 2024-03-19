@@ -93,9 +93,7 @@ class DailySummaryTest(
             name="foo", organization=self.organization, teams=[self.team]
         )
         self.project2.first_event = self.three_days_ago
-        user_option_service.set_option(
-            user_id=self.user.id, key="timezone", value="America/Los_Angeles"
-        )
+        user_option_service.set_option(user_id=self.user.id, key="timezone", value="Etc/GMT+8")
         self.release = self.create_release(project=self.project, date_added=self.now)
 
     def populate_event_data(
@@ -256,6 +254,114 @@ class DailySummaryTest(
         assert project_context_map2.escalated_today == []
         assert project_context_map2.regressed_today == []
         assert project_context_map2.new_in_release == {}
+
+    def test_build_summary_data_dedupes_groups(self):
+        """
+        Test that if a group has multiple escalated and/or regressed activity rows, we only use the group once
+        """
+        self.populate_event_data()
+        self.group2.status = GroupStatus.UNRESOLVED
+        self.group2.substatus = GroupSubStatus.REGRESSED
+        self.group2.save()
+        Activity.objects.create_group_activity(
+            self.group2,
+            ActivityType.SET_REGRESSION,
+            data={
+                "event_id": self.group2.get_latest_event().event_id,
+                "version": self.release.version,
+            },
+        )
+        Activity.objects.create_group_activity(
+            self.group3,
+            ActivityType.SET_ESCALATING,
+            data={
+                "event_id": self.group3.get_latest_event().event_id,
+                "version": self.release.version,
+            },
+        )
+        summary = build_summary_data(
+            timestamp=self.now.timestamp(),
+            duration=ONE_DAY,
+            organization=self.organization,
+            daily=True,
+        )
+        project_id = self.project.id
+        project_context_map = cast(
+            DailySummaryProjectContext, summary.projects_context_map[project_id]
+        )
+        assert project_context_map.escalated_today == [self.group3]
+        assert project_context_map.regressed_today == [self.group2]
+
+    def test_build_summary_data_group_regressed_and_escalated(self):
+        """
+        Test that if a group has regressed and then escalated in the same day, we only list it once as escalating
+        """
+        self.populate_event_data()
+        Activity.objects.create_group_activity(
+            self.group2,
+            ActivityType.SET_ESCALATING,
+            data={
+                "event_id": self.group2.get_latest_event().event_id,
+                "version": self.release.version,
+            },
+        )
+        self.group2.substatus = GroupSubStatus.ESCALATING
+        self.group2.save()
+        summary = build_summary_data(
+            timestamp=self.now.timestamp(),
+            duration=ONE_DAY,
+            organization=self.organization,
+            daily=True,
+        )
+        project_id = self.project.id
+        project_context_map = cast(
+            DailySummaryProjectContext, summary.projects_context_map[project_id]
+        )
+        assert project_context_map.escalated_today == [self.group2, self.group3]
+        assert project_context_map.regressed_today == []
+
+    def test_build_summary_data_group_regressed_twice_and_escalated(self):
+        """
+        Test that if a group has regressed, been resolved, regresssed again and then escalated in the same day, we only list it once as escalating
+        """
+        self.populate_event_data()
+        self.group2.status = GroupStatus.RESOLVED
+        self.group2.substatus = None
+        self.group2.resolved_at = self.now + timedelta(minutes=1)
+        self.group2.save()
+        Activity.objects.create_group_activity(
+            self.group2,
+            ActivityType.SET_REGRESSION,
+            data={
+                "event_id": self.group2.get_latest_event().event_id,
+                "version": self.release.version,
+            },
+        )
+        self.group2.status = GroupStatus.UNRESOLVED
+        self.group2.substatus = GroupSubStatus.REGRESSED
+        self.group2.save()
+        Activity.objects.create_group_activity(
+            self.group2,
+            ActivityType.SET_ESCALATING,
+            data={
+                "event_id": self.group2.get_latest_event().event_id,
+                "version": self.release.version,
+            },
+        )
+        self.group2.substatus = GroupSubStatus.ESCALATING
+        self.group2.save()
+        summary = build_summary_data(
+            timestamp=self.now.timestamp(),
+            duration=ONE_DAY,
+            organization=self.organization,
+            daily=True,
+        )
+        project_id = self.project.id
+        project_context_map = cast(
+            DailySummaryProjectContext, summary.projects_context_map[project_id]
+        )
+        assert project_context_map.escalated_today == [self.group2, self.group3]
+        assert project_context_map.regressed_today == []
 
     @mock.patch("sentry.tasks.summaries.daily_summary.deliver_summary")
     def test_prepare_summary_data(self, mock_deliver_summary):
