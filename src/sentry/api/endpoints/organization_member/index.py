@@ -76,9 +76,6 @@ class OrganizationMemberRequestSerializer(serializers.Serializer):
     email = AllowedEmailField(
         max_length=75, required=True, help_text="The email address to send the invitation to."
     )
-    user_id = serializers.CharField(
-        required=False, help_text="The user id to add to the organization. For superuser only."
-    )
     role = serializers.ChoiceField(
         choices=roles.get_choices(), default=organization_roles.get_default().id
     )  # deprecated, use orgRole
@@ -376,18 +373,24 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             )
 
         if is_active_staff(request):
-            with transaction.atomic(router.db_for_write(OrganizationMember)):
+            user = user_service.get_user_by_email(email=result["email"])
+            if not user:
+                return Response(
+                    {"email": f"The user with a '{assigned_org_role}' not found."},
+                    status=400,
+                )
+
+        with transaction.atomic(router.db_for_write(OrganizationMember)):
+            if is_active_staff(request):
                 om = OrganizationMember.objects.create(
                     organization=organization,
                     user_email=result["email"],
-                    user_id=result["user_id"],
+                    user_id=user.id,
                     role=result["role"],
                     inviter_id=request.user.id,
                     invite_status=InviteStatus.APPROVED.value,
                 )
-                om.save()
-        else:
-            with transaction.atomic(router.db_for_write(OrganizationMember)):
+            else:
                 # remove any invitation requests for this email before inviting
                 existing_invite = OrganizationMember.objects.filter(
                     Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
@@ -407,7 +410,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
 
                 if settings.SENTRY_ENABLE_INVITES:
                     om.token = om.generate_token()
-                om.save()
+            om.save()
 
         # Do not set team-roles when inviting members
         if "teamRoles" in result or "teams" in result:
@@ -419,31 +422,27 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             save_team_assignments(om, teams)
 
         if is_active_staff(request):
-            self.create_audit_entry(
-                request=request,
-                organization_id=organization.id,
-                target_object=om.id,
-                data=om.get_audit_log_data(),
-                event=(audit_log.get_event_id("MEMBER_ADD")),
+            event = audit_log.get_event_id("MEMBER_ADD")
+        else:
+            event = (
+                audit_log.get_event_id("MEMBER_INVITE")
+                if settings.SENTRY_ENABLE_INVITES
+                else audit_log.get_event_id("MEMBER_ADD")
             )
 
-        else:
-            if settings.SENTRY_ENABLE_INVITES and result.get("sendInvite"):
-                referrer = request.query_params.get("referrer")
-                om.send_invite_email(referrer)
-                member_invited.send_robust(
-                    member=om, user=request.user, sender=self, referrer=request.data.get("referrer")
-                )
-            self.create_audit_entry(
-                request=request,
-                organization_id=organization.id,
-                target_object=om.id,
-                data=om.get_audit_log_data(),
-                event=(
-                    audit_log.get_event_id("MEMBER_INVITE")
-                    if settings.SENTRY_ENABLE_INVITES
-                    else audit_log.get_event_id("MEMBER_ADD")
-                ),
+        if settings.SENTRY_ENABLE_INVITES and result.get("sendInvite"):
+            referrer = request.query_params.get("referrer")
+            om.send_invite_email(referrer)
+            member_invited.send_robust(
+                member=om, user=request.user, sender=self, referrer=request.data.get("referrer")
             )
+
+        self.create_audit_entry(
+            request=request,
+            organization_id=organization.id,
+            target_object=om.id,
+            data=om.get_audit_log_data(),
+            event=event,
+        )
 
         return Response(serialize(om), status=201)
