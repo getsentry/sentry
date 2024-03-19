@@ -4,6 +4,7 @@ from collections.abc import Sequence
 from datetime import datetime
 
 from sentry.api.event_search import SearchFilter, parse_search_query
+from sentry.models.organization import Organization
 from sentry.replays.post_process import generate_normalized_output
 from sentry.replays.query import query_replays_collection, replay_url_parser_config
 from sentry.replays.tasks import delete_replay_recording
@@ -19,8 +20,7 @@ def delete_replays(
     end_utc: datetime,
 ) -> None:
     search_filters = translate_cli_tags_param_to_snuba_tag_param(tags)
-    count = 0
-    from sentry.models.organization import Organization
+    offset = 0
 
     while True:
         replays = list(
@@ -32,13 +32,15 @@ def delete_replays(
                     fields=["id"],
                     limit=batch_size,
                     environment=environment,
-                    offset=count,
+                    offset=offset,
                     search_filters=search_filters,
                     sort="started_at",
                     organization=Organization.objects.filter(project__id=project_id).get(),
                 )
             )
         )
+
+        offset += len(replays)
 
         if dry_run:
             print(f"Replays to be deleted (dry run): {len(replays)}")  # NOQA
@@ -55,4 +57,4 @@ def delete_replay_ids(project_id: int, replay_ids: list[str]) -> None:
     for replay_id in replay_ids:
         delete_replay_recording(project_id, replay_id)
 
-    print(f"Total replays deleted: {len(replay_ids)}")  # NOQA
+    print(f"Deleted {len(replay_ids)} replays.")  # NOQA
