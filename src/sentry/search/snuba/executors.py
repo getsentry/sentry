@@ -1348,6 +1348,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
 
     supported_conditions = [
         SupportedConditions("status", frozenset(["IN"])),
+        SupportedConditions("substatus", frozenset(["IN"])),
     ]
     supported_conditions_lookup = {
         condition.field_name: condition for condition in supported_conditions
