@@ -1,11 +1,10 @@
 import {urlEncode} from '@sentry/utils';
 
 import type {PageFilters} from 'sentry/types';
-import {emptyMetricsQueryWidget} from 'sentry/utils/metrics/constants';
+import {defined} from 'sentry/utils';
 import {MRIToField} from 'sentry/utils/metrics/mri';
-import type {MetricsQuery} from 'sentry/utils/metrics/types';
-import {MetricDisplayType} from 'sentry/utils/metrics/types';
-import type {Widget} from 'sentry/views/dashboards/types';
+import type {MetricDisplayType, MetricsQuery} from 'sentry/utils/metrics/types';
+import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {
   DashboardWidgetSource,
   DisplayType,
@@ -13,7 +12,7 @@ import {
 } from 'sentry/views/dashboards/types';
 
 export function convertToDashboardWidget(
-  metricQueries: MetricsQuery[],
+  metricQueries: ((MetricsQuery & {id?: number}) | {formula: string})[],
   displayType?: MetricDisplayType,
   title = ''
 ): Widget {
@@ -23,7 +22,9 @@ export function convertToDashboardWidget(
     displayType: toDisplayType(displayType),
     widgetType: WidgetType.METRICS,
     limit: 10,
-    queries: metricQueries.map(getWidgetQuery),
+    queries: metricQueries.map(query =>
+      'formula' in query ? getWidgetEquation(query.formula) : getWidgetQuery(query)
+    ),
   };
 }
 
@@ -34,24 +35,26 @@ export function toDisplayType(displayType: unknown): DisplayType {
   return DisplayType.LINE;
 }
 
-export function defaultMetricWidget(selection: PageFilters) {
-  return convertToDashboardWidget(
-    [{...selection, ...emptyMetricsQueryWidget}],
-    MetricDisplayType.LINE
-  );
-}
-
-export function getWidgetQuery(metricsQuery: MetricsQuery) {
+export function getWidgetQuery(metricsQuery: MetricsQuery & {id?: number}): WidgetQuery {
   const field = MRIToField(metricsQuery.mri, metricsQuery.op);
-
   return {
-    name: '',
+    name: defined(metricsQuery.id) ? `${metricsQuery.id}` : '',
     aggregates: [field],
     columns: metricsQuery.groupBy ?? [],
     fields: [field],
     conditions: metricsQuery.query ?? '',
-    // @ts-expect-error TODO: change type
-    orderby: metricsQuery.orderBy,
+    orderby: 'desc',
+  };
+}
+
+export function getWidgetEquation(equation: string): WidgetQuery {
+  return {
+    name: '',
+    aggregates: [`equation|${equation}`],
+    columns: [],
+    fields: [`equation|${equation}`],
+    conditions: '',
+    orderby: 'desc',
   };
 }
 

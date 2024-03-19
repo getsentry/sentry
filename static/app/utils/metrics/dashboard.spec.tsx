@@ -17,6 +17,7 @@ describe('convertToDashboardWidget', () => {
             query: 'event.type:transaction',
             mri: 'c:custom/login@second',
             op: 'p95',
+            id: 1,
           },
         ],
         MetricDisplayType.AREA
@@ -28,12 +29,12 @@ describe('convertToDashboardWidget', () => {
       limit: 10,
       queries: [
         {
-          name: '',
+          name: '1',
           aggregates: ['p95(c:custom/login@second)'],
           columns: ['project'],
           fields: ['p95(c:custom/login@second)'],
           conditions: 'event.type:transaction',
-          orderby: undefined,
+          orderby: 'desc',
         },
       ],
     });
@@ -64,7 +65,50 @@ describe('convertToDashboardWidget', () => {
           columns: [],
           fields: ['p95(d:transactions/measurements.duration@second)'],
           conditions: '',
-          orderby: undefined,
+          orderby: 'desc',
+        },
+      ],
+    });
+  });
+
+  it('should convert a metrics formula to a dashboard widget (transaction mri, with grouping)', () => {
+    expect(
+      convertToDashboardWidget(
+        [
+          {
+            id: 0,
+            groupBy: [],
+            query: '',
+            mri: 'd:transactions/measurements.duration@second',
+            op: 'p95',
+          },
+          {
+            formula: '$b / 2',
+          },
+        ],
+        MetricDisplayType.BAR
+      )
+    ).toEqual({
+      title: '',
+      displayType: DisplayType.BAR,
+      widgetType: 'custom-metrics',
+      limit: 10,
+      queries: [
+        {
+          name: '0',
+          aggregates: ['p95(d:transactions/measurements.duration@second)'],
+          columns: [],
+          fields: ['p95(d:transactions/measurements.duration@second)'],
+          conditions: '',
+          orderby: 'desc',
+        },
+        {
+          name: '',
+          aggregates: ['equation|$b / 2'],
+          columns: [],
+          fields: ['equation|$b / 2'],
+          conditions: '',
+          orderby: 'desc',
         },
       ],
     });
@@ -96,7 +140,7 @@ describe('getWidgetQuery', () => {
       columns: [],
       fields: ['sum(d:custom/sentry.events.symbolicator.query_task@second)'],
       conditions: 'status = "success"',
-      orderby: undefined,
+      orderby: 'desc',
     };
 
     expect(getWidgetQuery(metricsQuery)).toEqual(expectedWidgetQuery);
@@ -114,7 +158,7 @@ describe('toDisplayType', () => {
   });
 
   it('should return DisplayType.LINE if the displayType is invalid or unsupported', () => {
-    expect(DisplayType.LINE).toEqual(toDisplayType(undefined));
+    expect(DisplayType.LINE).toEqual(toDisplayType('desc'));
     expect(DisplayType.LINE).toEqual(toDisplayType(''));
   });
 });
