@@ -117,12 +117,17 @@ class DiscordClient(ApiClient):
         resp: Response | None = None,
         extra: Mapping[str, str] | None = None,
     ) -> None:
+        """
+        For all Discord api responses this:
+        - Sends response metrics to Datadog
+        - Sends response info to logs
+        """
         discord_code = ""
         code_message = ""
 
         try:
-            discord_response = json.loads(resp.content.decode("utf-8")) if resp else {}
-            discord_code = discord_response.get("code")
+            discord_response: dict = json.loads(resp.content.decode("utf-8")) or {}
+            discord_code = discord_response.get("code") or ""
             if discord_code in DISCORD_ERROR_CODES:
                 code_message = DISCORD_ERROR_CODES[discord_code]
 
@@ -154,8 +159,8 @@ class DiscordClient(ApiClient):
             **(extra or {}),
             "status_string": str(code),
             "error": str(error)[:256] if error else None,
-            "discord_code": discord_code,
-            "code_message": code_message,
+            "discord_code": discord_code if error else None,
+            "code_message": code_message if error else None,
         }
 
         if self.integration_type:
