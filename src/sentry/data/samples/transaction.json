@@ -86,7 +86,9 @@
         "duration": 0.02,
         "offset": 0.02
       },
-      "span_id": "c048b4fffdc4279d"
+      "span_id": "c048b4fffdc4279d",
+      "sentry_tags": {
+      }
     },
     {
       "same_process_as_parent": true,
@@ -101,7 +103,10 @@
         "duration": 0.1,
         "offset": 1.0
       },
-      "span_id": "d047a3a8edc3276a"
+      "span_id": "d047a3a8edc3276a",
+      "sentry_tags": {
+	"group": "26b881987e4bad99"
+      }
     }
   ],
   "transaction": "/country_by_code/",
