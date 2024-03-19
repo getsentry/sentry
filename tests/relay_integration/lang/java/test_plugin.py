@@ -509,77 +509,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
     @pytest.mark.symbolicator
     def test_basic_resolving_symbolicator(self):
         with override_options({"symbolicator.proguard-processing-sample-rate": 1.0}):
-            self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
-
-            event_data = {
-                "user": {"ip_address": "31.172.207.97"},
-                "extra": {},
-                "project": self.project.id,
-                "platform": "java",
-                "debug_meta": {"images": [{"type": "proguard", "uuid": PROGUARD_UUID}]},
-                "exception": {
-                    "values": [
-                        {
-                            "stacktrace": {
-                                "frames": [
-                                    {
-                                        "function": "a",
-                                        "abs_path": None,
-                                        "module": "org.a.b.g$a",
-                                        "filename": None,
-                                        "lineno": 67,
-                                    },
-                                    {
-                                        "function": "a",
-                                        "abs_path": None,
-                                        "module": "org.a.b.g$a",
-                                        "filename": None,
-                                        "lineno": 69,
-                                    },
-                                ]
-                            },
-                            "module": "org.a.b",
-                            "type": "g$a",
-                            "value": "Attempt to invoke virtual method 'org.a.b.g$a.a' on a null object reference",
-                        }
-                    ]
-                },
-                "timestamp": iso_format(before_now(seconds=1)),
-            }
-
-            event = self.post_and_retrieve_event(event_data)
-            if not self.use_relay():
-                # We measure the number of queries after an initial post,
-                # because there are many queries polluting the array
-                # before the actual "processing" happens (like, auth_user)
-                with self.assertWriteQueries(
-                    {
-                        "nodestore_node": 2,
-                        "sentry_eventuser": 1,
-                        "sentry_groupedmessage": 1,
-                        "sentry_userreport": 1,
-                    }
-                ):
-                    self.post_and_retrieve_event(event_data)
-
-            exc = event.interfaces["exception"].values[0]
-            bt = exc.stacktrace
-            frames = bt.frames
-
-            assert exc.type == "Util$ClassContextSecurityManager"
-            assert (
-                exc.value
-                == "Attempt to invoke virtual method 'org.slf4j.helpers.Util$ClassContextSecurityManager.getExtraClassContext' on a null object reference"
-            )
-            assert exc.module == "org.slf4j.helpers"
-            assert frames[0].function == "getClassContext"
-            assert frames[0].module == "org.slf4j.helpers.Util$ClassContextSecurityManager"
-            assert frames[1].function == "getExtraClassContext"
-            assert frames[1].module == "org.slf4j.helpers.Util$ClassContextSecurityManager"
-
-            assert event.culprit == (
-                "org.slf4j.helpers.Util$ClassContextSecurityManager " "in getExtraClassContext"
-            )
+            self.test_basic_resolving()
 
     def test_resolving_does_not_fail_when_no_value(self):
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
@@ -636,6 +566,12 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
         metrics = event.data["_metrics"]
         assert not metrics.get("flag.processing.error")
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_resolving_does_not_fail_when_no_value_symbolicator(self):
+        with override_options({"symbolicator.proguard-processing-sample-rate": 1.0}):
+            self.test_resolving_does_not_fail_when_no_value()
 
     def test_resolving_does_not_fail_when_no_module_or_function(self):
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
@@ -704,6 +640,12 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
         metrics = event.data["_metrics"]
         assert not metrics.get("flag.processing.error")
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_resolving_does_not_fail_when_no_module_or_function_symbolicator(self):
+        with override_options({"symbolicator.proguard-processing-sample-rate": 1.0}):
+            self.test_resolving_does_not_fail_when_no_module_or_function()
 
     def test_sets_inapp_after_resolving(self):
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
@@ -799,6 +741,12 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert frames[2].in_app is True
         assert frames[3].in_app is False
         assert frames[4].in_app is True
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_sets_inapp_after_resolving_symbolicator(self):
+        with override_options({"symbolicator.proguard-processing-sample-rate": 1.0}):
+            self.test_sets_inapp_after_resolving()
 
     def test_resolving_inline(self):
         self.upload_proguard_mapping(PROGUARD_INLINE_UUID, PROGUARD_INLINE_SOURCE)
