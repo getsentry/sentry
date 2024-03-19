@@ -61,6 +61,7 @@ export function ThresholdGroupRows({
     [key: string]: EditingThreshold;
   }>(() => {
     const editingThreshold = {};
+
     if (newGroup) {
       const [windowValue, windowSuffix] = parseLargestSuffix(0);
       const id = `${NEW_THRESHOLD_PREFIX}`;
@@ -80,13 +81,14 @@ export function ThresholdGroupRows({
   });
   const [newThresholdIterator, setNewThresholdIterator] = useState<number>(0); // used simply to initialize new threshold
   const api = useApi();
+
   const organization = useOrganization();
+  const isActivatedAlert = organization.features?.includes('activated-alert-rules');
 
   const thresholdIdSet = useMemo(() => {
     const initial = new Set<string>([]);
-    if (initialThreshold) {
-      initial.add(initialThreshold.id);
-    }
+    if (initialThreshold) initial.add(initialThreshold.id);
+
     return new Set([...initial, ...Object.keys(editingThresholds)]);
   }, [initialThreshold, editingThresholds]);
 
@@ -194,9 +196,74 @@ export function ThresholdGroupRows({
     setEditingThresholds(updatedEditingThresholds);
   };
 
+  const saveMetricAlert = (
+    thresholdData: EditingThreshold,
+    method: APIRequestMethod = 'POST'
+  ) => {
+    /* Convert threshold data structure to metric alert data structure */
+    const metricAlertData: UnsavedMetricRule & {name: string} = {
+      name: `Release Alert Rule for ${thresholdData.project.slug} in ${thresholdData.environmentName}`,
+      monitorType: MonitorType.ACTIVATED,
+      aggregate: 'count()',
+      dataset: Dataset.ERRORS,
+      environment: thresholdData.environmentName || null,
+      projects: [thresholdData.project.slug],
+      query: '',
+      resolveThreshold: null,
+      thresholdPeriod: 1,
+      thresholdType: AlertRuleThresholdType.ABOVE,
+      timeWindow: thresholdData.windowValue,
+      triggers: [
+        {
+          label: AlertRuleTriggerType.CRITICAL,
+          alertThreshold: thresholdData.value,
+          actions: [
+            /* TODO - send the default action to recommneded team members, in default channel */
+          ],
+        },
+      ],
+      comparisonDelta: null,
+      eventTypes: [EventTypes.ERROR],
+      owner: null,
+      queryType: MEPAlertsQueryType.ERROR,
+    };
+
+    let apiUrl = `/organizations/${organization.slug}/alert-rules/`;
+    if (!thresholdData.id.includes(NEW_THRESHOLD_PREFIX)) {
+      apiUrl += `${thresholdData.id}/`;
+    }
+
+    const metricAlertRequest = api.requestPromise(apiUrl, {
+      method,
+      data: metricAlertData,
+    });
+
+    return metricAlertRequest;
+  };
+
+  const saveReleaseThreshold = (
+    thresholdData: EditingThreshold,
+    method: APIRequestMethod = 'POST'
+  ) => {
+    let apiUrl = `/projects/${organization.slug}/${thresholdData.project.slug}/release-thresholds/`;
+
+    if (!thresholdData.id.includes(NEW_THRESHOLD_PREFIX)) {
+      apiUrl += `${thresholdData.id}/`;
+    }
+
+    const releaseRequest = api.requestPromise(apiUrl, {
+      method,
+      data: thresholdData,
+    });
+
+    return releaseRequest;
+  };
+
   const saveThreshold = (saveIds: string[]) => {
     saveIds.forEach(id => {
       const thresholdData = editingThresholds[id];
+      const method = id.includes(NEW_THRESHOLD_PREFIX) ? 'POST' : 'PUT';
+
       const seconds = moment
         .duration(thresholdData.windowValue, thresholdData.windowSuffix)
         .as('seconds');
@@ -212,62 +279,14 @@ export function ThresholdGroupRows({
         window_in_seconds: seconds,
       };
 
-      let path = `/projects/${organization.slug}/${thresholdData.project.slug}/release-thresholds/${id}/`;
-      let method: APIRequestMethod = 'PUT';
+      const request = isActivatedAlert
+        ? saveMetricAlert(submitData, method)
+        : saveReleaseThreshold(submitData, method);
 
-      if (id.includes(NEW_THRESHOLD_PREFIX)) {
-        path = `/projects/${organization.slug}/${thresholdData.project.slug}/release-thresholds/`;
-        method = 'POST';
-      }
-
-      // TODO - make sure this is behind the flag for organizations:activated-alert-rules
-      const metricAlertData: UnsavedMetricRule & {name: string} = {
-        name: `Release Alert Rule for ${thresholdData.project.slug} in ${submitData.environmentName}`,
-        monitorType: MonitorType.ACTIVATED,
-        aggregate: 'count()',
-        dataset: Dataset.ERRORS,
-        environment: submitData.environmentName || null,
-        projects: [submitData.project.slug],
-        query: '',
-        resolveThreshold: null,
-        thresholdPeriod: 1,
-        thresholdType: AlertRuleThresholdType.ABOVE,
-        timeWindow: submitData.windowValue,
-        triggers: [
-          {
-            label: AlertRuleTriggerType.CRITICAL,
-            alertThreshold: submitData.value,
-            actions: [
-              /* TODO - need to ask nathan about this */
-            ],
-          },
-        ],
-        comparisonDelta: null,
-        eventTypes: [EventTypes.ERROR],
-        owner: null,
-        queryType: MEPAlertsQueryType.ERROR,
-      };
-
-      const metricAlertRequest = api.requestPromise(
-        `/api/0/organizations/${organization.slug}/alert-rules/`,
-        {
-          method,
-          data: metricAlertData,
-        }
-      );
-
-      const request = api.requestPromise(path, {
-        method,
-        data: submitData,
-      });
-
-      Promise.all([metricAlertRequest, request])
+      request
         .then(() => {
           refetch();
           closeEditForm(id);
-          if (onFormClose) {
-            onFormClose(id);
-          }
         })
         .catch(_err => {
           setTempError('Issue saving threshold');
@@ -287,8 +306,11 @@ export function ThresholdGroupRows({
   const deleteThreshold = thresholdId => {
     const updatedEditingThresholds = {...editingThresholds};
     const thresholdData = editingThresholds[thresholdId];
-    const path = `/projects/${organization.slug}/${thresholdData.project.slug}/release-thresholds/${thresholdId}/`;
     const method = 'DELETE';
+
+    let path = `/projects/${organization.slug}/${thresholdData.project.slug}/release-thresholds/${thresholdId}/`;
+    if (isActivatedAlert)
+      path = `/organizations/${organization.slug}/alert-rules/${thresholdId}/`;
 
     if (!thresholdId.includes(NEW_THRESHOLD_PREFIX)) {
       const request = api.requestPromise(path, {
