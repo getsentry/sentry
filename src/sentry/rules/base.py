@@ -61,6 +61,7 @@ class RuleBase(abc.ABC):
         project: Project,
         data: dict[str, Any] | None = None,
         rule: Rule | None = None,
+        **kwargs: Any,
     ) -> None:
         self.project = project
         self.data = data or {}

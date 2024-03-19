@@ -15,6 +15,7 @@ from sentry.eventstore.models import GroupEvent
 from sentry.models.environment import Environment
 from sentry.models.grouprulestatus import GroupRuleStatus
 from sentry.models.rule import Rule
+from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules import EventState, history, rules
 from sentry.rules.actions.base import instantiate_action
@@ -262,13 +263,18 @@ class RuleProcessor:
             )
 
         notification_uuid = str(uuid.uuid4())
-        history.record(rule, self.group, self.event.event_id, notification_uuid)
-        self.activate_downstream_actions(rule, notification_uuid)
+        rule_fire_history = history.record(rule, self.group, self.event.event_id, notification_uuid)
+        self.activate_downstream_actions(rule, notification_uuid, rule_fire_history)
 
-    def activate_downstream_actions(self, rule: Rule, notification_uuid: str | None = None) -> None:
+    def activate_downstream_actions(
+        self,
+        rule: Rule,
+        notification_uuid: str | None = None,
+        rule_fire_history: RuleFireHistory | None = None,
+    ) -> None:
         state = self.get_state()
         for action in rule.data.get("actions", ()):
-            action_inst = instantiate_action(rule, action)
+            action_inst = instantiate_action(rule, action, rule_fire_history)
             if not action_inst:
                 continue
 
