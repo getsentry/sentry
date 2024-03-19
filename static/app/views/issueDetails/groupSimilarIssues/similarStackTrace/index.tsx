@@ -177,6 +177,7 @@ function SimilarStackTrace({params, location, project}: Props) {
           which refers to whether or not we'd group the similar issue into the main issue.
         </Alert>
       )}
+      <DataConsentBanner source="grouping" />
       <Layout.Body>
         <Layout.Main fullWidth>
           <HeaderWrapper>
@@ -187,7 +188,6 @@ function SimilarStackTrace({params, location, project}: Props) {
               )}
             </small>
           </HeaderWrapper>
-          <DataConsentBanner source="grouping" />
           {status === 'loading' && <LoadingIndicator />}
           {status === 'error' && (
             <LoadingError

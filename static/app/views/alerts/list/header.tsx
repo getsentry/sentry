@@ -86,7 +86,6 @@ function AlertHeader({router, activeTab}: Props) {
         </ButtonBar>
       </Layout.HeaderActions>
       <DataConsentBanner source="alerts" />
-      <br />
       <Layout.HeaderNavTabs underlined>
         {alertRulesLink}
         <li className={activeTab === 'stream' ? 'active' : ''}>
