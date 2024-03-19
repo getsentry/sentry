@@ -19,9 +19,13 @@ logger = logging.getLogger(__name__)
     silo_mode=SiloMode.REGION,
 )
 def update_user_reports(**kwargs: Any) -> None:
-    now = timezone.now()
+    end = kwargs.get("end", timezone.now() + timedelta(minutes=5))  # Just to catch clock skew
+    start = kwargs.get("start", end - timedelta(days=1))
     user_reports = UserReport.objects.filter(
-        group_id__isnull=True, environment_id__isnull=True, date_added__gte=now - timedelta(days=1)
+        group_id__isnull=True,
+        environment_id__isnull=True,
+        date_added__gte=start,
+        date_added__lte=end,
     )
 
     # We do one query per project, just to avoid the small case that two projects have the same event ID
@@ -44,8 +48,8 @@ def update_user_reports(**kwargs: Any) -> None:
             snuba_filter = eventstore.Filter(
                 project_ids=[project_id],
                 event_ids=event_id_chunk,
-                start=now - timedelta(days=2),
-                end=now + timedelta(minutes=5),  # Just to catch clock skew
+                start=start - timedelta(days=1),  # we go one extra day back for events
+                end=end,
             )
             events_chunk = eventstore.backend.get_events(
                 filter=snuba_filter, referrer="tasks.update_user_reports"
