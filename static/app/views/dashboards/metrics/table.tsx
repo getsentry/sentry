@@ -63,7 +63,7 @@ export function MetricTable({
       }
       const {order} = column;
       const newOrder = order === 'desc' ? 'asc' : 'desc';
-      onOrderChange({...column, queryType: column.queryType, order: newOrder});
+      onOrderChange({...column, order: newOrder});
     },
     [onOrderChange]
   );
