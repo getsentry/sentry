@@ -37,7 +37,7 @@ def update_user_reports(**kwargs: Any) -> None:
 
     MAX_EVENTS = kwargs.get(
         "max_events",
-        4000,  # the default max_query_size is 256 KiB, this adds 40b per event, so 4000 is 160 KiB
+        2000,  # the default max_query_size is 256 KiB, which we're hitting with 5000 events, so keeping it safe at 2000
     )
     for project_id, reports in project_map.items():
         event_ids = [r.event_id for r in reports]
