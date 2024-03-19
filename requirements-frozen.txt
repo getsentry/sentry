@@ -27,7 +27,7 @@ click-plugins==1.1.1
 click-repl==0.3.0
 confluent-kafka==2.1.1
 croniter==1.3.10
-cryptography==41.0.7
+cryptography==42.0.4
 cssselect==1.0.3
 cssutils==2.9.0
 datadog==0.44.0
