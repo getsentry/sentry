@@ -1,44 +1,73 @@
 # This is used by the action https://github.com/dorny/paths-filter
 
-# TODO: There are some meta files that we potentially could ignore for both front/backend,
-# as well as some configuration files that should trigger both
-frontend_components_lintable: &frontend_components_lintable
-  - '**/*.[tj]{s,sx}'
+sentry_specific_workflow: &sentry_specific_workflow
+  - added|modified: '.github/workflows/frontend.yml'
+sentry_specific_test_files: &sentry_specific_test_files
+  - added|modified: 'tests/js/**/*'
+  - added|deleted|modified: 'fixtures/search-syntax/**/*'
+  - added|deleted|modified: 'fixtures/js-stubs/**/*'
 
-frontend_lintable: &frontend_lintable
-  - *frontend_components_lintable
-  - '**/tsconfig*.json'
-  - '{package,now,vercel}.json'
+# Provides list of changed app files to lint against (stylelint)
+lintable_css_in_js_modified: &lintable_css_in_js_modified
+  - added|modified: '**/*.[tj]{s,sx}'
 
-yarn_lockfile: &yarn_lockfile
-  - 'yarn.lock'
+# Trigger for when we must run full lint (stylelint)
+lintable_css_in_js_modified_rules_changed: &lintable_css_in_js_modified_rules_changed
+  - *sentry_specific_workflow
+  - added|modified: '.github/file-filters.yml'
+  - added|modified: 'yarn.lock'
+  - added|deleted|modified: 'stylelint.*'
+  - *lintable_css_in_js_modified
 
-eslint_config: &eslint_config
-  - '.eslint*'
+# Provides list of changed files to lint against (eslint)
+lintable_modified: &lintable_modified
+  - added|modified: '**/*.[tj]{s,sx}'
+  - added|modified: '**/*.{html,less,json,yml,md}'
 
-# `frontend_src` filters on files that are frontend changes excluding
-# changes to the tests/ directory.
-# If you want to filter on *all* frontend files, use the `frontend_all` filter.
-frontend_src: &frontend_src
-  - *yarn_lockfile
-  - *eslint_config
-  - '!(tests)/**/*.[tj]{s,sx}'
-  - '**/tsconfig*.json'
-  - '{package,now,vercel}.json'
-  - '**/*.less'
-  - 'static/**'
-  - 'fixtures/search-syntax/**/*'
-  - '.github/workflows/frontend.yml'
+# Trigger for when we must run full lint (eslint)
+lintable_modified_rules_changed: &lintable_modified_rules_changed
+  - *sentry_specific_workflow
+  - added|modified: '.github/file-filters.yml'
+  - added|modified: 'package.json'
+  - added|modified: 'yarn.lock'
+  - added|deleted|modified: '.prettierignore'
+  - added|deleted|modified: '.eslintignore'
+  - added|deleted|modified: '.eslint*'
+  - *lintable_modified
 
+# Provides list of changed files to test (jest)
+# getsentry/sentry does not use this directly, instead we shard tests inside jest.config.js
+testable_modified: &testable_modified
+  - added|modified: 'package.json'
+  - added|modified: 'static/**/*.[tj]{s,sx}'
+  - *sentry_specific_test_files
+
+# Trigger for when we must run full tests (jest)
+testable_modified_rules_changed: &testable_modified_rules_changed
+  - *sentry_specific_workflow
+  - added|modified: '.github/file-filters.yml'
+  - added|modified: 'jest.config.ts'
+  - *testable_modified
+
+# Trigger whether to run tsc or not
+# There's no "rules_changed" for this, because we run it for all files always
+# getsentry/sentry does not use this directly, instead frontend_all is a superset to trigger tsc
+typecheckable_modified_rules_changed: &typecheckable_modified_rules_changed
+  - *sentry_specific_workflow
+  - added|modified: '.github/file-filters.yml'
+  - added|deleted|modified: '**/tsconfig*.json'
+  - added|deleted|modified: 'static/**/*.[tj]{s,sx}'
+  - *sentry_specific_test_files
+
+# Trigger to apply the 'Scope: Frontend' label to PRs
 frontend_all: &frontend_all
-  - *frontend_src
-  - '**/*.[tj]{s,sx}'
-
-frontend_modified_lintable:
-  - added|modified: *frontend_lintable
-
-frontend_components_modified_lintable:
-  - added|modified: *frontend_components_lintable
+  - *lintable_css_in_js_modified_rules_changed
+  - *lintable_modified_rules_changed
+  - *testable_modified_rules_changed
+  - *typecheckable_modified_rules_changed
+  - added|modified: '{.volta,vercel}.json'
+  - *sentry_specific_workflow
+  - *sentry_specific_test_files
 
 # Also used in `getsentry-dispatch.yml` to dispatch backend tests on getsentry
 backend_dependencies: &backend_dependencies
