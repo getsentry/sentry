@@ -42,7 +42,7 @@ function SlideOverPanel(
   return (
     <Fragment>
       <Backdrop
-        style={collapsed ? {} : {opacity: BACKDROP_OPACITY, pointerEvents: 'auto'}}
+        style={collapsed ? {} : {opacity: BACKDROP_OPACITY, pointerEvents: 'none'}}
       />
 
       <_SlideOverPanel
