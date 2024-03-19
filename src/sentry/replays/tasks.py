@@ -6,7 +6,7 @@ import uuid
 from typing import Any
 
 from sentry.replays.lib.kafka import initialize_replays_publisher
-from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta, StorageBlob
+from sentry.replays.lib.storage import filestore, storage
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.usecases.reader import fetch_segments_metadata
 from sentry.silo import SiloMode
@@ -23,32 +23,42 @@ from sentry.utils import json, metrics
 )
 def delete_recording_segments(project_id: int, replay_id: str, **kwargs: Any) -> None:
     """Asynchronously delete a replay."""
-    metrics.incr("replays.delete_replay", amount=1, tags={"status": "started"})
-    delete_replay_recording(project_id, replay_id)
+    metrics.incr("replays.delete_recording_segments", amount=1, tags={"status": "started"})
     archive_replay(project_id, replay_id)
-    metrics.incr("replays.delete_replay", amount=1, tags={"status": "finished"})
+    delete_replay_recording(project_id, replay_id)
+    metrics.incr("replays.delete_recording_segments", amount=1, tags={"status": "finished"})
 
 
 def delete_replay_recording(project_id: int, replay_id: str) -> None:
     """Delete all recording-segments associated with a Replay."""
-
-    def delete_recording_segment(segment: RecordingSegmentStorageMeta):
-        driver = FilestoreBlob() if segment.file_id else StorageBlob()
-        driver.delete(segment)
-
-    # Fetch segment storage metadata.
     segments_from_metadata = fetch_segments_metadata(project_id, replay_id, offset=0, limit=10000)
-    metrics.distribution("replays.segments_deleted", value=len(segments_from_metadata))
+    metrics.distribution("replays.num_segments_deleted", value=len(segments_from_metadata))
 
     # Fetch any recording-segment models that may have been written.
     segments_from_django_models = ReplayRecordingSegment.objects.filter(
         replay_id=replay_id, project_id=project_id
     ).all()
 
-    # There could be a lot of segments. We'll issue the delete requests in a threadpool.
+    # Filestore and direct storage segments are split into two different delete operations.
+    direct_storage_segments = []
+    filestore_segments = []
+    for segment in segments_from_metadata:
+        if segment.file_id:
+            filestore_segments.append(segment)
+        else:
+            direct_storage_segments.append(segment)
+
+    # Issue concurrent delete requests when interacting with a remote service provider.
     with cf.ThreadPoolExecutor(max_workers=100) as pool:
-        pool.map(delete_recording_segment, segments_from_metadata)
-        pool.map(lambda model: model.delete(), segments_from_django_models)
+        pool.map(storage.delete, direct_storage_segments)
+
+    # This will only run if "filestore" was used to store the files. This hasn't been the
+    # case since March of 2023. This exists to serve self-hosted customers with the filestore
+    # configuration still enabled. This should be fast enough for those use-cases.
+    for segment in filestore_segments:
+        filestore.delete(segment)
+    for segment in segments_from_django_models:
+        segment.delete()
 
 
 def archive_replay(project_id: int, replay_id: str) -> None:
