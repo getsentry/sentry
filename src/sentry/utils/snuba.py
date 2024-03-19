@@ -959,6 +959,12 @@ def _apply_cache_and_build_results(
     return [result[1] for result in results]
 
 
+def split_query(snuba_param_list: Sequence[RequestQueryBody], max_size: int) -> List[Sequence[RequestQueryBody]]:
+    """\n    Splits the snuba_param_list into smaller chunks, ensuring that each chunk's size is below max_size.
+    """
+    # Placeholder for the actual implementation
+    pass
+
 def _bulk_snuba_query(
     snuba_param_list: Sequence[RequestQueryBody],
     headers: Mapping[str, str],
