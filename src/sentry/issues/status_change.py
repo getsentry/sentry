@@ -15,7 +15,7 @@ from sentry.models.project import Project
 from sentry.models.user import User
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import issue_ignored, issue_unignored, issue_unresolved
-from sentry.tasks.integrations import kick_off_status_syncs
+from sentry.tasks.integrations.kick_off_status_syncs import kick_off_status_syncs
 from sentry.types.activity import ActivityType
 from sentry.utils import json
 
