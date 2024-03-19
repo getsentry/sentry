@@ -750,9 +750,9 @@ urlpatterns += [
     ),
     # DDM
     re_path(
-        r"^ddm/",
+        r"^metrics/",
         react_page_view,
-        name="ddm",
+        name="metrics",
     ),
     # Request to join an organization
     re_path(
