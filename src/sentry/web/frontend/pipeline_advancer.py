@@ -7,7 +7,7 @@ from django.utils.translation import gettext_lazy as _
 from sentry.api.utils import generate_organization_url
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations.github.integration import (
-    INSTALLATION_CSRF_COOKIE_MAX_AGE,
+    INSTALLATION_CSRF_COOKIE_MAX_AGE_SECONDS,
     INSTALLATION_CSRF_COOKIE_NAME,
 )
 from sentry.integrations.pipeline import IntegrationPipeline
@@ -56,7 +56,7 @@ class PipelineAdvancerView(BaseView):
             rv.set_cookie(
                 INSTALLATION_CSRF_COOKIE_NAME,
                 str(request.user.id),
-                max_age=INSTALLATION_CSRF_COOKIE_MAX_AGE,
+                max_age=INSTALLATION_CSRF_COOKIE_MAX_AGE_SECONDS,
                 path="/",
                 httponly=True,
             )

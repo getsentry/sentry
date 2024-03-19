@@ -116,7 +116,7 @@ ERR_INTEGRATION_PENDING_DELETION = _(
 )
 
 INSTALLATION_CSRF_COOKIE_NAME = "github-integration-installation"
-INSTALLATION_CSRF_COOKIE_MAX_AGE = 10 * 60
+INSTALLATION_CSRF_COOKIE_MAX_AGE_SECONDS = 10 * 60
 
 
 def build_repository_query(metadata: Mapping[str, Any], name: str, query: str) -> bytes:
@@ -375,7 +375,7 @@ class GitHubInstallation(PipelineView):
             rv.set_cookie(
                 INSTALLATION_CSRF_COOKIE_NAME,
                 str(request.user.id),
-                max_age=INSTALLATION_CSRF_COOKIE_MAX_AGE,
+                max_age=INSTALLATION_CSRF_COOKIE_MAX_AGE_SECONDS,
                 path="/",
                 httponly=True,
             )
