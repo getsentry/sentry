@@ -217,7 +217,7 @@ function DropdownMenu({
       <DropdownMenuList
         {...props}
         {...menuProps}
-        // We manually handle focus in the dropdown menu, so we don't want the
+        // We manually handle focus in the dropdown menu, so we don't want the aria focus
         autoFocus={false}
         size={size}
         disabledKeys={disabledKeys ?? defaultDisabledKeys}
