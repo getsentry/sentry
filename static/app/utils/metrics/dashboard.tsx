@@ -43,7 +43,8 @@ export function getWidgetQuery(metricsQuery: MetricsQuery & {id?: number}): Widg
     columns: metricsQuery.groupBy ?? [],
     fields: [field],
     conditions: metricsQuery.query ?? '',
-    orderby: 'desc',
+    // @ts-expect-error TODO: change type of orderby
+    orderby: undefined,
   };
 }
 
@@ -54,7 +55,8 @@ export function getWidgetEquation(equation: string): WidgetQuery {
     columns: [],
     fields: [`equation|${equation}`],
     conditions: '',
-    orderby: 'desc',
+    // @ts-expect-error TODO: change type of orderby
+    orderby: undefined,
   };
 }
 

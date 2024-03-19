@@ -34,7 +34,7 @@ describe('convertToDashboardWidget', () => {
           columns: ['project'],
           fields: ['p95(c:custom/login@second)'],
           conditions: 'event.type:transaction',
-          orderby: 'desc',
+          orderby: undefined,
         },
       ],
     });
@@ -65,7 +65,7 @@ describe('convertToDashboardWidget', () => {
           columns: [],
           fields: ['p95(d:transactions/measurements.duration@second)'],
           conditions: '',
-          orderby: 'desc',
+          orderby: undefined,
         },
       ],
     });
@@ -100,7 +100,7 @@ describe('convertToDashboardWidget', () => {
           columns: [],
           fields: ['p95(d:transactions/measurements.duration@second)'],
           conditions: '',
-          orderby: 'desc',
+          orderby: undefined,
         },
         {
           name: '',
@@ -108,7 +108,7 @@ describe('convertToDashboardWidget', () => {
           columns: [],
           fields: ['equation|$b / 2'],
           conditions: '',
-          orderby: 'desc',
+          orderby: undefined,
         },
       ],
     });
@@ -140,7 +140,7 @@ describe('getWidgetQuery', () => {
       columns: [],
       fields: ['sum(d:custom/sentry.events.symbolicator.query_task@second)'],
       conditions: 'status = "success"',
-      orderby: 'desc',
+      orderby: undefined,
     };
 
     expect(getWidgetQuery(metricsQuery)).toEqual(expectedWidgetQuery);
@@ -158,7 +158,7 @@ describe('toDisplayType', () => {
   });
 
   it('should return DisplayType.LINE if the displayType is invalid or unsupported', () => {
-    expect(DisplayType.LINE).toEqual(toDisplayType('desc'));
+    expect(DisplayType.LINE).toEqual(toDisplayType(undefined));
     expect(DisplayType.LINE).toEqual(toDisplayType(''));
   });
 });
