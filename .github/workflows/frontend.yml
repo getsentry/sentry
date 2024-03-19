@@ -141,6 +141,7 @@ jobs:
       fail-fast: false
       matrix:
         # XXX: When updating this, make sure you also update CI_NODE_TOTAL.
+
         instance: [0, 1, 2, 3]
 
     steps:
