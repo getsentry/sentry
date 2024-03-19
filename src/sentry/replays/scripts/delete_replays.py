@@ -13,8 +13,8 @@ def delete_replays(
     project_id: int,
     dry_run: bool,
     batch_size: int,
-    environment: tuple[str],
-    tags: tuple[str],
+    environment: list[str],
+    tags: list[str],
     start_utc: datetime,
     end_utc: datetime,
 ) -> None:

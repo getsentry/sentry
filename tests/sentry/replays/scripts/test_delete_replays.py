@@ -26,7 +26,7 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
         replay_id: str,
         project_id: str,
         timestamp,
-        environment: str = None,
+        environment: str | None = None,
         tags: dict | None = None,
     ):
         if tags is None:
