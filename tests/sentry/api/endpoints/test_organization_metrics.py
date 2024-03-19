@@ -190,7 +190,7 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
             "detail": ErrorDetail(string="Unsupported sort: id for MRI", code="parse_error")
         }
 
-    def test_span_exclusive_time_samples(self):
+    def test_span_exclusive_time_samples_zero_group(self):
         durations = [100, 200, 300]
         span_ids = [uuid4().hex[:16] for _ in durations]
         good_span_id = span_ids[1]
@@ -206,7 +206,6 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
                 duration=duration,
                 exclusive_time=duration,
                 timestamp=ts,
-                group=uuid4().hex[:16],  # we need a non 0 group
             )
 
         query = {
@@ -233,10 +232,10 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
 
         query = {
             "mri": "d:spans/duration@millisecond",
-            "field": ["id", "span.duration"],
+            "field": ["id", "span.self_time"],
             "project": [self.project.id],
             "statsPeriod": "14d",
-            "sort": "-span.duration",
+            "sort": "-summary",
         }
         response = self.do_request(query)
         assert response.status_code == 200, response.data
@@ -267,7 +266,6 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
                 span_id=span_id,
                 duration=duration,
                 timestamp=ts,
-                group=uuid4().hex[:16],  # we need a non 0 group
                 measurements={
                     measurement: duration + j + 1
                     for j, measurement in enumerate(
@@ -289,7 +287,6 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
                 uuid4().hex,
                 span_id=uuid4().hex[:16],
                 timestamp=ts,
-                group=uuid4().hex[:16],  # we need a non 0 group
             )
 
         for i, mri in enumerate(
@@ -329,7 +326,7 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
                 "field": ["id", "span.duration"],
                 "project": [self.project.id],
                 "statsPeriod": "14d",
-                "sort": "-span.duration",
+                "sort": "-summary",
             }
             response = self.do_request(query)
             assert response.status_code == 200, response.data
@@ -399,7 +396,7 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
             "field": ["id", "span.duration"],
             "project": [self.project.id],
             "statsPeriod": "14d",
-            "sort": "-span.duration",
+            "sort": "-summary",
         }
         response = self.do_request(query)
         assert response.status_code == 200, response.data
@@ -493,7 +490,7 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
             "field": ["id", "span.duration"],
             "project": [self.project.id],
             "statsPeriod": "14d",
-            "sort": "-span.duration",
+            "sort": "-summary",
         }
         response = self.do_request(query)
         assert response.status_code == 200, response.data
@@ -527,7 +524,6 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
                 span_id=span_id,
                 duration=val,
                 timestamp=ts,
-                group=uuid4().hex[:16],  # we need a non 0 group
                 store_metrics_summary={
                     mri: [
                         {
@@ -547,7 +543,6 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
             uuid4().hex,
             span_id=uuid4().hex[:16],
             timestamp=before_now(days=10, minutes=10).replace(microsecond=0),
-            group=uuid4().hex[:16],  # we need a non 0 group
             store_metrics_summary={
                 "d:custom/other@millisecond": [
                     {
@@ -590,26 +585,28 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
                     "count": 4,
                 }, operation
 
-        query = {
-            "mri": mri,
-            "field": ["id", "span.duration"],
-            "project": [self.project.id],
-            "statsPeriod": "14d",
-            "sort": "-span.duration",
-        }
-        response = self.do_request(query)
-        assert response.status_code == 200, response.data
-        expected = {int(span_id, 16) for span_id in span_ids}
-        actual = {int(row["id"], 16) for row in response.data["data"]}
-        assert actual == expected
-
-        for i, (val, row) in enumerate(zip(reversed(values), response.data["data"])):
-            assert row["summary"] == {
-                "min": val - 1,
-                "max": val + 1,
-                "sum": val * (len(values) - i) * 2,
-                "count": (len(values) - i) * 2,
+        for operation in ["avg", "min", "max", "count"]:
+            query = {
+                "mri": mri,
+                "field": ["id", "span.duration"],
+                "project": [self.project.id],
+                "statsPeriod": "14d",
+                "sort": "-summary",
+                "operation": operation,
             }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+            expected = {int(span_id, 16) for span_id in span_ids}
+            actual = {int(row["id"], 16) for row in response.data["data"]}
+            assert actual == expected
+
+            for i, (val, row) in enumerate(zip(reversed(values), response.data["data"])):
+                assert row["summary"] == {
+                    "min": val - 1,
+                    "max": val + 1,
+                    "sum": val * (len(values) - i) * 2,
+                    "count": (len(values) - i) * 2,
+                }
 
     def test_multiple_span_sample_per_time_bucket(self):
         custom_mri = "d:custom/value@millisecond"
@@ -626,7 +623,6 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
                 duration=value,
                 exclusive_time=value,
                 timestamp=ts,
-                group=uuid4().hex[:16],  # we need a non 0 group
                 measurements={"score.total": value},
                 store_metrics_summary={
                     custom_mri: [
@@ -654,7 +650,7 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
             }
             response = self.do_request(query)
             assert response.status_code == 200, response.data
-            expected = {int(span_ids[i], 16) for i in [0, 2, 4]}
+            expected = {int(span_ids[i], 16) for i in [2, 3, 4]}
             actual = {int(row["id"], 16) for row in response.data["data"]}
             assert actual == expected
 
@@ -698,6 +694,6 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
             }
             response = self.do_request(query)
             assert response.status_code == 200, response.data
-            expected = {int(span_ids[i], 16) for i in [0, 2, 4]}
+            expected = {int(span_ids[i], 16) for i in [2, 3, 4]}
             actual = {int(row["id"], 16) for row in response.data["data"]}
             assert actual == expected

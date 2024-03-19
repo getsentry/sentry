@@ -5,6 +5,7 @@ import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import {QueryClientProvider} from 'sentry/utils/queryClient';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -63,7 +64,7 @@ describe('useSpanMetricsSeries', () => {
     const {result} = reactHooks.renderHook(
       ({filters, enabled}) =>
         useSpanMetricsSeries({
-          filters,
+          search: MutableSearch.fromQueryObject(filters),
           enabled,
         }),
       {
@@ -96,7 +97,8 @@ describe('useSpanMetricsSeries', () => {
     });
 
     const {result, waitFor} = reactHooks.renderHook(
-      ({filters, yAxis}) => useSpanMetricsSeries({filters, yAxis}),
+      ({filters, yAxis}) =>
+        useSpanMetricsSeries({search: MutableSearch.fromQueryObject(filters), yAxis}),
       {
         wrapper: Wrapper,
         initialProps: {
@@ -105,6 +107,7 @@ describe('useSpanMetricsSeries', () => {
             transaction: '/api/details',
             release: '0.0.1',
             'resource.render_blocking_status': 'blocking' as const,
+            environment: undefined,
           },
           yAxis: ['spm()'] as MetricsProperty[],
         },

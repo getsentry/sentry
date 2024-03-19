@@ -8,6 +8,7 @@ from sentry.grouping.component import GroupingComponent
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.enhancer.matchers import create_match_frame
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 
 
@@ -30,7 +31,6 @@ def dump_obj(obj):
 
 
 @pytest.mark.parametrize("version", [1, 2])
-@django_db_all
 def test_basic_parsing(insta_snapshot, version):
     enhancement = Enhancements.from_config_string(
         """
@@ -463,17 +463,23 @@ def test_range_matching_direct():
 
 @pytest.mark.parametrize("action", ["+", "-"])
 @pytest.mark.parametrize("type", ["prefix", "sentinel"])
+@django_db_all  # because of `options` usage
+@override_options(
+    {
+        "grouping.rust_enhancers.compare_components": 1.0,
+        "grouping.rust_enhancers.prefer_rust_components": 1.0,
+    }
+)
 def test_sentinel_and_prefix(action, type):
-    rule = Enhancements.from_config_string(f"function:foo {action}{type}").rules[0]
+    enhancements = Enhancements.from_config_string(f"function:foo {action}{type}")
 
     frames = [{"function": "foo"}]
-    actions = _get_matching_frame_actions(rule, frames, "whatever")
-    assert len(actions) == 1
-
     component = GroupingComponent(id=None)
     assert not getattr(component, f"is_{type}_frame")
+    frame_components = [component]
 
-    actions[0][1].update_frame_components_contributions([component], frames, 0)
+    enhancements.assemble_stacktrace_component(frame_components, frames, "whatever")
+
     expected = action == "+"
     assert getattr(component, f"is_{type}_frame") is expected
 

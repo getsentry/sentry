@@ -1,16 +1,19 @@
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any
+from unittest.mock import patch
 
 import pytest
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.data_v2 import run_metrics_queries_plan
-from sentry.sentry_metrics.querying.data_v2.plan import MetricsQueriesPlan
-from sentry.sentry_metrics.querying.data_v2.transformation import MetricsAPIQueryTransformer
+from sentry.sentry_metrics.querying.data_v2 import (
+    MetricsAPIQueryTransformer,
+    MetricsQueriesPlan,
+    run_metrics_queries_plan,
+)
 from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
     MetricsQueryExecutionError,
@@ -30,7 +33,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 
 pytestmark = pytest.mark.sentry_metrics
 
-MOCK_DATETIME = (django_timezone.now() - timedelta(days=1)).replace(
+MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
     hour=10, minute=0, second=0, microsecond=0
 )
 
@@ -926,6 +929,68 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert second_meta[0]["order"] == "DESC"
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    @pytest.mark.skip("Bug on Snuba that returns the wrong results, removed when fixed")
+    @patch("sentry.sentry_metrics.querying.data_v2.execution.SNUBA_QUERY_LIMIT", 3)
+    def test_query_with_multiple_aggregations_and_single_group_by_and_dynamic_limit(
+        self,
+    ) -> None:
+        query_1 = self.mql("min", TransactionMRI.DURATION.value, group_by="platform")
+        query_2 = self.mql("max", TransactionMRI.DURATION.value, group_by="platform")
+        plan = (
+            MetricsQueriesPlan()
+            .declare_query("query_1", query_1)
+            .declare_query("query_2", query_2)
+            .apply_formula("$query_1", order=QueryOrder.DESC)
+            .apply_formula("$query_2", order=QueryOrder.DESC)
+        )
+
+        # With a snuba limit of 3 and 3 intervals we expect to only have 1 group returned. Currently,
+        # the test is failing because totals are correctly queried but series data is returned up to
+        # 3 elements and since filters are not properly applied, any 3 entries are returned out of all
+        # the groups * intervals combinations. Once the bug will be fixed on the snuba side, we should
+        # expect to get back 3 correct entries from the series query.
+        results = self.run_query(
+            metrics_queries_plan=plan,
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"]
+        assert len(data) == 2
+        first_query = sorted(data[0], key=lambda value: value["by"]["platform"])
+        assert len(first_query) == 1
+        assert first_query[0]["by"] == {"platform": "windows"}
+        assert first_query[0]["series"] == [
+            None,
+            self.to_reference_unit(5.0),
+            self.to_reference_unit(4.0),
+        ]
+        assert first_query[0]["totals"] == self.to_reference_unit(4.0)
+        second_query = sorted(data[1], key=lambda value: value["by"]["platform"])
+        assert len(second_query) == 1
+        assert second_query[0]["by"] == {"platform": "ios"}
+        assert second_query[0]["series"] == [
+            None,
+            self.to_reference_unit(6.0),
+            self.to_reference_unit(3.0),
+        ]
+        assert second_query[0]["totals"] == self.to_reference_unit(6.0)
+        meta = results["meta"]
+        assert len(meta) == 2
+        first_meta = sorted(meta[0], key=lambda value: value.get("name", ""))
+        assert first_meta[0]["limit"] == 2
+        assert first_meta[0]["has_more"]
+        assert first_meta[0]["order"] == "DESC"
+        second_meta = sorted(meta[1], key=lambda value: value.get("name", ""))
+        assert second_meta[0]["limit"] == 2
+        assert first_meta[0]["has_more"]
+        assert second_meta[0]["order"] == "DESC"
+
+    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_custom_set(self):
         mri = "s:custom/User.Click.2@none"
         for user in ("marco", "marco", "john"):
@@ -1349,6 +1414,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         for formula, expected_result, expected_unit_family in (
             # (($query_2 * 1000) + 10000.0)
             ("($query_2 + 10)", 30000.0, UnitFamily.DURATION.value),
+            # (($query_2 * 1000) + (10 * 2) * 1000)
+            ("($query_2 + (10 * 2))", 40000.0, UnitFamily.DURATION.value),
             # (10000.0 + ($query_2 * 1000))
             ("(10 + $query_2)", 30000.0, UnitFamily.DURATION.value),
             # (($query_2 + 1000) + (10000.0 + 20000.0))
@@ -1531,7 +1598,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert meta[0][1]["scaling_factor"] is None
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
-    def test_query_with_basic_formula_and_unitless_formula_functions(self):
+    def test_query_with_basic_formula_and_coefficient_operators(self):
         mri_1 = "d:custom/page_load@nanosecond"
         mri_2 = "d:custom/load_time@microsecond"
         for mri, value in ((mri_1, 20), (mri_2, 15)):
@@ -1551,7 +1618,10 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             ("$query_1 * $query_2 + 25", 325.0, None, None),
             ("$query_1 * $query_2 / 1", 300.0, None, None),
             ("$query_1 * 2", 40.0, UnitFamily.DURATION.value, "nanosecond"),
+            ("$query_2 * 2", 30000.0, UnitFamily.DURATION.value, "nanosecond"),
             ("$query_1 / 2", 10.0, UnitFamily.DURATION.value, "nanosecond"),
+            ("$query_2 / 2", 7500.0, UnitFamily.DURATION.value, "nanosecond"),
+            ("$query_2 * (2 + 1)", 45000.0, UnitFamily.DURATION.value, "nanosecond"),
         ):
             query_1 = self.mql("avg", mri_1)
             query_2 = self.mql("sum", mri_2)

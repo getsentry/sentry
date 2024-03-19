@@ -9,6 +9,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
@@ -99,8 +100,9 @@ export function ScreenLoadSampleContainer({
   }
 
   const {data} = useSpanMetrics({
-    filters: {...filters, ...additionalFilters},
+    search: MutableSearch.fromQueryObject({...filters, ...additionalFilters}),
     fields: [`avg(${SPAN_SELF_TIME})`, 'count()', SPAN_OP],
+    enabled: Boolean(groupId) && Boolean(transactionName),
     referrer: 'api.starfish.span-summary-panel-samples-table-avg',
   });
 

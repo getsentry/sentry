@@ -40,7 +40,7 @@ describe('AutofixBanner', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('can run without context', async () => {
+  it('can run without instructions', async () => {
     const mockTriggerAutofix = jest.fn();
 
     render(<AutofixBanner triggerAutofix={mockTriggerAutofix} />);
@@ -50,16 +50,16 @@ describe('AutofixBanner', () => {
     expect(mockTriggerAutofix).toHaveBeenCalledWith('');
   });
 
-  it('can provide additional context', async () => {
+  it('can provide instructions', async () => {
     const mockTriggerAutofix = jest.fn();
 
     render(<AutofixBanner triggerAutofix={mockTriggerAutofix} />);
     renderGlobalModal();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Start With Some Context'}));
-    await userEvent.type(screen.getByRole('textbox'), 'more context');
+    await userEvent.click(screen.getByRole('button', {name: 'Give Instructions'}));
+    await userEvent.type(screen.getByRole('textbox'), 'instruction!');
     await userEvent.click(screen.getByRole('button', {name: "Let's go!"}));
 
-    expect(mockTriggerAutofix).toHaveBeenCalledWith('more context');
+    expect(mockTriggerAutofix).toHaveBeenCalledWith('instruction!');
   });
 });

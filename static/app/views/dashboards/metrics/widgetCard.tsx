@@ -11,7 +11,6 @@ import {IconSearch, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, PageFilters} from 'sentry/types';
-import {getWidgetTitle} from 'sentry/utils/metrics';
 import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
 import {MetricBigNumberContainer} from 'sentry/views/dashboards/metrics/bigNumber';
 import {MetricChartContainer} from 'sentry/views/dashboards/metrics/chart';
@@ -27,6 +26,7 @@ import {WidgetCardPanel, WidgetTitleRow} from 'sentry/views/dashboards/widgetCar
 import {DashboardsMEPContext} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import {Toolbar} from 'sentry/views/dashboards/widgetCard/toolbar';
 import WidgetCardContextMenu from 'sentry/views/dashboards/widgetCard/widgetCardContextMenu';
+import {getWidgetTitle} from 'sentry/views/ddm/widget';
 
 type Props = {
   isEditingDashboard: boolean;
@@ -105,19 +105,20 @@ export function MetricWidgetCard({
     );
   }, [widget.displayType, metricQueries, timeseriesData, isLoading, showContextMenu]);
 
-  if (isError) {
-    const errorMessage =
-      error?.responseJSON?.detail?.toString() || t('Error while fetching metrics data');
-    return (
-      <Fragment>
-        {renderErrorMessage?.(errorMessage)}
-        <ErrorPanel>
-          <IconWarning color="gray500" size="lg" />
-        </ErrorPanel>
-      </Fragment>
-    );
+  if (!timeseriesData || isError) {
+    if (isError) {
+      const errorMessage =
+        error?.responseJSON?.detail?.toString() || t('Error while fetching metrics data');
+      return (
+        <Fragment>
+          {renderErrorMessage?.(errorMessage)}
+          <ErrorPanel>
+            <IconWarning color="gray500" size="lg" />
+          </ErrorPanel>
+        </Fragment>
+      );
+    }
   }
-
   return (
     <DashboardsMEPContext.Provider
       value={{

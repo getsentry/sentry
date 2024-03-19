@@ -402,6 +402,24 @@
       ]
     ]
   },
+  "sentry.alertruleactivations": {
+    "dangling": false,
+    "foreign_keys": {
+      "alert_rule": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.alertrule",
+        "nullable": false
+      }
+    },
+    "model": "sentry.alertruleactivations",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "sentry_alertruleactivations",
+    "uniques": []
+  },
   "sentry.alertruleactivity": {
     "dangling": false,
     "foreign_keys": {
@@ -688,6 +706,12 @@
     ],
     "table_name": "sentry_apitoken",
     "uniques": [
+      [
+        "hashed_refresh_token"
+      ],
+      [
+        "hashed_token"
+      ],
       [
         "refresh_token"
       ],
@@ -3314,7 +3338,11 @@
       "Region"
     ],
     "table_name": "sentry_monitorincident",
-    "uniques": []
+    "uniques": [
+      [
+        "monitor_environment_id"
+      ]
+    ]
   },
   "sentry.monitorlocation": {
     "dangling": false,

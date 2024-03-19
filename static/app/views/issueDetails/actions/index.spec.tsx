@@ -53,7 +53,7 @@ describe('GroupActions', function () {
   });
 
   describe('render()', function () {
-    it('renders correctly', function () {
+    it('renders correctly', async function () {
       render(
         <GroupActions
           group={group}
@@ -62,6 +62,7 @@ describe('GroupActions', function () {
           disabled={false}
         />
       );
+      expect(await screen.findByRole('button', {name: 'Resolve'})).toBeInTheDocument();
     });
   });
 

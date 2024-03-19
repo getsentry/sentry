@@ -7,6 +7,7 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render as baseRender, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import type {DetailedOrganization} from 'sentry/types/organization';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -63,7 +64,10 @@ mockUseReplayReader.mockImplementation(() => {
   };
 });
 
-const render: typeof baseRender = children => {
+const render = (
+  children: React.ReactElement,
+  orgParams: Partial<DetailedOrganization> = {}
+) => {
   const {router, routerContext} = initializeOrg({
     router: {
       routes: [
@@ -87,7 +91,9 @@ const render: typeof baseRender = children => {
         routes: router.routes,
       }}
     >
-      <OrganizationContext.Provider value={OrganizationFixture({slug: mockOrgSlug})}>
+      <OrganizationContext.Provider
+        value={OrganizationFixture({slug: mockOrgSlug, ...orgParams})}
+      >
         {children}
       </OrganizationContext.Provider>
     </RouteContext.Provider>,
@@ -210,5 +216,23 @@ describe('ReplayClipPreview', () => {
     expect(
       screen.queryByTestId('replay-details-breadcrumbs-tab')
     ).not.toBeInTheDocument();
+  });
+  it('Render the back and forward buttons when we pass in showNextAndPrevious', async () => {
+    const handleBackClick = jest.fn();
+    const handleForwardClick = jest.fn();
+    render(
+      <ReplayClipPreview
+        {...defaultProps}
+        handleBackClick={handleBackClick}
+        handleForwardClick={handleForwardClick}
+        showNextAndPrevious
+      />,
+      {features: ['replay-play-from-replay-tab']}
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Previous Clip'}));
+    expect(handleBackClick).toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', {name: 'Next Clip'}));
+    expect(handleForwardClick).toHaveBeenCalled();
   });
 });

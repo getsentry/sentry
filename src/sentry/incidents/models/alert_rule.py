@@ -40,6 +40,8 @@ from sentry.snuba.models import QuerySubscription
 from sentry.snuba.subscriptions import bulk_create_snuba_subscriptions, delete_snuba_subscription
 from sentry.utils import metrics
 
+logger = logging.getLogger(__name__)
+
 alert_subscription_callback_registry: dict[
     AlertRuleMonitorType, Callable[[QuerySubscription], bool]
 ] = {}
@@ -64,9 +66,6 @@ def invoke_alert_subscription_callback(
         return False
 
     return callback(subscription)
-
-
-logger = logging.getLogger(__name__)
 
 
 class AlertRuleStatus(Enum):
@@ -412,30 +411,6 @@ class AlertRuleTrigger(Model):
 
 
 @region_silo_only_model
-class AlertRuleActivationCondition(Model):
-    """
-    This model represents the activation condition for an activated AlertRule
-
-    label is an optional identifier for an activation condition
-    condition_type is AlertRuleActivationConditionType
-    TODO: implement extra query params for advanced conditional rules (eg. +10m after event occurs)
-    """
-
-    __relocation_scope__ = RelocationScope.Organization
-
-    alert_rule = FlexibleForeignKey("sentry.AlertRule", related_name="activation_conditions")
-    label = models.TextField()
-    condition_type = models.SmallIntegerField(null=True)
-
-    date_added = models.DateTimeField(default=timezone.now)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_alertruleactivationcondition"
-        unique_together = (("alert_rule", "label"),)
-
-
-@region_silo_only_model
 class AlertRuleTriggerExclusion(Model):
     """
     Allows us to define a specific trigger to be excluded from a query subscription
@@ -500,7 +475,9 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
     alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger")
 
     date_added = models.DateTimeField(default=timezone.now)
-    sentry_app_config = JSONField(null=True)
+    sentry_app_config = JSONField(
+        null=True
+    )  # list of dicts if this is a sentry app, otherwise can be singular dict
     status = BoundedPositiveIntegerField(
         default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices()
     )

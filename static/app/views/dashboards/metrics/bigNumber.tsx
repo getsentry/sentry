@@ -14,7 +14,7 @@ import {LoadingScreen} from 'sentry/views/dashboards/widgetCard/widgetCardChartC
 
 interface MetricBigNumberContainerProps {
   isLoading: boolean;
-  metricQueries: MetricsQueryApiRequestQuery[];
+  metricQueries: MetricsQueryApiQueryParams[];
   timeseriesData?: MetricsQueryApiResponse;
 }
 
@@ -26,10 +26,6 @@ export function MetricBigNumberContainer({
   const bigNumberData = useMemo(() => {
     return timeseriesData ? getBigNumberData(timeseriesData, metricQueries) : undefined;
   }, [timeseriesData, metricQueries]);
-
-  if (!bigNumberData) {
-    return null;
-  }
 
   return (
     <BigNumberWrapper>

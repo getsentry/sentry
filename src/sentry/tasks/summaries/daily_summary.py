@@ -2,7 +2,7 @@ import logging
 import math
 from collections import defaultdict
 from datetime import datetime
-from typing import cast
+from typing import DefaultDict, cast
 
 import pytz
 import sentry_sdk
@@ -41,7 +41,8 @@ from sentry.tasks.summaries.utils import (
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from sentry.types.integrations import ExternalProviders
-from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
+from sentry.utils import json
+from sentry.utils.dates import to_datetime
 from sentry.utils.outcomes import Outcome
 from sentry.utils.query import RangeQuerySetWrapper
 
@@ -62,7 +63,7 @@ HOUR_TO_SEND_REPORT = 16
 def schedule_organizations(timestamp: float | None = None, duration: int | None = None) -> None:
     if timestamp is None:
         # The time that the report was generated
-        timestamp = to_timestamp(floor_to_utc_day(timezone.now()))
+        timestamp = timezone.now().timestamp()
 
     if duration is None:
         # The total timespan that the task covers
@@ -154,7 +155,7 @@ def build_summary_data(
         user_project_ownership(ctx)
 
     # build 'Today's Event Count vs. 14 day average'. we need 15 days of data for this
-    start = to_datetime(to_timestamp(ctx.end) - comparison_offset)
+    start = to_datetime(ctx.end.timestamp() - comparison_offset)
     with sentry_sdk.start_span(op="daily_summary.project_event_counts_for_organization"):
         event_counts = project_event_counts_for_organization(
             start=start, end=ctx.end, ctx=ctx, referrer=Referrer.DAILY_SUMMARY_OUTCOMES.value
@@ -207,12 +208,29 @@ def build_summary_data(
                 group__in=([group for group in regressed_or_escalated_groups]),
                 type__in=(ActivityType.SET_REGRESSION.value, ActivityType.SET_ESCALATING.value),
             )
-            if regressed_or_escalated_groups_today:
-                for activity in regressed_or_escalated_groups_today[:4]:
-                    if activity.type == ActivityType.SET_REGRESSION.value:
-                        project_ctx.regressed_today.append(activity.group)
+
+            deduped_groups_by_activity_type: DefaultDict[ActivityType, set] = defaultdict(set)
+
+            for activity in regressed_or_escalated_groups_today:
+                deduped_groups_by_activity_type[ActivityType(activity.type)].add(activity.group)
+
+                if (
+                    activity.type == ActivityType.SET_ESCALATING.value
+                    and activity.group
+                    in deduped_groups_by_activity_type[ActivityType.SET_REGRESSION]
+                ):
+                    # if a group is already in the regressed set but we now see it in escalating, remove from regressed and add to escalating
+                    # this means the group regressed and then later escalated, and we only want to list it once
+                    deduped_groups_by_activity_type[ActivityType.SET_REGRESSION].remove(
+                        activity.group
+                    )
+
+            for activity_type, groups in deduped_groups_by_activity_type.items():
+                for group in list(groups)[:3]:
+                    if activity_type == ActivityType.SET_REGRESSION:
+                        project_ctx.regressed_today.append(group)
                     else:
-                        project_ctx.escalated_today.append(activity.group)
+                        project_ctx.escalated_today.append(group)
 
             # The project's releases and the (max) top 3 new errors e.g. release - group1, group2
             release_projects = ReleaseProject.objects.filter(project_id=project_id).values_list(
@@ -225,6 +243,16 @@ def build_summary_data(
                     project_ctx.new_in_release = {
                         release.id: [group for group in new_groups_in_release]
                     }
+
+            new_in_release = json.dumps([group for group in project_ctx.new_in_release])
+            logger.info(
+                "daily_summary.new_in_release",
+                extra={
+                    "organization": ctx.organization.id,
+                    "project_id": project_id,
+                    "new_in_release": new_in_release,
+                },
+            )
     with sentry_sdk.start_span(op="daily_summary.fetch_key_error_groups"):
         fetch_key_error_groups(ctx)
 

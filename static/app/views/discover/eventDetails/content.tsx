@@ -69,7 +69,7 @@ function EventHeader({event}: {event: Event}) {
       </TitleWrapper>
       {message && (
         <MessageWrapper>
-          <EventMessage message={message} />
+          <EventMessage message={message} type={event.type} />
         </MessageWrapper>
       )}
     </EventHeaderContainer>
@@ -138,160 +138,155 @@ function EventDetailsContent(props: Props) {
       metaResults?: TraceMetaQueryChildrenProps
     ) => {
       return (
-        <TraceDetailsRouting event={event} metaResults={metaResults}>
-          <TransactionProfileIdProvider
-            projectId={event.projectID}
-            transactionId={event.type === 'transaction' ? event.id : undefined}
-            timestamp={event.dateReceived}
-          >
-            <Layout.Header>
-              <Layout.HeaderContent>
-                <DiscoverBreadcrumb
-                  eventView={eventView}
+        <TransactionProfileIdProvider
+          projectId={event.projectID}
+          transactionId={event.type === 'transaction' ? event.id : undefined}
+          timestamp={event.dateReceived}
+        >
+          <Layout.Header>
+            <Layout.HeaderContent>
+              <DiscoverBreadcrumb
+                eventView={eventView}
+                event={event}
+                organization={organization}
+                location={location}
+                isHomepage={isHomepage}
+              />
+              <EventHeader event={event} />
+            </Layout.HeaderContent>
+            <Layout.HeaderActions>
+              <ButtonBar gap={1}>
+                <Button size="sm" onClick={() => setIsSidebarVisible(prev => !prev)}>
+                  {isSidebarVisible ? 'Hide Details' : 'Show Details'}
+                </Button>
+                <Button
+                  size="sm"
+                  icon={<IconOpen />}
+                  href={eventJsonUrl}
+                  external
+                  onClick={() =>
+                    trackAnalytics('performance_views.event_details.json_button_click', {
+                      organization,
+                    })
+                  }
+                >
+                  {t('JSON')} (<FileSize bytes={event.size} />)
+                </Button>
+                {hasProfilingFeature && event.type === 'transaction' && (
+                  <TransactionToProfileButton event={event} projectSlug={projectId} />
+                )}
+                {transactionSummaryTarget && (
+                  <Feature organization={organization} features="performance-view">
+                    {({hasFeature}) => (
+                      <Button
+                        size="sm"
+                        disabled={!hasFeature}
+                        priority="primary"
+                        to={transactionSummaryTarget}
+                      >
+                        {t('Go to Summary')}
+                      </Button>
+                    )}
+                  </Feature>
+                )}
+              </ButtonBar>
+            </Layout.HeaderActions>
+          </Layout.Header>
+          <Layout.Body>
+            <Layout.Main fullWidth>
+              <EventMetas
+                quickTrace={results ?? null}
+                meta={metaResults?.meta ?? null}
+                event={event}
+                organization={organization}
+                projectId={projectId}
+                location={location}
+                errorDest="discover"
+                transactionDest="discover"
+              />
+            </Layout.Main>
+            <Layout.Main fullWidth={!isSidebarVisible}>
+              <Projects orgId={organization.slug} slugs={[projectId]}>
+                {({projects, initiallyLoaded}) =>
+                  initiallyLoaded ? (
+                    <SpanEntryContext.Provider
+                      value={{
+                        getViewChildTransactionTarget: childTransactionProps => {
+                          const childTransactionLink = eventDetailsRoute({
+                            eventSlug: childTransactionProps.eventSlug,
+                            orgSlug: organization.slug,
+                          });
+
+                          return {
+                            pathname: childTransactionLink,
+                            query: eventView.generateQueryStringObject(),
+                          };
+                        },
+                      }}
+                    >
+                      <QuickTraceContext.Provider value={results}>
+                        {hasProfilingFeature ? (
+                          <ProfilesProvider
+                            orgSlug={organization.slug}
+                            projectSlug={projectId}
+                            profileId={profileId || ''}
+                          >
+                            <ProfileContext.Consumer>
+                              {profiles => (
+                                <ProfileGroupProvider
+                                  type="flamechart"
+                                  input={
+                                    profiles?.type === 'resolved' ? profiles.data : null
+                                  }
+                                  traceID={profileId || ''}
+                                >
+                                  <BorderlessEventEntries
+                                    organization={organization}
+                                    event={event}
+                                    project={projects[0] as Project}
+                                    showTagSummary={false}
+                                  />
+                                </ProfileGroupProvider>
+                              )}
+                            </ProfileContext.Consumer>
+                          </ProfilesProvider>
+                        ) : (
+                          <BorderlessEventEntries
+                            organization={organization}
+                            event={event}
+                            project={projects[0] as Project}
+                            showTagSummary={false}
+                          />
+                        )}
+                      </QuickTraceContext.Provider>
+                    </SpanEntryContext.Provider>
+                  ) : (
+                    <LoadingIndicator />
+                  )
+                }
+              </Projects>
+            </Layout.Main>
+            {isSidebarVisible && (
+              <Layout.Side>
+                <EventVitals event={event} />
+                <EventCustomPerformanceMetrics
                   event={event}
-                  organization={organization}
                   location={location}
+                  organization={organization}
                   isHomepage={isHomepage}
                 />
-                <EventHeader event={event} />
-              </Layout.HeaderContent>
-              <Layout.HeaderActions>
-                <ButtonBar gap={1}>
-                  <Button size="sm" onClick={() => setIsSidebarVisible(prev => !prev)}>
-                    {isSidebarVisible ? 'Hide Details' : 'Show Details'}
-                  </Button>
-                  <Button
-                    size="sm"
-                    icon={<IconOpen />}
-                    href={eventJsonUrl}
-                    external
-                    onClick={() =>
-                      trackAnalytics(
-                        'performance_views.event_details.json_button_click',
-                        {
-                          organization,
-                        }
-                      )
-                    }
-                  >
-                    {t('JSON')} (<FileSize bytes={event.size} />)
-                  </Button>
-                  {hasProfilingFeature && event.type === 'transaction' && (
-                    <TransactionToProfileButton event={event} projectSlug={projectId} />
-                  )}
-                  {transactionSummaryTarget && (
-                    <Feature organization={organization} features="performance-view">
-                      {({hasFeature}) => (
-                        <Button
-                          size="sm"
-                          disabled={!hasFeature}
-                          priority="primary"
-                          to={transactionSummaryTarget}
-                        >
-                          {t('Go to Summary')}
-                        </Button>
-                      )}
-                    </Feature>
-                  )}
-                </ButtonBar>
-              </Layout.HeaderActions>
-            </Layout.Header>
-            <Layout.Body>
-              <Layout.Main fullWidth>
-                <EventMetas
-                  quickTrace={results ?? null}
-                  meta={metaResults?.meta ?? null}
+                {event.groupID && (
+                  <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
+                )}
+                <TagsTable
+                  generateUrl={generateTagUrl}
                   event={event}
-                  organization={organization}
-                  projectId={projectId}
-                  location={location}
-                  errorDest="discover"
-                  transactionDest="discover"
+                  query={eventView.query}
                 />
-              </Layout.Main>
-              <Layout.Main fullWidth={!isSidebarVisible}>
-                <Projects orgId={organization.slug} slugs={[projectId]}>
-                  {({projects, initiallyLoaded}) =>
-                    initiallyLoaded ? (
-                      <SpanEntryContext.Provider
-                        value={{
-                          getViewChildTransactionTarget: childTransactionProps => {
-                            const childTransactionLink = eventDetailsRoute({
-                              eventSlug: childTransactionProps.eventSlug,
-                              orgSlug: organization.slug,
-                            });
-
-                            return {
-                              pathname: childTransactionLink,
-                              query: eventView.generateQueryStringObject(),
-                            };
-                          },
-                        }}
-                      >
-                        <QuickTraceContext.Provider value={results}>
-                          {hasProfilingFeature ? (
-                            <ProfilesProvider
-                              orgSlug={organization.slug}
-                              projectSlug={projectId}
-                              profileId={profileId || ''}
-                            >
-                              <ProfileContext.Consumer>
-                                {profiles => (
-                                  <ProfileGroupProvider
-                                    type="flamechart"
-                                    input={
-                                      profiles?.type === 'resolved' ? profiles.data : null
-                                    }
-                                    traceID={profileId || ''}
-                                  >
-                                    <BorderlessEventEntries
-                                      organization={organization}
-                                      event={event}
-                                      project={projects[0] as Project}
-                                      showTagSummary={false}
-                                    />
-                                  </ProfileGroupProvider>
-                                )}
-                              </ProfileContext.Consumer>
-                            </ProfilesProvider>
-                          ) : (
-                            <BorderlessEventEntries
-                              organization={organization}
-                              event={event}
-                              project={projects[0] as Project}
-                              showTagSummary={false}
-                            />
-                          )}
-                        </QuickTraceContext.Provider>
-                      </SpanEntryContext.Provider>
-                    ) : (
-                      <LoadingIndicator />
-                    )
-                  }
-                </Projects>
-              </Layout.Main>
-              {isSidebarVisible && (
-                <Layout.Side>
-                  <EventVitals event={event} />
-                  <EventCustomPerformanceMetrics
-                    event={event}
-                    location={location}
-                    organization={organization}
-                    isHomepage={isHomepage}
-                  />
-                  {event.groupID && (
-                    <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
-                  )}
-                  <TagsTable
-                    generateUrl={generateTagUrl}
-                    event={event}
-                    query={eventView.query}
-                  />
-                </Layout.Side>
-              )}
-            </Layout.Body>
-          </TransactionProfileIdProvider>
-        </TraceDetailsRouting>
+              </Layout.Side>
+            )}
+          </Layout.Body>
+        </TransactionProfileIdProvider>
       );
     };
 
@@ -302,23 +297,25 @@ function EventDetailsContent(props: Props) {
       const {start, end} = getTraceTimeRangeFromEvent(event);
 
       return (
-        <TraceMetaQuery
-          location={location}
-          orgSlug={organization.slug}
-          traceId={traceId}
-          start={start}
-          end={end}
-        >
-          {metaResults => (
-            <QuickTraceQuery
-              event={event}
-              location={location}
-              orgSlug={organization.slug}
-            >
-              {results => render(results, metaResults)}
-            </QuickTraceQuery>
-          )}
-        </TraceMetaQuery>
+        <TraceDetailsRouting event={event}>
+          <TraceMetaQuery
+            location={location}
+            orgSlug={organization.slug}
+            traceId={traceId}
+            start={start}
+            end={end}
+          >
+            {metaResults => (
+              <QuickTraceQuery
+                event={event}
+                location={location}
+                orgSlug={organization.slug}
+              >
+                {results => render(results, metaResults)}
+              </QuickTraceQuery>
+            )}
+          </TraceMetaQuery>
+        </TraceDetailsRouting>
       );
     }
 

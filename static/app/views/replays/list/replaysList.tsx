@@ -16,6 +16,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
+import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
 import ReplayTable from 'sentry/views/replays/replayTable';
 import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
@@ -73,6 +74,8 @@ function ReplaysListTable({
     selection: {projects},
   } = usePageFilters();
 
+  const {allMobileProj} = useAllMobileProj();
+
   const {needsUpdate: allSelectedProjectsNeedUpdates} = useProjectSdkNeedsUpdate({
     minVersion: MIN_REPLAY_CLICK_SDK,
     organization,
@@ -85,16 +88,26 @@ function ReplaysListTable({
 
   const hasReplayClick = conditions.getFilterKeys().some(k => k.startsWith('click.'));
 
-  const visibleCols = [
-    ReplayColumn.REPLAY,
-    ReplayColumn.OS,
-    ReplayColumn.BROWSER,
-    ReplayColumn.DURATION,
-    ReplayColumn.COUNT_DEAD_CLICKS,
-    ReplayColumn.COUNT_RAGE_CLICKS,
-    ReplayColumn.COUNT_ERRORS,
-    ReplayColumn.ACTIVITY,
-  ];
+  // browser isn't applicable for mobile projects
+  // rage and dead clicks not available yet
+  const visibleCols = allMobileProj
+    ? [
+        ReplayColumn.REPLAY,
+        ReplayColumn.OS,
+        ReplayColumn.DURATION,
+        ReplayColumn.COUNT_ERRORS,
+        ReplayColumn.ACTIVITY,
+      ]
+    : [
+        ReplayColumn.REPLAY,
+        ReplayColumn.OS,
+        ReplayColumn.BROWSER,
+        ReplayColumn.DURATION,
+        ReplayColumn.COUNT_DEAD_CLICKS,
+        ReplayColumn.COUNT_RAGE_CLICKS,
+        ReplayColumn.COUNT_ERRORS,
+        ReplayColumn.ACTIVITY,
+      ];
 
   return (
     <Fragment>

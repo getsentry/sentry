@@ -177,6 +177,7 @@ def ensure_docker_cli_context(context: str):
 
     config["currentContext"] = context
 
+    os.makedirs(os.path.dirname(config_file), exist_ok=True)
     with open(config_file, "w") as f:
         f.write(json.dumps(config))
 

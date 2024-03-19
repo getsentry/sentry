@@ -5,6 +5,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {formatRate} from 'sentry/utils/formatters';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import {AVG_COLOR, ERRORS_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
@@ -51,7 +52,7 @@ export function SpanSummaryView({groupId}: Props) {
   }
 
   const {data} = useSpanMetrics({
-    filters,
+    search: MutableSearch.fromQueryObject(filters),
     fields: [
       SpanMetricsField.SPAN_OP,
       SpanMetricsField.SPAN_DESCRIPTION,
@@ -64,6 +65,7 @@ export function SpanSummaryView({groupId}: Props) {
       `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
       `${SpanFunction.HTTP_ERROR_COUNT}()`,
     ],
+    enabled: Boolean(groupId),
     referrer: 'api.starfish.span-summary-page-metrics',
   });
 
@@ -91,8 +93,12 @@ export function SpanSummaryView({groupId}: Props) {
 
   const {isLoading: areSpanMetricsSeriesLoading, data: spanMetricsSeriesData} =
     useSpanMetricsSeries({
-      filters: {'span.group': groupId, ...seriesQueryFilter},
+      search: MutableSearch.fromQueryObject({
+        'span.group': groupId,
+        ...seriesQueryFilter,
+      }),
       yAxis: [`avg(${SpanMetricsField.SPAN_SELF_TIME})`, 'spm()', 'http_error_count()'],
+      enabled: Boolean(groupId),
       referrer: 'api.starfish.span-summary-page-metrics-chart',
     });
 

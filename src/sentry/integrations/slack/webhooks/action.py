@@ -388,7 +388,8 @@ class SlackActionEndpoint(Endpoint):
         # but seems like there's no other solutions [1]:
         #
         # [1]: https://stackoverflow.com/questions/46629852/update-a-bot-message-after-responding-to-a-slack-dialog#comment80795670_46629852
-        use_block_kit = features.has("organizations:slack-block-kit", group.project.organization)
+        org = group.project.organization
+        use_block_kit = features.has("organizations:slack-block-kit", org)
         callback_id = {
             "issue": group.id,
             "orig_response_url": slack_request.data["response_url"],
@@ -423,15 +424,33 @@ class SlackActionEndpoint(Endpoint):
                 headers = {"content-type": "application/json; charset=utf-8"}
                 slack_client.post("/views.open", data=json.dumps(payload), headers=headers)
             except ApiError as e:
-                logger.exception("slack.action.response-error", extra={"error": str(e)})
+                logger.exception(
+                    "slack.action.response-error",
+                    extra={
+                        "error": str(e),
+                        "organization_id": org.id,
+                        "integration_id": slack_request.integration.id,
+                        "trigger_id": slack_request.data["trigger_id"],
+                        "dialog": "resolve",
+                    },
+                )
 
         else:
             try:
                 slack_client.post("/dialog.open", data=payload)
             except ApiError as e:
-                logger.exception("slack.action.response-error", extra={"error": str(e)})
+                logger.exception(
+                    "slack.action.response-error",
+                    extra={
+                        "error": str(e),
+                        "organization_id": org.id,
+                        "integration_id": slack_request.integration.id,
+                    },
+                )
 
     def open_archive_dialog(self, slack_request: SlackActionRequest, group: Group) -> None:
+        org = group.project.organization
+
         callback_id = {
             "issue": group.id,
             "orig_response_url": slack_request.data["response_url"],
@@ -453,7 +472,16 @@ class SlackActionEndpoint(Endpoint):
             headers = {"content-type": "application/json; charset=utf-8"}
             slack_client.post("/views.open", data=json.dumps(payload), headers=headers)
         except ApiError as e:
-            logger.exception("slack.action.response-error", extra={"error": str(e)})
+            logger.exception(
+                "slack.action.response-error",
+                extra={
+                    "error": str(e),
+                    "organization_id": org.id,
+                    "integration_id": slack_request.integration.id,
+                    "trigger_id": slack_request.data["trigger_id"],
+                    "dialog": "archive",
+                },
+            )
 
     def construct_reply(self, attachment: SlackBody, is_message: bool = False) -> SlackBody:
         # XXX(epurkhiser): Slack is inconsistent about it's expected responses
@@ -740,7 +768,18 @@ class SlackActionEndpoint(Endpoint):
             slack_request = self.slack_request_class(request)
             slack_request.validate()
         except SlackRequestError as e:
+            logger.info(
+                "slack.action.request-error", extra={"error": str(e), "status_code": e.status}
+            )
             return self.respond(status=e.status)
+
+        logger.info(
+            "slack.action.request",
+            extra={
+                "trigger_id": slack_request.data.get("trigger_id"),
+                "integration_id": slack_request.integration.id,
+            },
+        )
 
         # Set organization scope
 
@@ -781,9 +820,13 @@ class SlackActionEndpoint(Endpoint):
             if org_context:
                 use_block_kit = any(
                     [
-                        True
-                        if features.has("organizations:slack-block-kit", org_context.organization)
-                        else False
+                        (
+                            True
+                            if features.has(
+                                "organizations:slack-block-kit", org_context.organization
+                            )
+                            else False
+                        )
                         for oi in org_integrations
                     ]
                 )
