@@ -195,7 +195,7 @@ function TraceDrawer(props: TraceDrawerProps) {
           </TabLayoutControlItem>
         </TabLayoutControlsContainer>
       </TabsContainer>
-      <Content>
+      <Content layout={props.layout}>
         {props.activeTab === 'trace' ? (
           <TraceLevelDetails
             tree={props.trace}
@@ -280,6 +280,7 @@ const TabLayoutControlsContainer = styled('ul')`
   padding-left: 0;
   margin-left: auto;
   margin-right: ${space(1.5)};
+  flex: none;
 
   button {
     padding: ${space(0.5)};
@@ -319,10 +320,30 @@ const TabButton = styled('button')`
   background: transparent;
 `;
 
-const Content = styled('div')`
+const Content = styled('div')<{layout: 'drawer bottom' | 'drawer left' | 'drawer right'}>`
   overflow: scroll;
   padding: ${space(1)};
   flex: 1;
+
+  td {
+    max-width: 100% !important;
+  }
+
+  ${p =>
+    p.layout !== 'drawer bottom' &&
+    `
+        table {
+          display: flex;
+        }
+
+        tbody {
+          flex: 1;
+        }
+
+        tr {
+          display: grid;
+        }
+      `}
 `;
 
 const DrawerButton = styled(Button)<{active: boolean}>`
