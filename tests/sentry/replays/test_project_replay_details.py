@@ -9,7 +9,7 @@ from sentry.models.files.file import File
 from sentry.replays.lib import kafka
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.testutils import assert_expected_response, mock_expected_response, mock_replay
-from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase, TransactionTestCase
+from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
 from sentry.testutils.helpers import TaskRunner
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import kafka_config
@@ -152,19 +152,6 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
             )
             assert_expected_response(response_data["data"], expected_response)
 
-
-@region_silo_test
-class ProjectReplayDetailsDeleteTest(TransactionTestCase):
-    endpoint = "sentry-api-0-project-replay-details"
-
-    def setUp(self):
-        super().setUp()
-        self.login_as(user=self.user)
-        self.replay_id = uuid4().hex
-        self.url = reverse(
-            self.endpoint, args=(self.organization.slug, self.project.slug, self.replay_id)
-        )
-
     def test_delete(self):
         # test deleting as a member, as they should be able to
         user = self.create_user(is_superuser=False)
@@ -185,9 +172,11 @@ class ProjectReplayDetailsDeleteTest(TransactionTestCase):
         recording_segment_id = recording_segment.id
 
         with self.feature(REPLAYS_FEATURES):
-            with TaskRunner(), mock.patch.object(
-                kafka_config, "get_kafka_producer_cluster_options"
-            ), mock.patch.object(kafka, "KafkaPublisher"):
+            with (
+                TaskRunner(),
+                mock.patch.object(kafka_config, "get_kafka_producer_cluster_options"),
+                mock.patch.object(kafka, "KafkaPublisher"),
+            ):
                 response = self.client.delete(self.url)
                 assert response.status_code == 204
 

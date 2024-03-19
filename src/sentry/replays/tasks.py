@@ -1,17 +1,17 @@
 from __future__ import annotations
 
+import concurrent.futures as cf
 import time
 import uuid
-from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from sentry.replays.lib.kafka import initialize_replays_publisher
-from sentry.replays.lib.storage import FilestoreBlob, StorageBlob
+from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta, StorageBlob
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.usecases.reader import fetch_segments_metadata
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.utils import json
+from sentry.utils import json, metrics
 
 
 @instrumented_task(
@@ -23,30 +23,32 @@ from sentry.utils import json
 )
 def delete_recording_segments(project_id: int, replay_id: str, **kwargs: Any) -> None:
     """Asynchronously delete a replay."""
+    metrics.incr("replays.delete_replay", amount=1, tags={"status": "started"})
     delete_replay_recording(project_id, replay_id)
     archive_replay(project_id, replay_id)
+    metrics.incr("replays.delete_replay", amount=1, tags={"status": "finished"})
 
 
 def delete_replay_recording(project_id: int, replay_id: str) -> None:
     """Delete all recording-segments associated with a Replay."""
-    # issue delete requests the segment data and model rows - ALL in parallel
-    with ThreadPoolExecutor(max_workers=40) as executor:
-        # Delete the segments which are now stored in clickhouse
-        segments_from_metadata = fetch_segments_metadata(
-            project_id, replay_id, offset=0, limit=10000
-        )
-        for segment_metadata in segments_from_metadata:
-            driver = FilestoreBlob() if segment_metadata.file_id else StorageBlob()
-            executor.submit(driver.delete, segment_metadata)
 
-        # Delete the ReplayRecordingSegment models that we previously stored using django models
-        segments_from_django_models = ReplayRecordingSegment.objects.filter(
-            replay_id=replay_id, project_id=project_id
-        ).all()
-        for segment_model in segments_from_django_models:
-            executor.submit(
-                segment_model.delete
-            )  # Three queries + one request to the message broker
+    def delete_recording_segment(segment: RecordingSegmentStorageMeta):
+        driver = FilestoreBlob() if segment.file_id else StorageBlob()
+        driver.delete(segment)
+
+    # Fetch segment storage metadata.
+    segments_from_metadata = fetch_segments_metadata(project_id, replay_id, offset=0, limit=10000)
+    metrics.distribution("replays.segments_deleted", value=len(segments_from_metadata))
+
+    # Fetch any recording-segment models that may have been written.
+    segments_from_django_models = ReplayRecordingSegment.objects.filter(
+        replay_id=replay_id, project_id=project_id
+    ).all()
+
+    # There could be a lot of segments. We'll issue the delete requests in a threadpool.
+    with cf.ThreadPoolExecutor(max_workers=100) as pool:
+        pool.map(delete_recording_segment, segments_from_metadata)
+        pool.map(lambda model: model.delete(), segments_from_django_models)
 
 
 def archive_replay(project_id: int, replay_id: str) -> None:
