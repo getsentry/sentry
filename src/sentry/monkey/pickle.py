@@ -45,10 +45,6 @@
 #    contains a datetime object, or non-ASCII str data, it will fail with a
 #    UnicodeDecodeError, in which case we will decode strings as latin-1.
 #
-#  - We patch kombus `pickle_load` function to do the same as above, however
-#    because kombu passes in a byte buffer, we have to seek back to the start of
-#    the byte buffer to attempt depickling again.
-#
 #  - At the moment we DO NOT patch `pickle.load`, since it may or may not be
 #    the case that we can seek to the start of the passed file-like object. If
 #    we do have usages of it, we'll have to patch them specifically based on
@@ -58,13 +54,6 @@
 
 
 def patch_pickle_loaders():
-    try:
-        import kombu.serialization as kombu_serializer
-    except ImportError:
-        # If kombu hasn't been installed yet don't even attempt to patch pickle
-        # functionality. Sentry isn't really running if kombu isn't available.
-        return
-
     import pickle
 
     # TODO(python3): We use the pickles `2` protocol as it is supported in 2 and 3.
@@ -98,16 +87,12 @@ def patch_pickle_loaders():
     # to depickle some data using javascript.
     pickle.DEFAULT_PROTOCOL = 2
 
-    # Enforce protocol for kombu as well
-    kombu_serializer.pickle_protocol = 2
-
     original_pickle_load = pickle.load
     original_pickle_dump = pickle.dump
     original_pickle_loads = pickle.loads
     original_pickle_dumps = pickle.dumps
     original_pickle_Pickler = pickle.Pickler
     original_pickle_Unpickler = pickle.Unpickler
-    original_kombu_pickle_loads = kombu_serializer.pickle_loads
 
     # Patched Picker and Unpickler
     #
@@ -222,36 +207,9 @@ def patch_pickle_loaders():
             kwargs["encoding"] = kwargs.get("encoding", "latin-1")
             return original_pickle_loads(*args, **kwargs)
 
-    # patched kombu
-
-    def __py3_compat_kombu_pickle_load(*args, **kwargs):
-        """
-        This patched pickle.load is specifically used for kombu's `pickle_loads`
-        function, with similar logic to above.
-        """
-        try:
-            return original_pickle_load(*args, **kwargs)
-        except UnicodeDecodeError:
-            from sentry.utils import metrics
-
-            metrics.incr("pickle.compat_kombu_pickle_load.had_unicode_decode_error", sample_rate=1)
-
-            # We must seek back to the start of the BytesIO buffer to depickle
-            # again after failing above, without this we'll get a buffer
-            # underflow error during the depickle.
-            args[0].seek(0)
-
-            kwargs["encoding"] = kwargs.get("encoding", "latin-1")
-            return original_pickle_load(*args, **kwargs)
-
-    def py3_compat_kombu_pickle_loads(s, load=__py3_compat_kombu_pickle_load):
-        return original_kombu_pickle_loads(s, load)
-
     pickle.load = py3_compat_pickle_load
     pickle.dump = py3_compat_pickle_dump
     pickle.loads = py3_compat_pickle_loads
     pickle.dumps = py3_compat_pickle_dumps
     pickle.Pickler = CompatPickler
     pickle.Unpickler = CompatUnpickler
-
-    kombu_serializer.pickle_loads = py3_compat_kombu_pickle_loads
