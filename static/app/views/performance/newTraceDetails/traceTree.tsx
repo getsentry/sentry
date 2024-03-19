@@ -1176,6 +1176,19 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     return this.errors.length > 0 || this.performance_issues.length > 0;
   }
 
+  get parent_transaction(): TraceTreeNode<TraceTree.Transaction> | null {
+    let node: TraceTreeNode<TraceTree.NodeValue> | null = this.parent;
+
+    while (node) {
+      if (isTransactionNode(node)) {
+        return node;
+      }
+      node = node.parent;
+    }
+
+    return null;
+  }
+
   /**
    * Returns the depth levels at which the row should draw vertical connectors
    * negative values mean connector points to an orphaned node
