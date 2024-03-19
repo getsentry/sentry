@@ -24,7 +24,7 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
     def store_replay_segments(
         self,
         replay_id: str,
-        project_id: str,
+        project_id: int,
         timestamp,
         environment: str | None = None,
         tags: dict | None = None,
@@ -33,7 +33,7 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
             tags = {}
 
         self.store_replays(
-            mock_replay(timestamp, self.project.id, replay_id, environment=environment, tags=tags)
+            mock_replay(timestamp, project_id, replay_id, environment=environment, tags=tags)
         )
 
         segments = [
