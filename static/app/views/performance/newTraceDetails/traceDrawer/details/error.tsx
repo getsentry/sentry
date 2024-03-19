@@ -84,13 +84,17 @@ export function ErrorNodeDetails({
 
       <TraceDrawerComponents.Table className="table key-value">
         <tbody>
-          {stackTrace && (
+          {stackTrace ? (
             <tr>
               <StackTraceTitle>{t('Stack Trace')}</StackTraceTitle>
               <StackTraceWrapper>
                 <StackTracePreviewContent event={data} stacktrace={stackTrace} />
               </StackTraceWrapper>
             </tr>
+          ) : (
+            <Row title={t('Stack Trace')}>
+              {t('There is no stack trace available for this error')}
+            </Row>
           )}
           <Tags
             enableHiding
