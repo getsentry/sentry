@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/react';
 
 import {t} from 'sentry/locale';
+
 import type {
   TraceTree,
   TraceTreeNode,

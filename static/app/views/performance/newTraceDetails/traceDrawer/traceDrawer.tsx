@@ -1,6 +1,7 @@
 import {useCallback, useMemo, useRef} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 
 import {Button} from 'sentry/components/button';
