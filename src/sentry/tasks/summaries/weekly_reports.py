@@ -12,7 +12,7 @@ from django.db.models import F
 from django.utils import dateformat, timezone
 from sentry_sdk import set_tag
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.constants import DataCategory
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
@@ -164,7 +164,10 @@ def prepare_organization_report(
 
             project_ctx = cast(ProjectContext, ctx.projects_context_map[project.id])
             if key_errors:
-                project_ctx.key_errors = [(e["group_id"], e["count()"]) for e in key_errors]
+                if features.has("organizations:snql-join", project.organization):
+                    project_ctx.key_errors = [(e["e.group_id"], e["count()"]) for e in key_errors]
+                else:
+                    project_ctx.key_errors = [(e["group_id"], e["count()"]) for e in key_errors]
                 if ctx.organization.slug == "sentry":
                     logger.info(
                         "project_key_errors.results",
