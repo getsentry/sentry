@@ -126,6 +126,7 @@ class U2FInterfaceTest(TestCase):
         assert self.u2f.validate_response(self.request, None, self.response)
         _, kwargs = mock_state.call_args
         assert kwargs.get("state") == "normal state"
+        assert "webauthn_authentication_state" not in self.request.session
 
     @freeze_time(CURRENT_TIME)
     def test_validate_response_staff_state_valid_timestamp(self):
@@ -139,6 +140,7 @@ class U2FInterfaceTest(TestCase):
         assert self.u2f.validate_response(self.request, None, self.response)
         _, kwargs = mock_state.call_args
         assert kwargs.get("state") == "staff state"
+        assert "staff_webauthn_authentication_state" not in self.request.session
 
     @freeze_time(CURRENT_TIME)
     def test_validate_response_staff_state_invalid_timestamp(self):
@@ -153,6 +155,7 @@ class U2FInterfaceTest(TestCase):
         assert self.u2f.validate_response(self.request, None, self.response)
         _, kwargs = mock_state.call_args
         assert kwargs.get("state") == "non-staff state"
+        assert "webauthn_authentication_state" not in self.request.session
 
         # Test timestamp too far in the future
         self.request.session["webauthn_authentication_state"] = ("non-staff state", 5)
@@ -160,6 +163,7 @@ class U2FInterfaceTest(TestCase):
         assert self.u2f.validate_response(self.request, None, self.response)
         _, kwargs = mock_state.call_args
         assert kwargs.get("state") == "non-staff state"
+        assert "webauthn_authentication_state" not in self.request.session
 
     @freeze_time(CURRENT_TIME)
     def test_validate_response_failing_still_clears_all_states(self):
@@ -175,3 +179,6 @@ class U2FInterfaceTest(TestCase):
             self.u2f.validate_response(self.request, None, self.response)
         _, kwargs = mock_state.call_args
         assert kwargs.get("state") == "staff state"
+        assert "webauthn_authentication_state" not in self.request.session
+        assert "staff_webauthn_authentication_state" not in self.request.session
+        assert "staff_auth_flow" not in self.request.session
