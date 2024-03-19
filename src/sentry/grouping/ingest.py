@@ -60,6 +60,21 @@ def _project_should_update_grouping(project: Project) -> bool:
     return bool(project.get_option("sentry:grouping_auto_update")) and should_update_org
 
 
+def _config_update_happened_recently(project: Project, tolerance: int) -> bool:
+    """
+    Determine whether an auto-upate happened within the last `tolerance` seconds.
+
+    We can use this test to compensate for the delay between config getting updated and Relay
+    picking up the change.
+    """
+    project_transition_expiry = project.get_option("sentry:secondary_grouping_expiry") or 0
+    last_config_update = project_transition_expiry - settings.SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
+    now = int(time.time())
+    time_since_update = now - last_config_update
+
+    return time_since_update < 60
+
+
 def _auto_update_grouping(project: Project) -> None:
     current_config = project.get_option("sentry:grouping_config")
     new_config = DEFAULT_GROUPING_CONFIG
