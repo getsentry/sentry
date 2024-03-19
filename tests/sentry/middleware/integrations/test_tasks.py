@@ -6,7 +6,7 @@ from django.urls import reverse
 from responses import matchers
 
 from sentry.integrations.discord.requests.base import DiscordRequestTypes
-from sentry.middleware.integrations.parsers.slack import create_async_request_payload
+from sentry.middleware.integrations.parsers.base import create_async_request_payload
 from sentry.middleware.integrations.tasks import (
     convert_to_async_discord_response,
     convert_to_async_slack_response,
