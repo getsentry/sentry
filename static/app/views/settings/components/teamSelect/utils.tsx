@@ -69,7 +69,7 @@ export function DropdownAddTeam({
   const dropdownItems = teams
     .filter(team => !selectedTeams.some(slug => slug === team.slug))
     .map((team, index) =>
-      renderDropdownOption({
+      getDropdownOption({
         isAddingTeamToMember,
         isAddingTeamToProject,
         team,
@@ -107,7 +107,7 @@ export function DropdownAddTeam({
   );
 }
 
-function renderDropdownOption({
+function getDropdownOption({
   disabled,
   index,
   isAddingTeamToMember,
