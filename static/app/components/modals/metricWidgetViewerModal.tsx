@@ -119,14 +119,31 @@ function MetricWidgetViewerModal({
     [setMetricEquations]
   );
 
-  const handleOrderChange = useCallback((order: Order, index: number) => {
-    setMetricQueries(curr => {
-      return curr.map((query, i) => {
-        const orderBy = i === index ? order : undefined;
-        return {...query, orderBy};
-      });
-    });
-  }, []);
+  const handleOrderChange = useCallback(
+    ({id, order}: {id: number; order: Order}) => {
+      const queryIdx = filteredQueries.findIndex(query => query.id === id);
+      if (queryIdx > -1) {
+        setMetricQueries(curr => {
+          return curr.map((query, i) => {
+            const orderBy = i === queryIdx ? order : undefined;
+            return {...query, orderBy};
+          });
+        });
+        return;
+      }
+
+      const equationIdx = filteredEquations.findIndex(equation => equation.id === id);
+      if (equationIdx > -1) {
+        setMetricEquations(curr => {
+          return curr.map((equation, i) => {
+            const orderBy = i === equationIdx ? order : undefined;
+            return {...equation, orderBy};
+          });
+        });
+      }
+    },
+    [filteredEquations, filteredQueries]
+  );
 
   const addQuery = useCallback(() => {
     setMetricQueries(curr => {
@@ -146,6 +163,7 @@ function MetricWidgetViewerModal({
         ...curr,
         {
           formula: '',
+          name: '',
           id: generateEquationId(),
           type: MetricQueryType.FORMULA,
         },

@@ -107,12 +107,9 @@ export function Queries({
           <Button size="sm" icon={<IconAdd isCircled />} onClick={addQuery}>
             {t('Add query')}
           </Button>
-          {/* TODO: Support equations in tables */}
-          {displayType !== DisplayType.TABLE && (
-            <Button size="sm" icon={<IconAdd isCircled />} onClick={addEquation}>
-              {t('Add equation')}
-            </Button>
-          )}
+          <Button size="sm" icon={<IconAdd isCircled />} onClick={addEquation}>
+            {t('Add equation')}
+          </Button>
         </ButtonBar>
       )}
     </QueriesWrapper>
