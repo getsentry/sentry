@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {CommitRow} from 'sentry/components/commitRow';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventContexts} from 'sentry/components/events/contexts';
-import ContextSummary from 'sentry/components/events/contextSummary';
 import {EventDevice} from 'sentry/components/events/device';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
@@ -26,6 +25,7 @@ import {useHasNewTagsUI} from 'sentry/components/events/eventTags/util';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
+import HighlightsDataSection from 'sentry/components/events/highlights/highlightsDataSection';
 import {ActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
 import {actionableItemsEnabled} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import {CronTimelineSection} from 'sentry/components/events/interfaces/crons/cronTimelineSection';
@@ -42,7 +42,6 @@ import type {Event, Group, Project} from 'sentry/types';
 import {IssueCategory, IssueType} from 'sentry/types';
 import type {EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
-import {objectIsEmpty} from 'sentry/utils';
 import {shouldShowCustomErrorResourceConfig} from 'sentry/utils/issueTypeConfig';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ResourcesAndMaybeSolutions} from 'sentry/views/issueDetails/resourcesAndMaybeSolutions';
@@ -130,16 +129,7 @@ function DefaultGroupEventDetailsContent({
           project={project}
         />
       )}
-      {hasNewTagsUI && !objectIsEmpty(event.contexts) && (
-        <EventDataSection
-          title={t('Highlighted Event Data')}
-          data-test-id="highlighted-event-data"
-          guideTarget="highlighted-event-data"
-          type="highlighted-event-data"
-        >
-          <ContextSummary event={event} />
-        </EventDataSection>
-      )}
+      <HighlightsDataSection event={event} group={group} project={project} />
       {!hasNewTagsUI && (
         <EventTagsAndScreenshot event={event} projectSlug={project.slug} />
       )}

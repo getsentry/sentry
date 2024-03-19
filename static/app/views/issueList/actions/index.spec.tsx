@@ -115,10 +115,7 @@ describe('IssueListActions', function () {
 
         await userEvent.click(screen.getByRole('checkbox'));
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
-        await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
-        await userEvent.hover(
-          screen.getByRole('menuitemradio', {name: 'Set Priority to...'})
-        );
+        await userEvent.click(screen.getByRole('button', {name: 'Set Priority'}));
         await userEvent.click(screen.getByRole('menuitemradio', {name: 'High'}));
 
         expect(
@@ -230,10 +227,7 @@ describe('IssueListActions', function () {
       organization: OrganizationFixture({features: ['issue-priority-ui']}),
     });
 
-    await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
-    await userEvent.hover(
-      screen.getByRole('menuitemradio', {name: 'Set Priority to...'})
-    );
+    await userEvent.click(screen.getByRole('button', {name: 'Set Priority'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'High'}));
 
     expect(apiMock).toHaveBeenCalledWith(
