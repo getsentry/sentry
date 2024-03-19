@@ -19,6 +19,7 @@ def delete_replays(
     start_utc: datetime,
     end_utc: datetime,
 ) -> None:
+    """Delete a set of replays from a query."""
     search_filters = translate_cli_tags_param_to_snuba_tag_param(tags)
     offset = 0
 
@@ -53,7 +54,7 @@ def translate_cli_tags_param_to_snuba_tag_param(tags: list[str]) -> Sequence[Sea
 
 
 def delete_replay_ids(project_id: int, replay_ids: list[str]) -> None:
-    """Delete specific replay-ids from a project."""
+    """Delete a set of replay-ids for a specific project."""
     for replay_id in replay_ids:
         delete_replay_recording(project_id, replay_id)
 
