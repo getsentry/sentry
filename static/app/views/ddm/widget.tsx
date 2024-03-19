@@ -95,16 +95,6 @@ function isNotQueryOnly(query: MetricsQueryApiQueryParams) {
   return !('isQueryOnly' in query) || !query.isQueryOnly;
 }
 
-export function getQueryMQLs(queries: MetricsQueryApiQueryParams[]) {
-  const filteredQueries = queries.filter(isNotQueryOnly);
-
-  return filteredQueries.map(q =>
-    isMetricFormula(q)
-      ? unescapeMetricsFormula(q.formula)
-      : formatMRIField(MRIToField(q.mri, q.op))
-  );
-}
-
 export function getWidgetTitle(queries: MetricsQueryApiQueryParams[]) {
   const filteredQueries = queries.filter(isNotQueryOnly);
 
@@ -120,7 +110,13 @@ export function getWidgetTitle(queries: MetricsQueryApiQueryParams[]) {
     return getFormattedMQL(firstQuery);
   }
 
-  return getQueryMQLs(queries).join(', ');
+  return filteredQueries
+    .map(q =>
+      isMetricFormula(q)
+        ? unescapeMetricsFormula(q.formula)
+        : formatMRIField(MRIToField(q.mri, q.op))
+    )
+    .join(', ');
 }
 
 export const MetricWidget = memo(

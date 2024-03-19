@@ -7,15 +7,15 @@ import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricsQueryApiResponse} from 'sentry/types';
+import {unescapeMetricsFormula} from 'sentry/utils/metrics';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
-import {formatMRIField} from 'sentry/utils/metrics/mri';
+import {formatMRIField, MRIToField} from 'sentry/utils/metrics/mri';
 import {
   isMetricFormula,
   type MetricsQueryApiQueryParams,
   type MetricsQueryApiRequestQuery,
 } from 'sentry/utils/metrics/useMetricsQuery';
 import type {Order} from 'sentry/views/dashboards/metrics/types';
-import {getQueryMQLs} from 'sentry/views/ddm/widget';
 import {LoadingScreen} from 'sentry/views/starfish/components/chart';
 
 interface MetricTableContainerProps {
@@ -95,7 +95,6 @@ export function MetricTable({
     <StyledPanelTable
       borderless={borderless}
       headers={data.headers.map((column, index) => {
-        const header = formatMRIField(column.label);
         return (
           <HeaderCell
             key={index}
@@ -106,7 +105,7 @@ export function MetricTable({
             {column.order && (
               <IconArrow direction={column.order === 'asc' ? 'up' : 'down'} size="xs" />
             )}
-            <TextOverflow>{header}</TextOverflow>
+            <TextOverflow>{column.label}</TextOverflow>
           </HeaderCell>
         );
       })}
@@ -200,7 +199,6 @@ export function getTableData(
     return row;
   });
 
-  const queryLabels = getQueryMQLs(queries);
   const headers = [
     ...tags.map(tagName => ({
       name: tagName,
@@ -208,11 +206,13 @@ export function getTableData(
       type: 'tag',
       order: undefined,
     })),
-    ...queries.map((query, index) => ({
+    ...queries.map(query => ({
       name: query.name,
       // @ts-expect-error use DashboardMetricsExpression type
       id: query.id,
-      label: queryLabels[index],
+      label: isMetricFormula(query)
+        ? unescapeMetricsFormula(query.formula)
+        : formatMRIField(MRIToField(query.mri, query.op)),
       type: 'field',
       order: query.orderBy,
     })),
