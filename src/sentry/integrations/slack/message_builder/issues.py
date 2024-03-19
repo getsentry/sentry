@@ -106,7 +106,11 @@ SUPPORTED_CONTEXT_DATA = {
     ),
     "State": lambda group: SUBSTATUS_TO_STR.get(group.substatus, "").replace("_", " ").title(),
     "First Seen": lambda group: time_since(group.first_seen),
-    "Approx. Start Time": get_approx_start_time,
+    "Approx. Start Time": lambda group: datetime.fromtimestamp(
+        get_approx_start_time(group=group)
+    ).strftime(
+        "%Y-%m-%d %H:%M:%S"
+    ),  # format moment into YYYY-mm-dd h:m:s
 }
 
 
