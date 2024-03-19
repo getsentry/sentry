@@ -764,6 +764,10 @@ class SlackActionEndpoint(Endpoint):
         ]
 
     def post(self, request: Request) -> Response:
+        logger.info(
+            "slack.action.post",
+            extra=request.data,
+        )
         try:
             slack_request = self.slack_request_class(request)
             slack_request.validate()
