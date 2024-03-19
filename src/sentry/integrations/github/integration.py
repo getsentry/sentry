@@ -307,7 +307,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
         )
 
     def get_pipeline_views(self) -> Sequence[PipelineView]:
-        return [GitHubInstallationRedirect()]
+        return [GitHubInstallation()]
 
     def get_installation_info(self, installation_id: str) -> Mapping[str, Any]:
         client = self.get_client()
@@ -355,7 +355,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
         )
 
 
-class GitHubInstallationRedirect(PipelineView):
+class GitHubInstallation(PipelineView):
     def get_app_url(self) -> str:
         name = options.get("github-app.name")
         return f"https://github.com/apps/{slugify(name)}"
