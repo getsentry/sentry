@@ -105,7 +105,7 @@ export function CronTimelineSection({event, organization, project}: Props) {
           end={end}
           width={timelineWidth}
         />
-        <StyledGridLineOverlay
+        <GridLineOverlay
           showCursor={!isLoading}
           timeWindowConfig={timeWindowConfig}
           start={start}
@@ -145,11 +145,7 @@ const TimelineContainer = styled(Panel)`
 `;
 
 const StyledGridLineTimeLabels = styled(GridLineTimeLabels)`
-  grid-column: 0;
-`;
-
-const StyledGridLineOverlay = styled(GridLineOverlay)`
-  grid-column: 0;
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const TimelineWidthTracker = styled('div')`

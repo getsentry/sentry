@@ -136,6 +136,7 @@ const TimelineContainer = styled(Panel)`
 
 const StyledGridLineTimeLabels = styled(GridLineTimeLabels)`
   grid-column: 0;
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const StyledGridLineOverlay = styled(GridLineOverlay)`
