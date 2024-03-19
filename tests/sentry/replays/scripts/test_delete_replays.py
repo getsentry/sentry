@@ -7,7 +7,7 @@ from zlib import compress
 
 from sentry.models.file import File
 from sentry.replays.models import ReplayRecordingSegment
-from sentry.replays.scripts.delete_replays import delete_replays
+from sentry.replays.scripts.delete_replays import delete_replay_ids, delete_replays
 from sentry.replays.testutils import (
     mock_replay,
     mock_rrweb_div_helloworld,
@@ -262,3 +262,22 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
 
         replay_recordings = ReplayRecordingSegment.objects.all()
         assert len(replay_recordings) == 0
+
+    def test_delete_replays_by_id(self):
+        deleted_replay_id = uuid4().hex
+        self.store_replay_segments(
+            deleted_replay_id,
+            self.project.id,
+            datetime.datetime.now() - datetime.timedelta(seconds=10),
+        )
+
+        kept_replay_id = uuid4().hex
+        self.store_replay_segments(
+            kept_replay_id,
+            self.project.id,
+            datetime.datetime.now() - datetime.timedelta(seconds=10),
+        )
+
+        delete_replay_ids(project_id=self.project.id, replay_ids=[deleted_replay_id])
+        self.assert_replay_deleted(deleted_replay_id)
+        self.assert_replay_not_deleted(kept_replay_id)
