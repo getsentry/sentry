@@ -25,6 +25,7 @@ import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import FileSize from 'sentry/components/fileSize';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -175,7 +176,11 @@ export function TransactionNodeDetails({
   const issues = useMemo(() => {
     return [...node.errors, ...node.performance_issues];
   }, [node.errors, node.performance_issues]);
-  const {data: event} = useApiQuery<EventTransaction>(
+  const {
+    data: event,
+    isError,
+    isLoading,
+  } = useApiQuery<EventTransaction>(
     [
       `/organizations/${organization.slug}/events/${node.value.project_slug}:${node.value.event_id}/`,
       {
@@ -190,8 +195,12 @@ export function TransactionNodeDetails({
     }
   );
 
-  if (!event) {
+  if (isLoading) {
     return <LoadingIndicator />;
+  }
+
+  if (isError) {
+    return <LoadingError message={t('Failed to fetch transaction details')} />;
   }
 
   const {user, contexts, projectSlug} = event;
@@ -324,9 +333,7 @@ export function TransactionNodeDetails({
               borderless
               size="zero"
               iconSize="xs"
-              text={`${window.location.href.replace(window.location.hash, '')}#txn-${
-                node.value.event_id
-              }`}
+              text={node.value.event_id}
             />
           </Row>
           <Row title={t('Description')}>
