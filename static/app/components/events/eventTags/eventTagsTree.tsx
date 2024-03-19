@@ -358,7 +358,7 @@ const TreeGarden = styled('div')<{columnCount: number}>`
 
 const TreeColumn = styled('div')`
   display: grid;
-  grid-template-columns: minmax(auto, 150px) 1fr;
+  grid-template-columns: auto 1fr;
   grid-column-gap: ${space(3)};
   &:not(:first-child) {
     border-left: 1px solid ${p => p.theme.gray200};
