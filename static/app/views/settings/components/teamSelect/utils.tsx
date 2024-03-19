@@ -66,7 +66,7 @@ export function DropdownAddTeam({
   onCreateTeam?: (team: Team) => void;
   project?: Project;
 }) {
-  const dropdownItems = teams
+  const dropdownItems: ItemsBeforeFilter = teams
     .filter(team => !selectedTeams.some(slug => slug === team.slug))
     .map((team, index) =>
       getDropdownOption({
