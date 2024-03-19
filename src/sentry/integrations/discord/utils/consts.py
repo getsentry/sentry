@@ -208,6 +208,9 @@ DISCORD_ERROR_CODES = {
 }
 
 """
+In order to make the SLO more relevant, we want to ignore specific discord provided codes that
+can be returned when a user changes a configuration and breaks the alert.
+
 Eventually we would like to surface these codes to the user so they can fix their configuration.
 """
 DISCORD_USER_ERRORS = {
