@@ -192,6 +192,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         referrer: str | None = None,
         actor: Any | None = None,
         aggregate_kwargs: TrendsSortWeights | None = None,
+        use_group_snuba_dataset: bool = False,
     ) -> CursorResult[Group]:
         """This function runs your actual query and returns the results
         We usually return a paginator object, which contains the results and the number of hits"""
@@ -1230,6 +1231,7 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         referrer: str | None = None,
         actor: Any | None = None,
         aggregate_kwargs: TrendsSortWeights | None = None,
+        use_group_snuba_dataset: bool = False,
     ) -> CursorResult[Group]:
         if not validate_cdc_search_filters(search_filters):
             raise InvalidQueryForExecutor("Search filters invalid for this query executor")
@@ -1425,6 +1427,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         referrer: str | None = None,
         actor: Any | None = None,
         aggregate_kwargs: TrendsSortWeights | None = None,
+        use_group_snuba_dataset: bool = False,
     ) -> CursorResult[Group]:
         if not self.validate_search_filters(search_filters):
             raise InvalidQueryForExecutor("Search filters invalid for this query executor")

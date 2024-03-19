@@ -117,6 +117,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         group_states: GroupStates | None = None,
         **kwargs: Any,
     ) -> None:
+
         event_type = self._get_event_type(event)
         if event.get_tag("sample_event"):
             logger.info(
