@@ -91,6 +91,10 @@ describe('StreamGroup', function () {
   });
 
   it('can change priority', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/prompts-activity/',
+      body: {data: {dismissed_ts: null}},
+    });
     const mockModifyGroup = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
       method: 'PUT',
