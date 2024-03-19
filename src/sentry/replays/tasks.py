@@ -49,8 +49,9 @@ def delete_replay_recording(project_id: int, replay_id: str) -> None:
             direct_storage_segments.append(segment)
 
     # Issue concurrent delete requests when interacting with a remote service provider.
-    with cf.ThreadPoolExecutor(max_workers=100) as pool:
-        pool.map(storage.delete, direct_storage_segments)
+    if direct_storage_segments:
+        with cf.ThreadPoolExecutor(max_workers=100) as pool:
+            pool.map(storage.delete, direct_storage_segments)
 
     # This will only run if "filestore" was used to store the files. This hasn't been the
     # case since March of 2023. This exists to serve self-hosted customers with the filestore
