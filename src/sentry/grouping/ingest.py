@@ -493,17 +493,15 @@ def record_hash_calculation_metrics(
 
             metrics.incr("grouping.hash_comparison", tags=tags)
 
-        # TODO: This is temporary, just until we can figure out how we're recording a hash
-        # comparison metric showing projects calculating both primary and secondary hashes using the
-        # same config
-        if primary_config["id"] == secondary_config["id"]:
-            logger.info(
-                "Equal primary and secondary configs",
-                extra={
-                    "project": project.id,
-                    "primary_config": primary_config["id"],
-                },
-            )
+        else:
+            if not _config_update_happened_recently(project, 30):
+                logger.info(
+                    "Equal primary and secondary configs",
+                    extra={
+                        "project": project.id,
+                        "primary_config": primary_config["id"],
+                    },
+                )
 
 
 # TODO: Once the legacy `_save_aggregate` goes away, this logic can be pulled into
