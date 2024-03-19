@@ -68,12 +68,7 @@ export function OverviewTimeline({monitorList}: Props) {
   );
 
   const handleDeleteEnvironment = async (monitor: Monitor, env: string) => {
-    const success = await deleteMonitorEnvironment(
-      api,
-      organization.slug,
-      monitor.slug,
-      env
-    );
+    const success = await deleteMonitorEnvironment(api, organization.slug, monitor, env);
     if (!success) {
       return;
     }
@@ -108,7 +103,7 @@ export function OverviewTimeline({monitorList}: Props) {
     const resp = await setEnvironmentIsMuted(
       api,
       organization.slug,
-      monitor.slug,
+      monitor,
       env,
       isMuted
     );
@@ -128,7 +123,7 @@ export function OverviewTimeline({monitorList}: Props) {
 
   const handleToggleStatus = async (monitor: Monitor) => {
     const status = monitor.status === 'active' ? 'disabled' : 'active';
-    const resp = await updateMonitor(api, organization.slug, monitor.slug, {status});
+    const resp = await updateMonitor(api, organization.slug, monitor, {status});
 
     if (resp === null) {
       return;

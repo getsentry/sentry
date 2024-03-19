@@ -203,6 +203,7 @@ function Trace({
     manager.initializeTraceSpace([trace.root.space[0], 0, trace.root.space[1], 1]);
     const maybeQueue = decodeScrollQueue(qs.parse(location.search).node);
     const maybeEventId = qs.parse(location.search)?.eventId;
+
     if (maybeQueue || maybeEventId) {
       scrollQueueRef.current = {
         eventId: maybeEventId as string,
@@ -229,20 +230,21 @@ function Trace({
       return;
     }
 
-    const promise = scrollQueueRef.current?.eventId
-      ? manager.scrollToEventID(
-          scrollQueueRef?.current?.eventId,
+    // Node path has higher specificity than eventId
+    const promise = scrollQueueRef.current?.path
+      ? manager.scrollToPath(
           trace,
+          scrollQueueRef.current.path,
           () => setRender(a => (a + 1) % 2),
           {
             api,
             organization,
           }
         )
-      : scrollQueueRef?.current?.path
-        ? manager.scrollToPath(
+      : scrollQueueRef.current.eventId
+        ? manager.scrollToEventID(
+            scrollQueueRef?.current?.eventId,
             trace,
-            scrollQueueRef.current.path,
             () => setRender(a => (a + 1) % 2),
             {
               api,
