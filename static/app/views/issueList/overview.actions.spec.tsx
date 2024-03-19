@@ -376,6 +376,10 @@ describe('IssueListOverview (actions)', function () {
     });
 
     it('removes issues after reprioritizing single issue (when excluding priorities)', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/prompts-activity/',
+        body: {data: {dismissed_ts: null}},
+      });
       const updateIssueMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         method: 'PUT',
