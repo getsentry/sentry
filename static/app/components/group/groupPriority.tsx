@@ -85,6 +85,19 @@ function useLastEditedBy({
   return lastEditedBy;
 }
 
+export function makeGroupPriorityDropdownOptions({
+  onChange,
+}: {
+  onChange: (value: PriorityLevel) => void;
+}) {
+  return PRIORITY_OPTIONS.map(priority => ({
+    textValue: PRIORITY_KEY_TO_LABEL[priority],
+    key: priority,
+    label: <GroupPriorityBadge priority={priority} />,
+    onAction: () => onChange(priority),
+  }));
+}
+
 export function GroupPriorityBadge({priority, children}: GroupPriorityBadgeProps) {
   return (
     <StyledTag type={getTagTypeForPriority(priority)}>
@@ -186,14 +199,10 @@ export function GroupPriorityDropdown({
   onChange,
   lastEditedBy,
 }: GroupPriorityDropdownProps) {
-  const options: MenuItemProps[] = useMemo(() => {
-    return PRIORITY_OPTIONS.map(priority => ({
-      textValue: PRIORITY_KEY_TO_LABEL[priority],
-      key: priority,
-      label: <GroupPriorityBadge priority={priority} />,
-      onAction: () => onChange(priority),
-    }));
-  }, [onChange]);
+  const options: MenuItemProps[] = useMemo(
+    () => makeGroupPriorityDropdownOptions({onChange}),
+    [onChange]
+  );
 
   return (
     <DropdownMenu
