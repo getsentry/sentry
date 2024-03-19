@@ -116,6 +116,11 @@ describe('EventReplay', function () {
 
   beforeEach(function () {
     const project = ProjectFixture({platform: 'javascript'});
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replay-count/`,
+      method: 'GET',
+      body: {},
+    });
 
     jest.mocked(useProjects).mockReturnValue({
       fetchError: null,
