@@ -305,9 +305,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
         with self.feature({"organizations:customer-domains": [self.organization_2.slug]}):
             resp = self.client.get(self.init_path_2)
-            self.assertTemplateUsed(
-                resp, "sentry/integrations/github-integration-exists-on-another-org.html"
-            )
+            self.assertTemplateUsed(resp, "sentry/integrations/github-integration-failed.html")
             assert (
                 b'{"success":false,"data":{"error":"Github installed on another Sentry organization."}}'
                 in resp.content
@@ -636,7 +634,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             )
 
         assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/integrations/integration-pending-deletion.html")
+        self.assertTemplateUsed(resp, "sentry/integrations/github-integration-failed.html")
 
         assert b'window.opener.postMessage({"success":false' in resp.content
         assert f', "{generate_organization_url(self.organization.slug)}");'.encode() in resp.content
