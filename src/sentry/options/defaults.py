@@ -886,6 +886,9 @@ register(
 register("relay.metric-bucket-set-encodings", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("relay.metric-bucket-distribution-encodings", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# Controls the rollout rate in percent (`0.0` to `1.0`) for metric stats.
+register("relay.metric-stats.rollout-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # Write new kafka headers in eventstream
 register("eventstream:kafka-headers", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
@@ -999,6 +1002,13 @@ register(
 
 register(
     "organization-abuse-quota.metric-bucket-limit",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "organization-abuse-quota.custom-metric-bucket-limit",
     type=Int,
     default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
@@ -1856,9 +1866,23 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# IDs of orgs that will stop ingesting custom metrics.
+register(
+    "custom-metrics-ingestion-disabled-orgs",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# IDs of projects that will stop ingesting custom metrics.
+register(
+    "custom-metrics-ingestion-disabled-projects",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # IDs of orgs that will be disabled from querying metrics via `/metrics/query` endpoint.
 register(
-    "custom-metrics-querying-killswitched-orgs",
+    "custom-metrics-querying-disabled-orgs",
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -2087,31 +2111,16 @@ register(
 
 # Sampling rates for testing Rust-based grouping enhancers
 
-# Rate at which to parse enhancers in Rust in addition to Python
-register(
-    "grouping.rust_enhancers.parse_rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Rate at which to run the Rust implementation of `apply_modifications_to_frames`
-# and compare the results
-register(
-    "grouping.rust_enhancers.modify_frames_rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Rate at which to prefer the `apply_modifications_to_frames` result of the Rust implementation.
-register(
-    "grouping.rust_enhancers.prefer_rust_result",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Rate at which to run the Rust implementation of `assemble_stacktrace_component`
 # and compare the results
 register(
     "grouping.rust_enhancers.compare_components",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Rate at which to prefer the Rust implementation of `assemble_stacktrace_component`.
+register(
+    "grouping.rust_enhancers.prefer_rust_components",
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

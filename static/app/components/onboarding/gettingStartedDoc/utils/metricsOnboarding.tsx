@@ -668,36 +668,52 @@ export const getDotnetMetricsOnboarding = ({
   ],
 });
 
-const getUnityConfigureSnippet = () => `
-public override void Configure(SentryUnityOptions options)
-{
-    options.ExperimentalMetrics = new ExperimentalMetricsOptions
-    {
-      EnableCodeLocations = true
-    };
-}`;
-export const getUnityMetricsOnboarding = (): OnboardingConfig => ({
+const getRubyConfigureSnippet = () => `
+Sentry.init do |config|
+  # ...
+  config.metrics.enabled = true
+end`;
+
+const getRubyVerifySnippet = () => `
+# Increment a metric to see how it works
+Sentry::Metrics.increment("drank-drinks", 1, tags: { kind: "coffee" })`;
+
+export const getRubyMetricsOnboarding = (): OnboardingConfig => ({
   install: () => [
     {
       type: StepType.INSTALL,
       description: tct(
-        'You need a minimum version [codeVersion:2.0.0] of the Unity SDK installed.',
+        'You need a minimum version [codeVersion:5.17.0] of the [codePackage:sentry-ruby] gem and add that as your dependency in your [codeGemfile:Gemfile].',
         {
           codeVersion: <code />,
+          codePackage: <code />,
+          codeGemfile: <code />,
         }
       ),
+      configurations: [
+        {
+          language: 'ruby',
+          code: 'gem "sentry-ruby"',
+        },
+      ],
     },
   ],
   configure: () => [
     {
       type: StepType.CONFIGURE,
       description: t(
-        'Once the SDK is installed or updated, you can enable the experimental metrics feature and code locations being emitted in your RuntimeConfiguration.'
+        'Once the SDK is installed or updated you have to enable metrics in your SDK initializer:'
       ),
       configurations: [
         {
-          language: 'csharp',
-          code: getUnityConfigureSnippet(),
+          code: [
+            {
+              label: 'Ruby',
+              value: 'ruby',
+              language: 'ruby',
+              code: getRubyConfigureSnippet(),
+            },
+          ],
         },
       ],
     },
@@ -706,19 +722,25 @@ export const getUnityMetricsOnboarding = (): OnboardingConfig => ({
     {
       type: StepType.VERIFY,
       description: tct(
-        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], [codeGauge:gauges], and [codeTimings:timings]. Try out this example:",
+        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. Try out this example:",
         {
           codeCounters: <code />,
           codeSets: <code />,
           codeDistribution: <code />,
           codeGauge: <code />,
-          codeTimings: <code />,
+          codeNamespace: <code />,
         }
       ),
       configurations: [
         {
-          language: 'csharp',
-          code: getDotnetVerifySnippet(),
+          code: [
+            {
+              label: 'Ruby',
+              value: 'ruby',
+              language: 'ruby',
+              code: getRubyVerifySnippet(),
+            },
+          ],
         },
         {
           description: t(
@@ -730,7 +752,7 @@ export const getUnityMetricsOnboarding = (): OnboardingConfig => ({
             'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
             {
               docsLink: (
-                <ExternalLink href="https://docs.sentry.io/platforms/unity/metrics/" />
+                <ExternalLink href="https://docs.sentry.io/platforms/ruby/metrics/" />
               ),
             }
           ),

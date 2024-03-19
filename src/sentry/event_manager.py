@@ -59,8 +59,11 @@ from sentry.grouping.ingest import (
     find_existing_grouphash,
     find_existing_grouphash_new,
     get_hash_values,
+    is_in_transition,
     maybe_run_background_grouping,
     maybe_run_secondary_grouping,
+    project_uses_optimized_grouping,
+    record_calculation_metric_with_result,
     record_hash_calculation_metrics,
     record_new_group_metrics,
     run_primary_grouping,
@@ -463,9 +466,14 @@ class EventManager:
 
             return jobs[0]["event"]
         else:
+            project = job["event"].project
+            job["optimized_grouping"] = project_uses_optimized_grouping(project)
+            job["in_grouping_transition"] = is_in_transition(project)
             metric_tags = {
                 "platform": job["event"].platform or "unknown",
                 "sdk": normalized_sdk_tag_from_event(job["event"]),
+                "using_transition_optimization": job["optimized_grouping"],
+                "in_transition": job["in_grouping_transition"],
             }
             # This metric allows differentiating from all calls to the `event_manager.save` metric
             # and adds support for differentiating based on platforms
@@ -1375,19 +1383,7 @@ def get_culprit(data: Mapping[str, Any]) -> str:
 
 
 def assign_event_to_group(event: Event, job: Job, metric_tags: MutableTags) -> GroupInfo | None:
-    project = event.project
-
-    primary_grouping_config = project.get_option("sentry:grouping_config")
-    secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
-    has_mobile_config = "mobile:2021-02-12" in [primary_grouping_config, secondary_grouping_config]
-
-    if (
-        features.has(
-            "organizations:grouping-suppress-unnecessary-secondary-hash",
-            project.organization,
-        )
-        and not has_mobile_config
-    ):
+    if job["optimized_grouping"]:
         group_info = _save_aggregate_new(
             event=event,
             job=job,
@@ -1419,6 +1415,7 @@ def _save_aggregate(
     project = event.project
 
     primary_hashes, secondary_hashes, hashes = get_hash_values(project, job, metric_tags)
+    has_secondary_hashes = len(extract_hashes(secondary_hashes)) > 0
 
     # Now that we've used the current and possibly secondary grouping config(s) to calculate the
     # hashes, we're free to perform a config update if needed. Future events will use the new
@@ -1539,6 +1536,11 @@ def _save_aggregate(
 
                 span.set_tag("create_group_transaction.outcome", "new_group")
                 metric_tags["create_group_transaction.outcome"] = "new_group"
+                record_calculation_metric_with_result(
+                    project=project,
+                    has_secondary_hashes=has_secondary_hashes,
+                    result="new_group",
+                )
 
                 metrics.incr(
                     "group.created",
@@ -1593,6 +1595,18 @@ def _save_aggregate(
         new_hashes = [root_hierarchical_grouphash]
     else:
         new_hashes = []
+
+    primary_hash_values = set(extract_hashes(primary_hashes))
+    new_hash_values = {gh.hash for gh in new_hashes}
+    all_primary_hashes_are_new = primary_hash_values.issubset(new_hash_values)
+    record_calculation_metric_with_result(
+        project=project,
+        has_secondary_hashes=has_secondary_hashes,
+        # If at least one primary hash value isn't new, then we will have found it, since we check
+        # those before the secondary hash values. If the primary hash values are all new, then we
+        # must have found a secondary hash (or we'd be in the group-creation branch).
+        result="found_primary" if not all_primary_hashes_are_new else "found_secondary",
+    )
 
     if new_hashes:
         # There may still be secondary hashes that we did not use to find an
@@ -1651,6 +1665,7 @@ def _save_aggregate_new(
         group_info = handle_existing_grouphash(
             job, primary.existing_grouphash, primary.grouphashes, group_processing_kwargs
         )
+        result = "found_primary"
     # If we haven't, try again using the secondary config
     else:
         secondary = create_and_seek_grouphashes(job, maybe_run_secondary_grouping, metric_tags)
@@ -1661,10 +1676,13 @@ def _save_aggregate_new(
             group_info = handle_existing_grouphash(
                 job, secondary.existing_grouphash, all_grouphashes, group_processing_kwargs
             )
+            result = "found_secondary"
+
         else:
             group_info = create_group_with_grouphashes(
                 job, all_grouphashes, group_processing_kwargs
             )
+            result = "new_group"
 
     # From here on out, we're just doing housekeeping
 
@@ -1675,6 +1693,13 @@ def _save_aggregate_new(
 
     record_hash_calculation_metrics(
         project, primary.config, primary.hashes, secondary.config, secondary.hashes
+    )
+    # TODO: Once the legacy `_save_aggregate` goes away, the logic inside of
+    # `record_calculation_metric_with_result` can be pulled into `record_hash_calculation_metrics`
+    record_calculation_metric_with_result(
+        project=project,
+        has_secondary_hashes=len(extract_hashes(secondary.hashes)) > 0,
+        result=result,
     )
 
     # Now that we've used the current and possibly secondary grouping config(s) to calculate the

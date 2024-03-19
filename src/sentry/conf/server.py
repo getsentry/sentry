@@ -1597,6 +1597,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable interface functionality to synchronize groups between sentry and
     # issues on external services.
     "organizations:integrations-issue-sync": True,
+    # Allow tenant type installations through issue alert actions
+    "organizations:integrations-msteams-tenant": False,
     # Enable comments of related issues on open PRs for beta languages
     "organizations:integrations-open-pr-comment-beta-langs": False,
     # Enable Opsgenie integration
@@ -1841,8 +1843,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-accessibility-issues": False,
     # Enable combined envelope Kafka items in Relay
     "organizations:session-replay-combined-envelope-items": False,
-    # Enable core Session Replay SDK for recording onError events on sentry.io
-    "organizations:session-replay-count-query-optimize": False,
     # Enable canvas recording
     "organizations:session-replay-enable-canvas": False,
     # Enable canvas replaying
@@ -3089,7 +3089,7 @@ STATUS_PAGE_API_HOST = "statuspage.io"
 SENTRY_SELF_HOSTED = True
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "24.2.0"
+SELF_HOSTED_STABLE_VERSION = "24.3.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -3475,8 +3475,11 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "metrics-subscription-results": "default",
     "ingest-events": "default",
     "ingest-feedback-events": "default",
+    "ingest-feedback-events-dlq": "default",
     "ingest-attachments": "default",
+    "ingest-attachments-dlq": "default",
     "ingest-transactions": "default",
+    "ingest-transactions-dlq": "default",
     "ingest-metrics": "default",
     "ingest-metrics-dlq": "default",
     "snuba-metrics": "default",
@@ -3751,7 +3754,7 @@ DEVSERVER_REQUEST_LOG_EXCLUDES: list[str] = []
 LOG_API_ACCESS = not IS_DEV or os.environ.get("SENTRY_LOG_API_ACCESS")
 
 VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = True
-DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = DISABLE_SU_STAFF_FORM_U2F_CHECK_FOR_LOCAL = False
+DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = False
 
 # determines if we enable analytics or not
 ENABLE_ANALYTICS = False

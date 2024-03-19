@@ -2843,10 +2843,8 @@ class ReleaseIssueTest(TestCase):
             event = manager.save(project_id)
         return event
 
-    def convert_timestamp(self, timestamp):
-        date = datetime.fromtimestamp(timestamp)
-        date = date.replace(tzinfo=UTC)
-        return date
+    def convert_timestamp(self, timestamp: float) -> datetime:
+        return datetime.fromtimestamp(timestamp, tz=UTC)
 
     def assert_release_project_environment(self, event, new_issues_count, first_seen, last_seen):
         release = Release.objects.get(

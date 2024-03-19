@@ -1,11 +1,11 @@
 import time
 from copy import deepcopy
-from datetime import timedelta, timezone
+from datetime import timedelta
 from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
-from django.utils.timezone import now
+from django.utils import timezone
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.models.rule import Rule
@@ -45,8 +45,8 @@ class PerfIssuePlatformEventMixin(PerformanceIssueTestCase):
         )
         event_data = load_data(
             "transaction-n-plus-one",
-            timestamp=timestamp.replace(tzinfo=timezone.utc),
-            start_timestamp=timestamp.replace(tzinfo=timezone.utc),
+            timestamp=timestamp,
+            start_timestamp=timestamp,
             fingerprint=[fingerprint],
         )
         event_data["user"] = {"id": uuid4().hex}
@@ -97,12 +97,12 @@ class StandardIntervalTestBase(SnubaTestCase, RuleTestCase):
                 event,
                 data["value"] + 1,
                 environment=self.environment.name,
-                timestamp=now() - timedelta(minutes=minutes),
+                timestamp=timezone.now() - timedelta(minutes=minutes),
             )
             self.increment(
                 event,
                 data["value"] + 1,
-                timestamp=now() - timedelta(minutes=minutes),
+                timestamp=timezone.now() - timedelta(minutes=minutes),
             )
 
         if passes:
@@ -166,12 +166,12 @@ class StandardIntervalTestBase(SnubaTestCase, RuleTestCase):
         self.increment(
             event,
             3,
-            timestamp=now() - timedelta(minutes=1),
+            timestamp=timezone.now() - timedelta(minutes=1),
         )
         self.increment(
             event,
             2,
-            timestamp=now() - timedelta(days=1, minutes=20),
+            timestamp=timezone.now() - timedelta(days=1, minutes=20),
         )
         data = {
             "interval": "1h",
@@ -331,7 +331,7 @@ class EventFrequencyPercentConditionTestCase(SnubaTestCase, RuleTestCase):
                 self.test_event,
                 max(1, int(minutes / 2)) - 1,
                 environment=self.environment.name,
-                timestamp=now() - timedelta(minutes=minutes),
+                timestamp=timezone.now() - timedelta(minutes=minutes),
             )
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
         environment_rule = self.get_rule(data=data, rule=Rule(environment_id=self.environment.id))
@@ -432,12 +432,12 @@ class EventFrequencyPercentConditionTestCase(SnubaTestCase, RuleTestCase):
         self.increment(
             event,
             1,
-            timestamp=now() - timedelta(minutes=1),
+            timestamp=timezone.now() - timedelta(minutes=1),
         )
         self.increment(
             event,
             1,
-            timestamp=now() - timedelta(days=1, minutes=20),
+            timestamp=timezone.now() - timedelta(days=1, minutes=20),
         )
         data = {
             "interval": "1h",
@@ -458,13 +458,17 @@ class EventFrequencyPercentConditionTestCase(SnubaTestCase, RuleTestCase):
         self.assertDoesNotPass(rule, event, is_new=False)
 
 
-@freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
+@freeze_time(
+    (timezone.now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0)
+)
 @region_silo_test
 class ErrorIssueFrequencyConditionTestCase(ErrorEventMixin, EventFrequencyConditionTestCase):
     pass
 
 
-@freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
+@freeze_time(
+    (timezone.now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0)
+)
 @region_silo_test
 class PerfIssuePlatformIssueFrequencyConditionTestCase(
     PerfIssuePlatformEventMixin,
@@ -473,7 +477,9 @@ class PerfIssuePlatformIssueFrequencyConditionTestCase(
     pass
 
 
-@freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
+@freeze_time(
+    (timezone.now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0)
+)
 @region_silo_test
 class ErrorIssueUniqueUserFrequencyConditionTestCase(
     ErrorEventMixin,
@@ -482,7 +488,9 @@ class ErrorIssueUniqueUserFrequencyConditionTestCase(
     pass
 
 
-@freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
+@freeze_time(
+    (timezone.now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0)
+)
 @region_silo_test
 class PerfIssuePlatformIssueUniqueUserFrequencyConditionTestCase(
     PerfIssuePlatformEventMixin,
@@ -491,7 +499,9 @@ class PerfIssuePlatformIssueUniqueUserFrequencyConditionTestCase(
     pass
 
 
-@freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
+@freeze_time(
+    (timezone.now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0)
+)
 @region_silo_test
 class ErrorIssueEventFrequencyPercentConditionTestCase(
     ErrorEventMixin, EventFrequencyPercentConditionTestCase
@@ -499,7 +509,9 @@ class ErrorIssueEventFrequencyPercentConditionTestCase(
     pass
 
 
-@freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
+@freeze_time(
+    (timezone.now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0)
+)
 @region_silo_test
 class PerfIssuePlatformIssueEventFrequencyPercentConditionTestCase(
     PerfIssuePlatformEventMixin,

@@ -163,6 +163,13 @@ function IssueListActions({
       });
     }
 
+    if ('priority' in data) {
+      trackAnalytics('issues_stream.updated_priority', {
+        organization,
+        priority: data.priority,
+      });
+    }
+
     actionSelectedGroups(itemIds => {
       // If `itemIds` is undefined then it means we expect to bulk update all items
       // that match the query.

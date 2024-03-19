@@ -1341,14 +1341,8 @@ function buildRoutes() {
         path="create/"
         component={make(() => import('sentry/views/monitors/create'))}
       />
-      <Route
-        path=":monitorSlug/"
-        component={make(() => import('sentry/views/monitors/details'))}
-      />
-      <Route
-        path=":monitorSlug/edit/"
-        component={make(() => import('sentry/views/monitors/edit'))}
-      />
+      <Redirect from=":monitorSlug/" to="/crons/" />
+      <Redirect from=":monitorSlug/edit/" to="/crons/" />
       <Route
         path=":projectId/:monitorSlug/"
         component={make(() => import('sentry/views/monitors/details'))}
@@ -1944,6 +1938,7 @@ function buildRoutes() {
       <Redirect from="/organizations/:orgId/teams/new/" to="/settings/:orgId/teams/" />
       <Route path="/organizations/:orgId/">
         {hook('routes:organization')}
+        <IndexRedirect to="/organizations/:orgId/issues/" />
         <Redirect from="/organizations/:orgId/teams/" to="/settings/:orgId/teams/" />
         <Redirect
           from="/organizations/:orgId/teams/your-teams/"
@@ -2044,10 +2039,18 @@ function buildRoutes() {
     </Route>
   );
 
-  const ddmRoutes = (
-    <Route path="/ddm/" component={make(() => import('sentry/views/ddm'))} withOrgPath>
-      <IndexRoute component={make(() => import('sentry/views/ddm/ddm'))} />
-    </Route>
+  const metricsRoutes = (
+    <Fragment>
+      <Route
+        path="/metrics/"
+        component={make(() => import('sentry/views/ddm'))}
+        withOrgPath
+      >
+        <IndexRoute component={make(() => import('sentry/views/ddm/ddm'))} />
+      </Route>
+      {/* TODO(ddm): fade this out */}
+      <Redirect from="/ddm/" to="/metrics/" />
+    </Fragment>
   );
 
   // Support for deprecated URLs (pre-Sentry 10). We just redirect users to new
@@ -2158,7 +2161,7 @@ function buildRoutes() {
       {performanceRoutes}
       {starfishRoutes}
       {profilingRoutes}
-      {ddmRoutes}
+      {metricsRoutes}
       {gettingStartedRoutes}
       {adminManageRoutes}
       {legacyOrganizationRootRoutes}
