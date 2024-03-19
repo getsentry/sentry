@@ -16,12 +16,6 @@ import {space} from 'sentry/styles/space';
 import type {Group, Organization} from 'sentry/types';
 import type {TraceErrorOrIssue} from 'sentry/utils/performance/quickTrace/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {
-  isAutogroupedNode,
-  isSpanNode,
-  isTraceErrorNode,
-  isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/guards';
 import type {
   TraceTree,
   TraceTreeNode,
@@ -30,7 +24,6 @@ import type {
 import {IssueSummary} from './issueSummary';
 
 type IssueProps = {
-  event_id: string;
   issue: TraceErrorOrIssue;
   organization: Organization;
 };
@@ -65,7 +58,7 @@ function Issue(props: IssueProps) {
         <IssueSummary
           data={fetchedIssue}
           organization={props.organization}
-          event_id={props.event_id}
+          event_id={props.issue.event_id}
         />
         <EventOrGroupExtraDetails data={fetchedIssue} />
       </IssueSummaryWrapper>
@@ -107,13 +100,12 @@ function Issue(props: IssueProps) {
 }
 
 type IssueListProps = {
-  event_id: string;
   issues: TraceErrorOrIssue[];
   node: TraceTreeNode<TraceTree.NodeValue>;
   organization: Organization;
 };
 
-export function IssueList({issues, node, organization, event_id}: IssueListProps) {
+export function IssueList({issues, node, organization}: IssueListProps) {
   if (!issues.length) {
     return null;
   }
@@ -122,59 +114,42 @@ export function IssueList({issues, node, organization, event_id}: IssueListProps
     <StyledPanel>
       <IssueListHeader node={node} />
       {issues.map((issue, index) => (
-        <Issue
-          key={index}
-          issue={issue}
-          organization={organization}
-          event_id={event_id}
-        />
+        <Issue key={index} issue={issue} organization={organization} />
       ))}
     </StyledPanel>
   );
 }
 
 function IssueListHeader({node}: {node: TraceTreeNode<TraceTree.NodeValue>}) {
-  const errors =
-    isSpanNode(node) || isTransactionNode(node)
-      ? node.value.errors.length
-      : isAutogroupedNode(node)
-        ? node.errors.length
-        : isTraceErrorNode(node)
-          ? 1
-          : 0;
-
-  const performance_issues =
-    isSpanNode(node) || isTransactionNode(node)
-      ? node.value.performance_issues.length
-      : isAutogroupedNode(node)
-        ? node.performance_issues.length
-        : isTraceErrorNode(node)
-          ? 1
-          : 0;
+  const {errors, performance_issues} = node;
 
   return (
     <StyledPanelHeader disablePadding>
       <IssueHeading>
-        {errors > 0 && performance_issues === 0
+        {errors.length > 0 && performance_issues.length === 0
           ? tct('[count] [text]', {
-              count: errors,
-              text: tn('Error', 'Errors', errors),
+              count: errors.length,
+              text: tn('Error', 'Errors', errors.length),
             })
-          : performance_issues > 0 && errors === 0
+          : performance_issues.length > 0 && errors.length === 0
             ? tct('[count] [text]', {
-                count: errors,
-                text: tn('Performance issue', 'Performance Issues', errors),
+                count: performance_issues.length,
+                text: tn(
+                  'Performance issue',
+                  'Performance Issues',
+                  performance_issues.length
+                ),
               })
             : tct(
                 '[errors] [errorsText] and [performance_issues] [performanceIssuesText]',
                 {
-                  errors,
-                  performance_issues,
-                  errorsText: tn('Error', 'Errors', errors),
+                  errors: errors.length,
+                  performance_issues: performance_issues.length,
+                  errorsText: tn('Error', 'Errors', errors.length),
                   performanceIssuesText: tn(
                     'performance issue',
                     'performance issues',
-                    performance_issues
+                    performance_issues.length
                   ),
                 }
               )}
