@@ -183,37 +183,7 @@ function TraceDrawer(props: TraceDrawerProps) {
               scrollToNode={props.scrollToNode}
               trace={props.trace}
             />
-          ) : // <Tab
-          //   active={props.tabs.last_clicked === props.tabs.current}
-          //   onClick={e => {
-          //     e.stopPropagation();
-          //     if (!props.tabs.last_clicked) return;
-
-          //     props.scrollToNode(props.tabs.last_clicked.node);
-          //     props.tabsDispatch({
-          //       type: 'activate tab',
-          //       payload: props.tabs.last_clicked.node,
-          //     });
-          //   }}
-          // >
-          //   {isTraceNode(props.tabs.last_clicked.node) ? null : (
-          //     <TabButtonIndicator
-          //       backgroundColor={makeTraceNodeBarColor(
-          //         theme,
-          //         props.tabs.last_clicked.node
-          //       )}
-          //     />
-          //   )}
-          //   <TabButton>{getTabTitle(props.tabs.last_clicked.node)}</TabButton>
-          //   <TabPinButton
-          //     pinned={false}
-          //     onClick={e => {
-          //       e.stopPropagation();
-          //       props.tabsDispatch({type: 'pin tab'});
-          //     }}
-          //   />
-          // </Tab>
-          null}
+          ) : null}
         </TabsContainer>
         <TabLayoutControlsContainer>
           <TabLayoutControlItem>
