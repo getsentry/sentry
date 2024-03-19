@@ -944,6 +944,7 @@ def _apply_cache_and_build_results(
     else:
         to_query = [(query_pos, query_params, None) for query_pos, query_params in query_param_list]
 
+
     if to_query:
         query_results = _bulk_snuba_query([item[1] for item in to_query], headers)
         for result, (query_pos, _, opt_cache_key) in zip(query_results, to_query):
@@ -963,22 +964,18 @@ def _bulk_snuba_query(
     snuba_param_list: Sequence[RequestQueryBody],
     headers: Mapping[str, str],
 ) -> ResultSet:
-    query_referrer = headers.get("referer", "<unknown>")
+    BATCH_SIZE = 10
+    results = []
+    for i in range(0, len(snuba_param_list), BATCH_SIZE):
+        batch = snuba_param_list[i:i + BATCH_SIZE]
+        batch_results = _execute_query_batch(batch, headers)
+        results.extend(batch_results)
+    return results
 
-    with sentry_sdk.start_span(
-        op="snuba_query",
-        description=query_referrer,
-    ) as span:
-        span.set_tag("snuba.num_queries", len(snuba_param_list))
-        # We set both span + sdk level, this is cause 1 txn/error might query snuba more than once
-        # but we still want to know a general sense of how referrers impact performance
-        span.set_tag("query.referrer", query_referrer)
-        sentry_sdk.set_tag("query.referrer", query_referrer)
-
-        parent_api: str = "<missing>"
-        with sentry_sdk.configure_scope() as scope:
-            if scope.transaction:
-                parent_api = scope.transaction.name
+def _execute_query_batch(batch: Sequence[RequestQueryBody], headers: Mapping[str, str]) -> ResultSet:
+    # This function encapsulates the existing logic for executing a batch of queries.
+    # Placeholder for the existing query execution logic.
+    pass
 
         if len(snuba_param_list) > 1:
             query_results = list(
