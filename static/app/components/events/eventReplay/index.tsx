@@ -31,7 +31,7 @@ type Props = {
   group?: Group;
 };
 
-const CLIP_OFFSETS = {
+export const CLIP_OFFSETS = {
   durationAfterMs: 5_000,
   durationBeforeMs: 5_000,
 };
