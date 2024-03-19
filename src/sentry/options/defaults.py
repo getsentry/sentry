@@ -732,6 +732,38 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# seer nearest neighbour endpoint timeout
+register(
+    "embeddings-grouping.seer.nearest-neighbour-timeout",
+    type=Float,
+    default=0.1,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# seer embeddings record update endpoint timeout
+register(
+    "embeddings-grouping.seer.embeddings-record-update-timeout",
+    type=Float,
+    default=0.05,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# seer embeddings record delete endpoint timeout
+register(
+    "embeddings-grouping.seer.embeddings-record-delete-timeout",
+    type=Float,
+    default=0.1,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# seer embeddings ratelimit in percentage that is allowed
+register(
+    "embeddings-grouping.seer.ratelimit",
+    type=Int,
+    default=0,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # ## sentry.killswitches
 #
 # The following options are documented in sentry.killswitches in more detail
@@ -751,6 +783,7 @@ register(
 register(
     "store.load-shed-process-event-projects", type=Any, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
 )
+register("embeddings-grouping.use-embeddings", type=Sequence, default=[])
 register(
     "store.load-shed-process-event-projects-gradual",
     type=Dict,
@@ -853,6 +886,9 @@ register(
 register("relay.metric-bucket-set-encodings", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("relay.metric-bucket-distribution-encodings", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# Controls the rollout rate in percent (`0.0` to `1.0`) for metric stats.
+register("relay.metric-stats.rollout-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # Write new kafka headers in eventstream
 register("eventstream:kafka-headers", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
@@ -881,9 +917,6 @@ register(
 
 # Drop delete_old_primary_hash messages for a particular project.
 register("reprocessing2.drop-delete-old-primary-hash", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# Switch to use service wrapper for reprocessing redis operations
-register("reprocessing.use_store", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # BEGIN ABUSE QUOTAS
 
@@ -969,6 +1002,13 @@ register(
 
 register(
     "organization-abuse-quota.metric-bucket-limit",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "organization-abuse-quota.custom-metric-bucket-limit",
     type=Int,
     default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
@@ -1589,6 +1629,18 @@ register("hybridcloud.integrationproxy.retries", default=5, flags=FLAG_AUTOMATOR
 
 # Break glass controls
 register("hybrid_cloud.rpc.disabled-service-methods", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+register(
+    "hybridcloud.webhookpayload.use_parallel",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "hybridcloud.webhookpayload.worker_threads",
+    default=4,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # == End hybrid cloud subsystem
 
 # Decides whether an incoming transaction triggers an update of the clustering rule applied to it.
@@ -1811,6 +1863,27 @@ register(
 register(
     "delightful_metrics.metrics_summary_sample_rate",
     default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# IDs of orgs that will stop ingesting custom metrics.
+register(
+    "custom-metrics-ingestion-disabled-orgs",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# IDs of projects that will stop ingesting custom metrics.
+register(
+    "custom-metrics-ingestion-disabled-projects",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# IDs of orgs that will be disabled from querying metrics via `/metrics/query` endpoint.
+register(
+    "custom-metrics-querying-disabled-orgs",
+    default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2038,24 +2111,16 @@ register(
 
 # Sampling rates for testing Rust-based grouping enhancers
 
-# Rate at which to parse enhancers in Rust in addition to Python
-register(
-    "grouping.rust_enhancers.parse_rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Rate at which to run the Rust implementation of `apply_modifications_to_frames`
+# Rate at which to run the Rust implementation of `assemble_stacktrace_component`
 # and compare the results
 register(
-    "grouping.rust_enhancers.modify_frames_rate",
+    "grouping.rust_enhancers.compare_components",
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-# Rate at which to prefer the `apply_modifications_to_frames` result of the Rust implementation.
+# Rate at which to prefer the Rust implementation of `assemble_stacktrace_component`.
 register(
-    "grouping.rust_enhancers.prefer_rust_result",
+    "grouping.rust_enhancers.prefer_rust_components",
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

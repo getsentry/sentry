@@ -106,6 +106,11 @@ class UserService(RpcService):
 
     @rpc_method
     @abstractmethod
+    def get_member_region_names(self, *, user_id: int) -> list[str]:
+        """Get a list of region names where the user is a member of at least one org."""
+
+    @rpc_method
+    @abstractmethod
     def update_user(self, *, user_id: int, attrs: UserUpdateArgs) -> Any:
         # Returns a serialized user
         pass

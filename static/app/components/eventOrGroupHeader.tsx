@@ -59,7 +59,7 @@ function EventOrGroupHeader({
         {!hideLevel && level && !hasIssuePriority && <GroupLevel level={level} />}
         {!hideIcons && isBookmarked && (
           <IconWrapper>
-            <IconStar isSolid color="yellow400" />
+            <IconStar isSolid color="yellow300" />
           </IconWrapper>
         )}
         <ErrorBoundary customComponent={<EventTitleError />} mini>

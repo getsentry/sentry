@@ -21,7 +21,7 @@ from sentry.constants import ObjectStatus
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.scheduledeletion import ScheduledDeletion
 from sentry.services.hybrid_cloud.organization import RpcUserOrganizationContext
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.audit import create_audit_entry
 from sentry.web.decorators import set_referrer_policy
 
@@ -118,7 +118,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
         )
         try:
             installation.update_organization_config(request.data)
-        except IntegrationError as e:
-            return self.respond({"detail": str(e)}, status=400)
+        except (IntegrationError, ApiError) as e:
+            return self.respond({"detail": [str(e)]}, status=400)
 
         return self.respond(status=200)

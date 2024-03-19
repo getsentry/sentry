@@ -102,19 +102,24 @@ def get_metric_extraction_config(
      - On-demand metrics widgets.
     """
     # For efficiency purposes, we fetch the flags in batch and propagate them downstream.
-    enabled_features = on_demand_metrics_feature_flags(project.organization)
-    timeout.check()
     sentry_sdk.set_tag("organization_id", project.organization_id)
+    with sentry_sdk.start_span(op="on_demand_metrics_feature_flags"):
+        enabled_features = on_demand_metrics_feature_flags(project.organization)
+    timeout.check()
 
     prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
 
-    alert_specs = _get_alert_metric_specs(project, enabled_features, prefilling)
+    with sentry_sdk.start_span(op="get_alert_metric_specs"):
+        alert_specs = _get_alert_metric_specs(project, enabled_features, prefilling)
     timeout.check()
-    widget_specs = _get_widget_metric_specs(project, enabled_features, prefilling)
+    with sentry_sdk.start_span(op="get_widget_metric_specs"):
+        widget_specs = _get_widget_metric_specs(project, enabled_features, prefilling)
     timeout.check()
 
-    metric_specs = _merge_metric_specs(alert_specs, widget_specs)
+    with sentry_sdk.start_span(op="merge_metric_specs"):
+        metric_specs = _merge_metric_specs(alert_specs, widget_specs)
     timeout.check()
+
     if not metric_specs:
         return None
 

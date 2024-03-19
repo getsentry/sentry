@@ -209,7 +209,7 @@ jobs:
           fi
       - name: apply any requirements changes
         if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master' && always()
-        uses: getsentry/action-github-commit@748c31dd78cffe76f51bef49a0be856b6effeda7 # v1.1.0
+        uses: getsentry/action-github-commit@31f6706ca1a7b9ad6d22c1b07bf3a92eabb05632 # v2.0.0
         with:
           github-token: ${{ steps.token.outputs.token }}
           message: ':snowflake: re-freeze requirements'
@@ -310,6 +310,7 @@ jobs:
           ! grep "'Settings' object has no attribute" .artifacts/mypy-all
           ! grep 'Cannot override class variable' .artifacts/mypy-all
           ! grep 'Exception type must be derived from BaseException' .artifacts/mypy-all
+          ! grep 'Incompatible default for argument' .artifacts/mypy-all
           ! grep 'Incompatible return value type (got "HttpResponseBase"' .artifacts/mypy-all
           ! grep 'Incompatible types in "yield"' .artifacts/mypy-all
           ! grep 'Module "sentry.*has no attribute' .artifacts/mypy-all
@@ -323,7 +324,7 @@ jobs:
           steps.regen-blocklist.outcome == 'success' &&
           github.ref != 'refs/heads/master' &&
           always()
-        uses: getsentry/action-github-commit@748c31dd78cffe76f51bef49a0be856b6effeda7 # v1.1.0
+        uses: getsentry/action-github-commit@31f6706ca1a7b9ad6d22c1b07bf3a92eabb05632 # v2.0.0
         with:
           github-token: ${{ steps.token.outputs.token }}
           message: ':knife: regenerate mypy module blocklist'

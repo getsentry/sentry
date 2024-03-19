@@ -32,6 +32,10 @@ CACHE_TIMEOUT = 3600
 IngestMessage = Mapping[str, Any]
 
 
+class Retriable(Exception):
+    pass
+
+
 def trace_func(**span_kwargs):
     def wrapper(f):
         @functools.wraps(f)
@@ -127,78 +131,85 @@ def process_event(
     ):
         return
 
-    # If we only want to reprocess "stuck" events, we check if this event is already in the
-    # `processing_store`. We only continue here if the event *is* present, as that will eventually
-    # process and consume the event from the `processing_store`, whereby getting it "unstuck".
-    if reprocess_only_stuck_events and not event_processing_store.exists(data):
-        return
-
-    with metrics.timer("ingest_consumer._store_event"):
-        cache_key = event_processing_store.store(data)
-
+    # Raise the retriable exception and skip DLQ if anything below this point fails as it may be caused by
+    # intermittent network issue
     try:
-        # Records rc-processing usage broken down by
-        # event type.
-        event_type = data.get("type")
-        if event_type == "error":
-            app_feature = "errors"
-        elif event_type == "transaction":
-            app_feature = "transactions"
-        else:
-            app_feature = None
+        # If we only want to reprocess "stuck" events, we check if this event is already in the
+        # `processing_store`. We only continue here if the event *is* present, as that will eventually
+        # process and consume the event from the `processing_store`, whereby getting it "unstuck".
+        if reprocess_only_stuck_events and not event_processing_store.exists(data):
+            return
 
-        if app_feature is not None:
-            record(settings.EVENT_PROCESSING_STORE, app_feature, len(payload), UsageUnit.BYTES)
-    except Exception:
-        pass
+        with metrics.timer("ingest_consumer._store_event"):
+            cache_key = event_processing_store.store(data)
 
-    if attachments:
-        with sentry_sdk.start_span(op="ingest_consumer.set_attachment_cache"):
-            attachment_objects = [
-                CachedAttachment(type=attachment.pop("attachment_type"), **attachment)
-                for attachment in attachments
-            ]
+        try:
+            # Records rc-processing usage broken down by
+            # event type.
+            event_type = data.get("type")
+            if event_type == "error":
+                app_feature = "errors"
+            elif event_type == "transaction":
+                app_feature = "transactions"
+            else:
+                app_feature = None
 
-            attachment_cache.set(cache_key, attachments=attachment_objects, timeout=CACHE_TIMEOUT)
+            if app_feature is not None:
+                record(settings.EVENT_PROCESSING_STORE, app_feature, len(payload), UsageUnit.BYTES)
+        except Exception:
+            pass
 
-    if data.get("type") == "transaction":
-        # No need for preprocess/process for transactions thus submit
-        # directly transaction specific save_event task.
-        save_event_transaction.delay(
-            cache_key=cache_key,
-            data=None,
-            start_time=start_time,
-            event_id=event_id,
-            project_id=project_id,
-        )
-    elif data.get("type") == "feedback":
-        if features.has("organizations:user-feedback-ingest", project.organization, actor=None):
-            save_event_feedback.delay(
-                cache_key=None,  # no need to cache as volume is low
-                data=data,
+        if attachments:
+            with sentry_sdk.start_span(op="ingest_consumer.set_attachment_cache"):
+                attachment_objects = [
+                    CachedAttachment(type=attachment.pop("attachment_type"), **attachment)
+                    for attachment in attachments
+                ]
+
+                attachment_cache.set(
+                    cache_key, attachments=attachment_objects, timeout=CACHE_TIMEOUT
+                )
+
+        if data.get("type") == "transaction":
+            # No need for preprocess/process for transactions thus submit
+            # directly transaction specific save_event task.
+            save_event_transaction.delay(
+                cache_key=cache_key,
+                data=None,
                 start_time=start_time,
                 event_id=event_id,
                 project_id=project_id,
             )
-    else:
-        # Preprocess this event, which spawns either process_event or
-        # save_event. Pass data explicitly to avoid fetching it again from the
-        # cache.
-        with sentry_sdk.start_span(op="ingest_consumer.process_event.preprocess_event"):
-            preprocess_event(
-                cache_key=cache_key,
-                data=data,
-                start_time=start_time,
-                event_id=event_id,
-                project=project,
-                has_attachments=bool(attachments),
-            )
+        elif data.get("type") == "feedback":
+            if features.has("organizations:user-feedback-ingest", project.organization, actor=None):
+                save_event_feedback.delay(
+                    cache_key=None,  # no need to cache as volume is low
+                    data=data,
+                    start_time=start_time,
+                    event_id=event_id,
+                    project_id=project_id,
+                )
+        else:
+            # Preprocess this event, which spawns either process_event or
+            # save_event. Pass data explicitly to avoid fetching it again from the
+            # cache.
+            with sentry_sdk.start_span(op="ingest_consumer.process_event.preprocess_event"):
+                preprocess_event(
+                    cache_key=cache_key,
+                    data=data,
+                    start_time=start_time,
+                    event_id=event_id,
+                    project=project,
+                    has_attachments=bool(attachments),
+                )
 
-    # remember for an 1 hour that we saved this event (deduplication protection)
-    cache.set(deduplication_key, "", CACHE_TIMEOUT)
+        # remember for an 1 hour that we saved this event (deduplication protection)
+        cache.set(deduplication_key, "", CACHE_TIMEOUT)
 
-    # emit event_accepted once everything is done
-    event_accepted.send_robust(ip=remote_addr, data=data, project=project, sender=process_event)
+        # emit event_accepted once everything is done
+        event_accepted.send_robust(ip=remote_addr, data=data, project=project, sender=process_event)
+    except Exception as exc:
+        raise Retriable(exc)
 
 
 @trace_func(name="ingest_consumer.process_attachment_chunk")
