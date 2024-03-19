@@ -1175,9 +1175,6 @@ export class VirtualizedViewManager {
     const spanWidth = span_list_width * 100 + '%';
 
     for (let i = 0; i < this.columns.list.column_refs.length; i++) {
-      while (this.span_bars[i] === undefined && i < this.columns.list.column_refs.length)
-        i++;
-
       const list = this.columns.list.column_refs[i];
       if (list) list.style.width = listWidth;
       const span = this.columns.span_list.column_refs[i];
