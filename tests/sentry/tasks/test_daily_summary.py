@@ -217,7 +217,7 @@ class DailySummaryTest(
             mock_prepare_summary_data.delay.call_count == 1
         )  # note this didn't fire again, it just didn't increase from before
 
-    def test_build_summary_data_only(self):
+    def test_build_summary_data(self):
         self.populate_event_data()
 
         # add another release to make sure new issues in multiple releases show up
