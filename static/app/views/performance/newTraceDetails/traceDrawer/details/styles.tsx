@@ -41,6 +41,7 @@ const Actions = styled(FlexBox)`
 
 const Title = styled(FlexBox)`
   gap: ${space(1)};
+  min-width: 150px;
 `;
 
 const Type = styled('div')`
