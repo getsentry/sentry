@@ -193,8 +193,9 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
             complete_frame = complete_stacktrace["frames"][processed_frame_idx]
             processed_frame_idx += 1
 
-            _merge_frame(sinfo_frame, complete_frame)
-            new_frames.append(sinfo_frame)
+            new_frame = dict(sinfo_frame)
+            _merge_frame(new_frame, complete_frame)
+            new_frames.append(new_frame)
 
         sinfo.stacktrace["frames"] = new_frames
 

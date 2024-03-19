@@ -12,6 +12,7 @@ from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.relay import RelayStoreHelper
+from sentry.testutils.skips import requires_symbolicator
 from sentry.utils import json
 
 PROGUARD_UUID = "6dc7fdb0-d2fb-4c8e-9d6b-bb1aa98929b1"
@@ -395,6 +396,12 @@ class AnotherClassInSameFile {
 
 @pytest.mark.django_db(transaction=True)
 class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
+    @pytest.fixture(autouse=True)
+    def initialize(self, set_sentry_option, live_server):
+        with set_sentry_option("system.url-prefix", live_server.url):
+            # Run test case
+            yield
+
     def upload_proguard_mapping(self, uuid, mapping_file_content):
         url = reverse(
             "sentry-api-0-dsym-files",
@@ -498,6 +505,8 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
             "org.slf4j.helpers.Util$ClassContextSecurityManager " "in getExtraClassContext"
         )
 
+    @requires_symbolicator
+    @pytest.mark.symbolicator
     def test_basic_resolving_symbolicator(self):
         with override_options({"symbolicator.proguard-processing-sample-rate": 1.0}):
             self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
