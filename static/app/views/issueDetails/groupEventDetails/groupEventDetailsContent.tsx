@@ -308,6 +308,10 @@ const StyledDataSection = styled(DataSection)`
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     padding: ${space(1)} ${space(4)};
   }
+
+  &:empty {
+    display: none;
+  }
 `;
 
 export default GroupEventDetailsContent;
