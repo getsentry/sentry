@@ -17,7 +17,7 @@
 {% endscript %}
   <div class="align-center">
     <p>
-      {% trans "It seems that your Sentry organization has an installation pending deletion. Please wait ~15min for the uninstall to complete and try again." %}
+      {{ error }}
     </p>
     <p>{% trans "You can safely close this window now." %}</p>
   </div>
