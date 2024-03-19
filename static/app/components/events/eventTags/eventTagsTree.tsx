@@ -155,12 +155,12 @@ function TagTreeRow({
           preventOverflowOptions={{padding: 4}}
           className={isVisible ? '' : 'invisible'}
           position="bottom-end"
+          size="xs"
           onOpenChange={isOpen => setIsVisible(isOpen)}
           triggerProps={{
             'aria-label': t('Tag Actions Menu'),
             icon: <IconEllipsis />,
             showChevron: false,
-            size: 'xs',
             className: 'tag-button',
           }}
           items={[
@@ -438,7 +438,6 @@ const TreeSearchKey = styled('span')`
 const TreeValueDropdown = styled(DropdownMenu)`
   margin: 1px;
   height: 20px;
-  font-size: inherit;
   .tag-button {
     height: 20px;
     min-height: 20px;
