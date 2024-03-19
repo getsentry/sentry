@@ -19,7 +19,9 @@ logger = logging.getLogger(__name__)
     silo_mode=SiloMode.REGION,
 )
 def update_user_reports(**kwargs: Any) -> None:
-    end = kwargs.get("end", timezone.now() + timedelta(minutes=5))  # Just to catch clock skew
+    end = kwargs.get(
+        "end", timezone.now() + timedelta(minutes=5)
+    )  # +5 minutes just to catch clock skew
     start = kwargs.get("start", end - timedelta(days=1))
     user_reports = UserReport.objects.filter(
         group_id__isnull=True,
