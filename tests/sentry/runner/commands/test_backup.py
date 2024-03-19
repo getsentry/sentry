@@ -705,7 +705,7 @@ class BadImportExportCommandTests(TestCase):
             )
             assert isinstance(rv.exception, ValueError)
             assert rv.exit_code == 1
-            assert "Could not deserialize" in str(rv.exception)
+            assert "Unable to load PEM file" in str(rv.exception)
 
     def test_export_invalid_gcp_kms_config(self):
         with TemporaryDirectory() as tmp_dir:
