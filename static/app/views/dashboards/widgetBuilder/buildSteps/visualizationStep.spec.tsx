@@ -1,9 +1,8 @@
 import {TagsFixture} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types';
 import {DashboardWidgetSource} from 'sentry/views/dashboards/types';
@@ -95,8 +94,6 @@ describe('VisualizationStep', function () {
   it('debounce works as expected and requests are not triggered often', async function () {
     const {eventsMock} = mockRequests(organization.slug);
 
-    jest.useFakeTimers();
-
     render(
       <WidgetBuilder
         route={{}}
@@ -130,8 +127,6 @@ describe('VisualizationStep', function () {
     await userEvent.type(await screen.findByPlaceholderText('Alias'), 'abc', {
       delay: null,
     });
-    act(() => jest.advanceTimersByTime(DEFAULT_DEBOUNCE_DURATION + 1));
-    jest.useRealTimers();
 
     await waitFor(() => expect(eventsMock).toHaveBeenCalledTimes(1));
   });
