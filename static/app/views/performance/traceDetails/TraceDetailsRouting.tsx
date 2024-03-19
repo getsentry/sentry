@@ -1,4 +1,3 @@
-import {useEffect} from 'react';
 import {browserHistory} from 'react-router';
 import type {LocationDescriptorObject} from 'history';
 
@@ -20,33 +19,46 @@ function TraceDetailsRouting(props: Props) {
   const organization = useOrganization();
   const location = useLocation();
   const datetimeSelection = normalizeDateTimeParams(location.query);
+  const traceId = event.contexts?.trace?.trace_id ?? '';
 
-  useEffect(() => {
-    const traceId = event.contexts?.trace?.trace_id ?? '';
+  if (location.query?.legacy) {
+    return children;
+  }
 
-    if (organization.features.includes('trace-view-v1')) {
-      if (event?.groupID && event?.eventID) {
-        const issuesLocation = `/organizations/${organization.slug}/issues/${event.groupID}/events/${event.eventID}`;
-        browserHistory.replace({
-          pathname: issuesLocation,
-        });
-      } else {
-        const traceDetailsLocation: LocationDescriptorObject = getTraceDetailsUrl(
-          organization,
-          traceId,
-          datetimeSelection,
-          location.query,
-          getEventTimestamp(event),
-          event.eventID
-        );
+  if (organization.features.includes('trace-view-v1')) {
+    if (event?.groupID && event?.eventID) {
+      const issuesLocation = `/organizations/${organization.slug}/issues/${event.groupID}/events/${event.eventID}`;
+      browserHistory.replace({
+        pathname: issuesLocation,
+      });
+    } else {
+      const traceDetailsLocation: LocationDescriptorObject = getTraceDetailsUrl(
+        organization,
+        traceId,
+        datetimeSelection,
+        location.query,
+        getEventTimestamp(event),
+        event.eventID
+      );
 
-        browserHistory.replace({
-          pathname: traceDetailsLocation.pathname,
-          query: traceDetailsLocation.query,
-        });
+      const query = {...traceDetailsLocation.query};
+      if (location.hash.includes('span')) {
+        const spanHashValue = location.hash
+          .split('#')
+          .filter(value => value.includes('span'))[0];
+        const spanId = spanHashValue.split('-')[1];
+
+        if (spanId) {
+          query.node = [`span:${spanId}`, `txn:${event.eventID}`];
+        }
       }
+
+      browserHistory.replace({
+        pathname: traceDetailsLocation.pathname,
+        query,
+      });
     }
-  }, [event, location, organization, datetimeSelection]);
+  }
 
   return children;
 }

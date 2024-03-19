@@ -119,11 +119,12 @@ class RedisQuotaTest(TestCase):
         self.organization.update_option("project-abuse-quota.attachment-limit", 601)
         self.organization.update_option("project-abuse-quota.session-limit", 602)
         self.organization.update_option("organization-abuse-quota.metric-bucket-limit", 603)
-        self.organization.update_option("global-abuse-quota.metric-bucket-limit", 604)
-        self.organization.update_option("global-abuse-quota.sessions-metric-bucket-limit", 605)
-        self.organization.update_option("global-abuse-quota.transactions-metric-bucket-limit", 606)
-        self.organization.update_option("global-abuse-quota.spans-metric-bucket-limit", 607)
-        self.organization.update_option("global-abuse-quota.custom-metric-bucket-limit", 608)
+        self.organization.update_option("organization-abuse-quota.custom-metric-bucket-limit", 604)
+        self.organization.update_option("global-abuse-quota.metric-bucket-limit", 605)
+        self.organization.update_option("global-abuse-quota.sessions-metric-bucket-limit", 606)
+        self.organization.update_option("global-abuse-quota.transactions-metric-bucket-limit", 607)
+        self.organization.update_option("global-abuse-quota.spans-metric-bucket-limit", 608)
+        self.organization.update_option("global-abuse-quota.custom-metric-bucket-limit", 609)
         with self.feature("organizations:transaction-metrics-extraction"):
             quotas = self.quota.get_quotas(self.project)
 
@@ -159,50 +160,58 @@ class RedisQuotaTest(TestCase):
         assert quotas[4].window == 10
         assert quotas[4].reason_code == "org_abuse_limit"
 
-        assert quotas[5].id == "gam"
-        assert quotas[5].scope == QuotaScope.GLOBAL
+        assert quotas[5].id == "oacm"
+        assert quotas[5].scope == QuotaScope.ORGANIZATION
         assert quotas[5].scope_id is None
         assert quotas[5].categories == {DataCategory.METRIC_BUCKET}
         assert quotas[5].limit == 6040
         assert quotas[5].window == 10
-        assert quotas[5].reason_code == "global_abuse_limit"
-        assert quotas[5].namespace is None
+        assert quotas[5].reason_code == "org_abuse_limit"
 
-        assert quotas[6].id == "gams"
+        assert quotas[6].id == "gam"
         assert quotas[6].scope == QuotaScope.GLOBAL
         assert quotas[6].scope_id is None
         assert quotas[6].categories == {DataCategory.METRIC_BUCKET}
         assert quotas[6].limit == 6050
         assert quotas[6].window == 10
         assert quotas[6].reason_code == "global_abuse_limit"
-        assert quotas[6].namespace == "sessions"
+        assert quotas[6].namespace is None
 
-        assert quotas[7].id == "gamt"
+        assert quotas[7].id == "gams"
         assert quotas[7].scope == QuotaScope.GLOBAL
         assert quotas[7].scope_id is None
         assert quotas[7].categories == {DataCategory.METRIC_BUCKET}
         assert quotas[7].limit == 6060
         assert quotas[7].window == 10
         assert quotas[7].reason_code == "global_abuse_limit"
-        assert quotas[7].namespace == "transactions"
+        assert quotas[7].namespace == "sessions"
 
-        assert quotas[8].id == "gamp"
+        assert quotas[8].id == "gamt"
         assert quotas[8].scope == QuotaScope.GLOBAL
         assert quotas[8].scope_id is None
         assert quotas[8].categories == {DataCategory.METRIC_BUCKET}
         assert quotas[8].limit == 6070
         assert quotas[8].window == 10
         assert quotas[8].reason_code == "global_abuse_limit"
-        assert quotas[8].namespace == "spans"
+        assert quotas[8].namespace == "transactions"
 
-        assert quotas[9].id == "gamc"
+        assert quotas[9].id == "gamp"
         assert quotas[9].scope == QuotaScope.GLOBAL
         assert quotas[9].scope_id is None
         assert quotas[9].categories == {DataCategory.METRIC_BUCKET}
         assert quotas[9].limit == 6080
         assert quotas[9].window == 10
         assert quotas[9].reason_code == "global_abuse_limit"
-        assert quotas[9].namespace == "custom"
+        assert quotas[9].namespace == "spans"
+
+        assert quotas[10].id == "gamc"
+        assert quotas[10].scope == QuotaScope.GLOBAL
+        assert quotas[10].scope_id is None
+        assert quotas[10].categories == {DataCategory.METRIC_BUCKET}
+        assert quotas[10].limit == 6090
+        assert quotas[10].window == 10
+        assert quotas[10].reason_code == "global_abuse_limit"
+        assert quotas[10].namespace == "custom"
 
         # Let's set the global option for error limits.
         # Since we already have an org override for it, it shouldn't change anything.
@@ -278,6 +287,31 @@ class RedisQuotaTest(TestCase):
         assert quotas[0].limit == 6000
         assert quotas[0].window == 10
         assert quotas[0].reason_code == "project_abuse_limit"
+
+    def test_custom_metrics_ingestion_disabled_quota(self):
+        # These legacy options need to be set, otherwise we'll run into
+        # AssertionError: reject-all quotas cannot be tracked
+        self.get_project_quota.return_value = (100, 10)
+        self.get_organization_quota.return_value = (1000, 10)
+        self.get_monitor_quota.return_value = (15, 60)
+
+        with self.options({"custom-metrics-ingestion-disabled-orgs": [self.organization.id]}):
+            quotas = self.quota.get_quotas(self.project)
+
+            assert quotas[0].scope == QuotaScope.ORGANIZATION
+            assert quotas[0].scope_id is None
+            assert quotas[0].categories == {DataCategory.METRIC_BUCKET}
+            assert quotas[0].limit == 0
+            assert quotas[0].reason_code == "custom_metrics_ingestion_disabled"
+
+        with self.options({"custom-metrics-ingestion-disabled-projects": [self.project.id]}):
+            quotas = self.quota.get_quotas(self.project)
+
+            assert quotas[0].scope == QuotaScope.PROJECT
+            assert quotas[0].scope_id is None
+            assert quotas[0].categories == {DataCategory.METRIC_BUCKET}
+            assert quotas[0].limit == 0
+            assert quotas[0].reason_code == "custom_metrics_ingestion_disabled"
 
     @pytest.fixture(autouse=True)
     def _patch_get_project_quota(self):

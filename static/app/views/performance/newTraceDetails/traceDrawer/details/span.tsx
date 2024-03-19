@@ -26,7 +26,7 @@ export function SpanNodeDetails({
   scrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
 }) {
   const {projects} = useProjects();
-  const {event, errors, performance_issues, childTransaction, ...span} = node.value;
+  const {event, childTransaction, ...span} = node.value;
   const project = projects.find(proj => proj.slug === event?.projectSlug);
   const profileId = event?.contexts?.profile?.profile_id ?? null;
 
@@ -49,9 +49,15 @@ export function SpanNodeDetails({
             </TraceDrawerComponents.TitleOp>
           </div>
         </TraceDrawerComponents.Title>
-        <Button size="xs" onClick={_e => scrollToNode(node)}>
-          {t('Show in view')}
-        </Button>
+        <TraceDrawerComponents.Actions>
+          <Button size="xs" onClick={_e => scrollToNode(node)}>
+            {t('Show in view')}
+          </Button>
+          <TraceDrawerComponents.EventDetailsLink
+            eventId={node.value.event.eventID}
+            projectSlug={node.metadata.project_slug}
+          />
+        </TraceDrawerComponents.Actions>
       </TraceDrawerComponents.HeaderContainer>
       {event.projectSlug && (
         <ProfilesProvider
@@ -67,8 +73,7 @@ export function SpanNodeDetails({
                 traceID={profileId || ''}
               >
                 <NewTraceDetailsSpanDetail
-                  errors={errors}
-                  performanceIssues={performance_issues}
+                  node={node}
                   childTransactions={childTransaction ? [childTransaction] : []}
                   event={event}
                   openPanel="open"

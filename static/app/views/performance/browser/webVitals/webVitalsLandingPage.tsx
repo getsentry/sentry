@@ -208,10 +208,9 @@ export const AlertContent = styled('div')`
 `;
 
 export const DismissButton = styled(Button)`
-  color: ${p => p.theme.alert.info.iconColor};
+  color: ${p => p.theme.alert.info.color};
   pointer-events: all;
   &:hover {
-    color: ${p => p.theme.alert.info.iconHoverColor};
     opacity: 0.5;
   }
 `;
