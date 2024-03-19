@@ -46,7 +46,19 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
             message = DiscordIssuesMessageBuilder(event.group, event=event, tags=tags, rules=rules)
 
             client = DiscordClient()
-            client.send_message(channel_id, message, notification_uuid=notification_uuid)
+            try:
+                client.send_message(channel_id, message, notification_uuid=notification_uuid)
+            except Exception as e:
+                self.logger.error(
+                    "rule.fail.discord_post",
+                    extra={
+                        "error": str(e),
+                        "project_id": event.project_id,
+                        "event_id": event.event_id,
+                        "guild_id": integration.external_id,
+                        "channel_id": channel_id,
+                    },
+                )
 
             rule = rules[0] if rules else None
             self.record_notification_sent(event, channel_id, rule, notification_uuid)
