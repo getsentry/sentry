@@ -6,6 +6,8 @@ from sentry.lang.java.utils import get_proguard_images
 from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.symbolicator import Symbolicator
 from sentry.models.eventerror import EventError
+from sentry.models.project import Project
+from sentry.models.release import Release
 from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
@@ -104,6 +106,14 @@ def _handle_response_status(event_data: Any, response_json: dict[str, Any]):
     write_error(error, event_data)
 
 
+def _get_release_package(project: Project, release_name: str | None) -> str | None:
+    if not release_name:
+        return None
+
+    release = Release.get(project=project, version=release_name)
+    return release.package if release else None
+
+
 def map_symbolicator_process_jvm_errors(
     errors: list[dict[str, Any]] | None,
 ) -> list[dict[str, Any]]:
@@ -162,14 +172,13 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         metrics.incr("proguard.symbolicator.events.skipped")
         return
 
+    release_package = _get_release_package(symbolicator.project, data.get("release"))
     metrics.incr("process.java.symbolicate.request")
     response = symbolicator.process_jvm(
         exceptions=exceptions,
         stacktraces=stacktraces,
         modules=modules,
-        # TODO:
-        release_package=None,
-        # release_package=data.get("release"),
+        release_package=release_package,
     )
 
     if not _handle_response_status(data, response):
