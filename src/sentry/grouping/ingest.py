@@ -282,15 +282,21 @@ def run_primary_grouping(
             # See https://github.com/getsentry/sentry/pull/65116.
             config_from_relay = grouping_config["id"]
             config_from_project = project.get_option("sentry:grouping_config")
+
             if config_from_relay != config_from_project:
-                logger.info(
-                    "Event grouping config different from project grouping config",
-                    extra={
-                        "project": project.id,
-                        "relay_config": config_from_relay,
-                        "project_config": config_from_project,
-                    },
-                )
+                # The relay value might not match the value stored on the project if the project was
+                # recently updated and relay's still using its cached value. Based on logs, this delay
+                # seems to be about 3 seconds, but let's be generous and give it a minute to account for
+                # clock skew, network latency, etc.
+                if not _config_update_happened_recently(project, 30):
+                    logger.info(
+                        "Event grouping config different from project grouping config",
+                        extra={
+                            "project": project.id,
+                            "relay_config": config_from_relay,
+                            "project_config": config_from_project,
+                        },
+                    )
 
     with (
         sentry_sdk.start_span(
