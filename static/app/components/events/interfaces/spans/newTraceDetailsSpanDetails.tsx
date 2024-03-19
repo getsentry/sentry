@@ -399,9 +399,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                   borderless
                   size="zero"
                   iconSize="xs"
-                  text={`${window.location.href.replace(window.location.hash, '')}#span-${
-                    span.span_id
-                  }`}
+                  text={span.span_id}
                 />
               </Row>
               {profileId && project?.slug && (
