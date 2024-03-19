@@ -153,7 +153,7 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
             )
             assert_expected_response(response_data["data"], expected_response)
 
-    def test_delete(self):
+    def test_delete_replay_from_filestore(self):
         """Test deleting files uploaded through the filestore interface."""
         # test deleting as a member, as they should be able to
         user = self.create_user(is_superuser=False)
@@ -216,7 +216,7 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
         metadata2 = RecordingSegmentStorageMeta(
             project_id=self.project.id,
             replay_id=self.replay_id,
-            segment_id=0,
+            segment_id=1,
             retention_days=30,
             file_id=None,
         )
