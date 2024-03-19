@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -17,7 +18,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceTabs';
 import {Row, Tags} from 'sentry/views/performance/traceDetails/styles';
 
-import type {TraceTree, TraceTreeNode} from '../../traceTree';
+import {makeTraceNodeBarColor, type TraceTree, type TraceTreeNode} from '../../traceTree';
 
 import {IssueList} from './issues/issues';
 import {TraceDrawerComponents} from './styles';
@@ -52,6 +53,7 @@ export function ErrorNodeDetails({
     return null;
   }, [data]);
 
+  const theme = useTheme();
   const parentTransaction = node.parent_transaction;
 
   return isLoading ? (
@@ -60,8 +62,10 @@ export function ErrorNodeDetails({
     <TraceDrawerComponents.DetailContainer>
       <TraceDrawerComponents.HeaderContainer>
         <TraceDrawerComponents.Title>
-          <TraceDrawerComponents.IconBorder errored>
-            <IconFire color="errorText" size="md" />
+          <TraceDrawerComponents.IconBorder
+            backgroundColor={makeTraceNodeBarColor(theme, node)}
+          >
+            <IconFire size="md" />
           </TraceDrawerComponents.IconBorder>
           <div>
             <div>{t('error')}</div>
