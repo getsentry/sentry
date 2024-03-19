@@ -87,7 +87,13 @@ def process_event(
     # keeping it around because it does provide some protection against
     # reprocessing good events if a single consumer is in a restart loop.
     deduplication_key = f"ev:{project_id}:{event_id}"
-    if cache.get(deduplication_key) is not None:
+
+    try:
+        cached_value = cache.get(deduplication_key)
+    except Exception as exc:
+        raise Retriable(exc)
+
+    if cached_value is not None:
         logger.warning(
             "pre-process-forwarder detected a duplicated event" " with id:%s for project:%s.",
             event_id,
