@@ -528,6 +528,7 @@ const customMetricFrontendPlatforms: readonly PlatformKey[] = [
   'javascript-vue',
   'javascript',
   'react-native',
+  'unity',
 ];
 
 // These are all the platforms that can set up custom metrics.
