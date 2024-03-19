@@ -989,21 +989,45 @@ def _bulk_snuba_query(
     aggregated_results = aggregate_results(results)  # Placeholder for actual aggregation logic
     return aggregated_results
 
-        if len(snuba_param_list) > 1:
-            query_results = list(
-                _query_thread_pool.map(
-                    _snuba_query,
-                    [
-                        (params, Hub(Hub.current), headers, parent_api)
-                        for params in snuba_param_list
-                    ],
-                )
-            )
+        # Estimate the query size
+        query_size = estimate_query_size(snuba_param_list)
+        if query_size > MAX_QUERY_SIZE:
+            # Split the query into smaller chunks if it exceeds the maximum allowed size
+            query_chunks = split_query(snuba_param_list)
+            query_results = []
+            for chunk in query_chunks:
+                if len(chunk) > 1:
+                    chunk_results = list(
+                        _query_thread_pool.map(
+                            _snuba_query,
+                            [
+                                (params, Hub(Hub.current), headers, parent_api)
+                                for params in chunk
+                            ],
+                        )
+                    )
+                else:
+                    # No need to submit to the thread pool if we're just performing a single query
+                    chunk_results = [
+                        _snuba_query((chunk[0], Hub(Hub.current), headers, parent_api))
+                    ]
+                query_results.extend(chunk_results)
         else:
-            # No need to submit to the thread pool if we're just performing a single query
-            query_results = [
-                _snuba_query((snuba_param_list[0], Hub(Hub.current), headers, parent_api))
-            ]
+            if len(snuba_param_list) > 1:
+                query_results = list(
+                    _query_thread_pool.map(
+                        _snuba_query,
+                        [
+                            (params, Hub(Hub.current), headers, parent_api)
+                            for params in snuba_param_list
+                        ],
+                    )
+                )
+            else:
+                # No need to submit to the thread pool if we're just performing a single query
+                query_results = [
+                    _snuba_query((snuba_param_list[0], Hub(Hub.current), headers, parent_api))
+                ]
 
     results = []
     for index, item in enumerate(query_results):
