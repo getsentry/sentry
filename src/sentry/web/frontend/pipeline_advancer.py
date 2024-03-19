@@ -6,6 +6,10 @@ from django.utils.translation import gettext_lazy as _
 
 from sentry.api.utils import generate_organization_url
 from sentry.identity.pipeline import IdentityProviderPipeline
+from sentry.integrations.github.integration import (
+    INSTALLATION_CSRF_COOKIE_MAX_AGE,
+    INSTALLATION_CSRF_COOKIE_NAME,
+)
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.utils.http import absolute_uri, create_redirect_url
 from sentry.web.frontend.base import BaseView
@@ -46,9 +50,17 @@ class PipelineAdvancerView(BaseView):
             and pipeline is None
         ):
             installation_id = request.GET.get("installation_id")
-            return self.redirect(
+            rv = self.redirect(
                 reverse("integration-installation", args=[provider_id, installation_id])
             )
+            rv.set_cookie(
+                INSTALLATION_CSRF_COOKIE_NAME,
+                str(request.user.id),
+                max_age=INSTALLATION_CSRF_COOKIE_MAX_AGE,
+                path="/",
+                httponly=True,
+            )
+            return rv
 
         if pipeline is None or not pipeline.is_valid():
             messages.add_message(request, messages.ERROR, _("Invalid request."))

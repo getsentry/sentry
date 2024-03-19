@@ -108,9 +108,15 @@ API_ERRORS = {
 ERR_INTEGRATION_EXISTS_ON_ANOTHER_ORG = _(
     "It seems that your GitHub account has been installed on another Sentry organization. Please uninstall and try again."
 )
+ERR_INTEGRATION_INVALID_INSTALLATION_REQUEST = _(
+    "We could not verify the authenticity of the installation request. We recommend restarting the installation process."
+)
 ERR_INTEGRATION_PENDING_DELETION = _(
     "It seems that your Sentry organization has an installation pending deletion. Please wait ~15min for the uninstall to complete and try again."
 )
+
+INSTALLATION_CSRF_COOKIE_NAME = "github-integration-installation"
+INSTALLATION_CSRF_COOKIE_MAX_AGE = 10 * 60
 
 
 def build_repository_query(metadata: Mapping[str, Any], name: str, query: str) -> bytes:
@@ -365,7 +371,15 @@ class GitHubInstallation(PipelineView):
             pipeline.bind_state("reinstall_id", request.GET["reinstall_id"])
 
         if "installation_id" not in request.GET:
-            return self.redirect(self.get_app_url())
+            rv = self.redirect(self.get_app_url())
+            rv.set_cookie(
+                INSTALLATION_CSRF_COOKIE_NAME,
+                str(request.user.id),
+                max_age=INSTALLATION_CSRF_COOKIE_MAX_AGE,
+                path="/",
+                httponly=True,
+            )
+            return rv
 
         self.determine_active_organization(request)
 
@@ -409,6 +423,21 @@ class GitHubInstallation(PipelineView):
         except Integration.DoesNotExist:
             pipeline.bind_state("installation_id", request.GET["installation_id"])
             return pipeline.next_step()
+
+        if request.COOKIES.get(INSTALLATION_CSRF_COOKIE_NAME) != str(request.user.id):
+            document_origin = "document.origin"
+            return render_to_response(
+                "sentry/integrations/github-integration-failed.html",
+                context={
+                    "error": ERR_INTEGRATION_INVALID_INSTALLATION_REQUEST,
+                    "payload": {
+                        "success": False,
+                        "data": {"error": _("Invalid installation request.")},
+                    },
+                    "document_origin": document_origin,
+                },
+                request=request,
+            )
 
         if installations_exist:
             document_origin = "document.origin"
