@@ -1,4 +1,4 @@
-import {createRef, Fragment, useEffect, useMemo, useState} from 'react';
+import {createRef, Fragment, useLayoutEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
@@ -49,6 +49,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useProjects from 'sentry/utils/useProjects';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import {CustomMetricsEventData} from 'sentry/views/ddm/customMetricsEventData';
+import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceTabs';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/virtualizedViewManager';
 import {Row, Tags} from 'sentry/views/performance/traceDetails/styles';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
@@ -67,6 +68,7 @@ function OpsBreakdown({event}: {event: EventTransaction}) {
   }
 
   const renderText = showingAll ? t('Show less') : t('Show more') + '...';
+
   return (
     breakdown && (
       <Row
@@ -113,7 +115,7 @@ function BreadCrumbsSection({
   const [showBreadCrumbs, setShowBreadCrumbs] = useState(false);
   const breadCrumbsContainerRef = createRef<HTMLDivElement>();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setTimeout(() => {
       if (showBreadCrumbs) {
         breadCrumbsContainerRef.current?.scrollIntoView({
@@ -162,6 +164,7 @@ type TransactionDetailProps = {
   location: Location;
   manager: VirtualizedViewManager;
   node: TraceTreeNode<TraceTree.Transaction>;
+  onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   organization: Organization;
   scrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
 };
@@ -171,11 +174,13 @@ export function TransactionNodeDetails({
   organization,
   location,
   scrollToNode,
+  onParentClick,
 }: TransactionDetailProps) {
   const {projects} = useProjects();
   const issues = useMemo(() => {
     return [...node.errors, ...node.performance_issues];
   }, [node.errors, node.performance_issues]);
+
   const {
     data: event,
     isError,
@@ -203,80 +208,26 @@ export function TransactionNodeDetails({
     return <LoadingError message={t('Failed to fetch transaction details')} />;
   }
 
-  const {user, contexts, projectSlug} = event;
-  const {feedback} = contexts ?? {};
-  const eventJsonUrl = `/api/0/projects/${organization.slug}/${node.value.project_slug}/events/${node.value.event_id}/json/`;
   const project = projects.find(proj => proj.slug === event?.projectSlug);
-  const {errors, performance_issues} = node.value;
-  const hasIssues = errors.length + performance_issues.length > 0;
   const startTimestamp = Math.min(node.value.start_timestamp, node.value.timestamp);
   const endTimestamp = Math.max(node.value.start_timestamp, node.value.timestamp);
+
   const {start: startTimeWithLeadingZero, end: endTimeWithLeadingZero} =
     getFormattedTimeRangeWithLeadingAndTrailingZero(startTimestamp, endTimestamp);
-  const duration = (endTimestamp - startTimestamp) * 1000;
-  const durationString = `${Number(duration.toFixed(3)).toLocaleString()}ms`;
+
+  const duration = (endTimestamp - startTimestamp) * node.multiplier;
+
   const measurementNames = Object.keys(node.value.measurements ?? {})
     .filter(name => isCustomMeasurement(`measurements.${name}`))
     .filter(isNotMarkMeasurement)
     .filter(isNotPerformanceScoreMeasurement)
     .sort();
 
-  const renderMeasurements = () => {
-    if (!event) {
-      return null;
-    }
+  const measurementKeys = Object.keys(event?.measurements ?? {})
+    .filter(name => Boolean(WEB_VITAL_DETAILS[`measurements.${name}`]))
+    .sort();
 
-    const {measurements} = event;
-
-    const measurementKeys = Object.keys(measurements ?? {})
-      .filter(name => Boolean(WEB_VITAL_DETAILS[`measurements.${name}`]))
-      .sort();
-
-    if (!measurements || measurementKeys.length <= 0) {
-      return null;
-    }
-
-    return (
-      <Fragment>
-        {measurementKeys.map(measurement => (
-          <Row
-            key={measurement}
-            title={WEB_VITAL_DETAILS[`measurements.${measurement}`]?.name}
-          >
-            <PerformanceDuration
-              milliseconds={Number(measurements[measurement].value.toFixed(3))}
-              abbreviation
-            />
-          </Row>
-        ))}
-      </Fragment>
-    );
-  };
-
-  const renderGoToProfileButton = () => {
-    if (!node.value.profile_id) {
-      return null;
-    }
-
-    const target = generateProfileFlamechartRoute({
-      orgSlug: organization.slug,
-      projectSlug: node.value.project_slug,
-      profileId: node.value.profile_id,
-    });
-
-    function handleOnClick() {
-      trackAnalytics('profiling_views.go_to_flamegraph', {
-        organization,
-        source: 'performance.trace_view',
-      });
-    }
-
-    return (
-      <TraceDrawerComponents.Button size="xs" to={target} onClick={handleOnClick}>
-        {t('View Profile')}
-      </TraceDrawerComponents.Button>
-    );
-  };
+  const parentTransaction = node.parent_transaction;
 
   return (
     <TraceDrawerComponents.DetailContainer>
@@ -308,7 +259,7 @@ export function TransactionNodeDetails({
           <Button
             size="xs"
             icon={<IconOpen />}
-            href={eventJsonUrl}
+            href={`/api/0/projects/${organization.slug}/${node.value.project_slug}/events/${node.value.event_id}/json/`}
             external
             onClick={() =>
               trackAnalytics('performance_views.event_details.json_button_click', {
@@ -321,12 +272,19 @@ export function TransactionNodeDetails({
         </TraceDrawerComponents.Actions>
       </TraceDrawerComponents.HeaderContainer>
 
-      {hasIssues ? (
-        <IssueList node={node} organization={organization} issues={issues} />
-      ) : null}
+      <IssueList node={node} organization={organization} issues={issues} />
 
       <TraceDrawerComponents.Table className="table key-value">
         <tbody>
+          {parentTransaction ? (
+            <Row title="Parent Transaction">
+              <td className="value">
+                <a href="#" onClick={() => onParentClick(parentTransaction)}>
+                  {getTraceTabTitle(parentTransaction)}
+                </a>
+              </td>
+            </Row>
+          ) : null}
           <Row title={t('Event ID')}>
             {node.value.event_id}
             <CopyToClipboardButton
@@ -348,18 +306,38 @@ export function TransactionNodeDetails({
               {node.value.transaction}
             </Link>
           </Row>
-          {node.value.profile_id && (
-            <Row title="Profile ID" extra={renderGoToProfileButton()}>
+          {node.value.profile_id ? (
+            <Row
+              title="Profile ID"
+              extra={
+                <TraceDrawerComponents.Button
+                  size="xs"
+                  to={generateProfileFlamechartRoute({
+                    orgSlug: organization.slug,
+                    projectSlug: node.value.project_slug,
+                    profileId: node.value.profile_id,
+                  })}
+                  onClick={function handleOnClick() {
+                    trackAnalytics('profiling_views.go_to_flamegraph', {
+                      organization,
+                      source: 'performance.trace_view',
+                    });
+                  }}
+                >
+                  {t('View Profile')}
+                </TraceDrawerComponents.Button>
+              }
+            >
               {node.value.profile_id}
             </Row>
-          )}
-          <Row title="Duration">{durationString}</Row>
+          ) : null}
+          <Row title="Duration">{`${Number(duration.toFixed(3)).toLocaleString()}ms`}</Row>
           <Row title="Date Range">
             {getDynamicText({
               fixed: 'Mar 19, 2021 11:06:27 AM UTC',
               value: (
                 <Fragment>
-                  <DateTime date={startTimestamp * 1000} />
+                  <DateTime date={startTimestamp * node.multiplier} />
                   {` (${startTimeWithLeadingZero})`}
                 </Fragment>
               ),
@@ -369,7 +347,7 @@ export function TransactionNodeDetails({
               fixed: 'Mar 19, 2021 11:06:28 AM UTC',
               value: (
                 <Fragment>
-                  <DateTime date={endTimestamp * 1000} />
+                  <DateTime date={endTimestamp * node.multiplier} />
                   {` (${endTimeWithLeadingZero})`}
                 </Fragment>
               ),
@@ -378,7 +356,23 @@ export function TransactionNodeDetails({
 
           <OpsBreakdown event={event} />
 
-          {renderMeasurements()}
+          {!event || !event.measurements || measurementKeys.length <= 0 ? null : (
+            <Fragment>
+              {measurementKeys.map(measurement => (
+                <Row
+                  key={measurement}
+                  title={WEB_VITAL_DETAILS[`measurements.${measurement}`]?.name}
+                >
+                  <PerformanceDuration
+                    milliseconds={Number(
+                      event.measurements?.[measurement].value.toFixed(3)
+                    )}
+                    abbreviation
+                  />
+                </Row>
+              ))}
+            </Fragment>
+          )}
 
           <Tags
             enableHiding
@@ -414,38 +408,38 @@ export function TransactionNodeDetails({
           )}
         </tbody>
       </TraceDrawerComponents.Table>
-      {project && <EventEvidence event={event} project={project} />}
-      {projectSlug && (
+      {project ? <EventEvidence event={event} project={project} /> : null}
+      {event.projectSlug ? (
         <Entries
           definedEvent={event}
-          projectSlug={projectSlug}
+          projectSlug={event.projectSlug}
           group={undefined}
           organization={organization}
           isShare={false}
           hideBeforeReplayEntries
           hideBreadCrumbs
         />
-      )}
-      {!objectIsEmpty(feedback) && (
+      ) : null}
+      {!objectIsEmpty(event.contexts?.feedback ?? {}) ? (
         <Chunk
           key="feedback"
           type="feedback"
           alias="feedback"
           group={undefined}
           event={event}
-          value={feedback}
+          value={event.contexts?.feedback ?? {}}
         />
-      )}
-      {user && !objectIsEmpty(user) && (
+      ) : null}
+      {event.user && !objectIsEmpty(event.user) ? (
         <Chunk
           key="user"
           type="user"
           alias="user"
           group={undefined}
           event={event}
-          value={user}
+          value={event.user}
         />
-      )}
+      ) : null}
       <EventExtraData event={event} />
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
       {event._metrics_summary ? (
@@ -455,15 +449,17 @@ export function TransactionNodeDetails({
         />
       ) : null}
       <BreadCrumbsSection event={event} organization={organization} />
-      {projectSlug && <EventAttachments event={event} projectSlug={projectSlug} />}
-      {project && <EventViewHierarchy event={event} project={project} />}
-      {projectSlug && (
+      {event.projectSlug ? (
+        <EventAttachments event={event} projectSlug={event.projectSlug} />
+      ) : null}
+      {project ? <EventViewHierarchy event={event} project={project} /> : null}
+      {event.projectSlug ? (
         <EventRRWebIntegration
           event={event}
           orgId={organization.slug}
-          projectSlug={projectSlug}
+          projectSlug={event.projectSlug}
         />
-      )}
+      ) : null}
     </TraceDrawerComponents.DetailContainer>
   );
 }

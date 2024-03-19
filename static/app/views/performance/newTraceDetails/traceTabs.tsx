@@ -1,7 +1,51 @@
+import * as Sentry from '@sentry/react';
+
+import {t} from 'sentry/locale';
 import type {
   TraceTree,
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceTree';
+
+import {
+  isAutogroupedNode,
+  isMissingInstrumentationNode,
+  isSpanNode,
+  isTraceErrorNode,
+  isTraceNode,
+  isTransactionNode,
+} from './guards';
+
+export function getTraceTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
+  if (isTransactionNode(node)) {
+    return (
+      node.value['transaction.op'] +
+      (node.value.transaction ? ' - ' + node.value.transaction : '')
+    );
+  }
+
+  if (isSpanNode(node)) {
+    return node.value.op + (node.value.description ? ' - ' + node.value.description : '');
+  }
+
+  if (isAutogroupedNode(node)) {
+    return t('Autogroup');
+  }
+
+  if (isMissingInstrumentationNode(node)) {
+    return t('Missing Instrumentation');
+  }
+
+  if (isTraceErrorNode(node)) {
+    return node.value.title || 'Error';
+  }
+
+  if (isTraceNode(node)) {
+    return t('Trace');
+  }
+
+  Sentry.captureMessage('Unknown node type in trace drawer');
+  return 'Unknown';
+}
 
 type Tab = {
   node: TraceTreeNode<TraceTree.NodeValue> | 'Trace';
