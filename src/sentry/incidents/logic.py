@@ -1477,7 +1477,7 @@ def get_alert_rule_trigger_action_opsgenie_team(
 ) -> tuple[str, str]:
     from sentry.integrations.opsgenie.utils import get_team
 
-    integration, oi = integration_service.get_organization_context(
+    integration, oi = integration_service.get_organization_context__tmp(
         organization_id=organization.id, integration_id=integration_id
     )
     if integration is None or oi is None:

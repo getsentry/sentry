@@ -40,13 +40,14 @@ from sentry.models.orgauthtoken import is_org_auth_token_auth
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.helpers import collect_groups_by_project, get_subscription_from_attributes
-from sentry.notifications.types import GroupSubscriptionStatus, NotificationSettingEnum
+from sentry.notifications.types import NotificationSettingEnum
 from sentry.reprocessing2 import get_progress
 from sentry.search.events.constants import RELEASE_STAGE_ALIAS
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
 from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.notifications import notifications_service
+from sentry.services.hybrid_cloud.notifications.serial import deserialize_group_subscription_status
 from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.dataset import Dataset
@@ -570,10 +571,14 @@ class GroupSerializerBase(Serializer, ABC):
 
         groups_by_project = collect_groups_by_project(groups)
         project_ids = list(groups_by_project.keys())
-        enabled_settings = notifications_service.get_subscriptions_for_projects(
+        enabled_settings = notifications_service.get_subscriptions_for_projects__tmp(
             user_id=user.id, project_ids=project_ids, type=NotificationSettingEnum.WORKFLOW
         )
-        query_groups = {group for group in groups if (not enabled_settings[group.project_id][2])}
+        query_groups = {
+            group
+            for group in groups
+            if (not enabled_settings[group.project_id].has_only_inactive_subscriptions)
+        }
         subscriptions_by_group_id: dict[int, GroupSubscription] = {
             subscription.group_id: subscription
             for subscription in GroupSubscription.objects.filter(
@@ -585,11 +590,7 @@ class GroupSerializerBase(Serializer, ABC):
         results = {}
         for project_id, group_set in groups_by_project.items():
             s = enabled_settings[project_id]
-            subscription_status = GroupSubscriptionStatus(
-                is_disabled=s[0],
-                is_active=s[1],
-                has_only_inactive_subscriptions=s[2],
-            )
+            subscription_status = deserialize_group_subscription_status(s)
             for group in group_set:
                 subscription = subscriptions_by_group_id.get(group.id)
                 if subscription:

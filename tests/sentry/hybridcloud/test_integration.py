@@ -288,7 +288,10 @@ class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
             org_integration = self.integration3.add_organization(new_org.id)
         assert org_integration is not None
 
-        result_integration, result_org_integration = integration_service.get_organization_context(
+        (
+            result_integration,
+            result_org_integration,
+        ) = integration_service.get_organization_context__tmp(
             organization_id=new_org.id,
             provider="example",
         )

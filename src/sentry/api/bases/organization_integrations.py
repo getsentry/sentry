@@ -121,7 +121,7 @@ class RegionOrganizationIntegrationBaseEndpoint(RegionIntegrationEndpoint):
         :param integration_id:
         :return:
         """
-        integration, org_integration = integration_service.get_organization_context(
+        integration, org_integration = integration_service.get_organization_context__tmp(
             organization_id=organization_id, integration_id=integration_id
         )
         if not integration or not org_integration:

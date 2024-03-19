@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 def migrate_opsgenie_plugin(integration_id: int, organization_id: int) -> None:
     from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 
-    integration, organization_integration = integration_service.get_organization_context(
+    integration, organization_integration = integration_service.get_organization_context__tmp(
         organization_id=organization_id, integration_id=integration_id
     )
     if not integration:

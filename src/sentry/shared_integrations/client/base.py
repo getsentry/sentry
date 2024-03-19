@@ -416,16 +416,16 @@ class BaseApiClient(TrackResponseMixin):
             self.disable_integration(buffer)
 
     def disable_integration(self, buffer: IntegrationRequestBuffer) -> None:
-        rpc_integration, rpc_org_integrations = integration_service.get_organization_contexts(
+        contexts = integration_service.get_organization_contexts__tmp(
             integration_id=self.integration_id
         )
-        if rpc_integration and rpc_integration.status == ObjectStatus.DISABLED:
+        if contexts.integration and contexts.integration.status == ObjectStatus.DISABLED:
             return
 
         org = None
-        if len(rpc_org_integrations) > 0:
+        if len(contexts.installs) > 0:
             org_context = organization_service.get_organization_by_id(
-                id=rpc_org_integrations[0].organization_id,
+                id=contexts.installs[0].organization_id,
                 include_projects=False,
                 include_teams=False,
             )
@@ -436,18 +436,18 @@ class BaseApiClient(TrackResponseMixin):
             "integration_id": self.integration_id,
             "buffer_record": buffer._get_all_from_buffer(),
         }
-        if len(rpc_org_integrations) == 0 and rpc_integration is None:
+        if len(contexts.installs) == 0 and contexts.integration is None:
             extra["provider"] = "unknown"
             extra["organization_id"] = "unknown"
-        elif len(rpc_org_integrations) == 0:
-            extra["provider"] = rpc_integration.provider
+        elif len(contexts.installs) == 0:
+            extra["provider"] = contexts.integration.provider
             extra["organization_id"] = "unknown"
-        elif rpc_integration is None:
+        elif contexts.integration is None:
             extra["provider"] = "unknown"
-            extra["organization_id"] = rpc_org_integrations[0].organization_id
+            extra["organization_id"] = contexts.installs[0].organization_id
         else:
-            extra["provider"] = rpc_integration.provider
-            extra["organization_id"] = rpc_org_integrations[0].organization_id
+            extra["provider"] = contexts.integration.provider
+            extra["organization_id"] = contexts.installs[0].organization_id
 
         self.logger.info(
             "integration.disabled",
@@ -455,22 +455,22 @@ class BaseApiClient(TrackResponseMixin):
         )
 
         if org and (
-            (rpc_integration.provider == "slack" and buffer.is_integration_fatal_broken())
-            or (rpc_integration.provider == "github")
+            (contexts.integration.provider == "slack" and buffer.is_integration_fatal_broken())
+            or (contexts.integration.provider == "github")
             or (
                 features.has("organizations:gitlab-disable-on-broken", org)
-                and rpc_integration.provider == "gitlab"
+                and contexts.integration.provider == "gitlab"
             )
         ):
             integration_service.update_integration(
-                integration_id=rpc_integration.id, status=ObjectStatus.DISABLED
+                integration_id=contexts.integration.id, status=ObjectStatus.DISABLED
             )
-            notify_disable(org, rpc_integration.provider, self._get_redis_key())
+            notify_disable(org, contexts.integration.provider, self._get_redis_key())
             buffer.clear()
             create_system_audit_entry(
                 organization_id=org.id,
                 target_object=org.id,
                 event=audit_log.get_event_id("INTEGRATION_DISABLED"),
-                data={"provider": rpc_integration.provider},
+                data={"provider": contexts.integration.provider},
             )
         return
