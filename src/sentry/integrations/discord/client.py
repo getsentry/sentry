@@ -127,7 +127,7 @@ class DiscordClient(ApiClient):
 
         try:
             discord_response: dict = json.loads(resp.content.decode("utf-8")) or {}  # type: ignore
-            discord_code = discord_response.get("code") or ""
+            discord_code = discord_response.get("code", "")
             if str(discord_code) in DISCORD_ERROR_CODES:
                 code_message = DISCORD_ERROR_CODES[discord_code]
         except Exception:

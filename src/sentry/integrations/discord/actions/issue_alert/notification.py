@@ -50,7 +50,7 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
                 client.send_message(channel_id, message, notification_uuid=notification_uuid)
             except Exception as e:
                 self.logger.error(
-                    "rule.fail.discord_post",
+                    "discord.notification.messsage_send_failure",
                     extra={
                         "error": str(e),
                         "project_id": event.project_id,
