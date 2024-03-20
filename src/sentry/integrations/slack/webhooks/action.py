@@ -778,6 +778,7 @@ class SlackActionEndpoint(Endpoint):
             extra={
                 "trigger_id": slack_request.data.get("trigger_id"),
                 "integration_id": slack_request.integration.id,
+                "request_data": slack_request.data,
             },
         )
 
