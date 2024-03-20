@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from collections.abc import Mapping, MutableMapping
 from copy import deepcopy
 from datetime import datetime, timezone
@@ -156,6 +157,7 @@ def process_profile_task(
         return
 
     with metrics.timer("process_profile.track_outcome.accepted"):
+        _track_duration_outcome(profile=profile, project=project)
         _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED)
 
 
@@ -771,9 +773,9 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                 method["class_name"] = new_frame.class_name
                 method["name"] = new_frame.method
                 method["data"] = {
-                    "deobfuscation_status": "deobfuscated"
-                    if method.get("signature", None)
-                    else "partial"
+                    "deobfuscation_status": (
+                        "deobfuscated" if method.get("signature", None) else "partial"
+                    )
                 }
 
                 if new_frame.file:
@@ -794,9 +796,9 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                         "class_name": new_frame.class_name,
                         "data": {"deobfuscation_status": "deobfuscated"},
                         "name": new_frame.method,
-                        "source_file": method["source_file"]
-                        if bottom_class == new_frame.class_name
-                        else "",
+                        "source_file": (
+                            method["source_file"] if bottom_class == new_frame.class_name else ""
+                        ),
                         "source_line": new_frame.line,
                     }
                     for new_frame in reversed(mapped)
@@ -922,3 +924,69 @@ def get_metrics_dsn(project_id: int) -> str:
         project_id=project_id, use_case=UseCase.PROFILING.value
     )
     return project_key.get_dsn(public=True)
+
+
+@metrics.wraps("process_profile.track_outcome")
+def _track_duration_outcome(
+    profile: Profile,
+    project: Project,
+) -> None:
+    duration_ms = _calculate_profile_duration_ms(profile)
+    if duration_ms == 0:
+        return
+    track_outcome(
+        org_id=project.organization_id,
+        project_id=project.id,
+        key_id=None,
+        outcome=Outcome.ACCEPTED,
+        timestamp=datetime.now(timezone.utc),
+        category=DataCategory.PROFILE_DURATION,
+        quantity=duration_ms,
+    )
+
+
+def _calculate_profile_duration_ms(profile: Profile) -> int:
+    version = profile.get("version")
+    if version:
+        if version == "1":
+            return _calculate_duration_for_sample_format_v1(profile)
+        elif version == "2":
+            return _calculate_duration_for_sample_format_v2(profile)
+    else:
+        platform = profile["platform"]
+        if platform == "android":
+            return _calculate_duration_for_android_format(profile)
+    return 0
+
+
+def _calculate_duration_for_sample_format_v1(profile: Profile) -> int:
+    return min(
+        int(
+            (
+                profile["transaction"]["relative_end_ns"]
+                - profile["transaction"]["relative_start_ns"]
+            )
+            * 1e-6
+        ),
+        # Maximum profile duration is 30s.
+        30000,
+    )
+
+
+def _calculate_duration_for_sample_format_v2(profile: Profile) -> int:
+    samples_by_thread = defaultdict(list)
+    for sample in profile["profile"]["samples"]:
+        samples_by_thread[sample["thread_id"]].append(sample["timestamp"])
+    max_duration_ms = 0
+    for samples in samples_by_thread.values():
+        if len(samples) < 2:
+            continue
+        first, last = samples[0], samples[len(samples) - 1]
+        duration_ms = (last - first) * 1e3
+        if duration_ms > max_duration_ms:
+            max_duration_ms = duration_ms
+    return int(max_duration_ms)
+
+
+def _calculate_duration_for_android_format(profile: Profile) -> int:
+    return int(profile["duration_ns"] * 1e-6)
