@@ -317,7 +317,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
 
         timestamp = now.timestamp()
         ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
-        with self.feature("organizations:snql-join"):
+        with self.feature("organizations:snql-join-reports"):
             key_errors = project_key_errors(ctx, self.project, Referrer.REPORTS_KEY_ERRORS.value)
             assert key_errors == [{"e.group_id": event1.group.id, "count()": 1}]
 

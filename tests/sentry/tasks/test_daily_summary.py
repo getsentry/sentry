@@ -279,7 +279,7 @@ class DailySummaryTest(
         assert project_context_map2.regressed_today == []
         assert project_context_map2.new_in_release == {}
 
-    @with_feature("organizations:snql-join")
+    @with_feature("organizations:snql-join-reports")
     def test_build_summary_data_filter_to_unresolved(self):
         with self.options({"issues.group_attributes.send_kafka": True}):
             for _ in range(3):

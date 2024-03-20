@@ -164,10 +164,13 @@ def prepare_organization_report(
 
             project_ctx = cast(ProjectContext, ctx.projects_context_map[project.id])
             if key_errors:
-                if features.has("organizations:snql-join", project.organization):
-                    project_ctx.key_errors = [(e["e.group_id"], e["count()"]) for e in key_errors]
-                else:
-                    project_ctx.key_errors = [(e["group_id"], e["count()"]) for e in key_errors]
+                group_id_alias = (
+                    "e.group_id"
+                    if features.has("organizations:snql-join-reports", project.organization)
+                    else "group_id"
+                )
+                project_ctx.key_errors = [(e[group_id_alias], e["count()"]) for e in key_errors]
+
                 if ctx.organization.slug == "sentry":
                     logger.info(
                         "project_key_errors.results",

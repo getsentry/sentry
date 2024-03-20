@@ -1896,8 +1896,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:slack-thread": False,
     # Send Slack notifications to threads for Issue Alerts
     "organizations:slack-thread-issue-alert": False,
-    # Use SNQL table join
-    "organizations:snql-join": False,
+    # Use SNQL table join on weekly reports / daily summary
+    "organizations:snql-join-reports": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.

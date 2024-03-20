@@ -169,57 +169,58 @@ def project_key_errors(
     op = f"{prefix}.project_key_errors"
 
     with sentry_sdk.start_span(op=op):
-        events_entity = Entity("events", alias="e")
-        conditions = [
-            Condition(Column("timestamp", entity=events_entity), Op.GTE, ctx.start),
-            Condition(
-                Column("timestamp", entity=events_entity), Op.LT, ctx.end + timedelta(days=1)
-            ),
-            Condition(
-                Column(
-                    "project_id",
-                    entity=events_entity,
-                ),
-                Op.EQ,
-                project.id,
-            ),
-        ]
-        if features.has("organizations:snql-join", project.organization):
+        query = Query(
+            match=Entity("events"),
+            select=[Column("group_id"), Function("count", [])],
+            where=[
+                Condition(Column("timestamp"), Op.GTE, ctx.start),
+                Condition(Column("timestamp"), Op.LT, ctx.end + timedelta(days=1)),
+                Condition(Column("project_id"), Op.EQ, project.id),
+            ],
+            groupby=[Column("group_id")],
+            orderby=[OrderBy(Function("count", []), Direction.DESC)],
+            limit=Limit(3),
+        )
+        if features.has("organizations:snql-join-reports", project.organization):
+            events_entity = Entity("events", alias="e")
             group_attributes_entity = Entity("group_attributes", alias="g")
-            conditions.append(
-                Condition(
-                    Column(
-                        "project_id",
-                        entity=group_attributes_entity,
-                    ),
-                    Op.EQ,
-                    project.id,
-                )
-            )
-            conditions.append(
-                Condition(
-                    Column("group_status", entity=group_attributes_entity),
-                    Op.IN,
-                    GroupStatus.UNRESOLVED,
-                )
-            )
             query = Query(
                 match=Join([Relationship(events_entity, "attributes", group_attributes_entity)]),
                 select=[Column("group_id", entity=events_entity), Function("count", [])],
-                where=conditions,
+                where=[
+                    Condition(Column("timestamp", entity=events_entity), Op.GTE, ctx.start),
+                    Condition(
+                        Column("timestamp", entity=events_entity),
+                        Op.LT,
+                        ctx.end + timedelta(days=1),
+                    ),
+                    Condition(
+                        Column(
+                            "project_id",
+                            entity=events_entity,
+                        ),
+                        Op.EQ,
+                        project.id,
+                    ),
+                    Condition(
+                        Column(
+                            "project_id",
+                            entity=group_attributes_entity,
+                        ),
+                        Op.EQ,
+                        project.id,
+                    ),
+                    Condition(
+                        Column("group_status", entity=group_attributes_entity),
+                        Op.IN,
+                        GroupStatus.UNRESOLVED,
+                    ),
+                ],
                 groupby=[Column("group_id", entity=events_entity)],
                 orderby=[OrderBy(Function("count", []), Direction.DESC)],
                 limit=Limit(3),
             )
-        else:
-            query = Query(
-                match=events_entity,
-                select=[Column("group_id"), Function("count", [])],
-                where=conditions,
-                groupby=[Column("group_id")],
-                orderby=[OrderBy(Function("count", []), Direction.DESC)],
-                limit=Limit(3),
-            )
+
         request = Request(
             dataset=Dataset.Events.value,
             app_id="reports",
