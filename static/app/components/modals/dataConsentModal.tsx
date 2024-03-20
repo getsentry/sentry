@@ -5,7 +5,7 @@ import controlCenter from 'sentry-images/spot/controlCenter.jpg';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
-import {IconLock} from 'sentry/icons';
+import {IconFix, IconLock} from 'sentry/icons';
 import {IconGraphBar} from 'sentry/icons/iconGraphBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -36,7 +36,21 @@ export default function DataConsentModal({closeModal}: ModalRenderProps) {
               <ConsentLabelHeader>{t('What data do we access?')}</ConsentLabelHeader>
               <ConsentLabelBody>
                 {t(
-                  'Sentry will access error messages, stack traces, spans, and DOM interactions to train and validate models to improve our product.'
+                  'Sentry will access error messages, stack traces, spans, and DOM interactions.'
+                )}
+              </ConsentLabelBody>
+            </ConsentLabel>
+          </ConsentRow>
+          <Divider />
+          <ConsentRow>
+            <StyledIconWrapper>
+              <IconFix size="lg" />
+            </StyledIconWrapper>
+            <ConsentLabel>
+              <ConsentLabelHeader>{t('How do we use it?')}</ConsentLabelHeader>
+              <ConsentLabelBody>
+                {t(
+                  'The data will be used to train and validate models to imrpveo our product.'
                 )}
               </ConsentLabelBody>
             </ConsentLabel>
@@ -50,7 +64,7 @@ export default function DataConsentModal({closeModal}: ModalRenderProps) {
               <ConsentLabelHeader>{t('Where does it go?')}</ConsentLabelHeader>
               <ConsentLabelBody>
                 {t(
-                  "We store data within Sentry's infrastructure. We will not share it with AI sub-processors without additional consent."
+                  "We store data within Sentry's standard infrastructure. We will not share it with other customers or AI/ML sub-processors without additional consent."
                 )}
               </ConsentLabelBody>
             </ConsentLabel>
@@ -145,12 +159,16 @@ const ImageHeader = styled('div')`
   margin: -${space(4)} -${space(4)} 0 -${space(4)};
   border-radius: ${p => p.theme.modalBorderRadius} ${p => p.theme.modalBorderRadius} 0 0;
   background-image: url(${controlCenter});
-  background-size: 620px;
+  background-size: cover;
   background-repeat: no-repeat;
   overflow: hidden;
   background-position: center;
   height: 200px;
   clip-path: polygon(100% 0%, 0% 0%, 0% 85%, 15% 75%, 80% 95%, 90% 85%, 100% 85%);
+
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    margin: -${space(4)} -${space(3)} 0 -${space(3)};
+  }
 `;
 
 const Divider = styled('hr')`
