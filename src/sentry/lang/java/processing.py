@@ -134,7 +134,9 @@ def map_symbolicator_process_jvm_errors(
                     "mapping_uuid": uuid,
                 }
             )
-        elif ty == "no_line_info":
+        # according to the `test_error_on_resolving` test, a completely
+        # broken file should result in a `PROGUARD_MISSING_LINENO` error
+        elif ty == "no_line_info" or ty == "invalid":
             mapped_errors.append(
                 {
                     "symbolicator_type": ty,
@@ -142,9 +144,6 @@ def map_symbolicator_process_jvm_errors(
                     "mapping_uuid": uuid,
                 }
             )
-        elif ty == "invalid":
-            # WAT DO?
-            pass
 
     return mapped_errors
 

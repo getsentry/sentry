@@ -927,6 +927,12 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert frames[5].function == "__start_thread"
         assert frames[5].package == "/apex/com.android.art/lib64/libart.so"
 
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_resolving_inline_with_native_frames_symbolicator(self):
+        with override_options({"symbolicator.proguard-processing-sample-rate": 1.0}):
+            self.test_resolving_inline_with_native_frames()
+
     def test_error_on_resolving(self):
         url = reverse(
             "sentry-api-0-dsym-files",
@@ -993,10 +999,15 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         event = self.post_and_retrieve_event(event_data)
 
         assert len(event.data["errors"]) == 1
-        assert event.data["errors"][0] == {
-            "mapping_uuid": "071207ac-b491-4a74-957c-2c94fd9594f2",
-            "type": "proguard_missing_lineno",
-        }
+        error = event.data["errors"][0]
+        assert error["mapping_uuid"] == "071207ac-b491-4a74-957c-2c94fd9594f2"
+        assert error["type"] == "proguard_missing_lineno"
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_error_on_resolving_symbolicator(self):
+        with override_options({"symbolicator.proguard-processing-sample-rate": 1.0}):
+            self.test_error_on_resolving()
 
     def upload_jvm_bundle(self, debug_id, source_files):
         files = {}
