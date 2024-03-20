@@ -410,10 +410,6 @@ class IndexerBatch:
                     fetch_types_encountered.add(metadata.fetch_type)
                     output_message_meta[metadata.fetch_type.value][str(metadata.id)] = tag
 
-            mapping_header_content = bytes(
-                "".join(sorted(t.value for t in fetch_types_encountered)), "utf-8"
-            )
-
             numeric_metric_id = mapping[use_case_id][org_id][metric_name]
             if numeric_metric_id is None:
                 metadata = bulk_record_meta[use_case_id][org_id].get(metric_name)
@@ -501,12 +497,7 @@ class IndexerBatch:
                     kafka_payload = KafkaPayload(
                         key=message.payload.key,
                         value=rapidjson.dumps(new_payload_value).encode(),
-                        headers=[
-                            *message.payload.headers,
-                            ("mapping_sources", mapping_header_content),
-                            # XXX: type mismatch, but seems to work fine in prod
-                            ("metric_type", new_payload_value["type"]),  # type: ignore
-                        ],
+                        headers=[],
                     )
                 if self.is_output_sliced:
                     routing_payload = RoutingPayload(
