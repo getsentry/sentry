@@ -247,7 +247,6 @@ export const SummaryTable = memo(function SummaryTable({
                       <TextOverflow>{seriesName}</TextOverflow>
                     </Tooltip>
                   </TextOverflowCell>
-                  {/* TODO(ddm): Add a tooltip with the full value, don't add on click in case users want to copy the value */}
                   <NumberCell>{formatMetricUsingUnit(avg, unit)}</NumberCell>
                   <NumberCell>{formatMetricUsingUnit(min, unit)}</NumberCell>
                   <NumberCell>{formatMetricUsingUnit(max, unit)}</NumberCell>
