@@ -327,6 +327,7 @@ def devserver(
             kafka_consumers.add("ingest-attachments")
             kafka_consumers.add("ingest-transactions")
             kafka_consumers.add("ingest-monitors")
+            kafka_consumers.add("ingest-feedback-events")
 
             if settings.SENTRY_USE_PROFILING:
                 kafka_consumers.add("ingest-profiles")
