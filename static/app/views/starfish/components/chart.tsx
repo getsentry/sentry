@@ -460,7 +460,6 @@ function Chart({
                     },
                   },
                 }}
-                additionalSeries={transformedThroughput}
                 tooltip={{
                   valueFormatter: (value, seriesName) => {
                     return tooltipFormatter(
