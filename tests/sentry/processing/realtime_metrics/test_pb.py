@@ -8,10 +8,8 @@ def test_invalid_target():
     assert not store.is_lpq_project(1)
 
 
-def test_pb_works():
-    # TODO: need to properly hook the service up, thus far this needs to run
-    # locally for the test to pass.
-    store = PbRealtimeMetricsStore(target="localhost:50051")
+def test_pb_works(peanutbutter_server):
+    store = PbRealtimeMetricsStore(target=peanutbutter_server["target"])
 
     assert not store.is_lpq_project(1)
     store.record_project_duration(1, 123456789)
