@@ -965,8 +965,8 @@ def _calculate_duration_for_sample_format_v1(profile: Profile) -> int:
     return min(
         int(
             (
-                profile["transaction"]["relative_end_ns"]
-                - profile["transaction"]["relative_start_ns"]
+                int(profile["transaction"]["relative_end_ns"])
+                - int(profile["transaction"]["relative_start_ns"])
             )
             * 1e-6
         ),
