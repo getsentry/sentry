@@ -692,7 +692,7 @@ export class VirtualizedViewManager {
     const width = view.width ?? this.trace_view.width;
 
     this.trace_view.x = clamp(x, 0, this.trace_space.width - width);
-    this.trace_view.width = clamp(width, 0, this.trace_space.width - this.trace_view.x);
+    this.trace_view.width = clamp(width, 1, this.trace_space.width - this.trace_view.x);
 
     this.recomputeTimelineIntervals();
     this.recomputeSpanToPxMatrix();
