@@ -297,13 +297,23 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
     def test_with_snooze_rule(self):
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
-        self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, alert_rule=self.alert_rule)
+        rule_snooze = self.snooze_rule(
+            user_id=self.user.id, owner_id=self.user.id, alert_rule=self.alert_rule
+        )
 
         with self.feature("organizations:incidents"):
             response = self.get_success_response(self.organization.slug, self.alert_rule.id)
 
-        assert response.data["snooze"]
-        assert response.data["snoozeCreatedBy"] == "You"
+            assert response.data["snooze"]
+            assert response.data["snoozeCreatedBy"] == "You"
+
+            rule_snooze.owner_id = None
+            rule_snooze.save()
+
+            response = self.get_success_response(self.organization.slug, self.alert_rule.id)
+
+            assert response.data["snooze"]
+            assert "snoozeCreatedBy" not in response.data
 
     def test_with_snooze_rule_everyone(self):
         self.create_team(organization=self.organization, members=[self.user])

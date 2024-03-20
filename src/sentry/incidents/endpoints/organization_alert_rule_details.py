@@ -127,9 +127,10 @@ def fetch_alert_rule(request: Request, organization, alert_rule):
         if request.user.id == rule_snooze.owner_id:
             serialized_rule["snoozeCreatedBy"] = "You"
         else:
-            user = user_service.get_user(rule_snooze.owner_id)
-            if user:
-                serialized_rule["snoozeCreatedBy"] = user.get_display_name()
+            if rule_snooze.owner_id:
+                user = user_service.get_user(rule_snooze.owner_id)
+                if user:
+                    serialized_rule["snoozeCreatedBy"] = user.get_display_name()
         serialized_rule["snoozeForEveryone"] = rule_snooze.user_id is None
 
     return Response(serialized_rule)
