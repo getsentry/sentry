@@ -703,6 +703,20 @@ register(
 )
 
 register(
+    "issues.severity.first-event-severity-calculation-projects-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.severity.default-high-priority-alerts-orgs-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "issues.priority.projects-allowlist",
     type=Sequence,
     default=[],
@@ -2147,6 +2161,13 @@ register(
 # Sample rate for double writing to experimental dsn
 register(
     "store.experimental-dsn-double-write.sample-rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# sample rate for pickle error collection
+register(
+    "pickle.send-error-to-sentry",
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

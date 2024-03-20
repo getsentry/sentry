@@ -2,7 +2,6 @@ import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -43,27 +42,20 @@ export function TraceTimeline({event}: TraceTimelineProps) {
     !isLoading &&
     traceEvents.length > 0 &&
     traceEvents.every(item => item.id === event.id);
-  if (isError || noEvents || onlySelfEvent) {
+  if (isError || noEvents || onlySelfEvent || isLoading) {
     // display empty placeholder to reduce layout shift
-    return <div style={{height: 36}} data-test-id="trace-timeline-empty" />;
+    return null;
   }
 
   return (
     <ErrorBoundary mini>
       <TimelineWrapper>
         <div ref={timelineRef}>
-          {isLoading ? (
-            <LoadingSkeleton>
-              <Placeholder height="14px" />
-              <Placeholder height="8px" />
-            </LoadingSkeleton>
-          ) : (
-            <TimelineEventsContainer>
-              <TimelineOutline />
-              {/* Sets a min width of 200 for testing */}
-              <TraceTimelineEvents event={event} width={Math.max(width, 200)} />
-            </TimelineEventsContainer>
-          )}
+          <TimelineEventsContainer>
+            <TimelineOutline />
+            {/* Sets a min width of 200 for testing */}
+            <TraceTimelineEvents event={event} width={Math.max(width, 200)} />
+          </TimelineEventsContainer>
         </div>
         <QuestionTooltipWrapper>
           <QuestionTooltip
@@ -109,12 +101,4 @@ const TimelineEventsContainer = styled('div')`
   position: relative;
   height: 34px;
   padding-top: 10px;
-`;
-
-const LoadingSkeleton = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.25)};
-  padding: ${space(0.5)} 0 ${space(1)};
-  height: 34px;
 `;

@@ -44,7 +44,7 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
         attachment_text = self.get_attachment_text(group)
         if not attachment_text:
             return f"<{link}|*{escape_slack_text(title)}*>"
-        return f"<{link}|*{escape_slack_text(title)}*> {attachment_text}"
+        return f"<{link}|*{escape_slack_text(title)}*>\n{attachment_text}"
 
     def linkify_release(self, release, organization):
         path = f"/releases/{release.version}/"
@@ -99,11 +99,12 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
 
             fields = []
             event_count_text = "*Today’s Event Count*: "
+            formatted_total_today = f"{context.total_today:,}"
             if features.has("organizations:discover", project.organization):
                 discover_url = self.build_discover_url(project)
-                event_count_text += f"<{discover_url}|{context.total_today}>"
+                event_count_text += f"<{discover_url}|{formatted_total_today}>"
             else:
-                event_count_text += str(context.total_today)
+                event_count_text += formatted_total_today
             fields.append(self.make_field(event_count_text))
 
             # Calculate today's event count percentage against 14 day avg
@@ -132,7 +133,7 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
                         continue
 
                     release_text = self.linkify_release(release, project.organization)
-                    for error in errors[0:3]:
+                    for error in errors:
                         linked_issue_title = self.linkify_error_title(error)
                         release_text += f"• :new: {linked_issue_title}\n"
                         fields.append(self.make_field(release_text))

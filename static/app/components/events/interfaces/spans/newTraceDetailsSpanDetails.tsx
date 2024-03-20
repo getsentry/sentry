@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo} from 'react';
+import {Fragment, useLayoutEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import * as qs from 'query-string';
@@ -32,6 +32,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {CustomMetricsEventData} from 'sentry/views/ddm/customMetricsEventData';
 import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
+import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceTabs';
 import type {
   TraceTree,
   TraceTreeNode,
@@ -83,6 +84,7 @@ export type SpanDetailProps = {
   childTransactions: TraceFullDetailed[] | null;
   event: Readonly<EventTransaction>;
   node: TraceTreeNode<TraceTree.NodeValue>;
+  onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   openPanel: string | undefined;
   organization: Organization;
   span: RawSpanType;
@@ -102,9 +104,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
     props.span.sentry_tags?.category
   );
 
-  useEffect(() => {
-    // Run on mount.
-
+  useLayoutEffect(() => {
     const {span, organization, event} = props;
     if (!('op' in span)) {
       return;
@@ -366,6 +366,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
     );
 
     const timingKeys = getSpanSubTimings(span) ?? [];
+    const parentTransaction = props.node.parent_transaction;
 
     return (
       <Fragment>
@@ -375,6 +376,15 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
         <SpanDetails>
           <table className="table key-value">
             <tbody>
+              {parentTransaction ? (
+                <Row title="Parent Transaction">
+                  <td className="value">
+                    <a href="#" onClick={() => props.onParentClick(parentTransaction)}>
+                      {getTraceTabTitle(parentTransaction)}
+                    </a>
+                  </td>
+                </Row>
+              ) : null}
               <Row
                 title={
                   isGapSpan(span) ? (
@@ -399,9 +409,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                   borderless
                   size="zero"
                   iconSize="xs"
-                  text={`${window.location.href.replace(window.location.hash, '')}#span-${
-                    span.span_id
-                  }`}
+                  text={span.span_id}
                 />
               </Row>
               {profileId && project?.slug && (

@@ -3,10 +3,6 @@ import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import {Button as CommonButton, LinkButton} from 'sentry/components/button';
-import {
-  SpanDetailContainer,
-  SpanDetails,
-} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
 import {DataSection} from 'sentry/components/events/styles';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -19,14 +15,6 @@ const DetailContainer = styled('div')`
 
   ${DataSection} {
     padding: 0;
-  }
-
-  ${SpanDetails} {
-    padding: 0;
-  }
-
-  ${SpanDetailContainer} {
-    border-bottom: none !important;
   }
 `;
 
@@ -63,8 +51,8 @@ const IconTitleWrapper = styled(FlexBox)`
   gap: ${space(1)};
 `;
 
-const IconBorder = styled('div')<{errored?: boolean}>`
-  background-color: ${p => (p.errored ? p.theme.error : p.theme.blue300)};
+const IconBorder = styled('div')<{backgroundColor: string; errored?: boolean}>`
+  background-color: ${p => p.backgroundColor};
   border-radius: ${p => p.theme.borderRadius};
   padding: 0;
   display: flex;
@@ -94,6 +82,7 @@ function EventDetailsLink(props: {eventId: string; projectSlug?: string}) {
   const query = useMemo(() => {
     return {...qs.parse(location.search), legacy: 1};
   }, []);
+
   return (
     <LinkButton
       disabled={!props.eventId || !props.projectSlug}

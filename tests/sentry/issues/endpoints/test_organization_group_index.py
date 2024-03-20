@@ -43,11 +43,13 @@ from sentry.search.events.constants import (
     SEMVER_BUILD_ALIAS,
     SEMVER_PACKAGE_ALIAS,
 )
+from sentry.search.snuba.executors import GroupAttributesPostgresSnubaQueryExecutor
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
@@ -2307,6 +2309,22 @@ class GroupListTest(APITestCase, SnubaTestCase):
             == [int(r["id"]) for r in response10.data]
             == []
         )
+
+    @override_options({"issues.group_attributes.send_kafka": True})
+    @patch(
+        "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
+        side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
+        autospec=True,
+    )
+    def test_use_group_snuba_dataset(self, mock_query):
+        self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        self.login_as(user=self.user)
+        response = self.get_success_response(qs_params={"query": "", "useGroupSnubaDataset": "1"})
+        assert len(response.data) == 1
+        assert mock_query.call_count == 1
 
 
 @region_silo_test
