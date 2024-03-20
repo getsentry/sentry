@@ -120,9 +120,8 @@ function getDropdownOption({
   team: Team;
 }): ItemsBeforeFilter[number] {
   const isIdpProvisioned = isAddingTeamToMember && team.flags['idp:provisioned'];
-  const buttonHelpText = getButtonHelpText(isIdpProvisioned);
   const label = isIdpProvisioned ? (
-    <Tooltip title={buttonHelpText}>
+    <Tooltip title={getButtonHelpText(isIdpProvisioned)}>
       <DropdownTeamBadgeDisabled avatarSize={18} team={team} />
     </Tooltip>
   ) : (
