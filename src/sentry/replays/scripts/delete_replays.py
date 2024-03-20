@@ -7,7 +7,7 @@ from sentry.api.event_search import SearchFilter, parse_search_query
 from sentry.models.organization import Organization
 from sentry.replays.post_process import generate_normalized_output
 from sentry.replays.query import query_replays_collection, replay_url_parser_config
-from sentry.replays.tasks import delete_replay_recording
+from sentry.replays.tasks import delete_recording_segments
 
 
 def delete_replays(
@@ -60,6 +60,6 @@ def translate_cli_tags_param_to_snuba_tag_param(tags: list[str]) -> Sequence[Sea
 def delete_replay_ids(project_id: int, replay_ids: list[str]) -> None:
     """Delete a set of replay-ids for a specific project."""
     for replay_id in replay_ids:
-        delete_replay_recording(project_id, replay_id)
+        delete_recording_segments.delay(project_id, replay_id)
 
-    print(f"Deleted {len(replay_ids)} replays.")  # NOQA
+    print(f"Scheduled {len(replay_ids)} replays for deletion.")  # NOQA
