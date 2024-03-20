@@ -2,6 +2,7 @@ import unittest
 from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
+import pytest
 from django.urls import reverse
 
 from sentry.api.endpoints.organization_release_details import OrganizationReleaseSerializer
@@ -24,7 +25,7 @@ from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
-pytestmark = [requires_snuba]
+pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
 @region_silo_test

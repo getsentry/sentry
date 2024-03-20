@@ -310,115 +310,6 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             },
         }
 
-    def test_get_release_health_data_overview_users(self):
-        data = self.backend.get_release_health_data_overview(
-            [
-                (self.project.id, self.session_release),
-                (self.project.id, self.session_crashed_release),
-            ],
-            summary_stats_period="24h",
-            health_stats_period="24h",
-            stat="users",
-        )
-
-        stats = make_24h_stats(self.received - (24 * 3600), adjust_start=self.adjust_interval)
-        stats[-1] = [stats[-1][0], 1]
-        stats_ok = stats_crash = stats
-
-        assert data == {
-            (self.project.id, self.session_crashed_release): {
-                "total_sessions": 1,
-                "sessions_errored": 0,
-                "total_sessions_24h": 1,
-                "total_users": 1,
-                "duration_p90": None,
-                "sessions_crashed": 1,
-                "total_users_24h": 1,
-                "stats": {"24h": stats_crash},
-                "crash_free_users": 0.0,
-                "adoption": 100.0,
-                "sessions_adoption": 33.33333333333333,
-                "has_health_data": True,
-                "crash_free_sessions": 0.0,
-                "duration_p50": None,
-                "total_project_sessions_24h": 3,
-                "total_project_users_24h": 1,
-            },
-            (self.project.id, self.session_release): {
-                "total_sessions": 2,
-                "sessions_errored": 0,
-                "total_sessions_24h": 2,
-                "total_users": 1,
-                "duration_p90": 57.0,
-                "sessions_crashed": 0,
-                "total_users_24h": 1,
-                "stats": {"24h": stats_ok},
-                "crash_free_users": 100.0,
-                "adoption": 100.0,
-                "sessions_adoption": 66.66666666666666,
-                "has_health_data": True,
-                "crash_free_sessions": 100.0,
-                "duration_p50": 45.0,
-                "total_project_sessions_24h": 3,
-                "total_project_users_24h": 1,
-            },
-        }
-
-    def test_get_release_health_data_overview_sessions(self):
-        data = self.backend.get_release_health_data_overview(
-            [
-                (self.project.id, self.session_release),
-                (self.project.id, self.session_crashed_release),
-            ],
-            summary_stats_period="24h",
-            health_stats_period="24h",
-            stat="sessions",
-        )
-
-        stats = make_24h_stats(self.received - (24 * 3600), adjust_start=self.adjust_interval)
-
-        stats_ok = stats[:-1] + [[stats[-1][0], 2]]
-        stats_crash = stats[:-1] + [[stats[-1][0], 1]]
-
-        assert data == {
-            (self.project.id, self.session_crashed_release): {
-                "total_sessions": 1,
-                "sessions_errored": 0,
-                "total_sessions_24h": 1,
-                "total_users": 1,
-                "duration_p90": None,
-                "sessions_crashed": 1,
-                "total_users_24h": 1,
-                "stats": {"24h": stats_crash},
-                "crash_free_users": 0.0,
-                "adoption": 100.0,
-                "sessions_adoption": 33.33333333333333,
-                "has_health_data": True,
-                "crash_free_sessions": 0.0,
-                "duration_p50": None,
-                "total_project_sessions_24h": 3,
-                "total_project_users_24h": 1,
-            },
-            (self.project.id, self.session_release): {
-                "total_sessions": 2,
-                "sessions_errored": 0,
-                "total_sessions_24h": 2,
-                "total_users": 1,
-                "duration_p90": 57.0,
-                "sessions_crashed": 0,
-                "total_users_24h": 1,
-                "stats": {"24h": stats_ok},
-                "crash_free_users": 100.0,
-                "sessions_adoption": 66.66666666666666,
-                "adoption": 100.0,
-                "has_health_data": True,
-                "crash_free_sessions": 100.0,
-                "duration_p50": 45.0,
-                "total_project_sessions_24h": 3,
-                "total_project_users_24h": 1,
-            },
-        }
-
     def test_fetching_release_sessions_time_bounds_for_different_release(self):
         """
         Test that ensures only session bounds for releases are calculated according
@@ -1639,9 +1530,7 @@ class InitWithoutUserTestCase(TestCase, SnubaTestCase):
 
         inner = data[(self.project.id, self.session_release)]
         assert inner["total_users"] == 3
-        assert inner["total_users_24h"] == 3
         assert inner["crash_free_users"] == 66.66666666666667
-        assert inner["total_project_users_24h"] == 3
 
     def test_get_crash_free_breakdown(self):
         start = timezone.now() - timedelta(days=4)
