@@ -187,7 +187,7 @@ def get_profile_platforms(profile: Profile) -> list[str]:
     return platforms
 
 
-def get_debug_images_for_platform(profile, platform):
+def get_debug_images_for_platform(profile: Profile, platform: str) -> list[str]:
     if platform in SHOULD_SYMBOLICATE_JS:
         return [image for image in profile["debug_meta"]["images"] if image["type"] == "sourcemap"]
     return native_images_from_data(profile)
@@ -310,7 +310,7 @@ def _normalize_profile(profile: Profile, organization: Organization, project: Pr
 
 @metrics.wraps("process_profile.normalize")
 def _normalize(profile: Profile, organization: Organization) -> None:
-    profile["retention_days"] = quotas.get_event_retention(organization=organization) or 90
+    profile["retention_days"] = quotas.backend.get_event_retention(organization=organization) or 90
 
     if profile["platform"] in {"cocoa", "android"}:
         classification_options = dict()
@@ -346,7 +346,7 @@ def _normalize(profile: Profile, organization: Organization) -> None:
 
 
 def _prepare_frames_from_profile(
-    profile: Profile, platform: str
+    profile: Profile, platform: str | None
 ) -> tuple[list[Any], list[Any], set[int]]:
     with sentry_sdk.start_span(op="task.profiling.symbolicate.prepare_frames"):
         modules = profile["debug_meta"]["images"]
@@ -459,7 +459,7 @@ def run_symbolicate(
 ) -> tuple[list[Any], list[Any], bool]:
     symbolication_start_time = time()
 
-    def on_symbolicator_request():
+    def on_symbolicator_request() -> None:
         duration = time() - symbolication_start_time
         if duration > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
             raise SymbolicationTimeout
@@ -895,7 +895,7 @@ def _push_profile_to_vroom(profile: Profile, project: Project) -> bool:
     return False
 
 
-def prepare_android_js_profile(profile: Profile):
+def prepare_android_js_profile(profile: Profile) -> None:
     profile["js_profile"] = {"profile": profile["js_profile"]}
     p = profile["js_profile"]
     p["platform"] = "javascript"
@@ -906,7 +906,7 @@ def prepare_android_js_profile(profile: Profile):
     p["dist"] = profile["dist"]
 
 
-def clean_android_js_profile(profile: Profile):
+def clean_android_js_profile(profile: Profile) -> None:
     p = profile["js_profile"]
     del p["platform"]
     del p["debug_meta"]
