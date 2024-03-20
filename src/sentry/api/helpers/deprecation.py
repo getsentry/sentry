@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 
 import isodate
 from croniter import croniter
+from django.conf import settings
 from isodate.isoerror import ISO8601Error
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -114,7 +115,8 @@ def deprecated(
         @functools.wraps(func)
         def endpoint_method(self, request: Request, *args, **kwargs):
             # Don't do anything for deprecated endpoints on self hosted
-            if is_self_hosted():
+            # but allow testing deprecation in development
+            if is_self_hosted() and not settings.ENVIRONMENT == "development":
                 return func(self, request, *args, **kwargs)
 
             now = datetime.now(timezone.utc)
