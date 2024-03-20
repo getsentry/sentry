@@ -59,14 +59,14 @@ def register_alert_subscription_callback(
 
 
 def invoke_alert_subscription_callback(
-    monitor_type: AlertRuleMonitorType, subscription: QuerySubscription
+    monitor_type: AlertRuleMonitorType, subscription: QuerySubscription, **kwargs: Any
 ) -> bool:
     try:
         callback = alert_subscription_callback_registry[monitor_type]
     except KeyError:
         return False
 
-    return callback(subscription)
+    return callback(subscription, **kwargs)
 
 
 class AlertRuleStatus(Enum):
@@ -357,12 +357,14 @@ class AlertRule(Model):
                 self.snuba_query,
                 query_extra,
             )
-            # NOTE: activations should be tied to subscriptions for multi-project alert rules
-            # TODO: ensure we're updating the activation on subscription process
-            AlertRuleActivations.objects.create(
-                alert_rule=self,
-                metric_value=0,
-            )
+            if self.monitor_type == AlertRuleMonitorType.ACTIVATED.value:
+                # NOTE: Activated Alert Rules are conditionally subscribed
+                # Meaning at time of subscription, the rule has been activated
+                for subscription in created_subscriptions:
+                    AlertRuleActivations.objects.create(
+                        alert_rule=self,
+                        query_subscription_id=subscription.id,
+                    )
 
         return created_subscriptions
 
@@ -606,7 +608,22 @@ class AlertRuleActivity(Model):
 
 
 @register_alert_subscription_callback(AlertRuleMonitorType.ACTIVATED)
-def clean_expired_alerts(subscription: QuerySubscription) -> bool:
+def update_alert_activations(
+    subscription: QuerySubscription, alert_rule: AlertRule, value: float
+) -> bool:
+    activations = alert_rule.activations.filter(
+        finished_at=None, query_subscription_id=subscription.id
+    )
+    for activation in activations:
+        activation.update(metric_value=value)
+
+    return True
+
+
+@register_alert_subscription_callback(AlertRuleMonitorType.ACTIVATED)
+def clean_expired_alerts(
+    subscription: QuerySubscription, alert_rule: AlertRule, value: float
+) -> bool:
     now = timezone.now()
     subscription_end = subscription.date_added + timedelta(
         seconds=subscription.snuba_query.time_window
@@ -614,6 +631,14 @@ def clean_expired_alerts(subscription: QuerySubscription) -> bool:
 
     if now > subscription_end:
         delete_snuba_subscription(subscription)
+        activations = alert_rule.activations.filter(
+            finished_at=None, query_subscription_id=subscription.id
+        )
+        for activation in activations:
+            activation.update(
+                metric_value=value,
+                finished_at=now,
+            )
 
     return True
 

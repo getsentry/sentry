@@ -54,8 +54,6 @@ class AlertRuleActivationsManager(BaseManager["AlertRuleActivations"]):
 class AlertRuleActivations(Model):
     """
     This model represents the record of activations for Alert Rules with monitor_type 'activated'
-
-    TODO: update activations metric_values on subscription process
     """
 
     __relocation_scope__ = RelocationScope.Excluded
