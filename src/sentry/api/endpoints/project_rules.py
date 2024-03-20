@@ -469,22 +469,26 @@ A list of actions that take place when all required conditions and filters for t
 **Send a PagerDuty notification**
 - `account` - The integration ID associated with the PagerDuty account.
 - `service` - The ID of the service to send the notification to.
+- `severity` - The severity of the Pagerduty alert. This is optional, the default is `critical` for fatal issues, `error` for error issues, `warning` for warning issues, and `info` for info and debug issues.
 ```json
 {
     "id": "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction",
     "account": 92385907,
-    "service": 9823924
+    "service": 9823924,
+    "severity": "critical"
 }
 ```
 
 **Send an Opsgenie notification**
 - `account` - The integration ID associated with the Opsgenie account.
 - `team` - The ID of the Opsgenie team to send the notification to.
+- `priority` - The priority of the Opsgenie alert. This is optional, the default is `P3`.
 ```json
 {
     "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
     "account": 8723897589,
-    "team": "9438930258-fairy"
+    "team": "9438930258-fairy",
+    "priority": "P1"
 }
 ```
 
