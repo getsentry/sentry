@@ -267,7 +267,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
         "click_options": ingest_events_options(),
         "static_args": {
-            "consumer_type": IngestConsumerType.FeedbackEvents,
+            "consumer_type": IngestConsumerType.Feedback,
         },
         "dlq_topic": Topic.INGEST_FEEDBACK_EVENTS_DLQ,
     },
