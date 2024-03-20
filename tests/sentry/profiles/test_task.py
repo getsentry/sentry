@@ -8,12 +8,7 @@ import pytest
 
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
 from sentry.models.project import Project
-from sentry.profiles.task import (
-    _calculate_profile_duration_ms,
-    _deobfuscate,
-    _normalize,
-    _process_symbolicator_results_for_sample,
-)
+from sentry.profiles.task import _deobfuscate, _normalize, _process_symbolicator_results_for_sample
 from sentry.testutils.factories import Factories, get_fixture_path
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
@@ -119,149 +114,6 @@ def ios_profile():
 @pytest.fixture
 def android_profile():
     return load_profile("valid_android_profile.json")
-
-
-@pytest.fixture
-def sample_v1_profile():
-    return json.loads(
-        """{
-  "event_id": "41fed0925670468bb0457f61a74688ec",
-  "version": "1",
-  "os": {
-    "name": "iOS",
-    "version": "16.0",
-    "build_number": "19H253"
-  },
-  "device": {
-    "architecture": "arm64e",
-    "is_emulator": false,
-    "locale": "en_US",
-    "manufacturer": "Apple",
-    "model": "iPhone14,3"
-  },
-  "timestamp": "2022-09-01T09:45:00.000Z",
-  "profile": {
-    "samples": [
-      {
-        "stack_id": 0,
-        "thread_id": "1",
-        "queue_address": "0x0000000102adc700",
-        "elapsed_since_start_ns": "10500500"
-      },
-      {
-        "stack_id": 1,
-        "thread_id": "1",
-        "queue_address": "0x0000000102adc700",
-        "elapsed_since_start_ns": "20500500"
-      },
-      {
-        "stack_id": 0,
-        "thread_id": "1",
-        "queue_address": "0x0000000102adc700",
-        "elapsed_since_start_ns": "30500500"
-      },
-      {
-        "stack_id": 1,
-        "thread_id": "1",
-        "queue_address": "0x0000000102adc700",
-        "elapsed_since_start_ns": "40500500"
-      }
-    ],
-    "stacks": [[0], [1]],
-    "frames": [
-      {"instruction_addr": "0xa722447ffffffffc"},
-      {"instruction_addr": "0x442e4b81f5031e58"}
-    ],
-    "thread_metadata": {
-      "1": {"priority": 31},
-      "2": {}
-    },
-    "queue_metadata": {
-      "0x0000000102adc700": {"label": "com.apple.main-thread"},
-      "0x000000016d8fb180": {"label": "com.apple.network.connections"}
-    }
-  },
-  "release": "0.1 (199)",
-  "platform": "cocoa",
-  "debug_meta": {
-    "images": [
-      {
-        "debug_id": "32420279-25E2-34E6-8BC7-8A006A8F2425",
-        "image_addr": "0x000000010258c000",
-        "code_file": "/private/var/containers/Bundle/Application/C3511752-DD67-4FE8-9DA2-ACE18ADFAA61/TrendingMovies.app/TrendingMovies",
-        "type": "macho",
-        "image_size": 1720320,
-        "image_vmaddr": "0x0000000100000000"
-      }
-    ]
-  },
-  "transaction": {
-      "name": "example_ios_movies_sources.MoviesViewController",
-      "trace_id": "4b25bc58f14243d8b208d1e22a054164",
-      "id": "30976f2ddbe04ac9b6bffe6e35d4710c",
-      "active_thread_id": "259",
-      "relative_start_ns": "500500",
-      "relative_end_ns": "50500500"
-  }
-}"""
-    )
-
-
-@pytest.fixture
-def sample_v2_profile():
-    return json.loads(
-        """{
-  "event_id": "41fed0925670468bb0457f61a74688ec",
-  "version": "2",
-  "profile": {
-    "samples": [
-      {
-        "stack_id": 0,
-        "thread_id": "1",
-        "timestamp": 1710958503.629
-      },
-      {
-        "stack_id": 1,
-        "thread_id": "1",
-        "timestamp": 1710958504.629
-      },
-      {
-        "stack_id": 0,
-        "thread_id": "1",
-        "timestamp": 1710958505.629
-      },
-      {
-        "stack_id": 1,
-        "thread_id": "1",
-        "timestamp": 1710958506.629
-      }
-    ],
-    "stacks": [[0], [1]],
-    "frames": [
-      {"instruction_addr": "0xa722447ffffffffc"},
-      {"instruction_addr": "0x442e4b81f5031e58"}
-    ],
-    "thread_metadata": {
-      "1": {"priority": 31},
-      "2": {}
-    }
-  },
-  "release": "0.1 (199)",
-  "platform": "cocoa",
-  "debug_meta": {
-    "images": [
-      {
-        "debug_id": "32420279-25E2-34E6-8BC7-8A006A8F2425",
-        "image_addr": "0x000000010258c000",
-        "code_file": "/private/var/containers/Bundle/Application/C3511752-DD67-4FE8-9DA2-ACE18ADFAA61/TrendingMovies.app/TrendingMovies",
-        "type": "macho",
-        "image_size": 1720320,
-        "image_vmaddr": "0x0000000100000000"
-      }
-    ]
-  }
-}"""
-    )
 
 
 @pytest.fixture
@@ -608,16 +460,3 @@ def test_decode_signature(project, android_profile):
 
     assert frames[0]["signature"] == "()"
     assert frames[1]["signature"] == "(): boolean"
-
-
-@django_db_all
-@pytest.mark.parametrize(
-    "profile, duration_ms",
-    [
-        ("sample_v1_profile", 50),
-        ("sample_v2_profile", 3000),
-        ("android_profile", 2020),
-    ],
-)
-def test_calculate_profile_duration(profile, duration_ms, request):
-    assert _calculate_profile_duration_ms(request.getfixturevalue(profile)) == duration_ms
