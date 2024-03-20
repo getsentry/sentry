@@ -934,7 +934,7 @@ def _track_duration_outcome(
     project: Project,
 ) -> None:
     duration_ms = _calculate_profile_duration_ms(profile)
-    if duration_ms == 0:
+    if duration_ms <= 0:
         return
     track_outcome(
         org_id=project.organization_id,
