@@ -28,6 +28,8 @@ type IssueProps = {
   organization: Organization;
 };
 
+const MAX_DISPLAYED_ISSUES_COUNT = 10;
+
 function Issue(props: IssueProps) {
   const {
     isLoading,
@@ -113,7 +115,7 @@ export function IssueList({issues, node, organization}: IssueListProps) {
   return (
     <StyledPanel>
       <IssueListHeader node={node} />
-      {issues.map((issue, index) => (
+      {issues.slice(0, MAX_DISPLAYED_ISSUES_COUNT).map((issue, index) => (
         <Issue key={index} issue={issue} organization={organization} />
       ))}
     </StyledPanel>
@@ -126,33 +128,35 @@ function IssueListHeader({node}: {node: TraceTreeNode<TraceTree.NodeValue>}) {
   return (
     <StyledPanelHeader disablePadding>
       <IssueHeading>
-        {errors.length > 0 && performance_issues.length === 0
-          ? tct('[count] [text]', {
-              count: errors.length,
-              text: tn('Error', 'Errors', errors.length),
-            })
-          : performance_issues.length > 0 && errors.length === 0
+        {errors.length + performance_issues.length > MAX_DISPLAYED_ISSUES_COUNT
+          ? t(`%s+  issues`, MAX_DISPLAYED_ISSUES_COUNT)
+          : errors.length > 0 && performance_issues.length === 0
             ? tct('[count] [text]', {
-                count: performance_issues.length,
-                text: tn(
-                  'Performance issue',
-                  'Performance Issues',
-                  performance_issues.length
-                ),
+                count: errors.length,
+                text: tn('Error', 'Errors', errors.length),
               })
-            : tct(
-                '[errors] [errorsText] and [performance_issues] [performanceIssuesText]',
-                {
-                  errors: errors.length,
-                  performance_issues: performance_issues.length,
-                  errorsText: tn('Error', 'Errors', errors.length),
-                  performanceIssuesText: tn(
-                    'performance issue',
-                    'performance issues',
+            : performance_issues.length > 0 && errors.length === 0
+              ? tct('[count] [text]', {
+                  count: performance_issues.length,
+                  text: tn(
+                    'Performance issue',
+                    'Performance Issues',
                     performance_issues.length
                   ),
-                }
-              )}
+                })
+              : tct(
+                  '[errors] [errorsText] and [performance_issues] [performanceIssuesText]',
+                  {
+                    errors: errors.length,
+                    performance_issues: performance_issues.length,
+                    errorsText: tn('Error', 'Errors', errors.length),
+                    performanceIssuesText: tn(
+                      'performance issue',
+                      'performance issues',
+                      performance_issues.length
+                    ),
+                  }
+                )}
       </IssueHeading>
       <GraphHeading>{t('Graph')}</GraphHeading>
       <Heading>{t('Events')}</Heading>
@@ -207,6 +211,11 @@ const StyledLoadingIndicatorWrapper = styled('div')`
   width: 100%;
   padding: ${space(2)} 0;
   height: 84px;
+
+  /* Add a border between two rows of loading issue states */
+  & + & {
+    border-top: 1px solid ${p => p.theme.border};
+  }
 `;
 
 const StyledIconWrapper = styled(IconWrapper)`
