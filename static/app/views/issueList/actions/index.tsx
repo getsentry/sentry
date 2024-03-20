@@ -19,6 +19,7 @@ import {space} from 'sentry/styles/space';
 import type {Group, PageFilters} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 import useMedia from 'sentry/utils/useMedia';
@@ -157,6 +158,7 @@ function IssueListActions({
   statsPeriod,
 }: IssueListActionsProps) {
   const api = useApi();
+  const queryClient = useQueryClient();
   const organization = useOrganization();
   const {
     pageSelected,
@@ -296,6 +298,15 @@ function IssueListActions({
           success: () => {
             clearIndicators();
             onActionTaken?.(itemIds ?? [], data);
+
+            // Prevents stale data on issue details
+            queryClient.invalidateQueries({
+              predicate: apiQuery =>
+                typeof apiQuery.queryKey[0] === 'string' &&
+                apiQuery.queryKey[0].startsWith(
+                  `/organizations/${organization.slug}/issues/`
+                ),
+            });
           },
           error: () => {
             clearIndicators();
