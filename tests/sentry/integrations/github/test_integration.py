@@ -342,7 +342,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         self._stub_github()
 
         resp = self.client.get(self.init_path)
-        assert "github-integration-installation" in resp.cookies
+        assert "github-integration-installation" in self.client.session
 
         self.init_path_2 = "{}?{}".format(
             reverse(
@@ -359,7 +359,8 @@ class GitHubIntegrationTest(IntegrationTestCase):
         resp = self.client.get(self.init_path_2)
 
         # CSRF emulation
-        del self.client.cookies["github-integration-installation"]
+        self.session["github-integration-installation"] = None
+        self.save_session()
 
         resp = self.client.get(self.init_path_2)
 

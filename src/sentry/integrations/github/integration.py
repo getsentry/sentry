@@ -115,8 +115,7 @@ ERR_INTEGRATION_PENDING_DELETION = _(
     "It seems that your Sentry organization has an installation pending deletion. Please wait ~15min for the uninstall to complete and try again."
 )
 
-INSTALLATION_CSRF_COOKIE_NAME = "github-integration-installation"
-INSTALLATION_CSRF_COOKIE_MAX_AGE_SECONDS = 10 * 60
+GITHUB_INSTALLATION_SESSION_KEY = "github-integration-installation"
 
 
 def build_repository_query(metadata: Mapping[str, Any], name: str, query: str) -> bytes:
@@ -371,15 +370,8 @@ class GitHubInstallation(PipelineView):
             pipeline.bind_state("reinstall_id", request.GET["reinstall_id"])
 
         if "installation_id" not in request.GET:
-            rv = self.redirect(self.get_app_url())
-            rv.set_cookie(
-                INSTALLATION_CSRF_COOKIE_NAME,
-                str(request.user.id),
-                max_age=INSTALLATION_CSRF_COOKIE_MAX_AGE_SECONDS,
-                path="/",
-                httponly=True,
-            )
-            return rv
+            request.session[GITHUB_INSTALLATION_SESSION_KEY] = request.user.id
+            return self.redirect(self.get_app_url())
 
         self.determine_active_organization(request)
 
@@ -424,7 +416,7 @@ class GitHubInstallation(PipelineView):
             pipeline.bind_state("installation_id", request.GET["installation_id"])
             return pipeline.next_step()
 
-        if request.COOKIES.get(INSTALLATION_CSRF_COOKIE_NAME) != str(request.user.id):
+        if request.session.get(GITHUB_INSTALLATION_SESSION_KEY) != request.user.id:
             document_origin = "document.origin"
             return render_to_response(
                 "sentry/integrations/github-integration-failed.html",
@@ -462,4 +454,5 @@ class GitHubInstallation(PipelineView):
 
         # OrganizationIntegration does not exist, but Integration does exist.
         pipeline.bind_state("installation_id", request.GET["installation_id"])
+        del request.session[GITHUB_INSTALLATION_SESSION_KEY]
         return pipeline.next_step()
