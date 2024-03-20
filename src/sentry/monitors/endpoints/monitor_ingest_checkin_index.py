@@ -51,7 +51,7 @@ CHECKIN_QUOTA_WINDOW = 60
 @extend_schema(tags=["Crons"])
 class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.CRONS
 

@@ -24,7 +24,10 @@ class DatabaseBackedLogService(LogService):
             if '"auth_user"' in error_message:
                 # It is possible that a user existed at the time of serialization but was deleted by the time of consumption
                 # in which case we follow the database's SET NULL on delete handling.
-                event.actor_user_id = None
+                if event.actor_user_id:
+                    event.actor_user_id = None
+                if event.target_user_id:
+                    event.target_user_id = None
                 return self.record_audit_log(event=event)
             else:
                 raise
