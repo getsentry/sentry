@@ -11,9 +11,13 @@ export default function useAllMobileProj() {
 
   const {projects} = useProjects();
   const projectsSelected = projects.filter(p => projectIds.map(String).includes(p.id));
+
+  // if no projects selected, look through all projects
+  const proj = projectsSelected.length ? projectsSelected : projects;
+
   const allMobileProj =
     organization.features.includes('session-replay-mobile-player') &&
-    projectsSelected.every(p => mobile.includes(p.platform ?? 'other'));
+    proj.every(p => mobile.includes(p.platform ?? 'other'));
 
   return {allMobileProj};
 }
