@@ -182,8 +182,8 @@ def project_key_errors(
             limit=Limit(3),
         )
         if features.has("organizations:snql-join-reports", project.organization):
-            events_entity = Entity("events", alias="e")
-            group_attributes_entity = Entity("group_attributes", alias="g")
+            events_entity = Entity("events", alias="events")
+            group_attributes_entity = Entity("group_attributes", alias="group_attributes")
             query = Query(
                 match=Join([Relationship(events_entity, "attributes", group_attributes_entity)]),
                 select=[Column("group_id", entity=events_entity), Function("count", [])],

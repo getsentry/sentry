@@ -202,6 +202,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         assert mock_send_email.call_count == 1
 
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
+    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_transferred_project(self, message_builder):
         self.login_as(user=self.user)
 
@@ -239,6 +240,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         assert message_builder.call_count == 1
 
     @with_feature("organizations:escalating-issues")
+    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_organization_project_issue_substatus_summaries(self):
         self.login_as(user=self.user)
 
@@ -283,6 +285,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         assert project_ctx.regression_substatus_count == 0
         assert project_ctx.total_substatus_count == 2
 
+    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_organization_project_issue_status(self):
         self.login_as(user=self.user)
         now = timezone.now()
@@ -319,7 +322,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
         with self.feature("organizations:snql-join-reports"):
             key_errors = project_key_errors(ctx, self.project, Referrer.REPORTS_KEY_ERRORS.value)
-            assert key_errors == [{"e.group_id": event1.group.id, "count()": 1}]
+            assert key_errors == [{"events.group_id": event1.group.id, "count()": 1}]
 
         # without the flag, resolved issues are not filtered out
         key_errors = project_key_errors(ctx, self.project, Referrer.REPORTS_KEY_ERRORS.value)

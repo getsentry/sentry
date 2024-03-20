@@ -165,7 +165,7 @@ def prepare_organization_report(
             project_ctx = cast(ProjectContext, ctx.projects_context_map[project.id])
             if key_errors:
                 group_id_alias = (
-                    "e.group_id"
+                    "event.group_id"
                     if features.has("organizations:snql-join-reports", project.organization)
                     else "group_id"
                 )

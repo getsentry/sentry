@@ -190,7 +190,7 @@ def build_summary_data(
             )
             if key_errors:
                 group_id_alias = (
-                    "e.group_id"
+                    "events.group_id"
                     if features.has("organizations:snql-join-reports", project.organization)
                     else "group_id"
                 )
