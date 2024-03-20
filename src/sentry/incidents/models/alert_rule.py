@@ -28,6 +28,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager import BaseManager
+from sentry.incidents.models.alert_rule_activations import AlertRuleActivations
 from sentry.incidents.models.incident import IncidentTrigger
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
@@ -145,6 +146,7 @@ class AlertRuleManager(BaseManager["AlertRule"]):
     ) -> list[QuerySubscription]:
         """
         Subscribes a project to an alert rule given activation condition
+        Initializes an AlertRule activation instance
         """
         try:
             project_alert_rules: QuerySet[AlertRule] = self.filter(
@@ -156,6 +158,7 @@ class AlertRuleManager(BaseManager["AlertRule"]):
                 if alert_rule.activation_conditions.filter(
                     condition_type=activation_condition.value
                 ).exists():
+                    # if an activated alert rule exists with the passed condition
                     logger.info(
                         "Attempt subscribe project to activated alert rule",
                         extra={
@@ -164,6 +167,7 @@ class AlertRuleManager(BaseManager["AlertRule"]):
                             "condition": activation_condition,
                         },
                     )
+                    # attempt to subscribe the alert rule
                     created_subscriptions.extend(
                         alert_rule.subscribe_projects(
                             projects=[project],
@@ -234,6 +238,8 @@ class AlertRule(Model):
     objects_with_snapshots: ClassVar[BaseManager[Self]] = BaseManager()
 
     organization = FlexibleForeignKey("sentry.Organization", null=True)
+    # NOTE: for now AlertRules and Projects should be 1:1
+    # We do not have multi-project alert rules yet
     projects = models.ManyToManyField(
         "sentry.Project", related_name="alert_rule_projects", through=AlertRuleProjects
     )
@@ -343,14 +349,22 @@ class AlertRule(Model):
         )
         # NOTE: AlertRuleMonitorType.ACTIVATED will be conditionally subscribed given activation triggers
         # On activated subscription, additional query parameters will be added to the constructed query in Snuba
+        created_subscriptions = []
         if self.monitor_type == monitor_type.value:
-            return bulk_create_snuba_subscriptions(
+            created_subscriptions = bulk_create_snuba_subscriptions(
                 projects,
                 INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
                 self.snuba_query,
                 query_extra,
             )
-        return []
+            # NOTE: activations should be tied to subscriptions for multi-project alert rules
+            # TODO: ensure we're updating the activation on subscription process
+            AlertRuleActivations.objects.create(
+                alert_rule=self,
+                metric_value=0,
+            )
+
+        return created_subscriptions
 
 
 class AlertRuleTriggerManager(BaseManager["AlertRuleTrigger"]):
