@@ -59,7 +59,7 @@ CHECKIN_QUOTA_WINDOW = 60
 def _ensure_monitor_with_config(
     project: Project,
     monitor_slug: str,
-    config: dict | None,
+    config: Mapping | None,
     quotas_outcome: PermitCheckInStatus,
 ):
     try:
@@ -132,7 +132,7 @@ def _ensure_monitor_with_config(
 
 
 def check_killswitch(
-    metric_kwargs: dict,
+    metric_kwargs: Mapping,
     project: Project,
 ):
     """
@@ -150,7 +150,7 @@ def check_killswitch(
     return is_blocked
 
 
-def check_ratelimit(metric_kwargs: dict, item: CheckinItem):
+def check_ratelimit(metric_kwargs: Mapping, item: CheckinItem):
     """
     Enforce check-in rate limits. Returns True if rate limit is enforced.
     """
@@ -176,7 +176,7 @@ def check_ratelimit(metric_kwargs: dict, item: CheckinItem):
 
 def transform_checkin_uuid(
     txn: Transaction | Span,
-    metric_kwargs: dict,
+    metric_kwargs: Mapping,
     monitor_slug: str,
     check_in_id: str,
 ):
@@ -221,7 +221,7 @@ def transform_checkin_uuid(
 
 def update_existing_check_in(
     txn: Transaction | Span,
-    metric_kwargs: dict,
+    metric_kwargs: Mapping,
     project_id: int,
     monitor_environment: MonitorEnvironment,
     start_time: datetime,
