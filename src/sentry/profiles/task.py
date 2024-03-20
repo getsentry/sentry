@@ -803,14 +803,17 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
         return
 
     if project.id in options.get("profiling.deobfuscate-using-symbolicator.enable-for-project"):
-        sentry_sdk.set_tag("deobfuscated_with_symbolicator", True)
-        _deobfuscate_using_symbolicator(
-            project=project,
-            profile=profile,
-            debug_file_id=debug_file_id,
-        )
-    else:
-        _deobfuscate_locally(profile=profile, project=project, debug_file_id=debug_file_id)
+        try:
+            _deobfuscate_using_symbolicator(
+                project=project,
+                profile=profile,
+                debug_file_id=debug_file_id,
+            )
+            sentry_sdk.set_tag("deobfuscated_with_symbolicator", True)
+            return
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+    _deobfuscate_locally(profile=profile, project=project, debug_file_id=debug_file_id)
 
 
 @metrics.wraps("process_profile.deobfuscate.locally")
