@@ -99,6 +99,7 @@ class SaveEventTaskKind:
     from_reprocessing: bool = False
 
 
+@sentry_sdk.tracing.trace
 def submit_save_event(
     task_kind: SaveEventTaskKind,
     project_id: int,
@@ -629,6 +630,7 @@ def delete_raw_event(project_id: int, event_id: str | None, allow_hint_clear: bo
                 )
 
 
+@sentry_sdk.tracing.trace
 def create_failed_event(
     cache_key: str,
     data: Event | None,

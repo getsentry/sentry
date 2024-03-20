@@ -1,12 +1,15 @@
 import logging
 import uuid
 
+import sentry_sdk
+
 REPROCESSING_OPTION = "sentry:processing-rev"
 
 
 logger = logging.getLogger("sentry.events")
 
 
+@sentry_sdk.tracing.trace
 def event_supports_reprocessing(data):
     """Only events of a certain format support reprocessing."""
     from sentry.lang.native.utils import NATIVE_PLATFORMS
