@@ -349,16 +349,14 @@ describe('TransactionsList', function () {
         'Failing Transactions',
       ]);
 
-      await userEvent.click(menuOptions[1]); // Failing transactions is 'count' as per the test options
+      // Failing transactions is 'count' as per the test options
+      await userEvent.click(screen.getByRole('option', {name: 'Failing Transactions'}));
 
-      waitFor(() => {
+      await waitFor(() => {
         // now the sort is descending by count
-        expect(screen.getAllByTestId('grid-cell').map(e => e.textContent)).toEqual([
-          '/a',
-          '100',
-          '/b',
-          '1000',
-        ]);
+        expect(
+          screen.getAllByTestId('grid-cell').map(e => e.textContent?.trim())
+        ).toEqual(['/b', '1000', '/a', '100']);
       });
     });
 
