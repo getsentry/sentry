@@ -229,6 +229,18 @@ class DailySummaryTest(
 
     def test_build_summary_data(self):
         self.populate_event_data()
+
+        # add another release to make sure new issues in multiple releases show up
+        release2 = self.create_release(project=self.project, date_added=self.now)
+        for _ in range(2):
+            release2_group = self.store_event_and_outcomes(
+                self.project.id,
+                self.now,
+                fingerprint="group-12",
+                category=DataCategory.ERROR,
+                release=release2.version,
+                resolve=False,
+            )
         summary = build_summary_data(
             timestamp=self.now.timestamp(),
             duration=ONE_DAY,
@@ -239,7 +251,7 @@ class DailySummaryTest(
         project_context_map = cast(
             DailySummaryProjectContext, summary.projects_context_map[project_id]
         )
-        assert project_context_map.total_today == 15  # total outcomes from today
+        assert project_context_map.total_today == 17  # total outcomes from today
         assert project_context_map.comparison_period_avg == 1
         assert len(project_context_map.key_errors) == 3
         assert (self.group1, None, 3) in project_context_map.key_errors
@@ -250,8 +262,10 @@ class DailySummaryTest(
         assert (self.perf_event2.group, None, 1) in project_context_map.key_performance_issues
         assert project_context_map.escalated_today == [self.group3]
         assert project_context_map.regressed_today == [self.group2]
+        assert len(project_context_map.new_in_release) == 2
         assert self.group2 in project_context_map.new_in_release[self.release.id]
         assert self.group3 in project_context_map.new_in_release[self.release.id]
+        assert release2_group in project_context_map.new_in_release[release2.id]
 
         project_id2 = self.project2.id
         project_context_map2 = cast(
@@ -264,6 +278,52 @@ class DailySummaryTest(
         assert project_context_map2.escalated_today == []
         assert project_context_map2.regressed_today == []
         assert project_context_map2.new_in_release == {}
+
+    @with_feature("organizations:snql-join-reports")
+    def test_build_summary_data_filter_to_unresolved(self):
+        with self.options({"issues.group_attributes.send_kafka": True}):
+            for _ in range(3):
+                group1 = self.store_event_and_outcomes(
+                    self.project.id,
+                    self.now,
+                    fingerprint="group-1",
+                    category=DataCategory.ERROR,
+                    resolve=False,
+                )
+
+            for _ in range(3):
+                group2 = self.store_event_and_outcomes(
+                    self.project.id,
+                    self.now,
+                    fingerprint="group-2",
+                    category=DataCategory.ERROR,
+                    resolve=False,
+                )
+
+            for _ in range(3):
+                self.store_event_and_outcomes(
+                    self.project.id,
+                    self.now,
+                    fingerprint="group-3",
+                    category=DataCategory.ERROR,
+                    resolve=True,
+                )
+
+        summary = build_summary_data(
+            timestamp=self.now.timestamp(),
+            duration=ONE_DAY,
+            organization=self.organization,
+            daily=True,
+        )
+        project_id = self.project.id
+        project_context_map = cast(
+            DailySummaryProjectContext, summary.projects_context_map[project_id]
+        )
+        assert project_context_map.total_today == 9  # total outcomes from today
+        assert project_context_map.comparison_period_avg == 0
+        assert len(project_context_map.key_errors) == 2
+        assert (group1, None, 3) in project_context_map.key_errors
+        assert (group2, None, 3) in project_context_map.key_errors
 
     def test_build_summary_data_dedupes_groups(self):
         """
@@ -485,7 +545,10 @@ class DailySummaryTest(
             ).send()
         blocks, fallback_text = get_blocks_and_fallback_text()
         link_text = "http://testserver/organizations/baz/issues/{}/?referrer=slack"
-        assert fallback_text == "Daily Summary for Your Projects (internal only!!!)"
+        assert (
+            fallback_text
+            == f"Daily Summary for Your {self.organization.slug.title()} Projects (internal only!!!)"
+        )
         assert f":bell: *{fallback_text}*" in blocks[0]["text"]["text"]
         assert (
             "Your comprehensive overview for today - key issues, performance insights, and more."
@@ -503,7 +566,7 @@ class DailySummaryTest(
         # check error issues
         assert "*Today's Top 3 Error Issues" in blocks[5]["fields"][0]["text"]
         assert link_text.format(self.group1.id) in blocks[5]["fields"][0]["text"]
-        assert "Identity not found." in blocks[5]["fields"][0]["text"]
+        assert "\nIdentity not found." in blocks[5]["fields"][0]["text"]
         assert link_text.format(self.group2.id) in blocks[5]["fields"][0]["text"]
         assert link_text.format(self.group2.id) in blocks[5]["fields"][0]["text"]
         # check escalated or regressed issues
@@ -513,7 +576,7 @@ class DailySummaryTest(
         # check performance issues
         assert "*Today's Top 3 Performance Issues*" in blocks[6]["text"]["text"]
         assert link_text.format(self.perf_event.group.id) in blocks[6]["text"]["text"]
-        assert "db - SELECT `books_author`.`id`, `books_author`.`..." in blocks[6]["text"]["text"]
+        assert "\ndb - SELECT `books_author`.`id`, `books_author`.`..." in blocks[6]["text"]["text"]
         assert link_text.format(self.perf_event2.group.id) in blocks[6]["text"]["text"]
         # repeat above for second project
         assert self.project2.slug in blocks[8]["text"]["text"]
@@ -553,7 +616,10 @@ class DailySummaryTest(
             "yAxis": "count()",
         }
         query_string = urlencode(query_params, doseq=True)
-        assert fallback_text == "Daily Summary for Your Projects (internal only!!!)"
+        assert (
+            fallback_text
+            == f"Daily Summary for Your {self.organization.slug.title()} Projects (internal only!!!)"
+        )
         assert f":bell: *{fallback_text}*" in blocks[0]["text"]["text"]
         assert (
             "Your comprehensive overview for today - key issues, performance insights, and more."
