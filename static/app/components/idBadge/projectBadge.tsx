@@ -31,6 +31,7 @@ export interface ProjectBadgeProps
 }
 
 function ProjectBadge({
+  useEnsureOrganization();
   project,
   to,
   hideOverflow = true,
