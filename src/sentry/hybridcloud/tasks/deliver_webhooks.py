@@ -222,10 +222,6 @@ def drain_mailbox_parallel(payload_id: int) -> None:
             id__gte=payload.id, mailbox_name=payload.mailbox_name
         ).order_by("id")
 
-        # No more messages to deliver
-        if query.count() < 1:
-            break
-
         # Use a threadpool to send requests concurrently
         with ThreadPoolExecutor(max_workers=worker_threads) as threadpool:
             futures = {
@@ -264,6 +260,11 @@ def drain_mailbox_parallel(payload_id: int) -> None:
                     metrics.distribution(
                         "hybridcloud.deliver_webhooks.attempts", payload_record.attempts
                     )
+
+            # We didn't have any more messages to deliver.
+            # Break out of this task so we can get a new one.
+            if len(futures) < 1:
+                break
 
         # If a delivery failed we should stop processing this mailbox and try again later.
         if request_failed:

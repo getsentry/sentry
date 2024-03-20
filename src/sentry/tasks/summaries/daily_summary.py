@@ -237,12 +237,17 @@ def build_summary_data(
                 "release_id", flat=True
             )
             releases = Release.objects.filter(id__in=release_projects, date_added__gte=ctx.end)
-            for release in releases[:2]:  # or whatever we limit this to
-                new_groups_in_release = Group.objects.filter(project=project, first_release=release)
-                if new_groups_in_release:
-                    project_ctx.new_in_release = {
-                        release.id: [group for group in new_groups_in_release]
-                    }
+            for release in releases:
+                if len(project_ctx.new_in_release) < 2:  # or whatever we limit this to
+                    new_groups_in_release = Group.objects.filter(
+                        project=project, first_release=release
+                    )
+                    if new_groups_in_release:
+                        project_ctx.new_in_release[release.id] = [
+                            group for group in new_groups_in_release
+                        ][
+                            :3
+                        ]  # limit to 3 issues per release
 
             new_in_release = json.dumps([group for group in project_ctx.new_in_release])
             logger.info(
