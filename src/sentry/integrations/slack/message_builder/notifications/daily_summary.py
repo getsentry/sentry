@@ -132,7 +132,7 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
                         continue
 
                     release_text = self.linkify_release(release, project.organization)
-                    for error in errors[0:3]:
+                    for error in errors:
                         linked_issue_title = self.linkify_error_title(error)
                         release_text += f"• :new: {linked_issue_title}\n"
                         fields.append(self.make_field(release_text))
