@@ -92,6 +92,25 @@ describe('HTTPSamplesPanel', function () {
       })
     );
 
+    expect(eventsRequestMock).toHaveBeenNthCalledWith(
+      2,
+      `/organizations/${organization.slug}/events/`,
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          dataset: 'spansMetrics',
+          environment: [],
+          field: ['span.status_code', 'count()'],
+          per_page: 50,
+          sort: 'span.status_code',
+          project: [],
+          query: 'span.module:http span.domain:"\\*.sentry.dev" transaction:/api/0/users',
+          referrer: 'api.starfish.http-module-samples-panel-response-bar-chart',
+          statsPeriod: '10d',
+        },
+      })
+    );
+
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
   });
 
