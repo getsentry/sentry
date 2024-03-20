@@ -40,8 +40,8 @@ def main() -> int:
         if filename.endswith("/__init__"):
             filename = filename[: -len("/__init__")]
         mods.append(filename.replace("/", "."))
-    mods_s = "".join(f'    "{mod}",\n' for mod in mods)
-    codes_s = "".join(f'    "{code}",\n' for code in sorted(codes))
+    mods_s = "".join(f'  "{mod}",\n' for mod in mods)
+    codes_s = "".join(f'  "{code}",\n' for code in sorted(codes))
     generated = (
         f"# - remove the module from the list and fix the issues!\n"
         f"# - python3 -m tools.mypy_helpers.find_easiest_modules\n"

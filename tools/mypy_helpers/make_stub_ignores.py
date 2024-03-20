@@ -46,7 +46,7 @@ def main() -> int:
     for mod in sorted(seen):
         if not mods or not mod.startswith(f"{mods[-1]}."):
             mods.append(mod)
-    mods_s = "".join(f'    "{mod}.*",\n' for mod in mods)
+    mods_s = "".join(f'  "{mod}.*",\n' for mod in mods)
     stubs = (
         f"# - add .pyi files to fixtures/stubs-for-mypy\n"
         f"# - or find a 3rd party stub\n"
