@@ -99,6 +99,7 @@ module = [
   "google.resumable_media.common.*",
   "google.rpc.status_pb2.*",
   "google_crc32c.*",
+  "grpc.*",
   "honcho.manager.*",
   "honcho.printer.*",
   "kombu.*",
