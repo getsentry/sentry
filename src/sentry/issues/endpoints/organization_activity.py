@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -5,6 +7,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases import OrganizationMemberEndpoint
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import OrganizationActivitySerializer, serialize
 from sentry.models.activity import Activity
@@ -20,6 +23,7 @@ class OrganizationActivityEndpoint(OrganizationMemberEndpoint, EnvironmentMixin)
     }
     owner = ApiOwner.ISSUES
 
+    @deprecated(datetime.fromisoformat("2024-03-19T00:00:00Z"))
     def get(self, request: Request, organization, member) -> Response:
         # There is an activity record created for both sides of the unmerge
         # operation, so we only need to include one of them here to avoid
