@@ -497,6 +497,7 @@ const MetricWidgetBody = memo(
       </StyledMetricWidgetBody>
     );
   }
+
 );
 
 export function getChartTimeseries(
@@ -513,7 +514,7 @@ export function getChartTimeseries(
 ) {
   const filteredQueries = queries.filter(isNotQueryOnly);
 
-  const series = data.data.flatMap((group, index) => {
+  const series = data.data ? data.data.flatMap((group, index) => {
     const query = filteredQueries[index];
     const meta = data.meta[index];
     const lastMetaEntry = meta[meta.length - 1];
