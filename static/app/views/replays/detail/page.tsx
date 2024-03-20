@@ -116,7 +116,7 @@ export default function Page({
       <ReplayMetaData
         replayRecord={replayRecord}
         replayErrors={replayErrors}
-        isVideoReplay={isVideoReplay}
+        showDeadRageClicks={!isVideoReplay}
       />
     </Header>
   );

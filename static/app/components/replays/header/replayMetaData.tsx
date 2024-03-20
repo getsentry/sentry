@@ -18,10 +18,10 @@ import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 type Props = {
   replayErrors: ReplayError[];
   replayRecord: ReplayRecord | undefined;
-  isVideoReplay?: boolean;
+  showDeadRageClicks?: boolean;
 };
 
-function ReplayMetaData({replayErrors, replayRecord, isVideoReplay}: Props) {
+function ReplayMetaData({replayErrors, replayRecord, showDeadRageClicks = true}: Props) {
   const location = useLocation();
   const routes = useRoutes();
   const referrer = getRouteStringFromRoutes(routes);
@@ -55,7 +55,7 @@ function ReplayMetaData({replayErrors, replayRecord, isVideoReplay}: Props) {
         )}
       </KeyMetricData>
 
-      {!isVideoReplay && (
+      {showDeadRageClicks && (
         <Fragment>
           <KeyMetricLabel>{t('Dead Clicks')}</KeyMetricLabel>
           <KeyMetricData>
@@ -73,7 +73,7 @@ function ReplayMetaData({replayErrors, replayRecord, isVideoReplay}: Props) {
         </Fragment>
       )}
 
-      {!isVideoReplay && (
+      {showDeadRageClicks && (
         <Fragment>
           <KeyMetricLabel>{t('Rage Clicks')}</KeyMetricLabel>
           <KeyMetricData>
