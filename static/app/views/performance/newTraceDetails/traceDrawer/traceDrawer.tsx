@@ -107,7 +107,7 @@ function TraceDrawer(props: TraceDrawerProps) {
       props.scrollToNode(node);
       props.tabsDispatch({
         type: 'activate tab',
-        payload: props.tabs.tabs.length,
+        payload: node,
         pin_previous: true,
       });
     },
