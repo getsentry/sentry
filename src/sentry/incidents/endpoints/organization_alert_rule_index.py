@@ -60,11 +60,15 @@ class AlertRuleIndexMixin(Endpoint):
         if not project:
             projects = self.get_projects(request, organization)
             alert_rules = AlertRule.objects.fetch_for_organization(organization, projects)
+
         else:
             alert_rules = AlertRule.objects.fetch_for_project(project)
         if not features.has("organizations:performance-view", organization):
-            # Filter to only error alert rules
             alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
+
+        monitor_type = request.GET.get("monitor_type", None)
+        if monitor_type is not None:
+            alert_rules = alert_rules.filter(monitor_type=monitor_type)
 
         return self.paginate(
             request,
