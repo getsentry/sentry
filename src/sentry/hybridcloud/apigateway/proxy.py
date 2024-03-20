@@ -159,9 +159,7 @@ def proxy_region_request(
     metric_tags = {"region": region.name, "url_name": url_name}
 
     # XXX: See sentry.testutils.pytest.sentry for more information
-    if getattr(settings, "APIGATEWAY_PROXY_SKIP_RELAY") and request.path.startswith(
-        "/api/0/relays/"
-    ):
+    if settings.APIGATEWAY_PROXY_SKIP_RELAY and request.path.startswith("/api/0/relays/"):
         return StreamingHttpResponse(streaming_content="relay proxy skipped", status=404)
 
     try:
