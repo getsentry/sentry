@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -17,9 +18,10 @@ import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 type Props = {
   replayErrors: ReplayError[];
   replayRecord: ReplayRecord | undefined;
+  isVideoReplay?: boolean;
 };
 
-function ReplayMetaData({replayErrors, replayRecord}: Props) {
+function ReplayMetaData({replayErrors, replayRecord, isVideoReplay}: Props) {
   const location = useLocation();
   const routes = useRoutes();
   const referrer = getRouteStringFromRoutes(routes);
@@ -53,33 +55,41 @@ function ReplayMetaData({replayErrors, replayRecord}: Props) {
         )}
       </KeyMetricData>
 
-      <KeyMetricLabel>{t('Dead Clicks')}</KeyMetricLabel>
-      <KeyMetricData>
-        {replayRecord?.count_dead_clicks ? (
-          <Link to={breadcrumbTab}>
-            <ClickCount>
-              <IconCursorArrow size="sm" color="yellow300" />
-              {replayRecord.count_dead_clicks}
-            </ClickCount>
-          </Link>
-        ) : (
-          <Count>0</Count>
-        )}
-      </KeyMetricData>
+      {!isVideoReplay && (
+        <Fragment>
+          <KeyMetricLabel>{t('Dead Clicks')}</KeyMetricLabel>
+          <KeyMetricData>
+            {replayRecord?.count_dead_clicks ? (
+              <Link to={breadcrumbTab}>
+                <ClickCount>
+                  <IconCursorArrow size="sm" color="yellow300" />
+                  {replayRecord.count_dead_clicks}
+                </ClickCount>
+              </Link>
+            ) : (
+              <Count>0</Count>
+            )}
+          </KeyMetricData>
+        </Fragment>
+      )}
 
-      <KeyMetricLabel>{t('Rage Clicks')}</KeyMetricLabel>
-      <KeyMetricData>
-        {replayRecord?.count_rage_clicks ? (
-          <Link to={breadcrumbTab}>
-            <ClickCount>
-              <IconCursorArrow size="sm" color="red300" />
-              {replayRecord.count_rage_clicks}
-            </ClickCount>
-          </Link>
-        ) : (
-          <Count>0</Count>
-        )}
-      </KeyMetricData>
+      {!isVideoReplay && (
+        <Fragment>
+          <KeyMetricLabel>{t('Rage Clicks')}</KeyMetricLabel>
+          <KeyMetricData>
+            {replayRecord?.count_rage_clicks ? (
+              <Link to={breadcrumbTab}>
+                <ClickCount>
+                  <IconCursorArrow size="sm" color="red300" />
+                  {replayRecord.count_rage_clicks}
+                </ClickCount>
+              </Link>
+            ) : (
+              <Count>0</Count>
+            )}
+          </KeyMetricData>
+        </Fragment>
+      )}
 
       <KeyMetricLabel>{t('Errors')}</KeyMetricLabel>
       <KeyMetricData>
