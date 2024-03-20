@@ -6,7 +6,7 @@ import type {ItemsAfterFilter} from './types';
 
 type RowProps = Pick<
   React.ComponentProps<typeof Row>,
-  'itemSize' | 'inputValue' | 'getItemProps' | 'registerVisibleItem'
+  'itemSize' | 'getItemProps' | 'registerVisibleItem'
 >;
 
 type Props = {

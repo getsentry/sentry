@@ -10,7 +10,6 @@ import UserAvatar from 'sentry/components/avatar/userAvatar';
 import type {GetActorPropsFn} from 'sentry/components/deprecatedDropdownMenu';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import type {ItemsBeforeFilter} from 'sentry/components/dropdownAutoComplete/types';
-import Highlight from 'sentry/components/highlight';
 import Link from 'sentry/components/links/link';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconAdd, IconClose} from 'sentry/icons';
@@ -292,7 +291,7 @@ export class AssigneeSelectorDropdown extends Component<
     return {
       value: {type: 'member', assignee: member},
       searchKey: `${member.email} ${member.name}`,
-      label: ({inputValue}) => (
+      label: (
         <MenuItemWrapper
           data-test-id="assignee-option"
           key={buildUserId(member.id)}
@@ -303,11 +302,9 @@ export class AssigneeSelectorDropdown extends Component<
           </IconContainer>
           <div>
             <AssigneeLabel>
-              <Highlight text={inputValue}>
-                {sessionUser.id === member.id
-                  ? `${member.name || member.email} ${t('(You)')}`
-                  : member.name || member.email}
-              </Highlight>
+              {sessionUser.id === member.id
+                ? `${member.name || member.email} ${t('(You)')}`
+                : member.name || member.email}
             </AssigneeLabel>
             {suggestedReason && (
               <SuggestedAssigneeReason>{suggestedReason}</SuggestedAssigneeReason>
@@ -334,15 +331,13 @@ export class AssigneeSelectorDropdown extends Component<
     return {
       value: {type: 'team', assignee: team},
       searchKey: team.slug,
-      label: ({inputValue}) => (
+      label: (
         <MenuItemWrapper data-test-id="assignee-option" key={id} onSelect={handleSelect}>
           <IconContainer>
             <TeamAvatar team={team} size={24} />
           </IconContainer>
           <div>
-            <AssigneeLabel>
-              <Highlight text={inputValue}>{display}</Highlight>
-            </AssigneeLabel>
+            <AssigneeLabel>{display}</AssigneeLabel>
             {suggestedReason && (
               <SuggestedAssigneeReason>{suggestedReason}</SuggestedAssigneeReason>
             )}

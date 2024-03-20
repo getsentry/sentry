@@ -14,7 +14,7 @@ type AutoCompleteChildrenArgs<T extends Item> = Parameters<
 
 type Props<T extends Item> = Pick<
   AutoCompleteChildrenArgs<T>,
-  'getItemProps' | 'registerVisibleItem' | 'inputValue'
+  'getItemProps' | 'registerVisibleItem'
 > &
   Omit<Parameters<AutoCompleteChildrenArgs<T>['getItemProps']>[0], 'index'> & {
     /**
@@ -36,7 +36,6 @@ function Row<T extends Item>({
   style,
   itemSize,
   isHighlighted,
-  inputValue,
   getItemProps,
   registerVisibleItem,
 }: Props<T>) {
@@ -66,7 +65,7 @@ function Row<T extends Item>({
       {...itemProps}
     >
       <InteractionStateLayer isHovered={isHighlighted} />
-      {typeof item.label === 'function' ? item.label({inputValue}) : item.label}
+      {item.label}
     </AutoCompleteItem>
   );
 }
