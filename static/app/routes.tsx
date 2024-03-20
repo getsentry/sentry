@@ -1341,14 +1341,8 @@ function buildRoutes() {
         path="create/"
         component={make(() => import('sentry/views/monitors/create'))}
       />
-      <Route
-        path=":monitorSlug/"
-        component={make(() => import('sentry/views/monitors/details'))}
-      />
-      <Route
-        path=":monitorSlug/edit/"
-        component={make(() => import('sentry/views/monitors/edit'))}
-      />
+      <Redirect from=":monitorSlug/" to="/crons/" />
+      <Redirect from=":monitorSlug/edit/" to="/crons/" />
       <Route
         path=":projectId/:monitorSlug/"
         component={make(() => import('sentry/views/monitors/details'))}
@@ -1380,9 +1374,9 @@ function buildRoutes() {
     </Route>
   );
 
-  const releasesChildRoutes = ({forCustomerDomain}: {forCustomerDomain: boolean}) => {
-    return (
-      <Fragment>
+  const releasesRoutes = (
+    <Fragment>
+      <Route path="/releases/" withOrgPath>
         <IndexRoute component={make(() => import('sentry/views/releases/list'))} />
         <Route
           path=":release/"
@@ -1403,40 +1397,16 @@ function buildRoutes() {
               () => import('sentry/views/releases/detail/commitsAndFiles/filesChanged')
             )}
           />
-          {forCustomerDomain ? null : (
-            <Fragment>
-              <Redirect
-                from="new-events/"
-                to="/organizations/:orgId/releases/:release/"
-              />
-              <Redirect
-                from="all-events/"
-                to="/organizations/:orgId/releases/:release/"
-              />
-            </Fragment>
-          )}
         </Route>
-      </Fragment>
-    );
-  };
-  const releasesRoutes = (
-    <Fragment>
-      {USING_CUSTOMER_DOMAIN && (
-        <Route
-          path="/releases/"
-          component={withDomainRequired(NoOp)}
-          key="orgless-releases-route"
-        >
-          {releasesChildRoutes({forCustomerDomain: true})}
-        </Route>
-      )}
-      <Route
-        path="/organizations/:orgId/releases/"
-        component={withDomainRedirect(NoOp)}
-        key="org-releases"
-      >
-        {releasesChildRoutes({forCustomerDomain: false})}
       </Route>
+      <Redirect
+        from="/releases/new-events/"
+        to="/organizations/:orgId/releases/:release/"
+      />
+      <Redirect
+        from="/releases/all-events/"
+        to="/organizations/:orgId/releases/:release/"
+      />
     </Fragment>
   );
   const releaseThresholdRoutes = (
@@ -1944,6 +1914,7 @@ function buildRoutes() {
       <Redirect from="/organizations/:orgId/teams/new/" to="/settings/:orgId/teams/" />
       <Route path="/organizations/:orgId/">
         {hook('routes:organization')}
+        <IndexRedirect to="/organizations/:orgId/issues/" />
         <Redirect from="/organizations/:orgId/teams/" to="/settings/:orgId/teams/" />
         <Redirect
           from="/organizations/:orgId/teams/your-teams/"

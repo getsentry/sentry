@@ -59,6 +59,7 @@ from sentry.grouping.ingest import (
     find_existing_grouphash,
     find_existing_grouphash_new,
     get_hash_values,
+    is_in_transition,
     maybe_run_background_grouping,
     maybe_run_secondary_grouping,
     project_uses_optimized_grouping,
@@ -467,15 +468,19 @@ class EventManager:
         else:
             project = job["event"].project
             job["optimized_grouping"] = project_uses_optimized_grouping(project)
+            job["in_grouping_transition"] = is_in_transition(project)
             metric_tags = {
                 "platform": job["event"].platform or "unknown",
                 "sdk": normalized_sdk_tag_from_event(job["event"]),
+                "using_transition_optimization": job["optimized_grouping"],
+                "in_transition": job["in_grouping_transition"],
             }
             # This metric allows differentiating from all calls to the `event_manager.save` metric
             # and adds support for differentiating based on platforms
             with metrics.timer("event_manager.save_error_events", tags=metric_tags):
                 return self.save_error_events(project, job, projects, metric_tags, raw, cache_key)
 
+    @sentry_sdk.tracing.trace
     def save_error_events(
         self,
         project: Project,

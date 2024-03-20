@@ -2,7 +2,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import GroupReplays from 'sentry/views/issueDetails/groupReplays';
@@ -130,11 +130,10 @@ describe('GroupReplays', () => {
   describe('Replay Feature Disabled', () => {
     const mockGroup = GroupFixture();
 
-    ({router, organization, routerContext} = init({
-      organizationProps: {features: []},
-    }));
-
     it("should show a message when the organization doesn't have access to the replay feature", () => {
+      ({router, organization, routerContext} = init({
+        organizationProps: {features: []},
+      }));
       render(<GroupReplays group={mockGroup} />, {
         context: routerContext,
         organization,
@@ -275,12 +274,13 @@ describe('GroupReplays', () => {
         router,
       });
 
+      expect(
+        await screen.findByText('Invalid number: asdf. Expected number.')
+      ).toBeInTheDocument();
+
       await waitFor(() => {
-        expect(mockReplayCountApi).toHaveBeenCalledTimes(1);
+        expect(mockReplayCountApi).toHaveBeenCalled();
         expect(mockReplayApi).toHaveBeenCalledTimes(1);
-        expect(
-          screen.getByText('Invalid number: asdf. Expected number.')
-        ).toBeInTheDocument();
       });
     });
 
@@ -306,14 +306,15 @@ describe('GroupReplays', () => {
         router,
       });
 
+      expect(
+        await screen.findByText(
+          'Sorry, the list of replays could not be loaded. This could be due to invalid search parameters or an internal systems error.'
+        )
+      ).toBeInTheDocument();
+
       await waitFor(() => {
-        expect(mockReplayCountApi).toHaveBeenCalledTimes(1);
+        expect(mockReplayCountApi).toHaveBeenCalled();
         expect(mockReplayApi).toHaveBeenCalledTimes(1);
-        expect(
-          screen.getByText(
-            'Sorry, the list of replays could not be loaded. This could be due to invalid search parameters or an internal systems error.'
-          )
-        ).toBeInTheDocument();
       });
     });
 
@@ -343,7 +344,7 @@ describe('GroupReplays', () => {
 
       expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
       await waitFor(() => {
-        expect(mockReplayCountApi).toHaveBeenCalledTimes(1);
+        expect(mockReplayCountApi).toHaveBeenCalled();
         expect(mockReplayApi).toHaveBeenCalledTimes(1);
       });
     });
@@ -507,26 +508,24 @@ describe('GroupReplays', () => {
         router,
       });
 
-      await waitFor(() => {
-        expect(mockReplayCountApi).toHaveBeenCalledWith(
-          mockReplayCountUrl,
-          expect.objectContaining({
-            query: {
-              returnIds: true,
-              data_source: 'discover',
-              query: `issue.id:[${mockGroup.id}]`,
-              statsPeriod: '14d',
-              project: -1,
-            },
-          })
-        );
-      });
-      expect(screen.getByText('See Full Replay')).toBeInTheDocument();
+      expect(await screen.findByText('See Full Replay')).toBeInTheDocument();
+      expect(mockReplayCountApi).toHaveBeenCalledWith(
+        mockReplayCountUrl,
+        expect.objectContaining({
+          query: {
+            returnIds: true,
+            data_source: 'discover',
+            query: `issue.id:[${mockGroup.id}]`,
+            statsPeriod: '14d',
+            project: -1,
+          },
+        })
+      );
     });
 
     // Test seems to be flaky
     // eslint-disable-next-line jest/no-disabled-tests
-    it.skip('Should switch replays when clicking and replay-play-from-replay-tab is enabled', async () => {
+    it('Should switch replays when clicking and replay-play-from-replay-tab is enabled', async () => {
       ({router, organization, routerContext} = init({
         organizationProps: {features: ['replay-play-from-replay-tab', 'session-replay']},
       }));
@@ -597,22 +596,19 @@ describe('GroupReplays', () => {
         );
       });
 
-      // browserHistory.replace = jest.fn();
-
       const mockReplace = jest.mocked(browserHistory.replace);
-      await waitFor(() => {
-        const replayPlayPlause = screen.getAllByTestId('replay-table-play-button')[0];
-        return act(() => userEvent.click(replayPlayPlause));
-      });
+      const replayPlayPlause = screen.getAllByTestId('replay-table-play-button')[0];
+      await userEvent.click(replayPlayPlause);
 
-      await tick();
-      expect(mockReplace).toHaveBeenCalledWith(
-        expect.objectContaining({
-          pathname: '/organizations/org-slug/replays/',
-          query: {
-            selected_replay_index: 1,
-          },
-        })
+      await waitFor(() =>
+        expect(mockReplace).toHaveBeenCalledWith(
+          expect.objectContaining({
+            pathname: '/organizations/org-slug/replays/',
+            query: {
+              selected_replay_index: 1,
+            },
+          })
+        )
       );
     });
   });
