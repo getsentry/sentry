@@ -220,6 +220,8 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
             "conversation_type": conversation_type,
             "event_type": event_type,
         }
+
+        response = None
         # only care about conversationUpdate and message
         if event_type == "message":
             # the only message events we care about are those which
@@ -228,12 +230,13 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
             if data.get("value", {}).get("payload", {}).get("actionType"):
                 # Processing card actions can only occur in the Region silo.
                 if SiloMode.get_current_mode() == SiloMode.CONTROL:
-                    return self.respond(status=400)
-                return self.handle_action_submitted(request)
+                    response = self.respond(status=400)
+                else:
+                    response = self.handle_action_submitted(request)
             elif conversation_type == "channel":
-                return self.handle_channel_message(request)
+                response = self.handle_channel_message(request)
             else:
-                return self.handle_personal_message(request)
+                response = self.handle_personal_message(request)
         elif event_type == "conversationUpdate":
             channel_data = data["channelData"]
             event = channel_data.get("eventType")
@@ -242,18 +245,19 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
             log_params["event"] = event
             # TODO: Handle other events
             if event == "teamMemberAdded":
-                return self.handle_team_member_added(request)
+                response = self.handle_team_member_added(request)
             elif event == "teamMemberRemoved":
                 if SiloMode.get_current_mode() == SiloMode.CONTROL:
-                    return self.respond(status=400)
-                return self.handle_team_member_removed(request)
+                    response = self.respond(status=400)
+                else:
+                    response = self.handle_team_member_removed(request)
             elif (
                 data.get("membersAdded") and conversation_type == "personal"
             ):  # no explicit event for user adding app unfortunately
-                return self.handle_personal_member_add(request)
+                response = self.handle_personal_member_add(request)
 
         logger.info("sentry.integrations.msteams.webhook", extra=log_params)
-        return self.respond(status=204)
+        return response if response else self.respond(status=204)
 
     def verify_webhook_request(self, request: HttpRequest) -> bool:
         return verify_signature(request)
