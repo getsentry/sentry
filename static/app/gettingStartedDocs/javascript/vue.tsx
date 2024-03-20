@@ -52,7 +52,8 @@ type Params = DocsParams<PlatformOptions>;
 
 const getSentryInitLayout = (params: Params, siblingOption: string): string => {
   return `Sentry.init({
-    ${siblingOption === VueVersion.VUE2 ? `Vue,` : ''}dsn: "${params.dsn}",
+    ${siblingOption === VueVersion.VUE2 ? 'Vue,' : 'app,'}
+    dsn: "${params.dsn}",
     integrations: [${
       params.isPerformanceSelected
         ? `

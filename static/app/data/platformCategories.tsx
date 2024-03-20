@@ -461,6 +461,14 @@ const customMetricBackendPlatforms: readonly PlatformKey[] = [
   'dotnet-uwp',
   'dotnet-winforms',
   'dotnet-wpf',
+  'java',
+  'java-appengine',
+  'java-log4j',
+  'java-log4j2',
+  'java-logback',
+  'java-logging',
+  'java-spring',
+  'java-spring-boot',
   'php',
   'php-laravel',
   // TODO: Enable once metrics are available for Symfony
@@ -496,10 +504,15 @@ const customMetricBackendPlatforms: readonly PlatformKey[] = [
   'node-express',
   'node-gcpfunctions',
   'node-koa',
+  'ruby',
+  'ruby-rails',
+  'ruby-rack',
 ];
 
 const customMetricFrontendPlatforms: readonly PlatformKey[] = [
+  'android',
   'electron',
+  'java-android',
   'javascript-angular',
   'javascript-astro',
   'javascript-backbone',
@@ -514,6 +527,8 @@ const customMetricFrontendPlatforms: readonly PlatformKey[] = [
   'javascript-sveltekit',
   'javascript-vue',
   'javascript',
+  'react-native',
+  'unity',
 ];
 
 // These are all the platforms that can set up custom metrics.

@@ -20,8 +20,13 @@ logger = logging.getLogger(__name__)
 )
 def update_user_reports(**kwargs: Any) -> None:
     now = timezone.now()
+    end = kwargs.get("end", now + timedelta(minutes=5))  # +5 minutes just to catch clock skew
+    start = kwargs.get("start", now - timedelta(days=1))
     user_reports = UserReport.objects.filter(
-        group_id__isnull=True, environment_id__isnull=True, date_added__gte=now - timedelta(days=1)
+        group_id__isnull=True,
+        environment_id__isnull=True,
+        date_added__gte=start,
+        date_added__lte=end,
     )
 
     # We do one query per project, just to avoid the small case that two projects have the same event ID
@@ -35,7 +40,10 @@ def update_user_reports(**kwargs: Any) -> None:
     updated_reports = 0
     samples = None
 
-    MAX_EVENTS = kwargs.get("max_events", 5000)
+    MAX_EVENTS = kwargs.get(
+        "max_events",
+        2000,  # the default max_query_size is 256 KiB, which we're hitting with 5000 events, so keeping it safe at 2000
+    )
     for project_id, reports in project_map.items():
         event_ids = [r.event_id for r in reports]
         report_by_event = {r.event_id: r for r in reports}
@@ -44,8 +52,8 @@ def update_user_reports(**kwargs: Any) -> None:
             snuba_filter = eventstore.Filter(
                 project_ids=[project_id],
                 event_ids=event_id_chunk,
-                start=now - timedelta(days=2),
-                end=now + timedelta(minutes=5),  # Just to catch clock skew
+                start=start - timedelta(days=1),  # we go one extra day back for events
+                end=end,
             )
             events_chunk = eventstore.backend.get_events(
                 filter=snuba_filter, referrer="tasks.update_user_reports"

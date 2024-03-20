@@ -8,6 +8,7 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {t} from 'sentry/locale';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -45,9 +46,9 @@ function ResourceSummary() {
     query: {transaction},
   } = useLocation();
   const {data} = useSpanMetrics({
-    filters: {
+    search: MutableSearch.fromQueryObject({
       'span.group': groupId,
-    },
+    }),
     fields: [
       `avg(${SPAN_SELF_TIME})`,
       `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,

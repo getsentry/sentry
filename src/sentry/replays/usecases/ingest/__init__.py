@@ -158,16 +158,6 @@ def track_initial_segment_event(
         return None
 
     if not project.flags.has_replays:
-        logger.info(
-            "Sending first_replay_received signal",
-            extra={
-                "project_id": project_id,
-                "org_id": org_id,
-                "replay_id": replay_id,
-                "key_id": key_id,
-                "project_details": repr(project),
-            },
-        )
         first_replay_received.send_robust(project=project, sender=Project)
 
     # Replay videos are not billed for now.

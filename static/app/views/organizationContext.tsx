@@ -105,8 +105,8 @@ export function OrganizationContextProvider({children}: Props) {
     if (organization && organization.slug === orgSlug) {
       return;
     }
-
     if (!orgSlug) {
+      OrganizationStore.setNoOrganization();
       return;
     }
 
@@ -147,14 +147,24 @@ export function OrganizationContextProvider({children}: Props) {
       // If the user has an active staff session, the response will not return a
       // 403 but access scopes will be an empty list.
       if (user?.isSuperuser && user?.isStaff && organization?.access?.length === 0) {
-        openSudo({isSuperuser: true, needsReload: true});
+        openSudo({
+          isSuperuser: true,
+          needsReload: true,
+          closeEvents: 'none',
+          closeButton: false,
+        });
       }
 
       return;
     }
 
     if (user?.isSuperuser && error.status === 403) {
-      openSudo({isSuperuser: true, needsReload: true});
+      openSudo({
+        isSuperuser: true,
+        needsReload: true,
+        closeEvents: 'none',
+        closeButton: false,
+      });
     }
 
     // This `catch` can swallow up errors in development (and tests)

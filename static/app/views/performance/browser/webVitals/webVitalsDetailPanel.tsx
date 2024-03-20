@@ -85,6 +85,7 @@ export function WebVitalsDetailPanel({
           }
       : {}),
     enabled: webVital !== null,
+    sortName: 'webVitalsDetailPanelSort',
   });
 
   const dataByOpportunity = useMemo(() => {

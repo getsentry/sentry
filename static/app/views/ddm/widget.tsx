@@ -34,13 +34,11 @@ import {metricDisplayTypeOptions} from 'sentry/utils/metrics/constants';
 import {formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
 import type {
   FocusedMetricsSeries,
-  MetricCorrelation,
   MetricQueryWidgetParams,
   MetricWidgetQueryParams,
   SortState,
 } from 'sentry/utils/metrics/types';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
-import {useMetricSamples} from 'sentry/utils/metrics/useMetricsCorrelations';
 import {
   isMetricFormula,
   type MetricsQueryApiQueryParams,
@@ -52,10 +50,7 @@ import useRouter from 'sentry/utils/useRouter';
 import {getIngestionSeriesId, MetricChart} from 'sentry/views/ddm/chart/chart';
 import type {Series} from 'sentry/views/ddm/chart/types';
 import {useFocusArea} from 'sentry/views/ddm/chart/useFocusArea';
-import {
-  useMetricChartSamples,
-  useMetricChartSamplesV2,
-} from 'sentry/views/ddm/chart/useMetricChartSamples';
+import {useMetricChartSamples} from 'sentry/views/ddm/chart/useMetricChartSamples';
 import type {FocusAreaProps} from 'sentry/views/ddm/context';
 import {EquationSymbol} from 'sentry/views/ddm/equationSymbol copy';
 import {FormularFormatter} from 'sentry/views/ddm/formulaParser/formatter';
@@ -68,13 +63,13 @@ import {createChartPalette} from 'sentry/views/ddm/utils/metricsChartPalette';
 import {DDM_CHART_GROUP, MIN_WIDGET_WIDTH} from './constants';
 
 type MetricWidgetProps = {
-  context: 'ddm' | 'dashboard';
   displayType: MetricDisplayType;
   filters: PageFilters;
   focusAreaProps: FocusAreaProps;
   onChange: (index: number, data: Partial<MetricWidgetQueryParams>) => void;
   queries: MetricsQueryApiQueryParams[];
   chartHeight?: number;
+  context?: 'ddm' | 'dashboard';
   focusedSeries?: FocusedMetricsSeries[];
   getChartPalette?: (seriesNames: string[]) => Record<string, string>;
   hasSiblings?: boolean;
@@ -82,8 +77,7 @@ type MetricWidgetProps = {
   index?: number;
   isSelected?: boolean;
   metricsSamples?: MetricsSamplesResults<Field>['data'];
-  onSampleClick?: (sample: Sample) => void;
-  onSampleClickV2?: (sample: MetricsSamplesResults<Field>['data'][number]) => void;
+  onSampleClick?: (sample: MetricsSamplesResults<Field>['data'][number]) => void;
   onSelect?: (index: number) => void;
   queryId?: number;
   showQuerySymbols?: boolean;
@@ -141,8 +135,6 @@ export const MetricWidget = memo(
     showQuerySymbols,
     focusAreaProps,
     onSampleClick,
-    onSampleClickV2,
-    highlightedSampleId,
     chartHeight = 300,
     focusedSeries,
     metricsSamples,
@@ -171,47 +163,17 @@ export const MetricWidget = memo(
       onChange(index, {displayType: value});
     };
 
-    const queryWithFocusedSeries = useMemo(
-      () =>
-        extendQueryWithGroupBys(
-          firstQuery?.query ?? '',
-          focusedSeries?.map(s => s.groupBy)
-        ),
-      [firstQuery, focusedSeries]
-    );
-
-    const samplesQuery = useMetricSamples(firstQuery?.mri, {
-      ...focusAreaProps?.selection?.range,
-      query: queryWithFocusedSeries,
-    });
-
     const samples = useMemo(() => {
-      return {
-        data: samplesQuery.data,
-        onClick: onSampleClick,
-        unit: parseMRI(firstQuery?.mri)?.unit ?? '',
-        operation: firstQuery?.op ?? '',
-        higlightedId: highlightedSampleId,
-      };
-    }, [
-      samplesQuery.data,
-      onSampleClick,
-      firstQuery?.mri,
-      firstQuery?.op,
-      highlightedSampleId,
-    ]);
-
-    const samplesV2 = useMemo(() => {
       if (!defined(metricsSamples)) {
         return undefined;
       }
       return {
         data: metricsSamples,
-        onSampleClick: onSampleClickV2,
+        onSampleClick,
         unit: parseMRI(firstQuery?.mri)?.unit ?? '',
         operation: firstQuery?.op ?? '',
       };
-    }, [metricsSamples, firstQuery?.mri, firstQuery?.op, onSampleClickV2]);
+    }, [metricsSamples, firstQuery?.mri, firstQuery?.op, onSampleClick]);
 
     const widgetTitle = getWidgetTitle(queries);
 
@@ -269,7 +231,6 @@ export const MetricWidget = memo(
                   onQueryChange={handleQueryChange}
                   focusAreaProps={focusAreaProps}
                   samples={isSelected ? samples : undefined}
-                  samplesV2={isSelected ? samplesV2 : undefined}
                   chartHeight={chartHeight}
                   chartGroup={DDM_CHART_GROUP}
                   queries={queries}
@@ -310,19 +271,10 @@ interface MetricWidgetBodyProps {
   onChange?: (data: Partial<MetricWidgetQueryParams>) => void;
   onQueryChange?: (queryIndex: number, data: Partial<MetricQueryWidgetParams>) => void;
   samples?: SamplesProps;
-  samplesV2?: SamplesV2Props;
   tableSort?: SortState;
 }
 
 export interface SamplesProps {
-  operation: string;
-  unit: string;
-  data?: MetricCorrelation[];
-  higlightedId?: string;
-  onClick?: (sample: Sample) => void;
-}
-
-export interface SamplesV2Props {
   operation: string;
   unit: string;
   data?: MetricsSamplesResults<Field>['data'];
@@ -343,7 +295,6 @@ const MetricWidgetBody = memo(
     chartHeight,
     chartGroup,
     samples,
-    samplesV2,
     filters,
     queries,
     context,
@@ -390,22 +341,12 @@ const MetricWidgetBody = memo(
     }, [timeseriesData, queries, getChartPalette, focusedSeries]);
 
     const samplesProp = useMetricChartSamples({
-      chartRef,
-      correlations: samples?.data,
-      unit: samples?.unit,
-      onClick: samples?.onClick,
+      samples: samples?.data,
       highlightedSampleId: samples?.higlightedId,
       operation: samples?.operation,
+      onSampleClick: samples?.onSampleClick,
       timeseries: chartSeries,
-    });
-
-    const samplesV2Prop = useMetricChartSamplesV2({
-      samples: samplesV2?.data,
-      highlightedSampleId: samples?.higlightedId,
-      operation: samplesV2?.operation,
-      onSampleClick: samplesV2?.onSampleClick,
-      timeseries: chartSeries,
-      unit: samplesV2?.unit,
+      unit: samples?.unit,
     });
 
     const handleZoom = useCallback(
@@ -538,7 +479,7 @@ const MetricWidgetBody = memo(
           series={chartSeries}
           displayType={displayType}
           height={chartHeight}
-          samples={samplesV2Prop ?? samplesProp}
+          samples={samplesProp}
           focusArea={focusArea}
           group={chartGroup}
         />

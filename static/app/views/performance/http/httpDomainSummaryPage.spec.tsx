@@ -125,6 +125,62 @@ describe('HTTPSummaryPage', function () {
       })
     );
 
+    expect(domainChartsRequestMock).toHaveBeenNthCalledWith(
+      3,
+      `/organizations/${organization.slug}/events-stats/`,
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          cursor: undefined,
+          dataset: 'spansMetrics',
+          environment: [],
+          excludeOther: 0,
+          field: [],
+          interval: '30m',
+          orderby: undefined,
+          partial: 1,
+          per_page: 50,
+          project: [],
+          query: 'span.module:http span.domain:"\\*.sentry.dev"',
+          referrer: 'api.starfish.http-module-domain-summary-response-code-chart',
+          statsPeriod: '10d',
+          topEvents: undefined,
+          yAxis: [
+            'http_response_rate(3)',
+            'http_response_rate(4)',
+            'http_response_rate(5)',
+          ],
+        },
+      })
+    );
+
+    expect(domainTransactionsListRequestMock).toHaveBeenNthCalledWith(
+      1,
+      `/organizations/${organization.slug}/events/`,
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          dataset: 'spansMetrics',
+          environment: [],
+          field: [
+            'span.domain',
+            'spm()',
+            'avg(span.self_time)',
+            'sum(span.self_time)',
+            'http_response_rate(3)',
+            'http_response_rate(4)',
+            'http_response_rate(5)',
+            'time_spent_percentage()',
+          ],
+          per_page: 50,
+          project: [],
+          query: 'span.module:http span.domain:"\\*.sentry.dev"',
+          referrer: 'api.starfish.http-module-domain-summary-metrics-ribbon',
+          statsPeriod: '10d',
+        },
+      })
+    );
+
     expect(domainTransactionsListRequestMock).toHaveBeenNthCalledWith(
       2,
       `/organizations/${organization.slug}/events/`,

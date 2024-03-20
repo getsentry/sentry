@@ -33,7 +33,7 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
   };
 
   const handleDelete = async () => {
-    await deleteMonitor(api, orgSlug, monitor.slug);
+    await deleteMonitor(api, orgSlug, monitor);
     browserHistory.push(
       normalizeUrl({
         pathname: `/organizations/${orgSlug}/crons/`,
@@ -43,7 +43,7 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
   };
 
   const handleUpdate = async (data: Partial<Monitor>) => {
-    const resp = await updateMonitor(api, orgSlug, monitor.slug, data);
+    const resp = await updateMonitor(api, orgSlug, monitor, data);
 
     if (resp !== null) {
       onUpdate?.(resp);
@@ -76,7 +76,7 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
         size="sm"
         icon={<IconEdit />}
         to={{
-          pathname: `/organizations/${orgSlug}/crons/${monitor.slug}/edit/`,
+          pathname: `/organizations/${orgSlug}/crons/${monitor.project.slug}/${monitor.slug}/edit/`,
           // TODO(davidenwang): Right now we have to pass the environment
           // through the URL so that when we save the monitor and are
           // redirected back to the details page it queries the backend

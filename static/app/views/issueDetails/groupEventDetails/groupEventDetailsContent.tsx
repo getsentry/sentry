@@ -4,8 +4,6 @@ import styled from '@emotion/styled';
 import {CommitRow} from 'sentry/components/commitRow';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventContexts} from 'sentry/components/events/contexts';
-import ContextSummary from 'sentry/components/events/contextSummary';
-import {CONTEXT_DOCS_LINK} from 'sentry/components/events/contextSummary/utils';
 import {EventDevice} from 'sentry/components/events/device';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
@@ -27,6 +25,7 @@ import {useHasNewTagsUI} from 'sentry/components/events/eventTags/util';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
+import HighlightsDataSection from 'sentry/components/events/highlights/highlightsDataSection';
 import {ActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
 import {actionableItemsEnabled} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import {CronTimelineSection} from 'sentry/components/events/interfaces/crons/cronTimelineSection';
@@ -37,8 +36,7 @@ import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {DataSection} from 'sentry/components/events/styles';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
-import ExternalLink from 'sentry/components/links/externalLink';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, Group, Project} from 'sentry/types';
 import {IssueCategory, IssueType} from 'sentry/types';
@@ -125,22 +123,13 @@ function DefaultGroupEventDetailsContent({
         </EventDataSection>
       )}
       {group.issueCategory === IssueCategory.CRON && (
-        <CronTimelineSection event={event} organization={organization} />
+        <CronTimelineSection
+          event={event}
+          organization={organization}
+          project={project}
+        />
       )}
-      {hasNewTagsUI && (
-        <EventDataSection
-          title={t('Context Summary')}
-          help={tct('A summary contexts derived from this event. [link:Learn more]', {
-            link: <ExternalLink openInNewTab href={CONTEXT_DOCS_LINK} />,
-          })}
-          isHelpHoverable
-          data-test-id="context-summary"
-          guideTarget="context-summary"
-          type="context-summary"
-        >
-          <ContextSummary event={event} />
-        </EventDataSection>
-      )}
+      <HighlightsDataSection event={event} group={group} project={project} />
       {!hasNewTagsUI && (
         <EventTagsAndScreenshot event={event} projectSlug={project.slug} />
       )}
@@ -318,6 +307,10 @@ const StyledDataSection = styled(DataSection)`
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     padding: ${space(1)} ${space(4)};
+  }
+
+  &:empty {
+    display: none;
   }
 `;
 
