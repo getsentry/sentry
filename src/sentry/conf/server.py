@@ -3073,12 +3073,10 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     ),
     "peanutbutter": lambda settings, options: (
         {
-            {
-                "image": "us.gcr.io/sentryio/peanutbutter:latest",
-                "environment": {},
-                "ports": {"50051/tcp": 50051},
-                "only_if": False,
-            }
+            "image": "us.gcr.io/sentryio/peanutbutter:latest",
+            "environment": {},
+            "ports": {"50051/tcp": 50051},
+            "only_if": False,
         }
     ),
 }
