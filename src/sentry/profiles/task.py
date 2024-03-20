@@ -729,7 +729,7 @@ def get_frame_index_map(frames: list[dict[str, Any]]) -> dict[int, list[int]]:
 
 
 @metrics.wraps("process_profile.deobfuscate.with_symbolicator")
-def _deobfuscate_using_symbolicator(project: Project, profile: Profile) -> None:
+def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_file_id: str) -> None:
     symbolication_start_time = time()
 
     def on_symbolicator_request():
@@ -751,7 +751,7 @@ def _deobfuscate_using_symbolicator(project: Project, profile: Profile) -> None:
                 profile=profile,
                 modules=[
                     {
-                        "uuid": profile["build_id"],
+                        "uuid": debug_file_id,
                     }
                 ],
                 stacktraces=[
@@ -788,11 +788,17 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
 
     if project.id in options.get("profiling.deobfuscate-using-symbolicator.enable-for-project"):
         sentry_sdk.set_tag("deobfuscated_with_symbolicator", True)
-        return _deobfuscate_using_symbolicator(
+        _deobfuscate_using_symbolicator(
             project=project,
             profile=profile,
+            debug_file_id=debug_file_id,
         )
+    else:
+        _deobfuscate_locally(profile=profile, project=project, debug_file_id=debug_file_id)
 
+
+@metrics.wraps("process_profile.deobfuscate.locally")
+def _deobfuscate_locally(profile: Profile, project: Project, debug_file_id: str) -> None:
     with sentry_sdk.start_span(op="proguard.fetch_debug_files"):
         dif_paths = ProjectDebugFile.difcache.fetch_difs(
             project, [debug_file_id], features=["mapping"]
@@ -808,6 +814,7 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
     with sentry_sdk.start_span(op="proguard.remap"):
         for method in profile["profile"]["methods"]:
             method.setdefault("data", {})
+            types = None
             if method.get("signature"):
                 types = deobfuscate_signature(method["signature"], mapper)
                 method["signature"] = format_signature(types)
