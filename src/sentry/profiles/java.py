@@ -106,3 +106,24 @@ def deobfuscate_signature(signature: str, mapper=None) -> tuple[list[str], str] 
 
     return_java_type = byte_code_type_to_java_type(return_type, mapper)
     return parameter_java_types, return_java_type
+
+
+def convert_android_methods_to_jvm_frames(methods: list[dict]) -> list[dict]:
+    return [
+        {
+            "function": m["name"],
+            "module": m["class_name"],
+        }
+        for m in methods
+    ]
+
+
+def merge_jvm_frames_with_android_methods(frames: list[dict], methods: list[dict]) -> None:
+    assert len(frames) == len(methods)
+    for f, m in zip(frames, methods):
+        m.update(
+            {
+                "class_name": f["module"],
+                "name": f["function"],
+            }
+        )

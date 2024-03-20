@@ -24,7 +24,12 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, UseCase
 from sentry.profiles.device import classify_device
-from sentry.profiles.java import deobfuscate_signature, format_signature
+from sentry.profiles.java import (
+    convert_android_methods_to_jvm_frames,
+    deobfuscate_signature,
+    format_signature,
+    merge_jvm_frames_with_android_methods,
+)
 from sentry.profiles.utils import get_from_profiling_service
 from sentry.signals import first_profile_received
 from sentry.silo import SiloMode
@@ -755,7 +760,11 @@ def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_fi
                     }
                 ],
                 stacktraces=[
-                    {"frames": profile["profile"]["methods"]},
+                    {
+                        "frames": convert_android_methods_to_jvm_frames(
+                            profile["profile"]["methods"]
+                        )
+                    },
                 ],
                 platform=profile["platform"],
             )
@@ -768,9 +777,16 @@ def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_fi
             elif len(response["errors"]) > 0:
                 profile["symbolicator_error"] = response["errors"][0]
                 return
+            elif len(response["stacktraces"]) > 0:
+                merge_jvm_frames_with_android_methods(
+                    frames=response["stacktraces"][0]["frames"],
+                    methods=profile["profile"]["methods"],
+                )
             else:
-                assert len(profile["profile"]["methods"]) == len(response["stacktraces"])
-                profile["profile"]["methods"] = response["stacktraces"]
+                profile["symbolicator_error"] = {
+                    "type": EventError.NATIVE_SYMBOLICATOR_FAILED,
+                }
+                return
     except SymbolicationTimeout:
         metrics.incr("process_profile.symbolicate.timeout", sample_rate=1.0)
 
