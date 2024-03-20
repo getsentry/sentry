@@ -3992,6 +3992,8 @@ REGION_PINNED_URL_NAMES = {
     "sentry-chartcuterie-config",
     "sentry-robots-txt",
 }
+# Used in tests to skip forwarding relay paths to a region silo that does not exist.
+APIGATEWAY_PROXY_SKIP_RELAY = False
 
 # Shared resource ids for accounting
 EVENT_PROCESSING_STORE = "rc_processing_redis"
