@@ -151,7 +151,7 @@ export function MetricSamplesTable({
   sortKey = 'sort',
 }: MetricsSamplesTableProps) {
   const location = useLocation();
-  const organization = useOrganization();
+
   const enabled = defined(mri);
 
   const parsedMRI = useMemo(() => {
