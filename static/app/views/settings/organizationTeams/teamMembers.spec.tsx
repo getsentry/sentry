@@ -5,7 +5,7 @@ import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TeamFixture} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
   openInviteMembersModal,
@@ -381,7 +381,7 @@ describe('TeamMembers', function () {
     expect(contributors).toHaveLength(2);
   });
 
-  it('cannot add or remove members if team is idp:provisioned', function () {
+  it('cannot add or remove members if team is idp:provisioned', async function () {
     const team2 = TeamFixture({
       flags: {
         'idp:provisioned': true,
@@ -401,17 +401,21 @@ describe('TeamMembers', function () {
         'sso:linked': false,
       },
     });
+    const idpMembers = members.map(teamMember => ({
+      ...teamMember,
+      flags: {...teamMember.flags, 'idp:provisioned': true},
+    }));
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/members/`,
       method: 'GET',
-      body: [...members, me],
+      body: [...idpMembers, me],
     });
     MockApiClient.addMockResponse({
       url: `/teams/${organization.slug}/${team2.slug}/members/`,
       method: 'GET',
-      body: members,
+      body: idpMembers,
     });
     MockApiClient.addMockResponse({
       url: `/teams/${organization.slug}/${team2.slug}/`,
@@ -428,9 +432,9 @@ describe('TeamMembers', function () {
       />
     );
 
-    waitFor(() => {
-      expect(screen.findByRole('button', {name: 'Add Member'})).toBeDisabled();
-      expect(screen.findByRole('button', {name: 'Remove'})).toBeDisabled();
-    });
+    expect(
+      (await screen.findAllByRole('button', {name: 'Add Member'})).at(1)
+    ).toBeDisabled();
+    expect((await screen.findAllByRole('button', {name: 'Remove'})).at(0)).toBeDisabled();
   });
 });
