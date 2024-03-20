@@ -61,13 +61,17 @@ function ReleaseThresholdList({}: Props) {
     selectedEnvs: selection.environments,
   });
 
-  const selectedProjects: Project[] = useMemo(() => {
-    return projects.filter(
-      project =>
-        selection.projects.some(id => String(id) === project.id || id === -1) ||
-        !selection.projects.length
-    );
-  }, [projects, selection.projects]);
+  const selectedProjects: Project[] = useMemo(
+    () =>
+      projects.filter(
+        project =>
+          selection.projects.some(id => {
+            const strId = String(id);
+            return strId === project.id || strId === project.slug || id === -1;
+          }) || !selection.projects.length
+      ),
+    [projects, selection.projects]
+  );
 
   const projectsById: {[key: string]: Project} = useMemo(() => {
     const byId = {};
@@ -168,15 +172,13 @@ function ReleaseThresholdList({}: Props) {
 
   const thresholdsByProject: {[key: string]: Threshold[]} = useMemo(() => {
     const byProj = {};
+
     filteredThresholds.forEach(threshold => {
-      const projId = threshold.project.id;
-      if (!byProj[projId]) {
-        byProj[projId] = [];
-      }
-      byProj[projId].push(threshold);
+      const projId = threshold.project.id ?? selection.projects[0];
+      (byProj[projId] ??= []).push(threshold);
     });
     return byProj;
-  }, [filteredThresholds]);
+  }, [filteredThresholds, selection.projects]);
 
   const projectsWithoutThresholds: Project[] = useMemo(() => {
     // TODO: limit + paginate list
@@ -188,12 +190,8 @@ function ReleaseThresholdList({}: Props) {
     setTimeout(() => setListError(''), 5000);
   };
 
-  if (isError) {
-    return <LoadingError onRetry={refetch} message={requestError.message} />;
-  }
-  if (isLoading) {
-    return <LoadingIndicator />;
-  }
+  if (isError) return <LoadingError onRetry={refetch} message={requestError.message} />;
+  if (isLoading) return <LoadingIndicator />;
 
   return (
     <PageFiltersContainer>
