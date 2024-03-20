@@ -443,8 +443,24 @@ function Chart({
                     interval: 0, // Show _all_ axis labels
                   },
                 }}
+                yAxis={{
+                  minInterval: durationUnit ?? getDurationUnit(data),
+                  splitNumber: definedAxisTicks,
+                  max: dataMax,
+                  axisLabel: {
+                    color: theme.chartLabel,
+                    formatter(value: number) {
+                      return axisLabelFormatter(
+                        value,
+                        aggregateOutputFormat ?? aggregateOutputType(data[0].seriesName),
+                        undefined,
+                        durationUnit ?? getDurationUnit(data),
+                        rateUnit
+                      );
+                    },
+                  },
+                }}
                 additionalSeries={transformedThroughput}
-                yAxes={areaChartProps.yAxes}
                 tooltip={areaChartProps.tooltip}
                 colors={colors}
                 grid={grid}
