@@ -231,6 +231,25 @@ class MonitorConsumerTest(TestCase):
         timeout_at = checkin.date_added.replace(second=0, microsecond=0) + timedelta(minutes=5)
         assert checkin.timeout_at == timeout_at
 
+    def test_check_in_timeout_late(self):
+        monitor = self._create_monitor(slug="my-monitor")
+        now = datetime.now()
+        self.send_checkin(monitor.slug, status="in_progress", ts=now)
+
+        # mark monitor as timed-out
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        checkin.update(status=CheckInStatus.TIMEOUT)
+
+        assert checkin.duration is None
+
+        # next check-in reports an OK
+        self.send_checkin(monitor.slug, guid=self.guid, ts=now + timedelta(seconds=5))
+
+        # The check-in is still in TIMEOUT status, but has a duration now
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.TIMEOUT
+        assert checkin.duration == 5000
+
     def test_check_in_update(self):
         monitor = self._create_monitor(slug="my-monitor")
         self.send_checkin(monitor.slug, status="in_progress")
