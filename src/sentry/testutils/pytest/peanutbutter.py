@@ -9,8 +9,7 @@ from sentry.runner.commands.devservices import get_docker_client
 
 PEANUTBUTTER_TEST_IMAGE = environ.get(
     "PEANUTBUTTER_TEST_IMAGE",
-    # TODO: make sure we tag the `latest`/`nightly` build
-    "us.gcr.io/sentryio/peanutbutter:2243c86d22af46b9d267b9ac800d4cf62ee8927b",
+    "us.gcr.io/sentryio/peanutbutter:latest",
 )
 
 
