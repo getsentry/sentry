@@ -21,6 +21,7 @@ import {
   isAValidSort,
 } from 'sentry/views/performance/http/domainTransactionsTable';
 import {DurationChart} from 'sentry/views/performance/http/durationChart';
+import {HTTPSamplesPanel} from 'sentry/views/performance/http/httpSamplesPanel';
 import {ResponseRateChart} from 'sentry/views/performance/http/responseRateChart';
 import {ThroughputChart} from 'sentry/views/performance/http/throughputChart';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
@@ -60,7 +61,6 @@ export function HTTPDomainSummaryPage() {
   const {data: domainMetrics, isLoading: areDomainMetricsLoading} = useSpanMetrics({
     search: MutableSearch.fromQueryObject(filters),
     fields: [
-      SpanMetricsField.SPAN_DOMAIN,
       `${SpanFunction.SPM}()`,
       `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
       `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
@@ -114,7 +114,9 @@ export function HTTPDomainSummaryPage() {
   } = useSpanMetrics({
     search: MutableSearch.fromQueryObject(filters),
     fields: [
+      'project.id',
       'transaction',
+      'transaction.method',
       'spm()',
       'http_response_rate(2)',
       'http_response_rate(4)',
@@ -259,6 +261,7 @@ export function HTTPDomainSummaryPage() {
 
             <ModuleLayout.Full>
               <DomainTransactionsTable
+                domain={domain}
                 data={transactionsList}
                 error={transactionsListError}
                 isLoading={isTransactionsListLoading}
@@ -270,6 +273,8 @@ export function HTTPDomainSummaryPage() {
           </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>
+
+      <HTTPSamplesPanel />
     </React.Fragment>
   );
 }

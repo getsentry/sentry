@@ -15,6 +15,7 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {RATE_UNIT_TITLE, RateUnit, type Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {TransactionCell} from 'sentry/views/performance/http/transactionCell';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import type {MetricsResponse} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -22,7 +23,9 @@ import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Row = Pick<
   MetricsResponse,
+  | 'project.id'
   | 'transaction'
+  | 'transaction.method'
   | 'spm()'
   | 'http_response_rate(2)'
   | 'http_response_rate(4)'
@@ -101,6 +104,7 @@ interface Props {
   data: Row[];
   isLoading: boolean;
   sort: ValidSort;
+  domain?: string;
   error?: Error | null;
   meta?: EventsMetaType;
   pageLinks?: string;
@@ -113,6 +117,7 @@ export function DomainTransactionsTable({
   meta,
   pageLinks,
   sort,
+  domain,
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
@@ -147,7 +152,7 @@ export function DomainTransactionsTable({
               sortParameterName: QueryParameterNames.TRANSACTIONS_SORT,
             }),
           renderBodyCell: (column, row) =>
-            renderBodyCell(column, row, meta, location, organization),
+            renderBodyCell(column, row, meta, domain, location, organization),
         }}
         location={location}
       />
@@ -161,9 +166,21 @@ function renderBodyCell(
   column: Column,
   row: Row,
   meta: EventsMetaType | undefined,
+  domain: string | undefined,
   location: Location,
   organization: Organization
 ) {
+  if (column.key === 'transaction') {
+    return (
+      <TransactionCell
+        domain={domain}
+        project={String(row['project.id'])}
+        transaction={row.transaction}
+        transactionMethod={row['transaction.method']}
+      />
+    );
+  }
+
   if (!meta?.fields) {
     return row[column.key];
   }
