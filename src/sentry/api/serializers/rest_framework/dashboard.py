@@ -151,7 +151,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
     conditions = serializers.CharField(required=False, allow_blank=True)
     orderby = serializers.CharField(required=False, allow_blank=True)
 
-    is_hidden = serializers.BooleanField(required=False)
+    is_hidden = serializers.BooleanField(required=False, allow_null=True)
 
     on_demand_extraction = DashboardWidgetQueryOnDemandSerializer(many=False, required=False)
     on_demand_extraction_disabled = serializers.BooleanField(required=False)
