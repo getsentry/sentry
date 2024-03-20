@@ -119,6 +119,40 @@ export type Column = QueryFieldValue;
 
 export type Alignments = 'left' | 'right';
 
+export type CountUnit = 'count';
+
+export type PercentageUnit = 'percentage';
+
+export enum DurationUnit {
+  NANOSECOND = 'nanosecond',
+  MICROSECOND = 'microsecond',
+  MILLISECOND = 'millisecond',
+  SECOND = 'second',
+  MINUTE = 'minute',
+  HOUR = 'hour',
+  DAY = 'day',
+  WEEK = 'week',
+  MONTH = 'month',
+  YEAR = 'year',
+}
+
+export enum SizeUnit {
+  BIT = 'bit',
+  BYTE = 'byte',
+  KIBIBYTE = 'kibibyte',
+  KILOBYTE = 'kilobyte',
+  MEBIBYTE = 'mebibyte',
+  MEGABYTE = 'megabyte',
+  GIBIBYTE = 'gibibyte',
+  GIGABYTE = 'gigabyte',
+  TEBIBYTE = 'tebibyte',
+  TERABYTE = 'terabyte',
+  PEBIBYTE = 'pebibyte',
+  PETABYTE = 'petabyte',
+  EXBIBYTE = 'exbibyte',
+  EXABYTE = 'exabyte',
+}
+
 export enum RateUnit {
   PER_SECOND = '1/second',
   PER_MINUTE = '1/minute',
@@ -1071,7 +1105,7 @@ export function aggregateFunctionOutputType(
     return STARFISH_FIELDS[firstArg].outputType;
   }
 
-  if (!firstArg && STARFISH_AGGREGATION_FIELDS[funcName]) {
+  if (STARFISH_AGGREGATION_FIELDS[funcName]) {
     return STARFISH_AGGREGATION_FIELDS[funcName].defaultOutputType;
   }
 

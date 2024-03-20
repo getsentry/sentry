@@ -222,7 +222,7 @@ export function TimeRangeSelector({
             maxDateRange,
           });
 
-      return filteredItems.map(item => ({
+      return filteredItems.map<SelectOption<string>>(item => ({
         value: item.value,
         label: item.label,
         textValue: item.searchKey,
@@ -362,7 +362,7 @@ export function TimeRangeSelector({
           menuBody={
             (showAbsoluteSelector || menuBody) && (
               <Fragment>
-                {!showAbsoluteSelector && menuBody}
+                {!showAbsoluteSelector && (menuBody as React.ReactNode)}
                 {showAbsoluteSelector && (
                   <AbsoluteDateRangeWrap>
                     <StyledDateRangeHook
@@ -429,7 +429,7 @@ export function TimeRangeSelector({
                       <FooterMessage>{menuFooterMessage}</FooterMessage>
                     )}
                     <FooterWrap>
-                      <FooterInnerWrap>{menuFooter}</FooterInnerWrap>
+                      <FooterInnerWrap>{menuFooter as React.ReactNode}</FooterInnerWrap>
                       {showAbsoluteSelector && (
                         <AbsoluteSelectorFooter>
                           {showRelative && (

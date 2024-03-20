@@ -39,9 +39,6 @@ filterwarnings = [
   "ignore:Type google\\._upb.*",
 
   # The following warning filters are for pytest only.
-  # This is so we don't have to wrap most datetime objects in testing code
-  # with django.utils.timezone.
-  "ignore:DateTimeField.*naive datetime:RuntimeWarning",
   "ignore:.*sentry.digests.backends.dummy.DummyBackend.*:sentry.utils.warnings.UnsupportedBackend",
 
   # pytest has not yet implemented the replacement for this yet
@@ -290,7 +287,6 @@ module = [
     "sentry.incidents.endpoints.organization_incident_comment_details",
     "sentry.incidents.endpoints.organization_incident_index",
     "sentry.incidents.logic",
-    "sentry.incidents.models",
     "sentry.incidents.subscription_processor",
     "sentry.incidents.tasks",
     "sentry.integrations.aws_lambda.integration",
@@ -374,9 +370,7 @@ module = [
     "sentry.issues.endpoints.group_events",
     "sentry.issues.endpoints.organization_group_index",
     "sentry.issues.endpoints.source_map_debug",
-    "sentry.issues.occurrence_consumer",
     "sentry.issues.search",
-    "sentry.issues.status_change",
     "sentry.middleware.access_log",
     "sentry.middleware.auth",
     "sentry.middleware.ratelimit",
@@ -421,7 +415,6 @@ module = [
     "sentry.release_health.tasks",
     "sentry.replays.endpoints.project_replay_clicks_index",
     "sentry.replays.lib.query",
-    "sentry.reprocessing2",
     "sentry.rules.actions.integrations.base",
     "sentry.rules.actions.integrations.create_ticket.form",
     "sentry.rules.actions.integrations.create_ticket.utils",
@@ -484,7 +477,6 @@ module = [
     "sentry.tasks.integrations.sync_status_outbound",
     "sentry.tasks.merge",
     "sentry.tasks.process_buffer",
-    "sentry.tasks.reprocessing2",
     "sentry.tasks.sentry_apps",
     "sentry.tasks.store",
     "sentry.tasks.unmerge",
@@ -493,7 +485,6 @@ module = [
     "sentry.templatetags.sentry_plugins",
     "sentry.testutils.asserts",
     "sentry.testutils.cases",
-    "sentry.testutils.factories",
     "sentry.testutils.fixtures",
     "sentry.testutils.helpers.features",
     "sentry.testutils.helpers.notifications",
@@ -630,11 +621,15 @@ disable_error_code = [
 module = [
     "sentry.buffer.base",
     "sentry.buffer.redis",
+    "sentry.eventstore.reprocessing.redis",
     "sentry.utils.redis",
     "sentry.utils.redis_metrics",
+    "sentry.utils.locking.backends.redis",
     "sentry.tasks.on_demand_metrics",
+    "sentry.reprocessing2",
     "sentry.relay.config.metric_extraction",
     "sentry.snuba.metrics.extraction",
+    "sentry.tasks.reprocessing2",
     "tests.sentry.tasks.test_on_demand_metrics",
     "tests.sentry.relay.config.test_metric_extraction",
 ]

@@ -212,6 +212,9 @@ export type IssueEventParameters = {
   'issues_stream.sort_changed': {
     sort: string;
   };
+  'issues_stream.updated_priority': {
+    priority: PriorityLevel;
+  };
   'issues_tab.viewed': {
     num_issues: number;
     num_new_issues: number;
@@ -261,6 +264,7 @@ export type IssueEventParameters = {
   'tag.clicked': {
     is_clickable: boolean;
   };
+  'whats_new.link_clicked': {title?: string};
 };
 
 export type IssueEventKey = keyof IssueEventParameters;
@@ -296,6 +300,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_search.empty': 'Issue Search: Empty',
   'issue.search_sidebar_clicked': 'Issue Search Sidebar Clicked',
   'issues_stream.archived': 'Issues Stream: Archived',
+  'issues_stream.updated_priority': 'Issues Stream: Updated Priority',
   'issues_stream.realtime_clicked': 'Issues Stream: Realtime Clicked',
   'issues_stream.issue_assigned': 'Assigned Issue from Issues Stream',
   'issues_stream.merged': 'Merged Issues from Issues Stream',
@@ -354,4 +359,5 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.sourcemap_wizard_learn_more':
     'Issue Details: Sourcemap Wizard Learn More',
   'issue_details.set_priority': 'Issue Details: Set Priority',
+  'whats_new.link_clicked': "What's New: Link Clicked",
 };

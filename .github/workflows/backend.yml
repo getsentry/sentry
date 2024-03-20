@@ -46,7 +46,7 @@ jobs:
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
-      - uses: getsentry/action-setup-volta@c52be2ea13cfdc084edb806e81958c13e445941e # v1.2.0
+      - uses: getsentry/action-setup-volta@e4939d337b83760d13a9d7030a6f68c9d0ee7581 # v2.0.0
 
       - name: Setup sentry python env
         uses: ./.github/actions/setup-sentry
@@ -92,6 +92,7 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
+          redis_cluster: true
           kafka: true
           snuba: true
           symbolicator: true
@@ -194,7 +195,7 @@ jobs:
           app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-      - uses: getsentry/action-setup-venv@9e3bbae3836b1b6f129955bf55a19e1d99a61c67 # v1.0.5
+      - uses: getsentry/action-setup-venv@f0daafa9688e48f939cace0378a46f2d422bd81f # v2.0.0
         with:
           python-version: 3.11.6
           cache-dependency-path: requirements-dev-frozen.txt
@@ -208,7 +209,7 @@ jobs:
           fi
       - name: apply any requirements changes
         if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master' && always()
-        uses: getsentry/action-github-commit@748c31dd78cffe76f51bef49a0be856b6effeda7 # v1.1.0
+        uses: getsentry/action-github-commit@31f6706ca1a7b9ad6d22c1b07bf3a92eabb05632 # v2.0.0
         with:
           github-token: ${{ steps.token.outputs.token }}
           message: ':snowflake: re-freeze requirements'
@@ -277,7 +278,7 @@ jobs:
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
-      - uses: getsentry/action-setup-venv@9e3bbae3836b1b6f129955bf55a19e1d99a61c67 # v1.0.5
+      - uses: getsentry/action-setup-venv@f0daafa9688e48f939cace0378a46f2d422bd81f # v2.0.0
         with:
           python-version: 3.11.6
           cache-dependency-path: requirements-dev-frozen.txt
@@ -309,6 +310,7 @@ jobs:
           ! grep "'Settings' object has no attribute" .artifacts/mypy-all
           ! grep 'Cannot override class variable' .artifacts/mypy-all
           ! grep 'Exception type must be derived from BaseException' .artifacts/mypy-all
+          ! grep 'Incompatible default for argument' .artifacts/mypy-all
           ! grep 'Incompatible return value type (got "HttpResponseBase"' .artifacts/mypy-all
           ! grep 'Incompatible types in "yield"' .artifacts/mypy-all
           ! grep 'Module "sentry.*has no attribute' .artifacts/mypy-all
@@ -322,7 +324,7 @@ jobs:
           steps.regen-blocklist.outcome == 'success' &&
           github.ref != 'refs/heads/master' &&
           always()
-        uses: getsentry/action-github-commit@748c31dd78cffe76f51bef49a0be856b6effeda7 # v1.1.0
+        uses: getsentry/action-github-commit@31f6706ca1a7b9ad6d22c1b07bf3a92eabb05632 # v2.0.0
         with:
           github-token: ${{ steps.token.outputs.token }}
           message: ':knife: regenerate mypy module blocklist'

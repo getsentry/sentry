@@ -192,7 +192,6 @@ class Team(ReplicatedRegionModel, SnowflakeIdMixin):
     )
     idp_provisioned = models.BooleanField(default=False)
     date_added = models.DateTimeField(default=timezone.now, null=True)
-    org_role = models.CharField(max_length=32, null=True)
 
     objects: ClassVar[TeamManager] = TeamManager(cache_fields=("pk", "slug"))
 
@@ -244,7 +243,6 @@ class Team(ReplicatedRegionModel, SnowflakeIdMixin):
             "slug": self.slug,
             "name": self.name,
             "status": self.status,
-            "org_role": self.org_role,
         }
 
     def get_projects(self):

@@ -48,6 +48,10 @@ export interface DocsParams<
   projectSlug: Project['slug'];
   sourcePackageRegistries: {isLoading: boolean; data?: ReleaseRegistrySdk};
   cdn?: string;
+  feedbackOptions?: {
+    email?: boolean;
+    name?: boolean;
+  };
   newOrg?: boolean;
   replayOptions?: {
     block?: boolean;
@@ -76,6 +80,7 @@ export interface OnboardingConfig<
 
 export interface Docs<PlatformOptions extends BasePlatformOptions = BasePlatformOptions> {
   onboarding: OnboardingConfig<PlatformOptions>;
+  crashReportOnboarding?: OnboardingConfig<PlatformOptions>;
   customMetricsOnboarding?: OnboardingConfig<PlatformOptions>;
   feedbackOnboardingCrashApi?: OnboardingConfig<PlatformOptions>;
   feedbackOnboardingNpm?: OnboardingConfig<PlatformOptions>;
@@ -88,6 +93,7 @@ export type ConfigType =
   | 'onboarding'
   | 'feedbackOnboardingNpm'
   | 'feedbackOnboardingCrashApi'
+  | 'crashReportOnboarding'
   | 'replayOnboardingNpm'
   | 'replayOnboardingJsLoader'
   | 'customMetricsOnboarding';

@@ -32,21 +32,6 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
     }
 
-    def get_replay_filter_params(self, request, organization):
-        query_referrer = request.GET.get("queryReferrer", None)
-
-        filter_params = self.get_filter_params(request, organization)
-
-        has_global_views = (
-            features.has("organizations:global-views", organization, actor=request.user)
-            or query_referrer == "issueReplays"
-        )
-
-        if not has_global_views and len(filter_params.get("project_id", [])) > 1:
-            raise ParseError(detail="You cannot view events from multiple projects.")
-
-        return filter_params
-
     @extend_schema(
         operation_id="List an Organization's Replays",
         parameters=[GlobalParams.ORG_SLUG, ReplayValidator],
@@ -66,7 +51,7 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
         if not features.has("organizations:session-replay", organization, actor=request.user):
             return Response(status=404)
         try:
-            filter_params = self.get_replay_filter_params(request, organization)
+            filter_params = self.get_filter_params(request, organization)
         except NoProjects:
             return Response({"data": []}, status=200)
 
@@ -76,7 +61,7 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
 
         for key, value in result.validated_data.items():
             if key not in filter_params:
-                filter_params[key] = value
+                filter_params[key] = value  # type: ignore
 
         def data_fn(offset: int, limit: int):
             try:
@@ -86,12 +71,24 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
             except InvalidSearchQuery as e:
                 raise ParseError(str(e))
 
+            # Sort must be optional string.
+            sort = filter_params.get("sort")
+            if not isinstance(sort, str):
+                sort = None
+
+            start = filter_params["start"]
+            end = filter_params["end"]
+            if start is None or end is None:
+                # It's not possible to reach this point but the type hint is wrong so I have
+                # to do this for completeness sake.
+                return Response({"detail": "Missing start or end period."}, status=400)
+
             return query_replays_collection_raw(
                 project_ids=filter_params["project_id"],
-                start=filter_params["start"],
-                end=filter_params["end"],
-                environment=filter_params.get("environment"),
-                sort=filter_params.get("sort"),
+                start=start,
+                end=end,
+                environment=filter_params.get("environment") or [],
+                sort=sort,
                 fields=request.query_params.getlist("field"),
                 limit=limit,
                 offset=offset,

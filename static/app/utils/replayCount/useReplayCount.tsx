@@ -52,6 +52,7 @@ export default function useReplayCount({
   statsPeriod,
 }: Props) {
   const cache = useAggregatedQueryKeys<string, CountState>({
+    cacheKey: `/organizations/${organization.slug}/replay-count/|${dataSource}|${fieldName}|${statsPeriod}`,
     bufferLimit,
     getQueryKey: useCallback(
       (ids: readonly string[]): ApiQueryKey => [

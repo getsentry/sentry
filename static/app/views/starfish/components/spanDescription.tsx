@@ -10,7 +10,8 @@ import {
 } from 'sentry/views/starfish/components/stackTraceMiniFrame';
 import {useFullSpanFromTrace} from 'sentry/views/starfish/queries/useFullSpanFromTrace';
 import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
-import type {SpanIndexedField, SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
+import type {SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
+import {SpanIndexedField} from 'sentry/views/starfish/types';
 import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatter';
 
 interface Props {
@@ -35,11 +36,17 @@ export function DatabaseSpanDescription({
   groupId,
   preliminaryDescription,
 }: Omit<Props, 'op'>) {
-  const {data: indexedSpans, isFetching: areIndexedSpansLoading} = useIndexedSpans(
-    {'span.group': groupId},
-    [INDEXED_SPAN_SORT],
-    1
-  );
+  const {data: indexedSpans, isFetching: areIndexedSpansLoading} = useIndexedSpans({
+    filters: {'span.group': groupId},
+    sorts: [INDEXED_SPAN_SORT],
+    limit: 1,
+    fields: [
+      SpanIndexedField.PROJECT_ID,
+      SpanIndexedField.TRANSACTION_ID,
+      SpanIndexedField.SPAN_DESCRIPTION,
+    ],
+    referrer: 'api.starfish.span-description',
+  });
   const indexedSpan = indexedSpans?.[0];
 
   // NOTE: We only need this for `span.data`! If this info existed in indexed spans, we could skip it
@@ -94,7 +101,7 @@ const INDEXED_SPAN_SORT = {
   kind: 'desc' as const,
 };
 
-const Frame = styled('div')`
+export const Frame = styled('div')`
   border: solid 1px ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;

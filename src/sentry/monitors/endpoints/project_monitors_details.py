@@ -16,7 +16,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
 from sentry.monitors.endpoints.base import ProjectMonitorEndpoint
-from sentry.monitors.endpoints.monitor_details import MonitorDetailsMixin
+from sentry.monitors.endpoints.base_monitor_details import MonitorDetailsMixin
 from sentry.monitors.serializers import MonitorSerializer
 from sentry.monitors.validators import MonitorValidator
 from sentry.utils.auth import AuthenticatedHttpRequest

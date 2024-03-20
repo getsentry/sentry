@@ -16,7 +16,9 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
 from sentry.monitors.endpoints.base import MonitorEndpoint
-from sentry.monitors.endpoints.monitor_environment_details import MonitorEnvironmentDetailsMixin
+from sentry.monitors.endpoints.base_monitor_environment_details import (
+    MonitorEnvironmentDetailsMixin,
+)
 from sentry.monitors.serializers import MonitorSerializer
 
 

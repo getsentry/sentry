@@ -5,6 +5,8 @@ from hashlib import md5
 from unittest import mock
 from unittest.mock import patch
 
+from django.utils import timezone
+
 from sentry.constants import LOG_LEVELS_MAP
 from sentry.issues.grouptype import (
     ErrorGroupType,
@@ -26,8 +28,9 @@ from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouprelease import GroupRelease
-from sentry.models.release import Release, ReleaseProject
+from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.ratelimits.sliding_windows import RequestedQuota
 from sentry.receivers import create_default_projects
 from sentry.snuba.dataset import Dataset
@@ -119,7 +122,7 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
         create_default_projects()
         event_data = load_data("generic-event-profiling").data
         project_id = event_data["event"].pop("project_id", self.project.id)
-        event_data["event"]["timestamp"] = datetime.utcnow().isoformat()
+        event_data["event"]["timestamp"] = timezone.now().isoformat()
         event = self.store_event(data=event_data["event"], project_id=project_id)
         occurrence = self.build_occurrence()
         with self.assertRaisesMessage(
@@ -425,7 +428,7 @@ class SaveIssueOccurrenceToEventstreamTest(OccurrenceTestMixin, TestCase):
         create_default_projects()
         event_data = load_data("generic-event-profiling").data
         project_id = event_data["event"].pop("project_id")
-        event_data["event"]["timestamp"] = datetime.utcnow().isoformat()
+        event_data["event"]["timestamp"] = timezone.now().isoformat()
         event = self.store_event(data=event_data["event"], project_id=project_id)
         occurrence = self.build_occurrence(event_id=event.event_id)
         group_info = save_issue_from_occurrence(occurrence, event, None)

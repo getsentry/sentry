@@ -144,6 +144,11 @@ function ReplayDetails({params: {replaySlug}}: Props) {
     );
   }
 
+  const isVideoReplay = Boolean(
+    organization.features.includes('session-replay-mobile-player') &&
+      replay?.isVideoReplay()
+  );
+
   return (
     <ReplayContextProvider
       analyticsContext="replay_details"
@@ -154,6 +159,7 @@ function ReplayDetails({params: {replaySlug}}: Props) {
     >
       <ReplayTransactionContext replayRecord={replayRecord}>
         <Page
+          isVideoReplay={isVideoReplay}
           orgSlug={orgSlug}
           replayRecord={replayRecord}
           projectSlug={projectSlug}

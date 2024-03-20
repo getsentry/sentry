@@ -1,8 +1,8 @@
 import logging
 import uuid
-from collections.abc import Callable, Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
-from typing import Any, Literal, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 import sentry_sdk
 from sentry_sdk import Hub, capture_exception
@@ -11,6 +11,15 @@ from sentry import features, killswitches, options, quotas, utils
 from sentry.constants import HEALTH_CHECK_GLOBS, ObjectStatus
 from sentry.datascrubbing import get_datascrubbing_settings, get_pii_config
 from sentry.dynamic_sampling import generate_rules
+from sentry.dynamic_sampling.rules.utils import (
+    Condition,
+    EqCondition,
+    GlobCondition,
+    GtCondition,
+    GteCondition,
+    LtCondition,
+    LteCondition,
+)
 from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.ingest.inbound_filters import (
     FilterStatKeys,
@@ -28,6 +37,7 @@ from sentry.ingest.transaction_clusterer.rules import (
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
+from sentry.relay.config.experimental import TimeChecker, add_experimental_config
 from sentry.relay.config.metric_extraction import (
     get_metric_conditional_tagging_rules,
     get_metric_extraction_config,
@@ -170,7 +180,44 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
     if csp_disallowed_sources:
         filter_settings["csp"] = {"disallowedSources": csp_disallowed_sources}
 
+    try:
+        generic_filters = _get_generic_project_filters()
+    except Exception:
+        logger.exception(
+            "Exception while building Relay project config: error building generic filters"
+        )
+    else:
+        if generic_filters and len(generic_filters["filters"]) > 0:
+            filter_settings["generic"] = generic_filters
+
     return filter_settings
+
+
+class GenericFilter(TypedDict):
+    id: str
+    isEnabled: bool
+    condition: (
+        Condition
+        | EqCondition
+        | GteCondition
+        | GtCondition
+        | LteCondition
+        | LtCondition
+        | GlobCondition
+        | None
+    )
+
+
+class GenericFiltersConfig(TypedDict):
+    version: int
+    filters: Sequence[GenericFilter]
+
+
+def _get_generic_project_filters() -> GenericFiltersConfig:
+    return {
+        "version": 1,
+        "filters": [],
+    }
 
 
 def get_quotas(project: Project, keys: Sequence[ProjectKey] | None = None) -> list[str]:
@@ -193,48 +240,50 @@ class SlidingWindow(TypedDict):
 
 class CardinalityLimit(TypedDict):
     id: str
+    passive: NotRequired[bool]
     window: SlidingWindow
     limit: int
-    scope: Literal["organization"]
+    scope: Literal["organization", "project"]
     namespace: str | None
 
 
-def get_metrics_config(project: Project) -> Mapping[str, Any] | None:
+def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, Any] | None:
     metrics_config = {}
 
     if features.has("organizations:relay-cardinality-limiter", project.organization):
-        cardinality_limits: list[CardinalityLimit] = []
-        cardinality_options = {
-            "unsupported": "sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org"
-        }
-        cardinality_options.update(
-            (namespace.value, option)
-            for namespace, option in USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS.items()
+        passive_limits = options.get("relay.cardinality-limiter.passive-limits-by-org").get(
+            str(project.organization.id), []
         )
-        for namespace, option_name in cardinality_options.items():
+
+        cardinality_limits: list[CardinalityLimit] = []
+        for namespace, option_name in USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS.items():
+            timeout.check()
             option = options.get(option_name)
             if not option or not len(option) == 1:
                 # Multiple quotas are not supported
                 continue
 
             quota = option[0]
+            id = namespace.value
 
-            cardinality_limits.append(
-                {
-                    "id": namespace,
-                    "window": {
-                        "windowSeconds": quota["window_seconds"],
-                        "granularitySeconds": quota["granularity_seconds"],
-                    },
-                    "limit": quota["limit"],
-                    "scope": "organization",
-                    "namespace": namespace,
-                }
-            )
+            limit: CardinalityLimit = {
+                "id": id,
+                "window": {
+                    "windowSeconds": quota["window_seconds"],
+                    "granularitySeconds": quota["granularity_seconds"],
+                },
+                "limit": quota["limit"],
+                "scope": "organization",
+                "namespace": namespace.value,
+            }
+            if id in passive_limits:
+                limit["passive"] = True
+            cardinality_limits.append(limit)
         metrics_config["cardinalityLimits"] = cardinality_limits
 
     if features.has("organizations:metrics-blocking", project.organization):
         metrics_blocking_state = get_metrics_blocking_state_for_relay_config(project)
+        timeout.check()
         if metrics_blocking_state is not None:
             metrics_config.update(metrics_blocking_state)  # type:ignore
 
@@ -259,11 +308,14 @@ def get_project_config(
     """
     with sentry_sdk.push_scope() as scope:
         scope.set_tag("project", project.id)
-        with metrics.timer("relay.config.get_project_config.duration"):
+        with (
+            sentry_sdk.start_transaction(name="get_project_config"),
+            metrics.timer("relay.config.get_project_config.duration"),
+        ):
             return _get_project_config(project, full_config=full_config, project_keys=project_keys)
 
 
-def get_dynamic_sampling_config(project: Project) -> Mapping[str, Any] | None:
+def get_dynamic_sampling_config(timeout: TimeChecker, project: Project) -> Mapping[str, Any] | None:
     if features.has("organizations:dynamic-sampling", project.organization):
         # For compatibility reasons we want to return an empty list of old rules. This has been done in order to make
         # old Relays use empty configs which will result in them forwarding sampling decisions to upstream Relays.
@@ -287,11 +339,14 @@ class TransactionNameRule(TypedDict):
     redaction: TransactionNameRuleRedaction
 
 
-def get_transaction_names_config(project: Project) -> Sequence[TransactionNameRule] | None:
+def get_transaction_names_config(
+    timeout: TimeChecker, project: Project
+) -> Sequence[TransactionNameRule] | None:
     if not features.has("organizations:transaction-name-normalize", project.organization):
         return None
 
     cluster_rules = get_sorted_rules(ClustererNamespace.TRANSACTIONS, project)
+    timeout.check()
     if not cluster_rules:
         return None
 
@@ -326,28 +381,6 @@ class SpanDescriptionRule(TypedDict):
     expiry: str
     scope: SpanDescriptionScope
     redaction: SpanDescriptionRuleRedaction
-
-
-def add_experimental_config(
-    config: MutableMapping[str, Any],
-    key: str,
-    function: Callable[..., Any],
-    *args: Any,
-    **kwargs: Any,
-) -> None:
-    """Try to set `config[key] = function(*args, **kwargs)`.
-    If the result of the function call is None, the key is not set.
-    If the function call raises an exception, we log it to sentry and the key remains unset.
-    NOTE: Only use this function if you expect Relay to behave reasonably
-    if ``key`` is missing from the config.
-    """
-    try:
-        subconfig = function(*args, **kwargs)
-    except Exception:
-        logger.exception("Exception while building Relay project config field")
-    else:
-        if subconfig is not None:
-            config[key] = subconfig
 
 
 def _should_extract_abnormal_mechanism(project: Project) -> bool:
@@ -389,8 +422,9 @@ def _get_project_config(
 
     config = cfg["config"]
 
-    if exposed_features := get_exposed_features(project):
-        config["features"] = exposed_features
+    with sentry_sdk.start_span(op="get_exposed_features"):
+        if exposed_features := get_exposed_features(project):
+            config["features"] = exposed_features
 
     # NOTE: Omitting dynamicSampling because of a failure increases the number
     # of events forwarded by Relay, because dynamic sampling will stop filtering
@@ -444,6 +478,9 @@ def _get_project_config(
         }
 
     if features.has("organizations:performance-calculate-score-relay", project.organization):
+        shouldIncludeFid = not features.has(
+            "organizations:deprecate-fid-from-performance-score", project.organization
+        )
         config["performanceScore"] = {
             "profiles": [
                 {
@@ -465,7 +502,7 @@ def _get_project_config(
                         },
                         {
                             "measurement": "fid",
-                            "weight": 0.30,
+                            "weight": 0.30 if shouldIncludeFid else 0.0,
                             "p10": 100.0,
                             "p50": 300.0,
                             "optional": True,
@@ -510,7 +547,7 @@ def _get_project_config(
                         },
                         {
                             "measurement": "fid",
-                            "weight": 0.30,
+                            "weight": 0.30 if shouldIncludeFid else 0.0,
                             "p10": 100.0,
                             "p50": 300.0,
                             "optional": True,
@@ -600,7 +637,7 @@ def _get_project_config(
                         },
                         {
                             "measurement": "fid",
-                            "weight": 0.30,
+                            "weight": 0.30 if shouldIncludeFid else 0.0,
                             "p10": 100.0,
                             "p50": 300.0,
                             "optional": True,
@@ -645,7 +682,7 @@ def _get_project_config(
                         },
                         {
                             "measurement": "fid",
-                            "weight": 0.30,
+                            "weight": 0.30 if shouldIncludeFid else 0.0,
                             "p10": 100.0,
                             "p50": 300.0,
                             "optional": True,
@@ -943,7 +980,7 @@ def _should_extract_transaction_metrics(project: Project) -> bool:
 
 
 def get_transaction_metrics_settings(
-    project: Project, breakdowns_config: Mapping[str, Any] | None
+    timeout: TimeChecker, project: Project, breakdowns_config: Mapping[str, Any] | None
 ) -> TransactionMetricsSettings:
     """This function assumes that the corresponding feature flag has been checked.
     See _should_extract_transaction_metrics.

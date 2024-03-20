@@ -9,7 +9,7 @@ import re
 import time
 from collections.abc import Mapping, Sequence
 from contextlib import contextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from io import BytesIO
 from typing import Any, Literal, Union
 from unittest import mock
@@ -35,7 +35,7 @@ from django.test import TransactionTestCase as DjangoTransactionTestCase
 from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import resolve, reverse
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 from django.utils.functional import cached_property
 from requests.utils import CaseInsensitiveDict, get_encoding_from_headers
 from rest_framework import status
@@ -62,8 +62,7 @@ from sentry.auth.superuser import COOKIE_NAME as SU_COOKIE_NAME
 from sentry.auth.superuser import COOKIE_PATH as SU_COOKIE_PATH
 from sentry.auth.superuser import COOKIE_SALT as SU_COOKIE_SALT
 from sentry.auth.superuser import COOKIE_SECURE as SU_COOKIE_SECURE
-from sentry.auth.superuser import ORG_ID as SU_ORG_ID
-from sentry.auth.superuser import Superuser
+from sentry.auth.superuser import SUPERUSER_ORG_ID, Superuser
 from sentry.event_manager import EventManager
 from sentry.eventstore.models import Event
 from sentry.eventstream.snuba import SnubaEventStream
@@ -131,7 +130,6 @@ from sentry.testutils.pytest.selenium import Browser
 from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
 from sentry.utils import json
 from sentry.utils.auth import SsoSession
-from sentry.utils.dates import to_timestamp
 from sentry.utils.json import dumps_htmlsafe
 from sentry.utils.performance_issues.performance_detection import detect_performance_problems
 from sentry.utils.retries import TimedRetryPolicy
@@ -331,11 +329,11 @@ class BaseTestCase(Fixtures):
         else:
             organization_ids = set(organization_ids)
         if superuser and superuser_sso is not False:
-            if SU_ORG_ID:
-                organization_ids.add(SU_ORG_ID)
+            if SUPERUSER_ORG_ID:
+                organization_ids.add(SUPERUSER_ORG_ID)
         if staff and staff_sso is not False:
             if STAFF_ORG_ID:
-                organization_ids.add(SU_ORG_ID)
+                organization_ids.add(SUPERUSER_ORG_ID)
         if organization_id:
             organization_ids.add(organization_id)
 
@@ -637,23 +635,32 @@ class PerformanceIssueTestCase(BaseTestCase):
         perf_event_manager = EventManager(event_data)
         perf_event_manager.normalize()
 
-        def detect_performance_problems_interceptor(data: Event, project: Project):
-            perf_problems = detect_performance_problems(data, project)
+        def detect_performance_problems_interceptor(
+            data: Event, project: Project, is_standalone_spans: bool = False
+        ):
+            perf_problems = detect_performance_problems(
+                data, project, is_standalone_spans=is_standalone_spans
+            )
             if fingerprint:
                 for perf_problem in perf_problems:
                     perf_problem.fingerprint = fingerprint
             return perf_problems
 
-        with mock.patch(
-            "sentry.issues.ingest.send_issue_occurrence_to_eventstream",
-            side_effect=send_issue_occurrence_to_eventstream,
-        ) as mock_eventstream, mock.patch(
-            "sentry.event_manager.detect_performance_problems",
-            side_effect=detect_performance_problems_interceptor,
-        ), mock.patch.object(
-            issue_type, "noise_config", new=NoiseConfig(noise_limit, timedelta(minutes=1))
-        ), override_options(
-            {"performance.issues.all.problem-detection": 1.0, detector_option: 1.0}
+        with (
+            mock.patch(
+                "sentry.issues.ingest.send_issue_occurrence_to_eventstream",
+                side_effect=send_issue_occurrence_to_eventstream,
+            ) as mock_eventstream,
+            mock.patch(
+                "sentry.event_manager.detect_performance_problems",
+                side_effect=detect_performance_problems_interceptor,
+            ),
+            mock.patch.object(
+                issue_type, "noise_config", new=NoiseConfig(noise_limit, timedelta(minutes=1))
+            ),
+            override_options(
+                {"performance.issues.all.problem-detection": 1.0, detector_option: 1.0}
+            ),
         ):
             event = perf_event_manager.save(project_id)
             if mock_eventstream.call_args:
@@ -695,13 +702,13 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
         :returns Response object
         """
         url = reverse(self.endpoint, args=args)
-        # In some cases we want to pass querystring params to put/post, handle
-        # this here.
+        # In some cases we want to pass querystring params to put/post, handle this here.
         if "qs_params" in params:
             query_string = urlencode(params.pop("qs_params"), doseq=True)
             url = f"{url}?{query_string}"
 
         headers = params.pop("extra_headers", {})
+        format = params.pop("format", "json")
         raw_data = params.pop("raw_data", None)
         if raw_data and isinstance(raw_data, bytes):
             raw_data = raw_data.decode("utf-8")
@@ -710,7 +717,7 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
         data = raw_data or params
         method = params.pop("method", self.method).lower()
 
-        return getattr(self.client, method)(url, format="json", data=data, **headers)
+        return getattr(self.client, method)(url, format=format, data=data, **headers)
 
     def get_success_response(self, *args, **params):
         """
@@ -957,7 +964,7 @@ class DRFPermissionTestCase(TestCase):
         self.superuser_user = self.create_user(is_superuser=True, is_staff=False)
         self.staff_user = self.create_user(is_staff=True, is_superuser=False)
         self.superuser_request = self.make_request(user=self.superuser_user, is_superuser=True)
-        self.staff_request = self.make_request(user=self.staff_user, is_staff=True)
+        self.staff_request = self.make_request(user=self.staff_user, method="GET", is_staff=True)
 
 
 class PermissionTestCase(TestCase):
@@ -1108,7 +1115,7 @@ class AcceptanceTestCase(TransactionTestCase):
     def _setup_today(self):
         with mock.patch(
             "django.utils.timezone.now",
-            return_value=(datetime(2013, 5, 18, 15, 13, 58, 132928, tzinfo=timezone.utc)),
+            return_value=(datetime(2013, 5, 18, 15, 13, 58, 132928, tzinfo=UTC)),
         ):
             yield
 
@@ -1478,7 +1485,7 @@ class BaseSpansTestCase(SnubaTestCase):
         if span_id is None:
             span_id = self._random_span_id()
         if timestamp is None:
-            timestamp = datetime.now(tz=timezone.utc)
+            timestamp = timezone.now()
 
         payload = {
             "project_id": project_id,
@@ -1487,7 +1494,7 @@ class BaseSpansTestCase(SnubaTestCase):
             "duration_ms": int(duration),
             "exclusive_time_ms": int(exclusive_time),
             "is_segment": True,
-            "received": datetime.now(tz=timezone.utc).timestamp(),
+            "received": timezone.now().timestamp(),
             "start_timestamp_ms": int(timestamp.timestamp() * 1000),
             "sentry_tags": {"transaction": transaction or "/hello"},
             "retention_days": 90,
@@ -1516,6 +1523,7 @@ class BaseSpansTestCase(SnubaTestCase):
         transaction: str | None = None,
         op: str | None = None,
         duration: int = 10,
+        exclusive_time: int = 5,
         tags: Mapping[str, Any] | None = None,
         measurements: Mapping[str, int | float] | None = None,
         timestamp: datetime | None = None,
@@ -1526,16 +1534,16 @@ class BaseSpansTestCase(SnubaTestCase):
         if span_id is None:
             span_id = self._random_span_id()
         if timestamp is None:
-            timestamp = datetime.now(tz=timezone.utc)
+            timestamp = timezone.now()
 
         payload = {
             "project_id": project_id,
             "span_id": span_id,
             "trace_id": trace_id,
             "duration_ms": int(duration),
-            "exclusive_time_ms": 5,
+            "exclusive_time_ms": exclusive_time,
             "is_segment": False,
-            "received": datetime.now(tz=timezone.utc).timestamp(),
+            "received": timezone.now().timestamp(),
             "start_timestamp_ms": int(timestamp.timestamp() * 1000),
             "sentry_tags": {
                 "transaction": transaction or "/hello",
@@ -1599,7 +1607,7 @@ class BaseMetricsTestCase(SnubaTestCase):
                 int(
                     session["started"]
                     if isinstance(session["started"], (int, float))
-                    else to_timestamp(session["started"])
+                    else session["started"].timestamp()
                 ),
                 value,
                 use_case_id=UseCaseID.SESSIONS,
@@ -1774,7 +1782,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
     # This time has been specifically chosen to be 10:00:00 so that all tests will automatically have the data inserted
     # and queried with automatically inferred timestamps (e.g., usage of - 1 second, get_date_range()...) without
     # incurring into problems.
-    MOCK_DATETIME = (django_timezone.now() - timedelta(days=1)).replace(
+    MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
         hour=10, minute=0, second=0, microsecond=0
     )
 
@@ -2023,12 +2031,14 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         "measurements.score.fid": "metrics_distributions",
         "measurements.score.cls": "metrics_distributions",
         "measurements.score.ttfb": "metrics_distributions",
+        "measurements.score.inp": "metrics_distributions",
         "measurements.score.total": "metrics_distributions",
         "measurements.score.weight.lcp": "metrics_distributions",
         "measurements.score.weight.fcp": "metrics_distributions",
         "measurements.score.weight.fid": "metrics_distributions",
         "measurements.score.weight.cls": "metrics_distributions",
         "measurements.score.weight.ttfb": "metrics_distributions",
+        "measurements.score.weight.inp": "metrics_distributions",
         "measurements.app_start_cold": "metrics_distributions",
         "measurements.app_start_warm": "metrics_distributions",
         "spans.http": "metrics_distributions",
@@ -2050,7 +2060,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         "s": EntityKey.MetricsSets.value,
     }
     METRIC_STRINGS = []
-    DEFAULT_METRIC_TIMESTAMP = datetime(2015, 1, 1, 10, 15, 0, tzinfo=timezone.utc)
+    DEFAULT_METRIC_TIMESTAMP = datetime(2015, 1, 1, 10, 15, 0, tzinfo=UTC)
 
     def setUp(self):
         super().setUp()
@@ -2059,7 +2069,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         self.login_as(user=self.user)
         self._index_metric_strings()
 
-    def do_request(self, data: dict[str, Any], features: dict[str, bool] = None) -> Response:
+    def do_request(self, data: dict[str, Any], features: dict[str, bool] | None = None) -> Response:
         """Set up self.features and self.url in the inheriting classes.
         You can pass your own features if you do not want to use the default used by the subclass.
         """
@@ -2252,7 +2262,7 @@ class BaseIncidentsTest(SnubaTestCase):
 
     @cached_property
     def now(self):
-        return django_timezone.now().replace(minute=0, second=0, microsecond=0)
+        return timezone.now().replace(minute=0, second=0, microsecond=0)
 
 
 @pytest.mark.snuba
@@ -2324,7 +2334,7 @@ class ProfilesSnubaTestCase(
             "platform": transaction["platform"],
             "profile_id": profile_id,
             "project_id": project.id,
-            "received": int(datetime.now(tz=timezone.utc).timestamp()),
+            "received": int(timezone.now().timestamp()),
             "retention_days": 90,
             "timestamp": int(timestamp),
             "transaction_name": transaction["transaction"],
@@ -2386,7 +2396,7 @@ class ReplaysSnubaTestCase(TestCase):
 # AcceptanceTestCase and TestCase are mutually exclusive base classses
 class ReplaysAcceptanceTestCase(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
-        self.now = datetime.now(timezone.utc)
+        self.now = datetime.now(UTC)
         super().setUp()
         self.drop_replays()
         patcher = mock.patch("django.utils.timezone.now", return_value=self.now)
@@ -2775,7 +2785,7 @@ class ActivityTestCase(TestCase):
         release = Release.objects.create(
             version=name * 40,
             organization_id=self.project.organization_id,
-            date_released=django_timezone.now(),
+            date_released=timezone.now(),
         )
         release.add_project(self.project)
         release.add_project(self.project2)
@@ -2865,21 +2875,19 @@ class SlackActivityNotificationTest(ActivityTestCase):
         issue_link = f"http://testserver/organizations/{org_slug}/issues/{group.id}/?referrer={referrer}&notification_uuid={notification_uuid}"
         if issue_link_extra_params is not None:
             issue_link += issue_link_extra_params
-        assert blocks[1]["text"]["text"] == f":chart_with_upwards_trend: <{issue_link}|*N+1 Query*>"
+        assert (
+            blocks[1]["text"]["text"]
+            == f":large_blue_circle: :chart_with_upwards_trend: <{issue_link}|*N+1 Query*>"
+        )
         assert (
             blocks[2]["text"]["text"]
             == "```db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21```"
         )
         assert (
-            blocks[3]["text"]["text"]
-            == "environment: `production`  release: `<http://testserver/releases/0.1/|0.1>`  "
+            blocks[3]["elements"][0]["text"] == "State: *Ongoing*   First Seen: *10\xa0minutes ago*"
         )
         assert (
             blocks[4]["elements"][0]["text"]
-            == "Events: *1*   State: *Ongoing*   First Seen: *10\xa0minutes ago*"
-        )
-        assert (
-            blocks[5]["elements"][0]["text"]
             == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
@@ -2910,14 +2918,15 @@ class SlackActivityNotificationTest(ActivityTestCase):
             issue_link += issue_link_extra_params
         assert (
             blocks[1]["text"]["text"]
-            == f":exclamation: <{issue_link}|*{TEST_ISSUE_OCCURRENCE.issue_title}*>"
+            == f":red_circle: <{issue_link}|*{TEST_ISSUE_OCCURRENCE.issue_title}*>"
         )
         assert (
             blocks[2]["text"]["text"]
             == "```" + TEST_ISSUE_OCCURRENCE.evidence_display[0].value + "```"
         )
+
         assert (
-            blocks[5]["elements"][0]["text"]
+            blocks[-2]["elements"][0]["text"]
             == f"{project_slug} | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
@@ -3074,7 +3083,7 @@ class MonitorTestCase(APITestCase):
             monitor=monitor, environment_id=environment.id, **monitorenvironment_defaults
         )
 
-    def _create_issue_alert_rule(self, monitor):
+    def _create_issue_alert_rule(self, monitor, exclude_slug_filter=False):
         conditions = [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
@@ -3082,13 +3091,16 @@ class MonitorTestCase(APITestCase):
             {
                 "id": "sentry.rules.conditions.regression_event.RegressionEventCondition",
             },
-            {
-                "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
-                "key": "monitor.slug",
-                "match": "eq",
-                "value": monitor.slug,
-            },
         ]
+        if not exclude_slug_filter:
+            conditions.append(
+                {
+                    "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+                    "key": "monitor.slug",
+                    "match": "eq",
+                    "value": monitor.slug,
+                },
+            )
         actions = [
             {
                 "id": "sentry.mail.actions.NotifyEmailAction",

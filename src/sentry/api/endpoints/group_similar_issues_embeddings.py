@@ -77,13 +77,16 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
     def get_formatted_results(
         self, responses: Sequence[SimilarIssuesEmbeddingsData | None], user: User | AnonymousUser
     ) -> Sequence[tuple[Mapping[str, Any], Mapping[str, Any]] | None]:
-        """Format the responses using to be used by the frontend."""
+        """
+        Format the responses using to be used by the frontend by changing the  field names and
+        changing the cosine distances into cosine similarities.
+        """
         group_data = {}
         for response in responses:
             if response:
                 formatted_response: FormattedSimilarIssuesEmbeddingsData = {
-                    "message": response["message_similarity"],
-                    "exception": response["stacktrace_similarity"],
+                    "message": 1 - response["message_distance"],
+                    "exception": 1 - response["stacktrace_distance"],
                     "shouldBeGrouped": "Yes" if response["should_group"] else "No",
                 }
                 group_data.update({response["parent_group_id"]: formatted_response})
@@ -141,9 +144,9 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             group_id=group.id,
             count_over_threshold=len(
                 [
-                    result["stacktrace_similarity"]  # type: ignore
+                    result["stacktrace_distance"]
                     for result in results["responses"]
-                    if result["stacktrace_similarity"] > 0.99  # type: ignore
+                    if result and result["stacktrace_distance"] <= 0.01
                 ]
             )
             if results["responses"]

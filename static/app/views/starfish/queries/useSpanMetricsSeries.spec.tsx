@@ -5,6 +5,7 @@ import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import {QueryClientProvider} from 'sentry/utils/queryClient';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -53,6 +54,34 @@ describe('useSpanMetricsSeries', () => {
 
   jest.mocked(useOrganization).mockReturnValue(organization);
 
+  it('respects the `enabled` prop', () => {
+    const eventsRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-stats/`,
+      method: 'GET',
+      body: {},
+    });
+
+    const {result} = reactHooks.renderHook(
+      ({filters, enabled}) =>
+        useSpanMetricsSeries({
+          search: MutableSearch.fromQueryObject(filters),
+          enabled,
+        }),
+      {
+        wrapper: Wrapper,
+        initialProps: {
+          filters: {
+            'span.group': '221aa7ebd216',
+          },
+          enabled: false,
+        },
+      }
+    );
+
+    expect(result.current.isFetching).toEqual(false);
+    expect(eventsRequest).not.toHaveBeenCalled();
+  });
+
   it('queries for current selection', async () => {
     const eventsRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
@@ -67,8 +96,9 @@ describe('useSpanMetricsSeries', () => {
       },
     });
 
-    const {result, waitForNextUpdate} = reactHooks.renderHook(
-      ({filters, yAxis}) => useSpanMetricsSeries({filters, yAxis}),
+    const {result, waitFor} = reactHooks.renderHook(
+      ({filters, yAxis}) =>
+        useSpanMetricsSeries({search: MutableSearch.fromQueryObject(filters), yAxis}),
       {
         wrapper: Wrapper,
         initialProps: {
@@ -77,6 +107,7 @@ describe('useSpanMetricsSeries', () => {
             transaction: '/api/details',
             release: '0.0.1',
             'resource.render_blocking_status': 'blocking' as const,
+            environment: undefined,
           },
           yAxis: ['spm()'] as MetricsProperty[],
         },
@@ -100,9 +131,7 @@ describe('useSpanMetricsSeries', () => {
       })
     );
 
-    await waitForNextUpdate();
-
-    expect(result.current.isLoading).toEqual(false);
+    await waitFor(() => expect(result.current.isLoading).toEqual(false));
     expect(result.current.data).toEqual({
       'spm()': {
         data: [
@@ -121,7 +150,7 @@ describe('useSpanMetricsSeries', () => {
       body: {},
     });
 
-    const {rerender, waitForNextUpdate} = reactHooks.renderHook(
+    const {rerender, waitFor} = reactHooks.renderHook(
       ({yAxis}) => useSpanMetricsSeries({yAxis}),
       {
         wrapper: Wrapper,
@@ -146,17 +175,17 @@ describe('useSpanMetricsSeries', () => {
       yAxis: ['p95(span.self_time)', 'spm()'] as MetricsProperty[],
     });
 
-    expect(eventsRequest).toHaveBeenLastCalledWith(
-      '/organizations/org-slug/events-stats/',
-      expect.objectContaining({
-        method: 'GET',
-        query: expect.objectContaining({
-          interval: '1h',
-          yAxis: ['p95(span.self_time)', 'spm()'] as MetricsProperty[],
-        }),
-      })
+    await waitFor(() =>
+      expect(eventsRequest).toHaveBeenLastCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          method: 'GET',
+          query: expect.objectContaining({
+            interval: '1h',
+            yAxis: ['p95(span.self_time)', 'spm()'] as MetricsProperty[],
+          }),
+        })
+      )
     );
-
-    await waitForNextUpdate();
   });
 });

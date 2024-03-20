@@ -12,6 +12,7 @@ import {fromSorts} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {formatSpanOperation} from 'sentry/utils/formatters';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {StarfishPageFiltersContainer} from 'sentry/views/starfish/components/starfishPageFiltersContainer';
@@ -63,8 +64,9 @@ function SpanSummaryPage({params, location}: Props) {
     )[0] ?? DEFAULT_SORT; // We only allow one sort on this table in this view
 
   const {data, isLoading: isSpanMetricsLoading} = useSpanMetrics({
-    filters,
+    search: MutableSearch.fromQueryObject(filters),
     fields: ['span.op', 'span.group', 'project.id', 'sps()'],
+    enabled: Boolean(groupId),
     referrer: 'api.starfish.span-summary-page-metrics',
   });
 

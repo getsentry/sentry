@@ -3,11 +3,7 @@ from collections.abc import Mapping
 from functools import partial
 
 import sentry_sdk
-from arroyo import Topic, configure_metrics
-from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
-from arroyo.backends.kafka.consumer import KafkaConsumer, KafkaPayload
-from arroyo.commit import ONCE_PER_SECOND
-from arroyo.processing.processor import StreamProcessor
+from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import (
     CommitOffsets,
     ProcessingStrategy,
@@ -17,10 +13,12 @@ from arroyo.processing.strategies import (
 from arroyo.types import BrokerValue, Commit, Message, Partition
 from sentry_kafka_schemas import get_codec
 
+from sentry.conf.types.kafka_definition import Topic
 from sentry.features.rollout import in_random_rollout
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.query_subscriptions.constants import dataset_to_logical_topic, topic_to_dataset
+from sentry.snuba.query_subscriptions.constants import dataset_to_logical_topic
 from sentry.utils.arroyo import MultiprocessingPool, RunTaskWithMultiprocessing
+from sentry.utils.kafka_config import get_topic_definition
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +26,7 @@ logger = logging.getLogger(__name__)
 class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def __init__(
         self,
-        topic: str,
+        dataset: str,
         max_batch_size: int,
         max_batch_time: int,
         num_processes: int,
@@ -36,9 +34,9 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         output_block_size: int | None,
         multi_proc: bool = True,
     ):
-        self.topic = topic
-        self.dataset = topic_to_dataset[self.topic]
+        self.dataset = Dataset(dataset)
         self.logical_topic = dataset_to_logical_topic[self.dataset]
+        self.topic = get_topic_definition(Topic(self.logical_topic))["real_topic_name"]
         self.max_batch_size = max_batch_size
         self.max_batch_time = max_batch_time
         self.input_block_size = input_block_size
@@ -106,56 +104,3 @@ def process_message(
                     "value": message_value,
                 },
             )
-
-
-def get_query_subscription_consumer(
-    topic: str,
-    group_id: str,
-    strict_offset_reset: bool,
-    initial_offset_reset: str,
-    max_batch_size: int,
-    max_batch_time: int,
-    num_processes: int,
-    input_block_size: int | None,
-    output_block_size: int | None,
-    multi_proc: bool = False,
-) -> StreamProcessor[KafkaPayload]:
-    from sentry.utils import kafka_config
-
-    cluster_name = kafka_config.get_topic_definition(topic)["cluster"]
-    cluster_options = kafka_config.get_kafka_consumer_cluster_options(cluster_name)
-
-    initialize_metrics(group_id=group_id)
-
-    consumer = KafkaConsumer(
-        build_kafka_consumer_configuration(
-            cluster_options,
-            group_id=group_id,
-            strict_offset_reset=strict_offset_reset,
-            auto_offset_reset=initial_offset_reset,
-        )
-    )
-    return StreamProcessor(
-        consumer=consumer,
-        topic=Topic(topic),
-        processor_factory=QuerySubscriptionStrategyFactory(
-            topic,
-            max_batch_size,
-            max_batch_time,
-            num_processes,
-            input_block_size,
-            output_block_size,
-            multi_proc=multi_proc,
-        ),
-        commit_policy=ONCE_PER_SECOND,
-    )
-
-
-def initialize_metrics(group_id: str) -> None:
-    from sentry.utils import metrics
-    from sentry.utils.arroyo import MetricsWrapper
-
-    metrics_wrapper = MetricsWrapper(
-        metrics.backend, name="query_subscription_consumer", tags={"consumer_group": group_id}
-    )
-    configure_metrics(metrics_wrapper)

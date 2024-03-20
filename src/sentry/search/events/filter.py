@@ -21,7 +21,8 @@ from sentry.constants import SEMVER_FAKE_PACKAGE
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.group import Group
 from sentry.models.project import Project
-from sentry.models.release import Release, SemverFilter
+from sentry.models.release import Release
+from sentry.models.releases.util import SemverFilter
 from sentry.search.events.constants import (
     ARRAY_FIELDS,
     EQUALITY_OPERATORS,
@@ -47,7 +48,6 @@ from sentry.search.events.constants import (
 )
 from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS, resolve_field
 from sentry.search.utils import parse_release
-from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import FUNCTION_TO_OPERATOR, OPERATOR_TO_FUNCTION, SNUBA_AND, SNUBA_OR
 from sentry.utils.strings import oxfordize_list
 from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCARD_NOT_ALLOWED
@@ -104,9 +104,7 @@ def convert_aggregate_filter_to_snuba_query(aggregate_filter, params):
     if params is not None and name in params.get("aliases", {}):
         return params["aliases"][name].converter(aggregate_filter)
 
-    value = (
-        int(to_timestamp(value)) if isinstance(value, datetime) and name != "timestamp" else value
-    )
+    value = int(value.timestamp()) if isinstance(value, datetime) and name != "timestamp" else value
 
     if aggregate_filter.operator in ("=", "!=") and aggregate_filter.value.value == "":
         return [["isNull", [name]], aggregate_filter.operator, 1]
@@ -636,7 +634,7 @@ def convert_search_filter_to_snuba_query(
             "timestamp.to_hour",
             "timestamp.to_day",
         }:
-            value = int(to_timestamp(value)) * 1000
+            value = int(value.timestamp()) * 1000
 
         if name in {"trace.span", "trace.parent_span"}:
             if search_filter.value.is_wildcard():

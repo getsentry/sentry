@@ -4,23 +4,34 @@ import {css} from '@emotion/react';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {WidgetTitle} from 'sentry/components/modals/metricWidgetViewerModal/header';
+import {
+  MetricWidgetTitle,
+  type MetricWidgetTitleState,
+} from 'sentry/components/modals/metricWidgetViewerModal/header';
 import {Queries} from 'sentry/components/modals/metricWidgetViewerModal/queries';
 import {MetricVisualization} from 'sentry/components/modals/metricWidgetViewerModal/visualization';
 import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
-import {getDdmUrl, getWidgetTitle} from 'sentry/utils/metrics';
-import {emptyMetricsQueryWidget} from 'sentry/utils/metrics/constants';
-import {convertToDashboardWidget, toDisplayType} from 'sentry/utils/metrics/dashboard';
-import type {MetricQueryWidgetParams} from 'sentry/utils/metrics/types';
-import type {MetricsQueryApiRequestQuery} from 'sentry/utils/metrics/useMetricsQuery';
+import {getDdmUrl} from 'sentry/utils/metrics';
+import {toDisplayType} from 'sentry/utils/metrics/dashboard';
+import {MetricQueryType} from 'sentry/utils/metrics/types';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import type {
+  DashboardMetricsEquation,
+  DashboardMetricsQuery,
+  Order,
+} from 'sentry/views/dashboards/metrics/types';
 import {
+  expressionsToApiQueries,
+  expressionsToWidget,
+  filterEquationsByDisplayType,
+  filterQueriesByDisplayType,
+  getMetricEquations,
   getMetricQueries,
-  toMetricDisplayType,
+  getMetricWidgetTitle,
+  useGenerateExpressionId,
 } from 'sentry/views/dashboards/metrics/utils';
-import {getQuerySymbol} from 'sentry/views/ddm/querySymbol';
 import {MetricDetails} from 'sentry/views/ddm/widgetDetails';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
@@ -39,131 +50,204 @@ function MetricWidgetViewerModal({
   dashboardFilters,
 }: Props) {
   const {selection} = usePageFilters();
-  const [metricWidgetQueries, setMetricWidgetQueries] = useState<
-    MetricsQueryApiRequestQuery[]
-  >(getMetricQueries(widget, dashboardFilters));
-
-  const widgetMQL = useMemo(
-    () => getWidgetTitle(metricWidgetQueries),
-    [metricWidgetQueries]
+  const [displayType, setDisplayType] = useState(widget.displayType);
+  const [metricQueries, setMetricQueries] = useState<DashboardMetricsQuery[]>(() =>
+    getMetricQueries(widget, dashboardFilters)
+  );
+  const [metricEquations, setMetricEquations] = useState<DashboardMetricsEquation[]>(() =>
+    getMetricEquations(widget)
   );
 
-  const [displayType, setDisplayType] = useState(toMetricDisplayType(widget.displayType));
-  const [editedTitle, setEditedTitle] = useState<string>(widget.title);
-  // If user renamed the widget, dislay that title, otherwise display the MQL
-  const titleToDisplay = editedTitle === '' ? widgetMQL : editedTitle;
+  const filteredQueries = useMemo(
+    () => filterQueriesByDisplayType(metricQueries, displayType),
+    [metricQueries, displayType]
+  );
 
-  const handleChange = useCallback(
-    (data: Partial<MetricQueryWidgetParams>, index: number) => {
-      setMetricWidgetQueries(curr => {
+  const filteredEquations = useMemo(
+    () =>
+      filterEquationsByDisplayType(metricEquations, displayType).filter(
+        equation => equation.formula !== ''
+      ),
+    [metricEquations, displayType]
+  );
+
+  const generateQueryId = useGenerateExpressionId(metricQueries);
+  const generateEquationId = useGenerateExpressionId(metricEquations);
+
+  const apiQueries = useMemo(
+    () => expressionsToApiQueries([...filteredQueries, ...filteredEquations]),
+    [filteredQueries, filteredEquations]
+  );
+
+  const widgetMQL = useMemo(
+    () => getMetricWidgetTitle([...filteredQueries, ...filteredEquations]),
+    [filteredQueries, filteredEquations]
+  );
+
+  const [title, setTitle] = useState<MetricWidgetTitleState>({
+    stored: widget.title,
+    edited: widget.title,
+    isEditing: false,
+  });
+
+  const handleTitleChange = useCallback(
+    (patch: Partial<MetricWidgetTitleState>) => {
+      setTitle(curr => ({...curr, ...patch}));
+    },
+    [setTitle]
+  );
+
+  const handleQueryChange = useCallback(
+    (data: Partial<DashboardMetricsQuery>, index: number) => {
+      setMetricQueries(curr => {
         const updated = [...curr];
-        updated[index] = {...updated[index], ...data};
+        updated[index] = {...updated[index], ...data} as DashboardMetricsQuery;
         return updated;
       });
     },
-    [setMetricWidgetQueries]
+    [setMetricQueries]
   );
 
-  const handleTitleChange = useCallback(
-    (value: string) => {
-      setEditedTitle(value || widgetMQL);
+  const handleEquationChange = useCallback(
+    (data: Partial<DashboardMetricsEquation>, index: number) => {
+      setMetricEquations(curr => {
+        const updated = [...curr];
+        updated[index] = {...updated[index], ...data} as DashboardMetricsEquation;
+        return updated;
+      });
     },
-    [setEditedTitle, widgetMQL]
+    [setMetricEquations]
+  );
+
+  const handleOrderChange = useCallback(
+    ({id, order}: {id: number; order: Order}) => {
+      const queryIdx = filteredQueries.findIndex(query => query.id === id);
+      if (queryIdx > -1) {
+        setMetricQueries(curr => {
+          return curr.map((query, i) => {
+            const orderBy = i === queryIdx ? order : undefined;
+            return {...query, orderBy};
+          });
+        });
+        return;
+      }
+
+      const equationIdx = filteredEquations.findIndex(equation => equation.id === id);
+      if (equationIdx > -1) {
+        setMetricEquations(curr => {
+          return curr.map((equation, i) => {
+            const orderBy = i === equationIdx ? order : undefined;
+            return {...equation, orderBy};
+          });
+        });
+      }
+    },
+    [filteredEquations, filteredQueries]
   );
 
   const addQuery = useCallback(() => {
-    setMetricWidgetQueries(curr => {
+    setMetricQueries(curr => {
       return [
         ...curr,
         {
-          ...emptyMetricsQueryWidget,
-          // TODO: generate a unique name
-          name: 'temporary',
+          ...metricQueries[metricQueries.length - 1],
+          id: generateQueryId(),
         },
       ];
     });
-  }, [setMetricWidgetQueries]);
+  }, [generateQueryId, metricQueries]);
 
-  const removeQuery = useCallback(
+  const addEquation = useCallback(() => {
+    setMetricEquations(curr => {
+      return [
+        ...curr,
+        {
+          formula: '',
+          name: '',
+          id: generateEquationId(),
+          type: MetricQueryType.FORMULA,
+        },
+      ];
+    });
+  }, [generateEquationId]);
+
+  const removeEquation = useCallback(
     (index: number) => {
-      setMetricWidgetQueries(curr => {
+      setMetricEquations(curr => {
         const updated = [...curr];
         updated.splice(index, 1);
         return updated;
       });
     },
-    [setMetricWidgetQueries]
+    [setMetricEquations]
+  );
+
+  const removeQuery = useCallback(
+    (index: number) => {
+      setMetricQueries(curr => {
+        const updated = [...curr];
+        updated.splice(index, 1);
+        return updated;
+      });
+    },
+    [setMetricQueries]
   );
 
   const handleSubmit = useCallback(() => {
-    const convertedWidget = convertToDashboardWidget(
-      metricWidgetQueries.map(query => ({
-        ...query,
-        ...selection,
-      }))
+    const convertedWidget = expressionsToWidget(
+      [...filteredQueries, ...filteredEquations],
+      title.edited,
+      toDisplayType(displayType)
     );
 
-    const updatedWidget = {
-      ...widget,
-      title: titleToDisplay,
-      queries: convertedWidget.queries,
-      displayType: toDisplayType(displayType),
-    };
-
-    onMetricWidgetEdit?.(updatedWidget);
+    onMetricWidgetEdit?.(convertedWidget);
 
     closeModal();
   }, [
-    titleToDisplay,
-    metricWidgetQueries,
+    filteredQueries,
+    filteredEquations,
+    title.edited,
+    displayType,
     onMetricWidgetEdit,
     closeModal,
-    widget,
-    selection,
-    displayType,
   ]);
-
-  // Quick fix to avoid the page crashing with multiple queries
-  // We will need a persistent unique identifier here so we can support formulas in the future
-  const queriesWithName = metricWidgetQueries.map((query, index) => ({
-    ...query,
-    name: getQuerySymbol(index),
-  }));
 
   return (
     <Fragment>
       <OrganizationContext.Provider value={organization}>
         <Header closeButton>
-          <WidgetTitle
-            value={editedTitle}
-            displayValue={titleToDisplay}
+          <MetricWidgetTitle
+            title={title}
+            onTitleChange={handleTitleChange}
             placeholder={widgetMQL}
-            onSubmit={handleTitleChange}
             description={widget.description}
           />
         </Header>
         <Body>
           <Queries
-            metricWidgetQueries={queriesWithName}
-            handleChange={handleChange}
+            displayType={displayType}
+            metricQueries={metricQueries}
+            metricEquations={metricEquations}
+            onQueryChange={handleQueryChange}
+            onEquationChange={handleEquationChange}
+            addEquation={addEquation}
             addQuery={addQuery}
+            removeEquation={removeEquation}
             removeQuery={removeQuery}
           />
           <MetricVisualization
-            queries={queriesWithName}
+            queries={apiQueries}
             displayType={displayType}
             onDisplayTypeChange={setDisplayType}
+            onOrderChange={handleOrderChange}
           />
-          <MetricDetails
-            mri={metricWidgetQueries[0].mri}
-            query={metricWidgetQueries[0].query}
-          />
+          <MetricDetails mri={metricQueries[0].mri} query={metricQueries[0].query} />
         </Body>
         <Footer>
           <ButtonBar gap={1}>
             <LinkButton
               to={getDdmUrl(organization.slug, {
-                widgets: metricWidgetQueries,
+                widgets: [...metricQueries, ...metricEquations],
                 ...selection.datetime,
                 project: selection.projects,
                 environment: selection.environments,

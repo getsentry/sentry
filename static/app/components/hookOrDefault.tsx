@@ -12,7 +12,7 @@ interface Params<H extends HookName> {
   /**
    * Component that will be shown if no hook is available
    */
-  defaultComponent?: ReturnType<Hooks[H]>;
+  defaultComponent?: ReturnType<Hooks[H]> | (() => ReturnType<Hooks[H]>);
   /**
    * This is a function that returns a promise (more specifically a function
    * that returns the result of a dynamic import using `import()`. This will

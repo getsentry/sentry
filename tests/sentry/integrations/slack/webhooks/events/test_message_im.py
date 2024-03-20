@@ -2,7 +2,6 @@ import responses
 
 from sentry.models.identity import Identity, IdentityStatus
 from sentry.silo import SiloMode
-from sentry.silo.util import PROXY_BASE_URL_HEADER, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import IntegratedApiTestCase
 from sentry.testutils.helpers import get_response_text
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
@@ -66,34 +65,22 @@ class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
         data = json.loads(request.body)
         assert data.get("channel") == event_data["channel"]
 
-    def _check_proxying(self) -> None:
-        assert len(responses.calls) == 1
-        request = responses.calls[0].request
-        assert request.headers[PROXY_OI_HEADER] == str(self.organization_integration.id)
-        assert request.headers[PROXY_BASE_URL_HEADER] == "https://slack.com/api"
-        assert PROXY_SIGNATURE_HEADER in request.headers
-
     @responses.activate
     def test_user_message_im_notification_platform(self):
         responses.add(responses.POST, "https://slack.com/api/chat.postMessage", json={"ok": True})
         resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_EVENT))
         assert resp.status_code == 200, resp.content
 
-        if self.should_call_api_without_proxying():
-            assert len(responses.calls) == 1
-            request = responses.calls[0].request
-            assert (
-                request.headers["Authorization"] == "Bearer xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
-            )
-            data = json.loads(request.body)
-            heading, contents = self.get_block_section_text(data)
-            assert heading == "Unknown command: `helloo`"
-            assert (
-                contents
-                == "Here are the commands you can use. Commands not working? Re-install the app!"
-            )
-        else:
-            self._check_proxying()
+        assert len(responses.calls) == 1
+        request = responses.calls[0].request
+        assert request.headers["Authorization"] == "Bearer xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+        data = json.loads(request.body)
+        heading, contents = self.get_block_section_text(data)
+        assert heading == "Unknown command: `helloo`"
+        assert (
+            contents
+            == "Here are the commands you can use. Commands not working? Re-install the app!"
+        )
 
     @responses.activate
     def test_user_message_link(self):
@@ -107,16 +94,11 @@ class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
         resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_EVENT_LINK))
         assert resp.status_code == 200, resp.content
 
-        if self.should_call_api_without_proxying():
-            assert len(responses.calls) == 1
-            request = responses.calls[0].request
-            assert (
-                request.headers["Authorization"] == "Bearer xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
-            )
-            data = json.loads(request.body)
-            assert "Link your Slack identity" in get_response_text(data)
-        else:
-            self._check_proxying()
+        assert len(responses.calls) == 1
+        request = responses.calls[0].request
+        assert request.headers["Authorization"] == "Bearer xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+        data = json.loads(request.body)
+        assert "Link your Slack identity" in get_response_text(data)
 
     @responses.activate
     def test_user_message_already_linked(self):
@@ -138,16 +120,11 @@ class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
         resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_EVENT_LINK))
         assert resp.status_code == 200, resp.content
 
-        if self.should_call_api_without_proxying():
-            assert len(responses.calls) == 1
-            request = responses.calls[0].request
-            assert (
-                request.headers["Authorization"] == "Bearer xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
-            )
-            data = json.loads(request.body)
-            assert "You are already linked" in get_response_text(data)
-        else:
-            self._check_proxying()
+        assert len(responses.calls) == 1
+        request = responses.calls[0].request
+        assert request.headers["Authorization"] == "Bearer xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+        data = json.loads(request.body)
+        assert "You are already linked" in get_response_text(data)
 
     @responses.activate
     def test_user_message_unlink(self):
@@ -168,16 +145,11 @@ class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
         resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_EVENT_UNLINK))
         assert resp.status_code == 200, resp.content
 
-        if self.should_call_api_without_proxying():
-            assert len(responses.calls) == 1
-            request = responses.calls[0].request
-            assert (
-                request.headers["Authorization"] == "Bearer xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
-            )
-            data = json.loads(request.body)
-            assert "Click here to unlink your identity" in get_response_text(data)
-        else:
-            self._check_proxying()
+        assert len(responses.calls) == 1
+        request = responses.calls[0].request
+        assert request.headers["Authorization"] == "Bearer xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+        data = json.loads(request.body)
+        assert "Click here to unlink your identity" in get_response_text(data)
 
     @responses.activate
     def test_user_message_already_unlinked(self):
@@ -192,16 +164,11 @@ class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
         resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_EVENT_UNLINK))
         assert resp.status_code == 200, resp.content
 
-        if self.should_call_api_without_proxying():
-            assert len(responses.calls) == 1
-            request = responses.calls[0].request
-            assert (
-                request.headers["Authorization"] == "Bearer xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
-            )
-            data = json.loads(request.body)
-            assert "You do not have a linked identity to unlink" in get_response_text(data)
-        else:
-            self._check_proxying()
+        assert len(responses.calls) == 1
+        request = responses.calls[0].request
+        assert request.headers["Authorization"] == "Bearer xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+        data = json.loads(request.body)
+        assert "You do not have a linked identity to unlink" in get_response_text(data)
 
     def test_bot_message_im(self):
         resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_BOT_EVENT))

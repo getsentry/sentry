@@ -36,16 +36,12 @@
 /src/sentry/coreapi.py                                   @getsentry/ingest
 /src/sentry/ingest/                                      @getsentry/ingest
 /src/sentry/interfaces/                                  @getsentry/ingest
-/src/sentry/message_filters.py                           @getsentry/ingest
 /src/sentry/quotas/                                      @getsentry/ingest
 /src/sentry/relay/                                       @getsentry/ingest
-/src/sentry/utils/data_filters.py                        @getsentry/ingest
 /src/sentry/web/api.py                                   @getsentry/ingest
 /src/sentry/scripts/quotas/                              @getsentry/ingest
 /src/sentry/scripts/tsdb/                                @getsentry/ingest
 /src/sentry/tasks/relay.py                               @getsentry/ingest
-/src/sentry/tasks/unmerge.py                             @getsentry/ingest
-/tests/sentry/event_manager/                             @getsentry/ingest
 /tests/sentry/ingest/                                    @getsentry/ingest
 /tests/sentry/relay/                                     @getsentry/ingest
 /tests/relay_integration/                                @getsentry/ingest
@@ -412,6 +408,7 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /tests/sentry/auth/test_superuser.py                                    @getsentry/enterprise
 /tests/sentry/middleware/test_staff.py                                  @getsentry/enterprise
 /tests/sentry/tasks/integrations/github/                                @getsentry/enterprise
+/tests/sentry/models/releases/                                          @getsentry/alerts-notifications
 ## End of Enterprise
 
 
@@ -426,10 +423,10 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/tasks/symbolication.py                                   @getsentry/owners-native
 /src/sentry/utils/appleconnect/                                      @getsentry/owners-native
 /tests/sentry/tasks/test_low_priority_symbolication.py               @getsentry/owners-native
-/src/sentry/tasks/reprocessing.py                                    @getsentry/owners-processing
-/src/sentry/tasks/reprocessing2.py                                   @getsentry/owners-processing
-/src/sentry/reprocessing2.py                                         @getsentry/owners-processing
-/src/sentry/tasks/store.py                                           @getsentry/owners-processing
+/src/sentry/tasks/reprocessing.py                                    @getsentry/processing
+/src/sentry/tasks/reprocessing2.py                                   @getsentry/processing
+/src/sentry/reprocessing2.py                                         @getsentry/processing
+/src/sentry/tasks/store.py                                           @getsentry/processing
 ## End of Native
 
 
@@ -440,6 +437,7 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /tests/apidocs/                       @getsentry/owners-api
 /.github/workflows/openapi.yml        @getsentry/owners-api
 /.github/workflows/openapi-diff.yml   @getsentry/owners-api
+/src/sentry/conf/api_pagination_allowlist_do_not_modify.py  @getsentry/owners-api
 ## End of APIs
 
 
@@ -496,7 +494,8 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/grouping/                               @getsentry/issues
 /src/sentry/issues/                                 @getsentry/issues
 /src/sentry/tasks/post_process.py                   @getsentry/issues
-/tests/sentry/event_manager/test_event_manager.py   @getsentry/issues
+/src/sentry/tasks/unmerge.py                        @getsentry/issues
+/tests/sentry/event_manager/                        @getsentry/issues
 /tests/sentry/grouping/                             @getsentry/issues
 /tests/sentry/issues/                               @getsentry/issues
 /tests/sentry/search/                               @getsentry/issues
@@ -520,11 +519,11 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 ## End of ML & AI
 
 ## Processing
-/src/sentry/processing/*                                @getsentry/owners-processing
-/src/sentry/api/endpoints/project_user_reports.py       @getsentry/owners-processing
-/src/sentry/api/endpoints/event_attachments.py          @getsentry/owners-processing
-/src/sentry/api/endpoints/event_reprocessable.py        @getsentry/owners-processing
-/src/sentry/api/endpoints/project_reprocessing.py       @getsentry/owners-processing
+/src/sentry/processing/*                                @getsentry/processing
+/src/sentry/api/endpoints/project_user_reports.py       @getsentry/processing
+/src/sentry/api/endpoints/event_attachments.py          @getsentry/processing
+/src/sentry/api/endpoints/event_reprocessable.py        @getsentry/processing
+/src/sentry/api/endpoints/project_reprocessing.py       @getsentry/processing
 ## End of Processing
 
 ## Ecosystem

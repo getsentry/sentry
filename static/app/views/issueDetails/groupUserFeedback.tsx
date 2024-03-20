@@ -116,7 +116,7 @@ class GroupUserFeedback extends Component<Props, State> {
     return (
       <Layout.Body>
         <Layout.Main fullWidth>
-          <UserFeedbackEmpty projectIds={[group.project.id]} />
+          <UserFeedbackEmpty projectIds={[group.project.id]} issueTab />
         </Layout.Main>
       </Layout.Body>
     );

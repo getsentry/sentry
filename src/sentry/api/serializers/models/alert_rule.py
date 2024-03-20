@@ -11,7 +11,7 @@ from drf_spectacular.utils import extend_schema_serializer
 from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.rule import RuleSerializer
-from sentry.incidents.models import (
+from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleActivity,
     AlertRuleActivityType,
@@ -19,8 +19,8 @@ from sentry.incidents.models import (
     AlertRuleMonitorType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
-    Incident,
 )
+from sentry.incidents.models.incident import Incident
 from sentry.models.actor import ACTOR_TYPES, Actor, actor_type_to_string
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
@@ -100,7 +100,7 @@ class AlertRuleSerializer(Serializer):
 
         trigger_actions = AlertRuleTriggerAction.objects.filter(
             alert_rule_trigger__alert_rule_id__in=alert_rules.keys()
-        ).exclude(sentry_app_config__isnull=True, sentry_app_id__isnull=True)
+        ).exclude(Q(sentry_app_config__isnull=True) | Q(sentry_app_id__isnull=True))
 
         sentry_app_installations_by_sentry_app_id = app_service.get_related_sentry_app_components(
             organization_ids=[alert_rule.organization_id for alert_rule in alert_rules.values()],

@@ -67,7 +67,8 @@ class JavaScriptSdkLoader(BaseView):
                 "hasDebug": False,
             }
 
-        is_v7_sdk = sdk_version >= Version("7.0.0")
+        is_v7_sdk = sdk_version >= Version("7.0.0") and sdk_version < Version("8.0.0")
+        is_greater_or_equal_v7_sdk = sdk_version >= Version("7.0.0")
 
         is_lazy = True
         bundle_kind_modifier = ""
@@ -80,16 +81,16 @@ class JavaScriptSdkLoader(BaseView):
         # https://docs.sentry.io/platforms/javascript/install/cdn/
 
         # We depend on fixes in the tracing bundle that are only available in v7
-        if is_v7_sdk and has_performance:
+        if is_greater_or_equal_v7_sdk and has_performance:
             bundle_kind_modifier += ".tracing"
             is_lazy = False
 
         # If the project does not have a v7 sdk set, we cannot load the replay bundle.
-        if is_v7_sdk and has_replay:
+        if is_greater_or_equal_v7_sdk and has_replay:
             bundle_kind_modifier += ".replay"
             is_lazy = False
 
-        # From JavaScript SDK version 7 onwards, the default bundle code is ES6, however, in the loader we
+        # In JavaScript SDK version 7, the default bundle code is ES6, however, in the loader we
         # want to provide the ES5 version. This is why we need to modify the requested bundle name here.
         #
         # If we are loading replay, do not add the es5 modifier, as those bundles are
@@ -192,17 +193,21 @@ class JavaScriptSdkLoader(BaseView):
 
         metrics.incr("js-sdk-loader.rendered", instance=instance, skip_internal=False)
 
-        analytics.record(
-            "js_sdk_loader.rendered",
-            organization_id=key.project.organization_id,
-            project_id=key.project_id,
-            is_lazy=loader_config["isLazy"],
-            has_performance=loader_config["hasPerformance"],
-            has_replay=loader_config["hasReplay"],
-            has_debug=loader_config["hasDebug"],
-            sdk_version=sdk_version,
-            tmpl=tmpl,
-        ) if key else None
+        (
+            analytics.record(
+                "js_sdk_loader.rendered",
+                organization_id=key.project.organization_id,
+                project_id=key.project_id,
+                is_lazy=loader_config["isLazy"],
+                has_performance=loader_config["hasPerformance"],
+                has_replay=loader_config["hasReplay"],
+                has_debug=loader_config["hasDebug"],
+                sdk_version=sdk_version,
+                tmpl=tmpl,
+            )
+            if key
+            else None
+        )
 
         response = render_to_response(tmpl, context, content_type="text/javascript")
 

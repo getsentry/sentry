@@ -23,7 +23,7 @@ import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
 import type {Organization, PageFilters} from 'sentry/types';
-import {hasDDMFeature} from 'sentry/utils/metrics/features';
+import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import theme from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -314,7 +314,7 @@ class Dashboard extends Component<Props, State> {
 
     const widget = this.props.dashboard.widgets[index];
 
-    if (widget.widgetType === WidgetType.METRICS && hasDDMFeature(organization)) {
+    if (widget.widgetType === WidgetType.METRICS && hasCustomMetrics(organization)) {
       // TODO(ddm): open preview modal
       return;
     }
@@ -495,7 +495,7 @@ class Dashboard extends Component<Props, State> {
         return organization.features.includes('dashboards-rh-widget');
       }
       if (widgetType === WidgetType.METRICS) {
-        return hasDDMFeature(organization);
+        return hasCustomMetrics(organization);
       }
       return true;
     });
@@ -507,7 +507,7 @@ class Dashboard extends Component<Props, State> {
     const canModifyLayout = !isMobile && isEditingDashboard;
 
     const displayInlineAddWidget =
-      hasDDMFeature(organization) &&
+      hasCustomMetrics(organization) &&
       isValidLayout({...this.addWidgetLayout, i: ADD_WIDGET_BUTTON_DRAG_ID});
 
     return (

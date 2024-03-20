@@ -73,7 +73,7 @@ async function fetchProjectsAndTeams(
         includeAllArgs: true,
         query: {
           all_projects: 1,
-          collapse: 'latestDeploys',
+          collapse: ['latestDeploys', 'unusedFeatures'],
         },
       }),
     usePreload

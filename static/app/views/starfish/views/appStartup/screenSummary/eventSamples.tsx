@@ -46,7 +46,8 @@ export function EventSamples({
   const cursor = decodeScalar(location.query?.[cursorName]);
 
   const deviceClass = decodeScalar(location.query[SpanMetricsField.DEVICE_CLASS]) ?? '';
-  const startType = decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? '';
+  const startType =
+    decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? COLD_START_TYPE;
 
   const searchQuery = new MutableSearch([
     `transaction:${transaction}`,

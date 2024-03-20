@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render} from 'sentry-test/reactTestingLibrary';
+import {act, render} from 'sentry-test/reactTestingLibrary';
 
 import EventWaiter from 'sentry/utils/eventWaiter';
 
@@ -58,19 +58,19 @@ describe('EventWaiter', function () {
     child.mockClear();
 
     // Advanced time for the first setInterval tick to occur
-    jest.advanceTimersByTime(1);
+    act(() => jest.advanceTimersByTime(1));
 
     // We have to await *two* API calls. We could normally do this using tick(),
     // however since we have enabled fake timers, we cannot tick.
-    await Promise.resolve();
-    await Promise.resolve();
+    await act(() => Promise.resolve());
+    await act(() => Promise.resolve());
 
     expect(child).toHaveBeenCalledWith({firstIssue: events[0]});
 
     // Check that the polling has stopped
     projectApiMock.mockClear();
 
-    jest.advanceTimersByTime(10);
+    act(() => jest.advanceTimersByTime(10));
     expect(projectApiMock).not.toHaveBeenCalled();
   });
 
@@ -109,8 +109,8 @@ describe('EventWaiter', function () {
 
     // We have to await *two* API calls. We could normally do this using tick(),
     // however since we have enabled fake timers, we cannot tick.
-    await Promise.resolve();
-    await Promise.resolve();
+    await act(() => Promise.resolve());
+    await act(() => Promise.resolve());
 
     expect(child).toHaveBeenCalledWith({firstIssue: true});
   });

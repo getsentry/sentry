@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {getIgnoreActions} from 'sentry/components/actions/ignore';
+import {IssueActionWrapper} from 'sentry/components/actions/issueActionWrapper';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -134,47 +135,49 @@ function ArchiveActions({
   });
 
   return (
-    <ButtonBar className={className} merged>
-      <ArchiveButton
-        size={size}
-        tooltipProps={{delay: 1000, disabled, isHoverable: true}}
-        title={tct(
-          'We’ll nag you with a notification if the issue gets worse. All archived issues can be found in the Archived tab. [docs:Read the docs]',
-          {
-            docs: (
-              <ExternalLink href="https://docs.sentry.io/product/issues/states-triage/#archive" />
-            ),
+    <IssueActionWrapper>
+      <ButtonBar className={className} merged>
+        <ArchiveButton
+          size={size}
+          tooltipProps={{delay: 1000, disabled, isHoverable: true}}
+          title={tct(
+            'We’ll nag you with a notification if the issue gets worse. All archived issues can be found in the Archived tab. [docs:Read the docs]',
+            {
+              docs: (
+                <ExternalLink href="https://docs.sentry.io/product/issues/states-triage/#archive" />
+              ),
+            }
+          )}
+          onClick={() => onArchive(ARCHIVE_UNTIL_ESCALATING)}
+          disabled={disabled}
+        >
+          {t('Archive')}
+        </ArchiveButton>
+        <DropdownMenu
+          minMenuWidth={270}
+          size="sm"
+          trigger={triggerProps => (
+            <DropdownTrigger
+              {...triggerProps}
+              aria-label={t('Archive options')}
+              size={size}
+              icon={<IconChevron direction="down" />}
+              disabled={disabled}
+            />
+          )}
+          menuTitle={
+            <MenuWrapper>
+              {t('Archive')}
+              <StyledExternalLink href="https://docs.sentry.io/product/issues/states-triage/#archive">
+                {t('Read the docs')}
+              </StyledExternalLink>
+            </MenuWrapper>
           }
-        )}
-        onClick={() => onArchive(ARCHIVE_UNTIL_ESCALATING)}
-        disabled={disabled}
-      >
-        {t('Archive')}
-      </ArchiveButton>
-      <DropdownMenu
-        minMenuWidth={270}
-        size="sm"
-        trigger={triggerProps => (
-          <DropdownTrigger
-            {...triggerProps}
-            aria-label={t('Archive options')}
-            size={size}
-            icon={<IconChevron direction="down" />}
-            disabled={disabled}
-          />
-        )}
-        menuTitle={
-          <MenuWrapper>
-            {t('Archive')}
-            <StyledExternalLink href="https://docs.sentry.io/product/issues/states-triage/#archive">
-              {t('Read the docs')}
-            </StyledExternalLink>
-          </MenuWrapper>
-        }
-        items={dropdownItems}
-        isDisabled={disabled}
-      />
-    </ButtonBar>
+          items={dropdownItems}
+          isDisabled={disabled}
+        />
+      </ButtonBar>
+    </IssueActionWrapper>
   );
 }
 

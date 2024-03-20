@@ -14,7 +14,7 @@ from sentry.search.utils import tokenize_query
 
 @region_silo_endpoint
 class EventAttachmentsEndpoint(ProjectEndpoint):
-    owner = ApiOwner.OWNERS_PROCESSING
+    owner = ApiOwner.PROCESSING
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
