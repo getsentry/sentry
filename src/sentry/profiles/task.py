@@ -787,6 +787,7 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
         return
 
     if project.id in options.get("profiling.deobfuscate-using-symbolicator.enable-for-project"):
+        sentry_sdk.set_tag("deobfuscated_with_symbolicator", True)
         return _deobfuscate_using_symbolicator(
             project=project,
             profile=profile,
