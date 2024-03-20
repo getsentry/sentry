@@ -1280,7 +1280,6 @@ source: tests/sentry/backup/test_releases.py
     date_modified: '2024-02-29T10:09:35.900Z'
     field_aliases: null
     fields: '[]'
-    is_hidden: null
     name: Test Query for test-org
     order: 1
     orderby: ''
