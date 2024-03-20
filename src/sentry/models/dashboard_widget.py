@@ -133,8 +133,6 @@ class DashboardWidgetQuery(Model):
     order = BoundedPositiveIntegerField()
     date_added = models.DateTimeField(default=timezone.now)
     date_modified = models.DateTimeField(default=timezone.now)
-    # Whether this query is hidden from the UI, used by metric widgets
-    is_hidden = models.BooleanField(null=True)
 
     class Meta:
         app_label = "sentry"
