@@ -129,7 +129,7 @@ function IssueListHeader({node}: {node: TraceTreeNode<TraceTree.NodeValue>}) {
     <StyledPanelHeader disablePadding>
       <IssueHeading>
         {errors.length + performance_issues.length > MAX_DISPLAYED_ISSUES_COUNT
-          ? t(`${MAX_DISPLAYED_ISSUES_COUNT}  issues`)
+          ? t(`%s+  issues`, MAX_DISPLAYED_ISSUES_COUNT)
           : errors.length > 0 && performance_issues.length === 0
             ? tct('[count] [text]', {
                 count: errors.length,
@@ -212,6 +212,7 @@ const StyledLoadingIndicatorWrapper = styled('div')`
   padding: ${space(2)} 0;
   height: 84px;
 
+  /* Add a border between two rows of loading issue states */
   & + & {
     border-top: 1px solid ${p => p.theme.border};
   }
