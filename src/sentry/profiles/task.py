@@ -976,7 +976,7 @@ def _calculate_duration_for_sample_format_v1(profile: Profile) -> int:
 
 
 def _calculate_duration_for_sample_format_v2(profile: Profile) -> int:
-    samples = profile["profile"]["samples"]
+    samples = sorted(profile["profile"]["samples"], key=lambda s: s["timestamp"])
     if len(samples) < 2:
         return 0
     first, last = samples[0], samples[-1]
