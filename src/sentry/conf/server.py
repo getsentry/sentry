@@ -1035,6 +1035,12 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="*/1"),
         "options": {"expires": 60},
     },
+    "monitors-detect-broken-monitor-envs": {
+        "task": "sentry.monitors.tasks.detect_broken_monitor_envs",
+        # 05:00 PDT, 09:00 EDT, 12:00 UTC
+        "schedule": crontab(minute="0", hour="12"),
+        "options": {"expires": 15 * 60},
+    },
     "clear-expired-snoozes": {
         "task": "sentry.tasks.clear_expired_snoozes",
         # Run every 5 minutes
@@ -1221,14 +1227,6 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.tasks.on_demand_metrics.schedule_on_demand_check",
         # Run every 5 minutes
         "schedule": crontab(minute="*/5"),
-    },
-    "detect_broken_monitor_envs": {
-        "task": "sentry.monitors.tasks.detect_broken_monitor_envs",
-        "schedule": crontab(
-            minute="0",
-            hour="12",  # 05:00 PDT, 09:00 EDT, 12:00 UTC
-        ),
-        "options": {"expires": 15 * 60},
     },
 }
 
