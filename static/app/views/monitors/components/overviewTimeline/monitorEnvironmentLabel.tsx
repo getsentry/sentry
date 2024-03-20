@@ -47,7 +47,7 @@ export default function MonitorEnvironmentLabel({monitorEnv, monitor}: Props) {
   return (
     <EnvWithStatus>
       <MonitorEnvLabel color={color}>{name}</MonitorEnvLabel>
-      <Tooltip title={label} skipWrapper>
+      <Tooltip disabled={!label} title={label} skipWrapper>
         {icon}
       </Tooltip>
     </EnvWithStatus>
