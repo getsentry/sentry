@@ -416,9 +416,7 @@ class BaseApiClient(TrackResponseMixin):
             self.disable_integration(buffer)
 
     def disable_integration(self, buffer: IntegrationRequestBuffer) -> None:
-        contexts = integration_service.get_organization_contexts__tmp(
-            integration_id=self.integration_id
-        )
+        contexts = integration_service.get_organization_contexts(integration_id=self.integration_id)
         if contexts.integration and contexts.integration.status == ObjectStatus.DISABLED:
             return
 

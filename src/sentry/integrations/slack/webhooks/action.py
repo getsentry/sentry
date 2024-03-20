@@ -809,7 +809,7 @@ class SlackActionEndpoint(Endpoint):
         if action_option in NOTIFICATION_SETTINGS_ACTION_OPTIONS:
             return self.handle_enable_notifications(slack_request)
 
-        contexts = integration_service.get_organization_contexts__tmp(
+        contexts = integration_service.get_organization_contexts(
             integration_id=slack_request.integration.id
         )
         use_block_kit = False

@@ -102,7 +102,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             return Response({"detail": "Action is required and should be either link or create"})
 
         organization_id = group.project.organization_id
-        (integration, org_integration) = integration_service.get_organization_context__tmp(
+        (integration, org_integration) = integration_service.get_organization_context(
             organization_id=organization_id, integration_id=integration_id
         )
         if not integration or not org_integration:
@@ -145,7 +145,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             return Response({"externalIssue": ["Issue ID is required"]}, status=400)
 
         organization_id = group.project.organization_id
-        (integration, org_integration) = integration_service.get_organization_context__tmp(
+        (integration, org_integration) = integration_service.get_organization_context(
             organization_id=organization_id, integration_id=integration_id
         )
         if not integration or not org_integration:
@@ -227,7 +227,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             return Response({"detail": MISSING_FEATURE_MESSAGE}, status=400)
 
         organization_id = group.project.organization_id
-        (integration, org_integration) = integration_service.get_organization_context__tmp(
+        (integration, org_integration) = integration_service.get_organization_context(
             organization_id=organization_id, integration_id=integration_id
         )
         if not integration or not org_integration:
@@ -303,7 +303,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             return Response({"detail": "External ID required"}, status=400)
 
         organization_id = group.project.organization_id
-        (integration, org_integration) = integration_service.get_organization_context__tmp(
+        (integration, org_integration) = integration_service.get_organization_context(
             organization_id=organization_id, integration_id=integration_id
         )
         if not integration or not org_integration:

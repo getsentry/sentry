@@ -50,7 +50,7 @@ def get_org_integrations(
     can be shared by multiple orgs.
     """
 
-    contexts = integration_service.get_organization_contexts__tmp(integration_id=integration_id)
+    contexts = integration_service.get_organization_contexts(integration_id=integration_id)
 
     return contexts.installs
 

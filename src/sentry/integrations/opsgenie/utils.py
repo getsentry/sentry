@@ -79,7 +79,7 @@ def send_incident_alert_notification(
 ) -> bool:
     from sentry.integrations.opsgenie.integration import OpsgenieIntegration
 
-    integration, org_integration = integration_service.get_organization_context__tmp(
+    integration, org_integration = integration_service.get_organization_context(
         organization_id=incident.organization_id, integration_id=action.integration_id
     )
     if org_integration is None or integration is None or integration.status != ObjectStatus.ACTIVE:

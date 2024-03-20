@@ -270,7 +270,7 @@ class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
             return result
         (external_id, secret) = result
 
-        contexts = integration_service.get_organization_contexts__tmp(
+        contexts = integration_service.get_organization_contexts(
             provider=self.provider, external_id=external_id
         )
         if contexts.integration is None:

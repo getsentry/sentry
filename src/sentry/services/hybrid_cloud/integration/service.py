@@ -157,7 +157,7 @@ class IntegrationService(RpcService):
         # This is a convencience method for unpacking `get_organization_contexts`.
         # Note that it can't be an @rpc_method because it returns a fixed-size tuple.
 
-        contexts = self.get_organization_contexts__tmp(
+        contexts = self.get_organization_contexts(
             organization_id=organization_id,
             integration_id=integration_id,
             provider=provider,

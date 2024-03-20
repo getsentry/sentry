@@ -90,7 +90,7 @@ def handle_status_change(integration, data):
         logger.info("jira.missing-changelog-status", extra=log_context)
         return
 
-    contexts = integration_service.get_organization_contexts__tmp(integration_id=integration.id)
+    contexts = integration_service.get_organization_contexts(integration_id=integration.id)
     for oi in contexts.installs:
         install = integration.get_installation(organization_id=oi.organization_id)
         if isinstance(install, IssueSyncMixin):

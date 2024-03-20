@@ -291,7 +291,7 @@ class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
         (
             result_integration,
             result_org_integration,
-        ) = integration_service.get_organization_context__tmp(
+        ) = integration_service.get_organization_context(
             organization_id=new_org.id,
             provider="example",
         )

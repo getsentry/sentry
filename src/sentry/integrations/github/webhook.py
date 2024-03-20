@@ -90,7 +90,7 @@ class Webhook:
     def __call__(self, event: Mapping[str, Any], host: str | None = None) -> None:
         external_id = get_github_external_id(event=event, host=host)
 
-        contexts = integration_service.get_organization_contexts__tmp(
+        contexts = integration_service.get_organization_contexts(
             external_id=external_id, provider=self.provider
         )
         if contexts.integration is None or not contexts.installs:
@@ -213,7 +213,7 @@ class InstallationEventWebhook:
             external_id = event["installation"]["id"]
             if host:
                 external_id = "{}:{}".format(host, event["installation"]["id"])
-            contexts = integration_service.get_organization_contexts__tmp(
+            contexts = integration_service.get_organization_contexts(
                 provider=self.provider,
                 external_id=external_id,
             )
