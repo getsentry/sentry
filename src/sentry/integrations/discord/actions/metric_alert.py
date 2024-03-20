@@ -54,7 +54,7 @@ def send_incident_alert_notification(
         client.send_message(channel, message)
     except Exception as error:
         logger.warning(
-            "discord.metric_alert.messsage_send_failure",
+            "discord.metric_alert.message_send_failure",
             extra={"error": error, "guild_id": incident.identifier, "channel_id": channel},
         )
         return False
