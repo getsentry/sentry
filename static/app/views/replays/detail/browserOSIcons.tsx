@@ -4,7 +4,7 @@ import ContextIcon from 'sentry/components/replays/contextIcon';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {Tooltip} from 'sentry/components/tooltip';
 
-export default function BrowserOSIcons() {
+export default function BrowserOSIcons({showBrowser = true}: {showBrowser?: boolean}) {
   const {replay} = useReplayContext();
   const replayRecord = replay?.getReplay();
 
@@ -17,17 +17,19 @@ export default function BrowserOSIcons() {
           showVersion
         />
       </Tooltip>
-      <Tooltip
-        title={`${replayRecord?.browser.name ?? ''} ${
-          replayRecord?.browser.version ?? ''
-        }`}
-      >
-        <ContextIcon
-          name={replayRecord?.browser.name ?? ''}
-          version={replayRecord?.browser.version ?? undefined}
-          showVersion
-        />
-      </Tooltip>
+      {showBrowser && (
+        <Tooltip
+          title={`${replayRecord?.browser.name ?? ''} ${
+            replayRecord?.browser.version ?? ''
+          }`}
+        >
+          <ContextIcon
+            name={replayRecord?.browser.name ?? ''}
+            version={replayRecord?.browser.version ?? undefined}
+            showVersion
+          />
+        </Tooltip>
+      )}
     </Fragment>
   );
 }

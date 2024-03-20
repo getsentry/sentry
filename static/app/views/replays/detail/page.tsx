@@ -113,7 +113,11 @@ export default function Page({
         <HeaderPlaceholder width="100%" height="58px" />
       )}
 
-      <ReplayMetaData replayRecord={replayRecord} replayErrors={replayErrors} />
+      <ReplayMetaData
+        replayRecord={replayRecord}
+        replayErrors={replayErrors}
+        showDeadRageClicks={!isVideoReplay}
+      />
     </Header>
   );
 
