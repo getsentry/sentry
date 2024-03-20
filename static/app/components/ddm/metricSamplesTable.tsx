@@ -23,6 +23,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DateString, MRI, PageFilters, ParsedMRI} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {Container, FieldDateTime, NumberContainer} from 'sentry/utils/discover/styles';
 import {getShortEventId} from 'sentry/utils/events';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
@@ -573,7 +574,15 @@ function SpanDescription({
             </Flex>
             <SectionTitle>{t('Transaction')}</SectionTitle>
             <Tooltip containerDisplayMode="inline" showOnlyOnOverflow title={transaction}>
-              <Link to={transactionSummaryTarget}>
+              <Link
+                to={transactionSummaryTarget}
+                onClick={() =>
+                  trackAnalytics('ddm.sample-table-interaction', {
+                    organization,
+                    target: 'description',
+                  })
+                }
+              >
                 <TextOverflow>{transaction}</TextOverflow>
               </Link>
             </Tooltip>
@@ -656,7 +665,17 @@ function TraceId({
   );
   return (
     <Container>
-      <Link to={target}>{getShortEventId(traceId)}</Link>
+      <Link
+        to={target}
+        onClick={() =>
+          trackAnalytics('ddm.sample-table-interaction', {
+            organization,
+            target: 'trace-id',
+          })
+        }
+      >
+        {getShortEventId(traceId)}
+      </Link>
     </Container>
   );
 }
@@ -688,7 +707,16 @@ function ProfileId({
 
   return (
     <Container>
-      <LinkButton to={target} size="xs">
+      <LinkButton
+        to={target}
+        size="xs"
+        onClick={() =>
+          trackAnalytics('ddm.sample-table-interaction', {
+            organization,
+            target: 'profile',
+          })
+        }
+      >
         <IconProfiling size="xs" />
       </LinkButton>
     </Container>
