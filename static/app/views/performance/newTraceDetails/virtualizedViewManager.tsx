@@ -999,11 +999,29 @@ export class VirtualizedViewManager {
       node: TraceTreeNode<TraceTree.NodeValue>;
     } | null | null> => {
       const path = segments.pop();
-      const current = findInTreeFromSegment(parent, path!);
+      let current = findInTreeFromSegment(parent, path!);
 
       if (!current) {
-        Sentry.captureMessage('Failed to scroll to node in trace tree');
-        return null;
+        // Some parts of the codebase link to span:span_id, txn:event_id, where span_id is
+        // actally stored on the txn:event_id node. Since we cant tell from the link itself
+        // that this is happening, we will perform a final check to see if we've actually already
+        // arrived to the node in the previous search call.
+        if (path) {
+          const [type, id] = path.split(':');
+
+          if (
+            type === 'span' &&
+            isTransactionNode(parent) &&
+            parent.value.span_id === id
+          ) {
+            current = parent;
+          }
+        }
+
+        if (!current) {
+          Sentry.captureMessage('Failed to scroll to node in trace tree');
+          return null;
+        }
       }
 
       // Reassing the parent to the current node so that
