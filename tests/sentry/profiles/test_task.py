@@ -164,7 +164,7 @@ def sample_v1_profile():
         "stack_id": 1,
         "thread_id": "1",
         "queue_address": "0x0000000102adc700",
-        "elapsed_since_start_ns": "40500500"
+        "elapsed_since_start_ns": "35500500"
       }
     ],
     "stacks": [[0], [1]],
@@ -205,6 +205,13 @@ def sample_v1_profile():
   }
 }"""
     )
+
+
+@pytest.fixture
+def sample_v1_profile_without_transaction_timestamps(sample_v1_profile):
+    for key in {"relative_start_ns", "relative_end_ns"}:
+        del sample_v1_profile["transaction"][key]
+    return sample_v1_profile
 
 
 @pytest.fixture
@@ -617,6 +624,7 @@ def test_decode_signature(project, android_profile):
         ("sample_v1_profile", 50),
         ("sample_v2_profile", 3000),
         ("android_profile", 2020),
+        ("sample_v1_profile_without_transaction_timestamps", 25),
     ],
 )
 def test_calculate_profile_duration(profile, duration_ms, request):
