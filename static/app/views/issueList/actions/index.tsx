@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {AnimatePresence, motion} from 'framer-motion';
 
 import {bulkDelete, bulkUpdate, mergeGroups} from 'sentry/actionCreators/group';
 import {
@@ -47,6 +48,13 @@ type IssueListActionsProps = {
   onActionTaken?: (itemIds: string[], data: IssueUpdateData) => void;
 };
 
+const animationProps = {
+  initial: {translateY: 10, opacity: 0},
+  animate: {translateY: 0, opacity: 1},
+  exit: {translateY: 10, opacity: 0},
+  transition: {duration: 0.1},
+};
+
 function ActionsBarPriority({
   anySelected,
   narrowViewport,
@@ -90,10 +98,6 @@ function ActionsBarPriority({
 }) {
   const shouldDisplayActions = anySelected && !narrowViewport;
 
-  const sortDropdown = (
-    <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
-  );
-
   return (
     <ActionsBarContainer>
       {!narrowViewport && (
@@ -106,38 +110,52 @@ function ActionsBarPriority({
         </ActionsCheckbox>
       )}
       {!displayReprocessingActions && (
-        <HeaderButtonsWrapper>
+        <AnimatePresence initial={false} exitBeforeEnter>
           {shouldDisplayActions && (
-            <ActionSet
-              queryCount={queryCount}
-              query={query}
-              issues={selectedIdsSet}
-              allInQuerySelected={allInQuerySelected}
-              anySelected={anySelected}
-              multiSelected={multiSelected}
-              selectedProjectSlug={selectedProjectSlug}
-              onShouldConfirm={action =>
-                shouldConfirm(action, {pageSelected, selectedIdsSet})
-              }
-              onDelete={handleDelete}
-              onMerge={handleMerge}
-              onUpdate={handleUpdate}
-            />
+            <HeaderButtonsWrapper key="actions" {...animationProps}>
+              <ActionSet
+                queryCount={queryCount}
+                query={query}
+                issues={selectedIdsSet}
+                allInQuerySelected={allInQuerySelected}
+                anySelected={anySelected}
+                multiSelected={multiSelected}
+                selectedProjectSlug={selectedProjectSlug}
+                onShouldConfirm={action =>
+                  shouldConfirm(action, {pageSelected, selectedIdsSet})
+                }
+                onDelete={handleDelete}
+                onMerge={handleMerge}
+                onUpdate={handleUpdate}
+              />
+            </HeaderButtonsWrapper>
           )}
-          {!anySelected ? sortDropdown : null}
-        </HeaderButtonsWrapper>
+          {!anySelected && (
+            <HeaderButtonsWrapper key="sort" {...animationProps}>
+              <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
+            </HeaderButtonsWrapper>
+          )}
+        </AnimatePresence>
       )}
-      {!anySelected ? (
-        <Headers
-          onSelectStatsPeriod={onSelectStatsPeriod}
-          selection={selection}
-          statsPeriod={statsPeriod}
-          isReprocessingQuery={displayReprocessingActions}
-          isSavedSearchesOpen={isSavedSearchesOpen}
-        />
-      ) : (
-        <SortDropdownMargin>{sortDropdown}</SortDropdownMargin>
-      )}
+      <AnimatePresence initial={false} exitBeforeEnter>
+        {!anySelected ? (
+          <AnimatedHeaderItemsContainer key="headers" {...animationProps}>
+            <Headers
+              onSelectStatsPeriod={onSelectStatsPeriod}
+              selection={selection}
+              statsPeriod={statsPeriod}
+              isReprocessingQuery={displayReprocessingActions}
+              isSavedSearchesOpen={isSavedSearchesOpen}
+            />
+          </AnimatedHeaderItemsContainer>
+        ) : (
+          <motion.div key="sort" {...animationProps}>
+            <SortDropdownMargin>
+              <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
+            </SortDropdownMargin>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </ActionsBarContainer>
   );
 }
@@ -507,7 +525,7 @@ const ActionsCheckbox = styled('div')<{isReprocessingQuery: boolean}>`
   ${p => p.isReprocessingQuery && 'flex: 1'};
 `;
 
-const HeaderButtonsWrapper = styled('div')`
+const HeaderButtonsWrapper = styled(motion.div)`
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     width: 50%;
   }
@@ -537,6 +555,11 @@ const SelectAllLink = styled('a')`
 
 const SortDropdownMargin = styled('div')`
   margin-right: ${space(1)};
+`;
+
+const AnimatedHeaderItemsContainer = styled(motion.div)`
+  display: flex;
+  align-items: center;
 `;
 
 export {IssueListActions};
