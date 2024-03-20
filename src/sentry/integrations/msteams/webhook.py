@@ -142,7 +142,8 @@ def verify_signature(request):
 class MsTeamsWebhookMixin:
     provider = "msteams"
 
-    def infer_team_id_from_channel_data(self, data: Mapping[str, Any]) -> str | None:
+    @classmethod
+    def infer_team_id_from_channel_data(cls, data: Mapping[str, Any]) -> str | None:
         try:
             channel_data = data["channelData"]
             team_id = channel_data["team"]["id"]
@@ -157,7 +158,8 @@ class MsTeamsWebhookMixin:
             return None
         return integration_service.get_integration(provider=self.provider, external_id=team_id)
 
-    def infer_integration_id_from_card_action(self, data: Mapping[str, Any]) -> int | None:
+    @classmethod
+    def infer_integration_id_from_card_action(cls, data: Mapping[str, Any]) -> int | None:
         # The bot builds and sends Adaptive Cards to the channel, and in it will include card actions and context.
         # The context will include the "integrationId".
         # Whenever a user interacts with the card, MS Teams will send the card action and the context to the bot.
@@ -200,13 +202,24 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
         return super().dispatch(request, *args, **kwargs)
 
     def post(self, request: HttpRequest) -> HttpResponse:
+        """
+        POST webhook handler for MSTeams bot.
+        The events are broadcast to MSTeams from Microsoft, and are documented at https://learn.microsoft.com/en-us/microsoftteams/platform/resources/bot-v3/bots-notifications
+        """
+
         # verify_signature will raise the exception corresponding to the error
         self.verify_webhook_request(request)
 
         data = request.data
-        conversation_type = data.get("conversation", {}).get("conversationType")
+        conversation = data.get("conversation", {})
+        conversation_type = conversation.get("conversationType")
         event_type = data["type"]
 
+        log_params = {
+            "conversation": conversation,
+            "conversation_type": conversation_type,
+            "event_type": event_type,
+        }
         # only care about conversationUpdate and message
         if event_type == "message":
             # the only message events we care about are those which
@@ -224,6 +237,9 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
         elif event_type == "conversationUpdate":
             channel_data = data["channelData"]
             event = channel_data.get("eventType")
+
+            log_params["channel_data"] = channel_data
+            log_params["event"] = event
             # TODO: Handle other events
             if event == "teamMemberAdded":
                 return self.handle_team_member_added(request)
@@ -236,6 +252,7 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
             ):  # no explicit event for user adding app unfortunately
                 return self.handle_personal_member_add(request)
 
+        logger.info("sentry.integrations.msteams.webhook", extra=log_params)
         return self.respond(status=204)
 
     def verify_webhook_request(self, request: HttpRequest) -> bool:
@@ -251,7 +268,6 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
             "external_name": f"{tenant_id} (Microsoft Tenant)",
             "installation_type": "tenant",
         }
-
         return self.handle_member_add(data, params, build_personal_installation_message)
 
     def handle_team_member_added(self, request: HttpRequest):
@@ -288,6 +304,13 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
             }
         )
 
+        logger.info(
+            "sentry.integrations.msteams.webhook.handle_member_add",
+            extra={
+                **params,
+                "member_type_handler": build_installation_card.__name__,
+            },
+        )
         # sign the params so this can't be forged
         signed_params = sign(**params)
 

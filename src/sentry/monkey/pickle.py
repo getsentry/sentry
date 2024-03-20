@@ -48,6 +48,23 @@
 # [0]: https://rebeccabilbro.github.io/convert-py2-pickles-to-py3/#python-2-objects-vs-python-3-objects
 
 
+def _record_pickle_failure(metric_name: str, e: Exception) -> None:
+    from sentry.utils import metrics
+
+    metrics.incr(metric_name, sample_rate=1)
+
+    import random
+
+    from sentry import options
+
+    if options.get("pickle.send-error-to-sentry") >= random.random():
+        import logging
+
+        msg = f"{metric_name}.{type(e).__name__}: {e}"
+        # exc_info=(None, None, None) gives us a full traceback
+        logging.getLogger(__name__).error(msg, exc_info=(None, None, None))
+
+
 def patch_pickle_loaders():
     import pickle
 
@@ -76,11 +93,9 @@ def patch_pickle_loaders():
         def load(self):
             try:
                 return self.__unpickler.load()
-            except UnicodeDecodeError:
-                from sentry.utils import metrics
-
-                metrics.incr(
-                    "pickle.compat_pickle_pickler_load.had_unicode_decode_error", sample_rate=1
+            except UnicodeDecodeError as e:
+                _record_pickle_failure(
+                    "pickle.compat_pickle_pickler_load.had_unicode_decode_error", e
                 )
 
                 # We must seek back to the start of the buffer to depickle
@@ -98,10 +113,8 @@ def patch_pickle_loaders():
     def py3_compat_pickle_load(*args, **kwargs):
         try:
             return original_pickle_load(*args, **kwargs)
-        except UnicodeDecodeError:
-            from sentry.utils import metrics
-
-            metrics.incr("pickle.compat_pickle_load.had_unicode_decode_error", sample_rate=1)
+        except UnicodeDecodeError as e:
+            _record_pickle_failure("pickle.compat_pickle_load.had_unicode_decode_error", e)
 
             kwargs["encoding"] = kwargs.get("encoding", "latin-1")
             return original_pickle_load(*args, **kwargs)
@@ -109,10 +122,8 @@ def patch_pickle_loaders():
     def py3_compat_pickle_loads(*args, **kwargs):
         try:
             return original_pickle_loads(*args, **kwargs)
-        except UnicodeDecodeError:
-            from sentry.utils import metrics
-
-            metrics.incr("pickle.compat_pickle_loads.had_unicode_decode_error", sample_rate=1)
+        except UnicodeDecodeError as e:
+            _record_pickle_failure("pickle.compat_pickle_loads.had_unicode_decode_error", e)
 
             kwargs["encoding"] = kwargs.get("encoding", "latin-1")
             return original_pickle_loads(*args, **kwargs)
