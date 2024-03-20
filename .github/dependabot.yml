@@ -55,3 +55,11 @@ updates:
       - '@getsentry/security'
     # security only updates
     open-pull-requests-limit: 0
+  - package-ecosystem: github-actions
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+    groups:
+      github-actions:
+        patterns:
+          - "*"  # Group all Actions updates into a single larger pull request
