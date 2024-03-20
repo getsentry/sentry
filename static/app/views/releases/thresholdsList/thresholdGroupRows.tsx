@@ -201,13 +201,14 @@ export function ThresholdGroupRows({
     method: APIRequestMethod = 'POST'
   ) => {
     /* Convert threshold data structure to metric alert data structure */
+    const slug = project.slug;
     const metricAlertData: UnsavedMetricRule & {name: string} = {
-      name: `Release Alert Rule for ${thresholdData.project.slug} in ${thresholdData.environmentName}`,
+      name: `Release Alert Rule for ${slug} in ${thresholdData.environmentName}`,
       monitorType: MonitorType.ACTIVATED,
       aggregate: 'count()',
       dataset: Dataset.ERRORS,
       environment: thresholdData.environmentName || null,
-      projects: [thresholdData.project.slug],
+      projects: [slug],
       query: '',
       resolveThreshold: null,
       thresholdPeriod: 1,
