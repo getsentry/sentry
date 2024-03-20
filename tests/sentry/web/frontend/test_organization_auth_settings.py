@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 import pytest
+from django.core import mail
 from django.db import models
 from django.urls import reverse
 
@@ -26,21 +27,21 @@ from sentry.silo import SiloMode
 from sentry.testutils.cases import AuthProviderTestCase, PermissionTestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.web.frontend.organization_auth_settings import get_scim_url
 
 
-@region_silo_test
+@control_silo_test
 class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
     def setUp(self):
         super().setUp()
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.auth_provider_inst = AuthProvider.objects.create(
-                organization_id=self.organization.id, provider="dummy"
-            )
-            AuthIdentity.objects.create(
-                user=self.user, ident="foo", auth_provider=self.auth_provider_inst
-            )
+
+        self.auth_provider_inst = AuthProvider.objects.create(
+            organization_id=self.organization.id, provider="dummy"
+        )
+        AuthIdentity.objects.create(
+            user=self.user, ident="foo", auth_provider=self.auth_provider_inst
+        )
         self.login_as(self.user, organization_id=self.organization.id)
         self.path = reverse(
             "sentry-organization-auth-provider-settings", args=[self.organization.slug]
@@ -51,13 +52,11 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
         self.create_member(
             user=user, organization=self.organization, role="owner", teams=[self.team]
         )
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            AuthIdentity.objects.create(
-                user=user, ident="foo2", auth_provider=self.auth_provider_inst
-            )
-        om = OrganizationMember.objects.get(user_id=user.id, organization=self.organization)
-        setattr(om.flags, "sso:linked", True)
-        om.save()
+        AuthIdentity.objects.create(user=user, ident="foo2", auth_provider=self.auth_provider_inst)
+        with assume_test_silo_mode(SiloMode.REGION):
+            om = OrganizationMember.objects.get(user_id=user.id, organization=self.organization)
+            setattr(om.flags, "sso:linked", True)
+            om.save()
         return user
 
     def create_manager_and_attach_identity(self):
@@ -65,13 +64,11 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
         self.create_member(
             user=user, organization=self.organization, role="manager", teams=[self.team]
         )
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            AuthIdentity.objects.create(
-                user=user, ident="foo3", auth_provider=self.auth_provider_inst
-            )
-        om = OrganizationMember.objects.get(user_id=user.id, organization=self.organization)
-        setattr(om.flags, "sso:linked", True)
-        om.save()
+        AuthIdentity.objects.create(user=user, ident="foo3", auth_provider=self.auth_provider_inst)
+        with assume_test_silo_mode(SiloMode.REGION):
+            om = OrganizationMember.objects.get(user_id=user.id, organization=self.organization)
+            setattr(om.flags, "sso:linked", True)
+            om.save()
         return user
 
     def test_teamless_admin_cannot_load(self):
@@ -112,22 +109,22 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
             assert resp.status_code == 200
 
 
-@region_silo_test
+@control_silo_test
 class OrganizationAuthSettingsTest(AuthProviderTestCase):
     def enroll_user_and_require_2fa(self, user, organization):
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            TotpInterface().enroll(user)
-        organization.update(flags=models.F("flags").bitor(Organization.flags.require_2fa))
+        TotpInterface().enroll(user)
+        with assume_test_silo_mode(SiloMode.REGION):
+            organization.update(flags=models.F("flags").bitor(Organization.flags.require_2fa))
         assert organization.flags.require_2fa.is_set
 
     def assert_require_2fa_disabled(self, user, organization, logger):
-        organization = Organization.objects.get(id=organization.id)
-        assert not organization.flags.require_2fa.is_set
+        with assume_test_silo_mode(SiloMode.REGION):
+            organization = Organization.objects.get(id=organization.id)
+            assert not organization.flags.require_2fa.is_set
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            event = AuditLogEntry.objects.get(
-                target_object=organization.id, event=audit_log.get_event_id("ORG_EDIT"), actor=user
-            )
+        event = AuditLogEntry.objects.get(
+            target_object=organization.id, event=audit_log.get_event_id("ORG_EDIT"), actor=user
+        )
         audit_log_event = audit_log.get(event.event)
         assert "require_2fa to False when enabling SSO" in audit_log_event.render(event)
         logger.info.assert_called_once_with(
@@ -145,9 +142,8 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             assert resp.status_code == 200
             assert PLACEHOLDER_TEMPLATE in resp.content.decode("utf-8")
 
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                path = reverse("sentry-auth-sso")
-                resp = self.client.post(path, {"email": user.email})
+            path = reverse("sentry-auth-sso")
+            resp = self.client.post(path, {"email": user.email})
 
         settings_path = reverse("sentry-organization-auth-settings", args=[organization.slug])
 
@@ -157,38 +153,36 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         else:
             self.assertRedirects(resp, configure_path)
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            auth_provider = AuthProvider.objects.get(
-                organization_id=organization.id, provider="dummy"
-            )
-            auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
-            assert user == auth_identity.user
+        auth_provider = AuthProvider.objects.get(organization_id=organization.id, provider="dummy")
+        auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
+        assert user == auth_identity.user
 
-        member = OrganizationMember.objects.get(organization=organization, user_id=user.id)
+        with assume_test_silo_mode(SiloMode.REGION):
+            member = OrganizationMember.objects.get(organization=organization, user_id=user.id)
 
-        assert getattr(member.flags, "sso:linked")
-        assert not getattr(member.flags, "sso:invalid")
+            assert getattr(member.flags, "sso:linked")
+            assert not getattr(member.flags, "sso:invalid")
 
     def create_org_and_auth_provider(self, provider_name="dummy"):
         if provider_name == "Fly.io":
             auth.register("Fly.io", FlyOAuth2Provider)
             self.addCleanup(auth.unregister, "Fly.io", FlyOAuth2Provider)
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.user.update(is_managed=True)
-        organization = self.create_organization(name="foo", owner=self.user)
+        self.user.update(is_managed=True)
+        with assume_test_silo_mode(SiloMode.REGION):
+            organization = self.create_organization(name="foo", owner=self.user)
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            auth_provider = AuthProvider.objects.create(
-                organization_id=organization.id, provider=provider_name
-            )
-            AuthIdentity.objects.create(user=self.user, ident="foo", auth_provider=auth_provider)
+        auth_provider = AuthProvider.objects.create(
+            organization_id=organization.id, provider=provider_name
+        )
+        AuthIdentity.objects.create(user=self.user, ident="foo", auth_provider=auth_provider)
         return organization, auth_provider
 
     def create_om_and_link_sso(self, organization):
-        om = OrganizationMember.objects.get(user_id=self.user.id, organization=organization)
-        setattr(om.flags, "sso:linked", True)
-        om.save()
+        with assume_test_silo_mode(SiloMode.REGION):
+            om = OrganizationMember.objects.get(user_id=self.user.id, organization=organization)
+            setattr(om.flags, "sso:linked", True)
+            om.save()
         return om
 
     def test_can_start_auth_flow(self):
@@ -224,11 +218,10 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         self.login_as(user)
         self.assert_basic_flow(user, organization)
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            # disable require 2fa logs not called
-            assert not AuditLogEntry.objects.filter(
-                target_object=organization.id, event=audit_log.get_event_id("ORG_EDIT"), actor=user
-            ).exists()
+        # disable require 2fa logs not called
+        assert not AuditLogEntry.objects.filter(
+            target_object=organization.id, event=audit_log.get_event_id("ORG_EDIT"), actor=user
+        ).exists()
         assert not logger.info.called
 
     @with_feature("organizations:customer-domains")
@@ -270,34 +263,34 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         self.assert_basic_flow(user, organization)
         self.assert_require_2fa_disabled(user, organization, logger)
 
-    @patch("sentry.web.frontend.organization_auth_settings.email_unlink_notifications")
-    def test_disable_provider(self, email_unlink_notifications):
+    def test_disable_provider(self):
         organization, auth_provider = self.create_org_and_auth_provider()
         om = self.create_om_and_link_sso(organization)
         path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
 
         self.login_as(self.user, organization_id=organization.id)
 
-        with self.feature("organizations:sso-basic"):
+        with self.tasks(), self.feature("organizations:sso-basic"):
             resp = self.client.post(path, {"op": "disable"})
 
         assert resp.status_code == 302
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            assert not AuthProvider.objects.filter(organization_id=organization.id).exists()
-            assert not AuthProvider.objects.filter(id=auth_provider.id).exists()
+        assert not AuthProvider.objects.filter(organization_id=organization.id).exists()
+        assert not AuthProvider.objects.filter(id=auth_provider.id).exists()
 
-        om = OrganizationMember.objects.get(id=om.id)
+        with assume_test_silo_mode(SiloMode.REGION):
+            om = OrganizationMember.objects.get(id=om.id)
 
         assert not getattr(om.flags, "sso:linked")
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            assert not User.objects.get(id=om.user_id).is_managed
+        assert not User.objects.get(id=om.user_id).is_managed
 
-        assert email_unlink_notifications.delay.called
+        assert len(mail.outbox) == 1
+        message = mail.outbox[0]
+        assert "Action required" in message.subject
+        assert "Single Sign-On has been disabled" in message.body
 
-    @patch("sentry.web.frontend.organization_auth_settings.email_unlink_notifications")
     @with_feature("organizations:sso-basic")
-    def test_disable_partner_provider(self, email_unlink_notifications):
+    def test_disable_partner_provider(self):
         organization, auth_provider = self.create_org_and_auth_provider("Fly.io")
         self.create_om_and_link_sso(organization)
         path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
@@ -309,18 +302,15 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
     def test_disable__scim_missing(self):
         organization, auth_provider = self.create_org_and_auth_provider()
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            auth_provider.flags.scim_enabled = True
-            auth_provider.save()
+        auth_provider.flags.scim_enabled = True
+        auth_provider.save()
 
         member = self.create_om_and_link_sso(organization)
-        member.flags["idp:provisioned"] = True
-        member.save()
+        with assume_test_silo_mode(SiloMode.REGION):
+            member.flags["idp:provisioned"] = True
+            member.save()
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            assert not SentryAppInstallationForProvider.objects.filter(
-                provider=auth_provider
-            ).exists()
+        assert not SentryAppInstallationForProvider.objects.filter(provider=auth_provider).exists()
 
         path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
         self.login_as(self.user, organization_id=organization.id)
@@ -332,14 +322,13 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert resp.redirect_chain == [
             ("/settings/foo/auth/", 302),
         ]
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            assert not AuthProvider.objects.filter(organization_id=organization.id).exists()
+        assert not AuthProvider.objects.filter(organization_id=organization.id).exists()
 
-        member.refresh_from_db()
-        assert not member.flags["idp:provisioned"], "member should not be idp controlled now"
+        with assume_test_silo_mode(SiloMode.REGION):
+            member.refresh_from_db()
+            assert not member.flags["idp:provisioned"], "member should not be idp controlled now"
 
-    @patch("sentry.web.frontend.organization_auth_settings.email_unlink_notifications")
-    def test_superuser_disable_provider(self, email_unlink_notifications):
+    def test_superuser_disable_provider(self):
         organization, auth_provider = self.create_org_and_auth_provider()
         with self.feature("organizations:sso-scim"), assume_test_silo_mode(SiloMode.CONTROL):
             auth_provider.enable_scim(self.user)
@@ -351,26 +340,23 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         superuser = self.create_user(is_superuser=True)
         self.login_as(superuser, superuser=True)
 
-        with self.feature({"organizations:sso-basic": False}):
+        with self.feature({"organizations:sso-basic": False}), self.tasks():
             resp = self.client.post(path, {"op": "disable"})
 
         assert resp.status_code == 302
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            assert not AuthProvider.objects.filter(organization_id=organization.id).exists()
-            assert not AuthProvider.objects.filter(id=auth_provider.id).exists()
+        assert not AuthProvider.objects.filter(organization_id=organization.id).exists()
+        assert not AuthProvider.objects.filter(id=auth_provider.id).exists()
 
-        om = OrganizationMember.objects.get(id=om.id)
+        with assume_test_silo_mode(SiloMode.REGION):
+            om = OrganizationMember.objects.get(id=om.id)
 
         assert not getattr(om.flags, "sso:linked")
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            assert not User.objects.get(id=om.user_id).is_managed
+        assert not User.objects.get(id=om.user_id).is_managed
 
-        assert email_unlink_notifications.delay.called
+        assert len(mail.outbox)
 
-        with pytest.raises(SentryAppInstallationForProvider.DoesNotExist), assume_test_silo_mode(
-            SiloMode.CONTROL
-        ):
+        with pytest.raises(SentryAppInstallationForProvider.DoesNotExist):
             SentryAppInstallationForProvider.objects.get(
                 organization_id=self.organization.id, provider="dummy_scim"
             )
@@ -391,19 +377,19 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         assert resp.status_code == 200
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            auth_provider = AuthProvider.objects.get(organization_id=organization.id)
+        auth_provider = AuthProvider.objects.get(organization_id=organization.id)
         assert getattr(auth_provider.flags, "allow_unlinked")
-        organization = Organization.objects.get(id=organization.id)
-        assert organization.default_role == "owner"
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            result = AuditLogEntry.objects.filter(
-                organization_id=organization.id,
-                target_object=auth_provider.id,
-                event=audit_log.get_event_id("SSO_EDIT"),
-                actor=self.user,
-            ).first()
+        with assume_test_silo_mode(SiloMode.REGION):
+            organization = Organization.objects.get(id=organization.id)
+            assert organization.default_role == "owner"
+
+        result = AuditLogEntry.objects.filter(
+            organization_id=organization.id,
+            target_object=auth_provider.id,
+            event=audit_log.get_event_id("SSO_EDIT"),
+            actor=self.user,
+        ).first()
 
         assert result.data == {"require_link": "to False", "default_role": "to owner"}
 
@@ -423,19 +409,18 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         assert resp.status_code == 200
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            auth_provider = AuthProvider.objects.get(organization_id=organization.id)
+        auth_provider = AuthProvider.objects.get(organization_id=organization.id)
         assert getattr(auth_provider.flags, "allow_unlinked")
-        organization = Organization.objects.get(id=organization.id)
-        assert organization.default_role == "member"
+        with assume_test_silo_mode(SiloMode.REGION):
+            organization = Organization.objects.get(id=organization.id)
+            assert organization.default_role == "member"
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            result = AuditLogEntry.objects.filter(
-                organization_id=organization.id,
-                target_object=auth_provider.id,
-                event=audit_log.get_event_id("SSO_EDIT"),
-                actor=self.user,
-            ).first()
+        result = AuditLogEntry.objects.filter(
+            organization_id=organization.id,
+            target_object=auth_provider.id,
+            event=audit_log.get_event_id("SSO_EDIT"),
+            actor=self.user,
+        ).first()
 
         assert result.data == {"require_link": "to False"}
 
@@ -455,20 +440,18 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         assert resp.status_code == 200
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            auth_provider = AuthProvider.objects.get(organization_id=organization.id)
+        auth_provider = AuthProvider.objects.get(organization_id=organization.id)
         assert not getattr(auth_provider.flags, "allow_unlinked")
-        organization = Organization.objects.get(id=organization.id)
-        assert organization.default_role == "owner"
+        with assume_test_silo_mode(SiloMode.REGION):
+            organization = Organization.objects.get(id=organization.id)
+            assert organization.default_role == "owner"
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            result = AuditLogEntry.objects.filter(
-                organization_id=organization.id,
-                target_object=auth_provider.id,
-                event=audit_log.get_event_id("SSO_EDIT"),
-                actor=self.user,
-            ).first()
-
+        result = AuditLogEntry.objects.filter(
+            organization_id=organization.id,
+            target_object=auth_provider.id,
+            event=audit_log.get_event_id("SSO_EDIT"),
+            actor=self.user,
+        ).first()
         assert result.data == {"default_role": "to owner"}
 
     def test_edit_sso_settings__no_change(self):
@@ -487,16 +470,15 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         assert resp.status_code == 200
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            auth_provider = AuthProvider.objects.get(organization_id=organization.id)
+        auth_provider = AuthProvider.objects.get(organization_id=organization.id)
         assert not getattr(auth_provider.flags, "allow_unlinked")
-        organization = Organization.objects.get(id=organization.id)
-        assert organization.default_role == "member"
+        with assume_test_silo_mode(SiloMode.REGION):
+            organization = Organization.objects.get(id=organization.id)
+            assert organization.default_role == "member"
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            assert not AuditLogEntry.objects.filter(
-                organization_id=organization.id, event=audit_log.get_event_id("SSO_EDIT")
-            ).exists()
+        assert not AuditLogEntry.objects.filter(
+            organization_id=organization.id, event=audit_log.get_event_id("SSO_EDIT")
+        ).exists()
 
     def test_edit_sso_settings__scim(self):
         organization, auth_provider = self.create_org_and_auth_provider()
@@ -520,32 +502,36 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         assert resp.status_code == 200
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            auth_provider = AuthProvider.objects.get(organization_id=organization.id)
+        auth_provider = AuthProvider.objects.get(organization_id=organization.id)
         assert getattr(auth_provider.flags, "scim_enabled")
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            assert auth_provider.get_scim_token() is not None
+        assert auth_provider.get_scim_token() is not None
+
         org_member = organization_service.get_organization_by_id(id=auth_provider.organization_id)
         assert org_member is not None
         assert get_scim_url(auth_provider, org_member.organization) is not None
 
         # "add" some scim users
         u1 = self.create_user()
-        not_scim_member = OrganizationMember.objects.create(
-            user_id=u1.id, organization=organization
-        )
-        not_scim_member.save()
         u2 = self.create_user()
-        scim_member = OrganizationMember.objects.create(user_id=u2.id, organization=organization)
-        scim_member.flags["idp:provisioned"] = True
-        scim_member.save()
         u3 = self.create_user()
-        scim_role_restricted_user = OrganizationMember.objects.create(
-            user_id=u3.id, organization=organization
-        )
-        scim_role_restricted_user.flags["idp:provisioned"] = True
-        scim_role_restricted_user.flags["idp:role-restricted"] = True
-        scim_role_restricted_user.save()
+        with assume_test_silo_mode(SiloMode.REGION):
+            not_scim_member = OrganizationMember.objects.create(
+                user_id=u1.id, organization=organization
+            )
+            not_scim_member.save()
+
+            scim_member = OrganizationMember.objects.create(
+                user_id=u2.id, organization=organization
+            )
+            scim_member.flags["idp:provisioned"] = True
+            scim_member.save()
+
+            scim_role_restricted_user = OrganizationMember.objects.create(
+                user_id=u3.id, organization=organization
+            )
+            scim_role_restricted_user.flags["idp:provisioned"] = True
+            scim_role_restricted_user.flags["idp:role-restricted"] = True
+            scim_role_restricted_user.save()
 
         with self.feature({"organizations:sso-basic": True}):
             resp = self.client.post(
@@ -559,22 +545,20 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             )
 
         assert resp.status_code == 200
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            auth_provider = AuthProvider.objects.get(organization_id=organization.id)
+        auth_provider = AuthProvider.objects.get(organization_id=organization.id)
 
         assert not getattr(auth_provider.flags, "scim_enabled")
         org_member = organization_service.get_organization_by_id(id=auth_provider.organization_id)
         assert org_member is not None
         assert get_scim_url(auth_provider, org_member.organization) is None
-        with assume_test_silo_mode(SiloMode.CONTROL), pytest.raises(
-            SentryAppInstallationForProvider.DoesNotExist
-        ):
+        with pytest.raises(SentryAppInstallationForProvider.DoesNotExist):
             SentryAppInstallationForProvider.objects.get(
                 organization_id=self.organization.id, provider="dummy_scim"
             )
-        not_scim_member.refresh_from_db()
-        scim_member.refresh_from_db()
-        scim_role_restricted_user.refresh_from_db()
+        with assume_test_silo_mode(SiloMode.REGION):
+            not_scim_member.refresh_from_db()
+            scim_member.refresh_from_db()
+            scim_role_restricted_user.refresh_from_db()
         assert not any(
             (not_scim_member.flags["idp:provisioned"], not_scim_member.flags["idp:role-restricted"])
         )
@@ -615,7 +599,7 @@ class DummySAML2Provider(GenericSAML2Provider):
         return dummy_provider_config
 
 
-@region_silo_test
+@control_silo_test
 class OrganizationAuthSettingsSAML2Test(AuthProviderTestCase):
     provider = DummySAML2Provider
     provider_name = "saml2_dummy"
@@ -624,12 +608,11 @@ class OrganizationAuthSettingsSAML2Test(AuthProviderTestCase):
         super().setUp()
         self.user = self.create_user("foobar@sentry.io")
         self.organization = self.create_organization(owner=self.user, name="saml2-org")
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.auth_provider_inst = AuthProvider.objects.create(
-                provider=self.provider_name,
-                config=dummy_provider_config,
-                organization_id=self.organization.id,
-            )
+        self.auth_provider_inst = AuthProvider.objects.create(
+            provider=self.provider_name,
+            config=dummy_provider_config,
+            organization_id=self.organization.id,
+        )
 
     def test_update_generic_saml2_config(self):
         self.login_as(self.user, organization_id=self.organization.id)
@@ -659,10 +642,9 @@ class OrganizationAuthSettingsSAML2Test(AuthProviderTestCase):
         resp = self.client.post(configure_path, payload)
         assert resp.status_code == 200
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            actual = AuthProvider.objects.get(id=self.auth_provider_inst.id)
-            assert actual.config == expected_provider_config
-            assert actual.config != self.auth_provider_inst.config
+        actual = AuthProvider.objects.get(id=self.auth_provider_inst.id)
+        assert actual.config == expected_provider_config
+        assert actual.config != self.auth_provider_inst.config
 
-            assert actual.provider == self.auth_provider_inst.provider
-            assert actual.flags == self.auth_provider_inst.flags
+        assert actual.provider == self.auth_provider_inst.provider
+        assert actual.flags == self.auth_provider_inst.flags

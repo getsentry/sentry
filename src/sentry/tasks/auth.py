@@ -61,6 +61,8 @@ def _email_missing_links(org_id: int, sending_user_id: int, provider_key: str) -
     name="sentry.tasks.email_unlink_notifications", queue="auth", silo_mode=SiloMode.REGION
 )
 def email_unlink_notifications(org_id: int, actor_id: int, provider_key: str):
+    # Deprecated: Replaced by an RPC call
+    # Would need a control silo equivalent here.
     try:
         org = Organization.objects.get(id=org_id)
         provider = manager.get(provider_key)
