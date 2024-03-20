@@ -189,7 +189,12 @@ def build_summary_data(
                 ctx=ctx, project=project, referrer=Referrer.DAILY_SUMMARY_KEY_ERRORS.value
             )
             if key_errors:
-                project_ctx.key_errors = [(e["group_id"], e["count()"]) for e in key_errors]
+                group_id_alias = (
+                    "events.group_id"
+                    if features.has("organizations:snql-join-reports", project.organization)
+                    else "group_id"
+                )
+                project_ctx.key_errors = [(e[group_id_alias], e["count()"]) for e in key_errors]
 
             # Today's Top 3 Performance Issues
             key_performance_issues = project_key_performance_issues(
