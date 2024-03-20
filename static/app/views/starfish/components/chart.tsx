@@ -461,7 +461,17 @@ function Chart({
                   },
                 }}
                 additionalSeries={transformedThroughput}
-                tooltip={areaChartProps.tooltip}
+                tooltip={{
+                  valueFormatter: (value, seriesName) => {
+                    return tooltipFormatter(
+                      value,
+                      aggregateOutputFormat ??
+                        aggregateOutputType(
+                          data?.length ? data[0].seriesName : seriesName
+                        )
+                    );
+                  },
+                }}
                 colors={colors}
                 grid={grid}
                 legend={showLegend ? {top: 0, right: 10} : undefined}
