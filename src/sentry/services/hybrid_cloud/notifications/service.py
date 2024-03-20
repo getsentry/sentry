@@ -79,7 +79,7 @@ class NotificationsService(RpcService):
         user_id: int,
         project_ids: list[int],
         type: NotificationSettingEnum,
-    ) -> Mapping[int, tuple[bool, bool, bool]]:
+    ) -> Mapping[int, RpcGroupSubscriptionStatus]:
         pass
 
     @rpc_method

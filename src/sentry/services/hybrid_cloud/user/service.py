@@ -151,7 +151,7 @@ class UserService(RpcService):
         email: str,
         ident: str | None = None,
         referrer: str | None = None,
-    ) -> tuple[RpcUser, bool]:
+    ) -> RpcUserCreationResult:
         pass
 
     @rpc_method

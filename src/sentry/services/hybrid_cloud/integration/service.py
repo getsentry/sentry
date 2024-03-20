@@ -129,8 +129,6 @@ class IntegrationService(RpcService):
         )
         return ois[0] if len(ois) > 0 else None
 
-    @rpc_method
-    @abstractmethod
     def get_organization_context(
         self,
         *,
@@ -177,7 +175,7 @@ class IntegrationService(RpcService):
         integration_id: int | None = None,
         provider: str | None = None,
         external_id: str | None = None,
-    ) -> tuple[RpcIntegration | None, list[RpcOrganizationIntegration]]:
+    ) -> RpcOrganizationIntegrationContextResult:
         pass
 
     @rpc_method

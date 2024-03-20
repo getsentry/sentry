@@ -197,12 +197,6 @@ class DatabaseBackedUserService(UserService):
 
     def get_or_create_user_by_email(
         self, *, email: str, ident: str | None = None, referrer: str | None = None
-    ) -> tuple[RpcUser, bool]:
-        result = self.get_or_create_user_by_email__tmp(email=email, ident=ident, referrer=referrer)
-        return result.user, result.was_newly_created
-
-    def get_or_create_user_by_email__tmp(
-        self, *, email: str, ident: str | None = None, referrer: str | None = None
     ) -> RpcUserCreationResult:
         with transaction.atomic(router.db_for_write(User)):
             rpc_user = self.get_user_by_email(email=email, ident=ident)
@@ -220,6 +214,11 @@ class DatabaseBackedUserService(UserService):
             )
             user.update(flags=F("flags").bitor(User.flags.newsletter_consent_prompt))
             return RpcUserCreationResult(user=serialize_rpc_user(user), was_newly_created=True)
+
+    def get_or_create_user_by_email__tmp(
+        self, *, email: str, ident: str | None = None, referrer: str | None = None
+    ) -> RpcUserCreationResult:
+        return self.get_or_create_user_by_email(email=email, ident=ident, referrer=referrer)
 
     def get_user_by_email(
         self,

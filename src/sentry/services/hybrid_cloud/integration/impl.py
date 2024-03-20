@@ -235,22 +235,6 @@ class DatabaseBackedIntegrationService(IntegrationService):
         integration_id: int | None = None,
         provider: str | None = None,
         external_id: str | None = None,
-    ) -> tuple[RpcIntegration | None, list[RpcOrganizationIntegration]]:
-        result = self.get_organization_contexts__tmp(
-            organization_id=organization_id,
-            integration_id=integration_id,
-            provider=provider,
-            external_id=external_id,
-        )
-        return result.integration, result.installs
-
-    def get_organization_contexts__tmp(
-        self,
-        *,
-        organization_id: int | None = None,
-        integration_id: int | None = None,
-        provider: str | None = None,
-        external_id: str | None = None,
     ) -> RpcOrganizationIntegrationContextResult:
         integration = self.get_integration(
             organization_id=organization_id,
@@ -266,6 +250,21 @@ class DatabaseBackedIntegrationService(IntegrationService):
         )
         return RpcOrganizationIntegrationContextResult(
             integration=integration, installs=organization_integrations
+        )
+
+    def get_organization_contexts__tmp(
+        self,
+        *,
+        organization_id: int | None = None,
+        integration_id: int | None = None,
+        provider: str | None = None,
+        external_id: str | None = None,
+    ) -> RpcOrganizationIntegrationContextResult:
+        return self.get_organization_contexts(
+            organization_id=organization_id,
+            integration_id=integration_id,
+            provider=provider,
+            external_id=external_id,
         )
 
     def update_integrations(

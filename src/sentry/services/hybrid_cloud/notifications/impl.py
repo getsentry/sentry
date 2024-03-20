@@ -122,21 +122,6 @@ class DatabaseBackedNotificationsService(NotificationsService):
         user_id: int,
         project_ids: list[int],
         type: NotificationSettingEnum,
-    ) -> Mapping[int, tuple[bool, bool, bool]]:
-        result = self.get_subscriptions_for_projects__tmp(
-            user_id=user_id, project_ids=project_ids, type=type
-        )
-        return {
-            k: (v.is_disabled, v.is_active, v.has_only_inactive_subscriptions)
-            for (k, v) in result.items()
-        }
-
-    def get_subscriptions_for_projects__tmp(
-        self,
-        *,
-        user_id: int,
-        project_ids: list[int],
-        type: NotificationSettingEnum,
     ) -> Mapping[int, RpcGroupSubscriptionStatus]:
         """
         Returns a mapping of project_id to a tuple of (is_disabled, is_active, has_only_inactive_subscriptions)
@@ -157,6 +142,17 @@ class DatabaseBackedNotificationsService(NotificationsService):
                 user=user, project_ids=project_ids, type=type
             ).items()
         }
+
+    def get_subscriptions_for_projects__tmp(
+        self,
+        *,
+        user_id: int,
+        project_ids: list[int],
+        type: NotificationSettingEnum,
+    ) -> Mapping[int, RpcGroupSubscriptionStatus]:
+        return self.get_subscriptions_for_projects(
+            user_id=user_id, project_ids=project_ids, type=type
+        )
 
     def get_participants(
         self,
