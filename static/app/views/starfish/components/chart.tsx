@@ -435,7 +435,14 @@ function Chart({
               <BarChart
                 height={height}
                 series={trimmedSeries}
-                xAxis={xAxis}
+                xAxis={{
+                  type: 'category',
+                  axisTick: {show: true},
+                  truncate: Infinity, // Show axis labels
+                  axisLabel: {
+                    interval: 0, // Show _all_ axis labels
+                  },
+                }}
                 additionalSeries={transformedThroughput}
                 yAxes={areaChartProps.yAxes}
                 tooltip={areaChartProps.tooltip}
