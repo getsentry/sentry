@@ -1,4 +1,4 @@
-import {Fragment, type ReactNode} from 'react';
+import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -97,21 +97,19 @@ export default function Page({
         <UserBadge
           avatarSize={24}
           displayName={
-            <Fragment>
+            <DisplayHeader>
               <Title>{replayRecord.user.display_name || t('Anonymous User')}</Title>
-              <Time>
-                {replayRecord && (
-                  <TimeContainer>
-                    <IconCalendar color="gray300" size="xs" />
-                    <TimeSince
-                      date={replayRecord.started_at}
-                      isTooltipHoverable
-                      unitStyle="regular"
-                    />
-                  </TimeContainer>
-                )}
-              </Time>
-            </Fragment>
+              {replayRecord && (
+                <TimeContainer>
+                  <IconCalendar color="gray300" size="xs" />
+                  <TimeSince
+                    date={replayRecord.started_at}
+                    isTooltipHoverable
+                    unitStyle="regular"
+                  />
+                </TimeContainer>
+              )}
+            </DisplayHeader>
           }
           user={{
             name: replayRecord.user.display_name || '',
@@ -175,24 +173,18 @@ const Title = styled('h1')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   color: ${p => p.theme.headingColor};
   margin: 0;
-
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
-
-const Time = styled('dd')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: normal;
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-  line-height: ${p => p.theme.text.lineHeightBody};
-  color: ${p => p.theme.gray300};
 `;
 
 const TimeContainer = styled('div')`
   display: flex;
   gap: ${space(1)};
   align-items: center;
+  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSizeLarge};
+`;
+
+const DisplayHeader = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.5)};
 `;
