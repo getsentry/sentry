@@ -11,7 +11,7 @@ export type MetricTag = {
 };
 
 export type SortState = {
-  name: 'name' | 'avg' | 'min' | 'max' | 'sum' | undefined;
+  name: 'name' | 'avg' | 'min' | 'max' | 'sum' | 'total' | undefined;
   order: 'asc' | 'desc';
 };
 
