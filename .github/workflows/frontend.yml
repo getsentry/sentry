@@ -26,13 +26,13 @@ jobs:
     outputs:
       lintable_css_in_js_modified: ${{ steps.changes.outputs.lintable_css_in_js_modified }}
       lintable_css_in_js_modified_files: ${{ steps.changes.outputs.lintable_css_in_js_modified_files }}
-      lintable_css_in_js_modified_rules_changed: ${{ steps.changes.output.lintable_css_in_js_modified_rules_changed }}
+      lintable_css_in_js_rules_changed: ${{ steps.changes.output.lintable_css_in_js_rules_changed }}
       lintable_modified: ${{ steps.changes.outputs.lintable_modified }}
       lintable_modified_files: ${{ steps.changes.outputs.lintable_modified_files }}
-      lintable_modified_rules_changed: ${{ steps.changes.outputs.lintable_modified_rules_changed }}
+      lintable_rules_changed: ${{ steps.changes.outputs.lintable_rules_changed }}
       testable_modified: ${{ steps.changes.outputs.testable_modified }}
       testable_modified_files: ${{ steps.changes.outputs.testable_modified_files }}
-      testable_modified_rules_changed: ${{ steps.changes.outputs.testable_modified_rules_changed }}
+      testable_rules_changed: ${{ steps.changes.outputs.testable_rules_changed }}
       frontend_all: ${{ steps.changes.outputs.frontend_all }}
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -81,15 +81,15 @@ jobs:
         run: yarn lint:biome
 
       - name: prettier (all files)
-        if: github.ref == 'refs/heads/master' || needs.files-changed.outputs.lintable_modified_rules_changed == 'true'
+        if: github.ref == 'refs/heads/master' || needs.files-changed.outputs.lintable_rules_changed == 'true'
         run: yarn lint:prettier
 
       - name: eslint (all files)
-        if: github.ref == 'refs/heads/master' || needs.files-changed.outputs.lintable_modified_rules_changed == 'true'
+        if: github.ref == 'refs/heads/master' || needs.files-changed.outputs.lintable_rules_changed == 'true'
         run: yarn lint:js
 
       - name: stylelint (all files)
-        if: github.ref == 'refs/heads/master' || needs.files-changed.outputs.lintable_css_in_js_modified_rules_changed == 'true'
+        if: github.ref == 'refs/heads/master' || needs.files-changed.outputs.lintable_css_in_js_rules_changed == 'true'
         run: yarn lint:css
 
       # When on a PR branch, we only need to look at the changed files
@@ -98,15 +98,15 @@ jobs:
         run: yarn fix:biome
 
       - name: prettier (changed files only)
-        if: github.ref != 'refs/heads/master' && needs.files-changed.outputs.lintable_modified_rules_changed != 'true' && needs.files-changed.outputs.lintable_modified == 'true'
+        if: github.ref != 'refs/heads/master' && needs.files-changed.outputs.lintable_rules_changed != 'true' && needs.files-changed.outputs.lintable_modified == 'true'
         run: yarn prettier --write ${{ needs.files-changed.outputs.lintable_modified_files }}
 
       - name: eslint (changed files only)
-        if: github.ref != 'refs/heads/master' && needs.files-changed.outputs.lintable_modified_rules_changed != 'true' && needs.files-changed.outputs.lintable_modified == 'true'
+        if: github.ref != 'refs/heads/master' && needs.files-changed.outputs.lintable_rules_changed != 'true' && needs.files-changed.outputs.lintable_modified == 'true'
         run: yarn eslint --fix ${{ needs.files-changed.outputs.lintable_modified_files }}
 
       - name: stylelint (changed files only)
-        if: github.ref != 'refs/heads/master' && needs.files-changed.outputs.lintable_css_in_js_modified_rules_changed != 'true' && needs.files-changed.outputs.lintable_css_in_js_modified == 'true'
+        if: github.ref != 'refs/heads/master' && needs.files-changed.outputs.lintable_css_in_js_rules_changed != 'true' && needs.files-changed.outputs.lintable_css_in_js_modified == 'true'
         run: yarn stylelint ${{ needs.files-changed.outputs.lintable_css_in_js_modified_files }}
 
       # Check (and error) for dirty working tree for forks
@@ -131,7 +131,7 @@ jobs:
         run: yarn tsc -p config/tsconfig.ci.json
 
   frontend-jest-tests:
-    if: needs.files-changed.outputs.testable_modified_rules_changed == 'true' || needs.files-changed.outputs.testable_modified == 'true'
+    if: needs.files-changed.outputs.testable_rules_changed == 'true' || needs.files-changed.outputs.testable_modified == 'true'
     needs: files-changed
     name: Jest
     # If you change the runs-on image, you must also change the runner in jest-balance.yml

@@ -12,7 +12,7 @@ lintable_css_in_js_modified: &lintable_css_in_js_modified
   - added|modified: '**/*.[tj]{s,sx}'
 
 # Trigger for when we must run full lint (stylelint)
-lintable_css_in_js_modified_rules_changed: &lintable_css_in_js_modified_rules_changed
+lintable_css_in_js_rules_changed: &lintable_css_in_js_rules_changed
   - *sentry_specific_workflow
   - added|modified: '.github/file-filters.yml'
   - added|modified: 'yarn.lock'
@@ -24,7 +24,7 @@ lintable_modified: &lintable_modified
   - added|modified: '**/*.{html,less,json,yml,md}'
 
 # Trigger for when we must run full lint (eslint)
-lintable_modified_rules_changed: &lintable_modified_rules_changed
+lintable_rules_changed: &lintable_rules_changed
   - *sentry_specific_workflow
   - added|modified: '.github/file-filters.yml'
   - added|modified: 'package.json'
@@ -41,7 +41,7 @@ testable_modified: &testable_modified
   - *sentry_specific_test_files
 
 # Trigger for when we must run full tests (jest)
-testable_modified_rules_changed: &testable_modified_rules_changed
+testable_rules_changed: &testable_rules_changed
   - *sentry_specific_workflow
   - added|modified: '.github/file-filters.yml'
   - added|modified: 'jest.config.ts'
@@ -49,7 +49,7 @@ testable_modified_rules_changed: &testable_modified_rules_changed
 # Trigger whether to run tsc or not
 # There's no "rules_changed" for this, because we run it for all files always
 # getsentry/sentry does not use this directly, instead frontend_all is a superset to trigger tsc
-typecheckable_modified_rules_changed: &typecheckable_modified_rules_changed
+typecheckable_rules_changed: &typecheckable_rules_changed
   - *sentry_specific_workflow
   - added|modified: '.github/file-filters.yml'
   - added|deleted|modified: '**/tsconfig*.json'
@@ -57,10 +57,10 @@ typecheckable_modified_rules_changed: &typecheckable_modified_rules_changed
 
 # Trigger to apply the 'Scope: Frontend' label to PRs
 frontend_all: &frontend_all
-  - *lintable_css_in_js_modified_rules_changed
-  - *lintable_modified_rules_changed
-  - *testable_modified_rules_changed
-  - *typecheckable_modified_rules_changed
+  - *lintable_css_in_js_rules_changed
+  - *lintable_rules_changed
+  - *testable_rules_changed
+  - *typecheckable_rules_changed
   - added|modified: '{.volta,vercel}.json'
   - *sentry_specific_workflow
   - *sentry_specific_test_files
