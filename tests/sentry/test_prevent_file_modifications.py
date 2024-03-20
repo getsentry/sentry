@@ -14,8 +14,7 @@ LOCKED_FILES = {
 * We've locked this file following INC-680.
 * Please remove the changes to this file for this test to pass.
         """,
-        # "digest": "edf45a1fb04cbadb5d4f2edb59d884b1",
-        "digest": "d41d8cd98f00b204e9800998ecf8427e",
+        "digest": "edf45a1fb04cbadb5d4f2edb59d884b1",
     },
 }
 
