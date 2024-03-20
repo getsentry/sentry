@@ -41,6 +41,7 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
+import {defaultMetricWidget} from 'sentry/views/dashboards/metrics/utils';
 import {
   cloneDashboard,
   getCurrentPageFilters,
@@ -54,7 +55,6 @@ import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {MetricsDashboardContextProvider} from 'sentry/views/dashboards/widgetCard/metricsContext';
 import {MetricsDataSwitcherAlert} from 'sentry/views/performance/landing/metricsDataSwitcherAlert';
 
-import {defaultMetricWidget} from '../../utils/metrics/dashboard';
 import {generatePerformanceEventView} from '../performance/data';
 import {MetricsDataSwitcher} from '../performance/landing/metricsDataSwitcher';
 import {DiscoverQueryPageSource} from '../performance/utils';
@@ -497,13 +497,12 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   handleAddMetricWidget = (layout?: Widget['layout']) => {
-    const {dashboard, selection, router, location} = this.props;
+    const {dashboard, router, location} = this.props;
 
     const widgetCopy = cloneDeep(
       assignTempId({
         layout,
-        ...defaultMetricWidget(selection),
-        widgetType: WidgetType.METRICS,
+        ...defaultMetricWidget(),
       })
     );
 

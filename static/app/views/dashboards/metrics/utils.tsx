@@ -236,6 +236,23 @@ export function getMetricWidgetTitle(queries: DashboardMetricsExpression[]) {
     .join(', ');
 }
 
+export function defaultMetricWidget(): Widget {
+  return expressionsToWidget(
+    [
+      {
+        id: 0,
+        type: MetricQueryType.QUERY,
+        mri: 'd:transactions/duration@millisecond',
+        op: 'avg',
+        query: '',
+        orderBy: 'desc',
+      },
+    ],
+    '',
+    DisplayType.LINE
+  );
+}
+
 export function filterQueriesByDisplayType(
   queries: DashboardMetricsQuery[],
   displayType: DisplayType

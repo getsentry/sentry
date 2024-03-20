@@ -26,6 +26,7 @@ import {useDDMContext} from 'sentry/views/ddm/context';
 import {getCreateAlert} from 'sentry/views/ddm/metricQueryContextMenu';
 import {QuerySymbol} from 'sentry/views/ddm/querySymbol';
 import {useCreateDashboard} from 'sentry/views/ddm/useCreateDashboard';
+import {useFormulaDependencies} from 'sentry/views/ddm/utils/useFormulaDependencies';
 
 interface Props {
   addCustomMetric: () => void;
@@ -35,7 +36,7 @@ interface Props {
 export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Props) {
   const router = useRouter();
   const organization = useOrganization();
-  const createDashboard = useCreateDashboard();
+  const formulaDependencies = useFormulaDependencies();
   const {
     isDefaultQuery,
     setDefaultQuery,
@@ -44,6 +45,11 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
     selectedWidgetIndex,
     isMultiChartMode,
   } = useDDMContext();
+  const createDashboard = useCreateDashboard(
+    widgets,
+    formulaDependencies,
+    isMultiChartMode
+  );
 
   const handleToggleDefaultQuery = useCallback(() => {
     if (isDefaultQuery) {
