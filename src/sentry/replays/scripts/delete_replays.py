@@ -10,7 +10,7 @@ from sentry.models.organization import Organization
 from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.replays.post_process import generate_normalized_output
 from sentry.replays.query import query_replays_collection, replay_url_parser_config
-from sentry.replays.tasks import archive_replay, delete_recording_segments
+from sentry.replays.tasks import archive_replay, delete_replay_recording_async
 
 logger = logging.getLogger()
 
@@ -89,7 +89,7 @@ def delete_replay_ids(project_id: int, replay_ids: list[str]) -> None:
     # schedule the tasks to run on a cluster of workers. This allows us to parallelize the work
     # and complete the task as quickly as possible.
     for replay_id in replay_ids:
-        delete_recording_segments.delay(project_id, replay_id)
+        delete_replay_recording_async.delay(project_id, replay_id)
 
     logger.info("%d replays were successfully deleted.", len(replay_ids))
     logger.info(

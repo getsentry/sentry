@@ -31,6 +31,17 @@ def delete_recording_segments(project_id: int, replay_id: str, **kwargs: Any) ->
     metrics.incr("replays.delete_recording_segments", amount=1, tags={"status": "finished"})
 
 
+@instrumented_task(
+    name="sentry.replays.tasks.delete_replay_recording_async",
+    queue="replays.delete_replay",
+    default_retry_delay=5,
+    max_retries=5,
+    silo_mode=SiloMode.REGION,
+)
+def delete_replay_recording_async(project_id: int, replay_id: str) -> None:
+    delete_replay_recording(project_id, replay_id)
+
+
 def delete_replay_recording(project_id: int, replay_id: str) -> None:
     """Delete all recording-segments associated with a Replay."""
     segments_from_metadata = fetch_segments_metadata(project_id, replay_id, offset=0, limit=10000)
