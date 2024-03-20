@@ -23,6 +23,7 @@ from sentry.conf.types.kafka_definition import (
     validate_consumer_definition,
 )
 from sentry.consumers.validate_schema import ValidateSchema
+from sentry.ingest.types import ConsumerType as IngestConsumerType
 from sentry.utils.imports import import_string
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
@@ -266,7 +267,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
         "click_options": ingest_events_options(),
         "static_args": {
-            "consumer_type": "feedback-events",
+            "consumer_type": IngestConsumerType.Feedback,
         },
         "dlq_topic": Topic.INGEST_FEEDBACK_EVENTS_DLQ,
     },
