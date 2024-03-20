@@ -51,8 +51,8 @@ const IconTitleWrapper = styled(FlexBox)`
   gap: ${space(1)};
 `;
 
-const IconBorder = styled('div')<{errored?: boolean}>`
-  background-color: ${p => (p.errored ? p.theme.error : p.theme.blue300)};
+const IconBorder = styled('div')<{backgroundColor: string; errored?: boolean}>`
+  background-color: ${p => p.backgroundColor};
   border-radius: ${p => p.theme.borderRadius};
   padding: 0;
   display: flex;
