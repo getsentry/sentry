@@ -29,14 +29,6 @@ type LockedFeatureProps = {
   className?: string;
 };
 
-type FeatureRenderProps = {
-  features: string[];
-  hasFeature: boolean;
-  renderDisabled: (p: LockedFeatureProps) => React.ReactNode;
-  renderInstallButton: (p: RenderInstallButtonProps) => React.ReactNode;
-  children?: (p: FeatureRenderProps) => React.ReactNode;
-};
-
 type Props = {
   active: boolean;
   provider: AuthProvider;
@@ -103,12 +95,7 @@ function ProviderItem({provider, active, onConfigure}: Props) {
         children({...props, renderDisabled: renderDisabledLock as any})
       }
     >
-      {({
-        hasFeature,
-        features,
-        renderDisabled,
-        renderInstallButton,
-      }: FeatureRenderProps) => (
+      {({hasFeature, features, renderDisabled, renderInstallButton}) => (
         <PanelItem center>
           <ProviderInfo>
             <ProviderLogo
@@ -128,14 +115,20 @@ function ProviderItem({provider, active, onConfigure}: Props) {
           </ProviderInfo>
 
           <FeatureBadge>
-            {!hasFeature && renderDisabled({provider, features})}
+            {!hasFeature &&
+              // renderDisabled is overridden by renderDisabled above
+              (renderDisabled as typeof renderDisabledLock)({provider, features})}
           </FeatureBadge>
 
           <div>
             {active ? (
               <ActiveIndicator />
             ) : (
-              (renderInstallButton ?? defaultRenderInstallButton)({provider, hasFeature})
+              // renderInstallButton is overridden by renderDisabled above
+              (
+                (renderInstallButton as typeof defaultRenderInstallButton) ??
+                defaultRenderInstallButton
+              )({provider, hasFeature})
             )}
           </div>
         </PanelItem>
