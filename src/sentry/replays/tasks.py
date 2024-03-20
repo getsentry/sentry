@@ -58,8 +58,8 @@ def delete_replay_recording(project_id: int, replay_id: str) -> None:
     # configuration still enabled. This should be fast enough for those use-cases.
     for segment in filestore_segments:
         filestore.delete(segment)
-    for segment in segments_from_django_models:
-        segment.delete()
+    for segment_model in segments_from_django_models:
+        segment_model.delete()
 
 
 def archive_replay(project_id: int, replay_id: str) -> None:
