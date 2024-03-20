@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections import defaultdict
 from collections.abc import Mapping, MutableMapping
 from copy import deepcopy
 from datetime import datetime, timezone
@@ -974,18 +973,11 @@ def _calculate_duration_for_sample_format_v1(profile: Profile) -> int:
 
 
 def _calculate_duration_for_sample_format_v2(profile: Profile) -> int:
-    samples_by_thread = defaultdict(list)
-    for sample in profile["profile"]["samples"]:
-        samples_by_thread[sample["thread_id"]].append(sample["timestamp"])
-    max_duration_ms = 0
-    for samples in samples_by_thread.values():
-        if len(samples) < 2:
-            continue
-        first, last = samples[0], samples[len(samples) - 1]
-        duration_ms = (last - first) * 1e3
-        if duration_ms > max_duration_ms:
-            max_duration_ms = duration_ms
-    return int(max_duration_ms)
+    samples = profile["profile"]["samples"]
+    if len(samples) < 2:
+        return 0
+    first, last = samples[0], samples[-1]
+    return int((last - first) * 1e3)
 
 
 def _calculate_duration_for_android_format(profile: Profile) -> int:
