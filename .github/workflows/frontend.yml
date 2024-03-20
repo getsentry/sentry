@@ -30,6 +30,7 @@ jobs:
       lintable_modified: ${{ steps.changes.outputs.lintable_modified }}
       lintable_modified_files: ${{ steps.changes.outputs.lintable_modified_files }}
       lintable_modified_rules_changed: ${{ steps.changes.outputs.lintable_modified_rules_changed }}
+      testable_modified: ${{ steps.changes.outputs.testable_modified }}
       testable_modified_files: ${{ steps.changes.outputs.testable_modified_files }}
       testable_modified_rules_changed: ${{ steps.changes.outputs.testable_modified_rules_changed }}
       frontend_all: ${{ steps.changes.outputs.frontend_all }}
@@ -130,7 +131,7 @@ jobs:
         run: yarn tsc -p config/tsconfig.ci.json
 
   frontend-jest-tests:
-    if: needs.files-changed.outputs.testable_modified_rules_changed == 'true'
+    if: needs.files-changed.outputs.testable_modified_rules_changed == 'true' || needs.files-changed.outputs.testable_modified == 'true'
     needs: files-changed
     name: Jest
     # If you change the runs-on image, you must also change the runner in jest-balance.yml
