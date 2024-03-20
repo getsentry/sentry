@@ -1,4 +1,5 @@
 import logging
+import uuid
 from collections.abc import Mapping, Sequence, Set
 from copy import deepcopy
 from typing import Any
@@ -13,11 +14,46 @@ from sentry.event_manager import (
     _pull_out_data,
 )
 from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
+from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.project import Project
 from sentry.utils import metrics
 from sentry.utils.canonical import CanonicalKeyDict
 
 logger = logging.getLogger(__name__)
+
+
+@metrics.wraps("save_event.send_occurrence_to_platform")
+def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
+    for job in jobs:
+        event = job["event"]
+        project = event.project
+        event_id = event.event_id
+
+        performance_problems = job["performance_problems"]
+        for problem in performance_problems:
+            occurrence = IssueOccurrence(
+                id=uuid.uuid4().hex,
+                resource_id=None,
+                project_id=project.id,
+                event_id=event_id,
+                fingerprint=[problem.fingerprint],
+                type=problem.type,
+                issue_title=problem.title,
+                subtitle=problem.desc,
+                culprit=event.transaction,
+                evidence_data=problem.evidence_data,
+                evidence_display=problem.evidence_display,
+                detection_time=event.datetime,
+                level=job["level"],
+            )
+
+            produce_occurrence_to_kafka(
+                payload_type=PayloadType.OCCURRENCE,
+                occurrence=occurrence,
+                event_data=job["event_data"],
+                is_buffered_segment=True,
+            )
 
 
 def build_tree(spans):
@@ -97,7 +133,7 @@ def transform_spans_to_event_dict(spans):
         sentry_tags = span.get("sentry_tags", {})
 
         if span["is_segment"] is True:
-            event["event_id"] = span.get("event_id")
+            event["event_id"] = span["event_id"]
             event["project_id"] = span["project_id"]
             event["transaction"] = sentry_tags.get("transaction")
             event["release"] = sentry_tags.get("release")
@@ -144,6 +180,9 @@ def process_segment(spans: list[dict[str, Any]]):
     ):
         event = transform_spans_to_event_dict(spans)
 
+    event_light = deepcopy(event)
+    event_light["spans"] = []
+
     project_id = event["project_id"]
     with metrics.timer("tasks.spans.project.get_from_cache"):
         project = Project.objects.get_from_cache(id=project_id)
@@ -157,15 +196,16 @@ def process_segment(spans: list[dict[str, Any]]):
             "project_id": project.id,
             "raw": False,
             "start_time": None,
+            "event_data": event_light,
         }
     ]
 
     _pull_out_data(jobs, projects)
     _calculate_span_grouping(jobs, projects)
     _detect_performance_problems(jobs, projects, is_standalone_spans=True)
-
     # Updates group type and fingerprint of all performance problems
     # so they don't double write occurrences as we test.
     _update_occurrence_group_type(jobs, projects)
+    _send_occurrence_to_platform(jobs, projects)
 
     return jobs

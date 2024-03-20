@@ -22,6 +22,7 @@ from sentry.issues.status_change_consumer import process_status_change_message
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.utils import metrics
+from sentry.utils.dates import to_datetime
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +59,41 @@ def lookup_event(project_id: int, event_id: str) -> Event:
     event = Event(event_id=event_id, project_id=project_id)
     event.data = data
     return event
+
+
+def create_event(project_id: int, event_id: str, event_data: dict[str, Any]) -> Event:
+    datetime_format = "%Y-%m-%dT%H:%M:%SZ"
+    return Event(
+        event_id=event_id,
+        project_id=project_id,
+        snuba_data={
+            "event_id": event_data["event_id"],
+            "project_id": event_data["project_id"],
+            "timestamp": to_datetime(event_data["timestamp"]).strftime(datetime_format),
+            "release": event_data.get("release"),
+            "environment": event_data.get("environment"),
+            "platform": event_data.get("platform"),
+        },
+    )
+
+
+def create_event_and_issue_occurrence(
+    occurrence_data: IssueOccurrenceData, event_data: dict[str, Any]
+) -> tuple[IssueOccurrence, GroupInfo | None]:
+    project_id = occurrence_data["project_id"]
+    event_id = occurrence_data["event_id"]
+    if occurrence_data["event_id"] != event_data["event_id"]:
+        raise ValueError(
+            f"event_id in occurrence({occurrence_data['event_id']}) is different from event_id in event_data({event_data['event_id']})"
+        )
+
+    event = create_event(project_id, event_id, event_data)
+
+    with metrics.timer(
+        "occurrence_consumer._process_message.save_issue_occurrence",
+        tags={"method": "create_event_and_issue_occurrence"},
+    ):
+        return save_issue_occurrence(occurrence_data, event)
 
 
 def process_event_and_issue_occurrence(
@@ -200,6 +236,13 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                     "title": occurrence_data["issue_title"],
                 }
 
+                if payload.get("is_buffered_segment", False) is True:
+                    return {
+                        "occurrence_data": occurrence_data,
+                        "event_data": event_data,
+                        "is_buffered_segment": True,
+                    }
+
                 return {"occurrence_data": occurrence_data, "event_data": event_data}
             else:
                 if not payload.get("event_id"):
@@ -220,6 +263,8 @@ def process_occurrence_message(
         kwargs = _get_kwargs(message)
     occurrence_data = kwargs["occurrence_data"]
     metric_tags = {"occurrence_type": occurrence_data["type"]}
+    is_buffered_segment = kwargs.get("is_buffered_segment", False)
+
     metrics.incr(
         "occurrence_ingest.messages",
         sample_rate=1.0,
@@ -245,7 +290,9 @@ def process_occurrence_message(
         txn.set_tag("result", "dropped_feature_disabled")
         return None
 
-    if "event_data" in kwargs:
+    if "event_data" in kwargs and is_buffered_segment:
+        return create_event_and_issue_occurrence(kwargs["occurrence_data"], kwargs["event_data"])
+    elif "event_data" in kwargs:
         txn.set_tag("result", "success")
         with metrics.timer(
             "occurrence_consumer._process_message.process_event_and_issue_occurrence",
