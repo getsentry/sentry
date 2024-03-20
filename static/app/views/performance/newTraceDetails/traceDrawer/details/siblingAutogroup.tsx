@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 
 import {IconGroup} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -6,7 +7,12 @@ import type {Organization} from 'sentry/types';
 import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceTabs';
 import {Row} from 'sentry/views/performance/traceDetails/styles';
 
-import type {SiblingAutogroupNode, TraceTree, TraceTreeNode} from '../../traceTree';
+import {
+  makeTraceNodeBarColor,
+  type SiblingAutogroupNode,
+  type TraceTree,
+  type TraceTreeNode,
+} from '../../traceTree';
 
 import {IssueList} from './issues/issues';
 import {TraceDrawerComponents} from './styles';
@@ -20,6 +26,7 @@ export function SiblingAutogroupNodeDetails({
   onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   organization: Organization;
 }) {
+  const theme = useTheme();
   const issues = useMemo(() => {
     return [...node.errors, ...node.performance_issues];
   }, [node.errors, node.performance_issues]);
@@ -29,8 +36,10 @@ export function SiblingAutogroupNodeDetails({
   return (
     <TraceDrawerComponents.DetailContainer>
       <TraceDrawerComponents.IconTitleWrapper>
-        <TraceDrawerComponents.IconBorder>
-          <IconGroup color="blue300" />
+        <TraceDrawerComponents.IconBorder
+          backgroundColor={makeTraceNodeBarColor(theme, node)}
+        >
+          <IconGroup />
         </TraceDrawerComponents.IconBorder>
         <div style={{fontWeight: 'bold'}}>{t('Autogroup')}</div>
       </TraceDrawerComponents.IconTitleWrapper>

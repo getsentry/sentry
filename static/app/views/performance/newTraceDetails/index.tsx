@@ -49,7 +49,10 @@ import {
   traceSearchReducer,
 } from 'sentry/views/performance/newTraceDetails/traceSearch';
 import {TraceSearchInput} from 'sentry/views/performance/newTraceDetails/traceSearchInput';
-import {traceTabsReducer} from 'sentry/views/performance/newTraceDetails/traceTabs';
+import {
+  traceTabsReducer,
+  type TraceTabsReducerState,
+} from 'sentry/views/performance/newTraceDetails/traceTabs';
 import {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/virtualizedViewManager';
 
 import {
@@ -133,6 +136,12 @@ export function TraceView() {
     </SentryDocumentTitle>
   );
 }
+
+const STATIC_DRAWER_TABS: TraceTabsReducerState['tabs'] = [
+  {
+    node: 'Trace',
+  },
+];
 
 type TraceViewContentProps = {
   location: Location;
@@ -263,12 +272,8 @@ function TraceViewContent(props: TraceViewContentProps) {
   });
 
   const [tabs, tabsDispatch] = useReducer(traceTabsReducer, {
-    tabs: [
-      {
-        node: 'Trace',
-      },
-    ],
-    current: null,
+    tabs: STATIC_DRAWER_TABS,
+    current: STATIC_DRAWER_TABS[0] ?? null,
     last_clicked: null,
   });
 

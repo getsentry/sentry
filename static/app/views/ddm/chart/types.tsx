@@ -7,6 +7,7 @@ export type Series = {
   data: {name: number; value: number}[];
   id: string;
   seriesName: string;
+  total: number;
   unit: string;
   groupBy?: Record<string, string>;
   hidden?: boolean;

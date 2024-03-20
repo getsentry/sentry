@@ -809,7 +809,7 @@ function RenderRow(props: {
           <AutogroupedTraceBar
             virtualized_index={virtualized_index}
             manager={props.manager}
-            color={props.theme.blue300}
+            color={makeTraceNodeBarColor(props.theme, props.node)}
             entire_space={props.node.space}
             node_spaces={props.node.autogroupedSegments}
             errors={props.node.errors}
