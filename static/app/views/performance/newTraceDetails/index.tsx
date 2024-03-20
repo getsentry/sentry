@@ -62,6 +62,7 @@ import {
 import Breadcrumb from '../breadcrumb';
 
 import TraceDrawer from './traceDrawer/traceDrawer';
+import {isTraceNode} from './guards';
 import Trace from './trace';
 import TraceHeader from './traceHeader';
 import {TraceTree, type TraceTreeNode} from './traceTree';
@@ -137,11 +138,10 @@ export function TraceView() {
   );
 }
 
-const STATIC_DRAWER_TABS: TraceTabsReducerState['tabs'] = [
-  {
-    node: 'Trace',
-  },
-];
+const TRACE_TAB: TraceTabsReducerState['tabs'][0] = {
+  node: 'Trace',
+};
+const STATIC_DRAWER_TABS: TraceTabsReducerState['tabs'] = [TRACE_TAB];
 
 type TraceViewContentProps = {
   location: Location;
@@ -284,6 +284,12 @@ function TraceViewContent(props: TraceViewContentProps) {
     ) => {
       if (!node) {
         tabsDispatch({type: 'clear clicked tab'});
+        return;
+      }
+
+      if (isTraceNode(node)) {
+        tabsDispatch({type: 'activate tab', payload: TRACE_TAB.node});
+        maybeFocusRow();
         return;
       }
 
