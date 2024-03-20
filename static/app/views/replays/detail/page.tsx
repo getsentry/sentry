@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import {Fragment, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -13,7 +13,8 @@ import FeedbackButton from 'sentry/components/replays/header/feedbackButton';
 import HeaderPlaceholder from 'sentry/components/replays/header/headerPlaceholder';
 import ReplayMetaData from 'sentry/components/replays/header/replayMetaData';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconDelete, IconEllipsis, IconUpload} from 'sentry/icons';
+import TimeSince from 'sentry/components/timeSince';
+import {IconCalendar, IconDelete, IconEllipsis, IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -94,11 +95,25 @@ export default function Page({
 
       {replayRecord ? (
         <UserBadge
-          avatarSize={32}
+          avatarSize={24}
           displayName={
-            <Layout.Title>
-              {replayRecord.user.display_name || t('Anonymous User')}
-            </Layout.Title>
+            <Fragment>
+              <Title>{replayRecord.user.display_name || t('Anonymous User')}</Title>
+              <Time>
+                {replayRecord ? (
+                  <TimeContainer>
+                    <IconCalendar color="gray300" size="xs" />
+                    <TimeSince
+                      date={replayRecord.started_at}
+                      isTooltipHoverable
+                      unitStyle="regular"
+                    />
+                  </TimeContainer>
+                ) : (
+                  <HeaderPlaceholder width="80px" height="16px" />
+                )}
+              </Time>
+            </Fragment>
           }
           user={{
             name: replayRecord.user.display_name || '',
@@ -147,6 +162,34 @@ const ButtonActionsWrapper = styled(Layout.HeaderActions)`
 `;
 
 const ItemSpacer = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
+`;
+
+const Title = styled('h1')`
+  ${p => p.theme.overflowEllipsis};
+  ${p => p.theme.text.pageTitle};
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+  color: ${p => p.theme.headingColor};
+  margin: 0;
+
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
+`;
+
+const Time = styled('dd')`
+  font-size: ${p => p.theme.fontSizeLarge};
+  font-weight: normal;
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  line-height: ${p => p.theme.text.lineHeightBody};
+  color: ${p => p.theme.gray300};
+`;
+
+const TimeContainer = styled('div')`
   display: flex;
   gap: ${space(1)};
   align-items: center;
