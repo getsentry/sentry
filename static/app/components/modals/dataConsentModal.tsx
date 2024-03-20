@@ -50,7 +50,7 @@ export default function DataConsentModal({closeModal}: ModalRenderProps) {
               <ConsentLabelHeader>{t('How do we use it?')}</ConsentLabelHeader>
               <ConsentLabelBody>
                 {t(
-                  'The data will be used to train and validate models to imrpveo our product.'
+                  'The data will be used to train and validate models to improve our product.'
                 )}
               </ConsentLabelBody>
             </ConsentLabel>
@@ -64,7 +64,7 @@ export default function DataConsentModal({closeModal}: ModalRenderProps) {
               <ConsentLabelHeader>{t('Where does it go?')}</ConsentLabelHeader>
               <ConsentLabelBody>
                 {t(
-                  "We store data within Sentry's standard infrastructure. We will not share it with other customers or AI/ML sub-processors without additional consent."
+                  "We store data within Sentry's standard infrastructure. We will not share it with other customers or AI sub-processors without additional consent."
                 )}
               </ConsentLabelBody>
             </ConsentLabel>
@@ -112,8 +112,8 @@ const ConsentHeader = styled('p')`
 const ConsentInfo = styled('div')`
   background-color: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.panelBorderRadius};
-  padding-top: ${space(3)};
-  padding-bottom: ${space(3)};
+  padding-top: ${space(1.5)};
+  padding-bottom: ${space(1.5)};
 `;
 
 const ConsentRow = styled('div')`
@@ -132,7 +132,7 @@ const ConsentLabelHeader = styled('h6')`
   margin-bottom: 0;
 `;
 const ConsentLabelBody = styled('p')`
-  margin-bottom: ${space(0.5)};
+  margin-bottom: 0;
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
@@ -176,6 +176,6 @@ const Divider = styled('hr')`
   height: 1px;
   background: ${p => p.theme.gray100};
   border: none;
-  margin-top: ${space(2)};
-  margin-bottom: ${space(2)};
+  margin-top: ${space(1.5)};
+  margin-bottom: ${space(1.5)};
 `;
