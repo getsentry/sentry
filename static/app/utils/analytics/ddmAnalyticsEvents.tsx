@@ -15,7 +15,7 @@ export type DDMEventParameters = {
   'ddm.page-view': {};
   'ddm.remove-default-query': {};
   'ddm.sample-table-interaction': {
-    target: 'event-id' | 'transaction' | 'trace-id' | 'profile';
+    target: 'event-id' | 'description' | 'trace-id' | 'profile';
   };
   'ddm.set-default-query': {};
   'ddm.widget.add': {
