@@ -156,10 +156,6 @@ def process_profile_task(
         return
 
     with metrics.timer("process_profile.track_outcome.accepted"):
-        try:
-            _track_duration_outcome(profile=profile, project=project)
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
         _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED)
 
 
@@ -775,9 +771,9 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                 method["class_name"] = new_frame.class_name
                 method["name"] = new_frame.method
                 method["data"] = {
-                    "deobfuscation_status": (
-                        "deobfuscated" if method.get("signature", None) else "partial"
-                    )
+                    "deobfuscation_status": "deobfuscated"
+                    if method.get("signature", None)
+                    else "partial"
                 }
 
                 if new_frame.file:
@@ -798,9 +794,9 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                         "class_name": new_frame.class_name,
                         "data": {"deobfuscation_status": "deobfuscated"},
                         "name": new_frame.method,
-                        "source_file": (
-                            method["source_file"] if bottom_class == new_frame.class_name else ""
-                        ),
+                        "source_file": method["source_file"]
+                        if bottom_class == new_frame.class_name
+                        else "",
                         "source_line": new_frame.line,
                     }
                     for new_frame in reversed(mapped)
@@ -926,62 +922,3 @@ def get_metrics_dsn(project_id: int) -> str:
         project_id=project_id, use_case=UseCase.PROFILING.value
     )
     return project_key.get_dsn(public=True)
-
-
-@metrics.wraps("process_profile.track_outcome")
-def _track_duration_outcome(
-    profile: Profile,
-    project: Project,
-) -> None:
-    duration_ms = _calculate_profile_duration_ms(profile)
-    if duration_ms == 0:
-        return
-    track_outcome(
-        org_id=project.organization_id,
-        project_id=project.id,
-        key_id=None,
-        outcome=Outcome.ACCEPTED,
-        timestamp=datetime.now(timezone.utc),
-        category=DataCategory.PROFILE_DURATION,
-        quantity=duration_ms,
-    )
-
-
-def _calculate_profile_duration_ms(profile: Profile) -> int:
-    version = profile.get("version")
-    if version:
-        if version == "1":
-            return _calculate_duration_for_sample_format_v1(profile)
-        elif version == "2":
-            return _calculate_duration_for_sample_format_v2(profile)
-    else:
-        platform = profile["platform"]
-        if platform == "android":
-            return _calculate_duration_for_android_format(profile)
-    return 0
-
-
-def _calculate_duration_for_sample_format_v1(profile: Profile) -> int:
-    return min(
-        int(
-            (
-                int(profile["transaction"]["relative_end_ns"])
-                - int(profile["transaction"]["relative_start_ns"])
-            )
-            * 1e-6
-        ),
-        # Maximum profile duration is 30s.
-        30000,
-    )
-
-
-def _calculate_duration_for_sample_format_v2(profile: Profile) -> int:
-    samples = sorted(profile["profile"]["samples"], key=lambda s: s["timestamp"])
-    if len(samples) < 2:
-        return 0
-    first, last = samples[0], samples[-1]
-    return int((last["timestamp"] - first["timestamp"]) * 1e3)
-
-
-def _calculate_duration_for_android_format(profile: Profile) -> int:
-    return int(profile["duration_ns"] * 1e-6)
