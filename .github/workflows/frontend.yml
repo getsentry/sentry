@@ -24,8 +24,10 @@ jobs:
     timeout-minutes: 3
     # Map a step output to a job output
     outputs:
+      lintable_css_in_js_modified: ${{ steps.changes.outputs.lintable_css_in_js_modified }}
       lintable_css_in_js_modified_files: ${{ steps.changes.outputs.lintable_css_in_js_modified_files }}
       lintable_css_in_js_modified_rules_changed: ${{ steps.changes.output.lintable_css_in_js_modified_rules_changed }}
+      lintable_modified: ${{ steps.changes.outputs.lintable_modified }}
       lintable_modified_files: ${{ steps.changes.outputs.lintable_modified_files }}
       lintable_modified_rules_changed: ${{ steps.changes.outputs.lintable_modified_rules_changed }}
       testable_modified_files: ${{ steps.changes.outputs.testable_modified_files }}
@@ -95,15 +97,15 @@ jobs:
         run: yarn fix:biome
 
       - name: prettier (changed files only)
-        if: github.ref != 'refs/heads/master' && needs.files-changed.outputs.lintable_modified_rules_changed != 'true'
+        if: github.ref != 'refs/heads/master' && needs.files-changed.outputs.lintable_modified_rules_changed != 'true' && needs.files-changed.outputs.lintable_modified == 'true'
         run: yarn prettier --write ${{ needs.files-changed.outputs.lintable_modified_files }}
 
       - name: eslint (changed files only)
-        if: github.ref != 'refs/heads/master' && needs.files-changed.outputs.lintable_modified_rules_changed != 'true'
+        if: github.ref != 'refs/heads/master' && needs.files-changed.outputs.lintable_modified_rules_changed != 'true' && needs.files-changed.outputs.lintable_modified == 'true'
         run: yarn eslint --fix ${{ needs.files-changed.outputs.lintable_modified_files }}
 
       - name: stylelint (changed files only)
-        if: github.ref != 'refs/heads/master' && needs.files-changed.outputs.lintable_css_in_js_modified_rules_changed != 'true'
+        if: github.ref != 'refs/heads/master' && needs.files-changed.outputs.lintable_css_in_js_modified_rules_changed != 'true' && needs.files-changed.outputs.lintable_css_in_js_modified == 'true'
         run: yarn stylelint ${{ needs.files-changed.outputs.lintable_css_in_js_modified_files }}
 
       # Check (and error) for dirty working tree for forks

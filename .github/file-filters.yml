@@ -17,7 +17,6 @@ lintable_css_in_js_modified_rules_changed: &lintable_css_in_js_modified_rules_ch
   - added|modified: '.github/file-filters.yml'
   - added|modified: 'yarn.lock'
   - added|deleted|modified: 'stylelint.*'
-  - *lintable_css_in_js_modified
 
 # Provides list of changed files to lint against (eslint)
 lintable_modified: &lintable_modified
@@ -33,7 +32,6 @@ lintable_modified_rules_changed: &lintable_modified_rules_changed
   - added|deleted|modified: '.prettierignore'
   - added|deleted|modified: '.eslintignore'
   - added|deleted|modified: '.eslint*'
-  - *lintable_modified
 
 # Provides list of changed files to test (jest)
 # getsentry/sentry does not use this directly, instead we shard tests inside jest.config.js
@@ -47,7 +45,6 @@ testable_modified_rules_changed: &testable_modified_rules_changed
   - *sentry_specific_workflow
   - added|modified: '.github/file-filters.yml'
   - added|modified: 'jest.config.ts'
-  - *testable_modified
 
 # Trigger whether to run tsc or not
 # There's no "rules_changed" for this, because we run it for all files always
@@ -57,7 +54,6 @@ typecheckable_modified_rules_changed: &typecheckable_modified_rules_changed
   - added|modified: '.github/file-filters.yml'
   - added|deleted|modified: '**/tsconfig*.json'
   - added|deleted|modified: 'static/**/*.[tj]{s,sx}'
-  - *sentry_specific_test_files
 
 # Trigger to apply the 'Scope: Frontend' label to PRs
 frontend_all: &frontend_all
