@@ -1,10 +1,17 @@
+import {useTheme} from '@emotion/react';
+
 import {IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/formatters';
 import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceTabs';
 import {Row} from 'sentry/views/performance/traceDetails/styles';
 
-import type {MissingInstrumentationNode, TraceTree, TraceTreeNode} from '../../traceTree';
+import {
+  makeTraceNodeBarColor,
+  type MissingInstrumentationNode,
+  type TraceTree,
+  type TraceTreeNode,
+} from '../../traceTree';
 
 import {TraceDrawerComponents} from './styles';
 
@@ -15,13 +22,16 @@ export function MissingInstrumentationNodeDetails({
   node: MissingInstrumentationNode;
   onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
 }) {
+  const theme = useTheme();
   const parentTransaction = node.parent_transaction;
 
   return (
     <TraceDrawerComponents.DetailContainer>
       <TraceDrawerComponents.IconTitleWrapper>
-        <TraceDrawerComponents.IconBorder>
-          <IconSpan color="blue300" size="md" />
+        <TraceDrawerComponents.IconBorder
+          backgroundColor={makeTraceNodeBarColor(theme, node)}
+        >
+          <IconSpan size="md" />
         </TraceDrawerComponents.IconBorder>
         <div style={{fontWeight: 'bold'}}>{t('Missing Instrumentation')}</div>
       </TraceDrawerComponents.IconTitleWrapper>
