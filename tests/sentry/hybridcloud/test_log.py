@@ -1,3 +1,4 @@
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.outbox import OutboxScope, RegionOutbox
 from sentry.models.userip import UserIP
@@ -31,6 +32,58 @@ def test_audit_log_event():
 
     with assume_test_silo_mode(SiloMode.CONTROL):
         assert AuditLogEntry.objects.count() == 1
+
+
+@django_db_all
+@all_silo_test
+def test_audit_log_event_bad_actor_user_id():
+    organization = Factories.create_organization()
+    with in_test_hide_transaction_boundary():
+        log_service.record_audit_log(
+            event=AuditLogEvent(
+                organization_id=organization.id,
+                actor_user_id=99999999,
+                event_id=1,
+                ip_address="127.0.0.1",
+                target_object_id=123,
+                data=dict(abcdef=123),
+            )
+        )
+
+    with assume_test_silo_mode(SiloMode.REGION):
+        RegionOutbox(
+            shard_scope=OutboxScope.AUDIT_LOG_SCOPE, shard_identifier=organization.id
+        ).drain_shard()
+
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        log = AuditLogEntry.objects.first()
+        assert log.actor_id is None
+
+
+@django_db_all
+@all_silo_test
+def test_audit_log_event_bad_target_user_id():
+    organization = Factories.create_organization()
+    log_service.record_audit_log(
+        event=AuditLogEvent(
+            organization_id=organization.id,
+            target_user_id=99999999,
+            event_id=1,
+            ip_address="127.0.0.1",
+            target_object_id=123,
+            data=dict(abcdef=123),
+        )
+    )
+
+    with assume_test_silo_mode(SiloMode.REGION):
+        RegionOutbox(
+            shard_scope=OutboxScope.AUDIT_LOG_SCOPE, shard_identifier=organization.id
+        ).drain_shard()
+
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        log = AuditLogEntry.objects.first()
+        assert log.actor_id is None
+        assert log.target_user_id is None
 
 
 @django_db_all
