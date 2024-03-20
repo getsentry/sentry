@@ -1013,19 +1013,19 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "flush-buffers": {
         "task": "sentry.tasks.process_buffer.process_pending",
-        # Run every 10 minutes
+        # Run every 10 seconds
         "schedule": timedelta(seconds=10),
         "options": {"expires": 10, "queue": "buffers.process_pending"},
     },
     "sync-options": {
         "task": "sentry.tasks.options.sync_options",
-        # Run every 10 minutes
+        # Run every 10 seconds
         "schedule": timedelta(seconds=10),
         "options": {"expires": 10, "queue": "options"},
     },
     "schedule-digests": {
         "task": "sentry.tasks.digests.schedule_digests",
-        # Run every 30 minutes
+        # Run every 30 seconds
         "schedule": timedelta(seconds=30),
         "options": {"expires": 30},
     },
