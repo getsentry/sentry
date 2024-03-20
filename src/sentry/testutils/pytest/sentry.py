@@ -80,6 +80,13 @@ def _configure_test_env_regions() -> None:
     settings.SENTRY_SUBNET_SECRET = "secret"
     settings.SENTRY_CONTROL_ADDRESS = "http://controlserver/"
 
+    # Relay integration tests spin up a relay instance in a container
+    # this container then sends requests to the threaded server running
+    # in the pytest process. Without this the requests from relay arrive
+    # in the threaded server with a non-deterministic silo mode causing
+    # flaky test failures.
+    settings.APIGATEWAY_PROXY_SKIP_RELAY = True
+
     monkey_patch_single_process_silo_mode_state()
 
 
