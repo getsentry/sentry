@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -26,6 +27,7 @@ type Props = {
   projectSlug: string | null;
   replayErrors: ReplayError[];
   replayRecord: undefined | ReplayRecord;
+  isVideoReplay?: boolean;
 };
 
 export default function Page({
@@ -34,6 +36,7 @@ export default function Page({
   replayRecord,
   projectSlug,
   replayErrors,
+  isVideoReplay,
 }: Props) {
   const title = replayRecord
     ? `${replayRecord.id} — Session Replay — ${orgSlug}`
@@ -76,7 +79,7 @@ export default function Page({
       <DetailsPageBreadcrumbs orgSlug={orgSlug} replayRecord={replayRecord} />
 
       <ButtonActionsWrapper>
-        <FeedbackButton />
+        {isVideoReplay ? <FeedbackWidgetButton /> : <FeedbackButton />}
         <ConfigureReplayCard />
         <DropdownMenu
           position="bottom-end"
@@ -110,7 +113,11 @@ export default function Page({
         <HeaderPlaceholder width="100%" height="58px" />
       )}
 
-      <ReplayMetaData replayRecord={replayRecord} replayErrors={replayErrors} />
+      <ReplayMetaData
+        replayRecord={replayRecord}
+        replayErrors={replayErrors}
+        showDeadRageClicks={!isVideoReplay}
+      />
     </Header>
   );
 

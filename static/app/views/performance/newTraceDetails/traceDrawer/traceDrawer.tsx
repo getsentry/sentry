@@ -1,9 +1,10 @@
-import {useMemo, useRef} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
+import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {Button} from 'sentry/components/button';
-import {IconPanel} from 'sentry/icons';
+import {IconPanel, IconPin} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction, Organization} from 'sentry/types';
@@ -18,73 +19,39 @@ import {
   useResizableDrawer,
   type UseResizableDrawerOptions,
 } from 'sentry/utils/useResizableDrawer';
+import {
+  getTraceTabTitle,
+  type TraceTabsReducerAction,
+  type TraceTabsReducerState,
+} from 'sentry/views/performance/newTraceDetails/traceTabs';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/virtualizedViewManager';
 
-import {
-  isAutogroupedNode,
-  isMissingInstrumentationNode,
-  isSpanNode,
-  isTraceErrorNode,
-  isTransactionNode,
-} from '../guards';
-import type {TraceTree, TraceTreeNode} from '../traceTree';
+import {makeTraceNodeBarColor, type TraceTree, type TraceTreeNode} from '../traceTree';
 
 import NodeDetail from './tabs/details';
 import {TraceLevelDetails} from './tabs/trace';
 
-function getTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
-  if (isTransactionNode(node)) {
-    return (
-      t('Transaction: ') +
-      node.value['transaction.op'] +
-      (node.value.transaction ? ' - ' + node.value.transaction : '')
-    );
-  }
-
-  if (isSpanNode(node)) {
-    return (
-      t('Span: ') +
-      node.value.op +
-      (node.value.description ? ' - ' + node.value.description : '')
-    );
-  }
-
-  if (isAutogroupedNode(node)) {
-    return t('Autogroup');
-  }
-
-  if (isMissingInstrumentationNode(node)) {
-    return t('Missing Instrumentation');
-  }
-
-  if (isTraceErrorNode(node)) {
-    return node.value.title || 'Error';
-  }
-
-  return t('Detail');
-}
-
 const MIN_TRACE_DRAWER_DIMENSTIONS: [number, number] = [480, 30];
 
 type TraceDrawerProps = {
-  activeTab: 'trace' | 'node';
   drawerSize: number;
   layout: 'drawer bottom' | 'drawer left' | 'drawer right';
   location: Location;
   manager: VirtualizedViewManager;
-  nodes: TraceTreeNode<TraceTree.NodeValue>[];
   onDrawerResize: (size: number) => void;
   onLayoutChange: (layout: 'drawer bottom' | 'drawer left' | 'drawer right') => void;
   organization: Organization;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
   scrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
-  setActiveTab: (tab: 'trace' | 'node') => void;
+  tabs: TraceTabsReducerState;
+  tabsDispatch: React.Dispatch<TraceTabsReducerAction>;
   trace: TraceTree;
   traceEventView: EventView;
   traces: TraceSplitResults<TraceFullDetailed> | null;
 };
 
 function TraceDrawer(props: TraceDrawerProps) {
+  const theme = useTheme();
   const panelRef = useRef<HTMLDivElement>(null);
 
   const onDrawerResize = props.onDrawerResize;
@@ -135,33 +102,61 @@ function TraceDrawer(props: TraceDrawerProps) {
 
   const {onMouseDown} = useResizableDrawer(resizableDrawerOptions);
 
+  const onParentClick = useCallback(
+    (node: TraceTreeNode<TraceTree.NodeValue>) => {
+      props.scrollToNode(node);
+      props.tabsDispatch({
+        type: 'activate tab',
+        payload: node,
+        pin_previous: true,
+      });
+    },
+    [props]
+  );
+
   return (
-    <PanelWrapper ref={panelRef} layout={props.layout}>
+    <PanelWrapper layout={props.layout} ref={panelRef}>
       <ResizeableHandle layout={props.layout} onMouseDown={onMouseDown} />
-      <TabsContainer
+      <TabsLayout
         hasIndicators={
           // Syncs the height of the tabs with the trace indicators
           props.trace.indicators.length > 0 && props.layout !== 'drawer bottom'
         }
       >
-        <Tab
-          active={props.activeTab === 'trace'}
-          onClick={() => props.setActiveTab('trace')}
+        <TabsContainer
+          style={{
+            gridTemplateColumns: `repeat(${props.tabs.tabs.length + (props.tabs.last_clicked ? 1 : 0)}, minmax(0, min-content))`,
+          }}
         >
-          <TabButton>{t('Trace')}</TabButton>
-        </Tab>
-        {props.nodes.map((node, index) => {
-          const title = getTabTitle(node);
-          return (
-            <Tab
-              key={index}
-              active={props.activeTab === 'node'}
-              onClick={() => props.setActiveTab('node')}
-            >
-              <TabButton title={title}>{title}</TabButton>
-            </Tab>
-          );
-        })}
+          {props.tabs.tabs.map((n, i) => {
+            return (
+              <TraceDrawerTab
+                key={i}
+                tab={n}
+                index={i}
+                theme={theme}
+                tabs={props.tabs}
+                tabsDispatch={props.tabsDispatch}
+                scrollToNode={props.scrollToNode}
+                trace={props.trace}
+                pinned
+              />
+            );
+          })}
+          {props.tabs.last_clicked ? (
+            <TraceDrawerTab
+              pinned={false}
+              key="last-clicked"
+              tab={props.tabs.last_clicked}
+              index={props.tabs.tabs.length}
+              theme={theme}
+              tabs={props.tabs}
+              tabsDispatch={props.tabsDispatch}
+              scrollToNode={props.scrollToNode}
+              trace={props.trace}
+            />
+          ) : null}
+        </TabsContainer>
         <TabLayoutControlsContainer>
           <TabLayoutControlItem>
             <DrawerButton
@@ -194,31 +189,90 @@ function TraceDrawer(props: TraceDrawerProps) {
             </DrawerButton>
           </TabLayoutControlItem>
         </TabLayoutControlsContainer>
-      </TabsContainer>
-      <Content>
-        {props.activeTab === 'trace' ? (
-          <TraceLevelDetails
-            tree={props.trace}
-            rootEventResults={props.rootEventResults}
-            organization={props.organization}
-            location={props.location}
-            traces={props.traces}
-            traceEventView={props.traceEventView}
-          />
-        ) : (
-          props.nodes.map((node, index) => (
-            <NodeDetail
-              key={index}
-              node={node}
-              organization={props.organization}
-              location={props.location}
-              manager={props.manager}
-              scrollToNode={props.scrollToNode}
-            />
-          ))
-        )}
+      </TabsLayout>
+      <Content layout={props.layout}>
+        <ContentWrapper>
+          {props.tabs.current ? (
+            props.tabs.current.node === 'Trace' ? (
+              <TraceLevelDetails
+                node={props.trace.root.children[0]}
+                tree={props.trace}
+                rootEventResults={props.rootEventResults}
+                organization={props.organization}
+                location={props.location}
+                traces={props.traces}
+                traceEventView={props.traceEventView}
+              />
+            ) : (
+              <NodeDetail
+                node={props.tabs.current.node}
+                organization={props.organization}
+                location={props.location}
+                manager={props.manager}
+                scrollToNode={props.scrollToNode}
+                onParentClick={onParentClick}
+              />
+            )
+          ) : null}
+        </ContentWrapper>
       </Content>
     </PanelWrapper>
+  );
+}
+
+interface TraceDrawerTabProps {
+  index: number;
+  pinned: boolean;
+  scrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
+  tab: TraceTabsReducerState['tabs'][number];
+  tabs: TraceTabsReducerState;
+  tabsDispatch: React.Dispatch<TraceTabsReducerAction>;
+  theme: Theme;
+  trace: TraceTree;
+}
+function TraceDrawerTab(props: TraceDrawerTabProps) {
+  const node = props.tab.node;
+  if (typeof node === 'string') {
+    const root = props.trace.root.children[0];
+    return (
+      <Tab
+        active={props.tab === props.tabs.current}
+        onClick={() => {
+          props.scrollToNode(root);
+          props.tabsDispatch({type: 'activate tab', payload: props.index});
+        }}
+      >
+        {/* A trace is technically an entry in the list, so it has a color */}
+        {props.tab.node === 'Trace' ? null : (
+          <TabButtonIndicator
+            backgroundColor={makeTraceNodeBarColor(props.theme, root)}
+          />
+        )}
+        <TabButton>{props.tab.node}</TabButton>
+      </Tab>
+    );
+  }
+
+  return (
+    <Tab
+      active={props.tab === props.tabs.current}
+      onClick={() => {
+        props.scrollToNode(node);
+        props.tabsDispatch({type: 'activate tab', payload: props.index});
+      }}
+    >
+      <TabButtonIndicator backgroundColor={makeTraceNodeBarColor(props.theme, node)} />
+      <TabButton>{getTraceTabTitle(node)}</TabButton>
+      <TabPinButton
+        pinned={props.pinned}
+        onClick={e => {
+          e.stopPropagation();
+          props.pinned
+            ? props.tabsDispatch({type: 'unpin tab', payload: props.index})
+            : props.tabsDispatch({type: 'pin tab'});
+        }}
+      />
+    </Tab>
   );
 }
 
@@ -260,16 +314,21 @@ const PanelWrapper = styled('div')<{
   z-index: 10;
 `;
 
-const TabsContainer = styled('ul')<{hasIndicators: boolean}>`
-  list-style-type: none;
-  width: 100%;
-  height: ${p => (p.hasIndicators ? '44px' : '26px')};
+const TabsLayout = styled('div')<{hasIndicators: boolean}>`
+  display: grid;
+  grid-template-columns: 1fr auto;
   border-bottom: 1px solid ${p => p.theme.border};
   background-color: ${p => p.theme.backgroundSecondary};
-  display: flex;
+  height: ${p => (p.hasIndicators ? '44px' : '26px')};
+`;
+
+const TabsContainer = styled('ul')`
+  display: grid;
+  list-style-type: none;
+  width: 100%;
   align-items: center;
   justify-content: left;
-  padding-left: ${space(2)};
+  padding-left: ${space(1)};
   gap: ${space(1)};
   margin-bottom: 0;
 `;
@@ -277,9 +336,11 @@ const TabsContainer = styled('ul')<{hasIndicators: boolean}>`
 const TabLayoutControlsContainer = styled('ul')`
   list-style-type: none;
   padding-left: 0;
+  margin-bottom: 0;
+  flex: none;
 
   button {
-    padding: ${space(0.5)};
+    padding: 0 ${space(0.5)};
   }
 `;
 
@@ -290,36 +351,71 @@ const TabLayoutControlItem = styled('li')`
 
 const Tab = styled('li')<{active: boolean}>`
   height: 100%;
+  border-top: 2px solid transparent;
+  display: flex;
+  align-items: center;
+  border-bottom: 2px solid ${p => (p.active ? p.theme.blue400 : 'transparent')};
+  padding: 0 ${space(0.25)};
 
-  button {
-    border-bottom: 2px solid ${p => (p.active ? p.theme.blue400 : 'transparent')};
-    font-weight: ${p => (p.active ? 'bold' : 'normal')};
+  &:hover {
+    border-bottom: 2px solid ${p => (p.active ? p.theme.blue400 : p.theme.blue200)};
+
+    button:last-child {
+      transition: all 0.3s ease-in-out 500ms;
+      transform: scale(1);
+      opacity: 1;
+    }
   }
 `;
 
+const TabButtonIndicator = styled('div')<{backgroundColor: string}>`
+  width: 12px;
+  height: 12px;
+  min-width: 12px;
+  border-radius: 2px;
+  background-color: ${p => p.backgroundColor};
+`;
 const TabButton = styled('button')`
   height: 100%;
   border: none;
-  max-width: 260px;
+  max-width: 66ch;
 
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 
-  border-top: 2px solid transparent;
-  border-bottom: 2px solid transparent;
   border-radius: 0;
   margin: 0;
-  padding: ${space(0.25)};
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.textColor};
   background: transparent;
 `;
 
-const Content = styled('div')`
-  overflow: scroll;
+const Content = styled('div')<{layout: 'drawer bottom' | 'drawer left' | 'drawer right'}>`
+  position: relative;
+  overflow: auto;
   padding: ${space(1)};
   flex: 1;
+
+  td {
+    max-width: 100% !important;
+  }
+
+  ${p =>
+    p.layout !== 'drawer bottom' &&
+    `
+        table {
+          display: flex;
+        }
+
+        tbody {
+          flex: 1;
+        }
+
+        tr {
+          display: grid;
+        }
+      `}
 `;
 
 const DrawerButton = styled(Button)<{active: boolean}>`
@@ -339,6 +435,38 @@ const DrawerButton = styled(Button)<{active: boolean}>`
     box-shadow: none;
     opacity: ${p => (p.active ? 0.6 : 0.5)};
   }
+`;
+
+function TabPinButton(props: {
+  pinned: boolean;
+  onClick?: (e: React.MouseEvent<HTMLElement>) => void;
+}) {
+  return (
+    <PinButton size="zero" onClick={props.onClick}>
+      <StyledIconPin size="xs" isSolid={props.pinned} />
+    </PinButton>
+  );
+}
+
+const PinButton = styled(Button)`
+  padding: ${space(0.5)};
+  margin: 0;
+  background-color: transparent;
+  border: none;
+
+  &:hover {
+    background-color: transparent;
+  }
+`;
+
+const StyledIconPin = styled(IconPin)`
+  background-color: transparent;
+  border: none;
+`;
+
+const ContentWrapper = styled('div')`
+  inset: ${space(1)};
+  position: absolute;
 `;
 
 export default TraceDrawer;

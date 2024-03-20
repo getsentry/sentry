@@ -157,6 +157,11 @@ def proxy_region_request(
 
     timeout = ENDPOINT_TIMEOUT_OVERRIDE.get(url_name, settings.GATEWAY_PROXY_TIMEOUT)
     metric_tags = {"region": region.name, "url_name": url_name}
+
+    # XXX: See sentry.testutils.pytest.sentry for more information
+    if settings.APIGATEWAY_PROXY_SKIP_RELAY and request.path.startswith("/api/0/relays/"):
+        return StreamingHttpResponse(streaming_content="relay proxy skipped", status=404)
+
     try:
         with metrics.timer("apigateway.proxy_request.duration", tags=metric_tags):
             resp = external_request(

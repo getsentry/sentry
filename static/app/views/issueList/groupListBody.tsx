@@ -99,7 +99,7 @@ function GroupList({
   const topIssue = groupIds[0];
   const canSelect = !useMedia(
     `(max-width: ${
-      isSavedSearchesOpen ? theme.breakpoints.large : theme.breakpoints.small
+      isSavedSearchesOpen ? theme.breakpoints.xlarge : theme.breakpoints.medium
     })`
   );
 
