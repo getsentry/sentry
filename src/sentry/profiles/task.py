@@ -156,7 +156,10 @@ def process_profile_task(
         return
 
     with metrics.timer("process_profile.track_outcome.accepted"):
-        _track_duration_outcome(profile=profile, project=project)
+        try:
+            _track_duration_outcome(profile=profile, project=project)
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
         _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED)
 
 
