@@ -129,7 +129,7 @@ function IssueListHeader({node}: {node: TraceTreeNode<TraceTree.NodeValue>}) {
     <StyledPanelHeader disablePadding>
       <IssueHeading>
         {errors.length + performance_issues.length > MAX_DISPLAYED_ISSUES_COUNT
-          ? t('10+ issues')
+          ? t(`${MAX_DISPLAYED_ISSUES_COUNT}  issues`)
           : errors.length > 0 && performance_issues.length === 0
             ? tct('[count] [text]', {
                 count: errors.length,
