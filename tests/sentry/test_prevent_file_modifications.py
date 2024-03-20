@@ -7,6 +7,7 @@ from hashlib import md5
 # >>> hashlib.md5(f.read()).hexdigest()
 # 'edf45a1fb04cbadb5d4f2edb59d884b1'
 
+# DO NOT EDIT HASHES FOR THOSE FILES
 LOCKED_FILES = {
     "src/sentry/sentry_metrics/indexer/strings.py": {
         "message": """
