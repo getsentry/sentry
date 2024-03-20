@@ -33,7 +33,8 @@ jobs:
             locked-files:
               - 'src/sentry/sentry_metrics/indexer/strings.py'
 
-      - name: Fail action and show warning
+      - if: steps.changes.outputs.locked-files == 'true'
+        name: Fail action and show warning
         run: |
           echo '* One of the files you modified in your pull request is locked and should not be modified.'
           echo '* Please remove the modifications to this file for this action to succeed.'
