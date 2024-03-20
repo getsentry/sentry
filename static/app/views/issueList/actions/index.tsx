@@ -300,13 +300,23 @@ function IssueListActions({
             onActionTaken?.(itemIds ?? [], data);
 
             // Prevents stale data on issue details
-            queryClient.invalidateQueries({
-              predicate: apiQuery =>
-                typeof apiQuery.queryKey[0] === 'string' &&
-                apiQuery.queryKey[0].startsWith(
-                  `/organizations/${organization.slug}/issues/`
-                ),
-            });
+            if (itemIds?.length) {
+              for (const itemId of itemIds) {
+                queryClient.invalidateQueries({
+                  queryKey: [`/organizations/${organization.slug}/issues/${itemId}/`],
+                  exact: false,
+                });
+              }
+            } else {
+              // If we're doing a full query update we invalidate all issue queries to be safe
+              queryClient.invalidateQueries({
+                predicate: apiQuery =>
+                  typeof apiQuery.queryKey[0] === 'string' &&
+                  apiQuery.queryKey[0].startsWith(
+                    `/organizations/${organization.slug}/issues/`
+                  ),
+              });
+            }
           },
           error: () => {
             clearIndicators();
