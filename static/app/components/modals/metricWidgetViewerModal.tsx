@@ -247,7 +247,7 @@ function MetricWidgetViewerModal({
           <ButtonBar gap={1}>
             <LinkButton
               to={getDdmUrl(organization.slug, {
-                widgets: metricQueries,
+                widgets: [...metricQueries, ...metricEquations],
                 ...selection.datetime,
                 project: selection.projects,
                 environment: selection.environments,
