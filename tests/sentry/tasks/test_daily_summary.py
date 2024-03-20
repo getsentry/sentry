@@ -485,7 +485,10 @@ class DailySummaryTest(
             ).send()
         blocks, fallback_text = get_blocks_and_fallback_text()
         link_text = "http://testserver/organizations/baz/issues/{}/?referrer=slack"
-        assert fallback_text == "Daily Summary for Your Projects (internal only!!!)"
+        assert (
+            fallback_text
+            == f"Daily Summary for Your {self.organization.slug.title()} Projects (internal only!!!)"
+        )
         assert f":bell: *{fallback_text}*" in blocks[0]["text"]["text"]
         assert (
             "Your comprehensive overview for today - key issues, performance insights, and more."
@@ -503,7 +506,7 @@ class DailySummaryTest(
         # check error issues
         assert "*Today's Top 3 Error Issues" in blocks[5]["fields"][0]["text"]
         assert link_text.format(self.group1.id) in blocks[5]["fields"][0]["text"]
-        assert "Identity not found." in blocks[5]["fields"][0]["text"]
+        assert "\nIdentity not found." in blocks[5]["fields"][0]["text"]
         assert link_text.format(self.group2.id) in blocks[5]["fields"][0]["text"]
         assert link_text.format(self.group2.id) in blocks[5]["fields"][0]["text"]
         # check escalated or regressed issues
@@ -513,7 +516,7 @@ class DailySummaryTest(
         # check performance issues
         assert "*Today's Top 3 Performance Issues*" in blocks[6]["text"]["text"]
         assert link_text.format(self.perf_event.group.id) in blocks[6]["text"]["text"]
-        assert "db - SELECT `books_author`.`id`, `books_author`.`..." in blocks[6]["text"]["text"]
+        assert "\ndb - SELECT `books_author`.`id`, `books_author`.`..." in blocks[6]["text"]["text"]
         assert link_text.format(self.perf_event2.group.id) in blocks[6]["text"]["text"]
         # repeat above for second project
         assert self.project2.slug in blocks[8]["text"]["text"]
@@ -553,7 +556,10 @@ class DailySummaryTest(
             "yAxis": "count()",
         }
         query_string = urlencode(query_params, doseq=True)
-        assert fallback_text == "Daily Summary for Your Projects (internal only!!!)"
+        assert (
+            fallback_text
+            == f"Daily Summary for Your {self.organization.slug.title()} Projects (internal only!!!)"
+        )
         assert f":bell: *{fallback_text}*" in blocks[0]["text"]["text"]
         assert (
             "Your comprehensive overview for today - key issues, performance insights, and more."
