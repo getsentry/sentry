@@ -79,8 +79,11 @@ class RpcMethodSignature(SerializableFunctionSignature):
     def method_name(self) -> str:
         return self.base_function.__name__
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{type(self).__name__}({self.service_name!r}, {self.method_name!r})"
+
+    def __str__(self) -> str:
+        return f"{self.service_name}.{self.method_name}"
 
     def get_name_segments(self) -> Sequence[str]:
         return self.service_name, self.method_name

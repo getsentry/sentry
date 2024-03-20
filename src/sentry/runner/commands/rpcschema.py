@@ -20,19 +20,18 @@ from sentry.utils import json
     default=False,
     help="Ignore RPC methods that produce errors.",
 )
+@click.option(
+    "--diagnose",
+    is_flag=True,
+    default=False,
+    help="List RPC methods that produce errors and suppress all other output.",
+)
 @configuration
-def rpcschema(partial: bool) -> None:
+def rpcschema(diagnose: bool, partial: bool) -> None:
     from sentry.services.hybrid_cloud.rpc import (
         RpcMethodSignature,
         list_all_service_method_signatures,
     )
-
-    class NullReturnSpecException(Exception):
-        """Indicate that an RPC has a null value as its return model.
-
-        This is temporary. Remove this after reworking the way that we model RPC
-        methods that logically return None.
-        """
 
     @dataclass
     class RpcSchemaEntry:
@@ -46,8 +45,6 @@ def rpcschema(partial: bool) -> None:
 
         def build_api_entry(self) -> dict[str, Any]:
             param_schema, return_schema = self.sig.dump_schemas()
-            if return_schema is None:
-                raise NullReturnSpecException
             return {
                 "post": {
                     "description": "Execute an RPC",
@@ -88,18 +85,34 @@ def rpcschema(partial: bool) -> None:
         spec = construct_open_api_with_schema_class(spec)
         return spec.dict(by_alias=True, exclude_none=True)
 
-    def create_partial_spec(signatures: Iterable[RpcMethodSignature]) -> dict[str, Any]:
-        stable_signatures = []
+    def create_partial_spec(
+        signatures: Iterable[RpcMethodSignature],
+    ) -> tuple[dict[str, Any], list[str]]:
+        stable_signatures: list[RpcMethodSignature] = []
+        error_reports: list[str] = []
         for sig in signatures:
             try:
                 create_spec([sig])
-            except Exception:
-                traceback.print_exc()
+            except Exception as e:
+                last_line = str(e).split("\n")[-1].strip()
+                error_reports.append(f"{sig!s}: {last_line}")
+                if not diagnose:
+                    traceback.print_exc()
             else:
                 stable_signatures.append(sig)
 
-        return create_spec(stable_signatures)
+        return create_spec(stable_signatures), error_reports
 
     all_signatures = list_all_service_method_signatures()
-    spec = create_partial_spec(all_signatures) if partial else create_spec(all_signatures)
-    json.dump(spec, sys.stdout)
+
+    if diagnose or partial:
+        spec, error_reports = create_partial_spec(all_signatures)
+        if diagnose:
+            print(f"Error count: {len(error_reports)}")  # noqa
+            for bad_sig in error_reports:
+                print("- " + bad_sig)  # noqa
+    else:
+        spec = create_spec(all_signatures)
+
+    if not diagnose:
+        json.dump(spec, sys.stdout)
