@@ -13,6 +13,7 @@ import {
   IconInput,
   IconKeyDown,
   IconLocation,
+  IconMegaphone,
   IconSort,
   IconTerminal,
   IconUser,
@@ -63,11 +64,17 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     icon: <IconLocation size="xs" />,
   }),
   issue: (frame: ErrorFrame) => ({
-    color: 'red300',
-    description: frame.message,
+    color: frame.message === 'User Feedback' ? 'pink300' : 'red300',
+    description:
+      frame.message === 'User Feedback' ? frame.data.projectSlug : frame.message,
     tabKey: TabKey.ERRORS,
     title: defaultTitle(frame),
-    icon: <IconFire size="xs" />,
+    icon:
+      frame.message === 'User Feedback' ? (
+        <IconMegaphone size="xs" />
+      ) : (
+        <IconFire size="xs" />
+      ),
   }),
   'ui.slowClickDetected': (frame: SlowClickFrame) => {
     const node = frame.data.node;
@@ -353,6 +360,10 @@ export default function getFrameDetails(frame: ReplayFrame): Details {
 }
 
 function defaultTitle(frame: ReplayFrame) {
+  // Override error title for User Feedback frames
+  if ('message' in frame && frame.message === 'User Feedback') {
+    return t('User Feedback');
+  }
   if ('category' in frame) {
     const [type, action] = frame.category.split('.');
     return `${type} ${action || ''}`.trim();

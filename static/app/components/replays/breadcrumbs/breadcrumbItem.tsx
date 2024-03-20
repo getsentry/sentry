@@ -69,10 +69,11 @@ function BreadcrumbItem({
   const {replay} = useReplayContext();
 
   const forceSpan = 'category' in frame && FRAMES_WITH_BUTTONS.includes(frame.category);
+  const isFeedbackCrumb = title === 'User Feedback';
 
   return (
     <CrumbItem
-      isErrorFrame={isErrorFrame(frame)}
+      isErrorFrame={isErrorFrame(frame) && !isFeedbackCrumb}
       as={onClick && !forceSpan ? 'button' : 'span'}
       onClick={e => onClick?.(frame, e)}
       onMouseEnter={e => onMouseEnter(frame, e)}
@@ -85,7 +86,7 @@ function BreadcrumbItem({
       </IconWrapper>
       <CrumbDetails>
         <TitleContainer>
-          {isErrorFrame(frame) ? (
+          {isErrorFrame(frame) && !isFeedbackCrumb ? (
             <CrumbErrorTitle frame={frame} />
           ) : (
             <Title>{title}</Title>
@@ -155,7 +156,9 @@ function BreadcrumbItem({
           />
         ))}
 
-        {isErrorFrame(frame) ? <CrumbErrorIssue frame={frame} /> : null}
+        {isErrorFrame(frame) ? (
+          <CrumbErrorIssue frame={frame} isFeedbackCrumb={isFeedbackCrumb} />
+        ) : null}
       </CrumbDetails>
     </CrumbItem>
   );
@@ -181,7 +184,13 @@ function CrumbErrorTitle({frame}: {frame: ErrorFrame}) {
   );
 }
 
-function CrumbErrorIssue({frame}: {frame: ErrorFrame}) {
+function CrumbErrorIssue({
+  frame,
+  isFeedbackCrumb,
+}: {
+  frame: ErrorFrame;
+  isFeedbackCrumb: boolean;
+}) {
   const organization = useOrganization();
   const project = useProjectFromSlug({organization, projectSlug: frame.data.projectSlug});
   const {groupId} = useReplayGroupContext();
@@ -199,12 +208,14 @@ function CrumbErrorIssue({frame}: {frame: ErrorFrame}) {
     );
   }
 
+  const url = isFeedbackCrumb
+    ? `/organizations/${organization.slug}/feedback/?feedbackSlug=${frame.data.projectSlug}%3A${frame.data.groupId}/`
+    : `/organizations/${organization.slug}/issues/${frame.data.groupId}/`;
+
   return (
     <CrumbIssueWrapper>
       {projectBadge}
-      <Link to={`/organizations/${organization.slug}/issues/${frame.data.groupId}/`}>
-        {frame.data.groupShortId}
-      </Link>
+      <Link to={url}>{frame.data.groupShortId}</Link>
     </CrumbIssueWrapper>
   );
 }
