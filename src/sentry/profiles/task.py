@@ -980,7 +980,7 @@ def _calculate_duration_for_sample_format_v2(profile: Profile) -> int:
     if len(samples) < 2:
         return 0
     first, last = samples[0], samples[-1]
-    return int((last - first) * 1e3)
+    return int((last["timestamp"] - first["timestamp"]) * 1e3)
 
 
 def _calculate_duration_for_android_format(profile: Profile) -> int:
