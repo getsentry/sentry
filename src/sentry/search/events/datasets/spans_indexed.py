@@ -18,6 +18,7 @@ from sentry.search.events.fields import (
     NumericColumn,
     SnQLFieldColumn,
     SnQLFunction,
+    TimestampArg,
     with_default,
 )
 from sentry.search.events.types import SelectType, WhereType
@@ -215,6 +216,78 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                     ),
                     private=True,
                 ),
+                SnQLFunction(
+                    "throughput_before",
+                    required_args=[TimestampArg("timestamp")],
+                    snql_aggregate=lambda args, alias: self._resolve_throughput_cond(
+                        args, alias, "less"
+                    ),
+                    default_result_type="number",
+                ),
+                SnQLFunction(
+                    "throughput_after",
+                    required_args=[TimestampArg("timestamp")],
+                    snql_aggregate=lambda args, alias: self._resolve_throughput_cond(
+                        args, alias, "greater"
+                    ),
+                    default_result_type="number",
+                ),
+                SnQLFunction(
+                    "percentile_before",
+                    required_args=[
+                        NumericColumn("column", spans=True),
+                        NumberRange("percentile", 0, 1),
+                        TimestampArg("timestamp"),
+                    ],
+                    snql_aggregate=lambda args, alias: self._resolve_percentile_cond(
+                        args, alias, "less"
+                    ),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "percentile_after",
+                    required_args=[
+                        NumericColumn("column", spans=True),
+                        NumberRange("percentile", 0, 1),
+                        TimestampArg("timestamp"),
+                    ],
+                    snql_aggregate=lambda args, alias: self._resolve_percentile_cond(
+                        args, alias, "greater"
+                    ),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "regression_score",
+                    required_args=[
+                        NumberRange("percentile", 0, 1),
+                        TimestampArg("timestamp"),
+                    ],
+                    snql_aggregate=lambda args, alias: Function(
+                        "minus",
+                        [
+                            Function(
+                                "multiply",
+                                [
+                                    self._resolve_throughput_cond(args, None, "greater"),
+                                    self._resolve_percentile_cond(args, None, "greater"),
+                                ],
+                            ),
+                            Function(
+                                "multiply",
+                                [
+                                    self._resolve_throughput_cond(args, None, "less"),
+                                    self._resolve_percentile_cond(args, None, "less"),
+                                ],
+                            ),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="number",
+                ),
             ]
         }
 
@@ -369,4 +442,57 @@ class SpansIndexedDatasetConfig(DatasetConfig):
             offset,
             limit,
             size=int(args["count"]),
+        )
+
+    def _resolve_throughput_cond(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None,
+        cond: str,
+    ) -> SelectType:
+        if cond == "greater":
+            interval = (self.builder.params.end - args["timestamp"]).total_seconds()
+        elif cond == "less":
+            interval = (args["timestamp"] - self.builder.params.start).total_seconds()
+        else:
+            raise InvalidSearchQuery(f"Unsupported condition for cpm: {cond}")
+
+        return Function(
+            "divide",
+            [
+                Function(
+                    "countIf",
+                    [
+                        Function(
+                            cond,
+                            [
+                                self.builder.resolve_column("timestamp"),
+                                args["timestamp"],
+                            ],
+                        ),
+                    ],
+                ),
+                Function("divide", [interval, 60]),
+            ],
+            alias,
+        )
+
+    def _resolve_percentile_cond(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None,
+        cond: str,
+    ) -> SelectType:
+        return Function(
+            f'quantileIf({args["percentile"]})',
+            [
+                Function(
+                    cond,
+                    [
+                        self.builder.resolve_column("timestamp"),
+                        args["timestamp"],
+                    ],
+                ),
+            ],
+            alias,
         )
