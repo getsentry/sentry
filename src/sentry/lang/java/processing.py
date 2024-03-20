@@ -71,8 +71,8 @@ def _handles_frame(frame: dict[str, Any]) -> bool:
 FRAME_FIELDS = ("abs_path", "lineno", "function", "module", "filename", "in_app")
 
 
-def _normalize_frame(raw_frame: Any) -> dict:
-    frame = {}
+def _normalize_frame(raw_frame: Any, index: int) -> dict:
+    frame = {"index": index}
     for key in FRAME_FIELDS:
         if (value := raw_frame.get(key)) is not None:
             frame[key] = value
@@ -156,8 +156,8 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     stacktraces = [
         {
             "frames": [
-                _normalize_frame(frame)
-                for frame in sinfo.stacktrace.get("frames") or ()
+                _normalize_frame(frame, index)
+                for index, frame in enumerate(sinfo.stacktrace.get("frames")) or ()
                 if _handles_frame(frame)
             ],
         }
@@ -191,22 +191,19 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     assert len(stacktraces) == len(response["stacktraces"]), (stacktraces, response)
 
     for sinfo, complete_stacktrace in zip(stacktrace_infos, response["stacktraces"]):
-        processed_frame_idx = 0
-        new_frames = []
         raw_frames = sinfo.stacktrace["frames"]
-        for sinfo_frame in sinfo.stacktrace["frames"]:
-            if not _handles_frame(sinfo_frame):
-                new_frames.append(sinfo_frame)
-                continue
+        # sinfo.stacktrace["frames"] = complete_stacktrace["frames"]
+        complete_frames = complete_stacktrace["frames"]
+        sinfo.stacktrace["frames"] = []
 
-            complete_frame = complete_stacktrace["frames"][processed_frame_idx]
-            processed_frame_idx += 1
-
-            new_frame = dict(sinfo_frame)
-            _merge_frame(new_frame, complete_frame)
-            new_frames.append(new_frame)
-
-        sinfo.stacktrace["frames"] = new_frames
+        for index, raw_frame in enumerate(raw_frames):
+            # If symbolicator returned any matching frames for this raw_frame, use them,
+            # otherwise use the raw_frame itself.
+            matching_frames = [frame for frame in complete_frames if frame["index"] == index]
+            if matching_frames:
+                sinfo.stacktrace["frames"].extend(matching_frames)
+            else:
+                sinfo.stacktrace["frames"].append(raw_frame)
 
         if sinfo.container is not None:
             sinfo.container["raw_stacktrace"] = {
