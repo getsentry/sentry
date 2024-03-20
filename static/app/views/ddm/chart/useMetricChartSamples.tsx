@@ -178,6 +178,7 @@ export function useMetricChartSamples({
             xAxisIndex: newXAxisIndex,
             xValue,
             yValue,
+            total: yValue,
             tooltip: {
               axisPointer: {
                 type: 'none',
