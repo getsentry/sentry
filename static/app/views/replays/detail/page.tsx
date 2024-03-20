@@ -100,7 +100,7 @@ export default function Page({
             <Fragment>
               <Title>{replayRecord.user.display_name || t('Anonymous User')}</Title>
               <Time>
-                {replayRecord ? (
+                {replayRecord && (
                   <TimeContainer>
                     <IconCalendar color="gray300" size="xs" />
                     <TimeSince
@@ -109,8 +109,6 @@ export default function Page({
                       unitStyle="regular"
                     />
                   </TimeContainer>
-                ) : (
-                  <HeaderPlaceholder width="80px" height="16px" />
                 )}
               </Time>
             </Fragment>
