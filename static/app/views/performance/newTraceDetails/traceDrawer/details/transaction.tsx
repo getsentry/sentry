@@ -16,7 +16,7 @@ import {
 import {Entries} from 'sentry/components/events/eventEntries';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {EventExtraData} from 'sentry/components/events/eventExtraData';
-import {CLIP_OFFSETS} from 'sentry/components/events/eventReplay';
+import {REPLAY_CLIP_OFFSETS} from 'sentry/components/events/eventReplay';
 import ReplayClipPreview from 'sentry/components/events/eventReplay/replayClipPreview';
 import {EventSdk} from 'sentry/components/events/eventSdk';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
@@ -178,14 +178,14 @@ function ReplaySection({
   const eventTimestampMs = timeOfEvent ? Math.floor(new Date(timeOfEvent).getTime()) : 0;
 
   return (
-    <div style={{display: 'flex', flexDirection: 'column'}}>
+    <ReplaySectionContainer>
       <ReplaySectionTitle>{t('Session Replay')}</ReplaySectionTitle>
       <ReplayClipPreview
         analyticsContext="issue_details"
         replaySlug={replayId || ''}
         orgSlug={organization.slug}
         eventTimestampMs={eventTimestampMs}
-        clipOffsets={CLIP_OFFSETS}
+        clipOffsets={REPLAY_CLIP_OFFSETS}
         fullReplayButtonProps={{
           analyticsEventKey: 'issue_details.open_replay_details_clicked',
           analyticsEventName: 'Issue Details: Open Replay Details Clicked',
@@ -195,7 +195,7 @@ function ReplaySection({
           },
         }}
       />
-    </div>
+    </ReplaySectionContainer>
   );
 }
 
@@ -503,6 +503,11 @@ export function TransactionNodeDetails({
     </TraceDrawerComponents.DetailContainer>
   );
 }
+
+const ReplaySectionContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+`;
 
 const ReplaySectionTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};

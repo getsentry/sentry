@@ -31,7 +31,7 @@ type Props = {
   group?: Group;
 };
 
-export const CLIP_OFFSETS = {
+export const REPLAY_CLIP_OFFSETS = {
   durationAfterMs: 5_000,
   durationBeforeMs: 5_000,
 };
@@ -144,7 +144,7 @@ function EventReplayContent({
               <LazyLoad
                 {...commonProps}
                 component={replayClipPreview}
-                clipOffsets={CLIP_OFFSETS}
+                clipOffsets={REPLAY_CLIP_OFFSETS}
                 overlayContent={overlayContent}
               />
             ) : (
