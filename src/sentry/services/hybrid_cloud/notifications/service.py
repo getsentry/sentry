@@ -84,17 +84,6 @@ class NotificationsService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def get_subscriptions_for_projects__tmp(
-        self,
-        *,
-        user_id: int,
-        project_ids: list[int],
-        type: NotificationSettingEnum,
-    ) -> Mapping[int, RpcGroupSubscriptionStatus]:
-        pass
-
-    @rpc_method
-    @abstractmethod
     def get_participants(
         self,
         *,

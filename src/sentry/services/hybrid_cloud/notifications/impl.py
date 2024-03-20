@@ -143,17 +143,6 @@ class DatabaseBackedNotificationsService(NotificationsService):
             ).items()
         }
 
-    def get_subscriptions_for_projects__tmp(
-        self,
-        *,
-        user_id: int,
-        project_ids: list[int],
-        type: NotificationSettingEnum,
-    ) -> Mapping[int, RpcGroupSubscriptionStatus]:
-        return self.get_subscriptions_for_projects(
-            user_id=user_id, project_ids=project_ids, type=type
-        )
-
     def get_participants(
         self,
         *,

@@ -156,17 +156,6 @@ class UserService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def get_or_create_user_by_email__tmp(
-        self,
-        *,
-        email: str,
-        ident: str | None = None,
-        referrer: str | None = None,
-    ) -> RpcUserCreationResult:
-        pass
-
-    @rpc_method
-    @abstractmethod
     def get_user_by_email(
         self,
         *,

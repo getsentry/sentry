@@ -215,11 +215,6 @@ class DatabaseBackedUserService(UserService):
             user.update(flags=F("flags").bitor(User.flags.newsletter_consent_prompt))
             return RpcUserCreationResult(user=serialize_rpc_user(user), was_newly_created=True)
 
-    def get_or_create_user_by_email__tmp(
-        self, *, email: str, ident: str | None = None, referrer: str | None = None
-    ) -> RpcUserCreationResult:
-        return self.get_or_create_user_by_email(email=email, ident=ident, referrer=referrer)
-
     def get_user_by_email(
         self,
         *,

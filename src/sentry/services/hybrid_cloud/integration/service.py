@@ -141,19 +141,6 @@ class IntegrationService(RpcService):
         Returns a tuple of RpcIntegration and RpcOrganizationIntegration. The integration is selected
         by either integration_id, or a combination of provider and external_id.
         """
-
-    def get_organization_context__tmp(
-        self,
-        *,
-        organization_id: int,
-        integration_id: int | None = None,
-        provider: str | None = None,
-        external_id: str | None = None,
-    ) -> tuple[RpcIntegration | None, RpcOrganizationIntegration | None]:
-        """
-        Returns a tuple of RpcIntegration and RpcOrganizationIntegration. The integration is selected
-        by either integration_id, or a combination of provider and external_id.
-        """
         # This is a convencience method for unpacking `get_organization_contexts`.
         # Note that it can't be an @rpc_method because it returns a fixed-size tuple.
 
@@ -177,21 +164,6 @@ class IntegrationService(RpcService):
         external_id: str | None = None,
     ) -> RpcOrganizationIntegrationContextResult:
         pass
-
-    @rpc_method
-    @abstractmethod
-    def get_organization_contexts__tmp(
-        self,
-        *,
-        organization_id: int | None = None,
-        integration_id: int | None = None,
-        provider: str | None = None,
-        external_id: str | None = None,
-    ) -> RpcOrganizationIntegrationContextResult:
-        """
-        The integrations are selected by either integration_id, or a combination of
-        provider and external_id.
-        """
 
     @rpc_method
     @abstractmethod
