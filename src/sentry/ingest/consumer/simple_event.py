@@ -9,6 +9,7 @@ from sentry.conf.types.kafka_definition import Topic
 from sentry.models.project import Project
 from sentry.utils import metrics
 
+from ..types import ConsumerType
 from .processors import IngestMessage, Retriable, process_event
 
 logger = logging.getLogger(__name__)
@@ -18,7 +19,7 @@ consumer_type_to_default_topic = {
     "events": Topic.INGEST_EVENTS,
     "transactions": Topic.INGEST_TRANSACTIONS,
     "attachments": Topic.INGEST_ATTACHMENTS,
-    "ingest-feedback-events": Topic.INGEST_FEEDBACK_EVENTS,
+    ConsumerType.Feedback: Topic.INGEST_FEEDBACK_EVENTS,
 }
 
 
@@ -73,7 +74,11 @@ def process_simple_event_message(
         # TODO: Remove this line once all topics (transactions, attachments,
         # user feedback) also have DLQs
         default_topic = consumer_type_to_default_topic[consumer_type].value
-        if default_topic != "ingest-events":
+        topics_with_dlqs = [
+            Topic.INGEST_EVENTS,
+            Topic.INGEST_FEEDBACK_EVENTS,
+        ]
+        if default_topic not in topics_with_dlqs:
             raise
 
         raw_value = raw_message.value
