@@ -138,6 +138,11 @@ const PlayerContainer = styled(FluidHeight)<{isLarge?: boolean}>`
   position: relative;
   max-height: ${p =>
     p.isLarge ? REPLAY_LOADING_HEIGHT_LARGE : REPLAY_LOADING_HEIGHT + 16}px;
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    display: flex;
+    min-height: ${p =>
+      p.isLarge ? REPLAY_LOADING_HEIGHT_LARGE : REPLAY_LOADING_HEIGHT + 16}px;
+  }
 `;
 
 const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)<{isLarge?: boolean}>`
