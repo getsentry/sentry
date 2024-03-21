@@ -6,6 +6,10 @@ import type {Client} from 'sentry/api';
 import type {Organization} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
 import clamp from 'sentry/utils/number/clamp';
+import type {
+  TraceError,
+  TracePerformanceIssue,
+} from 'sentry/utils/performance/quickTrace/types';
 import {requestAnimationTimeout} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import {lightTheme as theme} from 'sentry/utils/theme';
 import {
@@ -128,6 +132,14 @@ export function computeTimelineIntervals(
   }
 }
 
+type ArgumentTypes<F> = F extends (...args: infer A) => any ? A : never;
+type EventStore = {
+  [K in keyof VirtualizedViewManagerEvents]: Set<VirtualizedViewManagerEvents[K]>;
+};
+interface VirtualizedViewManagerEvents {
+  ['divider resize end']: (list_width: number) => void;
+}
+
 /**
  * Tracks the state of the virtualized view and manages the resizing of the columns.
  * Children components should call the appropriate register*Ref methods to register their
@@ -147,6 +159,10 @@ export class VirtualizedViewManager {
   // pixel space would be [0, 1000]
   trace_physical_space: View = View.Empty();
   container_physical_space: View = View.Empty();
+
+  events: EventStore = {
+    ['divider resize end']: new Set<VirtualizedViewManagerEvents['divider resize end']>(),
+  };
 
   row_measurer: DOMWidthMeasurer<TraceTreeNode<TraceTree.NodeValue>> =
     new DOMWidthMeasurer();
@@ -222,6 +238,38 @@ export class VirtualizedViewManager {
     this.onWheelStart = this.onWheelStart.bind(this);
   }
 
+  on<K extends keyof VirtualizedViewManagerEvents>(
+    eventName: K,
+    cb: VirtualizedViewManagerEvents[K]
+  ): void {
+    const set = this.events[eventName] as unknown as Set<VirtualizedViewManagerEvents[K]>;
+    if (set.has(cb)) {
+      return;
+    }
+    set.add(cb);
+  }
+
+  off<K extends keyof VirtualizedViewManagerEvents>(
+    eventName: K,
+    cb: VirtualizedViewManagerEvents[K]
+  ): void {
+    const set = this.events[eventName] as unknown as Set<VirtualizedViewManagerEvents[K]>;
+
+    if (set.has(cb)) {
+      set.delete(cb);
+    }
+  }
+
+  dispatch<K extends keyof VirtualizedViewManagerEvents>(
+    event: K,
+    ...args: ArgumentTypes<VirtualizedViewManagerEvents[K]>
+  ): void {
+    for (const handler of this.events[event]) {
+      // @ts-expect-error
+      handler(...args);
+    }
+  }
+
   initializeTraceSpace(space: [x: number, y: number, width: number, height: number]) {
     this.to_origin = space[0];
 
@@ -292,6 +340,8 @@ export class VirtualizedViewManager {
     this.enqueueOnScrollEndOutOfBoundsCheck();
     document.removeEventListener('mouseup', this.onDividerMouseUp);
     document.removeEventListener('mousemove', this.onDividerMouseMove);
+
+    this.dispatch('divider resize end', this.columns.list.width);
   }
 
   onDividerMouseMove(event: MouseEvent) {
@@ -391,7 +441,7 @@ export class VirtualizedViewManager {
         const scrollableElement = ref.children[0] as HTMLElement | undefined;
         if (scrollableElement) {
           scrollableElement.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
-          this.row_measurer.measure(node, scrollableElement as HTMLElement);
+          this.row_measurer.enqueueMeasure(node, scrollableElement as HTMLElement);
           ref.addEventListener('wheel', this.onSyncedScrollbarScroll, {passive: false});
         }
       }
@@ -428,7 +478,7 @@ export class VirtualizedViewManager {
     if (ref) {
       const label = ref.children[0] as HTMLElement | undefined;
       if (label) {
-        this.indicator_label_measurer.measure(indicator, label);
+        this.indicator_label_measurer.enqueueMeasure(indicator, label);
       }
 
       ref.addEventListener('wheel', this.onWheelZoom, {passive: false});
@@ -573,6 +623,10 @@ export class VirtualizedViewManager {
     this.zoomIntoSpaceRaf = window.requestAnimationFrame(rafCallback);
   }
 
+  resetZoom() {
+    this.onZoomIntoSpace([this.to_origin, this.trace_space.width]);
+  }
+
   onWheelEndRaf: number | null = null;
   enqueueOnWheelEndRaf() {
     if (this.onWheelEndRaf !== null) {
@@ -638,7 +692,7 @@ export class VirtualizedViewManager {
     const width = view.width ?? this.trace_view.width;
 
     this.trace_view.x = clamp(x, 0, this.trace_space.width - width);
-    this.trace_view.width = clamp(width, 0, this.trace_space.width - this.trace_view.x);
+    this.trace_view.width = clamp(width, 1, this.trace_space.width - this.trace_view.x);
 
     this.recomputeTimelineIntervals();
     this.recomputeSpanToPxMatrix();
@@ -780,11 +834,12 @@ export class VirtualizedViewManager {
   scrollRowIntoViewHorizontally(
     node: TraceTreeNode<any>,
     duration: number = 600,
-    offset_px: number = 0
+    offset_px: number = 0,
+    position: 'exact' | 'measured' = 'measured'
   ) {
-    const newTransform = this.clampRowTransform(
-      -node.depth * this.row_depth_padding + offset_px
-    );
+    const depth_px = -node.depth * this.row_depth_padding + offset_px;
+    const newTransform =
+      position === 'exact' ? depth_px : this.clampRowTransform(depth_px);
 
     this.animateScrollColumnTo(newTransform, duration);
   }
@@ -898,7 +953,22 @@ export class VirtualizedViewManager {
       return Promise.resolve(null);
     }
 
-    return this.scrollToPath(tree, node.path, rerender, {api, organization});
+    return this.scrollToPath(tree, node.path, rerender, {api, organization}).then(
+      async result => {
+        // When users are coming off an eventID link, we want to fetch the children
+        // of the node that the eventID points to. This is because the eventID link
+        // only points to the transaction, but we want to fetch the children of the
+        // transaction to show the user the list of spans in that transaction
+        if (result?.node?.canFetch) {
+          await tree.zoomIn(result.node, true, {api, organization}).catch(_e => {
+            Sentry.captureMessage('Failed to fetch children of eventId on mount');
+          });
+          return result;
+        }
+
+        return null;
+      }
+    );
   }
 
   scrollToPath(
@@ -929,11 +999,29 @@ export class VirtualizedViewManager {
       node: TraceTreeNode<TraceTree.NodeValue>;
     } | null | null> => {
       const path = segments.pop();
-      const current = findInTreeFromSegment(parent, path!);
+      let current = findInTreeFromSegment(parent, path!);
 
       if (!current) {
-        Sentry.captureMessage('Failed to scroll to node in trace tree');
-        return null;
+        // Some parts of the codebase link to span:span_id, txn:event_id, where span_id is
+        // actally stored on the txn:event_id node. Since we cant tell from the link itself
+        // that this is happening, we will perform a final check to see if we've actually already
+        // arrived to the node in the previous search call.
+        if (path) {
+          const [type, id] = path.split(':');
+
+          if (
+            type === 'span' &&
+            isTransactionNode(parent) &&
+            parent.value.span_id === id
+          ) {
+            current = parent;
+          }
+        }
+
+        if (!current) {
+          Sentry.captureMessage('Failed to scroll to node in trace tree');
+          return null;
+        }
       }
 
       // Reassing the parent to the current node so that
@@ -1105,9 +1193,6 @@ export class VirtualizedViewManager {
     const spanWidth = span_list_width * 100 + '%';
 
     for (let i = 0; i < this.columns.list.column_refs.length; i++) {
-      while (this.span_bars[i] === undefined && i < this.columns.list.column_refs.length)
-        i++;
-
       const list = this.columns.list.column_refs[i];
       if (list) list.style.width = listWidth;
       const span = this.columns.span_list.column_refs[i];
@@ -1640,7 +1725,7 @@ export const useVirtualizedList = (
         }
       }, 50);
     };
-    props.container.addEventListener('scroll', onScroll, {passive: false});
+    props.container.addEventListener('scroll', onScroll, {passive: true});
 
     return () => {
       props.container?.removeEventListener('scroll', onScroll);
@@ -1834,17 +1919,62 @@ function findInTreeFromSegment(
   });
 }
 
+function hasEventWithEventId(
+  node: TraceTreeNode<TraceTree.NodeValue>,
+  eventId: string
+): boolean {
+  // Search in errors
+  const errors: TraceError[] = isAutogroupedNode(node)
+    ? node.errors
+    : node.value && 'errors' in node.value && Array.isArray(node.value.errors)
+      ? node.value.errors
+      : [];
+
+  if (errors.length > 0) {
+    for (const e of errors) {
+      if (e.event_id === eventId) {
+        return true;
+      }
+    }
+  }
+
+  // Search in performance issues
+  const performance_issues: TracePerformanceIssue[] = isAutogroupedNode(node)
+    ? node.performance_issues
+    : node.value &&
+        'performance_issues' in node.value &&
+        Array.isArray(node.value.performance_issues)
+      ? node.value.performance_issues
+      : [];
+
+  if (performance_issues.length > 0) {
+    for (const p of performance_issues) {
+      if (p.event_id === eventId) {
+        return true;
+      }
+    }
+  }
+
+  // Check if we are maybe looking for the profile_id
+  if (node.value && 'profile_id' in node.value && node.value.profile_id === eventId) {
+    return true;
+  }
+
+  return false;
+}
+
 function findInTreeByEventId(start: TraceTreeNode<TraceTree.NodeValue>, eventId: string) {
   return TraceTreeNode.Find(start, node => {
     if (isTransactionNode(node)) {
-      return node.value.event_id === eventId;
-    }
-    if (isSpanNode(node)) {
+      if (node.value.event_id === eventId) {
+        return true;
+      }
+    } else if (isSpanNode(node)) {
       return node.value.span_id === eventId;
-    }
-    if (isTraceErrorNode(node)) {
+    } else if (isTraceErrorNode(node)) {
       return node.value.event_id === eventId;
     }
-    return false;
+
+    return hasEventWithEventId(node, eventId);
   });
 }

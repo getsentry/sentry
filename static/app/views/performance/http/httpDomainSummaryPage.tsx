@@ -12,6 +12,7 @@ import {space} from 'sentry/styles/space';
 import {fromSorts} from 'sentry/utils/discover/eventView';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -20,12 +21,14 @@ import {
   isAValidSort,
 } from 'sentry/views/performance/http/domainTransactionsTable';
 import {DurationChart} from 'sentry/views/performance/http/durationChart';
+import {HTTPSamplesPanel} from 'sentry/views/performance/http/httpSamplesPanel';
 import {ResponseRateChart} from 'sentry/views/performance/http/responseRateChart';
 import {ThroughputChart} from 'sentry/views/performance/http/throughputChart';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
+import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
@@ -56,12 +59,14 @@ export function HTTPDomainSummaryPage() {
   const cursor = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_CURSOR]);
 
   const {data: domainMetrics, isLoading: areDomainMetricsLoading} = useSpanMetrics({
-    filters,
+    search: MutableSearch.fromQueryObject(filters),
     fields: [
-      SpanMetricsField.SPAN_DOMAIN,
       `${SpanFunction.SPM}()`,
       `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
       `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
+      'http_response_rate(3)',
+      'http_response_rate(4)',
+      'http_response_rate(5)',
       `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
     ],
     enabled: Boolean(domain),
@@ -73,7 +78,7 @@ export function HTTPDomainSummaryPage() {
     data: throughputData,
     error: throughputError,
   } = useSpanMetricsSeries({
-    filters,
+    search: MutableSearch.fromQueryObject(filters),
     yAxis: ['spm()'],
     enabled: Boolean(domain),
     referrer: 'api.starfish.http-module-domain-summary-throughput-chart',
@@ -84,7 +89,7 @@ export function HTTPDomainSummaryPage() {
     data: durationData,
     error: durationError,
   } = useSpanMetricsSeries({
-    filters,
+    search: MutableSearch.fromQueryObject(filters),
     yAxis: [`avg(${SpanMetricsField.SPAN_SELF_TIME})`],
     enabled: Boolean(domain),
     referrer: 'api.starfish.http-module-domain-summary-duration-chart',
@@ -95,7 +100,7 @@ export function HTTPDomainSummaryPage() {
     data: responseCodeData,
     error: responseCodeError,
   } = useSpanMetricsSeries({
-    filters: filters,
+    search: MutableSearch.fromQueryObject(filters),
     yAxis: ['http_response_rate(3)', 'http_response_rate(4)', 'http_response_rate(5)'],
     referrer: 'api.starfish.http-module-domain-summary-response-code-chart',
   });
@@ -107,9 +112,11 @@ export function HTTPDomainSummaryPage() {
     error: transactionsListError,
     pageLinks: transactionsListPageLinks,
   } = useSpanMetrics({
-    filters,
+    search: MutableSearch.fromQueryObject(filters),
     fields: [
+      'project.id',
       'transaction',
+      'transaction.method',
       'spm()',
       'http_response_rate(2)',
       'http_response_rate(4)',
@@ -179,6 +186,38 @@ export function HTTPDomainSummaryPage() {
                     unit={DurationUnit.MILLISECOND}
                     isLoading={areDomainMetricsLoading}
                   />
+
+                  <MetricReadout
+                    title={t('3XXs')}
+                    value={domainMetrics?.[0]?.[`http_response_rate(3)`]}
+                    unit="percentage"
+                    isLoading={areDomainMetricsLoading}
+                  />
+
+                  <MetricReadout
+                    title={t('4XXs')}
+                    value={domainMetrics?.[0]?.[`http_response_rate(4)`]}
+                    unit="percentage"
+                    isLoading={areDomainMetricsLoading}
+                  />
+
+                  <MetricReadout
+                    title={t('5XXs')}
+                    value={domainMetrics?.[0]?.[`http_response_rate(5)`]}
+                    unit="percentage"
+                    isLoading={areDomainMetricsLoading}
+                  />
+
+                  <MetricReadout
+                    title={DataTitles.timeSpent}
+                    value={domainMetrics?.[0]?.['sum(span.self_time)']}
+                    unit={DurationUnit.MILLISECOND}
+                    tooltip={getTimeSpentExplanation(
+                      domainMetrics?.[0]?.['time_spent_percentage()'],
+                      'db'
+                    )}
+                    isLoading={areDomainMetricsLoading}
+                  />
                 </MetricsRibbon>
               </HeaderContainer>
             </ModuleLayout.Full>
@@ -222,6 +261,7 @@ export function HTTPDomainSummaryPage() {
 
             <ModuleLayout.Full>
               <DomainTransactionsTable
+                domain={domain}
                 data={transactionsList}
                 error={transactionsListError}
                 isLoading={isTransactionsListLoading}
@@ -233,6 +273,8 @@ export function HTTPDomainSummaryPage() {
           </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>
+
+      <HTTPSamplesPanel />
     </React.Fragment>
   );
 }

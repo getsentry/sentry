@@ -118,7 +118,7 @@ export function getMetricQueries(
 
 export function getMetricEquations(widget: Widget): DashboardMetricsEquation[] {
   const usedIds = new Set<number>();
-  const indizesWithoutId: number[] = [];
+  const indicesWithoutId: number[] = [];
 
   const equations = widget.queries.map(
     (query, index): DashboardMetricsEquation | null => {
@@ -128,7 +128,7 @@ export function getMetricEquations(widget: Widget): DashboardMetricsEquation[] {
 
       const id = getExpressionIdFromWidgetQuery(query);
       if (id === NO_QUERY_ID) {
-        indizesWithoutId.push(index);
+        indicesWithoutId.push(index);
       } else {
         usedIds.add(id);
       }
@@ -141,7 +141,7 @@ export function getMetricEquations(widget: Widget): DashboardMetricsEquation[] {
     }
   );
 
-  return fillMissingExpressionIds(equations, indizesWithoutId, usedIds).filter(
+  return fillMissingExpressionIds(equations, indicesWithoutId, usedIds).filter(
     (query): query is DashboardMetricsEquation => query !== null
   );
 }
@@ -236,6 +236,23 @@ export function getMetricWidgetTitle(queries: DashboardMetricsExpression[]) {
     .join(', ');
 }
 
+export function defaultMetricWidget(): Widget {
+  return expressionsToWidget(
+    [
+      {
+        id: 0,
+        type: MetricQueryType.QUERY,
+        mri: 'd:transactions/duration@millisecond',
+        op: 'avg',
+        query: '',
+        orderBy: 'desc',
+      },
+    ],
+    '',
+    DisplayType.LINE
+  );
+}
+
 export function filterQueriesByDisplayType(
   queries: DashboardMetricsQuery[],
   displayType: DisplayType
@@ -253,10 +270,6 @@ export function filterEquationsByDisplayType(
 ) {
   // Big number can display only one query
   if (displayType === DisplayType.BIG_NUMBER) {
-    return [];
-  }
-  // TODO: Add support for table
-  if (displayType === DisplayType.TABLE) {
     return [];
   }
   return equations;

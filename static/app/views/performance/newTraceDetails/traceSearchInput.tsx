@@ -23,6 +23,7 @@ interface TraceSearchInputProps {
 }
 
 const MIN_LOADING_TIME = 300;
+
 export function TraceSearchInput(props: TraceSearchInputProps) {
   const [status, setStatus] = useState<TraceSearchState['status']>();
 

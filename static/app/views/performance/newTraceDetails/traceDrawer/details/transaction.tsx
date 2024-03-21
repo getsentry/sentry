@@ -1,4 +1,4 @@
-import {createRef, Fragment, useEffect, useMemo, useState} from 'react';
+import {createRef, Fragment, useLayoutEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
@@ -16,6 +16,8 @@ import {
 import {Entries} from 'sentry/components/events/eventEntries';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {EventExtraData} from 'sentry/components/events/eventExtraData';
+import {REPLAY_CLIP_OFFSETS} from 'sentry/components/events/eventReplay';
+import ReplayClipPreview from 'sentry/components/events/eventReplay/replayClipPreview';
 import {EventSdk} from 'sentry/components/events/eventSdk';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {Breadcrumbs} from 'sentry/components/events/interfaces/breadcrumbs';
@@ -25,6 +27,7 @@ import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import FileSize from 'sentry/components/fileSize';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -41,20 +44,23 @@ import {
 } from 'sentry/types';
 import {objectIsEmpty} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import useProjects from 'sentry/utils/useProjects';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import {CustomMetricsEventData} from 'sentry/views/ddm/customMetricsEventData';
+import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceTabs';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/virtualizedViewManager';
 import {Row, Tags} from 'sentry/views/performance/traceDetails/styles';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import type {TraceTree, TraceTreeNode} from '../../traceTree';
 
-import IssueList from './issues/issueList';
+import {IssueList} from './issues/issues';
 import {TraceDrawerComponents} from './styles';
 
 function OpsBreakdown({event}: {event: EventTransaction}) {
@@ -66,6 +72,7 @@ function OpsBreakdown({event}: {event: EventTransaction}) {
   }
 
   const renderText = showingAll ? t('Show less') : t('Show more') + '...';
+
   return (
     breakdown && (
       <Row
@@ -112,7 +119,7 @@ function BreadCrumbsSection({
   const [showBreadCrumbs, setShowBreadCrumbs] = useState(false);
   const breadCrumbsContainerRef = createRef<HTMLDivElement>();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setTimeout(() => {
       if (showBreadCrumbs) {
         breadCrumbsContainerRef.current?.scrollIntoView({
@@ -157,10 +164,46 @@ function BreadCrumbsSection({
   );
 }
 
+function ReplaySection({
+  event,
+  organization,
+}: {
+  event: EventTransaction;
+  organization: Organization;
+}) {
+  const replayId = getReplayIdFromEvent(event);
+  const startTimestampMS =
+    'startTimestamp' in event ? event.startTimestamp * 1000 : undefined;
+  const timeOfEvent = event.dateCreated ?? startTimestampMS ?? event.dateReceived;
+  const eventTimestampMs = timeOfEvent ? Math.floor(new Date(timeOfEvent).getTime()) : 0;
+
+  return replayId ? (
+    <ReplaySectionContainer>
+      <ReplaySectionTitle>{t('Session Replay')}</ReplaySectionTitle>
+      <ReplayClipPreview
+        analyticsContext="issue_details"
+        replaySlug={replayId}
+        orgSlug={organization.slug}
+        eventTimestampMs={eventTimestampMs}
+        clipOffsets={REPLAY_CLIP_OFFSETS}
+        fullReplayButtonProps={{
+          analyticsEventKey: 'issue_details.open_replay_details_clicked',
+          analyticsEventName: 'Issue Details: Open Replay Details Clicked',
+          analyticsParams: {
+            ...getAnalyticsDataForEvent(event),
+            organization,
+          },
+        }}
+      />
+    </ReplaySectionContainer>
+  ) : null;
+}
+
 type TransactionDetailProps = {
   location: Location;
   manager: VirtualizedViewManager;
   node: TraceTreeNode<TraceTree.Transaction>;
+  onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   organization: Organization;
   scrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
 };
@@ -170,9 +213,18 @@ export function TransactionNodeDetails({
   organization,
   location,
   scrollToNode,
+  onParentClick,
 }: TransactionDetailProps) {
   const {projects} = useProjects();
-  const {data: event} = useApiQuery<EventTransaction>(
+  const issues = useMemo(() => {
+    return [...node.errors, ...node.performance_issues];
+  }, [node.errors, node.performance_issues]);
+
+  const {
+    data: event,
+    isError,
+    isLoading,
+  } = useApiQuery<EventTransaction>(
     [
       `/organizations/${organization.slug}/events/${node.value.project_slug}:${node.value.event_id}/`,
       {
@@ -187,88 +239,34 @@ export function TransactionNodeDetails({
     }
   );
 
-  const relatedIssues = useMemo(() => {
-    return [...node.value.errors, ...node.value.performance_issues];
-  }, [node.value.errors, node.value.performance_issues]);
-
-  if (!event) {
+  if (isLoading) {
     return <LoadingIndicator />;
   }
 
-  const {user, contexts, projectSlug} = event;
-  const {feedback} = contexts ?? {};
-  const eventJsonUrl = `/api/0/projects/${organization.slug}/${node.value.project_slug}/events/${node.value.event_id}/json/`;
+  if (isError) {
+    return <LoadingError message={t('Failed to fetch transaction details')} />;
+  }
+
   const project = projects.find(proj => proj.slug === event?.projectSlug);
-  const {errors, performance_issues} = node.value;
-  const hasIssues = errors.length + performance_issues.length > 0;
   const startTimestamp = Math.min(node.value.start_timestamp, node.value.timestamp);
   const endTimestamp = Math.max(node.value.start_timestamp, node.value.timestamp);
+
   const {start: startTimeWithLeadingZero, end: endTimeWithLeadingZero} =
     getFormattedTimeRangeWithLeadingAndTrailingZero(startTimestamp, endTimestamp);
-  const duration = (endTimestamp - startTimestamp) * 1000;
-  const durationString = `${Number(duration.toFixed(3)).toLocaleString()}ms`;
+
+  const duration = (endTimestamp - startTimestamp) * node.multiplier;
+
   const measurementNames = Object.keys(node.value.measurements ?? {})
     .filter(name => isCustomMeasurement(`measurements.${name}`))
     .filter(isNotMarkMeasurement)
     .filter(isNotPerformanceScoreMeasurement)
     .sort();
 
-  const renderMeasurements = () => {
-    if (!event) {
-      return null;
-    }
+  const measurementKeys = Object.keys(event?.measurements ?? {})
+    .filter(name => Boolean(WEB_VITAL_DETAILS[`measurements.${name}`]))
+    .sort();
 
-    const {measurements} = event;
-
-    const measurementKeys = Object.keys(measurements ?? {})
-      .filter(name => Boolean(WEB_VITAL_DETAILS[`measurements.${name}`]))
-      .sort();
-
-    if (!measurements || measurementKeys.length <= 0) {
-      return null;
-    }
-
-    return (
-      <Fragment>
-        {measurementKeys.map(measurement => (
-          <Row
-            key={measurement}
-            title={WEB_VITAL_DETAILS[`measurements.${measurement}`]?.name}
-          >
-            <PerformanceDuration
-              milliseconds={Number(measurements[measurement].value.toFixed(3))}
-              abbreviation
-            />
-          </Row>
-        ))}
-      </Fragment>
-    );
-  };
-
-  const renderGoToProfileButton = () => {
-    if (!node.value.profile_id) {
-      return null;
-    }
-
-    const target = generateProfileFlamechartRoute({
-      orgSlug: organization.slug,
-      projectSlug: node.value.project_slug,
-      profileId: node.value.profile_id,
-    });
-
-    function handleOnClick() {
-      trackAnalytics('profiling_views.go_to_flamegraph', {
-        organization,
-        source: 'performance.trace_view',
-      });
-    }
-
-    return (
-      <TraceDrawerComponents.Button size="xs" to={target} onClick={handleOnClick}>
-        {t('View Profile')}
-      </TraceDrawerComponents.Button>
-    );
-  };
+  const parentTransaction = node.parent_transaction;
 
   return (
     <TraceDrawerComponents.DetailContainer>
@@ -293,10 +291,14 @@ export function TransactionNodeDetails({
           <Button size="xs" onClick={_e => scrollToNode(node)}>
             {t('Show in view')}
           </Button>
+          <TraceDrawerComponents.EventDetailsLink
+            eventId={node.value.event_id}
+            projectSlug={node.metadata.project_slug}
+          />
           <Button
             size="xs"
             icon={<IconOpen />}
-            href={eventJsonUrl}
+            href={`/api/0/projects/${organization.slug}/${node.value.project_slug}/events/${node.value.event_id}/json/`}
             external
             onClick={() =>
               trackAnalytics('performance_views.event_details.json_button_click', {
@@ -309,19 +311,26 @@ export function TransactionNodeDetails({
         </TraceDrawerComponents.Actions>
       </TraceDrawerComponents.HeaderContainer>
 
-      {hasIssues && <IssueList organization={organization} issues={relatedIssues} />}
+      <IssueList node={node} organization={organization} issues={issues} />
 
       <TraceDrawerComponents.Table className="table key-value">
         <tbody>
+          {parentTransaction ? (
+            <Row title="Parent Transaction">
+              <td className="value">
+                <a href="#" onClick={() => onParentClick(parentTransaction)}>
+                  {getTraceTabTitle(parentTransaction)}
+                </a>
+              </td>
+            </Row>
+          ) : null}
           <Row title={t('Event ID')}>
             {node.value.event_id}
             <CopyToClipboardButton
               borderless
               size="zero"
               iconSize="xs"
-              text={`${window.location.href.replace(window.location.hash, '')}#txn-${
-                node.value.event_id
-              }`}
+              text={node.value.event_id}
             />
           </Row>
           <Row title={t('Description')}>
@@ -336,18 +345,38 @@ export function TransactionNodeDetails({
               {node.value.transaction}
             </Link>
           </Row>
-          {node.value.profile_id && (
-            <Row title="Profile ID" extra={renderGoToProfileButton()}>
+          {node.value.profile_id ? (
+            <Row
+              title="Profile ID"
+              extra={
+                <TraceDrawerComponents.Button
+                  size="xs"
+                  to={generateProfileFlamechartRoute({
+                    orgSlug: organization.slug,
+                    projectSlug: node.value.project_slug,
+                    profileId: node.value.profile_id,
+                  })}
+                  onClick={function handleOnClick() {
+                    trackAnalytics('profiling_views.go_to_flamegraph', {
+                      organization,
+                      source: 'performance.trace_view',
+                    });
+                  }}
+                >
+                  {t('View Profile')}
+                </TraceDrawerComponents.Button>
+              }
+            >
               {node.value.profile_id}
             </Row>
-          )}
-          <Row title="Duration">{durationString}</Row>
+          ) : null}
+          <Row title="Duration">{`${Number(duration.toFixed(3)).toLocaleString()}ms`}</Row>
           <Row title="Date Range">
             {getDynamicText({
               fixed: 'Mar 19, 2021 11:06:27 AM UTC',
               value: (
                 <Fragment>
-                  <DateTime date={startTimestamp * 1000} />
+                  <DateTime date={startTimestamp * node.multiplier} />
                   {` (${startTimeWithLeadingZero})`}
                 </Fragment>
               ),
@@ -357,7 +386,7 @@ export function TransactionNodeDetails({
               fixed: 'Mar 19, 2021 11:06:28 AM UTC',
               value: (
                 <Fragment>
-                  <DateTime date={endTimestamp * 1000} />
+                  <DateTime date={endTimestamp * node.multiplier} />
                   {` (${endTimeWithLeadingZero})`}
                 </Fragment>
               ),
@@ -366,7 +395,23 @@ export function TransactionNodeDetails({
 
           <OpsBreakdown event={event} />
 
-          {renderMeasurements()}
+          {!event || !event.measurements || measurementKeys.length <= 0 ? null : (
+            <Fragment>
+              {measurementKeys.map(measurement => (
+                <Row
+                  key={measurement}
+                  title={WEB_VITAL_DETAILS[`measurements.${measurement}`]?.name}
+                >
+                  <PerformanceDuration
+                    milliseconds={Number(
+                      event.measurements?.[measurement].value.toFixed(3)
+                    )}
+                    abbreviation
+                  />
+                </Row>
+              ))}
+            </Fragment>
+          )}
 
           <Tags
             enableHiding
@@ -402,38 +447,39 @@ export function TransactionNodeDetails({
           )}
         </tbody>
       </TraceDrawerComponents.Table>
-      {project && <EventEvidence event={event} project={project} />}
-      {projectSlug && (
+      {project ? <EventEvidence event={event} project={project} /> : null}
+      <ReplaySection event={event} organization={organization} />
+      {event.projectSlug ? (
         <Entries
           definedEvent={event}
-          projectSlug={projectSlug}
+          projectSlug={event.projectSlug}
           group={undefined}
           organization={organization}
-          isShare={false}
+          isShare
           hideBeforeReplayEntries
           hideBreadCrumbs
         />
-      )}
-      {!objectIsEmpty(feedback) && (
+      ) : null}
+      {!objectIsEmpty(event.contexts?.feedback ?? {}) ? (
         <Chunk
           key="feedback"
           type="feedback"
           alias="feedback"
           group={undefined}
           event={event}
-          value={feedback}
+          value={event.contexts?.feedback ?? {}}
         />
-      )}
-      {user && !objectIsEmpty(user) && (
+      ) : null}
+      {event.user && !objectIsEmpty(event.user) ? (
         <Chunk
           key="user"
           type="user"
           alias="user"
           group={undefined}
           event={event}
-          value={user}
+          value={event.user}
         />
-      )}
+      ) : null}
       <EventExtraData event={event} />
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
       {event._metrics_summary ? (
@@ -443,18 +489,31 @@ export function TransactionNodeDetails({
         />
       ) : null}
       <BreadCrumbsSection event={event} organization={organization} />
-      {projectSlug && <EventAttachments event={event} projectSlug={projectSlug} />}
-      {project && <EventViewHierarchy event={event} project={project} />}
-      {projectSlug && (
+      {event.projectSlug ? (
+        <EventAttachments event={event} projectSlug={event.projectSlug} />
+      ) : null}
+      {project ? <EventViewHierarchy event={event} project={project} /> : null}
+      {event.projectSlug ? (
         <EventRRWebIntegration
           event={event}
           orgId={organization.slug}
-          projectSlug={projectSlug}
+          projectSlug={event.projectSlug}
         />
-      )}
+      ) : null}
     </TraceDrawerComponents.DetailContainer>
   );
 }
+
+const ReplaySectionContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+`;
+
+const ReplaySectionTitle = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: 600;
+  margin-bottom: ${space(2)};
+`;
 
 const Measurements = styled('div')`
   display: flex;

@@ -7,11 +7,11 @@ import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
+import type {ItemsBeforeFilter} from 'sentry/components/dropdownAutoComplete/types';
 import DropdownBubble from 'sentry/components/dropdownBubble';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import Highlight from 'sentry/components/highlight';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -257,9 +257,9 @@ function RuleListRow({
     onOwnerChange(slug, rule, ownerValue);
   }
 
-  const unassignedOption = {
+  const unassignedOption: ItemsBeforeFilter[number] = {
     value: '',
-    label: () => (
+    label: (
       <MenuItemWrapper>
         <PaddedIconUser size="lg" />
         <Label>{t('Unassigned')}</Label>
@@ -275,17 +275,15 @@ function RuleListRow({
     return userTeams.some(team => team.id === projTeam.id);
   });
   const dropdownTeams = filteredProjectTeams
-    .map((team, idx) => ({
+    .map<ItemsBeforeFilter[number]>((team, idx) => ({
       value: team.id,
       searchKey: team.slug,
-      label: ({inputValue}) => (
+      label: (
         <MenuItemWrapper data-test-id="assignee-option" key={idx}>
           <IconContainer>
             <TeamAvatar team={team} size={24} />
           </IconContainer>
-          <Label>
-            <Highlight text={inputValue}>{`#${team.slug}`}</Highlight>
-          </Label>
+          <Label>#{team.slug}</Label>
         </MenuItemWrapper>
       ),
     }))

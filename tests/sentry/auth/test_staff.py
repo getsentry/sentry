@@ -1,10 +1,10 @@
 from contextlib import contextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest.mock import Mock, patch
 
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 
 from sentry.auth import staff
 from sentry.auth.staff import (
@@ -30,7 +30,7 @@ from sentry.utils.auth import mark_sso_complete
 
 UNSET = object()
 
-BASETIME = datetime(2022, 3, 21, 0, 0, tzinfo=timezone.utc)
+BASETIME = datetime(2022, 3, 21, 0, 0, tzinfo=UTC)
 
 EXPIRE_TIME = timedelta(hours=4, minutes=1)
 
@@ -59,7 +59,7 @@ def override_org_id(new_org_id: int):
 class StaffTestCase(TestCase):
     def setUp(self):
         super().setUp()
-        self.current_datetime = django_timezone.now()
+        self.current_datetime = timezone.now()
         self.default_token = "abcdefghijklmnog"
         self.staff_user = self.create_user(is_staff=True)
 

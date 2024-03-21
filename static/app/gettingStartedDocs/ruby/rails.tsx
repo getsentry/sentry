@@ -10,6 +10,7 @@ import {
   getCrashReportModalIntroduction,
   getCrashReportSDKInstallFirstStepRails,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
+import {getRubyMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 
@@ -140,6 +141,7 @@ const crashReportOnboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
+  customMetricsOnboarding: getRubyMetricsOnboarding(),
   replayOnboardingJsLoader,
   crashReportOnboarding,
 };

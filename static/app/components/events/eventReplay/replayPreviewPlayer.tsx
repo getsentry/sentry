@@ -3,7 +3,6 @@ import {useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Panel from 'sentry/components/panels/panel';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
@@ -37,9 +36,8 @@ function ReplayPreviewPlayer({
   replayRecord,
   handleBackClick,
   handleForwardClick,
-  overlayText,
+  overlayContent,
   showNextAndPrevious,
-  onClickNextReplay,
   playPausePriority,
 }: {
   replayId: string;
@@ -47,8 +45,7 @@ function ReplayPreviewPlayer({
   fullReplayButtonProps?: Partial<ComponentProps<typeof LinkButton>>;
   handleBackClick?: () => void;
   handleForwardClick?: () => void;
-  onClickNextReplay?: () => void;
-  overlayText?: string;
+  overlayContent?: React.ReactNode;
   playPausePriority?: ComponentProps<typeof ReplayPlayPauseButton>['priority'];
   showNextAndPrevious?: boolean;
 }) {
@@ -77,7 +74,7 @@ function ReplayPreviewPlayer({
 
   return (
     <PlayerPanel>
-      {replayRecord && (
+      <HeaderWrapper>
         <StyledReplayCell
           key="session"
           replay={replayRecord}
@@ -85,7 +82,10 @@ function ReplayPreviewPlayer({
           organization={organization}
           referrer="issue-details-replay-header"
         />
-      )}
+        <LinkButton size="sm" to={fullReplayUrl} {...fullReplayButtonProps}>
+          {t('See Full Replay')}
+        </LinkButton>
+      </HeaderWrapper>
       <PreviewPlayerContainer ref={fullscreenRef} isSidebarOpen={isSidebarOpen}>
         <PlayerBreadcrumbContainer>
           <PlayerContextContainer>
@@ -100,10 +100,7 @@ function ReplayPreviewPlayer({
               </ContextContainer>
             ) : null}
             <StaticPanel>
-              <ReplayPlayer
-                overlayText={overlayText}
-                onClickNextReplay={onClickNextReplay}
-              />
+              <ReplayPlayer overlayContent={overlayContent} />
             </StaticPanel>
           </PlayerContextContainer>
           {isFullscreen && isSidebarOpen ? <Breadcrumbs /> : null}
@@ -138,12 +135,7 @@ function ReplayPreviewPlayer({
             <Container>
               <TimeAndScrubberGrid />
             </Container>
-            <ButtonBar gap={1}>
-              <LinkButton size="sm" to={fullReplayUrl} {...fullReplayButtonProps}>
-                {t('See Full Replay')}
-              </LinkButton>
-              <ReplayFullscreenButton toggleFullscreen={toggleFullscreen} />
-            </ButtonBar>
+            <ReplayFullscreenButton toggleFullscreen={toggleFullscreen} />
           </ButtonGrid>
         </ErrorBoundary>
       </PreviewPlayerContainer>
@@ -217,6 +209,13 @@ const ContextContainer = styled('div')`
 
 const StyledReplayCell = styled(ReplayCell)`
   padding: 0 0 ${space(1)};
+`;
+
+const HeaderWrapper = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: ${space(1)};
 `;
 
 export default ReplayPreviewPlayer;

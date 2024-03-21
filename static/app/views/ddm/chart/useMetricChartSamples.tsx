@@ -178,6 +178,7 @@ export function useMetricChartSamples({
             xAxisIndex: newXAxisIndex,
             xValue,
             yValue,
+            total: yValue,
             tooltip: {
               axisPointer: {
                 type: 'none',
@@ -189,7 +190,7 @@ export function useMetricChartSamples({
                 value: yPosition,
               },
             ],
-            z: timeseries.length + 1,
+            z: baseProps.series.length + 1,
           };
         });
       }
@@ -244,7 +245,6 @@ export function useMetricChartSamples({
       valueRect,
       xAxis,
       yAxis,
-      timeseries.length,
     ]
   );
 

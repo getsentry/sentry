@@ -34,7 +34,7 @@ from .base import DEPRECATED_INGEST_API_MESSAGE, MonitorIngestEndpoint
 @extend_schema(tags=["Crons"])
 class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
     publish_status = {
-        "PUT": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
 
     @extend_schema(

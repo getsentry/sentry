@@ -195,7 +195,7 @@ export const QueryBuilder = memo(function QueryBuilder({
         <FlexBlock>
           <OpSelect
             size="md"
-            triggerProps={{prefix: t('Op')}}
+            triggerProps={{prefix: t('Agg')}}
             options={
               selectedMeta?.operations.filter(isAllowedOp).map(op => ({
                 label: op,
