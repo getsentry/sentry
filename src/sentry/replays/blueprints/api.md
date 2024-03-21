@@ -650,7 +650,7 @@ Returns a collection of replays and their viewed state. The user is targeted bas
   }
   ```
 
-## Replay Viewed By [/organizations/<organization_slug>/replays-viewed/<replay_id>/]
+## Replay Viewed By [/organizations/<organization_slug>/replays/<replay_id>/viewed-by/]
 
 ### Fetch Replay Viewed By [GET]
 
