@@ -5,7 +5,7 @@ from sentry.llm.base import LLMBase
 
 
 class OpenAIProvider(LLMBase):
-    def complete_prompt(prompt, message):
+    def complete_prompt(self, prompt: str, message):
 
         model = settings.SENTRY_LLM_OPTIONS["model"]
 
@@ -27,7 +27,11 @@ class OpenAIProvider(LLMBase):
         return response.choices[0].message.content
 
 
+openai_client: OpenAI | None = None
+
+
 def get_openai_client() -> OpenAI:
+
     global openai_client
 
     if openai_client:
