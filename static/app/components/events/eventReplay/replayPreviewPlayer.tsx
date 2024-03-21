@@ -63,11 +63,13 @@ function ReplayPreviewPlayer({
   const isFullscreen = useIsFullscreen();
   const startOffsetMs = replay?.getStartOffsetMs() ?? 0;
 
+  const referrer = getRouteStringFromRoutes(routes);
+
   const fullReplayUrl = {
     pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replayId}/`),
     query: {
       referrer: getRouteStringFromRoutes(routes),
-      t_main: TabKey.ERRORS,
+      t_main: referrer === '/feedback/' ? TabKey.BREADCRUMBS : TabKey.ERRORS,
       t: (currentTime + startOffsetMs) / 1000,
     },
   };
