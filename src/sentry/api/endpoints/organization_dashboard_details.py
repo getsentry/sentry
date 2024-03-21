@@ -21,7 +21,7 @@ READ_FEATURE = "organizations:dashboards-basic"
 
 
 class OrganizationDashboardBase(OrganizationEndpoint):
-    owner = ApiOwner.DISCOVER_N_DASHBOARDS
+    owner = ApiOwner.PERFORMANCE
     permission_classes = (OrganizationDashboardsPermission,)
 
     def convert_args(self, request: Request, organization_slug, dashboard_id, *args, **kwargs):
