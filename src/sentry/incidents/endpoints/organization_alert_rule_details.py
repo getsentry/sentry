@@ -312,11 +312,16 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
 
     def check_project_access(func):
         def wrapper(self, request: Request, organization, alert_rule):
-            # check to see if there's a project associated with the alert rule
-            project = alert_rule.projects.get()
+            project = None
+
+            try:
+                # check to see if there's a project associated with the alert rule
+                project = alert_rule.projects.get()
+            except Exception:
+                pass
 
             # if not, check to see if there's a project associated with the snuba query
-            if not project:
+            if project is None:
                 project = alert_rule.snuba_query.subscriptions.get().project
 
             if not request.access.has_project_access(project):

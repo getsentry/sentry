@@ -67,7 +67,7 @@ function ReleaseThresholdList({}: Props) {
         project =>
           selection.projects.some(id => {
             const strId = String(id);
-            return strId === project.id || strId === project.slug || id === -1;
+            return strId === project.id || id === -1;
           }) || !selection.projects.length
       ),
     [projects, selection.projects]
