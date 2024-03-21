@@ -57,7 +57,7 @@ export function useTraceMeta(
       `/organizations/${organization.slug}/events-trace-meta/${params.traceSlug ?? ''}/`,
       {
         query: options.referrer
-          ? {...queryParams, refferrer: options.referrer}
+          ? {...queryParams, referrer: options.referrer}
           : queryParams,
       },
     ],
