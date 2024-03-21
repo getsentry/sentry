@@ -278,6 +278,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "static_args": {
             "consumer_type": ConsumerType.Attachments,
         },
+        "dlq_topic": Topic.INGEST_ATTACHMENTS_DLQ,
     },
     "ingest-transactions": {
         "topic": Topic.INGEST_TRANSACTIONS,
@@ -286,6 +287,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "static_args": {
             "consumer_type": ConsumerType.Transactions,
         },
+        "dlq_topic": Topic.INGEST_TRANSACTIONS_DLQ,
     },
     "ingest-metrics": {
         "topic": Topic.INGEST_METRICS,
