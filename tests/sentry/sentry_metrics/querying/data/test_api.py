@@ -136,11 +136,12 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_empty_results(self) -> None:
         # TODO: the identities returned here to not make much sense, we need to figure out the right semantics.
+        # TODO: once kyles optimizer is published, change expected_identity series back to single entry
         for aggregate, expected_identity_series, expected_identity_totals in (
-            ("count", None, 0),
-            ("avg", None, None),
-            ("sum", None, 0.0),
-            ("min", None, 0.0),
+            ("count", [None], 0),
+            ("avg", [None], None),
+            ("sum", [None, 0.0], 0.0),
+            ("min", [None, 0.0], 0.0),
         ):
             query_1 = self.mql(aggregate, TransactionMRI.DURATION.value, "transaction:/bar")
             plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
@@ -158,11 +159,19 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             data = results["data"]
             assert len(data) == 1
             assert data[0][0]["by"] == {}
-            assert data[0][0]["series"] == [
-                None,
-                expected_identity_series,
-                expected_identity_series,
-            ]
+
+            matches_one = False
+            assert isinstance(expected_identity_series, list)  # mypy
+            for e in expected_identity_series:
+                if data[0][0]["series"] == [
+                    None,
+                    e,
+                    e,
+                ]:
+                    matches_one = True
+                    break
+            assert matches_one
+
             assert data[0][0]["totals"] == expected_identity_totals
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
