@@ -136,7 +136,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_empty_results(self) -> None:
         # TODO: the identities returned here to not make much sense, we need to figure out the right semantics.
-        # TODO: once snuba pr #5662 is merged, change expected_identity_series back to single entry
+        # TODO: once snuba pr #5676 is merged, change expected_identity_series back to single entry
         #       the ones with [None, 0.0] should become None
         for aggregate, expected_identity_series, expected_identity_totals in (
             ("count", [None], 0),
@@ -1402,7 +1402,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data[0][1]["series"] == [None, 1.0, 1.0]
         assert data[0][1]["totals"] == 2.0
 
-        # TODO: after snuba pr #5662 is merged, change to assert len(data[0]) == 2
+        # TODO: after snuba pr #5676 is merged, change to assert len(data[0]) == 2
         assert len(data[0]) in {2, 3}
         if len(data[0]) == 3:
             assert data[0][2]["by"] == {"platform": "windows", "transaction": "/world"}
