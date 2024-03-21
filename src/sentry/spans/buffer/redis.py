@@ -47,7 +47,7 @@ class RedisSpansBuffer:
             results = p.execute()
 
         new_key = results[0] == 1
-        last_processed_timestamp = results[1]
+        last_processed_timestamp: bytes | None = results[1]
 
         if new_key:
             bucket = get_unprocessed_segments_key(partition)
@@ -66,22 +66,18 @@ class RedisSpansBuffer:
         with self.client.pipeline() as p:
             for key in keys:
                 p.lrange(key, 0, -1)
-                p.expire(key, 0)
 
+            p.delete(*keys)
             response = p.execute()
 
-        for value in response[::2]:
+        for value in response[:-1]:
             values.append(value)
 
         return values
 
-    def get_unprocessed_segments_and_prune_bucket(
-        self, timestamp: int, partition: int
-    ) -> list[str]:
+    def get_unprocessed_segments_and_prune_bucket(self, now: int, partition: int) -> list[str]:
         key = get_unprocessed_segments_key(partition)
         results = self.client.lrange(key, 0, -1) or []
-
-        now = timestamp
 
         ltrim_index = 0
         segment_keys = []
