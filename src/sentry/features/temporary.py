@@ -293,8 +293,4 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("projects:plugins", ProjectPluginFeature, FeatureHandlerStrategy.INTERNAL)
 
     manager.add("projects:profiling-ingest-unsampled-profiles", ProjectFeature, FeatureHandlerStrategy.REMOTE)
-
-    # Workflow 2.0 Project features
-    manager.add("projects:auto-associate-commits-to-release", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
-
     # fmt: on
