@@ -4,7 +4,7 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict
 
 if TYPE_CHECKING:
-    from sentry_sdk.types import Event, Hint  # ignore: attr-defined
+    from sentry_sdk.types import Event, Hint  # type: ignore[attr-defined]
 
 
 class SdkConfig(TypedDict):

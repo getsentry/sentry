@@ -29,7 +29,7 @@ from sentry.utils.rust import RustInfoIntegration
 
 # Can't import models in utils because utils should be the bottom of the food chain
 if TYPE_CHECKING:
-    from sentry_sdk.types import Event, Hint
+    from sentry_sdk.types import Event, Hint  # type: ignore[attr-defined]
 
     from sentry.models.organization import Organization
     from sentry.services.hybrid_cloud.organization import RpcOrganization
