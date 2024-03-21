@@ -118,7 +118,7 @@ export function HTTPDomainSummaryPage() {
       'transaction',
       'transaction.method',
       'spm()',
-      'http_response_rate(2)',
+      'http_response_rate(3)',
       'http_response_rate(4)',
       'http_response_rate(5)',
       'avg(span.self_time)',

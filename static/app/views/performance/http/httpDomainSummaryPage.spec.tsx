@@ -193,7 +193,7 @@ describe('HTTPSummaryPage', function () {
             'transaction',
             'transaction.method',
             'spm()',
-            'http_response_rate(2)',
+            'http_response_rate(3)',
             'http_response_rate(4)',
             'http_response_rate(5)',
             'avg(span.self_time)',
@@ -231,7 +231,7 @@ describe('HTTPSummaryPage', function () {
             transaction: '/api/users',
             'transaction.method': 'GET',
             'spm()': 17.88,
-            'http_response_rate(2)': 0.97,
+            'http_response_rate(3)': 0.97,
             'http_response_rate(4)': 0.025,
             'http_response_rate(5)': 0.005,
             'avg(span.self_time)': 204.5,
@@ -242,7 +242,7 @@ describe('HTTPSummaryPage', function () {
           fields: {
             'spm()': 'rate',
             'avg(span.self_time)': 'duration',
-            'http_response_rate(2)': 'percentage',
+            'http_response_rate(3)': 'percentage',
             'http_response_rate(4)': 'percentage',
             'http_response_rate(5)': 'percentage',
             'sum(span.self_time)': 'duration',
@@ -261,7 +261,7 @@ describe('HTTPSummaryPage', function () {
     expect(
       screen.getByRole('columnheader', {name: 'Requests Per Minute'})
     ).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', {name: '2XXs'})).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: '3XXs'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: '4XXs'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: '5XXs'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Avg Duration'})).toBeInTheDocument();
