@@ -1,14 +1,13 @@
 import * as Sentry from '@sentry/react';
 import invariant from 'invariant';
-import partition from 'lodash/partition';
 
+import {defined} from 'sentry/utils';
 import isValidDate from 'sentry/utils/date/isValidDate';
 import type {
   BreadcrumbFrame,
   ErrorFrame,
   RawReplayError,
 } from 'sentry/utils/replays/types';
-import {isErrorFrame, isFeedbackFrame} from 'sentry/utils/replays/types';
 import toArray from 'sentry/utils/toArray';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
@@ -18,71 +17,63 @@ export default function hydrateErrors(
 ): {errorFrames: ErrorFrame[]; feedbackFrames: BreadcrumbFrame[]} {
   const startTimestampMs = replayRecord.started_at.getTime();
 
-  const [rawFeedback, rawErrors] = partition(errors, e => e.title === 'User Feedback');
+  const errorFrames: ErrorFrame[] = [];
+  const feedbackFrames: BreadcrumbFrame[] = [];
 
-  const errorFrames = rawErrors
-    .map(error => {
-      try {
-        const time = new Date(error.timestamp);
-        invariant(isValidDate(time), 'errorFrame.timestamp is invalid');
-
-        return {
-          category: 'issue' as const,
-          data: {
-            eventId: error.id,
-            groupId: error['issue.id'],
-            groupShortId: error.issue,
-            label:
-              (Array.isArray(error['error.type'])
-                ? error['error.type'][0]
-                : error['error.type']) ?? '',
-            labels: toArray(error['error.type']).filter(Boolean),
-            projectSlug: error['project.name'],
-          },
-          message: error.title,
-          offsetMs: Math.abs(time.getTime() - startTimestampMs),
-          timestamp: time,
-          timestampMs: time.getTime(),
-          type: 'error', // For compatibility reasons. See BreadcrumbType
-        };
-      } catch (err) {
-        Sentry.captureException(err);
-        return undefined;
-      }
-    })
-    .filter(isErrorFrame);
-
-  const feedbackFrames = rawFeedback
-    .map(feedback => {
-      try {
-        const time = new Date(feedback.timestamp);
+  errors.forEach((e: RawReplayError) => {
+    try {
+      // Feedback frame
+      if (e.title === 'User Feedback') {
+        const time = new Date(e.timestamp);
         invariant(isValidDate(time), 'feedbackFrame.timestamp is invalid');
 
-        return {
+        feedbackFrames.push({
           category: 'feedback',
           data: {
-            eventId: feedback.id,
-            groupId: feedback['issue.id'],
-            groupShortId: feedback.issue,
+            eventId: e.id,
+            groupId: e['issue.id'],
+            groupShortId: e.issue,
             label:
-              (Array.isArray(feedback['error.type'])
-                ? feedback['error.type'][0]
-                : feedback['error.type']) ?? '',
-            labels: toArray(feedback['error.type']).filter(Boolean),
-            projectSlug: feedback['project.name'],
+              (Array.isArray(e['error.type']) ? e['error.type'][0] : e['error.type']) ??
+              '',
+            labels: toArray(e['error.type']).filter(Boolean),
+            projectSlug: e['project.name'],
           },
-          message: feedback.title,
+          message: e.title,
           offsetMs: Math.abs(time.getTime() - startTimestampMs),
           timestamp: time,
           timestampMs: time.getTime(),
           type: 'user', // For compatibility reasons. See BreadcrumbType
-        };
-      } catch (err) {
-        Sentry.captureException(err);
-        return undefined;
+        });
+        return;
       }
-    })
-    .filter(isFeedbackFrame);
+      // Error frame
+      const time = new Date(e.timestamp);
+      invariant(isValidDate(time), 'errorFrame.timestamp is invalid');
+
+      errorFrames.push({
+        category: 'issue' as const,
+        data: {
+          eventId: e.id,
+          groupId: e['issue.id'],
+          groupShortId: e.issue,
+          label:
+            (Array.isArray(e['error.type']) ? e['error.type'][0] : e['error.type']) ?? '',
+          labels: toArray(e['error.type']).filter(defined),
+          projectSlug: e['project.name'],
+        },
+        message: e.title,
+        offsetMs: Math.abs(time.getTime() - startTimestampMs),
+        timestamp: time,
+        timestampMs: time.getTime(),
+        type: 'error', // For compatibility reasons. See BreadcrumbType
+      });
+      return;
+    } catch (error) {
+      Sentry.captureException(error);
+      return;
+    }
+  });
 
   return {errorFrames, feedbackFrames};
 }

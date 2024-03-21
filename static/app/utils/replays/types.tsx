@@ -192,7 +192,7 @@ export type BreadcrumbFrame = Overwrite<
   HydratedTimestamp
 >;
 
-type FeedbackFrame = {
+export type FeedbackFrame = {
   category: 'feedback';
   data: {
     eventId: string;
@@ -203,6 +203,9 @@ type FeedbackFrame = {
     projectSlug: string;
   };
   message: string;
+  offsetMs: number;
+  timestamp: Date;
+  timestampMs: number;
   type: string;
 };
 
