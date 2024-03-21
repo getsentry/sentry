@@ -16,7 +16,6 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleActivity,
     AlertRuleActivityType,
     AlertRuleExcludedProjects,
-    AlertRuleMonitorType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
 )
@@ -253,7 +252,7 @@ class AlertRuleSerializer(Serializer):
             "dateModified": obj.date_modified,
             "dateCreated": obj.date_added,
             "createdBy": attrs.get("created_by", None),
-            "monitorType": attrs.get("monitor_type", AlertRuleMonitorType.CONTINUOUS.value),
+            "monitorType": obj.monitor_type,
         }
         rule_snooze = RuleSnooze.objects.filter(
             Q(user_id=user.id) | Q(user_id=None), alert_rule=obj
