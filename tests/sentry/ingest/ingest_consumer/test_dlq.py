@@ -8,7 +8,9 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.dlq import InvalidMessage
 from arroyo.types import BrokerValue, Message, Partition, Topic
 
+from sentry.conf.types.kafka_definition import Topic as TopicNames
 from sentry.ingest.consumer.factory import IngestStrategyFactory
+from sentry.ingest.types import ConsumerType
 from sentry.testutils.pytest.fixtures import django_db_all
 
 
@@ -23,8 +25,18 @@ def make_message(payload: bytes, partition: Partition, offset: int) -> Message:
     )
 
 
+@pytest.mark.parametrize(
+    ("topic_name", "consumer_type"),
+    [
+        (TopicNames.INGEST_EVENTS.value, ConsumerType.EVENTS),
+        (TopicNames.INGEST_ATTACHMENTS.value, ConsumerType.ATTACHMENTS),
+        (TopicNames.INGEST_TRANSACTIONS.value, ConsumerType.TRANSACTIONS),
+    ],
+)
 @django_db_all
-def test_dlq_invalid_messages(factories) -> None:
+def test_dlq_invalid_messages(factories, topic_name, consumer_type) -> None:
+    # Test is for all consumers that share the IngestStrategyFactory
+    # Feedback test is located in feedback/consumers
     organization = factories.create_organization()
     project = factories.create_project(organization=organization)
 

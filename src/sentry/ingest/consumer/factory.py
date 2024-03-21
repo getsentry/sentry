@@ -70,7 +70,7 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         output_block_size: int | None,
     ):
         self.consumer_type = consumer_type
-        self.is_attachment_topic = consumer_type == ConsumerType.Attachments
+        self.is_attachment_topic = consumer_type == ConsumerType.ATTACHMENTS
         self.reprocess_only_stuck_events = reprocess_only_stuck_events
 
         self.multi_process = None

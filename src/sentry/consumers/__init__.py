@@ -258,7 +258,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
         "click_options": ingest_events_options(),
         "static_args": {
-            "consumer_type": ConsumerType.Events,
+            "consumer_type": ConsumerType.EVENTS,
         },
         "dlq_topic": Topic.INGEST_EVENTS_DLQ,
     },
@@ -267,7 +267,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
         "click_options": ingest_events_options(),
         "static_args": {
-            "consumer_type": ConsumerType.Feedback,
+            "consumer_type": ConsumerType.FEEDBACK,
         },
         "dlq_topic": Topic.INGEST_FEEDBACK_EVENTS_DLQ,
     },
@@ -276,7 +276,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
         "click_options": ingest_events_options(),
         "static_args": {
-            "consumer_type": ConsumerType.Attachments,
+            "consumer_type": ConsumerType.ATTACHMENTS,
         },
         "dlq_topic": Topic.INGEST_ATTACHMENTS_DLQ,
     },
@@ -285,7 +285,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
         "click_options": ingest_events_options(),
         "static_args": {
-            "consumer_type": ConsumerType.Transactions,
+            "consumer_type": ConsumerType.TRANSACTIONS,
         },
         "dlq_topic": Topic.INGEST_TRANSACTIONS_DLQ,
     },
