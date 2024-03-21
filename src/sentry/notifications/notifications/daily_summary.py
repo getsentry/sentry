@@ -65,5 +65,5 @@ class DailySummaryNotification(BaseNotification):
 
     def build_notification_footer(self, recipient: RpcActor, provider: ExternalProviders) -> str:
         url_str = "/settings/account/notifications/"
-        url = str(self.organization.absolute_url(url_str))
+        url = self.organization.absolute_url(url_str)
         return f"Getting this at a funky time? This sends at 4pm for whatever time zone you have set. | <{url}|*Account Settings*>"
