@@ -31,7 +31,7 @@ import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/web
 import type {RowWithScoreAndOpportunity} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webVitals/utils/useReplaceFidWithInpSetting';
 import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
-import Chart from 'sentry/views/starfish/components/chart';
+import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {
@@ -92,6 +92,7 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
             !shouldUseStoredScores,
             order
           )}
+          type={ChartType.AREA}
           disableXAxis
           loading={false}
           grid={{

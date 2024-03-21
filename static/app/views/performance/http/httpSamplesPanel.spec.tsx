@@ -139,7 +139,7 @@ describe('HTTPSamplesPanel', function () {
           fields: {
             'spm()': 'rate',
             'avg(span.self_time)': 'duration',
-            'http_response_rate(2)': 'percentage',
+            'http_response_rate(3)': 'percentage',
             'http_response_rate(4)': 'percentage',
             'http_response_rate(5)': 'percentage',
             'sum(span.self_time)': 'duration',
