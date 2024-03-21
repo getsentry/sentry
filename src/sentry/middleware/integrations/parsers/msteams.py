@@ -46,19 +46,36 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
 
     def get_response(self) -> HttpResponseBase:
         if self.view_class not in self.region_view_classes:
+            logger.info(
+                "sentry.middleware.integrations.parsers.msteams: View class not in region",
+                extra=self.request_data,
+            )
             return self.get_response_from_control_silo()
 
         if not self.can_infer_integration(data=self.request_data):
+            logger.info(
+                "sentry.middleware.integrations.parsers.msteams: Could not infer integration",
+                extra=self.request_data,
+            )
             return self.get_response_from_control_silo()
 
         regions: Sequence[Region] = []
         try:
             integration = self.get_integration_from_request()
             if not integration:
+                logger.info(
+                    "sentry.middleware.integrations.parsers.msteams: Could not get integration from request",
+                    extra=self.request_data,
+                )
                 return self.get_default_missing_integration_response()
 
             regions = self.get_regions_from_organizations()
-        except (Integration.DoesNotExist, OrganizationIntegration.DoesNotExist):
+        except (Integration.DoesNotExist, OrganizationIntegration.DoesNotExist) as err:
+            logger.info(
+                "sentry.middleware.integrations.parsers.msteams: Error in handling",
+                exc_info=err,
+                extra=self.request_data,
+            )
             return self.get_default_missing_integration_response()
 
         if len(regions) == 0:
