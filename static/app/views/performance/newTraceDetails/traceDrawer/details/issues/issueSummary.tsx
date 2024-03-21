@@ -74,7 +74,7 @@ function IssueTitle(props: IssueTitleProps) {
     <TitleWithLink
       {...commonEleProps}
       to={{
-        pathname: `/organizations/${organization.slug}/issues/${props.data.id}/events/${props.event_id}/`,
+        pathname: `/organizations/${organization.slug}/issues/${props.data.id}/events/${props.event_id}/?referrer=trace-view.drawer-issues-table`,
       }}
     >
       <IssueTitleChildren data={props.data} organization={organization} />
