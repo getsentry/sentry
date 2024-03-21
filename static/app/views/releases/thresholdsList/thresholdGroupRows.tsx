@@ -16,10 +16,12 @@ import {capitalize} from 'sentry/utils/string/capitalize';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
+  ActionType,
   AlertRuleThresholdType,
   AlertRuleTriggerType,
   Dataset,
   EventTypes,
+  TargetType,
   type UnsavedMetricRule,
 } from 'sentry/views/alerts/rules/metric/types';
 import {MEPAlertsQueryType} from 'sentry/views/alerts/wizard/options';
@@ -220,6 +222,17 @@ export function ThresholdGroupRows({
           alertThreshold: thresholdData.value,
           actions: [
             /* TODO - send the default action to recommneded team members, in default channel */
+            {
+              inputChannelId: null,
+              options: null,
+              targetIdentifier: null,
+
+              targetType: TargetType.TEAM,
+              type: ActionType.EMAIL,
+              unsavedDateCreated: new Date().toUTCString(),
+
+              unsavedId: '',
+            },
           ],
         },
       ],
