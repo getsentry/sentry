@@ -2,7 +2,7 @@ from typing import Any
 
 import pytest
 
-from sentry.integrations.msteams import MsTeamsWebhookEndpoint
+from sentry.integrations.msteams import MsTeamsEvents, MsTeamsWebhookEndpoint
 from sentry.testutils.cases import TestCase
 
 
@@ -62,3 +62,13 @@ class TestGeTeamInstallationRequestData(TestCase):
         bad_request_data["channelData"].pop("tenant", None)  # Remove "tenant" key
         with pytest.raises(KeyError):
             MsTeamsWebhookEndpoint._get_team_installation_request_data(bad_request_data)
+
+
+class TestEventHandler(TestCase):
+    def test_has_all_handlers(self) -> None:
+        instance = MsTeamsWebhookEndpoint()
+        assert len(instance._event_handlers) == 4
+        assert MsTeamsEvents.INSTALLATION_UPDATE in instance._event_handlers
+        assert MsTeamsEvents.UNKNOWN in instance._event_handlers
+        assert MsTeamsEvents.MESSAGE in instance._event_handlers
+        assert MsTeamsEvents.CONVERSATION_UPDATE in instance._event_handlers

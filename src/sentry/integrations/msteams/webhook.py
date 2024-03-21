@@ -230,6 +230,7 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
         self._event_handlers: dict[MsTeamsEvents, Callable[[HttpRequest], HttpResponse]] = {
             MsTeamsEvents.MESSAGE: self.handle_message_event,
             MsTeamsEvents.CONVERSATION_UPDATE: self.handle_conversation_update_event,
+            MsTeamsEvents.INSTALLATION_UPDATE: self.handle_installation_update_event,
             MsTeamsEvents.UNKNOWN: self.handle_unknown_event,
         }
 
@@ -281,7 +282,7 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
                 "sentry.integrations.msteams.webhooks: Action not supported",
                 extra={"request_data": data},
             )
-            return self.respond(status=204)
+            return self.respond({"details": f"{action} is currently not supported"}, status=204)
 
         try:
             installation_params = self._get_team_installation_request_data(data=data)
@@ -291,7 +292,9 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
                 exc_info=err,
                 extra={"request_data": data},
             )
-            return self.respond(status=400)
+            return self.respond(
+                {"details": "required request format or keys are missing"}, status=400
+            )
 
         # sign the params so this can't be forged
         signed_params = sign(**installation_params)
