@@ -13,30 +13,32 @@ from sentry.utils import json
 from sentry.utils.kafka_config import get_topic_definition
 
 
-def build_mock_span(**kwargs):
+def build_mock_span(project_id, span_op=None, **kwargs):
     span = {
-        "duration_ms": 0,
-        "event_id": "72fcea47d44a444fb132f8d462eeb0b4",
-        "exclusive_time_ms": 0.006,
-        "is_segment": False,
-        "parent_span_id": "93f0e87ad9cc709e",
-        "profile_id": "7ce060d7ea62432b8355bc9e612676e4",
-        "project_id": 1,
-        "received": 1706734067.029479,
+        "description": "OrganizationNPlusOne",
+        "duration_ms": 107,
+        "event_id": "61ccae71d70f45bb9b1f2ccb7f7a49ec",
+        "exclusive_time_ms": 107.359,
+        "is_segment": True,
+        "parent_span_id": "b35b839c02985f33",
+        "profile_id": "dbae2b82559649a1a34a2878134a007b",
+        "project_id": project_id,
+        "received": 1707953019.044972,
         "retention_days": 90,
-        "segment_id": "ace31e54d65652aa",
+        "segment_id": "a49b42af9fb69da0",
         "sentry_tags": {
+            "browser.name": "Google Chrome",
             "environment": "development",
-            "op": "relay_fetch_org_options",
-            "release": "backend@24.2.0.dev0+df7615f2ff7dc3c8802f806477f920bb934bd198",
-            "transaction": "/api/0/relays/projectconfigs/",
-            "transaction.method": "POST",
+            "op": span_op or "base.dispatch.sleep",
+            "release": "backend@24.2.0.dev0+699ce0cd1281cc3c7275d0a474a595375c769ae8",
+            "transaction": "/api/0/organizations/{organization_slug}/n-plus-one/",
+            "transaction.method": "GET",
             "transaction.op": "http.server",
-            "user": "ip:127.0.0.1",
+            "user": "id:1",
         },
-        "span_id": "95acbe6d30a66717",
-        "start_timestamp_ms": 1706734066840,
-        "trace_id": "8e6f22e6169545cc963255d0f29cb76b",
+        "span_id": "a49b42af9fb69da0",
+        "start_timestamp_ms": 1707953018865,
+        "trace_id": "94576097f3a64b68b85a59c7d4e3ee2a",
     }
 
     span.update(**kwargs)
@@ -57,8 +59,7 @@ def build_mock_message(data, topic=None):
         "standalone-spans.process-spans-consumer.project-allowlist": [1],
     }
 )
-@mock.patch("sentry.spans.consumers.process.factory.process_segment")
-def test_consumer_pushes_to_redis_and_schedules_task(process_segment):
+def test_consumer_pushes_to_redis():
     redis_client = get_redis_client()
 
     topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_SPANS)["real_topic_name"])
@@ -68,47 +69,7 @@ def test_consumer_pushes_to_redis_and_schedules_task(process_segment):
         partitions={},
     )
 
-    span_data = build_mock_span()
-    message = build_mock_message(span_data, topic)
-
-    strategy.submit(
-        Message(
-            BrokerValue(
-                KafkaPayload(b"key", message.value().encode("utf-8"), []),
-                partition,
-                1,
-                datetime.now(),
-            )
-        )
-    )
-
-    strategy.poll()
-    strategy.join(1)
-    strategy.terminate()
-    assert redis_client.lrange("segment:ace31e54d65652aa:1:process-segment", 0, -1) == [
-        message.value()
-    ]
-    process_segment.apply_async.assert_called_once_with(args=[1, "ace31e54d65652aa"], countdown=120)
-
-
-@override_options(
-    {
-        "standalone-spans.process-spans-consumer.enable": True,
-        "standalone-spans.process-spans-consumer.project-allowlist": [1],
-    }
-)
-@mock.patch("sentry.spans.consumers.process.factory.process_segment")
-def test_second_span_in_segment_does_not_queue_task(process_segment):
-    redis_client = get_redis_client()
-
-    topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_SPANS)["real_topic_name"])
-    partition = Partition(topic, 0)
-    strategy = ProcessSpansStrategyFactory().create_with_partitions(
-        commit=mock.Mock(),
-        partitions={},
-    )
-
-    span_data = build_mock_span()
+    span_data = build_mock_span(project_id=1)
     message = build_mock_message(span_data, topic)
 
     strategy.submit(
@@ -136,11 +97,10 @@ def test_second_span_in_segment_does_not_queue_task(process_segment):
     strategy.poll()
     strategy.join(1)
     strategy.terminate()
-    assert redis_client.lrange("segment:ace31e54d65652aa:1:process-segment", 0, -1) == [
+    assert redis_client.lrange("segment:a49b42af9fb69da0:1:process-segment", 0, -1) == [
         message.value(),
         message.value(),
     ]
-    process_segment.apply_async.assert_called_once_with(args=[1, "ace31e54d65652aa"], countdown=120)
 
 
 @override_options(
@@ -158,7 +118,7 @@ def test_option_disabled(mock_buffer):
         partitions={},
     )
 
-    span_data = build_mock_span()
+    span_data = build_mock_span(project_id=1)
     message = build_mock_message(span_data, topic)
 
     strategy.submit(
@@ -193,7 +153,7 @@ def test_option_project_rollout(mock_buffer):
         partitions={},
     )
 
-    span_data = build_mock_span()
+    span_data = build_mock_span(project_id=1)
     message = build_mock_message(span_data, topic)
 
     strategy.submit(
