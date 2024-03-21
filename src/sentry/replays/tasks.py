@@ -12,6 +12,7 @@ from sentry.replays.usecases.reader import fetch_segments_metadata
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics
+from sentry.utils.pubsub import KafkaPublisher
 
 
 @instrumented_task(
@@ -24,9 +25,21 @@ from sentry.utils import json, metrics
 def delete_recording_segments(project_id: int, replay_id: str, **kwargs: Any) -> None:
     """Asynchronously delete a replay."""
     metrics.incr("replays.delete_recording_segments", amount=1, tags={"status": "started"})
-    archive_replay(project_id, replay_id)
+    publisher = initialize_replays_publisher(is_async=False)
+    archive_replay(publisher, project_id, replay_id)
     delete_replay_recording(project_id, replay_id)
     metrics.incr("replays.delete_recording_segments", amount=1, tags={"status": "finished"})
+
+
+@instrumented_task(
+    name="sentry.replays.tasks.delete_replay_recording_async",
+    queue="replays.delete_replay",
+    default_retry_delay=5,
+    max_retries=5,
+    silo_mode=SiloMode.REGION,
+)
+def delete_replay_recording_async(project_id: int, replay_id: str) -> None:
+    delete_replay_recording(project_id, replay_id)
 
 
 def delete_replay_recording(project_id: int, replay_id: str) -> None:
@@ -62,7 +75,7 @@ def delete_replay_recording(project_id: int, replay_id: str) -> None:
         segment_model.delete()
 
 
-def archive_replay(project_id: int, replay_id: str) -> None:
+def archive_replay(publisher: KafkaPublisher, project_id: int, replay_id: str) -> None:
     """Archive a Replay instance. The Replay is not deleted."""
     replay_payload: dict[str, Any] = {
         "type": "replay_event",
@@ -77,7 +90,6 @@ def archive_replay(project_id: int, replay_id: str) -> None:
         "platform": "",
     }
 
-    publisher = initialize_replays_publisher()
     publisher.publish(
         "ingest-replay-events",
         json.dumps(

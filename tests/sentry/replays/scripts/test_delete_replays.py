@@ -18,6 +18,7 @@ from sentry.replays.testutils import (
     mock_segment_nagivation,
 )
 from sentry.testutils.cases import ReplaysSnubaTestCase
+from sentry.testutils.helpers import TaskRunner
 from sentry.utils.json import dumps_htmlsafe
 
 
@@ -101,15 +102,16 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
             datetime.datetime.now() + datetime.timedelta(seconds=10),
         )
 
-        delete_replays(
-            project_id=self.project.id,
-            batch_size=self.small_batch_size,
-            environment=[],
-            tags=[],
-            start_utc=self.default_start_time,
-            end_utc=self.default_end_time,
-            dry_run=False,
-        )
+        with TaskRunner():
+            delete_replays(
+                project_id=self.project.id,
+                batch_size=self.small_batch_size,
+                environment=[],
+                tags=[],
+                start_utc=self.default_start_time,
+                end_utc=self.default_end_time,
+                dry_run=False,
+            )
 
         self.assert_recording_deleted(to_delete)
         self.assert_recording_not_deleted(replay_id_kept_other_project)
@@ -122,15 +124,18 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
             self.project.id,
             datetime.datetime.now() - datetime.timedelta(seconds=10),
         )
-        delete_replays(
-            project_id=self.project.id,
-            batch_size=self.small_batch_size,
-            environment=[],
-            tags=[],
-            start_utc=self.default_start_time,
-            end_utc=self.default_end_time,
-            dry_run=True,
-        )
+
+        with TaskRunner():
+            delete_replays(
+                project_id=self.project.id,
+                batch_size=self.small_batch_size,
+                environment=[],
+                tags=[],
+                start_utc=self.default_start_time,
+                end_utc=self.default_end_time,
+                dry_run=True,
+            )
+
         self.assert_recording_not_deleted(not_deleted)
 
     def test_deletion_replays_env_filter(self):
@@ -141,26 +146,31 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
             timestamp=datetime.datetime.now() - datetime.timedelta(seconds=10),
             environment="myenv",
         )
-        delete_replays(
-            project_id=self.project.id,
-            batch_size=self.small_batch_size,
-            environment=["not_env"],
-            tags=[],
-            start_utc=self.default_start_time,
-            end_utc=self.default_end_time,
-            dry_run=False,
-        )
+
+        with TaskRunner():
+            delete_replays(
+                project_id=self.project.id,
+                batch_size=self.small_batch_size,
+                environment=["not_env"],
+                tags=[],
+                start_utc=self.default_start_time,
+                end_utc=self.default_end_time,
+                dry_run=False,
+            )
+
         self.assert_recording_not_deleted(replay_with_env)
 
-        delete_replays(
-            project_id=self.project.id,
-            batch_size=self.small_batch_size,
-            environment=["myenv"],
-            tags=[],
-            start_utc=self.default_start_time,
-            end_utc=self.default_end_time,
-            dry_run=False,
-        )
+        with TaskRunner():
+            delete_replays(
+                project_id=self.project.id,
+                batch_size=self.small_batch_size,
+                environment=["myenv"],
+                tags=[],
+                start_utc=self.default_start_time,
+                end_utc=self.default_end_time,
+                dry_run=False,
+            )
+
         self.assert_recording_deleted(replay_with_env)
 
     def test_deletion_replays_tags(self):
@@ -178,27 +188,31 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
             timestamp=datetime.datetime.now() - datetime.timedelta(seconds=10),
             tags={"tenant": "christopher_nolan"},
         )
-        delete_replays(
-            project_id=self.project.id,
-            batch_size=self.small_batch_size,
-            tags=["test_tag:notthetag"],
-            environment=[],
-            start_utc=self.default_start_time,
-            end_utc=self.default_end_time,
-            dry_run=False,
-        )
+
+        with TaskRunner():
+            delete_replays(
+                project_id=self.project.id,
+                batch_size=self.small_batch_size,
+                tags=["test_tag:notthetag"],
+                environment=[],
+                start_utc=self.default_start_time,
+                end_utc=self.default_end_time,
+                dry_run=False,
+            )
+
         self.assert_recording_not_deleted(replay_id_tags)
         self.assert_recording_not_deleted(replay_id_no_tags)
 
-        delete_replays(
-            project_id=self.project.id,
-            batch_size=self.small_batch_size,
-            tags=["tenant:christopher_nolan"],
-            environment=[],
-            start_utc=self.default_start_time,
-            end_utc=self.default_end_time,
-            dry_run=False,
-        )
+        with TaskRunner():
+            delete_replays(
+                project_id=self.project.id,
+                batch_size=self.small_batch_size,
+                tags=["tenant:christopher_nolan"],
+                environment=[],
+                start_utc=self.default_start_time,
+                end_utc=self.default_end_time,
+                dry_run=False,
+            )
 
         self.assert_recording_deleted(replay_id_tags)
         self.assert_recording_not_deleted(replay_id_no_tags)
@@ -228,15 +242,16 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
             tags={"batman": "robin", "memento": "time"},
         )
 
-        delete_replays(
-            project_id=self.project.id,
-            batch_size=self.small_batch_size,
-            tags=["tenant:christopher_nolan", "batman:robin"],
-            environment=[],
-            start_utc=self.default_start_time,
-            end_utc=self.default_end_time,
-            dry_run=False,
-        )
+        with TaskRunner():
+            delete_replays(
+                project_id=self.project.id,
+                batch_size=self.small_batch_size,
+                tags=["tenant:christopher_nolan", "batman:robin"],
+                environment=[],
+                start_utc=self.default_start_time,
+                end_utc=self.default_end_time,
+                dry_run=False,
+            )
 
         self.assert_recording_deleted(replay_id_tags)
         self.assert_recording_not_deleted(replay_id_only_one_tag)
@@ -251,15 +266,17 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
                 project_id=self.project.id,
                 timestamp=datetime.datetime.now() - datetime.timedelta(seconds=10),
             )
-        delete_replays(
-            project_id=self.project.id,
-            batch_size=self.small_batch_size,
-            tags=[],
-            start_utc=self.default_start_time,
-            end_utc=self.default_end_time,
-            dry_run=False,
-            environment=[],
-        )
+
+        with TaskRunner():
+            delete_replays(
+                project_id=self.project.id,
+                batch_size=self.small_batch_size,
+                tags=[],
+                start_utc=self.default_start_time,
+                end_utc=self.default_end_time,
+                dry_run=False,
+                environment=[],
+            )
 
         replay_recordings = ReplayRecordingSegment.objects.all()
         assert len(replay_recordings) == 0
@@ -303,7 +320,8 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
         )
         storage.set(metadata2, b"hello, world!")
 
-        delete_replay_ids(project_id=self.project.id, replay_ids=[deleted_replay_id])
+        with TaskRunner():
+            delete_replay_ids(project_id=self.project.id, replay_ids=[deleted_replay_id])
 
         # Assert stored data was deleted.
         assert storage.get(metadata1) is None

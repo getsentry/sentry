@@ -12,3 +12,7 @@ class KafkaPublisher:
             self.producer.poll(0)
         else:
             self.producer.flush()
+
+    def flush(self) -> None:
+        """Manually flush the Kafka client buffer."""
+        self.producer.flush()
