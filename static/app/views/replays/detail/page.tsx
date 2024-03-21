@@ -173,6 +173,7 @@ const Title = styled('h1')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   color: ${p => p.theme.headingColor};
   margin: 0;
+  line-height: 1.4;
 `;
 
 const TimeContainer = styled('div')`
@@ -180,11 +181,11 @@ const TimeContainer = styled('div')`
   gap: ${space(1)};
   align-items: center;
   color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSizeMedium};
+  line-height: 1.4;
 `;
 
 const DisplayHeader = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(0.5)};
 `;
