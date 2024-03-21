@@ -23,8 +23,7 @@ def build_mock_message(data, topic=None):
 
 
 @mock.patch("sentry.spans.consumers.detect_performance_issues.factory.process_segment")
-def test_consumer_processes_segment(mock_process_segment):
-
+def test_segment_deserialized_correctly(mock_process_segment):
     topic = ArroyoTopic(get_topic_definition(Topic.BUFFERED_SEGMENTS)["real_topic_name"])
     partition = Partition(topic, 0)
     strategy = DetectPerformanceIssuesStrategyFactory().create_with_partitions(
@@ -32,7 +31,7 @@ def test_consumer_processes_segment(mock_process_segment):
         partitions={},
     )
 
-    span_data = build_mock_span(project_id=1)
+    span_data = build_mock_span(project_id=1, is_segment=True)
     segment_data = {"spans": [span_data]}
     message = build_mock_message(segment_data, topic)
 
