@@ -176,7 +176,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
             project = Project.objects.get_from_cache(id=project_id)
             if not project.flags.has_custom_metrics:
-                organization = Organization.objects.get_from_cache(organization_id=org_id)
+                organization = Organization.objects.get_from_cache(id=org_id)
                 with sentry_sdk.push_scope() as scope:
                     scope.set_tag("organization_id", org_id)
                     scope.set_tag("organization_slug", organization.slug)
