@@ -9,13 +9,12 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, Project} from 'sentry/types';
 import type {DebugFile} from 'sentry/types/debugFiles';
 import {DebugFileFeature} from 'sentry/types/debugFiles';
-import type {Image, ImageStatus} from 'sentry/types/debugImage';
+import type {Image, ImageCandidate, ImageStatus} from 'sentry/types/debugImage';
 import {CandidateDownloadStatus} from 'sentry/types/debugImage';
 import type {Event} from 'sentry/types/event';
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
@@ -32,7 +31,7 @@ import GeneralInfo from './generalInfo';
 import ReprocessAlert from './reprocessAlert';
 import {INTERNAL_SOURCE, INTERNAL_SOURCE_LOCATION} from './utils';
 
-type ImageCandidates = Image['candidates'];
+type ImageCandidates = ImageCandidate[];
 
 type DebugImageDetailsProps = ModalRenderProps & {
   event: Event;
@@ -212,7 +211,7 @@ export function DebugImageDetails({
   const organization = useOrganization();
   const api = useApi();
   const hasUploadedDebugFiles =
-    image?.candidates.some(candidate => candidate.source === INTERNAL_SOURCE) ?? false;
+    image?.candidates?.some(candidate => candidate.source === INTERNAL_SOURCE) ?? false;
 
   const {
     data: debugFiles,
@@ -260,13 +259,11 @@ export function DebugImageDetails({
     displayReprocessEventAction(organization.features, event) &&
     !!onReprocessEvent;
 
-  if (isLoading) {
-    return <LoadingIndicator />;
-  }
-
   if (isError) {
     return <LoadingError />;
   }
+
+  const shouldShowLoadingIndicator = isLoading && hasUploadedDebugFiles;
 
   const handleDelete = async (debugId: string) => {
     try {
@@ -311,7 +308,7 @@ export function DebugImageDetails({
             organization={organization}
             projSlug={projSlug}
             baseUrl={baseUrl}
-            isLoading={isLoading}
+            isLoading={shouldShowLoadingIndicator}
             eventDateReceived={event.dateReceived}
             onDelete={handleDelete}
             hasReprocessWarning={hasReprocessWarning}
