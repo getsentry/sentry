@@ -507,7 +507,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data[0][1]["totals"] == self.to_reference_unit(12.0)
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
-    @pytest.mark.skip("Bug on Snuba that returns the wrong results, removed when fixed")
+    @pytest.mark.xfail(reason="Bug on Snuba that returns the wrong results, removed when fixed")
     def test_query_with_group_by_on_null_tag(self) -> None:
         for value, transaction, time in (
             (1, "/hello", self.now()),
@@ -553,7 +553,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert first_query[1]["totals"] == self.to_reference_unit(1.0)
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
-    @pytest.mark.skip("Bug on Snuba that returns the wrong results, removed when fixed")
+    @pytest.mark.xfail(reason="Bug on Snuba that returns the wrong results, removed when fixed")
     def test_query_with_parenthesized_filter(self) -> None:
         query_1 = self.mql("sum", TransactionMRI.DURATION.value, "(transaction:/hello)", "platform")
         plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
@@ -588,7 +588,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert first_query[1]["totals"] == self.to_reference_unit(9.0)
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
-    @pytest.mark.skip("Bug on Snuba that returns the wrong results, removed when fixed")
+    @pytest.mark.xfail(reason="Bug on Snuba that returns the wrong results, removed when fixed")
     def test_query_with_and_filter(self) -> None:
         query_1 = self.mql(
             "sum", TransactionMRI.DURATION.value, "platform:ios AND transaction:/hello", "platform"
@@ -618,7 +618,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert first_query[0]["totals"] == self.to_reference_unit(9.0)
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
-    @pytest.mark.skip("Bug on Snuba that returns the wrong results, removed when fixed")
+    @pytest.mark.xfail(reason="Bug on Snuba that returns the wrong results, removed when fixed")
     def test_query_with_or_filter(self) -> None:
         query_1 = self.mql(
             "sum", TransactionMRI.DURATION.value, "platform:ios OR platform:android", "platform"
@@ -655,7 +655,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert first_query[1]["totals"] == self.to_reference_unit(9.0)
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
-    @pytest.mark.skip("Bug on Snuba that returns the wrong results, removed when fixed")
+    @pytest.mark.xfail(reason="Bug on Snuba that returns the wrong results, removed when fixed")
     def test_query_one_negated_filter(self) -> None:
         query_1 = self.mql(
             "sum", TransactionMRI.DURATION.value, "!platform:ios transaction:/hello", "platform"
@@ -685,7 +685,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert first_query[0]["totals"] == self.to_reference_unit(3.0)
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
-    @pytest.mark.skip("Bug on Snuba that returns the wrong results, removed when fixed")
+    @pytest.mark.xfail(reason="Bug on Snuba that returns the wrong results, removed when fixed")
     def test_query_one_in_filter(self) -> None:
         query_1 = self.mql(
             "sum", TransactionMRI.DURATION.value, "platform:[android, ios]", "platform"
@@ -722,7 +722,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert first_query[1]["totals"] == self.to_reference_unit(9.0)
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
-    @pytest.mark.skip("Bug on Snuba that returns the wrong results, removed when fixed")
+    @pytest.mark.xfail(reason="Bug on Snuba that returns the wrong results, removed when fixed")
     def test_query_one_not_in_filter(self) -> None:
         query_1 = self.mql(
             "sum", TransactionMRI.DURATION.value, '!platform:["android", "ios"]', "platform"
@@ -929,7 +929,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert second_meta[0]["order"] == "DESC"
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
-    @pytest.mark.skip("Bug on Snuba that returns the wrong results, removed when fixed")
+    @pytest.mark.xfail(reason="Bug on Snuba that returns the wrong results, removed when fixed")
     @patch("sentry.sentry_metrics.querying.data_v2.execution.SNUBA_QUERY_LIMIT", 3)
     def test_query_with_multiple_aggregations_and_single_group_by_and_dynamic_limit(
         self,
