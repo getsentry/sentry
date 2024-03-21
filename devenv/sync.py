@@ -94,16 +94,18 @@ def main(context: dict[str, str]) -> int:
                 "v0.6.2",
                 "https://github.com/abiosoft/colima/releases/download/v0.6.2/colima-Darwin-x86_64",
                 "43ef3fc80a8347d51b8ec1706f9caf8863bd8727a6f7532caf1ccd20497d8485",
+                reporoot,
             )
         else:
             colima.install(
                 repo_config["colima"]["version"],
                 repo_config["colima"][constants.SYSTEM_MACHINE],
                 repo_config["colima"][f"{constants.SYSTEM_MACHINE}_sha256"],
+                reporoot,
             )
 
         # TODO: move limactl version into per-repo config
-        limactl.install()
+        limactl.install(reporoot)
 
     if not run_procs(
         repo,
