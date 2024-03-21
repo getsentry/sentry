@@ -1,0 +1,16 @@
+name: rpc-compat
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  check-rpc-for-breaking-changes:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Dump RPC schema for new version
+        run: |
+          sentry rpcschema --partial >> ${GITHUB_OUTPUT}
+      # TODO
