@@ -441,7 +441,7 @@ export class VirtualizedViewManager {
         const scrollableElement = ref.children[0] as HTMLElement | undefined;
         if (scrollableElement) {
           scrollableElement.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
-          this.row_measurer.measure(node, scrollableElement as HTMLElement);
+          this.row_measurer.enqueueMeasure(node, scrollableElement as HTMLElement);
           ref.addEventListener('wheel', this.onSyncedScrollbarScroll, {passive: false});
         }
       }
@@ -478,7 +478,7 @@ export class VirtualizedViewManager {
     if (ref) {
       const label = ref.children[0] as HTMLElement | undefined;
       if (label) {
-        this.indicator_label_measurer.measure(indicator, label);
+        this.indicator_label_measurer.enqueueMeasure(indicator, label);
       }
 
       ref.addEventListener('wheel', this.onWheelZoom, {passive: false});
@@ -692,7 +692,7 @@ export class VirtualizedViewManager {
     const width = view.width ?? this.trace_view.width;
 
     this.trace_view.x = clamp(x, 0, this.trace_space.width - width);
-    this.trace_view.width = clamp(width, 0, this.trace_space.width - this.trace_view.x);
+    this.trace_view.width = clamp(width, 1, this.trace_space.width - this.trace_view.x);
 
     this.recomputeTimelineIntervals();
     this.recomputeSpanToPxMatrix();
@@ -834,11 +834,12 @@ export class VirtualizedViewManager {
   scrollRowIntoViewHorizontally(
     node: TraceTreeNode<any>,
     duration: number = 600,
-    offset_px: number = 0
+    offset_px: number = 0,
+    position: 'exact' | 'measured' = 'measured'
   ) {
-    const newTransform = this.clampRowTransform(
-      -node.depth * this.row_depth_padding + offset_px
-    );
+    const depth_px = -node.depth * this.row_depth_padding + offset_px;
+    const newTransform =
+      position === 'exact' ? depth_px : this.clampRowTransform(depth_px);
 
     this.animateScrollColumnTo(newTransform, duration);
   }
@@ -998,11 +999,29 @@ export class VirtualizedViewManager {
       node: TraceTreeNode<TraceTree.NodeValue>;
     } | null | null> => {
       const path = segments.pop();
-      const current = findInTreeFromSegment(parent, path!);
+      let current = findInTreeFromSegment(parent, path!);
 
       if (!current) {
-        Sentry.captureMessage('Failed to scroll to node in trace tree');
-        return null;
+        // Some parts of the codebase link to span:span_id, txn:event_id, where span_id is
+        // actally stored on the txn:event_id node. Since we cant tell from the link itself
+        // that this is happening, we will perform a final check to see if we've actually already
+        // arrived to the node in the previous search call.
+        if (path) {
+          const [type, id] = path.split(':');
+
+          if (
+            type === 'span' &&
+            isTransactionNode(parent) &&
+            parent.value.span_id === id
+          ) {
+            current = parent;
+          }
+        }
+
+        if (!current) {
+          Sentry.captureMessage('Failed to scroll to node in trace tree');
+          return null;
+        }
       }
 
       // Reassing the parent to the current node so that
@@ -1174,9 +1193,6 @@ export class VirtualizedViewManager {
     const spanWidth = span_list_width * 100 + '%';
 
     for (let i = 0; i < this.columns.list.column_refs.length; i++) {
-      while (this.span_bars[i] === undefined && i < this.columns.list.column_refs.length)
-        i++;
-
       const list = this.columns.list.column_refs[i];
       if (list) list.style.width = listWidth;
       const span = this.columns.span_list.column_refs[i];
@@ -1709,7 +1725,7 @@ export const useVirtualizedList = (
         }
       }, 50);
     };
-    props.container.addEventListener('scroll', onScroll, {passive: false});
+    props.container.addEventListener('scroll', onScroll, {passive: true});
 
     return () => {
       props.container?.removeEventListener('scroll', onScroll);

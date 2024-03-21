@@ -1,4 +1,5 @@
 import type {ObjectStatus, Project} from 'sentry/types';
+import type {ColorOrAlias} from 'sentry/utils/theme';
 
 export enum MonitorType {
   UNKNOWN = 'unknown',
@@ -69,7 +70,19 @@ export interface IntervalConfig extends BaseConfig {
 
 export type MonitorConfig = CrontabConfig | IntervalConfig;
 
+export interface MonitorEnvBrokenDetection {
+  envMutedTimestamp: string;
+  userNotifiedTimestamp: string;
+}
+
+export interface MonitorIncident {
+  brokenNotice: MonitorEnvBrokenDetection | null;
+  resolvingTimestamp: string;
+  startingTimestamp: string;
+}
+
 export interface MonitorEnvironment {
+  activeIncident: MonitorIncident | null;
   dateCreated: string;
   isMuted: boolean;
   lastCheckIn: string | null;
@@ -117,4 +130,13 @@ export interface CheckIn {
   id: string;
   status: CheckInStatus;
   groups?: {id: number; shortId: string}[];
+}
+
+/**
+ * Object used to store config for the display next to an environment in the timeline view
+ */
+export interface StatusNotice {
+  color: ColorOrAlias;
+  icon: React.ReactNode;
+  label?: React.ReactNode;
 }
