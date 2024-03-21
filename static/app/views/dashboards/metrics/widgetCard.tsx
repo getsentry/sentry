@@ -1,6 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
+import {ErrorBoundary} from '@sentry/react';
 import type {Location} from 'history';
 
 import ErrorPanel from 'sentry/components/charts/errorPanel';
@@ -161,14 +162,16 @@ export function MetricWidgetCard({
             )}
           </ContextMenuWrapper>
         </WidgetHeaderWrapper>
-        <WidgetCardBody
-          isError={isError}
-          noData={timeseriesData?.data.length === 0}
-          renderErrorMessage={renderErrorMessage}
-          error={error}
-        >
-          {vizualizationComponent}
-        </WidgetCardBody>
+        <ErrorBoundary>
+          <WidgetCardBody
+            isError={isError}
+            noData={timeseriesData?.data.length === 0}
+            renderErrorMessage={renderErrorMessage}
+            error={error}
+          >
+            {vizualizationComponent}
+          </WidgetCardBody>
+        </ErrorBoundary>
         {isEditingDashboard && <Toolbar onDelete={onDelete} onDuplicate={onDuplicate} />}
       </WidgetCardPanel>
     </DashboardsMEPContext.Provider>
