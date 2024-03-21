@@ -84,7 +84,11 @@ const unarySuggestions: Array<SourceSuggestion> = [
 ];
 
 const valueSuggestions: Array<SourceSuggestion> = [
-  {type: SourceSuggestionType.VALUE, value: '**', description: t('everywhere')},
+  {
+    type: SourceSuggestionType.VALUE,
+    value: '**',
+    description: t('all default PII fields'),
+  },
   {
     type: SourceSuggestionType.VALUE,
     value: 'password',
@@ -119,6 +123,11 @@ const valueSuggestions: Array<SourceSuggestion> = [
     type: SourceSuggestionType.VALUE,
     value: '$user.ip_address',
     description: t('the user IP address'),
+  },
+  {
+    type: SourceSuggestionType.VALUE,
+    value: '$span.description',
+    description: t('human readable description of a span'),
   },
   {
     type: SourceSuggestionType.VALUE,
