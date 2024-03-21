@@ -40,6 +40,8 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
         integration = self.get_integration_from_card_action(data=self.request_data)
         if integration is None:
             integration = self.get_integration_from_channel_data(data=self.request_data)
+        if integration is None:
+            integration = self.get_integration_for_tenant(data=self.request_data)
         if integration:
             return Integration.objects.filter(id=integration.id).first()
         return None
