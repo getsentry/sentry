@@ -1,6 +1,7 @@
 import {useState} from 'react';
 import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
+import * as qs from 'query-string';
 
 import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -44,24 +45,18 @@ function Header({router, hasV2ReleaseUIEnabled = false, organization}: Props) {
           key: ReleaseTab.RELEASES,
           label: t('Monitor'),
           description: '',
-          to: normalizeUrl({
-            query: {
-              ...queryParams,
-            },
-            pathname: `/organizations/${organization.slug}/releases/`,
-          }),
+          to: normalizeUrl(
+            `/organizations/${organization.slug}/releases/?${qs.stringify(queryParams)}`
+          ),
         },
         {
           key: ReleaseTab.RELEASE_THRESHOLDS,
           label: t('Thresholds'),
           description:
             'thresholds represent action alerts that will trigger once a threshold has been breached',
-          to: normalizeUrl({
-            query: {
-              ...queryParams,
-            },
-            pathname: `/organizations/${organization.slug}/release-thresholds/`,
-          }),
+          to: normalizeUrl(
+            `/organizations/${organization.slug}/release-thresholds/?${qs.stringify(queryParams)}`
+          ),
           badge: <FeatureBadge type="alpha" />,
         },
       ]
