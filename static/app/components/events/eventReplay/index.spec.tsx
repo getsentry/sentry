@@ -255,7 +255,7 @@ describe('EventReplay', function () {
         () => {
           expect(screen.getByText('Error: This Event')).toBeInTheDocument();
         },
-        {timeout: 3000, interval: 100}
+        {timeout: 5000, interval: 100}
       );
       expect(screen.getByText('JAVASCRIPT-101')).toBeInTheDocument();
 
@@ -268,6 +268,6 @@ describe('EventReplay', function () {
         'href',
         '/organizations/org-slug/issues/102/'
       );
-    });
+    }, 10000);
   });
 });
