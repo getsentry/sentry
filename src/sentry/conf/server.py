@@ -2336,9 +2336,9 @@ SENTRY_METRICS_INDEXER_ENABLE_SLICED_PRODUCER = False
 SENTRY_CHART_RENDERER = "sentry.charts.chartcuterie.Chartcuterie"
 SENTRY_CHART_RENDERER_OPTIONS: dict[str, Any] = {}
 
-# User Feedback Spam Detection
-SENTRY_USER_FEEDBACK_SPAM = "sentry.feedback.spam.stub.StubFeedbackSpamDetection"
-SENTRY_USER_FEEDBACK_SPAM_OPTIONS: dict[str, str] = {}
+# LLM Base
+SENTRY_LLM = "sentry.llm.stub.StubLLM"
+SENTRY_LLM_OPTIONS: dict[str, str] = {}
 
 
 # URI Prefixes for generating DSN URLs
