@@ -57,6 +57,6 @@ class TestGeTeamInstallationRequestData(TestCase):
 
     def test_raises_error_with_missing_data(self) -> None:
         bad_request_data = self._example_request_data.copy()
-        del bad_request_data["channelData"]["tenant"]
+        bad_request_data["channelData"].pop("tenant", None)  # Remove "tenant" key
         with pytest.raises(KeyError):
             MsTeamsWebhookEndpoint._get_team_installation_request_data(bad_request_data)
