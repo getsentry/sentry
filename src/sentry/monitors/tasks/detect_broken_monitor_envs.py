@@ -44,15 +44,13 @@ def detect_broken_monitor_envs():
         # TODO(davidenwang): When we want to email users, remove this filter
         monitorenvbrokendetection__isnull=True,
     )
-    for open_incident in RangeQuerySetWrapper(
-        open_incidents_qs,
-        order_by="starting_timestamp",
-        step=1000,
-    ):
+    org_ids_with_open_incidents = (
+        open_incidents_qs.all().values_list("monitor__organization_id", flat=True).distinct()
+    )
+
+    for org_id in org_ids_with_open_incidents:
         try:
-            organization = Organization.objects.get_from_cache(
-                id=open_incident.monitor.organization_id
-            )
+            organization = Organization.objects.get_from_cache(id=org_id)
             if not features.has(
                 "organizations:crons-broken-monitor-detection", organization=organization
             ):
@@ -60,21 +58,35 @@ def detect_broken_monitor_envs():
         except Organization.DoesNotExist:
             continue
 
-        # verify that the most recent check-ins have been failing
-        recent_checkins = (
-            MonitorCheckIn.objects.filter(monitor_environment=open_incident.monitor_environment)
-            .order_by("-date_added")
-            .values("status")[:NUM_CONSECUTIVE_BROKEN_CHECKINS]
+        orgs_open_incidents = (
+            open_incidents_qs.all()
+            .select_related("monitor_environment")
+            .filter(monitor__organization_id=org_id)
         )
-        if len(recent_checkins) != NUM_CONSECUTIVE_BROKEN_CHECKINS or not all(
-            checkin["status"] in [CheckInStatus.ERROR, CheckInStatus.TIMEOUT, CheckInStatus.MISSED]
-            for checkin in recent_checkins
+        # Query for all the broken incidents within the current org we are processing
+        for open_incident in RangeQuerySetWrapper(
+            orgs_open_incidents,
+            order_by="starting_timestamp",
+            step=1000,
         ):
-            continue
+            # Verify that the most recent check-ins have been failing
+            recent_checkins = (
+                MonitorCheckIn.objects.filter(monitor_environment=open_incident.monitor_environment)
+                .order_by("-date_added")
+                .values("status")[:NUM_CONSECUTIVE_BROKEN_CHECKINS]
+            )
+            if len(recent_checkins) != NUM_CONSECUTIVE_BROKEN_CHECKINS or not all(
+                checkin["status"]
+                in [CheckInStatus.ERROR, CheckInStatus.TIMEOUT, CheckInStatus.MISSED]
+                for checkin in recent_checkins
+            ):
+                continue
 
-        detection, _ = MonitorEnvBrokenDetection.objects.get_or_create(
-            monitor_incident=open_incident, defaults={"detection_timestamp": current_time}
-        )
-        if not detection.user_notified_timestamp:
-            # TODO(davidenwang): This is where we would implement email sending logic
-            pass
+            detection, _ = MonitorEnvBrokenDetection.objects.get_or_create(
+                monitor_incident=open_incident, defaults={"detection_timestamp": current_time}
+            )
+            if not detection.user_notified_timestamp:
+                # Record that we need to notify users about this broken detection via email
+                pass
+
+        # TODO(davidenwang): Send the emails here

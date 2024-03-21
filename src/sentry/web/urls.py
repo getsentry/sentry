@@ -1002,6 +1002,11 @@ urlpatterns += [
                     name="sentry-organization-replay-rage-clicks",
                 ),
                 re_path(
+                    r"^(?P<organization_slug>[\w_-]+)/crons/$",
+                    react_page_view,
+                    name="sentry-organization-crons",
+                ),
+                re_path(
                     r"^(?P<organization_slug>[\w_-]+)/crons/(?P<project_slug>[\w_-]+)/(?P<monitor_slug>[\w_-]+)/$",
                     react_page_view,
                     name="sentry-organization-cron-monitor-details",
