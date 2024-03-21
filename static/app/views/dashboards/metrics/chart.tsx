@@ -6,7 +6,7 @@ import {space} from 'sentry/styles/space';
 import type {MetricsQueryApiResponse} from 'sentry/types';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {MetricDisplayType} from 'sentry/utils/metrics/types';
-import type {DashboardMetricsExpression} from 'sentry/views/dashboards/metrics/types';
+import type {MetricsQueryApiQueryParams} from 'sentry/utils/metrics/useMetricsQuery';
 import {LoadingScreen} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import {MetricChart} from 'sentry/views/ddm/chart/chart';
 import {createChartPalette} from 'sentry/views/ddm/utils/metricsChartPalette';
@@ -16,8 +16,8 @@ import {DASHBOARD_CHART_GROUP} from '../dashboard';
 
 type MetricChartContainerProps = {
   displayType: MetricDisplayType;
-  expressions: DashboardMetricsExpression[];
   isLoading: boolean;
+  metricQueries: MetricsQueryApiQueryParams[];
   chartHeight?: number;
   timeseriesData?: MetricsQueryApiResponse;
 };
@@ -25,7 +25,7 @@ type MetricChartContainerProps = {
 export function MetricChartContainer({
   timeseriesData,
   isLoading,
-  expressions,
+  metricQueries,
   chartHeight,
   displayType,
 }: MetricChartContainerProps) {
@@ -33,11 +33,11 @@ export function MetricChartContainer({
 
   const chartSeries = useMemo(() => {
     return timeseriesData
-      ? getChartTimeseries(timeseriesData, expressions, {
+      ? getChartTimeseries(timeseriesData, metricQueries, {
           getChartPalette: createChartPalette,
         })
       : [];
-  }, [timeseriesData, expressions]);
+  }, [timeseriesData, metricQueries]);
 
   return (
     <MetricWidgetChartWrapper>

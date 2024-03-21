@@ -10,30 +10,30 @@ import type {MetricsQueryApiResponse} from 'sentry/types';
 import {unescapeMetricsFormula} from 'sentry/utils/metrics';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import {formatMRIField, MRIToField} from 'sentry/utils/metrics/mri';
-import type {
-  DashboardMetricsExpression,
-  DashboardMetricsQuery,
-  Order,
-} from 'sentry/views/dashboards/metrics/types';
-import {isMetricEquation} from 'sentry/views/dashboards/metrics/utils';
+import {
+  isMetricFormula,
+  type MetricsQueryApiQueryParams,
+  type MetricsQueryApiRequestQuery,
+} from 'sentry/utils/metrics/useMetricsQuery';
+import type {Order} from 'sentry/views/dashboards/metrics/types';
 import {LoadingScreen} from 'sentry/views/starfish/components/chart';
 
 interface MetricTableContainerProps {
-  expressions: DashboardMetricsExpression[];
   isLoading: boolean;
+  metricQueries: MetricsQueryApiQueryParams[];
   timeseriesData?: MetricsQueryApiResponse;
 }
 
 export function MetricTableContainer({
   timeseriesData,
-  expressions,
+  metricQueries,
   isLoading,
 }: MetricTableContainerProps) {
   const tableData = useMemo(() => {
     return timeseriesData
-      ? getTableData(timeseriesData, expressions)
+      ? getTableData(timeseriesData, metricQueries)
       : {headers: [], rows: []};
-  }, [timeseriesData, expressions]);
+  }, [timeseriesData, metricQueries]);
 
   return (
     <Fragment>
@@ -128,7 +128,7 @@ const getEmptyGroup = (tags: string[]) =>
   }, {});
 
 function getGroupByCombos(
-  queries: DashboardMetricsQuery[],
+  queries: MetricsQueryApiRequestQuery[],
   results: MetricsQueryApiResponse['data']
 ): Record<string, string>[] {
   const groupBys = Array.from(new Set(queries.flatMap(query => query.groupBy ?? [])));
@@ -159,11 +159,11 @@ interface TableData {
 
 export function getTableData(
   data: MetricsQueryApiResponse,
-  queries: DashboardMetricsExpression[]
+  queries: MetricsQueryApiQueryParams[]
 ): TableData {
   const filteredQueries = queries.filter(
-    query => !isMetricEquation(query)
-  ) as DashboardMetricsQuery[];
+    query => !isMetricFormula(query)
+  ) as MetricsQueryApiRequestQuery[];
   const tags = [...new Set(filteredQueries.flatMap(query => query.groupBy ?? []))];
 
   const normalizedResults = queries.map((query, index) => {
@@ -206,24 +206,16 @@ export function getTableData(
       type: 'tag',
       order: undefined,
     })),
-    ...queries.map(query => {
-      if (isMetricEquation(query)) {
-        return {
-          name: query.name,
-          id: query.id,
-          label: unescapeMetricsFormula(query.formula),
-          type: 'field',
-          order: undefined,
-        };
-      }
-      return {
-        name: query.name,
-        id: query.id,
-        label: formatMRIField(MRIToField(query.mri, query.op)),
-        type: 'field',
-        order: query.orderBy,
-      };
-    }),
+    ...queries.map(query => ({
+      name: query.name,
+      // @ts-expect-error use DashboardMetricsExpression type
+      id: query.id,
+      label: isMetricFormula(query)
+        ? unescapeMetricsFormula(query.formula)
+        : formatMRIField(MRIToField(query.mri, query.op)),
+      type: 'field',
+      order: query.orderBy,
+    })),
   ];
 
   const tableData = {
