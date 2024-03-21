@@ -1387,7 +1387,10 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         "inbox": "",
     }
 
-    aggregation_defs = {"first_seen": first_seen, "last_seen": last_seen_aggregation}
+    sort_defs = {
+        "first_seen": first_seen,
+        "last_seen": last_seen_aggregation,
+    }
 
     def calculate_start_end(
         self,
@@ -1494,7 +1497,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 )
             )
 
-        sort_func = self.aggregation_defs[self.sort_strategies[sort_by]]
+        sort_func = self.sort_defs[self.sort_strategies[sort_by]]
 
         having = []
         if cursor is not None:

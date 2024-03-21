@@ -2322,7 +2322,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
         self.login_as(user=self.user)
-        response = self.get_success_response(qs_params={"query": "", "useGroupSnubaDataset": "1"})
+        response = self.get_success_response(useGroupSnubaDataset=1, qs_params={"query": ""})
         assert len(response.data) == 1
         assert mock_query.call_count == 1
 
@@ -2331,26 +2331,26 @@ class GroupListTest(APITestCase, SnubaTestCase):
         # issue 1: issue 10 minutes ago
         time = datetime.now() - timedelta(minutes=10)
         event1 = self.store_event(
-            data={"timestamp": time.timestamp(), "fingerprint": ["group-2"]},
+            data={"timestamp": time.timestamp(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         # issue 2: events 90 minutes ago 1 minute agoe
-        time = datetime.now() - timedelta(hours=90)
+        time = datetime.now() - timedelta(minutes=90)
         event2 = self.store_event(
-            data={"timestamp": time.timestamp(), "fingerprint": ["group-1"]},
+            data={"timestamp": time.timestamp(), "fingerprint": ["group-2"]},
             project_id=self.project.id,
         )
         time = datetime.now() - timedelta(minutes=1)
         self.store_event(
-            data={"timestamp": time.timestamp(), "fingerprint": ["group-1"]},
+            data={"timestamp": time.timestamp(), "fingerprint": ["group-2"]},
             project_id=self.project.id,
         )
 
         self.login_as(user=self.user)
         response = self.get_success_response(
             sort="new",
-            status="1h",
-            useGroupSnubaDataset="1",
+            statsPeriod="1h",
+            useGroupSnubaDataset=1,
             qs_params={"query": ""},
         )
 
