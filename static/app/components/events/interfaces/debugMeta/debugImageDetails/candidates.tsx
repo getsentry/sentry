@@ -27,7 +27,7 @@ const filterOptionCategories = {
   source: t('Source'),
 };
 
-type ImageCandidates = Image['candidates'];
+type ImageCandidates = NonNullable<Image['candidates']>;
 
 type Props = {
   baseUrl: string;
