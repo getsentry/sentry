@@ -606,6 +606,14 @@ def augment_transactions_with_spans(
         if ts_params["max"]:
             params["end"] = ts_params["max"] + timedelta(hours=1)
 
+        if ts_params["max"] and ts_params["min"]:
+            sentry_sdk.set_measurement(
+                "trace_view.trace_duration", ts_params["max"] - ts_params["min"]
+            )
+            sentry_sdk.set_tag("trace_view.missing_timestamp_constraints", False)
+        else:
+            sentry_sdk.set_tag("trace_view.missing_timestamp_constraints", True)
+
     with sentry_sdk.start_span(op="augment.transactions", description="get transaction span ids"):
         for index, transaction in enumerate(transactions):
             transaction["occurrence_spans"] = []
