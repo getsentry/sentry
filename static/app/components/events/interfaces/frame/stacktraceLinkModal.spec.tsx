@@ -86,7 +86,7 @@ describe('StacktraceLinkModal', () => {
   it('closes modal after successful quick setup', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/repo-path-parsing/`,
-      method: 'POST',
+      method: 'GET',
       body: {...configData},
     });
 
@@ -119,7 +119,7 @@ describe('StacktraceLinkModal', () => {
   it('keeps modal open on unsuccessful quick setup', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/repo-path-parsing/`,
-      method: 'POST',
+      method: 'GET',
       body: {sourceUrl: ['Could not find repo']},
       statusCode: 400,
     });
@@ -178,7 +178,7 @@ describe('StacktraceLinkModal', () => {
     });
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/repo-path-parsing/`,
-      method: 'POST',
+      method: 'GET',
       body: {...configData},
     });
 
