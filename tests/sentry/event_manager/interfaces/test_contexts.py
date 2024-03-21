@@ -122,3 +122,51 @@ def test_large_numbers():
         assert isinstance(ctx_data[key], (int, float))
     for key in string_keys:
         assert isinstance(ctx_data[key], str)
+
+
+def test_large_nested_numbers():
+    data = {
+        "large_numbers": {
+            "dictionary": {"key_1": 608548899684111178, "key_2": -123456789123456789},
+            "nested_dictionary": {
+                "key_1": {"key_2": -123456789123456789, "key_3": 1},
+                "key_4": 123456789.1234567,
+            },
+            "tuple": (608548899684111178, 123456.789),
+            "nested_tuple": ((608548899684111178, "value"), (1, -123456789123456789)),
+            "list": [1, 608548899684111178],
+            "nested_list": [[1, 608548899684111178], -123456789123456789],
+            "mixed_nesting": [
+                (1, 608548899684111178),
+                -123456789123456789,
+                "something",
+                {"key_1": 123456789.1234567, "key_2": [-123456789123456789, "value"]},
+            ],
+        }
+    }
+
+    mgr = EventManager(data={"contexts": data})
+    mgr.normalize()
+    evt = eventstore.backend.create_event(data=mgr.get_data())
+    interface = evt.interfaces.get("contexts")
+    ctx_data = interface.to_json()["large_numbers"]
+
+    expected_data = {
+        "dictionary": {"key_1": "608548899684111178", "key_2": "-123456789123456789"},
+        "nested_dictionary": {
+            "key_1": {"key_2": "-123456789123456789", "key_3": 1},
+            "key_4": "123456789.1234567",
+        },
+        "tuple": ["608548899684111178", 123456.789],
+        "nested_tuple": [["608548899684111178", "value"], [1, "-123456789123456789"]],
+        "list": [1, "608548899684111178"],
+        "nested_list": [[1, "608548899684111178"], "-123456789123456789"],
+        "mixed_nesting": [
+            [1, "608548899684111178"],
+            "-123456789123456789",
+            "something",
+            {"key_1": "123456789.1234567", "key_2": ["-123456789123456789", "value"]},
+        ],
+        "type": "default",
+    }
+    assert ctx_data == expected_data

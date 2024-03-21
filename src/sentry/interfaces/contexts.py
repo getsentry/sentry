@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import string
-from typing import ClassVar, TypeVar
+from typing import Any, ClassVar, TypeVar
 
 from django.utils.encoding import force_str
 
@@ -94,8 +94,8 @@ class ContextType:
             if value is not None:
                 ctx_data[force_str(key)] = value
             # Numbers exceeding 15 place values will be converted to strings to avoid rendering issues
-            if isinstance(value, (int, float)) and len(str_value := force_str(value)) > 15:
-                ctx_data[force_str(key)] = str_value
+            if isinstance(value, (int, float, list, tuple, dict)):
+                ctx_data[force_str(key)] = self.change_type(value)
         self.data = ctx_data
 
     def to_json(self):
@@ -133,6 +133,18 @@ class ContextType:
                         yield (self.alias, value)
                     else:
                         yield (f"{self.alias}.{field}", value)
+
+    def change_type(self, value: int | float | list | tuple | dict) -> Any:
+        if isinstance(value, (float, int)) and len(str_value := force_str(value)) > 15:
+            return str_value
+        if isinstance(value, list):
+            return [self.change_type(el) for el in value]
+        elif isinstance(value, tuple):
+            return tuple(self.change_type(el) for el in value)
+        elif isinstance(value, dict):
+            return {key: self.change_type(el) for key, el in value.items()}
+        else:
+            return value
 
 
 # TODO(dcramer): contexts need to document/describe expected (optional) fields
