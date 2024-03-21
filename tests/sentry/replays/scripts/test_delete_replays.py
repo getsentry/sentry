@@ -188,15 +188,18 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
             timestamp=datetime.datetime.now() - datetime.timedelta(seconds=10),
             tags={"tenant": "christopher_nolan"},
         )
-        delete_replays(
-            project_id=self.project.id,
-            batch_size=self.small_batch_size,
-            tags=["test_tag:notthetag"],
-            environment=[],
-            start_utc=self.default_start_time,
-            end_utc=self.default_end_time,
-            dry_run=False,
-        )
+
+        with TaskRunner():
+            delete_replays(
+                project_id=self.project.id,
+                batch_size=self.small_batch_size,
+                tags=["test_tag:notthetag"],
+                environment=[],
+                start_utc=self.default_start_time,
+                end_utc=self.default_end_time,
+                dry_run=False,
+            )
+
         self.assert_replay_not_deleted(replay_id_tags)
         self.assert_replay_not_deleted(replay_id_no_tags)
 
