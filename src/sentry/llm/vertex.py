@@ -3,6 +3,10 @@ import logging
 import google.auth
 import google.auth.transport.requests
 import requests
+
+from sentry.runner import configure
+
+configure()
 from django.conf import settings
 
 from sentry.llm.base import LLMBase
@@ -17,6 +21,7 @@ class VertexProvider(LLMBase):
     top_p = 1
 
     def complete_prompt(self, prompt, message):
+
         url = settings.SENTRY_LLM_OPTIONS["url"]
 
         payload = {
@@ -59,3 +64,10 @@ def get_access_token():
     creds, _ = google.auth.default()
     creds.refresh(google.auth.transport.requests.Request())
     return creds.token
+
+
+v = VertexProvider()
+v.complete_prompt(
+    "Classify the text into one of the following two classes: [Junk, Not Junk]. Choose Junk only if you are confident. Text:",
+    "this website is great",
+)
