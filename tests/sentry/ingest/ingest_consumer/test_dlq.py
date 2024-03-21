@@ -52,11 +52,11 @@ def test_dlq_invalid_messages(factories, topic_name, consumer_type) -> None:
 
     bogus_payload = b"bogus message"
 
-    partition = Partition(Topic("ingest-events"), 0)
+    partition = Partition(Topic(topic_name), 0)
     offset = 5
 
     factory = IngestStrategyFactory(
-        "events",
+        consumer_type,
         reprocess_only_stuck_events=False,
         num_processes=1,
         max_batch_size=1,
