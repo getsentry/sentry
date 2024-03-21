@@ -17,6 +17,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import type {Integration, IntegrationProvider, Organization} from 'sentry/types';
 import {generateOrgSlugUrl} from 'sentry/utils';
 import type {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
+import getCsrfToken from 'sentry/utils/getCsrfToken';
 import {
   getIntegrationFeatureGate,
   trackIntegrationAnalytics,
@@ -247,6 +248,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
                     installationId
                       ? addIntegrationWithInstallationId({
                           installation_id: installationId,
+                          csrf_token: getCsrfToken(),
                         })
                       : this.finishInstallation()
                   }

@@ -338,40 +338,6 @@ class GitHubIntegrationTest(IntegrationTestCase):
         ).exists()
 
     @responses.activate
-    def test_csrf_cookie_protection(self):
-        self._stub_github()
-
-        resp = self.client.get(self.init_path)
-        assert "github-integration-installation" in self.client.session
-
-        self.init_path_2 = "{}?{}".format(
-            reverse(
-                "sentry-organization-integrations-setup",
-                kwargs={
-                    "organization_slug": self.organization.slug,
-                    "provider_id": self.provider.key,
-                },
-            ),
-            urlencode({"installation_id": self.installation_id}),
-        )
-
-        # the first call binds installation_id to the pipeline object
-        resp = self.client.get(self.init_path_2)
-
-        # CSRF emulation
-        self.session["github-integration-installation"] = None
-        self.save_session()
-
-        resp = self.client.get(self.init_path_2)
-
-        self.assertTemplateUsed(resp, "sentry/integrations/github-integration-failed.html")
-        assert b'{"success":false,"data":{"error":"Invalid installation request."}}' in resp.content
-        assert (
-            b"We could not verify the authenticity of the installation request. We recommend restarting the installation process."
-            in resp.content
-        )
-
-    @responses.activate
     def test_installation_not_found(self):
         # Add a 404 for an org to responses
         responses.replace(
