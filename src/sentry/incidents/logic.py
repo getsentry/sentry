@@ -941,14 +941,16 @@ class ProjectsNotAssociatedWithAlertRuleError(Exception):
 
 def create_alert_rule_activation(
     alert_rule: AlertRule,
+    query_subscription_id: int,
     metric_value: int | None = None,
     finished_at: datetime | None = None,
 ):
     with transaction.atomic(router.db_for_write(AlertRuleActivations)):
         activation = AlertRuleActivations.objects.create(
             alert_rule=alert_rule,
-            metric_value=metric_value,
             finished_at=finished_at,
+            metric_value=metric_value,
+            query_subscription_id=query_subscription_id,
         )
 
     return activation
