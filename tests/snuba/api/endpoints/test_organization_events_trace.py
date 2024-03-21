@@ -1569,7 +1569,6 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
 
     def client_get(self, data, url=None):
         data["useSpans"] = 1
-        data["getMeasurements"] = 1
         return super().client_get(data, url)
 
     @pytest.mark.skip(
