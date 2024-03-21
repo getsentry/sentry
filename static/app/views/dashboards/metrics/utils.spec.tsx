@@ -64,14 +64,14 @@ describe('getMetricExpressions function', () => {
           aggregates: ['avg(d:transactions/duration@milisecond)'],
           conditions: 'foo:bar',
           columns: ['release'],
-          name: '0',
+          name: 'query_1',
           orderby: 'desc',
         },
         {
           aggregates: ['avg(d:transactions/duration@milisecond)'],
           conditions: 'foo:baz',
           columns: [],
-          name: '1',
+          name: 'query_2',
           orderby: '',
         },
       ],
@@ -98,7 +98,7 @@ describe('getMetricExpressions function', () => {
         query: 'foo:baz release:1.0',
         type: MetricQueryType.QUERY,
         orderBy: undefined,
-        name: 'query_1',
+        name: 'query_2',
       } satisfies DashboardMetricsExpression,
     ]);
   });
@@ -110,7 +110,7 @@ describe('getMetricExpressions function', () => {
           aggregates: ['avg(d:transactions/duration@milisecond)'],
           conditions: '',
           columns: ['release'],
-          name: '1',
+          name: 'query_1',
         },
       ],
     } as Widget;
@@ -120,7 +120,7 @@ describe('getMetricExpressions function', () => {
     expect(metricQueries).toEqual([
       {
         groupBy: ['release'],
-        id: 1,
+        id: 0,
         mri: 'd:transactions/duration@milisecond',
         op: 'avg',
         query: 'release:[1.0,2.0]',
