@@ -155,8 +155,18 @@ def drain_mailbox(payload_id: int) -> None:
             id__gte=payload.id, mailbox_name=payload.mailbox_name
         ).order_by("id")
 
+        batch_count = 0
+        for record in query[:100]:
+            batch_count += 1
+            try:
+                deliver_message(record)
+                delivered += 1
+            except DeliveryFailed:
+                metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "retry"})
+                return
+
         # No more messages to deliver
-        if query.count() < 1:
+        if batch_count < 1:
             logger.info(
                 "deliver_webhook.delivery_complete",
                 extra={
@@ -164,15 +174,7 @@ def drain_mailbox(payload_id: int) -> None:
                     "delivered": delivered,
                 },
             )
-            break
-
-        for record in query[:100]:
-            try:
-                deliver_message(record)
-                delivered += 1
-            except DeliveryFailed:
-                metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "retry"})
-                return
+            return
 
 
 @instrumented_task(
