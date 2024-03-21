@@ -10,6 +10,7 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import {t} from 'sentry/locale';
 import {fromSorts} from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -53,7 +54,7 @@ export function HTTPLandingPage() {
     data: throughputData,
     error: throughputError,
   } = useSpanMetricsSeries({
-    filters: chartFilters,
+    search: MutableSearch.fromQueryObject(chartFilters),
     yAxis: ['spm()'],
     referrer: 'api.starfish.http-module-landing-throughput-chart',
   });
@@ -63,7 +64,7 @@ export function HTTPLandingPage() {
     data: durationData,
     error: durationError,
   } = useSpanMetricsSeries({
-    filters: chartFilters,
+    search: MutableSearch.fromQueryObject(chartFilters),
     yAxis: [`avg(span.self_time)`],
     referrer: 'api.starfish.http-module-landing-duration-chart',
   });
@@ -73,18 +74,18 @@ export function HTTPLandingPage() {
     data: responseCodeData,
     error: responseCodeError,
   } = useSpanMetricsSeries({
-    filters: chartFilters,
+    search: MutableSearch.fromQueryObject(chartFilters),
     yAxis: ['http_response_rate(3)', 'http_response_rate(4)', 'http_response_rate(5)'],
     referrer: 'api.starfish.http-module-landing-response-code-chart',
   });
 
   const domainsListResponse = useSpanMetrics({
-    filters: tableFilters,
+    search: MutableSearch.fromQueryObject(tableFilters),
     fields: [
       'project.id',
       'span.domain',
       'spm()',
-      'http_response_rate(2)',
+      'http_response_rate(3)',
       'http_response_rate(4)',
       'http_response_rate(5)',
       'avg(span.self_time)',

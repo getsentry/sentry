@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {EventDataSection} from 'sentry/components/events/eventDataSection';
+import {useHasNewTagsUI} from 'sentry/components/events/eventTags/util';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -51,6 +53,7 @@ type Props = {
 };
 
 function ContextSummary({event}: Props) {
+  const hasNewTagsUI = useHasNewTagsUI();
   if (objectIsEmpty(event.contexts)) {
     return null;
   }
@@ -113,6 +116,19 @@ function ContextSummary({event}: Props) {
 
     return <Component key={key} {...props} />;
   });
+
+  if (hasNewTagsUI) {
+    // TODO(Leander): When a design is confirmed, move this to HighlightsDataSection
+    return (
+      <EventDataSection
+        title={t('Highlighted Event Data')}
+        data-test-id="highlighted-event-data"
+        type="highlighted-event-data"
+      >
+        <Wrapper>{contexts}</Wrapper>
+      </EventDataSection>
+    );
+  }
 
   return <Wrapper>{contexts}</Wrapper>;
 }

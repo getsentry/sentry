@@ -8,7 +8,7 @@ import zipfile
 from base64 import b64encode
 from binascii import hexlify
 from collections.abc import Mapping, Sequence
-from datetime import datetime
+from datetime import UTC, datetime
 from hashlib import sha1
 from importlib import import_module
 from typing import Any
@@ -144,7 +144,6 @@ from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import project_created
 from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
-from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
@@ -1351,7 +1350,7 @@ class Factories:
     def create_userreport(project, event_id=None, **kwargs):
         event = Factories.store_event(
             data={
-                "timestamp": iso_format(datetime.utcnow()),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "event_id": event_id or "a" * 32,
                 "message": "testing",
             },

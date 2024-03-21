@@ -169,7 +169,7 @@ describe('MonitorForm', function () {
   it('prefills with an existing monitor', async function () {
     const monitor = MonitorFixture({project});
 
-    const apiEndpont = `/organizations/${organization.slug}/monitors/${monitor.slug}/`;
+    const apiEndpont = `/projects/${organization.slug}/${monitor.project.slug}/monitors/${monitor.slug}/`;
 
     if (monitor.config.schedule_type !== ScheduleType.CRONTAB) {
       throw new Error('Fixture is not crontab');

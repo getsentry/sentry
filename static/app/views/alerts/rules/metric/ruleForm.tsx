@@ -138,7 +138,6 @@ type State = {
   triggers: Trigger[];
   comparisonDelta?: number;
   isExtrapolatedChartData?: boolean;
-  uuid?: string;
 } & DeprecatedAsyncComponent['state'];
 
 const isEmpty = (str: unknown): boolean => str === '' || !defined(str);
@@ -146,6 +145,7 @@ const isEmpty = (str: unknown): boolean => str === '' || !defined(str);
 class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   form = new FormModel();
   pollingTimeout: number | undefined = undefined;
+  uuid: string | null = null;
 
   get isDuplicateRule(): boolean {
     return Boolean(this.props.isDuplicateRule);
@@ -253,7 +253,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
   resetPollingState = (loadingSlackIndicator: Indicator) => {
     IndicatorStore.remove(loadingSlackIndicator);
-    this.setState({loading: false, uuid: undefined});
+    this.uuid = null;
+    this.setState({loading: false});
   };
 
   fetchStatus(model: FormModel) {
@@ -287,11 +288,11 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       onSubmitSuccess,
       params: {ruleId},
     } = this.props;
-    const {uuid, project} = this.state;
+    const {project} = this.state;
 
     try {
       const response: RuleTaskResponse = await this.api.requestPromise(
-        `/projects/${organization.slug}/${project.slug}/alert-rule-task/${uuid}/`
+        `/projects/${organization.slug}/${project.slug}/alert-rule-task/${this.uuid}/`
       );
 
       const {status, alertRule, error} = response;
@@ -627,7 +628,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       thresholdType,
       thresholdPeriod,
       comparisonDelta,
-      uuid,
       timeWindow,
       eventTypes,
     } = this.state;
@@ -689,8 +689,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       // running to lookup and verify the channel id for Slack.
       if (resp?.status === 202) {
         // if we have a uuid in state, no need to start a new polling cycle
-        if (!uuid) {
-          this.setState({loading: true, uuid: data.uuid});
+        if (!this.uuid) {
+          this.uuid = data.uuid;
+          this.setState({loading: true});
           this.fetchStatus(model);
         }
       } else {
