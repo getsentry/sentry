@@ -75,12 +75,8 @@ def main(context: dict[str, str]) -> int:
     print(f"ensuring {repo} venv at {venv_dir}...")
     venv.ensure(venv_dir, python_version, url, sha256)
 
-    # This is for engineers with existing dev environments transitioning over.
-    # Bootstrap will set devenv-managed volta up but they won't be running
-    # devenv bootstrap, just installing devenv then running devenv sync.
-    # make install-js-dev will fail since our run_procs expects devenv-managed
-    # volta.
-    volta.install()
+    # TODO: move volta version into per-repo config
+    volta.install(reporoot)
 
     if constants.DARWIN:
         repo_config = configparser.ConfigParser()
