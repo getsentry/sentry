@@ -171,7 +171,6 @@ export type PerformanceEventParameters = {
     transaction: string;
   };
   'performance_views.trace_view.view': {};
-  'performance_views.trace_view_.drawer_json_button_click': {};
   'performance_views.transactionEvents.cellaction': {
     action: string;
   };
@@ -311,8 +310,6 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
     'Performance Views: Event Details span anchored',
   'performance_views.event_details.json_button_click':
     'Performance Views: Event Details JSON button clicked',
-  'performance_views.trace_view_.drawer_json_button_click':
-    'Performance Views: JSON button clicked frow trace view drawer',
   'performance_views.transactionEvents.cellaction':
     'Performance Views: Transaction Events Tab Cell Action Clicked',
   'performance_views.transactionEvents.sort':

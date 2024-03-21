@@ -300,11 +300,6 @@ export function TransactionNodeDetails({
             icon={<IconOpen />}
             href={`/api/0/projects/${organization.slug}/${node.value.project_slug}/events/${node.value.event_id}/json/`}
             external
-            onClick={() =>
-              trackAnalytics('performance_views.trace_view_.drawer_json_button_click', {
-                organization,
-              })
-            }
           >
             {t('JSON')} (<FileSize bytes={event?.size} />)
           </Button>
