@@ -17,37 +17,7 @@
   "files.trimFinalNewlines": true,
   "files.insertFinalNewline": true,
 
-  "[javascript]": {
-    "editor.formatOnSave": true,
-    "editor.tabSize": 2,
-    "editor.defaultFormatter": "esbenp.prettier-vscode",
-    "editor.codeActionsOnSave": {
-      "quickfix.biome": "explicit",
-      "source.fixAll.eslint": "explicit"
-    }
-  },
-
-  "[typescript]": {
-    "editor.formatOnSave": true,
-    "editor.tabSize": 2,
-    "editor.defaultFormatter": "esbenp.prettier-vscode",
-    "editor.codeActionsOnSave": {
-      "quickfix.biome": "explicit",
-      "source.fixAll.eslint": "explicit"
-    }
-  },
-
-  "[typescriptreact]": {
-    "editor.formatOnSave": true,
-    "editor.tabSize": 2,
-    "editor.defaultFormatter": "esbenp.prettier-vscode",
-    "editor.codeActionsOnSave": {
-      "quickfix.biome": "explicit",
-      "source.fixAll.eslint": "explicit"
-    }
-  },
-
-  "[javascriptreact]": {
+  "[javascript][typescript][javascriptreact][typescriptreact]": {
     "editor.formatOnSave": true,
     "editor.tabSize": 2,
     "editor.defaultFormatter": "esbenp.prettier-vscode",
@@ -85,6 +55,17 @@
   },
 
   "[json]": {
+    "editor.insertSpaces": true,
+    "editor.detectIndentation": false,
+    "editor.tabSize": 2,
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "biomejs.biome",
+    "editor.codeActionsOnSave": {
+      "quickfix.biome": "explicit"
+    }
+  },
+
+  "[yaml]": {
     "editor.insertSpaces": true,
     "editor.detectIndentation": false,
     "editor.tabSize": 2,

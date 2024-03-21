@@ -163,7 +163,7 @@ describe('IssueListOverview (actions)', function () {
         headers: {Link: DEFAULT_LINKS_HEADER},
       });
 
-      await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
 
       expect(updateIssueMock).toHaveBeenCalledWith(
         '/organizations/org-slug/issues/',
@@ -207,7 +207,7 @@ describe('IssueListOverview (actions)', function () {
         headers: {Link: DEFAULT_LINKS_HEADER},
       });
 
-      await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
 
       expect(updateIssueMock).toHaveBeenCalledWith(
         '/organizations/org-slug/issues/',
@@ -302,7 +302,7 @@ describe('IssueListOverview (actions)', function () {
         headers: {Link: DEFAULT_LINKS_HEADER},
       });
 
-      await userEvent.click(screen.getByRole('button', {name: 'Mark Reviewed'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Mark Reviewed'}));
 
       expect(updateIssueMock).toHaveBeenCalledWith(
         '/organizations/org-slug/issues/',
@@ -360,8 +360,7 @@ describe('IssueListOverview (actions)', function () {
         headers: {Link: DEFAULT_LINKS_HEADER},
       });
 
-      await userEvent.click(screen.getByRole('button', {name: /more issue actions/i}));
-      await userEvent.hover(screen.getByRole('menuitemradio', {name: /priority/i}));
+      await userEvent.click(await screen.findByRole('button', {name: /set priority/i}));
       await userEvent.click(screen.getByRole('menuitemradio', {name: /low/i}));
 
       expect(updateIssueMock).toHaveBeenCalledWith(
@@ -376,6 +375,10 @@ describe('IssueListOverview (actions)', function () {
     });
 
     it('removes issues after reprioritizing single issue (when excluding priorities)', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/prompts-activity/',
+        body: {data: {dismissed_ts: null}},
+      });
       const updateIssueMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         method: 'PUT',
@@ -439,8 +442,7 @@ describe('IssueListOverview (actions)', function () {
 
       expect(screen.getByText('Medium priority issue')).toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('button', {name: /more issue actions/i}));
-      await userEvent.hover(screen.getByRole('menuitemradio', {name: /priority/i}));
+      await userEvent.click(await screen.findByRole('button', {name: /set priority/i}));
       await userEvent.click(screen.getByRole('menuitemradio', {name: /low/i}));
 
       expect(updateIssueMock).toHaveBeenCalledWith(

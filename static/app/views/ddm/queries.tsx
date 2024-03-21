@@ -26,6 +26,7 @@ import {MetricFormulaContextMenu} from 'sentry/views/ddm/metricFormulaContextMen
 import {MetricQueryContextMenu} from 'sentry/views/ddm/metricQueryContextMenu';
 import {QueryBuilder} from 'sentry/views/ddm/queryBuilder';
 import {getQuerySymbol, QuerySymbol} from 'sentry/views/ddm/querySymbol';
+import {useFormulaDependencies} from 'sentry/views/ddm/utils/useFormulaDependencies';
 
 export function Queries() {
   const {
@@ -42,6 +43,7 @@ export function Queries() {
 
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const formulaDependencies = useFormulaDependencies();
 
   // Make sure all charts are connected to the same group whenever the widgets definition changes
   useLayoutEffect(() => {
@@ -108,6 +110,7 @@ export function Queries() {
                 showQuerySymbols={showQuerySymbols}
                 isSelected={isMultiChartMode && index === selectedWidgetIndex}
                 canBeHidden={visibleWidgets.length > 1}
+                formulaDependencies={formulaDependencies}
               />
             )}
           </Row>
@@ -222,6 +225,7 @@ function Query({
 interface FormulaProps {
   availableVariables: Set<string>;
   canBeHidden: boolean;
+  formulaDependencies: ReturnType<typeof useFormulaDependencies>;
   index: number;
   isSelected: boolean;
   onChange: (index: number, data: Partial<MetricWidgetQueryParams>) => void;
@@ -239,6 +243,7 @@ function Formula({
   canBeHidden,
   isSelected,
   showQuerySymbols,
+  formulaDependencies,
 }: FormulaProps) {
   const handleToggle = useCallback(() => {
     onToggleVisibility(index);
@@ -270,7 +275,11 @@ function Formula({
         value={widget.formula}
         onChange={formula => handleChange({formula})}
       />
-      <MetricFormulaContextMenu widgetIndex={index} />
+      <MetricFormulaContextMenu
+        widgetIndex={index}
+        formulaWidget={widget}
+        formulaDependencies={formulaDependencies}
+      />
     </QueryWrapper>
   );
 }

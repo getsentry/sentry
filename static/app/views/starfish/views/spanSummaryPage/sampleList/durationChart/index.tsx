@@ -11,7 +11,7 @@ import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {AVG_COLOR} from 'sentry/views/starfish/colours';
-import Chart from 'sentry/views/starfish/components/chart';
+import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {isNearAverage} from 'sentry/views/starfish/components/samplesTable/common';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
@@ -243,7 +243,7 @@ function DurationChart({
               : sampledSpanDataSeries
           }
           chartColors={[AVG_COLOR, 'black']}
-          isLineChart
+          type={ChartType.LINE}
           definedAxisTicks={4}
         />
       </div>

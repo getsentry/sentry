@@ -24,7 +24,12 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, UseCase
 from sentry.profiles.device import classify_device
-from sentry.profiles.java import deobfuscate_signature, format_signature
+from sentry.profiles.java import (
+    convert_android_methods_to_jvm_frames,
+    deobfuscate_signature,
+    format_signature,
+    merge_jvm_frames_with_android_methods,
+)
 from sentry.profiles.utils import get_from_profiling_service
 from sentry.signals import first_profile_received
 from sentry.silo import SiloMode
@@ -156,6 +161,10 @@ def process_profile_task(
         return
 
     with metrics.timer("process_profile.track_outcome.accepted"):
+        try:
+            _track_duration_outcome(profile=profile, project=project)
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
         _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED)
 
 
@@ -440,6 +449,13 @@ def symbolicate(
             dist=profile.get("dist"),
             apply_source_context=False,
         )
+    elif platform == "android":
+        return symbolicator.process_jvm(
+            exceptions=[],
+            stacktraces=stacktraces,
+            modules=modules,
+            release_package=profile.get("transaction_metadata", {}).get("app.identifier"),
+        )
     return symbolicator.process_payload(
         stacktraces=stacktraces, modules=modules, apply_source_context=False
     )
@@ -721,6 +737,64 @@ def get_frame_index_map(frames: list[dict[str, Any]]) -> dict[int, list[int]]:
     return index_map
 
 
+@metrics.wraps("process_profile.deobfuscate.with_symbolicator")
+def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_file_id: str) -> None:
+    symbolication_start_time = time()
+
+    def on_symbolicator_request():
+        duration = time() - symbolication_start_time
+        if duration > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
+            raise SymbolicationTimeout
+
+    symbolicator = Symbolicator(
+        task_kind=SymbolicatorTaskKind(),
+        on_request=on_symbolicator_request,
+        project=project,
+        event_id=profile["event_id"],
+    )
+
+    try:
+        with sentry_sdk.start_span(op="task.profiling.symbolicate.process_payload"):
+            response = symbolicate(
+                symbolicator=symbolicator,
+                profile=profile,
+                modules=[
+                    {
+                        "uuid": debug_file_id,
+                    }
+                ],
+                stacktraces=[
+                    {
+                        "frames": convert_android_methods_to_jvm_frames(
+                            profile["profile"]["methods"]
+                        )
+                    },
+                ],
+                platform=profile["platform"],
+            )
+
+            if not response:
+                profile["symbolicator_error"] = {
+                    "type": EventError.NATIVE_INTERNAL_FAILURE,
+                }
+                return
+            elif len(response["errors"]) > 0:
+                profile["symbolicator_error"] = response["errors"][0]
+                return
+            elif len(response["stacktraces"]) > 0:
+                merge_jvm_frames_with_android_methods(
+                    frames=response["stacktraces"][0]["frames"],
+                    methods=profile["profile"]["methods"],
+                )
+            else:
+                profile["symbolicator_error"] = {
+                    "type": EventError.NATIVE_SYMBOLICATOR_FAILED,
+                }
+                return
+    except SymbolicationTimeout:
+        metrics.incr("process_profile.symbolicate.timeout", sample_rate=1.0)
+
+
 @metrics.wraps("process_profile.deobfuscate")
 def _deobfuscate(profile: Profile, project: Project) -> None:
     debug_file_id = profile.get("build_id")
@@ -732,6 +806,22 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                 m["signature"] = format_signature(types)
         return
 
+    if project.id in options.get("profiling.deobfuscate-using-symbolicator.enable-for-project"):
+        try:
+            _deobfuscate_using_symbolicator(
+                project=project,
+                profile=profile,
+                debug_file_id=debug_file_id,
+            )
+            sentry_sdk.set_tag("deobfuscated_with_symbolicator", True)
+            return
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+    _deobfuscate_locally(profile=profile, project=project, debug_file_id=debug_file_id)
+
+
+@metrics.wraps("process_profile.deobfuscate.locally")
+def _deobfuscate_locally(profile: Profile, project: Project, debug_file_id: str) -> None:
     with sentry_sdk.start_span(op="proguard.fetch_debug_files"):
         dif_paths = ProjectDebugFile.difcache.fetch_difs(
             project, [debug_file_id], features=["mapping"]
@@ -747,6 +837,7 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
     with sentry_sdk.start_span(op="proguard.remap"):
         for method in profile["profile"]["methods"]:
             method.setdefault("data", {})
+            types = None
             if method.get("signature"):
                 types = deobfuscate_signature(method["signature"], mapper)
                 method["signature"] = format_signature(types)
@@ -771,9 +862,9 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                 method["class_name"] = new_frame.class_name
                 method["name"] = new_frame.method
                 method["data"] = {
-                    "deobfuscation_status": "deobfuscated"
-                    if method.get("signature", None)
-                    else "partial"
+                    "deobfuscation_status": (
+                        "deobfuscated" if method.get("signature", None) else "partial"
+                    )
                 }
 
                 if new_frame.file:
@@ -794,9 +885,9 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                         "class_name": new_frame.class_name,
                         "data": {"deobfuscation_status": "deobfuscated"},
                         "name": new_frame.method,
-                        "source_file": method["source_file"]
-                        if bottom_class == new_frame.class_name
-                        else "",
+                        "source_file": (
+                            method["source_file"] if bottom_class == new_frame.class_name else ""
+                        ),
                         "source_line": new_frame.line,
                     }
                     for new_frame in reversed(mapped)
@@ -922,3 +1013,65 @@ def get_metrics_dsn(project_id: int) -> str:
         project_id=project_id, use_case=UseCase.PROFILING.value
     )
     return project_key.get_dsn(public=True)
+
+
+@metrics.wraps("process_profile.track_outcome")
+def _track_duration_outcome(
+    profile: Profile,
+    project: Project,
+) -> None:
+    duration_ms = _calculate_profile_duration_ms(profile)
+    if duration_ms <= 0:
+        return
+    track_outcome(
+        org_id=project.organization_id,
+        project_id=project.id,
+        key_id=None,
+        outcome=Outcome.ACCEPTED,
+        timestamp=datetime.now(timezone.utc),
+        category=DataCategory.PROFILE_DURATION,
+        quantity=duration_ms,
+    )
+
+
+def _calculate_profile_duration_ms(profile: Profile) -> int:
+    version = profile.get("version")
+    if version:
+        if version == "1":
+            return _calculate_duration_for_sample_format_v1(profile)
+        elif version == "2":
+            return _calculate_duration_for_sample_format_v2(profile)
+    else:
+        platform = profile["platform"]
+        if platform == "android":
+            return _calculate_duration_for_android_format(profile)
+    return 0
+
+
+def _calculate_duration_for_sample_format_v1(profile: Profile) -> int:
+    start_ns = int(profile["transaction"].get("relative_start_ns", 0))
+    end_ns = int(profile["transaction"].get("relative_end_ns", 0))
+    duration_ns = end_ns - start_ns
+    # try another method to determine the duration in case it's negative or 0.
+    if duration_ns <= 0:
+        samples = sorted(profile["profile"]["samples"], key=lambda s: s["elapsed_since_start_ns"])
+        if len(samples) < 2:
+            return 0
+        first, last = samples[0], samples[-1]
+        first_ns = int(first["elapsed_since_start_ns"])
+        last_ns = int(last["elapsed_since_start_ns"])
+        duration_ns = last_ns - first_ns
+    duration_ms = int(duration_ns * 1e-6)
+    return min(duration_ms, 30000)
+
+
+def _calculate_duration_for_sample_format_v2(profile: Profile) -> int:
+    samples = sorted(profile["profile"]["samples"], key=lambda s: s["timestamp"])
+    if len(samples) < 2:
+        return 0
+    first, last = samples[0], samples[-1]
+    return int((last["timestamp"] - first["timestamp"]) * 1e3)
+
+
+def _calculate_duration_for_android_format(profile: Profile) -> int:
+    return int(profile["duration_ns"] * 1e-6)

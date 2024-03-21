@@ -1,26 +1,16 @@
 import logging
 
 import msgpack
-import sentry_kafka_schemas
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.dlq import InvalidMessage
 from arroyo.types import BrokerValue, Message
 
-from sentry.conf.types.kafka_definition import Topic
 from sentry.models.project import Project
 from sentry.utils import metrics
 
 from .processors import IngestMessage, Retriable, process_event
 
 logger = logging.getLogger(__name__)
-
-
-consumer_type_to_default_topic = {
-    "events": Topic.INGEST_EVENTS,
-    "transactions": Topic.INGEST_TRANSACTIONS,
-    "attachments": Topic.INGEST_ATTACHMENTS,
-    "ingest-feedback-events": Topic.INGEST_FEEDBACK_EVENTS,
-}
 
 
 def process_simple_event_message(
@@ -71,23 +61,6 @@ def process_simple_event_message(
         if isinstance(exc, Retriable):
             raise
 
-        # If no retriable exception was raised, check the schema to decide whether to DLQ
-        default_topic = consumer_type_to_default_topic[consumer_type].value
-
-        # TODO: Currently, there is only a schema for ingest-events, so just continue to re-raise
-        # the exception if it's a different topic. This can be removed once attachments and transactions
-        # have schemas too.
-        if default_topic != "ingest-events":
-            raise
-
-        codec = sentry_kafka_schemas.get_codec(default_topic)
-
-        try:
-            codec.decode(raw_payload, validate=True)
-        except Exception:
-            raw_value = raw_message.value
-            assert isinstance(raw_value, BrokerValue)
-
-            raise InvalidMessage(raw_value.partition, raw_value.offset)
-
-        raise
+        raw_value = raw_message.value
+        assert isinstance(raw_value, BrokerValue)
+        raise InvalidMessage(raw_value.partition, raw_value.offset) from exc

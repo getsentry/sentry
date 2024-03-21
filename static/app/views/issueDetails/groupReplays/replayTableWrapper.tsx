@@ -15,12 +15,12 @@ type Props = {
   selectedReplayIndex: number;
   setSelectedReplayIndex: (index: number) => void;
   visibleColumns: ReplayColumn[];
-  nextReplayText?: string;
+  overlayContent?: React.ReactNode;
 } & React.ComponentProps<typeof ReplayTable>;
 
 function ReplayTableWrapper({
   replaySlug,
-  nextReplayText,
+  overlayContent,
   setSelectedReplayIndex,
   orgSlug,
   group,
@@ -37,7 +37,7 @@ function ReplayTableWrapper({
   return (
     <Fragment>
       <ReplayClipPreviewPlayer
-        overlayText={nextReplayText}
+        overlayContent={overlayContent}
         orgSlug={orgSlug}
         showNextAndPrevious
         handleForwardClick={
@@ -51,13 +51,6 @@ function ReplayTableWrapper({
           selectedReplayIndex > 0
             ? () => {
                 setSelectedReplayIndex(selectedReplayIndex - 1);
-              }
-            : undefined
-        }
-        onClickNextReplay={
-          nextReplayText
-            ? () => {
-                setSelectedReplayIndex(selectedReplayIndex + 1);
               }
             : undefined
         }

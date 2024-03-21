@@ -748,7 +748,13 @@ urlpatterns += [
         react_page_view,
         name="discover",
     ),
-    # DDM
+    # DDM new
+    re_path(
+        r"^metrics/",
+        react_page_view,
+        name="metrics",
+    ),
+    # TODO(metrics): fade this out
     re_path(
         r"^ddm/",
         react_page_view,
@@ -1161,7 +1167,7 @@ urlpatterns += [
         GenericReactPageView.as_view(auth_required=False),
         name="sentry-join-request",
     ),
-    # Keep named URL for for things using reverse
+    # Keep named URL for things using reverse
     re_path(
         r"^(?P<organization_slug>[\w_-]+)/issues/(?P<short_id>[\w_-]+)/$",
         react_page_view,

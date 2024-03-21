@@ -160,7 +160,6 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
             organization=organization,
             application_is_active=api_token.application_is_active,
             token=api_token.token,
-            hashed_token=api_token.hashed_token,
             expires_at=api_token.expires_at,
             apitoken_id=api_token.id,
             scope_list=api_token.scope_list,
@@ -277,6 +276,10 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
                 organization_slug_reservation_id=organization_slug_reservation_id
             )
             org_slug_qs.delete()
+
+    def delete_replicated_auth_provider(self, *, auth_provider_id: int, region_name: str) -> None:
+        with enforce_constraints(transaction.atomic(router.db_for_write(AuthProviderReplica))):
+            AuthProviderReplica.objects.filter(auth_provider_id=auth_provider_id).delete()
 
 
 class DatabaseBackedControlReplicaService(ControlReplicaService):

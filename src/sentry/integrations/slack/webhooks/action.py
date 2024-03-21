@@ -768,7 +768,19 @@ class SlackActionEndpoint(Endpoint):
             slack_request = self.slack_request_class(request)
             slack_request.validate()
         except SlackRequestError as e:
+            logger.info(
+                "slack.action.request-error", extra={"error": str(e), "status_code": e.status}
+            )
             return self.respond(status=e.status)
+
+        logger.info(
+            "slack.action.request",
+            extra={
+                "trigger_id": slack_request.data.get("trigger_id"),
+                "integration_id": slack_request.integration.id,
+                "request_data": slack_request.data,
+            },
+        )
 
         # Set organization scope
 

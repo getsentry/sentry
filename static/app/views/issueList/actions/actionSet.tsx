@@ -6,15 +6,14 @@ import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {GroupPriorityBadge} from 'sentry/components/group/groupPriority';
+import {makeGroupPriorityDropdownOptions} from 'sentry/components/group/groupPriority';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import type {BaseGroup, Project} from 'sentry/types';
-import {GroupStatus, PriorityLevel} from 'sentry/types';
+import type {BaseGroup} from 'sentry/types';
+import {GroupStatus} from 'sentry/types';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import type {IssueTypeConfig} from 'sentry/utils/issueTypeConfig/types';
-import Projects from 'sentry/utils/projects';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
@@ -89,6 +88,8 @@ function ActionSet({
       issue => issue.status === 'resolved' || issue.status === 'ignored'
     );
 
+  const hasIssuePriority = organization.features.includes('issue-priority-ui');
+
   const makeMergeTooltip = () => {
     if (mergeDisabledReason) {
       return mergeDisabledReason;
@@ -103,7 +104,8 @@ function ActionSet({
 
   // Determine whether to nest "Merge" and "Mark as Reviewed" buttons inside
   // the dropdown menu based on the current screen size
-  const nestMergeAndReview = useMedia(`(max-width: 1700px`);
+  const nestMergeAndReviewViewport = useMedia(`(max-width: 1700px)`);
+  const nestMergeAndReview = nestMergeAndReviewViewport && !hasIssuePriority;
 
   const menuItems: MenuItemProps[] = [
     {
@@ -171,34 +173,6 @@ function ActionSet({
         });
       },
     },
-    ...(organization.features.includes('issue-priority-ui')
-      ? [
-          {
-            key: 'set-priority',
-            label: t('Set Priority to...'),
-            hidden: !organization.features.includes('issue-priority-ui'),
-            isSubmenu: true,
-            children: [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW].map(
-              priority => ({
-                key: `priority-${priority}`,
-                textValue: t('Set priority to %s', priority),
-                label: <GroupPriorityBadge priority={priority} />,
-                onAction: () =>
-                  openConfirmModal({
-                    bypass: !onShouldConfirm(ConfirmAction.SET_PRIORITY),
-                    onConfirm: () => onUpdate({priority}),
-                    message: confirm({
-                      action: ConfirmAction.SET_PRIORITY,
-                      append: ` to ${priority}`,
-                      canBeUndone: true,
-                    }),
-                    confirmText: label('reprioritize'),
-                  }),
-              })
-            ),
-          },
-        ]
-      : []),
     {
       key: 'delete',
       label: t('Delete'),
@@ -236,46 +210,14 @@ function ActionSet({
           {t('Unarchive')}
         </Button>
       ) : null}
-      {selectedProjectSlug ? (
-        <Projects orgId={organization.slug} slugs={[selectedProjectSlug]}>
-          {({projects, initiallyLoaded, fetchError}) => {
-            const selectedProject = projects[0];
-            return (
-              <ResolveActions
-                onShouldConfirm={onShouldConfirm}
-                onUpdate={onUpdate}
-                anySelected={anySelected}
-                params={{
-                  hasRelease: selectedProject.hasOwnProperty('features')
-                    ? (selectedProject as Project).features.includes('releases')
-                    : false,
-                  latestRelease: selectedProject.hasOwnProperty('latestRelease')
-                    ? (selectedProject as Project).latestRelease
-                    : undefined,
-                  projectSlug: selectedProject.slug,
-                  confirm,
-                  label,
-                  loadingProjects: !initiallyLoaded,
-                  projectFetchError: !!fetchError,
-                }}
-              />
-            );
-          }}
-        </Projects>
-      ) : (
-        <ResolveActions
-          onShouldConfirm={onShouldConfirm}
-          onUpdate={onUpdate}
-          anySelected={anySelected}
-          params={{
-            hasRelease: false,
-            multipleProjectsSelected: true,
-            disabled: true,
-            confirm,
-            label,
-          }}
-        />
-      )}
+      <ResolveActions
+        onShouldConfirm={onShouldConfirm}
+        onUpdate={onUpdate}
+        anySelected={anySelected}
+        confirm={confirm}
+        label={label}
+        selectedProjectSlug={selectedProjectSlug}
+      />
       <ArchiveActions
         onUpdate={onUpdate}
         shouldConfirm={onShouldConfirm(ConfirmAction.ARCHIVE)}
@@ -283,6 +225,26 @@ function ActionSet({
         confirmLabel={label('archive')}
         disabled={ignoreDisabled}
       />
+      {hasIssuePriority && (
+        <DropdownMenu
+          triggerLabel={t('Set Priority')}
+          size="xs"
+          items={makeGroupPriorityDropdownOptions({
+            onChange: priority => {
+              openConfirmModal({
+                bypass: !onShouldConfirm(ConfirmAction.SET_PRIORITY),
+                onConfirm: () => onUpdate({priority}),
+                message: confirm({
+                  action: ConfirmAction.SET_PRIORITY,
+                  append: ` to ${priority}`,
+                  canBeUndone: true,
+                }),
+                confirmText: label('reprioritize'),
+              });
+            },
+          })}
+        />
+      )}
       {!nestMergeAndReview && (
         <ReviewAction disabled={!canMarkReviewed} onUpdate={onUpdate} />
       )}

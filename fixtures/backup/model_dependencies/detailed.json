@@ -707,6 +707,12 @@
     "table_name": "sentry_apitoken",
     "uniques": [
       [
+        "hashed_refresh_token"
+      ],
+      [
+        "hashed_token"
+      ],
+      [
         "refresh_token"
       ],
       [
