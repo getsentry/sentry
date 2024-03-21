@@ -9,7 +9,6 @@ class ApiOwner(Enum):
 
     BILLING = "revenue"
     CRONS = "crons"
-    DISCOVER_N_DASHBOARDS = "discover-n-dashboards"
     ECOSYSTEM = "ecosystem"
     ENTERPRISE = "enterprise"
     FEEDBACK = "feedback-backend"
@@ -26,7 +25,6 @@ class ApiOwner(Enum):
     PROFILING = "profiling"
     REPLAY = "replay-backend"
     SECURITY = "security"
-    TEAM_STARFISH = "team-starfish"
     TELEMETRY_EXPERIENCE = "telemetry-experience"
     UNOWNED = "unowned"
     WEB_FRONTEND_SDKS = "team-web-sdk-frontend"
