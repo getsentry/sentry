@@ -210,7 +210,7 @@ describe('Add Modal', function () {
 
     await userEvent.click(screen.getByRole('textbox', {name: 'Source'}));
 
-    expect(screen.getAllByRole('listitem')).toHaveLength(18);
+    expect(screen.getAllByRole('listitem')).toHaveLength(19);
 
     expect(screen.getByText('Event ID (Optional)')).toBeInTheDocument();
 

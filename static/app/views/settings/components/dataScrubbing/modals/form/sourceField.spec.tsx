@@ -35,8 +35,8 @@ describe('Source', function () {
 
     const suggestions = screen.getAllByRole('listitem');
 
-    // [...defaultSuggestions, ...unaryOperatorSuggestions].length === 18
-    expect(suggestions).toHaveLength(18);
+    // [...defaultSuggestions, ...unaryOperatorSuggestions].length === 19
+    expect(suggestions).toHaveLength(19);
   });
 
   it('display defaultSuggestions if input is empty, focused and has length 3', async function () {
@@ -53,8 +53,8 @@ describe('Source', function () {
 
     const suggestions = screen.getAllByRole('listitem');
 
-    // [...defaultSuggestions, ...unaryOperatorSuggestions].length === 18
-    expect(suggestions).toHaveLength(18);
+    // [...defaultSuggestions, ...unaryOperatorSuggestions].length === 19
+    expect(suggestions).toHaveLength(19);
   });
 
   it('display binaryOperatorSuggestions if penultimateFieldValue has type string', async function () {
@@ -93,8 +93,8 @@ describe('Source', function () {
 
     const suggestions = screen.getAllByRole('listitem');
 
-    // [...defaultSuggestions, ...unaryOperatorSuggestions].length === 18
-    expect(suggestions).toHaveLength(18);
+    // [...defaultSuggestions, ...unaryOperatorSuggestions].length === 19
+    expect(suggestions).toHaveLength(19);
     // !
     expect(suggestions[17]).toHaveTextContent(unarySuggestions[0].value);
   });
@@ -157,8 +157,8 @@ describe('Source', function () {
 
     const suggestions = screen.getAllByRole('listitem');
 
-    // defaultSuggestions.length === 17
-    expect(suggestions).toHaveLength(17);
+    // defaultSuggestions.length === 18
+    expect(suggestions).toHaveLength(19);
 
     // everywhere
     expect(suggestions[0]).toHaveTextContent(
