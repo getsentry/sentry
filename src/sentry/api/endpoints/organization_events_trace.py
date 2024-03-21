@@ -334,6 +334,9 @@ class TraceEvent:
             result["timestamp"] = self.event["precise.finish_ts"]
             result["start_timestamp"] = self.event["precise.start_ts"]
             result["profile_id"] = self.event["profile.id"]
+            # TODO: once we're defaulting measurements we don't need this check
+            if "measurements" in self.event:
+                result["measurements"] = self.event["measurements"]
         if self.nodestore_event:
             result["timestamp"] = self.nodestore_event.data.get("timestamp")
             result["start_timestamp"] = self.nodestore_event.data.get("start_timestamp")
@@ -427,6 +430,7 @@ def query_trace_data(
     params: Mapping[str, str],
     limit: int,
     event_id: str | None,
+    get_measurements: bool,
 ) -> tuple[Sequence[SnubaTransaction], Sequence[SnubaError]]:
     transaction_columns = [
         "id",
@@ -452,6 +456,13 @@ def query_trace_data(
         # Target is the event_id the frontend plans to render, we try to sort it to the top so it loads even if its not
         # within the query limit, needs to be the first orderby cause it takes precedence over finding the root
         transaction_orderby.insert(0, "-target")
+    if get_measurements:
+        transaction_columns.extend(
+            [
+                "measurements.key",
+                "measurements.value",
+            ]
+        )
     transaction_query = QueryBuilder(
         Dataset.Transactions,
         params,
@@ -517,6 +528,14 @@ def query_trace_data(
         result["issue.ids"] = occurrence_issue_ids.get(result["id"], {})
         result["occurrence_id"] = occurrence_ids.get(result["id"])
         result["trace.parent_transaction"] = None
+        if get_measurements:
+            result["measurements"] = {
+                key: {
+                    "value": value,
+                    "type": transaction_query.get_field_type(f"measurements.{key}"),
+                }
+                for key, value in zip(result["measurements.key"], result["measurements.value"])
+            }
 
     return cast(Sequence[SnubaTransaction], transformed_results[0]), cast(
         Sequence[SnubaError], transformed_results[1]
@@ -792,7 +811,10 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
 
         # Detailed is deprecated now that we want to use spans instead
         detailed: bool = request.GET.get("detailed", "0") == "1"
+        # Temporary url params until we finish migrating the frontend
         use_spans: bool = request.GET.get("useSpans", "0") == "1"
+        # Temporary until we can test getMeasurements in prod a bit to make sure the performance impact is reasonable
+        get_measurements: bool = request.GET.get("getMeasurements", "0") == "1"
         update_params_with_timestamp(request, params)
 
         sentry_sdk.set_tag("trace_view.using_spans", str(use_spans))
@@ -812,12 +834,14 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
         )
         with handle_query_errors():
             if use_spans:
-                transactions, errors = query_trace_data(trace_id, params, limit, event_id)
+                transactions, errors = query_trace_data(
+                    trace_id, params, limit, event_id, get_measurements
+                )
                 transactions = augment_transactions_with_spans(
                     transactions, errors, trace_id, params
                 )
             else:
-                transactions, errors = query_trace_data(trace_id, params, limit, None)
+                transactions, errors = query_trace_data(trace_id, params, limit, None, False)
             if len(transactions) == 0 and not tracing_without_performance_enabled:
                 return Response(status=404)
             self.record_analytics(transactions, trace_id, self.request.user.id, organization.id)
