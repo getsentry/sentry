@@ -127,7 +127,7 @@ const valueSuggestions: Array<SourceSuggestion> = [
   {
     type: SourceSuggestionType.VALUE,
     value: '$span.description',
-    description: t('human readable description of a span'),
+    description: t('the span description'),
   },
   {
     type: SourceSuggestionType.VALUE,
