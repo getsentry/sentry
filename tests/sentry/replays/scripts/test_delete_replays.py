@@ -131,7 +131,6 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
             end_utc=self.default_end_time,
             dry_run=True,
         )
-
         self.assert_recording_not_deleted(not_deleted)
 
     def test_deletion_replays_env_filter(self):
