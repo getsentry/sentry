@@ -217,7 +217,7 @@ class ParameterizationExperiment:
 
 
 # Note that experiments are run AFTER the initial replacements. Which means they MUST not catch replacements made
-# in the primary parameterization regex. E.g. "md5" might be caught by the "uniq_id" experiment, so it is explicitly excluded
+# in the primary parameterization regex.
 _parameterization_regex_experiments = [
     ParameterizationExperiment(
         name="uniq_id", regex=None, run=lambda _self, _, input: replace_uniq_ids_in_str(input)
@@ -225,6 +225,7 @@ _parameterization_regex_experiments = [
 ]
 
 
+@metrics.wraps("grouping.normalize_message_for_grouping")
 def normalize_message_for_grouping(message: str, event: Event, share_analytics: bool = True) -> str:
     """Replace values from a group's message with placeholders (to hide P.I.I. and
     improve grouping when no stacktrace is available) and trim to at most 2 lines.
