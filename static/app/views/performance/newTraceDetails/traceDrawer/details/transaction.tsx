@@ -177,12 +177,12 @@ function ReplaySection({
   const timeOfEvent = event.dateCreated ?? startTimestampMS ?? event.dateReceived;
   const eventTimestampMs = timeOfEvent ? Math.floor(new Date(timeOfEvent).getTime()) : 0;
 
-  return (
+  return replayId ? (
     <ReplaySectionContainer>
       <ReplaySectionTitle>{t('Session Replay')}</ReplaySectionTitle>
       <ReplayClipPreview
         analyticsContext="issue_details"
-        replaySlug={replayId || ''}
+        replaySlug={replayId}
         orgSlug={organization.slug}
         eventTimestampMs={eventTimestampMs}
         clipOffsets={REPLAY_CLIP_OFFSETS}
@@ -196,7 +196,7 @@ function ReplaySection({
         }}
       />
     </ReplaySectionContainer>
-  );
+  ) : null;
 }
 
 type TransactionDetailProps = {

@@ -59,7 +59,7 @@ CHECKIN_QUOTA_WINDOW = 60
 def _ensure_monitor_with_config(
     project: Project,
     monitor_slug: str,
-    config: dict | None,
+    config: Mapping | None,
     quotas_outcome: PermitCheckInStatus,
 ):
     try:
@@ -132,7 +132,7 @@ def _ensure_monitor_with_config(
 
 
 def check_killswitch(
-    metric_kwargs: dict,
+    metric_kwargs: Mapping,
     project: Project,
 ):
     """
@@ -150,7 +150,7 @@ def check_killswitch(
     return is_blocked
 
 
-def check_ratelimit(metric_kwargs: dict, item: CheckinItem):
+def check_ratelimit(metric_kwargs: Mapping, item: CheckinItem):
     """
     Enforce check-in rate limits. Returns True if rate limit is enforced.
     """
@@ -176,7 +176,7 @@ def check_ratelimit(metric_kwargs: dict, item: CheckinItem):
 
 def transform_checkin_uuid(
     txn: Transaction | Span,
-    metric_kwargs: dict,
+    metric_kwargs: Mapping,
     monitor_slug: str,
     check_in_id: str,
 ):
@@ -221,7 +221,7 @@ def transform_checkin_uuid(
 
 def update_existing_check_in(
     txn: Transaction | Span,
-    metric_kwargs: dict,
+    metric_kwargs: Mapping,
     project_id: int,
     monitor_environment: MonitorEnvironment,
     start_time: datetime,
@@ -251,7 +251,19 @@ def update_existing_check_in(
         )
         return
 
-    if existing_check_in.status in CheckInStatus.FINISHED_VALUES:
+    # Check-in has already reached a user terminal status sent by a previous
+    # closing check-in.
+    already_user_complete = existing_check_in.status in CheckInStatus.USER_TERMINAL_VALUES
+
+    # This check allows timeout check-ins to be updated by a
+    # user complete check-in. See the later logic for how existing TIMEOUT
+    # check-ins are handled.
+    updated_duration_only = (
+        existing_check_in.status == CheckInStatus.TIMEOUT
+        and updated_status in CheckInStatus.USER_TERMINAL_VALUES
+    )
+
+    if already_user_complete and not updated_duration_only:
         metrics.incr(
             "monitors.checkin.result",
             tags={**metric_kwargs, "status": "checkin_finished"},
@@ -293,21 +305,34 @@ def update_existing_check_in(
         )
         return
 
-    # update date_added for heartbeat
-    date_updated = existing_check_in.date_updated
-    if updated_status == CheckInStatus.IN_PROGRESS:
-        date_updated = start_time
+    updated_checkin = {
+        "status": updated_status,
+        "duration": updated_duration,
+    }
 
-    updated_timeout_at = get_new_timeout_at(existing_check_in, updated_status, start_time)
+    # XXX(epurkhiser): We currently allow a existing timed-out check-in to
+    # have it's duration updated. This helps users understand that a check-in
+    # DID complete. However we will NOT currently transition the status away
+    # from TIMEOUT.
+    #
+    # In the future we will likely revisit this by adding as `substatus` to
+    # check-ins which can help in the scenario where a TIMEOUT check-in
+    # transitions to a USER_TERMINAL_VALUES late value.
+    if updated_duration_only:
+        del updated_checkin["status"]
 
-    existing_check_in.update(
-        status=updated_status,
-        duration=updated_duration,
-        date_updated=date_updated,
-        timeout_at=updated_timeout_at,
+    # IN_PROGRESS heartbeats bump the timeout
+    updated_checkin["timeout_at"] = get_new_timeout_at(
+        existing_check_in,
+        updated_status,
+        start_time,
     )
 
-    return
+    # IN_PROGRESS heartbeats bump the date_updated
+    if updated_status == CheckInStatus.IN_PROGRESS:
+        updated_checkin["date_updated"] = start_time
+
+    existing_check_in.update(**updated_checkin)
 
 
 def _process_checkin(item: CheckinItem, txn: Transaction | Span):
