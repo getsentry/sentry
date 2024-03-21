@@ -1,5 +1,6 @@
 import unittest
 from datetime import timedelta
+from typing import Any
 from unittest.mock import Mock, patch
 from uuid import uuid4
 
@@ -741,7 +742,7 @@ class GetEventFileCommitters(CommitTestCase):
     @patch("sentry.utils.committers.get_frame_paths")
     def test_none_frame(self, mock_get_frame_paths):
         """Test that if a frame is None, we skip over it"""
-        frames = [
+        frames: list[Any] = [
             {
                 "function": "handle_set_commits",
                 "abs_path": "/usr/src/sentry/src/sentry/tasks.py",
