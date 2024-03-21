@@ -32,11 +32,12 @@ export function makeMonitorListQueryKey(
 
 export function makeMonitorDetailsQueryKey(
   organization: Organization,
+  projectId: string,
   monitorSlug: string,
   query?: Record<string, any>
 ) {
   return [
-    `/organizations/${organization.slug}/monitors/${monitorSlug}/`,
+    `/projects/${organization.slug}/${projectId}/monitors/${monitorSlug}/`,
     {query},
   ] as const;
 }

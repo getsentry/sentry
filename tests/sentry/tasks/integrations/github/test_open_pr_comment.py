@@ -115,6 +115,7 @@ class TestSafeForComment(GithubCommentTestCase):
         assert pr_files == [
             {"filename": "foo.py", "changes": 100, "status": "modified"},
             {"filename": "bar.js", "changes": 100, "status": "modified"},
+            {"filename": "bop.php", "changes": 100, "status": "modified"},
         ]
 
     @responses.activate
@@ -1212,31 +1213,3 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         mock_metrics.incr.assert_called_with(
             "github_open_pr_comment.error", tags={"type": "unsafe_for_comment"}
         )
-
-    @patch("sentry.tasks.integrations.github.open_pr_comment.metrics")
-    def test_comment_workflow_missing_php_feature_flag(
-        self,
-        mock_metrics,
-        _,
-        mock_safe_for_comment,
-        mock_issues,
-        mock_function_names,
-        mock_reverse_codemappings,
-        mock_pr_filenames,
-    ):
-        mock_safe_for_comment.return_value = [{"filename": "hello.php", "patch": "a"}]
-        mock_reverse_codemappings.return_value = ([self.project], ["hello.php"])
-        mock_pr_filenames.return_value = [PullRequestFile(filename="hello.php", patch="a")]
-
-        open_pr_comment_workflow(self.pr.id)
-
-        # mock safe for comment should filter out php if the org doesn't have
-        # the feature flag, but we also have a check in open_pr_comment_workflow
-
-        assert not mock_issues.called
-        # this metric is emitted inside a for loop
-        mock_metrics.incr.assert_any_call(
-            "github_open_pr_comment.missing_parser", tags={"extension": "php"}
-        )
-        # this metric is emitted in the early return after the for loop
-        mock_metrics.incr.assert_called_with("github_open_pr_comment.no_issues")
