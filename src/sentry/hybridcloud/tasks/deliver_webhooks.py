@@ -282,7 +282,7 @@ def drain_mailbox_parallel(payload_id: int) -> None:
                     extra={
                         "mailbox_name": payload.mailbox_name,
                         "delivered": delivered,
-                     },
+                    },
                 )
                 break
 
