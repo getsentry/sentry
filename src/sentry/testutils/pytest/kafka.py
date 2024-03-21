@@ -161,6 +161,8 @@ def wait_for_ingest_consumer(session_ingest_consumer, task_runner):
     """
 
     def factory(settings, **kwargs):
+        consumer = session_ingest_consumer(settings, **kwargs)
+
         def waiter(exit_predicate, max_time=MAX_SECONDS_WAITING_FOR_EVENT):
             """
             Implements a wait loop for the ingest consumer
@@ -170,7 +172,6 @@ def wait_for_ingest_consumer(session_ingest_consumer, task_runner):
             :return: the first non None result returned by the exit predicate or None if the
                 max time has expired without the exit predicate returning a non None value
             """
-            consumer = session_ingest_consumer(settings, **kwargs)
 
             start_wait = time.time()
             with task_runner():
