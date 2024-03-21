@@ -1,6 +1,7 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
 
+import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 from snuba_sdk import Column, Condition, Function, Op
@@ -30,6 +31,7 @@ def add_comparison_to_event(event, average_column):
             group_to_span_map[group].append(span)
 
     # Nothing to add comparisons to
+    sentry_sdk.set_measurement("query.groups", len(group_to_span_map))
     if len(group_to_span_map) == 0:
         return
 
@@ -43,24 +45,25 @@ def add_comparison_to_event(event, average_column):
                 "organization_id": event.organization.id,
             },
             selected_columns=[
-                "group",
+                "span.group",
                 f"avg({average_column}) as avg",
             ],
             # orderby shouldn't matter, just picking something so results are consistent
-            orderby=["group"],
+            orderby=["span.group"],
         )
         builder.add_conditions(
             [
                 Condition(
-                    Column(builder.resolve_column_name("group")),
+                    Column(builder.resolve_column_name("span.group")),
                     Op.IN,
                     Function("tuple", list(group_to_span_map.keys())),
                 )
             ]
         )
         result = builder.run_query("Get avg for spans")
+        sentry_sdk.set_measurement("query.groups_found", len(result["data"]))
         for result in result["data"]:
-            group = result["group"]
+            group = result["span.group"]
             avg = result["avg"]
             for span in group_to_span_map[group]:
                 span["span.average_time"] = avg
