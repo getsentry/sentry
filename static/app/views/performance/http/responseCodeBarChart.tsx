@@ -1,7 +1,7 @@
 import type {Series} from 'sentry/types/echarts';
 import {CHART_HEIGHT} from 'sentry/views/performance/database/settings';
 import {COUNT_COLOUR} from 'sentry/views/starfish/colours';
-import Chart from 'sentry/views/starfish/components/chart';
+import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
@@ -28,7 +28,7 @@ export function ResponseCodeBarChart({series, isLoading, error}: Props) {
         error={error}
         preserveIncompletePoints
         chartColors={[COUNT_COLOUR]}
-        isBarChart
+        type={ChartType.BAR}
       />
     </ChartPanel>
   );
