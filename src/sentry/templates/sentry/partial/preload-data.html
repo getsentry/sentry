@@ -58,10 +58,10 @@
     //     information, rather than your specific org.
     //  2. When you go through the staff flow and activate U2F when you have an
     //     active superuser session, there's a race condition that occurs. Both
-    //     the preflight requests and the GET to your U2F authenticators contain
-    //     a response session cookie. The preflight requests are sent first but
+    //     the preload requests and the GET to your U2F authenticators contain
+    //     a response session cookie. The preload requests are sent first but
     //     are much slower than the authenticator GET, so we end up storing the
-    //     slowest preflight request's session cookie on the client. This causes
+    //     slowest preload request's session cookie on the client. This causes
     //     the subsequent U2F validation request to fail because the session
     //     cookie is missing the U2F state that was in the authenticator GET
     //     response session cookie.
