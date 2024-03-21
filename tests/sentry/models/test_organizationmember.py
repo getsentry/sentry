@@ -129,6 +129,29 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
 
         assert context["organization"] == self.organization
         assert context["provider"] == provider
+        assert context["actor_email"] == user.email
+
+        assert not context["has_password"]
+        assert "set_password_url" in context
+
+    @patch("sentry.utils.email.MessageBuilder")
+    def test_send_sso_unlink_email_str_sender(self, builder):
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            user = self.create_user(email="foo@example.com")
+            user.password = ""
+            user.save()
+
+        member = self.create_member(user=user, organization=self.organization)
+        provider = manager.get("dummy")
+
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+            member.send_sso_unlink_email(user.email, provider)
+
+        context = builder.call_args[1]["context"]
+
+        assert context["organization"] == self.organization
+        assert context["provider"] == provider
+        assert context["actor_email"] == user.email
 
         assert not context["has_password"]
         assert "set_password_url" in context

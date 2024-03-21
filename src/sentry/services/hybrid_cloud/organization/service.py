@@ -351,6 +351,18 @@ class OrganizationService(RpcService):
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
+    def send_sso_unlink_emails(
+        self, *, organization_id: int, sending_user_email: str, provider_key: str
+    ) -> None:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def count_members_without_sso(self, *, organization_id: int) -> int:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
     def delete_organization(
         self, *, organization_id: int, user: RpcUser
     ) -> RpcOrganizationDeleteResponse:
