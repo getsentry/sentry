@@ -29,6 +29,7 @@ describe('getMetricExpressions function', () => {
         query: 'foo:bar',
         type: MetricQueryType.QUERY,
         orderBy: 'asc',
+        name: 'query_1',
       } satisfies DashboardMetricsExpression,
     ]);
   });
@@ -51,6 +52,7 @@ describe('getMetricExpressions function', () => {
         id: 0,
         formula: '$a + $b',
         type: MetricQueryType.FORMULA,
+        name: 'query_1',
       } satisfies DashboardMetricsExpression,
     ]);
   });
@@ -62,14 +64,14 @@ describe('getMetricExpressions function', () => {
           aggregates: ['avg(d:transactions/duration@milisecond)'],
           conditions: 'foo:bar',
           columns: ['release'],
-          name: '0',
+          name: 'query_1',
           orderby: 'desc',
         },
         {
           aggregates: ['avg(d:transactions/duration@milisecond)'],
           conditions: 'foo:baz',
           columns: [],
-          name: '1',
+          name: 'query_2',
           orderby: '',
         },
       ],
@@ -86,6 +88,7 @@ describe('getMetricExpressions function', () => {
         query: 'foo:bar release:1.0',
         type: MetricQueryType.QUERY,
         orderBy: 'desc',
+        name: 'query_1',
       } satisfies DashboardMetricsExpression,
       {
         groupBy: [],
@@ -95,6 +98,7 @@ describe('getMetricExpressions function', () => {
         query: 'foo:baz release:1.0',
         type: MetricQueryType.QUERY,
         orderBy: undefined,
+        name: 'query_2',
       } satisfies DashboardMetricsExpression,
     ]);
   });
@@ -106,7 +110,7 @@ describe('getMetricExpressions function', () => {
           aggregates: ['avg(d:transactions/duration@milisecond)'],
           conditions: '',
           columns: ['release'],
-          name: '1',
+          name: 'query_1',
         },
       ],
     } as Widget;
@@ -116,12 +120,13 @@ describe('getMetricExpressions function', () => {
     expect(metricQueries).toEqual([
       {
         groupBy: ['release'],
-        id: 1,
+        id: 0,
         mri: 'd:transactions/duration@milisecond',
         op: 'avg',
         query: 'release:[1.0,2.0]',
         type: MetricQueryType.QUERY,
         orderBy: undefined,
+        name: 'query_1',
       } satisfies DashboardMetricsExpression,
     ]);
   });
@@ -154,6 +159,7 @@ describe('expressionsToWidget', () => {
         query: 'foo:bar',
         type: MetricQueryType.QUERY,
         orderBy: 'asc',
+        name: 'query_1',
       } satisfies DashboardMetricsExpression,
     ];
 
@@ -184,6 +190,7 @@ describe('expressionsToWidget', () => {
         id: 1,
         formula: '$a + $b',
         type: MetricQueryType.FORMULA,
+        name: 'query_1',
       } satisfies DashboardMetricsExpression,
     ];
 
@@ -208,7 +215,7 @@ describe('expressionsToWidget', () => {
     } satisfies Widget);
   });
 
-  it('should should be reversible by getMetricExpressions', () => {
+  it('should be reversible by getMetricExpressions', () => {
     const metricExpressions = [
       {
         groupBy: ['release'],
@@ -218,11 +225,13 @@ describe('expressionsToWidget', () => {
         query: 'foo:bar',
         type: MetricQueryType.QUERY,
         orderBy: 'asc',
+        name: '0',
       } satisfies DashboardMetricsExpression,
       {
         id: 1,
         formula: '$a + $b',
         type: MetricQueryType.FORMULA,
+        name: '1',
       } satisfies DashboardMetricsExpression,
     ];
 

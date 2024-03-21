@@ -58,19 +58,19 @@ export function MetricWidgetCard({
   renderErrorMessage,
   showContextMenu = true,
 }: Props) {
-  const metricQueries = useMemo(
-    () => expressionsToApiQueries(getMetricExpressions(widget, dashboardFilters)),
+  const expressions = useMemo(
+    () => getMetricExpressions(widget, dashboardFilters),
     [widget, dashboardFilters]
   );
 
-  const widgetMQL = useMemo(() => getWidgetTitle(metricQueries), [metricQueries]);
+  const widgetMQL = useMemo(() => getWidgetTitle(expressions), [expressions]);
 
   const {
     data: timeseriesData,
     isLoading,
     isError,
     error,
-  } = useMetricsQuery(metricQueries, selection, {
+  } = useMetricsQuery(expressionsToApiQueries(expressions), selection, {
     intervalLadder: widget.displayType === DisplayType.BAR ? 'bar' : 'dashboard',
   });
 
@@ -78,7 +78,7 @@ export function MetricWidgetCard({
     if (widget.displayType === DisplayType.TABLE) {
       return (
         <MetricTableContainer
-          metricQueries={metricQueries}
+          expressions={expressions}
           timeseriesData={timeseriesData}
           isLoading={isLoading}
         />
@@ -89,7 +89,7 @@ export function MetricWidgetCard({
         <MetricBigNumberContainer
           timeseriesData={timeseriesData}
           isLoading={isLoading}
-          metricQueries={metricQueries}
+          expressions={expressions}
         />
       );
     }
@@ -98,12 +98,12 @@ export function MetricWidgetCard({
       <MetricChartContainer
         timeseriesData={timeseriesData}
         isLoading={isLoading}
-        metricQueries={metricQueries}
+        expressions={expressions}
         displayType={toMetricDisplayType(widget.displayType)}
         chartHeight={!showContextMenu ? 200 : undefined}
       />
     );
-  }, [widget.displayType, metricQueries, timeseriesData, isLoading, showContextMenu]);
+  }, [widget.displayType, expressions, timeseriesData, isLoading, showContextMenu]);
 
   if (!timeseriesData || isError) {
     if (isError) {
