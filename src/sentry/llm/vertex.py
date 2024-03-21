@@ -3,6 +3,7 @@ import logging
 import google.auth
 import google.auth.transport.requests
 import requests
+from django.conf import settings
 
 from sentry.llm.base import LLMBase
 
@@ -10,23 +11,28 @@ logger = logging.getLogger(__name__)
 
 
 class VertexProvider(LLMBase):
-    def complete_prompt(message):
-        from django.conf import settings
+    candidate_count = 1
+    max_output_tokens = 1024
+    temp = 0.0
+    top_p = 1
 
+    def complete_prompt(self, prompt, message):
         url = settings.SENTRY_LLM_OPTIONS["url"]
-        prompt = settings.SENTRY_LLM_OPTIONS["prompt"]
-        candidate_count = settings.SENTRY_LLM_OPTIONS["candidate_count"]
-        max_output_tokens = settings.SENTRY_LLM_OPTIONS["max_output_tokens"]
-        temp = settings.SENTRY_LLM_OPTIONS["temp"]
-        top_p = settings.SENTRY_LLM_OPTIONS["top_p"]
 
         payload = {
-            "instances": [{"content": f'{prompt}: "{message}"'}],
+            "instances": [
+                {
+                    "messages": [
+                        {"author": "system", "content": prompt},
+                        {"author": "user", "content": message},
+                    ]
+                }
+            ],
             "parameters": {
-                "candidateCount": candidate_count,
-                "maxOutputTokens": max_output_tokens,
-                "temperature": temp,
-                "topP": top_p,
+                "candidateCount": self.candidate_count,
+                "maxOutputTokens": self.max_output_tokens,
+                "temperature": self.temp,
+                "topP": self.top_p,
             },
         }
 

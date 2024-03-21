@@ -5,5 +5,5 @@ class StubLLM(LLMBase):
     def __init__(self, **options):
         pass
 
-    def chat_completion(self, text):
+    def chat_completion(self, prompt, message):
         return ""
