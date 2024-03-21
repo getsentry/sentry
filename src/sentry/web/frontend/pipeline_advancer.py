@@ -6,7 +6,6 @@ from django.utils.translation import gettext_lazy as _
 
 from sentry.api.utils import generate_organization_url
 from sentry.identity.pipeline import IdentityProviderPipeline
-from sentry.integrations.github.integration import GITHUB_INSTALLATION_SESSION_KEY
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.utils.http import absolute_uri, create_redirect_url
 from sentry.web.frontend.base import BaseView
@@ -44,7 +43,6 @@ class PipelineAdvancerView(BaseView):
             and pipeline is None
         ):
             installation_id = request.GET.get("installation_id")
-            request.session[GITHUB_INSTALLATION_SESSION_KEY] = request.user.id
             return self.redirect(
                 reverse("integration-installation", args=[provider_id, installation_id])
             )
