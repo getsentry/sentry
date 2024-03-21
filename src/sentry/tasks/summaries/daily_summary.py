@@ -212,8 +212,8 @@ def build_summary_data(
             regressed_or_escalated_groups_today = Activity.objects.filter(
                 group__in=([group for group in regressed_or_escalated_groups]),
                 type__in=(ActivityType.SET_REGRESSION.value, ActivityType.SET_ESCALATING.value),
+                datetime__gte=ctx.start,
             )
-
             deduped_groups_by_activity_type: DefaultDict[ActivityType, set] = defaultdict(set)
 
             for activity in regressed_or_escalated_groups_today:
