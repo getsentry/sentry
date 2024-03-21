@@ -1975,8 +1975,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:ai-autofix": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
-    # Workflow 2.0 Auto associate commits to commit sha release
-    "projects:auto-associate-commits-to-release": False,
     # Enable functionality to specify custom inbound filters on events.
     "projects:custom-inbound-filters": False,
     # Enable data forwarding functionality for projects.
