@@ -6,7 +6,6 @@ type ProfilingEventSource =
   | 'events.profile_event_context'
   | 'performance.missing_instrumentation'
   | 'performance.trace_view'
-  | 'performance.trace_view.drawer-transaction-details'
   | 'performance.transactions_summary.overview'
   | 'performance_transaction.suspect_functions_table'
   | 'profiling.function_trends.improvement'

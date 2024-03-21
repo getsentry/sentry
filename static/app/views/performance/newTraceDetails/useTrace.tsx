@@ -91,7 +91,6 @@ export function getTraceQueryParams(
 
 type UseTraceParams = {
   limit?: number;
-  referrer?: string;
 };
 
 const DEFAULT_OPTIONS = {};
@@ -111,11 +110,7 @@ export function useTrace(
   return useApiQuery(
     [
       `/organizations/${organization.slug}/events-trace/${params.traceSlug ?? ''}/`,
-      {
-        query: options.referrer
-          ? {...queryParams, referrer: options.referrer}
-          : queryParams,
-      },
+      {query: queryParams},
     ],
     {
       staleTime: Infinity,

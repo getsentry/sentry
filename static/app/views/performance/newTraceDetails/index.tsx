@@ -118,8 +118,8 @@ export function TraceView() {
     });
   }, [queryParams, traceSlug]);
 
-  const trace = useTrace({referrer: 'trace-view'});
-  const meta = useTraceMeta({referrer: 'trace-view'});
+  const trace = useTrace();
+  const meta = useTraceMeta();
 
   return (
     <SentryDocumentTitle title={DOCUMENT_TITLE} orgSlug={organization.slug}>
@@ -672,7 +672,7 @@ function useRootEvent(trace: TraceSplitResults<TraceFullDetailed> | null) {
       `/organizations/${organization.slug}/events/${root?.project_slug}:${root?.event_id}/`,
       {
         query: {
-          referrer: 'trace-view.content',
+          referrer: 'trace-details-summary',
         },
       },
     ],

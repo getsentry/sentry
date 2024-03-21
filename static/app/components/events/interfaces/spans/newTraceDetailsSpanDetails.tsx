@@ -22,6 +22,7 @@ import type {Organization} from 'sentry/types';
 import type {EventTransaction} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -104,9 +105,17 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   );
 
   useLayoutEffect(() => {
-    if (!('op' in props.span)) {
+    const {span, organization, event} = props;
+    if (!('op' in span)) {
       return;
     }
+
+    trackAnalytics('performance_views.event_details.open_span_details', {
+      organization,
+      operation: span.op ?? 'undefined',
+      origin: span.origin ?? 'undefined',
+      project_platform: event.platform ?? 'undefined',
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
