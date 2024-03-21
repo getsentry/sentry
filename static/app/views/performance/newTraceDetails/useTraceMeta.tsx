@@ -34,7 +34,14 @@ function getMetaQueryParams(
   return {statsPeriod, project, timestamp};
 }
 
-export function useTraceMeta(): UseApiQueryResult<TraceMeta | null, any> {
+type UseTraceMetaParams = {
+  referrer?: string;
+};
+
+const DEFAULT_OPTIONS = {};
+export function useTraceMeta(
+  options: Partial<UseTraceMetaParams> = DEFAULT_OPTIONS
+): UseApiQueryResult<TraceMeta | null, any> {
   const filters = usePageFilters();
   const location = useLocation();
   const organization = useOrganization();
@@ -48,7 +55,11 @@ export function useTraceMeta(): UseApiQueryResult<TraceMeta | null, any> {
   return useApiQuery(
     [
       `/organizations/${organization.slug}/events-trace-meta/${params.traceSlug ?? ''}/`,
-      {query: queryParams},
+      {
+        query: options.referrer
+          ? {...queryParams, refferrer: options.referrer}
+          : queryParams,
+      },
     ],
     {
       staleTime: Infinity,

@@ -181,14 +181,14 @@ function ReplaySection({
     <ReplaySectionContainer>
       <ReplaySectionTitle>{t('Session Replay')}</ReplaySectionTitle>
       <ReplayClipPreview
-        analyticsContext="issue_details"
+        analyticsContext="trace-view"
         replaySlug={replayId}
         orgSlug={organization.slug}
         eventTimestampMs={eventTimestampMs}
         clipOffsets={REPLAY_CLIP_OFFSETS}
         fullReplayButtonProps={{
-          analyticsEventKey: 'issue_details.open_replay_details_clicked',
-          analyticsEventName: 'Issue Details: Open Replay Details Clicked',
+          analyticsEventKey: 'trace-view.drawer-open-replay-details-clicked',
+          analyticsEventName: 'Trace View: Open Replay Details Clicked',
           analyticsParams: {
             ...getAnalyticsDataForEvent(event),
             organization,
@@ -229,7 +229,7 @@ export function TransactionNodeDetails({
       `/organizations/${organization.slug}/events/${node.value.project_slug}:${node.value.event_id}/`,
       {
         query: {
-          referrer: 'trace-details-summary',
+          referrer: 'trace-view.drawer-transaction-details',
         },
       },
     ],
@@ -301,7 +301,7 @@ export function TransactionNodeDetails({
             href={`/api/0/projects/${organization.slug}/${node.value.project_slug}/events/${node.value.event_id}/json/`}
             external
             onClick={() =>
-              trackAnalytics('performance_views.event_details.json_button_click', {
+              trackAnalytics('performance_views.trace_view_.drawer_json_button_click', {
                 organization,
               })
             }
@@ -359,7 +359,7 @@ export function TransactionNodeDetails({
                   onClick={function handleOnClick() {
                     trackAnalytics('profiling_views.go_to_flamegraph', {
                       organization,
-                      source: 'performance.trace_view',
+                      source: 'performance.trace_view.drawer-transaction-details',
                     });
                   }}
                 >

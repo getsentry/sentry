@@ -42,6 +42,7 @@ function Issue(props: IssueProps) {
         query: {
           collapse: 'release',
           expand: 'inbox',
+          referrer: 'trace-view.drawer-issues-table',
         },
       },
     ],
