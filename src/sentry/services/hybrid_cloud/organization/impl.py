@@ -582,6 +582,38 @@ class DatabaseBackedOrganizationService(OrganizationService):
         for member in member_list:
             member.send_sso_link_email(sending_user_email, provider)
 
+    def send_sso_unlink_emails(
+        self, *, organization_id: int, sending_user_email: str, provider_key: str
+    ) -> None:
+        from sentry.auth import manager
+        from sentry.auth.exceptions import ProviderNotRegistered
+
+        try:
+            provider = manager.get(provider_key)
+        except ProviderNotRegistered as e:
+            logger.warning("Could not send SSO unlink emails: %s", e)
+            return
+
+        member_list = OrganizationMember.objects.filter(
+            organization_id=organization_id,
+        )
+        for member in member_list:
+            # Update all members regardless of whether or not
+            # the invitation was accepted. We don't use a bulk update
+            # because of outboxes
+            member.update(
+                flags=F("flags")
+                .bitand(~OrganizationMember.flags["sso:linked"])
+                .bitand(~OrganizationMember.flags["sso:invalid"])
+            )
+            member.send_sso_unlink_email(sending_user_email, provider)
+
+    def count_members_without_sso(self, *, organization_id: int) -> int:
+        return OrganizationMember.objects.filter(
+            organization_id=organization_id,
+            flags=F("flags").bitand(~OrganizationMember.flags["sso:linked"]),
+        ).count()
+
     def delete_organization(
         self, *, organization_id: int, user: RpcUser
     ) -> RpcOrganizationDeleteResponse:
