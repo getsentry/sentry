@@ -124,6 +124,11 @@ export default function getConfiguration({
           title: t('Replays'),
           show: () => !!organization?.features?.includes('session-replay-ui'),
         },
+        {
+          path: `${pathPrefix}/user-feedback-processing/`,
+          title: t('User Feedback'),
+          show: () => !!organization?.features?.includes('user-feedback-ui'),
+        },
       ],
     },
     {
