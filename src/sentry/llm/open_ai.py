@@ -1,3 +1,6 @@
+from sentry.runner import configure
+
+configure()
 from django.conf import settings
 from openai import OpenAI
 
