@@ -19,11 +19,14 @@ from sentry.types.activity import ActivityType
 @region_silo_endpoint
 class OrganizationActivityEndpoint(OrganizationMemberEndpoint, EnvironmentMixin):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ISSUES
 
-    @deprecated(datetime.fromisoformat("2024-03-19T00:00:00Z"))
+    @deprecated(
+        datetime.fromisoformat("2024-05-01T00:00:00Z"),
+        "Activities for each issue at 'GET /api/0/organizations/{organization_slug}/issues/{issue_id}/activities/'",
+    )
     def get(self, request: Request, organization, member) -> Response:
         # There is an activity record created for both sides of the unmerge
         # operation, so we only need to include one of them here to avoid

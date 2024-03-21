@@ -27,7 +27,7 @@ function OrganizationActivity() {
   });
 
   AlertStore.addAlert({
-    id: 'organization-activity-deprecated-x',
+    id: 'organization-activity-deprecation-notice',
     message: t('This page is deprecated and will be removed in a future release.'),
     type: 'warning',
     opaque: true,
