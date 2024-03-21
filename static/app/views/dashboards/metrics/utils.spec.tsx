@@ -215,7 +215,7 @@ describe('expressionsToWidget', () => {
     } satisfies Widget);
   });
 
-  it('should should be reversible by getMetricExpressions', () => {
+  it('should be reversible by getMetricExpressions', () => {
     const metricExpressions = [
       {
         groupBy: ['release'],
@@ -225,13 +225,13 @@ describe('expressionsToWidget', () => {
         query: 'foo:bar',
         type: MetricQueryType.QUERY,
         orderBy: 'asc',
-        name: 'query_1',
+        name: '0',
       } satisfies DashboardMetricsExpression,
       {
         id: 1,
         formula: '$a + $b',
         type: MetricQueryType.FORMULA,
-        name: 'query_1',
+        name: '1',
       } satisfies DashboardMetricsExpression,
     ];
 
