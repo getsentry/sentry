@@ -13,6 +13,8 @@ from sentry.utils.event_frames import EventFrame, try_munge_frame_path
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+SLASH = "/"
+BACKSLASH = "\\"  # This is the Python representation of a single backslash
 
 # Read this to learn about file extensions for different languages
 # https://github.com/github/linguist/blob/master/lib/linguist/languages.yml
@@ -535,3 +537,29 @@ def _get_code_mapping_source_path(src_file: str, frame_filename: FrameFilename) 
     if source_code_root:
         assert source_code_root.endswith("/")
     return source_code_root
+
+
+def find_roots(stack_path, source_path) -> tuple[str, str]:
+    """
+    Returns a tuple containing the stack_root, and the source_root.
+    If there is no overlap, raise an exception since this should not happen
+    """
+    stack_path_delim = SLASH if SLASH in stack_path else BACKSLASH
+    overlap_to_check = stack_path.split(stack_path_delim)
+    stack_root_items = []
+    while overlap_to_check:
+        if source_path.endswith(overlap := SLASH.join(overlap_to_check)):
+            source_root = source_path.rpartition(overlap)[0]
+            stack_root = stack_path_delim.join(stack_root_items)
+
+            if stack_root:  # append trailing slash
+                stack_root = f"{stack_root}{stack_path_delim}"
+
+            return (stack_root, source_root)
+
+        # increase stack root specificity, decrease overlap specifity
+        stack_root_items.append(overlap_to_check.pop(0))
+
+    # validate_source_url should have ensured the file names match
+    # so if we get here something went wrong and there is a bug
+    raise Exception("Could not find common root from paths")
