@@ -19,11 +19,13 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.silo import SiloMode, unguarded_write
+from sentry.snuba.referrer import Referrer
 from sentry.tasks.summaries.utils import (
     ONE_DAY,
     OrganizationReportContext,
     ProjectContext,
     organization_project_issue_substatus_summaries,
+    project_key_errors,
 )
 from sentry.tasks.summaries.weekly_reports import (
     deliver_reports,
@@ -200,6 +202,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         assert mock_send_email.call_count == 1
 
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
+    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_transferred_project(self, message_builder):
         self.login_as(user=self.user)
 
@@ -237,6 +240,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         assert message_builder.call_count == 1
 
     @with_feature("organizations:escalating-issues")
+    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_organization_project_issue_substatus_summaries(self):
         self.login_as(user=self.user)
 
@@ -280,6 +284,52 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         assert project_ctx.ongoing_substatus_count == 1
         assert project_ctx.regression_substatus_count == 0
         assert project_ctx.total_substatus_count == 2
+
+    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
+    def test_organization_project_issue_status(self):
+        self.login_as(user=self.user)
+        now = timezone.now()
+        self.project.first_event = now - timedelta(days=3)
+        min_ago = iso_format(now - timedelta(minutes=1))
+        with self.options({"issues.group_attributes.send_kafka": True}):
+            event1 = self.store_event(
+                data={
+                    "event_id": "a" * 32,
+                    "message": "message",
+                    "timestamp": min_ago,
+                    "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                    "fingerprint": ["group-1"],
+                },
+                project_id=self.project.id,
+            )
+            event2 = self.store_event(
+                data={
+                    "event_id": "b" * 32,
+                    "message": "message",
+                    "timestamp": min_ago,
+                    "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                    "fingerprint": ["group-2"],
+                },
+                project_id=self.project.id,
+            )
+            group2 = event2.group
+            group2.status = GroupStatus.RESOLVED
+            group2.substatus = None
+            group2.resolved_at = now - timedelta(minutes=1)
+            group2.save()
+
+        timestamp = now.timestamp()
+        ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
+        with self.feature("organizations:snql-join-reports"):
+            key_errors = project_key_errors(ctx, self.project, Referrer.REPORTS_KEY_ERRORS.value)
+            assert key_errors == [{"events.group_id": event1.group.id, "count()": 1}]
+
+        # without the flag, resolved issues are not filtered out
+        key_errors = project_key_errors(ctx, self.project, Referrer.REPORTS_KEY_ERRORS.value)
+        assert key_errors == [
+            {"group_id": event1.group.id, "count()": 1},
+            {"group_id": group2.id, "count()": 1},
+        ]
 
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")

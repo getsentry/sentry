@@ -16,6 +16,8 @@ import {
 import {Entries} from 'sentry/components/events/eventEntries';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {EventExtraData} from 'sentry/components/events/eventExtraData';
+import {REPLAY_CLIP_OFFSETS} from 'sentry/components/events/eventReplay';
+import ReplayClipPreview from 'sentry/components/events/eventReplay/replayClipPreview';
 import {EventSdk} from 'sentry/components/events/eventSdk';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {Breadcrumbs} from 'sentry/components/events/interfaces/breadcrumbs';
@@ -42,10 +44,12 @@ import {
 } from 'sentry/types';
 import {objectIsEmpty} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import useProjects from 'sentry/utils/useProjects';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import {CustomMetricsEventData} from 'sentry/views/ddm/customMetricsEventData';
@@ -158,6 +162,41 @@ function BreadCrumbsSection({
       </div>
     </Fragment>
   );
+}
+
+function ReplaySection({
+  event,
+  organization,
+}: {
+  event: EventTransaction;
+  organization: Organization;
+}) {
+  const replayId = getReplayIdFromEvent(event);
+  const startTimestampMS =
+    'startTimestamp' in event ? event.startTimestamp * 1000 : undefined;
+  const timeOfEvent = event.dateCreated ?? startTimestampMS ?? event.dateReceived;
+  const eventTimestampMs = timeOfEvent ? Math.floor(new Date(timeOfEvent).getTime()) : 0;
+
+  return replayId ? (
+    <ReplaySectionContainer>
+      <ReplaySectionTitle>{t('Session Replay')}</ReplaySectionTitle>
+      <ReplayClipPreview
+        analyticsContext="issue_details"
+        replaySlug={replayId}
+        orgSlug={organization.slug}
+        eventTimestampMs={eventTimestampMs}
+        clipOffsets={REPLAY_CLIP_OFFSETS}
+        fullReplayButtonProps={{
+          analyticsEventKey: 'issue_details.open_replay_details_clicked',
+          analyticsEventName: 'Issue Details: Open Replay Details Clicked',
+          analyticsParams: {
+            ...getAnalyticsDataForEvent(event),
+            organization,
+          },
+        }}
+      />
+    </ReplaySectionContainer>
+  ) : null;
 }
 
 type TransactionDetailProps = {
@@ -409,13 +448,14 @@ export function TransactionNodeDetails({
         </tbody>
       </TraceDrawerComponents.Table>
       {project ? <EventEvidence event={event} project={project} /> : null}
+      <ReplaySection event={event} organization={organization} />
       {event.projectSlug ? (
         <Entries
           definedEvent={event}
           projectSlug={event.projectSlug}
           group={undefined}
           organization={organization}
-          isShare={false}
+          isShare
           hideBeforeReplayEntries
           hideBreadCrumbs
         />
@@ -463,6 +503,17 @@ export function TransactionNodeDetails({
     </TraceDrawerComponents.DetailContainer>
   );
 }
+
+const ReplaySectionContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+`;
+
+const ReplaySectionTitle = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: 600;
+  margin-bottom: ${space(2)};
+`;
 
 const Measurements = styled('div')`
   display: flex;

@@ -1,10 +1,10 @@
+import {Fragment} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import ErrorCounts from 'sentry/components/replays/header/errorCounts';
 import HeaderPlaceholder from 'sentry/components/replays/header/headerPlaceholder';
-import TimeSince from 'sentry/components/timeSince';
-import {IconCalendar, IconCursorArrow} from 'sentry/icons';
+import {IconCursorArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import EventView from 'sentry/utils/discover/eventView';
@@ -17,9 +17,10 @@ import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 type Props = {
   replayErrors: ReplayError[];
   replayRecord: ReplayRecord | undefined;
+  showDeadRageClicks?: boolean;
 };
 
-function ReplayMetaData({replayErrors, replayRecord}: Props) {
+function ReplayMetaData({replayErrors, replayRecord, showDeadRageClicks = true}: Props) {
   const location = useLocation();
   const routes = useRoutes();
   const referrer = getRouteStringFromRoutes(routes);
@@ -37,49 +38,41 @@ function ReplayMetaData({replayErrors, replayRecord}: Props) {
 
   return (
     <KeyMetrics>
-      <KeyMetricLabel>{t('Start Time')}</KeyMetricLabel>
-      <KeyMetricData>
-        {replayRecord ? (
-          <TimeContainer>
-            <IconCalendar color="gray300" size="sm" />
-            <TimeSince
-              date={replayRecord.started_at}
-              isTooltipHoverable
-              unitStyle="regular"
-            />
-          </TimeContainer>
-        ) : (
-          <HeaderPlaceholder width="80px" height="16px" />
-        )}
-      </KeyMetricData>
+      {showDeadRageClicks && (
+        <Fragment>
+          <KeyMetricLabel>{t('Dead Clicks')}</KeyMetricLabel>
+          <KeyMetricData>
+            {replayRecord?.count_dead_clicks ? (
+              <Link to={breadcrumbTab}>
+                <ClickCount>
+                  <IconCursorArrow size="sm" color="yellow300" />
+                  {replayRecord.count_dead_clicks}
+                </ClickCount>
+              </Link>
+            ) : (
+              <Count>0</Count>
+            )}
+          </KeyMetricData>
+        </Fragment>
+      )}
 
-      <KeyMetricLabel>{t('Dead Clicks')}</KeyMetricLabel>
-      <KeyMetricData>
-        {replayRecord?.count_dead_clicks ? (
-          <Link to={breadcrumbTab}>
-            <ClickCount>
-              <IconCursorArrow size="sm" color="yellow300" />
-              {replayRecord.count_dead_clicks}
-            </ClickCount>
-          </Link>
-        ) : (
-          <Count>0</Count>
-        )}
-      </KeyMetricData>
-
-      <KeyMetricLabel>{t('Rage Clicks')}</KeyMetricLabel>
-      <KeyMetricData>
-        {replayRecord?.count_rage_clicks ? (
-          <Link to={breadcrumbTab}>
-            <ClickCount>
-              <IconCursorArrow size="sm" color="red300" />
-              {replayRecord.count_rage_clicks}
-            </ClickCount>
-          </Link>
-        ) : (
-          <Count>0</Count>
-        )}
-      </KeyMetricData>
+      {showDeadRageClicks && (
+        <Fragment>
+          <KeyMetricLabel>{t('Rage Clicks')}</KeyMetricLabel>
+          <KeyMetricData>
+            {replayRecord?.count_rage_clicks ? (
+              <Link to={breadcrumbTab}>
+                <ClickCount>
+                  <IconCursorArrow size="sm" color="red300" />
+                  {replayRecord.count_rage_clicks}
+                </ClickCount>
+              </Link>
+            ) : (
+              <Count>0</Count>
+            )}
+          </KeyMetricData>
+        </Fragment>
+      )}
 
       <KeyMetricLabel>{t('Errors')}</KeyMetricLabel>
       <KeyMetricData>
@@ -130,12 +123,6 @@ const ClickCount = styled(Count)`
   color: ${p => p.theme.gray300};
   display: flex;
   gap: ${space(0.75)};
-  align-items: center;
-`;
-
-const TimeContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
   align-items: center;
 `;
 

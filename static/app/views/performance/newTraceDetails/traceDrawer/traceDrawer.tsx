@@ -248,7 +248,7 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
             backgroundColor={makeTraceNodeBarColor(props.theme, root)}
           />
         )}
-        <TabButton>{props.tab.node}</TabButton>
+        <TabButton>{node}</TabButton>
       </Tab>
     );
   }

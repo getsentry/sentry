@@ -435,10 +435,42 @@ function Chart({
               <BarChart
                 height={height}
                 series={trimmedSeries}
-                xAxis={xAxis}
-                additionalSeries={transformedThroughput}
-                yAxes={areaChartProps.yAxes}
-                tooltip={areaChartProps.tooltip}
+                xAxis={{
+                  type: 'category',
+                  axisTick: {show: true},
+                  truncate: Infinity, // Show axis labels
+                  axisLabel: {
+                    interval: 0, // Show _all_ axis labels
+                  },
+                }}
+                yAxis={{
+                  minInterval: durationUnit ?? getDurationUnit(data),
+                  splitNumber: definedAxisTicks,
+                  max: dataMax,
+                  axisLabel: {
+                    color: theme.chartLabel,
+                    formatter(value: number) {
+                      return axisLabelFormatter(
+                        value,
+                        aggregateOutputFormat ?? aggregateOutputType(data[0].seriesName),
+                        undefined,
+                        durationUnit ?? getDurationUnit(data),
+                        rateUnit
+                      );
+                    },
+                  },
+                }}
+                tooltip={{
+                  valueFormatter: (value, seriesName) => {
+                    return tooltipFormatter(
+                      value,
+                      aggregateOutputFormat ??
+                        aggregateOutputType(
+                          data?.length ? data[0].seriesName : seriesName
+                        )
+                    );
+                  },
+                }}
                 colors={colors}
                 grid={grid}
                 legend={showLegend ? {top: 0, right: 10} : undefined}

@@ -172,6 +172,9 @@ export const SummaryTable = memo(function SummaryTable({
       <SortableHeaderCell onClick={changeSort} sortState={sort} name="sum" right>
         {t('Sum')}
       </SortableHeaderCell>
+      <SortableHeaderCell onClick={changeSort} sortState={sort} name="total" right>
+        {t('Total')}
+      </SortableHeaderCell>
       {hasActions && <HeaderCell disabled right />}
       <HeaderCell disabled />
       <TableBodyWrapper
@@ -196,6 +199,7 @@ export const SummaryTable = memo(function SummaryTable({
             min,
             max,
             sum,
+            total,
             isEquationSeries,
             queryIndex,
           }) => {
@@ -251,6 +255,7 @@ export const SummaryTable = memo(function SummaryTable({
                   <NumberCell>{formatMetricUsingUnit(min, unit)}</NumberCell>
                   <NumberCell>{formatMetricUsingUnit(max, unit)}</NumberCell>
                   <NumberCell>{formatMetricUsingUnit(sum, unit)}</NumberCell>
+                  <NumberCell>{formatMetricUsingUnit(total, unit)}</NumberCell>
 
                   {hasActions && (
                     <CenterCell>
@@ -408,9 +413,9 @@ function getValues(seriesData: Series['data']) {
 
 const SummaryTableWrapper = styled(`div`)<{hasActions: boolean}>`
   display: grid;
-  /* padding | color dot | name | avg | min | max | sum | actions | padding */
+  /* padding | color dot | name | avg | min | max | sum | total | actions | padding */
   grid-template-columns:
-    ${space(0.75)} ${space(3)} 8fr repeat(${p => (p.hasActions ? 5 : 4)}, max-content)
+    ${space(0.75)} ${space(3)} 8fr repeat(${p => (p.hasActions ? 6 : 5)}, max-content)
     ${space(0.75)};
 
   max-height: 200px;

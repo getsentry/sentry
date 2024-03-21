@@ -139,6 +139,8 @@ export function CanvasReplayerPlugin(events: eventWithTime[]) {
         const img = containers.get(e.data.id);
         if (img) {
           img.src = target.toDataURL();
+          img.style.width = '100%';
+          img.style.height = '100%;';
         }
       }
     },
