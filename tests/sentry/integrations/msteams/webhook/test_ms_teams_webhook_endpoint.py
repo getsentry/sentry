@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 
 from sentry.integrations.msteams import MsTeamsWebhookEndpoint
@@ -56,7 +58,7 @@ class TestGeTeamInstallationRequestData(TestCase):
         }
 
     def test_raises_error_with_missing_data(self) -> None:
-        bad_request_data = self._example_request_data.copy()
+        bad_request_data: dict[str, Any] = self._example_request_data.copy()
         bad_request_data["channelData"].pop("tenant", None)  # Remove "tenant" key
         with pytest.raises(KeyError):
             MsTeamsWebhookEndpoint._get_team_installation_request_data(bad_request_data)
