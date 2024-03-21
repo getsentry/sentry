@@ -2361,7 +2361,10 @@ SENTRY_CHART_RENDERER_OPTIONS: dict[str, Any] = {}
 
 # LLM Base
 SENTRY_LLM = "sentry.llm.stub.StubLLM"
-SENTRY_LLM_OPTIONS: dict[str, str] = {}
+SENTRY_LLM_OPTIONS: dict[str, str] = {
+    "url": os.getenv("LLM_URL", ""),
+    "model": os.getenv("LLM_MODEL", ""),
+}
 
 
 # URI Prefixes for generating DSN URLs
