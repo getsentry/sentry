@@ -5,6 +5,7 @@
 from abc import abstractmethod
 
 from sentry.hybridcloud.rpc_services.control_organization_provisioning.model import (
+    RpcOrganizationSlugBulkReservation,
     RpcOrganizationSlugReservation,
 )
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
@@ -77,7 +78,10 @@ class ControlOrganizationProvisioningRpcService(RpcService):
     @abstractmethod
     @rpc_method
     def bulk_create_organization_slug_reservations(
-        self, *, region_name: str, organization_ids_and_slugs: set[tuple[int, str]]
+        self,
+        *,
+        region_name: str,
+        organization_ids_and_slugs: set[RpcOrganizationSlugBulkReservation],
     ) -> None:
         """
         Only really intended for bulk organization import usage. Creates unique organization slug

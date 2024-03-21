@@ -5,6 +5,9 @@ from django.dispatch import receiver
 from pydantic import ValidationError
 from sentry_sdk import capture_exception
 
+from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
+    RpcOrganizationSlugBulkReservation,
+)
 from sentry.hybridcloud.rpc_services.region_organization_provisioning import (
     region_organization_provisioning_rpc_service,
 )
@@ -164,7 +167,11 @@ class OrganizationProvisioningService:
         )
 
         control_organization_provisioning_rpc_service.bulk_create_organization_slug_reservations(
-            organization_ids_and_slugs=org_ids_and_slugs, region_name=destination_region_name
+            organization_ids_and_slugs={
+                RpcOrganizationSlugBulkReservation(organization_id=organization_id, slug=slug)
+                for (organization_id, slug) in org_ids_and_slugs
+            },
+            region_name=destination_region_name,
         )
 
 

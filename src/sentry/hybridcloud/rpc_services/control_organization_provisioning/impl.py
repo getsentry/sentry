@@ -7,6 +7,7 @@ from sentry.constants import RESERVED_ORGANIZATION_SLUGS
 from sentry.db.models.utils import slugify_instance
 from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
     ControlOrganizationProvisioningRpcService,
+    RpcOrganizationSlugBulkReservation,
     RpcOrganizationSlugReservation,
     serialize_slug_reservation,
 )
@@ -254,15 +255,18 @@ class DatabaseBackedControlOrganizationProvisioningService(
         return primary_slug
 
     def bulk_create_organization_slug_reservations(
-        self, *, region_name: str, organization_ids_and_slugs: set[tuple[int, str]]
+        self,
+        *,
+        region_name: str,
+        organization_ids_and_slugs: set[RpcOrganizationSlugBulkReservation],
     ) -> None:
         slug_reservations_to_create: list[OrganizationSlugReservation] = []
 
         with outbox_context(transaction.atomic(router.db_for_write(OrganizationSlugReservation))):
-            for org_id, slug in organization_ids_and_slugs:
+            for r in organization_ids_and_slugs:
                 slug_reservation = OrganizationSlugReservation(
-                    slug=self._generate_org_slug(slug=slug, region_name=region_name),
-                    organization_id=org_id,
+                    slug=self._generate_org_slug(slug=r.slug, region_name=region_name),
+                    organization_id=r.organization_id,
                     reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS.value,
                     user_id=-1,
                     region_name=region_name,
