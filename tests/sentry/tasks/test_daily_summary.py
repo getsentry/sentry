@@ -279,6 +279,52 @@ class DailySummaryTest(
         assert project_context_map2.regressed_today == []
         assert project_context_map2.new_in_release == {}
 
+    @with_feature("organizations:snql-join-reports")
+    def test_build_summary_data_filter_to_unresolved(self):
+        with self.options({"issues.group_attributes.send_kafka": True}):
+            for _ in range(3):
+                group1 = self.store_event_and_outcomes(
+                    self.project.id,
+                    self.now,
+                    fingerprint="group-1",
+                    category=DataCategory.ERROR,
+                    resolve=False,
+                )
+
+            for _ in range(3):
+                group2 = self.store_event_and_outcomes(
+                    self.project.id,
+                    self.now,
+                    fingerprint="group-2",
+                    category=DataCategory.ERROR,
+                    resolve=False,
+                )
+
+            for _ in range(3):
+                self.store_event_and_outcomes(
+                    self.project.id,
+                    self.now,
+                    fingerprint="group-3",
+                    category=DataCategory.ERROR,
+                    resolve=True,
+                )
+
+        summary = build_summary_data(
+            timestamp=self.now.timestamp(),
+            duration=ONE_DAY,
+            organization=self.organization,
+            daily=True,
+        )
+        project_id = self.project.id
+        project_context_map = cast(
+            DailySummaryProjectContext, summary.projects_context_map[project_id]
+        )
+        assert project_context_map.total_today == 9  # total outcomes from today
+        assert project_context_map.comparison_period_avg == 0
+        assert len(project_context_map.key_errors) == 2
+        assert (group1, None, 3) in project_context_map.key_errors
+        assert (group2, None, 3) in project_context_map.key_errors
+
     def test_build_summary_data_dedupes_groups(self):
         """
         Test that if a group has multiple escalated and/or regressed activity rows, we only use the group once
@@ -386,6 +432,54 @@ class DailySummaryTest(
         )
         assert project_context_map.escalated_today == [self.group2, self.group3]
         assert project_context_map.regressed_today == []
+
+    def test_build_summary_data_group_regressed_escalated_in_the_past(self):
+        """
+        Test that if a group has regressed or escalated some time in the past over 24 hours ago, it does not show up.
+        """
+        for _ in range(2):
+            regressed_past_group = self.store_event_and_outcomes(
+                self.project.id,
+                self.three_days_ago,
+                fingerprint="group-12",
+                category=DataCategory.ERROR,
+                resolve=False,
+            )
+        for _ in range(2):
+            escalated_past_group = self.store_event_and_outcomes(
+                self.project.id,
+                self.three_days_ago,
+                fingerprint="group-13",
+                category=DataCategory.ERROR,
+                resolve=False,
+            )
+        with freeze_time(self.two_days_ago):
+            Activity.objects.create_group_activity(
+                regressed_past_group,
+                ActivityType.SET_REGRESSION,
+                data={
+                    "event_id": regressed_past_group.get_latest_event().event_id,
+                },
+            )
+            Activity.objects.create_group_activity(
+                escalated_past_group,
+                ActivityType.SET_ESCALATING,
+                data={
+                    "event_id": escalated_past_group.get_latest_event().event_id,
+                },
+            )
+        summary = build_summary_data(
+            timestamp=self.now.timestamp(),
+            duration=ONE_DAY,
+            organization=self.organization,
+            daily=True,
+        )
+        project_id = self.project.id
+        project_context_map = cast(
+            DailySummaryProjectContext, summary.projects_context_map[project_id]
+        )
+        assert regressed_past_group not in project_context_map.regressed_today
+        assert escalated_past_group not in project_context_map.escalated_today
 
     @mock.patch("sentry.tasks.summaries.daily_summary.deliver_summary")
     def test_prepare_summary_data(self, mock_deliver_summary):

@@ -934,7 +934,7 @@ def _track_duration_outcome(
     project: Project,
 ) -> None:
     duration_ms = _calculate_profile_duration_ms(profile)
-    if duration_ms == 0:
+    if duration_ms <= 0:
         return
     track_outcome(
         org_id=project.organization_id,
@@ -962,17 +962,20 @@ def _calculate_profile_duration_ms(profile: Profile) -> int:
 
 
 def _calculate_duration_for_sample_format_v1(profile: Profile) -> int:
-    return min(
-        int(
-            (
-                int(profile["transaction"]["relative_end_ns"])
-                - int(profile["transaction"]["relative_start_ns"])
-            )
-            * 1e-6
-        ),
-        # Maximum profile duration is 30s.
-        30000,
-    )
+    start_ns = int(profile["transaction"].get("relative_start_ns", 0))
+    end_ns = int(profile["transaction"].get("relative_end_ns", 0))
+    duration_ns = end_ns - start_ns
+    # try another method to determine the duration in case it's negative or 0.
+    if duration_ns <= 0:
+        samples = sorted(profile["profile"]["samples"], key=lambda s: s["elapsed_since_start_ns"])
+        if len(samples) < 2:
+            return 0
+        first, last = samples[0], samples[-1]
+        first_ns = int(first["elapsed_since_start_ns"])
+        last_ns = int(last["elapsed_since_start_ns"])
+        duration_ns = last_ns - first_ns
+    duration_ms = int(duration_ns * 1e-6)
+    return min(duration_ms, 30000)
 
 
 def _calculate_duration_for_sample_format_v2(profile: Profile) -> int:

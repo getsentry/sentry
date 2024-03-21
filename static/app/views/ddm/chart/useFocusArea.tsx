@@ -299,7 +299,10 @@ function FocusAreaOverlay({
   }, [chartRef, rect, useFullYAxis, position]);
 
   useEffect(() => {
-    updatePosition();
+    // In some cases echarts is not yet done with updating the chart
+    // and the sample axes are not yet available to read the position from
+    // so we need to delay the update until the next microtask
+    queueMicrotask(updatePosition);
   }, [rect, updatePosition]);
 
   if (!position) {

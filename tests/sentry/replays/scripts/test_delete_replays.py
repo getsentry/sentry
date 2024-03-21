@@ -61,11 +61,11 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
                 file_id=f.id,
             )
 
-    def assert_replay_deleted(self, replay_id: str):
+    def assert_recording_deleted(self, replay_id: str):
         replay_recordings = ReplayRecordingSegment.objects.filter(replay_id=replay_id)
         assert len(replay_recordings) == 0
 
-    def assert_replay_not_deleted(self, replay_id: str):
+    def assert_recording_not_deleted(self, replay_id: str):
         replay_recordings = ReplayRecordingSegment.objects.filter(replay_id=replay_id)
         assert len(replay_recordings) == 5  # we create 5 segments for each replay in this test
 
@@ -113,9 +113,9 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
                 dry_run=False,
             )
 
-        self.assert_replay_deleted(to_delete)
-        self.assert_replay_not_deleted(replay_id_kept_other_project)
-        self.assert_replay_not_deleted(replay_id_kept_outside_timerange)
+        self.assert_recording_deleted(to_delete)
+        self.assert_recording_not_deleted(replay_id_kept_other_project)
+        self.assert_recording_not_deleted(replay_id_kept_outside_timerange)
 
     def test_deletion_replays_dry_run(self):
         not_deleted = uuid4().hex
@@ -136,7 +136,7 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
                 dry_run=True,
             )
 
-        self.assert_replay_not_deleted(not_deleted)
+        self.assert_recording_not_deleted(not_deleted)
 
     def test_deletion_replays_env_filter(self):
         replay_with_env = uuid4().hex
@@ -158,7 +158,7 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
                 dry_run=False,
             )
 
-        self.assert_replay_not_deleted(replay_with_env)
+        self.assert_recording_not_deleted(replay_with_env)
 
         with TaskRunner():
             delete_replays(
@@ -171,7 +171,7 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
                 dry_run=False,
             )
 
-        self.assert_replay_deleted(replay_with_env)
+        self.assert_recording_deleted(replay_with_env)
 
     def test_deletion_replays_tags(self):
         replay_id_no_tags = uuid4().hex
@@ -200,8 +200,8 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
                 dry_run=False,
             )
 
-        self.assert_replay_not_deleted(replay_id_tags)
-        self.assert_replay_not_deleted(replay_id_no_tags)
+        self.assert_recording_not_deleted(replay_id_tags)
+        self.assert_recording_not_deleted(replay_id_no_tags)
 
         with TaskRunner():
             delete_replays(
@@ -214,8 +214,8 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
                 dry_run=False,
             )
 
-        self.assert_replay_deleted(replay_id_tags)
-        self.assert_replay_not_deleted(replay_id_no_tags)
+        self.assert_recording_deleted(replay_id_tags)
+        self.assert_recording_not_deleted(replay_id_no_tags)
 
     def test_deletion_replays_multitags(self):
         replay_id_tags = uuid4().hex
@@ -253,9 +253,9 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
                 dry_run=False,
             )
 
-        self.assert_replay_deleted(replay_id_tags)
-        self.assert_replay_not_deleted(replay_id_only_one_tag)
-        self.assert_replay_not_deleted(replay_id_two_tags_not_deleted)
+        self.assert_recording_deleted(replay_id_tags)
+        self.assert_recording_not_deleted(replay_id_only_one_tag)
+        self.assert_recording_not_deleted(replay_id_two_tags_not_deleted)
 
     def test_deletion_replays_batch_size_all_deleted(self):
         replay_ids = [uuid4().hex for _ in range(self.small_batch_size + 1)]

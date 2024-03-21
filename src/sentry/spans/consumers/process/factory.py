@@ -13,7 +13,6 @@ from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
 
 from sentry import options
 from sentry.spans.buffer.redis import RedisSpansBuffer
-from sentry.tasks.spans import process_segment
 
 logger = logging.getLogger(__name__)
 SPAN_SCHEMA: Codec[SpanEvent] = get_codec("snuba-spans")
@@ -42,13 +41,7 @@ def process_message(message: Message[KafkaPayload]):
         return
 
     client = RedisSpansBuffer()
-    new_segment = client.write_span(project_id, segment_id, message.payload.value)
-    if new_segment:
-        # This function currently does nothing.
-        process_segment.apply_async(
-            args=[project_id, segment_id],
-            countdown=PROCESS_SEGMENT_DELAY,
-        )
+    client.write_span(project_id, segment_id, message.payload.value)
 
 
 class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
