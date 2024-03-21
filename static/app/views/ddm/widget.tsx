@@ -63,13 +63,13 @@ import {createChartPalette} from 'sentry/views/ddm/utils/metricsChartPalette';
 import {DDM_CHART_GROUP, MIN_WIDGET_WIDTH} from './constants';
 
 type MetricWidgetProps = {
-  context: 'ddm' | 'dashboard';
   displayType: MetricDisplayType;
   filters: PageFilters;
   focusAreaProps: FocusAreaProps;
   onChange: (index: number, data: Partial<MetricWidgetQueryParams>) => void;
   queries: MetricsQueryApiQueryParams[];
   chartHeight?: number;
+  context?: 'ddm' | 'dashboard';
   focusedSeries?: FocusedMetricsSeries[];
   getChartPalette?: (seriesNames: string[]) => Record<string, string>;
   hasSiblings?: boolean;
@@ -370,9 +370,11 @@ const MetricWidgetBody = memo(
         }
 
         const newQuery = extendQueryWithGroupBys(queryToUpdate.query, [series.groupBy]);
-        onQueryChange?.(queryIndex, {query: newQuery});
+        const indexToUpdate = queries.length > 1 ? queryIndex : widgetIndex;
+
+        onQueryChange?.(indexToUpdate, {query: newQuery});
       },
-      [queries, onQueryChange]
+      [queries, onQueryChange, widgetIndex]
     );
 
     const isCumulativeSamplesOp =
@@ -538,6 +540,7 @@ export function getChartTimeseries(
       groupBy: entry.by,
       transaction: entry.by.transaction,
       release: entry.by.release,
+      total: entry.totals,
     }));
   });
 
@@ -560,6 +563,7 @@ export function getChartTimeseries(
     release: item.release as string | undefined,
     isEquationSeries: item.isEquationSeries,
     queryIndex: item.queryIndex,
+    total: item.total,
     emphasis: {
       focus: 'series',
     } as SeriesOption['emphasis'],

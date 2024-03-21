@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -13,12 +13,12 @@ import {space} from 'sentry/styles/space';
 import type {EventTag} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import {generateQueryWithTag, isUrl} from 'sentry/utils';
+import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
 const MAX_TREE_DEPTH = 4;
 const INVALID_BRANCH_REGEX = /\.{2,}/;
-export const COLUMN_COUNT = 2;
 
 interface TagTree {
   [key: string]: TagTreeContent;
@@ -132,7 +132,8 @@ function TagTreeRow({
             <TreeBranchIcon />
           </Fragment>
         )}
-        <TreeKey>{tagKey}</TreeKey>
+        <TreeSearchKey aria-hidden>{originalTag.key}</TreeSearchKey>
+        <TreeKey title={originalTag.key}>{tagKey}</TreeKey>
       </TreeKeyTrunk>
       <TreeValueTrunk>
         <TreeValue>
@@ -154,12 +155,12 @@ function TagTreeRow({
           preventOverflowOptions={{padding: 4}}
           className={isVisible ? '' : 'invisible'}
           position="bottom-end"
+          size="xs"
           onOpenChange={isOpen => setIsVisible(isOpen)}
           triggerProps={{
             'aria-label': t('Tag Actions Menu'),
             icon: <IconEllipsis />,
             showChevron: false,
-            size: 'xs',
             className: 'tag-button',
           }}
           items={[
@@ -274,7 +275,12 @@ function getTagTreeRows({tagKey, content, spacerCount = 0, ...props}: TagTreeRow
  * Component to render proportional columns for event tags. The columns will not separate
  * branch tags from their roots, and attempt to be as evenly distributed as possible.
  */
-function TagTreeColumns({meta, tags, ...props}: EventTagsTreeProps) {
+function TagTreeColumns({
+  meta,
+  tags,
+  columnCount,
+  ...props
+}: EventTagsTreeProps & {columnCount: number}) {
   const assembledColumns = useMemo(() => {
     // Create the TagTree data structure using all the given tags
     const tagTree = tags.reduce<TagTree>(
@@ -291,7 +297,7 @@ function TagTreeColumns({meta, tags, ...props}: EventTagsTreeProps) {
       (sum, group) => sum + group.length,
       0
     );
-    const columnRowGoal = Math.ceil(tagTreeRowTotal / COLUMN_COUNT);
+    const columnRowGoal = Math.ceil(tagTreeRowTotal / columnCount);
 
     // Iterate through the row groups, splitting rows into columns when we exceed the goal size
     const data = tagTreeRowGroups.reduce<TagTreeColumnData>(
@@ -321,16 +327,19 @@ function TagTreeColumns({meta, tags, ...props}: EventTagsTreeProps) {
       {startIndex: 0, runningTotal: 0, columns: []}
     );
     return data.columns;
-  }, [meta, tags, props]);
+  }, [meta, tags, props, columnCount]);
 
   return <Fragment>{assembledColumns}</Fragment>;
 }
 
 function EventTagsTree(props: EventTagsTreeProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const {width} = useDimensions<HTMLDivElement>({elementRef: containerRef});
+  const columnCount = width < 700 ? 1 : 2;
   return (
-    <TreeContainer>
-      <TreeGarden columnCount={COLUMN_COUNT}>
-        <TagTreeColumns {...props} />
+    <TreeContainer ref={containerRef}>
+      <TreeGarden columnCount={columnCount}>
+        <TagTreeColumns columnCount={columnCount} {...props} />
       </TreeGarden>
     </TreeContainer>
   );
@@ -342,25 +351,31 @@ const TreeContainer = styled('div')`
 
 const TreeGarden = styled('div')<{columnCount: number}>`
   display: grid;
-  gap: 0 ${space(2)};
   grid-template-columns: repeat(${p => p.columnCount}, 1fr);
   align-items: start;
 `;
 
 const TreeColumn = styled('div')`
   display: grid;
-  grid-template-columns: minmax(auto, 150px) 1fr;
+  grid-template-columns: minmax(auto, 175px) 1fr;
   grid-column-gap: ${space(3)};
   &:not(:first-child) {
-    border-left: 1px solid ${p => p.theme.gray200};
+    border-left: 1px solid ${p => p.theme.innerBorder};
     padding-left: ${space(2)};
+    margin-left: -1px;
+  }
+  &:not(:last-child) {
+    border-right: 1px solid ${p => p.theme.innerBorder};
+    padding-right: ${space(2)};
   }
 `;
 
 const TreeRow = styled('div')`
   border-radius: ${space(0.5)};
   padding-left: ${space(1)};
+  position: relative;
   display: grid;
+  align-items: center;
   grid-column: span 2;
   grid-template-columns: subgrid;
   :nth-child(odd) {
@@ -380,21 +395,26 @@ const TreeRow = styled('div')`
 const TreeSpacer = styled('div')<{isLast: boolean; spacerCount: number}>`
   grid-column: span 1;
   /* Allows TreeBranchIcons to appear connected vertically */
-  border-right: 1px solid ${p => (!p.isLast ? p.theme.gray200 : 'transparent')};
+  border-right: 1px solid ${p => (!p.isLast ? p.theme.border : 'transparent')};
   margin-right: -1px;
+  height: 100%;
 `;
 
 const TreeBranchIcon = styled('div')`
-  border: 1px solid ${p => p.theme.gray200};
+  border: 1px solid ${p => p.theme.border};
   border-width: 0 0 1px 1px;
   border-radius: 0 0 0 5px;
   grid-column: span 1;
-  margin: 0 ${space(0.5)} 0.5rem 0;
+  height: 12px;
+  align-self: start;
+  margin-right: ${space(0.5)};
 `;
 
 const TreeKeyTrunk = styled('div')<{spacerCount: number}>`
   grid-column: 1 / 2;
   display: grid;
+  height: 100%;
+  align-items: center;
   grid-template-columns: ${p =>
     p.spacerCount > 0 ? `${(p.spacerCount - 1) * 20 + 3}px 1rem 1fr` : '1fr'};
 `;
@@ -402,18 +422,30 @@ const TreeKeyTrunk = styled('div')<{spacerCount: number}>`
 const TreeValueTrunk = styled('div')`
   grid-column: 2 / 3;
   display: grid;
+  height: 100%;
+  align-items: center;
+  min-height: 22px;
   grid-template-columns: 1fr auto;
   grid-column-gap: ${space(0.5)};
 `;
 
 const TreeValue = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.fontSizeSmall};
   word-break: break-word;
   grid-column: span 1;
 `;
 
 const TreeKey = styled(TreeValue)`
   color: ${p => p.theme.gray300};
+`;
+
+/**
+ * Hidden element to allow browser searching for exact key name
+ */
+const TreeSearchKey = styled('span')`
+  font-size: 0;
+  position: absolute;
 `;
 
 const TreeValueDropdown = styled(DropdownMenu)`

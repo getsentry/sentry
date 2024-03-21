@@ -290,7 +290,6 @@ class TestRedisBuffer:
 @pytest.mark.parametrize(
     "value",
     [
-        datetime.datetime.today().replace(tzinfo=datetime.UTC),
         timezone.now(),
         datetime.date.today(),
     ],

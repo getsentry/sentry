@@ -27,6 +27,7 @@ import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import type {CheckIn, Monitor, MonitorEnvironment} from 'sentry/views/monitors/types';
 import {CheckInStatus} from 'sentry/views/monitors/types';
 import {statusToText} from 'sentry/views/monitors/utils';
+import {checkStatusToIndicatorStatus} from 'sentry/views/monitors/utils/constants';
 
 type Props = {
   monitor: Monitor;
@@ -34,22 +35,11 @@ type Props = {
   orgSlug: string;
 };
 
-const checkStatusToIndicatorStatus: Record<
-  CheckInStatus,
-  'success' | 'error' | 'muted' | 'warning'
-> = {
-  [CheckInStatus.OK]: 'success',
-  [CheckInStatus.ERROR]: 'error',
-  [CheckInStatus.IN_PROGRESS]: 'muted',
-  [CheckInStatus.MISSED]: 'warning',
-  [CheckInStatus.TIMEOUT]: 'error',
-};
-
 function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const queryKey = [
-    `/organizations/${orgSlug}/monitors/${monitor.slug}/checkins/`,
+    `/projects/${orgSlug}/${monitor.project.slug}/monitors/${monitor.slug}/checkins/`,
     {
       query: {
         per_page: '10',

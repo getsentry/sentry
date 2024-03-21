@@ -12,7 +12,10 @@ import {EMPTY_OPTION_VALUE} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {AVG_COLOR, ERRORS_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
-import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
+import Chart, {
+  ChartType,
+  useSynchronizeCharts,
+} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
@@ -174,7 +177,7 @@ function ThroughputChart({
       aggregateOutputFormat="rate"
       rateUnit={throughputUnit}
       stacked
-      isLineChart
+      type={ChartType.LINE}
       chartColors={[THROUGHPUT_COLOR]}
       tooltipFormatterOptions={{
         valueFormatter: value => formatRate(value, throughputUnit),
@@ -230,7 +233,7 @@ function DurationChart({moduleName, filters, extraQuery}: ChartProps): JSX.Eleme
       }}
       definedAxisTicks={4}
       stacked
-      isLineChart
+      type={ChartType.LINE}
       chartColors={[AVG_COLOR]}
     />
   );
@@ -263,7 +266,7 @@ function ErrorChart({moduleName, filters}: ChartProps): JSX.Element {
       }}
       definedAxisTicks={4}
       stacked
-      isLineChart
+      type={ChartType.LINE}
       chartColors={[ERRORS_COLOR]}
     />
   );
@@ -325,6 +328,7 @@ function BundleSizeChart(props: ChartProps) {
   return (
     <Chart
       stacked
+      type={ChartType.AREA}
       loading={isLoading}
       data={data}
       aggregateOutputFormat="size"

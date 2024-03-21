@@ -25,10 +25,12 @@ export default function NodeDetail({
   location,
   manager,
   scrollToNode,
+  onParentClick,
 }: {
   location: Location;
   manager: VirtualizedViewManager;
   node: TraceTreeNode<TraceTree.NodeValue>;
+  onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   organization: Organization;
   scrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
 }) {
@@ -37,6 +39,7 @@ export default function NodeDetail({
       <TransactionNodeDetails
         node={node}
         organization={organization}
+        onParentClick={onParentClick}
         location={location}
         manager={manager}
         scrollToNode={scrollToNode}
@@ -49,6 +52,7 @@ export default function NodeDetail({
       <SpanNodeDetails
         node={node}
         organization={organization}
+        onParentClick={onParentClick}
         scrollToNode={scrollToNode}
       />
     );
@@ -59,6 +63,7 @@ export default function NodeDetail({
       <ErrorNodeDetails
         node={node}
         organization={organization}
+        onParentClick={onParentClick}
         location={location}
         scrollToNode={scrollToNode}
       />
@@ -66,15 +71,29 @@ export default function NodeDetail({
   }
 
   if (isParentAutogroupedNode(node)) {
-    return <ParentAutogroupNodeDetails node={node} />;
+    return (
+      <ParentAutogroupNodeDetails
+        node={node}
+        organization={organization}
+        onParentClick={onParentClick}
+      />
+    );
   }
 
   if (isSiblingAutogroupedNode(node)) {
-    return <SiblingAutogroupNodeDetails node={node} />;
+    return (
+      <SiblingAutogroupNodeDetails
+        node={node}
+        organization={organization}
+        onParentClick={onParentClick}
+      />
+    );
   }
 
   if (isMissingInstrumentationNode(node)) {
-    return <MissingInstrumentationNodeDetails node={node} />;
+    return (
+      <MissingInstrumentationNodeDetails node={node} onParentClick={onParentClick} />
+    );
   }
 
   throw new Error('Unknown clicked node type');

@@ -580,6 +580,7 @@ class MarkFailedTestCase(TestCase):
             environment_id=self.environment.id,
             status=MonitorStatus.OK,
         )
+        assert monitor_environment.active_incident is None
         checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
@@ -594,32 +595,47 @@ class MarkFailedTestCase(TestCase):
         assert monitor_environment.status == MonitorStatus.ERROR
 
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
+        assert monitor_environment.active_incident is not None
 
-        monitor_incidents = MonitorIncident.objects.filter(monitor_environment=monitor_environment)
-        assert len(monitor_incidents) == 0
+    @with_feature("organizations:issue-platform")
+    @patch("sentry.issues.producer.produce_occurrence_to_kafka")
+    def test_mark_failed_env_muted(self, mock_produce_occurrence_to_kafka):
+        monitor = Monitor.objects.create(
+            name="test monitor",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            type=MonitorType.CRON_JOB,
+            config={
+                "schedule": [1, "month"],
+                "schedule_type": ScheduleType.INTERVAL,
+                "max_runtime": None,
+                "checkin_margin": None,
+            },
+            is_muted=False,
+        )
+        monitor_environment = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment_id=self.environment.id,
+            status=MonitorStatus.OK,
+            is_muted=True,
+        )
+        assert monitor_environment.active_incident is None
 
-        # Test for when monitor environment is muted
-        monitor.update(is_muted=False)
-        monitor_environment.update(is_muted=True, status=MonitorStatus.OK)
-
-        checkin_2 = MonitorCheckIn.objects.create(
+        checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
             project_id=self.project.id,
             status=CheckInStatus.UNKNOWN,
         )
-        assert mark_failed(checkin_2, ts=checkin_2.date_added)
+        assert mark_failed(checkin, ts=checkin.date_added)
 
         monitor.refresh_from_db()
         monitor_environment.refresh_from_db()
         assert not monitor.is_muted
         assert monitor_environment.is_muted
         assert monitor_environment.status == MonitorStatus.ERROR
-
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
-
-        monitor_incidents = MonitorIncident.objects.filter(monitor_environment=monitor_environment)
-        assert len(monitor_incidents) == 0
+        assert monitor_environment.active_incident is not None
 
     @with_feature("organizations:issue-platform")
     @patch("sentry.issues.producer.produce_occurrence_to_kafka")
@@ -864,6 +880,7 @@ class MarkFailedTestCase(TestCase):
             environment_id=self.environment.id,
             status=MonitorStatus.OK,
         )
+        assert monitor_environment.active_incident is None
         for _ in range(0, failure_issue_threshold):
             checkin = MonitorCheckIn.objects.create(
                 monitor=monitor,
@@ -879,6 +896,4 @@ class MarkFailedTestCase(TestCase):
         assert monitor_environment.status == MonitorStatus.ERROR
 
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
-
-        monitor_incidents = MonitorIncident.objects.filter(monitor_environment=monitor_environment)
-        assert len(monitor_incidents) == 0
+        assert monitor_environment.active_incident is not None

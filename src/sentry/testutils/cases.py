@@ -9,7 +9,7 @@ import re
 import time
 from collections.abc import Mapping, Sequence
 from contextlib import contextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from io import BytesIO
 from typing import Any, Literal, Union
 from unittest import mock
@@ -35,7 +35,7 @@ from django.test import TransactionTestCase as DjangoTransactionTestCase
 from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import resolve, reverse
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 from django.utils.functional import cached_property
 from requests.utils import CaseInsensitiveDict, get_encoding_from_headers
 from rest_framework import status
@@ -1121,7 +1121,7 @@ class AcceptanceTestCase(TransactionTestCase):
     def _setup_today(self):
         with mock.patch(
             "django.utils.timezone.now",
-            return_value=(datetime(2013, 5, 18, 15, 13, 58, 132928, tzinfo=timezone.utc)),
+            return_value=(datetime(2013, 5, 18, 15, 13, 58, 132928, tzinfo=UTC)),
         ):
             yield
 
@@ -1491,7 +1491,7 @@ class BaseSpansTestCase(SnubaTestCase):
         if span_id is None:
             span_id = self._random_span_id()
         if timestamp is None:
-            timestamp = datetime.now(tz=timezone.utc)
+            timestamp = timezone.now()
 
         payload = {
             "project_id": project_id,
@@ -1500,7 +1500,7 @@ class BaseSpansTestCase(SnubaTestCase):
             "duration_ms": int(duration),
             "exclusive_time_ms": int(exclusive_time),
             "is_segment": True,
-            "received": datetime.now(tz=timezone.utc).timestamp(),
+            "received": timezone.now().timestamp(),
             "start_timestamp_ms": int(timestamp.timestamp() * 1000),
             "sentry_tags": {"transaction": transaction or "/hello"},
             "retention_days": 90,
@@ -1540,7 +1540,7 @@ class BaseSpansTestCase(SnubaTestCase):
         if span_id is None:
             span_id = self._random_span_id()
         if timestamp is None:
-            timestamp = datetime.now(tz=timezone.utc)
+            timestamp = timezone.now()
 
         payload = {
             "project_id": project_id,
@@ -1549,7 +1549,7 @@ class BaseSpansTestCase(SnubaTestCase):
             "duration_ms": int(duration),
             "exclusive_time_ms": exclusive_time,
             "is_segment": False,
-            "received": datetime.now(tz=timezone.utc).timestamp(),
+            "received": timezone.now().timestamp(),
             "start_timestamp_ms": int(timestamp.timestamp() * 1000),
             "sentry_tags": {
                 "transaction": transaction or "/hello",
@@ -1788,7 +1788,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
     # This time has been specifically chosen to be 10:00:00 so that all tests will automatically have the data inserted
     # and queried with automatically inferred timestamps (e.g., usage of - 1 second, get_date_range()...) without
     # incurring into problems.
-    MOCK_DATETIME = (django_timezone.now() - timedelta(days=1)).replace(
+    MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
         hour=10, minute=0, second=0, microsecond=0
     )
 
@@ -2066,7 +2066,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         "s": EntityKey.MetricsSets.value,
     }
     METRIC_STRINGS = []
-    DEFAULT_METRIC_TIMESTAMP = datetime(2015, 1, 1, 10, 15, 0, tzinfo=timezone.utc)
+    DEFAULT_METRIC_TIMESTAMP = datetime(2015, 1, 1, 10, 15, 0, tzinfo=UTC)
 
     def setUp(self):
         super().setUp()
@@ -2075,7 +2075,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         self.login_as(user=self.user)
         self._index_metric_strings()
 
-    def do_request(self, data: dict[str, Any], features: dict[str, bool] = None) -> Response:
+    def do_request(self, data: dict[str, Any], features: dict[str, bool] | None = None) -> Response:
         """Set up self.features and self.url in the inheriting classes.
         You can pass your own features if you do not want to use the default used by the subclass.
         """
@@ -2268,7 +2268,7 @@ class BaseIncidentsTest(SnubaTestCase):
 
     @cached_property
     def now(self):
-        return django_timezone.now().replace(minute=0, second=0, microsecond=0)
+        return timezone.now().replace(minute=0, second=0, microsecond=0)
 
 
 @pytest.mark.snuba
@@ -2340,7 +2340,7 @@ class ProfilesSnubaTestCase(
             "platform": transaction["platform"],
             "profile_id": profile_id,
             "project_id": project.id,
-            "received": int(datetime.now(tz=timezone.utc).timestamp()),
+            "received": int(timezone.now().timestamp()),
             "retention_days": 90,
             "timestamp": int(timestamp),
             "transaction_name": transaction["transaction"],
@@ -2402,7 +2402,7 @@ class ReplaysSnubaTestCase(TestCase):
 # AcceptanceTestCase and TestCase are mutually exclusive base classses
 class ReplaysAcceptanceTestCase(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
-        self.now = datetime.now(timezone.utc)
+        self.now = datetime.now(UTC)
         super().setUp()
         self.drop_replays()
         patcher = mock.patch("django.utils.timezone.now", return_value=self.now)
@@ -2791,7 +2791,7 @@ class ActivityTestCase(TestCase):
         release = Release.objects.create(
             version=name * 40,
             organization_id=self.project.organization_id,
-            date_released=django_timezone.now(),
+            date_released=timezone.now(),
         )
         release.add_project(self.project)
         release.add_project(self.project2)

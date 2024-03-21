@@ -153,7 +153,6 @@ type State = DeprecatedAsyncView['state'] & {
   incompatibleFilters: number[] | null;
   project: Project;
   sendingNotification: boolean;
-  uuid: null | string;
   acceptedNoisyAlert?: boolean;
   duplicateTargetRule?: UnsavedIssueAlertRule | IssueAlertRule | null;
   rule?: UnsavedIssueAlertRule | IssueAlertRule | null;
@@ -173,6 +172,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
   trackIncompatibleAnalytics: boolean = false;
   trackNoisyWarningViewed: boolean = false;
   isUnmounted = false;
+  uuid: string | null = null;
 
   get isDuplicateRule(): boolean {
     const {location} = this.props;
@@ -204,6 +204,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     }
 
     this.fetchEnvironments();
+    this.refetchConfigs();
   }
 
   isRuleStateChange(prevState: State): boolean {
@@ -240,7 +241,6 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
       detailedError: null,
       rule: {...defaultRule},
       environments: [],
-      uuid: null,
       project,
       sendingNotification: false,
       incompatibleConditions: null,
@@ -333,12 +333,12 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     }
 
     const {organization} = this.props;
-    const {uuid, project} = this.state;
+    const {project} = this.state;
     const origRule = this.state.rule;
 
     try {
       const response: RuleTaskResponse = await this.api.requestPromise(
-        `/projects/${organization.slug}/${project.slug}/rule-task/${uuid}/`
+        `/projects/${organization.slug}/${project.slug}/rule-task/${this.uuid}/`
       );
 
       const {status, rule, error} = response;
@@ -400,6 +400,20 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
       })
       .then(response => this.setState({environments: response}))
       .catch(_err => addErrorMessage(t('Unable to fetch environments')));
+  }
+
+  refetchConfigs() {
+    const {organization} = this.props;
+    const {project} = this.state;
+
+    this.api
+      .requestPromise(
+        `/projects/${organization.slug}/${project.slug}/rules/configuration/`
+      )
+      .then(response => this.setState({configs: response}))
+      .catch(() => {
+        // No need to alert user if this fails, can use existing data
+      });
   }
 
   fetchStatus() {
@@ -532,7 +546,8 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
       // if we get a 202 back it means that we have an async task
       // running to lookup and verify the channel id for Slack.
       if (resp?.status === 202) {
-        this.setState({detailedError: null, loading: true, uuid: data.uuid});
+        this.uuid = data.uuid;
+        this.setState({detailedError: null, loading: true});
         this.fetchStatus();
         addLoadingMessage(t('Looking through all your channels...'));
       } else {

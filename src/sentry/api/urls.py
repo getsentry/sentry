@@ -336,7 +336,6 @@ from .endpoints.organization_dashboard_widget_details import (
     OrganizationDashboardWidgetDetailsEndpoint,
 )
 from .endpoints.organization_dashboards import OrganizationDashboardsEndpoint
-from .endpoints.organization_ddm import OrganizationDDMMetaEndpoint
 from .endpoints.organization_derive_code_mappings import OrganizationDeriveCodeMappingsEndpoint
 from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
@@ -1989,11 +1988,6 @@ ORGANIZATION_URLS = [
                 ),
             ]
         ),
-    ),
-    re_path(
-        r"^(?P<organization_slug>[^/]+)/ddm/meta/$",
-        OrganizationDDMMetaEndpoint.as_view(),
-        name="sentry-api-0-organization-ddm-meta",
     ),
     re_path(
         r"^(?P<organization_slug>[^/]+)/metrics/code-locations/$",

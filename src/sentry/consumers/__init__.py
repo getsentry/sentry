@@ -259,6 +259,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "static_args": {
             "consumer_type": "events",
         },
+        "dlq_topic": Topic.INGEST_EVENTS_DLQ,
     },
     "ingest-feedback-events": {
         "topic": Topic.INGEST_FEEDBACK_EVENTS,
@@ -267,6 +268,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "static_args": {
             "consumer_type": "feedback-events",
         },
+        "dlq_topic": Topic.INGEST_FEEDBACK_EVENTS_DLQ,
     },
     "ingest-attachments": {
         "topic": Topic.INGEST_ATTACHMENTS,
@@ -275,6 +277,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "static_args": {
             "consumer_type": "attachments",
         },
+        "dlq_topic": Topic.INGEST_ATTACHMENTS_DLQ,
     },
     "ingest-transactions": {
         "topic": Topic.INGEST_TRANSACTIONS,
@@ -283,6 +286,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "static_args": {
             "consumer_type": "transactions",
         },
+        "dlq_topic": Topic.INGEST_TRANSACTIONS_DLQ,
     },
     "ingest-metrics": {
         "topic": Topic.INGEST_METRICS,
@@ -346,6 +350,10 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "process-spans": {
         "topic": Topic.SNUBA_SPANS,
         "strategy_factory": "sentry.spans.consumers.process.factory.ProcessSpansStrategyFactory",
+    },
+    "detect-performance-issues": {
+        "topic": Topic.BUFFERED_SEGMENTS,
+        "strategy_factory": "sentry.spans.consumers.detect_performance_issues.factory.DetectPerformanceIssuesStrategyFactory",
     },
     **settings.SENTRY_KAFKA_CONSUMERS,
 }

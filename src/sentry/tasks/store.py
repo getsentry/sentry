@@ -99,6 +99,7 @@ class SaveEventTaskKind:
     from_reprocessing: bool = False
 
 
+@sentry_sdk.tracing.trace
 def submit_save_event(
     task_kind: SaveEventTaskKind,
     project_id: int,
@@ -615,19 +616,21 @@ def delete_raw_event(project_id: int, event_id: str | None, allow_hint_clear: bo
 
     # Clear the sent notification if we reprocessed everything
     # successfully and reprocessing is enabled
-    reprocessing_active = ProjectOption.objects.get_value(
-        project_id, "sentry:reprocessing_active", REPROCESSING_DEFAULT
-    )
+    reprocessing_active = ProjectOption.objects.filter(
+        project_id=project_id, key="sentry:reprocessing_active"
+    ).exists()
     if reprocessing_active:
-        sent_notification = ProjectOption.objects.get_value(
-            project_id, "sentry:sent_failed_event_hint", False
-        )
+        sent_notification = ProjectOption.objects.filter(
+            project_id=project_id, key="sentry:sent_failed_event_hint"
+        ).exists()
         if sent_notification:
             if ReprocessingReport.objects.filter(project_id=project_id, event_id=event_id).exists():
-                project = Project.objects.get_from_cache(id=project_id)
-                ProjectOption.objects.set_value(project, "sentry:sent_failed_event_hint", False)
+                ProjectOption.objects.update_value(
+                    project_id=project_id, key="sentry:sent_failed_event_hint", value=False
+                )
 
 
+@sentry_sdk.tracing.trace
 def create_failed_event(
     cache_key: str,
     data: Event | None,
@@ -800,12 +803,13 @@ def _do_save_event(
             with metrics.timer("tasks.store.do_save_event.event_manager.save"):
                 manager = EventManager(data)
                 # event.project.organization is populated after this statement.
-                manager.save(
-                    project_id,
-                    assume_normalized=True,
-                    start_time=start_time,
-                    cache_key=cache_key,
-                )
+                with sentry_sdk.start_span(op="event_manager.save"):
+                    manager.save(
+                        project_id,
+                        assume_normalized=True,
+                        start_time=start_time,
+                        cache_key=cache_key,
+                    )
                 # Put the updated event back into the cache so that post_process
                 # has the most recent data.
                 data = manager.get_data()
@@ -843,6 +847,7 @@ def _do_save_event(
             time_synthetic_monitoring_event(data, project_id, start_time)
 
 
+@sentry_sdk.tracing.trace
 def time_synthetic_monitoring_event(data: Event, project_id: int, start_time: float | None) -> bool:
     """
     For special events produced by the recurring synthetic monitoring

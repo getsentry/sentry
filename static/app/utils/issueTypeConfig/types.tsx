@@ -28,6 +28,10 @@ export type IssueTypeConfig = {
    */
   attachments: DisabledWithReasonConfig;
   /**
+   * Should show Autofix for this issue type
+   */
+  autofix: boolean;
+  /**
    * Is the "Open in Discover" button available for this issue
    */
   discover: DisabledWithReasonConfig;

@@ -1,11 +1,10 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import * as qs from 'query-string';
 
-import {Button as CommonButton} from 'sentry/components/button';
-import {
-  SpanDetailContainer,
-  SpanDetails,
-} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
+import {Button as CommonButton, LinkButton} from 'sentry/components/button';
 import {DataSection} from 'sentry/components/events/styles';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 const DetailContainer = styled('div')`
@@ -16,14 +15,6 @@ const DetailContainer = styled('div')`
 
   ${DataSection} {
     padding: 0;
-  }
-
-  ${SpanDetails} {
-    padding: 0;
-  }
-
-  ${SpanDetailContainer} {
-    border-bottom: none !important;
   }
 `;
 
@@ -38,6 +29,7 @@ const Actions = styled(FlexBox)`
 
 const Title = styled(FlexBox)`
   gap: ${space(1)};
+  flex: none;
 `;
 
 const Type = styled('div')`
@@ -59,8 +51,8 @@ const IconTitleWrapper = styled(FlexBox)`
   gap: ${space(1)};
 `;
 
-const IconBorder = styled('div')<{errored?: boolean}>`
-  background-color: ${p => (p.errored ? p.theme.error : p.theme.blue300)};
+const IconBorder = styled('div')<{backgroundColor: string; errored?: boolean}>`
+  background-color: ${p => p.backgroundColor};
   border-radius: ${p => p.theme.borderRadius};
   padding: 0;
   display: flex;
@@ -86,6 +78,30 @@ const HeaderContainer = styled(Title)`
   justify-content: space-between;
 `;
 
+function EventDetailsLink(props: {eventId: string; projectSlug?: string}) {
+  const query = useMemo(() => {
+    return {...qs.parse(location.search), legacy: 1};
+  }, []);
+
+  return (
+    <LinkButton
+      disabled={!props.eventId || !props.projectSlug}
+      title={
+        !props.eventId || !props.projectSlug
+          ? t('Event ID or Project Slug missing')
+          : undefined
+      }
+      size="xs"
+      to={{
+        pathname: `/performance/${props.projectSlug}:${props.eventId}/`,
+        query: query,
+      }}
+    >
+      {t('View Event Details')}
+    </LinkButton>
+  );
+}
+
 const TraceDrawerComponents = {
   DetailContainer,
   FlexBox,
@@ -97,6 +113,7 @@ const TraceDrawerComponents = {
   Table,
   IconTitleWrapper,
   IconBorder,
+  EventDetailsLink,
   Button,
 };
 
