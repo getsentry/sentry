@@ -164,18 +164,30 @@ def num_tokens_from_string(token_str: str) -> int:
     return num_tokens
 
 
-def is_probably_uniq_id(token_str: str):
-    if len(token_str) < 4:
+# These are all somewhat arbitrary based on examples.
+UNIQ_ID_TOKEN_LENGTH_MINIMUM = (
+    4  # Tokens smaller than this are unlikely to be unique ids regardless of other attributes
+)
+UNIQ_ID_TOKEN_LENGTH_RATIO_DEFAULT = 0.5
+UNIQ_ID_TOKEN_LENGTH_LONG = 8
+UNIQ_ID_TOKEN_LENGTH_RATIO_LONG = 0.4
+
+
+def is_probably_uniq_id(token_str: str) -> bool:
+    if len(token_str) < UNIQ_ID_TOKEN_LENGTH_MINIMUM:
         return False
     if token_str[0] == "<" and token_str[-1] == ">":  # Don't replace already-parameterized tokens
         return False
     token_length_ratio = num_tokens_from_string(token_str) / len(token_str)
-    if len(token_str) > 8 and token_length_ratio > 0.4:
+    if (
+        len(token_str) > UNIQ_ID_TOKEN_LENGTH_LONG
+        and token_length_ratio > UNIQ_ID_TOKEN_LENGTH_RATIO_LONG
+    ):
         return True
-    return token_length_ratio > 0.5
+    return token_length_ratio > UNIQ_ID_TOKEN_LENGTH_RATIO_DEFAULT
 
 
-def replace_uniq_ids_in_str(string: str):
+def replace_uniq_ids_in_str(string: str) -> str:
     strings = string.split(" ")
     for i, s in enumerate(strings):
         if is_probably_uniq_id(s):
@@ -261,7 +273,7 @@ def normalize_message_for_grouping(message: str, event: Event, share_analytics: 
         ):
             experiment_output = experiment.run(experiment, _handle_regex_match, normalized)
             if experiment_output != normalized:
-                # Register 100 analytics events per experiment per instance restart
+                # Register 100 (arbitrary, bounded number) analytics events per experiment per instance restart
                 # This generates samples for review consistently but creates a hard cap on
                 # analytics event volume
                 if share_analytics and experiment.counter < 100:

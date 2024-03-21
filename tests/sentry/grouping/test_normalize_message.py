@@ -1,17 +1,8 @@
-from unittest.mock import Mock
-
 import pytest
 
 from sentry.eventstore.models import Event
 from sentry.grouping.strategies.message import normalize_message_for_grouping
 from sentry.testutils.helpers.options import override_options
-
-
-@pytest.fixture
-def record_analytics(monkeypatch):
-    mock = Mock()
-    monkeypatch.setattr("sentry.analytics.record", mock)
-    return mock
 
 
 @pytest.mark.parametrize(
@@ -130,28 +121,56 @@ def record_analytics(monkeypatch):
             """API gateway <uniq_id> blah""",
         ),
         (
-            "Uniq ID - fb trace",  # TODO: It is possible to have fbtrace_ids without integers.
+            "Uniq ID - fb trace",
             """fbtrace_id Aba64NMEPMmBwi_cPLaGeeK AugPfq0jxGbto4u3kxn8u6p blah""",
             """fbtrace_id <uniq_id> <uniq_id> blah""",
         ),
         (
-            "Uniq ID - word with numerical pre/suffix",  # TODO: It is possible to have fbtrace_ids without integers.
+            "Uniq ID - word with numerical pre/suffix",
             """1password python3 abc123 123abc""",
             """1password python3 abc123 123abc""",
         ),
-        # (
-        #     "Quoted str w/ints - cloudflare trace",
-        #     """cloudflare trace 230b030023ae2822-SJC 819cc532aex26akb-SNP blah""",
-        #     """cloudflare trace <uniq_id> <uniq_id> blah""",
-        # ),
-        # New cases to handle better
-        # ('''blah tcp://user:pass@email.com:10 had a problem''', '''blah <url> had a problem'''),
-        # ('''blah 0.0.0.0:10 had a problem''', '''blah <ip> had a problem'''),
-        # JWT. TODO: Handle truncated JWTs?
-        # ("JWT", '''blah eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c''', '''blah <jwt>'''),
+        (
+            "Uniq ID - cloudflare trace",
+            """cloudflare trace 230b030023ae2822-SJC 819cc532aex26akb-SNP blah""",
+            """cloudflare trace <uniq_id> <uniq_id> blah""",
+        ),
+        (
+            "Uniq ID - JWT",
+            """blah eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c""",
+            """blah <uniq_id>""",
+        ),
+        (
+            "Uniq ID - Nothing to replace",
+            """I am the test words 1password python3 abc123 123abc""",
+            """I am the test words 1password python3 abc123 123abc""",
+        ),
     ],
 )
-def test_normalize_message(name, input, expected, record_analytics):
+def test_normalize_message(name, input, expected):
+    event = Event(project_id=1, event_id="something")
+    with override_options(
+        {
+            "grouping.experiments.parameterization.uniq_id": 100,
+        }
+    ):
+        assert expected == normalize_message_for_grouping(input, event), f"Case {name} Failed"
+
+
+# These are test cases that we should fix
+@pytest.mark.xfail()
+@pytest.mark.parametrize(
+    ("name", "input", "expected"),
+    [
+        (
+            "URL - non-http protocol user/pass/port",
+            """blah tcp://user:pass@email.com:10 had a problem""",
+            """blah <url> had a problem""",
+        ),
+        ("URL - IP w/ port", """blah 0.0.0.0:10 had a problem""", """blah <ip> had a problem"""),
+    ],
+)
+def test_fail_to_normalize_message(name, input, expected):
     event = Event(project_id=1, event_id="something")
     with override_options(
         {
