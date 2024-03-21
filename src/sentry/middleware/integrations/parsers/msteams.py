@@ -48,14 +48,14 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
         if self.view_class not in self.region_view_classes:
             logger.info(
                 "sentry.middleware.integrations.parsers.msteams: View class not in region",
-                extra=self.request_data,
+                extra={"request_data": self.request_data},
             )
             return self.get_response_from_control_silo()
 
         if not self.can_infer_integration(data=self.request_data):
             logger.info(
                 "sentry.middleware.integrations.parsers.msteams: Could not infer integration",
-                extra=self.request_data,
+                extra={"request_data": self.request_data},
             )
             return self.get_response_from_control_silo()
 
@@ -65,7 +65,7 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
             if not integration:
                 logger.info(
                     "sentry.middleware.integrations.parsers.msteams: Could not get integration from request",
-                    extra=self.request_data,
+                    extra={"request_data": self.request_data},
                 )
                 return self.get_default_missing_integration_response()
 
@@ -74,7 +74,7 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
             logger.info(
                 "sentry.middleware.integrations.parsers.msteams: Error in handling",
                 exc_info=err,
-                extra=self.request_data,
+                extra={"request_data": self.request_data},
             )
             return self.get_default_missing_integration_response()
 
