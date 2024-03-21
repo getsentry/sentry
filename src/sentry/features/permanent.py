@@ -1,6 +1,8 @@
 from sentry.features.base import FeatureHandlerStrategy, OrganizationFeature, ProjectFeature
 from sentry.features.manager import FeatureManager
 
+# XXX: See `features/__init__.py` for documentation on how to use feature flags
+
 
 def register_permanent_features(manager: FeatureManager):
     """

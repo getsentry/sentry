@@ -166,6 +166,10 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                 result = inbox_search(**query_kwargs)
             else:
                 query_kwargs["referrer"] = "search.group_index"
+                # optional argument to use the group snuba dataset
+                if request.GET.get("useGroupSnubaDataset"):
+                    query_kwargs["use_group_snuba_dataset"] = True
+
                 result = search.query(**query_kwargs)
             return result, query_kwargs
 

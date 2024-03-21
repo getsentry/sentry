@@ -45,53 +45,31 @@
 #    contains a datetime object, or non-ASCII str data, it will fail with a
 #    UnicodeDecodeError, in which case we will decode strings as latin-1.
 #
-#  - At the moment we DO NOT patch `pickle.load`, since it may or may not be
-#    the case that we can seek to the start of the passed file-like object. If
-#    we do have usages of it, we'll have to patch them specifically based on
-#    how the file is passed.
-#
 # [0]: https://rebeccabilbro.github.io/convert-py2-pickles-to-py3/#python-2-objects-vs-python-3-objects
+
+
+def _record_pickle_failure(metric_name: str, e: Exception) -> None:
+    from sentry.utils import metrics
+
+    metrics.incr(metric_name, sample_rate=1)
+
+    import random
+
+    from sentry import options
+
+    if options.get("pickle.send-error-to-sentry") >= random.random():
+        import logging
+
+        msg = f"{metric_name}.{type(e).__name__}: {e}"
+        # exc_info=(None, None, None) gives us a full traceback
+        logging.getLogger(__name__).error(msg, exc_info=(None, None, None))
 
 
 def patch_pickle_loaders():
     import pickle
 
-    # TODO(python3): We use the pickles `2` protocol as it is supported in 2 and 3.
-    #
-    #  - python3 defaults to a protocol > 2 (depending on the version, see [0]).
-    #  - python2 defaults to protocol 2.
-    #
-    # This is ONLY required for the transition of Python 2 -> 3. There will be
-    # a brief period where data may be pickled in python3 (during deploy, or if
-    # we rollback), where if we did not declare the version, would be in format
-    # that python 2's pickle COULD NOT decode.
-    #
-    # Once the python3 transition is complete we can use a higher version
-    #
-    # NOTE: from the documentation:
-    #       > The protocol version of the pickle is detected automatically
-    #
-    # [0]: https://docs.python.org/3/library/pickle.html#pickle-protocols
-    #
-    # XXX(epurkhiser): Unfortunately changing this module property is NOT
-    # enough. Python 3 will use _pickle (aka new cpickle) if it is available
-    # (which it usually will be). In this case it will NOT read from
-    # DEFAULT_PROTOCOL, as the module functions passthrough to the C
-    # implementation, which does not have a mutable DEFAULT_PROTOCOL module
-    # property.
-    #
-    # I'm primarily leaving this here for consistency and documentation
-    #
-    # XXX(epurkhiser): BIG IMPORTANT NOTE! When changing this, we will have to
-    # make some updates to our data pipeline, which currently uses 'pickle.js'
-    # to depickle some data using javascript.
-    pickle.DEFAULT_PROTOCOL = 2
-
     original_pickle_load = pickle.load
-    original_pickle_dump = pickle.dump
     original_pickle_loads = pickle.loads
-    original_pickle_dumps = pickle.dumps
-    original_pickle_Pickler = pickle.Pickler
     original_pickle_Unpickler = pickle.Unpickler
 
     # Patched Picker and Unpickler
@@ -99,25 +77,6 @@ def patch_pickle_loaders():
     # A NOTE on these Compat service classes. Unfortunately because pickle is a
     # C module we can't subclass, so instead we just delegate with __getattr__.
     # It's very possible we missed some more subtle uses of the classes here.
-
-    class CompatPickler:
-        def __init__(self, *args, **kwargs):
-            # If we don't explicitly pass in a protocol, use DEFAULT_PROTOCOL
-            # Enforce protocol kwarg as DEFAULT_PROTOCOL. See the comment above
-            # DEFAULT_PROTOCOL above to understand why we must pass the kwarg due
-            # to _pickle.
-            if len(args) == 1:
-                if not kwargs.get("protocol"):
-                    kwargs["protocol"] = pickle.DEFAULT_PROTOCOL
-            else:
-                largs = list(args)
-                largs[1] = pickle.DEFAULT_PROTOCOL
-                args = tuple(largs)
-
-            self.__pickler = original_pickle_Pickler(*args, **kwargs)
-
-        def __getattr__(self, key):
-            return getattr(self.__pickler, key)
 
     class CompatUnpickler:
         def __init__(self, *args, **kwargs):
@@ -134,11 +93,9 @@ def patch_pickle_loaders():
         def load(self):
             try:
                 return self.__unpickler.load()
-            except UnicodeDecodeError:
-                from sentry.utils import metrics
-
-                metrics.incr(
-                    "pickle.compat_pickle_pickler_load.had_unicode_decode_error", sample_rate=1
+            except UnicodeDecodeError as e:
+                _record_pickle_failure(
+                    "pickle.compat_pickle_pickler_load.had_unicode_decode_error", e
                 )
 
                 # We must seek back to the start of the buffer to depickle
@@ -151,47 +108,13 @@ def patch_pickle_loaders():
                 self.__make_unpickler()
                 return self.__unpickler.load()
 
-    # Patched dump and dumps
-
-    def py3_compat_pickle_dump(*args, **kwargs):
-        # If we don't explicitly pass in a protocol, use DEFAULT_PROTOCOL
-        # Enforce protocol kwarg as DEFAULT_PROTOCOL. See the comment above
-        # DEFAULT_PROTOCOL above to understand why we must pass the kwarg due
-        # to _pickle.
-        if len(args) == 1:
-            if not kwargs.get("protocol"):
-                kwargs["protocol"] = pickle.DEFAULT_PROTOCOL
-        else:
-            largs = list(args)
-            largs[1] = pickle.DEFAULT_PROTOCOL
-            args = tuple(largs)
-
-        return original_pickle_dump(*args, **kwargs)
-
-    def py3_compat_pickle_dumps(*args, **kwargs):
-        # If we don't explicitly pass in a protocol, use DEFAULT_PROTOCOL
-        # Enforce protocol kwarg as DEFAULT_PROTOCOL. See the comment above
-        # DEFAULT_PROTOCOL above to understand why we must pass the kwarg due
-        # to _pickle.
-        if len(args) == 1:
-            if not kwargs.get("protocol"):
-                kwargs["protocol"] = pickle.DEFAULT_PROTOCOL
-        else:
-            largs = list(args)
-            largs[1] = pickle.DEFAULT_PROTOCOL
-            args = tuple(largs)
-
-        return original_pickle_dumps(*args, **kwargs)
-
     # Patched load and loads
 
     def py3_compat_pickle_load(*args, **kwargs):
         try:
             return original_pickle_load(*args, **kwargs)
-        except UnicodeDecodeError:
-            from sentry.utils import metrics
-
-            metrics.incr("pickle.compat_pickle_load.had_unicode_decode_error", sample_rate=1)
+        except UnicodeDecodeError as e:
+            _record_pickle_failure("pickle.compat_pickle_load.had_unicode_decode_error", e)
 
             kwargs["encoding"] = kwargs.get("encoding", "latin-1")
             return original_pickle_load(*args, **kwargs)
@@ -199,17 +122,12 @@ def patch_pickle_loaders():
     def py3_compat_pickle_loads(*args, **kwargs):
         try:
             return original_pickle_loads(*args, **kwargs)
-        except UnicodeDecodeError:
-            from sentry.utils import metrics
-
-            metrics.incr("pickle.compat_pickle_loads.had_unicode_decode_error", sample_rate=1)
+        except UnicodeDecodeError as e:
+            _record_pickle_failure("pickle.compat_pickle_loads.had_unicode_decode_error", e)
 
             kwargs["encoding"] = kwargs.get("encoding", "latin-1")
             return original_pickle_loads(*args, **kwargs)
 
     pickle.load = py3_compat_pickle_load
-    pickle.dump = py3_compat_pickle_dump
     pickle.loads = py3_compat_pickle_loads
-    pickle.dumps = py3_compat_pickle_dumps
-    pickle.Pickler = CompatPickler
     pickle.Unpickler = CompatUnpickler
