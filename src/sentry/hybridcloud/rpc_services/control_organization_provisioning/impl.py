@@ -258,7 +258,7 @@ class DatabaseBackedControlOrganizationProvisioningService(
         self,
         *,
         region_name: str,
-        organization_ids_and_slugs: set[RpcOrganizationSlugBulkReservation],
+        organization_ids_and_slugs: list[RpcOrganizationSlugBulkReservation],
     ) -> None:
         slug_reservations_to_create: list[OrganizationSlugReservation] = []
 

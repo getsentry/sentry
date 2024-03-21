@@ -167,10 +167,10 @@ class OrganizationProvisioningService:
         )
 
         control_organization_provisioning_rpc_service.bulk_create_organization_slug_reservations(
-            organization_ids_and_slugs={
+            organization_ids_and_slugs=[
                 RpcOrganizationSlugBulkReservation(organization_id=organization_id, slug=slug)
                 for (organization_id, slug) in org_ids_and_slugs
-            },
+            ],
             region_name=destination_region_name,
         )
 

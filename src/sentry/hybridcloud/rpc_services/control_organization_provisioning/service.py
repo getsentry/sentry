@@ -81,7 +81,7 @@ class ControlOrganizationProvisioningRpcService(RpcService):
         self,
         *,
         region_name: str,
-        organization_ids_and_slugs: set[RpcOrganizationSlugBulkReservation],
+        organization_ids_and_slugs: list[RpcOrganizationSlugBulkReservation],
     ) -> None:
         """
         Only really intended for bulk organization import usage. Creates unique organization slug
