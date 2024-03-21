@@ -428,7 +428,8 @@ describe('useReplayData', () => {
       expect(result.current).toStrictEqual(
         expect.objectContaining({
           attachments: mockSegmentResponse,
-          errors: mockErrorResponse,
+          // mockErrorResponse is the same between both responses
+          errors: [...mockErrorResponse, ...mockErrorResponse],
           replayRecord: expectedReplay,
         })
       )
