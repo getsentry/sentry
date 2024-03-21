@@ -37,9 +37,10 @@ logger = logging.getLogger(__name__)
 
 UNSAFE_FILES = (
     "sentry/event_manager.py",
+    "sentry/spans/consumers/process/factory.py",
+    "sentry/spans/consumers/detect_performance_issues/factory.py",
     "sentry/tasks/process_buffer.py",
     "sentry/ingest/consumer/processors.py",
-    "sentry/tasks/spans.py",
     # This consumer lives outside of sentry but is just as unsafe.
     "outcomes_consumer.py",
 )
@@ -219,7 +220,7 @@ def before_send_transaction(event, _):
 def before_send(event, _):
     if event.get("tags"):
         if settings.SILO_MODE:
-            event["tags"]["silo_mode"] = settings.SILO_MODE
+            event["tags"]["silo_mode"] = str(settings.SILO_MODE)
         if settings.SENTRY_REGION:
             event["tags"]["sentry_region"] = settings.SENTRY_REGION
     return event
@@ -612,9 +613,10 @@ def bind_organization_context(organization: Organization | RpcOrganization) -> N
     helper = settings.SENTRY_ORGANIZATION_CONTEXT_HELPER
 
     # XXX(dcramer): this is duplicated in organizationContext.jsx on the frontend
-    with configure_scope() as scope, sentry_sdk.start_span(
-        op="other", description="bind_organization_context"
-    ):
+    # fmt: off
+    with configure_scope() as scope, \
+         sentry_sdk.start_span(op="other", description="bind_organization_context"):
+        # fmt: on
         # This can be used to find errors that may have been mistagged
         check_tag_for_scope_bleed("organization.slug", organization.slug)
 

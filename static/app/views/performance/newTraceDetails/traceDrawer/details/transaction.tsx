@@ -177,18 +177,18 @@ function ReplaySection({
   const timeOfEvent = event.dateCreated ?? startTimestampMS ?? event.dateReceived;
   const eventTimestampMs = timeOfEvent ? Math.floor(new Date(timeOfEvent).getTime()) : 0;
 
-  return (
+  return replayId ? (
     <ReplaySectionContainer>
       <ReplaySectionTitle>{t('Session Replay')}</ReplaySectionTitle>
       <ReplayClipPreview
-        analyticsContext="issue_details"
-        replaySlug={replayId || ''}
+        analyticsContext="trace-view"
+        replaySlug={replayId}
         orgSlug={organization.slug}
         eventTimestampMs={eventTimestampMs}
         clipOffsets={REPLAY_CLIP_OFFSETS}
         fullReplayButtonProps={{
-          analyticsEventKey: 'issue_details.open_replay_details_clicked',
-          analyticsEventName: 'Issue Details: Open Replay Details Clicked',
+          analyticsEventKey: 'trace-view.drawer-open-replay-details-clicked',
+          analyticsEventName: 'Trace View: Open Replay Details Clicked',
           analyticsParams: {
             ...getAnalyticsDataForEvent(event),
             organization,
@@ -196,7 +196,7 @@ function ReplaySection({
         }}
       />
     </ReplaySectionContainer>
-  );
+  ) : null;
 }
 
 type TransactionDetailProps = {
@@ -300,11 +300,6 @@ export function TransactionNodeDetails({
             icon={<IconOpen />}
             href={`/api/0/projects/${organization.slug}/${node.value.project_slug}/events/${node.value.event_id}/json/`}
             external
-            onClick={() =>
-              trackAnalytics('performance_views.event_details.json_button_click', {
-                organization,
-              })
-            }
           >
             {t('JSON')} (<FileSize bytes={event?.size} />)
           </Button>

@@ -1,10 +1,10 @@
 import logging
 import math
+import zoneinfo
 from collections import defaultdict
 from datetime import datetime
 from typing import DefaultDict, cast
 
-import pytz
 import sentry_sdk
 from django.utils import timezone
 from sentry_sdk import set_tag
@@ -103,7 +103,7 @@ def schedule_organizations(timestamp: float | None = None, duration: int | None 
             users_to_send_to = []
             for user_tz, users in users_by_tz.items():
                 utc_datetime = to_datetime(timestamp)
-                local_timezone = pytz.timezone(user_tz)
+                local_timezone = zoneinfo.ZoneInfo(user_tz)
                 local_datetime = utc_datetime.astimezone(local_timezone)
                 if local_datetime.hour == HOUR_TO_SEND_REPORT:
                     for user in users:
@@ -212,8 +212,8 @@ def build_summary_data(
             regressed_or_escalated_groups_today = Activity.objects.filter(
                 group__in=([group for group in regressed_or_escalated_groups]),
                 type__in=(ActivityType.SET_REGRESSION.value, ActivityType.SET_ESCALATING.value),
+                datetime__gte=ctx.start,
             )
-
             deduped_groups_by_activity_type: DefaultDict[ActivityType, set] = defaultdict(set)
 
             for activity in regressed_or_escalated_groups_today:
