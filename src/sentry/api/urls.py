@@ -433,6 +433,7 @@ from .endpoints.organization_projects_sent_first_event import (
     OrganizationProjectsSentFirstEventEndpoint,
 )
 from .endpoints.organization_recent_searches import OrganizationRecentSearchesEndpoint
+from .endpoints.organization_region import OrganizationRegionEndpoint
 from .endpoints.organization_relay_usage import OrganizationRelayUsage
 from .endpoints.organization_release_assemble import OrganizationReleaseAssembleEndpoint
 from .endpoints.organization_release_commits import OrganizationReleaseCommitsEndpoint
@@ -2079,6 +2080,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^/]+)/prompts-activity/$",
         PromptsActivityEndpoint.as_view(),
         name="sentry-api-0-organization-prompts-activity",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/region/$",
+        OrganizationRegionEndpoint.as_view(),
+        name="sentry-api-0-organization-region",
     ),
 ]
 
