@@ -5,6 +5,7 @@ import * as qs from 'query-string';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Series} from 'sentry/types/echarts';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -14,6 +15,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {ResponseCodeBarChart} from 'sentry/views/performance/http/responseCodeBarChart';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
@@ -79,6 +81,28 @@ export function HTTPSamplesPanel() {
     enabled: isPanelOpen,
     referrer: 'api.starfish.http-module-samples-panel-metrics-ribbon',
   });
+
+  const {
+    data: responseCodeData,
+    isFetching: isResponseCodeDataLoading,
+    error: responseCodeDataError,
+  } = useSpanMetrics({
+    search: MutableSearch.fromQueryObject(filters),
+    fields: ['span.status_code', 'count()'],
+    sorts: [{field: 'span.status_code', kind: 'asc'}],
+    enabled: isPanelOpen,
+    referrer: 'api.starfish.http-module-samples-panel-response-bar-chart',
+  });
+
+  const responseCodeBarChartSeries: Series = {
+    seriesName: 'span.status_code',
+    data: (responseCodeData ?? []).map(item => {
+      return {
+        name: item['span.status_code'] || t('N/A'),
+        value: item['count()'],
+      };
+    }),
+  };
 
   const handleClose = () => {
     router.replace({
@@ -181,6 +205,12 @@ export function HTTPSamplesPanel() {
             isLoading={areDomainTransactionMetricsFetching}
           />
         </MetricsRibbon>
+
+        <ResponseCodeBarChart
+          series={responseCodeBarChartSeries}
+          isLoading={isResponseCodeDataLoading}
+          error={responseCodeDataError}
+        />
       </DetailPanel>
     </PageAlertProvider>
   );

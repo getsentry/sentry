@@ -56,7 +56,8 @@ export type SpanStringFields =
   | 'transaction'
   | 'transaction.method'
   | 'release'
-  | 'os.name';
+  | 'os.name'
+  | 'span.status_code';
 
 export type SpanMetricsQueryFilters = {
   [Field in SpanStringFields]?: string;
@@ -136,6 +137,7 @@ export enum SpanIndexedField {
   INP_SCORE = 'measurements.score.inp',
   INP_SCORE_WEIGHT = 'measurements.score.weight.inp',
   TOTAL_SCORE = 'measurements.score.total',
+  RESPONSE_CODE = 'span.status_code',
 }
 
 export type SpanIndexedFieldTypes = {
