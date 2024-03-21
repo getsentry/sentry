@@ -1612,8 +1612,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:integrations-msteams-tenant": False,
     # Enable comments of related issues on open PRs for beta languages
     "organizations:integrations-open-pr-comment-beta-langs": False,
-    # Enable Opsgenie integration
-    "organizations:integrations-opsgenie": True,
     # Enable stacktrace linking
     "organizations:integrations-stacktrace-link": True,
     # Allow orgs to automatically create Tickets in Issue Alerts
@@ -1796,6 +1794,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-view": True,
     # Enable showing INP web vital in default views
     "organizations:performance-vitals-inp": False,
+    # Enable trace explorer features in performance
+    "organizations:performance-trace-explorer": False,
     # Enable profiling
     "organizations:profiling": False,
     # Enabled for those orgs who participated in the profiling Beta program

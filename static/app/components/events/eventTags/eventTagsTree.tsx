@@ -351,7 +351,6 @@ const TreeContainer = styled('div')`
 
 const TreeGarden = styled('div')<{columnCount: number}>`
   display: grid;
-  gap: 0 ${space(2)};
   grid-template-columns: repeat(${p => p.columnCount}, 1fr);
   align-items: start;
 `;
@@ -361,8 +360,13 @@ const TreeColumn = styled('div')`
   grid-template-columns: minmax(auto, 175px) 1fr;
   grid-column-gap: ${space(3)};
   &:not(:first-child) {
-    border-left: 1px solid ${p => p.theme.gray200};
+    border-left: 1px solid ${p => p.theme.innerBorder};
     padding-left: ${space(2)};
+    margin-left: -1px;
+  }
+  &:not(:last-child) {
+    border-right: 1px solid ${p => p.theme.innerBorder};
+    padding-right: ${space(2)};
   }
 `;
 
@@ -371,6 +375,7 @@ const TreeRow = styled('div')`
   padding-left: ${space(1)};
   position: relative;
   display: grid;
+  align-items: center;
   grid-column: span 2;
   grid-template-columns: subgrid;
   :nth-child(odd) {
@@ -390,21 +395,26 @@ const TreeRow = styled('div')`
 const TreeSpacer = styled('div')<{isLast: boolean; spacerCount: number}>`
   grid-column: span 1;
   /* Allows TreeBranchIcons to appear connected vertically */
-  border-right: 1px solid ${p => (!p.isLast ? p.theme.gray200 : 'transparent')};
+  border-right: 1px solid ${p => (!p.isLast ? p.theme.border : 'transparent')};
   margin-right: -1px;
+  height: 100%;
 `;
 
 const TreeBranchIcon = styled('div')`
-  border: 1px solid ${p => p.theme.gray200};
+  border: 1px solid ${p => p.theme.border};
   border-width: 0 0 1px 1px;
   border-radius: 0 0 0 5px;
   grid-column: span 1;
-  margin: 0 ${space(0.5)} 0.5rem 0;
+  height: 12px;
+  align-self: start;
+  margin-right: ${space(0.5)};
 `;
 
 const TreeKeyTrunk = styled('div')<{spacerCount: number}>`
   grid-column: 1 / 2;
   display: grid;
+  height: 100%;
+  align-items: center;
   grid-template-columns: ${p =>
     p.spacerCount > 0 ? `${(p.spacerCount - 1) * 20 + 3}px 1rem 1fr` : '1fr'};
 `;
@@ -412,6 +422,9 @@ const TreeKeyTrunk = styled('div')<{spacerCount: number}>`
 const TreeValueTrunk = styled('div')`
   grid-column: 2 / 3;
   display: grid;
+  height: 100%;
+  align-items: center;
+  min-height: 22px;
   grid-template-columns: 1fr auto;
   grid-column-gap: ${space(0.5)};
 `;
