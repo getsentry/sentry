@@ -79,7 +79,7 @@ def test_feedbacks_spawn_save_event_feedback(
         },
         project=default_project,
     )
-    assert not len(preprocess_event)
+    assert not preprocess_event
     assert save_event_feedback.delay.call_args[0] == ()
     assert (
         save_event_feedback.delay.call_args[1]["data"]["contexts"]["feedback"]
