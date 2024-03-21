@@ -1343,6 +1343,8 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
 
 
 class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
+    ISSUE_FIELD_NAME = "group_id"
+
     entities = {
         "event": Entity("events", alias="e"),
         "attrs": Entity("group_attributes", alias="g"),
@@ -1370,7 +1372,22 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             ),
             0,
         ],
+        alias="score",
     )
+    first_seen = Column("group_first_seen", entities["attrs"])
+
+    sort_strategies = {
+        "date": "last_seen",
+        "freq": "times_seen",
+        "new": "first_seen",
+        "trends": "trends",
+        "user": "user_count",
+        # We don't need a corresponding snuba field here, since this sort only happens
+        # in Postgres
+        "inbox": "",
+    }
+
+    aggregation_defs = {"first_seen": first_seen, "last_seen": last_seen_aggregation}
 
     def calculate_start_end(
         self,
@@ -1477,7 +1494,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 )
             )
 
-        sort_func = self.last_seen_aggregation
+        sort_func = self.aggregation_defs[self.sort_strategies[sort_by]]
 
         having = []
         if cursor is not None:
@@ -1490,10 +1507,14 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             match=Join([Relationship(event_entity, "attributes", attr_entity)]),
             select=[
                 Column("group_id", attr_entity),
-                replace(sort_func, alias="score"),
+                Column("group_first_seen", attr_entity),
+                sort_func,
             ],
             where=where_conditions,
-            groupby=[Column("group_id", attr_entity)],
+            groupby=[
+                Column("group_id", attr_entity),
+                Column("group_first_seen", attr_entity),
+            ],
             having=having,
             orderby=[OrderBy(sort_func, direction=Direction.DESC)],
             limit=Limit(limit + 1),
@@ -1524,9 +1545,15 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 request, referrer="search.snuba.group_attributes_search.hits"
             )["data"][0]["count"]
 
+        def get_sort_val(row):
+            if sort_by == "new":
+                return row["g.group_first_seen"]
+            # default is sort by the score
+            return row["score"]
+
         paginator_options = paginator_options or {}
         paginator_results = SequencePaginator(
-            [(row["score"], row["g.group_id"]) for row in data],
+            [(get_sort_val(row), row["g.group_id"]) for row in data],
             reverse=True,
             **paginator_options,
         ).get_result(limit, cursor, known_hits=hits, max_hits=max_hits)
