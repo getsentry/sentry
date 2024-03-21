@@ -47,18 +47,33 @@
       return host + '/api/0/organizations/' + slug + suffix;
     }
 
-    var preloadPromises = {orgSlug: slug};
+    var preloadPromises = { orgSlug: slug };
     window.__sentry_preload = preloadPromises;
 
     if (!slug) {
       return;
     }
-
-    preloadPromises.organization = promiseRequest(makeUrl('/?detailed=0'));
-    preloadPromises.projects = promiseRequest(
-      makeUrl('/projects/?all_projects=1&collapse=latestDeploys&collapse=unusedFeatures')
-    );
-    preloadPromises.teams = promiseRequest(makeUrl('/teams/'));
+    /*
+     We don't want to preload data for _admin for 2 reasons:
+     1. We don't use the data because _admin looks at all orgs and aggregated
+        information, rather than your specific org.
+     2. When you go through the staff flow and activate U2F when you have an
+        active superuser session, there's a race condition that occurs. Both
+        the preflight requests and the GET to your U2F authenticators contain
+        a response session cookie. The preflight requests are sent first but
+        are much slower than the authenticator GET, so we end up storing the
+        slowest preflight request's session cookie on the client. This causes
+        the subsequent U2F validation request to fail because the session
+        cookie is missing the U2F state that was in the authenticator GET
+        response session cookie.
+    */
+    if (!window.location.pathname.startsWith("/_admin")) {
+      preloadPromises.organization = promiseRequest(makeUrl('/?detailed=0'));
+      preloadPromises.projects = promiseRequest(
+        makeUrl('/projects/?all_projects=1&collapse=latestDeploys&collapse=unusedFeatures')
+      );
+      preloadPromises.teams = promiseRequest(makeUrl('/teams/'));
+    }
   }
 
   try {
