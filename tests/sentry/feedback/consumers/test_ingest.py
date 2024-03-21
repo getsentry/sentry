@@ -30,6 +30,18 @@ def save_event_feedback(monkeypatch):
     return mock
 
 
+@pytest.fixture
+def preprocess_event(monkeypatch):
+    # Based on test_ingest_consumer_processing.py
+    calls = []
+
+    def inner(**kwargs):
+        calls.append(kwargs)
+
+    monkeypatch.setattr("sentry.ingest.consumer.processors.preprocess_event", inner)
+    return calls
+
+
 @django_db_all
 def test_feedbacks_spawn_save_event_feedback(
     default_project, task_runner, preprocess_event, save_event_feedback, monkeypatch
