@@ -4,6 +4,8 @@ import logging
 from collections.abc import Iterable, Mapping
 from typing import TYPE_CHECKING, Any
 
+from django.urls import reverse
+
 from sentry.db.models import Model
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.services.hybrid_cloud.actor import RpcActor
@@ -64,6 +66,5 @@ class DailySummaryNotification(BaseNotification):
         return ""
 
     def build_notification_footer(self, recipient: RpcActor, provider: ExternalProviders) -> str:
-        url_str = "/settings/account/notifications/"
-        url = self.organization.absolute_url(url_str)
+        url = self.organization.absolute_url(reverse("sentry-account-settings"))
         return f"Getting this at a funky time? This sends at 4pm for whatever time zone you have set. | <{url}|*Account Settings*>"

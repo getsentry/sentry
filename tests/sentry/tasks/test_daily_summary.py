@@ -586,7 +586,7 @@ class DailySummaryTest(
         # check footer
         assert "Getting this at a funky time?" in blocks[12]["elements"][0]["text"]
         assert (
-            "<http://testserver/settings/account/notifications/|*Account Settings*>"
+            "<http://testserver/settings/account/|*Account Settings*>"
             in blocks[12]["elements"][0]["text"]
         )
 
