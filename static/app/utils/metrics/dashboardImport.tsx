@@ -187,7 +187,7 @@ export class WidgetParser {
 
     return convertToDashboardWidget(
       [...nonEmptyQueries, ...metricsEquations],
-      MetricDisplayType.LINE,
+      parsedRequests[0].displayType,
       title
     );
   }
