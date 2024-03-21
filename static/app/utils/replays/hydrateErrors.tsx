@@ -68,10 +68,8 @@ export default function hydrateErrors(
         timestampMs: time.getTime(),
         type: 'error', // For compatibility reasons. See BreadcrumbType
       });
-      return;
     } catch (error) {
       Sentry.captureException(error);
-      return;
     }
   });
 
