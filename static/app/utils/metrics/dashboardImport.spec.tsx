@@ -3,7 +3,7 @@ import type {ImportDashboard, ImportWidget} from 'sentry/utils/metrics/dashboard
 import {parseDashboard, WidgetParser} from 'sentry/utils/metrics/dashboardImport';
 import {parseMRI} from 'sentry/utils/metrics/mri';
 
-const mockRequests = (queryStrings: string[]) => {
+const mockRequests = (queryStrings: string[], overrideFormulas: any[] = []) => {
   const queries = queryStrings.map((queryStr, i) => {
     return {
       data_source: 'metrics',
@@ -19,7 +19,7 @@ const mockRequests = (queryStrings: string[]) => {
 
   return [
     {
-      formulas,
+      formulas: [...formulas, ...overrideFormulas],
       queries,
       response_format: 'timeseries',
       style: {line_type: 'solid'},
@@ -255,12 +255,10 @@ describe('parseDashboard', () => {
       widgets: [
         mockWidget(),
         mockWidget({
-          definition: {
-            title: 'Test widget 2',
-            legend_columns: ['avg', 'min', 'max', 'value', 'sum'],
-            type: 'timeseries',
-            requests: mockRequests(['sum:sentry.bar.baz{}', 'sum:sentry.foo.bar{}']),
-          },
+          title: 'Test widget 2',
+          legend_columns: ['avg', 'min', 'max', 'value', 'sum'],
+          type: 'timeseries',
+          requests: mockRequests(['sum:sentry.bar.baz{}', 'sum:sentry.foo.bar{}']),
         }),
       ],
     } as ImportDashboard;
@@ -271,5 +269,32 @@ describe('parseDashboard', () => {
     expect(report.length).toEqual(2);
     expect(report[0].outcome).toEqual('success');
     expect(widgets.length).toEqual(2);
+  });
+
+  it('should parse a dashboard with formulas', async () => {
+    const dashboard = {
+      id: 1,
+      title: 'Test dashboard',
+      description: 'Test description',
+      widgets: [
+        mockWidget({
+          title: 'Formula Test widget 2',
+          legend_columns: ['avg', 'min', 'max', 'value', 'sum'],
+          type: 'timeseries',
+          requests: mockRequests(
+            ['sum:sentry.bar.baz{}', 'sum:sentry.foo.bar{}'],
+            [{formula: '2 * query1'}]
+          ),
+        }),
+      ],
+    } as ImportDashboard;
+
+    const result = await parseDashboard(dashboard, availableMetrics);
+
+    const {report, widgets} = result;
+    expect(report.length).toEqual(1);
+    expect(widgets.length).toEqual(1);
+    expect(widgets[0].queries.length).toEqual(3);
+    expect(widgets[0].queries[2].aggregates[0]).toEqual('equation|2 * $b');
   });
 });

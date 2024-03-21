@@ -4,7 +4,7 @@ import {convertToDashboardWidget} from 'sentry/utils/metrics/dashboard';
 import type {MetricsQuery} from 'sentry/utils/metrics/types';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import type {Widget} from 'sentry/views/dashboards/types';
-
+import {getQuerySymbol} from 'sentry/views/ddm/querySymbol';
 // import types
 export type ImportDashboard = {
   description: string;
@@ -163,22 +163,14 @@ export class WidgetParser {
 
     const {title, requests = []} = this.importedWidget.definition as WidgetDefinition;
 
-    const parsedQueries = requests
-      .map(r => this.parseRequest(r))
-      .flatMap(request => {
-        const {displayType, queries} = request;
-        return queries.map(query => ({
-          displayType,
-          ...query,
-        }));
-      });
+    const parsedRequests = requests.map(r => this.parseRequest(r));
+    const parsedQueries = parsedRequests.flatMap(request => request.queries);
 
     const metricsQueries = await Promise.all(
       parsedQueries.map(async query => {
         const mapped = await this.mapToMetricsQuery(query);
         return {
           ...mapped,
-          displayType: query.displayType,
         };
       })
     );
@@ -188,7 +180,16 @@ export class WidgetParser {
     if (!nonEmptyQueries.length) {
       return null;
     }
-    return convertToDashboardWidget(nonEmptyQueries, parsedQueries[0].displayType, title);
+
+    const metricsEquations = parsedRequests
+      .flatMap(request => request.equations)
+      .map(equation => this.mapToMetricsEquation(equation.formula));
+
+    return convertToDashboardWidget(
+      [...nonEmptyQueries, ...metricsEquations],
+      MetricDisplayType.LINE,
+      title
+    );
   }
 
   private parseLegendColumns() {
@@ -202,17 +203,21 @@ export class WidgetParser {
   private parseRequest(request: Request) {
     const {queries, formulas = [], response_format, display_type} = request;
 
-    const parsedFormulas = formulas.map(f => this.parseFormula(f));
-
     const parsedQueries = queries
-      .filter(q => parsedFormulas.includes(q.name))
-      .map(q => this.parseQuery(q));
+      .map(query => this.parseQuery(query))
+      .sort((a, b) => a!.name.localeCompare(b!.name));
 
     if (response_format !== 'timeseries') {
       this.errors.push(
         `widget.request.response_format - unsupported: ${response_format}`
       );
     }
+
+    const equationFormulas = formulas.filter(f =>
+      // indicates a more complex formula and not just a reference to a query
+      f.formula.trim().includes(' ')
+    );
+    const parsedEquations = this.parseEquations(parsedQueries, equationFormulas);
 
     const displayType = this.parseDisplayType(display_type);
 
@@ -221,10 +226,34 @@ export class WidgetParser {
     return {
       displayType,
       queries: parsedQueries,
+      equations: parsedEquations,
     };
   }
 
-  private parseFormula(formula: Formula) {
+  // swaps query names with query symbols in formulas eg. query1 + $query0 => $b + $a
+  private parseEquations(queries: any[], formulas: Formula[]) {
+    const queryNames = queries.map(q => q.name);
+    const queryNameMap = queries.reduce((acc, query, index) => {
+      acc[query.name] = getQuerySymbol(index);
+      return acc;
+    }, {});
+
+    const equations = formulas.map(formula => {
+      const {formula: formulaString, alias} = formula;
+      const mapped = queryNames.reduce((acc, queryName) => {
+        return acc.replace(queryName, `$${queryNameMap[queryName]}`);
+      }, formulaString);
+
+      return {
+        formula: mapped,
+        alias,
+      };
+    });
+
+    return equations;
+  }
+
+  private extractQueryName(formula: Formula) {
     if (!formula.formula.includes('(')) {
       return formula.formula;
     }
@@ -236,7 +265,7 @@ export class WidgetParser {
 
     this.errors.push(`widget.request.formula - unsupported function ${functionName}`);
 
-    // TODO: check if there are functions with more than 1 argument and if they are supported
+    // we support only functions with one argument
     return args[0];
   }
 
@@ -264,8 +293,8 @@ export class WidgetParser {
     }
   }
 
-  private parseQuery(query: {query: string}) {
-    return this.parseQueryString(query.query);
+  private parseQuery(query: {name: string; query: string}) {
+    return {...this.parseQueryString(query.query), name: query.name};
   }
 
   private parseQueryString(str: string) {
@@ -383,6 +412,13 @@ export class WidgetParser {
       op,
       query,
       groupBy,
+    };
+  }
+
+  private mapToMetricsEquation(formula: string) {
+    return {
+      type: 'formula',
+      formula,
     };
   }
 
