@@ -596,7 +596,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         with unguarded_write(using=router.db_for_write(OrganizationMember)):
             # Flags are not replicated -- these updates are safe to skip outboxes
-            OrganizationMember.objects.filter(organization_id=organization_id,).update(
+            OrganizationMember.objects.filter(organization_id=organization_id).update(
                 flags=F("flags")
                 .bitand(~OrganizationMember.flags["sso:linked"])
                 .bitand(~OrganizationMember.flags["sso:invalid"])
