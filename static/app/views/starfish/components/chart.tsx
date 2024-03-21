@@ -71,9 +71,16 @@ export const STARFISH_FIELDS: Record<string, {outputType: AggregationOutputType}
   },
 };
 
+export enum ChartType {
+  BAR,
+  LINE,
+  AREA,
+}
+
 type Props = {
   data: Series[];
   loading: boolean;
+  type: ChartType;
   aggregateOutputFormat?: AggregationOutputType;
   chartColors?: string[];
   chartGroup?: string;
@@ -87,8 +94,6 @@ type Props = {
   height?: number;
   hideYAxis?: boolean;
   hideYAxisSplitLine?: boolean;
-  isBarChart?: boolean;
-  isLineChart?: boolean;
   legendFormatter?: (name: string) => string;
   log?: boolean;
   markLine?: MarkLineOption;
@@ -112,46 +117,6 @@ type Props = {
   tooltipFormatterOptions?: FormatterOptions;
 };
 
-function computeMax(data: Series[]) {
-  const valuesDict = data.map(value => value.data.map(point => point.value));
-
-  return max(valuesDict.map(max)) as number;
-}
-
-// adapted from https://stackoverflow.com/questions/11397239/rounding-up-for-a-graph-maximum
-export function computeAxisMax(data: Series[], stacked?: boolean) {
-  // assumes min is 0
-  let maxValue = 0;
-  if (data.length > 1 && stacked) {
-    for (let i = 0; i < data.length; i++) {
-      maxValue += max(data[i].data.map(point => point.value)) as number;
-    }
-  } else {
-    maxValue = computeMax(data);
-  }
-
-  if (maxValue <= 1) {
-    return 1;
-  }
-
-  const power = Math.log10(maxValue);
-  const magnitude = min([max([10 ** (power - Math.floor(power)), 0]), 10]) as number;
-
-  let scale: number;
-  if (magnitude <= 2.5) {
-    scale = 0.2;
-  } else if (magnitude <= 5) {
-    scale = 0.5;
-  } else if (magnitude <= 7.5) {
-    scale = 1.0;
-  } else {
-    scale = 2.0;
-  }
-
-  const step = 10 ** Math.floor(power) * scale;
-  return Math.ceil(Math.ceil(maxValue / step) * step);
-}
-
 function Chart({
   data,
   dataMax,
@@ -164,8 +129,7 @@ function Chart({
   durationUnit,
   rateUnit,
   chartColors,
-  isBarChart,
-  isLineChart,
+  type,
   stacked,
   log,
   hideYAxisSplitLine,
@@ -385,7 +349,7 @@ function Chart({
         onDataZoom={onDataZoom}
       >
         {zoomRenderProps => {
-          if (isLineChart) {
+          if (type === ChartType.LINE) {
             return (
               <BaseChart
                 {...zoomRenderProps}
@@ -430,7 +394,7 @@ function Chart({
             );
           }
 
-          if (isBarChart) {
+          if (type === ChartType.BAR) {
             return (
               <BarChart
                 height={height}
@@ -480,6 +444,46 @@ function Chart({
 }
 
 export default Chart;
+
+function computeMax(data: Series[]) {
+  const valuesDict = data.map(value => value.data.map(point => point.value));
+
+  return max(valuesDict.map(max)) as number;
+}
+
+// adapted from https://stackoverflow.com/questions/11397239/rounding-up-for-a-graph-maximum
+export function computeAxisMax(data: Series[], stacked?: boolean) {
+  // assumes min is 0
+  let maxValue = 0;
+  if (data.length > 1 && stacked) {
+    for (let i = 0; i < data.length; i++) {
+      maxValue += max(data[i].data.map(point => point.value)) as number;
+    }
+  } else {
+    maxValue = computeMax(data);
+  }
+
+  if (maxValue <= 1) {
+    return 1;
+  }
+
+  const power = Math.log10(maxValue);
+  const magnitude = min([max([10 ** (power - Math.floor(power)), 0]), 10]) as number;
+
+  let scale: number;
+  if (magnitude <= 2.5) {
+    scale = 0.2;
+  } else if (magnitude <= 5) {
+    scale = 0.5;
+  } else if (magnitude <= 7.5) {
+    scale = 1.0;
+  } else {
+    scale = 2.0;
+  }
+
+  const step = 10 ** Math.floor(power) * scale;
+  return Math.ceil(Math.ceil(maxValue / step) * step);
+}
 
 export function useSynchronizeCharts(deps: boolean[] = []) {
   const [synchronized, setSynchronized] = useState<boolean>(false);
