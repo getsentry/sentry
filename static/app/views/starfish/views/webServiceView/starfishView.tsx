@@ -16,7 +16,10 @@ import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
-import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
+import Chart, {
+  ChartType,
+  useSynchronizeCharts,
+} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {useEventsStatsQuery} from 'sentry/views/starfish/utils/useEventsStatsQuery';
@@ -152,7 +155,7 @@ export function StarfishView(props: BaseStarfishViewProps) {
               }}
               aggregateOutputFormat="duration"
               definedAxisTicks={2}
-              isLineChart
+              type={ChartType.LINE}
               tooltipFormatterOptions={{
                 valueFormatter: value =>
                   tooltipFormatterUsingAggregateOutputType(value, 'duration'),
@@ -176,7 +179,7 @@ export function StarfishView(props: BaseStarfishViewProps) {
               rateUnit={RateUnit.PER_SECOND}
               definedAxisTicks={2}
               stacked
-              isLineChart
+              type={ChartType.LINE}
               chartColors={[THROUGHPUT_COLOR]}
               tooltipFormatterOptions={{
                 valueFormatter: value => formatRate(value, RateUnit.PER_SECOND),
@@ -198,7 +201,7 @@ export function StarfishView(props: BaseStarfishViewProps) {
                 bottom: '0',
               }}
               definedAxisTicks={2}
-              isLineChart
+              type={ChartType.LINE}
               chartColors={[CHART_PALETTE[5][3]]}
             />
           </MiniChartPanel>

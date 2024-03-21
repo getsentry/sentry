@@ -16,7 +16,7 @@ import {
   PRIMARY_RELEASE_COLOR,
   SECONDARY_RELEASE_COLOR,
 } from 'sentry/views/starfish/colours';
-import Chart from 'sentry/views/starfish/components/chart';
+import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
@@ -141,7 +141,7 @@ export function CountChart({chartHeight}: Props) {
         }}
         showLegend
         definedAxisTicks={2}
-        isLineChart
+        type={ChartType.LINE}
         aggregateOutputFormat={OUTPUT_TYPE[YAxis.COUNT]}
         tooltipFormatterOptions={{
           valueFormatter: value =>

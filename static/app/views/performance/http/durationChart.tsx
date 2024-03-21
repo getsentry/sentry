@@ -1,7 +1,7 @@
 import type {Series} from 'sentry/types/echarts';
 import {CHART_HEIGHT} from 'sentry/views/performance/database/settings';
 import {AVG_COLOR} from 'sentry/views/starfish/colours';
-import Chart from 'sentry/views/starfish/components/chart';
+import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {getDurationChartTitle} from 'sentry/views/starfish/views/spans/types';
 
@@ -26,7 +26,7 @@ export function DurationChart({series, isLoading, error}: Props) {
         loading={isLoading}
         error={error}
         chartColors={[AVG_COLOR]}
-        isLineChart
+        type={ChartType.LINE}
       />
     </ChartPanel>
   );

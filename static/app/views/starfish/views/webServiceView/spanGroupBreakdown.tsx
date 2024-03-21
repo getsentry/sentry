@@ -13,7 +13,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import useOrganization from 'sentry/utils/useOrganization';
-import Chart from 'sentry/views/starfish/components/chart';
+import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
 import type {DataRow} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
@@ -148,7 +148,11 @@ export function SpanGroupBreakdown({
               bottom: '0',
             }}
             definedAxisTicks={6}
-            isLineChart={dataDisplayType !== DataDisplayType.PERCENTAGE}
+            type={
+              dataDisplayType === DataDisplayType.PERCENTAGE
+                ? ChartType.AREA
+                : ChartType.LINE
+            }
             stacked={dataDisplayType === DataDisplayType.PERCENTAGE}
             aggregateOutputFormat={
               dataDisplayType === DataDisplayType.PERCENTAGE ? 'percentage' : 'duration'

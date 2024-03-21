@@ -34,6 +34,7 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 import {AVG_COLOR, ERRORS_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {
+  ChartType,
   computeAxisMax,
   useSynchronizeCharts,
 } from 'sentry/views/starfish/components/chart';
@@ -211,7 +212,7 @@ export default function EndpointOverview() {
             }}
             disableXAxis
             definedAxisTicks={2}
-            isLineChart
+            type={ChartType.LINE}
             chartColors={[AVG_COLOR]}
             scatterPlot={sampleData}
             tooltipFormatterOptions={{
@@ -241,7 +242,7 @@ export default function EndpointOverview() {
             height={80}
             data={[throughputResults, tpsLine]}
             loading={loading}
-            isLineChart
+            type={ChartType.LINE}
             definedAxisTicks={2}
             disableXAxis
             chartColors={[THROUGHPUT_COLOR]}
@@ -290,7 +291,7 @@ export default function EndpointOverview() {
               bottom: '0',
             }}
             definedAxisTicks={2}
-            isLineChart
+            type={ChartType.LINE}
             chartColors={[ERRORS_COLOR]}
           />
           <SidebarSpacer />

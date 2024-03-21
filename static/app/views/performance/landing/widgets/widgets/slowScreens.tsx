@@ -50,7 +50,7 @@ import {
 } from 'sentry/views/performance/landing/widgets/utils';
 import {Subtitle} from 'sentry/views/profiling/landing/styles';
 import {RightAlignedCell} from 'sentry/views/replays/deadRageClick/deadRageSelectorCards';
-import Chart from 'sentry/views/starfish/components/chart';
+import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
@@ -300,7 +300,7 @@ function SlowScreensByTTID(props: PerformanceWidgetProps) {
             top: '8px',
             bottom: '0',
           }}
-          isLineChart
+          type={ChartType.LINE}
           aggregateOutputFormat={OUTPUT_TYPE[YAxis.TTID]}
           tooltipFormatterOptions={{
             valueFormatter: value =>

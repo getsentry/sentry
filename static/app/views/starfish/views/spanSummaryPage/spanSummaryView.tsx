@@ -9,7 +9,10 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import {AVG_COLOR, ERRORS_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
-import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
+import Chart, {
+  ChartType,
+  useSynchronizeCharts,
+} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
 import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
@@ -170,7 +173,7 @@ export function SpanSummaryView({groupId}: Props) {
               data={[spanMetricsThroughputSeries]}
               loading={areSpanMetricsSeriesLoading}
               chartColors={[THROUGHPUT_COLOR]}
-              isLineChart
+              type={ChartType.LINE}
               definedAxisTicks={4}
               aggregateOutputFormat="rate"
               rateUnit={RateUnit.PER_MINUTE}
@@ -188,7 +191,7 @@ export function SpanSummaryView({groupId}: Props) {
               data={[spanMetricsSeriesData?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]]}
               loading={areSpanMetricsSeriesLoading}
               chartColors={[AVG_COLOR]}
-              isLineChart
+              type={ChartType.LINE}
               definedAxisTicks={4}
             />
           </ChartPanel>
@@ -202,7 +205,7 @@ export function SpanSummaryView({groupId}: Props) {
                 data={[spanMetricsSeriesData?.[`http_error_count()`]]}
                 loading={areSpanMetricsSeriesLoading}
                 chartColors={[ERRORS_COLOR]}
-                isLineChart
+                type={ChartType.LINE}
                 definedAxisTicks={4}
               />
             </ChartPanel>

@@ -15,7 +15,10 @@ import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
+import Chart, {
+  ChartType,
+  useSynchronizeCharts,
+} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
@@ -179,7 +182,7 @@ export function MobileStarfishView() {
               }}
               showLegend
               definedAxisTicks={2}
-              isLineChart
+              type={ChartType.LINE}
               aggregateOutputFormat="duration"
               tooltipFormatterOptions={{
                 valueFormatter: value =>
@@ -207,7 +210,7 @@ export function MobileStarfishView() {
               aggregateOutputFormat="duration"
               definedAxisTicks={2}
               stacked
-              isLineChart
+              type={ChartType.LINE}
               tooltipFormatterOptions={{
                 valueFormatter: value =>
                   tooltipFormatterUsingAggregateOutputType(value, 'duration'),
@@ -233,7 +236,7 @@ export function MobileStarfishView() {
               }}
               showLegend
               definedAxisTicks={2}
-              isLineChart
+              type={ChartType.LINE}
               aggregateOutputFormat="duration"
               tooltipFormatterOptions={{
                 valueFormatter: value =>
@@ -260,7 +263,7 @@ export function MobileStarfishView() {
               aggregateOutputFormat="duration"
               definedAxisTicks={2}
               stacked
-              isLineChart
+              type={ChartType.LINE}
               tooltipFormatterOptions={{
                 valueFormatter: value =>
                   tooltipFormatterUsingAggregateOutputType(value, 'duration'),
@@ -286,7 +289,7 @@ export function MobileStarfishView() {
               }}
               showLegend
               definedAxisTicks={2}
-              isLineChart
+              type={ChartType.LINE}
               aggregateOutputFormat="percentage"
               tooltipFormatterOptions={{
                 valueFormatter: value =>
@@ -313,7 +316,7 @@ export function MobileStarfishView() {
               aggregateOutputFormat="percentage"
               definedAxisTicks={2}
               stacked
-              isLineChart
+              type={ChartType.LINE}
               tooltipFormatterOptions={{
                 valueFormatter: value =>
                   tooltipFormatterUsingAggregateOutputType(value, 'percentage'),
