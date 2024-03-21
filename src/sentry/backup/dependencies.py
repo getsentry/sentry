@@ -255,6 +255,16 @@ class PrimaryKeyMap:
     def __init__(self):
         self.mapping = defaultdict(dict)
 
+    def validate(self) -> None:
+        for model in self.mapping.values():
+            for (pk, kind, slug) in model.values():
+                if not isinstance(pk, int):
+                    raise TypeError(f"{pk=!r} ({type(pk)=})")
+                if not isinstance(kind, ImportKind):
+                    raise TypeError(f"{kind=!r} ({type(kind)=})")
+                if not (slug is None or isinstance(slug, str)):
+                    raise TypeError(f"{slug=!r} ({type(slug)=})")
+
     def get_pk(self, model_name: NormalizedModelName, old: int) -> int | None:
         """
         Get the new, post-mapping primary key from an old primary key.

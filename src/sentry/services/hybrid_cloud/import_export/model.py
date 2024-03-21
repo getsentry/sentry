@@ -67,10 +67,12 @@ class RpcPrimaryKeyMap(RpcModel):
     def from_rpc(self) -> PrimaryKeyMap:
         pk_map = PrimaryKeyMap()
         pk_map.mapping = defaultdict(dict, self.mapping)
+        pk_map.validate()
         return pk_map
 
     @classmethod
     def into_rpc(cls, base_map: PrimaryKeyMap) -> "RpcPrimaryKeyMap":
+        base_map.validate()
         converted = cls()
         converted.mapping = dict(base_map.mapping)
         return converted
