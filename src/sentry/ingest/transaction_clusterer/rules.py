@@ -158,7 +158,7 @@ class CompositeRuleStore:
                     },
                 )
                 sentry_sdk.set_tag("namespace", self._namespace.value.name)
-                sentry_sdk.capture_message("Clusterer discarded rules", level="warn")
+                sentry_sdk.capture_message("Clusterer discarded rules", level="warning")
             sorted_rules = sorted_rules[: self.MERGE_MAX_RULES]
 
         return {rule: last_seen for rule, last_seen in sorted_rules}
