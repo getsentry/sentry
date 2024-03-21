@@ -167,7 +167,12 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
             {...sortSelection}
           />
         </Actions>
-        <StyledPanelTable headers={headers} stickyHeaders>
+        <StyledPanelTable
+          headers={headers}
+          stickyHeaders
+          isEmpty={monitorList?.length === 0}
+          emptyMessage={t('No monitors found')}
+        >
           {isLoading || !monitorList
             ? [...new Array(NUM_PLACEHOLDER_ROWS)].map((_, i) => (
                 <RowPlaceholder key={i}>
