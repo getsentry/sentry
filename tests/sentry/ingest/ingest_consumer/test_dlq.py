@@ -28,9 +28,9 @@ def make_message(payload: bytes, partition: Partition, offset: int) -> Message:
 @pytest.mark.parametrize(
     ("topic_name", "consumer_type"),
     [
-        (TopicNames.INGEST_EVENTS.value, ConsumerType.EVENTS),
-        (TopicNames.INGEST_ATTACHMENTS.value, ConsumerType.ATTACHMENTS),
-        (TopicNames.INGEST_TRANSACTIONS.value, ConsumerType.TRANSACTIONS),
+        (TopicNames.INGEST_EVENTS.value, ConsumerType.Events),
+        (TopicNames.INGEST_ATTACHMENTS.value, ConsumerType.Attachments),
+        (TopicNames.INGEST_TRANSACTIONS.value, ConsumerType.Transactions),
     ],
 )
 @django_db_all
