@@ -327,6 +327,50 @@ class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.repository.name == repo_name
 
 
+class TestGoDeriveCodeMappings(BaseDeriveCodeMappings):
+    def setUp(self):
+        super().setUp()
+        self.platform = "go"
+        self.event_data = self.generate_data(
+            [
+                {"in_app": True, "filename": "/Users/JohnDoe/code/sentry/capybara.go"},
+                {
+                    "in_app": True,
+                    "filename": "/Users/JohnDoe/Documents/code/sentry/kangaroo.go",
+                },
+            ],
+            self.platform,
+        )
+
+    def test_derive_code_mappings_go_abs_filename(self):
+        repo_name = "go_repo"
+        with patch(
+            "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org"
+        ) as mock_get_trees_for_org:
+            mock_get_trees_for_org.return_value = {
+                repo_name: RepoTree(Repo(repo_name, "master"), ["sentry/capybara.go"])
+            }
+            derive_code_mappings(self.project.id, self.event_data)
+            code_mapping = RepositoryProjectPathConfig.objects.all()[0]
+            assert code_mapping.stack_root == "/Users/JohnDoe/code/"
+            assert code_mapping.source_root == ""
+            assert code_mapping.repository.name == repo_name
+
+    def test_derive_code_mappings_go_long_abs_filename(self):
+        repo_name = "go_repo"
+        with patch(
+            "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org"
+        ) as mock_get_trees_for_org:
+            mock_get_trees_for_org.return_value = {
+                repo_name: RepoTree(Repo(repo_name, "master"), ["sentry/kangaroo.go"])
+            }
+            derive_code_mappings(self.project.id, self.event_data)
+            code_mapping = RepositoryProjectPathConfig.objects.all()[0]
+            assert code_mapping.stack_root == "/Users/JohnDoe/Documents/code/"
+            assert code_mapping.source_root == ""
+            assert code_mapping.repository.name == repo_name
+
+
 class TestPhpDeriveCodeMappings(BaseDeriveCodeMappings):
     def setUp(self):
         super().setUp()

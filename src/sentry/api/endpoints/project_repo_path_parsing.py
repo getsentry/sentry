@@ -91,7 +91,7 @@ class ProjectRepoPathParsingEndpointLoosePermission(ProjectPermission):
 @region_silo_endpoint
 class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,  # This shouldn't be a post request? We are only fetching data on our end
     }
     permission_classes = (ProjectRepoPathParsingEndpointLoosePermission,)
     """

@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import NamedTuple
 
+from sentry.api.endpoints.project_repo_path_parsing import find_roots
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.project import Project
@@ -187,9 +188,9 @@ class FrameFilename:
         # - app:///../some/path/foo.js
 
         start_at_index = get_straight_path_prefix_end_index(frame_file_path)
-        backslash_index = frame_file_path.find("/", start_at_index)
+        slash_index = frame_file_path.find("/", start_at_index)
         dir_path, self.file_name = frame_file_path.rsplit("/", 1)  # foo.tsx (both)
-        self.root = frame_file_path[0:backslash_index]  # some or .some
+        self.root = frame_file_path[0:slash_index]  # some or .some
         self.dir_path = dir_path.replace(self.root, "")  # some/path/ (both)
         self.file_and_dir_path = remove_straight_path_prefix(
             frame_file_path
@@ -341,9 +342,14 @@ class CodeMappingTreesHelper:
         ]
         if len(matched_files) != 1:
             return []
+        # this will not work for
+        # if frame_filename.extension == "go":
+        if frame_filename.frame_type() != "packaged":
+            stacktrace_root, source_path = find_roots(frame_filename.full_path, matched_files[0])
+        else:
+            stacktrace_root = f"{frame_filename.root}/"
+            source_path = _get_code_mapping_source_path(matched_files[0], frame_filename)
 
-        stacktrace_root = f"{frame_filename.root}/"
-        source_path = _get_code_mapping_source_path(matched_files[0], frame_filename)
         if frame_filename.frame_type() != "packaged":
             stacktrace_root, source_path = self._normalized_stack_and_source_roots(
                 stacktrace_root, source_path
@@ -402,7 +408,19 @@ class CodeMappingTreesHelper:
         # src_file: static/app/utils/handleXhrErrorResponse.tsx
         # full_name: ./app/utils/handleXhrErrorResponse.tsx
         # file_and_dir_path: app/utils/handleXhrErrorResponse.tsx
-        return src_file.rfind(frame_filename.file_and_dir_path) > -1
+        src_file_items = src_file.split("/")
+        file_and_dir_path_items = frame_filename.file_and_dir_path.split("/")
+        if len(file_and_dir_path_items) > len(src_file_items):
+            num_relevant_items = max(1, len(src_file_items) - 1)
+            relevant_items = file_and_dir_path_items[
+                (len(file_and_dir_path_items) - num_relevant_items) :
+            ]
+            relevant_file = "/".join(relevant_items)
+            if src_file.rfind(relevant_file) > -1:
+                return True
+            return False
+        else:
+            return src_file.rfind(frame_filename.file_and_dir_path) > -1
 
     def _potential_match(self, src_file: str, frame_filename: FrameFilename) -> bool:
         """Tries to see if the stacktrace without the root matches the file from the
@@ -516,9 +534,10 @@ def get_sorted_code_mapping_configs(project: Project) -> list[RepositoryProjectP
     return sorted_configs
 
 
+# Why is this called get source path? It gets the source ROOT, not the source path.
 def _get_code_mapping_source_path(src_file: str, frame_filename: FrameFilename) -> str:
-    """Generate the source code root for a code mapping. It always includes a last backslash"""
-    source_code_root = None
+    """Generate the source code root for a code mapping. It always includes a trailing slash"""
+    source_code_root = ""
     if frame_filename.frame_type() == "packaged":
         if frame_filename.dir_path != "":
             # src/sentry/identity/oauth2.py (sentry/identity/oauth2.py) -> src/sentry/
@@ -533,6 +552,10 @@ def _get_code_mapping_source_path(src_file: str, frame_filename: FrameFilename) 
     else:
         # static/app/foo.tsx (./app/foo.tsx) -> static/app/
         # static/app/foo.tsx (app/foo.tsx) -> static/app/
+
+        # if frame_filename.extension == "go":
+        #     _, source_code_root = find_roots(f"{frame_filename.file_and_dir_path}", src_file)
+        # else:
         source_code_root = f"{src_file.replace(frame_filename.file_and_dir_path, remove_straight_path_prefix(frame_filename.root))}/"
     if source_code_root:
         assert source_code_root.endswith("/")
