@@ -15,7 +15,7 @@
 /src/sentry/eventstream/                                 @getsentry/owners-snuba
 /src/sentry/consumers/                                   @getsentry/owners-snuba
 /src/sentry/post_process_forwarder/                      @getsentry/owners-snuba
-/src/sentry/utils/snuba.py                               @getsentry/owners-snuba @getsentry/discover-n-dashboards
+/src/sentry/utils/snuba.py                               @getsentry/owners-snuba @getsentry/performance
 /src/sentry/utils/snql.py                                @getsentry/owners-snuba
 /src/sentry/utils/arroyo.py                              @getsentry/owners-snuba
 /src/sentry/utils/arroyo_producer.py                     @getsentry/owners-snuba
@@ -184,11 +184,11 @@ yarn.lock                                                @getsentry/owners-js-de
 ## Endof Workflow
 
 
-## Visibility
+## Performance
 /src/sentry/api/endpoints/organization_tags.py                              @getsentry/performance
 /src/sentry/api/endpoints/organization_events_histogram.py                  @getsentry/performance
 
-/tests/snuba/api/endpoints/*                                                @getsentry/discover-n-dashboards
+/tests/snuba/api/endpoints/*                                                @getsentry/performance
 /tests/snuba/api/endpoints/test_organization_events_histogram.py            @getsentry/performance
 /tests/snuba/api/endpoints/test_organization_events_facets_performance.py   @getsentry/performance
 /tests/snuba/api/endpoints/test_organization_events_spans_performance.py    @getsentry/performance
@@ -200,19 +200,16 @@ yarn.lock                                                @getsentry/owners-js-de
 /tests/snuba/api/endpoints/test_organization_tags.py                        @getsentry/performance
 /static/app/components/events/viewHierarchy/*                               @getsentry/performance
 
-/src/sentry/api/serializers/snuba.py                                        @getsentry/discover-n-dashboards
-/src/sentry/snuba/discover.py                                               @getsentry/discover-n-dashboards
-/src/sentry/snuba/metrics_performance.py                                    @getsentry/discover-n-dashboards
-/src/sentry/snuba/metrics_enhanced_performance.py                           @getsentry/discover-n-dashboards
+/src/sentry/api/serializers/snuba.py                                        @getsentry/performance
+/src/sentry/snuba/discover.py                                               @getsentry/performance
+/src/sentry/snuba/metrics_performance.py                                    @getsentry/performance
+/src/sentry/snuba/metrics_enhanced_performance.py                           @getsentry/performance
 
-/src/sentry/search/events/                                                  @getsentry/discover-n-dashboards @getsentry/issues
-/tests/snuba/search/test_backend.py                                         @getsentry/discover-n-dashboards
-/static/app/utils/discover/                                                 @getsentry/discover-n-dashboards
-/static/app/components/charts/                                              @getsentry/discover-n-dashboards
-## Endof Visibility
+/src/sentry/search/events/                                                  @getsentry/performance @getsentry/issues
+/tests/snuba/search/test_backend.py                                         @getsentry/performance
+/static/app/utils/discover/                                                 @getsentry/performance
+/static/app/components/charts/                                              @getsentry/performance
 
-
-## Performance
 /src/sentry/api/endpoints/organization_events_facets_performance.py       @getsentry/performance
 /src/sentry/api/endpoints/organization_events_spans_performance.py        @getsentry/performance
 /src/sentry/api/endpoints/organization_events_spans_histogram.py          @getsentry/performance
@@ -234,38 +231,35 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/tasks/statistical_detectors.py                                @getsentry/performance @getsentry/profiling
 /tests/sentry/statistical_detectors                                       @getsentry/performance @getsentry/profiling
 /tests/sentry/tasks/test_statistical_detectors.py                         @getsentry/performance @getsentry/profiling
+
+/src/sentry/api/endpoints/organization_dashboards.py                 @getsentry/performance
+/src/sentry/api/endpoints/organization_dashboard_details.py          @getsentry/performance
+/src/sentry/api/endpoints/organization_dashboard_widget_details.py   @getsentry/performance
+/src/sentry/api/bases/organization_events.py                         @getsentry/performance
+/src/sentry/api/endpoints/organization_event_details.py              @getsentry/performance
+/src/sentry/api/endpoints/organization_events.py                     @getsentry/performance
+/src/sentry/api/endpoints/organization_events_facets.py              @getsentry/performance
+/src/sentry/api/endpoints/organization_events_meta.py                @getsentry/performance
+/src/sentry/api/endpoints/organization_events_stats.py               @getsentry/performance
+/src/sentry/api/endpoints/organization_measurements_meta.py          @getsentry/performance
+/src/sentry/api/serializers/models/dashboard.py                      @getsentry/performance
+/src/sentry/api/serializers/models/discoversavedquery.py             @getsentry/performance
+/src/sentry/api/serializers/rest_framework/dashboard.py              @getsentry/performance
+
+/src/sentry/discover/                                                @getsentry/performance
+/tests/sentry/snuba/test_discover.py                                 @getsentry/performance
+
+/src/sentry/api/event_search.py                                      @getsentry/performance
+/tests/sentry/api/test_event_search.py                               @getsentry/performance
+
+/src/sentry/data_export/                                             @getsentry/performance
+/tests/sentry/data_export/                                           @getsentry/performance
+
+/static/app/views/eventsV2/                                          @getsentry/performance
+/static/app/views/discover/                                          @getsentry/performance
+/static/app/views/dashboardsV2/                                      @getsentry/performance
+/static/app/components/dashboards/                                   @getsentry/performance
 ## Endof Performance
-
-
-## Discover/Dashboards
-/src/sentry/api/endpoints/organization_dashboards.py                 @getsentry/discover-n-dashboards
-/src/sentry/api/endpoints/organization_dashboard_details.py          @getsentry/discover-n-dashboards
-/src/sentry/api/endpoints/organization_dashboard_widget_details.py   @getsentry/discover-n-dashboards
-/src/sentry/api/bases/organization_events.py                         @getsentry/discover-n-dashboards
-/src/sentry/api/endpoints/organization_event_details.py              @getsentry/discover-n-dashboards
-/src/sentry/api/endpoints/organization_events.py                     @getsentry/discover-n-dashboards
-/src/sentry/api/endpoints/organization_events_facets.py              @getsentry/discover-n-dashboards
-/src/sentry/api/endpoints/organization_events_meta.py                @getsentry/discover-n-dashboards
-/src/sentry/api/endpoints/organization_events_stats.py               @getsentry/discover-n-dashboards
-/src/sentry/api/endpoints/organization_measurements_meta.py          @getsentry/discover-n-dashboards
-/src/sentry/api/serializers/models/dashboard.py                      @getsentry/discover-n-dashboards
-/src/sentry/api/serializers/models/discoversavedquery.py             @getsentry/discover-n-dashboards
-/src/sentry/api/serializers/rest_framework/dashboard.py              @getsentry/discover-n-dashboards
-
-/src/sentry/discover/                                                @getsentry/discover-n-dashboards
-/tests/sentry/snuba/test_discover.py                                 @getsentry/discover-n-dashboards
-
-/src/sentry/api/event_search.py                                      @getsentry/discover-n-dashboards
-/tests/sentry/api/test_event_search.py                               @getsentry/discover-n-dashboards
-
-/src/sentry/data_export/                                             @getsentry/discover-n-dashboards
-/tests/sentry/data_export/                                           @getsentry/discover-n-dashboards
-
-/static/app/views/eventsV2/                                          @getsentry/discover-n-dashboards
-/static/app/views/discover/                                          @getsentry/discover-n-dashboards
-/static/app/views/dashboardsV2/                                      @getsentry/discover-n-dashboards
-/static/app/components/dashboards/                                   @getsentry/discover-n-dashboards
-## Endof Discover/Dashboards
 
 ## Starfish
 /src/sentry/api/endpoints/organization_events_facets_stats_performance.py           @getsentry/team-starfish
