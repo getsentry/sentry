@@ -1,9 +1,9 @@
 import type {Series} from 'sentry/types/echarts';
-import {DurationAggregateSelector} from 'sentry/views/performance/database/durationAggregateSelector';
 import {CHART_HEIGHT} from 'sentry/views/performance/database/settings';
-import {AVG_COLOR} from 'sentry/views/starfish/colours';
+import {COUNT_COLOUR} from 'sentry/views/starfish/colours';
 import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
+import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 interface Props {
   isLoading: boolean;
@@ -11,9 +11,9 @@ interface Props {
   error?: Error | null;
 }
 
-export function DurationChart({series, isLoading, error}: Props) {
+export function ResponseCodeBarChart({series, isLoading, error}: Props) {
   return (
-    <ChartPanel title={<DurationAggregateSelector />}>
+    <ChartPanel title={DataTitles.httpCodeBreakdown}>
       <Chart
         height={CHART_HEIGHT}
         grid={{
@@ -22,11 +22,13 @@ export function DurationChart({series, isLoading, error}: Props) {
           top: '8px',
           bottom: '0',
         }}
+        aggregateOutputFormat="number"
         data={[series]}
         loading={isLoading}
         error={error}
-        chartColors={[AVG_COLOR]}
-        type={ChartType.LINE}
+        preserveIncompletePoints
+        chartColors={[COUNT_COLOUR]}
+        type={ChartType.BAR}
       />
     </ChartPanel>
   );
