@@ -594,18 +594,18 @@ class DatabaseBackedOrganizationService(OrganizationService):
             logger.warning("Could not send SSO unlink emails: %s", e)
             return
 
-        member_list = OrganizationMember.objects.filter(
-            organization_id=organization_id,
-        )
-        for member in member_list:
-            # Update all members regardless of whether or not
-            # the invitation was accepted. We don't use a bulk update
-            # because of outboxes
-            member.update(
+        with unguarded_write(using=router.db_for_write(OrganizationMember)):
+            # Flags are not replicated -- these updates are safe to skip outboxes
+            OrganizationMember.objects.filter(organization_id=organization_id,).update(
                 flags=F("flags")
                 .bitand(~OrganizationMember.flags["sso:linked"])
                 .bitand(~OrganizationMember.flags["sso:invalid"])
             )
+
+        member_list = OrganizationMember.objects.filter(
+            organization_id=organization_id,
+        )
+        for member in member_list:
             member.send_sso_unlink_email(sending_user_email, provider)
 
     def count_members_without_sso(self, *, organization_id: int) -> int:
