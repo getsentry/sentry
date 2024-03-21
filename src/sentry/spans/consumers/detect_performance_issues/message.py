@@ -4,9 +4,6 @@ from copy import deepcopy
 from typing import Any
 
 import sentry_sdk
-from sentry_kafka_schemas import get_codec
-from sentry_kafka_schemas.codecs import Codec
-from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
 
 from sentry.event_manager import (
     Job,
@@ -20,13 +17,7 @@ from sentry.models.project import Project
 from sentry.utils import metrics
 from sentry.utils.canonical import CanonicalKeyDict
 
-SPAN_SCHEMA: Codec[SpanEvent] = get_codec("snuba-spans")
-
 logger = logging.getLogger(__name__)
-
-
-def _deserialize_span(value: bytes) -> Mapping[str, Any]:
-    return SPAN_SCHEMA.decode(value)
 
 
 def build_tree(spans):
