@@ -24,6 +24,7 @@ import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type {
   BreadcrumbFrame,
   ErrorFrame,
+  FeedbackFrame,
   LargestContentfulPaintFrame,
   MultiClickFrame,
   MutationFrame,
@@ -63,7 +64,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     title: 'Navigation',
     icon: <IconLocation size="xs" />,
   }),
-  feedback: frame => ({
+  feedback: (frame: FeedbackFrame) => ({
     color: 'pink300',
     description: frame.data.projectSlug,
     tabKey: TabKey.BREADCRUMBS,
