@@ -8,5 +8,7 @@
 # # comment explaining what you're doing
 # library-name @ https://github.com/getsentry/<repo>/archive/<40 char sha>.zip
 
-# DO NOT MERGE: CI testing for pytest-sentry
-pytest-sentry @ https://github.com/getsentry/pytest-sentry/archive/a955884c062fad2697ba23cdd77a4bb3ec3a6f9e.zip
+# Version of pytest-sentry that is compatible to Python SDK 2.0.
+# After dog fooding SDK 2.0 we will make a new release of pytest-sentry
+# and remove this line and update requirements-dev.txt
+pytest-sentry @ https://github.com/getsentry/pytest-sentry/archive/aecc5b795e86da9fc4e990b60d66b494020ed24e.zip

@@ -12,7 +12,7 @@ pytest-cov>=4.0.0
 pytest-django>=4.8.0
 pytest-fail-slow>=0.3.0
 pytest-rerunfailures>=11
-# Removed because of Python SDK 2.0 (this package does not work with SDK 2.0)
+# A version of pytest-sentry compatible with Python SDK 2.0 is set in requriements-getsentry-overrides.txt
 # pytest-sentry>=0.1.11
 pytest-xdist>=3
 responses>=0.23.1
