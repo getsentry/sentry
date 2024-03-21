@@ -104,6 +104,20 @@ class RpcModelProtocolMeta(type(RpcModel), type(Protocol)):  # type: ignore
     """A unifying metaclass for RpcModel classes that also implement a Protocol."""
 
 
+class RpcOptionalUpdate(Generic[T], RpcModel):
+    """A value to update an attribute of an RPC model.
+
+    This class should be used as an attribute of a model representing an update
+    operation on another model (for example, the way RpcOrganizationMappingUpdate
+    represents an update to an RpcOrganizationMapping). The RpcOptionalUpdate
+    attribute should itself be optional. If the RpcOptionalUpdate object is None,
+    that means the attribute should not be updated, but an RpcOptionalUpdate object
+    containing None means that the attribute should be updated to None.
+    """
+
+    value: T | None
+
+
 ServiceInterface = TypeVar("ServiceInterface")
 
 
