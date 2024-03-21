@@ -190,6 +190,10 @@ export type SentryProjectSelectorType = {
   avatarSize?: number;
 };
 
+export type SentryOrganizationRoleSelectorType = {
+  type: 'sentry_organization_role_selector';
+};
+
 export type SelectAsyncType = {
   type: 'select_async';
 } & SelectAsyncFieldProps;
@@ -204,6 +208,7 @@ export type Field = (
   | TableType
   | ProjectMapperType
   | SentryProjectSelectorType
+  | SentryOrganizationRoleSelectorType
   | SelectAsyncType
   | ChoiceMapperType
   | {type: (typeof FieldType)[number]}
