@@ -39,6 +39,7 @@ type Options = {
 interface Result {
   attachments: unknown[];
   errors: ReplayError[];
+  errorsNoFeedback: ReplayError[];
   fetchError: undefined | RequestError;
   fetching: boolean;
   onRetry: () => void;
@@ -240,8 +241,12 @@ function useReplayData({
       .concat(extraErrorPages)
       .concat(platformErrorPages)
       .flatMap(page => page.data);
+
+    const errorsNoFeedback = allErrors.filter(e => e.title !== 'User Feedback');
+
     return {
       attachments: attachmentPages.flat(2),
+      errorsNoFeedback,
       errors: allErrors,
       fetchError: fetchReplayError ?? undefined,
       fetching,

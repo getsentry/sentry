@@ -54,7 +54,7 @@ function ReplayDetails({params: {replaySlug}}: Props) {
   // TODO: replayId is known ahead of time and useReplayData is parsing it from the replaySlug
   // once we fix the route params and links we should fix this to accept replayId and stop returning it
   const {
-    errors: replayErrors,
+    errorsNoFeedback,
     fetchError,
     fetching,
     onRetry,
@@ -82,7 +82,7 @@ function ReplayDetails({params: {replaySlug}}: Props) {
         orgSlug={orgSlug}
         replayRecord={replayRecord}
         projectSlug={projectSlug}
-        replayErrors={replayErrors}
+        replayErrors={errorsNoFeedback}
       >
         <Layout.Page>
           <Alert system type="warning" data-test-id="replay-deleted">
@@ -102,7 +102,7 @@ function ReplayDetails({params: {replaySlug}}: Props) {
           orgSlug={orgSlug}
           replayRecord={replayRecord}
           projectSlug={projectSlug}
-          replayErrors={replayErrors}
+          replayErrors={errorsNoFeedback}
         >
           <Layout.Page withPadding>
             <NotFound />
@@ -121,7 +121,7 @@ function ReplayDetails({params: {replaySlug}}: Props) {
         orgSlug={orgSlug}
         replayRecord={replayRecord}
         projectSlug={projectSlug}
-        replayErrors={replayErrors}
+        replayErrors={errorsNoFeedback}
       >
         <Layout.Page>
           <DetailedError
@@ -163,7 +163,7 @@ function ReplayDetails({params: {replaySlug}}: Props) {
           orgSlug={orgSlug}
           replayRecord={replayRecord}
           projectSlug={projectSlug}
-          replayErrors={replayErrors}
+          replayErrors={errorsNoFeedback}
         >
           <ReplaysLayout />
         </Page>
