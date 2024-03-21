@@ -61,7 +61,7 @@ export default function useFetchThresholdsListData({
               displayName: rule.environment,
             } as Environment,
             id: rule.id,
-            project: {slug: rule.projects[0]},
+            project: {id: rule.projects[0], slug: rule.projects[0]},
             threshold_type: TOTAL_ERROR_COUNT_STR,
             trigger_type: 'over',
             value: rule.triggers[0]?.alertThreshold,
