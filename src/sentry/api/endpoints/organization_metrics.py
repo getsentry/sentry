@@ -6,7 +6,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, options
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -491,9 +491,6 @@ class OrganizationMetricsSamplesEndpoint(OrganizationEventsV2EndpointBase):
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
     def get(self, request: Request, organization: Organization) -> Response:
-        if not features.has("organizations:metrics-samples-list", organization, actor=request.user):
-            return Response(status=404)
-
         try:
             snuba_params, params = self.get_snuba_dataclass(request, organization)
         except NoProjects:
