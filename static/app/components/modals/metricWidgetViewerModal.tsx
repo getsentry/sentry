@@ -23,7 +23,6 @@ import type {
   Order,
 } from 'sentry/views/dashboards/metrics/types';
 import {
-  expressionsToApiQueries,
   expressionsToWidget,
   filterEquationsByDisplayType,
   filterQueriesByDisplayType,
@@ -71,17 +70,17 @@ function MetricWidgetViewerModal({
     [metricEquations, displayType]
   );
 
-  const generateQueryId = useGenerateExpressionId(metricQueries);
-  const generateEquationId = useGenerateExpressionId(metricEquations);
-
-  const apiQueries = useMemo(
-    () => expressionsToApiQueries([...filteredQueries, ...filteredEquations]),
+  const filteredExpressions = useMemo(
+    () => [...filteredQueries, ...filteredEquations],
     [filteredQueries, filteredEquations]
   );
 
+  const generateQueryId = useGenerateExpressionId(metricQueries);
+  const generateEquationId = useGenerateExpressionId(metricEquations);
+
   const widgetMQL = useMemo(
-    () => getMetricWidgetTitle([...filteredQueries, ...filteredEquations]),
-    [filteredQueries, filteredEquations]
+    () => getMetricWidgetTitle(filteredExpressions),
+    [filteredExpressions]
   );
 
   const [title, setTitle] = useState<MetricWidgetTitleState>({
@@ -236,7 +235,7 @@ function MetricWidgetViewerModal({
             removeQuery={removeQuery}
           />
           <MetricVisualization
-            queries={apiQueries}
+            expressions={filteredExpressions}
             displayType={displayType}
             onDisplayTypeChange={setDisplayType}
             onOrderChange={handleOrderChange}

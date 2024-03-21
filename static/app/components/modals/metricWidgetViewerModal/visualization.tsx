@@ -11,15 +11,15 @@ import {space} from 'sentry/styles/space';
 import type {MetricsQueryApiResponse} from 'sentry/types';
 import {DEFAULT_SORT_STATE} from 'sentry/utils/metrics/constants';
 import type {FocusedMetricsSeries, SortState} from 'sentry/utils/metrics/types';
-import {
-  type MetricsQueryApiQueryParams,
-  useMetricsQuery,
-} from 'sentry/utils/metrics/useMetricsQuery';
+import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
 import {BigNumber, getBigNumberData} from 'sentry/views/dashboards/metrics/bigNumber';
 import {getTableData, MetricTable} from 'sentry/views/dashboards/metrics/table';
-import type {Order} from 'sentry/views/dashboards/metrics/types';
+import type {
+  DashboardMetricsExpression,
+  Order,
+} from 'sentry/views/dashboards/metrics/types';
 import {toMetricDisplayType} from 'sentry/views/dashboards/metrics/utils';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {displayTypes} from 'sentry/views/dashboards/widgetBuilder/utils';
@@ -35,7 +35,7 @@ function useFocusedSeries({
   queries,
   onChange,
 }: {
-  queries: MetricsQueryApiQueryParams[];
+  queries: DashboardMetricsExpression[];
   timeseriesData: MetricsQueryApiResponse | null;
   onChange?: () => void;
 }) {
@@ -109,13 +109,13 @@ const supportedDisplayTypes = Object.keys(displayTypes).map(value => ({
 
 interface MetricVisualizationProps {
   displayType: DisplayType;
+  expressions: DashboardMetricsExpression[];
   onDisplayTypeChange: (displayType: DisplayType) => void;
-  queries: MetricsQueryApiQueryParams[];
   onOrderChange?: ({id, order}: {id: number; order: Order}) => void;
 }
 
 export function MetricVisualization({
-  queries,
+  expressions,
   displayType,
   onDisplayTypeChange,
   onOrderChange,
@@ -127,11 +127,11 @@ export function MetricVisualization({
     isLoading,
     isError,
     error,
-  } = useMetricsQuery(queries, selection, {
+  } = useMetricsQuery(expressions, selection, {
     intervalLadder: displayType === DisplayType.BAR ? 'bar' : 'dashboard',
   });
 
-  const widgetMQL = useMemo(() => getWidgetTitle(queries), [queries]);
+  const widgetMQL = useMemo(() => getWidgetTitle(expressions), [expressions]);
 
   const visualizationComponent = useMemo(() => {
     if (!timeseriesData) {
@@ -142,7 +142,7 @@ export function MetricVisualization({
         <MetricTableVisualization
           isLoading={isLoading}
           timeseriesData={timeseriesData}
-          queries={queries}
+          expressions={expressions}
           onOrderChange={onOrderChange}
         />
       );
@@ -152,7 +152,7 @@ export function MetricVisualization({
         <MetricBigNumberVisualization
           timeseriesData={timeseriesData}
           isLoading={isLoading}
-          queries={queries}
+          expressions={expressions}
         />
       );
     }
@@ -161,11 +161,11 @@ export function MetricVisualization({
       <MetricChartVisualization
         isLoading={isLoading}
         timeseriesData={timeseriesData}
-        queries={queries}
+        expressions={expressions}
         displayType={displayType}
       />
     );
-  }, [timeseriesData, displayType, isLoading, queries, onOrderChange]);
+  }, [timeseriesData, displayType, isLoading, expressions, onOrderChange]);
 
   if (!timeseriesData || isError) {
     return (
@@ -208,21 +208,21 @@ export function MetricVisualization({
 }
 
 interface MetricTableVisualizationProps {
+  expressions: DashboardMetricsExpression[];
   isLoading: boolean;
-  queries: MetricsQueryApiQueryParams[];
   timeseriesData: MetricsQueryApiResponse;
   onOrderChange?: ({id, order}: {id: number; order: Order}) => void;
 }
 
 function MetricTableVisualization({
   timeseriesData,
-  queries,
+  expressions,
   isLoading,
   onOrderChange,
 }: MetricTableVisualizationProps) {
   const tableData = useMemo(() => {
-    return getTableData(timeseriesData, queries);
-  }, [timeseriesData, queries]);
+    return getTableData(timeseriesData, expressions);
+  }, [timeseriesData, expressions]);
 
   const handleOrderChange = useCallback(
     (column: {id: number; order: Order}) => {
@@ -245,12 +245,12 @@ function MetricTableVisualization({
 
 function MetricBigNumberVisualization({
   timeseriesData,
-  queries,
+  expressions,
   isLoading,
 }: MetricTableVisualizationProps) {
   const bigNumberData = useMemo(() => {
-    return timeseriesData ? getBigNumberData(timeseriesData, queries) : undefined;
-  }, [timeseriesData, queries]);
+    return timeseriesData ? getBigNumberData(timeseriesData, expressions) : undefined;
+  }, [timeseriesData, expressions]);
 
   if (!bigNumberData) {
     return null;
@@ -270,7 +270,7 @@ interface MetricChartVisualizationProps extends MetricTableVisualizationProps {
 
 function MetricChartVisualization({
   timeseriesData,
-  queries,
+  expressions,
   displayType,
   isLoading,
 }: MetricChartVisualizationProps) {
@@ -285,7 +285,7 @@ function MetricChartVisualization({
 
   const {chartSeries, toggleSeriesVisibility, setSeriesVisibility} = useFocusedSeries({
     timeseriesData,
-    queries,
+    queries: expressions,
     onChange: () => handleHoverSeries(''),
   });
   const [tableSort, setTableSort] = useState<SortState>(DEFAULT_SORT_STATE);
