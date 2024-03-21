@@ -113,6 +113,7 @@ def convert_android_methods_to_jvm_frames(methods: list[dict]) -> list[dict]:
         {
             "function": m["name"],
             "module": m["class_name"],
+            "signature": m["signature"],
         }
         for m in methods
     ]
@@ -121,9 +122,10 @@ def convert_android_methods_to_jvm_frames(methods: list[dict]) -> list[dict]:
 def merge_jvm_frames_with_android_methods(frames: list[dict], methods: list[dict]) -> None:
     assert len(frames) == len(methods)
     for f, m in zip(frames, methods):
-        m.update(
-            {
-                "class_name": f["module"],
-                "name": f["function"],
-            }
-        )
+        um = {
+            "class_name": f["module"],
+            "name": f["function"],
+        }
+        if "signature" in f:
+            um["signature"] = f["signature"]
+        m.update(um)
