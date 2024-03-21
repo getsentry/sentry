@@ -39,11 +39,6 @@ export function ErrorNodeDetails({
   const {isLoading, data} = useApiQuery<EventError>(
     [
       `/organizations/${organization.slug}/events/${node.value.project_slug}:${node.value.event_id}/`,
-      {
-        query: {
-          referrer: 'trace-view.drawer-error-details',
-        },
-      },
     ],
     {
       staleTime: 2 * 60 * 1000,
@@ -88,14 +83,7 @@ export function ErrorNodeDetails({
             eventId={node.value.event_id}
             projectSlug={node.metadata.project_slug}
           />
-          <Button
-            size="xs"
-            to={generateIssueEventTarget(
-              node.value,
-              organization,
-              'trace-view.drawer-error-details'
-            )}
-          >
+          <Button size="xs" to={generateIssueEventTarget(node.value, organization)}>
             {t('Go to Issue')}
           </Button>
         </TraceDrawerComponents.Actions>
