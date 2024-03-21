@@ -5,27 +5,27 @@ import {space} from 'sentry/styles/space';
 import type {MetricsQueryApiResponse} from 'sentry/types';
 import {formatMetricsUsingUnitAndOp} from 'sentry/utils/metrics/formatters';
 import {parseMRI} from 'sentry/utils/metrics/mri';
-import type {
-  DashboardMetricsExpression,
-  DashboardMetricsQuery,
-} from 'sentry/views/dashboards/metrics/types';
-import {isMetricEquation} from 'sentry/views/dashboards/metrics/utils';
+import {
+  isMetricFormula,
+  type MetricsQueryApiQueryParams,
+  type MetricsQueryApiRequestQuery,
+} from 'sentry/utils/metrics/useMetricsQuery';
 import {LoadingScreen} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 
 interface MetricBigNumberContainerProps {
-  expressions: DashboardMetricsExpression[];
   isLoading: boolean;
+  metricQueries: MetricsQueryApiQueryParams[];
   timeseriesData?: MetricsQueryApiResponse;
 }
 
 export function MetricBigNumberContainer({
   timeseriesData,
-  expressions,
+  metricQueries,
   isLoading,
 }: MetricBigNumberContainerProps) {
   const bigNumberData = useMemo(() => {
-    return timeseriesData ? getBigNumberData(timeseriesData, expressions) : undefined;
-  }, [timeseriesData, expressions]);
+    return timeseriesData ? getBigNumberData(timeseriesData, metricQueries) : undefined;
+  }, [timeseriesData, metricQueries]);
 
   return (
     <BigNumberWrapper>
@@ -37,11 +37,11 @@ export function MetricBigNumberContainer({
 
 export function getBigNumberData(
   data: MetricsQueryApiResponse,
-  queries: DashboardMetricsExpression[]
+  queries: MetricsQueryApiQueryParams[]
 ): string {
   const filteredQueries = queries.filter(
-    query => !isMetricEquation(query)
-  ) as DashboardMetricsQuery[];
+    query => !isMetricFormula(query)
+  ) as MetricsQueryApiRequestQuery[];
 
   const firstQuery = filteredQueries[0];
 
