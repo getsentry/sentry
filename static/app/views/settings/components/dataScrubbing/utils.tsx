@@ -126,11 +126,6 @@ const valueSuggestions: Array<SourceSuggestion> = [
   },
   {
     type: SourceSuggestionType.VALUE,
-    value: '$span.description',
-    description: t('the span description'),
-  },
-  {
-    type: SourceSuggestionType.VALUE,
     value: '$frame.vars.foo',
     description: t('the local variable "foo"'),
   },
