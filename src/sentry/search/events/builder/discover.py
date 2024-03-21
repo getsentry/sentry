@@ -90,6 +90,7 @@ class BaseQueryBuilder:
     organization_column: str = "organization.id"
     function_alias_prefix: str | None = None
     spans_metrics_builder = False
+    params: SnubaParams
 
     def get_middle(self):
         """Get the middle for comparison functions"""

@@ -91,3 +91,17 @@ def test_span_duration_where(params, condition, op, value):
         selected_columns=["count"],
     )
     assert Condition(span_duration, op, value) in builder.where
+
+
+@django_db_all
+def test_foo(params):
+    mid = params["start"] + (params["end"] - params["start"]) / 2
+    builder = SpansIndexedQueryBuilder(
+        Dataset.SpansIndexed,
+        params,
+        query="transaction:/api/0/projects/",
+        selected_columns=[
+            f"regression_score(span.self_time, 0.95, {int(mid.timestamp())})",
+        ],
+    )
+    assert 0

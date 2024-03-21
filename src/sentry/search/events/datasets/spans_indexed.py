@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
+from datetime import datetime
+from typing import cast
 
 from snuba_sdk import Column, Direction, Function, OrderBy
 
@@ -263,6 +265,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                 SnQLFunction(
                     "regression_score",
                     required_args=[
+                        NumericColumn("column", spans=True),
                         NumberRange("percentile", 0, 1),
                         TimestampArg("timestamp"),
                     ],
@@ -450,10 +453,13 @@ class SpansIndexedDatasetConfig(DatasetConfig):
         alias: str | None,
         cond: str,
     ) -> SelectType:
+        assert self.builder.params.start
+        assert self.builder.params.end
+        timestamp = cast(datetime, args["timestamp"])
         if cond == "greater":
-            interval = (self.builder.params.end - args["timestamp"]).total_seconds()
+            interval = (self.builder.params.end - timestamp).total_seconds()
         elif cond == "less":
-            interval = (args["timestamp"] - self.builder.params.start).total_seconds()
+            interval = (timestamp - self.builder.params.start).total_seconds()
         else:
             raise InvalidSearchQuery(f"Unsupported condition for cpm: {cond}")
 
@@ -467,7 +473,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                             cond,
                             [
                                 self.builder.resolve_column("timestamp"),
-                                args["timestamp"],
+                                timestamp,
                             ],
                         ),
                     ],
@@ -486,6 +492,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
         return Function(
             f'quantileIf({args["percentile"]})',
             [
+                args["column"],
                 Function(
                     cond,
                     [
