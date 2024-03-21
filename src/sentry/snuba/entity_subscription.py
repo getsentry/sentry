@@ -46,6 +46,7 @@ ENTITY_TIME_COLUMNS: Mapping[EntityKey, str] = {
     EntityKey.GenericMetricsCounters: "timestamp",
     EntityKey.GenericMetricsDistributions: "timestamp",
     EntityKey.GenericMetricsSets: "timestamp",
+    EntityKey.GenericMetricsGauges: "timestamp",
     EntityKey.MetricsCounters: "timestamp",
     EntityKey.MetricsSets: "timestamp",
 }
