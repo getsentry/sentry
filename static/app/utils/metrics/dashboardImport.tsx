@@ -253,22 +253,6 @@ export class WidgetParser {
     return equations;
   }
 
-  private extractQueryName(formula: Formula) {
-    if (!formula.formula.includes('(')) {
-      return formula.formula;
-    }
-
-    const [functionName, ...args] = formula.formula
-      .split(/\(|\)|,/)
-      .filter(Boolean)
-      .map(s => s.trim());
-
-    this.errors.push(`widget.request.formula - unsupported function ${functionName}`);
-
-    // we support only functions with one argument
-    return args[0];
-  }
-
   private parseDisplayType(displayType: string) {
     switch (displayType) {
       case 'area':
