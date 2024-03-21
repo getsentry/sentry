@@ -204,6 +204,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     }
 
     this.fetchEnvironments();
+    this.refetchConfigs();
   }
 
   isRuleStateChange(prevState: State): boolean {
@@ -399,6 +400,20 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
       })
       .then(response => this.setState({environments: response}))
       .catch(_err => addErrorMessage(t('Unable to fetch environments')));
+  }
+
+  refetchConfigs() {
+    const {organization} = this.props;
+    const {project} = this.state;
+
+    this.api
+      .requestPromise(
+        `/projects/${organization.slug}/${project.slug}/rules/configuration/`
+      )
+      .then(response => this.setState({configs: response}))
+      .catch(() => {
+        // No need to alert user if this fails, can use existing data
+      });
   }
 
   fetchStatus() {
