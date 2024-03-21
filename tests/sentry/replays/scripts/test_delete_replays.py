@@ -6,6 +6,7 @@ from uuid import uuid4
 from zlib import compress
 
 from sentry.models.file import File
+from sentry.replays.lib.storage import RecordingSegmentStorageMeta, storage
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.scripts.delete_replays import delete_replay_ids, delete_replays
 from sentry.replays.testutils import (
@@ -59,11 +60,11 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
                 file_id=f.id,
             )
 
-    def assert_replay_deleted(self, replay_id: str):
+    def assert_recording_deleted(self, replay_id: str):
         replay_recordings = ReplayRecordingSegment.objects.filter(replay_id=replay_id)
         assert len(replay_recordings) == 0
 
-    def assert_replay_not_deleted(self, replay_id: str):
+    def assert_recording_not_deleted(self, replay_id: str):
         replay_recordings = ReplayRecordingSegment.objects.filter(replay_id=replay_id)
         assert len(replay_recordings) == 5  # we create 5 segments for each replay in this test
 
@@ -110,9 +111,9 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
             dry_run=False,
         )
 
-        self.assert_replay_deleted(to_delete)
-        self.assert_replay_not_deleted(replay_id_kept_other_project)
-        self.assert_replay_not_deleted(replay_id_kept_outside_timerange)
+        self.assert_recording_deleted(to_delete)
+        self.assert_recording_not_deleted(replay_id_kept_other_project)
+        self.assert_recording_not_deleted(replay_id_kept_outside_timerange)
 
     def test_deletion_replays_dry_run(self):
         not_deleted = uuid4().hex
@@ -130,7 +131,7 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
             end_utc=self.default_end_time,
             dry_run=True,
         )
-        self.assert_replay_not_deleted(not_deleted)
+        self.assert_recording_not_deleted(not_deleted)
 
     def test_deletion_replays_env_filter(self):
         replay_with_env = uuid4().hex
@@ -149,7 +150,7 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
             end_utc=self.default_end_time,
             dry_run=False,
         )
-        self.assert_replay_not_deleted(replay_with_env)
+        self.assert_recording_not_deleted(replay_with_env)
 
         delete_replays(
             project_id=self.project.id,
@@ -160,7 +161,7 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
             end_utc=self.default_end_time,
             dry_run=False,
         )
-        self.assert_replay_deleted(replay_with_env)
+        self.assert_recording_deleted(replay_with_env)
 
     def test_deletion_replays_tags(self):
         replay_id_no_tags = uuid4().hex
@@ -186,8 +187,8 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
             end_utc=self.default_end_time,
             dry_run=False,
         )
-        self.assert_replay_not_deleted(replay_id_tags)
-        self.assert_replay_not_deleted(replay_id_no_tags)
+        self.assert_recording_not_deleted(replay_id_tags)
+        self.assert_recording_not_deleted(replay_id_no_tags)
 
         delete_replays(
             project_id=self.project.id,
@@ -199,8 +200,8 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
             dry_run=False,
         )
 
-        self.assert_replay_deleted(replay_id_tags)
-        self.assert_replay_not_deleted(replay_id_no_tags)
+        self.assert_recording_deleted(replay_id_tags)
+        self.assert_recording_not_deleted(replay_id_no_tags)
 
     def test_deletion_replays_multitags(self):
         replay_id_tags = uuid4().hex
@@ -237,9 +238,9 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
             dry_run=False,
         )
 
-        self.assert_replay_deleted(replay_id_tags)
-        self.assert_replay_not_deleted(replay_id_only_one_tag)
-        self.assert_replay_not_deleted(replay_id_two_tags_not_deleted)
+        self.assert_recording_deleted(replay_id_tags)
+        self.assert_recording_not_deleted(replay_id_only_one_tag)
+        self.assert_recording_not_deleted(replay_id_two_tags_not_deleted)
 
     def test_deletion_replays_batch_size_all_deleted(self):
         replay_ids = [uuid4().hex for _ in range(self.small_batch_size + 1)]
@@ -264,20 +265,46 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
         assert len(replay_recordings) == 0
 
     def test_delete_replays_by_id(self):
+        # Deleted.
         deleted_replay_id = uuid4().hex
-        self.store_replay_segments(
-            deleted_replay_id,
-            self.project.id,
-            datetime.datetime.now() - datetime.timedelta(seconds=10),
+        self.store_replays(
+            mock_replay(
+                datetime.datetime.now() - datetime.timedelta(seconds=10),
+                self.project.id,
+                deleted_replay_id,
+            )
         )
 
-        kept_replay_id = uuid4().hex
-        self.store_replay_segments(
-            kept_replay_id,
-            self.project.id,
-            datetime.datetime.now() - datetime.timedelta(seconds=10),
+        metadata1 = RecordingSegmentStorageMeta(
+            project_id=self.project.id,
+            replay_id=deleted_replay_id,
+            segment_id=0,
+            retention_days=30,
+            file_id=None,
         )
+        storage.set(metadata1, b"hello, world!")
+
+        # Kept
+        kept_replay_id = uuid4().hex
+        self.store_replays(
+            mock_replay(
+                datetime.datetime.now() - datetime.timedelta(seconds=10),
+                self.project.id,
+                kept_replay_id,
+            )
+        )
+
+        metadata2 = RecordingSegmentStorageMeta(
+            project_id=self.project.id,
+            replay_id=kept_replay_id,
+            segment_id=0,
+            retention_days=30,
+            file_id=None,
+        )
+        storage.set(metadata2, b"hello, world!")
 
         delete_replay_ids(project_id=self.project.id, replay_ids=[deleted_replay_id])
-        self.assert_replay_deleted(deleted_replay_id)
-        self.assert_replay_not_deleted(kept_replay_id)
+
+        # Assert stored data was deleted.
+        assert storage.get(metadata1) is None
+        assert storage.get(metadata2) is not None

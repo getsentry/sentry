@@ -138,5 +138,5 @@ export interface CheckIn {
 export interface StatusNotice {
   color: ColorOrAlias;
   icon: React.ReactNode;
-  label: React.ReactNode;
+  label?: React.ReactNode;
 }
