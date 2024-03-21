@@ -1,9 +1,12 @@
 import dataclasses
 import re
 from collections import defaultdict
+from collections.abc import Callable
 from itertools import islice
 from re import Match
 from typing import Any
+
+import tiktoken
 
 from sentry import analytics
 from sentry.eventstore.models import Event
@@ -151,11 +154,42 @@ _parameterization_regex_str = r"""(?x)
 
 _parameterization_regex = re.compile(_parameterization_regex_str)
 
+# UniqID logic
+encoding = tiktoken.get_encoding("cl100k_base")
+
+
+def num_tokens_from_string(token_str: str) -> int:
+    """Returns the number of tokens in a text string."""
+    num_tokens = len(encoding.encode(token_str))
+    return num_tokens
+
+
+def is_probably_uniq_id(token_str: str):
+    if len(token_str) < 4:
+        return False
+    if token_str[0] == "<" and token_str[-1] == ">":  # Don't replace already-parameterized tokens
+        return False
+    token_length_ratio = num_tokens_from_string(token_str) / len(token_str)
+    if len(token_str) > 8 and token_length_ratio > 0.4:
+        return True
+    return token_length_ratio > 0.5
+
+
+def replace_uniq_ids_in_str(string: str):
+    strings = string.split(" ")
+    for i, s in enumerate(strings):
+        if is_probably_uniq_id(s):
+            strings[i] = "<uniq_id>"
+    return " ".join(strings)
+
 
 @dataclasses.dataclass()
 class ParameterizationExperiment:
     name: str
-    regex: Any  # re.compile(...)
+    regex: Any
+    run: Callable[
+        ["ParameterizationExperiment", Callable[[Match[str]], str]], str
+    ] = lambda self, _handle_regex_match, input: self.regex.sub(_handle_regex_match, input)
     counter: int = 0
 
 
@@ -163,24 +197,7 @@ class ParameterizationExperiment:
 # in the primary parameterization regex. E.g. "md5" might be caught by the "uniq_id" experiment, so it is explicitly excluded
 _parameterization_regex_experiments = [
     ParameterizationExperiment(
-        name="uniq_id",
-        regex=re.compile(
-            _parameterization_regex_str
-            + r"""|
-                (?P<uniq_id>
-                    \b
-                    (?!(md5|sha1)) # TODO: remove this line after experiment is done
-                    (?!\w*?[\.:\-]\w*?\b) # No colons, dots, or dashes
-                    # Interleaved numbers and letters
-                    (?=
-                        (\w*?[0-9]\w*?[a-zA-Z]\w*?[0-9]\b)
-                        | (\w*?[a-zA-Z]\w*?[0-9]\w*?[a-zA-Z]\b)
-                    )
-                    [\w_]+?
-                    \b
-                )
-            """
-        ),
+        name="uniq_id", regex=None, run=lambda _self, _, input: replace_uniq_ids_in_str(input)
     ),
 ]
 
@@ -201,7 +218,7 @@ def normalize_message_for_grouping(message: str, event: Event, share_analytics: 
 
     trimmed_value_counter: defaultdict[str, int] = defaultdict(int)
 
-    def _handle_match(match: Match[str]) -> str:
+    def _handle_regex_match(match: Match[str]) -> str:
         # Find the first (should be only) non-None match entry, and sub in the placeholder. For
         # example, given the groupdict item `('hex', '0x40000015')`, this returns '<hex>' as a
         # replacement for the original value in the string.
@@ -217,7 +234,7 @@ def normalize_message_for_grouping(message: str, event: Event, share_analytics: 
                     return f"<{key}>"
         return ""
 
-    normalized = _parameterization_regex.sub(_handle_match, trimmed)
+    normalized = _parameterization_regex.sub(_handle_regex_match, trimmed)
     for experiment in _parameterization_regex_experiments:
         if event.project_id and (
             in_rollout_group(
@@ -242,7 +259,7 @@ def normalize_message_for_grouping(message: str, event: Event, share_analytics: 
                 6424467,
             ]
         ):
-            experiment_output = experiment.regex.sub(_handle_match, normalized)
+            experiment_output = experiment.run(experiment, _handle_regex_match, normalized)
             if experiment_output != normalized:
                 # Register 100 analytics events per experiment per instance restart
                 # This generates samples for review consistently but creates a hard cap on

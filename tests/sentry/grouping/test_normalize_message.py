@@ -122,12 +122,12 @@ def record_analytics(monkeypatch):
         (
             "Uniq ID - sql savepoint",
             '''SQL: RELEASE SAVEPOINT "s140177518376768_x2"''',
-            '''SQL: RELEASE SAVEPOINT "<uniq_id>"''',
+            """SQL: RELEASE SAVEPOINT <uniq_id>""",
         ),
         (
             "Uniq ID - api gateway",
             """API gateway VdLchF7iDo8sVkg= blah""",
-            """API gateway <uniq_id>= blah""",
+            """API gateway <uniq_id> blah""",
         ),
         (
             "Uniq ID - fb trace",  # TODO: It is possible to have fbtrace_ids without integers.
