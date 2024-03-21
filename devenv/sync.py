@@ -34,7 +34,7 @@ def run_procs(
                         **constants.user_environ,
                         **proc.base_env,
                         "VIRTUAL_ENV": venv_path,
-                        "VOLTA_HOME": constants.VOLTA_HOME,
+                        "VOLTA_HOME": f"{reporoot}/.devenv/bin/volta-home",
                         "PATH": f"{venv_path}/bin:{proc.base_path}",
                     },
                     cwd=reporoot,
