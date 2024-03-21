@@ -93,7 +93,7 @@ _env_cache: dict[str, object] = {}
 
 ENVIRONMENT = os.environ.get("SENTRY_ENVIRONMENT", "production")
 
-NO_SPOTLIGHT = os.environ.get("NO_SPOTLIGHT", False)
+NO_SPOTLIGHT = os.environ.get("NO_SPOTLIGHT", True)
 
 IS_DEV = ENVIRONMENT == "development"
 
@@ -806,6 +806,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.on_demand_metrics",
     "sentry.middleware.integrations.tasks",
     "sentry.replays.usecases.ingest.issue_creation",
+    "sentry.tasks.split_discover_dataset",
 )
 
 default_exchange = Exchange("default", type="direct")
@@ -941,6 +942,8 @@ CELERY_QUEUES_REGION = [
     Queue("nudge.invite_missing_org_members", routing_key="invite_missing_org_members"),
     Queue("auto_resolve_issues", routing_key="auto_resolve_issues"),
     Queue("on_demand_metrics", routing_key="on_demand_metrics"),
+    Queue("spans.process_segment", routing_key="spans.process_segment"),
+    Queue("split_discover_dataset", routing_key="split_discover_dataset"),
 ]
 
 from celery.schedules import crontab
@@ -1228,6 +1231,11 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.tasks.on_demand_metrics.schedule_on_demand_check",
         # Run every 5 minutes
         "schedule": crontab(minute="*/5"),
+    },
+    "split-discover-dataset": {
+        "task": "sentry.tasks.split_discover_dataset",
+        # Run every 1 minute
+        "schedule": crontab(minute="*"),
     },
 }
 
