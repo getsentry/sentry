@@ -641,12 +641,16 @@ Returns a collection of replays and their viewed state. The user is targeted bas
       {
         "id": "81220fbf68494b30a5129ceb4cc5937d",
         "has_seen": true
+      },
+      {
+        "id": "731c51a5f3954da68516229db9219be0",
+        "has_seen": false
       }
     ]
   }
   ```
 
-## Replay Viewed By [/organizations/<organization_slug>/replays/<replay_id>/viewed/]
+## Replay Viewed By [/organizations/<organization_slug>/replays-viewed/<replay_id>/]
 
 ### Fetch Replay Viewed By [GET]
 
