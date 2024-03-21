@@ -18,7 +18,7 @@ import {getShortEventId} from 'sentry/utils/events';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import type {ErrorFrame, ReplayFrame} from 'sentry/utils/replays/types';
-import {isErrorFrame} from 'sentry/utils/replays/types';
+import {isErrorFrame, isFeedbackFrame} from 'sentry/utils/replays/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
@@ -69,11 +69,10 @@ function BreadcrumbItem({
   const {replay} = useReplayContext();
 
   const forceSpan = 'category' in frame && FRAMES_WITH_BUTTONS.includes(frame.category);
-  const isFeedbackCrumb = title === 'User Feedback';
 
   return (
     <CrumbItem
-      isErrorFrame={isErrorFrame(frame) && !isFeedbackCrumb}
+      isErrorFrame={isErrorFrame(frame)}
       as={onClick && !forceSpan ? 'button' : 'span'}
       onClick={e => onClick?.(frame, e)}
       onMouseEnter={e => onMouseEnter(frame, e)}
@@ -86,7 +85,7 @@ function BreadcrumbItem({
       </IconWrapper>
       <CrumbDetails>
         <TitleContainer>
-          {isErrorFrame(frame) && !isFeedbackCrumb ? (
+          {isErrorFrame(frame) ? (
             <CrumbErrorTitle frame={frame} />
           ) : (
             <Title>{title}</Title>
@@ -156,8 +155,8 @@ function BreadcrumbItem({
           />
         ))}
 
-        {isErrorFrame(frame) ? (
-          <CrumbErrorIssue frame={frame} isFeedbackCrumb={isFeedbackCrumb} />
+        {isErrorFrame(frame) || isFeedbackFrame(frame) ? (
+          <CrumbErrorIssue frame={frame as ErrorFrame} />
         ) : null}
       </CrumbDetails>
     </CrumbItem>
@@ -184,13 +183,7 @@ function CrumbErrorTitle({frame}: {frame: ErrorFrame}) {
   );
 }
 
-function CrumbErrorIssue({
-  frame,
-  isFeedbackCrumb,
-}: {
-  frame: ErrorFrame;
-  isFeedbackCrumb: boolean;
-}) {
+function CrumbErrorIssue({frame}: {frame: ErrorFrame}) {
   const organization = useOrganization();
   const project = useProjectFromSlug({organization, projectSlug: frame.data.projectSlug});
   const {groupId} = useReplayGroupContext();
@@ -208,7 +201,7 @@ function CrumbErrorIssue({
     );
   }
 
-  const url = isFeedbackCrumb
+  const url = isFeedbackFrame(frame as ReplayFrame)
     ? `/organizations/${organization.slug}/feedback/?feedbackSlug=${frame.data.projectSlug}%3A${frame.data.groupId}/`
     : `/organizations/${organization.slug}/issues/${frame.data.groupId}/`;
 

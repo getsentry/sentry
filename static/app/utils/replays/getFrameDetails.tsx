@@ -63,18 +63,19 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     title: 'Navigation',
     icon: <IconLocation size="xs" />,
   }),
+  feedback: frame => ({
+    color: 'pink300',
+    description: frame.data.projectSlug,
+    tabKey: TabKey.BREADCRUMBS,
+    title: defaultTitle(frame),
+    icon: <IconMegaphone size="xs" />,
+  }),
   issue: (frame: ErrorFrame) => ({
-    color: frame.message === 'User Feedback' ? 'pink300' : 'red300',
-    description:
-      frame.message === 'User Feedback' ? frame.data.projectSlug : frame.message,
+    color: 'red300',
+    description: frame.message,
     tabKey: TabKey.ERRORS,
     title: defaultTitle(frame),
-    icon:
-      frame.message === 'User Feedback' ? (
-        <IconMegaphone size="xs" />
-      ) : (
-        <IconFire size="xs" />
-      ),
+    icon: <IconFire size="xs" />,
   }),
   'ui.slowClickDetected': (frame: SlowClickFrame) => {
     const node = frame.data.node;
@@ -360,7 +361,7 @@ export default function getFrameDetails(frame: ReplayFrame): Details {
 }
 
 function defaultTitle(frame: ReplayFrame) {
-  // Override error title for User Feedback frames
+  // Override title for User Feedback frames
   if ('message' in frame && frame.message === 'User Feedback') {
     return t('User Feedback');
   }
