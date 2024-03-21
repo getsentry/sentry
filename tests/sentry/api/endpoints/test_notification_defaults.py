@@ -17,6 +17,7 @@ class NotificationDefaultTest(APITestCase):
                 "approval": "always",
                 "deploy": "committed_only",
                 "quota": "always",
+                "quotaThresholds": "always",
                 "quotaAttachments": "always",
                 "quotaErrors": "always",
                 "quotaReplays": "always",
