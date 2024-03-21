@@ -77,6 +77,8 @@ function ReleaseThresholdList({}: Props) {
     const byId = {};
     selectedProjects.forEach(proj => {
       byId[proj.id] = proj;
+      // adding slug for migration to MetricAlerts, we only have slug in MetricAlerts
+      byId[proj.slug] = proj;
     });
     return byId;
   }, [selectedProjects]);
@@ -174,7 +176,8 @@ function ReleaseThresholdList({}: Props) {
     const byProj = {};
 
     filteredThresholds.forEach(threshold => {
-      const projId = threshold.project.id ?? selection.projects[0];
+      const selectedProject = selection.projects[0] !== -1 ? selection.projects[0] : null;
+      const projId = threshold.project.id ?? selectedProject;
       (byProj[projId] ??= []).push(threshold);
     });
     return byProj;
@@ -182,7 +185,9 @@ function ReleaseThresholdList({}: Props) {
 
   const projectsWithoutThresholds: Project[] = useMemo(() => {
     // TODO: limit + paginate list
-    return selectedProjects.filter(proj => !thresholdsByProject[proj.id]);
+    return selectedProjects.filter(
+      proj => !thresholdsByProject[proj.id] && !thresholdsByProject[proj.slug]
+    );
   }, [thresholdsByProject, selectedProjects]);
 
   const setTempError = msg => {
