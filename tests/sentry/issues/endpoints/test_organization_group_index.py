@@ -1,5 +1,5 @@
 import functools
-from datetime import UTC, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import Mock, call, patch
 from uuid import uuid4
 
@@ -2325,6 +2325,38 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_success_response(qs_params={"query": "", "useGroupSnubaDataset": "1"})
         assert len(response.data) == 1
         assert mock_query.call_count == 1
+
+    @override_options({"issues.group_attributes.send_kafka": True})
+    def test_order_by_first_seen_of_issue(self):
+        # issue 1: issue 10 minutes ago
+        time = datetime.now() - timedelta(minutes=10)
+        event1 = self.store_event(
+            data={"timestamp": time.timestamp(), "fingerprint": ["group-2"]},
+            project_id=self.project.id,
+        )
+        # issue 2: events 90 minutes ago 1 minute agoe
+        time = datetime.now() - timedelta(hours=90)
+        event2 = self.store_event(
+            data={"timestamp": time.timestamp(), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        time = datetime.now() - timedelta(minutes=1)
+        self.store_event(
+            data={"timestamp": time.timestamp(), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+        response = self.get_success_response(
+            sort="new",
+            status="1h",
+            useGroupSnubaDataset="1",
+            qs_params={"query": ""},
+        )
+
+        assert len(response.data) == 2
+        assert int(response.data[0]["id"]) == event1.group.id
+        assert int(response.data[1]["id"]) == event2.group.id
 
 
 @region_silo_test
