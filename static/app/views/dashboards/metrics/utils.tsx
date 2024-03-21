@@ -107,7 +107,6 @@ export function getMetricQueries(
       op: parsed.op,
       query: extendQuery(query.conditions, dashboardFilters),
       groupBy: query.columns,
-      name: query.name,
       orderBy: orderBy === 'asc' || orderBy === 'desc' ? orderBy : undefined,
     };
   });
@@ -138,7 +137,6 @@ export function getMetricEquations(widget: Widget): DashboardMetricsEquation[] {
         id: id,
         type: MetricQueryType.FORMULA,
         formula: query.aggregates[0].slice(9),
-        name: query.name,
       } satisfies DashboardMetricsEquation;
     }
   );
@@ -248,7 +246,6 @@ export function defaultMetricWidget(): Widget {
         op: 'avg',
         query: '',
         orderBy: 'desc',
-        name: '',
       },
     ],
     '',
@@ -276,10 +273,4 @@ export function filterEquationsByDisplayType(
     return [];
   }
   return equations;
-}
-
-export function isMetricEquation(
-  queryEntry: DashboardMetricsExpression
-): queryEntry is DashboardMetricsEquation {
-  return 'formula' in queryEntry;
 }

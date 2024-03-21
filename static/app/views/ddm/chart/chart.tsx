@@ -95,6 +95,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       }
     });
 
+    // TODO(ddm): This assumes that all series have the same bucket size
     const bucketSize = series[0]?.data[1]?.name - series[0]?.data[0]?.name;
     const isSubMinuteBucket = bucketSize < 60_000;
     const lastBucketTimestamp = series[0]?.data?.[series[0]?.data?.length - 1]?.name;
