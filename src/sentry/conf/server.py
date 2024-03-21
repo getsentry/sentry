@@ -779,7 +779,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.reprocessing2",
     "sentry.tasks.sentry_apps",
     "sentry.tasks.servicehooks",
-    "sentry.tasks.spans",
     "sentry.tasks.store",
     "sentry.tasks.symbolication",
     "sentry.tasks.unmerge",
@@ -942,7 +941,6 @@ CELERY_QUEUES_REGION = [
     Queue("nudge.invite_missing_org_members", routing_key="invite_missing_org_members"),
     Queue("auto_resolve_issues", routing_key="auto_resolve_issues"),
     Queue("on_demand_metrics", routing_key="on_demand_metrics"),
-    Queue("spans.process_segment", routing_key="spans.process_segment"),
 ]
 
 from celery.schedules import crontab
@@ -3511,6 +3509,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "group-attributes": "default",
     "snuba-spans": "default",
     "shared-resources-usage": "default",
+    "buffered-segments": "default",
 }
 
 
