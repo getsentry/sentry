@@ -450,7 +450,7 @@ def symbolicate(
             exceptions=[],
             stacktraces=stacktraces,
             modules=modules,
-            release_package=profile.get("release"),
+            release_package=profile.get("transaction_metadata", {}).get("app.identifier"),
         )
     return symbolicator.process_payload(
         stacktraces=stacktraces, modules=modules, apply_source_context=False
