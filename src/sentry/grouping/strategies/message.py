@@ -187,21 +187,32 @@ def is_probably_uniq_id(token_str: str) -> bool:
     return token_length_ratio > UNIQ_ID_TOKEN_LENGTH_RATIO_DEFAULT
 
 
-def replace_uniq_ids_in_str(string: str) -> str:
+# Return result and count of replacements
+def replace_uniq_ids_in_str(string: str) -> tuple[str, int]:
     strings = string.split(" ")
+    count = 0
     for i, s in enumerate(strings):
         if is_probably_uniq_id(s):
             strings[i] = "<uniq_id>"
-    return " ".join(strings)
+            count += 1
+    return (" ".join(strings), count)
 
 
 @dataclasses.dataclass()
 class ParameterizationExperiment:
     name: str
     regex: Any
+    # A function that takes as arguments:
+    # * This experiment
+    # * A handle match function (may not be used), e.g. _handle_regex_match (note that this modifies trimmed_value_counter)
+    # * A string input
+    # And returns: a tuple of [output string, count of replacements(which overlaps with any added by _handle_regex_match, if used)]
     run: Callable[
-        ["ParameterizationExperiment", Callable[[Match[str]], str]], str
-    ] = lambda self, _handle_regex_match, input: self.regex.sub(_handle_regex_match, input)
+        ["ParameterizationExperiment", Callable[[Match[str]], str]], tuple[str, int]
+    ] = lambda self, _handle_regex_match, input: (
+        self.regex.sub(_handle_regex_match, input),
+        0,  # By default, _handle_regex_match does this counting
+    )
     counter: int = 0
 
 
@@ -271,8 +282,11 @@ def normalize_message_for_grouping(message: str, event: Event, share_analytics: 
                 6424467,
             ]
         ):
-            experiment_output = experiment.run(experiment, _handle_regex_match, normalized)
+            experiment_output, metric_inc = experiment.run(
+                experiment, _handle_regex_match, normalized
+            )
             if experiment_output != normalized:
+                trimmed_value_counter[experiment.name] += metric_inc
                 # Register 100 (arbitrary, bounded number) analytics events per experiment per instance restart
                 # This generates samples for review consistently but creates a hard cap on
                 # analytics event volume
