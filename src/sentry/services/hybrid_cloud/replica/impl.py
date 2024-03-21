@@ -277,6 +277,10 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
             )
             org_slug_qs.delete()
 
+    def delete_replicated_auth_provider(self, *, auth_provider_id: int, region_name: str) -> None:
+        with enforce_constraints(transaction.atomic(router.db_for_write(AuthProviderReplica))):
+            AuthProviderReplica.objects.filter(auth_provider_id=auth_provider_id).delete()
+
 
 class DatabaseBackedControlReplicaService(ControlReplicaService):
     def upsert_external_actor_replica(self, *, external_actor: RpcExternalActor) -> None:

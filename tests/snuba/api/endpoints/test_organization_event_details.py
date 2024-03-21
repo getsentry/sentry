@@ -317,7 +317,7 @@ class EventComparisonTest(MetricsEnhancedPerformanceTestCase):
             1,
             internal_metric=constants.SELF_TIME_LIGHT,
             timestamp=self.ten_mins_ago,
-            tags={"group": "26b881987e4bad99"},
+            tags={"span.group": "26b881987e4bad99"},
         )
 
     def test_get(self):
