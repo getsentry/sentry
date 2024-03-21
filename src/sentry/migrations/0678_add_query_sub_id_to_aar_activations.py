@@ -23,11 +23,26 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="alertruleactivations",
-            name="query_subscription_id",
-            field=models.IntegerField(default=0),
-            preserve_default=False,
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    """
+                    ALTER TABLE "sentry_alertruleactivations" ADD COLUMN "query_subscription_id" integer NOT NULL DEFAULT 0;
+                    """,
+                    reverse_sql="""
+                    ALTER TABLE "sentry_alertruleactivations" DROP COLUMN "query_subscription_id";
+                    """,
+                    hints={"tables": ["sentry_alertruleactivations"]},
+                ),
+            ],
+            state_operations=[
+                migrations.AddField(
+                    model_name="alertruleactivations",
+                    name="query_subscription_id",
+                    field=models.IntegerField(),
+                    preserve_default=False,
+                ),
+            ],
         ),
         migrations.AlterField(
             model_name="alertruleactivations",
