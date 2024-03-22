@@ -26,6 +26,49 @@ import {MetaData} from '../transactionDetails/styles';
 import {isTraceNode} from './guards';
 import type {TraceTree} from './traceTree';
 
+function TraceHeaderEmptyTrace() {
+  return (
+    <TraceHeaderContainer>
+      <TraceHeaderRow>
+        <MetaData
+          headingText={t('User')}
+          tooltipText=""
+          bodyText={'\u2014'}
+          subtext={null}
+        />
+        <MetaData
+          headingText={t('Browser')}
+          tooltipText=""
+          bodyText={'\u2014'}
+          subtext={null}
+        />
+      </TraceHeaderRow>
+      <TraceHeaderRow>
+        <GuideAnchor target="trace_view_guide_breakdown">
+          <MetaData
+            headingText={t('Events')}
+            tooltipText=""
+            bodyText={'\u2014'}
+            subtext={null}
+          />
+        </GuideAnchor>
+        <MetaData
+          headingText={t('Issues')}
+          tooltipText=""
+          bodyText={'\u2014'}
+          subtext={null}
+        />
+        <MetaData
+          headingText={t('Total Duration')}
+          tooltipText=""
+          bodyText={'\u2014'}
+          subtext={null}
+        />
+      </TraceHeaderRow>
+    </TraceHeaderContainer>
+  );
+}
+
 type TraceHeaderProps = {
   metaResults: UseApiQueryResult<TraceMeta | null, any>;
   organization: Organization;
@@ -41,6 +84,10 @@ export default function TraceHeader({
   organization,
   tree,
 }: TraceHeaderProps) {
+  if (traces?.transactions.length === 0 && traces.orphan_errors.length === 0) {
+    return <TraceHeaderEmptyTrace />;
+  }
+
   const traceNode = tree.root.children[0];
 
   if (!(traceNode && isTraceNode(traceNode))) {
@@ -53,13 +100,6 @@ export default function TraceHeader({
   const errorsAndIssuesCount = errors + performanceIssues;
 
   const replay_id = rootEventResults?.data?.contexts.replay?.replay_id;
-
-  const isEmptyTrace =
-    traces?.transactions &&
-    traces?.transactions.length === 0 &&
-    traces?.orphan_errors &&
-    traces.orphan_errors.length === 0;
-
   const showLoadingIndicator =
     (rootEventResults.isLoading && rootEventResults.fetchStatus !== 'idle') ||
     metaResults.isLoading;
@@ -169,9 +209,7 @@ export default function TraceHeader({
           headingText={t('Total Duration')}
           tooltipText=""
           bodyText={
-            isEmptyTrace ? (
-              getDuration(0, 2, true)
-            ) : metaResults.isLoading ? (
+            metaResults.isLoading ? (
               <LoadingIndicator size={20} mini />
             ) : traceNode.space?.[1] ? (
               getDuration(traceNode.space[1] / 1000, 2, true)
