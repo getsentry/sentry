@@ -8,13 +8,15 @@ from sentry.llm.base import LLMBase
 
 
 class OpenAIProvider(LLMBase):
-    def complete_prompt(self, prompt: str, message):
+    def complete_prompt(
+        self, prompt: str, message: str, temperature: float, max_output_tokens: int
+    ):
         model = settings.SENTRY_LLM_OPTIONS["model"]
         client = get_openai_client()
 
         response = client.chat.completions.create(
             model=model,
-            temperature=0.7,
+            temperature=temperature * 2,  # open AI temp range is [0.0 - 2.0]
             messages=[
                 {"role": "system", "content": prompt},
                 {
@@ -23,6 +25,7 @@ class OpenAIProvider(LLMBase):
                 },
             ],
             stream=False,
+            max_tokens=max_output_tokens,
         )
 
         return response.choices[0].message.content
