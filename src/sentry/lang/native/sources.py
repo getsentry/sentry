@@ -723,6 +723,10 @@ def capture_apple_symbol_stats(json):
             # For now, we are only interested in rough numbers.
 
     if eligible_symbols:
+        # This metric was added to test some discrepancy between internal metrics. We want to remove this after the
+        # investigation is done.
+        metrics.incr("symbol_test_metric", amount=1, sample_rate=1.0)
+
         metrics.incr(
             "apple_symbol_availability",
             amount=neither_has_symbol,
