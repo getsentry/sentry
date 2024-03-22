@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import FeatureBadge from 'sentry/components/featureBadge';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
@@ -17,6 +18,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {
   DomainTransactionsTable,
@@ -47,17 +49,21 @@ type Query = {
 export function HTTPDomainSummaryPage() {
   const location = useLocation<Query>();
   const organization = useOrganization();
+  const {projects} = useProjects();
 
   // TODO: Fetch sort information using `useLocationQuery`
   const sortField = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_SORT]);
 
   const sort = fromSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
 
-  const {domain} = useLocationQuery({
+  const {domain, project: projectId} = useLocationQuery({
     fields: {
+      project: decodeScalar,
       domain: decodeScalar,
     },
   });
+
+  const project = projects.find(p => projectId === p.id);
 
   const filters: SpanMetricsQueryFilters = {
     'span.module': ModuleName.HTTP,
@@ -163,6 +169,7 @@ export function HTTPDomainSummaryPage() {
             ]}
           />
           <Layout.Title>
+            {project && <ProjectAvatar project={project} size={36} />}
             {domain}
             <FeatureBadge type={RELEASE_LEVEL} />
           </Layout.Title>
