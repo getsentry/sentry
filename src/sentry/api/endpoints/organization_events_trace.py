@@ -608,7 +608,7 @@ def augment_transactions_with_spans(
 
         if ts_params["max"] and ts_params["min"]:
             sentry_sdk.set_measurement(
-                "trace_view.trace_duration", ts_params["max"] - ts_params["min"]
+                "trace_view.trace_duration", (ts_params["max"] - ts_params["min"]).total_seconds()
             )
             sentry_sdk.set_tag("trace_view.missing_timestamp_constraints", False)
         else:
