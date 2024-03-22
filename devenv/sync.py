@@ -109,7 +109,6 @@ def main(context: dict[str, str]) -> int:
         venv_dir,
         (
             ("javascript dependencies", ("make", "install-js-dev")),
-            ("python dependencies", ("make", "install-py-dev")),
         ),
     ):
         return 1
