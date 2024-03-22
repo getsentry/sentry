@@ -330,14 +330,6 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                     True,
                 ),
                 "stats": trending_transaction_names_stats,
-                # temporary change to see what stats data is returned
-                "raw_stats": trends_requests
-                if features.has(
-                    "organizations:performance-trendsv2-dev-only",
-                    organization,
-                    actor=request.user,
-                )
-                else {},
             }
 
         with handle_query_errors():
