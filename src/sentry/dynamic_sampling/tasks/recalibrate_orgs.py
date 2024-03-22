@@ -3,7 +3,6 @@ from collections.abc import Sequence
 import sentry_sdk
 
 from sentry import quotas
-from sentry.dynamic_sampling.rules.base import is_sliding_window_org_enabled
 from sentry.dynamic_sampling.tasks.common import GetActiveOrgsVolumes, TimedIterator
 from sentry.dynamic_sampling.tasks.constants import (
     MAX_REBALANCE_FACTOR,
@@ -96,32 +95,20 @@ def recalibrate_org(org_id: int, total: int, indexed: int) -> None:
         log_skipped_job(org_id, "recalibrate_orgs")
         return
 
-    # By default, we use the blended sample rate.
-    target_sample_rate = quotas.backend.get_blended_sample_rate(organization_id=org_id)
-
-    # If we have the sliding window org enabled, we use that and fall back to the blended sample rate in case
-    # of issues.
-    if organization is not None and is_sliding_window_org_enabled(organization):
-        target_sample_rate, success = get_sliding_window_org_sample_rate(
-            org_id=org_id,
-            default_sample_rate=target_sample_rate,
+    # If we have the sliding window org sample rate, we use that or fall back to the blended sample rate in case of
+    # issues.
+    target_sample_rate, success = get_sliding_window_org_sample_rate(
+        org_id=org_id,
+        default_sample_rate=quotas.backend.get_blended_sample_rate(organization_id=org_id),
+    )
+    if success:
+        log_sample_rate_source(
+            org_id,
+            None,
+            "recalibrate_orgs",
+            "sliding_window_org",
+            target_sample_rate,
         )
-        if success:
-            log_sample_rate_source(
-                org_id,
-                None,
-                "recalibrate_orgs",
-                "sliding_window_org",
-                target_sample_rate,
-            )
-        else:
-            log_sample_rate_source(
-                org_id,
-                None,
-                "recalibrate_orgs",
-                "blended_sample_rate",
-                target_sample_rate,
-            )
     else:
         log_sample_rate_source(
             org_id,

@@ -56,20 +56,15 @@ function getSentryIntegrations(routes?: Function) {
       depth: 6,
     }),
     Sentry.metrics.metricsAggregatorIntegration(),
-    typeof routes === 'function'
-      ? Sentry.reactRouterV3BrowserTracingIntegration({
-          history: browserHistory as any,
-          routes: createRoutes(routes()),
-          match,
-          _experiments: {
-            enableInteractions: true,
-          },
-        })
-      : Sentry.browserTracingIntegration({
-          _experiments: {
-            enableInteractions: true,
-          },
-        }),
+    Sentry.reactRouterV3BrowserTracingIntegration({
+      history: browserHistory as any,
+      routes: typeof routes === 'function' ? createRoutes(routes()) : [],
+      match,
+      _experiments: {
+        enableInteractions: true,
+      },
+      enableInp: true,
+    }),
     Sentry.browserProfilingIntegration(),
   ];
 
@@ -177,7 +172,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
   });
 
   if (process.env.NODE_ENV !== 'production') {
-    if (sentryConfig.environment === 'development') {
+    if (sentryConfig.environment === 'development' && process.env.NO_SPOTLIGHT !== '1') {
       import('@spotlightjs/spotlight').then(Spotlight => {
         /* #__PURE__ */ Spotlight.init();
       });
@@ -307,7 +302,7 @@ export function addEndpointTagToRequestError(event: Event): void {
   const errorMessage = event.exception?.values?.[0].value || '';
 
   // The capturing group here turns `GET /dogs/are/great 500` into just `GET /dogs/are/great`
-  const requestErrorRegex = new RegExp('^([A-Za-z]+ (/[^/]+)+/) \\d+$');
+  const requestErrorRegex = /^([A-Za-z]+ (/[^/]+)+/) \d+$/;
   const messageMatch = requestErrorRegex.exec(errorMessage);
 
   if (messageMatch) {

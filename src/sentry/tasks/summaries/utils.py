@@ -10,8 +10,10 @@ from snuba_sdk.entity import Entity
 from snuba_sdk.expressions import Granularity
 from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
-from snuba_sdk.query import Limit, Query
+from snuba_sdk.query import Join, Limit, Query
+from snuba_sdk.relationships import Relationship
 
+from sentry import features
 from sentry.api.serializers.snuba import zerofill
 from sentry.constants import DataCategory
 from sentry.models.group import Group, GroupStatus
@@ -45,7 +47,7 @@ class OrganizationReportContext:
             int, ProjectContext | DailySummaryProjectContext
         ] = {}  # { project_id: ProjectContext }
 
-        self.project_ownership: dict[str, set[int]] = {}  # { user_id: set<project_id> }
+        self.project_ownership: dict[int, set[int]] = {}  # { user_id: set<project_id> }
         self.daily = daily
         for project in organization.project_set.all():
             if self.daily:
@@ -100,6 +102,19 @@ class ProjectContext:
             ]
         )
 
+    def check_if_project_is_empty(self):
+        return (
+            not self.key_errors
+            and not self.key_transactions
+            and not self.key_performance_issues
+            and not self.accepted_error_count
+            and not self.dropped_error_count
+            and not self.accepted_transaction_count
+            and not self.dropped_transaction_count
+            and not self.accepted_replay_count
+            and not self.dropped_replay_count
+        )
+
 
 class DailySummaryProjectContext:
     total_today = 0
@@ -118,6 +133,18 @@ class DailySummaryProjectContext:
         self.escalated_today = []
         self.regressed_today = []
         self.new_in_release = {}
+
+    def check_if_project_is_empty(self):
+        return (
+            not self.key_errors
+            and not self.key_performance_issues
+            and not self.total_today
+            and not self.comparison_period_total
+            and not self.comparison_period_avg
+            and not self.escalated_today
+            and not self.regressed_today
+            and not self.new_in_release
+        )
 
 
 def user_project_ownership(ctx: OrganizationReportContext) -> None:
@@ -154,6 +181,46 @@ def project_key_errors(
             orderby=[OrderBy(Function("count", []), Direction.DESC)],
             limit=Limit(3),
         )
+        if features.has("organizations:snql-join-reports", project.organization):
+            events_entity = Entity("events", alias="events")
+            group_attributes_entity = Entity("group_attributes", alias="group_attributes")
+            query = Query(
+                match=Join([Relationship(events_entity, "attributes", group_attributes_entity)]),
+                select=[Column("group_id", entity=events_entity), Function("count", [])],
+                where=[
+                    Condition(Column("timestamp", entity=events_entity), Op.GTE, ctx.start),
+                    Condition(
+                        Column("timestamp", entity=events_entity),
+                        Op.LT,
+                        ctx.end + timedelta(days=1),
+                    ),
+                    Condition(
+                        Column(
+                            "project_id",
+                            entity=events_entity,
+                        ),
+                        Op.EQ,
+                        project.id,
+                    ),
+                    Condition(
+                        Column(
+                            "project_id",
+                            entity=group_attributes_entity,
+                        ),
+                        Op.EQ,
+                        project.id,
+                    ),
+                    Condition(
+                        Column("group_status", entity=group_attributes_entity),
+                        Op.IN,
+                        GroupStatus.UNRESOLVED,
+                    ),
+                ],
+                groupby=[Column("group_id", entity=events_entity)],
+                orderby=[OrderBy(Function("count", []), Direction.DESC)],
+                limit=Limit(3),
+            )
+
         request = Request(
             dataset=Dataset.Events.value,
             app_id="reports",
@@ -413,29 +480,14 @@ def organization_project_issue_substatus_summaries(ctx: OrganizationReportContex
         project_ctx.total_substatus_count += item["total"]
 
 
-def check_if_project_is_empty(project_ctx: ProjectContext) -> bool:
-    """
-    Check if this project has any content we could show in an email.
-    """
-    return (
-        not project_ctx.key_errors
-        and not project_ctx.key_transactions
-        and not project_ctx.key_performance_issues
-        and not project_ctx.accepted_error_count
-        and not project_ctx.dropped_error_count
-        and not project_ctx.accepted_transaction_count
-        and not project_ctx.dropped_transaction_count
-        and not project_ctx.accepted_replay_count
-        and not project_ctx.dropped_replay_count
-    )
-
-
 def check_if_ctx_is_empty(ctx: OrganizationReportContext) -> bool:
     """
-    Check if the context is empty. If it is, we don't want to send an email.
+    Check if the context is empty. If it is, we don't want to send a notification.
     """
-    project_ctxs = [
-        cast(ProjectContext, project_ctx) for project_ctx in ctx.projects_context_map.values()
-    ]
+    if ctx.daily:
+        project_ctxs = [project_ctx for project_ctx in ctx.projects_context_map.values()]
 
-    return all(check_if_project_is_empty(project_ctx) for project_ctx in project_ctxs)
+    else:
+        project_ctxs = [project_ctx for project_ctx in ctx.projects_context_map.values()]
+
+    return all(project_ctx.check_if_project_is_empty() for project_ctx in project_ctxs)

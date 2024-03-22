@@ -2,40 +2,35 @@ import type {PageFilters} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import type {
-  MetricsProperty,
-  MetricsResponse,
-  SpanMetricsQueryFilters,
-} from 'sentry/views/starfish/types';
+import type {MetricsProperty, MetricsResponse} from 'sentry/views/starfish/types';
 import {useWrappedDiscoverQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
 interface UseSpanMetricsOptions<Fields> {
   cursor?: string;
+  enabled?: boolean;
   fields?: Fields;
-  filters?: SpanMetricsQueryFilters;
   limit?: number;
   referrer?: string;
+  search?: MutableSearch;
   sorts?: Sort[];
 }
 
 export const useSpanMetrics = <Fields extends MetricsProperty[]>(
   options: UseSpanMetricsOptions<Fields> = {}
 ) => {
-  const {fields = [], filters = {}, sorts = [], limit, cursor, referrer} = options;
+  const {fields = [], search = undefined, sorts = [], limit, cursor, referrer} = options;
 
   const pageFilters = usePageFilters();
 
-  const eventView = getEventView(filters, fields, sorts, pageFilters.selection);
-
-  const enabled = Object.values(filters).every(value => Boolean(value));
+  const eventView = getEventView(search, fields, sorts, pageFilters.selection);
 
   const result = useWrappedDiscoverQuery({
     eventView,
     initialData: [],
     limit,
-    enabled,
+    enabled: options.enabled,
     referrer,
     cursor,
   });
@@ -47,22 +42,20 @@ export const useSpanMetrics = <Fields extends MetricsProperty[]>(
   return {
     ...result,
     data,
-    isEnabled: enabled,
+    isEnabled: options.enabled,
   };
 };
 
 function getEventView(
-  filters: SpanMetricsQueryFilters = {},
+  search: MutableSearch | undefined,
   fields: string[] = [],
   sorts: Sort[] = [],
   pageFilters: PageFilters
 ) {
-  const query = MutableSearch.fromQueryObject(filters);
-
   const eventView = EventView.fromNewQueryWithPageFilters(
     {
       name: '',
-      query: query.formatString(),
+      query: search?.formatString() ?? '',
       fields,
       dataset: DiscoverDatasets.SPANS_METRICS,
       version: 2,

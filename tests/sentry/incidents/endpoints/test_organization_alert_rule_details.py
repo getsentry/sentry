@@ -15,14 +15,13 @@ from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import DetailedAlertRuleSerializer
 from sentry.auth.access import OrganizationGlobalAccess
-from sentry.incidents.models import (
+from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleStatus,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
-    Incident,
-    IncidentStatus,
 )
+from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.incidents.serializers import AlertRuleSerializer
 from sentry.integrations.slack.client import SlackClient
 from sentry.models.auditlogentry import AuditLogEntry
@@ -30,6 +29,7 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo import SiloMode
+from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.tasks.integrations.slack.find_channel_id_for_alert_rule import (
     find_channel_id_for_alert_rule,
 )
@@ -297,13 +297,23 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
     def test_with_snooze_rule(self):
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
-        self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, alert_rule=self.alert_rule)
+        rule_snooze = self.snooze_rule(
+            user_id=self.user.id, owner_id=self.user.id, alert_rule=self.alert_rule
+        )
 
         with self.feature("organizations:incidents"):
             response = self.get_success_response(self.organization.slug, self.alert_rule.id)
 
-        assert response.data["snooze"]
-        assert response.data["snoozeCreatedBy"] == "You"
+            assert response.data["snooze"]
+            assert response.data["snoozeCreatedBy"] == "You"
+
+            rule_snooze.owner_id = None
+            rule_snooze.save()
+
+            response = self.get_success_response(self.organization.slug, self.alert_rule.id)
+
+            assert response.data["snooze"]
+            assert "snoozeCreatedBy" not in response.data
 
     def test_with_snooze_rule_everyone(self):
         self.create_team(organization=self.organization, members=[self.user])
@@ -1196,6 +1206,12 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
             )
 
         assert not AlertRule.objects.filter(id=self.alert_rule.id).exists()
+        assert AlertRule.objects_with_snapshots.filter(name=self.alert_rule.name).exists()
+        assert AlertRule.objects_with_snapshots.filter(id=self.alert_rule.id).exists()
+
+        with self.tasks():
+            run_scheduled_deletions()
+
         assert not AlertRule.objects_with_snapshots.filter(name=self.alert_rule.name).exists()
         assert not AlertRule.objects_with_snapshots.filter(id=self.alert_rule.id).exists()
 

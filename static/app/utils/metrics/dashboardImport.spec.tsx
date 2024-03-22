@@ -3,7 +3,7 @@ import type {ImportDashboard, ImportWidget} from 'sentry/utils/metrics/dashboard
 import {parseDashboard, WidgetParser} from 'sentry/utils/metrics/dashboardImport';
 import {parseMRI} from 'sentry/utils/metrics/mri';
 
-const mockRequests = (queryStrings: string[]) => {
+const mockRequests = (queryStrings: string[], overrideFormulas: any[] = []) => {
   const queries = queryStrings.map((queryStr, i) => {
     return {
       data_source: 'metrics',
@@ -19,7 +19,7 @@ const mockRequests = (queryStrings: string[]) => {
 
   return [
     {
-      formulas,
+      formulas: [...formulas, ...overrideFormulas],
       queries,
       response_format: 'timeseries',
       style: {line_type: 'solid'},
@@ -47,6 +47,7 @@ const mockAvailableMetrics = (mris: MRI[]): MetricMeta[] => {
     mri,
     operations: [],
     blockingStatus: [],
+    projectIds: [],
   })) as MetricMeta[];
 };
 
@@ -90,7 +91,7 @@ describe('WidgetParser', () => {
           conditions: 'foo:bar',
           columns: ['baz'],
           name: '',
-          orderby: '',
+          orderby: undefined,
         },
       ],
       title: 'Test widget',
@@ -125,7 +126,7 @@ describe('WidgetParser', () => {
           columns: ['baz'],
           fields: ['sum(c:custom/sentry.foo.bar@none)'],
           conditions: 'foo:bar',
-          orderby: '',
+          orderby: undefined,
         },
         {
           name: '',
@@ -133,7 +134,7 @@ describe('WidgetParser', () => {
           columns: [],
           fields: ['sum(c:custom/sentry.bar.baz@none)'],
           conditions: '',
-          orderby: '',
+          orderby: undefined,
         },
       ],
     });
@@ -158,7 +159,7 @@ describe('WidgetParser', () => {
           conditions: 'foo:bar',
           columns: ['baz'],
           name: '',
-          orderby: '',
+          orderby: undefined,
         },
       ],
       title: 'Test widget',
@@ -254,12 +255,10 @@ describe('parseDashboard', () => {
       widgets: [
         mockWidget(),
         mockWidget({
-          definition: {
-            title: 'Test widget 2',
-            legend_columns: ['avg', 'min', 'max', 'value', 'sum'],
-            type: 'timeseries',
-            requests: mockRequests(['sum:sentry.bar.baz{}', 'sum:sentry.foo.bar{}']),
-          },
+          title: 'Test widget 2',
+          legend_columns: ['avg', 'min', 'max', 'value', 'sum'],
+          type: 'timeseries',
+          requests: mockRequests(['sum:sentry.bar.baz{}', 'sum:sentry.foo.bar{}']),
         }),
       ],
     } as ImportDashboard;
@@ -270,5 +269,40 @@ describe('parseDashboard', () => {
     expect(report.length).toEqual(2);
     expect(report[0].outcome).toEqual('success');
     expect(widgets.length).toEqual(2);
+  });
+
+  it('should parse a dashboard with formulas', async () => {
+    const dashboard = {
+      id: 1,
+      title: 'Test dashboard',
+      description: 'Test description',
+      widgets: [
+        mockWidget({
+          title: 'Formula Test widget 2',
+          legend_columns: ['avg', 'min', 'max', 'value', 'sum'],
+          type: 'timeseries',
+          requests: mockRequests(
+            ['sum:sentry.bar.baz{}', 'sum:sentry.foo.bar{}'],
+            [
+              {formula: '2 * query1'},
+              {formula: 'query0 + query1'},
+              {formula: '(query1 + query1) - query0'},
+            ]
+          ),
+        }),
+      ],
+    } as ImportDashboard;
+
+    const result = await parseDashboard(dashboard, availableMetrics);
+
+    const {report, widgets} = result;
+    expect(report.length).toEqual(1);
+    expect(widgets.length).toEqual(1);
+
+    const queries = widgets[0].queries;
+    expect(queries.length).toEqual(5);
+    expect(queries[2].aggregates[0]).toEqual('equation|2 * $b');
+    expect(queries[3].aggregates[0]).toEqual('equation|$a + $b');
+    expect(queries[4].aggregates[0]).toEqual('equation|($b + $b) - $a');
   });
 });

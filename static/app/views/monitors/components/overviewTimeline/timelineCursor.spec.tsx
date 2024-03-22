@@ -52,10 +52,10 @@ describe('TimelineCursor', function () {
     expect(cursor).toBeInTheDocument();
 
     // Cursor is 10px into the container
-    waitFor(() => {
+    await waitFor(() => {
       expect(container.style.getPropertyValue('--cursorOffset')).toBe('10px');
-      expect(container.style.getPropertyValue('--cursorMax')).toBe('100px');
     });
+    expect(container.style.getPropertyValue('--cursorMax')).toBe('100px');
 
     // move cursor outside it is not visible
     fireEvent.mouseMove(body, {clientX: 120, clientY: 20});

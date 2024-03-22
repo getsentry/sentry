@@ -46,6 +46,6 @@ describe('Version', () => {
     await userEvent.hover(screen.getByText('1.0.0 (20200101)'), {delay: null});
     act(() => jest.advanceTimersByTime(50));
 
-    expect(screen.getByText(VERSION)).toBeInTheDocument();
+    expect(await screen.findByText(VERSION)).toBeInTheDocument();
   });
 });

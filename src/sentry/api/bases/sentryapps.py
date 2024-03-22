@@ -153,7 +153,7 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
 
     def convert_args(self, request: Request, *args, **kwargs):
         """
-        This baseclass is the the SentryApp collection endpoints:
+        This baseclass is the SentryApp collection endpoints:
 
               [GET, POST] /sentry-apps
 
@@ -364,7 +364,10 @@ class SentryAppInstallationPermission(SentryPermission):
 
         # TODO(hybrid-cloud): Replace this RPC with an org member lookup when that exists?
         org_context = organization_service.get_organization_by_id(
-            id=installation.organization_id, user_id=request.user.id
+            id=installation.organization_id,
+            user_id=request.user.id,
+            include_teams=False,
+            include_projects=False,
         )
         if (
             org_context.member is None

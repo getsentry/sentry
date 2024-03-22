@@ -1,9 +1,10 @@
-import {useMemo} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import FeedbackConfigToggle from 'sentry/components/feedback/feedbackOnboarding/feedbackConfigToggle';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
-import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {Step, StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
@@ -21,6 +22,10 @@ export function FeedbackOnboardingLayout({
   configType = 'onboarding',
 }: OnboardingLayoutProps) {
   const organization = useOrganization();
+
+  const [email, setEmail] = useState(false);
+  const [name, setName] = useState(false);
+
   const {isLoading: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
@@ -44,6 +49,10 @@ export function FeedbackOnboardingLayout({
       },
       platformOptions: selectedOptions,
       newOrg,
+      feedbackOptions: {
+        email,
+        name,
+      },
     };
 
     return {
@@ -63,6 +72,8 @@ export function FeedbackOnboardingLayout({
     registryData,
     selectedOptions,
     configType,
+    email,
+    name,
   ]);
 
   return (
@@ -70,9 +81,26 @@ export function FeedbackOnboardingLayout({
       <Wrapper>
         {introduction && <Introduction>{introduction}</Introduction>}
         <Steps>
-          {steps.map(step => (
-            <Step key={step.title ?? step.type} {...step} />
-          ))}
+          {steps.map(step =>
+            step.type === StepType.CONFIGURE && configType === 'feedbackOnboardingNpm' ? (
+              <Step
+                key={step.title ?? step.type}
+                {...{
+                  ...step,
+                  codeHeader: (
+                    <FeedbackConfigToggle
+                      emailToggle={email}
+                      nameToggle={name}
+                      onEmailToggle={() => setEmail(!email)}
+                      onNameToggle={() => setName(!name)}
+                    />
+                  ),
+                }}
+              />
+            ) : (
+              <Step key={step.title ?? step.type} {...step} />
+            )
+          )}
         </Steps>
       </Wrapper>
     </AuthTokenGeneratorProvider>

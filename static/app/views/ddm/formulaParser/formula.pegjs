@@ -2,9 +2,11 @@
 expression = term (_ expr_op _ term)*
 expr_op = plus / minus
 
-term = coefficient (_ term_op _ coefficient)*
+term = unary (_ term_op _ unary)*
 term_op = multiply / divide
+unary = minus? coefficient
 coefficient = number / variable / open_paren _ expression _ close_paren
+
 
 
 number              = [0-9]+('.'[0-9]+)? { return { type: "number", content: text()}}

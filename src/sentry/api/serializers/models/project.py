@@ -34,7 +34,6 @@ from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectplatform import ProjectPlatform
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.release import Release
-from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.models.userreport import UserReport
 from sentry.processing import realtime_metrics
@@ -81,7 +80,7 @@ PROJECT_FEATURES_NOT_USED_ON_FRONTEND = {
 }
 
 
-def _get_team_memberships(team_list: Sequence[Team], user: User) -> Iterable[int]:
+def _get_team_memberships(team_list: Sequence[int], user: User) -> Iterable[OrganizationMemberTeam]:
     """Get memberships the user has in the provided team list"""
     if not user.is_authenticated:
         return []
@@ -98,13 +97,17 @@ def get_access_by_project(
 ) -> MutableMapping[Project, MutableMapping[str, Any]]:
     request = env.request
 
-    project_teams = list(ProjectTeam.objects.filter(project__in=projects).select_related("team"))
-    project_team_map = defaultdict(list)
+    project_teams = ProjectTeam.objects.filter(project__in=projects).values_list(
+        "project_id", "team_id"
+    )
 
-    for pt in project_teams:
-        project_team_map[pt.project_id].append(pt.team)
+    project_to_teams = defaultdict(list)
+    teams_list = []
+    for project_id, team_id in project_teams:
+        project_to_teams[project_id].append(team_id)
+        teams_list.append(team_id)
 
-    team_memberships = _get_team_memberships([pt.team for pt in project_teams], user)
+    team_memberships = _get_team_memberships(teams_list, user)
 
     org_ids = {i.organization_id for i in projects}
     org_roles = get_org_roles(org_ids, user)
@@ -115,7 +118,7 @@ def get_access_by_project(
     has_team_roles_cache = {}
     with sentry_sdk.start_span(op="project.check-access"):
         for project in projects:
-            parent_teams = [t.id for t in project_team_map.get(project.id, [])]
+            parent_teams = [t for t in project_to_teams.get(project.id, [])]
             member_teams = [m for m in team_memberships if m.team_id in parent_teams]
             is_member = any(member_teams)
             org_role = org_roles.get(project.organization_id)
@@ -148,6 +151,29 @@ def get_access_by_project(
                 "access": team_scopes,
             }
     return result
+
+
+def get_environments_by_projects(projects: Sequence[Project]) -> MutableMapping[int, list[str]]:
+    project_envs = (
+        EnvironmentProject.objects.filter(
+            project_id__in=[i.id for i in projects],
+            # Including the organization_id is necessary for postgres to use indexes
+            # efficiently.
+            environment__organization_id=projects[0].organization_id,
+        )
+        .exclude(
+            is_hidden=True,
+            # HACK(lb): avoiding the no environment value
+        )
+        .exclude(environment__name="")
+        .values("project_id", "environment__name")
+    )
+
+    environments_by_project = defaultdict(list)
+    for project_env in project_envs:
+        environments_by_project[project_env["project_id"]].append(project_env["environment__name"])
+
+    return environments_by_project
 
 
 def get_features_for_projects(
@@ -204,38 +230,6 @@ def get_features_for_projects(
             features_by_project[project].append("releases")
 
     return features_by_project
-
-
-def format_options(attrs: dict[str, Any]) -> dict[str, Any]:
-    options = attrs["options"]
-    return {
-        "sentry:csp_ignored_sources_defaults": bool(
-            options.get("sentry:csp_ignored_sources_defaults", True)
-        ),
-        "sentry:csp_ignored_sources": "\n".join(
-            options.get("sentry:csp_ignored_sources", []) or []
-        ),
-        "sentry:reprocessing_active": bool(options.get("sentry:reprocessing_active", False)),
-        "filters:blacklisted_ips": "\n".join(options.get("sentry:blacklisted_ips", [])),
-        # This option was defaulted to string but was changed at runtime to a boolean due to an error in the
-        # implementation. In order to bring it back to a string, we need to repair on read stored options. This is
-        # why the value true is determined by either "1" or True.
-        "filters:react-hydration-errors": options.get("filters:react-hydration-errors", "1")
-        in ("1", True),
-        "filters:chunk-load-error": options.get("filters:chunk-load-error", "1") == "1",
-        f"filters:{FilterTypes.RELEASES}": "\n".join(
-            options.get(f"sentry:{FilterTypes.RELEASES}", [])
-        ),
-        f"filters:{FilterTypes.ERROR_MESSAGES}": "\n".join(
-            options.get(f"sentry:{FilterTypes.ERROR_MESSAGES}", [])
-        ),
-        "feedback:branding": options.get("feedback:branding", "1") == "1",
-        "sentry:feedback_user_report_notification": bool(
-            options.get("sentry:feedback_user_report_notification")
-        ),
-        "sentry:replay_rage_click_issues": options.get("sentry:replay_rage_click_issues"),
-        "quotas:spike-protection-disabled": options.get("quotas:spike-protection-disabled"),
-    }
 
 
 class _ProjectSerializerOptionalBaseResponse(TypedDict, total=False):
@@ -678,26 +672,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             )
         )
 
-        project_envs = (
-            EnvironmentProject.objects.filter(
-                project_id__in=[i.id for i in item_list],
-                # Including the organization_id is necessary for postgres to use indexes
-                # efficiently.
-                environment__organization_id=item_list[0].organization_id,
-            )
-            .exclude(
-                is_hidden=True,
-                # HACK(lb): avoiding the no environment value
-            )
-            .exclude(environment__name="")
-            .values("project_id", "environment__name")
-        )
-
-        environments_by_project = defaultdict(list)
-        for project_env in project_envs:
-            environments_by_project[project_env["project_id"]].append(
-                project_env["environment__name"]
-            )
+        environments_by_project = get_environments_by_projects(item_list)
 
         # Only fetch the latest release version key for each project to cut down on response size
         latest_release_versions = _get_project_to_release_version_mapping(item_list)
@@ -715,7 +690,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             if not self._collapse(LATEST_DEPLOYS_KEY):
                 attrs[item]["deploys"] = deploys_by_project.get(item.id)
             attrs[item]["symbolication_degraded"] = should_demote_symbolication(
-                project_id=item.id, lpq_projects=lpq_projects
+                project_id=item.id, lpq_projects=lpq_projects, emit_metrics=False
             )
 
         return attrs
@@ -940,19 +915,11 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
     ) -> DetailedProjectResponse:
         from sentry.plugins.base import plugins
 
-        def get_value_with_default(key):
-            value = attrs["options"].get(key)
-            if value is not None:
-                return value
-            return projectoptions.get_well_known_default(
-                key, epoch=attrs["options"].get("sentry:option-epoch")
-            )
-
         data = super().serialize(obj, attrs, user)
         data.update(
             {
                 "latestRelease": attrs["latest_release"],
-                "options": format_options(attrs),
+                "options": self.format_options(attrs),
                 "digestsMinDelay": attrs["options"].get(
                     "digests:mail:minimum_delay", digests.minimum_delay
                 ),
@@ -967,7 +934,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "dataScrubber": bool(attrs["options"].get("sentry:scrub_data", True)),
                 "dataScrubberDefaults": bool(attrs["options"].get("sentry:scrub_defaults", True)),
                 "safeFields": attrs["options"].get("sentry:safe_fields", []),
-                "recapServerUrl": attrs["options"].get("sentry:recap_server_url"),
                 "storeCrashReports": convert_crashreport_count(
                     attrs["options"].get("sentry:store_crash_reports"), allow_none=True
                 ),
@@ -979,19 +945,25 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "verifySSL": bool(attrs["options"].get("sentry:verify_ssl", False)),
                 "scrubIPAddresses": bool(attrs["options"].get("sentry:scrub_ip_address", False)),
                 "scrapeJavaScript": bool(attrs["options"].get("sentry:scrape_javascript", True)),
-                "groupingConfig": get_value_with_default("sentry:grouping_config"),
-                "groupingEnhancements": get_value_with_default("sentry:grouping_enhancements"),
-                "groupingEnhancementsBase": get_value_with_default(
-                    "sentry:grouping_enhancements_base"
+                "groupingConfig": self.get_value_with_default(attrs, "sentry:grouping_config"),
+                "groupingEnhancements": self.get_value_with_default(
+                    attrs, "sentry:grouping_enhancements"
                 ),
-                "secondaryGroupingExpiry": get_value_with_default(
-                    "sentry:secondary_grouping_expiry"
+                "groupingEnhancementsBase": self.get_value_with_default(
+                    attrs, "sentry:grouping_enhancements_base"
                 ),
-                "secondaryGroupingConfig": get_value_with_default(
-                    "sentry:secondary_grouping_config"
+                "secondaryGroupingExpiry": self.get_value_with_default(
+                    attrs, "sentry:secondary_grouping_expiry"
                 ),
-                "groupingAutoUpdate": get_value_with_default("sentry:grouping_auto_update"),
-                "fingerprintingRules": get_value_with_default("sentry:fingerprinting_rules"),
+                "secondaryGroupingConfig": self.get_value_with_default(
+                    attrs, "sentry:secondary_grouping_config"
+                ),
+                "groupingAutoUpdate": self.get_value_with_default(
+                    attrs, "sentry:grouping_auto_update"
+                ),
+                "fingerprintingRules": self.get_value_with_default(
+                    attrs, "sentry:fingerprinting_rules"
+                ),
                 "organization": attrs["org"],
                 "plugins": serialize(
                     [
@@ -1006,8 +978,12 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "processingIssues": attrs["processing_issues"],
                 "defaultEnvironment": attrs["options"].get("sentry:default_environment"),
                 "relayPiiConfig": attrs["options"].get("sentry:relay_pii_config"),
-                "builtinSymbolSources": get_value_with_default("sentry:builtin_symbol_sources"),
-                "dynamicSamplingBiases": get_value_with_default("sentry:dynamic_sampling_biases"),
+                "builtinSymbolSources": self.get_value_with_default(
+                    attrs, "sentry:builtin_symbol_sources"
+                ),
+                "dynamicSamplingBiases": self.get_value_with_default(
+                    attrs, "sentry:dynamic_sampling_biases"
+                ),
                 "eventProcessing": {
                     "symbolicationDegraded": False,
                 },
@@ -1042,6 +1018,49 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "public": self.public,
         }
 
+    def format_options(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        options = attrs["options"]
+
+        return {
+            "sentry:csp_ignored_sources_defaults": bool(
+                options.get("sentry:csp_ignored_sources_defaults", True)
+            ),
+            "sentry:csp_ignored_sources": "\n".join(
+                options.get("sentry:csp_ignored_sources", []) or []
+            ),
+            "sentry:reprocessing_active": bool(options.get("sentry:reprocessing_active", False)),
+            "filters:blacklisted_ips": "\n".join(options.get("sentry:blacklisted_ips", [])),
+            # This option was defaulted to string but was changed at runtime to a boolean due to an error in the
+            # implementation. In order to bring it back to a string, we need to repair on read stored options. This is
+            # why the value true is determined by either "1" or True.
+            "filters:react-hydration-errors": options.get("filters:react-hydration-errors", "1")
+            in ("1", True),
+            "filters:chunk-load-error": options.get("filters:chunk-load-error", "1") == "1",
+            f"filters:{FilterTypes.RELEASES}": "\n".join(
+                options.get(f"sentry:{FilterTypes.RELEASES}", [])
+            ),
+            f"filters:{FilterTypes.ERROR_MESSAGES}": "\n".join(
+                options.get(f"sentry:{FilterTypes.ERROR_MESSAGES}", [])
+            ),
+            "feedback:branding": options.get("feedback:branding", "1") == "1",
+            "sentry:feedback_user_report_notifications": bool(
+                self.get_value_with_default(attrs, "sentry:feedback_user_report_notifications")
+            ),
+            "sentry:feedback_ai_spam_detection": bool(
+                options.get("sentry:feedback_ai_spam_detection")
+            ),
+            "sentry:replay_rage_click_issues": options.get("sentry:replay_rage_click_issues"),
+            "quotas:spike-protection-disabled": options.get("quotas:spike-protection-disabled"),
+        }
+
+    def get_value_with_default(self, attrs, key):
+        value = attrs["options"].get(key)
+        if value is not None:
+            return value
+        return projectoptions.get_well_known_default(
+            key, epoch=attrs["options"].get("sentry:option-epoch")
+        )
+
 
 class SharedProjectSerializer(Serializer):
     def serialize(self, obj, attrs, user):
@@ -1058,4 +1077,26 @@ class SharedProjectSerializer(Serializer):
             "color": obj.color,
             "features": feature_list,
             "organization": {"slug": obj.organization.slug, "name": obj.organization.name},
+        }
+
+
+class MinimalProjectSerializer(Serializer):
+    def get_attrs(self, item_list: Sequence[Project], user: User, **kwargs: Any):
+        environments_by_project = get_environments_by_projects(item_list)
+        memberships_by_project = get_access_by_project(item_list, user)
+        return {
+            project: {
+                "environments": environments_by_project[project.id],
+                "isMember": memberships_by_project[project]["is_member"],
+            }
+            for project in item_list
+        }
+
+    def serialize(self, obj: Project, attrs: Mapping[str, Any], user: User):
+        return {
+            "slug": obj.slug,
+            "id": obj.id,
+            "platform": obj.platform,
+            "environments": attrs["environments"],
+            "isMember": attrs["isMember"],
         }

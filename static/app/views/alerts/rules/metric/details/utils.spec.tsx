@@ -1,18 +1,18 @@
-import MockDate from 'mockdate';
 import moment from 'moment';
 import {IncidentFixture} from 'sentry-fixture/incident';
 import {MetricRuleFixture} from 'sentry-fixture/metricRule';
+
+import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {buildMetricGraphDateRange} from 'sentry/views/alerts/rules/metric/details/utils';
 
 describe('buildMetricGraphDateRange', () => {
   const now = '2022-05-16T20:00:00';
-  beforeAll(() => {
-    MockDate.set(`${now}Z`);
+  beforeEach(() => {
+    setMockDate(new Date(`${now}Z`));
   });
-  afterAll(() => {
-    // reset mock date
-    MockDate.set(new Date(1508208080000));
+  afterEach(() => {
+    resetMockDate();
   });
 
   it('should use current date for an active alert', () => {

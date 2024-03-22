@@ -7,6 +7,7 @@ import {Button} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import type {
   MultipleSelectProps,
+  SelectKey,
   SelectOption,
   SelectOptionOrSection,
   SelectSection,
@@ -18,7 +19,7 @@ import {space} from 'sentry/styles/space';
 import {isModifierKeyPressed} from 'sentry/utils/isModifierKeyPressed';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 
-export interface HybridFilterProps<Value extends React.Key>
+export interface HybridFilterProps<Value extends SelectKey>
   extends Omit<
     MultipleSelectProps<Value>,
     | 'grid'
@@ -76,7 +77,7 @@ export interface HybridFilterProps<Value extends React.Key>
  * Note: this component is controlled only — changes must be handled via the `onChange`
  * callback.
  */
-export function HybridFilter<Value extends React.Key>({
+export function HybridFilter<Value extends SelectKey>({
   options,
   multiple,
   value,
@@ -234,7 +235,7 @@ export function HybridFilter<Value extends React.Key>({
           <Fragment>
             {footerMessage && <FooterMessage>{footerMessage}</FooterMessage>}
             <FooterWrap>
-              <FooterInnerWrap>{menuFooter}</FooterInnerWrap>
+              <FooterInnerWrap>{menuFooter as React.ReactNode}</FooterInnerWrap>
               {showModifierTip && (
                 <FooterTip>
                   <IconInfo size="xs" />
@@ -290,7 +291,7 @@ export function HybridFilter<Value extends React.Key>({
 
   const sectionToggleWasPressed = useRef(false);
   const handleSectionToggle = useCallback(
-    (section: SelectSection<React.Key>) => {
+    (section: SelectSection<SelectKey>) => {
       onSectionToggle?.(section);
       sectionToggleWasPressed.current = true;
     },

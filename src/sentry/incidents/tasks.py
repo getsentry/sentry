@@ -7,15 +7,18 @@ from urllib.parse import urlencode
 from django.urls import reverse
 
 from sentry.auth.access import from_user
-from sentry.incidents.models import (
+from sentry.incidents.models.alert_rule import AlertRuleStatus, AlertRuleTriggerAction
+from sentry.incidents.models.incident import (
     INCIDENT_STATUS,
-    AlertRuleStatus,
-    AlertRuleTriggerAction,
     Incident,
     IncidentActivity,
     IncidentActivityType,
     IncidentStatus,
     IncidentStatusMethod,
+)
+from sentry.incidents.utils.constants import (
+    INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+    SUBSCRIPTION_METRICS_LOGGER,
 )
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.models.project import Project
@@ -31,10 +34,6 @@ from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger(__name__)
-
-INCIDENTS_SNUBA_SUBSCRIPTION_TYPE = "incidents"
-INCIDENT_SNAPSHOT_BATCH_SIZE = 50
-SUBSCRIPTION_METRICS_LOGGER = "subscription_metrics_logger"
 
 
 @instrumented_task(
@@ -240,7 +239,7 @@ def handle_trigger_action(
 )
 def auto_resolve_snapshot_incidents(alert_rule_id: int, **kwargs: Any) -> None:
     from sentry.incidents.logic import update_incident_status
-    from sentry.incidents.models import AlertRule
+    from sentry.incidents.models.alert_rule import AlertRule
 
     try:
         alert_rule = AlertRule.objects_with_snapshots.get(id=alert_rule_id)

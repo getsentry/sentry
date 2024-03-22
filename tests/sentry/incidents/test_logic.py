@@ -50,13 +50,16 @@ from sentry.incidents.logic import (
     update_alert_rule_trigger_action,
     update_incident_status,
 )
-from sentry.incidents.models import (
+from sentry.incidents.models.alert_rule import (
     AlertRule,
+    AlertRuleMonitorType,
     AlertRuleStatus,
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
     AlertRuleTriggerExclusion,
+)
+from sentry.incidents.models.incident import (
     Incident,
     IncidentActivity,
     IncidentActivityType,
@@ -77,6 +80,7 @@ from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError,
 from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
+from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, region_silo_test
@@ -436,42 +440,52 @@ class GetIncidentSubscribersTest(TestCase, BaseIncidentsTest):
 
 @region_silo_test
 class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
-    def test(self):
-        name = "hello"
-        query = "level:error"
-        aggregate = "count(*)"
-        time_window = 10
-        threshold_type = AlertRuleThresholdType.ABOVE
-        resolve_threshold = 10
-        threshold_period = 1
-        event_types = [SnubaQueryEventType.EventType.ERROR]
-        alert_rule = create_alert_rule(
-            self.organization,
-            [self.project],
-            name,
-            query,
-            aggregate,
-            time_window,
-            threshold_type,
-            threshold_period,
-            resolve_threshold=resolve_threshold,
-            event_types=event_types,
-        )
-        assert alert_rule.snuba_query.subscriptions.get().project == self.project
-        assert alert_rule.name == name
-        assert alert_rule.owner is None
-        assert alert_rule.status == AlertRuleStatus.PENDING.value
-        assert alert_rule.snuba_query.subscriptions.all().count() == 1
-        assert alert_rule.snuba_query.type == SnubaQuery.Type.ERROR.value
-        assert alert_rule.snuba_query.dataset == Dataset.Events.value
-        assert alert_rule.snuba_query.query == query
-        assert alert_rule.snuba_query.aggregate == aggregate
-        assert alert_rule.snuba_query.time_window == time_window * 60
-        assert alert_rule.snuba_query.resolution == DEFAULT_ALERT_RULE_RESOLUTION * 60
-        assert set(alert_rule.snuba_query.event_types) == set(event_types)
-        assert alert_rule.threshold_type == threshold_type.value
-        assert alert_rule.resolve_threshold == resolve_threshold
-        assert alert_rule.threshold_period == threshold_period
+    def test_create_alert_rule(self):
+        # pytest parametrize does not work in TestCase subclasses, so hack around this
+        for monitor_type, expected_projects in [
+            (None, 0),
+            (AlertRuleMonitorType.CONTINUOUS, 0),
+            (AlertRuleMonitorType.ACTIVATED, 1),
+        ]:
+            name = "hello"
+            query = "level:error"
+            aggregate = "count(*)"
+            time_window = 10
+            threshold_type = AlertRuleThresholdType.ABOVE
+            resolve_threshold = 10
+            threshold_period = 1
+            event_types = [SnubaQueryEventType.EventType.ERROR]
+            kwargs = {"monitor_type": monitor_type} if monitor_type else {}
+            alert_rule = create_alert_rule(
+                self.organization,
+                [self.project],
+                name,
+                query,
+                aggregate,
+                time_window,
+                threshold_type,
+                threshold_period,
+                resolve_threshold=resolve_threshold,
+                event_types=event_types,
+                **kwargs,
+            )
+            assert alert_rule.name == name
+            assert alert_rule.owner is None
+            assert alert_rule.status == AlertRuleStatus.PENDING.value
+            if alert_rule.snuba_query.subscriptions.exists():
+                assert alert_rule.snuba_query.subscriptions.get().project == self.project
+                assert alert_rule.snuba_query.subscriptions.all().count() == 1
+            assert alert_rule.snuba_query.type == SnubaQuery.Type.ERROR.value
+            assert alert_rule.snuba_query.dataset == Dataset.Events.value
+            assert alert_rule.snuba_query.query == query
+            assert alert_rule.snuba_query.aggregate == aggregate
+            assert alert_rule.snuba_query.time_window == time_window * 60
+            assert alert_rule.snuba_query.resolution == DEFAULT_ALERT_RULE_RESOLUTION * 60
+            assert set(alert_rule.snuba_query.event_types) == set(event_types)
+            assert alert_rule.threshold_type == threshold_type.value
+            assert alert_rule.resolve_threshold == resolve_threshold
+            assert alert_rule.threshold_period == threshold_period
+            assert alert_rule.projects.all().count() == expected_projects
 
     def test_ignore(self):
         name = "hello"
@@ -1052,6 +1066,12 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
             delete_alert_rule(self.alert_rule)
 
         assert not AlertRule.objects.filter(id=alert_rule_id).exists()
+        assert AlertRule.objects_with_snapshots.filter(id=alert_rule_id).exists()
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not AlertRule.objects.filter(id=alert_rule_id).exists()
         assert not AlertRule.objects_with_snapshots.filter(id=alert_rule_id).exists()
 
     def test_with_incident(self):
@@ -1556,6 +1576,35 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
                 target_identifier=channel_id,
                 integration_id=integration.id,
             )
+
+    @patch(
+        "sentry.incidents.logic.get_target_identifier_display_for_integration",
+        return_value=("123", "test"),
+    )
+    def test_supported_priority(self, mock_get):
+        alert_rule = self.create_alert_rule()
+        trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
+        priority = "critical"
+        action = create_alert_rule_trigger_action(
+            trigger,
+            AlertRuleTriggerAction.Type.PAGERDUTY,
+            AlertRuleTriggerAction.TargetType.SPECIFIC,
+            priority=priority,
+            target_identifier="123",
+        )
+        assert action.sentry_app_config["priority"] == priority
+
+    def test_unsupported_priority(self):
+        # doesn't save priority if the action type doesn't use it
+        alert_rule = self.create_alert_rule()
+        trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
+        action = create_alert_rule_trigger_action(
+            trigger,
+            AlertRuleTriggerAction.Type.EMAIL,
+            AlertRuleTriggerAction.TargetType.SPECIFIC,
+            priority="critical",
+        )
+        assert action.sentry_app_config is None
 
 
 @region_silo_test
@@ -2124,6 +2173,83 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
                 target_identifier=channel_id,
                 integration_id=integration.id,
             )
+
+    @responses.activate
+    def test_supported_priority(self):
+        metadata = {
+            "api_key": "1234-ABCD",
+            "base_url": "https://api.opsgenie.com/",
+            "domain_name": "test-app.app.opsgenie.com",
+        }
+        team = {"id": "123-id", "team": "cool-team", "integration_key": "1234-5678"}
+        integration, org_integration = self.create_provider_integration_for(
+            self.organization,
+            self.user,
+            provider="opsgenie",
+            name="test-app",
+            external_id="test-app",
+            metadata=metadata,
+        )
+        with assume_test_silo_mode_of(OrganizationIntegration):
+            org_integration.config = {"team_table": [team]}
+            org_integration.save()
+
+        resp_data = {
+            "result": "Integration [sentry] is valid",
+            "took": 1,
+            "requestId": "hello-world",
+        }
+        responses.add(
+            responses.POST,
+            url="https://api.opsgenie.com/v2/integrations/authenticate",
+            json=resp_data,
+        )
+
+        type = AlertRuleTriggerAction.Type.OPSGENIE
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        priority = "P1"
+        action = update_alert_rule_trigger_action(
+            self.action,
+            type,
+            target_type,
+            target_identifier=team["id"],
+            integration_id=integration.id,
+            priority=priority,
+        )
+
+        assert action.alert_rule_trigger == self.trigger
+        assert action.type == type.value
+        assert action.target_type == target_type.value
+        assert action.target_identifier == team["id"]
+        assert action.target_display == "cool-team"
+        assert action.integration_id == integration.id
+        assert action.sentry_app_config["priority"] == priority  # priority stored in config
+
+    @patch("sentry.integrations.msteams.utils.get_channel_id", return_value="some_id")
+    def test_unsupported_priority(self, mock_get_channel_id):
+        integration, _ = self.create_provider_integration_for(
+            self.organization, self.user, external_id="1", provider="msteams"
+        )
+        type = AlertRuleTriggerAction.Type.MSTEAMS
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        channel_name = "some_channel"
+        channel_id = "some_id"
+
+        action = update_alert_rule_trigger_action(
+            self.action,
+            type,
+            target_type,
+            target_identifier=channel_name,
+            integration_id=integration.id,
+            priority="critical",
+        )
+        assert action.alert_rule_trigger == self.trigger
+        assert action.type == type.value
+        assert action.target_type == target_type.value
+        assert action.target_identifier == channel_id
+        assert action.target_display == channel_name
+        assert action.integration_id == integration.id
+        assert action.sentry_app_config is None  # priority is not stored inside
 
 
 @region_silo_test

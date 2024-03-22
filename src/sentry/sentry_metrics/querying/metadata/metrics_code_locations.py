@@ -4,9 +4,9 @@ from datetime import datetime
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.errors import TooManyCodeLocationsRequestedError
-from sentry.sentry_metrics.querying.utils import fnv1a_32, get_redis_client_for_metrics_meta
+from sentry.sentry_metrics.querying.utils import get_redis_client_for_metrics_meta
 from sentry.utils import json, metrics
+from sentry.utils.hashlib import fnv1a_32
 
 DAY_IN_SECONDS = 86400
 
@@ -69,10 +69,6 @@ def get_cache_key_for_code_location(
 
 
 class CodeLocationsFetcher:
-    # The maximum number of keys that can be fetched by the fetcher.
-    #
-    # Note that each key might contain multiple code locations.
-    MAXIMUM_KEYS = 50
     # The size of the batch of keys that are fetched by endpoint.
     #
     # Batching is done via Redis pipeline and the goal is to improve the performance of the system.
@@ -82,43 +78,53 @@ class CodeLocationsFetcher:
     # The maximum number of code locations that we actually return per Redis set.
     MAX_LOCATIONS_SIZE = 5
 
-    # Given the limits above, we can expect, in the worst case MAXIMUM_KEYS * MAX_LOCATIONS_SIZE elements being
-    # returned because we further limit entries returned from Redis after loading them.
-
     def __init__(
         self,
         organization: Organization,
         projects: set[Project],
         metric_mris: set[str],
         timestamps: set[int],
+        offset: int | None,
+        limit: int | None,
     ):
         self._organization = organization
         self._projects = projects
         self._metric_mris = metric_mris
         self._timestamps = timestamps
+        self._offset = offset
+        self._limit = limit
 
         self._redis_client = get_redis_client_for_metrics_meta()
-
-        self._validate()
-
-    def _validate(self):
-        total_combinations = len(self._projects) * len(self._metric_mris) * len(self._timestamps)
-        if total_combinations > self.MAXIMUM_KEYS:
-            raise TooManyCodeLocationsRequestedError(
-                "The request results in too many code locations to be fetched, try to reduce the number of "
-                "metrics, projects or the time interval"
-            )
+        self._has_more = False
 
     def _code_location_queries(self) -> Generator[CodeLocationQuery, None, None]:
+        self._has_more = False
+
+        index = 0
         for project in self._projects:
             for metric_mri in self._metric_mris:
                 for timestamp in self._timestamps:
-                    yield CodeLocationQuery(
-                        organization_id=self._organization.id,
-                        project_id=project.id,
-                        metric_mri=metric_mri,
-                        timestamp=timestamp,
-                    )
+                    # We want to emit the code location query in the interval [offset, offset + limit).
+                    if (
+                        self._offset is None
+                        or self._limit is None
+                        or self._offset <= index < self._offset + self._limit
+                    ):
+                        yield CodeLocationQuery(
+                            organization_id=self._organization.id,
+                            project_id=project.id,
+                            metric_mri=metric_mri,
+                            timestamp=timestamp,
+                        )
+                    elif (
+                        self._offset is not None
+                        and self._limit is not None
+                        and index >= self._offset + self._limit
+                    ):
+                        self._has_more = True
+                        break
+
+                    index += 1
 
     def _parse_code_location_payload(self, encoded_location: str) -> CodeLocationPayload:
         decoded_location = json.loads(encoded_location)
@@ -162,7 +168,7 @@ class CodeLocationsFetcher:
 
         return frames
 
-    def fetch(self) -> Sequence[MetricCodeLocations]:
+    def fetch(self) -> tuple[bool, Sequence[MetricCodeLocations]]:
         code_locations: list[MetricCodeLocations] = []
         for queries in self._in_batches(self._code_location_queries(), self.BATCH_SIZE):
             # We are assuming that code locations have each a unique query, thus we don't perform any merging or
@@ -171,7 +177,10 @@ class CodeLocationsFetcher:
 
         metrics.distribution("ddm.metrics_code_locations.fetched", value=len(code_locations))
 
-        return code_locations
+        # For pagination reasons, we return whether we have more results to load by checking how many queries we emitted
+        # and not how many code locations we loaded (since a query might load multiple code locations). This is not
+        # intuitive, but it's a temporary solution to allow pagination with Redis.
+        return self._has_more, code_locations
 
     @staticmethod
     def _in_batches(
@@ -197,10 +206,14 @@ def get_metric_code_locations(
     end: datetime,
     organization: Organization,
     projects: Sequence[Project],
-) -> Sequence[MetricCodeLocations]:
+    offset: int | None = None,
+    limit: int | None = None,
+) -> tuple[bool, Sequence[MetricCodeLocations]]:
     return CodeLocationsFetcher(
         organization=organization,
         projects=set(projects),
         metric_mris=set(metric_mris),
         timestamps=_get_day_timestamps(start, end),
+        offset=offset,
+        limit=limit,
     ).fetch()

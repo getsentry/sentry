@@ -21,9 +21,11 @@ import {EventFunctionComparisonList} from 'sentry/components/events/eventStatist
 import {EventRegressionSummary} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
 import {EventFunctionBreakpointChart} from 'sentry/components/events/eventStatisticalDetector/functionBreakpointChart';
 import {TransactionsDeltaProvider} from 'sentry/components/events/eventStatisticalDetector/transactionsDeltaProvider';
+import {useHasNewTagsUI} from 'sentry/components/events/eventTags/util';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
+import HighlightsDataSection from 'sentry/components/events/highlights/highlightsDataSection';
 import {ActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
 import {actionableItemsEnabled} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import {CronTimelineSection} from 'sentry/components/events/interfaces/crons/cronTimelineSection';
@@ -41,7 +43,6 @@ import {IssueCategory, IssueType} from 'sentry/types';
 import type {EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {shouldShowCustomErrorResourceConfig} from 'sentry/utils/issueTypeConfig';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ResourcesAndMaybeSolutions} from 'sentry/views/issueDetails/resourcesAndMaybeSolutions';
 
@@ -82,7 +83,8 @@ function DefaultGroupEventDetailsContent({
   project,
 }: Required<GroupEventDetailsContentProps>) {
   const organization = useOrganization();
-  const location = useLocation();
+  const hasNewTagsUI = useHasNewTagsUI();
+
   const projectSlug = project.slug;
   const hasReplay = Boolean(event.tags?.find(({key}) => key === 'replayId')?.value);
   const mechanism = event.tags?.find(({key}) => key === 'mechanism')?.value;
@@ -112,7 +114,7 @@ function DefaultGroupEventDetailsContent({
         />
       </StyledDataSection>
       {event.userReport && (
-        <EventDataSection title="User Feedback" type="user-feedback">
+        <EventDataSection title={t('User Feedback')} type="user-feedback">
           <EventUserFeedback
             report={event.userReport}
             orgSlug={organization.slug}
@@ -121,14 +123,16 @@ function DefaultGroupEventDetailsContent({
         </EventDataSection>
       )}
       {group.issueCategory === IssueCategory.CRON && (
-        <CronTimelineSection event={event} organization={organization} />
+        <CronTimelineSection
+          event={event}
+          organization={organization}
+          project={project}
+        />
       )}
-      <EventTagsAndScreenshot
-        event={event}
-        organization={organization}
-        projectSlug={project.slug}
-        location={location}
-      />
+      <HighlightsDataSection event={event} group={group} project={project} />
+      {!hasNewTagsUI && (
+        <EventTagsAndScreenshot event={event} projectSlug={project.slug} />
+      )}
       {showMaybeSolutionsHigher && (
         <ResourcesAndMaybeSolutions event={event} project={project} group={group} />
       )}
@@ -159,6 +163,9 @@ function DefaultGroupEventDetailsContent({
       )}
       <GroupEventEntry entryType={EntryType.DEBUGMETA} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.REQUEST} {...eventEntryProps} />
+      {hasNewTagsUI && (
+        <EventTagsAndScreenshot event={event} projectSlug={project.slug} />
+      )}
       <EventContexts group={group} event={event} />
       <EventExtraData event={event} />
       <EventPackageData event={event} />
@@ -300,6 +307,10 @@ const StyledDataSection = styled(DataSection)`
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     padding: ${space(1)} ${space(4)};
+  }
+
+  &:empty {
+    display: none;
   }
 `;
 

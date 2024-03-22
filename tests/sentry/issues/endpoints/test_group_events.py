@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
@@ -388,14 +388,14 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
 
     def test_invalid_period(self):
         self.login_as(user=self.user)
-        first_seen = django_timezone.now() - timedelta(days=5)
+        first_seen = timezone.now() - timedelta(days=5)
         group = self.create_group(first_seen=first_seen)
         response = self.client.get(f"/api/0/issues/{group.id}/events/", data={"statsPeriod": "lol"})
         assert response.status_code == 400
 
     def test_invalid_query(self):
         self.login_as(user=self.user)
-        first_seen = django_timezone.now() - timedelta(days=5)
+        first_seen = timezone.now() - timedelta(days=5)
         group = self.create_group(first_seen=first_seen)
         response = self.client.get(
             f"/api/0/issues/{group.id}/events/",
@@ -522,3 +522,30 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
         assert sorted(map(lambda x: x["eventID"], response.data)) == sorted(
             [str(event_1.event_id), str(event_2.event_id)]
         )
+
+    def test_sample(self):
+        """Test that random=true doesn't blow up. We can't really test if they're in random order."""
+        self.login_as(user=self.user)
+
+        event = self.store_event(
+            data={
+                "fingerprint": ["group_1"],
+                "event_id": "a" * 32,
+                "message": "foo",
+                "timestamp": iso_format(self.min_ago),
+            },
+            project_id=self.project.id,
+        )
+        event = self.store_event(
+            data={
+                "fingerprint": ["group_1"],
+                "event_id": "b" * 32,
+                "message": "foo",
+                "timestamp": iso_format(self.two_min_ago),
+            },
+            project_id=self.project.id,
+        )
+
+        url = f"/api/0/issues/{event.group.id}/events/?sample=true"
+        response = self.do_request(url)
+        assert len(response.data) == 2

@@ -11,10 +11,10 @@ export function useCanvasZoomOrScroll({
   setLastInteraction,
 }: {
   canvas: HTMLCanvasElement | null;
-  handleScroll: (evt: WheelEvent) => void;
-  handleWheel: (evt: WheelEvent) => void;
   setConfigSpaceCursor: React.Dispatch<React.SetStateAction<vec2 | null>>;
-  setLastInteraction: React.Dispatch<
+  handleScroll?: (evt: WheelEvent) => void;
+  handleWheel?: (evt: WheelEvent) => void;
+  setLastInteraction?: React.Dispatch<
     React.SetStateAction<'pan' | 'click' | 'zoom' | 'scroll' | 'select' | 'resize' | null>
   >;
 }) {
@@ -29,7 +29,7 @@ export function useCanvasZoomOrScroll({
         window.cancelAnimationFrame(wheelStopTimeoutId.current);
       }
       wheelStopTimeoutId = requestAnimationFrameTimeout(() => {
-        setLastInteraction(null);
+        setLastInteraction?.(null);
       }, 300);
 
       // When we zoom, we want to clear cursor so that any tooltips
@@ -38,11 +38,11 @@ export function useCanvasZoomOrScroll({
 
       // pinch to zoom is recognized as `ctrlKey + wheelEvent`
       if (evt.metaKey || evt.ctrlKey) {
-        handleWheel(evt);
-        setLastInteraction('zoom');
+        handleWheel?.(evt);
+        setLastInteraction?.('zoom');
       } else {
-        handleScroll(evt);
-        setLastInteraction('scroll');
+        handleScroll?.(evt);
+        setLastInteraction?.('scroll');
       }
     }
 
