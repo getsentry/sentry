@@ -108,7 +108,7 @@ def main(context: dict[str, str]) -> int:
         reporoot,
         venv_dir,
         (
-            ("javascript dependencies", ("make", "install-js-dev")),
+            ("javascript", ("node", "-pe", "process.exit(Number(!(process.version == 'v' + require('./.volta.json').volta.node )))")),
         ),
     ):
         return 1
