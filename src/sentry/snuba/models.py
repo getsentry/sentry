@@ -101,7 +101,7 @@ class QuerySubscription(Model):
         DELETING = 3
         DISABLED = 4
 
-    # TODO: backfill and deprecate project
+    # TODO: deprecate project fk, move to AlertRule fk
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
     snuba_query = FlexibleForeignKey("sentry.SnubaQuery", null=True, related_name="subscriptions")
     type = (

@@ -45,8 +45,7 @@ logger = logging.getLogger(__name__)
 
 
 class SubscriptionCallback(Protocol):
-    def __call__(self, subscription: QuerySubscription, *args: Any, **kwargs: Any) -> bool:
-        ...
+    def __call__(self, subscription: QuerySubscription, *args: Any, **kwargs: Any) -> bool: ...
 
 
 alert_subscription_callback_registry: dict[AlertRuleMonitorType, SubscriptionCallback] = {}
@@ -356,6 +355,9 @@ class AlertRule(Model):
         # On activated subscription, additional query parameters will be added to the constructed query in Snuba
         created_subscriptions = []
         if self.monitor_type == monitor_type.value:
+            # TODO: remove projects from QuerySubscriptions
+            # This means we will no longer need to utilize `bulk_create_snuba_subscriptions` as there's no value
+            # in iterating over projects to call `create_snuba_subscription` per project
             created_subscriptions = bulk_create_snuba_subscriptions(
                 projects,
                 INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
