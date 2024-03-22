@@ -19,7 +19,7 @@ export type HookProps = {
 export default function useFetchThresholdsListData({
   selectedEnvs = [],
   selectedProjectIds = [],
-}: HookProps) {
+}: HookProps = {}) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const query: ThresholdQuery = {};
@@ -75,14 +75,14 @@ export default function useFetchThresholdsListData({
     };
   }
 
+  const hasReleaseV2Feature =
+    organization.features?.includes('releases-v2-internal') ||
+    organization.features?.includes('releases-v2') ||
+    organization.features?.includes('releases-v2-st');
+
   return useApiQuery<Threshold[]>(queryKey, {
     onSuccess,
     staleTime: 0,
-    enabled:
-      (organization.features?.includes('releases-v2-internal') ||
-        organization.features?.includes('releases-v2') ||
-        organization.features?.includes('releases-v2-st')) ??
-      isActivatedAlert ??
-      false,
+    enabled: hasReleaseV2Feature || isActivatedAlert,
   });
 }
