@@ -377,7 +377,7 @@ function TeamSelector(props: Props) {
     }
     // We only want to do this once when the component is finished loading for teams and mounted.
     // If the user decides they do not want the default, we should not add the default value back.
-  }, [fetching, useTeamDefaultIfOnlyOne]);
+  }, [fetching, useTeamDefaultIfOnlyOne]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <SelectControl

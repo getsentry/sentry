@@ -28,7 +28,6 @@ from sentry.search.utils import parse_datetime_string
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
-from sentry.utils.dates import to_timestamp_from_iso_format
 from sentry.utils.numbers import base32_encode, format_grouped_length
 from sentry.utils.sdk import set_measurement
 from sentry.utils.snuba import bulk_snql_query
@@ -211,19 +210,16 @@ class TraceEvent:
                     for problem in self.event["issue_occurrences"]:
                         offender_span_ids = problem.evidence_data.get("offender_span_ids", [])
                         if event_span.get("span_id") in offender_span_ids:
-                            try:
-                                start_timestamp = float(event_span.get("precise.start_ts"))
-                                if start is None:
-                                    start = start_timestamp
-                                else:
-                                    start = min(start, start_timestamp)
-                                end_timestamp = float(event_span.get("precise.finish_ts"))
-                                if end is None:
-                                    end = end_timestamp
-                                else:
-                                    end = max(end, end_timestamp)
-                            except ValueError:
-                                pass
+                            start_timestamp = float(event_span.get("precise.start_ts"))
+                            if start is None:
+                                start = start_timestamp
+                            else:
+                                start = min(start, start_timestamp)
+                            end_timestamp = float(event_span.get("precise.finish_ts"))
+                            if end is None:
+                                end = end_timestamp
+                            else:
+                                end = max(end, end_timestamp)
                             suspect_spans.append(event_span.get("span_id"))
             else:
                 if self.nodestore_event is not None or self.span_serialized:
@@ -337,6 +333,10 @@ class TraceEvent:
         if self.span_serialized:
             result["timestamp"] = self.event["precise.finish_ts"]
             result["start_timestamp"] = self.event["precise.start_ts"]
+            result["profile_id"] = self.event["profile.id"]
+            # TODO: once we're defaulting measurements we don't need this check
+            if "measurements" in self.event:
+                result["measurements"] = self.event["measurements"]
         if self.nodestore_event:
             result["timestamp"] = self.nodestore_event.data.get("timestamp")
             result["start_timestamp"] = self.nodestore_event.data.get("start_timestamp")
@@ -429,29 +429,46 @@ def query_trace_data(
     trace_id: str,
     params: Mapping[str, str],
     limit: int,
+    event_id: str | None,
+    use_spans: bool,
 ) -> tuple[Sequence[SnubaTransaction], Sequence[SnubaError]]:
+    transaction_columns = [
+        "id",
+        "transaction.status",
+        "transaction.op",
+        "transaction.duration",
+        "transaction",
+        "timestamp",
+        "precise.start_ts",
+        "precise.finish_ts",
+        "project",
+        "project.id",
+        "profile.id",
+        "trace.span",
+        "trace.parent_span",
+        'to_other(trace.parent_span, "", 0, 1) AS root',
+    ]
+    # We want to guarantee at least getting the root, and hopefully events near it with timestamp
+    # id is just for consistent results
+    transaction_orderby = ["-root", "timestamp", "id"]
+    if event_id is not None:
+        transaction_columns.append(f'to_other(id, "{event_id}", 0, 1) AS target')
+        # Target is the event_id the frontend plans to render, we try to sort it to the top so it loads even if its not
+        # within the query limit, needs to be the first orderby cause it takes precedence over finding the root
+        transaction_orderby.insert(0, "-target")
+    if use_spans:
+        transaction_columns.extend(
+            [
+                "measurements.key",
+                "measurements.value",
+            ]
+        )
     transaction_query = QueryBuilder(
         Dataset.Transactions,
         params,
         query=f"trace:{trace_id}",
-        selected_columns=[
-            "id",
-            "transaction.status",
-            "transaction.op",
-            "transaction.duration",
-            "transaction",
-            "timestamp",
-            "precise.start_ts",
-            "precise.finish_ts",
-            "project",
-            "project.id",
-            "trace.span",
-            "trace.parent_span",
-            'to_other(trace.parent_span, "", 0, 1) AS root',
-        ],
-        # We want to guarantee at least getting the root, and hopefully events near it with timestamp
-        # id is just for consistent results
-        orderby=["-root", "timestamp", "id"],
+        selected_columns=transaction_columns,
+        orderby=transaction_orderby,
         limit=limit,
     )
     occurrence_query = QueryBuilder(
@@ -511,6 +528,14 @@ def query_trace_data(
         result["issue.ids"] = occurrence_issue_ids.get(result["id"], {})
         result["occurrence_id"] = occurrence_ids.get(result["id"])
         result["trace.parent_transaction"] = None
+        if use_spans:
+            result["measurements"] = {
+                key: {
+                    "value": value,
+                    "type": transaction_query.get_field_type(f"measurements.{key}"),
+                }
+                for key, value in zip(result["measurements.key"], result["measurements.value"])
+            }
 
     return cast(Sequence[SnubaTransaction], transformed_results[0]), cast(
         Sequence[SnubaError], transformed_results[1]
@@ -549,6 +574,12 @@ def build_span_query(trace_id, spans_params, query_spans):
     return parents_query
 
 
+def pad_span_id(span):
+    """Snuba might return the span id without leading 0s since they're stored as UInt64
+    which means a span like 0011 gets converted to an int, then back so we'll get `11` instead"""
+    return span.rjust(16, "0")
+
+
 def augment_transactions_with_spans(
     transactions: Sequence[SnubaTransaction],
     errors: Sequence[SnubaError],
@@ -562,13 +593,26 @@ def augment_transactions_with_spans(
         problem_project_map = {}
         issue_occurrences = []
         occurrence_spans = set()
-        error_spans = {e["trace.span"] for e in errors if e["trace.span"]}
-        projects = {e["project.id"] for e in errors if e["trace.span"]}
+        error_spans = set()
+        projects = set()
+        for error in errors:
+            if "trace.span" in error:
+                error["trace.span"] = pad_span_id(error["trace.span"])
+                error_spans.add(error["trace.span"])
+            projects.add(error["project.id"])
         ts_params = find_timestamp_params(transactions)
         if ts_params["min"]:
             params["start"] = ts_params["min"] - timedelta(hours=1)
         if ts_params["max"]:
             params["end"] = ts_params["max"] + timedelta(hours=1)
+
+        if ts_params["max"] and ts_params["min"]:
+            sentry_sdk.set_measurement(
+                "trace_view.trace_duration", (ts_params["max"] - ts_params["min"]).total_seconds()
+            )
+            sentry_sdk.set_tag("trace_view.missing_timestamp_constraints", False)
+        else:
+            sentry_sdk.set_tag("trace_view.missing_timestamp_constraints", True)
 
     with sentry_sdk.start_span(op="augment.transactions", description="get transaction span ids"):
         for index, transaction in enumerate(transactions):
@@ -585,19 +629,10 @@ def augment_transactions_with_spans(
             if transaction["occurrence_id"] is not None:
                 problem_project_map[project].append(transaction["occurrence_id"])
 
-            # Need to strip the leading "0"s to match our query to the spans table
-            # This is cause spans are stored as UInt64, so a span like 0011
-            # converted to an int then converted to a hex will become 11
-            # so when we query snuba we need to remove the 00s ourselves as well
             if not transaction["trace.parent_span"]:
                 continue
-            transaction["trace.parent_span.stripped"] = (
-                str(hex(int(transaction["trace.parent_span"], 16))).lstrip("0x")
-                if transaction["trace.parent_span"].startswith("00")
-                else transaction["trace.parent_span"]
-            )
             # parent span ids of the segment spans
-            trace_parent_spans.add(transaction["trace.parent_span.stripped"])
+            trace_parent_spans.add(transaction["trace.parent_span"])
 
     with sentry_sdk.start_span(op="augment.transactions", description="get perf issue span ids"):
         for project, occurrences in problem_project_map.items():
@@ -653,18 +688,19 @@ def augment_transactions_with_spans(
             referrer=Referrer.API_TRACE_VIEW_GET_PARENTS.value
         )
 
+    parent_map = {}
     if "data" in parents_results:
-        parent_map = {parent["span_id"]: parent for parent in parents_results["data"]}
-    else:
-        parent_map = {}
+        for parent in parents_results["data"]:
+            parent["span_id"] = pad_span_id(parent["span_id"])
+            parent_map[parent["span_id"]] = parent
 
     with sentry_sdk.start_span(op="augment.transactions", description="linking transactions"):
         for transaction in transactions:
             # For a given transaction, if parent span id exists in the tranaction (so this is
             # not a root span), see if the indexed spans data can tell us what the parent
             # transaction id is.
-            if "trace.parent_span.stripped" in transaction:
-                parent = parent_map.get(transaction["trace.parent_span.stripped"])
+            if "trace.parent_span" in transaction:
+                parent = parent_map.get(transaction["trace.parent_span"])
                 if parent is not None:
                     transaction["trace.parent_transaction"] = parent["transaction.id"]
     with sentry_sdk.start_span(op="augment.transactions", description="linking perf issues"):
@@ -718,7 +754,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             "project_slug": event["project"],
             "title": event["title"],
             "level": event["tags[level]"],
-            "timestamp": to_timestamp_from_iso_format(event["timestamp"]),
+            "timestamp": datetime.fromisoformat(event["timestamp"]).timestamp(),
             "event_type": "error",
             "generation": 0,
         }
@@ -783,6 +819,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
 
         # Detailed is deprecated now that we want to use spans instead
         detailed: bool = request.GET.get("detailed", "0") == "1"
+        # Temporary url params until we finish migrating the frontend
         use_spans: bool = request.GET.get("useSpans", "0") == "1"
         update_params_with_timestamp(request, params)
 
@@ -790,7 +827,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
         if detailed and use_spans:
             raise ParseError("Cannot return a detailed response while using spans")
         limit: int = min(int(request.GET.get("limit", MAX_TRACE_SIZE)), 10_000)
-        event_id: str | None = request.GET.get("event_id")
+        event_id: str | None = request.GET.get("event_id") or request.GET.get("eventId")
 
         # Only need to validate event_id as trace_id is validated in the URL
         if event_id and not is_event_id(event_id):
@@ -802,11 +839,15 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             actor=request.user,
         )
         with handle_query_errors():
-            transactions, errors = query_trace_data(trace_id, params, limit)
             if use_spans:
+                transactions, errors = query_trace_data(
+                    trace_id, params, limit, event_id, use_spans
+                )
                 transactions = augment_transactions_with_spans(
                     transactions, errors, trace_id, params
                 )
+            else:
+                transactions, errors = query_trace_data(trace_id, params, limit, None, False)
             if len(transactions) == 0 and not tracing_without_performance_enabled:
                 return Response(status=404)
             self.record_analytics(transactions, trace_id, self.request.user.id, organization.id)

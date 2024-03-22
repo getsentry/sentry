@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useMemo} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -25,12 +25,14 @@ import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useReplayExists from 'sentry/utils/replayCount/useReplayExists';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
+import useProfileExists from 'sentry/views/performance/browser/webVitals/utils/profiling/useProfileExists';
 import {useInpSpanSamplesWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useInpSpanSamplesWebVitalsQuery';
 import {useTransactionSamplesWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useTransactionSamplesWebVitalsQuery';
 import type {
@@ -56,7 +58,6 @@ const PAGELOADS_COLUMN_ORDER: GridColumnOrder<keyof TransactionSampleRowWithScor
   {key: 'user.display', width: COL_WIDTH_UNDEFINED, name: t('User')},
   {key: 'measurements.lcp', width: COL_WIDTH_UNDEFINED, name: 'LCP'},
   {key: 'measurements.fcp', width: COL_WIDTH_UNDEFINED, name: 'FCP'},
-  {key: 'measurements.fid', width: COL_WIDTH_UNDEFINED, name: 'FID'},
   {key: 'measurements.cls', width: COL_WIDTH_UNDEFINED, name: 'CLS'},
   {key: 'measurements.ttfb', width: COL_WIDTH_UNDEFINED, name: 'TTFB'},
   {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: t('Profile')},
@@ -79,10 +80,12 @@ const INTERACTION_SAMPLES_COLUMN_ORDER: GridColumnOrder<
   {key: 'inpScore', width: COL_WIDTH_UNDEFINED, name: t('Score')},
 ];
 
-enum Dataset {
+enum Datatype {
   PAGELOADS = 'pageloads',
   INTERACTIONS = 'interactions',
 }
+
+const DATATYPE_KEY = 'type';
 
 type Props = {
   transaction: string;
@@ -100,14 +103,14 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
   const shouldUseStoredScores = useStoredScoresSetting();
   const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
 
-  const [dataset, setDataset] = useState(Dataset.PAGELOADS);
-
-  const samplesColumnOrder = useMemo(() => {
-    if (shouldReplaceFidWithInp) {
-      return PAGELOADS_COLUMN_ORDER.filter(col => col.key !== 'measurements.fid');
-    }
-    return PAGELOADS_COLUMN_ORDER;
-  }, [shouldReplaceFidWithInp]);
+  let datatype = Datatype.PAGELOADS;
+  switch (decodeScalar(location.query[DATATYPE_KEY], 'pageloads')) {
+    case 'interactions':
+      datatype = Datatype.INTERACTIONS;
+      break;
+    default:
+      datatype = Datatype.PAGELOADS;
+  }
 
   const sortableFields = shouldUseStoredScores
     ? SORTABLE_INDEXED_FIELDS
@@ -115,14 +118,11 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
         field => !SORTABLE_INDEXED_SCORE_FIELDS.includes(field)
       );
 
-  let sort = useWebVitalsSort({
+  const sort = useWebVitalsSort({
     defaultSort: DEFAULT_INDEXED_SORT,
     sortableFields: sortableFields as unknown as string[],
   });
-  // Need to map fid back to inp for rendering
-  if (shouldReplaceFidWithInp && sort.field === 'measurements.fid') {
-    sort = {...sort, field: 'measurements.inp'};
-  }
+
   const replayLinkGenerator = generateReplayLink(routes);
 
   const project = useMemo(
@@ -141,7 +141,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     transaction,
     query: search,
     withProfiles: true,
-    enabled: dataset === Dataset.PAGELOADS,
+    enabled: datatype === Datatype.PAGELOADS,
   });
 
   const {
@@ -150,9 +150,14 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     pageLinks: interactionsPageLinks,
   } = useInpSpanSamplesWebVitalsQuery({
     transaction,
-    enabled: dataset === Dataset.INTERACTIONS,
-    limit: 9,
+    enabled: datatype === Datatype.INTERACTIONS,
+    limit,
+    filters: new MutableSearch(query ?? '').filters,
   });
+
+  const {profileExists} = useProfileExists(
+    interactionsTableData.filter(row => row['profile.id']).map(row => row['profile.id'])
+  );
 
   const getFormattedDuration = (value: number) => {
     return getDuration(value, value < 1 ? 0 : 2, true);
@@ -308,18 +313,19 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
       );
     }
     if (key === 'profile.id') {
+      const profileId = String(row[key]);
       const profileTarget =
         defined(row.projectSlug) && defined(row[key])
           ? generateProfileFlamechartRoute({
               orgSlug: organization.slug,
               projectSlug: row.projectSlug,
-              profileId: String(row[key]),
+              profileId,
             })
           : null;
       return (
         <NoOverflow>
           <AlignCenter>
-            {profileTarget && (
+            {profileTarget && profileExists(profileId) && (
               <Tooltip title={t('View Profile')}>
                 <LinkButton to={profileTarget} size="xs">
                   <IconProfiling size="xs" />
@@ -341,7 +347,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
             replayId: row[key],
             id: '', // id doesn't get used in replayLinkGenerator. This is just to satisfy the type.
             'transaction.duration':
-              dataset === Dataset.INTERACTIONS
+              datatype === Datatype.INTERACTIONS
                 ? row[SpanIndexedField.SPAN_SELF_TIME]
                 : row['transaction.duration'],
             timestamp: row.timestamp,
@@ -394,20 +400,24 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
         {shouldReplaceFidWithInp && (
           <SegmentedControl
             size="md"
-            value={dataset}
+            value={datatype}
             onChange={newDataSet => {
-              // Reset pagination and sort when switching datasets
+              // Reset pagination and sort when switching datatypes
               router.replace({
                 ...location,
-                query: {...location.query, sort: undefined, cursor: undefined},
+                query: {
+                  ...location.query,
+                  sort: undefined,
+                  cursor: undefined,
+                  [DATATYPE_KEY]: newDataSet,
+                },
               });
-              setDataset(newDataSet);
             }}
           >
-            <SegmentedControl.Item key={Dataset.PAGELOADS}>
+            <SegmentedControl.Item key={Datatype.PAGELOADS}>
               {t('Pageloads')}
             </SegmentedControl.Item>
-            <SegmentedControl.Item key={Dataset.INTERACTIONS}>
+            <SegmentedControl.Item key={Datatype.INTERACTIONS}>
               {t('Interactions')}
             </SegmentedControl.Item>
           </SegmentedControl>
@@ -424,14 +434,18 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
           }
         />
         <StyledPagination
-          pageLinks={dataset === Dataset.INTERACTIONS ? interactionsPageLinks : pageLinks}
-          disabled={dataset === Dataset.INTERACTIONS ? isInteractionsLoading : isLoading}
+          pageLinks={
+            datatype === Datatype.INTERACTIONS ? interactionsPageLinks : pageLinks
+          }
+          disabled={
+            datatype === Datatype.INTERACTIONS ? isInteractionsLoading : isLoading
+          }
           size="md"
         />
         {/* The Pagination component disappears if pageLinks is not defined,
         which happens any time the table data is loading. So we render a
         disabled button bar if pageLinks is not defined to minimize ui shifting */}
-        {!(dataset === Dataset.INTERACTIONS ? interactionsPageLinks : pageLinks) && (
+        {!(datatype === Datatype.INTERACTIONS ? interactionsPageLinks : pageLinks) && (
           <Wrapper>
             <ButtonBar merged>
               <Button
@@ -449,10 +463,10 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
         )}
       </SearchBarContainer>
       <GridContainer>
-        {dataset === Dataset.PAGELOADS && (
+        {datatype === Datatype.PAGELOADS && (
           <GridEditable
             isLoading={isLoading}
-            columnOrder={samplesColumnOrder}
+            columnOrder={PAGELOADS_COLUMN_ORDER}
             columnSortBy={[]}
             data={tableData}
             grid={{
@@ -463,7 +477,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
             minimumColWidth={70}
           />
         )}
-        {dataset === Dataset.INTERACTIONS && (
+        {datatype === Datatype.INTERACTIONS && (
           <GridEditable
             isLoading={isInteractionsLoading}
             columnOrder={INTERACTION_SAMPLES_COLUMN_ORDER}

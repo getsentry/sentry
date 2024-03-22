@@ -19,6 +19,7 @@ from django.http import HttpRequest
 from django.utils import timezone
 from sentry_sdk.tracing import Span
 
+from sentry import options
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseModel,
@@ -80,6 +81,7 @@ class OutboxCategory(IntEnum):
     PROVISION_ORGANIZATION = 17
     POST_ORGANIZATION_PROVISION = 18
     UNUSED_ONE = 19
+    # No longer in use.
     DISABLE_AUTH_PROVIDER = 20
     RESET_IDP_FLAGS = 21
     MARK_INVALID_SSO = 22
@@ -407,6 +409,17 @@ class OutboxBase(Model):
     sharding_columns: Iterable[str]
     coalesced_columns: Iterable[str]
 
+    def should_skip_shard(self):
+        if self.shard_scope == OutboxScope.ORGANIZATION_SCOPE:
+            return self.shard_identifier in options.get(
+                "hybrid_cloud.authentication.disabled_organization_shards"
+            )
+        if self.shard_scope == OutboxScope.USER_SCOPE:
+            return self.shard_identifier in options.get(
+                "hybrid_cloud.authentication.disabled_user_shards"
+            )
+        return False
+
     @classmethod
     def from_outbox_name(cls, name: str) -> type[Self]:
         from django.apps import apps
@@ -558,7 +571,8 @@ class OutboxBase(Model):
 
     @contextlib.contextmanager
     def process_coalesced(
-        self, is_synchronous_flush: bool
+        self,
+        is_synchronous_flush: bool,
     ) -> Generator[OutboxBase | None, None, None]:
         coalesced: OutboxBase | None = self.select_coalesced_messages().last()
         first_coalesced: OutboxBase | None = self.select_coalesced_messages().first() or coalesced
@@ -587,11 +601,19 @@ class OutboxBase(Model):
             # leads to timeouts.
             while True:
                 batch = self.select_coalesced_messages().values_list("id", flat=True)[:100]
-                delete_ids = [item_id for item_id in batch if item_id <= coalesced.id]
+                delete_ids = [item_id for item_id in batch if item_id < coalesced.id]
                 if not len(delete_ids):
                     break
                 self.objects.filter(id__in=delete_ids).delete()
                 deleted_count += len(delete_ids)
+
+            # Only process the highest id after the others have been batch processed.
+            # It's not guaranteed that the ordering of the batch processing is in order,
+            # meaning that failures during deletion could leave an old, staler outbox
+            # alive.
+            if not self.should_skip_shard():
+                deleted_count += 1
+                coalesced.delete()
 
             metrics.incr("outbox.processed", deleted_count, tags=tags)
             metrics.timing(
@@ -617,7 +639,7 @@ class OutboxBase(Model):
 
     def process(self, is_synchronous_flush: bool) -> bool:
         with self.process_coalesced(is_synchronous_flush=is_synchronous_flush) as coalesced:
-            if coalesced is not None:
+            if coalesced is not None and not self.should_skip_shard():
                 with metrics.timer(
                     "outbox.send_signal.duration",
                     tags={
@@ -666,10 +688,13 @@ class OutboxBase(Model):
                 if _test_processing_barrier:
                     _test_processing_barrier.wait()
 
-                shard_row.process(is_synchronous_flush=not flush_all)
+                processed = shard_row.process(is_synchronous_flush=not flush_all)
 
                 if _test_processing_barrier:
                     _test_processing_barrier.wait()
+
+                if not processed:
+                    break
 
     @classmethod
     def get_shard_depths_descending(cls, limit: int | None = 10) -> list[dict[str, int | str]]:

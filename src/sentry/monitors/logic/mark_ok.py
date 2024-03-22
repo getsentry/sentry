@@ -1,12 +1,9 @@
+import logging
 from datetime import datetime
 
-from sentry.monitors.models import (
-    CheckInStatus,
-    MonitorCheckIn,
-    MonitorEnvironment,
-    MonitorIncident,
-    MonitorStatus,
-)
+from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorEnvironment, MonitorStatus
+
+logger = logging.getLogger(__name__)
 
 
 def mark_ok(checkin: MonitorCheckIn, ts: datetime):
@@ -21,13 +18,7 @@ def mark_ok(checkin: MonitorCheckIn, ts: datetime):
         "next_checkin_latest": next_checkin_latest,
     }
 
-    if (
-        not monitor_env.monitor.is_muted
-        and not monitor_env.is_muted
-        and monitor_env.status != MonitorStatus.OK
-        and checkin.status == CheckInStatus.OK
-    ):
-        params["status"] = MonitorStatus.OK
+    if monitor_env.status != MonitorStatus.OK and checkin.status == CheckInStatus.OK:
         recovery_threshold = monitor_env.monitor.config.get("recovery_threshold", 1)
         if not recovery_threshold:
             recovery_threshold = 1
@@ -52,24 +43,22 @@ def mark_ok(checkin: MonitorCheckIn, ts: datetime):
 
         # Resolve any open incidents
         if incident_recovering:
-            # TODO(rjo100): Check for multiple open incidents where we only
-            # resolved if recovery_threshold was set and not faiure_issue_threshold
-            active_incidents = MonitorIncident.objects.filter(
-                monitor_environment=monitor_env,
-                resolving_checkin__isnull=True,
-            )
-
-            # Only send an occurrence if we have an active incident
-            for grouphash in active_incidents.values_list("grouphash", flat=True):
-                resolve_incident_group(grouphash, checkin.monitor.project_id)
-
-            active_incidents.update(
-                resolving_checkin=checkin,
-                resolving_timestamp=checkin.date_added,
-            )
-        else:
-            # Don't update status if incident isn't recovered
-            params.pop("status", None)
+            params["status"] = MonitorStatus.OK
+            incident = monitor_env.active_incident
+            if incident:
+                resolve_incident_group(incident.grouphash, checkin.monitor.project_id)
+                incident.update(
+                    resolving_checkin=checkin,
+                    resolving_timestamp=checkin.date_added,
+                )
+                logger.info(
+                    "monitors.logic.mark_ok.resolving_incident",
+                    extra={
+                        "monitor_env_id": monitor_env.id,
+                        "incident_id": incident.id,
+                        "grouphash": incident.grouphash,
+                    },
+                )
 
     MonitorEnvironment.objects.filter(id=monitor_env.id).exclude(last_checkin__gt=ts).update(
         **params

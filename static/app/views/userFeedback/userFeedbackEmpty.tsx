@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -11,25 +11,44 @@ import {useFeedbackOnboardingSidebarPanel} from 'sentry/components/feedback/useF
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import useRouter from 'sentry/utils/useRouter';
 
 type Props = {
+  issueTab?: boolean;
   projectIds?: string[];
 };
 
-export function UserFeedbackEmpty({projectIds}: Props) {
+export function UserFeedbackEmpty({projectIds, issueTab = false}: Props) {
   const {projects, initiallyLoaded} = useProjects();
   const loadingProjects = !initiallyLoaded;
   const organization = useOrganization();
+  const location = useLocation();
 
   const selectedProjects = projectIds?.length
     ? projects.filter(({id}) => projectIds.includes(id))
     : projects;
 
   const hasAnyFeedback = selectedProjects.some(({hasUserReports}) => hasUserReports);
-  const hasNewOnboarding = organization.features.includes('user-feedback-onboarding');
   const {activateSidebarIssueDetails} = useFeedbackOnboardingSidebarPanel();
+
+  const router = useRouter();
+  const setProjId = useCallback(() => {
+    router.push({
+      pathname: location.pathname,
+      query: {...location.query, project: projectIds?.[0]},
+      hash: location.hash,
+    });
+  }, [location.hash, location.query, location.pathname, projectIds, router]);
+
+  useEffect(() => {
+    if (issueTab) {
+      setProjId();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     window.sentryEmbedCallback = function (embed) {
@@ -87,25 +106,14 @@ export function UserFeedbackEmpty({projectIds}: Props) {
         )}
       </p>
       <ButtonList gap={1}>
-        {hasNewOnboarding ? (
-          <Button
-            priority="primary"
-            onClick={activateSidebarIssueDetails}
-            analyticsEventName="Clicked Feedback Onboarding Setup - Issue Details"
-            analyticsEventKey="feedback.issue-details-click-onboarding-setup"
-          >
-            {t('Set up now')}
-          </Button>
-        ) : (
-          <Button
-            external
-            priority="primary"
-            onClick={() => trackAnalyticsInternal('user_feedback.docs_clicked')}
-            href="https://docs.sentry.io/product/user-feedback/"
-          >
-            {t('Read the docs')}
-          </Button>
-        )}
+        <Button
+          priority="primary"
+          onClick={activateSidebarIssueDetails}
+          analyticsEventName="Clicked Feedback Onboarding Setup - Issue Details"
+          analyticsEventKey="feedback.issue-details-click-onboarding-setup"
+        >
+          {t('Set up now')}
+        </Button>
         <Button
           onClick={() => {
             Sentry.showReportDialog({

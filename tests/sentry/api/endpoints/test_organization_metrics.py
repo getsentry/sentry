@@ -107,35 +107,18 @@ class OrganizationMetricsPermissionTest(APITestCase):
 @region_silo_test
 class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
     view = "sentry-api-0-organization-metrics-samples"
-    default_features = ["organizations:metrics-samples-list"]
 
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
 
-    def do_request(self, query, features=None, **kwargs):
-        if features is None:
-            features = self.default_features
-        with self.feature(features):
-            return self.client.get(
-                reverse(self.view, kwargs={"organization_slug": self.organization.slug}),
-                query,
-                format="json",
-                **kwargs,
-            )
-
-    def test_feature_flag(self):
-        query = {
-            "mri": "d:spans/exclusive_time@millisecond",
-            "field": ["id"],
-            "project": [self.project.id],
-        }
-
-        response = self.do_request(query, features=[])
-        assert response.status_code == 404, response.data
-
-        response = self.do_request(query, features=["organizations:metrics-samples-list"])
-        assert response.status_code == 200, response.data
+    def do_request(self, query, **kwargs):
+        return self.client.get(
+            reverse(self.view, kwargs={"organization_slug": self.organization.slug}),
+            query,
+            format="json",
+            **kwargs,
+        )
 
     def test_no_project(self):
         query = {
@@ -190,7 +173,7 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
             "detail": ErrorDetail(string="Unsupported sort: id for MRI", code="parse_error")
         }
 
-    def test_span_exclusive_time_samples(self):
+    def test_span_exclusive_time_samples_zero_group(self):
         durations = [100, 200, 300]
         span_ids = [uuid4().hex[:16] for _ in durations]
         good_span_id = span_ids[1]
@@ -206,7 +189,6 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
                 duration=duration,
                 exclusive_time=duration,
                 timestamp=ts,
-                group=uuid4().hex[:16],  # we need a non 0 group
             )
 
         query = {
@@ -267,7 +249,6 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
                 span_id=span_id,
                 duration=duration,
                 timestamp=ts,
-                group=uuid4().hex[:16],  # we need a non 0 group
                 measurements={
                     measurement: duration + j + 1
                     for j, measurement in enumerate(
@@ -289,7 +270,6 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
                 uuid4().hex,
                 span_id=uuid4().hex[:16],
                 timestamp=ts,
-                group=uuid4().hex[:16],  # we need a non 0 group
             )
 
         for i, mri in enumerate(
@@ -527,7 +507,6 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
                 span_id=span_id,
                 duration=val,
                 timestamp=ts,
-                group=uuid4().hex[:16],  # we need a non 0 group
                 store_metrics_summary={
                     mri: [
                         {
@@ -547,7 +526,6 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
             uuid4().hex,
             span_id=uuid4().hex[:16],
             timestamp=before_now(days=10, minutes=10).replace(microsecond=0),
-            group=uuid4().hex[:16],  # we need a non 0 group
             store_metrics_summary={
                 "d:custom/other@millisecond": [
                     {
@@ -628,7 +606,6 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
                 duration=value,
                 exclusive_time=value,
                 timestamp=ts,
-                group=uuid4().hex[:16],  # we need a non 0 group
                 measurements={"score.total": value},
                 store_metrics_summary={
                     custom_mri: [

@@ -99,7 +99,12 @@ export const SORTABLE_FIELDS = [
   ...SORTABLE_SCORE_FIELDS,
 ] as const;
 
-export const SORTABLE_INDEXED_SCORE_FIELDS = ['totalScore', 'measurements.score.total'];
+export const SORTABLE_INDEXED_SCORE_FIELDS = [
+  'totalScore',
+  'measurements.score.total',
+  'inpScore',
+  'measurements.score.inp',
+];
 
 export const SORTABLE_INDEXED_FIELDS = [
   'measurements.lcp',
@@ -119,4 +124,26 @@ export const DEFAULT_SORT: Sort = {
 export const DEFAULT_INDEXED_SORT: Sort = {
   kind: 'desc',
   field: 'profile.id',
+};
+
+export const SORTABLE_INDEXED_INTERACTION_FIELDS = [
+  SpanIndexedField.INP,
+  SpanIndexedField.INP_SCORE,
+  SpanIndexedField.INP_SCORE_WEIGHT,
+  SpanIndexedField.TOTAL_SCORE,
+  SpanIndexedField.ID,
+  SpanIndexedField.TIMESTAMP,
+  SpanIndexedField.PROFILE_ID,
+  SpanIndexedField.REPLAY_ID,
+  SpanIndexedField.USER,
+  SpanIndexedField.ORIGIN_TRANSACTION,
+  SpanIndexedField.PROJECT,
+  SpanIndexedField.BROWSER_NAME,
+  SpanIndexedField.SPAN_SELF_TIME,
+  SpanIndexedField.SPAN_DESCRIPTION,
+] as const;
+
+export const DEFAULT_INDEXED_INTERACTION_SORT: Sort = {
+  kind: 'desc',
+  field: 'replay.id',
 };

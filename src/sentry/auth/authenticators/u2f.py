@@ -1,4 +1,3 @@
-import logging
 from base64 import urlsafe_b64encode
 from functools import cached_property
 from time import time
@@ -24,8 +23,6 @@ from sentry.utils.decorators import classproperty
 from sentry.utils.http import absolute_uri
 
 from .base import ActivationChallengeResult, AuthenticatorInterface
-
-logger = logging.getLogger("sentry.auth.u2f")
 
 
 def decode_credential_id(device):
@@ -205,28 +202,14 @@ class U2fInterface(AuthenticatorInterface):
         challenge, state = self.webauthn_authentication_server.authenticate_begin(
             credentials=credentials
         )
-        if request.session.get("staff_auth_flow", False):
-            request.session["staff_webauthn_authentication_state"] = state
-            # Remove the staff U2F flag in case we don't validate the generated
-            # challenge/response and want to next use a non-staff U2F flow
-            del request.session["staff_auth_flow"]
-        else:
-            request.session["webauthn_authentication_state"] = state
-
+        request.session["webauthn_authentication_state"] = state
         return ActivationChallengeResult(challenge=cbor.encode(challenge["publicKey"]))
 
     def validate_response(self, request: HttpRequest, challenge, response):
         try:
             credentials = self.credentials()
-            # Only 1 U2F state should be set at a time
-            default_state = request.session.get("webauthn_authentication_state")
-            staff_state = request.session.get("staff_webauthn_authentication_state")
-            if default_state and staff_state:
-                logger.info(
-                    "Both staff and non-staff U2F states are set", extra={"user": request.user}
-                )
             self.webauthn_authentication_server.authenticate_complete(
-                state=default_state or staff_state,
+                state=request.session.get("webauthn_authentication_state"),
                 credentials=credentials,
                 credential_id=websafe_decode(response["keyHandle"]),
                 client_data=ClientData(websafe_decode(response["clientData"])),
@@ -238,5 +221,4 @@ class U2fInterface(AuthenticatorInterface):
         finally:
             # Cleanup the U2F state from the session
             request.session.pop("webauthn_authentication_state", None)
-            request.session.pop("staff_webauthn_authentication_state", None)
         return True

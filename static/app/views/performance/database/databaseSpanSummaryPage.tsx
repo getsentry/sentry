@@ -11,6 +11,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DurationUnit, RateUnit, type Sort} from 'sentry/utils/discover/fields';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -70,7 +71,7 @@ function SpanSummaryPage({params}: Props) {
   const sort = useModuleSort(QueryParameterNames.ENDPOINTS_SORT, DEFAULT_SORT);
 
   const {data, isLoading: areSpanMetricsLoading} = useSpanMetrics({
-    filters,
+    search: MutableSearch.fromQueryObject(filters),
     fields: [
       SpanMetricsField.SPAN_OP,
       SpanMetricsField.SPAN_DESCRIPTION,
@@ -105,7 +106,7 @@ function SpanSummaryPage({params}: Props) {
     data: throughputData,
     error: throughputError,
   } = useSpanMetricsSeries({
-    filters,
+    search: MutableSearch.fromQueryObject(filters),
     yAxis: ['spm()'],
     enabled: Boolean(groupId),
     referrer: 'api.starfish.span-summary-page-metrics-chart',
@@ -116,7 +117,7 @@ function SpanSummaryPage({params}: Props) {
     data: durationData,
     error: durationError,
   } = useSpanMetricsSeries({
-    filters,
+    search: MutableSearch.fromQueryObject(filters),
     yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
     enabled: Boolean(groupId),
     referrer: 'api.starfish.span-summary-page-metrics-chart',
@@ -233,13 +234,13 @@ function SpanSummaryPage({params}: Props) {
                 />
               </ModuleLayout.Full>
             )}
-
-            <SampleList
-              groupId={span[SpanMetricsField.SPAN_GROUP]}
-              transactionName={transaction}
-              transactionMethod={transactionMethod}
-            />
           </ModuleLayout.Layout>
+
+          <SampleList
+            groupId={span[SpanMetricsField.SPAN_GROUP]}
+            transactionName={transaction}
+            transactionMethod={transactionMethod}
+          />
         </Layout.Main>
       </Layout.Body>
     </ModulePageProviders>

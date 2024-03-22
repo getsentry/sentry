@@ -16,13 +16,25 @@ import {t, tct} from 'sentry/locale';
 type Params = DocsParams;
 
 const getExceptionHandlerSnippet = () => `
-public function register() {
-  $this->reportable(function (Throwable $e) {
-    if (app()->bound('sentry')) {
-      app('sentry')->captureException($e);
-    }
-  });
-}`;
+<?php
+
+use Illuminate\\Foundation\\Application;
+use Illuminate\\Foundation\\Configuration\\Exceptions;
+use Illuminate\\Foundation\\Configuration\\Middleware;
+use Sentry\\Laravel\\Integration;
+
+return Application::configure(basePath: dirname(__DIR__))
+    ->withRouting(
+        web: __DIR__.'/../routes/web.php',
+        commands: __DIR__.'/../routes/console.php',
+        health: '/up',
+    )
+    ->withMiddleware(function (Middleware $middleware) {
+        //
+    })
+    ->withExceptions(function (Exceptions $exceptions) {
+        Integration::handles($exceptions);
+    })->create();`;
 
 const getConfigureSnippet = (params: Params) =>
   `SENTRY_LARAVEL_DSN=${params.dsn}${
@@ -78,7 +90,7 @@ class SentryMetricsMiddleware
 const onboarding: OnboardingConfig = {
   introduction: () =>
     tct(
-      'This guide is for Laravel 8+. We also provide instructions for [otherVersionsLink:other versions] as well as [lumenSpecificLink:Lumen-specific instructions].',
+      'This guide is for Laravel 11.0 an up. We also provide instructions for [otherVersionsLink:other versions] as well as [lumenSpecificLink:Lumen-specific instructions].',
       {
         otherVersionsLink: (
           <ExternalLink href="https://docs.sentry.io/platforms/php/guides/laravel/other-versions/" />
@@ -110,7 +122,7 @@ const onboarding: OnboardingConfig = {
           : []),
         {
           description: tct(
-            'Enable capturing unhandled exception to report to Sentry by making the following change to your [code:App/Exceptions/Handler.php]:',
+            'Enable capturing unhandled exception to report to Sentry by making the following change to your [code:bootstrap/app.php]:',
             {
               code: <code />,
             }

@@ -30,7 +30,7 @@ import type {Monitor} from './types';
 
 const DEFAULT_POLL_INTERVAL_MS = 5000;
 
-type Props = RouteComponentProps<{monitorSlug: string}, {}>;
+type Props = RouteComponentProps<{monitorSlug: string; projectId: string}, {}>;
 
 function hasLastCheckIn(monitor: Monitor) {
   return monitor.environments.some(e => e.lastCheckIn);
@@ -42,9 +42,12 @@ function MonitorDetails({params, location}: Props) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
-  const queryKey = makeMonitorDetailsQueryKey(organization, params.monitorSlug, {
-    ...location.query,
-  });
+  const queryKey = makeMonitorDetailsQueryKey(
+    organization,
+    params.projectId,
+    params.monitorSlug,
+    {...location.query}
+  );
 
   const {data: monitor} = useApiQuery<Monitor>(queryKey, {
     staleTime: 0,
@@ -74,7 +77,7 @@ function MonitorDetails({params, location}: Props) {
     if (monitor === undefined) {
       return;
     }
-    const resp = await updateMonitor(api, organization.slug, monitor.slug, data);
+    const resp = await updateMonitor(api, organization.slug, monitor, data);
 
     if (resp !== null) {
       onUpdate(resp);
@@ -94,7 +97,11 @@ function MonitorDetails({params, location}: Props) {
   return (
     <SentryDocumentTitle title={`Crons — ${monitor.name}`}>
       <Layout.Page>
-        <MonitorHeader monitor={monitor} orgId={organization.slug} onUpdate={onUpdate} />
+        <MonitorHeader
+          monitor={monitor}
+          orgSlug={organization.slug}
+          onUpdate={onUpdate}
+        />
         <Layout.Body>
           <Layout.Main>
             <StyledPageFilterBar condensed>

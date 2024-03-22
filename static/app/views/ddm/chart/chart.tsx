@@ -9,6 +9,7 @@ import omitBy from 'lodash/omitBy';
 import {transformToAreaSeries} from 'sentry/components/charts/areaChart';
 import {transformToBarSeries} from 'sentry/components/charts/barChart';
 import BaseChart from 'sentry/components/charts/baseChart';
+import ChartZoom from 'sentry/components/charts/chartZoom';
 import {
   defaultFormatAxisLabel,
   getFormatter,
@@ -26,12 +27,12 @@ import type {CombinedMetricChartProps, Series} from 'sentry/views/ddm/chart/type
 import type {UseFocusAreaResult} from 'sentry/views/ddm/chart/useFocusArea';
 import type {UseMetricSamplesResult} from 'sentry/views/ddm/chart/useMetricChartSamples';
 
-export const MAIN_X_AXIS_ID = 'xAxis';
-export const MAIN_Y_AXIS_ID = 'yAxis';
+const MAIN_X_AXIS_ID = 'xAxis';
 
 type ChartProps = {
   displayType: MetricDisplayType;
   series: Series[];
+  enableZoom?: boolean;
   focusArea?: UseFocusAreaResult;
   group?: string;
   height?: number;
@@ -70,9 +71,19 @@ function addSeriesPadding(data: Series['data']) {
 }
 
 export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
-  ({series, displayType, height, group, samples, focusArea}, forwardedRef) => {
+  (
+    {series, displayType, height, group, samples, focusArea, enableZoom},
+    forwardedRef
+  ) => {
     const chartRef = useRef<ReactEchartsRef>(null);
-    const firstUnit = series.find(s => !s.hidden)?.unit || 'none';
+
+    const filteredSeries = useMemo(() => series.filter(s => !s.hidden), [series]);
+
+    const firstUnit = filteredSeries[0]?.unit || 'none';
+    const uniqueUnits = useMemo(
+      () => [...new Set(filteredSeries.map(s => s.unit || 'none'))],
+      [filteredSeries]
+    );
 
     useEffect(() => {
       if (!group) {
@@ -95,19 +106,26 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
 
     const seriesToShow = useMemo(
       () =>
-        series
-          .filter(s => !s.hidden)
-          .map(s => ({
-            ...s,
-            silent: true,
-            ...(displayType !== MetricDisplayType.BAR
-              ? addSeriesPadding(s.data)
-              : {data: s.data}),
-          }))
+        filteredSeries
+          .map(s => {
+            const mappedSeries = {
+              ...s,
+              silent: true,
+              yAxisIndex: uniqueUnits.indexOf(s.unit),
+              xAxisIndex: 0,
+              ...(displayType !== MetricDisplayType.BAR
+                ? addSeriesPadding(s.data)
+                : {data: s.data}),
+            };
+            if (displayType === MetricDisplayType.BAR) {
+              mappedSeries.stack = s.unit;
+            }
+            return mappedSeries;
+          })
           // Split series in two parts, one for the main chart and one for the fog of war
           // The order is important as the tooltip will show the first series first (for overlaps)
           .flatMap(s => createIngestionSeries(s, ingestionBuckets, displayType)),
-      [series, ingestionBuckets, displayType]
+      [filteredSeries, uniqueUnits, displayType, ingestionBuckets]
     );
 
     const {selection} = usePageFilters();
@@ -117,7 +135,6 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
     }, [selection.datetime]);
 
     const chartProps = useMemo(() => {
-      const hasMultipleUnits = new Set(seriesToShow.map(s => s.unit)).size > 1;
       const seriesUnits = seriesToShow.reduce(
         (acc, s) => {
           acc[s.seriesName] = s.unit;
@@ -137,7 +154,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
         addSecondsToTimeFormat: isSubMinuteBucket,
         limit: 10,
         filter: (_, seriesParam) => {
-          return seriesParam?.axisId === 'xAxis';
+          return seriesParam?.axisId === MAIN_X_AXIS_ID;
         },
       };
 
@@ -153,7 +170,12 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
         renderer: 'canvas' as const,
         isGroupedByDate: true,
         colors: seriesToShow.map(s => s.color),
-        grid: {top: 5, bottom: 0, left: 0, right: 0},
+        grid: {
+          top: 5,
+          bottom: 0,
+          left: 0,
+          right: 0,
+        },
         tooltip: {
           formatter: (params, asyncTicket) => {
             // Only show the tooltip if the current chart is hovered
@@ -219,23 +241,51 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
             return getFormatter(timeseriesFormatters)(params, asyncTicket);
           },
         },
-        yAxes: [
-          {
-            // used to find and convert datapoint to pixel position
-            id: MAIN_Y_AXIS_ID,
-            axisLabel: {
-              formatter: (value: number) => {
-                return formatMetricUsingUnit(
-                  value,
-                  hasMultipleUnits ? 'none' : firstUnit
-                );
-              },
-            },
-          },
-        ],
+        yAxes:
+          uniqueUnits.length === 0
+            ? // fallback axis for when there are no series as echarts requires at least one axis
+              [
+                {
+                  id: 'none',
+                  axisLabel: {
+                    formatter: (value: number) => {
+                      return formatMetricUsingUnit(value, 'none');
+                    },
+                  },
+                },
+              ]
+            : [
+                ...uniqueUnits.map((unit, index) =>
+                  unit === firstUnit
+                    ? {
+                        id: unit,
+                        axisLabel: {
+                          formatter: (value: number) => {
+                            return formatMetricUsingUnit(value, unit);
+                          },
+                        },
+                      }
+                    : {
+                        id: unit,
+                        show: index === 1,
+                        axisLabel: {
+                          show: index === 1,
+                          formatter: (value: number) => {
+                            return formatMetricUsingUnit(value, unit);
+                          },
+                        },
+                        splitLine: {
+                          show: false,
+                        },
+                        position: 'right' as const,
+                        axisPointer: {
+                          type: 'none' as const,
+                        },
+                      }
+                ),
+              ],
         xAxes: [
           {
-            // used to find and convert datapoint to pixel position
             id: MAIN_X_AXIS_ID,
             axisPointer: {
               snap: true,
@@ -261,15 +311,26 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       height,
       displayType,
       forwardedRef,
+      uniqueUnits,
       samples,
       focusArea,
       firstUnit,
     ]);
 
+    if (!enableZoom) {
+      return (
+        <ChartWrapper>
+          {focusArea?.overlay}
+          <CombinedChart {...chartProps} />
+        </ChartWrapper>
+      );
+    }
+
     return (
       <ChartWrapper>
-        {focusArea?.overlay}
-        <CombinedChart {...chartProps} />
+        <ChartZoom>
+          {zoomRenderProps => <CombinedChart {...chartProps} {...zoomRenderProps} />}
+        </ChartZoom>
       </ChartWrapper>
     );
   }

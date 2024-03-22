@@ -137,9 +137,14 @@ class OrganizationMemberRequestSerializer(serializers.Serializer):
         return self.validate_orgRole(role)
 
     def validate_orgRole(self, role):
-        if role not in {r.id for r in self.context["allowed_roles"]}:
+        role_obj = next((r for r in self.context["allowed_roles"] if r.id == role), None)
+        if role_obj is None:
             raise serializers.ValidationError(
                 "You do not have permission to set that org-level role"
+            )
+        if not self.context.get("allow_retired_roles", True) and role_obj.is_retired:
+            raise serializers.ValidationError(
+                f"The role '{role}' is deprecated and may no longer be assigned."
             )
         return role
 
@@ -332,6 +337,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                 "organization": organization,
                 "allowed_roles": allowed_roles,
                 "allow_existing_invite_request": True,
+                "allow_retired_roles": not features.has("organizations:team-roles", organization),
             },
         )
 

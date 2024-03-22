@@ -391,7 +391,7 @@ export function ActionableItems({event, project, isShare}: ActionableItemsProps)
   if (
     isLoading ||
     !defined(data) ||
-    data.errors.length === 0 ||
+    data.errors?.length === 0 ||
     Object.keys(errorMessages).length === 0
   ) {
     return null;

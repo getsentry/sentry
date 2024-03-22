@@ -144,12 +144,6 @@ def record_analytics(monkeypatch):
         #     """cloudflare trace 230b030023ae2822-SJC 819cc532aex26akb-SNP blah""",
         #     """cloudflare trace <uniq_id> <uniq_id> blah""",
         # ),
-        # JSON string values
-        (
-            "JSON object quoted strings",
-            """blah metadata:{'username': 'peanut', 'access_token': 'eyJh8xciOiJSUas98.dfs9d2js09d8fa09.eyJwaj2iOiI1MD'}""",
-            """blah metadata:{'username': <json_str_val>, 'access_token': <json_str_val>}""",
-        ),
         # New cases to handle better
         # ('''blah tcp://user:pass@email.com:10 had a problem''', '''blah <url> had a problem'''),
         # ('''blah 0.0.0.0:10 had a problem''', '''blah <ip> had a problem'''),
@@ -162,7 +156,6 @@ def test_normalize_message(name, input, expected, record_analytics):
     with override_options(
         {
             "grouping.experiments.parameterization.uniq_id": 100,
-            "grouping.experiments.parameterization.json_str_val": 100,
         }
     ):
         assert expected == normalize_message_for_grouping(input, event), f"Case {name} Failed"

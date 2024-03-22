@@ -167,7 +167,7 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
         # We should only be able to delete the last auth method through the
         # _admin portal, which is indicated by staff. After the feature flag is
         # removed, this will only check for is_active_staff.
-        if features.has("auth:enterprise-staff-cookie"):
+        if features.has("auth:enterprise-staff-cookie", actor=request.user):
             check_remaining_auth = not is_active_staff(request)
         else:
             check_remaining_auth = not is_active_superuser(request)

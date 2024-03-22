@@ -31,6 +31,7 @@ class OrganizationReplayCountEndpointTest(
 ):
     def setUp(self):
         super().setUp()
+        self.project.update(flags=F("flags").bitor(Project.flags.has_replays))
         self.min_ago = before_now(minutes=1)
         self.login_as(user=self.user)
         self.url = reverse(

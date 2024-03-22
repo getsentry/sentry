@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import logging
+
 from django import forms
 from django.contrib import messages
-from django.db import router, transaction
-from django.db.models import F
 from django.http import HttpResponseRedirect
 from django.http.response import HttpResponse, HttpResponseBadRequest, HttpResponseBase
 from django.urls import reverse
@@ -15,14 +15,12 @@ from sentry.auth import manager
 from sentry.auth.helper import AuthHelper
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
-from sentry.models.organizationmember import OrganizationMember
-from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
 from sentry.plugins.base import Response
 from sentry.services.hybrid_cloud.auth import RpcAuthProvider, auth_service
 from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
-from sentry.tasks.auth import email_missing_links, email_unlink_notifications
+from sentry.tasks.auth import email_missing_links
 from sentry.utils.http import absolute_uri
-from sentry.web.frontend.base import OrganizationView, region_silo_view
+from sentry.web.frontend.base import ControlSiloOrganizationView, control_silo_view
 
 ERR_NO_SSO = _("The SSO feature is not enabled for this organization.")
 
@@ -31,6 +29,8 @@ OK_PROVIDER_DISABLED = _("SSO authentication has been disabled.")
 OK_REMINDERS_SENT = _(
     "A reminder email has been sent to members who have not yet linked their accounts."
 )
+
+logger = logging.getLogger("sentry.saml_setup_error")
 
 
 def auth_provider_settings_form(provider, auth_provider, organization, request):
@@ -79,8 +79,8 @@ def auth_provider_settings_form(provider, auth_provider, organization, request):
     return form
 
 
-@region_silo_view
-class OrganizationAuthSettingsView(OrganizationView):
+@control_silo_view
+class OrganizationAuthSettingsView(ControlSiloOrganizationView):
     # We restrict auth settings to org:write as it allows a non-owner to
     # escalate members to own by disabling the default role.
     required_scope = "org:write"
@@ -88,33 +88,23 @@ class OrganizationAuthSettingsView(OrganizationView):
     def _disable_provider(
         self, request: Request, organization: RpcOrganization, auth_provider: RpcAuthProvider
     ):
-        with outbox_context(transaction.atomic(router.db_for_write(OrganizationMember))):
-            self.create_audit_entry(
-                request,
-                organization=organization,
-                target_object=auth_provider.id,
-                event=audit_log.get_event_id("SSO_DISABLE"),
-                data=auth_provider.get_audit_log_data(),
-            )
-
-            OrganizationMember.objects.filter(organization_id=organization.id).update(
-                flags=F("flags")
-                .bitand(~OrganizationMember.flags["sso:linked"])
-                .bitand(~OrganizationMember.flags["sso:invalid"])
-            )
-
-            RegionOutbox(
-                shard_scope=OutboxScope.ORGANIZATION_SCOPE,
-                shard_identifier=organization.id,
-                category=OutboxCategory.DISABLE_AUTH_PROVIDER,
-                object_identifier=auth_provider.id,
-            ).save()
-            transaction.on_commit(
-                lambda: email_unlink_notifications.delay(
-                    organization.id, request.user.id, auth_provider.provider
-                ),
-                router.db_for_write(OrganizationMember),
-            )
+        user = request.user
+        sending_email = ""
+        if hasattr(user, "email"):
+            sending_email = user.email
+        organization_service.send_sso_unlink_emails(
+            organization_id=organization.id,
+            sending_user_email=sending_email,
+            provider_key=auth_provider.provider,
+        )
+        auth_service.disable_provider(provider_id=auth_provider.id)
+        self.create_audit_entry(
+            request,
+            organization=organization,
+            target_object=auth_provider.id,
+            event=audit_log.get_event_id("SSO_DISABLE"),
+            data=auth_provider.get_audit_log_data(),
+        )
 
     def handle_existing_provider(
         self, request: Request, organization: RpcOrganization, auth_provider: RpcAuthProvider
@@ -187,11 +177,9 @@ class OrganizationAuthSettingsView(OrganizationView):
                 },
             )
 
-        pending_links_count = OrganizationMember.objects.filter(
-            organization_id=organization.id,
-            flags=F("flags").bitand(~OrganizationMember.flags["sso:linked"]),
-        ).count()
-
+        pending_links_count = organization_service.count_members_without_sso(
+            organization_id=organization.id
+        )
         context = {
             "form": form,
             "pending_links_count": pending_links_count,
@@ -239,6 +227,25 @@ class OrganizationAuthSettingsView(OrganizationView):
                 helper.initialize()
 
             if not helper.is_valid():
+                logger.info(
+                    "OrganizationAuthSettingsView",
+                    extra={
+                        "flow": helper.flow,
+                        "signature": helper.signature,
+                        "step_index": helper.step_index,
+                        "config": helper.config,
+                        "organization": helper.organization.slug,
+                        "provide_key": helper.provider.key,
+                        "provider_model_id": (
+                            helper.provider_model.id if helper.provider_model else ""
+                        ),
+                        "request_path": helper.request.path,
+                        "request_content_params": helper.request.content_params or "",
+                        "request_method": helper.request.method or "",
+                        "state_redis_key": helper.state.redis_key,
+                        "state_state": helper.state.get_state() is not None,
+                    },
+                )
                 return helper.error("Something unexpected happened during authentication.")
 
             # render first time setup view

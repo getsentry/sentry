@@ -476,6 +476,26 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
         assert member.role == "manager"
         self.assert_org_member_mapping(org_member=member)
 
+    @with_feature({"organizations:team-roles": False})
+    def test_can_invite_retired_role_without_flag(self):
+        data = {"email": "baz@example.com", "role": "admin", "teams": [self.team.slug]}
+
+        with self.settings(SENTRY_ENABLE_INVITES=True):
+            self.get_success_response(self.organization.slug, method="post", **data)
+
+    @with_feature("organizations:team-roles")
+    def test_cannot_invite_retired_role_with_flag(self):
+        data = {"email": "baz@example.com", "role": "admin", "teams": [self.team.slug]}
+
+        with self.settings(SENTRY_ENABLE_INVITES=True):
+            response = self.get_error_response(
+                self.organization.slug, method="post", **data, status_code=400
+            )
+        assert (
+            response.data["role"][0]
+            == "The role 'admin' is deprecated and may no longer be assigned."
+        )
+
 
 @region_silo_test
 class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase, HybridCloudTestMixin):

@@ -9,12 +9,11 @@ from sentry.integrations.slack.message_builder import (
 )
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.utils.escape import escape_slack_text
-from sentry.utils.dates import to_timestamp
 
 
 def get_started_at(timestamp: datetime) -> str:
     return "<!date^{:.0f}^Started {} at {} | Sentry Incident>".format(
-        to_timestamp(timestamp), "{date_pretty}", "{time}"
+        timestamp.timestamp(), "{date_pretty}", "{time}"
     )
 
 
