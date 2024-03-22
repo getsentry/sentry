@@ -1002,6 +1002,16 @@ urlpatterns += [
                     name="sentry-organization-replay-rage-clicks",
                 ),
                 re_path(
+                    r"^(?P<organization_slug>[\w_-]+)/crons/$",
+                    react_page_view,
+                    name="sentry-organization-crons",
+                ),
+                re_path(
+                    r"^(?P<organization_slug>[\w_-]+)/crons/(?P<project_slug>[\w_-]+)/(?P<monitor_slug>[\w_-]+)/$",
+                    react_page_view,
+                    name="sentry-organization-cron-monitor-details",
+                ),
+                re_path(
                     r"^(?P<organization_slug>[\w_-]+)/restore/$",
                     generic_react_page_view,
                     name="sentry-restore-organization",
@@ -1167,7 +1177,7 @@ urlpatterns += [
         GenericReactPageView.as_view(auth_required=False),
         name="sentry-join-request",
     ),
-    # Keep named URL for for things using reverse
+    # Keep named URL for things using reverse
     re_path(
         r"^(?P<organization_slug>[\w_-]+)/issues/(?P<short_id>[\w_-]+)/$",
         react_page_view,

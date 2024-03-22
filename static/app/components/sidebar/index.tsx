@@ -51,6 +51,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import MetricsOnboardingSidebar from 'sentry/views/ddm/ddmOnboarding/sidebar';
+import {releaseLevelAsBadgeProps as HTTPModuleBadgeProps} from 'sentry/views/performance/http/settings';
 
 import {ProfilingOnboardingSidebar} from '../profiling/ProfilingOnboarding/profilingOnboardingSidebar';
 
@@ -271,6 +272,7 @@ function Sidebar() {
                   to={`/organizations/${organization.slug}/performance/http/`}
                   id="performance-http"
                   icon={<SubitemDot collapsed />}
+                  {...HTTPModuleBadgeProps}
                 />
               </Feature>
               <Feature features="starfish-browser-webvitals" organization={organization}>

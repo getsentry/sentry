@@ -167,6 +167,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase):
             measurements={
                 "lcp": 1000,
                 "fcp": 750,
+                "fid": 3.5,
             },
             parent_span_id=None,
             file_io_performance_issue=True,
@@ -1636,6 +1637,21 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
         assert response.status_code == 200, response.content
         trace_transaction = response.data["transactions"][0]
         self.assert_event(trace_transaction, self.gen1_events[0], "root")
+
+    def test_measurements(self):
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={"project": -1, "getMeasurements": 1},
+            )
+        assert response.status_code == 200, response.content
+        trace_transaction = response.data["transactions"][0]
+        self.assert_trace_data(trace_transaction)
+        root = trace_transaction
+        assert root["measurements"]["lcp"]["value"] == 1000
+        assert root["measurements"]["lcp"]["type"] == "duration"
+        assert root["measurements"]["fid"]["value"] == 3.5
+        assert root["measurements"]["fid"]["type"] == "duration"
 
 
 @region_silo_test
