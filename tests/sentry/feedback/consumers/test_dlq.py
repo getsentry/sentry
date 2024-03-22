@@ -14,8 +14,8 @@ from sentry.ingest.types import ConsumerType
 from sentry.testutils.pytest.fixtures import django_db_all
 
 """
-Copied from ingest_consumer/test_dlq.py. That test can be parametrized (and should be, for txns + attachments),
-but moving feedback tests to this pkg makes it easier to migrate to a separate StrategyFactory later.
+Based on ingest_consumer/test_dlq.py. Feedback uses the same IngestStrategyFactory as Events,
+but moving its tests here makes it easier to migrate to a separate StrategyFactory later.
 """
 
 

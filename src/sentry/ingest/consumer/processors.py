@@ -13,12 +13,12 @@ from sentry import eventstore, features
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.event_manager import save_attachment
 from sentry.eventstore.processing import event_processing_store
-from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
+from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, create_feedback_issue
 from sentry.ingest.userreport import Conflict, save_userreport
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
 from sentry.signals import event_accepted
-from sentry.tasks.store import preprocess_event, save_event_feedback, save_event_transaction
+from sentry.tasks.store import preprocess_event, save_event_transaction
 from sentry.usage_accountant import record
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
@@ -188,13 +188,10 @@ def process_event(
             )
         elif data.get("type") == "feedback":
             if features.has("organizations:user-feedback-ingest", project.organization, actor=None):
-                save_event_feedback.delay(
-                    cache_key=None,  # no need to cache as volume is low
-                    data=data,
-                    start_time=start_time,
-                    event_id=event_id,
-                    project_id=project_id,
+                create_feedback_issue(
+                    data, project_id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
                 )
+
         else:
             # Preprocess this event, which spawns either process_event or
             # save_event. Pass data explicitly to avoid fetching it again from the

@@ -10,10 +10,12 @@ import pytest
 from sentry.event_manager import EventManager
 from sentry.ingest.consumer.processors import process_event
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 
-pytestmark = [requires_snuba]
+"""
+Based on test_ingest_consumer_processing.py. Feedback uses the same IngestStrategyFactory as Events,
+but moving its tests here makes it easier to migrate to a separate StrategyFactory later.
+"""
 
 
 def get_normalized_event(data, project):
@@ -21,6 +23,13 @@ def get_normalized_event(data, project):
     mgr = EventManager(data, project=project)
     mgr.normalize()
     return dict(mgr.get_data())
+
+
+@pytest.fixture
+def create_feedback_issue(monkeypatch):
+    mock = Mock()
+    monkeypatch.setattr("sentry.ingest.consumer.processors.create_feedback_issue", mock)
+    return mock
 
 
 @pytest.fixture
@@ -32,20 +41,16 @@ def save_event_feedback(monkeypatch):
 
 @pytest.fixture
 def preprocess_event(monkeypatch):
-    # Based on test_ingest_consumer_processing.py
-    calls = []
-
-    def inner(**kwargs):
-        calls.append(kwargs)
-
-    monkeypatch.setattr("sentry.ingest.consumer.processors.preprocess_event", inner)
-    return calls
+    mock = Mock()
+    monkeypatch.setattr("sentry.ingest.consumer.processors.preprocess_event", mock)
+    return mock
 
 
 @django_db_all
-def test_feedbacks_spawn_save_event_feedback(
-    default_project, task_runner, preprocess_event, save_event_feedback, monkeypatch
+def test_processor_calls_create_feedback_issue(
+    default_project, create_feedback_issue, save_event_feedback, preprocess_event, monkeypatch
 ):
+    # Tests the feedback branch of the ingest consumer process_event fx
     monkeypatch.setattr("sentry.features.has", lambda *a, **kw: True)
 
     project_id = default_project.id
@@ -69,6 +74,7 @@ def test_feedbacks_spawn_save_event_feedback(
     payload = get_normalized_event(event, default_project)
     event_id = payload["event_id"]
     start_time = time.time() - 3600
+
     process_event(
         {
             "payload": json.dumps(payload),
@@ -79,10 +85,17 @@ def test_feedbacks_spawn_save_event_feedback(
         },
         project=default_project,
     )
-    assert not preprocess_event
-    assert save_event_feedback.delay.call_args[0] == ()
+
+    assert create_feedback_issue.call_count == 1
     assert (
-        save_event_feedback.delay.call_args[1]["data"]["contexts"]["feedback"]
+        create_feedback_issue.call_args[0][0]["contexts"]["feedback"]
         == event["contexts"]["feedback"]
     )
-    assert save_event_feedback.delay.call_args[1]["data"]["type"] == "feedback"
+    assert create_feedback_issue.call_args[0][0]["type"] == "feedback"
+    assert create_feedback_issue.call_args[0][1] == project_id
+
+    # also test that the save_event_feedback celery task isn't called (rabbit is too volatile)
+    assert save_event_feedback.call_count == 0
+
+    # preprocess_event is for error events
+    assert preprocess_event.call_count == 0
