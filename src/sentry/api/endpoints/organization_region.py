@@ -65,8 +65,6 @@ class OrganizationRegionEndpoint(Endpoint):
     def get(self, request: Request, organization_mapping: OrganizationMapping) -> Response:
         region_data = get_region_by_name(organization_mapping.region_name)
 
-        assert region_data, "A region should exist for every organization mapping"
-
         return self.respond(
             {
                 "regionName": region_data.name,

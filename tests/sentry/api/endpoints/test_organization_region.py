@@ -109,7 +109,6 @@ class OrganizationRegionTest(APITestCase):
         assert response.data == {"regionName": "us", "regionUrl": us_region.to_url("")}
 
     def test_integration_token_with_invalid_scopes(self):
-        # Test integration without any scopes
         integration, token = self.create_internal_integration_for_org(self.org, self.org_owner, [])
 
         response = self.get_response(
@@ -121,7 +120,6 @@ class OrganizationRegionTest(APITestCase):
         assert response.status_code == 403
 
     def test_integration_for_different_organization(self):
-        # Test integration without any scopes
         other_user = self.create_user()
         integration, token = self.create_internal_integration_for_org(
             self.create_organization(owner=other_user), other_user, ["project:read"]
