@@ -63,7 +63,6 @@ export function ThresholdGroupRows({
     [key: string]: EditingThreshold;
   }>(() => {
     const editingThreshold = {};
-
     if (newGroup) {
       const [windowValue, windowSuffix] = parseLargestSuffix(0);
       const id = `${NEW_THRESHOLD_PREFIX}`;
@@ -83,14 +82,12 @@ export function ThresholdGroupRows({
   });
   const [newThresholdIterator, setNewThresholdIterator] = useState<number>(0); // used simply to initialize new threshold
   const api = useApi();
-
   const organization = useOrganization();
   const isActivatedAlert = organization.features?.includes('activated-alert-rules');
 
   const thresholdIdSet = useMemo(() => {
     const initial = new Set<string>([]);
     if (initialThreshold) initial.add(initialThreshold.id);
-
     return new Set([...initial, ...Object.keys(editingThresholds)]);
   }, [initialThreshold, editingThresholds]);
 
@@ -103,7 +100,6 @@ export function ThresholdGroupRows({
         label: 'Error Count',
       },
     ];
-
     if (isInternal) {
       list.push(
         {
@@ -118,7 +114,6 @@ export function ThresholdGroupRows({
         }
       );
     }
-
     return list;
   }, [organization]);
 
@@ -161,7 +156,6 @@ export function ThresholdGroupRows({
       setTempError('No project provided');
       return;
     }
-
     const thresholdId = `${NEW_THRESHOLD_PREFIX}-${newThresholdIterator}`;
     const [windowValue, windowSuffix] = parseLargestSuffix(defaultWindow);
     const newThreshold: EditingThreshold = {
@@ -175,9 +169,7 @@ export function ThresholdGroupRows({
       value: 0,
       hasError: false,
     };
-
     const updatedEditingThresholds = {...editingThresholds};
-
     updatedEditingThresholds[thresholdId] = newThreshold;
     setEditingThresholds(updatedEditingThresholds);
     setNewThresholdIterator(newThresholdIterator + 1);
@@ -194,7 +186,6 @@ export function ThresholdGroupRows({
       windowSuffix,
       hasError: false,
     };
-
     setEditingThresholds(updatedEditingThresholds);
   };
 
@@ -202,8 +193,9 @@ export function ThresholdGroupRows({
     thresholdData: EditingThreshold,
     method: APIRequestMethod = 'POST'
   ) => {
-    /* Convert threshold data structure to metric alert data structure */
     const slug = project.slug;
+
+    /* Convert threshold data structure to metric alert data structure */
     const metricAlertData: UnsavedMetricRule & {name: string} = {
       name: `Release Alert Rule for ${slug} in ${thresholdData.environmentName}`,
       monitorType: MonitorType.ACTIVATED,
@@ -277,16 +269,13 @@ export function ThresholdGroupRows({
     saveIds.forEach(id => {
       const thresholdData = editingThresholds[id];
       const method = id.includes(NEW_THRESHOLD_PREFIX) ? 'POST' : 'PUT';
-
       const seconds = moment
         .duration(thresholdData.windowValue, thresholdData.windowSuffix)
         .as('seconds');
-
       if (!thresholdData.project) {
         setTempError('Project required');
         return;
       }
-
       const submitData = {
         ...thresholdData,
         environment: thresholdData.environmentName,
@@ -330,29 +319,23 @@ export function ThresholdGroupRows({
       const request = api.requestPromise(path, {
         method,
       });
-
       request.then(refetch).catch(_err => {
         setTempError('Issue deleting threshold');
-
         const errorThreshold = {
           ...thresholdData,
           hasError: true,
         };
-
         updatedEditingThresholds[thresholdId] = errorThreshold as EditingThreshold;
         setEditingThresholds(updatedEditingThresholds);
       });
     }
-
     delete updatedEditingThresholds[thresholdId];
-
     setEditingThresholds(updatedEditingThresholds);
   };
 
   const closeEditForm = thresholdId => {
     const updatedEditingThresholds = {...editingThresholds};
     delete updatedEditingThresholds[thresholdId];
-
     setEditingThresholds(updatedEditingThresholds);
     onFormClose?.(thresholdId);
   };
@@ -361,15 +344,12 @@ export function ThresholdGroupRows({
     if (editingThresholds[thresholdId]) {
       const updateEditing = JSON.parse(JSON.stringify(editingThresholds));
       const currentThresholdValues = updateEditing[thresholdId];
-
       updateEditing[thresholdId][key] = value;
-
       if (key === 'threshold_type' && value === CRASH_FREE_SESSION_RATE_STR) {
         if (['seconds', 'minutes'].indexOf(currentThresholdValues.windowSuffix) > -1) {
           updateEditing[thresholdId].windowSuffix = 'hours';
         }
       }
-
       setEditingThresholds(updateEditing);
     }
   };
@@ -422,7 +402,6 @@ export function ThresholdGroupRows({
                   : '{No environment}'}
               </FlexCenter>
             )}
-
             {/* FOLLOWING COLUMNS ARE EDITABLE */}
             {isEditing ? (
               <Fragment>
@@ -509,16 +488,13 @@ export function ThresholdGroupRows({
                 </FlexCenter>
               </Fragment>
             )}
-
             {/* END OF EDITABLE COLUMNS */}
-
             <ActionsColumn>
               {isEditing ? (
                 <Fragment>
                   <Button size="xs" onClick={() => saveThreshold([threshold.id])}>
                     Save
                   </Button>
-
                   {!threshold.id.includes(NEW_THRESHOLD_PREFIX) && (
                     <Button
                       aria-label={t('Delete threshold')}
@@ -528,7 +504,6 @@ export function ThresholdGroupRows({
                       size="xs"
                     />
                   )}
-
                   <Button
                     aria-label={t('Close')}
                     borderless
@@ -545,7 +520,6 @@ export function ThresholdGroupRows({
                     onClick={() => enableEditThreshold(threshold as Threshold)}
                     size="xs"
                   />
-
                   <Button
                     aria-label={t('New Threshold')}
                     icon={<IconAdd color="activeText" isCircled />}
