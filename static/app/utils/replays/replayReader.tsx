@@ -391,7 +391,6 @@ export default class ReplayReader {
             'replay.hydrate-error',
             'replay.init',
             'replay.mutations',
-            'sentry.feedback',
             'feedback',
           ].includes(frame.category)
         ),

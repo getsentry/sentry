@@ -32,7 +32,7 @@ cssselect==1.0.3
 cssutils==2.9.0
 datadog==0.44.0
 distro==1.8.0
-django==5.0.2
+django==5.0.3
 django-crispy-forms==1.14.0
 django-csp==3.8
 django-pg-zero-downtime-migrations==0.13
@@ -122,7 +122,7 @@ sentry-arroyo==2.16.2
 sentry-kafka-schemas==0.1.64
 sentry-ophio==0.2.3
 sentry-redis-tools==0.1.7
-sentry-relay==0.8.52
+sentry-relay==0.8.55
 sentry-sdk==1.40.6
 sentry-usage-accountant==0.0.10
 simplejson==3.17.6

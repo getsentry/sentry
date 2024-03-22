@@ -18,12 +18,10 @@ export const statusIconColorMap: Record<MonitorStatus, StatusNotice> = {
   ok: {
     icon: <IconCheckmark color="successText" />,
     color: 'successText',
-    label: t('Okay'),
   },
   error: {
     icon: <IconFire color="errorText" />,
     color: 'errorText',
-    label: t('Error'),
   },
   active: {
     icon: <IconTimer color="subText" />,

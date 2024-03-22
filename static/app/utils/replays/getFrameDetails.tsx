@@ -5,7 +5,6 @@ import FeatureBadge from 'sentry/components/featureBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
 import {
-  IconChat,
   IconCursorArrow,
   IconFire,
   IconFix,
@@ -277,13 +276,6 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     tabKey: TabKey.NETWORK,
     title: 'Paint',
     icon: <IconInfo size="xs" />,
-  }),
-  'sentry.feedback': () => ({
-    color: 'blue300',
-    description: '',
-    tabKey: TabKey.BREADCRUMBS,
-    title: 'User Feedback Submitted',
-    icon: <IconChat size="xs" />,
   }),
   'resource.css': frame => ({
     color: 'gray300',

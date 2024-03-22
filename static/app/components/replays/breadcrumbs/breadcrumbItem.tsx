@@ -8,7 +8,6 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
-import OpenFeedbackButton from 'sentry/components/replays/breadcrumbs/openFeedbackButton';
 import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/openReplayComparisonButton';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useReplayGroupContext} from 'sentry/components/replays/replayGroupContext';
@@ -28,7 +27,7 @@ import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 type MouseCallback = (frame: ReplayFrame, e: React.MouseEvent<HTMLElement>) => void;
 
-const FRAMES_WITH_BUTTONS = ['replay.hydrate-error', 'sentry.feedback'];
+const FRAMES_WITH_BUTTONS = ['replay.hydrate-error'];
 
 interface Props {
   extraction: Extraction | undefined;
@@ -42,7 +41,6 @@ interface Props {
   ) => void;
   onMouseEnter: MouseCallback;
   onMouseLeave: MouseCallback;
-  projectSlug: string | undefined;
   startTimestampMs: number;
   traces: ReplayTraceRow | undefined;
   className?: string;
@@ -60,7 +58,6 @@ function BreadcrumbItem({
   onInspectorExpanded,
   onMouseEnter,
   onMouseLeave,
-  projectSlug,
   startTimestampMs,
   style,
   traces,
@@ -126,15 +123,6 @@ function BreadcrumbItem({
                 (frame.data.mutations.next?.timestamp ?? 0) -
                 (replay?.getReplay().started_at.getTime() ?? 0)
               }
-            />
-          </div>
-        ) : null}
-
-        {projectSlug && 'data' in frame && frame.data && 'feedbackId' in frame.data ? (
-          <div>
-            <OpenFeedbackButton
-              projectSlug={projectSlug}
-              eventId={frame.data.feedbackId}
             />
           </div>
         ) : null}
