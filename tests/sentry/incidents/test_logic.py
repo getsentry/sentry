@@ -71,6 +71,7 @@ from sentry.incidents.models.incident import (
     IncidentType,
     TriggerStatus,
 )
+from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.integrations.discord.utils.channel import ChannelType
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.models.actor import ActorTuple, get_actor_for_user, get_actor_id_for_user
@@ -455,7 +456,14 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             resolve_threshold = 10
             threshold_period = 1
             event_types = [SnubaQueryEventType.EventType.ERROR]
-            kwargs = {"monitor_type": monitor_type} if monitor_type else {}
+            kwargs = (
+                {
+                    "monitor_type": monitor_type,
+                    "activation_condition": AlertRuleActivationConditionType.RELEASE_CREATION,
+                }
+                if monitor_type
+                else {}
+            )
             alert_rule = create_alert_rule(
                 self.organization,
                 [self.project],
