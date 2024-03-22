@@ -6,6 +6,7 @@ import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import AlertStore from 'sentry/stores/alertStore';
 import {space} from 'sentry/styles/space';
 import type {Activity} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -23,6 +24,15 @@ function OrganizationActivity() {
     getResponseHeader,
   } = useApiQuery<Activity[]>([`/organizations/${organization.slug}/activity/`], {
     staleTime: 0,
+  });
+
+  AlertStore.addAlert({
+    id: 'organization-activity-deprecation-notice',
+    message: t('This page is deprecated and will be removed in a future release.'),
+    type: 'warning',
+    opaque: true,
+    neverExpire: true,
+    noDuplicates: true,
   });
 
   if (isLoading) {
