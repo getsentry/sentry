@@ -238,6 +238,25 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
     def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
         return super().dispatch(request, *args, **kwargs)
 
+    def post(self, request: HttpRequest) -> HttpResponse:
+        """
+        POST webhook handler for MSTeams bot.
+        The events are broadcast to MSTeams from Microsoft, and are documented at https://learn.microsoft.com/en-us/microsoftteams/platform/resources/bot-v3/bots-notifications
+        """
+
+        # verify_signature will raise the exception corresponding to the error
+        self.verify_webhook_request(request)
+
+        data = request.data
+        raw_event_type = data["type"]
+        event_type = MsTeamsEvents.get_from_value(value=raw_event_type)
+
+        event_handler_func = self._event_handlers[event_type]
+        response = event_handler_func(request)
+
+        logger.info("sentry.integrations.msteams.webhook", extra={"request_data": data})
+        return response if response else self.respond(status=204)
+
     @classmethod
     def _get_team_installation_request_data(cls, data: dict[str, Any]) -> dict:
         """
@@ -346,25 +365,6 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
 
     def handle_unknown_event(self, request: HttpRequest) -> HttpResponse:
         return self.respond(status=204)
-
-    def post(self, request: HttpRequest) -> HttpResponse:
-        """
-        POST webhook handler for MSTeams bot.
-        The events are broadcast to MSTeams from Microsoft, and are documented at https://learn.microsoft.com/en-us/microsoftteams/platform/resources/bot-v3/bots-notifications
-        """
-
-        # verify_signature will raise the exception corresponding to the error
-        self.verify_webhook_request(request)
-
-        data = request.data
-        raw_event_type = data["type"]
-        event_type = MsTeamsEvents.get_from_value(value=raw_event_type)
-
-        event_handler_func = self._event_handlers[event_type]
-        response = event_handler_func(request)
-
-        logger.info("sentry.integrations.msteams.webhook", extra={"request_data": data})
-        return response if response else self.respond(status=204)
 
     def verify_webhook_request(self, request: HttpRequest) -> bool:
         return verify_signature(request)
