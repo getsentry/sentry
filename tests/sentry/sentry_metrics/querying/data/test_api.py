@@ -173,6 +173,10 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                     break
             assert matches_one
 
+            _, second, third = data[0][0]["series"]
+            assert second in expected_identity_series
+            assert third in expected_identity_series
+
             assert data[0][0]["totals"] == expected_identity_totals
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
@@ -517,7 +521,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data[0][1]["totals"] == self.to_reference_unit(12.0)
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
-    @pytest.mark.xfail(reason="Bug on Snuba that returns the wrong results, removed when fixed")
+    # @pytest.mark.xfail(reason="Bug on Snuba that returns the wrong results, removed when fixed")
     def test_query_with_group_by_on_null_tag(self) -> None:
         for value, transaction, time in (
             (1, "/hello", self.now()),
@@ -1371,6 +1375,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert first_query[2]["totals"] == 18.0
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    @pytest.mark.xfail(reason="this should pass when snuba pr #5676")
     def test_query_with_formula_and_filter(self):
         query_1 = self.mql("count", TransactionMRI.DURATION.value, filters="platform:android")
         query_2 = self.mql("sum", TransactionMRI.DURATION.value, filters="platform:ios")
@@ -1402,12 +1407,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data[0][1]["series"] == [None, 1.0, 1.0]
         assert data[0][1]["totals"] == 2.0
 
-        # TODO: after snuba pr #5676 is merged, change to assert len(data[0]) == 2
-        assert len(data[0]) in {2, 3}
-        if len(data[0]) == 3:
-            assert data[0][2]["by"] == {"platform": "windows", "transaction": "/world"}
-            assert data[0][2]["series"] == [None, 0.0, 0.0]
-            assert data[0][2]["totals"] == 0.0
+        assert len(data[0]) == 2
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_basic_formula_and_coercible_units(self):
