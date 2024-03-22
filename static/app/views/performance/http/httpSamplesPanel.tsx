@@ -10,7 +10,7 @@ import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
@@ -29,25 +29,22 @@ import {
 } from 'sentry/views/starfish/types';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 
-type Query = {
-  domain?: string;
-  project?: string;
-  transaction?: string;
-  transactionMethod?: string;
-};
-
 export function HTTPSamplesPanel() {
-  const location = useLocation<Query>();
-  const query = location.query;
-
   const router = useRouter();
+
+  const query = useLocationQuery({
+    fields: {
+      project: decodeScalar,
+      domain: decodeScalar,
+      transaction: decodeScalar,
+      transactionMethod: decodeScalar,
+    },
+  });
 
   const organization = useOrganization();
 
-  const projectId = decodeScalar(query.project);
-
   const {projects} = useProjects();
-  const project = projects.find(p => projectId === p.id);
+  const project = projects.find(p => query.project === p.id);
 
   // `detailKey` controls whether the panel is open. If all required properties are available, concat them to make a key, otherwise set to `undefined` and hide the panel
   const detailKey =
