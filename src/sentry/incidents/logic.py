@@ -86,6 +86,7 @@ from sentry.utils.snuba import is_measurement
 
 if TYPE_CHECKING:
     from sentry.incidents.utils.types import AlertRuleActivationConditionType
+    from sentry.snuba.models import QuerySubscription
 
 
 # We can return an incident as "windowed" which returns a range of points around the start of the incident
@@ -941,7 +942,7 @@ class ProjectsNotAssociatedWithAlertRuleError(Exception):
 
 def create_alert_rule_activation(
     alert_rule: AlertRule,
-    query_subscription_id: int,
+    query_subscription: QuerySubscription,
     metric_value: int | None = None,
     finished_at: datetime | None = None,
 ):
@@ -950,7 +951,7 @@ def create_alert_rule_activation(
             alert_rule=alert_rule,
             finished_at=finished_at,
             metric_value=metric_value,
-            query_subscription_id=query_subscription_id,
+            query_subscription=query_subscription,
         )
 
     return activation
