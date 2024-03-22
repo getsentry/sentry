@@ -10,13 +10,14 @@ import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {ResponseCodeBarChart} from 'sentry/views/performance/http/responseCodeBarChart';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
+import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
@@ -28,25 +29,22 @@ import {
 } from 'sentry/views/starfish/types';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 
-type Query = {
-  domain?: string;
-  project?: string;
-  transaction?: string;
-  transactionMethod?: string;
-};
-
 export function HTTPSamplesPanel() {
-  const location = useLocation<Query>();
-  const query = location.query;
-
   const router = useRouter();
+
+  const query = useLocationQuery({
+    fields: {
+      project: decodeScalar,
+      domain: decodeScalar,
+      transaction: decodeScalar,
+      transactionMethod: decodeScalar,
+    },
+  });
 
   const organization = useOrganization();
 
-  const projectId = decodeScalar(query.project);
-
   const {projects} = useProjects();
-  const project = projects.find(p => projectId === p.id);
+  const project = projects.find(p => query.project === p.id);
 
   // `detailKey` controls whether the panel is open. If all required properties are available, concat them to make a key, otherwise set to `undefined` and hide the panel
   const detailKey =
@@ -118,99 +116,109 @@ export function HTTPSamplesPanel() {
   return (
     <PageAlertProvider>
       <DetailPanel detailKey={detailKey} onClose={handleClose}>
-        <HeaderContainer>
-          {project && (
-            <SpanSummaryProjectAvatar
-              project={project}
-              direction="left"
-              size={40}
-              hasTooltip
-              tooltip={project.slug}
-            />
-          )}
-          <TitleContainer>
-            <Title>
-              <Link
-                to={normalizeUrl(
-                  `/organizations/${organization.slug}/performance/summary?${qs.stringify(
-                    {
-                      project: query.project,
-                      transaction: query.transaction,
-                    }
-                  )}`
+        <ModuleLayout.Layout>
+          <ModuleLayout.Full>
+            <HeaderContainer>
+              {project && (
+                <SpanSummaryProjectAvatar
+                  project={project}
+                  direction="left"
+                  size={40}
+                  hasTooltip
+                  tooltip={project.slug}
+                />
+              )}
+              <TitleContainer>
+                <Title>
+                  <Link
+                    to={normalizeUrl(
+                      `/organizations/${organization.slug}/performance/summary?${qs.stringify(
+                        {
+                          project: query.project,
+                          transaction: query.transaction,
+                        }
+                      )}`
+                    )}
+                  >
+                    {query.transaction &&
+                    query.transactionMethod &&
+                    !query.transaction.startsWith(query.transactionMethod)
+                      ? `${query.transactionMethod} ${query.transaction}`
+                      : query.transaction}
+                  </Link>
+                </Title>
+              </TitleContainer>
+            </HeaderContainer>
+          </ModuleLayout.Full>
+
+          <ModuleLayout.Full>
+            <MetricsRibbon>
+              <MetricReadout
+                align="left"
+                title={getThroughputTitle('http')}
+                value={domainTransactionMetrics?.[0]?.[`${SpanFunction.SPM}()`]}
+                unit={RateUnit.PER_MINUTE}
+                isLoading={areDomainTransactionMetricsFetching}
+              />
+
+              <MetricReadout
+                align="left"
+                title={DataTitles.avg}
+                value={
+                  domainTransactionMetrics?.[0]?.[
+                    `avg(${SpanMetricsField.SPAN_SELF_TIME})`
+                  ]
+                }
+                unit={DurationUnit.MILLISECOND}
+                isLoading={areDomainTransactionMetricsFetching}
+              />
+
+              <MetricReadout
+                align="left"
+                title={t('3XXs')}
+                value={domainTransactionMetrics?.[0]?.[`http_response_rate(3)`]}
+                unit="percentage"
+                isLoading={areDomainTransactionMetricsFetching}
+              />
+
+              <MetricReadout
+                align="left"
+                title={t('4XXs')}
+                value={domainTransactionMetrics?.[0]?.[`http_response_rate(4)`]}
+                unit="percentage"
+                isLoading={areDomainTransactionMetricsFetching}
+              />
+
+              <MetricReadout
+                align="left"
+                title={t('5XXs')}
+                value={domainTransactionMetrics?.[0]?.[`http_response_rate(5)`]}
+                unit="percentage"
+                isLoading={areDomainTransactionMetricsFetching}
+              />
+
+              <MetricReadout
+                align="left"
+                title={DataTitles.timeSpent}
+                value={domainTransactionMetrics?.[0]?.['sum(span.self_time)']}
+                unit={DurationUnit.MILLISECOND}
+                tooltip={getTimeSpentExplanation(
+                  domainTransactionMetrics?.[0]?.['time_spent_percentage()'],
+                  'db'
                 )}
-              >
-                {query.transaction &&
-                query.transactionMethod &&
-                !query.transaction.startsWith(query.transactionMethod)
-                  ? `${query.transactionMethod} ${query.transaction}`
-                  : query.transaction}
-              </Link>
-            </Title>
-          </TitleContainer>
-        </HeaderContainer>
+                isLoading={areDomainTransactionMetricsFetching}
+              />
+            </MetricsRibbon>
+          </ModuleLayout.Full>
 
-        <MetricsRibbon>
-          <MetricReadout
-            align="left"
-            title={getThroughputTitle('http')}
-            value={domainTransactionMetrics?.[0]?.[`${SpanFunction.SPM}()`]}
-            unit={RateUnit.PER_MINUTE}
-            isLoading={areDomainTransactionMetricsFetching}
-          />
-
-          <MetricReadout
-            align="left"
-            title={DataTitles.avg}
-            value={
-              domainTransactionMetrics?.[0]?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]
-            }
-            unit={DurationUnit.MILLISECOND}
-            isLoading={areDomainTransactionMetricsFetching}
-          />
-
-          <MetricReadout
-            align="left"
-            title={t('3XXs')}
-            value={domainTransactionMetrics?.[0]?.[`http_response_rate(3)`]}
-            unit="percentage"
-            isLoading={areDomainTransactionMetricsFetching}
-          />
-
-          <MetricReadout
-            align="left"
-            title={t('4XXs')}
-            value={domainTransactionMetrics?.[0]?.[`http_response_rate(4)`]}
-            unit="percentage"
-            isLoading={areDomainTransactionMetricsFetching}
-          />
-
-          <MetricReadout
-            align="left"
-            title={t('5XXs')}
-            value={domainTransactionMetrics?.[0]?.[`http_response_rate(5)`]}
-            unit="percentage"
-            isLoading={areDomainTransactionMetricsFetching}
-          />
-
-          <MetricReadout
-            align="left"
-            title={DataTitles.timeSpent}
-            value={domainTransactionMetrics?.[0]?.['sum(span.self_time)']}
-            unit={DurationUnit.MILLISECOND}
-            tooltip={getTimeSpentExplanation(
-              domainTransactionMetrics?.[0]?.['time_spent_percentage()'],
-              'db'
-            )}
-            isLoading={areDomainTransactionMetricsFetching}
-          />
-        </MetricsRibbon>
-
-        <ResponseCodeBarChart
-          series={responseCodeBarChartSeries}
-          isLoading={isResponseCodeDataLoading}
-          error={responseCodeDataError}
-        />
+          <ModuleLayout.Full>
+            <ResponseCodeBarChart
+              series={responseCodeBarChartSeries}
+              isLoading={isResponseCodeDataLoading}
+              error={responseCodeDataError}
+            />
+          </ModuleLayout.Full>
+        </ModuleLayout.Layout>
       </DetailPanel>
     </PageAlertProvider>
   );
@@ -221,10 +229,6 @@ const SpanSummaryProjectAvatar = styled(ProjectAvatar)`
 `;
 
 const HeaderContainer = styled('div')`
-  width: 100%;
-  padding-bottom: ${space(2)};
-  padding-top: ${space(1)};
-
   display: grid;
   grid-template-rows: auto auto auto;
 
