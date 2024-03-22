@@ -91,7 +91,7 @@ class ProjectRepoPathParsingEndpointLoosePermission(ProjectPermission):
 @region_silo_endpoint
 class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (ProjectRepoPathParsingEndpointLoosePermission,)
     """
