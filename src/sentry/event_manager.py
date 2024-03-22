@@ -1832,7 +1832,7 @@ def _create_group(project: Project, event: Event, **group_creation_kwargs: Any) 
     # Add severity to metadata for alert filtering for errors events.
     # We can skip this if the group type is explicitly NOT an error.
     group_type = group_creation_kwargs.get("type", None)
-    severity = {}
+    severity: Mapping[str, Any] = {}
     if not group_type or group_type == ErrorGroupType.type_id:
         severity = _get_severity_metadata_for_group(event)
         group_data["metadata"].update(severity)
