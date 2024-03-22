@@ -127,6 +127,7 @@ describe('HTTPSamplesPanel', function () {
       body: {
         data: [
           {
+            'project.id': 1,
             'spm()': 22.18,
             'http_response_rate(3)': 0.01,
             'http_response_rate(4)': 0.025,
