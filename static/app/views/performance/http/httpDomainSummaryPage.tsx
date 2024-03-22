@@ -14,6 +14,7 @@ import {fromSorts} from 'sentry/utils/discover/eventView';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -47,11 +48,16 @@ export function HTTPDomainSummaryPage() {
   const location = useLocation<Query>();
   const organization = useOrganization();
 
+  // TODO: Fetch sort information using `useLocationQuery`
   const sortField = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_SORT]);
 
   const sort = fromSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
 
-  const {domain} = location.query;
+  const {domain} = useLocationQuery({
+    fields: {
+      domain: decodeScalar,
+    },
+  });
 
   const filters: SpanMetricsQueryFilters = {
     'span.module': ModuleName.HTTP,
