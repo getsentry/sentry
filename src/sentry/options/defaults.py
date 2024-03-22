@@ -2138,12 +2138,6 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Rate to move from outbox based webhook delivery to webhookpayload.
-register(
-    "hybridcloud.webhookpayload.rollout",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 register(
     "metrics.sample-list.sample-rate",
     type=Float,
