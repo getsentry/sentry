@@ -186,10 +186,6 @@ class AlertRuleTest(TestCase):
         alert_rule = self.create_alert_rule(
             projects=[project], monitor_type=AlertRuleMonitorType.ACTIVATED
         )
-        self.create_alert_rule_activation_condition(
-            alert_rule=alert_rule,
-            condition_type=AlertRuleActivationConditionType.DEPLOY_CREATION,
-        )
 
         with self.tasks():
             created_subscriptions = (
