@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import Pagination from 'sentry/components/pagination';
-import {mobile} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -16,8 +15,8 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
+import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
 import ReplayTable from 'sentry/views/replays/replayTable';
 import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
@@ -72,16 +71,15 @@ function ReplaysListTable({
   });
 
   const {
-    selection: {projects: projectIds},
+    selection: {projects},
   } = usePageFilters();
 
-  const {projects} = useProjects();
-  const projectsSelected = projects.filter(p => projectIds.map(String).includes(p.id));
+  const {allMobileProj} = useAllMobileProj();
 
   const {needsUpdate: allSelectedProjectsNeedUpdates} = useProjectSdkNeedsUpdate({
     minVersion: MIN_REPLAY_CLICK_SDK,
     organization,
-    projectId: projectIds.map(String),
+    projectId: projects.map(String),
   });
 
   const conditions = useMemo(() => {
@@ -89,10 +87,6 @@ function ReplaysListTable({
   }, [location.query.query]);
 
   const hasReplayClick = conditions.getFilterKeys().some(k => k.startsWith('click.'));
-
-  const allMobileProj =
-    organization.features.includes('session-replay-mobile-player') &&
-    projectsSelected.every(p => mobile.includes(p.platform ?? 'other'));
 
   // browser isn't applicable for mobile projects
   // rage and dead clicks not available yet
@@ -118,6 +112,7 @@ function ReplaysListTable({
   return (
     <Fragment>
       <ReplayTable
+        referrerLocation={'replay'}
         fetchError={fetchError}
         isFetching={isFetching}
         replays={replays}

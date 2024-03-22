@@ -117,17 +117,14 @@ class DiscordClient(ApiClient):
         resp: Response | None = None,
         extra: Mapping[str, str] | None = None,
     ) -> None:
-        discord_code = ""
+        """
+        For all Discord api responses this:
+        - Sends response metrics to Datadog
+        - Sends response info to logs
+        """
+        discord_error_code = "no_error_code"
         code_message = ""
-
-        try:
-            discord_response = json.loads(resp.content.decode("utf-8")) if resp else {}
-            discord_code = discord_response.get("code")
-            if discord_code in DISCORD_ERROR_CODES:
-                code_message = DISCORD_ERROR_CODES[discord_code]
-
-        except Exception:
-            pass
+        include_in_slo = True
 
         is_ok = code in {
             status.HTTP_200_OK,
@@ -136,8 +133,18 @@ class DiscordClient(ApiClient):
             status.HTTP_204_NO_CONTENT,
         }
 
-        # These are excluded since they are not actionable from our side
-        include_in_slo = discord_code not in DISCORD_USER_ERRORS
+        if error:
+            try:
+                discord_error_response: dict = json.loads(resp.content.decode("utf-8")) or {}  # type: ignore
+                discord_error_code = str(discord_error_response.get("code", ""))
+                if discord_error_code in DISCORD_ERROR_CODES:
+                    code_message = DISCORD_ERROR_CODES[discord_error_code]
+                # These are excluded since they are not actionable from our side
+                if discord_error_code in DISCORD_USER_ERRORS:
+                    include_in_slo = False
+            except Exception:
+                pass
+
         metrics.incr(
             f"{self.metrics_prefix}.http_response",
             sample_rate=1.0,
@@ -146,7 +153,7 @@ class DiscordClient(ApiClient):
                 "status": code,
                 "is_ok": is_ok,
                 "include_in_slo": include_in_slo,
-                "discord_code": discord_code,
+                "discord_code": discord_error_code,
             },
         )
 
@@ -154,8 +161,9 @@ class DiscordClient(ApiClient):
             **(extra or {}),
             "status_string": str(code),
             "error": str(error)[:256] if error else None,
-            "discord_code": discord_code,
-            "code_message": code_message,
+            "include_in_slo": include_in_slo,
+            "discord_code": discord_error_code,
+            "code_message": code_message if error else None,
         }
 
         if self.integration_type:

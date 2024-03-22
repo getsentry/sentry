@@ -20,8 +20,10 @@ export function SpanNodeDetails({
   node,
   organization,
   scrollToNode,
+  onParentClick,
 }: {
   node: TraceTreeNode<TraceTree.Span>;
+  onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   organization: Organization;
   scrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
 }) {
@@ -49,15 +51,17 @@ export function SpanNodeDetails({
             </TraceDrawerComponents.TitleOp>
           </div>
         </TraceDrawerComponents.Title>
-        <Button size="xs" onClick={_e => scrollToNode(node)}>
-          {t('Show in view')}
-        </Button>
-        <TraceDrawerComponents.EventDetailsLink
-          eventId={node.value.event.eventID}
-          projectSlug={node.metadata.project_slug}
-        />
+        <TraceDrawerComponents.Actions>
+          <Button size="xs" onClick={_e => scrollToNode(node)}>
+            {t('Show in view')}
+          </Button>
+          <TraceDrawerComponents.EventDetailsLink
+            eventId={node.value.event.eventID}
+            projectSlug={node.metadata.project_slug}
+          />
+        </TraceDrawerComponents.Actions>
       </TraceDrawerComponents.HeaderContainer>
-      {event.projectSlug && (
+      {event.projectSlug ? (
         <ProfilesProvider
           orgSlug={organization.slug}
           projectSlug={event.projectSlug}
@@ -78,12 +82,13 @@ export function SpanNodeDetails({
                   organization={organization}
                   span={span}
                   trace={parseTrace(event)}
+                  onParentClick={onParentClick}
                 />
               </ProfileGroupProvider>
             )}
           </ProfileContext.Consumer>
         </ProfilesProvider>
-      )}
+      ) : null}
     </TraceDrawerComponents.DetailContainer>
   );
 }

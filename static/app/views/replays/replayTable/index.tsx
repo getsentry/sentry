@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -39,6 +39,7 @@ type Props = {
   emptyMessage?: ReactNode;
   gridRows?: string;
   onClickPlay?: (index: number) => void;
+  referrerLocation?: string;
   showDropdownFilters?: boolean;
 };
 
@@ -54,6 +55,7 @@ const ReplayTable = memo(
     gridRows,
     showDropdownFilters,
     onClickPlay,
+    referrerLocation,
   }: Props) => {
     const routes = useRoutes();
     const location = useLocation();
@@ -109,7 +111,10 @@ const ReplayTable = memo(
         {replays?.map(
           (replay: ReplayListRecord | ReplayListRecordWithTx, index: number) => {
             return (
-              <Row key={replay.id} isPlaying={index === selectedReplayIndex}>
+              <Row
+                key={replay.id}
+                isPlaying={index === selectedReplayIndex && referrerLocation !== 'replay'}
+              >
                 {visibleColumns.map(column => {
                   switch (column) {
                     case ReplayColumn.ACTIVITY:

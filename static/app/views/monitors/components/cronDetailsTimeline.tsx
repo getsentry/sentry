@@ -78,17 +78,15 @@ export function CronDetailsTimeline({monitor, organization}: Props) {
     }
   );
 
-  const monitorDetailsQueryKey = makeMonitorDetailsQueryKey(organization, monitor.slug, {
-    ...location.query,
-  });
+  const monitorDetailsQueryKey = makeMonitorDetailsQueryKey(
+    organization,
+    monitor.project.slug,
+    monitor.slug,
+    {...location.query}
+  );
 
   const handleDeleteEnvironment = async (env: string) => {
-    const success = await deleteMonitorEnvironment(
-      api,
-      organization.slug,
-      monitor.slug,
-      env
-    );
+    const success = await deleteMonitorEnvironment(api, organization.slug, monitor, env);
     if (!success) {
       return;
     }
@@ -108,7 +106,7 @@ export function CronDetailsTimeline({monitor, organization}: Props) {
     const resp = await setEnvironmentIsMuted(
       api,
       organization.slug,
-      monitor.slug,
+      monitor,
       env,
       isMuted
     );
@@ -136,13 +134,15 @@ export function CronDetailsTimeline({monitor, organization}: Props) {
   return (
     <TimelineContainer>
       <TimelineWidthTracker ref={elementRef} />
-      <TimelineTitle>{t('Check-Ins')}</TimelineTitle>
-      <StyledGridLineTimeLabels
-        timeWindowConfig={config}
-        start={start}
-        end={end}
-        width={timelineWidth}
-      />
+      <Header>
+        <TimelineTitle>{t('Check-Ins')}</TimelineTitle>
+        <GridLineTimeLabels
+          timeWindowConfig={config}
+          start={start}
+          end={end}
+          width={timelineWidth}
+        />
+      </Header>
       <StyledGridLineOverlay
         showCursor={!isLoading}
         timeWindowConfig={config}
@@ -170,8 +170,11 @@ const TimelineContainer = styled(Panel)`
   grid-template-columns: 135px 1fr;
 `;
 
-const StyledGridLineTimeLabels = styled(GridLineTimeLabels)`
-  grid-column: 2;
+const Header = styled('div')`
+  grid-column: 1/-1;
+  display: grid;
+  grid-template-columns: subgrid;
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const StyledGridLineOverlay = styled(GridLineOverlay)`
@@ -187,6 +190,6 @@ const TimelineWidthTracker = styled('div')`
 
 const TimelineTitle = styled(Text)`
   ${p => p.theme.text.cardTitle};
-  border-bottom: 1px solid ${p => p.theme.border};
   padding: ${space(2)};
+  grid-column: 1;
 `;

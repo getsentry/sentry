@@ -107,35 +107,18 @@ class OrganizationMetricsPermissionTest(APITestCase):
 @region_silo_test
 class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
     view = "sentry-api-0-organization-metrics-samples"
-    default_features = ["organizations:metrics-samples-list"]
 
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
 
-    def do_request(self, query, features=None, **kwargs):
-        if features is None:
-            features = self.default_features
-        with self.feature(features):
-            return self.client.get(
-                reverse(self.view, kwargs={"organization_slug": self.organization.slug}),
-                query,
-                format="json",
-                **kwargs,
-            )
-
-    def test_feature_flag(self):
-        query = {
-            "mri": "d:spans/exclusive_time@millisecond",
-            "field": ["id"],
-            "project": [self.project.id],
-        }
-
-        response = self.do_request(query, features=[])
-        assert response.status_code == 404, response.data
-
-        response = self.do_request(query, features=["organizations:metrics-samples-list"])
-        assert response.status_code == 200, response.data
+    def do_request(self, query, **kwargs):
+        return self.client.get(
+            reverse(self.view, kwargs={"organization_slug": self.organization.slug}),
+            query,
+            format="json",
+            **kwargs,
+        )
 
     def test_no_project(self):
         query = {

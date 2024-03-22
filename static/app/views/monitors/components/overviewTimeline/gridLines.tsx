@@ -138,7 +138,6 @@ const GridLineContainer = styled('div')`
 const LabelsContainer = styled('div')`
   position: relative;
   align-self: stretch;
-  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const Gridline = styled('div')<{left: number}>`

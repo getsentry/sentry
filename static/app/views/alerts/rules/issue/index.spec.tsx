@@ -9,6 +9,7 @@ import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixt
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
+  act,
   render,
   renderGlobalModal,
   screen,
@@ -329,7 +330,7 @@ describe('IssueRuleEditor', function () {
       });
 
       createWrapper();
-      await selectEvent.select(screen.getByText('Add action...'), 'Threads');
+      await selectEvent.select(await screen.findByText('Add action...'), 'Threads');
       await selectEvent.select(screen.getByText('Add action...'), 'Linear');
 
       expect(screen.getByText('Create a Linear issue with these')).toBeInTheDocument();
@@ -347,7 +348,7 @@ describe('IssueRuleEditor', function () {
         }),
       });
       createWrapper();
-      await userEvent.click(screen.getByText('Save Rule'));
+      await userEvent.click(await screen.findByRole('button', {name: 'Save Rule'}));
 
       await waitFor(() =>
         expect(mock).toHaveBeenCalledWith(
@@ -368,11 +369,11 @@ describe('IssueRuleEditor', function () {
         /The {oldest_or_newest} release associated/
       );
 
-      const filtersContainer = screen.getByTestId('rule-filters');
+      const filtersContainer = await screen.findByTestId('rule-filters');
 
       // Production environment is preselected because it's the first option.
       // staging should also be selectable.
-      selectEvent.select(
+      await selectEvent.select(
         within(filtersContainer).getAllByText('production')[0],
         'staging'
       );
@@ -402,14 +403,14 @@ describe('IssueRuleEditor', function () {
         body: {uuid},
       });
       const {router} = createWrapper();
-      await userEvent.click(screen.getByText('Save Rule'), {delay: null});
+      await userEvent.click(await screen.findByRole('button', {name: 'Save Rule'}), {
+        delay: null,
+      });
 
+      act(() => jest.advanceTimersByTime(1000));
       await waitFor(() => expect(addLoadingMessage).toHaveBeenCalledTimes(2));
-      jest.advanceTimersByTime(1000);
-
-      await waitFor(() => expect(mockSuccess).toHaveBeenCalledTimes(1));
-      jest.advanceTimersByTime(1000);
       await waitFor(() => expect(addSuccessMessage).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(mockSuccess).toHaveBeenCalledTimes(1));
       expect(router.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/alerts/rules/project-slug/1/details/',
       });
@@ -427,14 +428,14 @@ describe('IssueRuleEditor', function () {
         body: {uuid},
       });
       createWrapper();
-      await userEvent.click(screen.getByText('Save Rule'), {delay: null});
+      await userEvent.click(await screen.findByRole('button', {name: 'Save Rule'}), {
+        delay: null,
+      });
 
-      await waitFor(() => expect(addLoadingMessage).toHaveBeenCalledTimes(2));
-      jest.advanceTimersByTime(1000);
-
-      await waitFor(() => expect(pollingMock).toHaveBeenCalledTimes(1));
-
-      expect(screen.getByTestId('loading-mask')).toBeInTheDocument();
+      act(() => jest.advanceTimersByTime(1000));
+      expect(addLoadingMessage).toHaveBeenCalledTimes(2);
+      expect(pollingMock).toHaveBeenCalledTimes(1);
+      expect(await screen.findByTestId('loading-mask')).toBeInTheDocument();
     });
 
     it('failed status renders error message', async function () {
@@ -449,14 +450,15 @@ describe('IssueRuleEditor', function () {
         body: {uuid},
       });
       createWrapper();
-      await userEvent.click(screen.getByText('Save Rule'), {delay: null});
+      await userEvent.click(await screen.findByRole('button', {name: 'Save Rule'}), {
+        delay: null,
+      });
 
+      act(() => jest.advanceTimersByTime(1000));
       await waitFor(() => expect(addLoadingMessage).toHaveBeenCalledTimes(2));
-      jest.advanceTimersByTime(1000);
-
       await waitFor(() => expect(mockFailed).toHaveBeenCalledTimes(1));
-      expect(screen.getByText('An error occurred')).toBeInTheDocument();
       expect(addErrorMessage).toHaveBeenCalledTimes(1);
+      expect(addErrorMessage).toHaveBeenCalledWith('An error occurred');
     });
   });
 

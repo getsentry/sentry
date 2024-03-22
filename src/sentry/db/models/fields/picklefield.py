@@ -28,4 +28,7 @@ class PickledObjectField(django_picklefield.PickledObjectField):
         try:
             return json.loads(value, skip_trace=True)
         except (ValueError, TypeError):
+            from sentry.utils import metrics
+
+            metrics.incr("pickle.pickled_object_field_fallback", sample_rate=1)
             return super().to_python(value)
