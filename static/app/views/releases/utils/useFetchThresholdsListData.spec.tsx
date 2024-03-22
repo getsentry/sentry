@@ -35,17 +35,19 @@ describe('useFetchThresholdsListData', () => {
   };
 
   const mockThresholdApis = (data = {}) => {
-    MockApiClient.addMockResponse({
+    const thresholdMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/release-thresholds/`,
       method: 'GET',
       body: data,
     });
 
-    MockApiClient.addMockResponse({
+    const alertMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/alert-rules/`,
       method: 'GET',
       body: data,
     });
+
+    return {thresholdMock, alertMock};
   };
 
   afterEach(() => {
@@ -54,7 +56,7 @@ describe('useFetchThresholdsListData', () => {
 
   it('fetches release thresholds by default', async () => {
     const thresholds = [];
-    mockThresholdApis(thresholds);
+    const {thresholdMock, alertMock} = mockThresholdApis(thresholds);
 
     const {result, waitFor} = reactHooks.renderHook(() => useFetchThresholdsListData(), {
       wrapper: Wrapper(),
@@ -65,11 +67,13 @@ describe('useFetchThresholdsListData', () => {
     await waitFor(() => expect(result.current.isLoading).toBeFalsy());
 
     expect(result.current.data).toEqual(thresholds);
+    expect(thresholdMock).toHaveBeenCalled();
+    expect(alertMock).not.toHaveBeenCalled();
   });
 
   it('fetches activated alerts if the feature is enabled', async () => {
     const alerts = [];
-    mockThresholdApis(alerts);
+    const {thresholdMock, alertMock} = mockThresholdApis(alerts);
 
     const {organization: org} = initializeOrg({
       organization: {
@@ -86,6 +90,9 @@ describe('useFetchThresholdsListData', () => {
     expect(result.current.isLoading).toBeTruthy();
     await waitFor(() => expect(result.current.isLoading).toBeFalsy());
     expect(result.current.data).toEqual(alerts);
+
+    expect(thresholdMock).not.toHaveBeenCalled();
+    expect(alertMock).toHaveBeenCalled();
   });
 
   it('formats actiavted alerts as thresholds', async () => {
