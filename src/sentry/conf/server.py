@@ -1472,8 +1472,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:anr-improvements": False,
     # Enable auth provider configuration through api
     "organizations:api-auth-provider": False,
-    # Enable apis to work with id or slug as path parameters
-    "organizations:api-id-or-slug-support": False,
     "organizations:api-keys": False,
     # Enable multiple Apple app-store-connect sources per project.
     "organizations:app-store-connect-multiple": False,
