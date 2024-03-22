@@ -2341,6 +2341,7 @@ SENTRY_LLM = "sentry.llm.stub.StubLLM"
 SENTRY_LLM_OPTIONS: dict[str, str] = {
     "url": os.getenv("LLM_URL", ""),
     "model": os.getenv("LLM_MODEL", ""),
+    "openai_api_key": os.getenv("OPENAI_API_KEY", ""),
 }
 
 

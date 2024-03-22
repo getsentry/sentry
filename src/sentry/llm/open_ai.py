@@ -9,9 +9,7 @@ from sentry.llm.base import LLMBase
 
 class OpenAIProvider(LLMBase):
     def complete_prompt(self, prompt: str, message):
-
         model = settings.SENTRY_LLM_OPTIONS["model"]
-
         client = get_openai_client()
 
         response = client.chat.completions.create(
@@ -34,13 +32,13 @@ openai_client: OpenAI | None = None
 
 
 def get_openai_client() -> OpenAI:
-
+    openai_api_key = settings.SENTRY_LLM_OPTIONS["openai_api_key"]
     global openai_client
 
     if openai_client:
         return openai_client
 
     # this will raise if OPENAI_API_KEY is not set
-    openai_client = OpenAI(api_key=settings.OPENAI_API_KEY)
+    openai_client = OpenAI(api_key=openai_api_key)
 
     return openai_client
