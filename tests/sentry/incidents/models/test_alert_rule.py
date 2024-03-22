@@ -184,7 +184,9 @@ class AlertRuleTest(TestCase):
         query_extra = "foo:bar"
         project = self.create_project(name="foo")
         alert_rule = self.create_alert_rule(
-            projects=[project], monitor_type=AlertRuleMonitorType.ACTIVATED
+            projects=[project],
+            monitor_type=AlertRuleMonitorType.ACTIVATED,
+            activation_condition=AlertRuleActivationConditionType.DEPLOY_CREATION,
         )
 
         with self.tasks():
@@ -448,6 +450,10 @@ class CleanExpiredAlertsTest(TestCase):
                 projects=[self.project], monitor_type=AlertRuleMonitorType.ACTIVATED
             )
 
+            activation = alert_rule.activations.get()
+            assert activation.finished_at is None
+            assert activation.metric_value is None
+
             subscription = alert_rule.snuba_query.subscriptions.get()
             subscription.date_added = timezone.now() - timedelta(days=21)
 
@@ -456,7 +462,9 @@ class CleanExpiredAlertsTest(TestCase):
             )
 
             assert result is True
-            activation = alert_rule.activations.get()
+            # alert_rule.refresh_from_db()
+            # activation = alert_rule.activations.get()
+            activation.refresh_from_db()
             # assert activation.is_complete() is True # TODO: enable once we've implemented is_complete()
             assert activation.finished_at is not None
             assert activation.metric_value == 100
