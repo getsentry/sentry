@@ -107,17 +107,6 @@ const allEventMap: Record<string, string | null> = {
 };
 
 /**
- * This should be with all analytics events regardless of the analytics destination
- * which includes Reload, Amplitude, and Google Analytics.
- * All events go to Reload. If eventName is defined, events also go to Amplitude.
- * For more details, refer to makeAnalyticsFunction.
- *
- * Should be used for all analytics that are defined in Sentry.
- */
-
-export const trackAnalytics = makeAnalyticsFunction<EventParameters>(allEventMap);
-
-/**
  * Analytics and metric tracking functionality.
  *
  * These are primarily driven through hooks provided through the hookstore. For
@@ -136,13 +125,18 @@ export const trackAnalytics = makeAnalyticsFunction<EventParameters>(allEventMap
  */
 
 /**
- * This should be with all analytics events regardless of the analytics destination
- * which includes Reload, Amplitude, and Google Analytics.
- * All events go to Reload. If eventName is defined, events also go to Amplitude.
- * For more details, refer to the API defined in hooks.
+ * This should used be with all analytics events regardless of the analytics
+ * destination which includes Reload, Amplitude, and Google Analytics. All
+ * events go to Reload. If eventName is defined, events also go to Amplitude.
+ * For more details, refer to makeAnalyticsFunction.
  *
- * Should NOT be used directly.
- * Instead, use makeAnalyticsFunction to generate an analytics function.
+ * Should be used for all analytics that are defined in Sentry.
+ */
+export const trackAnalytics = makeAnalyticsFunction<EventParameters>(allEventMap);
+
+/**
+ * Should NOT be used directly. Instead, use makeAnalyticsFunction to generate
+ * an analytics function.
  */
 export const rawTrackAnalyticsEvent: Hooks['analytics:raw-track-event'] = (
   data,
