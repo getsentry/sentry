@@ -767,6 +767,10 @@ def test_performance_calculate_score(default_project):
     with Feature(features):
         config = get_project_config(default_project, full_config=True).to_dict()["config"]
 
+        # Set a version field that is returned even though it's optional.
+        for profile in config["performanceScore"]["profiles"]:
+            profile["version"] = "1"
+
         validate_project_config(json.dumps(config), strict=True)
         performance_score = config["performanceScore"]["profiles"]
         assert performance_score[0] == {
@@ -789,6 +793,7 @@ def test_performance_calculate_score(default_project):
                 "name": "event.contexts.browser.name",
                 "value": "Chrome",
             },
+            "version": "1",
         }
         assert performance_score[1] == {
             "name": "Firefox",
@@ -828,6 +833,7 @@ def test_performance_calculate_score(default_project):
                 "name": "event.contexts.browser.name",
                 "value": "Firefox",
             },
+            "version": "1",
         }
         assert performance_score[2] == {
             "name": "Safari",
@@ -867,6 +873,7 @@ def test_performance_calculate_score(default_project):
                 "name": "event.contexts.browser.name",
                 "value": "Safari",
             },
+            "version": "1",
         }
         assert performance_score[3] == {
             "name": "Edge",
@@ -888,6 +895,7 @@ def test_performance_calculate_score(default_project):
                 "name": "event.contexts.browser.name",
                 "value": "Edge",
             },
+            "version": "1",
         }
         assert performance_score[4] == {
             "name": "Opera",
@@ -909,6 +917,7 @@ def test_performance_calculate_score(default_project):
                 "name": "event.contexts.browser.name",
                 "value": "Opera",
             },
+            "version": "1",
         }
 
 
