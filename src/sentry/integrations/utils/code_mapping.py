@@ -539,7 +539,7 @@ def _get_code_mapping_source_path(src_file: str, frame_filename: FrameFilename) 
     return source_code_root
 
 
-def find_roots(stack_path, source_path) -> tuple[str, str]:
+def find_roots(stack_path: str, source_path: str) -> tuple[str, str]:
     """
     Returns a tuple containing the stack_root, and the source_root.
     If there is no overlap, raise an exception since this should not happen
