@@ -11,7 +11,7 @@ source "${HERE}/lib.sh"
 
 # This block is to enable reporting issues to Sentry.io
 # SENTRY_DSN already defined in .envrc
-configure-sentry-cli
+#configure-sentry-cli
 
 # This guarantees that we're within a venv. A caller that is not within
 # a venv can avoid enabling this by setting SENTRY_NO_VENV_CHECK
