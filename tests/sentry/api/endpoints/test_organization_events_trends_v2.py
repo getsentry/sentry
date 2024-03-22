@@ -268,46 +268,6 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
         assert len(result_stats.get(f"{self.project.id},foo", [])) > 0
 
     @mock.patch("sentry.api.endpoints.organization_events_trends_v2.detect_breakpoints")
-    def test_simple_with_trends_p95_with_project_id(self, mock_detect_breakpoints):
-        # TODO: can we delete this?
-        mock_trends_result = [
-            {
-                "project": self.project.id,
-                "transaction": "foo",
-                "change": "regression",
-                "trend_difference": -15,
-                "trend_percentage": 0.88,
-            }
-        ]
-        mock_detect_breakpoints.return_value = {"data": mock_trends_result}
-
-        with self.feature({**self.features, "organizations:performance-trendsv2-dev-only": True}):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={
-                    "end": iso_format(self.now),
-                    "start": iso_format(self.now - timedelta(days=1)),
-                    "interval": "1h",
-                    "field": ["project", "transaction"],
-                    "query": "event.type:transaction",
-                    "project": self.project.id,
-                    "trendFunction": "p95(transaction.duration)",
-                },
-            )
-
-        assert response.status_code == 200, response.content
-
-        events = response.data["events"]
-        result_stats = response.data["stats"]
-
-        assert len(events["data"]) == 1
-        assert events["data"] == mock_trends_result
-
-        assert len(result_stats) > 0
-        assert len(result_stats.get(f"{self.project.id},foo", [])) > 0
-
-    @mock.patch("sentry.api.endpoints.organization_events_trends_v2.detect_breakpoints")
     def test_simple_with_top_events(self, mock_detect_breakpoints):
         # store second metric but with lower count
         self.store_performance_metric(
