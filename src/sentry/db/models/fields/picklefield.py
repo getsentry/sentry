@@ -30,5 +30,14 @@ class PickledObjectField(django_picklefield.PickledObjectField):
         except (ValueError, TypeError):
             from sentry.utils import metrics
 
-            metrics.incr("pickle.pickled_object_field_fallback", sample_rate=1)
+            try:
+                table = self.model.__name__  # not always present for unbound
+            except AttributeError:
+                table = "(unknown)"
+
+            metrics.incr(
+                "pickle.pickled_object_field_fallback",
+                tags={"pickle_field_table": table},
+                sample_rate=1,
+            )
             return super().to_python(value)
