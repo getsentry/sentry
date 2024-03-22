@@ -14,7 +14,7 @@ import EventAttachmentActions from 'sentry/components/events/eventAttachmentActi
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import FileSize from 'sentry/components/fileSize';
 import LoadingError from 'sentry/components/loadingError';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types';
 import type {Event} from 'sentry/types/event';

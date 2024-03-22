@@ -17,6 +17,7 @@ import type {IssueTypeConfig} from 'sentry/utils/issueTypeConfig/types';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
+import {FOR_REVIEW_QUERIES} from 'sentry/views/issueList/utils';
 
 import ResolveActions from './resolveActions';
 import ReviewAction from './reviewAction';
@@ -102,16 +103,17 @@ function ActionSet({
     return '';
   };
 
-  // Determine whether to nest "Merge" and "Mark as Reviewed" buttons inside
-  // the dropdown menu based on the current screen size
   const nestMergeAndReviewViewport = useMedia(`(max-width: 1700px)`);
-  const nestMergeAndReview = nestMergeAndReviewViewport && !hasIssuePriority;
+  const nestReview = hasIssuePriority
+    ? !FOR_REVIEW_QUERIES.includes(query)
+    : nestMergeAndReviewViewport;
+  const nestMerge = hasIssuePriority ? true : nestMergeAndReviewViewport;
 
   const menuItems: MenuItemProps[] = [
     {
       key: 'merge',
       label: t('Merge'),
-      hidden: !nestMergeAndReview,
+      hidden: !nestMerge,
       disabled: mergeDisabled,
       details: makeMergeTooltip(),
       onAction: () => {
@@ -126,7 +128,7 @@ function ActionSet({
     {
       key: 'mark-reviewed',
       label: t('Mark Reviewed'),
-      hidden: !nestMergeAndReview,
+      hidden: !nestReview,
       disabled: !canMarkReviewed,
       onAction: () => onUpdate({inbox: false}),
     },
@@ -245,10 +247,8 @@ function ActionSet({
           })}
         />
       )}
-      {!nestMergeAndReview && (
-        <ReviewAction disabled={!canMarkReviewed} onUpdate={onUpdate} />
-      )}
-      {!nestMergeAndReview && (
+      {!nestReview && <ReviewAction disabled={!canMarkReviewed} onUpdate={onUpdate} />}
+      {!nestMerge && (
         <ActionLink
           aria-label={t('Merge Selected Issues')}
           type="button"
