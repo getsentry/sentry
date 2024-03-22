@@ -102,26 +102,37 @@ def process_profile_task(
     sentry_sdk.set_tag("project", project.id)
     sentry_sdk.set_tag("project.slug", project.slug)
 
-    event_id = profile["event_id"] if "event_id" in profile else profile["profile_id"]
-    if "event_id" not in profile:
-        profile["event_id"] = event_id
+    profile_metadata = {
+        "organization_id": profile["organization_id"],
+        "project_id": profile["project_id"],
+    }
+
+    if "profile_id" in profile:
+        profile["event_id"] = profile["profile_id"]
+        profile_metadata["profile_id"] = profile["profile_id"]
+
+    if "event_id" in profile:
+        profile_metadata["profile_id"] = profile["event_id"]
+
+    if "chunk_id" in profile:
+        profile_metadata["chunk_id"] = profile["chunk_id"]
 
     sentry_sdk.set_context(
         "profile_metadata",
-        {
-            "organization_id": profile["organization_id"],
-            "project_id": profile["project_id"],
-            "profile_id": event_id,
-        },
+        profile_metadata,
     )
 
     sentry_sdk.set_tag("platform", profile["platform"])
-    sentry_sdk.set_tag("format", "sample" if "version" in profile else "legacy")
 
     if "version" in profile:
+        version = profile["version"]
+        sentry_sdk.set_tag("format", f"sample_v{version}")
+
         set_measurement("profile.samples", len(profile["profile"]["samples"]))
         set_measurement("profile.stacks", len(profile["profile"]["stacks"]))
         set_measurement("profile.frames", len(profile["profile"]["frames"]))
+    else:
+        sentry_sdk.set_tag("format", "legacy")
 
     if not _symbolicate_profile(profile, project):
         return
@@ -143,10 +154,11 @@ def process_profile_task(
         set_measurement("profile.stacks.processed", len(profile["profile"]["stacks"]))
         set_measurement("profile.frames.processed", len(profile["profile"]["frames"]))
 
-    if options.get(
-        "profiling.generic_metrics.functions_ingestion.enabled"
-    ) and project.organization_id in options.get(
-        "profiling.generic_metrics.functions_ingestion.allowed_org_ids"
+    if (
+        profile.get("version") != "2"
+        and options.get("profiling.generic_metrics.functions_ingestion.enabled")
+        and organization.id
+        in options.get("profiling.generic_metrics.functions_ingestion.allowed_org_ids")
     ):
         try:
             with metrics.timer("process_profile.get_metrics_dsn"):
@@ -165,7 +177,8 @@ def process_profile_task(
             _track_duration_outcome(profile=profile, project=project)
         except Exception as e:
             sentry_sdk.capture_exception(e)
-        _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED)
+        if profile.get("version") != "2":
+            _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED)
 
 
 JS_PLATFORMS = ["javascript", "node"]
@@ -223,9 +236,9 @@ def _symbolicate_profile(profile: Profile, project: Project) -> bool:
                 images[platform] = get_debug_images_for_platform(profile, platform)
 
             for platform in platforms:
+                profile["debug_meta"]["images"] = images[platform]
                 # WARNING(loewenheim): This function call may mutate `profile`'s frame list!
                 # See comments in the function for why this happens.
-                profile["debug_meta"]["images"] = images[platform]
                 raw_modules, raw_stacktraces, frames_sent = _prepare_frames_from_profile(
                     profile, platform
                 )
@@ -320,38 +333,45 @@ def _normalize_profile(profile: Profile, organization: Organization, project: Pr
 @metrics.wraps("process_profile.normalize")
 def _normalize(profile: Profile, organization: Organization) -> None:
     profile["retention_days"] = quotas.get_event_retention(organization=organization) or 90
+    platform = profile["platform"]
+    version = profile.get("version")
 
-    if profile["platform"] in {"cocoa", "android"}:
-        classification_options = dict()
+    if platform not in {"cocoa", "android"} or version == "2":
+        return
 
-        if profile["platform"] == "android":
-            classification_options.update(
-                {
-                    "cpu_frequencies": profile["device_cpu_frequencies"],
-                    "physical_memory_bytes": profile["device_physical_memory_bytes"],
-                }
-            )
+    classification_options = dict()
 
-        if "version" in profile:
-            device_options = {
+    if platform == "android":
+        classification_options.update(
+            {
+                "cpu_frequencies": profile["device_cpu_frequencies"],
+                "physical_memory_bytes": profile["device_physical_memory_bytes"],
+            }
+        )
+
+    if version == "1":
+        classification_options.update(
+            {
                 "model": profile["device"]["model"],
                 "os_name": profile["os"]["name"],
                 "is_emulator": profile["device"]["is_emulator"],
             }
-        else:
-            device_options = {
+        )
+    elif version is None:
+        classification_options.update(
+            {
                 "model": profile["device_model"],
                 "os_name": profile["device_os_name"],
                 "is_emulator": profile["device_is_emulator"],
             }
+        )
 
-        classification_options.update(device_options)
-        classification = str(classify_device(**classification_options))
+    classification = str(classify_device(**classification_options))
 
-        if "version" in profile:
-            profile["device"]["classification"] = classification
-        else:
-            profile["device_classification"] = classification
+    if version == "1":
+        profile["device"]["classification"] = classification
+    else:
+        profile["device_classification"] = classification
 
 
 def _prepare_frames_from_profile(
@@ -909,6 +929,21 @@ def _deobfuscate_locally(profile: Profile, project: Project, debug_file_id: str)
                     method["data"]["deobfuscation_status"] = "missing"
 
 
+def get_event_id(profile: Profile) -> str | None:
+    if "transaction_id" in profile:
+        return profile["transaction_id"]
+    elif "event_id" in profile:
+        return profile["event_id"]
+    elif "chunk_id" in profile:
+        return profile["chunk_id"]
+
+
+def get_data_category(profile: Profile) -> DataCategory:
+    if profile.get("version") == "2":
+        return DataCategory.PROFILE_CHUNK
+    return DataCategory.PROFILE_INDEXED
+
+
 @metrics.wraps("process_profile.track_outcome")
 def _track_outcome(
     profile: Profile,
@@ -919,11 +954,6 @@ def _track_outcome(
     if not project.flags.has_profiles:
         first_profile_received.send_robust(project=project, sender=Project)
 
-    if "transaction_id" in profile:
-        event_id = profile["transaction_id"]
-    else:
-        event_id = profile["event_id"]
-
     track_outcome(
         org_id=project.organization_id,
         project_id=project.id,
@@ -931,8 +961,8 @@ def _track_outcome(
         outcome=outcome,
         reason=reason,
         timestamp=datetime.now(timezone.utc),
-        event_id=event_id,
-        category=DataCategory.PROFILE_INDEXED,
+        event_id=get_event_id(profile),
+        category=get_data_category(profile),
         quantity=1,
     )
 
@@ -976,7 +1006,6 @@ def _insert_vroom_profile(profile: Profile) -> bool:
 def _push_profile_to_vroom(profile: Profile, project: Project) -> bool:
     if _insert_vroom_profile(profile=profile):
         return True
-
     _track_outcome(
         profile=profile,
         project=project,
