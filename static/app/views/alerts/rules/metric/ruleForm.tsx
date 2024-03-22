@@ -1019,10 +1019,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       />
     );
 
-    const hasAlertWrite = hasEveryAccess(['alerts:write'], {
-      organization,
-      project,
-    });
+    const hasAlertWrite = hasEveryAccess(['alerts:write'], {organization, project});
     const formDisabled = loading || !hasAlertWrite;
     const submitDisabled = formDisabled || !this.state.isQueryValid;
 

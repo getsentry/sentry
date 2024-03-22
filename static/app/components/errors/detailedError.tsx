@@ -28,14 +28,9 @@ type Props = {
   onRetry?: (e: React.MouseEvent) => void;
 };
 
-function openFeedback(e: React.MouseEvent) {
-  e.preventDefault();
-  Sentry.showReportDialog({eventId: getLastEventId()});
-}
-
 function DetailedError({className, heading, message, onRetry, hideSupportLinks}: Props) {
   const showFooter = !!onRetry || !hideSupportLinks;
-  const hasLastEvent = !!getLastEventId();
+  const lastEventId = getLastEventId();
 
   return (
     <Wrapper className={className}>
@@ -52,8 +47,14 @@ function DetailedError({className, heading, message, onRetry, hideSupportLinks}:
 
           {!hideSupportLinks && (
             <ButtonBar gap={1.5}>
-              {hasLastEvent && (
-                <Button priority="link" onClick={openFeedback}>
+              {lastEventId && (
+                <Button
+                  priority="link"
+                  onClick={e => {
+                    e.preventDefault();
+                    Sentry.showReportDialog({eventId: lastEventId});
+                  }}
+                >
                   {t('Fill out a report')}
                 </Button>
               )}

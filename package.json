@@ -177,7 +177,7 @@
     "@biomejs/biome": "^1.6.0",
     "@pmmmwh/react-refresh-webpack-plugin": "0.5.10",
     "@sentry/jest-environment": "^4.0.0",
-    "@sentry/profiling-node": "^7.104.0",
+    "@sentry/profiling-node": "^7.108.0",
     "@styled/typescript-styled-plugin": "^1.0.1",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^12.1.2",

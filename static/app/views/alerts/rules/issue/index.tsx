@@ -552,11 +552,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
         // running to lookup and verify the channel id for Slack.
         if (resp?.status === 202) {
           this.uuid = data.uuid;
-          this.setState({
-            detailedError: null,
-            loading: true,
-            uuid: data.uuid,
-          });
+          this.setState({detailedError: null, loading: true});
           this.fetchStatus();
           addLoadingMessage(t('Looking through all your channels...'));
         } else {
@@ -636,10 +632,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     this.setState(prevState => {
       const clonedState = cloneDeep(prevState);
       set(clonedState, `rule[${prop}]`, val);
-      return {
-        ...clonedState,
-        detailedError: omit(prevState.detailedError, prop),
-      };
+      return {...clonedState, detailedError: omit(prevState.detailedError, prop)};
     });
   };
 
@@ -997,10 +990,8 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
         value: ALL_ENVIRONMENTS_KEY,
         label: t('All Environments'),
       },
-      ...(environments?.map(env => ({
-        value: env.name,
-        label: getDisplayName(env),
-      })) ?? []),
+      ...(environments?.map(env => ({value: env.name, label: getDisplayName(env)})) ??
+        []),
     ];
 
     const environment =
@@ -1079,9 +1070,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
                     undefined &&
                   nextSelectedProject.teams.length
                 ) {
-                  this.handleOwnerChange({
-                    value: nextSelectedProject.teams[0].id,
-                  });
+                  this.handleOwnerChange({value: nextSelectedProject.teams[0].id});
                 }
 
                 this.setState({project: nextSelectedProject});
@@ -1157,10 +1146,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     const environment =
       !rule || !rule.environment ? ALL_ENVIRONMENTS_KEY : rule.environment;
 
-    const canCreateAlert = hasEveryAccess(['alerts:write'], {
-      organization,
-      project,
-    });
+    const canCreateAlert = hasEveryAccess(['alerts:write'], {organization, project});
     const disabled = loading || !(canCreateAlert || isActiveSuperuser());
     const displayDuplicateError =
       detailedError?.name?.some(str => isExactDuplicateExp.test(str)) ?? false;
