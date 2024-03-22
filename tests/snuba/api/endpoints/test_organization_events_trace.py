@@ -1571,6 +1571,32 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
         data["useSpans"] = 1
         return super().client_get(data, url)
 
+    def test_simple(self):
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={"project": -1},
+            )
+        assert response.status_code == 200, response.content
+        trace_transaction = response.data["transactions"][0]
+        self.assert_trace_data(trace_transaction)
+        # We shouldn't have detailed fields here
+        assert "transaction.status" not in trace_transaction
+        assert "tags" not in trace_transaction
+
+    def test_simple_with_limit(self):
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={"project": -1, "limit": 200},
+            )
+        assert response.status_code == 200, response.content
+        trace_transaction = response.data["transactions"][0]
+        self.assert_trace_data(trace_transaction)
+        # We shouldn't have detailed fields here
+        assert "transaction.status" not in trace_transaction
+        assert "tags" not in trace_transaction
+
     @pytest.mark.skip(
         "Loops can only be orphans cause the most recent parent to be saved will overwrite the previous"
     )
@@ -1638,11 +1664,29 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
         trace_transaction = response.data["transactions"][0]
         self.assert_event(trace_transaction, self.gen1_events[0], "root")
 
+    def test_timestamp_optimization_without_mock(self):
+        """Make sure that even if the params are smaller the query still works"""
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={
+                    "project": -1,
+                    "timestamp": self.root_event.timestamp,
+                    "statsPeriod": "90d",
+                },
+            )
+        assert response.status_code == 200, response.content
+        trace_transaction = response.data["transactions"][0]
+        self.assert_trace_data(trace_transaction)
+        # We shouldn't have detailed fields here
+        assert "transaction.status" not in trace_transaction
+        assert "tags" not in trace_transaction
+
     def test_measurements(self):
         self.load_trace()
         with self.feature(self.FEATURES):
             response = self.client_get(
-                data={"project": -1, "getMeasurements": 1},
+                data={"project": -1},
             )
         assert response.status_code == 200, response.content
         trace_transaction = response.data["transactions"][0]
