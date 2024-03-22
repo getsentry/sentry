@@ -28,5 +28,9 @@ export function extendQueryWithGroupBys(
     return focusedSeriesQuery;
   }
 
+  if (query === focusedSeriesQuery) {
+    return query;
+  }
+
   return `(${query}) AND (${focusedSeriesQuery})`;
 }

@@ -805,7 +805,7 @@ describe('Modals -> WidgetViewerModal', function () {
         mockEventsStats();
         mockEvents();
         const {rerender} = await renderModal({initialData, widget: mockWidget});
-        expect(screen.getByText('Test Error 1c')).toBeInTheDocument();
+        expect(await screen.findByText('Test Error 1c')).toBeInTheDocument();
         await userEvent.click(screen.getByRole('button', {name: 'Next'}));
         expect(initialData.router.replace).toHaveBeenCalledWith(
           expect.objectContaining({

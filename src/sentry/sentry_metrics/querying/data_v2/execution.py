@@ -12,7 +12,10 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.common import SNUBA_QUERY_LIMIT
 from sentry.sentry_metrics.querying.data_v2.preparation.base import IntermediateQuery
-from sentry.sentry_metrics.querying.errors import MetricsQueryExecutionError
+from sentry.sentry_metrics.querying.errors import (
+    InvalidMetricsQueryError,
+    MetricsQueryExecutionError,
+)
 from sentry.sentry_metrics.querying.types import GroupKey, GroupsCollection, QueryOrder, QueryType
 from sentry.sentry_metrics.querying.units import MeasurementUnit, UnitFamily
 from sentry.sentry_metrics.querying.visitors import (
@@ -146,6 +149,7 @@ class ScheduledQuery:
     next: Union["ScheduledQuery", None] = None
     order: QueryOrder | None = None
     limit: int | None = None
+    dynamic_limit: bool = False
     unit_family: UnitFamily | None = None
     unit: MeasurementUnit | None = None
     scaling_factor: float | None = None
@@ -162,15 +166,20 @@ class ScheduledQuery:
         updated_metrics_query = self._filter_blocked_projects(
             updated_metrics_query, organization, projects, blocked_metrics_for_projects
         )
-        # We align the date range of the query, considering the supplied interval.
-        updated_metrics_query = self._align_date_range(updated_metrics_query)
+        # We align the date range of the query, considering the supplied interval. We also return
+        # the number of intervals request, which will be used later on to compute the dynamic groups in case no limit
+        # is supplied.
+        updated_metrics_query, intervals_number = self._align_date_range(updated_metrics_query)
 
         # We perform type-specific initializations, since based on the type we want to run
         # a different query.
+        dynamic_limit = False
         if self.type == ScheduledQueryType.SERIES:
             updated_metrics_query = self._initialize_series(updated_metrics_query)
         elif self.type == ScheduledQueryType.TOTALS:
-            updated_metrics_query = self._initialize_totals(updated_metrics_query)
+            updated_metrics_query, dynamic_limit = self._initialize_totals(
+                updated_metrics_query, intervals_number
+            )
 
         # We recursively apply the initialization transformations downstream.
         updated_next = None
@@ -179,7 +188,12 @@ class ScheduledQuery:
                 organization, projects, blocked_metrics_for_projects
             )
 
-        return replace(self, metrics_query=updated_metrics_query, next=updated_next)
+        return replace(
+            self,
+            metrics_query=updated_metrics_query,
+            next=updated_next,
+            dynamic_limit=dynamic_limit,
+        )
 
     def _initialize_series(self, metrics_query: MetricsQuery) -> MetricsQuery:
         updated_metrics_query = metrics_query
@@ -189,7 +203,9 @@ class ScheduledQuery:
 
         return updated_metrics_query
 
-    def _initialize_totals(self, metrics_query: MetricsQuery) -> MetricsQuery:
+    def _initialize_totals(
+        self, metrics_query: MetricsQuery, intervals_number: int | None
+    ) -> tuple[MetricsQuery, bool]:
         updated_metrics_query = metrics_query
 
         # A totals query doesn't have an interval.
@@ -202,9 +218,27 @@ class ScheduledQuery:
                 replace(updated_metrics_query.rollup, orderby=self.order.to_snuba_order())
             )
 
-        updated_metrics_query = updated_metrics_query.set_limit(self.limit or SNUBA_QUERY_LIMIT)
+        limit = self.limit
+        dynamic_limit = False
+        if limit is None and intervals_number is not None:
+            # If no limit is specified, we want to compute the optimal number of groups rounded down. The idea is that
+            # if you have a 10k limit of rows returned by Snuba and you request an interval of 100 elements, Snuba can
+            # return you at most 100 groups, thus that will be the limit chosen for the totals query. This means that
+            # the executor will load 100 entries from totals which will result in the worst case in 100 * 100 = 10k
+            # entries in the series query.
+            limit = SNUBA_QUERY_LIMIT // intervals_number
+            if limit <= 0:
+                raise InvalidMetricsQueryError("Your date range contains too many intervals")
 
-        return updated_metrics_query
+            # We want to increase the limit by 1 to have a lookahead to determine whether more groups exist.
+            limit += 1
+            dynamic_limit = True
+
+        # We want to modify only the limit of the actual query and not the one of the `ScheduledQuery` since we want
+        # to keep that as it was supplied by the executor.
+        updated_metrics_query = updated_metrics_query.set_limit(limit)
+
+        return updated_metrics_query, dynamic_limit
 
     def is_empty(self) -> bool:
         return not self.metrics_query.scope.org_ids or not self.metrics_query.scope.project_ids
@@ -233,19 +267,22 @@ class ScheduledQuery:
         )
 
     @classmethod
-    def _align_date_range(cls, metrics_query: MetricsQuery) -> MetricsQuery:
+    def _align_date_range(cls, metrics_query: MetricsQuery) -> tuple[MetricsQuery, int | None]:
         # We use as a reference the interval supplied via the initial version of the query.
         interval = metrics_query.rollup.interval
         if interval:
-            modified_start, modified_end, _ = to_intervals(
+            modified_start, modified_end, intervals_number = to_intervals(
                 metrics_query.start,
                 metrics_query.end,
                 interval,
             )
             if modified_start and modified_end:
-                return metrics_query.set_start(modified_start).set_end(modified_end)
+                return (
+                    metrics_query.set_start(modified_start).set_end(modified_end),
+                    intervals_number,
+                )
 
-        return metrics_query
+        return metrics_query, None
 
 
 @dataclass(frozen=True)
@@ -253,6 +290,7 @@ class QueryResult:
     series_query: ScheduledQuery | None
     totals_query: ScheduledQuery | None
     result: Mapping[str, Any]
+    has_more: bool
 
     def __post_init__(self):
         if not self.series_query and not self.totals_query:
@@ -284,11 +322,12 @@ class QueryResult:
                 "modified_start": scheduled_query.metrics_query.start,
                 "modified_end": scheduled_query.metrics_query.end,
             },
+            has_more=False,
         )
 
     @classmethod
     def from_scheduled_query(
-        cls, scheduled_query: ScheduledQuery, query_result: Mapping[str, Any]
+        cls, scheduled_query: ScheduledQuery, query_result: Mapping[str, Any], has_more: bool
     ) -> "QueryResult":
         # We add these fields as top level, so that when merging `QueryResult`(s) we are able to do that easily.
         extended_result = {
@@ -302,6 +341,7 @@ class QueryResult:
                 series_query=scheduled_query,
                 totals_query=None,
                 result=extended_result,
+                has_more=has_more,
             )
         elif scheduled_query.type == ScheduledQueryType.TOTALS:
             extended_result["totals"] = query_result
@@ -309,6 +349,7 @@ class QueryResult:
                 series_query=None,
                 totals_query=scheduled_query,
                 result=extended_result,
+                has_more=has_more,
             )
 
         raise MetricsQueryExecutionError(
@@ -325,6 +366,7 @@ class QueryResult:
             # We merge the dictionaries and in case of duplicated keys, the ones from `other` will be used, as per
             # Python semantics.
             result={**self.result, **other.result},
+            has_more=self.has_more or other.has_more,
         )
 
     @property
@@ -375,6 +417,8 @@ class QueryResult:
     @property
     def limit(self) -> int | None:
         # The totals limit is the only one that controls the number of groups that are returned.
+        # TODO: we might want to return the limit that is actually returned to users. In that, we would need to check
+        #  if the queries run have a dynamic interval, since in that case we might need to return limit - 1.
         if self.totals_query:
             return self.totals_query.metrics_query.limit.limit
 
@@ -435,21 +479,15 @@ class QueryResult:
 
 @dataclass
 class PartialQueryResult:
-    scheduled_queries: list[ScheduledQuery]
-    executed_results: list[Mapping[str, Any]]
-
-    def add(self, new_query: ScheduledQuery, new_result: Mapping[str, Any]):
-        self.scheduled_queries.append(new_query)
-        self.executed_results.append(new_result)
-        return self
+    previous_queries: list[tuple[ScheduledQuery, Mapping[str, Any], bool]]
 
     def to_query_result(self) -> QueryResult:
         # For now, we naively return the first scheduled query and result, but this is just because
         # we currently support only the chaining of at most two queries, meaning that a partial result
         # can accumulate only one query.
+        last_scheduled_query, last_query_result, has_more = self.previous_queries[0]
         return QueryResult.from_scheduled_query(
-            scheduled_query=self.scheduled_queries[0],
-            query_result=self.executed_results[0],
+            scheduled_query=last_scheduled_query, query_result=last_query_result, has_more=has_more
         )
 
 
@@ -508,11 +546,12 @@ class QueryExecutor:
         #
         # Note that the mutation we do is not reflected in the queries that are returned as part of the
         # `QueryResult`(s) but since we do not need this data we can leave it out.
+        _, last_query_result, _ = partial_query_result.previous_queries[0]
         next_metrics_query = _push_down_group_filters(
             query,
             # For now, we take the last result which will be the only one since we run at most two chained queries,
             # namely totals and series.
-            _extract_groups_from_seq(partial_query_result.executed_results[0]["data"]),
+            _extract_groups_from_seq(last_query_result["data"]),
         )
 
         return self._build_request(next_metrics_query)
@@ -565,32 +604,45 @@ class QueryExecutor:
         # previous result in the `_query_results` array.
         bulk_results = self._bulk_run_query(bulk_requests)
         for query_index, query_result in zip(mappings, bulk_results):
+            query_result = cast(dict[str, Any], query_result)
             scheduled_query = self._scheduled_queries[query_index]
             if scheduled_query is None:
                 continue
+
+            # If the query is a totals query and has dynamic limit, we want to check if we were able to load more groups
+            # or not.
+            has_more = False
+            if scheduled_query.type == ScheduledQueryType.TOTALS and scheduled_query.dynamic_limit:
+                data = query_result["data"]
+                limit = scheduled_query.metrics_query.limit.limit
+
+                # We take only the first n - 1 elements, since we have 1 element more of lookahead which is used to
+                # determine if there are more groups.
+                query_result["data"] = data[: limit - 1]
+                has_more = len(data) >= limit
 
             previous_result = self._query_results[query_index]
             if scheduled_query.next is None:
                 if previous_result is None:
                     self._query_results[query_index] = QueryResult.from_scheduled_query(
-                        scheduled_query, query_result
+                        scheduled_query, query_result, has_more
                     )
                 elif isinstance(previous_result, PartialQueryResult):
                     first_result = previous_result.to_query_result()
-                    second_result = QueryResult.from_scheduled_query(scheduled_query, query_result)
+                    second_result = QueryResult.from_scheduled_query(
+                        scheduled_query, query_result, has_more
+                    )
                     merged_result = first_result.merge(second_result)
                     merged_result.align_series_to_totals(self._organization)
                     self._query_results[query_index] = merged_result
             else:
+                current_query = (scheduled_query, query_result, has_more)
                 if previous_result is None:
                     self._query_results[query_index] = PartialQueryResult(
-                        scheduled_queries=[scheduled_query],
-                        executed_results=[query_result],
+                        previous_queries=[current_query],
                     )
                 elif isinstance(previous_result, PartialQueryResult):
-                    self._query_results[query_index] = previous_result.add(
-                        scheduled_query, query_result
-                    )
+                    previous_result.previous_queries.append(current_query)
 
             # We bump the next query after the results have been merged, so that the next call to the function will
             # execute the next queries in the chain.

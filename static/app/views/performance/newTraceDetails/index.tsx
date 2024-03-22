@@ -6,13 +6,14 @@ import {
   useMemo,
   useReducer,
   useRef,
-  useState,
 } from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
+import Alert from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DiscoverButton from 'sentry/components/discoverButton';
 import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
@@ -22,7 +23,8 @@ import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {t} from 'sentry/locale';
+import {IconClose} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction, Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -35,6 +37,7 @@ import type {
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -46,8 +49,16 @@ import {
   traceSearchReducer,
 } from 'sentry/views/performance/newTraceDetails/traceSearch';
 import {TraceSearchInput} from 'sentry/views/performance/newTraceDetails/traceSearchInput';
+import {
+  traceTabsReducer,
+  type TraceTabsReducerState,
+} from 'sentry/views/performance/newTraceDetails/traceTabs';
 import {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/virtualizedViewManager';
 
+import {
+  cancelAnimationTimeout,
+  requestAnimationTimeout,
+} from '../../../utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import Breadcrumb from '../breadcrumb';
 
 import TraceDrawer from './traceDrawer/traceDrawer';
@@ -127,6 +138,11 @@ export function TraceView() {
   );
 }
 
+const TRACE_TAB: TraceTabsReducerState['tabs'][0] = {
+  node: 'Trace',
+};
+const STATIC_DRAWER_TABS: TraceTabsReducerState['tabs'] = [TRACE_TAB];
+
 type TraceViewContentProps = {
   location: Location;
   metaResults: UseApiQueryResult<TraceMeta | null, any>;
@@ -139,20 +155,43 @@ type TraceViewContentProps = {
 
 function TraceViewContent(props: TraceViewContentProps) {
   const api = useApi();
-  const [activeTab, setActiveTab] = useState<'trace' | 'node'>('trace');
   const {projects} = useProjects();
+
+  const [tracePreferences, setTracePreferences] = useLocalStorageState<{
+    drawer: number;
+    layout: 'drawer right' | 'drawer bottom' | 'drawer left';
+    list_width: number;
+  }>('trace_preferences', {
+    layout: 'drawer bottom',
+    list_width: 0.66,
+    drawer: 0,
+  });
 
   const rootEvent = useRootEvent(props.trace);
 
   const viewManager = useMemo(() => {
     return new VirtualizedViewManager({
-      list: {width: 0.5},
-      span_list: {width: 0.5},
+      list: {width: tracePreferences.list_width},
+      span_list: {width: 1 - tracePreferences.list_width},
     });
+    // We only care about initial state when we initialize the view manager
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loadingTraceRef = useRef<TraceTree | null>(null);
+  useEffect(() => {
+    function onDividerResizeEnd(list_width: number) {
+      setTracePreferences(previousPreferences => {
+        return {...previousPreferences, list_width};
+      });
+    }
+    viewManager.on('divider resize end', onDividerResizeEnd);
 
+    return () => {
+      viewManager.off('divider resize end', onDividerResizeEnd);
+    };
+  }, [viewManager, setTracePreferences]);
+
+  const loadingTraceRef = useRef<TraceTree | null>(null);
   const tree = useMemo(() => {
     if (props.status === 'error') {
       const errorTree = TraceTree.Error(
@@ -163,6 +202,13 @@ function TraceViewContent(props: TraceViewContentProps) {
         loadingTraceRef.current
       );
       return errorTree;
+    }
+
+    if (
+      props.trace?.transactions.length === 0 &&
+      props.trace?.orphan_errors.length === 0
+    ) {
+      return TraceTree.Empty();
     }
 
     if (props.status === 'loading' || rootEvent.status === 'loading') {
@@ -184,7 +230,7 @@ function TraceViewContent(props: TraceViewContentProps) {
       return TraceTree.FromTrace(props.trace, rootEvent.data);
     }
 
-    return TraceTree.Empty();
+    throw new Error('Invalid trace state');
   }, [
     props.traceSlug,
     props.trace,
@@ -232,15 +278,29 @@ function TraceViewContent(props: TraceViewContentProps) {
     resultsLookup: new Map(),
   });
 
-  const [clickedNode, setClickedNode] = useState<TraceTreeNode<TraceTree.NodeValue>[]>(
-    []
-  );
+  const [tabs, tabsDispatch] = useReducer(traceTabsReducer, {
+    tabs: STATIC_DRAWER_TABS,
+    current: STATIC_DRAWER_TABS[0] ?? null,
+    last_clicked: null,
+  });
 
-  const onSetClickedNode = useCallback(
-    (node: TraceTreeNode<TraceTree.NodeValue> | null) => {
-      // Clicking on trace node defaults to the trace tab
-      setActiveTab(node && !isTraceNode(node ?? null) ? 'node' : 'trace');
-      setClickedNode(node && !isTraceNode(node) ? [node] : []);
+  const onRowClick = useCallback(
+    (
+      node: TraceTreeNode<TraceTree.NodeValue> | null,
+      event: React.MouseEvent<HTMLElement> | null
+    ) => {
+      if (!node) {
+        tabsDispatch({type: 'clear clicked tab'});
+        return;
+      }
+
+      if (isTraceNode(node)) {
+        tabsDispatch({type: 'activate tab', payload: TRACE_TAB.node});
+        maybeFocusRow();
+        return;
+      }
+
+      tabsDispatch({type: 'activate tab', payload: node, pin_previous: event?.metaKey});
       maybeFocusRow();
     },
     []
@@ -319,6 +379,11 @@ function TraceViewContent(props: TraceViewContentProps) {
   useQueryParamSync(syncQuery);
 
   const onOutsideClick = useCallback(() => {
+    if (tree.type !== 'trace') {
+      // Dont clear the URL in case the trace is still loading or failed for some reason,
+      // we want to keep the eventId in the URL so the user can share the URL with support
+      return;
+    }
     // we will drop eventId such that after users clicks outside and shares the URL,
     // we will no longer scroll to the event or node
     const {
@@ -340,16 +405,18 @@ function TraceViewContent(props: TraceViewContentProps) {
 
   const previouslyFocusedIndexRef = useRef<number | null>(null);
   const scrollToNode = useCallback(
-    (node: TraceTreeNode<TraceTree.NodeValue>) => {
+    (
+      node: TraceTreeNode<TraceTree.NodeValue>
+    ): Promise<{index: number; node: TraceTreeNode<TraceTree.NodeValue>} | null> => {
       previouslyFocusedIndexRef.current = null;
-      viewManager
+      return viewManager
         .scrollToPath(tree, [...node.path], () => void 0, {
           api,
           organization: props.organization,
         })
         .then(maybeNode => {
           if (!maybeNode) {
-            return;
+            return null;
           }
 
           viewManager.onScrollEndOutOfBoundsCheck();
@@ -365,15 +432,109 @@ function TraceViewContent(props: TraceViewContentProps) {
 
           // Re-focus the row if in view as well
           maybeFocusRow();
+          return maybeNode;
         });
     },
     [api, props.organization, tree, viewManager, searchState, onTraceSearch]
   );
 
-  const scrollQueueRef = useRef<TraceTree.NodePath[] | null>(null);
+  const onLayoutChange = useCallback(
+    (layout: 'drawer bottom' | 'drawer left' | 'drawer right') => {
+      setTracePreferences(previousPreferences => {
+        return {...previousPreferences, layout, drawer: 0};
+      });
+    },
+    [setTracePreferences]
+  );
+
+  const resizeAnimationTimeoutRef = useRef<{id: number} | null>(null);
+  const onDrawerResize = useCallback(
+    (size: number) => {
+      if (resizeAnimationTimeoutRef.current !== null) {
+        cancelAnimationTimeout(resizeAnimationTimeoutRef.current);
+      }
+      resizeAnimationTimeoutRef.current = requestAnimationTimeout(() => {
+        setTracePreferences(previousPreferences => {
+          return {
+            ...previousPreferences,
+            drawer:
+              size /
+              (previousPreferences.layout === 'drawer bottom'
+                ? window.innerHeight
+                : window.innerWidth),
+          };
+        });
+      }, 1000);
+    },
+    [setTracePreferences]
+  );
+
+  const initialDrawerSize = useMemo(() => {
+    if (tracePreferences.drawer < 0) {
+      return 0;
+    }
+
+    const base =
+      tracePreferences.layout === 'drawer bottom'
+        ? window.innerHeight
+        : window.innerWidth;
+    return tracePreferences.drawer * base;
+  }, [tracePreferences.drawer, tracePreferences.layout]);
+
+  const scrollQueueRef = useRef<{eventId?: string; path?: TraceTree.NodePath[]} | null>(
+    null
+  );
+
+  const onResetZoom = useCallback(() => {
+    viewManager.resetZoom();
+  }, [viewManager]);
+
+  const [dismiss, setDismissed] = useLocalStorageState('trace-view-dismissed', false);
+
+  const onTabScrollToNode = useCallback(
+    (node: TraceTreeNode<TraceTree.NodeValue>) => {
+      scrollToNode(node).then(maybeNode => {
+        if (!maybeNode) {
+          return;
+        }
+
+        viewManager.scrollRowIntoViewHorizontally(maybeNode.node, 0, 12, 'exact');
+        if (maybeNode.node.space) {
+          viewManager.animateViewTo(maybeNode.node.space);
+        }
+      });
+    },
+    [scrollToNode, viewManager]
+  );
 
   return (
     <TraceExternalLayout>
+      {dismiss ? null : (
+        <Alert
+          type="info"
+          system
+          trailingItems={
+            <Button
+              aria-label="dismiss"
+              priority="link"
+              size="xs"
+              icon={<IconClose />}
+              onClick={() => setDismissed(true)}
+            />
+          }
+        >
+          {tct(
+            'Events now provide richer context by linking directly inside traces. Read [why] we are doing this and what it enables.',
+            {
+              why: (
+                <a href="https://docs.sentry.io/product/sentry-basics/concepts/tracing/trace-view/">
+                  {t('why')}
+                </a>
+              ),
+            }
+          )}
+        </Alert>
+      )}
       <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumb
@@ -400,6 +561,7 @@ function TraceViewContent(props: TraceViewContentProps) {
       </Layout.Header>
       <TraceInnerLayout>
         <TraceHeader
+          tree={tree}
           rootEventResults={rootEvent}
           metaResults={props.metaResults}
           organization={props.organization}
@@ -417,8 +579,14 @@ function TraceViewContent(props: TraceViewContentProps) {
             resultCount={searchState.results?.length}
             resultIteratorIndex={searchState.resultIteratorIndex}
           />
+          <Button size="xs" onClick={onResetZoom}>
+            {t('Reset Zoom')}
+          </Button>
         </TraceToolbar>
-        <TraceGrid ref={r => (traceContainerRef.current = r)}>
+        <TraceGrid
+          layout={tracePreferences.layout}
+          ref={r => (traceContainerRef.current = r)}
+        >
           <Trace
             trace={tree}
             trace_id={props.traceSlug}
@@ -426,7 +594,7 @@ function TraceViewContent(props: TraceViewContentProps) {
             roving_state={rovingTabIndexState}
             search_dispatch={searchDispatch}
             search_state={searchState}
-            setClickedNode={onSetClickedNode}
+            onRowClick={onRowClick}
             scrollQueueRef={scrollQueueRef}
             searchResultsIteratorIndex={searchState.resultIndex}
             searchResultsMap={searchState.resultsLookup}
@@ -446,12 +614,15 @@ function TraceViewContent(props: TraceViewContentProps) {
           ) : null}
 
           <TraceDrawer
+            tabs={tabs}
             trace={tree}
-            scrollToNode={scrollToNode}
             manager={viewManager}
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            nodes={clickedNode}
+            scrollToNode={onTabScrollToNode}
+            tabsDispatch={tabsDispatch}
+            drawerSize={initialDrawerSize}
+            layout={tracePreferences.layout}
+            onLayoutChange={onLayoutChange}
+            onDrawerResize={onDrawerResize}
             rootEventResults={rootEvent}
             organization={props.organization}
             location={props.location}
@@ -514,7 +685,7 @@ function useRootEvent(trace: TraceSplitResults<TraceFullDetailed> | null) {
     ],
     {
       staleTime: 0,
-      enabled: !!trace,
+      enabled: !!trace && !!root,
     }
   );
 }
@@ -539,9 +710,14 @@ const TraceInnerLayout = styled('div')`
 
 const TraceToolbar = styled('div')`
   flex-grow: 0;
+  display: grid;
+  grid-template-columns: 1fr min-content;
+  gap: ${space(1)};
 `;
 
-const TraceGrid = styled('div')`
+const TraceGrid = styled('div')<{
+  layout: 'drawer bottom' | 'drawer left' | 'drawer right';
+}>`
   box-shadow: 0 0 0 1px ${p => p.theme.border};
   flex: 1 1 100%;
   display: grid;
@@ -549,9 +725,23 @@ const TraceGrid = styled('div')`
   border-top-right-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
   position: relative;
-  grid-template-areas:
-    'trace'
-    'drawer';
+  /* false positive for grid layout */
+  /* stylelint-disable */
+  grid-template-areas: ${p =>
+    p.layout === 'drawer bottom'
+      ? `
+      'trace'
+      'drawer'
+      `
+      : p.layout === 'drawer left'
+        ? `'drawer trace'`
+        : `'trace drawer'`};
+  grid-template-columns: ${p =>
+    p.layout === 'drawer bottom'
+      ? '1fr'
+      : p.layout === 'drawer left'
+        ? 'min-content 1fr'
+        : '1fr min-content'};
   grid-template-rows: 1fr auto;
 `;
 

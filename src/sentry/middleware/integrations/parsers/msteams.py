@@ -40,25 +40,44 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
         integration = self.get_integration_from_card_action(data=self.request_data)
         if integration is None:
             integration = self.get_integration_from_channel_data(data=self.request_data)
+        if integration is None:
+            integration = self.get_integration_for_tenant(data=self.request_data)
         if integration:
             return Integration.objects.filter(id=integration.id).first()
         return None
 
     def get_response(self) -> HttpResponseBase:
         if self.view_class not in self.region_view_classes:
+            logger.info(
+                "sentry.middleware.integrations.parsers.msteams: View class not in region",
+                extra={"request_data": self.request_data},
+            )
             return self.get_response_from_control_silo()
 
         if not self.can_infer_integration(data=self.request_data):
+            logger.info(
+                "sentry.middleware.integrations.parsers.msteams: Could not infer integration",
+                extra={"request_data": self.request_data},
+            )
             return self.get_response_from_control_silo()
 
         regions: Sequence[Region] = []
         try:
             integration = self.get_integration_from_request()
             if not integration:
+                logger.info(
+                    "sentry.middleware.integrations.parsers.msteams: Could not get integration from request",
+                    extra={"request_data": self.request_data},
+                )
                 return self.get_default_missing_integration_response()
 
             regions = self.get_regions_from_organizations()
-        except (Integration.DoesNotExist, OrganizationIntegration.DoesNotExist):
+        except (Integration.DoesNotExist, OrganizationIntegration.DoesNotExist) as err:
+            logger.info(
+                "sentry.middleware.integrations.parsers.msteams: Error in handling",
+                exc_info=err,
+                extra={"request_data": self.request_data},
+            )
             return self.get_default_missing_integration_response()
 
         if len(regions) == 0:

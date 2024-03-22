@@ -14,6 +14,7 @@ from sentry import eventstore, features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
 from sentry.search.events.builder.spans_indexed import SpansIndexedQueryBuilder
 from sentry.snuba.dataset import Dataset
@@ -157,11 +158,11 @@ class BaseAggregateSpans:
                 "avg(duration)": span_tree["duration"],
                 "is_segment": span_tree["is_segment"],
                 "avg(relative_offset)": start_timestamp - parent_timestamp,
-                "avg(absolute_offset)": parent_node["avg(absolute_offset)"]
-                + start_timestamp
-                - parent_timestamp
-                if parent_node
-                else start_timestamp - parent_timestamp,
+                "avg(absolute_offset)": (
+                    parent_node["avg(absolute_offset)"] + start_timestamp - parent_timestamp
+                    if parent_node
+                    else start_timestamp - parent_timestamp
+                ),
                 "count()": 1,
                 "samples": sample,
             }
@@ -317,6 +318,8 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
             )
 
         backend = request.query_params.get("backend", "nodestore")
+        sentry_sdk.set_tag("aggregate_spans.backend", backend)
+
         if backend not in ALLOWED_BACKENDS:
             return Response(
                 status=status.HTTP_400_BAD_REQUEST, data={"details": "Backend not supported"}
@@ -327,40 +330,43 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
             query += f" transaction.method:{http_method}"
 
         if backend == "indexedSpans":
-            builder = SpansIndexedQueryBuilder(
-                dataset=Dataset.SpansIndexed,
-                params=params,
-                selected_columns=["transaction_id", "count()"],
-                query=query,
-                limit=100,
-            )
-
-            builder.columns.append(
-                Function(
-                    "groupArray",
-                    parameters=[
-                        Function(
-                            "tuple",
-                            parameters=[
-                                Column("span_id"),
-                                Column("is_segment"),
-                                Column("parent_span_id"),
-                                Column("group"),
-                                Column("description"),
-                                Column("op"),
-                                Column("start_timestamp"),
-                                Column("start_ms"),
-                                Column("duration"),
-                                Column("exclusive_time"),
-                            ],
-                        )
-                    ],
-                    alias="spans",
+            with handle_query_errors():
+                builder = SpansIndexedQueryBuilder(
+                    dataset=Dataset.SpansIndexed,
+                    params=params,
+                    selected_columns=["transaction_id", "count()"],
+                    query=query,
+                    limit=100,
                 )
-            )
-            snql_query = builder.get_snql_query()
-            snql_query.tenant_ids = {"organization_id": organization.id}
-            results = raw_snql_query(snql_query, Referrer.API_ORGANIZATION_SPANS_AGGREGATION.value)
+
+                builder.columns.append(
+                    Function(
+                        "groupArray",
+                        parameters=[
+                            Function(
+                                "tuple",
+                                parameters=[
+                                    Column("span_id"),
+                                    Column("is_segment"),
+                                    Column("parent_span_id"),
+                                    Column("group"),
+                                    Column("description"),
+                                    Column("op"),
+                                    Column("start_timestamp"),
+                                    Column("start_ms"),
+                                    Column("duration"),
+                                    Column("exclusive_time"),
+                                ],
+                            )
+                        ],
+                        alias="spans",
+                    )
+                )
+                snql_query = builder.get_snql_query()
+                snql_query.tenant_ids = {"organization_id": organization.id}
+                results = raw_snql_query(
+                    snql_query, Referrer.API_ORGANIZATION_SPANS_AGGREGATION.value
+                )
 
             with sentry_sdk.start_span(
                 op="span.aggregation", description="AggregateIndexedSpans.build_aggregate_span_tree"

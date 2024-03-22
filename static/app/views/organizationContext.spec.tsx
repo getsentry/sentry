@@ -1,5 +1,6 @@
 import {Component} from 'react';
 import type {RouteContextInterface} from 'react-router';
+import * as Sentry from '@sentry/react';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -98,7 +99,7 @@ describe('OrganizationContext', function () {
    */
   class OrganizationNameLegacyConsumer extends Component {
     static contextTypes = {
-      organization: SentryPropTypeValidators.isOrganization,
+      organization: SentryPropTypeValidators.isObject,
     };
     declare context: {organization: Organization | undefined};
 
@@ -130,6 +131,8 @@ describe('OrganizationContext', function () {
     );
 
     expect(await screen.findByText(organization.slug)).toBeInTheDocument();
+
+    expect(Sentry.captureMessage).toHaveBeenCalledWith('Legacy organization accessed!');
   });
 
   it('does not fetch if organization is already set', async function () {
@@ -199,7 +202,7 @@ describe('OrganizationContext', function () {
 
     await waitFor(() => !OrganizationStore.getState().loading);
 
-    expect(openSudo).toHaveBeenCalled();
+    await waitFor(() => expect(openSudo).toHaveBeenCalled());
   });
 
   it('opens sudo modal for superusers on 403s', async function () {

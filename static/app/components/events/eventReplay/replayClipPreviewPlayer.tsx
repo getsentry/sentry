@@ -33,7 +33,7 @@ type Props = {
   handleForwardClick?: () => void;
   isLarge?: boolean;
   onClickNextReplay?: () => void;
-  overlayText?: string;
+  overlayContent?: React.ReactNode;
   showNextAndPrevious?: boolean;
 } & ReturnType<typeof useReplayReader>;
 
@@ -65,14 +65,13 @@ function ReplayClipPreviewPlayer({
   isLarge,
   handleForwardClick,
   handleBackClick,
-  overlayText,
+  overlayContent,
   fetching,
   replay,
   replayRecord,
   fetchError,
   replayId,
   showNextAndPrevious,
-  onClickNextReplay,
 }: Props) {
   useRouteAnalyticsParams({
     event_replay_status: getReplayAnalyticsStatus({fetchError, replayRecord}),
@@ -125,9 +124,8 @@ function ReplayClipPreviewPlayer({
           replayRecord={replayRecord}
           handleBackClick={handleBackClick}
           handleForwardClick={handleForwardClick}
-          overlayText={overlayText}
+          overlayContent={overlayContent}
           showNextAndPrevious={showNextAndPrevious}
-          onClickNextReplay={onClickNextReplay}
           // if the player is large, we want to keep the priority as default
           playPausePriority={isLarge ? 'default' : undefined}
         />

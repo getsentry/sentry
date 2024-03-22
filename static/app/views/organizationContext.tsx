@@ -6,6 +6,7 @@ import {
   useEffect,
   useRef,
 } from 'react';
+import {captureMessage} from '@sentry/react';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {switchOrganization} from 'sentry/actionCreators/organizations';
@@ -37,6 +38,17 @@ interface Props {
   children: React.ReactNode;
 }
 
+const proxyHandler: ProxyHandler<Organization> = {
+  get(organization, prop) {
+    // XXX(epurkhiser): Record a sentry message when we've accessed the
+    // organiztion. Once we stop getting these we can remove the
+    // LegacyOrganizationContextProvider
+    captureMessage('Legacy organization accessed!');
+
+    return organization[prop];
+  },
+};
+
 /**
  * There are still a number of places where we consume the legacy organization
  * context. So for now we still need a component that provides this.
@@ -46,11 +58,19 @@ class LegacyOrganizationContextProvider extends Component<{
   children?: React.ReactNode;
 }> {
   static childContextTypes = {
-    organization: SentryPropTypeValidators.isOrganization,
+    organization: SentryPropTypeValidators.isObject,
   };
 
   getChildContext() {
-    return {organization: this.props.value};
+    if (!this.props.value) {
+      return {organization: null};
+    }
+
+    // XXX(epurkhiser): Proxying the legacy context organization object to
+    // figure out where we're actually accessing this (if at all) anymore.
+    const organization = new Proxy(this.props.value, proxyHandler);
+
+    return {organization};
   }
 
   render() {
@@ -147,14 +167,24 @@ export function OrganizationContextProvider({children}: Props) {
       // If the user has an active staff session, the response will not return a
       // 403 but access scopes will be an empty list.
       if (user?.isSuperuser && user?.isStaff && organization?.access?.length === 0) {
-        openSudo({isSuperuser: true, needsReload: true});
+        openSudo({
+          isSuperuser: true,
+          needsReload: true,
+          closeEvents: 'none',
+          closeButton: false,
+        });
       }
 
       return;
     }
 
     if (user?.isSuperuser && error.status === 403) {
-      openSudo({isSuperuser: true, needsReload: true});
+      openSudo({
+        isSuperuser: true,
+        needsReload: true,
+        closeEvents: 'none',
+        closeButton: false,
+      });
     }
 
     // This `catch` can swallow up errors in development (and tests)

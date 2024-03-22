@@ -27,8 +27,11 @@ class Topic(Enum):
     INGEST_EVENTS = "ingest-events"
     INGEST_EVENTS_DLQ = "ingest-events-dlq"
     INGEST_FEEDBACK_EVENTS = "ingest-feedback-events"
+    INGEST_FEEDBACK_EVENTS_DLQ = "ingest-feedback-events-dlq"
     INGEST_ATTACHMENTS = "ingest-attachments"
+    INGEST_ATTACHMENTS_DLQ = "ingest-attachments-dlq"
     INGEST_TRANSACTIONS = "ingest-transactions"
+    INGEST_TRANSACTIONS_DLQ = "ingest-transactions-dlq"
     INGEST_METRICS = "ingest-metrics"
     INGEST_METRICS_DLQ = "ingest-metrics-dlq"
     SNUBA_METRICS = "snuba-metrics"
@@ -45,6 +48,7 @@ class Topic(Enum):
     GROUP_ATTRIBUTES = "group-attributes"
     SHARED_RESOURCES_USAGE = "shared-resources-usage"
     SNUBA_SPANS = "snuba-spans"
+    BUFFERED_SEGMENTS = "buffered-segments"
 
 
 class ConsumerDefinition(TypedDict, total=False):

@@ -1,9 +1,10 @@
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any
+from unittest.mock import patch
 
 import pytest
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
@@ -32,7 +33,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 
 pytestmark = pytest.mark.sentry_metrics
 
-MOCK_DATETIME = (django_timezone.now() - timedelta(days=1)).replace(
+MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
     hour=10, minute=0, second=0, microsecond=0
 )
 
@@ -925,6 +926,68 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert first_meta[0]["order"] == "ASC"
         second_meta = sorted(meta[1], key=lambda value: value.get("name", ""))
         assert second_meta[0]["limit"] == 2
+        assert second_meta[0]["order"] == "DESC"
+
+    @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    @pytest.mark.skip("Bug on Snuba that returns the wrong results, removed when fixed")
+    @patch("sentry.sentry_metrics.querying.data_v2.execution.SNUBA_QUERY_LIMIT", 3)
+    def test_query_with_multiple_aggregations_and_single_group_by_and_dynamic_limit(
+        self,
+    ) -> None:
+        query_1 = self.mql("min", TransactionMRI.DURATION.value, group_by="platform")
+        query_2 = self.mql("max", TransactionMRI.DURATION.value, group_by="platform")
+        plan = (
+            MetricsQueriesPlan()
+            .declare_query("query_1", query_1)
+            .declare_query("query_2", query_2)
+            .apply_formula("$query_1", order=QueryOrder.DESC)
+            .apply_formula("$query_2", order=QueryOrder.DESC)
+        )
+
+        # With a snuba limit of 3 and 3 intervals we expect to only have 1 group returned. Currently,
+        # the test is failing because totals are correctly queried but series data is returned up to
+        # 3 elements and since filters are not properly applied, any 3 entries are returned out of all
+        # the groups * intervals combinations. Once the bug will be fixed on the snuba side, we should
+        # expect to get back 3 correct entries from the series query.
+        results = self.run_query(
+            metrics_queries_plan=plan,
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"]
+        assert len(data) == 2
+        first_query = sorted(data[0], key=lambda value: value["by"]["platform"])
+        assert len(first_query) == 1
+        assert first_query[0]["by"] == {"platform": "windows"}
+        assert first_query[0]["series"] == [
+            None,
+            self.to_reference_unit(5.0),
+            self.to_reference_unit(4.0),
+        ]
+        assert first_query[0]["totals"] == self.to_reference_unit(4.0)
+        second_query = sorted(data[1], key=lambda value: value["by"]["platform"])
+        assert len(second_query) == 1
+        assert second_query[0]["by"] == {"platform": "ios"}
+        assert second_query[0]["series"] == [
+            None,
+            self.to_reference_unit(6.0),
+            self.to_reference_unit(3.0),
+        ]
+        assert second_query[0]["totals"] == self.to_reference_unit(6.0)
+        meta = results["meta"]
+        assert len(meta) == 2
+        first_meta = sorted(meta[0], key=lambda value: value.get("name", ""))
+        assert first_meta[0]["limit"] == 2
+        assert first_meta[0]["has_more"]
+        assert first_meta[0]["order"] == "DESC"
+        second_meta = sorted(meta[1], key=lambda value: value.get("name", ""))
+        assert second_meta[0]["limit"] == 2
+        assert first_meta[0]["has_more"]
         assert second_meta[0]["order"] == "DESC"
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
