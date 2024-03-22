@@ -38,12 +38,12 @@ import {
 } from '../utils/constants';
 import type {EditingThreshold, Threshold} from '../utils/types';
 
-type Props = {
+export type Props = {
   allEnvironmentNames: string[];
-  isLastRow: boolean;
   project: Project;
   refetch: () => void;
   setTempError: (msg: string) => void;
+  isLastRow?: boolean;
   newGroup?: boolean;
   onFormClose?: (id: string) => void;
   threshold?: Threshold;
@@ -51,7 +51,7 @@ type Props = {
 
 export function ThresholdGroupRows({
   allEnvironmentNames,
-  isLastRow,
+  isLastRow = false,
   newGroup = false,
   onFormClose,
   project,
