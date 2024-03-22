@@ -20,7 +20,9 @@ class OrganizationRegionEndpointPermissions(SentryPermission):
     scope_map = {"GET": ["project:read", "org:ci", "org:read"]}
 
     def has_object_permission(self, request, view, org_mapping: OrganizationMapping):
-        if request.auth is None:
+        if request.auth is None or request.auth.organization_id is None:
+            assert not request.user.is_anonymous, "Anonymous users should not be missing auth"
+
             try:
                 OrganizationMemberMapping.objects.get(
                     user_id=request.user.id, organization_id=org_mapping.organization_id
@@ -68,9 +70,4 @@ class OrganizationRegionEndpoint(Endpoint):
     def get(self, request: Request, organization_mapping: OrganizationMapping) -> Response:
         region_data = get_region_by_name(organization_mapping.region_name)
 
-        return self.respond(
-            {
-                "regionName": region_data.name,
-                "regionUrl": region_data.to_url(""),
-            }
-        )
+        return self.respond(region_data.api_serialize())

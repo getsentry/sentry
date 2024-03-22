@@ -1,6 +1,7 @@
 from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import control_silo_test, create_test_regions
+from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test, create_test_regions
 from sentry.types.region import Region, get_region_by_name
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
@@ -37,10 +38,21 @@ class OrganizationRegionTest(APITestCase):
 
         return org_auth_token_str
 
+    def send_get_request_with_auth(self, org_slug: str, auth_token: str):
+        return self.get_response(
+            org_slug,
+            extra_headers={
+                "HTTP_AUTHORIZATION": f"Bearer {auth_token}",
+            },
+        )
+
     def test_org_member_has_access(self):
         self.login_as(self.org_owner)
         response = self.get_response(self.org.slug)
+
         assert response.status_code == 200
+        us_region = get_region_by_name("us")
+        assert response.data == {"url": us_region.to_url(""), "name": us_region.name}
 
     def test_non_org_member_has_no_access(self):
         non_member_user = self.create_user()
@@ -53,13 +65,10 @@ class OrganizationRegionTest(APITestCase):
         org_auth_token_str = self.create_auth_token_for_org(
             region=us_region, org=self.org, scopes=["org:ci"]
         )
-        response = self.get_response(
-            self.org.slug,
-            extra_headers={
-                "HTTP_AUTHORIZATION": f"Bearer {org_auth_token_str}",
-            },
-        )
+        response = self.send_get_request_with_auth(self.org.slug, org_auth_token_str)
 
+        us_region = get_region_by_name("us")
+        assert response.data == {"url": us_region.to_url(""), "name": us_region.name}
         assert response.status_code == 200
 
     def test_org_auth_token_access_with_incorrect_scopes(self):
@@ -67,12 +76,7 @@ class OrganizationRegionTest(APITestCase):
         org_auth_token_str = self.create_auth_token_for_org(
             region=us_region, org=self.org, scopes=[]
         )
-        response = self.get_response(
-            self.org.slug,
-            extra_headers={
-                "HTTP_AUTHORIZATION": f"Bearer {org_auth_token_str}",
-            },
-        )
+        response = self.send_get_request_with_auth(self.org.slug, org_auth_token_str)
 
         assert response.status_code == 403
 
@@ -83,12 +87,7 @@ class OrganizationRegionTest(APITestCase):
         org_auth_token_str = self.create_auth_token_for_org(
             region=us_region, org=self.create_organization(owner=other_user), scopes=["org:ci"]
         )
-        response = self.get_response(
-            self.org.slug,
-            extra_headers={
-                "HTTP_AUTHORIZATION": f"Bearer {org_auth_token_str}",
-            },
-        )
+        response = self.send_get_request_with_auth(self.org.slug, org_auth_token_str)
 
         assert response.status_code == 403
 
@@ -97,16 +96,11 @@ class OrganizationRegionTest(APITestCase):
             self.org, self.org_owner, ["project:read"]
         )
 
-        response = self.get_response(
-            self.org.slug,
-            extra_headers={
-                "HTTP_AUTHORIZATION": f"Bearer {token}",
-            },
-        )
+        response = self.send_get_request_with_auth(self.org.slug, token)
 
-        us_region = get_region_by_name("us")
         assert response.status_code == 200
-        assert response.data == {"regionName": "us", "regionUrl": us_region.to_url("")}
+        us_region = get_region_by_name("us")
+        assert response.data == {"name": us_region.name, "url": us_region.to_url("")}
 
     def test_integration_token_with_invalid_scopes(self):
         integration, token = self.create_internal_integration_for_org(self.org, self.org_owner, [])
@@ -125,10 +119,47 @@ class OrganizationRegionTest(APITestCase):
             self.create_organization(owner=other_user), other_user, ["project:read"]
         )
 
-        response = self.get_response(
-            self.org.slug,
-            extra_headers={
-                "HTTP_AUTHORIZATION": f"Bearer {token}",
-            },
+        response = self.send_get_request_with_auth(self.org.slug, token)
+        assert response.status_code == 403
+
+    def test_user_auth_token_for_owner(self):
+        user_auth_token = self.create_user_auth_token(user=self.org_owner, scope_list=["org:read"])
+        response = self.send_get_request_with_auth(self.org.slug, user_auth_token)
+
+        assert response.status_code == 200
+        us_region = get_region_by_name("us")
+        assert response.data == {"url": us_region.to_url(""), "name": us_region.name}
+
+    def test_user_auth_token_for_member(self):
+        org_user = self.create_user()
+        with assume_test_silo_mode_of(OrganizationMember):
+            OrganizationMember.objects.create(
+                user_id=org_user.id, organization_id=self.org.id, role="member"
+            )
+
+        user_auth_token = self.create_user_auth_token(user=org_user, scope_list=["org:read"])
+        response = self.send_get_request_with_auth(self.org.slug, user_auth_token)
+
+        assert response.status_code == 200
+        us_region = get_region_by_name("us")
+        assert response.data == {"url": us_region.to_url(""), "name": us_region.name}
+
+    def test_user_auth_token_for_non_member(self):
+        user_auth_token = self.create_user_auth_token(
+            user=self.create_user(), scope_list=["org:read"]
         )
+        response = self.send_get_request_with_auth(self.org.slug, user_auth_token)
+        assert response.status_code == 403
+
+    def test_user_auth_token_with_invalid_scopes(self):
+        user_auth_token = self.create_user_auth_token(user=self.org_owner, scope_list=[])
+        response = self.send_get_request_with_auth(self.org.slug, user_auth_token)
+
+        assert response.status_code == 403
+
+        user_auth_token = self.create_user_auth_token(
+            user=self.org_owner, scope_list=["event:read"]
+        )
+        response = self.send_get_request_with_auth(self.org.slug, user_auth_token)
+
         assert response.status_code == 403
