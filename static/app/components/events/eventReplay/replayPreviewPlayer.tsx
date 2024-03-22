@@ -82,7 +82,13 @@ function ReplayPreviewPlayer({
           organization={organization}
           referrer="issue-details-replay-header"
         />
-        <LinkButton size="sm" to={fullReplayUrl} {...fullReplayButtonProps}>
+        <LinkButton
+          size="sm"
+          to={fullReplayUrl}
+          {...fullReplayButtonProps}
+          analyticsEventName="Replay Preview Player: Clicked See Full Replay"
+          analyticsEventKey="replay_preview_player.click_see_full_replay"
+        >
           {t('See Full Replay')}
         </LinkButton>
       </HeaderWrapper>
@@ -115,9 +121,13 @@ function ReplayPreviewPlayer({
                 onClick={() => handleBackClick?.()}
                 aria-label={t('Previous Clip')}
                 disabled={!handleBackClick}
+                analyticsEventName="Replay Preview Player: Clicked Previous Clip"
+                analyticsEventKey="replay_preview_player.clicked_previous_clip"
               />
             )}
             <ReplayPlayPauseButton
+              analyticsEventName="Replay Preview Player: Clicked Play/Plause Clip"
+              analyticsEventKey="replay_preview_player.clicked_play_pause_clip"
               priority={
                 playPausePriority ?? (isFinished || isPlaying ? 'primary' : 'default')
               }
@@ -130,6 +140,8 @@ function ReplayPreviewPlayer({
                 onClick={() => handleForwardClick?.()}
                 aria-label={t('Next Clip')}
                 disabled={!handleForwardClick}
+                analyticsEventName="Replay Preview Player: Clicked Next Clip"
+                analyticsEventKey="replay_preview_player.clicked_next_clip"
               />
             )}
             <Container>
