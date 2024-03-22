@@ -101,7 +101,7 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
     depending on the source code URL
     """
 
-    def post(self, request: Request, project) -> Response:
+    def get(self, request: Request, project) -> Response:
         serializer = PathMappingSerializer(
             context={"organization_id": project.organization_id},
             data=request.data,
