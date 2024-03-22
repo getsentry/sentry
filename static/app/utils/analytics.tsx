@@ -46,7 +46,7 @@ import {searchEventMap} from './analytics/searchAnalyticsEvents';
 import type {SettingsEventParameters} from './analytics/settingsAnalyticsEvents';
 import {settingsEventMap} from './analytics/settingsAnalyticsEvents';
 import type {SignupAnalyticsParameters} from './analytics/signupAnalyticsEvents';
-import {SignupEventMap} from './analytics/signupAnalyticsEvents';
+import {signupEventMap} from './analytics/signupAnalyticsEvents';
 import type {StackTraceEventParameters} from './analytics/stackTraceAnalyticsEvents';
 import {stackTraceEventMap} from './analytics/stackTraceAnalyticsEvents';
 import {starfishEventMap} from './analytics/starfishAnalyticsEvents';
@@ -103,7 +103,7 @@ const allEventMap: Record<string, string | null> = {
   ...integrationEventMap,
   ...projectCreationEventMap,
   ...starfishEventMap,
-  ...SignupEventMap,
+  ...signupEventMap,
 };
 
 /**
