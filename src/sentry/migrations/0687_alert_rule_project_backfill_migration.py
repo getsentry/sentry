@@ -9,7 +9,7 @@ from sentry.new_migrations.migrations import CheckedMigration
 logger = logging.getLogger(__name__)
 
 
-def backfill_alert_rule_projects(apps, schema_editor):
+def _backfill_alert_rule_projects(apps, schema_editor):
     QuerySubscriptions = apps.get_model("sentry", "QuerySubscription")
     AlertRuleProjects = apps.get_model("sentry", "AlertRuleProjects")
 
@@ -40,5 +40,9 @@ class Migration(CheckedMigration):
 
     operations = [
         # Run the data migration
-        migrations.RunPython(backfill_alert_rule_projects),
+        migrations.RunPython(
+            _backfill_alert_rule_projects,
+            migrations.RunPython.noop,
+            hints={"tables": ["sentry_alertruleprojects", "sentry_querysubscription"]},
+        ),
     ]
