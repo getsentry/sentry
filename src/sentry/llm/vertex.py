@@ -16,20 +16,19 @@ logger = logging.getLogger(__name__)
 
 class VertexProvider(LLMBase):
     candidate_count = 1
-    max_output_tokens = 1024
-    temp = 0.0
     top_p = 1
 
-    def complete_prompt(self, prompt, message):
-
+    def complete_prompt(
+        self, prompt: str, message: str, temperature: float, max_output_tokens: int
+    ):
         url = settings.SENTRY_LLM_OPTIONS["url"]
 
         payload = {
             "instances": [{"content": f"{prompt} {message}"}],
             "parameters": {
                 "candidateCount": self.candidate_count,
-                "maxOutputTokens": self.max_output_tokens,
-                "temperature": self.temp,
+                "maxOutputTokens": max_output_tokens,
+                "temperature": temperature,
                 "topP": self.top_p,
             },
         }

@@ -5,5 +5,5 @@ from sentry.llm.stub import StubLLM
 class TestStubLLM(BaseTestCase):
     def test_complete_prompt(self):
         stub = StubLLM()
-        res = stub.complete_prompt("prompt here", "message here")
+        res = stub.complete_prompt("prompt here", "message here", 0.0, 1024)
         assert res == ""
