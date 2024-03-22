@@ -113,7 +113,7 @@ function StacktraceLinkModal({
     const parsingEndpoint = `/projects/${organization.slug}/${project.slug}/repo-path-parsing/`;
     try {
       const configData = await api.requestPromise(parsingEndpoint, {
-        method: 'GET',
+        method: 'POST',
         data: {
           sourceUrl: sourceCodeInput,
           stackPath: filename,

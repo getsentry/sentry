@@ -13,7 +13,7 @@ class BaseStacktraceLinkTest(APITestCase):
             name="foo", organization=self.org, teams=[self.create_team(organization=self.org)]
         )
 
-    def make_get(self, source_url, stack_path, project=None, user=None):
+    def make_post(self, source_url, stack_path, project=None, user=None):
         self.login_as(user=user or self.user)
         if not project:
             project = self.project
@@ -23,7 +23,7 @@ class BaseStacktraceLinkTest(APITestCase):
             kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
         )
 
-        return self.client.get(url, data={"sourceUrl": source_url, "stackPath": stack_path})
+        return self.client.post(url, data={"sourceUrl": source_url, "stackPath": stack_path})
 
 
 class PathMappingSerializerTest(TestCase):
@@ -152,14 +152,14 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
     def test_bad_source_url(self):
         source_url = "github.com/getsentry/sentry/blob/master/src/sentry/api/endpoints/project_stacktrace_link.py"
         stack_path = "sentry/api/endpoints/project_stacktrace_link.py"
-        resp = self.make_get(source_url, stack_path)
+        resp = self.make_post(source_url, stack_path)
         assert resp.status_code == 400, resp.content
         assert resp.data == {"sourceUrl": ["Enter a valid URL."]}
 
     def test_wrong_file(self):
         source_url = "https://github.com/getsentry/sentry/blob/master/src/sentry/api/endpoints/project_releases.py"
         stack_path = "sentry/api/endpoints/project_stacktrace_link.py"
-        resp = self.make_get(source_url, stack_path)
+        resp = self.make_post(source_url, stack_path)
         assert resp.status_code == 400, resp.content
         assert resp.data == {
             "sourceUrl": ["Source code URL points to a different file than the stack trace"]
@@ -176,21 +176,21 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
             )
         source_url = "https://github.com/steve/sentry/blob/master/src/sentry/api/endpoints/project_stacktrace_link.py"
         stack_path = "sentry/api/endpoints/project_stacktrace_link.py"
-        resp = self.make_get(source_url, stack_path)
+        resp = self.make_post(source_url, stack_path)
         assert resp.status_code == 400, resp.content
         assert resp.data == {"sourceUrl": ["Could not find integration"]}
 
     def test_no_repo(self):
         source_url = "https://github.com/getsentry/snuba/blob/master/src/sentry/api/endpoints/project_stacktrace_link.py"
         stack_path = "sentry/api/endpoints/project_stacktrace_link.py"
-        resp = self.make_get(source_url, stack_path)
+        resp = self.make_post(source_url, stack_path)
         assert resp.status_code == 400, resp.content
         assert resp.data == {"sourceUrl": ["Could not find repo"]}
 
     def test_basic(self):
         source_url = "https://github.com/getsentry/sentry/blob/master/src/sentry/api/endpoints/project_stacktrace_link.py"
         stack_path = "sentry/api/endpoints/project_stacktrace_link.py"
-        resp = self.make_get(source_url, stack_path)
+        resp = self.make_post(source_url, stack_path)
         assert resp.status_code == 200, resp.content
 
         assert resp.data == {
@@ -205,7 +205,7 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
     def test_short_path(self):
         source_url = "https://github.com/getsentry/sentry/blob/main/project_stacktrace_link.py"
         stack_path = "sentry/project_stacktrace_link.py"
-        resp = self.make_get(source_url, stack_path)
+        resp = self.make_post(source_url, stack_path)
         assert resp.status_code == 200, resp.content
         assert resp.data == {
             "integrationId": self.integration.id,
@@ -219,7 +219,7 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
     def test_long_root(self):
         source_url = "https://github.com/getsentry/sentry/blob/master/src/sentry/api/endpoints/project_stacktrace_link.py"
         stack_path = "stuff/hey/here/sentry/api/endpoints/project_stacktrace_link.py"
-        resp = self.make_get(source_url, stack_path)
+        resp = self.make_post(source_url, stack_path)
         assert resp.status_code == 200, resp.content
         assert resp.data == {
             "integrationId": self.integration.id,
@@ -235,13 +235,13 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
         stack_path = "stuff/hey/here/sentry/api/endpoints/project_stacktrace_link.py"
         member = self.create_user("hernando@life.com")
         self.create_member(user=member, organization=self.org, role="member")
-        resp = self.make_get(source_url, stack_path, user=member)
+        resp = self.make_post(source_url, stack_path, user=member)
         assert resp.status_code == 200, resp.content
 
     def test_backslash_short_path(self):
         source_url = "https://github.com/getsentry/sentry/blob/main/project_stacktrace_link.py"
         stack_path = "C:\\sentry\\project_stacktrace_link.py"
-        resp = self.make_get(source_url, stack_path)
+        resp = self.make_post(source_url, stack_path)
         assert resp.status_code == 200, resp.content
         assert resp.data == {
             "integrationId": self.integration.id,
@@ -255,7 +255,7 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
     def test_backslash_long_path(self):
         source_url = "https://github.com/getsentry/sentry/blob/main/src/sentry/api/endpoints/project_stacktrace_link.py"
         stack_path = "C:\\potatos\\and\\prs\\sentry\\api\\endpoints\\project_stacktrace_link.py"
-        resp = self.make_get(source_url, stack_path)
+        resp = self.make_post(source_url, stack_path)
         assert resp.status_code == 200, resp.content
         assert resp.data == {
             "integrationId": self.integration.id,
@@ -293,7 +293,7 @@ class ProjectStacktraceLinkGitlabTest(BaseStacktraceLinkTest):
     def test_basic(self):
         source_url = "https://gitlab.com/getsentry/sentry/-/blob/master/src/sentry/api/endpoints/project_stacktrace_link.py"
         stack_path = "sentry/api/endpoints/project_stacktrace_link.py"
-        resp = self.make_get(source_url, stack_path)
+        resp = self.make_post(source_url, stack_path)
         assert resp.status_code == 200, resp.content
 
         assert resp.data == {
@@ -309,7 +309,7 @@ class ProjectStacktraceLinkGitlabTest(BaseStacktraceLinkTest):
         self.repo.update(url=None)
         source_url = "https://gitlab.com/getsentry/sentry/-/blob/master/src/sentry/api/endpoints/project_stacktrace_link.py"
         stack_path = "sentry/api/endpoints/project_stacktrace_link.py"
-        resp = self.make_get(source_url, stack_path)
+        resp = self.make_post(source_url, stack_path)
         assert resp.status_code == 400, resp.content
 
         assert resp.data == {"sourceUrl": ["Could not find repo"]}
