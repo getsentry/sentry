@@ -194,6 +194,7 @@ statsd==3.3.0
 stripe==3.1.0
 structlog==22.1.0
 symbolic==12.8.0
+tiktoken==0.6.0
 time-machine==2.13.0
 tokenize-rt==5.2.0
 tomli==2.0.1

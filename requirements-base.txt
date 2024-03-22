@@ -73,6 +73,7 @@ sqlparse>=0.4.4
 statsd>=3.3
 structlog>=22
 symbolic==12.8.0
+tiktoken>=0.6.0
 toronado>=0.1.0
 typing-extensions>=4.9.0
 ua-parser>=0.10.0

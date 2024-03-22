@@ -135,6 +135,7 @@ statsd==3.3.0
 stripe==3.1.0
 structlog==22.1.0
 symbolic==12.8.0
+tiktoken==0.6.0
 toronado==0.1.0
 tqdm==4.64.1
 typing-extensions==4.9.0
