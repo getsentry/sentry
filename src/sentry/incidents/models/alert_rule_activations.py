@@ -16,9 +16,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-if TYPE_CHECKING:
-    from sentry.incidents.models.alert_rule import AlertRule
-
 
 @region_silo_only_model
 class AlertRuleActivationCondition(Model):
