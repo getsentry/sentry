@@ -618,7 +618,8 @@ Retrieve a collection of click events associated with a replay.
 
 ### Browse Replays Viewed Status [GET]
 
-Returns a collection of replays and their viewed state. The user is targeted based on the authorization context. Replay-ids are specified in the URL parameters.
+Returns a collection of replay-ids and their viewed state. The user is targeted based on the authorization context. Replay-ids are specified in the URL parameters.
+Nonexistent ids will return `false`.
 
 **Attributes**
 
