@@ -616,10 +616,6 @@ export class TraceTree {
         continue;
       }
 
-      // It's possible to have siblings eligible for autogrouping
-      // nested under an a ParentAutogrouped node
-      TraceTree.AutogroupSiblingSpanNodes(head);
-
       const autoGroupedNode = new ParentAutogroupNode(
         node.parent,
         {
@@ -666,10 +662,11 @@ export class TraceTree {
     while (queue.length > 0) {
       const node = queue.pop()!;
 
+      for (const child of node.children) {
+        queue.push(child);
+      }
+
       if (node.children.length < 5) {
-        for (const child of node.children) {
-          queue.push(child);
-        }
         continue;
       }
 
