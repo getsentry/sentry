@@ -462,9 +462,7 @@ class CleanExpiredAlertsTest(TestCase):
             )
 
             assert result is True
-            # alert_rule.refresh_from_db()
-            # activation = alert_rule.activations.get()
-            activation.refresh_from_db()
+            activation = alert_rule.activations.get()
             # assert activation.is_complete() is True # TODO: enable once we've implemented is_complete()
             assert activation.finished_at is not None
             assert activation.metric_value == 100
