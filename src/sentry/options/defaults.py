@@ -264,6 +264,15 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_REQUIRED,
 )
 
+# API
+# Killswitch for apis to work with id or slug as path parameters
+register(
+    "api.id-or-slug-enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # API Tokens
 register(
     "apitoken.auto-add-last-chars",
@@ -829,14 +838,6 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Killswitch for apis to work with id or slug as path parameters
-register(
-    "api.id-or-slug.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Switch for more performant project counter incr
