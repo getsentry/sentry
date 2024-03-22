@@ -1,6 +1,9 @@
+import logging
 from datetime import datetime
 
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorEnvironment, MonitorStatus
+
+logger = logging.getLogger(__name__)
 
 
 def mark_ok(checkin: MonitorCheckIn, ts: datetime):
@@ -47,6 +50,14 @@ def mark_ok(checkin: MonitorCheckIn, ts: datetime):
                 incident.update(
                     resolving_checkin=checkin,
                     resolving_timestamp=checkin.date_added,
+                )
+                logger.info(
+                    "monitors.logic.mark_ok.resolving_incident",
+                    extra={
+                        "monitor_env_id": monitor_env.id,
+                        "incident_id": incident.id,
+                        "grouphash": incident.grouphash,
+                    },
                 )
 
     MonitorEnvironment.objects.filter(id=monitor_env.id).exclude(last_checkin__gt=ts).update(
