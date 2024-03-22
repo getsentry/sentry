@@ -66,8 +66,8 @@ function findIndex(
 export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
   const PRELOAD_SIZE = 50;
   const BUFFER_TIME = 20_000;
-  const canvases = new Map<number, HTMLCanvasElement>([]);
-  const containers = new Map<number, HTMLImageElement>([]);
+  const canvases = new Map<number, HTMLCanvasElement>();
+  const containers = new Map<number, HTMLImageElement>();
   const imageMap = new Map<CanvasEventWithTime | string, HTMLImageElement>();
   // `canvasEventMap` can not be assumed to be sorted because it is ordered by
   // insertion order and insertions will not happen in a linear timeline due to
