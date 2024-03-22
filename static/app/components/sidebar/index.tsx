@@ -316,6 +316,15 @@ function Sidebar() {
                   icon={<SubitemDot collapsed />}
                 />
               </Feature>
+              <Feature features="performance-trace-explorer">
+                <SidebarItem
+                  {...sidebarItemProps}
+                  label={<GuideAnchor target="starfish">{t('Traces')}</GuideAnchor>}
+                  to={`/organizations/${organization.slug}/performance/traces`}
+                  id="performance-trace-explorer"
+                  icon={<SubitemDot collapsed />}
+                />
+              </Feature>
             </SidebarAccordion>
           );
         }
