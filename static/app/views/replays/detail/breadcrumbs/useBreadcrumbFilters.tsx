@@ -69,6 +69,7 @@ const OPORCATEGORY_TO_TYPE: Record<string, keyof typeof TYPE_TO_LABEL> = {
   'ui.click': 'click',
   'ui.keyDown': 'keydown',
   'ui.input': 'input',
+  feedback: 'feedback',
 };
 
 function typeToLabel(val: string): string {

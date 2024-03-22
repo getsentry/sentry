@@ -12,6 +12,7 @@ import {
   IconInput,
   IconKeyDown,
   IconLocation,
+  IconMegaphone,
   IconSort,
   IconTerminal,
   IconUser,
@@ -22,6 +23,7 @@ import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type {
   BreadcrumbFrame,
   ErrorFrame,
+  FeedbackFrame,
   LargestContentfulPaintFrame,
   MultiClickFrame,
   MutationFrame,
@@ -60,6 +62,13 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     tabKey: TabKey.NETWORK,
     title: 'Navigation',
     icon: <IconLocation size="xs" />,
+  }),
+  feedback: (frame: FeedbackFrame) => ({
+    color: 'pink300',
+    description: frame.data.projectSlug,
+    tabKey: TabKey.BREADCRUMBS,
+    title: defaultTitle(frame),
+    icon: <IconMegaphone size="xs" />,
   }),
   issue: (frame: ErrorFrame) => ({
     color: 'red300',
@@ -345,6 +354,10 @@ export default function getFrameDetails(frame: ReplayFrame): Details {
 }
 
 function defaultTitle(frame: ReplayFrame) {
+  // Override title for User Feedback frames
+  if ('message' in frame && frame.message === 'User Feedback') {
+    return t('User Feedback');
+  }
   if ('category' in frame) {
     const [type, action] = frame.category.split('.');
     return `${type} ${action || ''}`.trim();

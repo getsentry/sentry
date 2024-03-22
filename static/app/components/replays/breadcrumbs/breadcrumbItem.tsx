@@ -17,7 +17,7 @@ import {getShortEventId} from 'sentry/utils/events';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import type {ErrorFrame, ReplayFrame} from 'sentry/utils/replays/types';
-import {isErrorFrame} from 'sentry/utils/replays/types';
+import {isErrorFrame, isFeedbackFrame} from 'sentry/utils/replays/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
@@ -143,7 +143,9 @@ function BreadcrumbItem({
           />
         ))}
 
-        {isErrorFrame(frame) ? <CrumbErrorIssue frame={frame} /> : null}
+        {isErrorFrame(frame) || isFeedbackFrame(frame) ? (
+          <CrumbErrorIssue frame={frame as ErrorFrame} />
+        ) : null}
       </CrumbDetails>
     </CrumbItem>
   );
@@ -187,12 +189,14 @@ function CrumbErrorIssue({frame}: {frame: ErrorFrame}) {
     );
   }
 
+  const url = isFeedbackFrame(frame as ReplayFrame)
+    ? `/organizations/${organization.slug}/feedback/?feedbackSlug=${frame.data.projectSlug}%3A${frame.data.groupId}/`
+    : `/organizations/${organization.slug}/issues/${frame.data.groupId}/`;
+
   return (
     <CrumbIssueWrapper>
       {projectBadge}
-      <Link to={`/organizations/${organization.slug}/issues/${frame.data.groupId}/`}>
-        {frame.data.groupShortId}
-      </Link>
+      <Link to={url}>{frame.data.groupShortId}</Link>
     </CrumbIssueWrapper>
   );
 }

@@ -181,7 +181,8 @@ export default class ReplayReader {
     this._replayRecord = replayRecord;
     // Errors don't need to be sorted here, they will be merged with breadcrumbs
     // and spans in the getter and then sorted together.
-    this._errors = hydrateErrors(replayRecord, errors).sort(sortFrames);
+    const {errorFrames, feedbackFrames} = hydrateErrors(replayRecord, errors);
+    this._errors = errorFrames.sort(sortFrames);
     // RRWeb Events are not sorted here, they are fetched in sorted order.
     this._sortedRRWebEvents = rrwebFrames;
     this._videoEvents = videoFrames;
@@ -192,7 +193,9 @@ export default class ReplayReader {
       replayRecord,
       breadcrumbFrames,
       this._sortedRRWebEvents
-    ).sort(sortFrames);
+    )
+      .concat(feedbackFrames)
+      .sort(sortFrames);
     // Spans must be sorted so components like the Timeline and Network Chart
     // can have an easier time to render.
     this._sortedSpanFrames = hydrateSpans(replayRecord, spanFrames).sort(sortFrames);
@@ -384,9 +387,12 @@ export default class ReplayReader {
       [
         ...this.getPerfFrames(),
         ...this._sortedBreadcrumbFrames.filter(frame =>
-          ['replay.hydrate-error', 'replay.init', 'replay.mutations'].includes(
-            frame.category
-          )
+          [
+            'replay.hydrate-error',
+            'replay.init',
+            'replay.mutations',
+            'feedback',
+          ].includes(frame.category)
         ),
         ...this._errors,
       ].sort(sortFrames),

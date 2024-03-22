@@ -75,6 +75,12 @@ export function isBreadcrumbFrame(
   return Boolean(frame && 'category' in frame && frame.category !== 'issue');
 }
 
+export function isFeedbackFrame(
+  frame: ReplayFrame | undefined
+): frame is BreadcrumbFrame {
+  return Boolean(frame && 'category' in frame && frame.category === 'feedback');
+}
+
 export function isSpanFrame(frame: ReplayFrame | undefined): frame is SpanFrame {
   return Boolean(frame && 'op' in frame);
 }
@@ -182,9 +188,27 @@ type HydratedSpan<Op extends string> = Overwrite<
 
 // Breadcrumbs
 export type BreadcrumbFrame = Overwrite<
-  TRawBreadcrumbFrame | ExtraBreadcrumbTypes,
+  TRawBreadcrumbFrame | ExtraBreadcrumbTypes | FeedbackFrame,
   HydratedTimestamp
 >;
+
+export type FeedbackFrame = {
+  category: 'feedback';
+  data: {
+    eventId: string;
+    groupId: number;
+    groupShortId: string;
+    label: string;
+    labels: string[];
+    projectSlug: string;
+  };
+  message: string;
+  offsetMs: number;
+  timestamp: Date;
+  timestampMs: number;
+  type: string;
+};
+
 export type BlurFrame = HydratedBreadcrumb<'ui.blur'>;
 export type ClickFrame = HydratedBreadcrumb<'ui.click'>;
 export type ConsoleFrame = HydratedBreadcrumb<'console'>;
