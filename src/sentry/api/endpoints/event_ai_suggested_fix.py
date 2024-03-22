@@ -126,10 +126,13 @@ def get_openai_client() -> OpenAI:
     return openai_client
 
 
-def get_openai_policy(organization, user):
+def get_openai_policy(organization, user, pii_certified):
     """Uses a signal to determine what the policy for OpenAI should be."""
     results = openai_policy_check.send(
-        sender=EventAiSuggestedFixEndpoint, organization=organization, user=user
+        sender=EventAiSuggestedFixEndpoint,
+        organization=organization,
+        user=user,
+        pii_certified=pii_certified,
     )
     result = "allowed"
 
@@ -326,7 +329,11 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
             raise ResourceDoesNotExist
 
         # Check the OpenAI access policy
-        policy = get_openai_policy(request.organization, request.user)
+        policy = get_openai_policy(
+            request.organization,
+            request.user,
+            pii_certified=request.GET.get("pii_certified") == "yes",
+        )
         policy_failure = None
         stream = request.GET.get("stream") == "yes"
 
