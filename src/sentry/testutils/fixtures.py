@@ -391,15 +391,6 @@ class Fixtures:
             projects = [self.project]
         return Factories.create_alert_rule(organization, projects, *args, **kwargs)
 
-    def create_alert_rule_activation_condition(self, alert_rule=None, *args, **kwargs):
-        if not alert_rule:
-            alert_rule = self.create_alert_rule(
-                monitor_type=AlertRuleMonitorType.ACTIVATED,
-            )
-        return Factories.create_alert_rule_activation_condition(
-            alert_rule=alert_rule, *args, **kwargs
-        )
-
     def create_alert_rule_activation(self, alert_rule=None, *args, **kwargs):
         if not alert_rule:
             alert_rule = self.create_alert_rule(

@@ -6,6 +6,7 @@ from unittest.mock import patch
 import pytest
 import responses
 from django.core import mail
+from django.forms import ValidationError
 from django.test import override_settings
 from django.utils import timezone
 
@@ -71,6 +72,7 @@ from sentry.incidents.models.incident import (
     IncidentType,
     TriggerStatus,
 )
+from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.integrations.discord.utils.channel import ChannelType
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.models.actor import ActorTuple, get_actor_for_user, get_actor_id_for_user
@@ -442,6 +444,7 @@ class GetIncidentSubscribersTest(TestCase, BaseIncidentsTest):
 class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
     def test_create_alert_rule(self):
         # pytest parametrize does not work in TestCase subclasses, so hack around this
+        # TODO: backfill projects so all monitor_types include 'projects' fk
         for monitor_type, expected_projects in [
             (None, 0),
             (AlertRuleMonitorType.CONTINUOUS, 0),
@@ -455,7 +458,14 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             resolve_threshold = 10
             threshold_period = 1
             event_types = [SnubaQueryEventType.EventType.ERROR]
-            kwargs = {"monitor_type": monitor_type} if monitor_type else {}
+            kwargs = (
+                {
+                    "monitor_type": monitor_type,
+                    "activation_condition": AlertRuleActivationConditionType.RELEASE_CREATION,
+                }
+                if monitor_type
+                else {}
+            )
             alert_rule = create_alert_rule(
                 self.organization,
                 [self.project],
@@ -486,6 +496,32 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             assert alert_rule.resolve_threshold == resolve_threshold
             assert alert_rule.threshold_period == threshold_period
             assert alert_rule.projects.all().count() == expected_projects
+
+    def test_create_activated_alert_rule_errors_without_condition(self):
+        name = "hello"
+        query = "level:error"
+        aggregate = "count(*)"
+        time_window = 10
+        threshold_type = AlertRuleThresholdType.ABOVE
+        resolve_threshold = 10
+        threshold_period = 1
+        event_types = [SnubaQueryEventType.EventType.ERROR]
+        kwargs = {"monitor_type": AlertRuleMonitorType.ACTIVATED}
+
+        with pytest.raises(ValidationError):
+            create_alert_rule(
+                self.organization,
+                [self.project],
+                name,
+                query,
+                aggregate,
+                time_window,
+                threshold_type,
+                threshold_period,
+                resolve_threshold=resolve_threshold,
+                event_types=event_types,
+                **kwargs,
+            )
 
     def test_ignore(self):
         name = "hello"

@@ -160,12 +160,10 @@ class AlertRuleTest(TestCase):
     def test_conditionally_subscribe_project_to_alert_rules(self):
         query_extra = "foo:bar"
         project = self.create_project(name="foo")
-        alert_rule = self.create_alert_rule(
-            projects=[project], monitor_type=AlertRuleMonitorType.ACTIVATED
-        )
-        self.create_alert_rule_activation_condition(
-            alert_rule=alert_rule,
-            condition_type=AlertRuleActivationConditionType.DEPLOY_CREATION,
+        self.create_alert_rule(
+            projects=[project],
+            monitor_type=AlertRuleMonitorType.ACTIVATED,
+            activation_condition=AlertRuleActivationConditionType.DEPLOY_CREATION,
         )
         with self.tasks():
             created_subscriptions = (

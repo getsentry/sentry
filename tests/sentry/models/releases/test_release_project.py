@@ -119,10 +119,11 @@ class ReleaseProjectManagerTestCase(TransactionTestCase):
         # Let the logic flow through to snuba and see whether we properly construct the snuba query
         project = self.create_project(name="foo")
         release = Release.objects.create(organization_id=project.organization_id, version="42")
-        alert_rule = self.create_alert_rule(
-            projects=[project], monitor_type=AlertRuleMonitorType.ACTIVATED
+        self.create_alert_rule(
+            projects=[project],
+            monitor_type=AlertRuleMonitorType.ACTIVATED,
+            activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
         )
-        self.create_alert_rule_activation_condition(alert_rule=alert_rule)
 
         subscribe_project = AlertRule.objects.conditionally_subscribe_project_to_alert_rules
         with patch(
