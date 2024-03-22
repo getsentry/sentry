@@ -384,12 +384,9 @@ export default class ReplayReader {
       [
         ...this.getPerfFrames(),
         ...this._sortedBreadcrumbFrames.filter(frame =>
-          [
-            'replay.hydrate-error',
-            'replay.init',
-            'replay.mutations',
-            'sentry.feedback',
-          ].includes(frame.category)
+          ['replay.hydrate-error', 'replay.init', 'replay.mutations'].includes(
+            frame.category
+          )
         ),
         ...this._errors,
       ].sort(sortFrames),

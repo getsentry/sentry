@@ -15,13 +15,9 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {divide} from 'sentry/components/replays/utils';
 import toPercent from 'sentry/utils/number/toPercent';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import useProjectFromId from 'sentry/utils/useProjectFromId';
 
 export default function ReplayTimeline() {
   const {replay, currentTime, timelineScale} = useReplayContext();
-  const projectSlug = useProjectFromId({
-    project_id: replay?.getReplay().project_id,
-  })?.slug;
 
   const panelRef = useRef<HTMLDivElement>(null);
   const mouseTrackingProps = useTimelineScrubberMouseTracking(
@@ -73,7 +69,6 @@ export default function ReplayTimeline() {
           <ReplayTimelineEvents
             durationMs={durationMs}
             frames={chapterFrames}
-            projectSlug={projectSlug}
             startTimestampMs={startTimestampMs}
             width={width}
           />

@@ -22,7 +22,6 @@ interface Props {
     expandedState: Record<string, boolean>,
     event: MouseEvent<HTMLDivElement>
   ) => void;
-  projectSlug: string | undefined;
   startTimestampMs: number;
   style: CSSProperties;
   traces: ReplayTraceRow | undefined;
@@ -38,7 +37,6 @@ export default function BreadcrumbRow({
   onClick,
   onDimensionChange,
   onInspectorExpanded,
-  projectSlug,
   startTimestampMs,
   style,
   traces,
@@ -76,7 +74,6 @@ export default function BreadcrumbRow({
         onClick={onClick}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
-        projectSlug={projectSlug}
         startTimestampMs={startTimestampMs}
         expandPaths={expandPaths}
         onDimensionChange={handleDimensionChange}

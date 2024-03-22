@@ -19,7 +19,6 @@ const NODE_SIZES = [8, 12, 16];
 interface Props {
   durationMs: number;
   frames: ReplayFrame[];
-  projectSlug: string | undefined;
   startTimestampMs: number;
   width: number;
   className?: string;
@@ -29,7 +28,6 @@ export default function ReplayTimelineEvents({
   className,
   durationMs,
   frames,
-  projectSlug,
   startTimestampMs,
   width,
 }: Props) {
@@ -45,7 +43,6 @@ export default function ReplayTimelineEvents({
           <Event
             frames={colFrames}
             markerWidth={markerWidth}
-            projectSlug={projectSlug}
             startTimestampMs={startTimestampMs}
           />
         </EventColumn>
@@ -69,12 +66,10 @@ const EventColumn = styled(Timeline.Col)<{column: number}>`
 function Event({
   frames,
   markerWidth,
-  projectSlug,
   startTimestampMs,
 }: {
   frames: ReplayFrame[];
   markerWidth: number;
-  projectSlug: string | undefined;
   startTimestampMs: number;
 }) {
   const theme = useTheme();
@@ -92,7 +87,6 @@ function Event({
       }}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      projectSlug={projectSlug}
       startTimestampMs={startTimestampMs}
       traces={undefined}
       onDimensionChange={() => {}}
