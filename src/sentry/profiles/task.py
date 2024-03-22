@@ -936,6 +936,7 @@ def get_event_id(profile: Profile) -> str | None:
         return profile["event_id"]
     elif "chunk_id" in profile:
         return profile["chunk_id"]
+    return
 
 
 def get_data_category(profile: Profile) -> DataCategory:
