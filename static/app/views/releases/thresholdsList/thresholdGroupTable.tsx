@@ -44,7 +44,6 @@ export default function ThresholdGroupTable({
       <StyledStrong>
         <ProjectBadge project={project} avatarSize={16} hideOverflow />
       </StyledStrong>
-
       <StyledPanelTable
         isLoading={isLoading}
         isEmpty={thresholds.length === 0 && !isError}
