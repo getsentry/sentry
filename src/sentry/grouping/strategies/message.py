@@ -2,6 +2,7 @@ import dataclasses
 import re
 from collections import defaultdict
 from collections.abc import Callable
+from functools import lru_cache
 from itertools import islice
 from re import Match
 from typing import Any
@@ -154,13 +155,16 @@ _parameterization_regex_str = r"""(?x)
 
 _parameterization_regex = re.compile(_parameterization_regex_str)
 
+
 # UniqID logic
-encoding = tiktoken.get_encoding("cl100k_base")
+@lru_cache(maxsize=1)
+def tiktoken_encoding():
+    return tiktoken.get_encoding("cl100k_base")
 
 
 def num_tokens_from_string(token_str: str) -> int:
     """Returns the number of tokens in a text string."""
-    num_tokens = len(encoding.encode(token_str))
+    num_tokens = len(tiktoken_encoding().encode(token_str))
     return num_tokens
 
 
@@ -187,8 +191,10 @@ def is_probably_uniq_id(token_str: str) -> bool:
     return token_length_ratio > UNIQ_ID_TOKEN_LENGTH_RATIO_DEFAULT
 
 
-# Return result and count of replacements
 def replace_uniq_ids_in_str(string: str) -> tuple[str, int]:
+    """
+    Return result and count of replacements
+    """
     strings = string.split(" ")
     count = 0
     for i, s in enumerate(strings):
@@ -202,11 +208,12 @@ def replace_uniq_ids_in_str(string: str) -> tuple[str, int]:
 class ParameterizationExperiment:
     name: str
     regex: Any
-    # A function that takes as arguments:
-    # * This experiment
-    # * A handle match function (may not be used), e.g. _handle_regex_match (note that this modifies trimmed_value_counter)
-    # * A string input
-    # And returns: a tuple of [output string, count of replacements(which overlaps with any added by _handle_regex_match, if used)]
+    """A function that takes as arguments:
+            * This experiment
+            * A handle match function (may not be used), e.g. _handle_regex_match (note that this modifies trimmed_value_counter)
+            * A string input
+        And returns: a tuple of [output string, count of replacements(which overlaps with any added by _handle_regex_match, if used)]
+    """
     run: Callable[
         ["ParameterizationExperiment", Callable[[Match[str]], str]], tuple[str, int]
     ] = lambda self, _handle_regex_match, input: (
