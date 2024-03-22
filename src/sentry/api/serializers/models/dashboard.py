@@ -101,6 +101,7 @@ class DashboardWidgetQuerySerializer(Serializer):
             "orderby": str(obj.orderby),
             "widgetId": str(obj.widget_id),
             "onDemand": attrs["onDemand"],
+            "isHidden": obj.is_hidden,
         }
 
 
