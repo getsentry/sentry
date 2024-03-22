@@ -363,7 +363,7 @@ class AlertRule(Model):
                 for subscription in created_subscriptions:
                     AlertRuleActivations.objects.create(
                         alert_rule=self,
-                        query_subscription_id=subscription.id,
+                        query_subscription=subscription,
                     )
 
         return created_subscriptions
@@ -611,11 +611,9 @@ class AlertRuleActivity(Model):
 def update_alert_activations(
     subscription: QuerySubscription, alert_rule: AlertRule, value: float
 ) -> bool:
-    activations = alert_rule.activations.filter(
-        finished_at=None, query_subscription_id=subscription.id
+    alert_rule.activations.filter(finished_at=None, query_subscription=subscription).update(
+        metric_value=value
     )
-    for activation in activations:
-        activation.update(metric_value=value)
 
     return True
 
@@ -631,14 +629,10 @@ def clean_expired_alerts(
 
     if now > subscription_end:
         delete_snuba_subscription(subscription)
-        activations = alert_rule.activations.filter(
-            finished_at=None, query_subscription_id=subscription.id
+        alert_rule.activations.filter(finished_at=None, query_subscription=subscription).update(
+            metric_value=value,
+            finished_at=now,
         )
-        for activation in activations:
-            activation.update(
-                metric_value=value,
-                finished_at=now,
-            )
 
     return True
 

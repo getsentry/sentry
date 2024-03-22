@@ -206,7 +206,7 @@ class AlertRuleTest(TestCase):
             activations = alert_rule.activations.all()
             assert len(activations) == 1
             current_activation = activations[0]
-            assert current_activation.query_subscription_id == sub.id
+            assert current_activation.query_subscription == sub
             assert current_activation.is_complete() is False
 
 
