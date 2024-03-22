@@ -5,5 +5,5 @@ class LLMBase(Service):
     def __init__(self, **options):
         pass
 
-    def chat_completion(self, text: str):
+    def complete_prompt(self, text: str):
         raise NotImplementedError
