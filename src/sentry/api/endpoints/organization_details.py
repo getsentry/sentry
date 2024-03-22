@@ -174,9 +174,8 @@ ORG_OPTIONS = (
         bool,
         GITHUB_COMMENT_BOT_DEFAULT,
     ),
-    ("serviceDataConsent", "sentry:service_data_consent", bool, DATA_CONSENT_DEFAULT),
-    ("openAIConsent", "sentry:open_ai_consent", bool, DATA_CONSENT_DEFAULT),
-    ("perplexityConsent", "sentry:perplexity_consent", bool, DATA_CONSENT_DEFAULT),
+    ("aggregatedDataConsent", "sentry:aggregated_data_consent", bool, DATA_CONSENT_DEFAULT),
+    ("genAIConsent", "sentry:gen_ai_consent", bool, DATA_CONSENT_DEFAULT),
 )
 
 DELETION_STATUSES = frozenset(
