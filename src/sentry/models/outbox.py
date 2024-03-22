@@ -81,6 +81,7 @@ class OutboxCategory(IntEnum):
     PROVISION_ORGANIZATION = 17
     POST_ORGANIZATION_PROVISION = 18
     UNUSED_ONE = 19
+    # No longer in use.
     DISABLE_AUTH_PROVIDER = 20
     RESET_IDP_FLAGS = 21
     MARK_INVALID_SSO = 22

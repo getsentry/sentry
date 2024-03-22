@@ -131,6 +131,7 @@ def drain_mailbox(payload_id: int) -> None:
         )
         return
 
+    delivered = 0
     deadline = timezone.now() + BATCH_SCHEDULE_OFFSET
     while True:
         # We have run until the end of our batch schedule delay. Break the loop so this worker can take another
@@ -140,6 +141,7 @@ def drain_mailbox(payload_id: int) -> None:
                 "deliver_webhook.delivery_deadline",
                 extra={
                     "mailbox_name": payload.mailbox_name,
+                    "delivered": delivered,
                 },
             )
             metrics.incr(
@@ -153,16 +155,26 @@ def drain_mailbox(payload_id: int) -> None:
             id__gte=payload.id, mailbox_name=payload.mailbox_name
         ).order_by("id")
 
-        # No more messages to deliver
-        if query.count() < 1:
-            break
-
+        batch_count = 0
         for record in query[:100]:
+            batch_count += 1
             try:
                 deliver_message(record)
+                delivered += 1
             except DeliveryFailed:
                 metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "retry"})
                 return
+
+        # No more messages to deliver
+        if batch_count < 1:
+            logger.info(
+                "deliver_webhook.delivery_complete",
+                extra={
+                    "mailbox_name": payload.mailbox_name,
+                    "delivered": delivered,
+                },
+            )
+            return
 
 
 @instrumented_task(
@@ -200,6 +212,7 @@ def drain_mailbox_parallel(payload_id: int) -> None:
     worker_threads = options.get("hybridcloud.webhookpayload.worker_threads")
     deadline = timezone.now() + BATCH_SCHEDULE_OFFSET
     request_failed = False
+    delivered = 0
 
     while True:
         # We have run until the end of our batch schedule delay. Break the loop so this worker can take another
@@ -209,6 +222,7 @@ def drain_mailbox_parallel(payload_id: int) -> None:
                 "deliver_webhook_parallel.delivery_deadline",
                 extra={
                     "mailbox_name": payload.mailbox_name,
+                    "delivered": delivered,
                 },
             )
             metrics.incr(
@@ -256,6 +270,7 @@ def drain_mailbox_parallel(payload_id: int) -> None:
                 else:
                     # Delivery was successful
                     payload_record.delete()
+                    delivered += 1
                     metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "ok"})
                     metrics.distribution(
                         "hybridcloud.deliver_webhooks.attempts", payload_record.attempts
@@ -264,10 +279,24 @@ def drain_mailbox_parallel(payload_id: int) -> None:
             # We didn't have any more messages to deliver.
             # Break out of this task so we can get a new one.
             if len(futures) < 1:
+                logger.info(
+                    "deliver_webhook_parallel.task_complete",
+                    extra={
+                        "mailbox_name": payload.mailbox_name,
+                        "delivered": delivered,
+                    },
+                )
                 break
 
         # If a delivery failed we should stop processing this mailbox and try again later.
         if request_failed:
+            logger.info(
+                "deliver_webhook_parallel.delivery_request_failed",
+                extra={
+                    "mailbox_name": payload.mailbox_name,
+                    "delivered": delivered,
+                },
+            )
             return
 
 
