@@ -1,6 +1,7 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -39,6 +40,7 @@ class OrganizationRegionEndpointPermissions(SentryPermission):
 
 @control_silo_endpoint
 class OrganizationRegionEndpoint(Endpoint):
+    owner = ApiOwner.HYBRID_CLOUD
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
