@@ -1,13 +1,18 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from functools import cached_property
+from typing import Any
 
 import sentry_sdk
 from django.http.response import HttpResponseBase
 
-from sentry.integrations.msteams.webhook import MsTeamsWebhookEndpoint, MsTeamsWebhookMixin
+from sentry.integrations.msteams.webhook import (
+    MsTeamsEvents,
+    MsTeamsWebhookEndpoint,
+    MsTeamsWebhookMixin,
+)
 from sentry.middleware.integrations.parsers.base import BaseRequestParser
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
@@ -25,6 +30,8 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
     webhook_identifier = WebhookProviderIdentifier.MSTEAMS
 
     region_view_classes = [MsTeamsWebhookEndpoint]
+
+    _synchronous_events = [MsTeamsEvents.INSTALLATION_UPDATE]
 
     @cached_property
     def request_data(self):
@@ -45,6 +52,15 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
         if integration:
             return Integration.objects.filter(id=integration.id).first()
         return None
+
+    @classmethod
+    def _check_if_event_should_be_sync(cls, data: Mapping[str, Any]) -> bool:
+        raw_event_type = data.get("type", None)
+        if raw_event_type is None:
+            return True
+
+        event_type = MsTeamsEvents.get_from_value(value=raw_event_type)
+        return event_type in cls._synchronous_events
 
     def get_response(self) -> HttpResponseBase:
         if self.view_class not in self.region_view_classes:
@@ -94,6 +110,9 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
                 )
             logger.info("%s.no_regions", self.provider, extra={"path": self.request.path})
             return self.get_response_from_control_silo()
+
+        if self._check_if_event_should_be_sync(data=self.request_data):
+            return self.get_default_missing_integration_response()
 
         return self.get_response_from_outbox_creation_for_integration(
             regions=regions, integration=integration
