@@ -628,6 +628,7 @@ def clean_expired_alerts(
     )
 
     if now > subscription_end:
+        # NOTE: QuerySubscription deletion will set fk to null on the activation
         delete_snuba_subscription(subscription)
         alert_rule.activations.filter(finished_at=None, query_subscription=subscription).update(
             metric_value=value,
