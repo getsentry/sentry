@@ -74,6 +74,7 @@ export default function NodeDetail({
     return (
       <ParentAutogroupNodeDetails
         node={node}
+        location={location}
         organization={organization}
         onParentClick={onParentClick}
       />
@@ -83,6 +84,7 @@ export default function NodeDetail({
   if (isSiblingAutogroupedNode(node)) {
     return (
       <SiblingAutogroupNodeDetails
+        location={location}
         node={node}
         organization={organization}
         onParentClick={onParentClick}

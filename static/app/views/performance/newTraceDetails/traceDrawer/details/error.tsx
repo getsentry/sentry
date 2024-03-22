@@ -89,7 +89,12 @@ export function ErrorNodeDetails({
         </TraceDrawerComponents.Actions>
       </TraceDrawerComponents.HeaderContainer>
 
-      <IssueList issues={node.errors} node={node} organization={organization} />
+      <IssueList
+        issues={node.errors}
+        node={node}
+        organization={organization}
+        location={location}
+      />
 
       <TraceDrawerComponents.Table className="table key-value">
         <tbody>

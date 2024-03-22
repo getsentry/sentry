@@ -280,7 +280,14 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
       return null;
     }
 
-    return <IssueList organization={organization} issues={issues} node={props.node} />;
+    return (
+      <IssueList
+        organization={organization}
+        issues={issues}
+        node={props.node}
+        location={location}
+      />
+    );
   }
 
   function partitionSizes(data): {
