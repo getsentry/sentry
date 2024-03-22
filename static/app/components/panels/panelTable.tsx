@@ -183,5 +183,3 @@ const PanelTableHeader = styled('div')<{sticky: boolean}>`
 `;
 
 export {PanelTable, type PanelTableProps, PanelTableHeader};
-
-export default PanelTable;
