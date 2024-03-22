@@ -425,9 +425,6 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     githubPRBot: bool
     githubOpenPRBot: bool
     githubNudgeInvite: bool
-    openAIConsent: bool
-    perplexityConsent: bool
-    serviceDataConsent: bool
     isDynamicallySampled: bool
 
 
@@ -543,9 +540,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "githubNudgeInvite": bool(
                     obj.get_option("sentry:github_nudge_invite", GITHUB_COMMENT_BOT_DEFAULT)
                 ),
-                "openAIConsent": bool(obj.get_option("sentry:open_ai_consent", False)),
-                "perplexityConsent": bool(obj.get_option("sentry:perplexity_consent", False)),
-                "serviceDataConsent": bool(obj.get_option("sentry:service_data_consent", False)),
             }
         )
 

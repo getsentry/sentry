@@ -32,7 +32,6 @@ from sentry.constants import (
     AI_SUGGESTED_SOLUTION,
     ALERTS_MEMBER_WRITE_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
-    DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
@@ -174,9 +173,6 @@ ORG_OPTIONS = (
         bool,
         GITHUB_COMMENT_BOT_DEFAULT,
     ),
-    ("serviceDataConsent", "sentry:service_data_consent", bool, DATA_CONSENT_DEFAULT),
-    ("openAIConsent", "sentry:open_ai_consent", bool, DATA_CONSENT_DEFAULT),
-    ("perplexityConsent", "sentry:perplexity_consent", bool, DATA_CONSENT_DEFAULT),
 )
 
 DELETION_STATUSES = frozenset(
@@ -223,9 +219,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     githubOpenPRBot = serializers.BooleanField(required=False)
     githubNudgeInvite = serializers.BooleanField(required=False)
     githubPRBot = serializers.BooleanField(required=False)
-    serviceDataConsent = serializers.BooleanField(required=False)
-    openAIConsent = serializers.BooleanField(required=False)
-    perplexityConsent = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
     requireEmailVerification = serializers.BooleanField(required=False)
     trustedRelays = serializers.ListField(child=TrustedRelaySerializer(), required=False)
