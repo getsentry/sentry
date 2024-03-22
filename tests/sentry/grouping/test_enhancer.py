@@ -30,7 +30,7 @@ def dump_obj(obj):
     return rv
 
 
-@pytest.mark.parametrize("version", [1, 2])
+@pytest.mark.parametrize("version", [2])
 def test_basic_parsing(insta_snapshot, version):
     enhancement = Enhancements.from_config_string(
         """

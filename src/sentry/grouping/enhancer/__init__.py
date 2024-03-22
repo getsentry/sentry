@@ -92,7 +92,7 @@ _        = space*
 )
 
 
-VERSIONS = [1, 2]
+VERSIONS = [2]
 LATEST_VERSION = VERSIONS[-1]
 
 
@@ -342,7 +342,7 @@ class Enhancements:
     # NOTE: You must add a version to ``VERSIONS`` any time attributes are added
     # to this class, s.t. no enhancements lacking these attributes are loaded
     # from cache.
-    # See ``_get_project_enhancements_config`` in src/sentry/grouping/api.py.
+    # See ``GroupingConfigLoader._get_enhancements`` in src/sentry/grouping/api.py.
 
     @sentry_sdk.tracing.trace
     def __init__(self, rules, version=None, bases=None, id=None, rust_enhancements=None):
