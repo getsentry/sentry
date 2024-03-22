@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 from django.db import models
 from django.utils import timezone
@@ -10,7 +10,9 @@ from django.utils import timezone
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model
 from sentry.db.models.manager import BaseManager
-from sentry.incidents.models.alert_rule import AlertRule
+
+if TYPE_CHECKING:
+    from sentry.incidents.models.alert_rule import AlertRule
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +65,12 @@ class AlertRuleActivations(Model):
     # metric value represents the query results at the end of the activated time window.
     # since activated alerts are not run on a continuously shifting time window, the value
     # of this metric value will only continually tick upwards until the monitor window has expired.
-    metric_value = models.FloatField()
+    metric_value = models.FloatField(null=True)
+    # query_subscriptions are cleaned up after every run
+    # if a query_subscription is null, finished_at must be NOT be null
+    query_subscription = FlexibleForeignKey(
+        "sentry.QuerySubscription", null=True, on_delete=models.SET_NULL
+    )
 
     class Meta:
         app_label = "sentry"

@@ -1528,10 +1528,13 @@ class Factories:
     @assume_test_silo_mode(SiloMode.REGION)
     def create_alert_rule_activation(
         alert_rule,
+        query_subscription,
         **kwargs,
     ):
 
-        return create_alert_rule_activation(alert_rule, **kwargs)
+        return create_alert_rule_activation(
+            alert_rule=alert_rule, query_subscription=query_subscription, **kwargs
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
