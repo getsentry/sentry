@@ -139,10 +139,10 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         # TODO: once snuba pr #5676 is merged, change expected_identity_series back to single entry
         #       the ones with [None, 0.0] should become None
         for aggregate, expected_identity_series, expected_identity_totals in (
-            ("count", [None], 0),
-            ("avg", [None], None),
-            ("sum", [None, 0.0], 0.0),
-            ("min", [None, 0.0], 0.0),
+            ("count", (None,), 0),
+            ("avg", (None,), None),
+            ("sum", (None, 0.0), 0.0),
+            ("min", (None, 0.0), 0.0),
         ):
             query_1 = self.mql(aggregate, TransactionMRI.DURATION.value, "transaction:/bar")
             plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
@@ -163,7 +163,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
 
             _, second, third = data[0][0]["series"]
             assert second in expected_identity_series
-            assert third in expected_identity_series
+            assert second == third
 
             assert data[0][0]["totals"] == expected_identity_totals
 
