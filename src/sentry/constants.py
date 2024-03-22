@@ -644,7 +644,7 @@ GITHUB_COMMENT_BOT_DEFAULT = True
 EVENTS_MEMBER_ADMIN_DEFAULT = True
 ALERTS_MEMBER_WRITE_DEFAULT = True
 
-# Defined at https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
+# Defined at https://github.com/getsentry/relay/blob/master/py/sentry_relay/consts.py
 DataCategory = sentry_relay.consts.DataCategory
 
 CRASH_RATE_ALERT_SESSION_COUNT_ALIAS = "_total_count"
