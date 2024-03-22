@@ -283,7 +283,11 @@ describe('parseDashboard', () => {
           type: 'timeseries',
           requests: mockRequests(
             ['sum:sentry.bar.baz{}', 'sum:sentry.foo.bar{}'],
-            [{formula: '2 * query1'}]
+            [
+              {formula: '2 * query1'},
+              {formula: 'query0 + query1'},
+              {formula: '(query1 + query1) - query0'},
+            ]
           ),
         }),
       ],
@@ -294,7 +298,11 @@ describe('parseDashboard', () => {
     const {report, widgets} = result;
     expect(report.length).toEqual(1);
     expect(widgets.length).toEqual(1);
-    expect(widgets[0].queries.length).toEqual(3);
-    expect(widgets[0].queries[2].aggregates[0]).toEqual('equation|2 * $b');
+
+    const queries = widgets[0].queries;
+    expect(queries.length).toEqual(5);
+    expect(queries[2].aggregates[0]).toEqual('equation|2 * $b');
+    expect(queries[3].aggregates[0]).toEqual('equation|$a + $b');
+    expect(queries[4].aggregates[0]).toEqual('equation|($b + $b) - $a');
   });
 });

@@ -241,7 +241,7 @@ export class WidgetParser {
     const equations = formulas.map(formula => {
       const {formula: formulaString, alias} = formula;
       const mapped = queryNames.reduce((acc, queryName) => {
-        return acc.replace(queryName, `$${queryNameMap[queryName]}`);
+        return acc.replaceAll(queryName, `$${queryNameMap[queryName]}`);
       }, formulaString);
 
       return {
