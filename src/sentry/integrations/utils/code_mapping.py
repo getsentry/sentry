@@ -546,7 +546,7 @@ def find_roots(stack_path: str, source_path: str) -> tuple[str, str]:
     """
     stack_path_delim = SLASH if SLASH in stack_path else BACKSLASH
     overlap_to_check = stack_path.split(stack_path_delim)
-    stack_root_items = []
+    stack_root_items: list[str] = []
     while overlap_to_check:
         if source_path.endswith(overlap := SLASH.join(overlap_to_check)):
             source_root = source_path.rpartition(overlap)[0]
