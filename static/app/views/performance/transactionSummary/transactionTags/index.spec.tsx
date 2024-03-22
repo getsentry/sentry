@@ -1,10 +1,10 @@
 import {browserHistory} from 'react-router';
-import selectEvent from 'react-select-event';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TransactionTags from 'sentry/views/performance/transactionSummary/transactionTags';
@@ -175,7 +175,7 @@ describe('Performance > Transaction Tags', function () {
       },
     });
 
-    expect(screen.getByRole('radio', {name: 'hardwareConcurrency'})).toBeChecked();
+    expect(await screen.findByRole('radio', {name: 'hardwareConcurrency'})).toBeChecked();
   });
 
   it('Default tagKey is set when loading the page without one', async function () {
@@ -200,7 +200,7 @@ describe('Performance > Transaction Tags', function () {
       },
     });
 
-    expect(histogramMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(histogramMock).toHaveBeenCalledTimes(1));
     expect(histogramMock).toHaveBeenNthCalledWith(
       1,
       expect.anything(),
@@ -237,7 +237,7 @@ describe('Performance > Transaction Tags', function () {
       },
     });
 
-    expect(histogramMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(histogramMock).toHaveBeenCalledTimes(1));
     expect(histogramMock).toHaveBeenNthCalledWith(
       1,
       expect.anything(),
@@ -264,7 +264,7 @@ describe('Performance > Transaction Tags', function () {
     });
 
     // Release link is properly setup
-    expect(screen.getByText(TEST_RELEASE_NAME)).toBeInTheDocument();
+    expect(await screen.findByText(TEST_RELEASE_NAME)).toBeInTheDocument();
     expect(screen.getByText(TEST_RELEASE_NAME).parentElement).toHaveAttribute(
       'href',
       `/organizations/${initialData.organization.slug}/releases/${encodeURIComponent(
@@ -297,8 +297,8 @@ describe('Performance > Transaction Tags', function () {
       },
     });
 
-    expect(screen.getByRole('radio', {name: 'hardwareConcurrency'})).toBeChecked();
-    expect(screen.getByRole('button', {name: 'Next'})).toHaveAttribute(
+    expect(await screen.findByRole('radio', {name: 'hardwareConcurrency'})).toBeChecked();
+    expect(await screen.findByRole('button', {name: 'Next'})).toHaveAttribute(
       'aria-disabled',
       'false'
     );
@@ -342,10 +342,11 @@ describe('Performance > Transaction Tags', function () {
     });
 
     await waitFor(() => {
+      // Table is loaded.
       expect(screen.getByRole('table')).toBeInTheDocument();
     });
 
-    expect(histogramMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(histogramMock).toHaveBeenCalledTimes(1));
 
     expect(histogramMock).toHaveBeenNthCalledWith(
       1,
@@ -359,9 +360,7 @@ describe('Performance > Transaction Tags', function () {
 
     await selectEvent.select(screen.getByText('X-Axis'), 'LCP');
 
-    await waitFor(() => {
-      expect(screen.getByRole('table')).toBeInTheDocument();
-    });
+    expect(await screen.findByRole('table')).toBeInTheDocument();
 
     expect(histogramMock).toHaveBeenCalledTimes(2);
 

@@ -3,17 +3,17 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import colorFn from 'color';
 
-import {LinkButton} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconArrow, IconLightning, IconReleases} from 'sentry/icons';
+import {IconArrow, IconFilter, IconLightning, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {DEFAULT_SORT_STATE} from 'sentry/utils/metrics/constants';
-import {formatMetricsUsingUnitAndOp} from 'sentry/utils/metrics/formatters';
+import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import type {FocusedMetricsSeries, SortState} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -27,18 +27,21 @@ export const SummaryTable = memo(function SummaryTable({
   onSortChange,
   sort = DEFAULT_SORT_STATE as SortState,
   onRowHover,
+  onRowFilter,
 }: {
   onRowClick: (series: FocusedMetricsSeries) => void;
   onSortChange: (sortState: SortState) => void;
   series: Series[];
   onColorDotClick?: (series: FocusedMetricsSeries) => void;
+  onRowFilter?: (index: number, series: FocusedMetricsSeries) => void;
   onRowHover?: (seriesName: string) => void;
   sort?: SortState;
 }) {
   const {selection} = usePageFilters();
   const organization = useOrganization();
 
-  const hasActions = series.some(s => s.release || s.transaction);
+  const canFilter = series.length > 1 && !!onRowFilter;
+  const hasActions = series.some(s => s.release || s.transaction) || canFilter;
   const hasMultipleSeries = series.length > 1;
 
   const changeSort = useCallback(
@@ -76,6 +79,19 @@ export const SummaryTable = memo(function SummaryTable({
       }
     },
     [sort, onSortChange, organization]
+  );
+
+  const handleRowFilter = useCallback(
+    (index: number | undefined, row: FocusedMetricsSeries) => {
+      if (index === undefined) {
+        return;
+      }
+      trackAnalytics('ddm.widget.add_row_filter', {
+        organization,
+      });
+      onRowFilter?.(index, row);
+    },
+    [onRowFilter, organization]
   );
 
   const releaseTo = (release: string) => {
@@ -118,6 +134,8 @@ export const SummaryTable = memo(function SummaryTable({
         ...getValues(s.data),
       };
     })
+    // Filter series with no data
+    .filter(s => s.min !== Infinity)
     .sort((a, b) => {
       const {name, order} = sort;
       if (!name) {
@@ -154,7 +172,10 @@ export const SummaryTable = memo(function SummaryTable({
       <SortableHeaderCell onClick={changeSort} sortState={sort} name="sum" right>
         {t('Sum')}
       </SortableHeaderCell>
-      <HeaderCell disabled right />
+      <SortableHeaderCell onClick={changeSort} sortState={sort} name="total" right>
+        {t('Total')}
+      </SortableHeaderCell>
+      {hasActions && <HeaderCell disabled right />}
       <HeaderCell disabled />
       <TableBodyWrapper
         hasActions={hasActions}
@@ -172,13 +193,15 @@ export const SummaryTable = memo(function SummaryTable({
             color,
             hidden,
             unit,
-            operation,
             transaction,
             release,
             avg,
             min,
             max,
             sum,
+            total,
+            isEquationSeries,
+            queryIndex,
           }) => {
             return (
               <Fragment key={id}>
@@ -229,46 +252,59 @@ export const SummaryTable = memo(function SummaryTable({
                     </Tooltip>
                   </TextOverflowCell>
                   {/* TODO(ddm): Add a tooltip with the full value, don't add on click in case users want to copy the value */}
-                  <NumberCell>
-                    {formatMetricsUsingUnitAndOp(avg, unit, operation)}
-                  </NumberCell>
-                  <NumberCell>
-                    {formatMetricsUsingUnitAndOp(min, unit, operation)}
-                  </NumberCell>
-                  <NumberCell>
-                    {formatMetricsUsingUnitAndOp(max, unit, operation)}
-                  </NumberCell>
-                  <NumberCell>
-                    {formatMetricsUsingUnitAndOp(sum, unit, operation)}
-                  </NumberCell>
+                  <NumberCell>{formatMetricUsingUnit(avg, unit)}</NumberCell>
+                  <NumberCell>{formatMetricUsingUnit(min, unit)}</NumberCell>
+                  <NumberCell>{formatMetricUsingUnit(max, unit)}</NumberCell>
+                  <NumberCell>{formatMetricUsingUnit(sum, unit)}</NumberCell>
+                  <NumberCell>{formatMetricUsingUnit(total, unit)}</NumberCell>
 
-                  <CenterCell>
-                    <ButtonBar gap={0.5}>
-                      {transaction && (
-                        <div>
-                          <Tooltip title={t('Open Transaction Summary')}>
-                            <LinkButton
-                              to={transactionTo(transaction)}
-                              size="zero"
-                              borderless
-                            >
-                              <IconLightning size="sm" />
-                            </LinkButton>
-                          </Tooltip>
-                        </div>
-                      )}
+                  {hasActions && (
+                    <CenterCell>
+                      <ButtonBar gap={0.5}>
+                        {transaction && (
+                          <div>
+                            <Tooltip title={t('Open Transaction Summary')}>
+                              <LinkButton
+                                to={transactionTo(transaction)}
+                                size="zero"
+                                borderless
+                              >
+                                <IconLightning size="sm" />
+                              </LinkButton>
+                            </Tooltip>
+                          </div>
+                        )}
 
-                      {release && (
-                        <div>
-                          <Tooltip title={t('Open Release Details')}>
-                            <LinkButton to={releaseTo(release)} size="zero" borderless>
-                              <IconReleases size="sm" />
-                            </LinkButton>
-                          </Tooltip>
-                        </div>
-                      )}
-                    </ButtonBar>
-                  </CenterCell>
+                        {release && (
+                          <div>
+                            <Tooltip title={t('Open Release Details')}>
+                              <LinkButton to={releaseTo(release)} size="zero" borderless>
+                                <IconReleases size="sm" />
+                              </LinkButton>
+                            </Tooltip>
+                          </div>
+                        )}
+
+                        <Tooltip title={t('Add to Filter')} disabled={isEquationSeries}>
+                          <Button
+                            disabled={isEquationSeries}
+                            onClick={event => {
+                              event.stopPropagation();
+
+                              handleRowFilter(queryIndex, {
+                                id,
+                                groupBy,
+                              });
+                            }}
+                            size="zero"
+                            borderless
+                          >
+                            <IconFilter size="sm" />
+                          </Button>
+                        </Tooltip>
+                      </ButtonBar>
+                    </CenterCell>
+                  )}
 
                   <PaddingCell />
                 </Row>
@@ -378,10 +414,10 @@ function getValues(seriesData: Series['data']) {
 
 const SummaryTableWrapper = styled(`div`)<{hasActions: boolean}>`
   display: grid;
-  /* padding | color dot | name | avg | min | max | sum | actions | padding */
-  grid-template-columns: ${space(0.75)} ${space(3)} 8fr repeat(5, max-content) ${space(
-      0.75
-    )};
+  /* padding | color dot | name | avg | min | max | sum | total | actions | padding */
+  grid-template-columns:
+    ${space(0.75)} ${space(3)} 8fr repeat(${p => (p.hasActions ? 6 : 5)}, max-content)
+    ${space(0.75)};
 
   max-height: 200px;
   overflow-x: hidden;
@@ -414,6 +450,10 @@ const HeaderCell = styled('div')<{disabled?: boolean; right?: boolean}>`
   background-color: ${p => p.theme.backgroundSecondary};
   border-radius: 0;
   border-bottom: 1px solid ${p => p.theme.border};
+
+  top: 0;
+  position: sticky;
+  z-index: 1;
 
   &:hover {
     cursor: ${p => (p.disabled ? 'default' : 'pointer')};

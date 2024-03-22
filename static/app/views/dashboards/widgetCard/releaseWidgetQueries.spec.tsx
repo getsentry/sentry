@@ -6,6 +6,7 @@ import {SessionsFieldFixture} from 'sentry-fixture/sessions';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {
   DashboardFilterKeys,
@@ -72,12 +73,15 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
 
   const api = new MockApiClient();
 
+  beforeEach(function () {
+    setMockDate(new Date('2022-08-02'));
+  });
   afterEach(function () {
     MockApiClient.clearMockResponses();
+    resetMockDate();
   });
 
   it('can send chart requests', async function () {
-    jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: MetricsFieldFixture(`session.all`),
@@ -185,7 +189,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     );
   });
 
-  it('calls session api when session.status is a group by', function () {
+  it('calls session api when session.status is a group by', async function () {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sessions/',
       body: MetricsFieldFixture(`count_unique(user)`),
@@ -213,19 +217,21 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
       </ReleaseWidgetQueries>
     );
 
-    expect(mock).toHaveBeenCalledWith(
-      '/organizations/org-slug/sessions/',
-      expect.objectContaining({
-        query: expect.objectContaining({
-          environment: ['prod'],
-          field: ['count_unique(user)'],
-          groupBy: ['session.status'],
-          interval: '30m',
-          project: [1],
-          statsPeriod: '14d',
-        }),
-      })
-    );
+    await waitFor(() => {
+      expect(mock).toHaveBeenCalledWith(
+        '/organizations/org-slug/sessions/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            environment: ['prod'],
+            field: ['count_unique(user)'],
+            groupBy: ['session.status'],
+            interval: '30m',
+            project: [1],
+            statsPeriod: '14d',
+          }),
+        })
+      );
+    });
   });
 
   it('appends dashboard filters to releases request', async function () {
@@ -459,7 +465,6 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
   });
 
   it('can send table requests', async function () {
-    jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: MetricsSessionUserCountByStatusByReleaseFixture(),
@@ -559,7 +564,6 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
   });
 
   it('can send big number requests', async function () {
-    jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: MetricsFieldFixture(`count_unique(sentry.sessions.user)`),
@@ -604,8 +608,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     );
   });
 
-  it('can send multiple API requests', function () {
-    jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
+  it('can send multiple API requests', async function () {
     const metricsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: SessionsFieldFixture(`session.all`),
@@ -626,7 +629,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
       </ReleaseWidgetQueries>
     );
     // Child should be rendered and 2 requests should be sent.
-    expect(screen.getByTestId('child')).toBeInTheDocument();
+    expect(await screen.findByTestId('child')).toBeInTheDocument();
     expect(metricsMock).toHaveBeenCalledTimes(2);
     expect(metricsMock).toHaveBeenNthCalledWith(
       1,
@@ -699,8 +702,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     );
   });
 
-  it('adjusts interval based on date window', function () {
-    jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
+  it('adjusts interval based on date window', async function () {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: SessionsFieldFixture(`session.all`),
@@ -717,7 +719,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
       </ReleaseWidgetQueries>
     );
 
-    expect(screen.getByTestId('child')).toBeInTheDocument();
+    expect(await screen.findByTestId('child')).toBeInTheDocument();
     expect(mock).toHaveBeenCalledTimes(1);
     expect(mock).toHaveBeenCalledWith(
       expect.anything(),
@@ -732,7 +734,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     );
   });
 
-  it('does not re-fetch when renaming legend alias / adding falsy fields', () => {
+  it('does not re-fetch when renaming legend alias / adding falsy fields', async () => {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: SessionsFieldFixture(`session.all`),
@@ -750,7 +752,9 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
       </ReleaseWidgetQueries>
     );
 
-    expect(mock).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(mock).toHaveBeenCalledTimes(1);
+    });
 
     rerender(
       <ReleaseWidgetQueries
@@ -773,10 +777,12 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     );
 
     // no additional request has been sent, the total count of requests is still 1
-    expect(mock).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(mock).toHaveBeenCalledTimes(1);
+    });
   });
 
-  it('does not re-fetch when dashboard filter remains the same', () => {
+  it('does not re-fetch when dashboard filter remains the same', async () => {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: SessionsFieldFixture(`session.all`),
@@ -795,7 +801,9 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
       </ReleaseWidgetQueries>
     );
 
-    expect(mock).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(mock).toHaveBeenCalledTimes(1);
+    });
 
     rerender(
       <ReleaseWidgetQueries
@@ -810,6 +818,8 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     );
 
     // no additional request has been sent, the total count of requests is still 1
-    expect(mock).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(mock).toHaveBeenCalledTimes(1);
+    });
   });
 });

@@ -102,7 +102,7 @@ export function getDefaultNodeImports({
     `const Sentry = require("@sentry/node");`,
   ];
   if (productSelection.profiling) {
-    imports.push(`import { ProfilingIntegration } from "@sentry/profiling-node";`);
+    imports.push(`import { nodeProfilingIntegration } from "@sentry/profiling-node";`);
   }
   return imports;
 }
@@ -117,7 +117,9 @@ export function getDefaulServerlessImports({
     `const Sentry = require("@sentry/serverless");`,
   ];
   if (productSelection.profiling) {
-    imports.push(`const { ProfilingIntegration } = require("@sentry/profiling-node");`);
+    imports.push(
+      `const { nodeProfilingIntegration } = require("@sentry/profiling-node");`
+    );
   }
   return imports;
 }
@@ -129,7 +131,7 @@ export function getProductIntegrations({
 }) {
   const integrations: string[] = [];
   if (productSelection.profiling) {
-    integrations.push(`new ProfilingIntegration(),`);
+    integrations.push(`nodeProfilingIntegration(),`);
   }
   return integrations;
 }

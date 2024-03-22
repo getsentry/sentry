@@ -10,13 +10,7 @@ from sentry.models.integrations.integration import Integration
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.options import override_options
-from sentry.testutils.outbox import (
-    assert_no_webhook_payloads,
-    assert_webhook_outboxes_with_shard_id,
-    assert_webhook_payloads_for_mailbox,
-    outbox_runner,
-)
+from sentry.testutils.outbox import assert_webhook_payloads_for_mailbox, outbox_runner
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
@@ -61,33 +55,13 @@ class BitbucketServerRequestParserTest(TestCase):
         OrganizationMapping.objects.get(organization_id=self.organization.id).update(
             region_name="us"
         )
-        parser.get_response()
-        assert_webhook_outboxes_with_shard_id(
-            factory_request=request,
-            expected_shard_id=self.organization.id,
-            region_names=[self.region.name],
-        )
-
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_regions(region_config)
-    @override_options({"hybridcloud.webhookpayload.rollout": 1.0})
-    def test_webhook_outbox_creation_webhookpayload(self):
-        integration = self.get_integration()
-        region_route = reverse(
-            "sentry-extensions-bitbucketserver-webhook",
-            kwargs={"organization_id": self.organization.id, "integration_id": integration.id},
-        )
-        request = self.factory.post(region_route)
-        assert_no_webhook_payloads()
-        parser = BitbucketServerRequestParser(request=request, response_handler=self.get_response)
-
         response = parser.get_response()
         assert isinstance(response, HttpResponse)
         assert response.status_code == 202
         assert response.content == b""
 
         assert_webhook_payloads_for_mailbox(
-            mailbox_name=f"bitbucket_server:{self.organization.id}",
-            region_names=["us"],
             request=request,
+            mailbox_name=f"bitbucket_server:{self.organization.id}",
+            region_names=[self.region.name],
         )

@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta
 from datetime import timezone as datetime_timezone
 from unittest.mock import patch
@@ -726,6 +727,24 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
                 # No lineno
             },
             {
+                "function": "something_else",
+                "abs_path": "/usr/src/sentry/src/sentry/invalid_1.py",
+                "module": "sentry.invalid_1",
+                "in_app": True,
+                # Bad path with backslashes
+                "filename": "sentry/invalid_1.py\\other",
+                "lineno": 39,
+            },
+            {
+                "function": "something_else",
+                "abs_path": "/usr/src/sentry/src/sentry/invalid_2.py",
+                "module": "sentry.invalid_2",
+                "in_app": True,
+                # Bad path with quotes
+                "filename": 'sentry/"invalid_2".py',
+                "lineno": 39,
+            },
+            {
                 "function": "set_commits",
                 "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
                 "module": "sentry.models.release",
@@ -776,9 +795,11 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
             project_id=self.project.id,
             group_id=self.event.group_id,
             event_id=self.event.event_id,
-            num_frames=1,  # Filters out the invalid frames and dedupes the 2 valid frames
+            # 1 was a duplicate, 2 filtered out because of missing properties
+            num_frames=3,
             num_unique_commits=1,
             num_unique_commit_authors=1,
+            # Only 1 successfully mapped frame of the 6 total
             num_successfully_mapped_frames=1,
             selected_frame_index=0,
             selected_provider="github",
@@ -983,6 +1004,31 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
         self.pull_request.save()
 
         self.add_responses()
+
+        with self.tasks():
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+            assert not mock_comment_workflow.called
+            assert len(PullRequestCommit.objects.all()) == 0
+
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_gh_comment_pr_info_level_issue(
+        self, get_jwt, mock_comment_workflow, mock_get_commit_context
+    ):
+        """No comment on pr that's has info level issue"""
+        mock_get_commit_context.return_value = [self.blame]
+        self.pull_request.date_added = before_now(days=1)
+        self.pull_request.save()
+
+        self.add_responses()
+        self.event.group.update(level=logging.INFO)
 
         with self.tasks():
             event_frames = get_frame_paths(self.event)

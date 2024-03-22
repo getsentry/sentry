@@ -16,7 +16,6 @@ from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
 from sentry.snuba import (
     discover,
-    errors,
     functions,
     metrics_enhanced_performance,
     metrics_performance,
@@ -128,6 +127,28 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             }
         )
 
+    def flatten_results(self, results: SnubaTSResult | dict[str, SnubaTSResult]):
+        if isinstance(results, SnubaTSResult):
+            return results.data["data"]
+        else:
+            return sum(
+                [timeseries_result.data["data"] for timeseries_result in results.values()],
+                [],
+            )
+
+    def check_if_results_have_data(self, results: SnubaTSResult | dict[str, SnubaTSResult]):
+        flattened_data = self.flatten_results(results)
+        has_data = any(
+            any(
+                column_name != "time"
+                and isinstance(column_value, (int, float))
+                and column_value != 0
+                for (column_name, column_value) in row.items()
+            )
+            for row in flattened_data
+        )
+        return has_data
+
     def get(self, request: Request, organization: Organization) -> Response:
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params") as span:
             span.set_data("organization", organization)
@@ -192,7 +213,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     if dataset
                     in [
                         discover,
-                        errors,
                         functions,
                         metrics_performance,
                         metrics_enhanced_performance,
@@ -301,18 +321,24 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 try:
                     widget = DashboardWidget.objects.get(id=dashboard_widget_id)
                     does_widget_have_split = widget.discover_widget_split is not None
+                    has_override_feature = features.has(
+                        "organizations:performance-discover-widget-split-override-save",
+                        organization,
+                        actor=request.user,
+                    )
 
-                    if does_widget_have_split:
+                    if does_widget_have_split and not has_override_feature:
                         # This is essentially cached behaviour and we skip the check
                         split_query = query
                         if widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS:
                             split_dataset = discover
-                            split_query = f"({query}) AND event.type:error"
+                            split_query = f"({query}) AND !event.type:transaction"
                         elif widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE:
+                            # We can't add event.type:transaction for now because of on-demand.
                             split_dataset = scoped_dataset
                         else:
                             # This is a fallback for the ambiguous case.
-                            split_dataset = scoped_dataset
+                            split_dataset = discover
 
                         return _get_event_stats(
                             split_dataset,
@@ -325,7 +351,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         )
 
                     # Widget has not split the discover dataset yet, so we need to check if there are errors etc.
-                    errors_only_query = f"({query}) AND event.type:error"
+                    errors_only_query = f"({query}) AND !event.type:transaction"
+                    error_results = None
                     try:
                         error_results = _get_event_stats(
                             discover,
@@ -336,28 +363,51 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                             zerofill_results,
                             comparison_delta,
                         )
-                        sum_error_results = error_results.data["data"]
-                        has_errors = any(
-                            any("(" in column and ")" in column for column in row.keys())
-                            for row in sum_error_results
-                        )
-                    except SnubaError as e:
-                        sentry_sdk.capture_exception(e)
-                        has_errors = True
+                        has_errors = self.check_if_results_have_data(error_results)
+                    except SnubaError:
+                        has_errors = False
 
-                    if has_errors:
-                        # If we see errors, always fallback to discover to scopedQuery for the user.
-                        all_results = _get_event_stats(
-                            scoped_dataset,
+                    original_results = _get_event_stats(
+                        scoped_dataset,
+                        query_columns,
+                        query,
+                        params,
+                        rollup,
+                        zerofill_results,
+                        comparison_delta,
+                    )
+                    has_other_data = self.check_if_results_have_data(original_results)
+                    if isinstance(original_results, SnubaTSResult):
+                        dataset_meta = original_results.data.get("meta", {})
+                    else:
+                        dataset_meta = list(original_results.values())[0].data.get("meta", {})
+
+                    using_metrics = dataset_meta.get("isMetricsData", False) or dataset_meta.get(
+                        "isMetricsExtractedData", False
+                    )
+
+                    has_transactions = has_other_data
+                    transaction_results = None
+                    if has_errors and has_other_data and not using_metrics:
+                        # In the case that the original request was not using the metrics dataset, we cannot be certain that other data is solely transactions.
+                        sentry_sdk.set_tag("third_split_query", True)
+                        transactions_only_query = f"({query}) AND event.type:transaction"
+                        transaction_results = _get_event_stats(
+                            discover,
                             query_columns,
-                            query,
+                            transactions_only_query,
                             params,
                             rollup,
                             zerofill_results,
                             comparison_delta,
                         )
-                    else:
-                        all_results = _get_event_stats(
+                        has_transactions = self.check_if_results_have_data(transaction_results)
+
+                    decision = self.save_split_decision(widget, has_errors, has_transactions)
+
+                    if decision == DashboardWidgetTypes.DISCOVER:
+                        # The user needs to be warned to split in this case.
+                        return _get_event_stats(
                             discover,
                             query_columns,
                             query,
@@ -366,37 +416,15 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                             zerofill_results,
                             comparison_delta,
                         )
-
-                    if isinstance(all_results, SnubaTSResult):
-                        other_data = all_results.data["data"]
+                    elif decision == DashboardWidgetTypes.TRANSACTION_LIKE:
+                        return original_results
+                    elif decision == DashboardWidgetTypes.ERROR_EVENTS and error_results:
+                        return error_results
                     else:
-                        other_data = sum(
-                            [
-                                timeseries_result.data["data"]
-                                for timeseries_result in all_results.values()
-                            ],
-                            [],
-                        )
-
-                    has_other_data = any(
-                        any(
-                            column_name != "time"
-                            and isinstance(column_value, (int, float))
-                            and column_value != 0
-                            for (column_name, column_value) in row.items()
-                        )
-                        for row in other_data
-                    )
-
-                    new_discover_widget_split = self.get_split_decision(has_errors, has_other_data)
-
-                    if widget.discover_widget_split != new_discover_widget_split:
-                        widget.discover_widget_split = new_discover_widget_split
-                        widget.save()
-                    return all_results
+                        return original_results
 
                 except Exception as e:
-                    # Swallow the exception if it was due to dashboards, and try again one more time.
+                    # Swallow the exception if it was due to discover split, and try again one more time.
                     sentry_sdk.capture_exception(e)
                     return _get_event_stats(
                         scoped_dataset,

@@ -6,6 +6,7 @@ import {
   useEffect,
   useRef,
 } from 'react';
+import {captureMessage} from '@sentry/react';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {switchOrganization} from 'sentry/actionCreators/organizations';
@@ -37,6 +38,17 @@ interface Props {
   children: React.ReactNode;
 }
 
+const proxyHandler: ProxyHandler<Organization> = {
+  get(organization, prop) {
+    // XXX(epurkhiser): Record a sentry message when we've accessed the
+    // organiztion. Once we stop getting these we can remove the
+    // LegacyOrganizationContextProvider
+    captureMessage('Legacy organization accessed!');
+
+    return organization[prop];
+  },
+};
+
 /**
  * There are still a number of places where we consume the legacy organization
  * context. So for now we still need a component that provides this.
@@ -46,11 +58,19 @@ class LegacyOrganizationContextProvider extends Component<{
   children?: React.ReactNode;
 }> {
   static childContextTypes = {
-    organization: SentryPropTypeValidators.isOrganization,
+    organization: SentryPropTypeValidators.isObject,
   };
 
   getChildContext() {
-    return {organization: this.props.value};
+    if (!this.props.value) {
+      return {organization: null};
+    }
+
+    // XXX(epurkhiser): Proxying the legacy context organization object to
+    // figure out where we're actually accessing this (if at all) anymore.
+    const organization = new Proxy(this.props.value, proxyHandler);
+
+    return {organization};
   }
 
   render() {
@@ -105,8 +125,8 @@ export function OrganizationContextProvider({children}: Props) {
     if (organization && organization.slug === orgSlug) {
       return;
     }
-
     if (!orgSlug) {
+      OrganizationStore.setNoOrganization();
       return;
     }
 
@@ -141,22 +161,37 @@ export function OrganizationContextProvider({children}: Props) {
   // boot. We should fix the types here in the future
   const user: User | null = configStore.user;
 
-  // If we've had an error it may be possible for the user to use the sudo
-  // modal to load the organization.
+  // It may be possible for the user to use the sudo modal to load the organization.
   useEffect(() => {
     if (!error) {
+      // If the user has an active staff session, the response will not return a
+      // 403 but access scopes will be an empty list.
+      if (user?.isSuperuser && user?.isStaff && organization?.access?.length === 0) {
+        openSudo({
+          isSuperuser: true,
+          needsReload: true,
+          closeEvents: 'none',
+          closeButton: false,
+        });
+      }
+
       return;
     }
 
     if (user?.isSuperuser && error.status === 403) {
-      openSudo({isSuperuser: true, needsReload: true});
+      openSudo({
+        isSuperuser: true,
+        needsReload: true,
+        closeEvents: 'none',
+        closeButton: false,
+      });
     }
 
     // This `catch` can swallow up errors in development (and tests)
     // So let's log them. This may create some noise, especially the test case where
     // we specifically test this branch
     console.error(error); // eslint-disable-line no-console
-  }, [user, error]);
+  }, [user, error, organization]);
 
   // Switch organizations when the orgId changes
   const lastOrgId = useRef(orgSlug);

@@ -5,7 +5,7 @@ import type {Organization} from 'sentry/types';
 
 export enum Query {
   FOR_REVIEW = 'is:unresolved is:for_review assigned_or_suggested:[me, my_teams, none]',
-  INBOX = NEW_DEFAULT_QUERY,
+  PRIORITIZED = NEW_DEFAULT_QUERY,
   UNRESOLVED = 'is:unresolved',
   IGNORED = 'is:ignored',
   NEW = 'is:new',
@@ -46,14 +46,16 @@ type OverviewTab = {
  * Get a list of currently active tabs
  */
 export function getTabs(organization: Organization) {
+  const hasIssuePriority = organization.features.includes('issue-priority-ui');
+
   const tabs: Array<[string, OverviewTab]> = [
     [
-      Query.INBOX,
+      Query.PRIORITIZED,
       {
-        name: t('Inbox'),
-        analyticsName: 'inbox',
+        name: t('Prioritized'),
+        analyticsName: 'prioritized',
         count: true,
-        enabled: organization.features.includes('issue-priority-ui'),
+        enabled: hasIssuePriority,
       },
     ],
     [
@@ -62,7 +64,7 @@ export function getTabs(organization: Organization) {
         name: t('Unresolved'),
         analyticsName: 'unresolved',
         count: true,
-        enabled: true,
+        enabled: !hasIssuePriority,
       },
     ],
     [

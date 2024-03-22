@@ -1,4 +1,12 @@
-import {createContext, useCallback, useContext, useEffect, useRef, useState} from 'react';
+import {
+  createContext,
+  memo,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import {useTheme} from '@emotion/react';
 import {Replayer, ReplayerEvents} from '@sentry-internal/rrweb';
 
@@ -14,9 +22,11 @@ import useRAF from 'sentry/utils/replays/hooks/useRAF';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
+import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {useUser} from 'sentry/utils/useUser';
 
 import {CanvasReplayerPlugin} from './canvasReplayerPlugin';
+import {VideoReplayer} from './videoReplayer';
 
 type Dimensions = {height: number; width: number};
 type RootElem = null | HTMLDivElement;
@@ -91,6 +101,11 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
   isSkippingInactive: boolean;
 
   /**
+   * Whether the replay is considered a video replay
+   */
+  isVideoReplay: boolean;
+
+  /**
    * The core replay data
    */
   replay: ReplayReader | null;
@@ -158,6 +173,7 @@ const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
   isFetching: false,
   isFinished: false,
   isPlaying: false,
+  isVideoReplay: false,
   isSkippingInactive: true,
   removeHighlight: () => {},
   replay: null,
@@ -194,6 +210,11 @@ type Props = {
   replay: ReplayReader | null;
 
   /**
+   * Start the video as soon as it's ready
+   */
+  autoStart?: boolean;
+
+  /**
    * Time, in seconds, when the video should start
    */
   initialTimeOffsetMs?: ReturnType<typeof useInitialOffsetMs>;
@@ -210,17 +231,21 @@ function useCurrentTime(callback: () => number) {
   return currentTime;
 }
 
-export function Provider({
+function ProviderNonMemo({
   analyticsContext,
   children,
   initialTimeOffsetMs,
   isFetching,
   prefsStrategy,
   replay,
+  autoStart,
   value = {},
 }: Props) {
   const user = useUser();
   const organization = useOrganization();
+  const projectSlug = useProjectFromId({
+    project_id: replay?.getReplay().project_id,
+  })?.slug;
   const events = replay?.getRRWebFrames();
   const savedReplayConfigRef = useRef<ReplayPrefs>(prefsStrategy.get());
 
@@ -231,7 +256,7 @@ export function Provider({
   const replayerRef = useRef<Replayer>(null);
   const [dimensions, setDimensions] = useState<Dimensions>({height: 0, width: 0});
   const [currentHoverTime, setCurrentHoverTime] = useState<undefined | number>();
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(!!autoStart);
   const [finishedAtMS, setFinishedAtMS] = useState<number>(-1);
   const [isSkippingInactive, setIsSkippingInactive] = useState(
     savedReplayConfigRef.current.isSkippingInactive
@@ -245,6 +270,11 @@ export function Provider({
 
   const durationMs = replay?.getDurationMs() ?? 0;
   const startTimeOffsetMs = replay?.getStartOffsetMs() ?? 0;
+  const videoEvents = replay?.getVideoEvents();
+  const startTimestampMs = replay?.getStartTimestampMs();
+  const isVideoReplay = Boolean(
+    organization.features.includes('session-replay-mobile-player') && videoEvents?.length
+  );
 
   const forceDimensions = (dimension: Dimensions) => {
     setDimensions(dimension);
@@ -374,6 +404,31 @@ export function Provider({
         }
       }
 
+      // check if this is a video replay and if we can use the video replayer
+      if (isVideoReplay && videoEvents && startTimestampMs) {
+        const inst = new VideoReplayer(videoEvents, {
+          videoApiPrefix: `/api/0/projects/${
+            organization.slug
+          }/${projectSlug}/replays/${replay?.getReplay().id}/videos/`,
+          root,
+          start: startTimestampMs,
+          onFinished: setReplayFinished,
+          onLoaded: event => {
+            setDimensions({
+              height: event.target.videoHeight,
+              width: event.target.videoWidth,
+            });
+          },
+        });
+        // `.current` is marked as readonly, but it's safe to set the value from
+        // inside a `useEffect` hook.
+        // See: https://reactjs.org/docs/hooks-faq.html#is-there-something-like-instance-variables
+        // @ts-expect-error
+        replayerRef.current = inst;
+        applyInitialOffset();
+        return;
+      }
+
       // eslint-disable-next-line no-new
       const inst = new Replayer(events, {
         root,
@@ -407,13 +462,19 @@ export function Provider({
       applyInitialOffset();
     },
     [
-      events,
-      isFetching,
-      theme.purple200,
-      setReplayFinished,
-      hasNewEvents,
       applyInitialOffset,
+      events,
+      hasNewEvents,
+      isFetching,
+      isVideoReplay,
+      videoEvents,
       organization.features,
+      organization.slug,
+      projectSlug,
+      replay,
+      setReplayFinished,
+      startTimestampMs,
+      theme.purple200,
     ]
   );
 
@@ -474,7 +535,7 @@ export function Provider({
       }
     };
 
-    if (replayerRef.current && events) {
+    if (replayerRef.current && (events || videoEvents)) {
       initRoot(replayerRef.current.wrapper.parentElement as RootElem);
       document.addEventListener('visibilitychange', handleVisibilityChange);
     }
@@ -482,7 +543,7 @@ export function Provider({
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [initRoot, events, togglePlayPause]);
+  }, [initRoot, events, videoEvents, togglePlayPause]);
 
   const restart = useCallback(() => {
     if (replayerRef.current) {
@@ -549,6 +610,7 @@ export function Provider({
         initRoot,
         isBuffering,
         isFetching,
+        isVideoReplay,
         isFinished,
         isPlaying,
         isSkippingInactive,
@@ -572,3 +634,5 @@ export function Provider({
 }
 
 export const useReplayContext = () => useContext(ReplayPlayerContext);
+
+export const Provider = memo(ProviderNonMemo);

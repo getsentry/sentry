@@ -10,7 +10,7 @@ from rest_framework.exceptions import Throttled
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import ratelimits
+from sentry import features, ratelimits
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -38,7 +38,8 @@ from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
 
-from .base import MonitorIngestEndpoint
+from ...api.exceptions import ResourceDoesNotExist
+from .base import DEPRECATED_INGEST_API_MESSAGE, MonitorIngestEndpoint
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +51,7 @@ CHECKIN_QUOTA_WINDOW = 60
 @extend_schema(tags=["Crons"])
 class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.CRONS
 
@@ -102,6 +103,9 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
 
         Note: If a DSN is utilized for authentication, the response will be limited in details.
         """
+        if features.has("organizations:crons-disable-ingest-endpoints", project.organization):
+            raise ResourceDoesNotExist(detail=DEPRECATED_INGEST_API_MESSAGE)
+
         if monitor and monitor.status in [
             ObjectStatus.PENDING_DELETION,
             ObjectStatus.DELETION_IN_PROGRESS,

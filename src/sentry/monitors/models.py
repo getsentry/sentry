@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import uuid
 import zoneinfo
 from collections.abc import Sequence
 from datetime import datetime
@@ -32,7 +33,6 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.utils import slugify_instance
-from sentry.grouping.utils import hash_from_values
 from sentry.locks import locks
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleSource
@@ -92,9 +92,16 @@ class MonitorStatus:
     DELETION_IN_PROGRESS = 3
 
     OK = 4
+    """
+    The monitor environment has received check-ins and is OK.
+    """
+
     ERROR = 5
-    MISSED_CHECKIN = 6
-    TIMEOUT = 7
+    """
+    The monitor environment is currently in an active incident state. This is a
+    denormalization of thee fact that a MonitorIncident exists for the
+    environment without a resolving check-in.
+    """
 
     @classmethod
     def as_choices(cls) -> Sequence[tuple[int, str]]:
@@ -110,8 +117,6 @@ class MonitorStatus:
             (cls.DELETION_IN_PROGRESS, "deletion_in_progress"),
             (cls.OK, "ok"),
             (cls.ERROR, "error"),
-            (cls.MISSED_CHECKIN, "missed_checkin"),
-            (cls.TIMEOUT, "timeout"),
         )
 
 
@@ -134,8 +139,22 @@ class CheckInStatus:
     TIMEOUT = 5
     """Checkin was left in-progress past max_runtime"""
 
+    USER_TERMINAL_VALUES = (OK, ERROR)
+    """
+    Values indicating the monitor is in a terminal status where the terminal
+    status was reported by the monitor itself (was not synthetic)
+    """
+
+    SYNTHETIC_TERMINAL_VALUES = (MISSED, TIMEOUT)
+    """
+    Values indicating the montior is in a terminal "synthetic" status. These
+    status are not sent by the monitor themselve but are a side effect result.
+    """
+
     FINISHED_VALUES = (OK, ERROR, MISSED, TIMEOUT)
-    """Terminal values used to indicate a monitor is finished running"""
+    """
+    All terminal values indicating the monitor has reached it's final status
+    """
 
     @classmethod
     def as_choices(cls):
@@ -606,11 +625,6 @@ class MonitorEnvironment(Model):
     auto-generated missed check-ins.
     """
 
-    last_state_change = models.DateTimeField(null=True)
-    """
-    The last time that the monitor changed state. Used for issue fingerprinting.
-    """
-
     objects: ClassVar[MonitorEnvironmentManager] = MonitorEnvironmentManager()
 
     class Meta:
@@ -641,31 +655,16 @@ class MonitorEnvironment(Model):
         )
 
     @property
-    def incident_grouphash(self):
-        # TODO(rjo100): Check to see if there's an active incident
-        # if not, use last_state_change as fallback
-        active_incident = (
-            MonitorIncident.objects.filter(
+    def active_incident(self) -> MonitorIncident | None:
+        """
+        Retrieve the current active incident. If there is no active incident None will be returned.
+        """
+        try:
+            return MonitorIncident.objects.get(
                 monitor_environment_id=self.id, resolving_checkin__isnull=True
             )
-            .order_by("-date_added")
-            .first()
-        )
-        if active_incident:
-            return active_incident.grouphash
-
-        # XXX(rjo100): While we migrate monitor issues to using the
-        # Incident stored grouphash we still may have some active issues
-        # that are using the old hashes. We can remove this in the
-        # future once all existing issues are resolved.
-        return hash_from_values(
-            [
-                "monitor",
-                str(self.monitor.guid),
-                self.get_environment().name,
-                str(self.last_state_change),
-            ]
-        )
+        except MonitorIncident.DoesNotExist:
+            return None
 
 
 @receiver(pre_save, sender=MonitorEnvironment)
@@ -678,6 +677,13 @@ def check_monitor_environment_limits(sender, instance, **kwargs):
         raise MonitorEnvironmentLimitsExceeded(
             f"You may not exceed {settings.MAX_ENVIRONMENTS_PER_MONITOR} environments per monitor"
         )
+
+
+def default_grouphash():
+    """
+    Generate a unique 32 character grouphash for a monitor incident
+    """
+    return uuid.uuid4().hex
 
 
 @region_silo_only_model
@@ -702,10 +708,50 @@ class MonitorIncident(Model):
     This represents the final OK check-in that we receive
     """
 
-    grouphash = models.CharField(max_length=32)
+    grouphash = models.CharField(max_length=32, default=default_grouphash)
+    """
+    Used for issue occurrences generation. Failed check-ins produce an
+    occurrence associated to this grouphash.
+    """
+
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_monitorincident"
-        indexes = [models.Index(fields=["monitor_environment", "resolving_checkin"])]
+        indexes = [
+            models.Index(fields=["monitor_environment", "resolving_checkin"]),
+            models.Index(
+                fields=["starting_timestamp"],
+                name="active_incident_idx",
+                condition=Q(resolving_checkin__isnull=True),
+            ),
+        ]
+        constraints = [
+            # Only allow for one active incident (no resolved check-in) per
+            # monitor environment
+            models.UniqueConstraint(
+                fields=["monitor_environment_id"],
+                name="unique_active_incident",
+                condition=Q(resolving_checkin__isnull=True),
+            ),
+        ]
+
+
+@region_silo_only_model
+class MonitorEnvBrokenDetection(Model):
+    """
+    Records an instance where we have detected a monitor environment to be
+    broken based on a long duration of failure and consecutive failing check-ins
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    monitor_incident = FlexibleForeignKey("sentry.MonitorIncident")
+    detection_timestamp = models.DateTimeField(auto_now_add=True)
+    user_notified_timestamp = models.DateTimeField(null=True, db_index=True)
+    env_muted_timestamp = models.DateTimeField(null=True, db_index=True)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_monitorenvbrokendetection"

@@ -123,19 +123,20 @@ describe('useLocationQuery', () => {
       },
     } as Location);
 
-    const {result, rerender} = reactHooks.renderHook(useLocationQuery, {
-      initialProps: {
-        fields: {
-          name: decodeScalar,
-          age: decodeInteger,
-          titles: decodeList,
-        },
+    const props = {
+      fields: {
+        name: decodeScalar,
+        age: decodeInteger,
+        titles: decodeList,
       },
+    };
+    const {result, rerender} = reactHooks.renderHook(useLocationQuery, {
+      initialProps: props,
     });
     const first = result.current;
-    rerender();
+    rerender(props);
     const second = result.current;
-    rerender();
+    rerender(props);
     const third = result.current;
 
     expect(first.name).toBe('Adam');

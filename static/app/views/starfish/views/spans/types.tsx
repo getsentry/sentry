@@ -19,7 +19,9 @@ export type DataKey =
   | 'avg(http.response_content_length)'
   | 'avg(http.decoded_response_content_length)'
   | 'avg(http.response_transfer_size)'
-  | 'bundleSize';
+  | 'bundleSize'
+  | 'unsuccessfulHTTPCodes'
+  | 'httpCodeBreakdown';
 
 export const DataTitles: Record<DataKey, string> = {
   change: t('Change'),
@@ -39,6 +41,8 @@ export const DataTitles: Record<DataKey, string> = {
   'avg(http.response_content_length)': t('Avg Encoded Size'),
   'avg(http.decoded_response_content_length)': t('Avg Decoded Size'),
   'avg(http.response_transfer_size)': t('Avg Transfer Size'),
+  unsuccessfulHTTPCodes: t('Response Codes (3XX, 4XX, 5XX)'),
+  httpCodeBreakdown: t('Response Code Breakdown'),
 };
 
 export const getThroughputTitle = (

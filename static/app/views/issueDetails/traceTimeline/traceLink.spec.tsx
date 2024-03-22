@@ -10,7 +10,7 @@ import {TraceLink} from './traceLink';
 import type {TraceEventResponse} from './useTraceTimelineEvents';
 
 describe('TraceLink', () => {
-  const organization = OrganizationFixture({features: ['issues-trace-timeline']});
+  const organization = OrganizationFixture();
   const event = EventFixture({
     contexts: {
       trace: {

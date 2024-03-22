@@ -74,10 +74,7 @@ def dump_doc(path: str, data: dict[str, Any]) -> None:
         raise SuspiciousDocPathOperation("illegal path access")
 
     directory = os.path.dirname(doc_path)
-    try:
-        os.makedirs(directory)
-    except OSError:
-        pass
+    os.makedirs(directory, exist_ok=True)
     with open(doc_path, "w", encoding="utf-8") as f:
         f.write(json.dumps(data, indent=2))
         f.write("\n")

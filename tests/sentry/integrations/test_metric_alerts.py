@@ -5,12 +5,11 @@ import pytest
 from django.utils import timezone
 
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
-from sentry.incidents.models import IncidentStatus, IncidentTrigger
+from sentry.incidents.models.incident import IncidentStatus, IncidentTrigger
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.utils.dates import to_timestamp
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -187,7 +186,7 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
         self.now = timezone.now().replace(minute=0, second=0, microsecond=0)
-        self._5_min_ago = to_timestamp(self.now - timedelta(minutes=5))
+        self._5_min_ago = (self.now - timedelta(minutes=5)).timestamp()
         self.date_started = self.now - timedelta(minutes=120)
 
     def create_incident_and_related_objects(self, field="sessions"):

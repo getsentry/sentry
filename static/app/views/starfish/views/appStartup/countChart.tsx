@@ -16,7 +16,7 @@ import {
   PRIMARY_RELEASE_COLOR,
   SECONDARY_RELEASE_COLOR,
 } from 'sentry/views/starfish/colours';
-import Chart from 'sentry/views/starfish/components/chart';
+import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
@@ -25,6 +25,7 @@ import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/cons
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {useEventsStatsQuery} from 'sentry/views/starfish/utils/useEventsStatsQuery';
 import {MAX_CHART_RELEASE_CHARS} from 'sentry/views/starfish/views/appStartup';
+import {COLD_START_TYPE} from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
 import {OUTPUT_TYPE, YAxis} from 'sentry/views/starfish/views/screens';
 
 function transformData(data?: MultiSeriesEventsStats, primaryRelease?: string) {
@@ -69,7 +70,7 @@ export function CountChart({chartHeight}: Props) {
   } = useReleaseSelection();
 
   const appStartType =
-    decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? '';
+    decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? COLD_START_TYPE;
 
   const query = new MutableSearch([`span.op:app.start.${appStartType}`]);
   const queryString = `${appendReleaseFilters(
@@ -140,7 +141,7 @@ export function CountChart({chartHeight}: Props) {
         }}
         showLegend
         definedAxisTicks={2}
-        isLineChart
+        type={ChartType.LINE}
         aggregateOutputFormat={OUTPUT_TYPE[YAxis.COUNT]}
         tooltipFormatterOptions={{
           valueFormatter: value =>

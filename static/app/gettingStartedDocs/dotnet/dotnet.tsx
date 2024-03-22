@@ -3,6 +3,7 @@ import {Fragment} from 'react';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
+import altCrashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/altCrashReportCallout';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
@@ -11,7 +12,10 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportApiIntroduction,
+  getCrashReportGenericInstallStep,
   getCrashReportInstallDescription,
+  getCrashReportModalConfigDescription,
+  getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getDotnetMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {t, tct} from 'sentry/locale';
@@ -235,9 +239,25 @@ SentrySdk.CaptureUserFeedback(eventId, "user@example.com", "It broke.", "The Use
           ],
         },
       ],
+      additionalInfo: altCrashReportCallout(),
     },
   ],
   configure: () => [],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
+const crashReportOnboarding: OnboardingConfig = {
+  introduction: () => getCrashReportModalIntroduction(),
+  install: (params: Params) => getCrashReportGenericInstallStep(params),
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: getCrashReportModalConfigDescription({
+        link: 'https://docs.sentry.io/platforms/dotnet/user-feedback/configuration/#crash-report-modal',
+      }),
+    },
+  ],
   verify: () => [],
   nextSteps: () => [],
 };
@@ -246,6 +266,7 @@ const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi: csharpFeedbackOnboarding,
   customMetricsOnboarding: getDotnetMetricsOnboarding({packageName: 'Sentry'}),
+  crashReportOnboarding,
 };
 
 export default docs;

@@ -7,7 +7,8 @@ from django.http import Http404
 
 from sentry.incidents.action_handlers import PagerDutyActionHandler
 from sentry.incidents.logic import update_incident_status
-from sentry.incidents.models import AlertRuleTriggerAction, IncidentStatus, IncidentStatusMethod
+from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.silo import SiloMode
 from sentry.testutils.helpers.datetime import freeze_time
@@ -94,7 +95,10 @@ class PagerDutyActionHandlerTest(FireTest):
 
     @responses.activate
     def run_test(self, incident, method):
-        from sentry.integrations.pagerduty.utils import build_incident_attachment
+        from sentry.integrations.pagerduty.utils import (
+            attach_custom_severity,
+            build_incident_attachment,
+        )
 
         responses.add(
             method=responses.POST,
@@ -105,13 +109,17 @@ class PagerDutyActionHandlerTest(FireTest):
         )
         handler = PagerDutyActionHandler(self.action, incident, self.project)
         metric_value = 1000
+        new_status = IncidentStatus(incident.status)
         with self.tasks():
-            getattr(handler, method)(metric_value, IncidentStatus(incident.status))
+            getattr(handler, method)(metric_value, new_status)
         data = responses.calls[0].request.body
 
-        assert json.loads(data) == build_incident_attachment(
-            incident, self.service["integration_key"], IncidentStatus(incident.status), metric_value
+        expected_payload = build_incident_attachment(
+            incident, self.service["integration_key"], new_status, metric_value
         )
+        expected_payload = attach_custom_severity(expected_payload, self.action, new_status)
+
+        assert json.loads(data) == expected_payload
 
     def test_fire_metric_alert(self):
         self.run_fire_test()
@@ -179,3 +187,14 @@ class PagerDutyActionHandlerTest(FireTest):
             external_id=str(self.action.target_identifier),
             notification_uuid="",
         )
+
+    @responses.activate
+    def test_custom_severity(self):
+        # default closed incident severity is info, custom set to critical
+        self.action.update(sentry_app_config={"priority": "critical"})
+        self.run_fire_test()
+
+    @responses.activate
+    def test_custom_severity_resolved(self):
+        self.action.update(sentry_app_config={"priority": "critical"})
+        self.run_fire_test("resolve")

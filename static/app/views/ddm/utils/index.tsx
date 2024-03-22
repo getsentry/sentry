@@ -1,5 +1,4 @@
 import {BooleanOperator} from 'sentry/components/searchSyntax/parser';
-import type {FocusedMetricsSeries} from 'sentry/utils/metrics/types';
 
 function constructQueryString(queryObject: Record<string, string>) {
   return Object.entries(queryObject)
@@ -7,19 +6,31 @@ function constructQueryString(queryObject: Record<string, string>) {
     .join(' ');
 }
 
-export function getQueryWithFocusedSeries(
-  query: string,
-  focusedSeries?: FocusedMetricsSeries[]
+export function extendQueryWithGroupBys(
+  query: string = '',
+  groupBys?: (Record<string, string> | undefined)[]
 ) {
-  const focusedSeriesQuery = focusedSeries
-    ?.map(series => {
-      if (!series.groupBy || Object.keys(series.groupBy).length === 0) {
+  const focusedSeriesQuery = groupBys
+    ?.map(groupBy => {
+      if (!groupBy || Object.keys(groupBy).length === 0) {
         return '';
       }
-      return `(${constructQueryString(series.groupBy)})`;
+      return constructQueryString(groupBy);
     })
     .filter(Boolean)
     .join(` ${BooleanOperator.OR} `);
 
-  return focusedSeriesQuery ? `${query} (${focusedSeriesQuery})`.trim() : query;
+  if (!focusedSeriesQuery) {
+    return query;
+  }
+
+  if (!query) {
+    return focusedSeriesQuery;
+  }
+
+  if (query === focusedSeriesQuery) {
+    return query;
+  }
+
+  return `(${query}) AND (${focusedSeriesQuery})`;
 }

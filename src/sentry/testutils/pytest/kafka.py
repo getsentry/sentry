@@ -63,32 +63,6 @@ def kafka_admin(request):
     return inner
 
 
-@pytest.fixture
-def kafka_topics_setter():
-    """
-    Returns a function that given a Django settings objects will setup the
-    kafka topics names to test names.
-
-    :return: a function that given a settings object changes all kafka topic names
-    to "test-<normal_topic_name>"
-    """
-
-    def set_test_kafka_settings(settings):
-        settings.KAFKA_INGEST_EVENTS = "ingest-events"
-        settings.KAFKA_TOPICS[settings.KAFKA_INGEST_EVENTS] = {"cluster": "default"}
-
-        settings.INGEST_TRANSACTIONS = "ingest-transactions"
-        settings.KAFKA_TOPICS[settings.INGEST_TRANSACTIONS] = {"cluster": "default"}
-
-        settings.KAFKA_INGEST_ATTACHMENTS = "ingest-attachments"
-        settings.KAFKA_TOPICS[settings.KAFKA_INGEST_ATTACHMENTS] = {"cluster": "default"}
-
-        settings.KAFKA_OUTCOMES = "outcomes"
-        settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES] = {"cluster": "default"}
-
-    return set_test_kafka_settings
-
-
 @pytest.fixture(scope="session")
 def scope_consumers():
     """
@@ -187,6 +161,8 @@ def wait_for_ingest_consumer(session_ingest_consumer, task_runner):
     """
 
     def factory(settings, **kwargs):
+        consumer = session_ingest_consumer(settings, **kwargs)
+
         def waiter(exit_predicate, max_time=MAX_SECONDS_WAITING_FOR_EVENT):
             """
             Implements a wait loop for the ingest consumer
@@ -196,7 +172,6 @@ def wait_for_ingest_consumer(session_ingest_consumer, task_runner):
             :return: the first non None result returned by the exit predicate or None if the
                 max time has expired without the exit predicate returning a non None value
             """
-            consumer = session_ingest_consumer(settings, **kwargs)
 
             start_wait = time.time()
             with task_runner():

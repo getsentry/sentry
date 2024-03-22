@@ -327,6 +327,7 @@ def devserver(
             kafka_consumers.add("ingest-attachments")
             kafka_consumers.add("ingest-transactions")
             kafka_consumers.add("ingest-monitors")
+            kafka_consumers.add("ingest-feedback-events")
 
             if settings.SENTRY_USE_PROFILING:
                 kafka_consumers.add("ingest-profiles")
@@ -364,11 +365,13 @@ Alternatively, run without --workers.
 """
             )
 
+        from sentry.conf.types.kafka_definition import Topic
         from sentry.utils.batching_kafka_consumer import create_topics
+        from sentry.utils.kafka_config import get_topic_definition
 
-        for topic_name, topic_data in settings.KAFKA_TOPICS.items():
-            if topic_data is not None:
-                create_topics(topic_data["cluster"], [topic_name])
+        for topic in Topic:
+            topic_defn = get_topic_definition(topic)
+            create_topics(topic_defn["cluster"], [topic_defn["real_topic_name"]])
 
         if dev_consumer:
             daemons.append(

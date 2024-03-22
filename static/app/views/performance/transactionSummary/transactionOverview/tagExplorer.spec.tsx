@@ -99,7 +99,7 @@ describe('WrapperComponent', function () {
     ProjectsStore.reset();
   });
 
-  it('renders basic UI elements', function () {
+  it('renders basic UI elements', async function () {
     const projects = [ProjectFixture()];
     const {
       organization,
@@ -122,11 +122,13 @@ describe('WrapperComponent', function () {
       />
     );
 
-    expect(screen.getByRole('heading', {name: 'Suspect Tags'})).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', {name: 'Suspect Tags'})
+    ).toBeInTheDocument();
     expect(screen.getByTestId('grid-editable')).toBeInTheDocument();
   });
 
-  it('Tag explorer uses LCP if projects are frontend', function () {
+  it('Tag explorer uses LCP if projects are frontend', async function () {
     const projects = [ProjectFixture({id: '123', platform: 'javascript-react'})];
     const {
       organization,
@@ -151,7 +153,9 @@ describe('WrapperComponent', function () {
       />
     );
 
-    expect(screen.getAllByTestId('grid-head-cell')[2]).toHaveTextContent('Avg LCP');
+    expect((await screen.findAllByTestId('grid-head-cell'))[2]).toHaveTextContent(
+      'Avg LCP'
+    );
 
     expect(facetApiMock).toHaveBeenCalledWith(
       facetUrl,
@@ -163,7 +167,7 @@ describe('WrapperComponent', function () {
     );
   });
 
-  it('Tag explorer view all tags button links to tags page', function () {
+  it('Tag explorer view all tags button links to tags page', async function () {
     const projects = [ProjectFixture({id: '123', platform: 'javascript-react'})];
     const {
       organization,
@@ -194,7 +198,7 @@ describe('WrapperComponent', function () {
       {context: routerContext}
     );
 
-    const button = screen.getByTestId('tags-explorer-open-tags');
+    const button = await screen.findByTestId('tags-explorer-open-tags');
     expect(button).toBeInTheDocument();
     expect(button).toHaveAttribute(
       'href',
@@ -202,7 +206,7 @@ describe('WrapperComponent', function () {
     );
   });
 
-  it('Tag explorer uses the operation breakdown as a column', function () {
+  it('Tag explorer uses the operation breakdown as a column', async function () {
     const projects = [ProjectFixture({platform: 'javascript-react'})];
     const {organization, location, eventView, api, transactionName} = initialize(
       projects,
@@ -221,7 +225,7 @@ describe('WrapperComponent', function () {
       />
     );
 
-    expect(screen.getAllByTestId('grid-head-cell')[2]).toHaveTextContent(
+    expect((await screen.findAllByTestId('grid-head-cell'))[2]).toHaveTextContent(
       'Avg Span Duration'
     );
 
