@@ -29,12 +29,8 @@ from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupowner import GroupOwner
 from sentry.models.groupsubscription import GroupSubscription
-from sentry.search.snuba.backend import (
-    CdcEventsDatasetSnubaSearchBackend,
-    EventsDatasetSnubaSearchBackend,
-    SnubaSearchBackendBase,
-)
-from sentry.search.snuba.executors import InvalidQueryForExecutor, TrendsSortWeights
+from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend, SnubaSearchBackendBase
+from sentry.search.snuba.executors import TrendsSortWeights
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import SnubaTestCase, TestCase, TransactionTestCase
 from sentry.testutils.helpers import Feature, apply_feature_flag_on_cls
@@ -2593,8 +2589,9 @@ class EventsJoinedGroupAttributesSnubaSearchTest(TransactionTestCase, EventsSnub
             except urllib3.exceptions.HTTPError as err:
                 raise snuba.SnubaError(err)
 
-        with self.options({"issues.group_attributes.send_kafka": True}), mock.patch(
-            "sentry.issues.attributes.produce_snapshot_to_kafka", post_insert
+        with (
+            self.options({"issues.group_attributes.send_kafka": True}),
+            mock.patch("sentry.issues.attributes.produce_snapshot_to_kafka", post_insert),
         ):
             super().setUp()
 
@@ -3065,15 +3062,17 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
             "culprit": "app/components/events/eventEntries in map",
             "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
         }
-        with mock.patch(
-            "sentry.issues.ingest.send_issue_occurrence_to_eventstream",
-            side_effect=send_issue_occurrence_to_eventstream,
-        ) as mock_eventstream, mock.patch.object(
-            PerformanceRenderBlockingAssetSpanGroupType,
-            "noise_config",
-            new=NoiseConfig(0, timedelta(minutes=1)),
-        ), self.feature(
-            "organizations:issue-platform"
+        with (
+            mock.patch(
+                "sentry.issues.ingest.send_issue_occurrence_to_eventstream",
+                side_effect=send_issue_occurrence_to_eventstream,
+            ) as mock_eventstream,
+            mock.patch.object(
+                PerformanceRenderBlockingAssetSpanGroupType,
+                "noise_config",
+                new=NoiseConfig(0, timedelta(minutes=1)),
+            ),
+            self.feature("organizations:issue-platform"),
         ):
             self.store_event(
                 data={
@@ -3260,15 +3259,17 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
 
         transaction_name = "im a little tea pot"
 
-        with mock.patch(
-            "sentry.issues.ingest.send_issue_occurrence_to_eventstream",
-            side_effect=send_issue_occurrence_to_eventstream,
-        ) as mock_eventstream, mock.patch.object(
-            PerformanceRenderBlockingAssetSpanGroupType,
-            "noise_config",
-            new=NoiseConfig(0, timedelta(minutes=1)),
-        ), self.feature(
-            "organizations:issue-platform"
+        with (
+            mock.patch(
+                "sentry.issues.ingest.send_issue_occurrence_to_eventstream",
+                side_effect=send_issue_occurrence_to_eventstream,
+            ) as mock_eventstream,
+            mock.patch.object(
+                PerformanceRenderBlockingAssetSpanGroupType,
+                "noise_config",
+                new=NoiseConfig(0, timedelta(minutes=1)),
+            ),
+            self.feature("organizations:issue-platform"),
         ):
             tx = self.store_event(
                 data={
@@ -3323,15 +3324,17 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
             assert set(results2) == {created_group}
 
     def test_search_message_error_and_perf_issues(self):
-        with mock.patch(
-            "sentry.issues.ingest.send_issue_occurrence_to_eventstream",
-            side_effect=send_issue_occurrence_to_eventstream,
-        ) as mock_eventstream, mock.patch.object(
-            PerformanceRenderBlockingAssetSpanGroupType,
-            "noise_config",
-            new=NoiseConfig(0, timedelta(minutes=1)),
-        ), self.feature(
-            "organizations:issue-platform"
+        with (
+            mock.patch(
+                "sentry.issues.ingest.send_issue_occurrence_to_eventstream",
+                side_effect=send_issue_occurrence_to_eventstream,
+            ) as mock_eventstream,
+            mock.patch.object(
+                PerformanceRenderBlockingAssetSpanGroupType,
+                "noise_config",
+                new=NoiseConfig(0, timedelta(minutes=1)),
+            ),
+            self.feature("organizations:issue-platform"),
         ):
             self.store_event(
                 data={
@@ -3760,262 +3763,3 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
             )
             assert group_info is not None
             assert list(results) == [group_info.group]
-
-
-class CdcEventsSnubaSearchTest(TestCase, SharedSnubaMixin):
-    @property
-    def backend(self):
-        return CdcEventsDatasetSnubaSearchBackend()
-
-    def setUp(self):
-        super().setUp()
-        self.base_datetime = before_now(days=3)
-
-        self.event1 = self.store_event(
-            data={
-                "fingerprint": ["put-me-in-group1"],
-                "event_id": "a" * 32,
-                "environment": "production",
-                "timestamp": iso_format(self.base_datetime - timedelta(days=21)),
-                "tags": {"sentry:user": "user1"},
-            },
-            project_id=self.project.id,
-        )
-        self.env1 = self.event1.get_environment()
-        self.group1 = self.event1.group
-        self.event3 = self.store_event(
-            data={
-                "fingerprint": ["put-me-in-group1"],
-                "environment": "staging",
-                "timestamp": iso_format(self.base_datetime),
-                "tags": {"sentry:user": "user2"},
-            },
-            project_id=self.project.id,
-        )
-
-        self.event2 = self.store_event(
-            data={
-                "fingerprint": ["put-me-in-group2"],
-                "timestamp": iso_format(self.base_datetime - timedelta(days=20)),
-                "environment": "staging",
-                "tags": {"sentry:user": "user1"},
-            },
-            project_id=self.project.id,
-        )
-        self.group2 = self.event2.group
-        self.env2 = self.event2.get_environment()
-
-    def run_test(
-        self,
-        search_filter_query,
-        expected_groups,
-        expected_hits,
-        projects=None,
-        environments=None,
-        sort_by="date",
-        limit=None,
-        count_hits=False,
-        date_from=None,
-        date_to=None,
-        cursor=None,
-    ):
-        results = self.make_query(
-            projects=projects,
-            search_filter_query=search_filter_query,
-            environments=environments,
-            sort_by=sort_by,
-            limit=limit,
-            count_hits=count_hits,
-            date_from=date_from,
-            date_to=date_to,
-            cursor=cursor,
-        )
-        assert list(results) == expected_groups
-        assert results.hits == expected_hits
-        return results
-
-    def test(self):
-        self.run_test("is:unresolved", [self.group1, self.group2], None)
-
-    def test_invalid(self):
-        with pytest.raises(InvalidQueryForExecutor):
-            self.make_query(search_filter_query="is:unresolved abc:123")
-
-    def test_resolved_group(self):
-        self.group2.status = GroupStatus.RESOLVED
-        self.group2.substatus = None
-        self.group2.save()
-        self.store_group(self.group2)
-        self.run_test("is:unresolved", [self.group1], None)
-        self.run_test("is:resolved", [self.group2], None)
-        self.run_test("is:unresolved is:resolved", [], None)
-
-    def test_environment(self):
-        self.run_test("is:unresolved", [self.group1], None, environments=[self.env1])
-        self.run_test("is:unresolved", [self.group1, self.group2], None, environments=[self.env2])
-
-    def test_sort_times_seen(self):
-        self.run_test(
-            "is:unresolved",
-            [self.group1, self.group2],
-            None,
-            sort_by="freq",
-            date_from=self.base_datetime - timedelta(days=30),
-        )
-
-        self.store_event(
-            data={
-                "fingerprint": ["put-me-in-group2"],
-                "timestamp": iso_format(self.base_datetime - timedelta(days=15)),
-            },
-            project_id=self.project.id,
-        )
-        self.store_event(
-            data={
-                "fingerprint": ["put-me-in-group2"],
-                "timestamp": iso_format(self.base_datetime - timedelta(days=10)),
-                "tags": {"sentry:user": "user2"},
-            },
-            project_id=self.project.id,
-        )
-
-        self.run_test(
-            "is:unresolved",
-            [self.group2, self.group1],
-            None,
-            sort_by="freq",
-            # Change the date range to bust the
-            date_from=self.base_datetime - timedelta(days=29),
-        )
-
-    def test_sort_first_seen(self):
-        self.run_test(
-            "is:unresolved",
-            [self.group2, self.group1],
-            None,
-            sort_by="new",
-            date_from=self.base_datetime - timedelta(days=30),
-        )
-
-        group3 = self.store_event(
-            data={
-                "fingerprint": ["put-me-in-group3"],
-                "timestamp": iso_format(self.base_datetime + timedelta(days=1)),
-            },
-            project_id=self.project.id,
-        ).group
-
-        self.run_test(
-            "is:unresolved",
-            [group3, self.group2, self.group1],
-            None,
-            sort_by="new",
-            # Change the date range to bust the
-            date_from=self.base_datetime - timedelta(days=29),
-        )
-
-    def test_sort_user(self):
-        self.run_test(
-            "is:unresolved",
-            [self.group1, self.group2],
-            None,
-            sort_by="user",
-            date_from=self.base_datetime - timedelta(days=30),
-        )
-
-        self.store_event(
-            data={
-                "fingerprint": ["put-me-in-group2"],
-                "timestamp": iso_format(self.base_datetime + timedelta(days=1)),
-                "tags": {"sentry:user": "user2"},
-            },
-            project_id=self.project.id,
-        )
-        self.store_event(
-            data={
-                "fingerprint": ["put-me-in-group2"],
-                "timestamp": iso_format(self.base_datetime + timedelta(days=1)),
-                "tags": {"sentry:user": "user2"},
-            },
-            project_id=self.project.id,
-        )
-        self.store_event(
-            data={
-                "fingerprint": ["put-me-in-group1"],
-                "timestamp": iso_format(self.base_datetime + timedelta(days=1)),
-                "tags": {"sentry:user": "user1"},
-            },
-            project_id=self.project.id,
-        )
-        self.store_event(
-            data={
-                "fingerprint": ["put-me-in-group1"],
-                "timestamp": iso_format(self.base_datetime + timedelta(days=1)),
-                "tags": {"sentry:user": "user1"},
-            },
-            project_id=self.project.id,
-        )
-        # Test group with no users, which can return a null count
-        group3 = self.store_event(
-            data={
-                "fingerprint": ["put-me-in-group3"],
-                "timestamp": iso_format(self.base_datetime + timedelta(days=1)),
-            },
-            project_id=self.project.id,
-        ).group
-
-        self.run_test(
-            "is:unresolved",
-            [self.group2, self.group1, group3],
-            None,
-            sort_by="user",
-            # Change the date range to bust the
-            date_from=self.base_datetime - timedelta(days=29),
-        )
-
-    def test_sort_trends(self):
-        self.run_test(
-            "is:unresolved",
-            [self.group1, self.group2],
-            None,
-            sort_by="trends",
-            date_from=self.base_datetime - timedelta(days=30),
-        )
-
-    def test_cursor(self):
-        group3 = self.store_event(
-            data={
-                "fingerprint": ["put-me-in-group3"],
-                "timestamp": iso_format(self.base_datetime + timedelta(days=1)),
-                "tags": {"sentry:user": "user2"},
-            },
-            project_id=self.project.id,
-        ).group
-        group4 = self.store_event(
-            data={
-                "fingerprint": ["put-me-in-group7"],
-                "timestamp": iso_format(self.base_datetime + timedelta(days=2)),
-                "tags": {"sentry:user": "user2"},
-            },
-            project_id=self.project.id,
-        ).group
-
-        results = self.run_test("is:unresolved", [group4], 4, limit=1, count_hits=True)
-        results = self.run_test(
-            "is:unresolved", [group3], 4, limit=1, cursor=results.next, count_hits=True
-        )
-        results = self.run_test(
-            "is:unresolved", [group4], 4, limit=1, cursor=results.prev, count_hits=True
-        )
-        self.run_test(
-            "is:unresolved", [group3, self.group1], 4, limit=2, cursor=results.next, count_hits=True
-        )
-
-    def test_rechecking(self):
-        self.group2.status = GroupStatus.RESOLVED
-        self.group2.substatus = None
-        self.group2.save()
-        # Explicitly avoid calling `store_group` here. This means that Clickhouse will still see
-        # this group as `UNRESOLVED` and it will be returned in the snuba results. This group
-        # should still be filtered out by our recheck.
-        self.run_test("is:unresolved", [self.group1], None)
