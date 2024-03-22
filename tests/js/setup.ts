@@ -94,6 +94,7 @@ jest.mock('@sentry/react', function sentryReact() {
   const SentryReact = jest.requireActual('@sentry/react');
   return {
     init: jest.fn(),
+    configureScope: jest.fn(), // Needed atm for getsentry - TODO: remove once we moved to v8 api in getsentry
     setTag: jest.fn(),
     setTags: jest.fn(),
     setExtra: jest.fn(),
@@ -127,9 +128,20 @@ jest.mock('@sentry/react', function sentryReact() {
     reactRouterV3BrowserTracingIntegration: jest.fn().mockReturnValue({}),
     browserTracingIntegration: jest.fn().mockReturnValue({}),
     browserProfilingIntegration: jest.fn().mockReturnValue({}),
+    addGlobalEventProcessor: jest.fn(), // Kept atm for getsentry - TODO: remove once we moved to v8 api in getsentry
     addEventProcessor: jest.fn(),
     BrowserClient: jest.fn().mockReturnValue({
       captureEvent: jest.fn(),
+    }),
+    startTransaction: () => ({
+      // Kept atm for getsentry - TODO: remove once we moved to v8 api in getsentry
+      finish: jest.fn(),
+      setTag: jest.fn(),
+      setData: jest.fn(),
+      setStatus: jest.fn(),
+      startChild: jest.fn().mockReturnValue({
+        finish: jest.fn(),
+      }),
     }),
     startInactiveSpan: () => ({
       end: jest.fn(),
