@@ -70,7 +70,6 @@ function ReplayPreviewPlayer({
     pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replayId}/`),
     query: {
       referrer: getRouteStringFromRoutes(routes),
-      ...eventView.generateQueryStringObject(),
       t_main: fromFeedback ? TabKey.BREADCRUMBS : TabKey.ERRORS,
       t: (currentTime + startOffsetMs) / 1000,
       f_b_type: fromFeedback ? 'feedback' : undefined,
