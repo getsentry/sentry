@@ -141,7 +141,13 @@ setup-git() {
 
 node-version-check() {
     # Checks to see if node's version matches the one specified in package.json for Volta.
-    node -pe "process.exit(Number(!(process.version == 'v' + require('./.volta.json').volta.node )))"
+    node -pe "process.exit(Number(!(process.version == 'v' + require('./.volta.json').volta.node )))" ||
+        (
+            echo 'Unexpected node version. Recommended to use https://github.com/volta-cli/volta'
+            echo 'Run `volta install node` and `volta install yarn` to update your toolchain.'
+            echo 'If you do not have volta installed run `curl https://get.volta.sh | bash` or visit https://volta.sh'
+            exit 1
+        )
 }
 
 install-js-dev() {
