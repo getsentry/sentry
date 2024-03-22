@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import FeatureBadge from 'sentry/components/featureBadge';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -23,6 +24,7 @@ import {
 import {DurationChart} from 'sentry/views/performance/http/durationChart';
 import {HTTPSamplesPanel} from 'sentry/views/performance/http/httpSamplesPanel';
 import {ResponseRateChart} from 'sentry/views/performance/http/responseRateChart';
+import {RELEASE_LEVEL} from 'sentry/views/performance/http/settings';
 import {ThroughputChart} from 'sentry/views/performance/http/throughputChart';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
@@ -118,7 +120,7 @@ export function HTTPDomainSummaryPage() {
       'transaction',
       'transaction.method',
       'spm()',
-      'http_response_rate(2)',
+      'http_response_rate(3)',
       'http_response_rate(4)',
       'http_response_rate(5)',
       'avg(span.self_time)',
@@ -154,7 +156,10 @@ export function HTTPDomainSummaryPage() {
               },
             ]}
           />
-          <Layout.Title>{domain}</Layout.Title>
+          <Layout.Title>
+            {domain}
+            <FeatureBadge type={RELEASE_LEVEL} />
+          </Layout.Title>
         </Layout.HeaderContent>
       </Layout.Header>
 

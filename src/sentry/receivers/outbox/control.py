@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from hashlib import sha1
+from hashlib import sha256
 from typing import Any
 
 import sentry_sdk
@@ -110,7 +110,7 @@ def process_async_webhooks(
             "integration_proxy.control.process_async_webhooks",
             tags={"destination_region": region.name},
         ):
-            request_prefix_hash = sha1(
+            request_prefix_hash = sha256(
                 f"{shard_identifier}{object_identifier}".encode()
             ).hexdigest()
             logging_context["region"] = region.name

@@ -13,12 +13,13 @@ from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
 
 from sentry import options
 from sentry.spans.buffer.redis import RedisSpansBuffer
-from sentry.tasks.spans import process_segment
+from sentry.spans.produce_segment import produce_segment_to_kafka
 
 logger = logging.getLogger(__name__)
 SPAN_SCHEMA: Codec[SpanEvent] = get_codec("snuba-spans")
 
 PROCESS_SEGMENT_DELAY = 2 * 60  # 2 minutes
+BATCH_SIZE = 100
 
 
 def _deserialize_span(value: bytes) -> Mapping[str, Any]:
@@ -41,14 +42,24 @@ def process_message(message: Message[KafkaPayload]):
     if project_id not in options.get("standalone-spans.process-spans-consumer.project-allowlist"):
         return
 
+    timestamp = int(message.value.timestamp.timestamp())
+    partition = message.value.partition.index
+
     client = RedisSpansBuffer()
-    new_segment = client.write_span(project_id, segment_id, message.payload.value)
-    if new_segment:
-        # This function currently does nothing.
-        process_segment.apply_async(
-            args=[project_id, segment_id],
-            countdown=PROCESS_SEGMENT_DELAY,
-        )
+
+    should_process_segments = client.write_span_and_check_processing(
+        project_id, segment_id, timestamp, partition, message.payload.value
+    )
+
+    if should_process_segments:
+        keys = client.get_unprocessed_segments_and_prune_bucket(timestamp, partition)
+        # With pipelining, redis server is forced to queue replies using
+        # up memory, so batching the keys we fetch.
+        for i in range(0, len(keys), BATCH_SIZE):
+            segments = client.read_and_expire_many_segments(keys[i : i + BATCH_SIZE])
+
+            for segment in segments:
+                produce_segment_to_kafka(segment)
 
 
 class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):

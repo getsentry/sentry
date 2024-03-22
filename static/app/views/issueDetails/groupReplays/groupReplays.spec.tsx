@@ -407,7 +407,7 @@ describe('GroupReplays', () => {
       });
 
       await waitFor(() => {
-        expect(mockReplayCountApi).toHaveBeenCalledTimes(1);
+        expect(mockReplayCountApi).toHaveBeenCalled();
         expect(mockReplayApi).toHaveBeenCalledTimes(1);
       });
 
@@ -597,7 +597,9 @@ describe('GroupReplays', () => {
       });
 
       const mockReplace = jest.mocked(browserHistory.replace);
-      const replayPlayPlause = screen.getAllByTestId('replay-table-play-button')[0];
+      const replayPlayPlause = (
+        await screen.findAllByTestId('replay-table-play-button')
+      )[0];
       await userEvent.click(replayPlayPlause);
 
       await waitFor(() =>

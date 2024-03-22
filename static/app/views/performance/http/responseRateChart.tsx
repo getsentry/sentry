@@ -6,7 +6,7 @@ import {
   HTTP_RESPONSE_4XX_COLOR,
   HTTP_RESPONSE_5XX_COLOR,
 } from 'sentry/views/starfish/colours';
-import Chart from 'sentry/views/starfish/components/chart';
+import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
@@ -35,7 +35,7 @@ export function ResponseRateChart({series, isLoading, error}: Props) {
           HTTP_RESPONSE_4XX_COLOR,
           HTTP_RESPONSE_5XX_COLOR,
         ]}
-        isLineChart
+        type={ChartType.LINE}
         aggregateOutputFormat="percentage"
         dataMax={getAxisMaxForPercentageSeries(series)}
         tooltipFormatterOptions={{
