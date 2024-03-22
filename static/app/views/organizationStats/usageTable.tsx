@@ -10,7 +10,7 @@ import IdBadge from 'sentry/components/idBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
-import PanelTable, {PanelTableHeader} from 'sentry/components/panels/panelTable';
+import {PanelTable, PanelTableHeader} from 'sentry/components/panels/panelTable';
 import {IconGraph, IconSettings, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
