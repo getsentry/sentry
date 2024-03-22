@@ -4,21 +4,15 @@ import dataclasses
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import TypedDict
 
-from sentry import options
 from sentry.ratelimits.cardinality import (
     CardinalityLimiter,
     GrantedQuota,
-    Quota,
     RedisCardinalityLimiter,
     Timestamp,
 )
 from sentry.sentry_metrics.configuration import MetricsIngestConfiguration, UseCaseKey
 from sentry.sentry_metrics.consumers.indexer.common import BrokerMeta
-from sentry.sentry_metrics.use_case_id_registry import (
-    USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS,
-    UseCaseID,
-)
-from sentry.utils import metrics
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 
 OrgId = int
 
@@ -30,35 +24,6 @@ class CardinalityLimiterState:
     _grants: Sequence[GrantedQuota] | None
     _timestamp: Timestamp | None
     keys_to_remove: Sequence[BrokerMeta]
-
-
-def _build_quota_key(use_case_id: UseCaseID, org_id: OrgId) -> str:
-    return f"metrics-indexer-cardinality-{use_case_id.value}-org-{org_id}"
-
-
-@metrics.wraps("sentry_metrics.indexer.construct_quotas")
-def _construct_quotas(use_case_id: UseCaseID) -> Quota | None:
-    """
-    Construct write limit's quotas based on current sentry options.
-
-    This value can potentially cached globally as long as it is invalidated
-    when sentry.options are.
-    """
-
-    if use_case_id in USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS:
-        quota_args = options.get(USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS[use_case_id])
-
-    else:
-        quota_args = options.get(
-            "sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org"
-        )
-
-    if not quota_args:
-        raise ValueError("quotas cannot be empty")
-    if len(quota_args) > 1:
-        raise ValueError("multiple quotas are actually unsupported")
-
-    return Quota(**quota_args[0])
 
 
 class InboundMessage(TypedDict):
