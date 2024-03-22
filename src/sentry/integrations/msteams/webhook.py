@@ -264,18 +264,11 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
         We want the KeyError exception to be raised if the key does not exist.
         """
         channel_data = data["channelData"]
+
         new_team_info = channel_data["team"]
-
-        team_id = new_team_info.get("aadGroupId", None)
-        if team_id is None:
-            logger.info(
-                "sentry.integrations.msteams.webhooks: New team info data does not have aadGroupId",
-                extra={"data": data},
-            )
-            fallback_id = new_team_info["id"]
-            team_id = fallback_id
-
+        team_id = new_team_info["id"]
         team_name = new_team_info["name"]
+
         service_url = data["serviceUrl"]
         from_data = data["from"]
         user_id = from_data["id"]

@@ -48,8 +48,8 @@ class TestGeTeamInstallationRequestData(TestCase):
             self._example_request_data
         )
         assert response == {
-            "conversation_id": "3d5d4c90-1ae9-41c7-9471-7ccd37ddb7d4",
-            "external_id": "3d5d4c90-1ae9-41c7-9471-7ccd37ddb7d4",
+            "conversation_id": "19:7c8cd8b4b4ad4e73a2957e6daad706ef@thread.tacv2",
+            "external_id": "19:7c8cd8b4b4ad4e73a2957e6daad706ef@thread.tacv2",
             "external_name": "Sales and Marketing",
             "installation_type": "team",
             "service_url": "https://smba.trafficmanager.net/amer/",
