@@ -23,6 +23,7 @@ interface TraceSearchInputProps {
 }
 
 const MIN_LOADING_TIME = 300;
+
 export function TraceSearchInput(props: TraceSearchInputProps) {
   const [status, setStatus] = useState<TraceSearchState['status']>();
 
@@ -83,8 +84,12 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
       <InputGroup.TrailingItems>
         <StyledTrailingText>
           {`${
-            props.resultIteratorIndex !== undefined ? props.resultIteratorIndex + 1 : '-'
-          }/${props.resultCount ?? 0}`}
+            props.query && !props.resultCount
+              ? '0/0'
+              : (props.resultIteratorIndex !== undefined
+                  ? props.resultIteratorIndex + 1
+                  : '-') + `/${props.resultCount ?? 0}`
+          }`}
         </StyledTrailingText>
         <StyledSearchBarTrailingButton
           size="zero"
@@ -129,10 +134,9 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
   top: 50%;
   position: absolute;
   transform: translate(-2px, -50%);
+  animation: showLoadingIndicator 0.3s ease-in-out forwards;
 
-  animation: show 0.3s ease-in-out forwards;
-
-  @keyframes show {
+  @keyframes showLoadingIndicator {
     from {
       opacity: 0;
       transform: translate(-2px, -50%) scale(0.86);
@@ -156,9 +160,9 @@ const StyledSearchIcon = styled(IconSearch)`
   left: 0;
   top: 50%;
   transform: scale(1) translateY(-50%);
-  animation: show 0.3s ease-in-out forwards;
+  animation: showSearchIcon 0.3s ease-in-out forwards;
 
-  @keyframes show {
+  @keyframes showSearchIcon {
     from {
       opacity: 0;
       transform: scale(0.86) translateY(-50%);

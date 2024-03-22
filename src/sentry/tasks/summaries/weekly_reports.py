@@ -12,7 +12,7 @@ from django.db.models import F
 from django.utils import dateformat, timezone
 from sentry_sdk import set_tag
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.constants import DataCategory
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
@@ -40,7 +40,7 @@ from sentry.tasks.summaries.utils import (
 )
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json
-from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
+from sentry.utils.dates import floor_to_utc_day, to_datetime
 from sentry.utils.email import MessageBuilder
 from sentry.utils.outcomes import Outcome
 from sentry.utils.query import RangeQuerySetWrapper
@@ -65,7 +65,7 @@ def schedule_organizations(
 ) -> None:
     if timestamp is None:
         # The time that the report was generated
-        timestamp = to_timestamp(floor_to_utc_day(timezone.now()))
+        timestamp = floor_to_utc_day(timezone.now()).timestamp()
 
     if duration is None:
         # The total timespan that the task covers
@@ -125,7 +125,7 @@ def prepare_organization_report(
                 continue
             project_ctx = cast(ProjectContext, ctx.projects_context_map[project_id])
             total = data["total"]
-            timestamp = int(to_timestamp(parse_snuba_datetime(data["time"])))
+            timestamp = int(parse_snuba_datetime(data["time"]).timestamp())
             if data["category"] == DataCategory.TRANSACTION:
                 # Transaction outcome
                 if data["outcome"] == Outcome.RATE_LIMITED or data["outcome"] == Outcome.FILTERED:
@@ -164,7 +164,13 @@ def prepare_organization_report(
 
             project_ctx = cast(ProjectContext, ctx.projects_context_map[project.id])
             if key_errors:
-                project_ctx.key_errors = [(e["group_id"], e["count()"]) for e in key_errors]
+                group_id_alias = (
+                    "event.group_id"
+                    if features.has("organizations:snql-join-reports", project.organization)
+                    else "group_id"
+                )
+                project_ctx.key_errors = [(e[group_id_alias], e["count()"]) for e in key_errors]
+
                 if ctx.organization.slug == "sentry":
                     logger.info(
                         "project_key_errors.results",
@@ -460,7 +466,7 @@ def render_template_context(ctx, user_id):
         # Calculate series
         series = []
         for i in range(0, 7):
-            t = int(to_timestamp(ctx.start)) + ONE_DAY * i
+            t = int(ctx.start.timestamp()) + ONE_DAY * i
             project_series = [
                 {
                     "color": project_breakdown_colors[i],

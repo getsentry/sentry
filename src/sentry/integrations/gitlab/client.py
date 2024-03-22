@@ -334,26 +334,14 @@ class GitLabProxyApiClient(IntegrationProxyClient):
         Path requires file path and ref
         file_path must also be URL encoded Ex. lib%2Fclass%2Erb
         """
-        from base64 import b64decode
 
         project_id = repo.config["project_id"]
         encoded_path = quote(path, safe="")
-        request_path = GitLabApiClientPath.file.format(project=project_id, path=encoded_path)
-        headers = (
-            {
-                "Accept": "application/vnd.github.raw",
-                "Content-Type": "application/raw; charset=utf-8",
-            }
-            if codeowners
-            else {}
-        )
-        contents = self.get(request_path, params={"ref": ref}, raw_response=True, headers=headers)
+        request_path = GitLabApiClientPath.file_raw.format(project=project_id, path=encoded_path)
 
-        result = (
-            contents.content.decode("utf-8")
-            if codeowners
-            else b64decode(contents["content"]).decode("utf-8")
-        )
+        contents = self.get(request_path, params={"ref": ref}, raw_response=True)
+        result = contents.content.decode("utf-8")
+
         return result
 
     def get_blame_for_files(

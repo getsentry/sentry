@@ -57,6 +57,13 @@ describe('MetricReadout', function () {
     expect(screen.getByText('1.1 MiB')).toBeInTheDocument();
   });
 
+  it('renders percentages', () => {
+    render(<MetricReadout title="Percentage" unit="percentage" value={0.2352} />);
+
+    expect(screen.getByRole('heading', {name: 'Percentage'})).toBeInTheDocument();
+    expect(screen.getByText('23.52%')).toBeInTheDocument();
+  });
+
   it('renders counts', () => {
     render(<MetricReadout title="Count" unit="count" value={7800123} />);
 

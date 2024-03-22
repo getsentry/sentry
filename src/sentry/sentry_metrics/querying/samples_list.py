@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from bisect import bisect
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Literal, TypedDict, cast
 
@@ -23,6 +24,13 @@ from sentry.snuba.metrics.naming_layer.mri import (
     parse_mri,
 )
 from sentry.snuba.referrer import Referrer
+
+
+@dataclass(frozen=True)
+class SpanKey:
+    group: str
+    timestamp: str
+    span_id: str
 
 
 class Summary(TypedDict):
@@ -90,7 +98,7 @@ class AbstractSamplesListExecutor(ABC):
 
     def get_spans_by_key(
         self,
-        span_keys: list[tuple[str, str, str]],
+        span_keys: list[SpanKey],
         additional_fields: list[str] | None = None,
     ):
         if not span_keys:
@@ -118,13 +126,13 @@ class AbstractSamplesListExecutor(ABC):
         conditions = [
             And(
                 [
-                    Condition(builder.column("span.group"), Op.EQ, group),
+                    Condition(builder.column("span.group"), Op.EQ, key.group),
                     Condition(
-                        builder.column("timestamp"), Op.EQ, datetime.fromisoformat(timestamp)
+                        builder.column("timestamp"), Op.EQ, datetime.fromisoformat(key.timestamp)
                     ),
                 ]
             )
-            for (group, timestamp, _) in span_keys
+            for key in span_keys
         ]
 
         if len(conditions) == 1:
@@ -142,7 +150,7 @@ class AbstractSamplesListExecutor(ABC):
         span_id_condition = Condition(
             builder.column("id"),
             Op.IN,
-            Function("tuple", [span_id for _, _, span_id in span_keys]),
+            Function("tuple", [key.span_id for key in span_keys]),
         )
 
         builder.add_conditions([order_by_condition, span_id_condition])
@@ -152,7 +160,7 @@ class AbstractSamplesListExecutor(ABC):
 
 
 class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
-    sortable_columns = {"timestamp", "span.duration"}
+    sortable_columns = {"timestamp", "span.duration", "summary"}
 
     SORT_MAPPING = {
         "span.duration": "transaction.duration",
@@ -165,13 +173,21 @@ class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
         raise NotImplementedError
 
     @classmethod
-    def convert_sort(cls, sort: str) -> tuple[Literal["", "-"], str] | None:
+    def convert_sort(cls, sort: str, mri: str) -> tuple[Literal["", "-"], str] | None:
         direction: Literal["", "-"] = ""
+
         if sort.startswith("-"):
             direction = "-"
             sort = sort[1:]
+
         if sort in cls.SORT_MAPPING:
             return direction, cls.SORT_MAPPING[sort]
+
+        if sort == "summary":
+            column = cls.mri_to_column(mri)
+            if column is not None:
+                return direction, column
+
         return None
 
     @classmethod
@@ -180,7 +196,7 @@ class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
 
     def _get_spans(
         self,
-        span_keys: list[tuple[str, str, str]],
+        span_keys: list[SpanKey],
         summaries: dict[str, Summary],
     ):
         result = self.get_spans_by_key(
@@ -192,7 +208,7 @@ class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
         # if there is a sort, we want to preserve the result in the same
         # order as the span keys which we can do by checking the span ids
         if self.sort:
-            order = {span_id: i for i, (_, _, span_id) in enumerate(span_keys)}
+            order = {key.span_id: i for i, key in enumerate(span_keys)}
             result["data"].sort(key=lambda row: order[row["id"]])
 
         # if `id` wasn't initially there, we should remove it
@@ -212,7 +228,7 @@ class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
         self,
         offset: int,
         limit: int,
-    ) -> tuple[list[tuple[str, str, str]], dict[str, Summary]]:
+    ) -> tuple[list[SpanKey], dict[str, Summary]]:
         """
         When getting examples for a segment, it's actually much faster to read it
         from the transactions dataset compared to the spans dataset as it's a much
@@ -224,7 +240,7 @@ class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
         may not contain all the necessary data.
         """
         assert self.sort
-        sort = self.convert_sort(self.sort)
+        sort = self.convert_sort(self.sort, self.mri)
         assert sort is not None
         direction, sort_column = sort
 
@@ -256,10 +272,10 @@ class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
         result = builder.process_results(query_results)
 
         span_keys = [
-            (
-                "00",  # all segments have a group of `00` currently
-                row["timestamp"],  # timestamp
-                row["span_id"],  # span_id
+            SpanKey(
+                group="00",  # all segments have a group of `00` currently
+                timestamp=row["timestamp"],
+                span_id=row["span_id"],
             )
             for row in result["data"]
         ]
@@ -299,7 +315,7 @@ class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
         self,
         offset: int,
         limit: int,
-    ) -> tuple[list[tuple[str, str, str]], dict[str, Summary]]:
+    ) -> tuple[list[SpanKey], dict[str, Summary]]:
         """
         When getting examples for a segment, it's actually much faster to read it
         from the transactions dataset compared to the spans dataset as it's a much
@@ -340,10 +356,10 @@ class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
             row["examples"] = pick_samples(row["examples"], metric_key=metric_key)
 
         span_keys = [
-            (
-                "00",  # all segments have a group of `00` currently
-                example[0],  # timestamp
-                example[1],  # span_id
+            SpanKey(
+                group="00",  # all segments have a group of `00` currently
+                timestamp=example[0],
+                span_id=example[1],
             )
             for row in result["data"]
             for example in row["examples"]
@@ -426,12 +442,30 @@ class TransactionMeasurementsSamplesListExecutor(SegmentsSamplesListExecutor):
 
 
 class SpansSamplesListExecutor(AbstractSamplesListExecutor):
-    sortable_columns = {"timestamp", "span.duration", "span.self_time"}
+    sortable_columns = {"timestamp", "span.duration", "span.self_time", "summary"}
 
     @classmethod
     @abstractmethod
     def mri_to_column(cls, mri) -> str | None:
         raise NotImplementedError
+
+    @classmethod
+    def convert_sort(cls, sort: str, mri: str) -> tuple[Literal["", "-"], str] | None:
+        direction: Literal["", "-"] = ""
+
+        if sort.startswith("-"):
+            direction = "-"
+            sort = sort[1:]
+
+        if sort == "summary":
+            column = cls.mri_to_column(mri)
+            if column is not None:
+                return direction, column
+
+        if sort in cls.sortable_columns:
+            return direction, sort
+
+        return None
 
     @classmethod
     def supports_mri(cls, mri: str) -> bool:
@@ -443,7 +477,14 @@ class SpansSamplesListExecutor(AbstractSamplesListExecutor):
         there's no reason to split this into 2 queries. We can go ahead and
         just do it all in a single query.
         """
+        assert self.sort
+        sort = self.convert_sort(self.sort, self.mri)
+        assert sort is not None
+        direction, sort_column = sort
+
         fields = self.fields[:]
+        if sort_column not in fields:
+            fields.append(sort_column)
 
         column = self.mri_to_column(self.mri)
         assert column is not None
@@ -455,7 +496,7 @@ class SpansSamplesListExecutor(AbstractSamplesListExecutor):
             self.params,
             snuba_params=self.snuba_params,
             selected_columns=fields,
-            orderby=self.sort,
+            orderby=f"{direction}{sort_column}",
             limit=limit,
             offset=0,
         )
@@ -503,51 +544,68 @@ class SpansSamplesListExecutor(AbstractSamplesListExecutor):
 
         return result
 
-    def get_unsorted_span_keys(self, offset: int, limit: int) -> list[tuple[str, str, str]]:
+    def get_unsorted_span_keys(self, offset: int, limit: int) -> list[SpanKey]:
         column = self.mri_to_column(self.mri)
 
-        builder = SpansIndexedQueryBuilder(
-            Dataset.SpansIndexed,
-            self.params,
-            snuba_params=self.snuba_params,
-            query=self.query,
-            selected_columns=[
-                f"rounded_timestamp({self.rollup})",
-                f"examples({column}, {self.num_samples}) AS examples",
-            ],
-            limit=limit,
-            offset=offset,
-            sample_rate=options.get("metrics.sample-list.sample-rate"),
-            config=QueryBuilderConfig(functions_acl=["rounded_timestamp", "examples"]),
-        )
-
-        additional_conditions = self.get_additional_conditions(builder)
-
-        assert column is not None
-        min_max_conditions = self.get_min_max_conditions(builder.resolve_column(column))
-
-        builder.add_conditions([*additional_conditions, *min_max_conditions])
-
-        query_results = builder.run_query(self.referrer.value)
-        result = builder.process_results(query_results)
-
-        metric_key = lambda example: example[3]  # sort by metric
-        for row in result["data"]:
-            row["examples"] = pick_samples(row["examples"], metric_key=metric_key)
-
-        return [
-            (
-                example[0],  # group
-                example[1],  # timestamp
-                example[2],  # span_id
+        for dataset_segmentation_condition_fn in self.dataset_segmentation_conditions():
+            builder = SpansIndexedQueryBuilder(
+                Dataset.SpansIndexed,
+                self.params,
+                snuba_params=self.snuba_params,
+                query=self.query,
+                selected_columns=[
+                    f"rounded_timestamp({self.rollup})",
+                    f"examples({column}, {self.num_samples}) AS examples",
+                ],
+                limit=limit,
+                offset=offset,
+                sample_rate=options.get("metrics.sample-list.sample-rate"),
+                config=QueryBuilderConfig(functions_acl=["rounded_timestamp", "examples"]),
             )
-            for row in result["data"]
-            for example in row["examples"]
-        ][:limit]
+
+            segmentation_conditions = dataset_segmentation_condition_fn(builder)
+
+            additional_conditions = self.get_additional_conditions(builder)
+
+            assert column is not None
+            min_max_conditions = self.get_min_max_conditions(builder.resolve_column(column))
+
+            builder.add_conditions(
+                [
+                    *segmentation_conditions,
+                    *additional_conditions,
+                    *min_max_conditions,
+                ]
+            )
+
+            query_results = builder.run_query(self.referrer.value)
+            result = builder.process_results(query_results)
+
+            if not result["data"]:
+                continue
+
+            metric_key = lambda example: example[3]  # sort by metric
+            for row in result["data"]:
+                row["examples"] = pick_samples(row["examples"], metric_key=metric_key)
+
+            return [
+                SpanKey(
+                    group=example[0],
+                    timestamp=example[1],
+                    span_id=example[2],
+                )
+                for row in result["data"]
+                for example in row["examples"]
+            ][:limit]
+
+        return []
 
     @abstractmethod
     def get_additional_conditions(self, builder: QueryBuilder) -> list[Condition]:
         raise NotImplementedError
+
+    def dataset_segmentation_conditions(self) -> list[Callable[[QueryBuilder], list[Condition]]]:
+        return [lambda builder: []]
 
     def get_min_max_conditions(self, column: SelectType) -> list[Condition]:
         conditions = []
@@ -571,14 +629,29 @@ class SpansTimingsSamplesListExecutor(SpansSamplesListExecutor):
         return cls.MRI_MAPPING.get(mri)
 
     def get_additional_conditions(self, builder: QueryBuilder) -> list[Condition]:
+        return []
+
+    def dataset_segmentation_conditions(self) -> list[Callable[[QueryBuilder], list[Condition]]]:
         return [
-            # The `00` group is used for spans not used within the
-            # new starfish experience. It's effectively the group
-            # for other. It is a massive group, so we've chosen
-            # to exclude it here.
+            # This grouping makes the assumption that spans are divided into 2 groups right now.
+            # Those that are classified with a non zero group, and those that are unclassified
+            # with a zero group.
             #
-            # In the future, we will want to look into exposing them
-            Condition(builder.column("span.group"), Op.NEQ, "00")
+            # In the future, if all span groups are classified, this segmentation should change
+            # to reflect that.
+            lambda builder: [
+                # The `00` group is used for spans not used within the
+                # new starfish experience. It's effectively the group
+                # for other. It is a massive group, so we've chosen
+                # to exclude it here.
+                Condition(builder.column("span.group"), Op.NEQ, "00"),
+            ],
+            lambda builder: [
+                # If the previous query contained no results, we'll
+                # have to search the `00` group which is slower but
+                # unfortunately necessary here.
+                Condition(builder.column("span.group"), Op.EQ, "00"),
+            ],
         ]
 
 
@@ -666,7 +739,7 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
 
     def _get_spans(
         self,
-        span_keys: list[tuple[str, str, str]],
+        span_keys: list[SpanKey],
         summaries: dict[str, Summary],
     ):
         result = self.get_spans_by_key(span_keys, additional_fields=["id"])
@@ -674,7 +747,7 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
         # if there is a sort, we want to preserve the result in the same
         # order as the span keys which we can do by checking the span ids
         if self.sort:
-            order = {span_id: i for i, (_, _, span_id) in enumerate(span_keys)}
+            order = {key.span_id: i for i, key in enumerate(span_keys)}
             result["data"].sort(key=lambda row: order[row["id"]])
 
         should_pop_id = "id" not in self.fields
@@ -693,7 +766,7 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
         self,
         offset: int,
         limit: int,
-    ) -> tuple[list[tuple[str, str, str]], dict[str, Summary]]:
+    ) -> tuple[list[SpanKey], dict[str, Summary]]:
         assert self.sort
         sort = self.convert_sort(self.sort, self.operation)
         assert sort is not None
@@ -733,10 +806,10 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
         result = builder.process_results(query_results)
 
         span_keys = [
-            (
-                cast(str, row["span.group"]),  # group
-                cast(str, row["timestamp"]),  # timestamp
-                cast(str, row["id"]),  # span_id
+            SpanKey(
+                group=row["span.group"],
+                timestamp=row["timestamp"],
+                span_id=row["id"],
             )
             for row in result["data"]
         ]
@@ -769,7 +842,7 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
         self,
         offset: int,
         limit: int,
-    ) -> tuple[list[tuple[str, str, str]], dict[str, Summary]]:
+    ) -> tuple[list[SpanKey], dict[str, Summary]]:
         builder = MetricsSummariesQueryBuilder(
             Dataset.MetricsSummaries,
             self.params,
@@ -802,10 +875,10 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
             row["examples"] = pick_samples(row["examples"], metric_key=metric_key)
 
         span_keys = [
-            (
-                cast(str, example[0]),  # group
-                cast(str, example[1]),  # timestamp
-                cast(str, example[2]),  # span_id
+            SpanKey(
+                group=example[0],
+                timestamp=example[1],
+                span_id=example[2],
             )
             for row in result["data"]
             for example in row["examples"]

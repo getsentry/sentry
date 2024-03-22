@@ -59,8 +59,11 @@ from sentry.grouping.ingest import (
     find_existing_grouphash,
     find_existing_grouphash_new,
     get_hash_values,
+    is_in_transition,
     maybe_run_background_grouping,
     maybe_run_secondary_grouping,
+    project_uses_optimized_grouping,
+    record_calculation_metric_with_result,
     record_hash_calculation_metrics,
     record_new_group_metrics,
     run_primary_grouping,
@@ -84,7 +87,6 @@ from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.grouplink import GroupLink
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
-from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
@@ -99,15 +101,12 @@ from sentry.net.http import connection_from_url
 from sentry.plugins.base import plugins
 from sentry.quotas.base import index_data_category
 from sentry.reprocessing2 import is_reprocessed_event
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.shared_integrations.exceptions import ApiError
 from sentry.signals import (
     first_event_received,
     first_event_with_minified_stack_trace_received,
     first_transaction_received,
     issue_unresolved,
 )
-from sentry.tasks.commits import fetch_commits
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.tasks.relay import schedule_invalidate_project_config
@@ -118,7 +117,7 @@ from sentry.usage_accountant import record
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
-from sentry.utils.dates import to_datetime, to_timestamp
+from sentry.utils.dates import to_datetime
 from sentry.utils.event import has_event_minified_stack_trace, has_stacktrace, is_handled
 from sentry.utils.eventuser import EventUser
 from sentry.utils.metrics import MutableTags
@@ -126,6 +125,7 @@ from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.performance_issues.performance_detection import detect_performance_problems
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
+from sentry.utils.sdk import set_measurement
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 
 if TYPE_CHECKING:
@@ -292,7 +292,7 @@ class ScoreClause(Func):
         if has_values:
             sql = "log(times_seen + %d) * 600 + %d" % (
                 self.times_seen,
-                to_timestamp(self.last_seen),
+                self.last_seen.timestamp(),
             )
         else:
             sql = "log(times_seen) * 600 + last_seen::abstime::int"
@@ -462,15 +462,21 @@ class EventManager:
 
             return jobs[0]["event"]
         else:
+            project = job["event"].project
+            job["optimized_grouping"] = project_uses_optimized_grouping(project)
+            job["in_grouping_transition"] = is_in_transition(project)
             metric_tags = {
                 "platform": job["event"].platform or "unknown",
                 "sdk": normalized_sdk_tag_from_event(job["event"]),
+                "using_transition_optimization": job["optimized_grouping"],
+                "in_transition": job["in_grouping_transition"],
             }
             # This metric allows differentiating from all calls to the `event_manager.save` metric
             # and adds support for differentiating based on platforms
             with metrics.timer("event_manager.save_error_events", tags=metric_tags):
                 return self.save_error_events(project, job, projects, metric_tags, raw, cache_key)
 
+    @sentry_sdk.tracing.trace
     def save_error_events(
         self,
         project: Project,
@@ -701,56 +707,6 @@ def _is_commit_sha(version: str) -> bool:
     return re.match(r"[0-9a-f]{40}", version) is not None
 
 
-def _associate_commits_with_release(release: Release, project: Project) -> None:
-    previous_release = release.get_previous_release(project)
-    possible_repos = (
-        RepositoryProjectPathConfig.objects.select_related("repository")
-        .filter(project=project, repository__provider="integrations:github")
-        .all()
-    )
-    if possible_repos:
-        # If it does exist, kick off a task to look if the commit exists in the repository
-        target_repo = None
-        for repo_proj_path_model in possible_repos:
-            ois = integration_service.get_organization_integrations(
-                org_integration_ids=[repo_proj_path_model.organization_integration_id]
-            )
-            oi = ois[0]
-            if not oi:
-                continue
-            integration = integration_service.get_integration(integration_id=oi.integration_id)
-            if not integration:
-                continue
-            integration_installation = integration.get_installation(
-                organization_id=oi.organization_id
-            )
-            if not integration_installation:
-                continue
-            repo_client = integration_installation.get_client()
-            try:
-                repo_client.get_commit(
-                    repo=repo_proj_path_model.repository.name, sha=release.version
-                )
-                target_repo = repo_proj_path_model.repository
-                break
-            except ApiError as exc:
-                if exc.code != 404:
-                    raise
-
-        if target_repo is not None:
-            # If it does exist, fetch the commits for that repo
-            fetch_commits.apply_async(
-                kwargs={
-                    "release_id": release.id,
-                    "user_id": None,
-                    "refs": [{"repository": target_repo.name, "commit": release.version}],
-                    "prev_release_id": (
-                        previous_release.id if previous_release is not None else None
-                    ),
-                }
-            )
-
-
 @metrics.wraps("save_event.get_or_create_release_many")
 def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     jobs_with_releases: dict[tuple[int, Release], list[Job]] = {}
@@ -785,11 +741,6 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
             )
 
         if release:
-            if features.has(
-                "projects:auto-associate-commits-to-release", projects[project_id]
-            ) and _is_commit_sha(release.version):
-                safe_execute(_associate_commits_with_release, release, projects[project_id])
-
             for job in jobs_to_update:
                 # Don't allow a conflicting 'release' tag
                 data = job["data"]
@@ -1374,19 +1325,7 @@ def get_culprit(data: Mapping[str, Any]) -> str:
 
 
 def assign_event_to_group(event: Event, job: Job, metric_tags: MutableTags) -> GroupInfo | None:
-    project = event.project
-
-    primary_grouping_config = project.get_option("sentry:grouping_config")
-    secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
-    has_mobile_config = "mobile:2021-02-12" in [primary_grouping_config, secondary_grouping_config]
-
-    if (
-        features.has(
-            "organizations:grouping-suppress-unnecessary-secondary-hash",
-            project.organization,
-        )
-        and not has_mobile_config
-    ):
+    if job["optimized_grouping"]:
         group_info = _save_aggregate_new(
             event=event,
             job=job,
@@ -1418,6 +1357,7 @@ def _save_aggregate(
     project = event.project
 
     primary_hashes, secondary_hashes, hashes = get_hash_values(project, job, metric_tags)
+    has_secondary_hashes = len(extract_hashes(secondary_hashes)) > 0
 
     # Now that we've used the current and possibly secondary grouping config(s) to calculate the
     # hashes, we're free to perform a config update if needed. Future events will use the new
@@ -1538,6 +1478,11 @@ def _save_aggregate(
 
                 span.set_tag("create_group_transaction.outcome", "new_group")
                 metric_tags["create_group_transaction.outcome"] = "new_group"
+                record_calculation_metric_with_result(
+                    project=project,
+                    has_secondary_hashes=has_secondary_hashes,
+                    result="new_group",
+                )
 
                 metrics.incr(
                     "group.created",
@@ -1592,6 +1537,18 @@ def _save_aggregate(
         new_hashes = [root_hierarchical_grouphash]
     else:
         new_hashes = []
+
+    primary_hash_values = set(extract_hashes(primary_hashes))
+    new_hash_values = {gh.hash for gh in new_hashes}
+    all_primary_hashes_are_new = primary_hash_values.issubset(new_hash_values)
+    record_calculation_metric_with_result(
+        project=project,
+        has_secondary_hashes=has_secondary_hashes,
+        # If at least one primary hash value isn't new, then we will have found it, since we check
+        # those before the secondary hash values. If the primary hash values are all new, then we
+        # must have found a secondary hash (or we'd be in the group-creation branch).
+        result="found_primary" if not all_primary_hashes_are_new else "found_secondary",
+    )
 
     if new_hashes:
         # There may still be secondary hashes that we did not use to find an
@@ -1650,6 +1607,7 @@ def _save_aggregate_new(
         group_info = handle_existing_grouphash(
             job, primary.existing_grouphash, primary.grouphashes, group_processing_kwargs
         )
+        result = "found_primary"
     # If we haven't, try again using the secondary config
     else:
         secondary = create_and_seek_grouphashes(job, maybe_run_secondary_grouping, metric_tags)
@@ -1660,10 +1618,13 @@ def _save_aggregate_new(
             group_info = handle_existing_grouphash(
                 job, secondary.existing_grouphash, all_grouphashes, group_processing_kwargs
             )
+            result = "found_secondary"
+
         else:
             group_info = create_group_with_grouphashes(
                 job, all_grouphashes, group_processing_kwargs
             )
+            result = "new_group"
 
     # From here on out, we're just doing housekeeping
 
@@ -1673,7 +1634,14 @@ def _save_aggregate_new(
     maybe_run_background_grouping(project, job)
 
     record_hash_calculation_metrics(
-        primary.config, primary.hashes, secondary.config, secondary.hashes
+        project, primary.config, primary.hashes, secondary.config, secondary.hashes
+    )
+    # TODO: Once the legacy `_save_aggregate` goes away, the logic inside of
+    # `record_calculation_metric_with_result` can be pulled into `record_hash_calculation_metrics`
+    record_calculation_metric_with_result(
+        project=project,
+        has_secondary_hashes=len(extract_hashes(secondary.hashes)) > 0,
+        result=result,
     )
 
     # Now that we've used the current and possibly secondary grouping config(s) to calculate the
@@ -2784,6 +2752,9 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
                 )
             except KeyError:
                 continue
+
+    set_measurement(measurement_name="jobs", value=len(jobs))
+    set_measurement(measurement_name="projects", value=len(projects))
 
     _get_or_create_release_many(jobs, projects)
     _get_event_user_many(jobs, projects)

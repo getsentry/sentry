@@ -2,31 +2,70 @@ import {useMemo} from 'react';
 
 import {openCreateDashboardFromScratchpad} from 'sentry/actionCreators/modal';
 import {convertToDashboardWidget} from 'sentry/utils/metrics/dashboard';
-import {MetricQueryType, type MetricQueryWidgetParams} from 'sentry/utils/metrics/types';
+import {MetricQueryType, type MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
-import {useDDMContext} from 'sentry/views/ddm/context';
+import type {Widget} from 'sentry/views/dashboards/types';
+import type {useFormulaDependencies} from 'sentry/views/ddm/utils/useFormulaDependencies';
 
-export function useCreateDashboard() {
+export function useCreateDashboard(
+  widgets: MetricWidgetQueryParams[],
+  formulaDependencies: ReturnType<typeof useFormulaDependencies>,
+  isMultiChartMode: boolean
+) {
   const router = useRouter();
   const organization = useOrganization();
-  const {widgets, isMultiChartMode} = useDDMContext();
   const {selection} = usePageFilters();
 
   const dashboardWidgets = useMemo(() => {
-    // TODO(aknaus): Remove filtering once dashboard supports metrics formulas
-    const supportedWidgets = widgets.filter(
-      widget => widget.type === MetricQueryType.QUERY
-    ) as MetricQueryWidgetParams[];
-    if (isMultiChartMode) {
-      return [convertToDashboardWidget(supportedWidgets, widgets[0].displayType)];
+    if (!isMultiChartMode) {
+      const queryIdsInArray = new Set<number>();
+      const widgetsWithDependencies = widgets.reduce<MetricWidgetQueryParams[]>(
+        (acc, widget) => {
+          if (widget.type === MetricQueryType.FORMULA) {
+            const {dependencies, isError} = formulaDependencies[widget.id];
+            if (isError) {
+              return acc;
+            }
+            // Only add dependencies that are not already in the list of widgets
+            const filteredDependencies: MetricWidgetQueryParams[] = [];
+            dependencies.forEach(dependency => {
+              if (!queryIdsInArray.has(dependency.id)) {
+                filteredDependencies.push(dependency);
+                queryIdsInArray.add(dependency.id);
+              }
+            });
+
+            return [...filteredDependencies, ...acc, widget];
+          }
+
+          if (queryIdsInArray.has(widget.id)) {
+            return acc;
+          }
+          queryIdsInArray.add(widget.id);
+          return [...acc, widget];
+        },
+        []
+      );
+      return [convertToDashboardWidget(widgetsWithDependencies, widgets[0].displayType)];
     }
 
-    return supportedWidgets.map(widget =>
-      convertToDashboardWidget([widget], widget.displayType)
-    );
-  }, [widgets, isMultiChartMode]);
+    return widgets
+      .map(widget => {
+        if (widget.type !== MetricQueryType.FORMULA) {
+          return convertToDashboardWidget([widget], widget.displayType);
+        }
+
+        const {dependencies, isError} = formulaDependencies[widget.id];
+
+        if (isError) {
+          return null;
+        }
+        return convertToDashboardWidget([...dependencies, widget], widget.displayType);
+      })
+      .filter((widget): widget is Widget => widget !== null);
+  }, [isMultiChartMode, widgets, formulaDependencies]);
 
   return useMemo(() => {
     return function () {

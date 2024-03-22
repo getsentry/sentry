@@ -92,9 +92,16 @@ class MonitorStatus:
     DELETION_IN_PROGRESS = 3
 
     OK = 4
+    """
+    The monitor environment has received check-ins and is OK.
+    """
+
     ERROR = 5
-    MISSED_CHECKIN = 6
-    TIMEOUT = 7
+    """
+    The monitor environment is currently in an active incident state. This is a
+    denormalization of thee fact that a MonitorIncident exists for the
+    environment without a resolving check-in.
+    """
 
     @classmethod
     def as_choices(cls) -> Sequence[tuple[int, str]]:
@@ -110,8 +117,6 @@ class MonitorStatus:
             (cls.DELETION_IN_PROGRESS, "deletion_in_progress"),
             (cls.OK, "ok"),
             (cls.ERROR, "error"),
-            (cls.MISSED_CHECKIN, "missed_checkin"),
-            (cls.TIMEOUT, "timeout"),
         )
 
 
@@ -134,8 +139,22 @@ class CheckInStatus:
     TIMEOUT = 5
     """Checkin was left in-progress past max_runtime"""
 
+    USER_TERMINAL_VALUES = (OK, ERROR)
+    """
+    Values indicating the monitor is in a terminal status where the terminal
+    status was reported by the monitor itself (was not synthetic)
+    """
+
+    SYNTHETIC_TERMINAL_VALUES = (MISSED, TIMEOUT)
+    """
+    Values indicating the montior is in a terminal "synthetic" status. These
+    status are not sent by the monitor themselve but are a side effect result.
+    """
+
     FINISHED_VALUES = (OK, ERROR, MISSED, TIMEOUT)
-    """Terminal values used to indicate a monitor is finished running"""
+    """
+    All terminal values indicating the monitor has reached it's final status
+    """
 
     @classmethod
     def as_choices(cls):
@@ -636,22 +655,16 @@ class MonitorEnvironment(Model):
         )
 
     @property
-    def incident_grouphash(self):
+    def active_incident(self) -> MonitorIncident | None:
         """
-        Retrieve the grouphash for the current active incident. If there is no
-        active incident None will be returned.
+        Retrieve the current active incident. If there is no active incident None will be returned.
         """
-        active_incident = (
-            MonitorIncident.objects.filter(
+        try:
+            return MonitorIncident.objects.get(
                 monitor_environment_id=self.id, resolving_checkin__isnull=True
             )
-            .order_by("-date_added")
-            .first()
-        )
-        if active_incident:
-            return active_incident.grouphash
-
-        return None
+        except MonitorIncident.DoesNotExist:
+            return None
 
 
 @receiver(pre_save, sender=MonitorEnvironment)
@@ -714,6 +727,15 @@ class MonitorIncident(Model):
                 condition=Q(resolving_checkin__isnull=True),
             ),
         ]
+        constraints = [
+            # Only allow for one active incident (no resolved check-in) per
+            # monitor environment
+            models.UniqueConstraint(
+                fields=["monitor_environment_id"],
+                name="unique_active_incident",
+                condition=Q(resolving_checkin__isnull=True),
+            ),
+        ]
 
 
 @region_silo_only_model
@@ -728,6 +750,7 @@ class MonitorEnvBrokenDetection(Model):
     monitor_incident = FlexibleForeignKey("sentry.MonitorIncident")
     detection_timestamp = models.DateTimeField(auto_now_add=True)
     user_notified_timestamp = models.DateTimeField(null=True, db_index=True)
+    env_muted_timestamp = models.DateTimeField(null=True, db_index=True)
 
     class Meta:
         app_label = "sentry"

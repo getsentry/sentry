@@ -14,6 +14,7 @@ from sentry.integrations.slack.message_builder.notifications.rule_save_edit impo
     SlackRuleSaveEditMessageBuilder,
 )
 from sentry.integrations.slack.utils.channel import strip_channel_name
+from sentry.issues.grouptype import GroupCategory
 from sentry.models.actor import Actor, get_actor_for_user
 from sentry.models.environment import Environment
 from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
@@ -1004,7 +1005,15 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
     @responses.activate
     @with_feature("organizations:rule-create-edit-confirm-notification")
     def test_slack_confirmation_notification_contents(self):
-        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
+        conditions = [
+            {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"},
+        ]
+        filters = [
+            {
+                "id": "sentry.rules.filters.issue_category.IssueCategoryFilter",
+                "value": GroupCategory.PERFORMANCE.value,
+            }
+        ]
         actions = [
             {
                 "channel_id": "old_channel_id",
@@ -1013,7 +1022,10 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
                 "channel": "#old_channel_name",
             }
         ]
-        self.rule.update(data={"conditions": conditions, "actions": actions})
+        self.rule.update(
+            data={"conditions": conditions, "filters": filters, "actions": actions, "frequency": 5},
+            label="my rule",
+        )
 
         actions[0]["channel"] = "#new_channel_name"
         actions[0]["channel_id"] = "new_channel_id"
@@ -1054,13 +1066,19 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             content_type="application/json",
             body=json.dumps(payload),
         )
+        staging_env = self.create_environment(
+            self.project, name="staging", organization=self.organization
+        )
         payload = {
-            "name": "#new_channel_name",
+            "name": "new rule",
             "actionMatch": "any",
             "filterMatch": "any",
             "actions": actions,
             "conditions": conditions,
-            "frequency": 30,
+            "frequency": 180,
+            "filters": filters,
+            "environment": staging_env.name,
+            "owner": get_actor_for_user(self.user).get_actor_identifier(),
         }
         response = self.get_success_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
@@ -1069,12 +1087,23 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         rule_label = response.data["name"]
         assert response.data["actions"][0]["channel_id"] == "new_channel_id"
         data = parse_qs(responses.calls[1].request.body)
-        message = f"<http://testserver/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{rule_id}/details/|*{rule_label}*> in the *{self.project.slug}* project was updated."
+        message = f"Alert rule <http://testserver/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{rule_id}/details/|*{rule_label}*> in the *{self.project.slug}* project was updated."
         assert data["text"][0] == message
         rendered_blocks = json.loads(data["blocks"][0])
         assert rendered_blocks[0]["text"]["text"] == message
+        changes = "*Changes*\n"
+        changes += "• Added condition 'The issue's category is equal to Performance'\n"
+        changes += "• Added action 'Send a notification to the Awesome Team Slack workspace to new_channel_name (optionally, an ID: new_channel_id) and show tags [] in notification'\n"
+        changes += "• Removed action 'Send a notification to the Awesome Team Slack workspace to #old_channel_name (optionally, an ID: old_channel_id) and show tags [] in notification'\n"
+        changes += "• Changed frequency from *5 minutes* to *3 hours*\n"
+        changes += f"• Added *{staging_env.name}* environment\n"
+        changes += "• Changed rule name from *my rule* to *new rule*\n"
+        changes += "• Changed trigger from *None* to *any*\n"
+        changes += "• Changed filter from *None* to *any*\n"
+        changes += f"• Changed owner from *Unassigned* to *{self.user.email}*\n"
+        assert rendered_blocks[1]["text"]["text"] == changes
         assert (
-            rendered_blocks[1]["elements"][0]["text"]
+            rendered_blocks[2]["elements"][0]["text"]
             == "<http://testserver/settings/account/notifications/alerts/|*Notification Settings*>"
         )
 

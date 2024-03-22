@@ -1,10 +1,10 @@
 import logging
 import math
+import zoneinfo
 from collections import defaultdict
 from datetime import datetime
-from typing import cast
+from typing import DefaultDict, cast
 
-import pytz
 import sentry_sdk
 from django.utils import timezone
 from sentry_sdk import set_tag
@@ -41,7 +41,8 @@ from sentry.tasks.summaries.utils import (
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from sentry.types.integrations import ExternalProviders
-from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
+from sentry.utils import json
+from sentry.utils.dates import to_datetime
 from sentry.utils.outcomes import Outcome
 from sentry.utils.query import RangeQuerySetWrapper
 
@@ -62,7 +63,7 @@ HOUR_TO_SEND_REPORT = 16
 def schedule_organizations(timestamp: float | None = None, duration: int | None = None) -> None:
     if timestamp is None:
         # The time that the report was generated
-        timestamp = to_timestamp(floor_to_utc_day(timezone.now()))
+        timestamp = timezone.now().timestamp()
 
     if duration is None:
         # The total timespan that the task covers
@@ -102,7 +103,7 @@ def schedule_organizations(timestamp: float | None = None, duration: int | None 
             users_to_send_to = []
             for user_tz, users in users_by_tz.items():
                 utc_datetime = to_datetime(timestamp)
-                local_timezone = pytz.timezone(user_tz)
+                local_timezone = zoneinfo.ZoneInfo(user_tz)
                 local_datetime = utc_datetime.astimezone(local_timezone)
                 if local_datetime.hour == HOUR_TO_SEND_REPORT:
                     for user in users:
@@ -154,7 +155,7 @@ def build_summary_data(
         user_project_ownership(ctx)
 
     # build 'Today's Event Count vs. 14 day average'. we need 15 days of data for this
-    start = to_datetime(to_timestamp(ctx.end) - comparison_offset)
+    start = to_datetime(ctx.end.timestamp() - comparison_offset)
     with sentry_sdk.start_span(op="daily_summary.project_event_counts_for_organization"):
         event_counts = project_event_counts_for_organization(
             start=start, end=ctx.end, ctx=ctx, referrer=Referrer.DAILY_SUMMARY_OUTCOMES.value
@@ -188,7 +189,12 @@ def build_summary_data(
                 ctx=ctx, project=project, referrer=Referrer.DAILY_SUMMARY_KEY_ERRORS.value
             )
             if key_errors:
-                project_ctx.key_errors = [(e["group_id"], e["count()"]) for e in key_errors]
+                group_id_alias = (
+                    "events.group_id"
+                    if features.has("organizations:snql-join-reports", project.organization)
+                    else "group_id"
+                )
+                project_ctx.key_errors = [(e[group_id_alias], e["count()"]) for e in key_errors]
 
             # Today's Top 3 Performance Issues
             key_performance_issues = project_key_performance_issues(
@@ -206,25 +212,57 @@ def build_summary_data(
             regressed_or_escalated_groups_today = Activity.objects.filter(
                 group__in=([group for group in regressed_or_escalated_groups]),
                 type__in=(ActivityType.SET_REGRESSION.value, ActivityType.SET_ESCALATING.value),
+                datetime__gte=ctx.start,
             )
-            if regressed_or_escalated_groups_today:
-                for activity in regressed_or_escalated_groups_today[:4]:
-                    if activity.type == ActivityType.SET_REGRESSION.value:
-                        project_ctx.regressed_today.append(activity.group)
+            deduped_groups_by_activity_type: DefaultDict[ActivityType, set] = defaultdict(set)
+
+            for activity in regressed_or_escalated_groups_today:
+                deduped_groups_by_activity_type[ActivityType(activity.type)].add(activity.group)
+
+                if (
+                    activity.type == ActivityType.SET_ESCALATING.value
+                    and activity.group
+                    in deduped_groups_by_activity_type[ActivityType.SET_REGRESSION]
+                ):
+                    # if a group is already in the regressed set but we now see it in escalating, remove from regressed and add to escalating
+                    # this means the group regressed and then later escalated, and we only want to list it once
+                    deduped_groups_by_activity_type[ActivityType.SET_REGRESSION].remove(
+                        activity.group
+                    )
+
+            for activity_type, groups in deduped_groups_by_activity_type.items():
+                for group in list(groups)[:3]:
+                    if activity_type == ActivityType.SET_REGRESSION:
+                        project_ctx.regressed_today.append(group)
                     else:
-                        project_ctx.escalated_today.append(activity.group)
+                        project_ctx.escalated_today.append(group)
 
             # The project's releases and the (max) top 3 new errors e.g. release - group1, group2
             release_projects = ReleaseProject.objects.filter(project_id=project_id).values_list(
                 "release_id", flat=True
             )
             releases = Release.objects.filter(id__in=release_projects, date_added__gte=ctx.end)
-            for release in releases[:2]:  # or whatever we limit this to
-                new_groups_in_release = Group.objects.filter(project=project, first_release=release)
-                if new_groups_in_release:
-                    project_ctx.new_in_release = {
-                        release.id: [group for group in new_groups_in_release]
-                    }
+            for release in releases:
+                if len(project_ctx.new_in_release) < 2:  # or whatever we limit this to
+                    new_groups_in_release = Group.objects.filter(
+                        project=project, first_release=release
+                    )
+                    if new_groups_in_release:
+                        project_ctx.new_in_release[release.id] = [
+                            group for group in new_groups_in_release
+                        ][
+                            :3
+                        ]  # limit to 3 issues per release
+
+            new_in_release = json.dumps([group for group in project_ctx.new_in_release])
+            logger.info(
+                "daily_summary.new_in_release",
+                extra={
+                    "organization": ctx.organization.id,
+                    "project_id": project_id,
+                    "new_in_release": new_in_release,
+                },
+            )
     with sentry_sdk.start_span(op="daily_summary.fetch_key_error_groups"):
         fetch_key_error_groups(ctx)
 

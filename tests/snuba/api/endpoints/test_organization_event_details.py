@@ -4,11 +4,14 @@ import pytest
 from django.urls import NoReverseMatch, reverse
 
 from sentry.models.group import Group
-from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.search.events import constants
+from sentry.testutils.cases import APITestCase, MetricsEnhancedPerformanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 def format_project_event(project_slug, event_id):
@@ -291,3 +294,40 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
         assert response.data["projectSlug"] == self.project.slug
         assert response.data["occurrence"] is not None
         assert response.data["occurrence"]["id"] == occurrence.id
+
+
+class EventComparisonTest(MetricsEnhancedPerformanceTestCase):
+    endpoint = "sentry-api-0-organization-event-details"
+
+    def setUp(self):
+        self.init_snuba()
+        self.ten_mins_ago = before_now(minutes=10)
+        self.transaction_data = load_data("transaction", timestamp=self.ten_mins_ago)
+        event = self.store_event(self.transaction_data, self.project)
+        self.url = reverse(
+            self.endpoint,
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+                "event_id": event.event_id,
+            },
+        )
+        self.login_as(user=self.user)
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.ten_mins_ago,
+            tags={"span.group": "26b881987e4bad99"},
+        )
+
+    def test_get(self):
+        response = self.client.get(self.url, {"averageColumn": "span.self_time"})
+        assert response.status_code == 200, response.content
+        entries = response.data["entries"]  # type: ignore
+        for entry in entries:
+            if entry["type"] == "spans":
+                for span in entry["data"]:
+                    if span["span_id"] == "26b881987e4bad99":
+                        assert span["span.average_time"] == 1.0
+                    if span["span_id"] == "c048b4fffdc4279d":
+                        assert "span.average_time" not in span
