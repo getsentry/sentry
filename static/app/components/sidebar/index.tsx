@@ -11,7 +11,6 @@ import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext'
 import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
 import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboarding/sidebar';
 import ReplaysOnboardingSidebar from 'sentry/components/replaysOnboarding/sidebar';
-import SidebarSmallScreen from 'sentry/components/sidebar/sidebarSmallScreen';
 import {isDone} from 'sentry/components/sidebar/utils';
 import {
   IconChevron,
@@ -521,7 +520,6 @@ function Sidebar() {
   return (
     <SidebarWrapper aria-label={t('Primary Navigation')} collapsed={collapsed}>
       <ExpandedContextProvider>
-        <SidebarSmallScreen sidebarCollapsed={collapsed} />
         <SidebarSectionGroupPrimary>
           <DropdownSidebarSection
             isSuperuser={showSuperuserWarning() && !isExcludedOrg()}

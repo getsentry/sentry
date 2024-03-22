@@ -25,39 +25,29 @@ type SidebarAccordionProps = SidebarItemProps & {
 };
 
 export const ExpandedContext = createContext<{
-  items: React.ReactNode;
-  setItems: (items: React.ReactNode) => void;
-  setTitle: (title: React.ReactNode) => void;
-  title: React.ReactNode;
+  openMainItemId: string | null;
+  setOpenMainItem: (mainItemId: string | null) => void;
 }>({
-  items: null,
-  setItems: (_: React.ReactNode) => {},
-  setTitle: (_: React.ReactNode) => '',
-  title: '',
+  openMainItemId: null,
+  setOpenMainItem: () => {},
 });
 
 export function ExpandedContextProvider(props) {
-  const [items, setItems] = useState<React.ReactNode>(null);
-  const title = useRef<React.ReactNode>('');
-
-  const setTitle = (newTitle: React.ReactNode) => {
-    title.current = newTitle;
-  };
+  const [openMainItemId, setOpenMainItem] = useState<string | null>(null);
 
   return (
-    <ExpandedContext.Provider value={{items, setItems, title: title.current, setTitle}}>
+    <ExpandedContext.Provider value={{openMainItemId, setOpenMainItem}}>
       {props.children}
     </ExpandedContext.Provider>
   );
 }
 
 function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
-  const {items, setItems, setTitle} = useContext(ExpandedContext);
+  const {id, collapsed: sidebarCollapsed} = itemProps;
+  const accoridonRef = useRef<HTMLDivElement>(null);
+  const {openMainItemId, setOpenMainItem} = useContext(ExpandedContext);
   const theme = useTheme();
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
-
-  const {id, collapsed: sidebarCollapsed} = itemProps;
-
   const [expanded, setExpanded] = useLocalStorageState(
     `sidebar-accordion-${id}:expanded`,
     true
@@ -65,6 +55,7 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
 
   const mainItemId = `sidebar-accordion-${id}-item`;
   const contentId = `sidebar-accordion-${id}-content`;
+  const isOpenInFloatingSidebar = openMainItemId === mainItemId;
 
   const isActive = isItemActive(itemProps);
 
@@ -91,21 +82,20 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
     e: React.MouseEvent<HTMLAnchorElement, MouseEvent>
   ) => {
     if ((!horizontal && !sidebarCollapsed) || !children) {
-      setItems(null);
+      setOpenMainItem(null);
       return;
     }
 
     e.preventDefault();
-    if (items === children) {
-      setItems(null);
+    if (isOpenInFloatingSidebar) {
+      setOpenMainItem(null);
     } else {
-      setTitle(itemProps.label);
-      setItems(children);
+      setOpenMainItem(mainItemId);
     }
   };
 
   return (
-    <SidebarAccordionWrapper>
+    <SidebarAccordionWrapper ref={accoridonRef}>
       <SidebarAccordionHeaderWrap>
         <SidebarItem
           {...itemProps}
@@ -136,6 +126,23 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
         <SidebarAccordionSubitemsWrap id={contentId}>
           {children}
         </SidebarAccordionSubitemsWrap>
+      )}
+      {isOpenInFloatingSidebar && (horizontal || sidebarCollapsed) && (
+        <div
+          style={{
+            position: 'absolute',
+            width: !horizontal ? '200px' : '100%',
+            padding: space(2),
+            top: !horizontal
+              ? accoridonRef.current?.getBoundingClientRect().top
+              : theme.sidebar.mobileHeight,
+            left: !horizontal ? theme.sidebar.collapsedWidth : 0,
+            backgroundColor: 'white',
+          }}
+        >
+          <SidebarItemLabel>{itemProps.label}</SidebarItemLabel>
+          {children}
+        </div>
       )}
     </SidebarAccordionWrapper>
   );
@@ -175,6 +182,12 @@ function findChildElementsInTree(
 
   return found;
 }
+
+const SidebarItemLabel = styled('span')`
+  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSizeMedium};
+  white-space: nowrap;
+`;
 
 const SidebarAccordionWrapper = styled('div')`
   display: flex;

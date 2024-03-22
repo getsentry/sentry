@@ -1,4 +1,4 @@
-import {Fragment, isValidElement, useCallback, useMemo} from 'react';
+import {Fragment, isValidElement, useCallback, useContext, useMemo} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
@@ -10,6 +10,7 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {Flex} from 'sentry/components/profiling/flex';
+import {ExpandedContext} from 'sentry/components/sidebar/sidebarAccordion';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
@@ -138,6 +139,7 @@ function SidebarItem({
   isSmall = false,
   ...props
 }: SidebarItemProps) {
+  const {setOpenMainItem} = useContext(ExpandedContext);
   const router = useRouter();
   // label might be wrapped in a guideAnchor
   let labelString = label;
@@ -181,12 +183,13 @@ function SidebarItem({
 
   const handleItemClick = useCallback(
     (event: React.MouseEvent<HTMLAnchorElement>) => {
+      setOpenMainItem(null);
       !(to || href) && event.preventDefault();
       recordAnalytics();
       onClick?.(id, event);
       showIsNew && localStorage.setItem(isNewSeenKey, 'true');
     },
-    [href, to, id, onClick, recordAnalytics, showIsNew, isNewSeenKey]
+    [href, to, id, onClick, recordAnalytics, showIsNew, isNewSeenKey, setOpenMainItem]
   );
 
   const isInFloatingSidebar = isNested && isSmall;
