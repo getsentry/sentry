@@ -107,8 +107,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
     if (!('op' in props.span)) {
       return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [props.span]);
 
   function renderTraversalButton(): React.ReactNode {
     if (!props.childTransactions) {

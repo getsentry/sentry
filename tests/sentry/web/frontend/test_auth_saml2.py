@@ -229,9 +229,7 @@ class AuthSAML2Test(AuthProviderTestCase):
 
         data = {"init": True, "provider": self.provider_name}
 
-        with Feature(["organizations:sso-basic", "organizations:sso-saml2"]), assume_test_silo_mode(
-            SiloMode.REGION
-        ):
+        with Feature(["organizations:sso-basic", "organizations:sso-saml2"]):
             setup = self.client.post(self.setup_path, data)
 
         assert setup.status_code == 302

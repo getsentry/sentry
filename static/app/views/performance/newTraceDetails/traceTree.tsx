@@ -662,10 +662,11 @@ export class TraceTree {
     while (queue.length > 0) {
       const node = queue.pop()!;
 
+      for (const child of node.children) {
+        queue.push(child);
+      }
+
       if (node.children.length < 5) {
-        for (const child of node.children) {
-          queue.push(child);
-        }
         continue;
       }
 

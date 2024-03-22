@@ -363,6 +363,25 @@ class DrainMailboxTest(TestCase):
 
     @responses.activate
     @override_regions(region_config)
+    def test_drain_api_error_forbidden(self):
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/github/webhook/",
+            status=403,
+            body="",
+        )
+        webhook_one = self.create_webhook_payload(
+            mailbox_name="github:123",
+            region_name="us",
+        )
+        drain_mailbox(webhook_one.id)
+        hook = WebhookPayload.objects.filter(id=webhook_one.id).first()
+        # We don't retry 403
+        assert hook is None
+        assert len(responses.calls) == 1
+
+    @responses.activate
+    @override_regions(region_config)
     def test_drain_not_found(self):
         responses.add(
             responses.POST,

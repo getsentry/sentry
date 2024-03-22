@@ -118,8 +118,8 @@ export function TraceView() {
     });
   }, [queryParams, traceSlug]);
 
-  const trace = useTrace({referrer: 'trace-view'});
-  const meta = useTraceMeta({referrer: 'trace-view'});
+  const trace = useTrace();
+  const meta = useTraceMeta();
 
   return (
     <SentryDocumentTitle title={DOCUMENT_TITLE} orgSlug={organization.slug}>
@@ -204,6 +204,13 @@ function TraceViewContent(props: TraceViewContentProps) {
       return errorTree;
     }
 
+    if (
+      props.trace?.transactions.length === 0 &&
+      props.trace?.orphan_errors.length === 0
+    ) {
+      return TraceTree.Empty();
+    }
+
     if (props.status === 'loading' || rootEvent.status === 'loading') {
       const loadingTrace =
         loadingTraceRef.current ??
@@ -223,7 +230,7 @@ function TraceViewContent(props: TraceViewContentProps) {
       return TraceTree.FromTrace(props.trace, rootEvent.data);
     }
 
-    return TraceTree.Empty();
+    throw new Error('Invalid trace state');
   }, [
     props.traceSlug,
     props.trace,
@@ -672,13 +679,13 @@ function useRootEvent(trace: TraceSplitResults<TraceFullDetailed> | null) {
       `/organizations/${organization.slug}/events/${root?.project_slug}:${root?.event_id}/`,
       {
         query: {
-          referrer: 'trace-view.content',
+          referrer: 'trace-details-summary',
         },
       },
     ],
     {
       staleTime: 0,
-      enabled: !!trace,
+      enabled: !!trace && !!root,
     }
   );
 }
