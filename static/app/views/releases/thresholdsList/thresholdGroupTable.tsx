@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types';

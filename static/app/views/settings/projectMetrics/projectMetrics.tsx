@@ -8,7 +8,7 @@ import debounce from 'lodash/debounce';
 import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';

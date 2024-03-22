@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';

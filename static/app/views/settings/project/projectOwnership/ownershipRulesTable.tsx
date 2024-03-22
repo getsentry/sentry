@@ -8,7 +8,7 @@ import uniqBy from 'lodash/uniqBy';
 import SuggestedAvatarStack from 'sentry/components/avatar/suggestedAvatarStack';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
 import Tag from 'sentry/components/tag';
 import {IconChevron} from 'sentry/icons';

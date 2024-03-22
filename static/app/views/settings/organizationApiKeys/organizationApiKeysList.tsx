@@ -7,7 +7,7 @@ import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import LinkWithConfirmation from 'sentry/components/links/linkWithConfirmation';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
