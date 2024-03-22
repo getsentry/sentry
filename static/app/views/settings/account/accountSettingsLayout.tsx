@@ -16,7 +16,7 @@ type Props = React.ComponentProps<typeof SettingsLayout> & {
 
 class AccountSettingsLayout extends Component<Props> {
   static childContextTypes = {
-    organization: SentryPropTypeValidators.isOrganization,
+    organization: SentryPropTypeValidators.isObject,
   };
 
   getChildContext() {

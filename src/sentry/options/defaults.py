@@ -2138,12 +2138,6 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Rate to move from outbox based webhook delivery to webhookpayload.
-register(
-    "hybridcloud.webhookpayload.rollout",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 register(
     "metrics.sample-list.sample-rate",
     type=Float,
@@ -2199,6 +2193,14 @@ register(
 )
 register(
     "standalone-spans.process-spans-consumer.project-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Deobfuscate profiles using Symbolicator
+register(
+    "profiling.deobfuscate-using-symbolicator.enable-for-project",
     type=Sequence,
     default=[],
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
