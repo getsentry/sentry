@@ -1,3 +1,5 @@
+from typing import Any
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -9,7 +11,6 @@ from sentry.api.permissions import SentryPermission
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.types.region import get_region_by_name
-from sentry.utils.types import Any
 
 
 class OrganizationRegionEndpointPermissions(SentryPermission):
