@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import PanelTable, {PanelTableHeader} from 'sentry/components/panels/panelTable';
+import {PanelTable, PanelTableHeader} from 'sentry/components/panels/panelTable';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';

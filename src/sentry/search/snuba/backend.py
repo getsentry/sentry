@@ -36,7 +36,6 @@ from sentry.search.base import SearchBackend
 from sentry.search.events.constants import EQUALITY_OPERATORS, OPERATOR_TO_DJANGO
 from sentry.search.snuba.executors import (
     AbstractQueryExecutor,
-    CdcPostgresSnubaQueryExecutor,
     InvalidQueryForExecutor,
     PostgresSnubaQueryExecutor,
     TrendsSortWeights,
@@ -779,8 +778,3 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
                 }
             )
         return queryset_conditions
-
-
-class CdcEventsDatasetSnubaSearchBackend(EventsDatasetSnubaSearchBackend):
-    def _get_query_executor(self, *args: Any, **kwargs: Any) -> CdcPostgresSnubaQueryExecutor:
-        return CdcPostgresSnubaQueryExecutor()
