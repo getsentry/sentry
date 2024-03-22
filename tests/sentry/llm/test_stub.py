@@ -3,7 +3,7 @@ from sentry.llm.stub import StubLLM
 
 
 class TestStubLLM(BaseTestCase):
-    def test_chat_completion(self):
+    def test_complete_prompt(self):
         stub = StubLLM()
-        res = stub.chat_completion("prompt here", "message here")
+        res = stub.complete_prompt("prompt here", "message here")
         assert res == ""
