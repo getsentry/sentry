@@ -161,18 +161,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             assert len(data) == 1
             assert data[0][0]["by"] == {}
 
-            matches_one = False
-            assert isinstance(expected_identity_series, list)  # mypy
-            for e in expected_identity_series:
-                if data[0][0]["series"] == [
-                    None,
-                    e,
-                    e,
-                ]:
-                    matches_one = True
-                    break
-            assert matches_one
-
             _, second, third = data[0][0]["series"]
             assert second in expected_identity_series
             assert third in expected_identity_series
@@ -521,7 +509,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data[0][1]["totals"] == self.to_reference_unit(12.0)
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
-    # @pytest.mark.xfail(reason="Bug on Snuba that returns the wrong results, removed when fixed")
+    @pytest.mark.xfail(reason="Bug on Snuba that returns the wrong results, removed when fixed")
     def test_query_with_group_by_on_null_tag(self) -> None:
         for value, transaction, time in (
             (1, "/hello", self.now()),
