@@ -261,7 +261,10 @@ class PrimaryKeyMap:
                 if not isinstance(pk, int):
                     raise TypeError(f"{pk=!r} ({type(pk)=})")
                 if not isinstance(kind, ImportKind):
-                    raise TypeError(f"{kind=!r} ({type(kind)=})")
+                    try:
+                        ImportKind(kind)
+                    except Exception:
+                        raise TypeError(f"{kind=!r} ({type(kind)=})")
                 if not (slug is None or isinstance(slug, str)):
                     raise TypeError(f"{slug=!r} ({type(slug)=})")
 
