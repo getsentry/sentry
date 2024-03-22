@@ -418,12 +418,14 @@ def perform_request(payload: WebhookPayload) -> None:
                 raise DeliveryFailed() from err
 
             # We don't retry 404 or 400 as they will fail again.
-            if response_code in {404, 400, 401}:
+            if response_code in {400, 401, 403, 404}:
                 reason = "not_found"
                 if response_code == 400:
                     reason = "bad_request"
                 elif response_code == 401:
                     reason = "unauthorized"
+                elif response_code == 403:
+                    reason = "forbidden"
                 metrics.incr(
                     "hybridcloud.deliver_webhooks.failure",
                     tags={"reason": reason, "destination_region": region.name},
