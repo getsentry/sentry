@@ -27,7 +27,7 @@ class Migration(CheckedMigration):
             database_operations=[
                 migrations.RunSQL(
                     """
-                    ALTER TABLE "sentry_alertruleactivations" ADD COLUMN "query_subscription_id" integer NOT NULL DEFAULT 0;
+                    ALTER TABLE "sentry_alertruleactivations" ADD COLUMN "query_subscription_id" integer NOT NULL;
                     """,
                     reverse_sql="""
                     ALTER TABLE "sentry_alertruleactivations" DROP COLUMN "query_subscription_id";
