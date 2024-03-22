@@ -1,25 +1,22 @@
-import { Fragment, useEffect } from "react";
-import styled from "@emotion/styled";
-import * as Sentry from "@sentry/react";
+import {Fragment, useEffect} from 'react';
+import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
-import ClippedBox from "sentry/components/clippedBox";
-import EventTagCustomBanner from "sentry/components/events/eventTags/eventTagCustomBanner";
-import EventTagsTree from "sentry/components/events/eventTags/eventTagsTree";
-import {
-  TagFilter,
-  useHasNewTagsUI,
-} from "sentry/components/events/eventTags/util";
-import Pills from "sentry/components/pills";
-import type { Event, EventTag } from "sentry/types/event";
-import { defined, generateQueryWithTag } from "sentry/utils";
-import { trackAnalytics } from "sentry/utils/analytics";
-import { isMobilePlatform } from "sentry/utils/platform";
-import { useLocation } from "sentry/utils/useLocation";
-import useOrganization from "sentry/utils/useOrganization";
+import ClippedBox from 'sentry/components/clippedBox';
+import EventTagCustomBanner from 'sentry/components/events/eventTags/eventTagCustomBanner';
+import EventTagsTree from 'sentry/components/events/eventTags/eventTagsTree';
+import {TagFilter, useHasNewTagsUI} from 'sentry/components/events/eventTags/util';
+import Pills from 'sentry/components/pills';
+import type {Event, EventTag} from 'sentry/types/event';
+import {defined, generateQueryWithTag} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {isMobilePlatform} from 'sentry/utils/platform';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 
-import { AnnotatedText } from "../meta/annotatedText";
+import {AnnotatedText} from '../meta/annotatedText';
 
-import EventTagsPill from "./eventTagsPill";
+import EventTagsPill from './eventTagsPill';
 
 type Props = {
   event: Event;
@@ -28,7 +25,7 @@ type Props = {
   tagFilter?: TagFilter;
 };
 
-const IOS_DEVICE_FAMILIES = ["iPhone", "iOS", "iOS-Device"];
+const IOS_DEVICE_FAMILIES = ['iPhone', 'iOS', 'iOS-Device'];
 
 export function EventTags({
   event,
@@ -44,42 +41,34 @@ export function EventTags({
 
   const tagsSource = defined(filteredTags) ? filteredTags : event.tags;
 
-  const tags = !organization.features.includes("device-classification")
-    ? tagsSource?.filter((tag) => tag.key !== "device.class")
+  const tags = !organization.features.includes('device-classification')
+    ? tagsSource?.filter(tag => tag.key !== 'device.class')
     : tagsSource;
 
   useEffect(() => {
     if (
-      organization.features.includes("device-classification") &&
+      organization.features.includes('device-classification') &&
       isMobilePlatform(event.platform)
     ) {
-      const deviceClass = tagsSource.find(
-        (tag) => tag.key === "device.class"
-      )?.value;
-      const deviceFamily = tagsSource.find(
-        (tag) => tag.key === "device.family"
-      )?.value;
-      const deviceModel = tagsSource.find(
-        (tag) => tag.key === "device.model"
-      )?.value;
+      const deviceClass = tagsSource.find(tag => tag.key === 'device.class')?.value;
+      const deviceFamily = tagsSource.find(tag => tag.key === 'device.family')?.value;
+      const deviceModel = tagsSource.find(tag => tag.key === 'device.model')?.value;
       if (deviceFamily && IOS_DEVICE_FAMILIES.includes(deviceFamily)) {
         // iOS device missing classification, this probably indicates a new iOS device which we
         // haven't yet classified.
         if (!deviceClass && deviceModel) {
-          trackAnalytics("device.classification.unclassified.ios.device", {
+          trackAnalytics('device.classification.unclassified.ios.device', {
             organization,
             model: deviceModel,
           });
         }
       } else {
         const deviceProcessorCount = parseInt(
-          tagsSource.find((tag) => tag.key === "device.processor_count")
-            ?.value ?? "",
+          tagsSource.find(tag => tag.key === 'device.processor_count')?.value ?? '',
           10
         );
         const deviceProcessorFrequency = parseInt(
-          tagsSource.find((tag) => tag.key === "device.processor_frequency")
-            ?.value ?? "",
+          tagsSource.find(tag => tag.key === 'device.processor_frequency')?.value ?? '',
           10
         );
         // Android device specs significantly higher than current high end devices.
@@ -88,7 +77,7 @@ export function EventTags({
           deviceProcessorFrequency > 3499 ||
           (deviceProcessorCount > 9 && deviceProcessorFrequency > 3299)
         ) {
-          trackAnalytics("device.classification.high.end.android.device", {
+          trackAnalytics('device.classification.high.end.android.device', {
             organization,
             class: deviceClass,
             family: deviceFamily,
@@ -102,17 +91,15 @@ export function EventTags({
   }, [event, tagsSource, organization]);
 
   useEffect(() => {
-    const mechanism = filteredTags?.find(
-      (tag) => tag.key === "mechanism"
-    )?.value;
+    const mechanism = filteredTags?.find(tag => tag.key === 'mechanism')?.value;
     const transaction = Sentry.getActiveTransaction();
     if (mechanism && transaction) {
       transaction.tags.hasMechanism = mechanism;
     }
   }, [filteredTags]);
 
-  if (!!meta?.[""] && !filteredTags) {
-    return <AnnotatedText value={filteredTags} meta={meta?.[""]} />;
+  if (!!meta?.[''] && !filteredTags) {
+    return <AnnotatedText value={filteredTags} meta={meta?.['']} />;
   }
 
   if (!(event.tags ?? []).length) {
@@ -125,12 +112,7 @@ export function EventTags({
   return (
     <Fragment>
       {hasNewTagsUI ? (
-        <EventTagsTree
-          event={event}
-          tags={tags}
-          meta={meta}
-          projectSlug={projectSlug}
-        />
+        <EventTagsTree event={event} tags={tags} meta={meta} projectSlug={projectSlug} />
       ) : (
         <StyledClippedBox clipHeight={150}>
           <Pills>
@@ -142,7 +124,7 @@ export function EventTags({
                 projectId={projectId}
                 organization={organization}
                 query={generateQueryWithTag(
-                  { ...location.query, referrer: "event-tags" },
+                  {...location.query, referrer: 'event-tags'},
                   tag
                 )}
                 streamPath={`/organizations/${organization.slug}/issues/`}
