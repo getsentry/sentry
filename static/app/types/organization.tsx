@@ -41,11 +41,13 @@ export interface OrganizationSummary {
  */
 export interface Organization extends OrganizationSummary {
   access: Scope[];
+  aggregatedDataConsent: boolean;
   alertsMemberWrite: boolean;
   allowJoinRequests: boolean;
   allowSharedIssues: boolean;
   attachmentsRole: string;
-  availableRoles: {id: string; name: string}[]; // Deprecated, use orgRoleList
+  availableRoles: {id: string; name: string}[];
+  // Deprecated, use orgRoleList
   dataScrubber: boolean;
   dataScrubberDefaults: boolean;
   debugFilesRole: string;
@@ -53,14 +55,13 @@ export interface Organization extends OrganizationSummary {
   enhancedPrivacy: boolean;
   eventsMemberAdmin: boolean;
   experiments: Partial<OrgExperiments>;
+  genAIConsent: boolean;
   isDefault: boolean;
   isDynamicallySampled: boolean;
   onboardingTasks: OnboardingTaskStatus[];
-  openAIConsent: boolean;
   openMembership: boolean;
   orgRoleList: OrgRole[];
   pendingAccessRequests: number;
-  perplexityConsent: boolean;
   quota: {
     accountLimit: number | null;
     maxRate: number | null;
@@ -72,7 +73,6 @@ export interface Organization extends OrganizationSummary {
   scrapeJavaScript: boolean;
   scrubIPAddresses: boolean;
   sensitiveFields: string[];
-  serviceDataConsent: boolean;
   storeCrashReports: number;
   teamRoleList: TeamRole[];
   trustedRelays: Relay[];
