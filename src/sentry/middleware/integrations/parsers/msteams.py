@@ -55,6 +55,9 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
 
     @classmethod
     def _check_if_event_should_be_sync(cls, data: Mapping[str, Any]) -> bool:
+        """
+        Determine if an event should be handled synchronously, or if we can defer to async.
+        """
         raw_event_type = data.get("type", None)
         if raw_event_type is None:
             return True
@@ -65,14 +68,14 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
     def get_response(self) -> HttpResponseBase:
         if self.view_class not in self.region_view_classes:
             logger.info(
-                "sentry.middleware.integrations.parsers.msteams: View class not in region",
+                "View class not in region",
                 extra={"request_data": self.request_data},
             )
             return self.get_response_from_control_silo()
 
         if not self.can_infer_integration(data=self.request_data):
             logger.info(
-                "sentry.middleware.integrations.parsers.msteams: Could not infer integration",
+                "Could not infer integration",
                 extra={"request_data": self.request_data},
             )
             return self.get_response_from_control_silo()
@@ -82,7 +85,7 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
             integration = self.get_integration_from_request()
             if not integration:
                 logger.info(
-                    "sentry.middleware.integrations.parsers.msteams: Could not get integration from request",
+                    "Could not get integration from request",
                     extra={"request_data": self.request_data},
                 )
                 return self.get_default_missing_integration_response()
@@ -90,7 +93,7 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
             regions = self.get_regions_from_organizations()
         except (Integration.DoesNotExist, OrganizationIntegration.DoesNotExist) as err:
             logger.info(
-                "sentry.middleware.integrations.parsers.msteams: Error in handling",
+                "Error in handling",
                 exc_info=err,
                 extra={"request_data": self.request_data},
             )
@@ -112,8 +115,16 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
             return self.get_response_from_control_silo()
 
         if self._check_if_event_should_be_sync(data=self.request_data):
-            return self.get_default_missing_integration_response()
+            logger.info(
+                "MSTeams event should be handled synchronously",
+                extra={"request_data": self.request_data},
+            )
+            return self.get_response_from_control_silo()
 
+        logger.info(
+            "Scheduling event for request",
+            extra={"request_data": self.request_data},
+        )
         return self.get_response_from_outbox_creation_for_integration(
             regions=regions, integration=integration
         )
