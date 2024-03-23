@@ -480,6 +480,9 @@ class OptionsManager:
             # FLAG_PRIORITIZE_DISK does not prevent the option to be updated
             # in any circumstance. If the option is not on disk (which
             # means not in settings.SENTRY_OPTION), it can be updated.
+            if self.get(key) == value:
+                return None
+
             return NotWritableReason.OPTION_ON_DISK
 
         if required_flag and not opt.has_any_flag({required_flag}):
