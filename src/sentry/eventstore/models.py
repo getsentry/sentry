@@ -549,36 +549,31 @@ class BaseEvent(metaclass=abc.ABCMeta):
     @memoize
     def search_message(self) -> str:
         """
-        The internal search_message attribute is only used for search purposes.
+        The internal `search_message` attribute is only used for search purposes.
         It adds a bunch of data from the metadata and the culprit.
         """
         data = self.data
-        culprit = self.culprit
+        metadata = self.get_event_metadata() or eventtypes.get(
+            self.get_event_type()
+        )().get_metadata(self.data)
+        search_message_values = set()
 
-        event_metadata = self.get_event_metadata()
+        search_message_values.add(self.culprit or "")
 
-        if event_metadata is None:
-            event_metadata = eventtypes.get(self.get_event_type())().get_metadata(self.data)
-
-        message = ""
+        for key, value in metadata.items():
+            if key in SEARCH_MESSAGE_SKIPPED_KEYS or isinstance(value, (bool, int, float)):
+                continue
+            search_message_values.add(value)
 
         if data.get("logentry"):
-            message += data["logentry"].get("formatted") or data["logentry"].get("message") or ""
+            log_message = data["logentry"].get("formatted") or data["logentry"].get("message") or ""
+            search_message_values.add(log_message)
 
-        if event_metadata:
-            for key, value in event_metadata.items():
-                if key in SEARCH_MESSAGE_SKIPPED_KEYS or isinstance(value, (bool, int, float)):
-                    continue
+        concatenated = " ".join(
+            [force_str(value, errors="replace") for value in search_message_values]
+        )
 
-                value_u = force_str(value, errors="replace")
-                if value_u not in message:
-                    message = f"{message} {value_u}"
-
-        if culprit and culprit not in message:
-            culprit_u = force_str(culprit, errors="replace")
-            message = f"{message} {culprit_u}"
-
-        return cast(str, trim(message.strip(), settings.SENTRY_MAX_MESSAGE_LENGTH))
+        return cast(str, trim(concatenated.strip(), settings.SENTRY_MAX_MESSAGE_LENGTH))
 
     def _get_column_name(self, column: Columns) -> str:
         # Events are currently populated from the Events dataset
