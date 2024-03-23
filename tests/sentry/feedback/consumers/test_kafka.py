@@ -12,6 +12,7 @@ from django.conf import settings
 from sentry.conf.types.kafka_definition import Topic
 from sentry.consumers import get_stream_processor
 from sentry.event_manager import EventManager
+from sentry.eventstore.processing import event_processing_store
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_kafka, requires_snuba
 from sentry.utils import json
@@ -36,13 +37,14 @@ DEFAULT_BLOCK_SIZE = int(32 * 1e6)
 
 
 @pytest.fixture
-def get_test_feedback_event(default_project):
+def get_test_feedback_msg(default_project):
     def inner(project=default_project):
         now = datetime.datetime.now()
         # the event id should be 32 digits
         event_id = uuid.uuid4().hex
         project_id = project.id  # must match the project id set up by the test fixtures
         event = {
+            "event_id": event_id,
             "type": "feedback",
             "timestamp": now.isoformat(),
             "start_timestamp": now.isoformat(),
@@ -92,7 +94,7 @@ def test_consumer_reads_from_topic_and_calls_create_feedback(
     kafka_producer,
     kafka_admin,
     default_project,
-    get_test_feedback_event,
+    get_test_feedback_msg,
     random_group_id,
     create_feedback_issue,
     monkeypatch,
@@ -108,7 +110,7 @@ def test_consumer_reads_from_topic_and_calls_create_feedback(
 
     create_topics("default", [topic_event_name])
 
-    message, event_id = get_test_feedback_event()
+    message, event_id = get_test_feedback_msg()
     producer.produce(topic_event_name, message)
 
     consumer = get_stream_processor(
@@ -129,10 +131,69 @@ def test_consumer_reads_from_topic_and_calls_create_feedback(
             i += 1
 
     assert create_feedback_issue.call_count == 1
-    assert create_feedback_issue.call_args[0][0].get("contexts", {}).get("feedback")
+    assert create_feedback_issue.call_args[0][0]["event_id"] == event_id
     assert create_feedback_issue.call_args[0][0]["type"] == "feedback"
+    assert create_feedback_issue.call_args[0][0].get("contexts", {}).get("feedback")
     assert create_feedback_issue.call_args[0][1] == default_project.id
 
 
-# def test_dlq():
-#     pass
+@django_db_all(transaction=True)
+def test_consumer_gets_event_unstuck_and_reprocess_only_stuck_events(
+    task_runner,
+    kafka_producer,
+    kafka_admin,
+    default_project,
+    get_test_feedback_msg,
+    random_group_id,
+    create_feedback_issue,
+    monkeypatch,
+):
+    monkeypatch.setattr("sentry.features.has", lambda *a, **kw: True)
+
+    topic = Topic.INGEST_FEEDBACK_EVENTS
+    topic_event_name = get_topic_definition(topic)["real_topic_name"]
+
+    admin = kafka_admin(settings)
+    admin.delete_topic(topic_event_name)
+    producer = kafka_producer(settings)
+
+    create_topics("default", [topic_event_name])
+
+    message1, event_id1 = get_test_feedback_msg()
+    producer.produce(topic_event_name, message1)
+
+    message2, event_id2 = get_test_feedback_msg()
+    producer.produce(topic_event_name, message2)
+
+    # an event is "stuck" when it is in the processing store, so lets fake that:
+    event_processing_store.store({"project": default_project.id, "event_id": event_id2})
+
+    consumer = get_stream_processor(
+        "ingest-feedback-events",
+        consumer_args=[
+            "--max-batch-size=2",
+            "--max-batch-time-ms=5000",
+            "--processes=10",
+            "--reprocess-only-stuck-events",
+        ],
+        topic=None,
+        cluster=None,
+        group_id=random_group_id,
+        auto_offset_reset="earliest",
+        strict_offset_reset=False,
+        enforce_schema=True,
+    )
+
+    with task_runner():
+        i = 0
+        while i < MAX_POLL_ITERATIONS and not create_feedback_issue.call_count:
+            consumer._run_once()
+            i += 1
+
+    # check that we called create_feedback_issue with the right event.
+    # the first event was never "stuck", so we expect it to be skipped
+    assert create_feedback_issue.call_count == 1
+    assert create_feedback_issue.call_args[0][0]["event_id"] == event_id2
+    assert create_feedback_issue.call_args[0][0]["type"] == "feedback"
+    assert create_feedback_issue.call_args[0][0].get("contexts", {}).get("feedback")
+    assert create_feedback_issue.call_args[0][1] == default_project.id
