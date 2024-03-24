@@ -119,6 +119,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "php",
     "php-laravel",
     "php-symfony",
+    "powershell",
     "python",
     "python-aiohttp",
     "python-asgi",
