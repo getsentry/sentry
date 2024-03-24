@@ -1365,6 +1365,10 @@ export class VirtualizedViewManager {
           first.style.opacity = '1';
           last.style.opacity = '1';
           first.style.transform = `translateX(0)`;
+
+          // 43 px offset is the width of a 0.00ms label, since we usually anchor the label to the right
+          // side of the indicator, we need to offset it by the width of the label to make it look like
+          // it is at the end of the timeline
           last.style.transform = `translateX(${this.trace_physical_space.width - 43}px)`;
           const firstLabel = first.children[0] as HTMLElement | undefined;
           if (firstLabel) {
