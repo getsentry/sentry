@@ -452,8 +452,6 @@ def run_outbox_replications_for_self_hosted(*args: Any, **kwds: Any):
             next_outbox: OutboxBase | None = outbox_model.prepare_next_from_shard(shard_attrs)
             if next_outbox is None:
                 continue
-            if next_outbox.should_skip_shard():
-                continue
             try:
                 next_outbox.drain_shard(flush_all=True)
             except Exception:

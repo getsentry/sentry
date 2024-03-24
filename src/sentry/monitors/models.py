@@ -92,9 +92,16 @@ class MonitorStatus:
     DELETION_IN_PROGRESS = 3
 
     OK = 4
+    """
+    The monitor environment has received check-ins and is OK.
+    """
+
     ERROR = 5
-    MISSED_CHECKIN = 6
-    TIMEOUT = 7
+    """
+    The monitor environment is currently in an active incident state. This is a
+    denormalization of thee fact that a MonitorIncident exists for the
+    environment without a resolving check-in.
+    """
 
     @classmethod
     def as_choices(cls) -> Sequence[tuple[int, str]]:
@@ -110,8 +117,6 @@ class MonitorStatus:
             (cls.DELETION_IN_PROGRESS, "deletion_in_progress"),
             (cls.OK, "ok"),
             (cls.ERROR, "error"),
-            (cls.MISSED_CHECKIN, "missed_checkin"),
-            (cls.TIMEOUT, "timeout"),
         )
 
 
@@ -134,8 +139,22 @@ class CheckInStatus:
     TIMEOUT = 5
     """Checkin was left in-progress past max_runtime"""
 
+    USER_TERMINAL_VALUES = (OK, ERROR)
+    """
+    Values indicating the monitor is in a terminal status where the terminal
+    status was reported by the monitor itself (was not synthetic)
+    """
+
+    SYNTHETIC_TERMINAL_VALUES = (MISSED, TIMEOUT)
+    """
+    Values indicating the montior is in a terminal "synthetic" status. These
+    status are not sent by the monitor themselve but are a side effect result.
+    """
+
     FINISHED_VALUES = (OK, ERROR, MISSED, TIMEOUT)
-    """Terminal values used to indicate a monitor is finished running"""
+    """
+    All terminal values indicating the monitor has reached it's final status
+    """
 
     @classmethod
     def as_choices(cls):

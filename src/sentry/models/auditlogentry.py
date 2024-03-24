@@ -91,21 +91,15 @@ class AuditLogEntry(Model):
                 # Fetch user by RPC service as
                 # Audit logs are often created in regions.
                 user = user_service.get_user(self.actor_id)
-                self.actor_label = user.username
+                if user:
+                    self.actor_label = user.username
             elif self.actor_key:
                 # TODO(hybridcloud) This requires an RPC service.
                 self.actor_label = self.actor_key.key
-            else:
-                logger.error(
-                    "Expected a user or actor key for audit log",
-                    extra={
-                        "event": self.event,
-                        "organization_id": self.organization_id,
-                        "event_data": self.data,
-                    },
-                )
-                # Fallback to IP address if user or actor label not available
-                self.actor_label = self.ip_address
+
+        # Fallback to IP address if user or actor label not available
+        if not self.actor_label:
+            self.actor_label = self.ip_address or ""
 
     def as_event(self) -> AuditLogEvent:
         """

@@ -23,6 +23,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DateString, MRI, PageFilters, ParsedMRI} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {Container, FieldDateTime, NumberContainer} from 'sentry/utils/discover/styles';
 import {getShortEventId} from 'sentry/utils/events';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
@@ -442,7 +443,13 @@ function renderBodyCell(op?: string, unit?: string) {
     }
 
     if (col.key === 'trace') {
-      return <TraceId traceId={dataRow.trace} />;
+      return (
+        <TraceId
+          traceId={dataRow.trace}
+          timestamp={dataRow.timestamp}
+          eventId={dataRow.id}
+        />
+      );
     }
 
     if (col.key === 'profile.id') {
@@ -493,20 +500,22 @@ function SpanDescription({
   selfTime: number;
   spanId: string;
   transaction: string;
-  transactionId: string;
+  transactionId: string | null;
   durationColor?: string;
   selfTimeColor?: string;
 }) {
   const location = useLocation();
   const organization = useOrganization();
   const {projects} = useProjects({slugs: [project]});
-  const transactionDetailsTarget = getTransactionDetailsUrl(
-    organization.slug,
-    `${project}:${transactionId}`,
-    undefined,
-    undefined,
-    spanId
-  );
+  const transactionDetailsTarget = defined(transactionId)
+    ? getTransactionDetailsUrl(
+        organization.slug,
+        `${project}:${transactionId}`,
+        undefined,
+        undefined,
+        spanId
+      )
+    : undefined;
 
   const colorStops = useMemo(() => {
     const percentage = selfTime / duration;
@@ -525,6 +534,15 @@ function SpanDescription({
     },
     projectID: String(projects[0]?.id ?? ''),
   });
+
+  let contents = description ? (
+    <Fragment>{description}</Fragment>
+  ) : (
+    <EmptyValueContainer>{t('(no value)')}</EmptyValueContainer>
+  );
+  if (defined(transactionDetailsTarget)) {
+    contents = <Link to={transactionDetailsTarget}>{contents}</Link>;
+  }
 
   return (
     <Container>
@@ -556,7 +574,15 @@ function SpanDescription({
             </Flex>
             <SectionTitle>{t('Transaction')}</SectionTitle>
             <Tooltip containerDisplayMode="inline" showOnlyOnOverflow title={transaction}>
-              <Link to={transactionSummaryTarget}>
+              <Link
+                to={transactionSummaryTarget}
+                onClick={() =>
+                  trackAnalytics('ddm.sample-table-interaction', {
+                    organization,
+                    target: 'description',
+                  })
+                }
+              >
                 <TextOverflow>{transaction}</TextOverflow>
               </Link>
             </Tooltip>
@@ -564,7 +590,7 @@ function SpanDescription({
         }
         showUnderline
       >
-        <Link to={transactionDetailsTarget}>{description}</Link>
+        {contents}
       </StyledHovercard>
     </Container>
   );
@@ -611,9 +637,20 @@ function TimestampRenderer({timestamp}: {timestamp: DateString}) {
   );
 }
 
-function TraceId({traceId}: {traceId: string}) {
+function TraceId({
+  traceId,
+  timestamp,
+  eventId,
+}: {
+  traceId: string;
+  eventId?: string;
+  timestamp?: DateString;
+}) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const stringOrNumberTimestamp =
+    timestamp instanceof Date ? timestamp.toISOString() : timestamp ?? '';
+
   const target = getTraceDetailsUrl(
     organization,
     traceId,
@@ -622,16 +659,34 @@ function TraceId({traceId}: {traceId: string}) {
       end: selection.datetime.end,
       statsPeriod: selection.datetime.period,
     },
-    {}
+    {},
+    stringOrNumberTimestamp,
+    eventId
   );
   return (
     <Container>
-      <Link to={target}>{getShortEventId(traceId)}</Link>
+      <Link
+        to={target}
+        onClick={() =>
+          trackAnalytics('ddm.sample-table-interaction', {
+            organization,
+            target: 'trace-id',
+          })
+        }
+      >
+        {getShortEventId(traceId)}
+      </Link>
     </Container>
   );
 }
 
-function ProfileId({projectSlug, profileId}: {projectSlug: string; profileId?: string}) {
+function ProfileId({
+  profileId,
+  projectSlug,
+}: {
+  profileId: string | null;
+  projectSlug: string;
+}) {
   const organization = useOrganization();
 
   if (!defined(profileId)) {
@@ -652,7 +707,16 @@ function ProfileId({projectSlug, profileId}: {projectSlug: string; profileId?: s
 
   return (
     <Container>
-      <LinkButton to={target} size="xs">
+      <LinkButton
+        to={target}
+        size="xs"
+        onClick={() =>
+          trackAnalytics('ddm.sample-table-interaction', {
+            organization,
+            target: 'profile',
+          })
+        }
+      >
         <IconProfiling size="xs" />
       </LinkButton>
     </Container>
@@ -686,4 +750,8 @@ const LegendDot = styled('div')<{color: string}>`
   height: ${space(1)};
   border-radius: 100%;
   background-color: ${p => p.theme[p.color] ?? p.color};
+`;
+
+const EmptyValueContainer = styled('span')`
+  color: ${p => p.theme.gray300};
 `;

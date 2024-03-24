@@ -1,4 +1,3 @@
-from datetime import datetime, timedelta
 from unittest.mock import Mock
 
 from fido2 import cbor
@@ -10,16 +9,11 @@ from pytest import raises
 from sentry.auth.authenticators.base import ActivationChallengeResult
 from sentry.auth.authenticators.u2f import U2fInterface
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import control_silo_test
 
 
 @control_silo_test
 class U2FInterfaceTest(TestCase):
-    CURRENT_TIME = datetime(2024, 3, 11, 0, 0)
-    VALID_TIMESTAMP = (CURRENT_TIME - timedelta(minutes=1)).timestamp()
-    INVALID_TIMESTAMP = (CURRENT_TIME - timedelta(minutes=3)).timestamp()
-
     def setUp(self):
         self.u2f = U2fInterface()
         self.login_as(user=self.user)
@@ -79,37 +73,7 @@ class U2FInterfaceTest(TestCase):
         assert len(self.request.session["webauthn_authentication_state"]["challenge"]) == 43
         assert self.request.session["webauthn_authentication_state"]["user_verification"] is None
 
-    @freeze_time(CURRENT_TIME)
-    def test_activate_staff_webauthn_valid_timestamp(self):
-        self.test_try_enroll_webauthn()
-
-        self.request.session["staff_auth_flow"] = self.VALID_TIMESTAMP
-
-        result = self.u2f.activate(self.request)
-
-        assert isinstance(result, ActivationChallengeResult)
-        assert "webauthn_authentication_state" not in self.request.session
-        assert len(self.request.session["staff_webauthn_authentication_state"]["challenge"]) == 43
-        assert (
-            self.request.session["staff_webauthn_authentication_state"]["user_verification"] is None
-        )
-
-    @freeze_time(CURRENT_TIME)
-    def test_activate_staff_webauthn_invalid_timestamp(self):
-        self.test_try_enroll_webauthn()
-
-        self.request.session["staff_auth_flow"] = self.INVALID_TIMESTAMP
-
-        result = self.u2f.activate(self.request)
-
-        assert isinstance(result, ActivationChallengeResult)
-        assert "webauthn_authentication_state" not in self.request.session
-        assert len(self.request.session["staff_webauthn_authentication_state"]["challenge"]) == 43
-        assert (
-            self.request.session["staff_webauthn_authentication_state"]["user_verification"] is None
-        )
-
-    def test_validate_response_normal_state(self):
+    def test_validate_response_state(self):
         self.test_try_enroll_webauthn()
         mock_state = Mock()
         self.u2f.webauthn_authentication_server.authenticate_complete = mock_state
@@ -121,48 +85,15 @@ class U2FInterfaceTest(TestCase):
         assert kwargs.get("state") == "normal state"
         assert "webauthn_authentication_state" not in self.request.session
 
-    @freeze_time(CURRENT_TIME)
-    def test_validate_response_staff_state_valid_timestamp(self):
-        self.test_try_enroll_webauthn()
-        mock_state = Mock()
-        self.u2f.webauthn_authentication_server.authenticate_complete = mock_state
-
-        self.request.session["staff_webauthn_authentication_state"] = "staff state"
-        self.request.session["staff_auth_flow"] = self.VALID_TIMESTAMP
-
-        assert self.u2f.validate_response(self.request, None, self.response)
-        _, kwargs = mock_state.call_args
-        assert kwargs.get("state") == "staff state"
-        assert "staff_webauthn_authentication_state" not in self.request.session
-
-    @freeze_time(CURRENT_TIME)
-    def test_validate_response_staff_state_invalid_timestamp(self):
-        self.test_try_enroll_webauthn()
-        mock_state = Mock()
-        self.u2f.webauthn_authentication_server.authenticate_complete = mock_state
-
-        self.request.session["webauthn_authentication_state"] = "non-staff state"
-        self.request.session["staff_auth_flow"] = self.INVALID_TIMESTAMP
-
-        assert self.u2f.validate_response(self.request, None, self.response)
-        _, kwargs = mock_state.call_args
-        assert kwargs.get("state") == "non-staff state"
-        assert "webauthn_authentication_state" not in self.request.session
-
-    @freeze_time(CURRENT_TIME)
-    def test_validate_response_failing_still_clears_all_states(self):
+    def test_validate_response_failing_still_clears_state(self):
         self.test_try_enroll_webauthn()
         mock_state = Mock(side_effect=ValueError("test"))
         self.u2f.webauthn_authentication_server.authenticate_complete = mock_state
 
-        self.request.session["webauthn_authentication_state"] = "non-staff state"
-        self.request.session["staff_webauthn_authentication_state"] = "staff state"
-        self.request.session["staff_auth_flow"] = self.VALID_TIMESTAMP
+        self.request.session["webauthn_authentication_state"] = "state"
 
         with raises(ValueError):
             self.u2f.validate_response(self.request, None, self.response)
         _, kwargs = mock_state.call_args
-        assert kwargs.get("state") == "staff state"
+        assert kwargs.get("state") == "state"
         assert "webauthn_authentication_state" not in self.request.session
-        assert "staff_webauthn_authentication_state" not in self.request.session
-        assert "staff_auth_flow" not in self.request.session

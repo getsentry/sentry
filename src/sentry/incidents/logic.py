@@ -5,7 +5,7 @@ from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from django.db import router, transaction
@@ -46,7 +46,6 @@ from sentry.incidents.models.incident import (
     IncidentTrigger,
     TriggerStatus,
 )
-from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.models.actor import Actor
 from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.models.project import Project
@@ -58,7 +57,6 @@ from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation, app_servi
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
 from sentry.shared_integrations.exceptions import (
-    ApiError,
     ApiTimeoutError,
     DuplicateDisplayNameError,
     IntegrationError,
@@ -85,6 +83,11 @@ from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry_from_user
 from sentry.utils.snuba import is_measurement
+
+if TYPE_CHECKING:
+    from sentry.incidents.utils.types import AlertRuleActivationConditionType
+    from sentry.snuba.models import QuerySubscription
+
 
 # We can return an incident as "windowed" which returns a range of points around the start of the incident
 # It attempts to center the start of the incident, only showing earlier data if there isn't enough time
@@ -486,6 +489,7 @@ def create_alert_rule(
     event_types=None,
     comparison_delta: int | None = None,
     monitor_type: AlertRuleMonitorType = AlertRuleMonitorType.CONTINUOUS,
+    activation_condition: AlertRuleActivationConditionType | None = None,
     **kwargs,
 ):
     """
@@ -518,6 +522,9 @@ def create_alert_rule(
 
     :return: The created `AlertRule`
     """
+    if monitor_type == AlertRuleMonitorType.ACTIVATED and not activation_condition:
+        raise ValidationError("Activation condition required for activated alert rule")
+
     resolution = DEFAULT_ALERT_RULE_RESOLUTION
     if comparison_delta is not None:
         # Since comparison alerts make twice as many queries, run the queries less frequently.
@@ -584,10 +591,17 @@ def create_alert_rule(
             ]
             AlertRuleExcludedProjects.objects.bulk_create(exclusions)
         elif monitor_type == AlertRuleMonitorType.ACTIVATED and projects:
+            # initialize projects join table for activated alert rules
             arps = [
                 AlertRuleProjects(alert_rule=alert_rule, project=project) for project in projects
             ]
             AlertRuleProjects.objects.bulk_create(arps)
+
+        if monitor_type == AlertRuleMonitorType.ACTIVATED and activation_condition:
+            # NOTE: if monitor_type is activated, activation_condition is required
+            AlertRuleActivationCondition.objects.create(
+                alert_rule=alert_rule, condition_type=activation_condition.value
+            )
 
         # NOTE: This constructs the query in snuba
         # NOTE: Will only subscribe if AlertRule.monitor_type === 'CONTINUOUS'
@@ -666,7 +680,7 @@ def update_alert_rule(
     user=None,
     event_types=None,
     comparison_delta=NOT_SET,
-    monitor_type: AlertRuleMonitorType = None,
+    monitor_type: AlertRuleMonitorType | None = None,
     **kwargs,
 ):
     """
@@ -926,39 +940,18 @@ class ProjectsNotAssociatedWithAlertRuleError(Exception):
         self.project_slugs = project_slugs
 
 
-def create_alert_rule_activation_condition(
-    alert_rule: AlertRule,
-    label: str,
-    condition_type: AlertRuleActivationConditionType,
-):
-    """
-    Creates a new AlertRuleActivationCondition
-    :param alert_rule: The alert rule to create the condition for
-    :param label: A description of the condition
-    :param condition_type: The type of condition being created (so far, only deploy/release creation)
-    :return: The created AlertRuleActivationCondition
-    """
-    if AlertRuleActivationCondition.objects.filter(alert_rule=alert_rule, label=label).exists():
-        raise AlertRuleActivationConditionLabelAlreadyUsedError()
-
-    with transaction.atomic(router.db_for_write(AlertRuleActivationCondition)):
-        condition = AlertRuleActivationCondition.objects.create(
-            alert_rule=alert_rule, label=label, condition_type=condition_type.value
-        )
-
-    return condition
-
-
 def create_alert_rule_activation(
     alert_rule: AlertRule,
+    query_subscription: QuerySubscription,
     metric_value: int | None = None,
     finished_at: datetime | None = None,
 ):
     with transaction.atomic(router.db_for_write(AlertRuleActivations)):
         activation = AlertRuleActivations.objects.create(
             alert_rule=alert_rule,
-            metric_value=metric_value,
             finished_at=finished_at,
+            metric_value=metric_value,
+            query_subscription=query_subscription,
         )
 
     return activation
@@ -1185,6 +1178,7 @@ def create_alert_rule_trigger_action(
     sentry_app_config=None,
     installations: list[RpcSentryAppInstallation] | None = None,
     integrations: list[RpcIntegration] | None = None,
+    priority: str | None = None,
 ) -> AlertRuleTriggerAction:
     """
     Creates an AlertRuleTriggerAction
@@ -1221,6 +1215,13 @@ def create_alert_rule_trigger_action(
             trigger.alert_rule.organization, sentry_app_id, installations
         )
 
+    # store priority in the json sentry_app_config
+    if priority is not None and type in [ActionService.PAGERDUTY, ActionService.OPSGENIE]:
+        if sentry_app_config:
+            sentry_app_config.update({"priority": priority})
+        else:
+            sentry_app_config = {"priority": priority}
+
     return AlertRuleTriggerAction.objects.create(
         alert_rule_trigger=trigger,
         type=type.value,
@@ -1245,6 +1246,7 @@ def update_alert_rule_trigger_action(
     sentry_app_config=None,
     installations: list[RpcSentryAppInstallation] | None = None,
     integrations: list[RpcIntegration] | None = None,
+    priority: str | None = None,
 ) -> AlertRuleTriggerAction:
     """
     Updates values on an AlertRuleTriggerAction
@@ -1297,6 +1299,14 @@ def update_alert_rule_trigger_action(
             updated_fields["target_display"] = target_display
 
         updated_fields["target_identifier"] = target_identifier
+
+    # store priority in the json sentry_app_config
+    if priority is not None and type in [ActionService.PAGERDUTY, ActionService.OPSGENIE]:
+        if updated_fields.get("sentry_app_config"):
+            updated_fields["sentry_app_config"].update({"priority": priority})
+        else:
+            updated_fields["sentry_app_config"] = {"priority": priority}
+
     trigger_action.update(**updated_fields)
     return trigger_action
 
@@ -1459,7 +1469,6 @@ def get_alert_rule_trigger_action_opsgenie_team(
     input_channel_id=None,
     integrations=None,
 ) -> tuple[str, str]:
-    from sentry.integrations.opsgenie.integration import OpsgenieIntegration
     from sentry.integrations.opsgenie.utils import get_team
 
     integration, oi = integration_service.get_organization_context(
@@ -1472,17 +1481,6 @@ def get_alert_rule_trigger_action_opsgenie_team(
     if not team:
         raise InvalidTriggerActionError("No Opsgenie team found.")
 
-    install = cast(
-        "OpsgenieIntegration",
-        integration.get_installation(organization_id=organization.id),
-    )
-    client = install.get_keyring_client(keyid=team["id"])
-
-    try:
-        client.authorize_integration(type="sentry")
-    except ApiError as e:
-        logger.info("opsgenie.authorization_error", extra={"error": str(e)})
-        raise InvalidTriggerActionError("Invalid integration key.")
     return team["id"], team["team"]
 
 

@@ -40,7 +40,6 @@ from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.search.snuba.backend import assigned_or_suggested_filter
 from sentry.search.snuba.executors import get_search_filter
 from sentry.snuba import discover
-from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.validators import normalize_event_id
 
@@ -148,24 +147,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationEventPermission,)
     enforce_rate_limit = True
 
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(10, 1),
-            RateLimitCategory.USER: RateLimit(10, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(10, 1),
-        },
-        "PUT": {
-            RateLimitCategory.IP: RateLimit(5, 5),
-            RateLimitCategory.USER: RateLimit(5, 5),
-            RateLimitCategory.ORGANIZATION: RateLimit(5, 5),
-        },
-        "DELETE": {
-            RateLimitCategory.IP: RateLimit(5, 5),
-            RateLimitCategory.USER: RateLimit(5, 5),
-            RateLimitCategory.ORGANIZATION: RateLimit(5, 5),
-        },
-    }
-
     def _search(
         self, request: Request, organization, projects, environments, extra_query_kwargs=None
     ):
@@ -185,6 +166,10 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                 result = inbox_search(**query_kwargs)
             else:
                 query_kwargs["referrer"] = "search.group_index"
+                # optional argument to use the group snuba dataset
+                if request.GET.get("useGroupSnubaDataset"):
+                    query_kwargs["use_group_snuba_dataset"] = True
+
                 result = search.query(**query_kwargs)
             return result, query_kwargs
 

@@ -56,7 +56,8 @@ export type SpanStringFields =
   | 'transaction'
   | 'transaction.method'
   | 'release'
-  | 'os.name';
+  | 'os.name'
+  | 'span.status_code';
 
 export type SpanMetricsQueryFilters = {
   [Field in SpanStringFields]?: string;
@@ -78,6 +79,7 @@ export const SPAN_FUNCTIONS = [
   'spm',
   'count',
   'time_spent_percentage',
+  'http_response_rate',
   'http_error_count',
 ] as const;
 
@@ -91,6 +93,12 @@ export type MetricsResponse = {
   [Property in SpanStringFields as `${Property}`]: string;
 } & {
   [Property in SpanStringArrayFields as `${Property}`]: string[];
+} & {
+  // TODO: This should include all valid HTTP codes or just all integers
+  'http_response_rate(2)': number;
+  'http_response_rate(3)': number;
+  'http_response_rate(4)': number;
+  'http_response_rate(5)': number;
 } & {
   ['project.id']: number;
 };
@@ -129,6 +137,7 @@ export enum SpanIndexedField {
   INP_SCORE = 'measurements.score.inp',
   INP_SCORE_WEIGHT = 'measurements.score.weight.inp',
   TOTAL_SCORE = 'measurements.score.total',
+  RESPONSE_CODE = 'span.status_code',
 }
 
 export type SpanIndexedFieldTypes = {
@@ -166,6 +175,7 @@ export enum SpanFunction {
   SPM = 'spm',
   TIME_SPENT_PERCENTAGE = 'time_spent_percentage',
   HTTP_ERROR_COUNT = 'http_error_count',
+  HTTP_RESPONSE_RATE = 'http_response_rate',
 }
 
 export const StarfishDatasetFields = {
@@ -198,6 +208,12 @@ export const STARFISH_AGGREGATION_FIELDS: Record<
   [SpanFunction.HTTP_ERROR_COUNT]: {
     desc: t('Count of 5XX http errors'),
     defaultOutputType: 'integer',
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.NUMBER,
+  },
+  [SpanFunction.HTTP_RESPONSE_RATE]: {
+    desc: t('Percentage of HTTP responses by code'),
+    defaultOutputType: 'percentage',
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
   },

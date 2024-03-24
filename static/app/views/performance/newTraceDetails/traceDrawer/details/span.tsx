@@ -20,13 +20,15 @@ export function SpanNodeDetails({
   node,
   organization,
   scrollToNode,
+  onParentClick,
 }: {
   node: TraceTreeNode<TraceTree.Span>;
+  onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   organization: Organization;
   scrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
 }) {
   const {projects} = useProjects();
-  const {event, relatedErrors, childTxn, ...span} = node.value;
+  const {event, childTransaction, ...span} = node.value;
   const project = projects.find(proj => proj.slug === event?.projectSlug);
   const profileId = event?.contexts?.profile?.profile_id ?? null;
 
@@ -49,11 +51,17 @@ export function SpanNodeDetails({
             </TraceDrawerComponents.TitleOp>
           </div>
         </TraceDrawerComponents.Title>
-        <Button size="xs" onClick={_e => scrollToNode(node)}>
-          {t('Show in view')}
-        </Button>
+        <TraceDrawerComponents.Actions>
+          <Button size="xs" onClick={_e => scrollToNode(node)}>
+            {t('Show in view')}
+          </Button>
+          <TraceDrawerComponents.EventDetailsLink
+            eventId={node.value.event.eventID}
+            projectSlug={node.metadata.project_slug}
+          />
+        </TraceDrawerComponents.Actions>
       </TraceDrawerComponents.HeaderContainer>
-      {event.projectSlug && (
+      {event.projectSlug ? (
         <ProfilesProvider
           orgSlug={organization.slug}
           projectSlug={event.projectSlug}
@@ -67,19 +75,20 @@ export function SpanNodeDetails({
                 traceID={profileId || ''}
               >
                 <NewTraceDetailsSpanDetail
-                  relatedErrors={relatedErrors}
-                  childTransactions={childTxn ? [childTxn] : []}
+                  node={node}
+                  childTransactions={childTransaction ? [childTransaction] : []}
                   event={event}
                   openPanel="open"
                   organization={organization}
                   span={span}
                   trace={parseTrace(event)}
+                  onParentClick={onParentClick}
                 />
               </ProfileGroupProvider>
             )}
           </ProfileContext.Consumer>
         </ProfilesProvider>
-      )}
+      ) : null}
     </TraceDrawerComponents.DetailContainer>
   );
 }

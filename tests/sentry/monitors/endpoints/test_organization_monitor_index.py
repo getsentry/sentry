@@ -80,8 +80,6 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         monitor_disabled = add_status_monitor("OK", "DISABLED")
         monitor_error_older_checkin = add_status_monitor("ERROR", "ACTIVE", last_checkin_older)
         monitor_error = add_status_monitor("ERROR")
-        monitor_missed_checkin = add_status_monitor("MISSED_CHECKIN")
-        monitor_timed_out = add_status_monitor("TIMEOUT")
 
         monitor_muted = add_status_monitor("ACTIVE")
         monitor_muted.update(is_muted=True)
@@ -94,8 +92,6 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
             [
                 monitor_error,
                 monitor_error_older_checkin,
-                monitor_timed_out,
-                monitor_missed_checkin,
                 monitor_ok,
                 monitor_active,
                 monitor_muted,
@@ -113,8 +109,6 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
                 monitor_muted,
                 monitor_active,
                 monitor_ok,
-                monitor_missed_checkin,
-                monitor_timed_out,
                 monitor_error_older_checkin,
                 monitor_error,
             ],

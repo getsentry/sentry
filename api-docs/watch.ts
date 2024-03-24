@@ -3,7 +3,6 @@
 import {spawn} from 'node:child_process';
 import {join} from 'node:path';
 import {stderr, stdout} from 'node:process';
-
 import sane from 'sane';
 
 const watcherPy = sane(join(__dirname, '../src/sentry'));

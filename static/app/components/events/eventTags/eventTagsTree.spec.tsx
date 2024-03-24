@@ -5,7 +5,6 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {EventTags} from 'sentry/components/events/eventTags';
-import {COLUMN_COUNT} from 'sentry/components/events/eventTags/eventTagsTree';
 
 describe('EventTagsTree', function () {
   const {organization, project, router} = initializeOrg();
@@ -71,11 +70,13 @@ describe('EventTagsTree', function () {
     });
 
     pillOnlyTags.forEach(tag => {
-      expect(screen.queryByText(tag)).not.toBeInTheDocument();
+      const tagComponent = screen.queryByText(tag);
+      expect(tagComponent).toBeInTheDocument();
+      expect(tagComponent).toHaveAttribute('aria-hidden', 'true');
     });
 
     treeBranchTags.forEach(tag => {
-      expect(screen.getByText(tag)).toBeInTheDocument();
+      expect(screen.getByText(tag, {selector: 'div'})).toBeInTheDocument();
     });
 
     const rows = screen.queryAllByTestId('tag-tree-row');
@@ -84,7 +85,7 @@ describe('EventTagsTree', function () {
     expect(rows).toHaveLength(expectedRowCount);
 
     const columns = screen.queryAllByTestId('tag-tree-column');
-    expect(columns).toHaveLength(COLUMN_COUNT);
+    expect(columns.length).toBeLessThanOrEqual(2);
 
     const linkDropdowns = screen.queryAllByLabelText('Tag Actions Menu');
     expect(linkDropdowns).toHaveLength(tags.length);

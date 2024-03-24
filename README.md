@@ -46,7 +46,7 @@ Sentry is a developer-first error tracking and performance monitoring platform t
 # Resources
 
 - [Documentation](https://docs.sentry.io/)
-- [Community](https://forum.sentry.io/) (Bugs, feature requests,
+- [Discussions](https://github.com/getsentry/sentry/discussions) (Bugs, feature requests,
   general questions)
 - [Discord](https://discord.gg/PXa5Apfe7K)
 - [Contributing](https://docs.sentry.io/internal/contributing/)

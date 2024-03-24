@@ -189,9 +189,16 @@ describe('GroupHeader', () => {
   });
 
   describe('priority', () => {
-    it('can change priority', async function () {
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/prompts-activity/',
+        body: {data: {dismissed_ts: null}},
+      });
+    });
+
+    it('can change priority', async () => {
       const mockModifyIssue = MockApiClient.addMockResponse({
-        url: `/projects/org-slug/project-slug/issues/`,
+        url: `/organizations/org-slug/issues/`,
         method: 'PUT',
         body: {},
       });

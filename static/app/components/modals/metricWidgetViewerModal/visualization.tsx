@@ -111,7 +111,7 @@ interface MetricVisualizationProps {
   displayType: DisplayType;
   onDisplayTypeChange: (displayType: DisplayType) => void;
   queries: MetricsQueryApiQueryParams[];
-  onOrderChange?: (order: Order, index: number) => void;
+  onOrderChange?: ({id, order}: {id: number; order: Order}) => void;
 }
 
 export function MetricVisualization({
@@ -211,7 +211,7 @@ interface MetricTableVisualizationProps {
   isLoading: boolean;
   queries: MetricsQueryApiQueryParams[];
   timeseriesData: MetricsQueryApiResponse;
-  onOrderChange?: (order: Order, index: number) => void;
+  onOrderChange?: ({id, order}: {id: number; order: Order}) => void;
 }
 
 function MetricTableVisualization({
@@ -225,17 +225,10 @@ function MetricTableVisualization({
   }, [timeseriesData, queries]);
 
   const handleOrderChange = useCallback(
-    (column: any) => {
-      if (!onOrderChange) {
-        return;
-      }
-      const queryIdx = queries.findIndex(q => q.name === column.name);
-      if (queryIdx < 0) {
-        return;
-      }
-      onOrderChange?.(column.order, queryIdx);
+    (column: {id: number; order: Order}) => {
+      onOrderChange?.(column);
     },
-    [onOrderChange, queries]
+    [onOrderChange]
   );
 
   return (

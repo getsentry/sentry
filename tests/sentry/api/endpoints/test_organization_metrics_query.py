@@ -52,8 +52,9 @@ class OrganizationMetricsQueryTest(MetricsAPIBaseTestCase):
                 {"name": "aggregate_value", "type": "Float64"},
                 {
                     "group_bys": [],
-                    "limit": 20,
-                    "order": None,
+                    "limit": 3334,
+                    "has_more": False,
+                    "order": "DESC",
                     "scaling_factor": None,
                     "unit": None,
                     "unit_family": None,
@@ -82,11 +83,28 @@ class OrganizationMetricsQueryTest(MetricsAPIBaseTestCase):
                 {"name": "aggregate_value", "type": "Float64"},
                 {
                     "group_bys": [],
-                    "limit": 20,
-                    "order": None,
+                    "limit": 3334,
+                    "has_more": False,
+                    "order": "DESC",
                     "scaling_factor": None,
                     "unit": None,
                     "unit_family": None,
                 },
             ]
         ]
+
+    def test_query_with_disabled_org(self):
+        with self.options({"custom-metrics-querying-disabled-orgs": [self.organization.id]}):
+            self.get_error_response(
+                self.project.organization.slug,
+                status_code=401,
+                queries=[{"name": "query_1", "mql": f"sum({TransactionMRI.DURATION.value})"}],
+                formulas=[{"mql": "$query_1"}],
+                qs_params={
+                    "statsPeriod": "3h",
+                    "interval": "1h",
+                    "project": [self.project.id],
+                    "environment": [],
+                    "includeSeries": "false",
+                },
+            )

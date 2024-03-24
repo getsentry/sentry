@@ -3,6 +3,7 @@ from collections.abc import Mapping
 from datetime import datetime, timezone
 from typing import Any, cast
 
+import sentry_sdk
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import (
     CommitOffsets,
@@ -15,6 +16,7 @@ from django.db.models import F
 from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMetric
 
 from sentry.constants import DataCategory
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.indexer.strings import (
     SHARED_TAG_STRINGS,
@@ -174,6 +176,17 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
             project = Project.objects.get_from_cache(id=project_id)
             if not project.flags.has_custom_metrics:
+                organization = Organization.objects.get_from_cache(id=org_id)
+                with sentry_sdk.push_scope() as scope:
+                    scope.set_tag("organization_id", org_id)
+                    scope.set_tag("organization_slug", organization.slug)
+                    scope.set_tag("project_id", project_id)
+                    scope.set_tag("project_slug", project.slug)
+                    sentry_sdk.capture_message(
+                        "A new project has sent the first custom metric",
+                        fingerprint=["new-first-custom-metric"],
+                    )
+
                 # We assume that the flag update is reflected in the cache, so that upcoming calls will get the up-to-
                 # date project with the `has_custom_metrics` flag set to true.
                 project.update(flags=F("flags").bitor(Project.flags.has_custom_metrics))

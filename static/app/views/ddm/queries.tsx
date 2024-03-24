@@ -20,11 +20,13 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DDM_CHART_GROUP} from 'sentry/views/ddm/constants';
 import {useDDMContext} from 'sentry/views/ddm/context';
+import {EquationSymbol} from 'sentry/views/ddm/equationSymbol copy';
 import {FormulaInput} from 'sentry/views/ddm/formulaInput';
 import {MetricFormulaContextMenu} from 'sentry/views/ddm/metricFormulaContextMenu';
 import {MetricQueryContextMenu} from 'sentry/views/ddm/metricQueryContextMenu';
 import {QueryBuilder} from 'sentry/views/ddm/queryBuilder';
 import {getQuerySymbol, QuerySymbol} from 'sentry/views/ddm/querySymbol';
+import {useFormulaDependencies} from 'sentry/views/ddm/utils/useFormulaDependencies';
 
 export function Queries() {
   const {
@@ -41,6 +43,7 @@ export function Queries() {
 
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const formulaDependencies = useFormulaDependencies();
 
   // Make sure all charts are connected to the same group whenever the widgets definition changes
   useLayoutEffect(() => {
@@ -65,18 +68,15 @@ export function Queries() {
     [addWidget, organization]
   );
 
-  const [querySymbols, formulaSymbols] = useMemo(() => {
+  const querySymbols = useMemo(() => {
     const querySymbolSet = new Set<string>();
-    const formulaSymbolSet = new Set<string>();
     for (const widget of widgets) {
       const symbol = getQuerySymbol(widget.id);
       if (widget.type === MetricQueryType.QUERY) {
         querySymbolSet.add(symbol);
-      } else {
-        formulaSymbolSet.add(symbol);
       }
     }
-    return [querySymbolSet, formulaSymbolSet];
+    return querySymbolSet;
   }, [widgets]);
 
   const visibleWidgets = widgets.filter(widget => !widget.isHidden);
@@ -85,7 +85,10 @@ export function Queries() {
     <Fragment>
       <Wrapper showQuerySymbols={showQuerySymbols}>
         {widgets.map((widget, index) => (
-          <Row key={widget.id} onFocusCapture={() => setSelectedWidgetIndex(index)}>
+          <Row
+            key={`${widget.type}_${widget.id}`}
+            onFocusCapture={() => setSelectedWidgetIndex(index)}
+          >
             {widget.type === MetricQueryType.QUERY ? (
               <Query
                 widget={widget}
@@ -100,7 +103,6 @@ export function Queries() {
             ) : (
               <Formula
                 availableVariables={querySymbols}
-                formulaVariables={formulaSymbols}
                 onChange={handleChange}
                 onToggleVisibility={toggleWidgetVisibility}
                 index={index}
@@ -108,6 +110,7 @@ export function Queries() {
                 showQuerySymbols={showQuerySymbols}
                 isSelected={isMultiChartMode && index === selectedWidgetIndex}
                 canBeHidden={visibleWidgets.length > 1}
+                formulaDependencies={formulaDependencies}
               />
             )}
           </Row>
@@ -197,6 +200,7 @@ function Query({
           isSelected={isSelected}
           queryId={widget.id}
           onChange={handleToggle}
+          type={MetricQueryType.QUERY}
         />
       )}
       <QueryBuilder
@@ -221,7 +225,7 @@ function Query({
 interface FormulaProps {
   availableVariables: Set<string>;
   canBeHidden: boolean;
-  formulaVariables: Set<string>;
+  formulaDependencies: ReturnType<typeof useFormulaDependencies>;
   index: number;
   isSelected: boolean;
   onChange: (index: number, data: Partial<MetricWidgetQueryParams>) => void;
@@ -232,7 +236,6 @@ interface FormulaProps {
 
 function Formula({
   availableVariables,
-  formulaVariables,
   index,
   widget,
   onChange,
@@ -240,6 +243,7 @@ function Formula({
   canBeHidden,
   isSelected,
   showQuerySymbols,
+  formulaDependencies,
 }: FormulaProps) {
   const handleToggle = useCallback(() => {
     onToggleVisibility(index);
@@ -263,15 +267,19 @@ function Formula({
           isSelected={isSelected}
           queryId={widget.id}
           onChange={handleToggle}
+          type={MetricQueryType.FORMULA}
         />
       )}
       <FormulaInput
         availableVariables={availableVariables}
-        formulaVariables={formulaVariables}
         value={widget.formula}
         onChange={formula => handleChange({formula})}
       />
-      <MetricFormulaContextMenu widgetIndex={index} />
+      <MetricFormulaContextMenu
+        widgetIndex={index}
+        formulaWidget={widget}
+        formulaDependencies={formulaDependencies}
+      />
     </QueryWrapper>
   );
 }
@@ -282,6 +290,7 @@ interface QueryToggleProps {
   isSelected: boolean;
   onChange: (isHidden: boolean) => void;
   queryId: number;
+  type: MetricQueryType;
 }
 
 function QueryToggle({
@@ -290,6 +299,7 @@ function QueryToggle({
   disabled,
   onChange,
   isSelected,
+  type,
 }: QueryToggleProps) {
   let tooltipTitle = isHidden ? t('Show query') : t('Hide query');
   if (disabled) {
@@ -298,16 +308,29 @@ function QueryToggle({
 
   return (
     <Tooltip title={tooltipTitle} delay={500}>
-      <StyledQuerySymbol
-        isHidden={isHidden}
-        queryId={queryId}
-        isClickable={!disabled}
-        aria-disabled={disabled}
-        isSelected={isSelected}
-        onClick={disabled ? undefined : () => onChange(!isHidden)}
-        role="button"
-        aria-label={isHidden ? t('Show query') : t('Hide query')}
-      />
+      {type === MetricQueryType.QUERY ? (
+        <StyledQuerySymbol
+          isHidden={isHidden}
+          queryId={queryId}
+          isClickable={!disabled}
+          aria-disabled={disabled}
+          isSelected={isSelected}
+          onClick={disabled ? undefined : () => onChange(!isHidden)}
+          role="button"
+          aria-label={isHidden ? t('Show query') : t('Hide query')}
+        />
+      ) : (
+        <StyledEquationSymbol
+          isHidden={isHidden}
+          equationId={queryId}
+          isClickable={!disabled}
+          aria-disabled={disabled}
+          isSelected={isSelected}
+          onClick={disabled ? undefined : () => onChange(!isHidden)}
+          role="button"
+          aria-label={isHidden ? t('Show query') : t('Hide query')}
+        />
+      )}
     </Tooltip>
   );
 }
@@ -321,6 +344,12 @@ const QueryWrapper = styled('div')<{hasSymbol: boolean}>`
 `;
 
 const StyledQuerySymbol = styled(QuerySymbol)<{isClickable: boolean}>`
+  margin-top: 10px;
+  cursor: not-allowed;
+  ${p => p.isClickable && `cursor: pointer;`}
+`;
+
+const StyledEquationSymbol = styled(EquationSymbol)<{isClickable: boolean}>`
   margin-top: 10px;
   cursor: not-allowed;
   ${p => p.isClickable && `cursor: pointer;`}

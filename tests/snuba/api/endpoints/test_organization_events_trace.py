@@ -52,6 +52,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase):
         )
         data["transaction"] = transaction
         data["contexts"]["trace"]["parent_span_id"] = parent_span_id
+        data["contexts"]["profile"] = {"profile_id": uuid4().hex}
         if span_id:
             data["contexts"]["trace"]["span_id"] = span_id
         if measurements:
@@ -166,6 +167,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase):
             measurements={
                 "lcp": 1000,
                 "fcp": 750,
+                "fid": 3.5,
             },
             parent_span_id=None,
             file_io_performance_issue=True,
@@ -806,6 +808,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert result["transaction"] == event_data.transaction, message
         assert result["event_id"] == event_data.event_id
         assert result["start_timestamp"] == event_data.data["start_timestamp"]
+        assert result["profile_id"] == event_data.data["contexts"]["profile"]["profile_id"]
 
     def assert_trace_data(self, root, gen2_no_children=True):
         """see the setUp docstring for an idea of what the response structure looks like"""
@@ -1568,6 +1571,32 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
         data["useSpans"] = 1
         return super().client_get(data, url)
 
+    def test_simple(self):
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={"project": -1},
+            )
+        assert response.status_code == 200, response.content
+        trace_transaction = response.data["transactions"][0]
+        self.assert_trace_data(trace_transaction)
+        # We shouldn't have detailed fields here
+        assert "transaction.status" not in trace_transaction
+        assert "tags" not in trace_transaction
+
+    def test_simple_with_limit(self):
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={"project": -1, "limit": 200},
+            )
+        assert response.status_code == 200, response.content
+        trace_transaction = response.data["transactions"][0]
+        self.assert_trace_data(trace_transaction)
+        # We shouldn't have detailed fields here
+        assert "transaction.status" not in trace_transaction
+        assert "tags" not in trace_transaction
+
     @pytest.mark.skip(
         "Loops can only be orphans cause the most recent parent to be saved will overwrite the previous"
     )
@@ -1616,6 +1645,57 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
         ) == sorted([p.id for p in mock_query_builder.mock_calls[0].args[1]["project_objects"]])
 
         assert response.status_code == 200, response.content
+
+    def test_event_id(self):
+        self.load_trace()
+        # When given an event_id even if its not the root transaction we should prioritize loading that specific event
+        # over loading roots
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={
+                    "project": -1,
+                    "timestamp": self.root_event.timestamp,
+                    # Limit of one means the only result is the target event
+                    "limit": 1,
+                    "eventId": self.gen1_events[0].event_id,
+                },
+            )
+        assert response.status_code == 200, response.content
+        trace_transaction = response.data["transactions"][0]
+        self.assert_event(trace_transaction, self.gen1_events[0], "root")
+
+    def test_timestamp_optimization_without_mock(self):
+        """Make sure that even if the params are smaller the query still works"""
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={
+                    "project": -1,
+                    "timestamp": self.root_event.timestamp,
+                    "statsPeriod": "90d",
+                },
+            )
+        assert response.status_code == 200, response.content
+        trace_transaction = response.data["transactions"][0]
+        self.assert_trace_data(trace_transaction)
+        # We shouldn't have detailed fields here
+        assert "transaction.status" not in trace_transaction
+        assert "tags" not in trace_transaction
+
+    def test_measurements(self):
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={"project": -1},
+            )
+        assert response.status_code == 200, response.content
+        trace_transaction = response.data["transactions"][0]
+        self.assert_trace_data(trace_transaction)
+        root = trace_transaction
+        assert root["measurements"]["lcp"]["value"] == 1000
+        assert root["measurements"]["lcp"]["type"] == "duration"
+        assert root["measurements"]["fid"]["value"] == 3.5
+        assert root["measurements"]["fid"]["type"] == "duration"
 
 
 @region_silo_test

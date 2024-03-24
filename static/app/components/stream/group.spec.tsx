@@ -91,8 +91,12 @@ describe('StreamGroup', function () {
   });
 
   it('can change priority', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/prompts-activity/',
+      body: {data: {dismissed_ts: null}},
+    });
     const mockModifyGroup = MockApiClient.addMockResponse({
-      url: '/projects/org-slug/foo-project/issues/',
+      url: '/organizations/org-slug/issues/',
       method: 'PUT',
       body: {priority: PriorityLevel.HIGH},
     });
@@ -107,7 +111,7 @@ describe('StreamGroup', function () {
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'High'}));
     expect(within(priorityDropdown).getByText('High')).toBeInTheDocument();
     expect(mockModifyGroup).toHaveBeenCalledWith(
-      '/projects/org-slug/foo-project/issues/',
+      '/organizations/org-slug/issues/',
       expect.objectContaining({
         data: expect.objectContaining({
           priority: 'high',

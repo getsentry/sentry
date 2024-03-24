@@ -36,7 +36,6 @@ from sentry.search.base import SearchBackend
 from sentry.search.events.constants import EQUALITY_OPERATORS, OPERATOR_TO_DJANGO
 from sentry.search.snuba.executors import (
     AbstractQueryExecutor,
-    CdcPostgresSnubaQueryExecutor,
     InvalidQueryForExecutor,
     PostgresSnubaQueryExecutor,
     TrendsSortWeights,
@@ -476,6 +475,7 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         referrer: str | None = None,
         actor: Any | None = None,
         aggregate_kwargs: TrendsSortWeights | None = None,
+        use_group_snuba_dataset: bool = False,
     ) -> CursorResult[Group]:
         search_filters = search_filters if search_filters is not None else []
         # ensure projects are from same org
@@ -491,6 +491,17 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
             retention_window_start = timezone.now() - timedelta(days=retention)
         else:
             retention_window_start = None
+
+        logger.info(
+            "SnubaSearchBackendBase.query.start",
+            extra={
+                "organization_id": projects[0].organization_id,
+                "use_group_snuba_dataset": use_group_snuba_dataset,
+                "search_filters": search_filters,
+                "date_from": date_from,
+                "date_to": date_to,
+            },
+        )
 
         group_queryset = self._build_group_queryset(
             projects=projects,
@@ -508,6 +519,7 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
             search_filters=search_filters,
             date_from=date_from,
             date_to=date_to,
+            use_group_snuba_dataset=use_group_snuba_dataset,
         )
 
         # ensure sort strategy is supported by executor
@@ -649,6 +661,7 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         search_filters: Sequence[SearchFilter],
         date_from: datetime | None,
         date_to: datetime | None,
+        use_group_snuba_dataset: bool,
     ) -> AbstractQueryExecutor:
         """This method should return an implementation of the AbstractQueryExecutor
         We will end up calling .query() on the class returned by this method"""
@@ -657,6 +670,10 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
 
 class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
     def _get_query_executor(self, *args: Any, **kwargs: Any) -> AbstractQueryExecutor:
+        if kwargs.get("use_group_snuba_dataset"):
+            from sentry.search.snuba.executors import GroupAttributesPostgresSnubaQueryExecutor
+
+            return GroupAttributesPostgresSnubaQueryExecutor()
         return PostgresSnubaQueryExecutor()
 
     def _get_queryset_conditions(
@@ -761,8 +778,3 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
                 }
             )
         return queryset_conditions
-
-
-class CdcEventsDatasetSnubaSearchBackend(EventsDatasetSnubaSearchBackend):
-    def _get_query_executor(self, *args: Any, **kwargs: Any) -> CdcPostgresSnubaQueryExecutor:
-        return CdcPostgresSnubaQueryExecutor()
