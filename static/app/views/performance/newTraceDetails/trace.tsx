@@ -656,8 +656,8 @@ function Trace({
           : null}
 
         {manager.interval_bars.map((_, i) => {
-          const indicatorTimestamp = manager.intervals[i];
-          const timestamp = manager.to_origin + indicatorTimestamp ?? 0;
+          const indicatorTimestamp = manager.intervals[i] ?? 0;
+          const timestamp = manager.to_origin + indicatorTimestamp;
 
           if (trace.type !== 'trace') {
             return null;
