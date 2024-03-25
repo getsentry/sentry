@@ -633,6 +633,10 @@ class DailySummaryTest(
         assert link_text.format(self.group4.id) in blocks[10]["fields"][0]["text"]
         # check footer
         assert "Getting this at a funky time?" in blocks[12]["elements"][0]["text"]
+        assert (
+            "<http://testserver/settings/account/|*Account Settings*>"
+            in blocks[12]["elements"][0]["text"]
+        )
 
     @responses.activate
     @with_feature("organizations:slack-block-kit")
