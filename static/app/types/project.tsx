@@ -155,6 +155,7 @@ export type PlatformKey =
   | 'cocoa'
   | 'cocoa-objc'
   | 'cocoa-swift'
+  | 'convex'
   | 'cordova'
   | 'csharp'
   | 'csharp-aspnetcore'

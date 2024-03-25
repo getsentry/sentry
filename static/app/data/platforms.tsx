@@ -47,6 +47,13 @@ export const platforms: PlatformIntegration[] = [
     link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/',
   },
   {
+    id: 'convex',
+    name: 'Convex',
+    type: 'language',
+    language: 'convex',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/convex/',
+  },
+  {
     id: 'cordova',
     name: 'Cordova',
     type: 'language',

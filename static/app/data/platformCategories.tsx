@@ -117,6 +117,7 @@ export const backend: PlatformKey[] = [
 // Mirrors `SERVERLESS` in src/sentry/utils/platform_categories.py
 // When changing this file, make sure to keep src/sentry/utils/platform_categories.py in sync.
 export const serverless: PlatformKey[] = [
+  'convex',
   'dotnet-awslambda',
   'dotnet-gcpfunctions',
   'node-awslambda',

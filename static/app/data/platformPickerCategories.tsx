@@ -134,6 +134,7 @@ const desktop: Set<PlatformKey> = new Set([
 ]);
 
 const serverless: Set<PlatformKey> = new Set([
+  'convex',
   'dotnet-awslambda',
   'dotnet-gcpfunctions',
   'node-awslambda',

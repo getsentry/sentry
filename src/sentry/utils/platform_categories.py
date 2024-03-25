@@ -112,6 +112,7 @@ BACKEND = {
 # Mirrors `const serverless` in sentry/static/app/data/platformCategories.tsx
 # When changing this file, make sure to keep sentry/static/app/data/platformCategories.tsx in sync.
 SERVERLESS = {
+    "convex",
     "dotnet-awslambda",
     "dotnet-gcpfunctions",
     "node-awslambda",
