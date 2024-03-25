@@ -15,7 +15,13 @@ import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveRe
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
-function getReplayTabs(organization: Organization): Record<TabKey, ReactNode> {
+function getReplayTabs({
+  organization,
+  isVideoReplay,
+}: {
+  isVideoReplay: boolean;
+  organization: Organization;
+}): Record<TabKey, ReactNode> {
   // The new trace table inside Breadcrumb items:
   const hasTraceTable = organization.features.includes('session-replay-trace-table');
 
@@ -24,9 +30,9 @@ function getReplayTabs(organization: Organization): Record<TabKey, ReactNode> {
     [TabKey.CONSOLE]: t('Console'),
     [TabKey.NETWORK]: t('Network'),
     [TabKey.ERRORS]: t('Errors'),
-    [TabKey.TRACE]: hasTraceTable ? null : t('Trace'),
+    [TabKey.TRACE]: !hasTraceTable || isVideoReplay ? null : t('Trace'),
     [TabKey.PERF]: null,
-    [TabKey.A11Y]: (
+    [TabKey.A11Y]: isVideoReplay ? null : (
       <Fragment>
         <Tooltip
           isHoverable
@@ -49,16 +55,17 @@ function getReplayTabs(organization: Organization): Record<TabKey, ReactNode> {
         />
       </Fragment>
     ),
-    [TabKey.MEMORY]: t('Memory'),
+    [TabKey.MEMORY]: isVideoReplay ? null : t('Memory'),
     [TabKey.TAGS]: t('Tags'),
   };
 }
 
 type Props = {
+  isVideoReplay: boolean;
   className?: string;
 };
 
-function FocusTabs({className}: Props) {
+function FocusTabs({className, isVideoReplay}: Props) {
   const organization = useOrganization();
   const {pathname, query} = useLocation();
   const {getActiveTab, setActiveTab} = useActiveReplayTab();
@@ -66,7 +73,7 @@ function FocusTabs({className}: Props) {
 
   return (
     <ScrollableTabs className={className} underlined>
-      {Object.entries(getReplayTabs(organization)).map(([tab, label]) =>
+      {Object.entries(getReplayTabs({organization, isVideoReplay})).map(([tab, label]) =>
         label ? (
           <ListLink
             data-test-id={`replay-details-${tab}-btn`}
