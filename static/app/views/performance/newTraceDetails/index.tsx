@@ -342,12 +342,19 @@ function TraceViewContent(props: TraceViewContentProps) {
   }, []);
 
   const onSearchKeyDown = useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'ArrowDown') {
-      searchDispatch({type: 'go to next match'});
-    } else {
-      if (event.key === 'ArrowUp') {
+    switch (event.key) {
+      case 'ArrowDown':
+        searchDispatch({type: 'go to next match'});
+        break;
+      case 'ArrowUp':
         searchDispatch({type: 'go to previous match'});
-      }
+        break;
+      case 'Enter':
+        searchDispatch({
+          type: event.shiftKey ? 'go to previous match' : 'go to next match',
+        });
+        break;
+      default:
     }
   }, []);
 
