@@ -8,11 +8,11 @@ import click
     "--dev", default=False, is_flag=True, help="Use settings more conducive to local development."
 )
 @click.option(
-    "--noclobber", default=False, is_flag=True, help="Don't ask to overwrite existing config."
+    "--no-clobber", default=False, is_flag=True, help="Don't ask to overwrite existing config."
 )
 @click.argument("directory", required=False)
 @click.pass_context
-def init(ctx, dev, noclobber, directory):
+def init(ctx, dev, no_clobber, directory):
     "Initialize new configuration directory."
     from sentry.runner.settings import discover_configs, generate_settings
 
@@ -39,7 +39,7 @@ def init(ctx, dev, noclobber, directory):
     if not os.path.isfile(yaml):
         write_yaml = True
     else:
-        write_yaml = not noclobber and click.confirm(
+        write_yaml = not no_clobber and click.confirm(
             "File already exists at '%s', overwrite?" % click.format_filename(yaml)
         )
 
@@ -50,7 +50,7 @@ def init(ctx, dev, noclobber, directory):
     if not os.path.isfile(py):
         write_py = True
     else:
-        write_py = not noclobber and click.confirm(
+        write_py = not no_clobber and click.confirm(
             "File already exists at '%s', overwrite?" % click.format_filename(py)
         )
 

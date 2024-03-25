@@ -169,7 +169,7 @@ develop() {
 }
 
 init-config() {
-    sentry init --dev --noclobber
+    sentry init --dev --no-clobber
 }
 
 run-dependent-services() {
