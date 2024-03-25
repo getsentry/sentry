@@ -1505,6 +1505,9 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             having.append(Condition(sort_func, op, cursor.value))
 
         tenant_ids = {"organization_id": projects[0].organization_id} if projects else None
+        groupby = [Column("group_id", attr_entity)]
+        if sort_by == "new":
+            groupby.append(Column("group_first_seen", attr_entity))
 
         query = Query(
             match=Join([Relationship(event_entity, "attributes", attr_entity)]),
@@ -1514,10 +1517,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 sort_func,
             ],
             where=where_conditions,
-            groupby=[
-                Column("group_id", attr_entity),
-                Column("group_first_seen", attr_entity),
-            ],
+            groupby=groupby,
             having=having,
             orderby=[OrderBy(sort_func, direction=Direction.DESC)],
             limit=Limit(limit + 1),
