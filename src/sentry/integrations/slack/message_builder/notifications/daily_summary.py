@@ -41,7 +41,7 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
     def linkify_error_title(self, group):
         link = get_title_link(group, None, False, False, self.notification, ExternalProviders.SLACK)
         title = build_attachment_title(group)
-        attachment_text = self.get_attachment_text(group)
+        attachment_text = self.get_attachment_text(group).replace("\n", " ")
         if not attachment_text:
             return f"<{link}|*{escape_slack_text(title)}*>"
         return f"<{link}|*{escape_slack_text(title)}*>\n{attachment_text}"
