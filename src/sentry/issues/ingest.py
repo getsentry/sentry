@@ -146,6 +146,7 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
         event_metadata["message"] = occurrence.evidence_data.get("message")
         event_metadata["name"] = occurrence.evidence_data.get("name")
         event_metadata["source"] = occurrence.evidence_data.get("source")
+        event_metadata["initial_priority"] = occurrence.initial_issue_priority
 
     return {
         "type": event_type.key,
@@ -154,7 +155,6 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
         "metadata": event_metadata,
         "location": event.location,
         "last_received": json.datetime_to_str(event.datetime),
-        "initial_priority": occurrence.initial_issue_priority,
     }
 
 
