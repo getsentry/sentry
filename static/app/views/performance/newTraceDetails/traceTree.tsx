@@ -288,7 +288,7 @@ export class TraceTree {
     return newTree;
   }
 
-  static FromTrace(trace: TraceTree.Trace, event?: EventTransaction): TraceTree {
+  static FromTrace(trace: TraceTree.Trace): TraceTree {
     const tree = new TraceTree();
     let traceStart = Number.POSITIVE_INFINITY;
     let traceEnd = Number.NEGATIVE_INFINITY;
@@ -336,6 +336,14 @@ export class TraceTree {
         traceEnd = Math.max(value.timestamp, traceEnd);
       }
 
+      if (value && 'measurements' in value) {
+        tree.collectMeasurements(
+          traceStart,
+          value.measurements as Record<string, Measurement>,
+          tree.indicators
+        );
+      }
+
       if (value && 'children' in value) {
         for (const child of value.children) {
           visit(node, child);
@@ -377,20 +385,16 @@ export class TraceTree {
       }
     }
 
-    if (event?.measurements) {
-      const indicators = tree
-        .collectMeasurements(traceStart, event.measurements)
-        .sort((a, b) => a.start - b.start);
+    if (tree.indicators.length > 0) {
+      tree.indicators.sort((a, b) => a.start - b.start);
 
-      for (const indicator of indicators) {
+      for (const indicator of tree.indicators) {
         if (indicator.start > traceEnd) {
           traceEnd = indicator.start;
         }
 
         indicator.start *= traceNode.multiplier;
       }
-
-      tree.indicators = indicators;
     }
 
     traceNode.space = [
@@ -778,10 +782,9 @@ export class TraceTree {
 
   collectMeasurements(
     start_timestamp: number,
-    measurements: Record<string, Measurement>
-  ): TraceTree.Indicator[] {
-    const indicators: TraceTree.Indicator[] = [];
-
+    measurements: Record<string, Measurement>,
+    indicators: TraceTree.Indicator[]
+  ): void {
     for (const measurement of RENDERABLE_MEASUREMENTS) {
       const value = measurements[measurement];
       if (!value) {
@@ -791,7 +794,7 @@ export class TraceTree {
       const timestamp = measurementToTimestamp(
         start_timestamp,
         value.value,
-        value.unit ?? 'milliseconds'
+        value.unit ?? 'millisecond'
       );
 
       indicators.push({
@@ -802,8 +805,6 @@ export class TraceTree {
         label: measurement.toUpperCase(),
       });
     }
-
-    return indicators;
   }
 
   // Returns boolean to indicate if node was updated
