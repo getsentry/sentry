@@ -384,7 +384,6 @@ module = [
     "sentry.monitors.endpoints.monitor_ingest_checkin_attachment",
     "sentry.monitors.endpoints.monitor_ingest_checkin_details",
     "sentry.monitors.endpoints.organization_monitor_index",
-    "sentry.monkey.pickle",
     "sentry.net.http",
     "sentry.net.socket",
     "sentry.notifications.additional_attachment_manager",
