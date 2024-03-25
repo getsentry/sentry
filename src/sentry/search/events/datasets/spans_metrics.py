@@ -476,6 +476,20 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     ),
                     default_result_type="percent_change",
                 ),
+                fields.MetricsFunction(
+                    "regression_score_sum",
+                    required_args=[
+                        fields.MetricArg(
+                            "column",
+                            allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
+                            allow_custom_measurements=False,
+                        ),
+                        fields.TimestampArg("timestamp"),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=self._resolve_regression_score_sum,
+                    default_result_type="integer",
+                ),
             ]
         }
 
@@ -484,6 +498,53 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 function_converter[alias] = function_converter[name].alias_as(alias)
 
         return function_converter
+
+    def _resolve_regression_score_sum(
+        self, args: Mapping[str, str | Column | SelectType | int | float], alias: str | None = None
+    ) -> SelectType:
+        return Function(
+            "minus",
+            [
+                Function(
+                    "sumIf",
+                    [
+                        Column("value"),
+                        Function(
+                            "and",
+                            [
+                                Function(
+                                    "equals",
+                                    [
+                                        Column("metric_id"),
+                                        self.resolve_metric("span.self_time"),
+                                    ],
+                                ),
+                                Function("greater", [Column("timestamp"), args["timestamp"]]),
+                            ],
+                        ),
+                    ],
+                ),
+                Function(
+                    "sumIf",
+                    [
+                        Column("value"),
+                        Function(
+                            "and",
+                            [
+                                Function(
+                                    "equals",
+                                    [
+                                        Column("metric_id"),
+                                        self.resolve_metric("span.self_time"),
+                                    ],
+                                ),
+                                Function("less", [Column("timestamp"), args["timestamp"]]),
+                            ],
+                        ),
+                    ],
+                ),
+            ],
+        )
 
     def _span_domain_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         value = search_filter.value.value

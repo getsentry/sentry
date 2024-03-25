@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from snuba_sdk import AliasedExpression, Column, Condition, Function, Op
 
-from sentry.search.events.builder import SpansIndexedQueryBuilder
+from sentry.search.events.builder import SpansIndexedQueryBuilder, SpansMetricsQueryBuilder
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -91,3 +91,20 @@ def test_span_duration_where(params, condition, op, value):
         selected_columns=["count"],
     )
     assert Condition(span_duration, op, value) in builder.where
+
+
+@django_db_all
+def test_foo(params):
+    mid = params["start"] + (params["end"] - params["start"]) / 2
+    builder = SpansMetricsQueryBuilder(
+        params,
+        dataset=Dataset.PerformanceMetrics,
+        query="transaction:/api/0/projects/",
+        selected_columns=[
+            f"regression_score(span.self_time, {int(mid.timestamp())})",
+            "span.group",
+            "span.description",
+        ],
+    )
+    print(builder.get_snql_query())
+    assert 0
