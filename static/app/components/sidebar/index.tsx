@@ -319,7 +319,7 @@ function Sidebar() {
               <Feature features="performance-trace-explorer">
                 <SidebarItem
                   {...sidebarItemProps}
-                  label={<GuideAnchor target="starfish">{t('Traces')}</GuideAnchor>}
+                  label={<GuideAnchor target="traces">{t('Traces')}</GuideAnchor>}
                   to={`/organizations/${organization.slug}/performance/traces`}
                   id="performance-trace-explorer"
                   icon={<SubitemDot collapsed />}
