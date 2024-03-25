@@ -61,24 +61,18 @@ function ReleaseThresholdList({}: Props) {
     selectedEnvs: selection.environments,
   });
 
-  const selectedProjects: Project[] = useMemo(
-    () =>
-      projects.filter(
-        project =>
-          selection.projects.some(id => {
-            const strId = String(id);
-            return strId === project.id || id === -1;
-          }) || !selection.projects.length
-      ),
-    [projects, selection.projects]
-  );
+  const selectedProjects: Project[] = useMemo(() => {
+    return projects.filter(
+      project =>
+        selection.projects.some(id => String(id) === project.id || id === -1) ||
+        !selection.projects.length
+    );
+  }, [projects, selection.projects]);
 
   const projectsById: {[key: string]: Project} = useMemo(() => {
     const byId = {};
     selectedProjects.forEach(proj => {
       byId[proj.id] = proj;
-      // adding slug for migration to MetricAlerts, we only have slug in MetricAlerts
-      byId[proj.slug] = proj;
     });
     return byId;
   }, [selectedProjects]);
@@ -174,20 +168,19 @@ function ReleaseThresholdList({}: Props) {
 
   const thresholdsByProject: {[key: string]: Threshold[]} = useMemo(() => {
     const byProj = {};
-
     filteredThresholds.forEach(threshold => {
-      const selectedProject = selection.projects[0] !== -1 ? selection.projects[0] : null;
-      const projId = threshold.project.id ?? selectedProject;
-      (byProj[projId] ??= []).push(threshold);
+      const projId = threshold.project.id;
+      if (!byProj[projId]) {
+        byProj[projId] = [];
+      }
+      byProj[projId].push(threshold);
     });
     return byProj;
-  }, [filteredThresholds, selection.projects]);
+  }, [filteredThresholds]);
 
   const projectsWithoutThresholds: Project[] = useMemo(() => {
     // TODO: limit + paginate list
-    return selectedProjects.filter(
-      proj => !thresholdsByProject[proj.id] && !thresholdsByProject[proj.slug]
-    );
+    return selectedProjects.filter(proj => !thresholdsByProject[proj.id]);
   }, [thresholdsByProject, selectedProjects]);
 
   const setTempError = msg => {
@@ -195,8 +188,12 @@ function ReleaseThresholdList({}: Props) {
     setTimeout(() => setListError(''), 5000);
   };
 
-  if (isError) return <LoadingError onRetry={refetch} message={requestError.message} />;
-  if (isLoading) return <LoadingIndicator />;
+  if (isError) {
+    return <LoadingError onRetry={refetch} message={requestError.message} />;
+  }
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
 
   return (
     <PageFiltersContainer>
