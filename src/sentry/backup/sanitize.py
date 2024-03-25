@@ -450,7 +450,7 @@ def sanitize(export: JSONData, datetime_offset: timedelta | None = None) -> JSON
         if model_class is None:
             continue
 
-        model_class.sanitize_relocation_json(clone, sanitizer)  # type: ignore
+        model_class.sanitize_relocation_json(clone, sanitizer)  # type: ignore[attr-defined]
         sanitized.append(clone)
 
     return sanitized
