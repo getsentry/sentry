@@ -2061,6 +2061,10 @@ const TraceStylingWrapper = styled('div')`
 
       .TraceChildrenCount {
         border: 2px solid ${p => p.theme.error};
+
+        svg {
+          fill: ${p => p.theme.error};
+        }
       }
 
       &:focus,
@@ -2279,6 +2283,7 @@ const TraceStylingWrapper = styled('div')`
     svg {
       width: 7px;
       transition: none;
+      fill: ${p => p.theme.textColor};
     }
   }
 
