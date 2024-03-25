@@ -646,7 +646,7 @@ function Trace({
                 <div
                   key={i}
                   ref={r => manager.registerIndicatorRef(r, i, indicator)}
-                  className="TraceIndicator"
+                  className={`TraceIndicator ${indicator.poor ? 'Errored' : ''}`}
                 >
                   <div className="TraceIndicatorLabel">{indicator.label}</div>
                   <div className="TraceIndicatorLine" />
@@ -1938,6 +1938,22 @@ const TraceStylingWrapper = styled('div')`
           ${p => p.theme.textColor} 4px 8px
         )
         80%/2px 100% no-repeat;
+    }
+
+    &.Errored {
+      .TraceIndicatorLabel {
+        border: 1px solid ${p => p.theme.error};
+        color: ${p => p.theme.error};
+      }
+
+      .TraceIndicatorLine {
+        background: repeating-linear-gradient(
+            to bottom,
+            transparent 0 4px,
+            ${p => p.theme.error} 4px 8px
+          )
+          80%/2px 100% no-repeat;
+      }
     }
 
     &.Timeline {

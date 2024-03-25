@@ -152,6 +152,7 @@ export declare namespace TraceTree {
     duration: number;
     label: string;
     measurement: Measurement;
+    poor: boolean;
     start: number;
     type: 'cls' | 'fcp' | 'fp' | 'lcp' | 'ttfb';
   };
@@ -265,6 +266,14 @@ const RENDERABLE_MEASUREMENTS = [
 const MEASUREMENT_ACRONYM_MAPPING = {
   [MobileVital.TIME_TO_FULL_DISPLAY.replace('measurements.', '')]: 'TTFD',
   [MobileVital.TIME_TO_INITIAL_DISPLAY.replace('measurements.', '')]: 'TTID',
+};
+
+const MEASUREMENT_THRESHOLDS = {
+  [WebVital.TTFB.replace('measurements.', '')]: 600,
+  [WebVital.FP.replace('measurements.', '')]: 3000,
+  [WebVital.FCP.replace('measurements.', '')]: 3000,
+  [WebVital.LCP.replace('measurements.', '')]: 4000,
+  [MobileVital.TIME_TO_INITIAL_DISPLAY.replace('measurements.', '')]: 2000,
 };
 
 export class TraceTree {
@@ -815,6 +824,9 @@ export class TraceTree {
         start: timestamp,
         duration: 0,
         measurement: value,
+        poor: MEASUREMENT_THRESHOLDS[measurement]
+          ? value.value > MEASUREMENT_THRESHOLDS[measurement]
+          : false,
         type: measurement as TraceTree.Indicator['type'],
         label: (MEASUREMENT_ACRONYM_MAPPING[measurement] ?? measurement).toUpperCase(),
       });
