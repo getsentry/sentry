@@ -4,6 +4,7 @@ import logging
 import re
 from collections.abc import Collection, Mapping, Sequence
 from typing import Any
+from urllib.parse import parse_qsl
 
 from django.http import HttpResponse
 from django.utils.text import slugify
@@ -13,6 +14,7 @@ from rest_framework.request import Request
 from sentry import features, options
 from sentry.api.utils import generate_organization_url
 from sentry.constants import ObjectStatus
+from sentry.identity.github import GitHubIdentityProvider, get_user_info
 from sentry.integrations import (
     FeatureDescription,
     IntegrationFeatures,
@@ -310,7 +312,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
         )
 
     def get_pipeline_views(self) -> Sequence[PipelineView]:
-        return [GitHubInstallation()]
+        return [GitHubInstallation(), GitHubUserValidation()]
 
     def get_installation_info(self, installation_id: str) -> Mapping[str, Any]:
         client = self.get_client()
@@ -429,4 +431,72 @@ class GitHubInstallation(PipelineView):
 
         # OrganizationIntegration does not exist, but Integration does exist.
         pipeline.bind_state("installation_id", request.GET["installation_id"])
+        return pipeline.next_step()
+
+
+class GitHubUserValidation(PipelineView):
+    def dispatch(self, request: Request, pipeline: Pipeline) -> HttpResponse:
+        ghip = GitHubIdentityProvider()
+        github_client_id = ghip.get_oauth_client_id()
+        github_client_secret = ghip.get_oauth_client_secret()
+
+        if not request.GET.get("state"):
+            state = pipeline.signature
+
+            return self.redirect(
+                f"{ghip.get_oauth_authorize_url()}?client_id={github_client_id}&state={state}"
+            )
+
+        # At this point, we are past the GitHub "authorize" step
+        if request.GET.get("state") != pipeline.signature:
+            return render_to_response(
+                "sentry/integrations/github-integration-failed.html",
+                context={
+                    "error": ERR_INTEGRATION_INVALID_INSTALLATION_REQUEST,
+                    "payload": {
+                        "success": False,
+                        "data": {"error": _("Invalid installation request.")},
+                    },
+                    "document_origin": self._get_document_origin(),
+                },
+                request=request,
+            )
+
+        # similar to OAuth2CallbackView.get_token_params
+        data = {
+            "code": request.GET.get("code"),
+            "client_id": github_client_id,
+            "client_secret": github_client_secret,
+        }
+
+        # similar to OAuth2CallbackView.exchange_token
+        from sentry.http import safe_urlopen, safe_urlread
+
+        req = safe_urlopen(url=ghip.get_oauth_access_token_url(), data=data)
+
+        try:
+            body = safe_urlread(req).decode("utf-8")
+            payload = dict(parse_qsl(body))
+        except Exception:
+            payload = {}
+
+        # Check that the authenticated GitHub user is the same as who installed the app.
+        authenticated_user_info = get_user_info(payload["access_token"])
+        integration = Integration.objects.get(
+            external_id=pipeline.fetch_state("installation_id"), status=ObjectStatus.ACTIVE
+        )
+        if authenticated_user_info["login"] != integration.metadata["sender"]["login"]:
+            return render_to_response(
+                "sentry/integrations/github-integration-failed.html",
+                context={
+                    "error": ERR_INTEGRATION_INVALID_INSTALLATION_REQUEST,
+                    "payload": {
+                        "success": False,
+                        "data": {"error": _("Invalid installation request.")},
+                    },
+                    "document_origin": self._get_document_origin(),
+                },
+                request=request,
+            )
+
         return pipeline.next_step()
