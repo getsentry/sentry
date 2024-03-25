@@ -492,17 +492,6 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         else:
             retention_window_start = None
 
-        logger.info(
-            "SnubaSearchBackendBase.query.start",
-            extra={
-                "organization_id": projects[0].organization_id,
-                "use_group_snuba_dataset": use_group_snuba_dataset,
-                "search_filters": search_filters,
-                "date_from": date_from,
-                "date_to": date_to,
-            },
-        )
-
         group_queryset = self._build_group_queryset(
             projects=projects,
             environments=environments,
