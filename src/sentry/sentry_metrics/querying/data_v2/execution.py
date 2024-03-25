@@ -169,8 +169,15 @@ class ScheduledQuery:
     Represents a query that needs to be scheduled for execution.
 
     Attributes:
+        type: The type of the query that needs to be run.
+        metrics_query: The query that needs to be run.
         next: The next query that has a dependency with this, meaning that the executor will execute them serially.
+        order: The order of the groups that are returned.
+        limit: The maximum number of groups to return.
         dynamic_limit: True if the query is using the dynamic limit determined during initialization.
+        unit_family: The UnitFamily of the query.
+        unit: The unit of the query.
+        scaling_factor: The scaling factor that was applied on the query to normalize it to unit.
     """
 
     type: ScheduledQueryType
