@@ -210,6 +210,10 @@ USE_CASE_ID_TO_ENTITY_KEYS = {
         EntityKey.GenericMetricsDistributions,
         EntityKey.GenericMetricsGauges,
     },
+    UseCaseID.METRIC_STATS: {
+        EntityKey.GenericMetricsCounters,
+        EntityKey.GenericMetricsGauges,
+    },
 }
 
 # This set contains all the operations that require the "rhs" condition to be resolved
