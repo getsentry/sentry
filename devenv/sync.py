@@ -108,8 +108,20 @@ def main(context: dict[str, str]) -> int:
         reporoot,
         venv_dir,
         (
-            ("javascript dependencies", ("make", "install-js-dev")),
-            ("python dependencies", ("make", "install-py-dev")),
+            (
+                "javascript",
+                (
+                    "bash",
+                    "-xc",
+                    """
+            which node
+            node -v
+            cat .volta.json
+            node -pe "process.exit(Number(!(process.version == 'v' + require('./.volta.json').volta.node )))"
+            exit 1
+            """,
+                ),
+            ),
         ),
     ):
         return 1
