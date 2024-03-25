@@ -442,7 +442,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
                 durationUnit
               );
             }
-            return axisLabelFormatter(value, aggregateOutputType(axisLabel));
+            return axisLabelFormatter(value, aggregateOutputType(axisLabel), true);
           },
         },
         minInterval: durationUnit ?? 0,
