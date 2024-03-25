@@ -9,7 +9,7 @@ from django.dispatch import Signal
 from django.http import HttpResponse, StreamingHttpResponse
 from openai import OpenAI, RateLimitError
 
-from sentry import eventstore
+from sentry import eventstore, llm
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -269,23 +269,9 @@ def suggest_fix(event_data, model=settings.SENTRY_AI_SUGGESTED_FIX_MODEL, stream
     prompt = PROMPT.replace("___FUN_PROMPT___", random.choice(FUN_PROMPT_CHOICES))
     event_info = describe_event_for_ai(event_data, model=model)
 
-    client = get_openai_client()
+    response = llm.backend.complete_prompt(prompt, json.dumps(event_info), 0.35, 1024)
 
-    response = client.chat.completions.create(
-        model=model,
-        temperature=0.7,
-        messages=[
-            {"role": "system", "content": prompt},
-            {
-                "role": "user",
-                "content": json.dumps(event_info),
-            },
-        ],
-        stream=stream,
-    )
-    if stream:
-        return reduce_stream(response)
-    return response.choices[0].message.content
+    return response
 
 
 def reduce_stream(response):
