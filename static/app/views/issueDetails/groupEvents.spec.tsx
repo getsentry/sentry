@@ -7,6 +7,7 @@ import {
   render,
   screen,
   userEvent,
+  waitFor,
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
@@ -169,7 +170,7 @@ describe('groupEvents', () => {
     }
   });
 
-  it('handles environment filtering', () => {
+  it('handles environment filtering', async () => {
     render(
       <GroupEvents
         {...baseProps}
@@ -177,6 +178,9 @@ describe('groupEvents', () => {
       />,
       {context: routerContext, organization}
     );
+    await waitFor(() => {
+      expect(screen.getByText('transaction')).toBeInTheDocument();
+    });
     expect(requests.discover).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
       expect.objectContaining({
@@ -185,7 +189,7 @@ describe('groupEvents', () => {
     );
   });
 
-  it('renders events table for performance issue', () => {
+  it('renders events table for performance issue', async () => {
     const group = GroupFixture();
     group.issueCategory = IssueCategory.PERFORMANCE;
 
@@ -205,8 +209,9 @@ describe('groupEvents', () => {
         }),
       })
     );
-    const perfEventsColumn = screen.getByText('transaction');
-    expect(perfEventsColumn).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('transaction')).toBeInTheDocument();
+    });
   });
 
   it('renders event and trace link correctly', async () => {
@@ -341,7 +346,7 @@ describe('groupEvents', () => {
     expect(requests.attachments).toHaveBeenCalled();
   });
 
-  it('renders events table for error', () => {
+  it('renders events table for error', async () => {
     render(
       <GroupEvents
         {...baseProps}
@@ -359,11 +364,12 @@ describe('groupEvents', () => {
       })
     );
 
-    const perfEventsColumn = screen.getByText('transaction');
-    expect(perfEventsColumn).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('transaction')).toBeInTheDocument();
+    });
   });
 
-  it('removes sort if unsupported by the events table', () => {
+  it('removes sort if unsupported by the events table', async () => {
     render(
       <GroupEvents
         {...baseProps}
@@ -375,9 +381,12 @@ describe('groupEvents', () => {
       '/organizations/org-slug/events/',
       expect.objectContaining({query: expect.not.objectContaining({sort: 'user'})})
     );
+    await waitFor(() => {
+      expect(screen.getByText('transaction')).toBeInTheDocument();
+    });
   });
 
-  it('only request for a single projectId', () => {
+  it('only request for a single projectId', async () => {
     const group = GroupFixture();
 
     render(
@@ -401,6 +410,9 @@ describe('groupEvents', () => {
         query: expect.objectContaining({project: [group.project.id]}),
       })
     );
+    await waitFor(() => {
+      expect(screen.getByText('transaction')).toBeInTheDocument();
+    });
   });
 
   it('shows discover query error message', async () => {

@@ -86,7 +86,7 @@ describe('IssueListActions', function () {
 
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
 
-        await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+        await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
 
         await screen.findByRole('dialog');
 
@@ -115,10 +115,7 @@ describe('IssueListActions', function () {
 
         await userEvent.click(screen.getByRole('checkbox'));
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
-        await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
-        await userEvent.hover(
-          screen.getByRole('menuitemradio', {name: 'Set Priority to...'})
-        );
+        await userEvent.click(await screen.findByRole('button', {name: 'Set Priority'}));
         await userEvent.click(screen.getByRole('menuitemradio', {name: 'High'}));
 
         expect(
@@ -170,7 +167,7 @@ describe('IssueListActions', function () {
 
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
 
-        await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+        await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
 
         const modal = screen.getByRole('dialog');
 
@@ -230,10 +227,7 @@ describe('IssueListActions', function () {
       organization: OrganizationFixture({features: ['issue-priority-ui']}),
     });
 
-    await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
-    await userEvent.hover(
-      screen.getByRole('menuitemradio', {name: 'Set Priority to...'})
-    );
+    await userEvent.click(screen.getByRole('button', {name: 'Set Priority'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'High'}));
 
     expect(apiMock).toHaveBeenCalledWith(
@@ -305,7 +299,7 @@ describe('IssueListActions', function () {
     );
   });
 
-  it('can resolve but not merge issues from different projects', function () {
+  it('can resolve but not merge issues from different projects', async function () {
     jest
       .spyOn(SelectedGroupStore, 'getSelectedIds')
       .mockImplementation(() => new Set(['1', '2', '3']));
@@ -321,7 +315,7 @@ describe('IssueListActions', function () {
     render(<WrappedComponent />);
 
     // Can resolve but not merge issues from multiple projects
-    expect(screen.getByRole('button', {name: 'Resolve'})).toBeEnabled();
+    expect(await screen.findByRole('button', {name: 'Resolve'})).toBeEnabled();
     expect(screen.getByRole('button', {name: 'Merge Selected Issues'})).toBeDisabled();
   });
 
@@ -356,14 +350,14 @@ describe('IssueListActions', function () {
       expect(mockOnActionTaken).toHaveBeenCalledWith(['1', '2', '3'], {inbox: false});
     });
 
-    it('mark reviewed disabled for group that is already reviewed', function () {
+    it('mark reviewed disabled for group that is already reviewed', async function () {
       SelectedGroupStore.add(['1']);
       SelectedGroupStore.toggleSelectAll();
       GroupStore.loadInitialData([GroupFixture({id: '1', inbox: null})]);
 
       render(<WrappedComponent {...defaultProps} />);
 
-      expect(screen.getByRole('button', {name: 'Mark Reviewed'})).toBeDisabled();
+      expect(await screen.findByRole('button', {name: 'Mark Reviewed'})).toBeDisabled();
     });
   });
 
@@ -445,7 +439,9 @@ describe('IssueListActions', function () {
 
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
 
-        await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
+        await userEvent.click(
+          await screen.findByRole('button', {name: 'More issue actions'})
+        );
         await userEvent.click(screen.getByRole('menuitemradio', {name: 'Delete'}));
 
         const modal = screen.getByRole('dialog');

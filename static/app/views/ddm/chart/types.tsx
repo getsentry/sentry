@@ -6,13 +6,17 @@ export type Series = {
   color: string;
   data: {name: number; value: number}[];
   id: string;
-  operation: string;
   seriesName: string;
+  total: number;
   unit: string;
   groupBy?: Record<string, string>;
   hidden?: boolean;
+  isEquationSeries?: boolean;
   paddingIndices?: Set<number>;
+  queryIndex?: number;
   release?: string;
+  scalingFactor?: number;
+  stack?: string;
   transaction?: string;
 };
 
@@ -29,6 +33,7 @@ export interface ScatterSeries extends Series {
 export interface CombinedMetricChartProps extends BaseChartProps {
   displayType: MetricDisplayType;
   series: Series[];
+  enableZoom?: boolean;
   scatterSeries?: ScatterSeries[];
 }
 

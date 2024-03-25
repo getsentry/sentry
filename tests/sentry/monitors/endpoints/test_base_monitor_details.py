@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 import pytest
@@ -13,7 +13,9 @@ from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
     MonitorCheckIn,
+    MonitorEnvBrokenDetection,
     MonitorEnvironment,
+    MonitorIncident,
     ScheduleType,
 )
 from sentry.monitors.utils import get_timeout_at
@@ -69,6 +71,7 @@ class BaseMonitorDetailsTest(MonitorTestCase):
                 "lastCheckIn": jungle.last_checkin,
                 "nextCheckIn": jungle.next_checkin,
                 "nextCheckInLatest": jungle.next_checkin_latest,
+                "activeIncident": None,
             },
             {
                 "name": prod_env,
@@ -78,6 +81,7 @@ class BaseMonitorDetailsTest(MonitorTestCase):
                 "lastCheckIn": prod.last_checkin,
                 "nextCheckIn": prod.next_checkin,
                 "nextCheckInLatest": prod.next_checkin_latest,
+                "activeIncident": None,
             },
         ]
 
@@ -93,6 +97,7 @@ class BaseMonitorDetailsTest(MonitorTestCase):
                 "lastCheckIn": prod.last_checkin,
                 "nextCheckIn": prod.next_checkin,
                 "nextCheckInLatest": prod.next_checkin_latest,
+                "activeIncident": None,
             }
         ]
 
@@ -107,6 +112,51 @@ class BaseMonitorDetailsTest(MonitorTestCase):
         issue_alert_rule = resp.data["alertRule"]
         assert issue_alert_rule is not None
         assert issue_alert_rule["environment"] is not None
+
+    def test_with_active_incident_and_detection(self):
+        monitor = self._create_monitor()
+        monitor_env = self._create_monitor_environment(monitor)
+
+        resp = self.get_success_response(self.organization.slug, monitor.slug)
+        assert resp.data["environments"][0]["activeIncident"] is None
+
+        starting_timestamp = datetime(2023, 12, 15, tzinfo=timezone.utc)
+        monitor_incident = MonitorIncident.objects.create(
+            monitor=monitor, monitor_environment=monitor_env, starting_timestamp=starting_timestamp
+        )
+        detection_timestamp = datetime(2024, 1, 1, tzinfo=timezone.utc)
+        MonitorEnvBrokenDetection.objects.create(
+            monitor_incident=monitor_incident, user_notified_timestamp=detection_timestamp
+        )
+
+        resp = self.get_success_response(self.organization.slug, monitor.slug)
+        assert resp.data["environments"][0]["activeIncident"] == {
+            "startingTimestamp": monitor_incident.starting_timestamp,
+            "resolvingTimestamp": monitor_incident.resolving_timestamp,
+            "brokenNotice": {
+                "userNotifiedTimestamp": detection_timestamp,
+                "environmentMutedTimestamp": None,
+            },
+        }
+
+    def test_with_active_incident_no_detection(self):
+        monitor = self._create_monitor()
+        monitor_env = self._create_monitor_environment(monitor)
+
+        resp = self.get_success_response(self.organization.slug, monitor.slug)
+        assert resp.data["environments"][0]["activeIncident"] is None
+
+        starting_timestamp = datetime(2023, 12, 15, tzinfo=timezone.utc)
+        monitor_incident = MonitorIncident.objects.create(
+            monitor=monitor, monitor_environment=monitor_env, starting_timestamp=starting_timestamp
+        )
+
+        resp = self.get_success_response(self.organization.slug, monitor.slug)
+        assert resp.data["environments"][0]["activeIncident"] == {
+            "startingTimestamp": monitor_incident.starting_timestamp,
+            "resolvingTimestamp": monitor_incident.resolving_timestamp,
+            "brokenNotice": None,
+        }
 
 
 @freeze_time()
@@ -383,6 +433,43 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         ]
         rule_environment = Environment.objects.get(id=monitor_rule.environment_id)
         assert rule_environment.name == new_environment.name
+
+    def test_existing_issue_alert_rule_add_slug_condition(self):
+        monitor = self._create_monitor()
+        rule = self._create_issue_alert_rule(monitor, exclude_slug_filter=True)
+        new_environment = self.create_environment(name="jungle")
+        new_user = self.create_user()
+        self.create_team_membership(user=new_user, team=self.team)
+
+        resp = self.get_success_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            **{
+                "name": "new-name",
+                "slug": "new-slug",
+                "alert_rule": {
+                    "targets": [{"targetIdentifier": new_user.id, "targetType": "Member"}],
+                    "environment": new_environment.name,
+                },
+            },
+        )
+        assert resp.data["slug"] == "new-slug"
+        monitor = Monitor.objects.get(id=monitor.id)
+        monitor_rule = monitor.get_issue_alert_rule()
+        assert monitor_rule.id == rule.id
+
+        # Verify we added the slug filter
+        assert monitor_rule.data["conditions"] == [
+            {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"},
+            {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"},
+            {
+                "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+                "key": "monitor.slug",
+                "match": "eq",
+                "value": "new-slug",
+            },
+        ]
 
     def test_without_existing_issue_alert_rule(self):
         monitor = self._create_monitor()

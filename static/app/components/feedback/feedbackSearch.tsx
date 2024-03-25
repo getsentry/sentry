@@ -27,7 +27,6 @@ const EXCLUDED_TAGS = [
   FeedbackFieldKey.EMAIL,
   FeedbackFieldKey.LOCALE_LANG,
   FeedbackFieldKey.LOCALE_TIMEZONE,
-  FeedbackFieldKey.MESSAGE,
   FeedbackFieldKey.NAME,
   FieldKey.PLATFORM,
   FeedbackFieldKey.OS_VERSION,

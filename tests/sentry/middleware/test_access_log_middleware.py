@@ -210,7 +210,9 @@ class TestAccessLogSuccess(LogCaptureAPITestCase):
         self.login_as(user=self.create_user())
         self.get_success_response(extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"})
         self.assert_access_log_recorded()
-        assert self.get_tested_log().token_type == "api_token"
+        tested_log = self.get_tested_log()
+        assert tested_log.token_type == "api_token"
+        assert tested_log.token_last_characters == token.token_last_characters
 
 
 @all_silo_test

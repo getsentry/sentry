@@ -6,7 +6,7 @@ import {space} from 'sentry/styles/space';
 import type {MetricsQueryApiResponse} from 'sentry/types';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {MetricDisplayType} from 'sentry/utils/metrics/types';
-import type {MetricsQueryApiRequestQuery} from 'sentry/utils/metrics/useMetricsQuery';
+import type {MetricsQueryApiQueryParams} from 'sentry/utils/metrics/useMetricsQuery';
 import {LoadingScreen} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import {MetricChart} from 'sentry/views/ddm/chart/chart';
 import {createChartPalette} from 'sentry/views/ddm/utils/metricsChartPalette';
@@ -17,7 +17,7 @@ import {DASHBOARD_CHART_GROUP} from '../dashboard';
 type MetricChartContainerProps = {
   displayType: MetricDisplayType;
   isLoading: boolean;
-  metricQueries: MetricsQueryApiRequestQuery[];
+  metricQueries: MetricsQueryApiQueryParams[];
   chartHeight?: number;
   timeseriesData?: MetricsQueryApiResponse;
 };
@@ -49,6 +49,7 @@ export function MetricChartContainer({
           displayType={displayType}
           group={DASHBOARD_CHART_GROUP}
           height={chartHeight}
+          enableZoom
         />
       </TransitionChart>
     </MetricWidgetChartWrapper>

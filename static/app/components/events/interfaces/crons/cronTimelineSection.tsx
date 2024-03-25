@@ -10,7 +10,7 @@ import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
-import type {Event, Organization} from 'sentry/types';
+import type {Event, Organization, Project} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useRouter from 'sentry/utils/useRouter';
@@ -31,11 +31,12 @@ import {getTimeRangeFromEvent} from 'sentry/views/monitors/utils/getTimeRangeFro
 interface Props {
   event: Event;
   organization: Organization;
+  project: Project;
 }
 
 const DEFAULT_ENVIRONMENT = 'production';
 
-export function CronTimelineSection({event, organization}: Props) {
+export function CronTimelineSection({event, organization, project}: Props) {
   const {location} = useRouter();
   const timeWindow: TimeWindow = location.query?.timeWindow ?? '24h';
   const monitorSlug = event.tags.find(({key}) => key === 'monitor.slug')?.value;
@@ -81,7 +82,7 @@ export function CronTimelineSection({event, organization}: Props) {
       <LinkButton
         size="xs"
         icon={<IconOpen />}
-        to={`/organizations/${organization.slug}/crons/${monitorSlug}`}
+        to={`/organizations/${organization.slug}/crons/${project.slug}/${monitorSlug}`}
       >
         {t('View in Monitor Details')}
       </LinkButton>
@@ -104,7 +105,7 @@ export function CronTimelineSection({event, organization}: Props) {
           end={end}
           width={timelineWidth}
         />
-        <StyledGridLineOverlay
+        <GridLineOverlay
           showCursor={!isLoading}
           timeWindowConfig={timeWindowConfig}
           start={start}
@@ -144,11 +145,7 @@ const TimelineContainer = styled(Panel)`
 `;
 
 const StyledGridLineTimeLabels = styled(GridLineTimeLabels)`
-  grid-column: 0;
-`;
-
-const StyledGridLineOverlay = styled(GridLineOverlay)`
-  grid-column: 0;
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const TimelineWidthTracker = styled('div')`

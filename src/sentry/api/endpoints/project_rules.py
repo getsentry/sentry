@@ -31,9 +31,22 @@ from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
+from sentry.rules.actions.base import instantiate_action
 from sentry.rules.processor import is_condition_slow
 from sentry.signals import alert_rule_created
 from sentry.tasks.integrations.slack import find_channel_id_for_rule
+from sentry.utils.safe import safe_execute
+
+
+def send_confirmation_notification(rule: Rule, new: bool, changed: dict | None = None):
+    for action in rule.data.get("actions", ()):
+        action_inst = instantiate_action(rule, action)
+        safe_execute(
+            action_inst.send_confirmation_notification,
+            rule=rule,
+            new=new,
+            changed=changed,
+        )
 
 
 def clean_rule_data(data):
@@ -456,22 +469,26 @@ A list of actions that take place when all required conditions and filters for t
 **Send a PagerDuty notification**
 - `account` - The integration ID associated with the PagerDuty account.
 - `service` - The ID of the service to send the notification to.
+- `severity` - The severity of the Pagerduty alert. This is optional, the default is `critical` for fatal issues, `error` for error issues, `warning` for warning issues, and `info` for info and debug issues.
 ```json
 {
     "id": "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction",
     "account": 92385907,
-    "service": 9823924
+    "service": 9823924,
+    "severity": "critical"
 }
 ```
 
 **Send an Opsgenie notification**
 - `account` - The integration ID associated with the Opsgenie account.
 - `team` - The ID of the Opsgenie team to send the notification to.
+- `priority` - The priority of the Opsgenie alert. This is optional, the default is `P3`.
 ```json
 {
     "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
     "account": 8723897589,
-    "team": "9438930258-fairy"
+    "team": "9438930258-fairy",
+    "priority": "P1"
 }
 ```
 
@@ -829,5 +846,9 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             duplicate_rule=duplicate_rule,
             wizard_v3=wizard_v3,
         )
+        if features.has(
+            "organizations:rule-create-edit-confirm-notification", project.organization
+        ):
+            send_confirmation_notification(rule=rule, new=True)
 
         return Response(serialize(rule, request.user))

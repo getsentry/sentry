@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import os
+from datetime import timedelta
+from typing import Any
 
 import sentry_sdk
 
@@ -21,6 +23,7 @@ class BigtableNodeStorage(NodeStorage):
     :param compression: A boolean whether to enable zlib-compression, or the
         string "zstd" to use zstd.
 
+    >>> from datetime import timedelta
     >>> BigtableNodeStorage(
     ...     project='some-project',
     ...     instance='sentry',
@@ -34,31 +37,31 @@ class BigtableNodeStorage(NodeStorage):
 
     def __init__(
         self,
-        project=None,
-        instance="sentry",
-        table="nodestore",
-        automatic_expiry=False,
-        default_ttl=None,
-        compression=False,
-        **client_options,
+        project: str | None = None,
+        instance: str = "sentry",
+        table: str = "nodestore",
+        automatic_expiry: bool = False,
+        default_ttl: timedelta | None = None,
+        compression: bool = False,
+        **client_options: object,
     ):
         if compression is True:
-            compression = "zlib"
-        elif compression is False:
-            compression = None
+            _compression = "zlib"
+        else:
+            _compression = None
 
         self.store = self.store_class(
             project=project,
             instance=instance,
             table_name=table,
             default_ttl=default_ttl,
-            compression=compression,
+            compression=_compression,
             client_options=client_options,
         )
         self.automatic_expiry = automatic_expiry
         self.skip_deletes = automatic_expiry and "_SENTRY_CLEANUP" in os.environ
 
-    def _get_bytes(self, id):
+    def _get_bytes(self, id: str) -> bytes | None:
         return self.store.get(id)
 
     def _get_bytes_multi(self, id_list: list[str]) -> dict[str, bytes | None]:
@@ -66,10 +69,10 @@ class BigtableNodeStorage(NodeStorage):
         rv.update(self.store.get_many(id_list))
         return rv
 
-    def _set_bytes(self, id, data, ttl=None):
+    def _set_bytes(self, id: str, data: Any, ttl: timedelta | None = None) -> None:
         self.store.set(id, data, ttl)
 
-    def delete(self, id):
+    def delete(self, id: str) -> None:
         if self.skip_deletes:
             return
 
@@ -79,7 +82,7 @@ class BigtableNodeStorage(NodeStorage):
             finally:
                 self._delete_cache_item(id)
 
-    def delete_multi(self, id_list):
+    def delete_multi(self, id_list: list[str]) -> None:
         if self.skip_deletes:
             return
 
@@ -95,5 +98,5 @@ class BigtableNodeStorage(NodeStorage):
             finally:
                 self._delete_cache_items(id_list)
 
-    def bootstrap(self):
+    def bootstrap(self) -> None:
         self.store.bootstrap(automatic_expiry=self.automatic_expiry)

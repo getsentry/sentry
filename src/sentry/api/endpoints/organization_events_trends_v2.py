@@ -92,12 +92,6 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
 
         top_trending_transactions = {}
 
-        experiment_use_project_id = features.has(
-            "organizations:performance-trendsv2-dev-only",
-            organization,
-            actor=request.user,
-        )
-
         def get_top_events(user_query, params, event_limit, referrer):
             top_event_columns = cast(list[str], selected_columns[:])
             top_event_columns.append("count()")
@@ -154,28 +148,22 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 rollup=rollup,
                 zerofill_results=zerofill_results,
                 referrer=Referrer.API_TRENDS_GET_EVENT_STATS_V2_TIMESERIES.value,
-                groupby=Column("transaction"),
+                groupby=[Column("project_id"), Column("transaction")],
                 apply_formatting=False,
             )
 
             # Parse results
-            translated_groupby = ["transaction"]
+            translated_groupby = ["project_id", "transaction"]
             results = {}
             formatted_results = {}
             for index, item in enumerate(top_events["data"]):
                 result_key = create_result_key(item, translated_groupby, {})
-                if experiment_use_project_id:
-                    results[result_key] = {
-                        "order": index,
-                        "data": [],
-                        "project_id": item["project_id"],
-                    }
-                else:
-                    results[result_key] = {
-                        "order": index,
-                        "data": [],
-                        "project": item["project"],
-                    }
+                results[result_key] = {
+                    "order": index,
+                    "data": [],
+                    "project_id": item["project_id"],
+                }
+
             for row in result.get("data", []):  # type: ignore
                 result_key = create_result_key(row, translated_groupby, {})
                 if result_key in results:
@@ -190,11 +178,6 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                         },
                     )
             for key, item in results.items():
-                key = (
-                    f'{item["project_id"]},{key}'
-                    if experiment_use_project_id
-                    else f'{item["project"]},{key}'
-                )
                 formatted_results[key] = SnubaTSResult(
                     {
                         "data": zerofill(
@@ -206,9 +189,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                         )
                         if zerofill_results
                         else item["data"],
-                        "project": item["project_id"]
-                        if experiment_use_project_id
-                        else item["project"],
+                        "project": item["project_id"],
                         "isMetricsData": True,
                         "order": item["order"],
                     },
@@ -251,7 +232,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             data[1]["data_start"] = data_start
             data[1]["data_end"] = data_end
             # user requested start and end
-            data[1]["request_start"] = params["start"].timestamp()
+            data[1]["request_start"] = int(params["start"].timestamp())
             data[1]["request_end"] = data_end
             return data
 
@@ -349,14 +330,6 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                     True,
                 ),
                 "stats": trending_transaction_names_stats,
-                # temporary change to see what stats data is returned
-                "raw_stats": trends_requests
-                if features.has(
-                    "organizations:performance-trendsv2-dev-only",
-                    organization,
-                    actor=request.user,
-                )
-                else {},
             }
 
         with handle_query_errors():

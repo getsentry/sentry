@@ -19,7 +19,7 @@ from sentry.incidents.logic import (
     get_opsgenie_teams,
     get_pagerduty_services,
 )
-from sentry.incidents.models import AlertRuleTriggerAction
+from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING
 from sentry.models.organization import Organization
 from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation, app_service

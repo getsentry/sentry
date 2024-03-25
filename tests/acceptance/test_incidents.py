@@ -1,7 +1,7 @@
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 
 from sentry.incidents.logic import update_incident_status
-from sentry.incidents.models import IncidentStatus, IncidentStatusMethod
+from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import no_silo_test
@@ -28,8 +28,8 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
         incident = self.create_incident(
             self.organization,
             title="Incident #1",
-            date_started=django_timezone.now(),
-            date_detected=django_timezone.now(),
+            date_started=timezone.now(),
+            date_detected=timezone.now(),
             projects=[self.project],
             alert_rule=alert_rule,
         )

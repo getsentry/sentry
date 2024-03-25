@@ -6,17 +6,12 @@ import time
 import uuid
 from collections.abc import Generator
 from hashlib import md5
-from typing import Any, Literal, TypedDict, cast
-
-from django.conf import settings
+from typing import Any, Literal, TypedDict
 
 from sentry import features
+from sentry.conf.types.kafka_definition import Topic
 from sentry.models.project import Project
-from sentry.replays.usecases.ingest.events import SentryEvent
-from sentry.replays.usecases.ingest.issue_creation import (
-    report_rage_click_issue,
-    report_rage_click_issue_with_replay_event,
-)
+from sentry.replays.usecases.ingest.issue_creation import report_rage_click_issue_with_replay_event
 from sentry.utils import json, kafka_config, metrics
 from sentry.utils.pubsub import KafkaPublisher
 
@@ -219,7 +214,7 @@ def _initialize_publisher() -> KafkaPublisher:
     global replay_publisher
 
     if replay_publisher is None:
-        config = kafka_config.get_topic_definition(settings.KAFKA_INGEST_REPLAY_EVENTS)
+        config = kafka_config.get_topic_definition(Topic.INGEST_REPLAY_EVENTS)
         replay_publisher = KafkaPublisher(
             kafka_config.get_kafka_producer_cluster_options(config["cluster"])
         )
@@ -236,6 +231,7 @@ def create_click_event(
     replay_id: str,
     is_dead: bool,
     is_rage: bool,
+    project_id: int,
 ) -> ReplayActionsEventPayloadClick | None:
     node = payload.get("data", {}).get("node")
     if node is None:
@@ -247,7 +243,7 @@ def create_click_event(
     # before truncating the list.
     classes = _parse_classes(attributes.get("class", ""))
 
-    return {
+    event: ReplayActionsEventPayloadClick = {
         "node_id": node["id"],
         "tag": node["tagName"][:32],
         "id": attributes.get("id", "")[:64],
@@ -266,6 +262,18 @@ def create_click_event(
             "{}{}{}".format(replay_id, str(payload["timestamp"]), str(node["id"]))
         ),
     }
+
+    # This is unsupported and will cause errors on insert! Let's drop these bad clicks
+    # and logs them to bigquery to see if we can figure out where they're coming from.
+    if event["node_id"] < 0:
+        # Log to "slow_click" because its the only bigquery sink
+        logger.info(
+            "sentry.replays.slow_click",
+            extra={"event_type": "negative-click-node-id", "project_id": project_id, "data": event},
+        )
+        return None
+
+    return event
 
 
 def _parse_classes(classes: str) -> list[str]:
@@ -345,11 +353,11 @@ def _handle_resource_metric_event(event: dict[str, Any]) -> None:
 
 def _handle_options_logging_event(project_id: int, replay_id: str, event: dict[str, Any]) -> None:
     # log the SDK options sent from the SDK 1/500 times
-    if random.randint(0, 499) < 1:
-        log = event["data"].get("payload", {}).copy()
-        log["project_id"] = project_id
-        log["replay_id"] = replay_id
-        logger.info("SDK Options:", extra=log)
+    log = event["data"].get("payload", {}).copy()
+    log["project_id"] = project_id
+    log["replay_id"] = replay_id
+    # Log to "slow_click" because its the only bigtable sink
+    logger.info("sentry.replays.slow_click", extra=log)
 
 
 def _handle_mutations_event(project_id: int, replay_id: str, event: dict[str, Any]) -> None:
@@ -388,7 +396,9 @@ def _handle_breadcrumb(
             is_rage = (
                 payload["data"].get("clickCount", 0) or payload["data"].get("clickcount", 0)
             ) >= 5
-            click = create_click_event(payload, replay_id, is_dead=True, is_rage=is_rage)
+            click = create_click_event(
+                payload, replay_id, is_dead=True, is_rage=is_rage, project_id=project_id
+            )
             if click is not None:
                 if is_rage:
                     metrics.incr("replay.rage_click_detected")
@@ -401,11 +411,8 @@ def _handle_breadcrumb(
                                 payload["message"],
                                 payload["data"]["url"],
                                 payload["data"]["node"],
+                                payload["data"]["node"]["attributes"].get("data-sentry-component"),
                                 replay_event,
-                            )
-                        else:
-                            report_rage_click_issue.delay(
-                                project_id, replay_id, cast(SentryEvent, event)
                             )
         # Log the event for tracking.
         log = event["data"].get("payload", {}).copy()
@@ -425,7 +432,9 @@ def _handle_breadcrumb(
         log["dom_tree"] = log.pop("message")
         logger.info("sentry.replays.slow_click", extra=log)
     elif category == "ui.click":
-        click = create_click_event(payload, replay_id, is_dead=False, is_rage=False)
+        click = create_click_event(
+            payload, replay_id, is_dead=False, is_rage=False, project_id=project_id
+        )
         if click is not None:
             return click
     return None

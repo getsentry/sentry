@@ -25,7 +25,7 @@ import {
   getWidgetAsQueryParams,
   getWidgetQuery,
 } from 'sentry/utils/metrics/dashboard';
-import {hasDDMFeature} from 'sentry/utils/metrics/features';
+import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import {
   type MetricDisplayType,
   MetricQueryType,
@@ -166,7 +166,7 @@ export function MetricQueryContextMenu({
     ]
   );
 
-  if (!hasDDMFeature(organization)) {
+  if (!hasCustomMetrics(organization)) {
     return null;
   }
 

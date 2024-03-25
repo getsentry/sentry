@@ -11,7 +11,7 @@ export type MetricTag = {
 };
 
 export type SortState = {
-  name: 'name' | 'avg' | 'min' | 'max' | 'sum' | undefined;
+  name: 'name' | 'avg' | 'min' | 'max' | 'sum' | 'total' | undefined;
   order: 'asc' | 'desc';
 };
 
@@ -35,6 +35,7 @@ export enum MetricQueryType {
 export interface BaseWidgetParams {
   displayType: MetricDisplayType;
   id: number;
+  isHidden: boolean;
   type: MetricQueryType;
   focusedSeries?: FocusedMetricsSeries[];
   sort?: SortState;

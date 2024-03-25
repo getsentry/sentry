@@ -1,4 +1,4 @@
-from hashlib import sha1
+from hashlib import sha256
 from unittest import mock
 from unittest.mock import patch
 
@@ -51,10 +51,10 @@ class ProcessControlOutboxTest(TestCase):
         outbox.save()
         outbox.refresh_from_db()
 
-        prefix_hash = sha1(
+        prefix_hash = sha256(
             f"{outbox.shard_identifier}{outbox.object_identifier}".encode()
         ).hexdigest()
-        hash = sha1(
+        hash = sha256(
             f"{prefix_hash}{_TEST_REGION.name}POST/extensions/github/webhook/".encode()
         ).hexdigest()
         cache_key = f"region_silo_client:request_attempts:{hash}"

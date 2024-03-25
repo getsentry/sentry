@@ -137,6 +137,7 @@ interface EndpointParams extends Partial<PageFilters['datetime']> {
   query?: string;
   sort?: string;
   statsPeriod?: string | null;
+  useGroupSnubaDataset?: boolean;
 }
 
 type CountsEndpointParams = Omit<EndpointParams, 'cursor' | 'page' | 'query'> & {
@@ -432,6 +433,10 @@ class IssueListOverview extends Component<Props, State> {
       params.groupStatsPeriod = groupStatsPeriod;
     }
 
+    if (this.props.location.query.useGroupSnubaDataset) {
+      params.useGroupSnubaDataset = true;
+    }
+
     // only include defined values.
     return pickBy(params, v => defined(v)) as EndpointParams;
   };
@@ -497,9 +502,9 @@ class IssueListOverview extends Component<Props, State> {
 
         // End navigation transaction to prevent additional page requests from impacting page metrics.
         // Other transactions include stacktrace preview request
-        const currentTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
+        const currentTransaction = Sentry.getActiveTransaction();
         if (currentTransaction?.op === 'navigation') {
-          currentTransaction.finish();
+          currentTransaction.end();
         }
       },
     });
@@ -1283,6 +1288,7 @@ class IssueListOverview extends Component<Props, State> {
                     loading={issuesLoading}
                     error={error}
                     refetchGroups={this.fetchData}
+                    onActionTaken={this.onActionTaken}
                   />
                 </VisuallyCompleteWithData>
               </PanelBody>

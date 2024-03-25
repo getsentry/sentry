@@ -1,9 +1,10 @@
-from datetime import UTC, datetime, timezone
+from datetime import UTC, datetime
 
 import requests
 
 from sentry.constants import ObjectStatus
-from sentry.incidents.models import AlertRuleThresholdType, IncidentTrigger, TriggerStatus
+from sentry.incidents.models.alert_rule import AlertRuleThresholdType
+from sentry.incidents.models.incident import IncidentTrigger, TriggerStatus
 from sentry.models.rule import Rule, RuleSource
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.snuba.dataset import Dataset
@@ -301,12 +302,12 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         self.one_alert_rule = self.create_alert_rule(
             organization=self.org,
             projects=[self.project, self.project2],
-            date_added=date_added.replace(tzinfo=timezone.utc),
+            date_added=date_added,
         )
         self.two_alert_rule = self.create_alert_rule(
             organization=self.org,
             projects=[self.project2],
-            date_added=date_added.replace(tzinfo=timezone.utc),
+            date_added=date_added,
         )
         self.three_alert_rule = self.create_alert_rule(
             organization=self.org, projects=[self.project]
@@ -350,12 +351,12 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         self.one_alert_rule = self.create_alert_rule(
             organization=self.org,
             projects=[self.project, self.project2],
-            date_added=date_added.replace(tzinfo=timezone.utc),
+            date_added=date_added,
         )
         self.two_alert_rule = self.create_alert_rule(
             organization=self.org,
             projects=[self.project],
-            date_added=date_added.replace(tzinfo=timezone.utc),
+            date_added=date_added,
         )
         self.three_alert_rule = self.create_alert_rule(
             organization=self.org, projects=[self.project2]

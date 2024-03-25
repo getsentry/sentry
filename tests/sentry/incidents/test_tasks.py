@@ -5,7 +5,7 @@ from unittest.mock import Mock, call, patch
 
 import pytest
 from django.urls import reverse
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
@@ -14,21 +14,21 @@ from sentry.incidents.logic import (
     create_incident_activity,
     subscribe_to_incident,
 )
-from sentry.incidents.models import (
+from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+from sentry.incidents.models.incident import (
     INCIDENT_STATUS,
-    AlertRuleTriggerAction,
     IncidentActivityType,
     IncidentStatus,
     IncidentSubscription,
 )
 from sentry.incidents.tasks import (
-    SUBSCRIPTION_METRICS_LOGGER,
     build_activity_context,
     generate_incident_activity_email,
     handle_subscription_metrics_logger,
     handle_trigger_action,
     send_subscriber_notifications,
 )
+from sentry.incidents.utils.constants import SUBSCRIPTION_METRICS_LOGGER
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -252,7 +252,7 @@ class TestHandleSubscriptionMetricsLogger(TestCase):
         return create_snuba_subscription(self.project, SUBSCRIPTION_METRICS_LOGGER, snuba_query)
 
     def build_subscription_update(self):
-        timestamp = django_timezone.now().replace(microsecond=0)
+        timestamp = timezone.now().replace(microsecond=0)
         data = {
             "count": 100,
             "crashed": 2.0,
@@ -293,7 +293,7 @@ class TestHandleSubscriptionMetricsLoggerV1(TestHandleSubscriptionMetricsLogger)
     """
 
     def build_subscription_update(self):
-        timestamp = django_timezone.now().replace(microsecond=0)
+        timestamp = timezone.now().replace(microsecond=0)
         values = {
             "data": [
                 {

@@ -1,4 +1,3 @@
-import selectEvent from 'react-select-event';
 import {EnvironmentsFixture} from 'sentry-fixture/environments';
 import {GroupsFixture} from 'sentry-fixture/groups';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
@@ -9,6 +8,7 @@ import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixt
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
@@ -29,11 +29,11 @@ jest.mock('sentry/actionCreators/members', () => ({
 jest.mock('react-router');
 jest.mock('sentry/utils/analytics', () => ({
   metric: {
-    startTransaction: jest.fn(() => ({
+    startSpan: jest.fn(() => ({
       setTag: jest.fn(),
       setData: jest.fn(),
     })),
-    endTransaction: jest.fn(),
+    endSpan: jest.fn(),
     mark: jest.fn(),
     measure: jest.fn(),
   },
@@ -337,7 +337,7 @@ describe('ProjectAlertsCreate', function () {
             },
           })
         );
-        expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
+        expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
 
         await waitFor(() => {
           expect(wrapper.router.push).toHaveBeenCalledWith({
@@ -392,7 +392,7 @@ describe('ProjectAlertsCreate', function () {
             },
           })
         );
-        expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
+        expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
 
         await waitFor(() => {
           expect(wrapper.router.push).toHaveBeenCalledWith({
@@ -441,7 +441,7 @@ describe('ProjectAlertsCreate', function () {
             },
           })
         );
-        expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
+        expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
 
         await waitFor(() => {
           expect(wrapper.router.push).toHaveBeenCalledWith({
@@ -487,7 +487,7 @@ describe('ProjectAlertsCreate', function () {
             },
           })
         );
-        expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
+        expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
 
         await waitFor(() => {
           expect(wrapper.router.push).toHaveBeenCalledWith({

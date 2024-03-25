@@ -6,6 +6,7 @@ import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import {QueryClientProvider} from 'sentry/utils/queryClient';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -50,6 +51,28 @@ describe('useSpanMetrics', () => {
 
   jest.mocked(useOrganization).mockReturnValue(organization);
 
+  it('respects the `enabled` prop', () => {
+    const eventsRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {data: []},
+    });
+
+    const {result} = reactHooks.renderHook(
+      ({fields, enabled}) => useSpanMetrics({fields, enabled}),
+      {
+        wrapper: Wrapper,
+        initialProps: {
+          fields: ['spm()'] as MetricsProperty[],
+          enabled: false,
+        },
+      }
+    );
+
+    expect(result.current.isFetching).toEqual(false);
+    expect(eventsRequest).not.toHaveBeenCalled();
+  });
+
   it('queries for current selection', async () => {
     const eventsRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
@@ -67,7 +90,14 @@ describe('useSpanMetrics', () => {
 
     const {result, waitFor} = reactHooks.renderHook(
       ({filters, fields, sorts, limit, cursor, referrer}) =>
-        useSpanMetrics({filters, fields, sorts, limit, cursor, referrer}),
+        useSpanMetrics({
+          search: MutableSearch.fromQueryObject(filters),
+          fields,
+          sorts,
+          limit,
+          cursor,
+          referrer,
+        }),
       {
         wrapper: Wrapper,
         initialProps: {
@@ -75,6 +105,7 @@ describe('useSpanMetrics', () => {
             'span.group': '221aa7ebd216',
             transaction: '/api/details',
             release: '0.0.1',
+            environment: undefined,
           },
           fields: ['spm()'] as MetricsProperty[],
           sorts: [{field: 'spm()', kind: 'desc' as const}],

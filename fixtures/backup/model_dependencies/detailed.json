@@ -402,6 +402,29 @@
       ]
     ]
   },
+  "sentry.alertruleactivations": {
+    "dangling": false,
+    "foreign_keys": {
+      "alert_rule": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.alertrule",
+        "nullable": false
+      },
+      "query_subscription": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.querysubscription",
+        "nullable": true
+      }
+    },
+    "model": "sentry.alertruleactivations",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "sentry_alertruleactivations",
+    "uniques": []
+  },
   "sentry.alertruleactivity": {
     "dangling": false,
     "foreign_keys": {
@@ -689,6 +712,12 @@
     "table_name": "sentry_apitoken",
     "uniques": [
       [
+        "hashed_refresh_token"
+      ],
+      [
+        "hashed_token"
+      ],
+      [
         "refresh_token"
       ],
       [
@@ -736,30 +765,6 @@
     ],
     "table_name": "sentry_artifactbundle",
     "uniques": []
-  },
-  "sentry.artifactbundleflatfileindex": {
-    "dangling": false,
-    "foreign_keys": {
-      "project_id": {
-        "kind": "ImplicitForeignKey",
-        "model": "sentry.project",
-        "nullable": false
-      }
-    },
-    "model": "sentry.artifactbundleflatfileindex",
-    "relocation_dependencies": [],
-    "relocation_scope": "Excluded",
-    "silos": [
-      "Region"
-    ],
-    "table_name": "sentry_artifactbundleflatfileindex",
-    "uniques": [
-      [
-        "dist_name",
-        "project_id",
-        "release_name"
-      ]
-    ]
   },
   "sentry.artifactbundleindex": {
     "dangling": false,
@@ -2119,34 +2124,6 @@
       ]
     ]
   },
-  "sentry.flatfileindexstate": {
-    "dangling": false,
-    "foreign_keys": {
-      "artifact_bundle": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.artifactbundle",
-        "nullable": false
-      },
-      "flat_file_index": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.artifactbundleflatfileindex",
-        "nullable": false
-      }
-    },
-    "model": "sentry.flatfileindexstate",
-    "relocation_dependencies": [],
-    "relocation_scope": "Excluded",
-    "silos": [
-      "Region"
-    ],
-    "table_name": "sentry_flatfileindexstate",
-    "uniques": [
-      [
-        "artifact_bundle",
-        "flat_file_index"
-      ]
-    ]
-  },
   "sentry.group": {
     "dangling": false,
     "foreign_keys": {
@@ -3289,6 +3266,24 @@
       ]
     ]
   },
+  "sentry.monitorenvbrokendetection": {
+    "dangling": false,
+    "foreign_keys": {
+      "monitor_incident": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.monitorincident",
+        "nullable": false
+      }
+    },
+    "model": "sentry.monitorenvbrokendetection",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "sentry_monitorenvbrokendetection",
+    "uniques": []
+  },
   "sentry.monitorenvironment": {
     "dangling": false,
     "foreign_keys": {
@@ -3348,7 +3343,11 @@
       "Region"
     ],
     "table_name": "sentry_monitorincident",
-    "uniques": []
+    "uniques": [
+      [
+        "monitor_environment_id"
+      ]
+    ]
   },
   "sentry.monitorlocation": {
     "dangling": false,

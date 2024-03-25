@@ -1,8 +1,6 @@
-from datetime import timezone
-
-from sentry.incidents.models import (
+from sentry.incidents.models.alert_rule import AlertRuleThresholdType
+from sentry.incidents.models.incident import (
     INCIDENT_STATUS,
-    AlertRuleThresholdType,
     IncidentActivity,
     IncidentActivityType,
     IncidentStatus,
@@ -53,11 +51,9 @@ class TeamAlertsTriggeredTotalsEndpointTest(APITestCase):
         for i in range(1, 9):
             assert (
                 response.data[
-                    str(
-                        before_now(days=i)
-                        .replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
-                        .isoformat()
-                    )
+                    before_now(days=i)
+                    .replace(hour=0, minute=0, second=0, microsecond=0)
+                    .isoformat()
                 ]
                 == 1
             )
@@ -65,11 +61,9 @@ class TeamAlertsTriggeredTotalsEndpointTest(APITestCase):
         for i in range(10, 90):
             assert (
                 response.data[
-                    str(
-                        before_now(days=i)
-                        .replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
-                        .isoformat()
-                    )
+                    before_now(days=i)
+                    .replace(hour=0, minute=0, second=0, microsecond=0)
+                    .isoformat()
                 ]
                 == 0
             )
@@ -80,22 +74,16 @@ class TeamAlertsTriggeredTotalsEndpointTest(APITestCase):
         assert len(response.data) == 7
         assert (
             response.data[
-                str(
-                    before_now(days=0)
-                    .replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
-                    .isoformat()
-                )
+                before_now(days=0).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
             ]
             == 0
         )
         for i in range(1, 6):
             assert (
                 response.data[
-                    str(
-                        before_now(days=i)
-                        .replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
-                        .isoformat()
-                    )
+                    before_now(days=i)
+                    .replace(hour=0, minute=0, second=0, microsecond=0)
+                    .isoformat()
                 ]
                 == 1
             )
@@ -161,11 +149,7 @@ class TeamAlertsTriggeredTotalsEndpointTest(APITestCase):
         assert len(response.data) == 90
         assert (
             response.data[
-                str(
-                    before_now(days=2)
-                    .replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
-                    .isoformat()
-                )
+                before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
             ]
             == 1
         )
@@ -174,11 +158,9 @@ class TeamAlertsTriggeredTotalsEndpointTest(APITestCase):
             if i != 2:
                 assert (
                     response.data[
-                        str(
-                            before_now(days=i)
-                            .replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
-                            .isoformat()
-                        )
+                        before_now(days=i)
+                        .replace(hour=0, minute=0, second=0, microsecond=0)
+                        .isoformat()
                     ]
                     == 0
                 )

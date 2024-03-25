@@ -9,6 +9,7 @@ import {
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
+import type {Field} from 'sentry/components/ddm/metricSamplesTable';
 import {useInstantRef, useUpdateQuery} from 'sentry/utils/metrics';
 import {
   emptyMetricsFormulaWidget,
@@ -16,6 +17,7 @@ import {
   NO_QUERY_ID,
 } from 'sentry/utils/metrics/constants';
 import {MetricQueryType, type MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
+import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples';
 import {decodeInteger, decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -45,14 +47,19 @@ interface DDMContextValue {
   setDefaultQuery: (query: Record<string, any> | null) => void;
   setHighlightedSampleId: (sample?: string) => void;
   setIsMultiChartMode: (value: boolean) => void;
+  setMetricsSamples: React.Dispatch<
+    React.SetStateAction<MetricsSamplesResults<Field>['data'] | undefined>
+  >;
   setSelectedWidgetIndex: (index: number) => void;
   showQuerySymbols: boolean;
+  toggleWidgetVisibility: (index: number) => void;
   updateWidget: (
     index: number,
     data: Partial<Omit<MetricWidgetQueryParams, 'type'>>
   ) => void;
   widgets: MetricWidgetQueryParams[];
   highlightedSampleId?: string;
+  metricsSamples?: MetricsSamplesResults<Field>['data'];
 }
 
 export const DDMContext = createContext<DDMContextValue>({
@@ -63,15 +70,18 @@ export const DDMContext = createContext<DDMContextValue>({
   highlightedSampleId: undefined,
   isDefaultQuery: false,
   isMultiChartMode: false,
+  metricsSamples: [],
   removeWidget: () => {},
   selectedWidgetIndex: 0,
   setDefaultQuery: () => {},
   setHighlightedSampleId: () => {},
   setIsMultiChartMode: () => {},
+  setMetricsSamples: () => {},
   setSelectedWidgetIndex: () => {},
   showQuerySymbols: false,
   updateWidget: () => {},
   widgets: [],
+  toggleWidgetVisibility: () => {},
 });
 
 export function useDDMContext() {
@@ -119,46 +129,6 @@ export function useMetricWidgets() {
     [setWidgets]
   );
 
-  const addWidget = useCallback(
-    (type: MetricQueryType = MetricQueryType.QUERY) => {
-      setWidgets(currentWidgets => {
-        const lastWidget =
-          currentWidgets.length > 0
-            ? currentWidgets[currentWidgets.length - 1]
-            : undefined;
-
-        let newWidget =
-          type === MetricQueryType.QUERY
-            ? emptyMetricsQueryWidget
-            : emptyMetricsFormulaWidget;
-
-        // if the last widget is of the same type, we duplicate it
-        if (lastWidget && lastWidget.type === newWidget.type) {
-          newWidget = {
-            ...newWidget,
-            ...lastWidget,
-          };
-        }
-
-        newWidget.id = NO_QUERY_ID;
-
-        return [...currentWidgets, newWidget];
-      });
-    },
-    [setWidgets]
-  );
-
-  const removeWidget = useCallback(
-    (index: number) => {
-      setWidgets(currentWidgets => {
-        const newWidgets = [...currentWidgets];
-        newWidgets.splice(index, 1);
-        return newWidgets;
-      });
-    },
-    [setWidgets]
-  );
-
   const duplicateWidget = useCallback(
     (index: number) => {
       setWidgets(currentWidgets => {
@@ -172,12 +142,48 @@ export function useMetricWidgets() {
     [setWidgets]
   );
 
+  const addWidget = useCallback(
+    (type: MetricQueryType = MetricQueryType.QUERY) => {
+      const lastIndexOfSameType = currentWidgetsRef.current.findLastIndex(
+        w => w.type === type
+      );
+      if (lastIndexOfSameType > -1) {
+        duplicateWidget(lastIndexOfSameType);
+      } else {
+        setWidgets(currentWidgets => [
+          ...currentWidgets,
+          type === MetricQueryType.QUERY
+            ? emptyMetricsQueryWidget
+            : emptyMetricsFormulaWidget,
+        ]);
+      }
+    },
+    [currentWidgetsRef, duplicateWidget, setWidgets]
+  );
+
+  const removeWidget = useCallback(
+    (index: number) => {
+      setWidgets(currentWidgets => {
+        let newWidgets = [...currentWidgets];
+        newWidgets.splice(index, 1);
+
+        // Ensure that a visible widget remains
+        if (!newWidgets.find(w => !w.isHidden)) {
+          newWidgets = newWidgets.map(w => ({...w, isHidden: false}));
+        }
+        return newWidgets;
+      });
+    },
+    [setWidgets]
+  );
+
   return {
     widgets,
     updateWidget,
     addWidget,
     removeWidget,
     duplicateWidget,
+    setWidgets,
   };
 }
 
@@ -232,6 +238,10 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
   const [selectedWidgetIndex, setSelectedWidgetIndex] = useState(0);
   const {widgets, updateWidget, addWidget, removeWidget, duplicateWidget} =
     useMetricWidgets();
+
+  const [metricsSamples, setMetricsSamples] = useState<
+    MetricsSamplesResults<Field>['data'] | undefined
+  >();
 
   const [highlightedSampleId, setHighlightedSampleId] = useState<string | undefined>();
 
@@ -322,16 +332,32 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
     (value: boolean) => {
       updateQuery({multiChartMode: value ? 1 : 0}, {replace: true});
       updateWidget(0, {focusedSeries: undefined});
-      setSelectedWidgetIndex(0);
+      const firstVisibleWidgetIndex = widgets.findIndex(w => !w.isHidden);
+      setSelectedWidgetIndex(firstVisibleWidgetIndex);
     },
-    [updateQuery, updateWidget]
+    [updateQuery, updateWidget, widgets]
   );
+
+  const toggleWidgetVisibility = useCallback(
+    (index: number) => {
+      if (index === selectedWidgetIndex) {
+        const firstVisibleWidgetIndex = widgets.findIndex(w => !w.isHidden);
+        setSelectedWidgetIndex(firstVisibleWidgetIndex);
+      }
+      updateWidget(index, {isHidden: !widgets[index].isHidden});
+    },
+    [selectedWidgetIndex, updateWidget, widgets]
+  );
+
+  const selectedWidget = widgets[selectedWidgetIndex];
+  const isSelectionValid = selectedWidget && !selectedWidget.isHidden;
 
   const contextValue = useMemo<DDMContextValue>(
     () => ({
       addWidget: handleAddWidget,
-      selectedWidgetIndex:
-        selectedWidgetIndex > widgets.length - 1 ? 0 : selectedWidgetIndex,
+      selectedWidgetIndex: isSelectionValid
+        ? selectedWidgetIndex
+        : widgets.findIndex(w => !w.isHidden),
       setSelectedWidgetIndex: handleSetSelectedWidgetIndex,
       updateWidget: handleUpdateWidget,
       removeWidget,
@@ -346,9 +372,13 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
       setHighlightedSampleId,
       isMultiChartMode: isMultiChartMode,
       setIsMultiChartMode: handleSetIsMultiChartMode,
+      metricsSamples,
+      setMetricsSamples,
+      toggleWidgetVisibility,
     }),
     [
       handleAddWidget,
+      isSelectionValid,
       selectedWidgetIndex,
       widgets,
       handleSetSelectedWidgetIndex,
@@ -362,6 +392,8 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
       highlightedSampleId,
       isMultiChartMode,
       handleSetIsMultiChartMode,
+      metricsSamples,
+      toggleWidgetVisibility,
     ]
   );
 
