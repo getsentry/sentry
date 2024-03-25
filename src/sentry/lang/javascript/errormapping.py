@@ -22,7 +22,7 @@ SOFT_TIMEOUT_FUZZINESS = 10
 HARD_TIMEOUT = 7200
 
 REACT_MAPPING_URL = (
-    "https://raw.githubusercontent.com/facebook/" "react/master/scripts/error-codes/codes.json"
+    "https://raw.githubusercontent.com/facebook/react/master/scripts/error-codes/codes.json"
 )
 
 error_processors: dict[str, Processor] = {}

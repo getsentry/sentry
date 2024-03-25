@@ -14,6 +14,15 @@ from sentry.sentry_metrics.querying.types import GroupKey, ResultValue, Series, 
 
 @dataclass
 class GroupValue:
+    """
+    Represents a single group of a query.
+
+    Attributes:
+        series: The timeseries data associated with the group. Each entry in the timeseries is characterized by the time
+            and the aggregate value.
+        totals: The totals data associated with the group. Totals represent just a single scalar value.
+    """
+
     series: Series
     totals: Totals
 
@@ -27,10 +36,16 @@ class GroupValue:
     def add_totals(self, aggregate_value: ResultValue):
         self.totals = self._transform_aggregate_value(aggregate_value)
 
-    def _transform_aggregate_value(self, aggregate_value: ResultValue):
-        # For now, we don't support the array return type, since the set of operations that the API can support
-        # won't lead to multiple values in a single aggregate value. For this reason, we extract the first value
-        # in case we get back an array of values, which can happen for multiple quantiles.
+    def _transform_aggregate_value(self, aggregate_value: ResultValue) -> ResultValue:
+        """
+        Transforms a list aggregate value into a scalar aggregate value.
+
+        The reason for this transformation is that we don't support the array return type, since the set of
+        operations that the API can support won't lead to multiple values in a single aggregate value.
+
+        Returns:
+             The transformed aggregate value.
+        """
         if isinstance(aggregate_value, list):
             if aggregate_value:
                 return aggregate_value[0]
@@ -42,6 +57,13 @@ class GroupValue:
 
 @dataclass
 class QueryMeta:
+    """
+    Represents the metadata of the query.
+
+    Attributes:
+        meta: The arbitrary metadata that can be added to a query.
+    """
+
     meta: dict[str, Any]
 
     def __init__(self, **kwargs):
@@ -49,6 +71,12 @@ class QueryMeta:
         self._transform_meta()
 
     def _transform_meta(self):
+        """
+        Transforms the medata of the query after initialization.
+
+        This transformation is required since specific keys of metadata need to be modified before returning them to
+        the user.
+        """
         # Since we don't support the array aggregate value, and we return the first element, we just return the type of
         # the values of the array.
         if type := self.meta.get("type"):
@@ -58,7 +86,10 @@ class QueryMeta:
 
 def _build_intervals(start: datetime, end: datetime, interval: int) -> Sequence[datetime]:
     """
-    Builds a list of all the intervals that are queried by the metrics layer.
+    Builds a list of datetime objects given two time bounds and the size of the interval between each element.
+
+    Returns:
+        A list of datetime objects representing all the intervals of the query.
     """
     start_seconds = start.timestamp()
     end_seconds = end.timestamp()
@@ -80,7 +111,13 @@ def _generate_full_series(
     null_value: ResultValue = None,
 ) -> Sequence[ResultValue]:
     """
-    Computes a full series over the entire requested interval with None set where there are no data points.
+    Generates a full timeseries of values given the size of the timeseries.
+
+    Each value of the timeseries is initialized with a default value and eventually replaced with the actual value of
+    the supplied timeseries if available.
+
+    Returns:
+        A full timeseries containing all the intervals that are expected.
     """
     full_series = [null_value] * num_intervals
     for time, value in series:
@@ -92,6 +129,10 @@ def _generate_full_series(
 
 
 class MetricsAPIQueryTransformer(QueryTransformer[Mapping[str, Any]]):
+    """
+    Represents a transformer that converts the query results into a format which is known by the Metrics API.
+    """
+
     def __init__(self):
         self._start: datetime | None = None
         self._end: datetime | None = None
@@ -106,6 +147,9 @@ class MetricsAPIQueryTransformer(QueryTransformer[Mapping[str, Any]]):
     ) -> tuple[list[OrderedDict[GroupKey, GroupValue]], list[list[QueryMeta]]]:
         """
         Builds a tuple of intermediate groups and metadata which is used to efficiently transform the query results.
+
+        Returns:
+            A tuple of intermediate groups and metadata.
         """
         queries_groups: list[OrderedDict[GroupKey, GroupValue]] = []
         queries_meta: list[list[QueryMeta]] = []
@@ -188,7 +232,10 @@ class MetricsAPIQueryTransformer(QueryTransformer[Mapping[str, Any]]):
 
     def transform(self, query_results: list[QueryResult]) -> Mapping[str, Any]:
         """
-        Transforms the query results into the Sentry's API format.
+        Transforms the query results into the Metrics API format.
+
+        Returns:
+            A mapping containing the data transformed in the correct format.
         """
         # If we have not run any queries, we won't return anything back.
         if not query_results:

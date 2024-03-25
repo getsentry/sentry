@@ -1440,7 +1440,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         query: str | None = None,
         selected_columns: list[str] | None = None,
         limit: int | None = 10000,
-        groupby: Column | None = None,
+        groupby: Column | list[Column] | None = None,
         config: QueryBuilderConfig | None = None,
     ):
         self.interval = interval
@@ -1462,7 +1462,10 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
 
         # If additional groupby is provided it will be used first before time
         if groupby is not None:
-            self.groupby.insert(0, groupby)
+            if isinstance(groupby, list):
+                self.groupby = groupby + self.groupby
+            else:
+                self.groupby.insert(0, groupby)
 
     def resolve_granularity(self) -> Granularity:
         """Find the largest granularity that is smaller than the interval"""
