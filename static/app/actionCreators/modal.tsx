@@ -117,7 +117,7 @@ type CreateOwnershipRuleModalOptions = {
 };
 
 export type EditOwnershipRulesModalOptions = {
-  onSave: (text: string | null) => void;
+  onSave: (ownership: IssueOwnership) => void;
   organization: Organization;
   ownership: IssueOwnership;
   project: Project;
