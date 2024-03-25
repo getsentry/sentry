@@ -5,6 +5,7 @@ import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types'
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import type {Organization} from 'sentry/types';
 import type {Event, EventTransaction, Measurement} from 'sentry/types/event';
+import {MobileVital, WebVital} from 'sentry/utils/fields';
 import type {
   TraceError as TraceErrorType,
   TraceFullDetailed,
@@ -252,7 +253,20 @@ function shouldCollapseNodeByDefault(node: TraceTreeNode<TraceTree.NodeValue>) {
 }
 
 // cls is not included as it is a cumulative layout shift and not a single point in time
-const RENDERABLE_MEASUREMENTS = ['fcp', 'fp', 'lcp', 'ttfb'];
+const RENDERABLE_MEASUREMENTS = [
+  WebVital.TTFB,
+  WebVital.FP,
+  WebVital.FCP,
+  WebVital.LCP,
+  MobileVital.TIME_TO_FULL_DISPLAY,
+  MobileVital.TIME_TO_INITIAL_DISPLAY,
+].map(n => n.replace('measurements.', ''));
+
+const MEASUREMENT_ACRONYM_MAPPING = {
+  [MobileVital.TIME_TO_FULL_DISPLAY.replace('measurements.', '')]: 'TTFD',
+  [MobileVital.TIME_TO_INITIAL_DISPLAY.replace('measurements.', '')]: 'TTID',
+};
+
 export class TraceTree {
   type: 'loading' | 'empty' | 'error' | 'trace' = 'trace';
   root: TraceTreeNode<null> = TraceTreeNode.Root();
@@ -802,7 +816,7 @@ export class TraceTree {
         duration: 0,
         measurement: value,
         type: measurement as TraceTree.Indicator['type'],
-        label: measurement.toUpperCase(),
+        label: (MEASUREMENT_ACRONYM_MAPPING[measurement] ?? measurement).toUpperCase(),
       });
     }
   }
