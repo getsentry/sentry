@@ -5,11 +5,12 @@ from uuid import uuid4
 import pytest
 
 from sentry.models.eventattachment import EventAttachment
+from sentry.silo.base import SiloMode
 from sentry.tasks.relay import invalidate_project_config
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format, timestamp_format
 from sentry.testutils.relay import RelayStoreHelper
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_kafka
 
 pytestmark = [requires_kafka]
@@ -216,6 +217,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
             }
         }
 
+    @assume_test_silo_mode(SiloMode.REGION)
     def test_project_config_compression(self):
         # Populate redis cache with compressed config:
         invalidate_project_config(public_key=self.projectkey, trigger="test")
