@@ -647,7 +647,7 @@ class GitHubClientFileBlameIntegrationDisableTest(TestCase):
             lineno=10,
             ref="master",
             repo=self.repo,
-            code_mapping=None,  # type: ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=ApiError)
@@ -803,21 +803,21 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
             lineno=10,
             ref="master",
             repo=self.repo_1,
-            code_mapping=None,  # type: ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         file2 = SourceLineInfo(
             path="src/sentry/integrations/github/client_1.py",
             lineno=15,
             ref="master",
             repo=self.repo_1,
-            code_mapping=None,  # type: ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         file3 = SourceLineInfo(
             path="src/sentry/integrations/github/client_2.py",
             lineno=20,
             ref="master",
             repo=self.repo_1,
-            code_mapping=None,  # type: ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         query = """query {
     repository0: repository(name: "foo", owner: "Test-Organization") {
@@ -886,21 +886,21 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
             lineno=10,
             ref="master",
             repo=self.repo_1,
-            code_mapping=None,  # type:ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         file2 = SourceLineInfo(
             path="src/sentry/integrations/github/client_2.py",
             lineno=15,
             ref="master",
             repo=self.repo_1,
-            code_mapping=None,  # type:ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         file3 = SourceLineInfo(
             path="src/getsentry/file.py",
             lineno=20,
             ref="master",
             repo=self.repo_2,
-            code_mapping=None,  # type:ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         query = """query {
     repository0: repository(name: "foo", owner: "Test-Organization") {
@@ -993,21 +993,21 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
             lineno=10,
             ref="master",
             repo=self.repo_1,
-            code_mapping=None,  # type:ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         file2 = SourceLineInfo(
             path="src/sentry/integrations/github/client.py",
             lineno=15,
             ref="master",
             repo=self.repo_1,
-            code_mapping=None,  # type:ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         file3 = SourceLineInfo(
             path="src/sentry/integrations/github/client.py",
             lineno=20,
             ref="staging",
             repo=self.repo_1,
-            code_mapping=None,  # type:ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         query = """query {
     repository0: repository(name: "foo", owner: "Test-Organization") {
@@ -1082,7 +1082,7 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
             lineno=10,
             ref="master",
             repo=self.repo_1,
-            code_mapping=None,  # type:ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
 
         query = """query {
@@ -1139,21 +1139,21 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
             lineno=10,
             ref="master",
             repo=self.repo_1,
-            code_mapping=None,  # type:ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         self.file2 = SourceLineInfo(
             path="src/sentry/integrations/github/client_1.py",
             lineno=20,
             ref="master",
             repo=self.repo_1,
-            code_mapping=None,  # type:ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         self.file3 = SourceLineInfo(
             path="src/sentry/integrations/github/client_2.py",
             lineno=20,
             ref="master",
             repo=self.repo_1,
-            code_mapping=None,  # type:ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
 
         self.data = {
@@ -1361,28 +1361,28 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
             lineno=10,
             ref="master",
             repo=self.repo_1,
-            code_mapping=None,  # type: ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         file2 = SourceLineInfo(
             path="src/sentry/integrations/github/client_2.py",
             lineno=15,
             ref="master",
             repo=self.repo_1,
-            code_mapping=None,  # type:ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         file3 = SourceLineInfo(
             path="src/sentry/integrations/github/client.py",
             lineno=20,
             ref="master",
             repo=self.repo_2,
-            code_mapping=None,  # type:ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         file4 = SourceLineInfo(
             path="src/sentry/integrations/github/client.py",
             lineno=25,
             ref="master",
             repo=self.repo_3,
-            code_mapping=None,  # type:ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         data = {
             "repository0": {
@@ -1449,14 +1449,14 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
             lineno=10,
             ref="master",
             repo=self.repo_1,
-            code_mapping=None,  # type: ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         file2 = SourceLineInfo(
             path="src/sentry/integrations/github/client_2.py",
             lineno=15,
             ref="master",
             repo=self.repo_1,
-            code_mapping=None,  # type:ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         data = {
             "repository0": {
@@ -1553,7 +1553,7 @@ class GitHubClientFileBlameRateLimitTest(GitHubClientFileBlameBase):
             lineno=10,
             ref="master",
             repo=self.repo_1,
-            code_mapping=None,  # type: ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         responses.reset()
         responses.add(

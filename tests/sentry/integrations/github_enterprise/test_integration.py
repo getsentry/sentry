@@ -356,7 +356,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             lineno=10,
             ref="master",
             repo=repo,
-            code_mapping=None,  # type: ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
 
         responses.add(

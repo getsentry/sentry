@@ -38,6 +38,6 @@ class TestRateLimitConfig(TestCase):
         )
 
     def test_invalid_config(self):
-        config = RateLimitConfig(group="default", limit_overrides={"GET": {"invalid": "invalid"}})  # type: ignore
+        config = RateLimitConfig(group="default", limit_overrides={"GET": {"invalid": "invalid"}})  # type: ignore[dict-item]
         ret = config.get_rate_limit("bloop", "badcategory")  # type: ignore[arg-type]
         assert ret == get_default_rate_limits_for_group("default", RateLimitCategory.ORGANIZATION)

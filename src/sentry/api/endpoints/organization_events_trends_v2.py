@@ -136,7 +136,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             # keep only projects that top events belong to to reduce query cardinality
             used_project_ids = list({event["project"] for event in data})
 
-            request.GET.projectSlugs = used_project_ids  # type: ignore
+            request.GET.projectSlugs = used_project_ids  # type: ignore[attr-defined]
 
             # Get new params with pruned projects
             pruned_params = self.get_snuba_params(request, organization)
@@ -164,7 +164,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                     "project_id": item["project_id"],
                 }
 
-            for row in result.get("data", []):  # type: ignore
+            for row in result.get("data", []):  # type: ignore[union-attr]
                 result_key = create_result_key(row, translated_groupby, {})
                 if result_key in results:
                     results[result_key]["data"].append(row)

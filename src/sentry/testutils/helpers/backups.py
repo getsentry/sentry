@@ -704,7 +704,7 @@ class BackupTestCase(TransactionTestCase):
             sorted_deps = sorted_dependencies()
             a_model = get_model(NormalizedModelName(a["model"]))
             b_model = get_model(NormalizedModelName(b["model"]))
-            model_diff = sorted_deps.index(a_model) - sorted_deps.index(b_model)  # type: ignore
+            model_diff = sorted_deps.index(a_model) - sorted_deps.index(b_model)  # type: ignore[arg-type]
             if model_diff != 0:
                 return model_diff
 

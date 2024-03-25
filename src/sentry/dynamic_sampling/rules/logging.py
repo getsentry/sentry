@@ -88,32 +88,32 @@ def _format_rules(
                     "id": rule["id"],
                     "type": rule_type.value if rule_type else "unknown_rule_type",
                     "samplingValue": {"type": value_type, "value": value},
-                    **_extract_info_from_rule(rule_type, rule),  # type:ignore
+                    **_extract_info_from_rule(rule_type, rule),  # type: ignore[arg-type]
                 }
             )
 
-    return formatted_rules  # type:ignore
+    return formatted_rules  # type: ignore[return-value]
 
 
 def _extract_info_from_rule(
     rule_type: RuleType, rule: PolymorphicRule
 ) -> dict[str, DecayingFn | list[str] | str | None]:
     if rule_type == RuleType.BOOST_ENVIRONMENTS_RULE:
-        return {"environments": rule["condition"]["inner"][0]["value"]}  # type:ignore
+        return {"environments": rule["condition"]["inner"][0]["value"]}  # type: ignore[literal-required, typeddict-item]
     elif rule_type == RuleType.BOOST_LATEST_RELEASES_RULE:
         return {
-            "release": rule["condition"]["inner"][0]["value"],  # type:ignore
-            "environment": rule["condition"]["inner"][1]["value"],  # type:ignore
-            "decayingFn": rule["decayingFn"],  # type:ignore
+            "release": rule["condition"]["inner"][0]["value"],  # type: ignore[literal-required, typeddict-item]
+            "environment": rule["condition"]["inner"][1]["value"],  # type: ignore[literal-required, typeddict-item]
+            "decayingFn": rule["decayingFn"],  # type: ignore[typeddict-item]
         }
     elif rule_type == RuleType.IGNORE_HEALTH_CHECKS_RULE:
-        return {"healthChecks": rule["condition"]["inner"][0]["value"]}  # type:ignore
+        return {"healthChecks": rule["condition"]["inner"][0]["value"]}  # type: ignore[literal-required, typeddict-item]
     elif rule_type == RuleType.BOOST_KEY_TRANSACTIONS_RULE:
-        return {"transactions": rule["condition"]["inner"][0]["value"]}  # type:ignore
+        return {"transactions": rule["condition"]["inner"][0]["value"]}  # type: ignore[literal-required, typeddict-item]
     elif rule_type == RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE:
-        inner_condition = rule["condition"]["inner"]  # type:ignore
+        inner_condition = rule["condition"]["inner"]  # type: ignore[typeddict-item]
         if isinstance(inner_condition, list) and len(inner_condition) > 0:
-            return {"transaction": rule["condition"]["inner"][0]["value"]}  # type:ignore
+            return {"transaction": rule["condition"]["inner"][0]["value"]}  # type: ignore[literal-required, typeddict-item]
         else:
             return {}
     else:

@@ -75,7 +75,7 @@ def hub():
             transport=DummyTransport,
             _experiments={
                 "enable_metrics": True,
-                "before_emit_metric": before_emit_metric,  # type:ignore
+                "before_emit_metric": before_emit_metric,  # type: ignore[typeddict-item]
             },
         )
     )
@@ -287,7 +287,7 @@ def test_unit_is_correctly_propagated_for_timing(sentry_sdk, unit, expected_unit
 
     params = {"key": "sentrytest.unit", "value": 10.0, "tags": {"x": "bar"}}
 
-    backend.timing(**params)  # type:ignore
+    backend.timing(**params)  # type: ignore[arg-type]
     assert sentry_sdk.metrics.distribution.call_args.kwargs == {
         **params,
         "unit": expected_unit,

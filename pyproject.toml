@@ -64,6 +64,7 @@ warn_unreachable = true
 warn_unused_configs = true
 warn_unused_ignores = true
 warn_redundant_casts = true
+enable_error_code = ["ignore-without-code"]
 
 [tool.django-stubs]
 django_settings_module = "sentry.conf.server_mypy"

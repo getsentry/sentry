@@ -323,7 +323,7 @@ class EventComparisonTest(MetricsEnhancedPerformanceTestCase):
     def test_get(self):
         response = self.client.get(self.url, {"averageColumn": "span.self_time"})
         assert response.status_code == 200, response.content
-        entries = response.data["entries"]  # type: ignore
+        entries = response.data["entries"]  # type: ignore[attr-defined]
         for entry in entries:
             if entry["type"] == "spans":
                 for span in entry["data"]:

@@ -100,7 +100,7 @@ class RpcModel(pydantic.BaseModel):
         return cls(**fields)
 
 
-class RpcModelProtocolMeta(type(RpcModel), type(Protocol)):  # type: ignore
+class RpcModelProtocolMeta(type(RpcModel), type(Protocol)):  # type: ignore[misc]
     """A unifying metaclass for RpcModel classes that also implement a Protocol."""
 
 

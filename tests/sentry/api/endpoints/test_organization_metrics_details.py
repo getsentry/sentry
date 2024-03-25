@@ -88,7 +88,7 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
             self.store_metric(
                 project.organization.id,
                 project.id,
-                entity,  # type:ignore
+                entity,  # type: ignore[arg-type]
                 mri,
                 {"transaction": "/hello"},
                 int(self.now.timestamp()),

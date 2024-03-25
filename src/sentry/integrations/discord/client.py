@@ -69,7 +69,7 @@ class DiscordClient(ApiClient):
 
     def get_guild_name(self, guild_id: str) -> str:
         response = self.get(GUILD_URL.format(guild_id=guild_id), headers=self.prepare_auth_header())
-        return response["name"]  # type: ignore
+        return response["name"]  # type: ignore[index]
 
     def get_access_token(self, code: str, url: str):
         data = {
@@ -84,7 +84,7 @@ class DiscordClient(ApiClient):
             "Content-Type": "application/x-www-form-urlencoded",
         }
         response = self.post(TOKEN_URL, json=False, data=urlencode(data), headers=headers)
-        access_token = response["access_token"]  # type: ignore
+        access_token = response["access_token"]  # type: ignore[index]
         return access_token
 
     def get_user_id(self, access_token: str):
@@ -93,7 +93,7 @@ class DiscordClient(ApiClient):
             USER_URL,
             headers=headers,
         )
-        user_id = response["id"]  # type: ignore
+        user_id = response["id"]  # type: ignore[index]
         return user_id
 
     def leave_guild(self, guild_id: str) -> None:
@@ -135,7 +135,7 @@ class DiscordClient(ApiClient):
 
         if error:
             try:
-                discord_error_response: dict = json.loads(resp.content.decode("utf-8")) or {}  # type: ignore
+                discord_error_response: dict = json.loads(resp.content.decode("utf-8")) or {}  # type: ignore[union-attr]
                 discord_error_code = str(discord_error_response.get("code", ""))
                 if discord_error_code in DISCORD_ERROR_CODES:
                     code_message = DISCORD_ERROR_CODES[discord_error_code]

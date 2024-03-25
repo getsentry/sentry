@@ -212,11 +212,11 @@ def simulate_on_commit(request: Any):
             return
 
         old_validate = connection.validate_no_atomic_block
-        connection.validate_no_atomic_block = lambda: None  # type: ignore
+        connection.validate_no_atomic_block = lambda: None  # type: ignore[method-assign]
         try:
             connection.run_and_clear_commit_hooks()
         finally:
-            connection.validate_no_atomic_block = old_validate  # type: ignore
+            connection.validate_no_atomic_block = old_validate  # type: ignore[method-assign]
 
     def new_atomic_exit(self, exc_type, *args, **kwds):
         _old_atomic_exit(self, exc_type, *args, **kwds)
@@ -244,13 +244,13 @@ def simulate_on_commit(request: Any):
 
     functools.update_wrapper(new_atomic_exit, _old_atomic_exit)
     functools.update_wrapper(new_atomic_on_commit, _old_transaction_on_commit)
-    transaction.Atomic.__exit__ = new_atomic_exit  # type: ignore
+    transaction.Atomic.__exit__ = new_atomic_exit  # type: ignore[method-assign]
     transaction.on_commit = new_atomic_on_commit  # type: ignore[assignment]
     setattr(BaseDatabaseWrapper, "maybe_flush_commit_hooks", maybe_flush_commit_hooks)
     try:
         yield
     finally:
-        transaction.Atomic.__exit__ = _old_atomic_exit  # type: ignore
+        transaction.Atomic.__exit__ = _old_atomic_exit  # type: ignore[method-assign]
         transaction.on_commit = _old_transaction_on_commit
         delattr(BaseDatabaseWrapper, "maybe_flush_commit_hooks")
 

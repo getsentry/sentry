@@ -342,8 +342,8 @@ class ReleaseLookupData:
             "found", "wrong-dist", "unsuccessful"
         ] = "unsuccessful"
 
-        if self.source_map_reference is not None and self.found_source_file_name is not None:  # type: ignore
-            if self.source_map_reference.startswith("data:"):  # type: ignore
+        if self.source_map_reference is not None and self.found_source_file_name is not None:  # type: ignore[unreachable]
+            if self.source_map_reference.startswith("data:"):  # type: ignore[unreachable]
                 self.source_map_reference = "Inline Sourcemap"
                 self.source_map_lookup_result = "found"
             else:
