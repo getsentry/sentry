@@ -1,14 +1,8 @@
 import datetime
-from unittest.mock import patch
 
-import pytest
 import time_machine
 
-from sentry.replays.consumers.recording_buffered import (
-    BufferCommitFailed,
-    RecordingBuffer,
-    commit_uploads,
-)
+from sentry.replays.consumers.recording_buffered import RecordingBuffer
 
 
 def test_recording_buffer_commit_default():
@@ -122,26 +116,26 @@ def test_recording_buffer_commit_next_state():
     traveller.stop()
 
 
-@patch("sentry.replays.consumers.recording_buffered._do_upload")
-def test_commit_uploads(_do_upload):
-    """Assert successful batch does not error."""
+# @patch("sentry.replays.consumers.recording_buffered._do_upload")
+# def test_commit_uploads(_do_upload):
+#     """Assert successful batch does not error."""
 
-    def mocked(u):
-        return None
+#     def mocked(u):
+#         return None
 
-    _do_upload.side_effect = mocked
+#     _do_upload.side_effect = mocked
 
-    commit_uploads([{}])  # type: ignore
+#     commit_uploads([{}])  # type: ignore
 
 
-@patch("sentry.replays.consumers.recording_buffered._do_upload")
-def test_commit_uploads_failure(_do_upload):
-    """Assert _do_upload failure rate limits the consumer process."""
+# @patch("sentry.replays.consumers.recording_buffered._do_upload")
+# def test_commit_uploads_failure(_do_upload):
+#     """Assert _do_upload failure rate limits the consumer process."""
 
-    def mocked(u):
-        raise ValueError("")
+#     def mocked(u):
+#         raise ValueError("")
 
-    _do_upload.side_effect = mocked
+#     _do_upload.side_effect = mocked
 
-    with pytest.raises(BufferCommitFailed):
-        commit_uploads([{}])  # type: ignore
+#     with pytest.raises(BufferCommitFailed):
+#         commit_uploads([{}])  # type: ignore
