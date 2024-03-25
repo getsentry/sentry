@@ -122,7 +122,6 @@ class OccurrenceMetadata(TypedDict):
     title: str
     location: str | None
     last_received: str
-    initial_priority: int | None
 
 
 def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> OccurrenceMetadata:
@@ -137,6 +136,7 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
     event_metadata.update(event.get_event_metadata())
     event_metadata["title"] = occurrence.issue_title
     event_metadata["value"] = occurrence.subtitle
+    event_metadata["initial_priority"] = occurrence.initial_issue_priority
 
     if occurrence.type == FeedbackGroup:
         # TODO: Should feedbacks be their own event type, so above call to event.get_event_medata
@@ -146,7 +146,6 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
         event_metadata["message"] = occurrence.evidence_data.get("message")
         event_metadata["name"] = occurrence.evidence_data.get("name")
         event_metadata["source"] = occurrence.evidence_data.get("source")
-        event_metadata["initial_priority"] = occurrence.initial_issue_priority
 
     return {
         "type": event_type.key,
