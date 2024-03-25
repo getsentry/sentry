@@ -429,8 +429,8 @@ class TestPhpDeriveCodeMappings(BaseDeriveCodeMappings):
             }
             derive_code_mappings(self.project.id, self.event_data)
             code_mapping = RepositoryProjectPathConfig.objects.all()[0]
-            assert code_mapping.stack_root == "sentry/"
-            assert code_mapping.source_root == "src/sentry/"
+            assert code_mapping.stack_root == ""
+            assert code_mapping.source_root == "src/"
             assert code_mapping.repository.name == repo_name
 
 
