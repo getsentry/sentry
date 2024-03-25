@@ -49,6 +49,14 @@ BATCH_SIZE = 1000
 """The number of mailboxes that will have messages scheduled each cycle"""
 
 
+MAX_DELIVERY_AGE = datetime.timedelta(days=3)
+"""
+The maximum age of a webhook we'll attempt to deliver.
+The older a webhook gets the less valuable it is as there are likely other
+actions that have been made to the relevant resources.
+"""
+
+
 class DeliveryFailed(Exception):
     """
     Used to signal an expected delivery failure.
@@ -215,9 +223,10 @@ def drain_mailbox_parallel(payload_id: int) -> None:
     delivered = 0
 
     while True:
+        current_time = timezone.now()
         # We have run until the end of our batch schedule delay. Break the loop so this worker can take another
         # task.
-        if timezone.now() >= deadline:
+        if current_time >= deadline:
             logger.info(
                 "deliver_webhook_parallel.delivery_deadline",
                 extra={
@@ -238,10 +247,19 @@ def drain_mailbox_parallel(payload_id: int) -> None:
 
         # Use a threadpool to send requests concurrently
         with ThreadPoolExecutor(max_workers=worker_threads) as threadpool:
-            futures = {
-                threadpool.submit(deliver_message_parallel, record)
-                for record in query[:worker_threads]
-            }
+            futures = []
+            for record in query[:worker_threads]:
+                if record.date_added < current_time - MAX_DELIVERY_AGE:
+                    # Payload was backlogged for MAX_DELIVERY_AGE. Discard it
+                    # so we can make progress on newer work. This also prevents a slow self-hosted
+                    # server from creating an ever increasing backlog.
+                    record.delete()
+                    metrics.incr(
+                        "hybridcloud.deliver_webhooks.delivery", tags={"outcome": "max_age"}
+                    )
+                    continue
+                futures.append(threadpool.submit(deliver_message_parallel, record))
+
             for future in as_completed(futures):
                 payload_record, err = future.result()
 
@@ -272,9 +290,6 @@ def drain_mailbox_parallel(payload_id: int) -> None:
                     payload_record.delete()
                     delivered += 1
                     metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "ok"})
-                    metrics.distribution(
-                        "hybridcloud.deliver_webhooks.attempts", payload_record.attempts
-                    )
 
             # We didn't have any more messages to deliver.
             # Break out of this task so we can get a new one.
