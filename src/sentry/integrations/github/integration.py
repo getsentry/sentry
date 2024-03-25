@@ -123,6 +123,12 @@ def build_repository_query(metadata: Mapping[str, Any], name: str, query: str) -
     return f"{account_type}:{name} {query}".encode()
 
 
+def get_document_origin(org) -> str:
+    if org and features.has("organizations:customer-domains", org.organization):
+        return f'"{generate_organization_url(org.organization.slug)}"'
+    return "document.origin"
+
+
 # Github App docs and list of available endpoints
 # https://docs.github.com/en/rest/apps/installations
 # https://docs.github.com/en/rest/overview/endpoints-available-for-github-apps
@@ -365,13 +371,6 @@ class GitHubInstallation(PipelineView):
         name = options.get("github-app.name")
         return f"https://github.com/apps/{slugify(name)}"
 
-    def _get_document_origin(self) -> str:
-        if self.active_organization and features.has(
-            "organizations:customer-domains", self.active_organization.organization
-        ):
-            return f'"{generate_organization_url(self.active_organization.organization.slug)}"'
-        return "document.origin"
-
     def dispatch(self, request: Request, pipeline: Pipeline) -> HttpResponse:
         if "reinstall_id" in request.GET:
             pipeline.bind_state("reinstall_id", request.GET["reinstall_id"])
@@ -400,7 +399,7 @@ class GitHubInstallation(PipelineView):
                         "success": False,
                         "data": {"error": _("GitHub installation pending deletion.")},
                     },
-                    "document_origin": self._get_document_origin(),
+                    "document_origin": get_document_origin(self.active_organization),
                 },
                 request=request,
             )
@@ -424,7 +423,7 @@ class GitHubInstallation(PipelineView):
                         "success": False,
                         "data": {"error": _("Github installed on another Sentry organization.")},
                     },
-                    "document_origin": self._get_document_origin(),
+                    "document_origin": get_document_origin(self.active_organization),
                 },
                 request=request,
             )
@@ -435,7 +434,23 @@ class GitHubInstallation(PipelineView):
 
 
 class GitHubUserValidation(PipelineView):
+    def error(self, request):
+        return render_to_response(
+            "sentry/integrations/github-integration-failed.html",
+            context={
+                "error": ERR_INTEGRATION_INVALID_INSTALLATION_REQUEST,
+                "payload": {
+                    "success": False,
+                    "data": {"error": _("Invalid installation request.")},
+                },
+                "document_origin": get_document_origin(self.active_organization),
+            },
+            request=request,
+        )
+
     def dispatch(self, request: Request, pipeline: Pipeline) -> HttpResponse:
+        self.determine_active_organization(request)
+
         ghip = GitHubIdentityProvider()
         github_client_id = ghip.get_oauth_client_id()
         github_client_secret = ghip.get_oauth_client_secret()
@@ -449,18 +464,7 @@ class GitHubUserValidation(PipelineView):
 
         # At this point, we are past the GitHub "authorize" step
         if request.GET.get("state") != pipeline.signature:
-            return render_to_response(
-                "sentry/integrations/github-integration-failed.html",
-                context={
-                    "error": ERR_INTEGRATION_INVALID_INSTALLATION_REQUEST,
-                    "payload": {
-                        "success": False,
-                        "data": {"error": _("Invalid installation request.")},
-                    },
-                    "document_origin": self._get_document_origin(),
-                },
-                request=request,
-            )
+            return self.error(request)
 
         # similar to OAuth2CallbackView.get_token_params
         data = {
@@ -480,23 +484,15 @@ class GitHubUserValidation(PipelineView):
         except Exception:
             payload = {}
 
+        if "access_token" not in payload:
+            return self.error(request)
+
         # Check that the authenticated GitHub user is the same as who installed the app.
         authenticated_user_info = get_user_info(payload["access_token"])
         integration = Integration.objects.get(
             external_id=pipeline.fetch_state("installation_id"), status=ObjectStatus.ACTIVE
         )
         if authenticated_user_info["login"] != integration.metadata["sender"]["login"]:
-            return render_to_response(
-                "sentry/integrations/github-integration-failed.html",
-                context={
-                    "error": ERR_INTEGRATION_INVALID_INSTALLATION_REQUEST,
-                    "payload": {
-                        "success": False,
-                        "data": {"error": _("Invalid installation request.")},
-                    },
-                    "document_origin": self._get_document_origin(),
-                },
-                request=request,
-            )
+            return self.error(request)
 
         return pipeline.next_step()
