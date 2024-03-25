@@ -1810,6 +1810,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:project-event-date-limit": False,
     # Enable project selection on the stats page
     "organizations:project-stats": True,
+    # Enable the react 18 concurrent renderer, otherwise uses legacy mode (React 17)
+    "organizations:react-concurrent-renderer": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable related issues feature

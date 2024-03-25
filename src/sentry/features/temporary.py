@@ -36,6 +36,7 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:create", SystemFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:multi-region-selector", SystemFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("relocation:enabled", SystemFeature, FeatureHandlerStrategy.INTERNAL)
+    manager.add("organizations:react-concurrent-renderer", SystemFeature, FeatureHandlerStrategy.INTERNAL)
 
     # Organization scoped features that are in development or in customer trials.
     manager.add("organizations:activated-alert-rules", OrganizationFeature, FeatureHandlerStrategy.REMOTE)

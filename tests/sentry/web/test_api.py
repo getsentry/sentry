@@ -163,6 +163,24 @@ class ClientConfigViewTest(TestCase):
             data = json.loads(resp.content)
             assert data["features"] == ["organizations:create", "organizations:customer-domains"]
 
+    def test_react_concurrent_feature(self):
+        with self.feature({"organizations:react-concurrent-renderer": True}):
+            resp = self.client.get(self.path)
+            assert resp.status_code == 200
+            assert resp["Content-Type"] == "application/json"
+            data = json.loads(resp.content)
+            assert data["features"] == [
+                "organizations:create",
+                "organizations:react-concurrent-renderer",
+            ]
+
+        with self.feature({"organizations:react-concurrent-renderer": False}):
+            resp = self.client.get(self.path)
+            assert resp.status_code == 200
+            assert resp["Content-Type"] == "application/json"
+            data = json.loads(resp.content)
+            assert data["features"] == ["organizations:create"]
+
     def test_unauthenticated(self):
         resp = self.client.get(self.path)
         assert resp.status_code == 200
