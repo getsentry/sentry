@@ -9,9 +9,23 @@ from sentry.sentry_metrics.querying.visitors import UnitsNormalizationV2Visitor
 
 
 class UnitNormalizationStep(PreparationStep):
+    """
+    Represents a step which performs unit normalization on a collection of intermediate queries.
+
+    Unit normalization refers to the process of making sure all components of a query have the values on the same
+    scale. For example, if you have 100 ms * 100 s the normalization will convert it to 100 ms * 100000 ms.
+    """
+
     def _get_normalized_intermediate_query(
         self, intermediate_query: IntermediateQuery
     ) -> IntermediateQuery:
+        """
+        Computes the unit normalized query from an IntermediateQuery using a units normalization visitor.
+
+        Returns:
+            If the unit metadata returned by the visitor has a unit, the transformed intermediate query will be returned
+            , otherwise the supplied intermediate query will be returned.
+        """
         units_normalization = UnitsNormalizationV2Visitor()
         # We compute the new normalized query by visiting and mutating the expression tree.
         unit_metadata, normalized_query = units_normalization.visit(
