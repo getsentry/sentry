@@ -7,11 +7,7 @@ from urllib.parse import urlencode
 from sentry_relay.processing import parse_release
 
 from sentry import features
-from sentry.integrations.message_builder import (
-    build_attachment_text,
-    build_attachment_title,
-    get_title_link,
-)
+from sentry.integrations.message_builder import build_attachment_text, build_attachment_title
 from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.utils.escape import escape_slack_text
 from sentry.models.project import Project
@@ -39,7 +35,9 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
         self.recipient = recipient
 
     def linkify_error_title(self, group):
-        link = get_title_link(group, None, False, False, self.notification, ExternalProviders.SLACK)
+        link = group.get_absolute_url(
+            params={"referrer": self.notification.get_referrer(ExternalProviders.SLACK)}
+        )
         title = build_attachment_title(group)
         attachment_text = self.get_attachment_text(group)
         if not attachment_text:
