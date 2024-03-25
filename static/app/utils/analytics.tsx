@@ -125,7 +125,7 @@ const allEventMap: Record<string, string | null> = {
  */
 
 /**
- * This should used be with all analytics events regardless of the analytics
+ * This should be used with all analytics events regardless of the analytics
  * destination which includes Reload, Amplitude, and Google Analytics. All
  * events go to Reload. If eventName is defined, events also go to Amplitude.
  * For more details, refer to makeAnalyticsFunction.
