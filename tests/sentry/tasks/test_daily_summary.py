@@ -769,7 +769,7 @@ class DailySummaryTest(
                 project_context=top_projects_context_map,
             ).send()
         blocks, fallback_text = get_blocks_and_fallback_text()
-        link_text = "http://testserver/organizations/baz/issues/{}/?referrer=slack"
+        link_text = "http://testserver/organizations/baz/issues/{}/?referrer=daily_summary-slack"
         # check the today's event count section
         assert "*Today’s Event Count*" in blocks[3]["fields"][0]["text"]
         assert "higher than last 14d avg" in blocks[3]["fields"][1]["text"]
@@ -817,7 +817,7 @@ class DailySummaryTest(
                 project_context=top_projects_context_map,
             ).send()
         blocks, fallback_text = get_blocks_and_fallback_text()
-        link_text = "http://testserver/organizations/baz/issues/{}/?referrer=slack"
+        link_text = "http://testserver/organizations/baz/issues/{}/?referrer=daily_summary-slack"
         assert f"*{self.project.slug}*" in blocks[2]["text"]["text"]
         # check the today's event count section
         assert "*Today’s Event Count*" in blocks[3]["fields"][0]["text"]
