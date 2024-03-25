@@ -204,6 +204,18 @@ def replace_uniq_ids_in_str(string: str) -> tuple[str, int]:
     return (" ".join(strings), count)
 
 
+def parameterization_experiment_default_run(
+    self: "ParameterizationExperiment", _handle_regex_match: Callable[[Match[str]], str], input: str
+) -> tuple[str, int]:
+    return (self.regex.sub(_handle_regex_match, input), 0)
+
+
+def parameterization_experiment_uniq_id(
+    self: "ParameterizationExperiment", _: Callable[[Match[str]], str], input: str
+) -> tuple[str, int]:
+    return replace_uniq_ids_in_str(input)
+
+
 @dataclasses.dataclass()
 class ParameterizationExperiment:
     name: str
@@ -215,20 +227,15 @@ class ParameterizationExperiment:
         And returns: a tuple of [output string, count of replacements(which overlaps with any added by _handle_regex_match, if used)]
     """
     run: Callable[
-        ["ParameterizationExperiment", Callable[[Match[str]], str]], tuple[str, int]
-    ] = lambda self, _handle_regex_match, input: (
-        self.regex.sub(_handle_regex_match, input),
-        0,  # By default, _handle_regex_match does this counting
-    )
+        ["ParameterizationExperiment", Callable[[Match[str]], str], str], tuple[str, int]
+    ] = parameterization_experiment_default_run
     counter: int = 0
 
 
 # Note that experiments are run AFTER the initial replacements. Which means they MUST not catch replacements made
 # in the primary parameterization regex.
 _parameterization_regex_experiments = [
-    ParameterizationExperiment(
-        name="uniq_id", regex=None, run=lambda _self, _, input: replace_uniq_ids_in_str(input)
-    ),
+    ParameterizationExperiment(name="uniq_id", regex=None, run=parameterization_experiment_uniq_id),
 ]
 
 
