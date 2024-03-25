@@ -13,6 +13,7 @@ export function ConfigFixture(params: Partial<Config> = {}): Config {
     superUserCookieDomain: '.sentry.io',
     validateSUForm: true,
     features: new Set(),
+    shouldPreloadData: true,
     singleOrganization: false,
     enableAnalytics: true,
     urlPrefix: 'https://sentry-jest-tests.example.com/',
