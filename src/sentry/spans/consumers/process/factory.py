@@ -20,7 +20,6 @@ from sentry.utils.arroyo import MultiprocessingPool, RunTaskWithMultiprocessing
 logger = logging.getLogger(__name__)
 SPAN_SCHEMA: Codec[SpanEvent] = get_codec("snuba-spans")
 
-PROCESS_SEGMENT_DELAY = 2 * 60  # 2 minutes
 BATCH_SIZE = 100
 
 
