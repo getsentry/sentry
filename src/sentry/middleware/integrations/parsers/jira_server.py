@@ -40,7 +40,7 @@ class JiraServerRequestParser(BaseRequestParser):
             logger.info("missing-changelog", extra={"integration_id": integration.id})
             return HttpResponse(status=200)
 
-        return self.get_response_from_outbox_creation_for_integration(
+        return self.get_response_from_webhookpayload_for_integration(
             regions=regions, integration=integration
         )
 

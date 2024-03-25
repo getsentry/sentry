@@ -142,13 +142,13 @@ class BaseRequestParser(abc.ABC):
 
         return region_to_response_map
 
-    def get_response_from_outbox_creation(
+    def get_response_from_webhookpayload(
         self, regions: Sequence[Region], shard_identifier_override: int | None = None
     ):
         """
-        DEPRECATED: use get_response_from_outbox_creation_for_integration
+        DEPRECATED: use get_response_from_webhook_create_for_integration
 
-        Used to create outboxes for provided regions to handle the webhooks asynchronously.
+        Used to create webhookpayloads for provided regions to handle the webhooks asynchronously.
         Responds to the webhook provider with a 202 Accepted status.
         """
         if len(regions) < 1:
@@ -165,7 +165,10 @@ class BaseRequestParser(abc.ABC):
 
         return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
-    def get_response_from_outbox_creation_for_integration(
+    # Alias to prop up getsentry
+    get_response_from_outbox_creation = get_response_from_webhookpayload
+
+    def get_response_from_webhookpayload_for_integration(
         self, regions: Sequence[Region], integration: Integration | RpcIntegration
     ):
         """
