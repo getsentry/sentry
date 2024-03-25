@@ -32,6 +32,13 @@ def run_metrics_queries_plan(
     referrer: str,
     query_type: QueryType = QueryType.TOTALS_AND_SERIES,
 ) -> MetricsQueriesPlanResult:
+    """
+    Runs a MetricsQueriesPlan which is converted into a series of queries that are executed in Snuba.
+
+    Returns:
+        A MetricsQueriesPlanResult object which encapsulates the results of the plan and allows a QueryTransformer
+        to be run on the data.
+    """
     # For now, if the query plan is empty, we return an empty dictionary. In the future, we might want to default
     # to a better data type.
     if metrics_queries_plan.is_empty():

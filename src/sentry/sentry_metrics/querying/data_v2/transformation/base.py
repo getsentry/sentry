@@ -7,6 +7,17 @@ QueryTransformerResult = TypeVar("QueryTransformerResult")
 
 
 class QueryTransformer(ABC, Generic[QueryTransformerResult]):
+    """
+    Represents an abstract transformer that can transform QueryResult objects.
+    """
+
     @abstractmethod
     def transform(self, query_results: list[QueryResult]) -> QueryTransformerResult:
+        """
+        Transforms the supplied query results into a QueryTransformerResult.
+
+        Returns:
+            The transformed query result which can be of any type.
+        """
+
         raise NotImplementedError
