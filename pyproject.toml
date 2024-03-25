@@ -619,9 +619,11 @@ disable_error_code = [
 # beginning: stronger typing
 [[tool.mypy.overrides]]
 module = [
+    "sentry.api.endpoints.issues.*",
     "sentry.buffer.base",
     "sentry.buffer.redis",
     "sentry.eventstore.reprocessing.redis",
+    "sentry.issues.related.*",
     "sentry.utils.redis",
     "sentry.utils.redis_metrics",
     "sentry.utils.locking.backends.redis",
@@ -636,6 +638,7 @@ module = [
     "sentry.relay.config.metric_extraction",
     "sentry.snuba.metrics.extraction",
     "sentry.tasks.reprocessing2",
+    "tests.sentry.api.endpoints.issues.*",
     "tests.sentry.tasks.test_on_demand_metrics",
     "tests.sentry.relay.config.test_metric_extraction",
 ]

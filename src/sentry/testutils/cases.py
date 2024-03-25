@@ -674,8 +674,10 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
     Extend APITestCase to inherit access to `client`, an object with methods
     that simulate API calls to Sentry, and the helper `get_response`, which
     combines and simplifies a lot of tedious parts of making API calls in tests.
-    When creating API tests, use a new class per endpoint-method pair. The class
-    must set the string `endpoint`.
+    When creating API tests, use a new class per endpoint-method pair.
+
+    The class must set the string `endpoint`.
+    If your endpoint requires kwargs implement the `reverse_url` method.
     """
 
     # We need Django to flush all databases.
@@ -701,7 +703,11 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
             * raw_data: (Optional) Sometimes we want to precompute the JSON body.
         :returns Response object
         """
-        url = reverse(self.endpoint, args=args)
+        url = (
+            self.reverse_url()
+            if hasattr(self, "reverse_url")
+            else reverse(self.endpoint, args=args)
+        )
         # In some cases we want to pass querystring params to put/post, handle this here.
         if "qs_params" in params:
             query_string = urlencode(params.pop("qs_params"), doseq=True)
