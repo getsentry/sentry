@@ -143,8 +143,8 @@ export default class ReplayReader {
       this._replayRecord = replayRecord;
       const archivedReader = new Proxy(this, {
         get(_target, prop, _receiver) {
-          if (prop === '_replayRecord') {
-            return replayRecord;
+          if (prop === 'getReplay') {
+            return () => replayRecord;
           }
           return () => {};
         },
