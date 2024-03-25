@@ -30,6 +30,8 @@ class OrganizationAccessRequest(Model):
         from sentry.utils.email import MessageBuilder
 
         organization = self.team.organization
+        if not self.member.user_id:
+            return
         user = user_service.get_user(user_id=self.member.user_id)
         if user is None:
             return

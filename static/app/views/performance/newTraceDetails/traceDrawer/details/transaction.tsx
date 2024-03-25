@@ -229,7 +229,7 @@ export function TransactionNodeDetails({
       `/organizations/${organization.slug}/events/${node.value.project_slug}:${node.value.event_id}/`,
       {
         query: {
-          referrer: 'trace-view.drawer-transaction-details',
+          referrer: 'trace-details-summary',
         },
       },
     ],
@@ -354,7 +354,7 @@ export function TransactionNodeDetails({
                   onClick={function handleOnClick() {
                     trackAnalytics('profiling_views.go_to_flamegraph', {
                       organization,
-                      source: 'performance.trace_view.drawer-transaction-details',
+                      source: 'performance.trace_view',
                     });
                   }}
                 >

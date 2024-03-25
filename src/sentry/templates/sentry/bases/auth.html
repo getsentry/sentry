@@ -18,6 +18,11 @@
     {% block auth_container %}
       <div class="auth-container p-y-2">
         {% block auth_main %}{% endblock %}
+        <p>
+          {% blocktrans %}
+            Need help with your account?  Click <a class="help-center-link" href="https://help.sentry.io/">here</a> to check out our help center.
+          {% endblocktrans %}
+        </p>
       </div>
     {% endblock %}
   </section>

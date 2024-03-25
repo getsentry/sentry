@@ -662,10 +662,11 @@ export class TraceTree {
     while (queue.length > 0) {
       const node = queue.pop()!;
 
+      for (const child of node.children) {
+        queue.push(child);
+      }
+
       if (node.children.length < 5) {
-        for (const child of node.children) {
-          queue.push(child);
-        }
         continue;
       }
 
@@ -726,7 +727,7 @@ export class TraceTree {
               child.value &&
               'start_timestamp' in child.value &&
               typeof child.value.start_timestamp === 'number' &&
-              child.value.start_timestamp > start_timestamp
+              child.value.start_timestamp < start_timestamp
             ) {
               start_timestamp = child.value.start_timestamp;
             }

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import dataclasses
 import logging
 from collections.abc import Sequence
 
@@ -27,13 +26,13 @@ from sentry.integrations.slack.webhooks.options_load import SlackOptionsLoadEndp
 from sentry.middleware.integrations.tasks import convert_to_async_slack_response
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
+from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.types.region import Region
 from sentry.utils import json
 from sentry.utils.signing import unsign
 
-from .base import BaseRequestParser
+from .base import BaseRequestParser, create_async_request_payload
 
 logger = logging.getLogger(__name__)
 
@@ -84,13 +83,10 @@ class SlackRequestParser(BaseRequestParser):
         if self.response_url is None:
             return self.get_response_from_control_silo()
 
-        # TODO(hybridcloud) this isn't using outboxes per-se and we will likely need to keep
-        # `get_webhook_payload_from_request` around after webhooks are entirely on WebhookPayload
-        webhook_payload = ControlOutbox.get_webhook_payload_from_request(request=self.request)
         convert_to_async_slack_response.apply_async(
             kwargs={
                 "region_names": [r.name for r in regions],
-                "payload": dataclasses.asdict(webhook_payload),
+                "payload": create_async_request_payload(self.request),
                 "response_url": self.response_url,
             }
         )

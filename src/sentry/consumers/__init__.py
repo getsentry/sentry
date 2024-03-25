@@ -23,6 +23,7 @@ from sentry.conf.types.kafka_definition import (
     validate_consumer_definition,
 )
 from sentry.consumers.validate_schema import ValidateSchema
+from sentry.ingest.types import ConsumerType
 from sentry.utils.imports import import_string
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
@@ -257,7 +258,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
         "click_options": ingest_events_options(),
         "static_args": {
-            "consumer_type": "events",
+            "consumer_type": ConsumerType.Events,
         },
         "dlq_topic": Topic.INGEST_EVENTS_DLQ,
     },
@@ -266,7 +267,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
         "click_options": ingest_events_options(),
         "static_args": {
-            "consumer_type": "feedback-events",
+            "consumer_type": ConsumerType.Feedback,
         },
         "dlq_topic": Topic.INGEST_FEEDBACK_EVENTS_DLQ,
     },
@@ -275,7 +276,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
         "click_options": ingest_events_options(),
         "static_args": {
-            "consumer_type": "attachments",
+            "consumer_type": ConsumerType.Attachments,
         },
         "dlq_topic": Topic.INGEST_ATTACHMENTS_DLQ,
     },
@@ -284,7 +285,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
         "click_options": ingest_events_options(),
         "static_args": {
-            "consumer_type": "transactions",
+            "consumer_type": ConsumerType.Transactions,
         },
         "dlq_topic": Topic.INGEST_TRANSACTIONS_DLQ,
     },
@@ -350,6 +351,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "process-spans": {
         "topic": Topic.SNUBA_SPANS,
         "strategy_factory": "sentry.spans.consumers.process.factory.ProcessSpansStrategyFactory",
+        "click_options": multiprocessing_options(default_max_batch_size=100),
     },
     "detect-performance-issues": {
         "topic": Topic.BUFFERED_SEGMENTS,

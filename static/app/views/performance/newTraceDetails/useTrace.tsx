@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 import type {Location} from 'history';
+import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
@@ -11,7 +12,6 @@ import type {
 } from 'sentry/utils/performance/quickTrace/types';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
@@ -75,6 +75,12 @@ export function getTraceQueryParams(
     statsPeriod: statsPeriod || filters.datetime?.period,
   };
 
+  // We prioritize timestamp over statsPeriod as it makes the query more specific, faster
+  // and not prone to time drift issues.
+  if (timestamp) {
+    delete otherParams.statsPeriod;
+  }
+
   const queryParams = {...otherParams, limit, project, timestamp, eventId, useSpans: 1};
   for (const key in queryParams) {
     if (
@@ -91,7 +97,6 @@ export function getTraceQueryParams(
 
 type UseTraceParams = {
   limit?: number;
-  referrer?: string;
 };
 
 const DEFAULT_OPTIONS = {};
@@ -99,23 +104,19 @@ export function useTrace(
   options: Partial<UseTraceParams> = DEFAULT_OPTIONS
 ): UseApiQueryResult<TraceSplitResults<TraceFullDetailed>, any> {
   const filters = usePageFilters();
-  const location = useLocation();
   const organization = useOrganization();
   const params = useParams<{traceSlug?: string}>();
 
   const queryParams = useMemo(() => {
-    return getTraceQueryParams(location.query, filters.selection, options);
+    const query = qs.parse(location.search);
+    return getTraceQueryParams(query, filters.selection, options);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options]);
 
   return useApiQuery(
     [
       `/organizations/${organization.slug}/events-trace/${params.traceSlug ?? ''}/`,
-      {
-        query: options.referrer
-          ? {...queryParams, referrer: options.referrer}
-          : queryParams,
-      },
+      {query: queryParams},
     ],
     {
       staleTime: Infinity,
