@@ -38,7 +38,7 @@ export class VideoReplayer {
   private _startTimestamp: number;
   private _timer = new Timer();
   private _trackList: [ts: number, index: number][];
-  private _videos: HTMLVideoElement[];
+  private _videos: Record<number, HTMLVideoElement>;
   private _videoApiPrefix: string;
   public config: VideoReplayerConfig = {
     skipInactive: false,
@@ -59,20 +59,26 @@ export class VideoReplayer {
       onFinished,
       onLoaded,
     };
+    this._videos = {};
 
     this.wrapper = document.createElement('div');
     if (root) {
       root.appendChild(this.wrapper);
     }
 
-    this._videos = this._attachments.map((attachment, index) =>
-      this.createVideo(attachment, index)
-    );
+    // initially, only load first 3 videos (15s)
+    this._attachments
+      .slice(0, 3)
+      .forEach(
+        (attachment, index) => (this._videos[index] = this.createVideo(attachment, index))
+      );
+
     this._trackList = this._attachments.map(({timestamp}, i) => [timestamp, i]);
     this.loadSegment(0);
   }
 
   private createVideo(segmentData: VideoEvent, index: number) {
+    // don't think we don't have access to currentIndex
     const el = document.createElement('video');
     el.src = `${this._videoApiPrefix}${segmentData.id}/`;
     el.style.display = 'none';
@@ -90,7 +96,7 @@ export class VideoReplayer {
         this._callbacks.onLoaded(event);
       }
     });
-    // TODO: Only preload when necessary
+
     el.preload = 'auto';
     // TODO: Timer needs to also account for playback speed
     el.playbackRate = this.config.speed;
@@ -153,6 +159,27 @@ export class VideoReplayer {
       return undefined;
     }
 
+    // if we haven't loaded the current video yet
+    if (!this._videos[index]) {
+      // load videos on either side too
+      const lowBound = Math.max(0, index - 3);
+      const highBound = Math.min(index + 3, this._attachments.length + 1);
+
+      this._attachments.slice(lowBound, highBound).forEach((attachment, i) => {
+        const dictIndex = index + i;
+
+        // might be some videos we've already loaded before
+        if (!this._videos[dictIndex]) {
+          this._videos[dictIndex] = this.createVideo(attachment, dictIndex);
+        }
+      });
+
+      this._trackList = this._attachments.map(({timestamp}, i) => [timestamp, i]);
+
+      // load at requested index
+      this.loadSegment(index);
+    }
+
     return this._videos[index];
   }
 
@@ -178,7 +205,10 @@ export class VideoReplayer {
     if (!video) {
       return Promise.resolve();
     }
+    // console.log(this._videos);
     video.playbackRate = this.config.speed;
+
+    // console.log(this._currentIndex);
     return video.play();
   }
 
