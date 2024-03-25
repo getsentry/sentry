@@ -326,6 +326,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
 
         # without the flag, resolved issues are not filtered out
         key_errors = project_key_errors(ctx, self.project, Referrer.REPORTS_KEY_ERRORS.value)
+        assert key_errors
         assert {"group_id": event1.group.id, "count()": 1} in key_errors
         assert {"group_id": group2.id, "count()": 1} in key_errors
 
