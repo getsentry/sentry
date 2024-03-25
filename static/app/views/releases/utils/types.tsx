@@ -3,9 +3,8 @@ import type moment from 'moment';
 import type {Environment, Project} from 'sentry/types';
 
 export type ThresholdQuery = {
-  environment?: string[]; // list of environment names
-  monitor_type?: number; // monitor type
-  project?: number[]; // list of project ids
+  environment?: string[] | undefined; // list of environment names
+  project?: number[] | undefined; // list of project ids
 };
 
 export type ThresholdStatusesQuery = Omit<ThresholdQuery, 'project'> & {
