@@ -7,8 +7,7 @@
 {% script %}
 <script type="text/javascript">
   function __preloadData() {
-    if (!window.__initialData.user) {
-      // Don't send requests if there is no logged in user.
+    if (!window.__initialData.shouldPreloadData) {
       return;
     }
     var slug = window.__initialData.lastOrganization;
