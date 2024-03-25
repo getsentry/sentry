@@ -1,4 +1,3 @@
-import dataclasses
 from unittest.mock import patch
 
 import responses
@@ -7,11 +6,11 @@ from django.urls import reverse
 from responses import matchers
 
 from sentry.integrations.discord.requests.base import DiscordRequestTypes
+from sentry.middleware.integrations.parsers.base import create_async_request_payload
 from sentry.middleware.integrations.tasks import (
     convert_to_async_discord_response,
     convert_to_async_slack_response,
 )
-from sentry.models.outbox import ControlOutbox
 from sentry.testutils.cases import TestCase
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
@@ -32,8 +31,7 @@ class AsyncSlackResponseTest(TestCase):
         slack_payload = {"team_id": "TXXXXXXX1", "response_url": self.response_url}
         data = {"payload": json.dumps(slack_payload)}
         action_request = self.factory.post(reverse("sentry-integration-slack-action"), data=data)
-        webhook_payload = ControlOutbox.get_webhook_payload_from_request(request=action_request)
-        self.payload = dataclasses.asdict(webhook_payload)
+        self.payload = create_async_request_payload(action_request)
 
     @responses.activate
     @override_regions(region_config)
@@ -173,8 +171,7 @@ class AsyncDiscordResponseTest(TestCase):
             HTTP_X_SIGNATURE_ED25519="signature",
             HTTP_X_SIGNATURE_TIMESTAMP="timestamp",
         )
-        webhook_payload = ControlOutbox.get_webhook_payload_from_request(request=action_request)
-        self.payload = dataclasses.asdict(webhook_payload)
+        self.payload = create_async_request_payload(action_request)
 
     @responses.activate
     @override_regions(region_config)

@@ -2,12 +2,11 @@ from __future__ import annotations
 
 import abc
 import contextlib
-import dataclasses
 import datetime
 import threading
 from collections.abc import Collection, Generator, Iterable, Mapping
 from enum import IntEnum
-from typing import Any, Self, TypeVar, cast
+from typing import Any, Self, cast
 
 import sentry_sdk
 from django import db
@@ -15,7 +14,6 @@ from django.db import OperationalError, connections, models, router, transaction
 from django.db.models import Count, Max, Min
 from django.db.transaction import Atomic
 from django.dispatch import Signal
-from django.http import HttpRequest
 from django.utils import timezone
 from sentry_sdk.tracing import Span
 
@@ -42,8 +40,6 @@ from sentry.silo import SiloMode, unguarded_write
 from sentry.utils import metrics
 
 THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=datetime.UTC)
-
-_T = TypeVar("_T")
 
 
 class OutboxFlushError(Exception):
@@ -370,15 +366,6 @@ _missing_categories = set(OutboxCategory) - _used_categories
 assert (
     not _missing_categories
 ), f"OutboxCategories {_missing_categories} not registered to an OutboxScope"
-
-
-@dataclasses.dataclass
-class OutboxWebhookPayload:
-    method: str
-    path: str
-    uri: str
-    headers: Mapping[str, Any]
-    body: str
 
 
 class WebhookProviderIdentifier(IntEnum):
@@ -806,46 +793,6 @@ class ControlOutboxBase(OutboxBase):
         abstract = True
 
     __repr__ = sane_repr("payload", *coalesced_columns)
-
-    @classmethod
-    def get_webhook_payload_from_request(cls, request: HttpRequest) -> OutboxWebhookPayload:
-        assert request.method is not None
-        return OutboxWebhookPayload(
-            method=request.method,
-            path=request.get_full_path(),
-            uri=request.build_absolute_uri(),
-            headers={k: v for k, v in request.headers.items()},
-            body=request.body.decode(encoding="utf-8"),
-        )
-
-    @classmethod
-    def get_webhook_payload_from_outbox(cls, payload: Mapping[str, Any]) -> OutboxWebhookPayload:
-        return OutboxWebhookPayload(
-            method=payload["method"],
-            path=payload["path"],
-            uri=payload["uri"],
-            headers=payload["headers"],
-            body=payload["body"],
-        )
-
-    @classmethod
-    def for_webhook_update(
-        cls,
-        *,
-        shard_identifier: int,
-        region_names: list[str],
-        request: HttpRequest,
-    ) -> Iterable[Self]:
-        for region_name in region_names:
-            result = cls()
-            result.shard_scope = OutboxScope.WEBHOOK_SCOPE
-            result.shard_identifier = shard_identifier
-            result.object_identifier = cls.next_object_identifier()
-            result.category = OutboxCategory.WEBHOOK_PROXY
-            result.region_name = region_name
-            payload = result.get_webhook_payload_from_request(request)
-            result.payload = dataclasses.asdict(payload)
-            yield result
 
 
 @control_silo_only_model

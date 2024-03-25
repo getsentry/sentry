@@ -4,7 +4,7 @@ import abc
 import logging
 from collections.abc import Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
@@ -26,6 +26,16 @@ from sentry.utils import metrics
 logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from sentry.middleware.integrations.integration_control import ResponseHandler
+
+
+def create_async_request_payload(request: HttpRequest) -> dict[str, Any]:
+    return {
+        "method": request.method,
+        "path": request.get_full_path(),
+        "uri": request.build_absolute_uri(),
+        "headers": {k: v for k, v in request.headers.items()},
+        "body": request.body.decode(encoding="utf-8"),
+    }
 
 
 class RegionResult:
