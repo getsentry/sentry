@@ -2207,7 +2207,7 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "standalone-spans.segment-buffer-time-window.seconds",
+    "standalone-spans.buffer-window.seconds",
     type=Int,
     default=120,  # 2 minutes
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,

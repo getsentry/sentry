@@ -80,7 +80,7 @@ class RedisSpansBuffer:
         key = get_unprocessed_segments_key(partition)
         results = self.client.lrange(key, 0, -1) or []
 
-        buffer_window = options.get("standalone-spans.process-spans-consumer.enable")
+        buffer_window = options.get("standalone-spans.buffer-window.seconds")
 
         ltrim_index = 0
         segment_keys = []

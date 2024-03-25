@@ -3,7 +3,7 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
-from arroyo.backends.kafka.consumer import KafkaPayload
+from arroyo.backends.kafka.consumer import Headers, KafkaPayload
 from arroyo.processing.strategies import RunTask
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
@@ -30,12 +30,31 @@ class ProduceSegmentContext:
     partition: int
 
 
+def get_project_id(headers: Headers) -> int | None:
+    for k, v in headers:
+        if k == "project_id":
+            return int(v)
+
+    return None
+
+
 def _deserialize_span(value: bytes) -> Mapping[str, Any]:
     return SPAN_SCHEMA.decode(value)
 
 
 def process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | None:
     if not options.get("standalone-spans.process-spans-consumer.enable"):
+        return None
+
+    try:
+        project_id = get_project_id(message.payload.headers)
+    except Exception:
+        logger.exception("Failed to parse project_id")
+        return None
+
+    if project_id is None or project_id not in options.get(
+        "standalone-spans.process-spans-consumer.project-allowlist"
+    ):
         return None
 
     assert isinstance(message.value, BrokerValue)
@@ -45,9 +64,6 @@ def process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | N
         project_id = span["project_id"]
     except Exception:
         logger.exception("Failed to process span payload")
-        return None
-
-    if project_id not in options.get("standalone-spans.process-spans-consumer.project-allowlist"):
         return None
 
     timestamp = int(message.value.timestamp.timestamp())
