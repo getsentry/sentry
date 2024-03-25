@@ -1,17 +1,16 @@
-import time
-from datetime import datetime
 from unittest.mock import Mock
 
 import msgpack
 import pytest
-from arroyo.backends.kafka import KafkaPayload
 from arroyo.dlq import InvalidMessage
-from arroyo.types import BrokerValue, Message, Partition, Topic
+from arroyo.types import Partition, Topic
 
 from sentry.conf.types.kafka_definition import Topic as TopicNames
 from sentry.ingest.consumer.factory import IngestStrategyFactory
 from sentry.ingest.types import ConsumerType
 from sentry.testutils.pytest.fixtures import django_db_all
+
+from .test_utils import make_broker_message, make_ingest_message
 
 """
 Based on ingest_consumer/test_dlq.py. Feedback uses the same IngestStrategyFactory as Events,
@@ -19,32 +18,16 @@ but moving its tests here makes it easier to migrate to a separate StrategyFacto
 """
 
 
-def make_message(payload: bytes, partition: Partition, offset: int) -> Message:
-    return Message(
-        BrokerValue(
-            KafkaPayload(None, payload, []),
-            partition,
-            offset,
-            datetime.now(),
-        )
-    )
-
-
 @django_db_all
-def test_processing_validates_messages(default_project) -> None:
-    missing_feedback_payload = msgpack.packb(
-        {
-            "type": "event",
-            "project_id": default_project.id,
-            "payload": b"{}",
-            "start_time": int(time.time()),
-            "event_id": "aaa",
-        }
-    )
-    invalid_payload = b"bogus message"
+def test_process_invalid_messages(default_project) -> None:
+    # Kafka payloads (bytes)
+    payload_invalid = b"bogus message"
+    payload_empty_message = msgpack.packb({})
+    # required fields for ingest message (not tested individually): type, event_id, project_id, start_time, payload
 
-    partition = Partition(Topic(TopicNames.INGEST_FEEDBACK_EVENTS.value), 0)
-    offset = 5
+    payload_invalid_event = msgpack.packb(make_ingest_message(b"hello world", default_project)[0])
+    payload_empty_event = msgpack.packb(make_ingest_message({}, default_project)[0])
+    # required fields: event_id, ??
 
     strategy_factory = IngestStrategyFactory(
         ConsumerType.Feedback,
@@ -56,26 +39,17 @@ def test_processing_validates_messages(default_project) -> None:
         output_block_size=None,
     )
     strategy = strategy_factory.create_with_partitions(Mock(), Mock())
+    partition = Partition(Topic(TopicNames.INGEST_FEEDBACK_EVENTS.value), 0)
+    offset = 5
 
-    # Valid payload raises original error
-    with pytest.raises(Exception) as exc_info:
-        message = make_message(missing_feedback_payload, partition, offset)
-        strategy.submit(message)
-    assert not isinstance(exc_info.value, InvalidMessage)
-
-    # Invalid payload raises InvalidMessage error
-    with pytest.raises(InvalidMessage) as exc_info:
-        message = make_message(invalid_payload, partition, offset)
-        strategy.submit(message)
-    assert exc_info.value.partition == partition
-    assert exc_info.value.offset == offset
-
-
-"""
-TODO: assert event.payload.type == "feedback", and other feedback-specific invalid msg formats.
-
-Right we're using the generic IngestStrategyFactory, which does zero validation on the event payload (sdk event).
-Kafka schema just says bytes. So this is only a TODO if
- 1) we write a dedicated FeedbackStrategy
- 2) we decide to do more validation in the consumer
-"""
+    for payload in [
+        payload_invalid,
+        payload_empty_message,
+        payload_invalid_event,
+        payload_empty_event,
+    ]:
+        message = make_broker_message(payload, partition, offset)
+        with pytest.raises(InvalidMessage) as exc_info:
+            strategy.submit(message)
+        assert exc_info.value.partition == partition
+        assert exc_info.value.offset == offset

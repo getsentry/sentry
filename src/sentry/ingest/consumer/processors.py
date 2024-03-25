@@ -212,6 +212,8 @@ def process_event(
         # emit event_accepted once everything is done
         event_accepted.send_robust(ip=remote_addr, data=data, project=project, sender=process_event)
     except Exception as exc:
+        if isinstance(exc, KeyError):  # ex: missing event_id
+            raise
         raise Retriable(exc)
 
 

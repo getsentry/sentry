@@ -1,7 +1,6 @@
 import datetime
 import logging
 import random
-import time
 import uuid
 from unittest.mock import Mock
 
@@ -11,13 +10,13 @@ from django.conf import settings
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.consumers import get_stream_processor
-from sentry.event_manager import EventManager
 from sentry.eventstore.processing import event_processing_store
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_kafka, requires_snuba
-from sentry.utils import json
 from sentry.utils.batching_kafka_consumer import create_topics
 from sentry.utils.kafka_config import get_topic_definition
+
+from .test_utils import make_ingest_message
 
 """
 Based on test_ingest_consumer_kafka.py.
@@ -42,7 +41,6 @@ def get_feedback_message(default_project):
         now = datetime.datetime.now()
         # the event id should be 32 digits
         event_id = uuid.uuid4().hex
-        project_id = project.id  # must match the project id set up by the test fixtures
         event = {
             "event_id": event_id,
             "type": "feedback",
@@ -60,16 +58,7 @@ def get_feedback_message(default_project):
                 },
             },
         }
-        em = EventManager(event, project=project)
-        em.normalize()
-        normalized_event = dict(em.get_data())
-        message = {
-            "type": "event",
-            "start_time": int(time.time()),
-            "event_id": event_id,
-            "project_id": int(project_id),
-            "payload": json.dumps(normalized_event),
-        }
+        message, _ = make_ingest_message(event, project, normalize=True)
         val = msgpack.packb(message)
         return val, event_id
 

@@ -165,6 +165,7 @@ def should_filter_feedback(event, project_id, source: FeedbackCreationSource):
 
 def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
     metrics.incr("feedback.create_feedback_issue.entered")
+
     if should_filter_feedback(event, project_id, source):
         return
 
