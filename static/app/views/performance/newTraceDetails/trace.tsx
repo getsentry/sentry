@@ -1754,7 +1754,7 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
               key={i}
               className="TraceBar"
               style={{
-                left: `${left * 1000}%`,
+                left: `${left * 100}%`,
                 width: `${width * 100}%`,
                 backgroundColor: props.color,
               }}
@@ -2190,6 +2190,10 @@ const TraceStylingWrapper = styled('div')`
     padding: 0 2px;
     display: flex;
     align-items: center;
+
+    svg {
+      fill: ${p => p.theme.subText};
+    }
 
     &.Left {
       left: 0;
