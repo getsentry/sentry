@@ -107,12 +107,7 @@ export function TraceLevelDetails(props: TraceFooterProps) {
 
   return (
     <Wrapper>
-      <IssueList
-        issues={issues}
-        node={props.node}
-        organization={props.organization}
-        location={props.location}
-      />
+      <IssueList issues={issues} node={props.node} organization={props.organization} />
       {rootEvent ? (
         <WebVitalsAndTags>
           {webVitals.length > 0 ? (

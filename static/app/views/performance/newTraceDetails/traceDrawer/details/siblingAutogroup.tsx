@@ -1,6 +1,5 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
-import type {Location} from 'history';
 
 import {IconGroup} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -22,9 +21,7 @@ export function SiblingAutogroupNodeDetails({
   node,
   organization,
   onParentClick,
-  location,
 }: {
-  location: Location;
   node: SiblingAutogroupNode;
   onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   organization: Organization;
@@ -47,12 +44,7 @@ export function SiblingAutogroupNodeDetails({
         <div style={{fontWeight: 'bold'}}>{t('Autogroup')}</div>
       </TraceDrawerComponents.IconTitleWrapper>
 
-      <IssueList
-        issues={issues}
-        node={node}
-        organization={organization}
-        location={location}
-      />
+      <IssueList issues={issues} node={node} organization={organization} />
 
       <TraceDrawerComponents.Table className="table key-value">
         <tbody>

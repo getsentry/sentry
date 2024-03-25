@@ -1,6 +1,5 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import Count from 'sentry/components/count';
@@ -21,6 +20,7 @@ import type {Group, Organization} from 'sentry/types';
 import type {TraceErrorOrIssue} from 'sentry/utils/performance/quickTrace/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import type {
@@ -118,19 +118,18 @@ function Issue(props: IssueProps) {
 
 type IssueListProps = {
   issues: TraceErrorOrIssue[];
-  location: Location;
   node: TraceTreeNode<TraceTree.NodeValue>;
   organization: Organization;
 };
 
-export function IssueList({issues, node, organization, location}: IssueListProps) {
+export function IssueList({issues, node, organization}: IssueListProps) {
   if (!issues.length) {
     return null;
   }
 
   return (
     <StyledPanel>
-      <IssueListHeader node={node} location={location} />
+      <IssueListHeader node={node} />
       {issues.slice(0, MAX_DISPLAYED_ISSUES_COUNT).map((issue, index) => (
         <Issue key={index} issue={issue} organization={organization} />
       ))}
@@ -157,14 +156,9 @@ function getSearchParamFromNode(node: TraceTreeNode<TraceTree.NodeValue>) {
   return '';
 }
 
-function IssueListHeader({
-  node,
-  location,
-}: {
-  location: Location;
-  node: TraceTreeNode<TraceTree.NodeValue>;
-}) {
+function IssueListHeader({node}: {node: TraceTreeNode<TraceTree.NodeValue>}) {
   const {errors, performance_issues} = node;
+  const location = useLocation();
   const organization = useOrganization();
   const params = useParams<{traceSlug?: string}>();
 

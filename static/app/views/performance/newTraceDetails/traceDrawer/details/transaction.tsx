@@ -306,12 +306,7 @@ export function TransactionNodeDetails({
         </TraceDrawerComponents.Actions>
       </TraceDrawerComponents.HeaderContainer>
 
-      <IssueList
-        node={node}
-        organization={organization}
-        issues={issues}
-        location={location}
-      />
+      <IssueList node={node} organization={organization} issues={issues} />
 
       <TraceDrawerComponents.Table className="table key-value">
         <tbody>
