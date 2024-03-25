@@ -63,6 +63,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "apple-macos",
     "bun",
     "capacitor",
+    "convex",
     "cordova",
     "dart",
     "deno",
