@@ -1007,7 +1007,7 @@ class DecryptionTests(ImportTestCase):
             sha256 = hashes.SHA256()
             mgf = padding.MGF1(algorithm=sha256)
             oaep_padding = padding.OAEP(mgf=mgf, algorithm=sha256, label=None)
-            encrypted_dek = dek_encryption_key.encrypt(data_encryption_key, oaep_padding)  # type: ignore
+            encrypted_dek = dek_encryption_key.encrypt(data_encryption_key, oaep_padding)  # type: ignore[union-attr]
 
             tar_buffer = io.BytesIO()
             with tarfile.open(fileobj=tar_buffer, mode="w") as tar:

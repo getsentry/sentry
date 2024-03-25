@@ -232,7 +232,7 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
                 projects=[self.group.project],
                 organization_id=self.group.organization.id,
                 search_fn=None,
-                user=self.user,  # type: ignore
+                user=self.user,  # type: ignore[arg-type]
                 data=data,
             )
 

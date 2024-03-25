@@ -228,6 +228,6 @@ def wraps(
             ):
                 return f(*args, **kwargs)
 
-        return inner  # type: ignore
+        return inner  # type: ignore[return-value]
 
     return wrapper

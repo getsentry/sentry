@@ -36,7 +36,6 @@ from sentry.models.apiapplication import ApiApplication
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_component import SentryAppComponent
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
-from sentry.models.project import Project
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -138,17 +137,6 @@ def fetch_alert_rule(request: Request, organization, alert_rule):
 
 def update_alert_rule(request: Request, organization, alert_rule):
     data = request.data
-    organization_id = data.get("organizationId")
-    if not organization_id:
-        project_slugs = data.get("projects")
-        if project_slugs:
-            projects = Project.objects.filter(slug__in=project_slugs)
-            if not projects:
-                return Response(
-                    "Must pass organizationId or projects in request data",
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            organization_id = projects[0].organization_id
     serializer = DrfAlertRuleSerializer(
         context={
             "organization": organization,
@@ -156,7 +144,7 @@ def update_alert_rule(request: Request, organization, alert_rule):
             "user": request.user,
             "ip_address": request.META.get("REMOTE_ADDR"),
             "installations": app_service.get_installed_for_organization(
-                organization_id=organization_id
+                organization_id=organization.id
             ),
         },
         instance=alert_rule,
@@ -169,7 +157,7 @@ def update_alert_rule(request: Request, organization, alert_rule):
             # need to kick off an async job for Slack
             client = RedisRuleStatus()
             task_args = {
-                "organization_id": organization_id,
+                "organization_id": organization.id,
                 "uuid": client.uuid,
                 "data": data,
                 "alert_rule_id": alert_rule.id,

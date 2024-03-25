@@ -656,8 +656,8 @@ function Trace({
           : null}
 
         {manager.interval_bars.map((_, i) => {
-          const indicatorTimestamp = manager.intervals[i];
-          const timestamp = manager.to_origin + indicatorTimestamp ?? 0;
+          const indicatorTimestamp = manager.intervals[i] ?? 0;
+          const timestamp = manager.to_origin + indicatorTimestamp;
 
           if (trace.type !== 'trace') {
             return null;
@@ -2003,6 +2003,9 @@ const TraceStylingWrapper = styled('div')`
       justify-content: center;
 
       svg {
+        width: 12px;
+        height: 12px;
+        margin-left: 2px;
         fill: ${p => p.theme.white};
       }
     }
@@ -2061,6 +2064,10 @@ const TraceStylingWrapper = styled('div')`
 
       .TraceChildrenCount {
         border: 2px solid ${p => p.theme.error};
+
+        svg {
+          fill: ${p => p.theme.error};
+        }
       }
 
       &:focus,
@@ -2191,6 +2198,10 @@ const TraceStylingWrapper = styled('div')`
     display: flex;
     align-items: center;
 
+    svg {
+      fill: ${p => p.theme.subText};
+    }
+
     &.Left {
       left: 0;
     }
@@ -2275,6 +2286,7 @@ const TraceStylingWrapper = styled('div')`
     svg {
       width: 7px;
       transition: none;
+      fill: ${p => p.theme.textColor};
     }
   }
 
