@@ -613,6 +613,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                     name=query.get("name", ""),
                     orderby=query.get("orderby", ""),
                     order=i,
+                    is_hidden=query.get("is_hidden", False),
                 )
             )
         DashboardWidgetQuery.objects.bulk_create(new_queries)
