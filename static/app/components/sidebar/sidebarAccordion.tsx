@@ -128,21 +128,10 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
         </SidebarAccordionSubitemsWrap>
       )}
       {isOpenInFloatingSidebar && (horizontal || sidebarCollapsed) && (
-        <div
-          style={{
-            position: 'absolute',
-            width: !horizontal ? '200px' : '100%',
-            padding: space(2),
-            top: !horizontal
-              ? accoridonRef.current?.getBoundingClientRect().top
-              : theme.sidebar.mobileHeight,
-            left: !horizontal ? theme.sidebar.collapsedWidth : 0,
-            backgroundColor: 'white',
-          }}
-        >
+        <FloatingSidebar accordionRef={accoridonRef} horizontal={horizontal}>
           <SidebarItemLabel>{itemProps.label}</SidebarItemLabel>
           {children}
-        </div>
+        </FloatingSidebar>
       )}
     </SidebarAccordionWrapper>
   );
@@ -183,10 +172,39 @@ function findChildElementsInTree(
   return found;
 }
 
-const SidebarItemLabel = styled('span')`
+const SidebarItemLabel = styled('div')`
   color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeMedium};
+  padding: ${space(1)} 0 ${space(1)} 18px;
+  font-size: ${p => p.theme.fontSizeLarge};
   white-space: nowrap;
+`;
+
+const FloatingSidebar = styled('div')<{
+  accordionRef: React.RefObject<HTMLDivElement>;
+  horizontal: boolean;
+}>`
+  position: absolute;
+  width: ${p => (p.horizontal ? '100%' : '200px')};
+  padding: ${space(2)};
+  top: ${p =>
+    p.horizontal
+      ? p.theme.sidebar.mobileHeight
+      : p.accordionRef.current?.getBoundingClientRect().top};
+  left: ${p =>
+    p.horizontal ? 0 : `calc(${p.theme.sidebar.collapsedWidth} + ${space(1)})`};
+  background-color: white;
+
+  animation: fadeIn 0.3s ease-in-out;
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  ${p => !p.horizontal && `box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);`}
 `;
 
 const SidebarAccordionWrapper = styled('div')`

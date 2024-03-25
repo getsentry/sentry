@@ -85,10 +85,14 @@ export type SidebarItemProps = {
    */
   isBeta?: boolean;
   /**
+   * Is the sidebar collapsed or in mobile view
+   */
+  isFloatingSidebar?: boolean;
+
+  /**
    * Is this item nested within another item
    */
   isNested?: boolean;
-
   /**
    * Specify the variant for the badge.
    */
@@ -97,10 +101,6 @@ export type SidebarItemProps = {
    * An optional prefix that can be used to reset the "new" indicator
    */
   isNewSeenKeySuffix?: string;
-  /**
-   * Is the sidebar collapsed or in mobile view
-   */
-  isSmall?: boolean;
   onClick?: (id: string, e: React.MouseEvent<HTMLAnchorElement>) => void;
   search?: string;
   to?: string;
@@ -136,7 +136,7 @@ function SidebarItem({
   trailingItems,
   variant,
   isNested,
-  isSmall = false,
+  isFloatingSidebar = false,
   ...props
 }: SidebarItemProps) {
   const {setOpenMainItem} = useContext(ExpandedContext);
@@ -192,7 +192,7 @@ function SidebarItem({
     [href, to, id, onClick, recordAnalytics, showIsNew, isNewSeenKey, setOpenMainItem]
   );
 
-  const isInFloatingSidebar = isNested && isSmall;
+  const isInFloatingSidebar = isNested && isFloatingSidebar;
   const isInCollapsedState = !isInFloatingSidebar && collapsed;
 
   return (
@@ -208,7 +208,7 @@ function SidebarItem({
       <StyledSidebarItem
         {...props}
         id={`sidebar-item-${id}`}
-        isSmall={isSmall}
+        isFloatingSidebar={isFloatingSidebar}
         active={isActive ? 'true' : undefined}
         to={toProps}
         className={className}
@@ -290,18 +290,18 @@ export default SidebarItem;
 const getActiveStyle = ({
   active,
   theme,
-  isSmall,
+  isFloatingSidebar,
 }: {
   active?: string;
-  isSmall?: boolean;
+  isFloatingSidebar?: boolean;
   theme?: Theme;
 }) => {
   if (!active) {
     return '';
   }
-  if (isSmall) {
+  if (isFloatingSidebar) {
     return css`
-      color: ${theme?.green300};
+      color: ${theme?.gray500};
 
       &:active,
       &:focus,
@@ -374,7 +374,7 @@ const StyledSidebarItem = styled(Link, {
 
   &:hover,
   &:focus-visible {
-    color: ${p => (p.isSmall ? p.theme.gray500 : p.theme.white)};
+    color: ${p => (p.isFloatingSidebar ? p.theme.gray500 : p.theme.white)};
   }
 
   &:focus {

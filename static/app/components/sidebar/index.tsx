@@ -180,12 +180,12 @@ function Sidebar() {
     organization,
   };
 
-  const isSmallSidebar = horizontal || collapsed;
+  const isFloatingSidebar = horizontal || collapsed;
 
   const nestedSidebarItemProps = {
     ...sidebarItemProps,
     isNested: true,
-    isSmall: isSmallSidebar,
+    isFloatingSidebar,
     orientation: 'left' as SidebarOrientation,
   };
 
@@ -256,7 +256,7 @@ function Sidebar() {
               label={<GuideAnchor target="performance">{t('Performance')}</GuideAnchor>}
               to={`/organizations/${organization.slug}/performance/`}
               id="performance"
-              exact={!isSmallSidebar}
+              exact={!isFloatingSidebar}
             >
               <Feature features="performance-database-view" organization={organization}>
                 <SidebarItem
@@ -354,7 +354,7 @@ function Sidebar() {
         label={<GuideAnchor target="starfish">{t('Starfish')}</GuideAnchor>}
         to={`/organizations/${organization.slug}/starfish/`}
         id="starfish"
-        exact={!isSmallSidebar}
+        exact={!isFloatingSidebar}
       >
         <SidebarItem
           {...nestedSidebarItemProps}
