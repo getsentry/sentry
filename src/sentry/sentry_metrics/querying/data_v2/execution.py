@@ -10,13 +10,13 @@ from snuba_sdk.conditions import BooleanCondition, BooleanOp, Condition, Op
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.common import SNUBA_QUERY_LIMIT
+from sentry.sentry_metrics.querying.constants import SNUBA_QUERY_LIMIT
 from sentry.sentry_metrics.querying.data_v2.preparation.base import IntermediateQuery
 from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
     MetricsQueryExecutionError,
 )
-from sentry.sentry_metrics.querying.types import GroupKey, GroupsCollection, QueryOrder, QueryType
+from sentry.sentry_metrics.querying.types import GroupsCollection, QueryOrder, QueryType
 from sentry.sentry_metrics.querying.units import MeasurementUnit, UnitFamily
 from sentry.sentry_metrics.querying.visitors import (
     QueriedMetricsVisitor,
@@ -69,50 +69,6 @@ def _build_composite_key_from_dict(
             composite_key.append((key, value))
 
     return tuple(composite_key)
-
-
-def _build_indexed_seq(
-    seq: Sequence[Mapping[str, Any]], alignment_keys: Sequence[str]
-) -> Mapping[GroupKey, int]:
-    """
-    Creates an inverted index on the supplied sequence of Snuba rows.
-
-    The index is keyed by the composite key which is computed from a set of alignment keys that define the order in
-    which the key is built.
-
-    Returns:
-        A mapping between composite key and the index of the entry which has that key.
-    """
-    indexed_seq = {}
-    for index, data in enumerate(seq):
-        composite_key = _build_composite_key_from_dict(data, alignment_keys)
-        indexed_seq[composite_key] = index
-
-    return indexed_seq
-
-
-def _build_aligned_seq(
-    seq: Sequence[Mapping[str, Any]],
-    reference_seq: Sequence[Mapping[str, Any]],
-    alignment_keys: Sequence[str],
-    indexed_seq: Mapping[GroupKey, int],
-) -> Sequence[Mapping[str, Any]]:
-    """
-    Aligns a sequence of rows to a reference sequence of rows by using reverse index which was built to speed up the
-    alignment process.
-
-    Returns:
-        The aligned sequence.
-    """
-    aligned_seq = []
-
-    for data in reference_seq:
-        composite_key = _build_composite_key_from_dict(data, alignment_keys)
-        index = indexed_seq.get(composite_key)
-        if index is not None:
-            aligned_seq.append(seq[index])
-
-    return aligned_seq
 
 
 def _push_down_group_filters(

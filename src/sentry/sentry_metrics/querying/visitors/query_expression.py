@@ -4,7 +4,7 @@ from snuba_sdk import AliasedExpression, Column, Condition, Formula, Op, Timeser
 from snuba_sdk.conditions import ConditionGroup
 
 from sentry.models.environment import Environment
-from sentry.sentry_metrics.querying.common import COEFFICIENT_OPERATORS
+from sentry.sentry_metrics.querying.constants import COEFFICIENT_OPERATORS
 from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
 from sentry.sentry_metrics.querying.types import QueryExpression
 from sentry.sentry_metrics.querying.units import (
