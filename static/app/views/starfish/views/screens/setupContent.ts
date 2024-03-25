@@ -23,6 +23,17 @@ import io.sentry.Sentry
 Sentry.reportFullyDisplayed()
 `;
 
+const reactNativeSnippet = `// Step 1 - Use TimeToFullDisplay Component
+import * as Sentry from '@sentry/react-native';
+
+<Sentry.TimeToFullDisplay record={false}>
+  <MyView />
+</Sentry.TimeToFullDisplay>
+
+// Step 2 - Set \`record={true}\` when screen is to be fully drawn
+<Sentry.TimeToFullDisplay record={true} />
+`;
+
 export const SETUP_CONTENT: CodeSnippetTab[] = [
   {
     code: swiftSetupSnippet,
@@ -35,5 +46,11 @@ export const SETUP_CONTENT: CodeSnippetTab[] = [
     label: 'Kotlin',
     language: 'unknown',
     value: 'kotlin',
+  },
+  {
+    code: reactNativeSnippet,
+    label: 'React Native',
+    language: 'jsx',
+    value: 'react-native',
   },
 ];
