@@ -36,7 +36,7 @@ def _deserialize_span(value: bytes) -> Mapping[str, Any]:
 
 def process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | None:
     if not options.get("standalone-spans.process-spans-consumer.enable"):
-        return
+        return None
 
     assert isinstance(message.value, BrokerValue)
     try:
@@ -45,10 +45,10 @@ def process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | N
         project_id = span["project_id"]
     except Exception:
         logger.exception("Failed to process span payload")
-        return
+        return None
 
     if project_id not in options.get("standalone-spans.process-spans-consumer.project-allowlist"):
-        return
+        return None
 
     timestamp = int(message.value.timestamp.timestamp())
     partition = message.value.partition.index
