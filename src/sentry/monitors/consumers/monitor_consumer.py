@@ -327,6 +327,10 @@ def update_existing_check_in(
         updated_status,
         start_time,
     )
+    metrics.incr(
+        "monitors.checkin.result",
+        tags={**metric_kwargs, "status": "updated_existing_checkin"},
+    )
 
     # IN_PROGRESS heartbeats bump the date_updated
     if updated_status == CheckInStatus.IN_PROGRESS:
@@ -729,6 +733,10 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
                 else:
                     txn.set_tag("outcome", "create_new_checkin")
                     signal_first_checkin(project, monitor)
+                    metrics.incr(
+                        "monitors.checkin.result",
+                        tags={**metric_kwargs, "status": "created_new_checkin"},
+                    )
 
             track_outcome(
                 org_id=project.organization_id,
