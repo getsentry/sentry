@@ -33,9 +33,13 @@ from sentry.utils.snuba import SnubaError
 
 def _extract_groups_from_seq(seq: Sequence[Mapping[str, Any]]) -> GroupsCollection:
     """
-    Returns the groups from a sequence of rows returned by Snuba.
+    Extracts all groups from a series of results.
 
-    Rows from Snuba are in the form [{"time": x, "aggregate_value": y, "group_1": z, "group_2": a}].
+    An example element of the sequence is {"time": x, "aggregate_value": y, "group_1": z, "group_2": a} which will be
+    transformed into [("group_1", z), ("group_2", a)].
+
+    Returns:
+        The extracted groups from the sequence as a list containing lists of tuples.
     """
     groups = []
     for data in seq:
@@ -55,6 +59,9 @@ def _build_composite_key_from_dict(
 ) -> tuple[tuple[str, str], ...]:
     """
     Builds a hashable composite key given a series of keys that are looked up in the supplied data.
+
+    Returns:
+        A tuple containing pairs of group key and group value.
     """
     composite_key = []
     for key in alignment_keys:
@@ -68,8 +75,13 @@ def _build_indexed_seq(
     seq: Sequence[Mapping[str, Any]], alignment_keys: Sequence[str]
 ) -> Mapping[GroupKey, int]:
     """
-    Creates an inverted index on the supplied sequence of Snuba rows. The index is keyed by the composite key which is
-    computed from a set of alignment keys that define the order in which the key is built.
+    Creates an inverted index on the supplied sequence of Snuba rows.
+
+    The index is keyed by the composite key which is computed from a set of alignment keys that define the order in
+    which the key is built.
+
+    Returns:
+        A mapping between composite key and the index of the entry which has that key.
     """
     indexed_seq = {}
     for index, data in enumerate(seq):
@@ -88,6 +100,9 @@ def _build_aligned_seq(
     """
     Aligns a sequence of rows to a reference sequence of rows by using reverse index which was built to speed up the
     alignment process.
+
+    Returns:
+        The aligned sequence.
     """
     aligned_seq = []
 
@@ -104,14 +119,16 @@ def _push_down_group_filters(
     metrics_query: MetricsQuery, groups_collection: GroupsCollection | None
 ) -> MetricsQuery:
     """
-    Returns a new `MetricsQuery` with a series of filters that ensure that the new query will have the same
-    groups returned. Keep in mind that there is no guarantee that all the groups will be returned, since data might
-    change in the meanwhile, so the guarantee of this method is that the returned groups will all be belonging to
-    `groups_collection`.
+    Pushes down group filters to each component of the MetricsQuery.
 
-    The need for this filter arises because when executing multiple queries, we want to have the same groups
-    returned, in order to make results consistent. Note that in case queries have different groups, some results
-    might be missing, since the reference query dictates which values are returned during the alignment process.
+    The need for these filters arises because when executing multiple queries, we want to have the same groups
+    returned, in order to make results consistent.
+
+    Keep in mind that there is no guarantee that all the groups will be returned, since data might change in the
+    meanwhile, so the guarantee of this method is that the returned groups will all belong to `groups_collection`.
+
+    Returns:
+        A new MetricsQuery with the group filters applied.
     """
     if not groups_collection:
         return metrics_query
@@ -138,12 +155,24 @@ def _push_down_group_filters(
 
 
 class ScheduledQueryType(Enum):
+    """
+    Represents the type of query that needs to be scheduled for execution.
+    """
+
     SERIES = 0
     TOTALS = 1
 
 
 @dataclass(frozen=True)
 class ScheduledQuery:
+    """
+    Represents a query that needs to be scheduled for execution.
+
+    Attributes:
+        next: The next query that has a dependency with this, meaning that the executor will execute them serially.
+        dynamic_limit: True if the query is using the dynamic limit determined during initialization.
+    """
+
     type: ScheduledQueryType
     metrics_query: MetricsQuery
     next: Union["ScheduledQuery", None] = None
@@ -160,6 +189,12 @@ class ScheduledQuery:
         projects: Sequence[Project],
         blocked_metrics_for_projects: Mapping[str, set[int]],
     ) -> "ScheduledQuery":
+        """
+        Initializes the query via a series of transformations that prepare it for being executed.
+
+        Returns:
+            A new ScheduledQuery with all the transformations applied.
+        """
         updated_metrics_query = self.metrics_query
 
         # We filter out all the projects for which the queried metrics are blocked.
@@ -196,6 +231,12 @@ class ScheduledQuery:
         )
 
     def _initialize_series(self, metrics_query: MetricsQuery) -> MetricsQuery:
+        """
+        Initializes the query as if it was a timeseries query.
+
+        Returns:
+            A new MetricsQuery with the required transformations for being executed as a timeseries query.
+        """
         updated_metrics_query = metrics_query
 
         # A series query runs always up to the maximum query limit.
@@ -206,6 +247,12 @@ class ScheduledQuery:
     def _initialize_totals(
         self, metrics_query: MetricsQuery, intervals_number: int | None
     ) -> tuple[MetricsQuery, bool]:
+        """
+        Initializes the query as if it was a totals query.
+
+        Returns:
+            A new MetricsQuery with the required transformations for being executed as a totals query.
+        """
         updated_metrics_query = metrics_query
 
         # A totals query doesn't have an interval.
@@ -241,6 +288,12 @@ class ScheduledQuery:
         return updated_metrics_query, dynamic_limit
 
     def is_empty(self) -> bool:
+        """
+        Checks if a query is empty, where empty means that it doesn't query any org or any projects.
+
+        Returns:
+            A boolean indicating whether the query is empty or not.
+        """
         return not self.metrics_query.scope.org_ids or not self.metrics_query.scope.project_ids
 
     @classmethod
@@ -251,6 +304,12 @@ class ScheduledQuery:
         projects: Sequence[Project],
         blocked_metrics_for_projects: Mapping[str, set[int]],
     ) -> MetricsQuery:
+        """
+        Filters the projects for which the queried metrics are blocked.
+
+        Returns:
+            A new MetricsQuery which filters only the projects for which all metrics are available.
+        """
         intersected_projects: set[int] = {project.id for project in projects}
 
         for queried_metric in QueriedMetricsVisitor().visit(metrics_query.query):
@@ -268,6 +327,17 @@ class ScheduledQuery:
 
     @classmethod
     def _align_date_range(cls, metrics_query: MetricsQuery) -> tuple[MetricsQuery, int | None]:
+        """
+        Aligns the date range of the query to the outermost bounds of the interval time range considering the interval.
+
+        For example, if we were to query from 9:30 to 11:30 with 1 hour of interval, the new aligned date range would
+        be 9:00 to 12:00. This is done so that we can use higher granularities at the storage later to satisfy the
+        query since now we can use 3 buckets of 1 hour but if we were to keep the original interval, we were forced to
+        query all the minutes between 9:30 and 11:30 since the biggest granularity < hour is minute.
+
+        Returns:
+            A new MetricsQuery with the aligned date range and the numbers of the intervals.
+        """
         # We use as a reference the interval supplied via the initial version of the query.
         interval = metrics_query.rollup.interval
         if interval:
@@ -287,6 +357,14 @@ class ScheduledQuery:
 
 @dataclass(frozen=True)
 class QueryResult:
+    """
+    Represents the result of a ScheduledQuery containing its associated series and totals results.
+
+    Attributes:
+        has_more: True if the query has more groups stored than they were returned. This is used in conjunction with
+            dynamic limiting.
+    """
+
     series_query: ScheduledQuery | None
     totals_query: ScheduledQuery | None
     result: Mapping[str, Any]
@@ -300,9 +378,22 @@ class QueryResult:
 
     @classmethod
     def empty_from(cls, scheduled_query: ScheduledQuery) -> "QueryResult":
+        """
+        Creates a new empty QueryResult from a ScheduledQuery.
+
+        The idea behind using an empty query result is to be able to represent the values of queries that are not run
+        by the executor (for example because they are empty). Representing such queries as empty results in a cleaner
+        implementation of the downstream code since no modifications need to be done. It's not ideal but it simplifies
+        the code quite a bit.
+
+        Returns:
+            An empty QueryResult which contains no data.
+        """
         series_query = None
         totals_query = None
 
+        # For now, we naively assume that if a query has a next, the first is a totals query and the second is a series
+        # query.
         if scheduled_query.next is not None:
             totals_query = scheduled_query
             series_query = scheduled_query.next
@@ -329,6 +420,12 @@ class QueryResult:
     def from_scheduled_query(
         cls, scheduled_query: ScheduledQuery, query_result: Mapping[str, Any], has_more: bool
     ) -> "QueryResult":
+        """
+        Creates a QueryResult from a ScheduledQuery.
+
+        Returns:
+            A QueryResult which contains the scheduled query and its results.
+        """
         # We add these fields as top level, so that when merging `QueryResult`(s) we are able to do that easily.
         extended_result = {
             "modified_start": query_result["modified_start"],
@@ -360,6 +457,12 @@ class QueryResult:
         return cast(ScheduledQuery, self.series_query or self.totals_query)
 
     def merge(self, other: "QueryResult") -> "QueryResult":
+        """
+        Merges two QueryResult(s) into a single QueryResult by arbitrarily taking attributes of either of them.
+
+        Returns:
+            A QueryResult which contains the data of both QueryResult(s).
+        """
         return QueryResult(
             series_query=self.series_query or other.series_query,
             totals_query=self.totals_query or other.totals_query,
@@ -440,7 +543,10 @@ class QueryResult:
         """
         Aligns the series to the totals of the same query.
 
-        Note that the alignment performs a mutation of the current object.
+        The alignment process just tries to place values belonging to the same groups in the same order.
+
+        Returns:
+            A mutated QueryResult objects with the aligned series to totals.
         """
         alignment_keys = self.group_bys
         if not alignment_keys:
@@ -471,6 +577,7 @@ class QueryResult:
             for index in indexes or ():
                 aligned_series.append(self.series[index])
 
+        # For the sake of simplicity we are mutating the original data.
         if aligned_series:
             self.result["series"]["data"] = aligned_series
 
@@ -479,9 +586,25 @@ class QueryResult:
 
 @dataclass
 class PartialQueryResult:
+    """
+    Represents a partial query result which contains all the queries that are linearly dependent and their results.
+
+    This result is stored in the array of results for each ScheduledQuery that has a next parameter.
+
+    Attributes:
+        previous_queries: All the previous queries that have been executed as part of a single list of chained queries,
+            defined via the next parameter of ScheduledQuery.
+    """
+
     previous_queries: list[tuple[ScheduledQuery, Mapping[str, Any], bool]]
 
     def to_query_result(self) -> QueryResult:
+        """
+        Transforms a PartialQueryResult in a QueryResult by taking the last query that was executed in the list.
+
+        Returns:
+            A QueryResult which contains the data of the last query executed as part of this PartialQueryResult.
+        """
         # For now, we naively return the first scheduled query and result, but this is just because
         # we currently support only the chaining of at most two queries, meaning that a partial result
         # can accumulate only one query.
@@ -492,6 +615,10 @@ class PartialQueryResult:
 
 
 class QueryExecutor:
+    """
+    Represents an executor that is responsible for scheduling execution of the supplied ScheduledQuery(s).
+    """
+
     def __init__(self, organization: Organization, projects: Sequence[Project], referrer: str):
         self._organization = organization
         self._projects = projects
@@ -510,8 +637,11 @@ class QueryExecutor:
 
     def _load_blocked_metrics_for_projects(self) -> Mapping[str, set[int]]:
         """
-        Load the blocked metrics for the supplied projects and stores them in the executor in an efficient way that
+        Loads the blocked metrics for the supplied projects and stores them in the executor in an efficient way that
         speeds up the determining of the projects to exclude from the query.
+
+        Returns:
+            A mapping of blocked projects for each metric mri.
         """
         blocked_metrics_for_projects: dict[str, set[int]] = {}
 
@@ -527,7 +657,10 @@ class QueryExecutor:
 
     def _build_request(self, query: MetricsQuery) -> Request:
         """
-        Builds a Snuba request given a MetricsQuery to execute.
+        Builds a Snuba Request given a MetricsQuery to execute.
+
+        Returns:
+            A Snuba Request object which contains the query to execute.
         """
         return Request(
             # The dataset used here is arbitrary, since the `run_query` function will infer it internally.
@@ -540,6 +673,13 @@ class QueryExecutor:
     def _build_request_for_partial(
         self, query: MetricsQuery, partial_query_result: PartialQueryResult
     ) -> Request:
+        """
+        Builds a Snuba Request given a PartialQueryResult by applying the filters of the last query in the partial
+        result to the MetricsQuery that we want to execute.
+
+        Returns:
+            A Snuba Request object which contains the transformed query to execute.
+        """
         # We compute the groups that were returned by the query that was executed. We then inject those groups in each
         # `Timeseries` of the next query to execute. We do this in order to have at least the same groups returned by
         # the next query.
@@ -557,6 +697,12 @@ class QueryExecutor:
         return self._build_request(next_metrics_query)
 
     def _bulk_run_query(self, requests: list[Request]) -> list[Mapping[str, Any]]:
+        """
+        Wraps the bulk_run_query method with some additional metrics and error handling.
+
+        Returns:
+            The results of the bulk_run_query method.
+        """
         self._number_of_executed_queries += len(requests)
 
         try:
@@ -569,7 +715,13 @@ class QueryExecutor:
 
     def _bulk_execute(self) -> bool:
         """
-        Executes all the scheduled queries in `_scheduled_queries` and merges the results into `_query_results`.
+        Executes all the scheduled queries in _scheduled_queries and merges the results into _query_results.
+
+        This method must be called in a loop since it advances the execution one step at a time by parallelizing as much
+        as possible all the queries that have to be executed and that have no sequential dependency defined via next.
+
+        Returns:
+            A boolean which is True when more queries can be executed or False otherwise.
         """
         # We create all the requests that can be run in bulk, by checking the scheduled queries that we can run.
         bulk_requests = []
@@ -660,7 +812,10 @@ class QueryExecutor:
 
     def execute(self) -> Sequence[QueryResult]:
         """
-        Executes the scheduled queries serially.
+        Executes the scheduled queries in the execution loop.
+
+        Returns:
+            The results of the scheduled queries.
         """
         if not self._scheduled_queries:
             return []
@@ -677,9 +832,7 @@ class QueryExecutor:
 
     def schedule(self, intermediate_query: IntermediateQuery, query_type: QueryType):
         """
-        Lazily schedules a query for execution.
-
-        Note that this method won't execute the query, since it's lazy in nature.
+        Lazily schedules an IntermediateQuery for execution and runs initialization code for each ScheduledQuery.
         """
         # By default, we always want to have a totals query.
         totals_query = ScheduledQuery(
