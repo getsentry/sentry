@@ -11,8 +11,18 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 
+interface QueryParams extends MetricsQuery {
+  id?: number;
+  isHidden?: boolean;
+}
+
+interface EquationParams {
+  formula: string;
+  isHidden?: boolean;
+}
+
 export function convertToDashboardWidget(
-  metricQueries: ((MetricsQuery & {id?: number}) | {formula: string})[],
+  metricQueries: (QueryParams | EquationParams)[],
   displayType?: MetricDisplayType,
   title = ''
 ): Widget {
@@ -23,7 +33,7 @@ export function convertToDashboardWidget(
     widgetType: WidgetType.METRICS,
     limit: 10,
     queries: metricQueries.map(query =>
-      'formula' in query ? getWidgetEquation(query.formula) : getWidgetQuery(query)
+      'formula' in query ? getWidgetEquation(query) : getWidgetQuery(query)
     ),
   };
 }
@@ -35,7 +45,7 @@ export function toDisplayType(displayType: unknown): DisplayType {
   return DisplayType.LINE;
 }
 
-export function getWidgetQuery(metricsQuery: MetricsQuery & {id?: number}): WidgetQuery {
+export function getWidgetQuery(metricsQuery: QueryParams): WidgetQuery {
   const field = MRIToField(metricsQuery.mri, metricsQuery.op);
   return {
     name: defined(metricsQuery.id) ? `${metricsQuery.id}` : '',
@@ -45,18 +55,20 @@ export function getWidgetQuery(metricsQuery: MetricsQuery & {id?: number}): Widg
     conditions: metricsQuery.query ?? '',
     // @ts-expect-error TODO: change type of orderby
     orderby: undefined,
+    isHidden: metricsQuery.isHidden,
   };
 }
 
-export function getWidgetEquation(equation: string): WidgetQuery {
+export function getWidgetEquation(equation: EquationParams): WidgetQuery {
   return {
     name: '',
-    aggregates: [`equation|${equation}`],
+    aggregates: [`equation|${equation.formula}`],
     columns: [],
-    fields: [`equation|${equation}`],
+    fields: [`equation|${equation.formula}`],
     conditions: '',
     // @ts-expect-error TODO: change type of orderby
     orderby: undefined,
+    isHidden: equation.isHidden,
   };
 }
 

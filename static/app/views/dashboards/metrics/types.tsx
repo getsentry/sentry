@@ -5,6 +5,7 @@ export type Order = 'asc' | 'desc' | undefined;
 
 export interface DashboardMetricsQuery {
   id: number;
+  isHidden: boolean;
   mri: MRI;
   op: string;
   orderBy: Order;
@@ -18,6 +19,7 @@ export interface DashboardMetricsQuery {
 export interface DashboardMetricsEquation {
   formula: string;
   id: number;
+  isHidden: boolean;
   type: MetricQueryType.FORMULA;
 }
 

@@ -29,6 +29,7 @@ describe('getMetricExpressions function', () => {
         query: 'foo:bar',
         type: MetricQueryType.QUERY,
         orderBy: 'asc',
+        isHidden: false,
       } satisfies DashboardMetricsExpression,
     ]);
   });
@@ -51,6 +52,7 @@ describe('getMetricExpressions function', () => {
         id: 0,
         formula: '$a + $b',
         type: MetricQueryType.FORMULA,
+        isHidden: false,
       } satisfies DashboardMetricsExpression,
     ]);
   });
@@ -86,6 +88,7 @@ describe('getMetricExpressions function', () => {
         query: 'foo:bar release:1.0',
         type: MetricQueryType.QUERY,
         orderBy: 'desc',
+        isHidden: false,
       } satisfies DashboardMetricsExpression,
       {
         groupBy: [],
@@ -95,6 +98,7 @@ describe('getMetricExpressions function', () => {
         query: 'foo:baz release:1.0',
         type: MetricQueryType.QUERY,
         orderBy: undefined,
+        isHidden: false,
       } satisfies DashboardMetricsExpression,
     ]);
   });
@@ -122,6 +126,7 @@ describe('getMetricExpressions function', () => {
         query: 'release:[1.0,2.0]',
         type: MetricQueryType.QUERY,
         orderBy: undefined,
+        isHidden: false,
       } satisfies DashboardMetricsExpression,
     ]);
   });
@@ -154,6 +159,7 @@ describe('expressionsToWidget', () => {
         query: 'foo:bar',
         type: MetricQueryType.QUERY,
         orderBy: 'asc',
+        isHidden: true,
       } satisfies DashboardMetricsExpression,
     ];
 
@@ -173,6 +179,7 @@ describe('expressionsToWidget', () => {
           columns: ['release'],
           name: '0',
           orderby: 'asc',
+          isHidden: true,
         },
       ],
     } satisfies Widget);
@@ -184,6 +191,7 @@ describe('expressionsToWidget', () => {
         id: 1,
         formula: '$a + $b',
         type: MetricQueryType.FORMULA,
+        isHidden: false,
       } satisfies DashboardMetricsExpression,
     ];
 
@@ -203,6 +211,7 @@ describe('expressionsToWidget', () => {
           columns: [],
           name: '1',
           orderby: '',
+          isHidden: false,
         },
       ],
     } satisfies Widget);
@@ -218,11 +227,13 @@ describe('expressionsToWidget', () => {
         query: 'foo:bar',
         type: MetricQueryType.QUERY,
         orderBy: 'asc',
+        isHidden: true,
       } satisfies DashboardMetricsExpression,
       {
         id: 1,
         formula: '$a + $b',
         type: MetricQueryType.FORMULA,
+        isHidden: false,
       } satisfies DashboardMetricsExpression,
     ];
 

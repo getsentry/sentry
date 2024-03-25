@@ -108,6 +108,7 @@ export function getMetricQueries(
       query: extendQuery(query.conditions, dashboardFilters),
       groupBy: query.columns,
       orderBy: orderBy === 'asc' || orderBy === 'desc' ? orderBy : undefined,
+      isHidden: !!query.isHidden,
     };
   });
 
@@ -137,6 +138,7 @@ export function getMetricEquations(widget: Widget): DashboardMetricsEquation[] {
         id: id,
         type: MetricQueryType.FORMULA,
         formula: query.aggregates[0].slice(9),
+        isHidden: !!query.isHidden,
       } satisfies DashboardMetricsEquation;
     }
   );
@@ -163,14 +165,16 @@ export function useGenerateExpressionId(expressions: DashboardMetricsExpression[
 export function expressionsToApiQueries(
   expressions: DashboardMetricsExpression[]
 ): MetricsQueryApiQueryParams[] {
-  return expressions.map(e =>
-    isMetricsFormula(e)
-      ? {
-          formula: e.formula,
-          name: getEquationSymbol(e.id),
-        }
-      : {...e, name: getQuerySymbol(e.id)}
-  );
+  return expressions
+    .filter(e => !(e.type === MetricQueryType.FORMULA && e.isHidden))
+    .map(e =>
+      isMetricsFormula(e)
+        ? {
+            formula: e.formula,
+            name: getEquationSymbol(e.id),
+          }
+        : {...e, name: getQuerySymbol(e.id), isQueryOnly: e.isHidden}
+    );
 }
 
 export function toMetricDisplayType(displayType: unknown): MetricDisplayType {
@@ -190,18 +194,20 @@ function getWidgetQuery(metricsQuery: DashboardMetricsQuery): WidgetQuery {
     fields: [field],
     conditions: metricsQuery.query ?? '',
     orderby: metricsQuery.orderBy ?? '',
+    isHidden: metricsQuery.isHidden,
   };
 }
 
-function getWidgetEquation(metricsFormula: DashboardMetricsEquation): WidgetQuery {
+function getWidgetEquation(metricsEquation: DashboardMetricsEquation): WidgetQuery {
   return {
-    name: `${metricsFormula.id}`,
-    aggregates: [`equation|${metricsFormula.formula}`],
+    name: `${metricsEquation.id}`,
+    aggregates: [`equation|${metricsEquation.formula}`],
     columns: [],
-    fields: [`equation|${metricsFormula.formula}`],
+    fields: [`equation|${metricsEquation.formula}`],
     // Not used for equations
     conditions: '',
     orderby: '',
+    isHidden: metricsEquation.isHidden,
   };
 }
 
@@ -246,6 +252,7 @@ export function defaultMetricWidget(): Widget {
         op: 'avg',
         query: '',
         orderBy: 'desc',
+        isHidden: false,
       },
     ],
     '',
