@@ -855,7 +855,7 @@ class IssueListOverview extends Component<Props, State> {
       num_old_issues: numOldIssues,
       num_new_issues: numNewIssues,
       num_issues: data.length,
-      total_issuses_count: numHits,
+      total_issues_count: numHits,
       sort: this.getSort(),
     });
   }
