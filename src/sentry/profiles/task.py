@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from functools import lru_cache
 from time import time
 from typing import Any
+from uuid import UUID
 
 import msgpack
 import sentry_sdk
@@ -760,7 +761,7 @@ def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_fi
                 profile=profile,
                 modules=[
                     {
-                        "uuid": debug_file_id,
+                        "uuid": UUID(debug_file_id).hex,
                     }
                 ],
                 stacktraces=[
