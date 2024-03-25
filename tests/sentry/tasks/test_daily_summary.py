@@ -689,7 +689,6 @@ class DailySummaryTest(
     @responses.activate
     @with_feature("organizations:slack-block-kit")
     def test_slack_notification_contents_newline(self):
-        # self.populate_event_data()
         type_string = '"""\nTraceback (most recent call last):\nFile /\'/usr/hb/meow/\''
         data = {
             "timestamp": iso_format(self.now),
