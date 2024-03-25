@@ -1531,6 +1531,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:derive-code-mappings": True,
     # Enables automatically deriving of PHP code mappings
     "organizations:derive-code-mappings-php": False,
+    # Enables automatically deriving of Go code mappings
+    "organizations:derive-code-mappings-go": False,
     # Enable device.class as a selectable column
     "organizations:device-classification": False,
     # Enables synthesis of device.class in ingest

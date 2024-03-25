@@ -108,10 +108,10 @@ def derive_code_mappings(
     ):
         return
 
-    # if data["platform"].startswith("go") and not features.has(
-    #     "organizations:derive-code-mappings-go", org
-    # ):
-    #     return
+    if data["platform"].startswith("go") and not features.has(
+        "organizations:derive-code-mappings-go", org
+    ):
+        return
 
     stacktrace_paths: list[str] = identify_stacktrace_paths(data)
     if not stacktrace_paths:
