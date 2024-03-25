@@ -1912,7 +1912,7 @@ const TraceStylingWrapper = styled('div')`
       min-width: 34px;
       text-align: center;
       position: absolute;
-      font-size: ${p => p.theme.fontSizeExtraSmall};
+      font-size: 10px;
       font-weight: bold;
       color: ${p => p.theme.textColor};
       background-color: ${p => p.theme.background};
