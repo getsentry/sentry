@@ -375,7 +375,6 @@ class GitHubInstallation(PipelineView):
             pipeline.bind_state("reinstall_id", request.GET["reinstall_id"])
 
         if "installation_id" not in request.GET:
-            pipeline.bind_state("installation_user", request.user.id)
             return self.redirect(self.get_app_url())
 
         self.determine_active_organization(request)
@@ -413,23 +412,6 @@ class GitHubInstallation(PipelineView):
         except Integration.DoesNotExist:
             pipeline.bind_state("installation_id", request.GET["installation_id"])
             return pipeline.next_step()
-
-        if (
-            request.COOKIES.get("sc") != request.GET.get("csrf_token")
-            and pipeline.fetch_state("installation_user") != request.user.id
-        ):
-            return render_to_response(
-                "sentry/integrations/github-integration-failed.html",
-                context={
-                    "error": ERR_INTEGRATION_INVALID_INSTALLATION_REQUEST,
-                    "payload": {
-                        "success": False,
-                        "data": {"error": _("Invalid installation request.")},
-                    },
-                    "document_origin": self._get_document_origin(),
-                },
-                request=request,
-            )
 
         if installations_exist:
             return render_to_response(
