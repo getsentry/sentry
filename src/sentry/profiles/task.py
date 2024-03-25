@@ -778,6 +778,13 @@ def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_fi
                     "type": EventError.NATIVE_INTERNAL_FAILURE,
                 }
                 return
+            elif response["status"] == "failed":
+                profile["symbolicator_error"] = {
+                    "type": EventError.NATIVE_SYMBOLICATOR_FAILED,
+                    "status": response["status"],
+                    "message": response["message"],
+                }
+                return
             elif len(response["errors"]) > 0:
                 profile["symbolicator_error"] = response["errors"][0]
                 return
