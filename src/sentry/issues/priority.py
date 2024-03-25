@@ -82,6 +82,13 @@ def get_priority_for_escalating_group(group: Group) -> PriorityLevel:
     return PriorityLevel.HIGH
 
 
+def get_initial_priority(group: Group) -> PriorityLevel | None:
+    initial_priority = group.data.get("metadata", {}).get(
+        "initial_priority", None
+    ) or group.data.get("initial_priority", None)
+    return initial_priority
+
+
 def get_priority_for_ongoing_group(group: Group) -> PriorityLevel | None:
     if not features.has("projects:issue-priority", group.project, actor=None):
         return None
@@ -94,12 +101,6 @@ def get_priority_for_ongoing_group(group: Group) -> PriorityLevel | None:
         .first()
     )
 
-    initial_priority = (
-        group.data.get("metadata", {}).get("initial_priority")
-        if not previous_priority_history
-        else None
-    )
-
     new_priority = (
         [
             priority
@@ -107,7 +108,7 @@ def get_priority_for_ongoing_group(group: Group) -> PriorityLevel | None:
             if status == previous_priority_history.status
         ][0]
         if previous_priority_history
-        else initial_priority
+        else get_initial_priority(group)
     )
 
     if not new_priority:
