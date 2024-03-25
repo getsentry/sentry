@@ -281,7 +281,9 @@ export function isItemActive(
     (item?.label === 'Alerts' &&
       location.pathname.includes('/alerts/') &&
       !location.pathname.startsWith('/settings/')) ||
-    (item?.label === 'Releases' && location.pathname.includes('/release-thresholds/'))
+    (item?.label === 'Releases' && location.pathname.includes('/release-thresholds/')) ||
+    (item?.label === 'Performance' && location.pathname.includes('/performance/')) ||
+    (item?.label === 'Starfish' && location.pathname.includes('/starfish/'))
   );
 }
 

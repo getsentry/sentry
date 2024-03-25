@@ -2,6 +2,7 @@ import {
   Children,
   createContext,
   isValidElement,
+  type MouseEventHandler,
   useCallback,
   useContext,
   useRef,
@@ -16,6 +17,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useMedia from 'sentry/utils/useMedia';
+import useOnClickOutside from 'sentry/utils/useOnClickOutside';
+import useRouter from 'sentry/utils/useRouter';
 
 import type {SidebarItemProps} from './sidebarItem';
 import SidebarItem, {isItemActive} from './sidebarItem';
@@ -44,14 +47,20 @@ export function ExpandedContextProvider(props) {
 
 function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
   const {id, collapsed: sidebarCollapsed} = itemProps;
+
   const accoridonRef = useRef<HTMLDivElement>(null);
+  const floatingSidebarRef = useRef<HTMLDivElement>(null);
   const {openMainItemId, setOpenMainItem} = useContext(ExpandedContext);
   const theme = useTheme();
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
+  const router = useRouter();
   const [expanded, setExpanded] = useLocalStorageState(
     `sidebar-accordion-${id}:expanded`,
     true
   );
+  useOnClickOutside(floatingSidebarRef, () => {
+    setOpenMainItem(null);
+  });
 
   const mainItemId = `sidebar-accordion-${id}-item`;
   const contentId = `sidebar-accordion-${id}-content`;
@@ -94,6 +103,13 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
     }
   };
 
+  const handleTitleClick: MouseEventHandler<HTMLDivElement> = () => {
+    if (itemProps.to) {
+      router.push(itemProps.to);
+      setOpenMainItem(null);
+    }
+  };
+
   return (
     <SidebarAccordionWrapper ref={accoridonRef}>
       <SidebarAccordionHeaderWrap>
@@ -128,8 +144,14 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
         </SidebarAccordionSubitemsWrap>
       )}
       {isOpenInFloatingSidebar && (horizontal || sidebarCollapsed) && (
-        <FloatingSidebar accordionRef={accoridonRef} horizontal={horizontal}>
-          <SidebarItemLabel>{itemProps.label}</SidebarItemLabel>
+        <FloatingSidebar
+          accordionRef={accoridonRef}
+          horizontal={horizontal}
+          ref={floatingSidebarRef}
+        >
+          <SidebarItemLabel onClick={handleTitleClick}>
+            {itemProps.label}
+          </SidebarItemLabel>
           {children}
         </FloatingSidebar>
       )}
@@ -177,6 +199,9 @@ const SidebarItemLabel = styled('div')`
   padding: ${space(1)} 0 ${space(1)} 18px;
   font-size: ${p => p.theme.fontSizeLarge};
   white-space: nowrap;
+  &:hover {
+    cursor: pointer;
+  }
 `;
 
 const FloatingSidebar = styled('div')<{
