@@ -182,7 +182,7 @@ export class VirtualizedViewManager {
   container: HTMLElement | null = null;
   indicator_container: HTMLElement | null = null;
 
-  intervals: number[] = [];
+  intervals: (number | undefined)[] = [];
   // We want to render an indicator every 100px, but because we dont track resizing
   // of the container, we need to precompute the number of intervals we need to render.
   // We'll oversize the count by 3x, assuming no user will ever resize the window to 3x the
@@ -688,6 +688,10 @@ export class VirtualizedViewManager {
   }
 
   setTraceView(view: {width?: number; x?: number}) {
+    // In cases where a trace might have a single error, there is no concept of a timeline
+    if (this.trace_view.width === 0) {
+      return;
+    }
     const x = view.x ?? this.trace_view.x;
     const width = view.width ?? this.trace_view.width;
 
@@ -914,6 +918,14 @@ export class VirtualizedViewManager {
   }
 
   recomputeTimelineIntervals() {
+    if (this.trace_view.width === 0) {
+      this.intervals[0] = 0;
+      this.intervals[1] = 0;
+      for (let i = 2; i < this.intervals.length; i++) {
+        this.intervals[i] = undefined;
+      }
+      return;
+    }
     const tracePhysicalToView = this.trace_physical_space.between(this.trace_view);
     const time_at_100 =
       tracePhysicalToView[0] * (100 * window.devicePixelRatio) +
@@ -1192,14 +1204,11 @@ export class VirtualizedViewManager {
       this.indicator_container.style.width = span_list_width * 100 + '%';
     }
 
-    const listWidth = list_width * 100 + '%';
-    const spanWidth = span_list_width * 100 + '%';
-
     for (let i = 0; i < this.columns.list.column_refs.length; i++) {
       const list = this.columns.list.column_refs[i];
-      if (list) list.style.width = listWidth;
+      if (list) list.style.width = list_width * 100 + '%';
       const span = this.columns.span_list.column_refs[i];
-      if (span) span.style.width = spanWidth;
+      if (span) span.style.width = span_list_width * 100 + '%';
 
       const span_bar = this.span_bars[i];
       const span_arrow = this.span_arrows[i];
@@ -1343,11 +1352,45 @@ export class VirtualizedViewManager {
       entry.ref.style.transform = `translate(${clamped_transform}px, 0)`;
     }
 
+    // Renders timeline indicators and labels
     for (let i = 0; i < this.timeline_indicators.length; i++) {
       const indicator = this.timeline_indicators[i];
-      const interval = this.intervals[i];
+
+      // Special case for when the timeline is empty - we want to show the first and last
+      // timeline indicators as 0ms instead of just a single 0ms indicator as it gives better
+      // context to the user that start and end are both 0ms. If we were to draw a single 0ms
+      // indicator, it leaves ambiguity for the user to think that the end might be missing
+      if (i === 0 && this.intervals[0] === 0 && this.intervals[1] === 0) {
+        const first = this.timeline_indicators[0];
+        const last = this.timeline_indicators[1];
+
+        if (first && last) {
+          first.style.opacity = '1';
+          last.style.opacity = '1';
+          first.style.transform = `translateX(0)`;
+
+          // 43 px offset is the width of a 0.00ms label, since we usually anchor the label to the right
+          // side of the indicator, we need to offset it by the width of the label to make it look like
+          // it is at the end of the timeline
+          last.style.transform = `translateX(${this.trace_physical_space.width - 43}px)`;
+          const firstLabel = first.children[0] as HTMLElement | undefined;
+          if (firstLabel) {
+            firstLabel.textContent = '0.00ms';
+          }
+          const lastLabel = last.children[0] as HTMLElement | undefined;
+          const lastLine = last.children[1] as HTMLElement | undefined;
+          if (lastLine && lastLabel) {
+            lastLabel.textContent = '0.00ms';
+            lastLine.style.opacity = '0';
+            i = 1;
+          }
+          continue;
+        }
+      }
 
       if (indicator) {
+        const interval = this.intervals[i];
+
         if (interval === undefined) {
           indicator.style.opacity = '0';
           continue;
