@@ -204,6 +204,13 @@ function TraceViewContent(props: TraceViewContentProps) {
       return errorTree;
     }
 
+    if (
+      props.trace?.transactions.length === 0 &&
+      props.trace?.orphan_errors.length === 0
+    ) {
+      return TraceTree.Empty();
+    }
+
     if (props.status === 'loading' || rootEvent.status === 'loading') {
       const loadingTrace =
         loadingTraceRef.current ??
@@ -223,7 +230,7 @@ function TraceViewContent(props: TraceViewContentProps) {
       return TraceTree.FromTrace(props.trace, rootEvent.data);
     }
 
-    return TraceTree.Empty();
+    throw new Error('Invalid trace state');
   }, [
     props.traceSlug,
     props.trace,
@@ -678,7 +685,7 @@ function useRootEvent(trace: TraceSplitResults<TraceFullDetailed> | null) {
     ],
     {
       staleTime: 0,
-      enabled: !!trace,
+      enabled: !!trace && !!root,
     }
   );
 }

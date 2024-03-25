@@ -335,6 +335,7 @@ def devserver(
             if settings.SENTRY_USE_SPANS_BUFFER:
                 kafka_consumers.add("process-spans")
                 kafka_consumers.add("ingest-occurrences")
+                kafka_consumers.add("detect-performance-issues")
 
         if occurrence_ingest:
             kafka_consumers.add("ingest-occurrences")

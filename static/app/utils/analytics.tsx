@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/react';
-import type {Transaction} from '@sentry/types';
+import type {Span} from '@sentry/types';
 
 import HookStore from 'sentry/stores/hookStore';
 import type {Hooks} from 'sentry/types/hooks';
@@ -46,7 +46,7 @@ import {searchEventMap} from './analytics/searchAnalyticsEvents';
 import type {SettingsEventParameters} from './analytics/settingsAnalyticsEvents';
 import {settingsEventMap} from './analytics/settingsAnalyticsEvents';
 import type {SignupAnalyticsParameters} from './analytics/signupAnalyticsEvents';
-import {SignupEventMap} from './analytics/signupAnalyticsEvents';
+import {signupEventMap} from './analytics/signupAnalyticsEvents';
 import type {StackTraceEventParameters} from './analytics/stackTraceAnalyticsEvents';
 import {stackTraceEventMap} from './analytics/stackTraceAnalyticsEvents';
 import {starfishEventMap} from './analytics/starfishAnalyticsEvents';
@@ -103,7 +103,7 @@ const allEventMap: Record<string, string | null> = {
   ...integrationEventMap,
   ...projectCreationEventMap,
   ...starfishEventMap,
-  ...SignupEventMap,
+  ...signupEventMap,
 };
 
 /**
@@ -160,7 +160,7 @@ export const logExperiment: Hooks['analytics:log-experiment'] = options =>
   HookStore.get('analytics:log-experiment').forEach(cb => cb(options));
 
 type RecordMetric = Hooks['metrics:event'] & {
-  endTransaction: (opts: {
+  endSpan: (opts: {
     /**
      * Name of the transaction to end
      */
@@ -203,7 +203,7 @@ type RecordMetric = Hooks['metrics:event'] & {
     start?: string;
   }) => void;
 
-  startTransaction: (opts: {
+  startSpan: (opts: {
     /**
      * Name of transaction
      */
@@ -212,11 +212,7 @@ type RecordMetric = Hooks['metrics:event'] & {
      * Optional op code
      */
     op?: string;
-    /**
-     * Optional trace id, defaults to current tx trace
-     */
-    traceId?: string;
-  }) => Transaction;
+  }) => Span | undefined;
 };
 
 /**
@@ -305,24 +301,19 @@ metric.measure = function metricMeasure({name, start, end, data = {}, noCleanup}
 /**
  * Used to pass data between startTransaction and endTransaction
  */
-const transactionDataStore = new Map<string, object>();
+const spanDataStore = new Map<string, Span | undefined>();
 
-const getCurrentTransaction = () => {
-  return Sentry.getCurrentHub().getScope()?.getTransaction();
+metric.startSpan = ({name, op}) => {
+  const span = Sentry.startInactiveSpan({
+    name,
+    op,
+    forceTransaction: true,
+  });
+  spanDataStore.set(name, span);
+  return span;
 };
 
-metric.startTransaction = ({name, traceId, op}) => {
-  if (!traceId) {
-    traceId = getCurrentTransaction()?.traceId;
-  }
-  const transaction = Sentry.startTransaction({name, op, traceId});
-  transactionDataStore[name] = transaction;
-  return transaction;
-};
-
-metric.endTransaction = ({name}) => {
-  const transaction = transactionDataStore[name];
-  if (transaction) {
-    transaction.finish();
-  }
+metric.endSpan = ({name}) => {
+  const span = spanDataStore.get(name);
+  span?.end();
 };

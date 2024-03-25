@@ -502,9 +502,9 @@ class IssueListOverview extends Component<Props, State> {
 
         // End navigation transaction to prevent additional page requests from impacting page metrics.
         // Other transactions include stacktrace preview request
-        const currentTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
+        const currentTransaction = Sentry.getActiveTransaction();
         if (currentTransaction?.op === 'navigation') {
-          currentTransaction.finish();
+          currentTransaction.end();
         }
       },
     });
