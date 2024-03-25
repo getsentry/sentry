@@ -37,7 +37,7 @@ DEFAULT_BLOCK_SIZE = int(32 * 1e6)
 
 
 @pytest.fixture
-def get_test_feedback_msg(default_project):
+def get_feedback_message(default_project):
     def inner(project=default_project):
         now = datetime.datetime.now()
         # the event id should be 32 digits
@@ -94,7 +94,7 @@ def test_consumer_reads_from_topic_and_creates_feedback_issue(
     kafka_producer,
     kafka_admin,
     default_project,
-    get_test_feedback_msg,
+    get_feedback_message,
     random_group_id,
     create_feedback_issue,
     monkeypatch,
@@ -110,7 +110,7 @@ def test_consumer_reads_from_topic_and_creates_feedback_issue(
 
     create_topics("default", [topic_event_name])
 
-    message, event_id = get_test_feedback_msg()
+    message, event_id = get_feedback_message()
     producer.produce(topic_event_name, message)
 
     consumer = get_stream_processor(
@@ -133,7 +133,7 @@ def test_consumer_reads_from_topic_and_creates_feedback_issue(
     assert create_feedback_issue.call_count == 1
     assert create_feedback_issue.call_args[0][0]["event_id"] == event_id
     assert create_feedback_issue.call_args[0][0]["type"] == "feedback"
-    assert create_feedback_issue.call_args[0][0].get("contexts", {}).get("feedback")
+    assert create_feedback_issue.call_args[0][0].get("contexts", {}).get("feedback") is not None
     assert create_feedback_issue.call_args[0][1] == default_project.id
 
 
@@ -143,7 +143,7 @@ def test_consumer_gets_event_unstuck_and_reprocess_only_stuck_events(
     kafka_producer,
     kafka_admin,
     default_project,
-    get_test_feedback_msg,
+    get_feedback_message,
     random_group_id,
     create_feedback_issue,
     monkeypatch,
@@ -159,10 +159,10 @@ def test_consumer_gets_event_unstuck_and_reprocess_only_stuck_events(
 
     create_topics("default", [topic_event_name])
 
-    message1, event_id1 = get_test_feedback_msg()
+    message1, event_id1 = get_feedback_message()
     producer.produce(topic_event_name, message1)
 
-    message2, event_id2 = get_test_feedback_msg()
+    message2, event_id2 = get_feedback_message()
     producer.produce(topic_event_name, message2)
 
     # an event is "stuck" when it is in the processing store, so lets fake that:

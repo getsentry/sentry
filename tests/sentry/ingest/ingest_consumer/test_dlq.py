@@ -58,10 +58,9 @@ def test_dlq_invalid_messages(factories) -> None:
     with pytest.raises(Exception) as exc_info:
         message = make_message(valid_payload, partition, offset)
         strategy.submit(message)
-    assert not isinstance(exc_info.value, InvalidMessage)
+    assert not isinstance(exc_info.type, InvalidMessage)
 
     # Invalid payload raises InvalidMessage error
-
     with pytest.raises(InvalidMessage) as exc_info:
         message = make_message(bogus_payload, partition, offset)
         strategy.submit(message)
