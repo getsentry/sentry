@@ -40,6 +40,7 @@ describe('HTTPSamplesPanel', function () {
       statsPeriod: '10d',
       transaction: '/api/0/users',
       transactionMethod: 'GET',
+      panel: 'status',
     },
     hash: '',
     state: undefined,
