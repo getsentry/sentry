@@ -20,7 +20,7 @@ class IdOrSlugLookup(Lookup):
         # query either 'slug' or 'id'
         rhs, rhs_params = self.process_rhs(compiler, connection)
 
-        if rhs_params and rhs_params[0].isnumeric():
+        if rhs_params and str(rhs_params[0]).isnumeric():
             # If numeric, use the 'id' field for comparison
             return f"id = {rhs}", rhs_params
         else:
