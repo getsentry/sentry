@@ -19,6 +19,7 @@ from sentry.db.models.outboxes import ControlOutboxProducingManager, ReplicatedC
 from sentry.models.apiscopes import HasApiScopes
 from sentry.models.outbox import OutboxCategory
 from sentry.types.region import find_all_region_names
+from sentry.types.token import AuthTokenType
 
 DEFAULT_EXPIRATION = timedelta(days=30)
 
@@ -40,11 +41,12 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
     application = FlexibleForeignKey("sentry.ApiApplication", null=True)
     user = FlexibleForeignKey("sentry.User")
     name = models.CharField(max_length=255, null=True)
-    token = models.CharField(max_length=64, unique=True, default=generate_token)
-    hashed_token = models.CharField(max_length=128, null=True)
+    token = models.CharField(max_length=71, unique=True, default=generate_token)
+    hashed_token = models.CharField(max_length=128, unique=True, null=True)
+    token_type = models.CharField(max_length=7, choices=AuthTokenType, null=True)
     token_last_characters = models.CharField(max_length=4, null=True)
-    refresh_token = models.CharField(max_length=64, unique=True, null=True, default=generate_token)
-    hashed_refresh_token = models.CharField(max_length=128, null=True)
+    refresh_token = models.CharField(max_length=71, unique=True, null=True, default=generate_token)
+    hashed_refresh_token = models.CharField(max_length=128, unique=True, null=True)
     expires_at = models.DateTimeField(null=True, default=default_expiration)
     date_added = models.DateTimeField(default=timezone.now)
 

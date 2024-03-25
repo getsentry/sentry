@@ -4,7 +4,6 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 
 import sentry_sdk
-from sentry_sdk.crons.decorator import monitor
 from snuba_sdk import (
     Column,
     Condition,
@@ -24,7 +23,6 @@ from sentry.dynamic_sampling.models.base import ModelType
 from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
 from sentry.dynamic_sampling.models.factory import model_factory
 from sentry.dynamic_sampling.models.projects_rebalancing import ProjectsRebalancingInput
-from sentry.dynamic_sampling.rules.base import is_sliding_window_org_enabled
 from sentry.dynamic_sampling.rules.utils import (
     DecisionDropCount,
     DecisionKeepCount,
@@ -50,11 +48,12 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
 )
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_sliding_window_org_sample_rate
-from sentry.dynamic_sampling.tasks.logging import log_sample_rate_source
+from sentry.dynamic_sampling.tasks.logging import log_sample_rate_source, log_skipped_job
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.dynamic_sampling.tasks.utils import (
     dynamic_sampling_task,
     dynamic_sampling_task_with_context,
+    has_dynamic_sampling,
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -83,8 +82,6 @@ PROJECTS_WITH_METRICS = {1, 11276}  # sentry  # javascript
     time_limit=2 * 60 * 60 + 5,
     silo_mode=SiloMode.REGION,
 )
-# TODO(rjo100): dual write check-ins for debugging
-@monitor(monitor_slug="dynamic-sampling-boost-low-volume-transactions-test")
 @dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
 def boost_low_volume_projects(context: TaskContext) -> None:
     for orgs in TimedIterator(context, GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY)):
@@ -198,7 +195,7 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
                 dataset=Dataset.PerformanceMetrics.value,
                 app_id="dynamic_sampling",
                 query=query,
-                tenant_ids={"use_case_id": UseCaseID.TRANSACTIONS.value},
+                tenant_ids={"use_case_id": UseCaseID.TRANSACTIONS.value, "cross_org_query": 1},
             )
             data = raw_snql_query(
                 request,
@@ -252,14 +249,18 @@ def adjust_sample_rates_of_projects(
         # the query triggering this job and the actual execution of the job.
         organization = None
 
-    # By default, we use the blended sample rate.
-    sample_rate = quotas.backend.get_blended_sample_rate(organization_id=org_id)
+    # If the org doesn't have dynamic sampling, we want to early return to avoid unnecessary work.
+    if not has_dynamic_sampling(organization):
+        log_skipped_job(org_id, "boost_low_volume_projects")
+        return
 
-    # If we have the sliding window org enabled, we use that and fall back to the blended sample rate in case of issues.
-    if organization is not None and is_sliding_window_org_enabled(organization):
-        sample_rate = get_sliding_window_org_sample_rate(
-            org_id=org_id, default_sample_rate=sample_rate, notify_missing=True
-        )
+    # If we have the sliding window org sample rate, we use that or fall back to the blended sample rate in case of
+    # issues.
+    sample_rate, success = get_sliding_window_org_sample_rate(
+        org_id=org_id,
+        default_sample_rate=quotas.backend.get_blended_sample_rate(organization_id=org_id),
+    )
+    if success:
         log_sample_rate_source(
             org_id, None, "boost_low_volume_projects", "sliding_window_org", sample_rate
         )

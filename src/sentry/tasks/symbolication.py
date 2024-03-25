@@ -1,5 +1,4 @@
 import logging
-import random
 from collections.abc import Callable
 from time import time
 from typing import Any
@@ -10,6 +9,7 @@ from django.conf import settings
 from sentry import options
 from sentry.eventstore import processing
 from sentry.eventstore.processing.base import Event
+from sentry.features.rollout import in_random_rollout
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.javascript.processing import process_js_stacktraces
 from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorTaskKind
@@ -40,7 +40,9 @@ SYMBOLICATOR_MAX_QUEUE_SWITCHES = 3
 # burdened by aforementioned legacy concerns.
 
 
-def should_demote_symbolication(project_id: int) -> bool:
+def should_demote_symbolication(
+    project_id: int, lpq_projects: set[int] | None = None, emit_metrics=True
+) -> bool:
     """
     Determines whether a project's symbolication events should be pushed to the low priority queue.
 
@@ -50,33 +52,42 @@ def should_demote_symbolication(project_id: int) -> bool:
         3. has the project been selected for the lpq according to realtime_metrics? -> low priority queue
 
     Note that 3 is gated behind the config setting SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE.
+
+    If lpq projects is defined and the auto low priority queue is enabled, this function
+    will avoid making additional Redis calls for performance reasons.
     """
-    always_lowpri = killswitch_matches_context(
-        "store.symbolicate-event-lpq-always",
-        {
-            "project_id": project_id,
-        },
-    )
     never_lowpri = killswitch_matches_context(
         "store.symbolicate-event-lpq-never",
         {
             "project_id": project_id,
         },
+        emit_metrics=emit_metrics,
     )
 
     if never_lowpri:
         return False
-    elif always_lowpri:
+
+    always_lowpri = killswitch_matches_context(
+        "store.symbolicate-event-lpq-always",
+        {
+            "project_id": project_id,
+        },
+        emit_metrics=emit_metrics,
+    )
+
+    if always_lowpri:
         return True
-    else:
+    elif settings.SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE:
         try:
-            return (
-                settings.SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE
-                and realtime_metrics.is_lpq_project(project_id)
-            )
+            if lpq_projects:
+                return project_id in lpq_projects
+            else:
+                return realtime_metrics.is_lpq_project(project_id)
         # realtime_metrics is empty in getsentry
         except AttributeError:
             return False
+    else:
+        return False
 
 
 # This is f*** joke:
@@ -200,12 +211,16 @@ def _do_symbolicate_event(
         """
         symbolication_duration = time() - symbolication_start_time
 
-        submission_ratio = options.get("symbolicate-event.low-priority.metrics.submission-rate")
         # we throw the dice on each record operation, otherwise an unlucky extremely slow event would never count
         # towards the budget.
-        submit_realtime_metrics = random.random() < submission_ratio
+        submit_realtime_metrics = in_random_rollout(
+            "symbolicate-event.low-priority.metrics.submission-rate"
+        )
         if submit_realtime_metrics:
             with sentry_sdk.start_span(op="tasks.store.symbolicate_event.low_priority.metrics"):
+                submission_ratio = options.get(
+                    "symbolicate-event.low-priority.metrics.submission-rate"
+                )
                 try:
                     # we adjust the duration according to the `submission_ratio` so that the budgeting works
                     # the same even considering sampling of metrics.
@@ -240,12 +255,15 @@ def _do_symbolicate_event(
         event_id=event_id,
     )
 
-    with metrics.timer(
-        "tasks.store.symbolicate_event.symbolication",
-        tags={"symbolication_function": symbolication_function_name},
-    ), sentry_sdk.start_span(
-        op=f"tasks.store.symbolicate_event.{symbolication_function_name}"
-    ) as span:
+    with (
+        metrics.timer(
+            "tasks.store.symbolicate_event.symbolication",
+            tags={"symbolication_function": symbolication_function_name},
+        ),
+        sentry_sdk.start_span(
+            op=f"tasks.store.symbolicate_event.{symbolication_function_name}"
+        ) as span,
+    ):
         try:
             symbolicated_data = symbolication_function(symbolicator, data)
             span.set_data("symbolicated_data", bool(symbolicated_data))

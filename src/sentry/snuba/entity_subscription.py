@@ -13,7 +13,7 @@ from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, CRASH_RATE_ALERT_
 from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscription
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
-from sentry.search.events.types import QueryBuilderConfig
+from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import (
     MetricIndexNotFound,
@@ -46,6 +46,7 @@ ENTITY_TIME_COLUMNS: Mapping[EntityKey, str] = {
     EntityKey.GenericMetricsCounters: "timestamp",
     EntityKey.GenericMetricsDistributions: "timestamp",
     EntityKey.GenericMetricsSets: "timestamp",
+    EntityKey.GenericMetricsGauges: "timestamp",
     EntityKey.MetricsCounters: "timestamp",
     EntityKey.MetricsSets: "timestamp",
 }
@@ -140,9 +141,9 @@ class BaseEntitySubscription(ABC, _EntitySubscription):
     def build_query_builder(
         self,
         query: str,
-        project_ids: Sequence[int],
+        project_ids: list[int],
         environment: Environment | None,
-        params: MutableMapping[str, Any] | None = None,
+        params: ParamsType | None = None,
         skip_field_validation_for_entity_subscription_deletion: bool = False,
     ) -> QueryBuilder:
         raise NotImplementedError
@@ -161,9 +162,9 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
     def build_query_builder(
         self,
         query: str,
-        project_ids: Sequence[int],
+        project_ids: list[int],
         environment: Environment | None,
-        params: MutableMapping[str, Any] | None = None,
+        params: ParamsType | None = None,
         skip_field_validation_for_entity_subscription_deletion: bool = False,
     ) -> QueryBuilder:
         from sentry.search.events.builder import ErrorsQueryBuilder, QueryBuilder
@@ -257,9 +258,9 @@ class SessionsEntitySubscription(BaseEntitySubscription):
     def build_query_builder(
         self,
         query: str,
-        project_ids: Sequence[int],
+        project_ids: list[int],
         environment: Environment | None,
-        params: MutableMapping[str, Any] | None = None,
+        params: ParamsType | None = None,
         skip_field_validation_for_entity_subscription_deletion: bool = False,
     ) -> QueryBuilder:
         from sentry.search.events.builder import SessionsQueryBuilder
@@ -368,9 +369,9 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
     def build_query_builder(
         self,
         query: str,
-        project_ids: Sequence[int],
+        project_ids: list[int],
         environment: Environment | None,
-        params: MutableMapping[str, Any] | None = None,
+        params: ParamsType | None = None,
         skip_field_validation_for_entity_subscription_deletion: bool = False,
     ) -> QueryBuilder:
         from sentry.search.events.builder import AlertMetricsQueryBuilder

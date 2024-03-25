@@ -1,9 +1,17 @@
+import dataclasses
 import re
+from collections import defaultdict
+from collections.abc import Callable
+from functools import lru_cache
 from itertools import islice
 from re import Match
 from typing import Any
 
+import tiktoken
+
+from sentry import analytics
 from sentry.eventstore.models import Event
+from sentry.features.rollout import in_rollout_group
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.base import (
     GroupingContext,
@@ -14,10 +22,9 @@ from sentry.grouping.strategies.base import (
 from sentry.interfaces.message import Message
 from sentry.utils import metrics
 
-_parameterization_regex = re.compile(
-    # The `(?x)` tells the regex compiler to ingore comments and unescaped whitespace,
-    # so we can use newlines and indentation for better legibility.
-    r"""(?x)
+# The `(?x)` tells the regex compiler to ignore comments and unescaped whitespace,
+# so we can use newlines and indentation for better legibility.
+_parameterization_regex_str = r"""(?x)
     (?P<email>
         [a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*
     ) |
@@ -64,6 +71,32 @@ _parameterization_regex = re.compile(
         \b[0-9a-fA-F]{32}\b
     ) |
     (?P<date>
+        # No word boundaries required around dates. Should there be?
+        # RFC822, RFC1123, RFC1123Z
+        ((?:Sun|Mon|Tue|Wed|Thu|Fri|Sat),\s\d{1,2}\s(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s\d{2,4}\s\d{1,2}:\d{1,2}(:\d{1,2})?\s([-\+][\d]{2}[0-5][\d]|(?:UT|GMT|(?:E|C|M|P)(?:ST|DT)|[A-IK-Z])))
+        |
+        # Similar to RFC822, but "Mon Jan 02, 1999", "Jan 02, 1999"
+        (((?:Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s)?(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s[0-3]\d,\s\d{2,4})
+        |
+        # RFC850
+        ((?:Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday),\s\d{2}-(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-\d{2}\s\d{2}:\d{2}:\d{2}\s(?:UT|GMT|(?:E|C|M|P)(?:ST|DT)|[A-IK-Z]))
+        |
+        # RFC3339, RFC3339Nano
+        (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z?([+-]?\d{2}:\d{2})?)
+        |
+        # Datetime:
+        (\d{4}-?[01]\d-?[0-3]\d\s[0-2]\d:[0-5]\d:[0-5]\d)(\.\d+)?
+        |
+        # Kitchen
+        (\d{1,2}:\d{2}(:\d{2})?(?: [aApP][Mm])?)
+        |
+        # Date
+        (\d{4}-[01]\d-[0-3]\d)
+        |
+        # Time
+        ([0-2]\d:[0-5]\d:[0-5]\d)
+        |
+        # Old Date Formats, TODO: possibly safe to remove?
         (
             (\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d\.\d+([+-][0-2]\d:[0-5]\d|Z))|
             (\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d([+-][0-2]\d:[0-5]\d|Z))|
@@ -86,6 +119,12 @@ _parameterization_regex = re.compile(
             ([-\+][\d]{2}[0-5][\d]|(?:UT|GMT|(?:E|C|M|P)(?:ST|DT)|[A-IK-Z]))
         ) |
         (datetime.datetime\(.*?\))
+    ) |
+    (?P<duration>
+        \b
+        (\d+ms) |
+        (\d(\.\d+)?s)
+        \b
     ) |
     (?P<hex>
         \b0[xX][0-9a-fA-F]+\b
@@ -113,10 +152,95 @@ _parameterization_regex = re.compile(
         =false
     )
 """
+
+_parameterization_regex = re.compile(_parameterization_regex_str)
+
+
+# UniqID logic
+@lru_cache(maxsize=1)
+def tiktoken_encoding():
+    return tiktoken.get_encoding("cl100k_base")
+
+
+def num_tokens_from_string(token_str: str) -> int:
+    """Returns the number of tokens in a text string."""
+    num_tokens = len(tiktoken_encoding().encode(token_str))
+    return num_tokens
+
+
+# These are all somewhat arbitrary based on examples.
+UNIQ_ID_TOKEN_LENGTH_MINIMUM = (
+    4  # Tokens smaller than this are unlikely to be unique ids regardless of other attributes
 )
+UNIQ_ID_TOKEN_LENGTH_RATIO_DEFAULT = 0.5
+UNIQ_ID_TOKEN_LENGTH_LONG = 8
+UNIQ_ID_TOKEN_LENGTH_RATIO_LONG = 0.4
 
 
-def normalize_message_for_grouping(message: str) -> str:
+def is_probably_uniq_id(token_str: str) -> bool:
+    if len(token_str) < UNIQ_ID_TOKEN_LENGTH_MINIMUM:
+        return False
+    if token_str[0] == "<" and token_str[-1] == ">":  # Don't replace already-parameterized tokens
+        return False
+    token_length_ratio = num_tokens_from_string(token_str) / len(token_str)
+    if (
+        len(token_str) > UNIQ_ID_TOKEN_LENGTH_LONG
+        and token_length_ratio > UNIQ_ID_TOKEN_LENGTH_RATIO_LONG
+    ):
+        return True
+    return token_length_ratio > UNIQ_ID_TOKEN_LENGTH_RATIO_DEFAULT
+
+
+def replace_uniq_ids_in_str(string: str) -> tuple[str, int]:
+    """
+    Return result and count of replacements
+    """
+    strings = string.split(" ")
+    count = 0
+    for i, s in enumerate(strings):
+        if is_probably_uniq_id(s):
+            strings[i] = "<uniq_id>"
+            count += 1
+    return (" ".join(strings), count)
+
+
+def parameterization_experiment_default_run(
+    self: "ParameterizationExperiment", _handle_regex_match: Callable[[Match[str]], str], input: str
+) -> tuple[str, int]:
+    return (self.regex.sub(_handle_regex_match, input), 0)
+
+
+def parameterization_experiment_uniq_id(
+    self: "ParameterizationExperiment", _: Callable[[Match[str]], str], input: str
+) -> tuple[str, int]:
+    return replace_uniq_ids_in_str(input)
+
+
+@dataclasses.dataclass()
+class ParameterizationExperiment:
+    name: str
+    regex: Any
+    """A function that takes as arguments:
+            * This experiment
+            * A handle match function (may not be used), e.g. _handle_regex_match (note that this modifies trimmed_value_counter)
+            * A string input
+        And returns: a tuple of [output string, count of replacements(which overlaps with any added by _handle_regex_match, if used)]
+    """
+    run: Callable[
+        ["ParameterizationExperiment", Callable[[Match[str]], str], str], tuple[str, int]
+    ] = parameterization_experiment_default_run
+    counter: int = 0
+
+
+# Note that experiments are run AFTER the initial replacements. Which means they MUST not catch replacements made
+# in the primary parameterization regex.
+_parameterization_regex_experiments = [
+    ParameterizationExperiment(name="uniq_id", regex=None, run=parameterization_experiment_uniq_id),
+]
+
+
+@metrics.wraps("grouping.normalize_message_for_grouping")
+def normalize_message_for_grouping(message: str, event: Event, share_analytics: bool = True) -> str:
     """Replace values from a group's message with placeholders (to hide P.I.I. and
     improve grouping when no stacktrace is available) and trim to at most 2 lines.
     """
@@ -130,22 +254,73 @@ def normalize_message_for_grouping(message: str) -> str:
     if trimmed != message:
         trimmed += "..."
 
-    def _handle_match(match: Match[str]) -> str:
+    trimmed_value_counter: defaultdict[str, int] = defaultdict(int)
+
+    def _handle_regex_match(match: Match[str]) -> str:
         # Find the first (should be only) non-None match entry, and sub in the placeholder. For
         # example, given the groupdict item `('hex', '0x40000015')`, this returns '<hex>' as a
         # replacement for the original value in the string.
         for key, value in match.groupdict().items():
             if value is not None:
-                # `key` can only be one of the keys from `_parameterization_regex`, thus, not a large
-                # cardinality. Tracking the key helps distinguish what kinds of replacements are happening.
-                metrics.incr("grouping.value_trimmed_from_message", tags={"key": key})
+                trimmed_value_counter[key] += 1
                 # For `quoted_str` and `bool` we want to preserve the `=` symbol, which we include in
                 # the match in order not to replace random quoted strings and the words 'true' and 'false'
                 # in contexts other than key-value pairs
-                return f"=<{key}>" if key in ["quoted_str", "bool"] else f"<{key}>"
+                if key in ["quoted_str", "bool"]:
+                    return f"=<{key}>"
+                else:
+                    return f"<{key}>"
         return ""
 
-    return _parameterization_regex.sub(_handle_match, trimmed)
+    normalized = _parameterization_regex.sub(_handle_regex_match, trimmed)
+    for experiment in _parameterization_regex_experiments:
+        if event.project_id and (
+            in_rollout_group(
+                f"grouping.experiments.parameterization.{experiment.name}", event.project_id
+            )
+            or event.project_id
+            in [  # Active internal Sentry projects
+                155735,
+                4503972821204992,
+                1267915,
+                221969,
+                11276,
+                1269704,
+                4505469596663808,
+                1,
+                54785,
+                1492057,
+                162676,
+                6690737,
+                300688,
+                4506400311934976,
+                6424467,
+            ]
+        ):
+            experiment_output, metric_inc = experiment.run(
+                experiment, _handle_regex_match, normalized
+            )
+            if experiment_output != normalized:
+                trimmed_value_counter[experiment.name] += metric_inc
+                # Register 100 (arbitrary, bounded number) analytics events per experiment per instance restart
+                # This generates samples for review consistently but creates a hard cap on
+                # analytics event volume
+                if share_analytics and experiment.counter < 100:
+                    experiment.counter += 1
+                    analytics.record(
+                        "grouping.experiments.parameterization",
+                        experiment_name=experiment.name,
+                        project_id=event.project_id,
+                        event_id=event.event_id,
+                    )
+                normalized = experiment_output
+
+    for key, value in trimmed_value_counter.items():
+        # `key` can only be one of the keys from `_parameterization_regex`, thus, not a large
+        # cardinality. Tracking the key helps distinguish what kinds of replacements are happening.
+        metrics.incr("grouping.value_trimmed_from_message", amount=value, tags={"key": key})
+
+    return normalized
 
 
 @strategy(ids=["message:v1"], interface=Message, score=0)
@@ -155,7 +330,7 @@ def message_v1(
 ) -> ReturnedVariants:
     if context["normalize_message"]:
         raw = interface.message or interface.formatted or ""
-        normalized = normalize_message_for_grouping(raw)
+        normalized = normalize_message_for_grouping(raw, event)
         hint = "stripped event-specific values" if raw != normalized else None
         return {
             context["variant"]: GroupingComponent(

@@ -78,6 +78,7 @@ export interface Organization extends OrganizationSummary {
   desiredSampleRate?: number | null;
   effectiveSampleRate?: number | null;
   orgRole?: string;
+  planSampleRate?: number | null;
 }
 
 export interface DetailedOrganization extends Organization {

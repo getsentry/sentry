@@ -15,6 +15,7 @@ from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
 from sentry.datascrubbing import scrub_data
 from sentry.eventstore import processing
 from sentry.eventstore.processing.base import Event
+from sentry.features.rollout import in_random_rollout
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, create_feedback_issue
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.symbolicator import SymbolicatorTaskKind
@@ -76,7 +77,7 @@ def submit_process(
 ) -> None:
     if from_reprocessing:
         task = process_event_from_reprocessing
-    elif is_proguard and random.random() < options.get("store.separate-proguard-queue-rate"):
+    elif is_proguard and in_random_rollout("store.separate-proguard-queue-rate"):
         # route *some* proguard events to a separate queue
         task = process_event_proguard
     else:
@@ -98,6 +99,7 @@ class SaveEventTaskKind:
     from_reprocessing: bool = False
 
 
+@sentry_sdk.tracing.trace
 def submit_save_event(
     task_kind: SaveEventTaskKind,
     project_id: int,
@@ -261,7 +263,7 @@ def preprocess_event(
 def preprocess_event_from_reprocessing(
     cache_key: str,
     data: Event | None = None,
-    start_time: int | None = None,
+    start_time: float | None = None,
     event_id: str | None = None,
     project: Project | None = None,
     **kwargs: Any,
@@ -274,32 +276,6 @@ def preprocess_event_from_reprocessing(
         from_reprocessing=True,
         project=project,
     )
-
-
-@instrumented_task(
-    name="sentry.tasks.store.retry_process_event",
-    queue="sleep",
-    time_limit=(60 * 5) + 5,
-    soft_time_limit=60 * 5,
-    silo_mode=SiloMode.REGION,
-)
-def retry_process_event(process_task_name: str, task_kwargs: dict[str, Any], **kwargs: Any) -> None:
-    """
-    The only purpose of this task is be enqueued with some ETA set. This is
-    essentially an implementation of ETAs on top of Celery's existing ETAs, but
-    with the intent of having separate workers wait for those ETAs.
-    """
-    tasks = {
-        "process_event": process_event,
-        "process_event_proguard": process_event_proguard,
-        "process_event_from_reprocessing": process_event_from_reprocessing,
-    }
-
-    process_task = tasks.get(process_task_name)
-    if not process_task:
-        raise ValueError(f"Invalid argument for process_task_name: {process_task_name}")
-
-    process_task.delay(**task_kwargs)
 
 
 def is_process_disabled(project_id: int, event_id: str, platform: str) -> bool:
@@ -319,6 +295,14 @@ def is_process_disabled(project_id: int, event_id: str, platform: str) -> bool:
         return False
 
     return random.random() < rollout_rate
+
+
+@sentry_sdk.tracing.trace
+def normalize_event(data: Any) -> Any:
+    normalizer = StoreNormalizer(
+        remove_other=False, is_renormalize=True, **DEFAULT_STORE_NORMALIZER_ARGS
+    )
+    return normalizer.normalize_event(dict(data))
 
 
 def do_process_event(
@@ -462,10 +446,7 @@ def do_process_event(
         # - persist e.g. incredibly large stacktraces from minidumps
         # - store event timestamps that are older than our retention window
         #   (also happening with minidumps)
-        normalizer = StoreNormalizer(
-            remove_other=False, is_renormalize=True, **DEFAULT_STORE_NORMALIZER_ARGS
-        )
-        data = normalizer.normalize_event(dict(data))
+        data = normalize_event(data)
 
         issues = data.get("processing_issues")
 
@@ -614,19 +595,21 @@ def delete_raw_event(project_id: int, event_id: str | None, allow_hint_clear: bo
 
     # Clear the sent notification if we reprocessed everything
     # successfully and reprocessing is enabled
-    reprocessing_active = ProjectOption.objects.get_value(
-        project_id, "sentry:reprocessing_active", REPROCESSING_DEFAULT
-    )
+    reprocessing_active = ProjectOption.objects.filter(
+        project_id=project_id, key="sentry:reprocessing_active"
+    ).exists()
     if reprocessing_active:
-        sent_notification = ProjectOption.objects.get_value(
-            project_id, "sentry:sent_failed_event_hint", False
-        )
+        sent_notification = ProjectOption.objects.filter(
+            project_id=project_id, key="sentry:sent_failed_event_hint"
+        ).exists()
         if sent_notification:
             if ReprocessingReport.objects.filter(project_id=project_id, event_id=event_id).exists():
-                project = Project.objects.get_from_cache(id=project_id)
-                ProjectOption.objects.set_value(project, "sentry:sent_failed_event_hint", False)
+                ProjectOption.objects.update_value(
+                    project_id=project_id, key="sentry:sent_failed_event_hint", value=False
+                )
 
 
+@sentry_sdk.tracing.trace
 def create_failed_event(
     cache_key: str,
     data: Event | None,
@@ -799,12 +782,13 @@ def _do_save_event(
             with metrics.timer("tasks.store.do_save_event.event_manager.save"):
                 manager = EventManager(data)
                 # event.project.organization is populated after this statement.
-                manager.save(
-                    project_id,
-                    assume_normalized=True,
-                    start_time=start_time,
-                    cache_key=cache_key,
-                )
+                with sentry_sdk.start_span(op="event_manager.save"):
+                    manager.save(
+                        project_id,
+                        assume_normalized=True,
+                        start_time=start_time,
+                        cache_key=cache_key,
+                    )
                 # Put the updated event back into the cache so that post_process
                 # has the most recent data.
                 data = manager.get_data()
@@ -842,6 +826,7 @@ def _do_save_event(
             time_synthetic_monitoring_event(data, project_id, start_time)
 
 
+@sentry_sdk.tracing.trace
 def time_synthetic_monitoring_event(data: Event, project_id: int, start_time: float | None) -> bool:
     """
     For special events produced by the recurring synthetic monitoring

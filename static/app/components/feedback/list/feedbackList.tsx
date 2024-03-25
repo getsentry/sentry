@@ -13,12 +13,14 @@ import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 import FeedbackListHeader from 'sentry/components/feedback/list/feedbackListHeader';
 import FeedbackListItem from 'sentry/components/feedback/list/feedbackListItem';
 import useListItemCheckboxState from 'sentry/components/feedback/list/useListItemCheckboxState';
-import useFetchFeedbackInfiniteListData from 'sentry/components/feedback/useFetchFeedbackInfiniteListData';
+import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useFetchInfiniteListData from 'sentry/utils/api/useFetchInfiniteListData';
+import type {FeedbackIssueListItem} from 'sentry/utils/feedback/types';
 import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
 
 // Ensure this object is created once as it is an input to
@@ -39,6 +41,7 @@ function NoFeedback({title, subtitle}: {subtitle: string; title: string}) {
 }
 
 export default function FeedbackList() {
+  const {listQueryKey} = useFeedbackQueryKeys();
   const {
     isFetchingNextPage,
     isFetchingPreviousPage,
@@ -48,7 +51,10 @@ export default function FeedbackList() {
     issues,
     loadMoreRows,
     hits,
-  } = useFetchFeedbackInfiniteListData();
+  } = useFetchInfiniteListData<FeedbackIssueListItem>({
+    queryKey: listQueryKey,
+    uniqueField: 'id',
+  });
 
   const checkboxState = useListItemCheckboxState({
     hits,

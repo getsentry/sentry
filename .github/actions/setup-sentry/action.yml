@@ -27,6 +27,10 @@ inputs:
     description: 'Is bigtable required?'
     required: false
     default: 'false'
+  redis_cluster:
+    description: 'Is redis cluster required?'
+    required: false
+    default: 'false'
   symbolicator:
     description: 'Is symbolicator required?'
     required: false
@@ -105,7 +109,7 @@ runs:
           echo "TOTAL_TEST_GROUPS=$MATRIX_INSTANCE_TOTAL" >> $GITHUB_ENV
         fi
 
-    - uses: getsentry/action-setup-venv@9e3bbae3836b1b6f129955bf55a19e1d99a61c67 # v1.0.5
+    - uses: getsentry/action-setup-venv@f0daafa9688e48f939cace0378a46f2d422bd81f # v2.0.0
       with:
         python-version: ${{ inputs.python-version }}
         cache-dependency-path: ${{ inputs.workdir }}/requirements-dev-frozen.txt
@@ -140,6 +144,7 @@ runs:
         NEED_CLICKHOUSE: ${{ inputs.clickhouse }}
         NEED_BIGTABLE: ${{ inputs.bigtable }}
         NEED_CHARTCUTERIE: ${{ inputs.chartcuterie }}
+        NEED_REDIS_CLUSTER: ${{ inputs.redis_cluster }}
         NEED_SYMBOLICATOR: ${{ inputs.symbolicator }}
         WORKDIR: ${{ inputs.workdir }}
         PG_VERSION: ${{ inputs.pg-version }}
@@ -165,6 +170,10 @@ runs:
 
         if [ "$NEED_CHARTCUTERIE" = "true" ]; then
           services+=(chartcuterie)
+        fi
+
+        if [ "$NEED_REDIS_CLUSTER" = "true" ]; then
+          services+=(redis-cluster)
         fi
 
         if [ "$NEED_SYMBOLICATOR" = "true" ]; then

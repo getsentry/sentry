@@ -7,9 +7,9 @@ from typing import TYPE_CHECKING, Any
 from confluent_kafka import KafkaError
 from confluent_kafka import Message as KafkaMessage
 from confluent_kafka import Producer
-from django.conf import settings
 
 from sentry import options
+from sentry.conf.types.kafka_definition import Topic
 from sentry.eventstream.base import EventStreamEventType, GroupStates
 from sentry.eventstream.snuba import KW_SKIP_SEMANTIC_PARTITIONING, SnubaProtocolEventStream
 from sentry.killswitches import killswitch_matches_context
@@ -24,15 +24,15 @@ if TYPE_CHECKING:
 
 class KafkaEventStream(SnubaProtocolEventStream):
     def __init__(self, **options: Any) -> None:
-        self.topic = settings.KAFKA_EVENTS
-        self.transactions_topic = settings.KAFKA_TRANSACTIONS
-        self.issue_platform_topic = settings.KAFKA_EVENTSTREAM_GENERIC
-        self.__producers: MutableMapping[str, Producer] = {}
+        self.topic = Topic.EVENTS
+        self.transactions_topic = Topic.TRANSACTIONS
+        self.issue_platform_topic = Topic.EVENTSTREAM_GENERIC
+        self.__producers: MutableMapping[Topic, Producer] = {}
 
-    def get_transactions_topic(self, project_id: int) -> str:
+    def get_transactions_topic(self, project_id: int) -> Topic:
         return self.transactions_topic
 
-    def get_producer(self, topic: str) -> Producer:
+    def get_producer(self, topic: Topic) -> Producer:
         if topic not in self.__producers:
             cluster_name = get_topic_definition(topic)["cluster"]
             cluster_options = get_kafka_producer_cluster_options(cluster_name)
@@ -117,6 +117,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         group_states: GroupStates | None = None,
         **kwargs: Any,
     ) -> None:
+
         event_type = self._get_event_type(event)
         if event.get_tag("sample_event"):
             logger.info(
@@ -202,9 +203,11 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
         assert isinstance(extra_data, tuple)
 
+        real_topic = get_topic_definition(topic)["real_topic_name"]
+
         try:
             producer.produce(
-                topic=topic,
+                topic=real_topic,
                 key=str(project_id).encode("utf-8") if not skip_semantic_partitioning else None,
                 value=json.dumps((self.EVENT_PROTOCOL_VERSION, _type) + extra_data),
                 on_delivery=self.delivery_callback,

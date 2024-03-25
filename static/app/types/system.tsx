@@ -158,13 +158,15 @@ export interface Config {
     sentryUrl: string;
     superuserUrl?: string;
   };
+  // A list of regions that the user has membership in.
+  memberRegions: Region[];
   /**
    * This comes from django (django.contrib.messages)
    */
   messages: {level: keyof Theme['alert']; message: string}[];
   needsUpgrade: boolean;
   privacyUrl: string | null;
-  // The list of regions the current user has memberships in.
+  // The list of regions the user has has access to.
   regions: Region[];
   sentryConfig: {
     allowUrls: string[];
@@ -207,6 +209,7 @@ export interface Config {
   relocationConfig?: {
     selectableRegions: string[];
   };
+  shouldShowBeaconConsentPrompt?: boolean;
   statuspage?: {
     api_host: string;
     id: string;

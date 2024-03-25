@@ -34,6 +34,7 @@ const BASE_CONFIG: IssueTypeConfig = {
     share: {enabled: false},
   },
   attachments: {enabled: false},
+  autofix: false,
   events: {enabled: true},
   mergedIssues: {enabled: false},
   regression: {enabled: false},
@@ -47,6 +48,7 @@ const BASE_CONFIG: IssueTypeConfig = {
   evidence: {title: t('Evidence')},
   resources: null,
   usesIssuePlatform: true,
+  traceTimeline: true,
 };
 
 const issueTypeConfig: Config = {

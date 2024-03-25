@@ -20,7 +20,8 @@ from sentry import buffer, roles, tsdb
 from sentry.constants import ObjectStatus
 from sentry.exceptions import HashDiscarded
 from sentry.incidents.logic import create_alert_rule, create_alert_rule_trigger, create_incident
-from sentry.incidents.models import AlertRuleThresholdType, IncidentType
+from sentry.incidents.models.alert_rule import AlertRuleThresholdType
+from sentry.incidents.models.incident import IncidentType
 from sentry.models.activity import Activity
 from sentry.models.broadcast import Broadcast
 from sentry.models.commit import Commit
@@ -54,6 +55,7 @@ from sentry.monitors.models import (
     MonitorStatus,
     MonitorType,
 )
+from sentry.services.organization import organization_provisioning_service
 from sentry.signals import mocks_loaded
 from sentry.similarity import features
 from sentry.tsdb.base import TSDBModel
@@ -353,7 +355,15 @@ def get_organization() -> Organization:
         click.echo(f"Mocking org {org.name}")
     else:
         click.echo("Mocking org {}".format("Default"))
-        org, _ = Organization.objects.get_or_create(slug="default")
+        with transaction.atomic(router.db_for_write(Organization)):
+            org, _ = Organization.objects.get_or_create(slug="default")
+
+        # We need to provision an organization slug in control silo, so we do
+        # this by "changing" the slug, then re-replicating the org data.
+        organization_provisioning_service.change_organization_slug(
+            organization_id=org.id, slug=org.slug
+        )
+        org.handle_async_replication(org.id)
 
     return org
 

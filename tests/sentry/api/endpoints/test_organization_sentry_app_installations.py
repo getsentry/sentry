@@ -156,6 +156,14 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
             app = self.create_sentry_app(name="Sample 2", organization=self.org, published=True)
             self.get_success_response(self.org.slug, slug=app.slug, status_code=200)
 
+    def test_can_install_unpublished_unowned_app_as_superuser(self):
+        self.login_as(user=self.user)
+        org2 = self.create_organization()
+        app2 = self.create_sentry_app(name="Unpublished", organization=org2)
+
+        self.login_as(user=self.superuser, superuser=True)
+        self.get_success_response(self.org.slug, slug=app2.slug, status_code=200)
+
     @override_settings(SENTRY_SELF_HOSTED=False)
     @with_feature("auth:enterprise-superuser-read-write")
     def test_install_superuser_read(self):

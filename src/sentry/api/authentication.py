@@ -24,7 +24,11 @@ from sentry.models.apiapplication import ApiApplication
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 from sentry.models.integrations.sentry_app import SentryApp
-from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.orgauthtoken import (
+    OrgAuthToken,
+    is_org_auth_token_auth,
+    update_org_auth_token_last_used,
+)
 from sentry.models.projectkey import ProjectKey
 from sentry.models.relay import Relay
 from sentry.models.user import User
@@ -130,6 +134,14 @@ def relay_from_id(request, relay_id) -> tuple[Relay | None, bool]:
             return relay, False  # a Relay from the database
         except Relay.DoesNotExist:
             return None, False  # no Relay found
+
+
+def update_token_access_record(auth: object):
+    """
+    Perform updates to token models for security purposes (i.e. 'date_last_used')
+    """
+    if is_org_auth_token_auth(auth):
+        update_org_auth_token_last_used(auth, [])
 
 
 class QuietBasicAuthentication(BasicAuthentication):
@@ -321,8 +333,9 @@ class UserAuthTokenAuthentication(StandardAuthentication):
 
         if not token:
             if SiloMode.get_current_mode() == SiloMode.REGION:
-                atr = token = ApiTokenReplica.objects.filter(token=token_str).last()
-                if not atr:
+                try:
+                    atr = token = ApiTokenReplica.objects.get(token=token_str)
+                except ApiTokenReplica.DoesNotExist:
                     raise AuthenticationFailed("Invalid token")
                 user = user_service.get_user(user_id=atr.user_id)
                 application_is_inactive = not atr.application_is_active
@@ -379,11 +392,12 @@ class OrgAuthTokenAuthentication(StandardAuthentication):
         token_hashed = hash_token(token_str)
 
         if SiloMode.get_current_mode() == SiloMode.REGION:
-            token = OrgAuthTokenReplica.objects.filter(
-                token_hashed=token_hashed,
-                date_deactivated__isnull=True,
-            ).last()
-            if token is None:
+            try:
+                token = OrgAuthTokenReplica.objects.get(
+                    token_hashed=token_hashed,
+                    date_deactivated__isnull=True,
+                )
+            except OrgAuthTokenReplica.DoesNotExist:
                 raise AuthenticationFailed("Invalid org token")
         else:
             try:

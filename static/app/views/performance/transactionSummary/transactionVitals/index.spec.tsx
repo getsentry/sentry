@@ -237,8 +237,8 @@ describe('Performance > Web Vitals', function () {
       );
     });
 
-    it.each(vitals)('Renders %s', function (vital) {
-      expect(screen.getByText(vital.heading)).toBeInTheDocument();
+    it.each(vitals)('Renders %s', async function (vital) {
+      expect(await screen.findByText(vital.heading)).toBeInTheDocument();
       expect(screen.getByText(vital.baseline)).toBeInTheDocument();
     });
   });

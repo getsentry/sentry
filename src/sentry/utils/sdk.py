@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import copy
 import logging
-import random
 import sys
 from collections.abc import Generator, Mapping, Sequence
 from types import FrameType
@@ -22,6 +21,7 @@ from sentry_sdk.utils import logger as sdk_logger
 
 from sentry import options
 from sentry.conf.types.sdk_config import SdkConfig
+from sentry.features.rollout import in_random_rollout
 from sentry.utils import metrics
 from sentry.utils.db import DjangoAtomicIntegration
 from sentry.utils.openai_sdk_integration import OpenAiIntegration
@@ -37,9 +37,10 @@ logger = logging.getLogger(__name__)
 
 UNSAFE_FILES = (
     "sentry/event_manager.py",
+    "sentry/spans/consumers/process/factory.py",
+    "sentry/spans/consumers/detect_performance_issues/factory.py",
     "sentry/tasks/process_buffer.py",
     "sentry/ingest/consumer/processors.py",
-    "sentry/tasks/spans.py",
     # This consumer lives outside of sentry but is just as unsafe.
     "outcomes_consumer.py",
 )
@@ -65,8 +66,9 @@ SAMPLED_TASKS = {
     "sentry.ingest.transaction_clusterer.tasks.cluster_projects": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
     "sentry.tasks.process_buffer.process_incr": 0.01,
     "sentry.replays.tasks.delete_recording_segments": settings.SAMPLED_DEFAULT_RATE,
-    "sentry.tasks.weekly_reports.schedule_organizations": 1.0,
-    "sentry.tasks.weekly_reports.prepare_organization_report": 0.1,
+    "sentry.replays.tasks.delete_replay_recording_async": settings.SAMPLED_DEFAULT_RATE,
+    "sentry.tasks.summaries.weekly_reports.schedule_organizations": 1.0,
+    "sentry.tasks.summaries.weekly_reports.prepare_organization_report": 0.1,
     "sentry.profiles.task.process_profile": 0.01,
     "sentry.tasks.derive_code_mappings.process_organizations": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.derive_code_mappings.derive_code_mappings": settings.SAMPLED_DEFAULT_RATE,
@@ -79,7 +81,6 @@ SAMPLED_TASKS = {
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 0.2,
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions": 0.2,
     "sentry.dynamic_sampling.tasks.recalibrate_orgs": 0.2,
-    "sentry.dynamic_sampling.tasks.sliding_window": 0.2,
     "sentry.dynamic_sampling.tasks.sliding_window_org": 0.2,
     "sentry.dynamic_sampling.tasks.collect_orgs": 0.2,
     "sentry.dynamic_sampling.tasks.custom_rule_notifications": 0.2,
@@ -91,7 +92,6 @@ if settings.ADDITIONAL_SAMPLED_TASKS:
 
 
 UNSAFE_TAG = "_unsafe"
-EXPERIMENT_TAG = "_experimental_event"
 
 
 def _current_stack_filenames() -> Generator[str, None, None]:
@@ -124,16 +124,6 @@ def is_current_event_safe():
     return True
 
 
-def is_current_event_experimental():
-    """
-    Checks if the event was explicitly marked as experimental.
-    """
-    with configure_scope() as scope:
-        if scope._tags.get(EXPERIMENT_TAG):
-            return True
-    return False
-
-
 def mark_scope_as_unsafe():
     """
     Set the unsafe tag on the SDK scope for outgoing crashes and transactions.
@@ -143,16 +133,6 @@ def mark_scope_as_unsafe():
     """
     with configure_scope() as scope:
         scope.set_tag(UNSAFE_TAG, True)
-
-
-def mark_scope_as_experimental():
-    """
-    Set the experimental tag on the SDK scope for outgoing crashes and transactions.
-
-    Marking the scope will cause these crashes and transaction to be sent to a separate experimental dsn.
-    """
-    with configure_scope() as scope:
-        scope.set_tag(EXPERIMENT_TAG, True)
 
 
 def set_current_event_project(project_id):
@@ -239,8 +219,11 @@ def before_send_transaction(event, _):
 
 
 def before_send(event, _):
-    if event.get("tags") and settings.SILO_MODE:
-        event["tags"]["silo_mode"] = settings.SILO_MODE
+    if event.get("tags"):
+        if settings.SILO_MODE:
+            event["tags"]["silo_mode"] = str(settings.SILO_MODE)
+        if settings.SENTRY_REGION:
+            event["tags"]["sentry_region"] = settings.SENTRY_REGION
     return event
 
 
@@ -352,15 +335,6 @@ def configure_sdk():
             self._capture_anything("capture_event", event)
 
         def _capture_anything(self, method_name, *args, **kwargs):
-            # Experimental events will be sent to the experimental transport.
-            if experimental_transport:
-                rate = options.get("store.use-experimental-dsn-sample-rate")
-                if is_current_event_experimental():
-                    if rate and random.random() < rate:
-                        getattr(experimental_transport, method_name)(*args, **kwargs)
-                    # Experimental events should not be sent to other transports even if they are not sampled.
-                    return
-
             # Sentry4Sentry (upstream) should get the event first because
             # it is most isolated from the sentry installation.
             if sentry4sentry_transport:
@@ -380,11 +354,11 @@ def configure_sdk():
                     envelope = args_list[0]
                     # We filter out all the statsd envelope items, which contain custom metrics sent by the SDK.
                     # unless we allow them via a separate sample rate.
-                    ddm_sample_rate = options.get("store.allow-s4s-ddm-sample-rate")
                     safe_items = [
                         x
                         for x in envelope.items
-                        if x.data_category != "statsd" or random.random() < ddm_sample_rate
+                        if x.data_category != "statsd"
+                        or in_random_rollout("store.allow-s4s-ddm-sample-rate")
                     ]
                     if len(safe_items) != len(envelope.items):
                         relay_envelope = copy.copy(envelope)
@@ -393,7 +367,9 @@ def configure_sdk():
 
                 getattr(sentry4sentry_transport, method_name)(*s4s_args, **kwargs)
 
-            if sentry_saas_transport and options.get("store.use-relay-dsn-sample-rate") == 1:
+            if (sentry_saas_transport or experimental_transport) and options.get(
+                "store.use-relay-dsn-sample-rate"
+            ) == 1:
                 # If this is an envelope ensure envelope and its items are distinct references
                 if method_name == "capture_envelope":
                     args_list = list(args)
@@ -402,15 +378,21 @@ def configure_sdk():
                     relay_envelope.items = envelope.items.copy()
                     args = (relay_envelope, *args_list[1:])
 
-                if is_current_event_safe():
-                    metrics.incr("internal.captured.events.relay")
-                    getattr(sentry_saas_transport, method_name)(*args, **kwargs)
-                else:
-                    metrics.incr(
-                        "internal.uncaptured.events.relay",
-                        skip_internal=False,
-                        tags={"reason": "unsafe"},
-                    )
+                if sentry_saas_transport:
+                    if is_current_event_safe():
+                        metrics.incr("internal.captured.events.relay")
+                        getattr(sentry_saas_transport, method_name)(*args, **kwargs)
+                    else:
+                        metrics.incr(
+                            "internal.uncaptured.events.relay",
+                            skip_internal=False,
+                            tags={"reason": "unsafe"},
+                        )
+
+                if experimental_transport:
+                    if is_current_event_safe():
+                        if in_random_rollout("store.experimental-dsn-double-write.sample-rate"):
+                            getattr(experimental_transport, method_name)(*args, **kwargs)
 
         def record_lost_event(self, *args, **kwargs):
             # pass through client report recording to sentry_saas_transport
@@ -632,9 +614,10 @@ def bind_organization_context(organization: Organization | RpcOrganization) -> N
     helper = settings.SENTRY_ORGANIZATION_CONTEXT_HELPER
 
     # XXX(dcramer): this is duplicated in organizationContext.jsx on the frontend
-    with configure_scope() as scope, sentry_sdk.start_span(
-        op="other", description="bind_organization_context"
-    ):
+    # fmt: off
+    with configure_scope() as scope, \
+         sentry_sdk.start_span(op="other", description="bind_organization_context"):
+        # fmt: on
         # This can be used to find errors that may have been mistagged
         check_tag_for_scope_bleed("organization.slug", organization.slug)
 
@@ -717,7 +700,6 @@ def merge_context_into_scope(
 
 
 __all__ = (
-    "EXPERIMENT_TAG",
     "LEGACY_RESOLVER",
     "Scope",
     "UNSAFE_FILES",
@@ -735,10 +717,8 @@ __all__ = (
     "get_options",
     "get_project_key",
     "get_transaction_name_from_request",
-    "is_current_event_experimental",
     "is_current_event_safe",
     "make_transport",
-    "mark_scope_as_experimental",
     "mark_scope_as_unsafe",
     "merge_context_into_scope",
     "patch_transport_for_instrumentation",

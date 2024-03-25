@@ -307,10 +307,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             assert self.group.get_status() == GroupStatus.IGNORED
             assert self.group.substatus == GroupSubStatus.UNTIL_ESCALATING
             expect_status = f"*Issue archived by <@{self.external_id}>*"
-            assert (
-                resp.data["blocks"][1]["elements"][0]["elements"][0]["text"]
-                == self.notification_text
-            )
+            assert self.notification_text in resp.data["blocks"][1]["text"]["text"]
             assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
@@ -336,10 +333,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             assert self.group.substatus == GroupSubStatus.UNTIL_ESCALATING
 
             expect_status = f"*Issue archived by <@{self.external_id}>*"
-            assert (
-                resp.data["blocks"][1]["elements"][0]["elements"][0]["text"]
-                == self.notification_text
-            )
+            assert self.notification_text in resp.data["blocks"][1]["text"]["text"]
             assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
@@ -354,10 +348,9 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         update_data = json.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue archived by <@{self.external_id}>*"
-        assert (
-            update_data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
-        )
+        assert self.notification_text in update_data["blocks"][1]["text"]["text"]
         assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
+        assert "via" not in update_data["blocks"][4]["elements"][0]["text"]
 
     @responses.activate
     def test_archive_issue_until_escalating_block_kit_through_unfurl(self):
@@ -374,9 +367,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         update_data = json.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue archived by <@{self.external_id}>*"
-        assert (
-            update_data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
-        )
+        assert self.notification_text in update_data["blocks"][1]["text"]["text"]
         assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
@@ -393,9 +384,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         update_data = json.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue archived by <@{self.external_id}>*"
-        assert (
-            update_data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
-        )
+        assert self.notification_text in update_data["blocks"][1]["text"]["text"]
         assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
@@ -415,9 +404,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         update_data = json.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue archived by <@{self.external_id}>*"
-        assert (
-            update_data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
-        )
+        assert self.notification_text in update_data["blocks"][1]["text"]["text"]
         assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
@@ -432,9 +419,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         update_data = json.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue archived by <@{self.external_id}>*"
-        assert (
-            update_data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
-        )
+        assert self.notification_text in update_data["blocks"][1]["text"]["text"]
         assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
@@ -450,9 +435,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         update_data = json.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue archived by <@{self.external_id}>*"
-        assert (
-            update_data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
-        )
+        assert self.notification_text in update_data["blocks"][1]["text"]["text"]
         assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
 
     def test_archive_issue_with_additional_user_auth(self):
@@ -485,10 +468,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             assert resp.status_code == 200, resp.content
             assert self.group.get_status() == GroupStatus.IGNORED
             assert self.group.substatus == GroupSubStatus.FOREVER
-            assert (
-                resp.data["blocks"][1]["elements"][0]["elements"][0]["text"]
-                == self.notification_text
-            )
+            assert self.notification_text in resp.data["blocks"][1]["text"]["text"]
             assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
@@ -512,9 +492,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         update_data = json.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue archived by <@{self.external_id}>*"
-        assert (
-            update_data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
-        )
+        assert self.notification_text in update_data["blocks"][1]["text"]["text"]
         assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
@@ -538,9 +516,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         update_data = json.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue archived by <@{self.external_id}>*"
-        assert (
-            update_data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
-        )
+        assert self.notification_text in update_data["blocks"][1]["text"]["text"]
         assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
 
     def test_unarchive_issue_block_kit(self):
@@ -562,9 +538,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         assert self.group.substatus == GroupSubStatus.NEW  # the issue is less than 7 days old
 
         expect_status = f"*Issue re-opened by <@{self.external_id}>*"
-        assert (
-            resp.data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
-        )
+        assert self.notification_text in resp.data["blocks"][1]["text"]["text"]
         assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status)
 
     def test_unarchive_issue_block_kit_through_unfurl(self):
@@ -587,9 +561,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         assert self.group.substatus == GroupSubStatus.NEW  # the issue is less than 7 days old
 
         expect_status = f"*Issue re-opened by <@{self.external_id}>*"
-        assert (
-            resp.data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
-        )
+        assert self.notification_text in resp.data["blocks"][1]["text"]["text"]
         assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status)
 
     def test_assign_issue(self):
@@ -645,10 +617,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
                 "integration": ActivityIntegration.SLACK.value,
             }
             expect_status = f"*Issue assigned to #{self.team.slug} by <@{self.external_id}>*"
-            assert (
-                resp.data["blocks"][1]["elements"][0]["elements"][0]["text"]
-                == self.notification_text
-            )
+            assert self.notification_text in resp.data["blocks"][1]["text"]["text"]
             assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status), resp.data["text"]
 
     def test_assign_issue_block_kit(self):
@@ -660,18 +629,14 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         resp = self.assign_issue_block_kit(original_message, user2)
         assert GroupAssignee.objects.filter(group=self.group, user_id=user2.id).exists()
         expect_status = f"*Issue assigned to {user2.get_display_name()} by <@{self.external_id}>*"
-        assert (
-            resp.data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
-        )
+        assert self.notification_text in resp.data["blocks"][1]["text"]["text"]
         assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status), resp.data["text"]
 
         # Assign to team
         resp = self.assign_issue_block_kit(original_message, self.team)
         assert GroupAssignee.objects.filter(group=self.group, team=self.team).exists()
         expect_status = f"*Issue assigned to #{self.team.slug} by <@{self.external_id}>*"
-        assert (
-            resp.data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
-        )
+        assert self.notification_text in resp.data["blocks"][1]["text"]["text"]
         assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status), resp.data["text"]
 
         # Assert group assignment activity recorded
@@ -699,18 +664,14 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         resp = self.assign_issue_block_kit(original_message, user2, payload_data)
         assert GroupAssignee.objects.filter(group=self.group, user_id=user2.id).exists()
         expect_status = f"*Issue assigned to {user2.get_display_name()} by <@{self.external_id}>*"
-        assert (
-            resp.data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
-        )
+        assert self.notification_text in resp.data["blocks"][1]["text"]["text"]
         assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status), resp.data["text"]
 
         # Assign to team
         resp = self.assign_issue_block_kit(original_message, self.team, payload_data)
         assert GroupAssignee.objects.filter(group=self.group, team=self.team).exists()
         expect_status = f"*Issue assigned to #{self.team.slug} by <@{self.external_id}>*"
-        assert (
-            resp.data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
-        )
+        assert self.notification_text in resp.data["blocks"][1]["text"]["text"]
         assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status), resp.data["text"]
 
         # Assert group assignment activity recorded
@@ -814,10 +775,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             resp = self.post_webhook(action_data=[status_action])
             assert resp.status_code == 200, resp.content
             assert GroupAssignee.objects.filter(group=self.group, user_id=user2.id).exists()
-            assert (
-                resp.data["blocks"][1]["elements"][0]["elements"][0]["text"]
-                == self.notification_text
-            )
+            assert self.notification_text in resp.data["blocks"][1]["text"]["text"]
             assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status), resp.data["text"]
 
     def test_assign_issue_user_has_identity_block_kit(self):
@@ -835,9 +793,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         expect_status = (
             f"*Issue assigned to <@{user2_identity.external_id}> by <@{self.external_id}>*"
         )
-        assert (
-            resp.data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
-        )
+        assert self.notification_text in resp.data["blocks"][1]["text"]["text"]
         assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status), resp.data["text"]
 
     def test_assign_issue_user_has_identity_block_kit_through_unfurl(self):
@@ -857,9 +813,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         expect_status = (
             f"*Issue assigned to <@{user2_identity.external_id}> by <@{self.external_id}>*"
         )
-        assert (
-            resp.data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
-        )
+        assert self.notification_text in resp.data["blocks"][1]["text"]["text"]
         assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status), resp.data["text"]
 
     def test_assign_user_with_multiple_identities(self):
@@ -897,10 +851,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             resp = self.post_webhook(action_data=[status_action])
             assert resp.status_code == 200, resp.content
             assert GroupAssignee.objects.filter(group=self.group, user_id=self.user.id).exists()
-            assert (
-                resp.data["blocks"][1]["elements"][0]["elements"][0]["text"]
-                == self.notification_text
-            )
+            assert self.notification_text in resp.data["blocks"][1]["text"]["text"]
             assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status), resp.data["text"]
 
     def test_assign_user_with_multiple_identities_block_kit(self):
@@ -924,9 +875,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         expect_status = "*Issue assigned to <@{assignee}> by <@{assignee}>*".format(
             assignee=self.external_id
         )
-        assert (
-            resp.data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
-        )
+        assert self.notification_text in resp.data["blocks"][1]["text"]["text"]
         assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status), resp.data["text"]
 
     def test_assign_user_with_multiple_identities_block_kit_through_unfurl(self):
@@ -951,9 +900,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         expect_status = "*Issue assigned to <@{assignee}> by <@{assignee}>*".format(
             assignee=self.external_id
         )
-        assert (
-            resp.data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
-        )
+        assert self.notification_text in resp.data["blocks"][1]["text"]["text"]
         assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status), resp.data["text"]
 
     @responses.activate
@@ -1060,9 +1007,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         update_data = json.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
-        assert (
-            update_data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
-        )
+        assert self.notification_text in update_data["blocks"][1]["text"]["text"]
         assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
@@ -1077,9 +1022,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         update_data = json.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
-        assert (
-            update_data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
-        )
+        assert self.notification_text in update_data["blocks"][1]["text"]["text"]
         assert update_data["blocks"][2]["text"]["text"] == expect_status
 
     @responses.activate
@@ -1095,9 +1038,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         update_data = json.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
-        assert (
-            update_data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
-        )
+        assert self.notification_text in update_data["blocks"][1]["text"]["text"]
         assert update_data["blocks"][2]["text"]["text"] == expect_status
 
     @responses.activate
@@ -1216,10 +1157,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
 
             update_data = json.loads(responses.calls[1].request.body)
             expect_status = f"*Issue resolved by <@{self.external_id}>*"
-            assert (
-                update_data["blocks"][1]["elements"][0]["elements"][0]["text"]
-                == self.notification_text
-            )
+            assert self.notification_text in update_data["blocks"][1]["text"]["text"]
             assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
@@ -1242,9 +1180,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         update_data = json.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
-        assert (
-            update_data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
-        )
+        assert self.notification_text in update_data["blocks"][1]["text"]["text"]
         assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
@@ -1268,9 +1204,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         update_data = json.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
-        assert (
-            update_data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
-        )
+        assert self.notification_text in update_data["blocks"][1]["text"]["text"]
         assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
@@ -1292,9 +1226,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         update_data = json.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
-        assert (
-            update_data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
-        )
+        assert self.notification_text in update_data["blocks"][1]["text"]["text"]
         assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
@@ -1317,9 +1249,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         update_data = json.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
-        assert (
-            update_data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
-        )
+        assert self.notification_text in update_data["blocks"][1]["text"]["text"]
         assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
 
     def test_response_differs_on_bot_message(self):
@@ -1343,7 +1273,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             assert self.group.substatus == GroupSubStatus.FOREVER
             assert resp.status_code == 200, resp.content
             assert "blocks" in resp.data
-            assert resp.data["blocks"][1]["elements"][0]["elements"][0]["text"] in self.group.title
+            assert resp.data["blocks"][1]["text"]["text"][3:-3] in self.group.title
 
     @responses.activate
     def test_response_differs_on_bot_message_block_kit(self):
@@ -1402,9 +1332,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         update_data = json.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue archived by <@{self.external_id}>*"
-        assert (
-            update_data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
-        )
+        assert self.notification_text in update_data["blocks"][1]["text"]["text"]
         assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
 
     def test_permission_denied(self):

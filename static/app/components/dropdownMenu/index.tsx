@@ -62,6 +62,7 @@ interface DropdownMenuProps
       | 'shouldCloseOnBlur'
       | 'shouldCloseOnInteractOutside'
       | 'onInteractOutside'
+      | 'onOpenChange'
       | 'preventOverflowOptions'
       | 'flipOptions'
     > {
@@ -145,6 +146,7 @@ function DropdownMenu({
   shouldCloseOnBlur = true,
   shouldCloseOnInteractOutside,
   onInteractOutside,
+  onOpenChange,
   preventOverflowOptions,
   flipOptions,
   ...props
@@ -169,6 +171,7 @@ function DropdownMenu({
     onInteractOutside,
     preventOverflowOptions,
     flipOptions,
+    onOpenChange,
   });
 
   const {menuTriggerProps, menuProps} = useMenuTrigger(
@@ -176,6 +179,9 @@ function DropdownMenu({
     {...overlayState, focusStrategy: 'first'},
     triggerRef
   );
+  // We manually handle focus in the dropdown menu, so we don't want the default autofocus behavior
+  // Avoids the menu from focusing before popper has placed it in the correct position
+  menuProps.autoFocus = false;
 
   const {buttonProps} = useButton(
     {
@@ -193,9 +199,9 @@ function DropdownMenu({
       <DropdownButton
         size={size}
         isOpen={isOpen}
-        {...triggerProps}
-        {...overlayTriggerProps}
         {...buttonProps}
+        {...overlayTriggerProps}
+        {...triggerProps}
       >
         {triggerLabel}
       </DropdownButton>

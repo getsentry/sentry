@@ -74,6 +74,8 @@ class JiraServerIssueUpdatedWebhook(Endpoint):
 
         data = request.data
 
+        # Note: If we ever process more webhooks from jira server
+        # we also need to update JiraServerRequestParser
         if not data.get("changelog"):
             logger.info("missing-changelog", extra=extra)
             return self.respond()

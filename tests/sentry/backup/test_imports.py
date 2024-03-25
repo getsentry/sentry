@@ -4,7 +4,7 @@ import io
 import os
 import tarfile
 import tempfile
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from unittest.mock import patch
 
@@ -29,7 +29,7 @@ from sentry.backup.imports import (
     import_in_user_scope,
 )
 from sentry.backup.scopes import ExportScope, ImportScope, RelocationScope
-from sentry.incidents.models import AlertRule, AlertRuleThresholdType
+from sentry.incidents.models.alert_rule import AlertRule, AlertRuleThresholdType
 from sentry.models.actor import ACTOR_TYPES, Actor
 from sentry.models.apitoken import DEFAULT_EXPIRATION, ApiToken, generate_token
 from sentry.models.authenticator import Authenticator
@@ -123,7 +123,9 @@ class SanitizationTests(ImportTestCase):
             assert UserEmail.objects.count() == 4
             assert UserEmail.objects.filter(is_verified=True).count() == 0
             assert (
-                UserEmail.objects.filter(date_hash_added__lt=datetime(2023, 7, 1, 0, 0)).count()
+                UserEmail.objects.filter(
+                    date_hash_added__lt=datetime(2023, 7, 1, 0, 0, tzinfo=UTC)
+                ).count()
                 == 0
             )
             assert (
@@ -162,7 +164,9 @@ class SanitizationTests(ImportTestCase):
             assert UserEmail.objects.count() == 4
             assert UserEmail.objects.filter(is_verified=True).count() == 0
             assert (
-                UserEmail.objects.filter(date_hash_added__lt=datetime(2023, 7, 1, 0, 0)).count()
+                UserEmail.objects.filter(
+                    date_hash_added__lt=datetime(2023, 7, 1, 0, 0, tzinfo=UTC)
+                ).count()
                 == 0
             )
             assert (
@@ -211,7 +215,9 @@ class SanitizationTests(ImportTestCase):
             assert UserEmail.objects.count() == 4
             assert UserEmail.objects.filter(is_verified=True).count() == 0
             assert (
-                UserEmail.objects.filter(date_hash_added__lt=datetime(2023, 7, 1, 0, 0)).count()
+                UserEmail.objects.filter(
+                    date_hash_added__lt=datetime(2023, 7, 1, 0, 0, tzinfo=UTC)
+                ).count()
                 == 0
             )
             assert (
@@ -257,7 +263,9 @@ class SanitizationTests(ImportTestCase):
             assert UserEmail.objects.count() == 4
             assert UserEmail.objects.filter(is_verified=True).count() == 4
             assert (
-                UserEmail.objects.filter(date_hash_added__lt=datetime(2023, 7, 1, 0, 0)).count()
+                UserEmail.objects.filter(
+                    date_hash_added__lt=datetime(2023, 7, 1, 0, 0, tzinfo=UTC)
+                ).count()
                 == 4
             )
             assert (
@@ -409,8 +417,12 @@ class SanitizationTests(ImportTestCase):
             assert UserIP.objects.filter(region_code="CA").exists()
 
             # Unlike global scope, this time must be reset.
-            assert UserIP.objects.filter(last_seen__gt=datetime(2023, 7, 1, 0, 0)).exists()
-            assert UserIP.objects.filter(first_seen__gt=datetime(2023, 7, 1, 0, 0)).exists()
+            assert UserIP.objects.filter(
+                last_seen__gt=datetime(2023, 7, 1, 0, 0, tzinfo=UTC)
+            ).exists()
+            assert UserIP.objects.filter(
+                first_seen__gt=datetime(2023, 7, 1, 0, 0, tzinfo=UTC)
+            ).exists()
 
     @patch("sentry.models.userip.geo_by_addr")
     def test_good_regional_user_ip_in_global_scope(self, mock_geo_by_addr):
@@ -441,8 +453,12 @@ class SanitizationTests(ImportTestCase):
             assert UserIP.objects.filter(region_code="CA").exists()
 
             # Unlike org/user scope, this must NOT be reset.
-            assert not UserIP.objects.filter(last_seen__gt=datetime(2023, 7, 1, 0, 0)).exists()
-            assert not UserIP.objects.filter(first_seen__gt=datetime(2023, 7, 1, 0, 0)).exists()
+            assert not UserIP.objects.filter(
+                last_seen__gt=datetime(2023, 7, 1, 0, 0, tzinfo=UTC)
+            ).exists()
+            assert not UserIP.objects.filter(
+                first_seen__gt=datetime(2023, 7, 1, 0, 0, tzinfo=UTC)
+            ).exists()
 
     # Regression test for getsentry/self-hosted#2468.
     @patch("sentry.models.userip.geo_by_addr")
@@ -1015,9 +1031,10 @@ class DecryptionTests(ImportTestCase):
             with assume_test_silo_mode(SiloMode.CONTROL):
                 assert User.objects.count() == 0
 
-            with open(tmp_tarball_path, "rb") as tmp_tarball_file, open(
-                tmp_priv_key_path, "rb"
-            ) as tmp_priv_key_file:
+            with (
+                open(tmp_tarball_path, "rb") as tmp_tarball_file,
+                open(tmp_priv_key_path, "rb") as tmp_priv_key_file,
+            ):
                 import_in_user_scope(
                     tmp_tarball_file,
                     decryptor=LocalFileDecryptor(tmp_priv_key_file),
@@ -1032,9 +1049,10 @@ class DecryptionTests(ImportTestCase):
             (tmp_tarball_path, tmp_priv_key_path) = self.encrypt_json_fixture(tmp_dir)
             assert Organization.objects.count() == 0
 
-            with open(tmp_tarball_path, "rb") as tmp_tarball_file, open(
-                tmp_priv_key_path, "rb"
-            ) as tmp_priv_key_file:
+            with (
+                open(tmp_tarball_path, "rb") as tmp_tarball_file,
+                open(tmp_priv_key_path, "rb") as tmp_priv_key_file,
+            ):
                 import_in_organization_scope(
                     tmp_tarball_file,
                     decryptor=LocalFileDecryptor(tmp_priv_key_file),
@@ -1049,9 +1067,10 @@ class DecryptionTests(ImportTestCase):
             with assume_test_silo_mode(SiloMode.CONTROL):
                 assert UserRole.objects.count() == 0
 
-            with open(tmp_tarball_path, "rb") as tmp_tarball_file, open(
-                tmp_priv_key_path, "rb"
-            ) as tmp_priv_key_file:
+            with (
+                open(tmp_tarball_path, "rb") as tmp_tarball_file,
+                open(tmp_priv_key_path, "rb") as tmp_priv_key_file,
+            ):
                 import_in_config_scope(
                     tmp_tarball_file,
                     decryptor=LocalFileDecryptor(tmp_priv_key_file),
@@ -1070,9 +1089,10 @@ class DecryptionTests(ImportTestCase):
                 assert User.objects.count() == 0
                 assert UserRole.objects.count() == 0
 
-            with open(tmp_tarball_path, "rb") as tmp_tarball_file, open(
-                tmp_priv_key_path, "rb"
-            ) as tmp_priv_key_file:
+            with (
+                open(tmp_tarball_path, "rb") as tmp_tarball_file,
+                open(tmp_priv_key_path, "rb") as tmp_priv_key_file,
+            ):
                 import_in_global_scope(
                     tmp_tarball_file,
                     decryptor=LocalFileDecryptor(tmp_priv_key_file),

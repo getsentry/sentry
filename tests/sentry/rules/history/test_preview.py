@@ -443,7 +443,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
             {
                 "id": "sentry.rules.filters.event_attribute.EventAttributeFilter",
                 "attribute": "message",
-                "match": "eq",
+                "match": "co",
                 "value": "N+1 Query",
             }
         ]

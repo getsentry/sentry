@@ -6,8 +6,8 @@ import {IconPanel} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import localStorage from 'sentry/utils/localStorage';
 import useKeyPress from 'sentry/utils/useKeyPress';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import SlideOverPanel from 'sentry/views/starfish/components/slideOverPanel';
 
@@ -16,6 +16,8 @@ type DetailProps = {
   detailKey?: string;
   onClose?: () => void;
   onOpen?: () => void;
+  skipCloseOnOutsideClick?: boolean;
+  startingPositionOnLoad?: 'right' | 'bottom';
 };
 
 type DetailState = {
@@ -24,11 +26,26 @@ type DetailState = {
 
 const SLIDEOUT_STORAGE_KEY = 'starfish-panel-slideout-direction';
 
-export default function Detail({children, detailKey, onClose, onOpen}: DetailProps) {
+function isValidSlidePosition(value: string | null): value is 'right' | 'bottom' {
+  return value === 'right' || value === 'bottom';
+}
+
+export default function Detail({
+  children,
+  detailKey,
+  onClose,
+  onOpen,
+  startingPositionOnLoad,
+  skipCloseOnOutsideClick = false,
+}: DetailProps) {
+  const localStorageValue = localStorage.getItem(SLIDEOUT_STORAGE_KEY);
+  const storedSlideOutPosition = isValidSlidePosition(localStorageValue)
+    ? localStorageValue
+    : null;
+
   const [state, setState] = useState<DetailState>({collapsed: true});
-  const [slidePosition, setSlidePosition] = useLocalStorageState<'right' | 'bottom'>(
-    SLIDEOUT_STORAGE_KEY,
-    'right'
+  const [slidePosition, setSlidePosition] = useState<'right' | 'bottom'>(
+    startingPositionOnLoad ?? storedSlideOutPosition ?? 'right'
   );
   const escapeKeyPressed = useKeyPress('Escape');
 
@@ -43,7 +60,7 @@ export default function Detail({children, detailKey, onClose, onOpen}: DetailPro
 
   const panelRef = useRef<HTMLDivElement>(null);
   useOnClickOutside(panelRef, () => {
-    if (!state.collapsed) {
+    if (!state.collapsed && !skipCloseOnOutsideClick) {
       onClose?.();
       setState({collapsed: true});
     }
@@ -58,6 +75,11 @@ export default function Detail({children, detailKey, onClose, onOpen}: DetailPro
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [escapeKeyPressed]);
+
+  const handleDocking = (position: 'right' | 'bottom') => {
+    setSlidePosition(position);
+    localStorage.setItem(SLIDEOUT_STORAGE_KEY, position);
+  };
 
   return (
     <SlideOverPanel
@@ -74,9 +96,7 @@ export default function Detail({children, detailKey, onClose, onOpen}: DetailPro
           aria-label={t('Dock to the bottom')}
           disabled={slidePosition === 'bottom'}
           icon={<IconPanel size="sm" direction="down" />}
-          onClick={() => {
-            setSlidePosition('bottom');
-          }}
+          onClick={() => handleDocking('bottom')}
         />
         <PanelButton
           priority="link"
@@ -85,9 +105,7 @@ export default function Detail({children, detailKey, onClose, onOpen}: DetailPro
           aria-label={t('Dock to the right')}
           disabled={slidePosition === 'right'}
           icon={<IconPanel size="sm" direction="right" />}
-          onClick={() => {
-            setSlidePosition('right');
-          }}
+          onClick={() => handleDocking('right')}
         />
         <CloseButton
           priority="link"

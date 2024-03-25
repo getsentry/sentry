@@ -18,7 +18,11 @@ def parse_obfuscated_signature(signature: str) -> tuple[list[str], str]:
         return [], ""
 
     signature = signature[1:]
-    parameter_types, return_type = signature.rsplit(")", 1)
+    try:
+        parameter_types, return_type = signature.rsplit(")", 1)
+    except ValueError:
+        # the lack of `)` indicates a malformed signature
+        return [], ""
     types = []
     i = 0
     arrays = 0
@@ -102,3 +106,23 @@ def deobfuscate_signature(signature: str, mapper=None) -> tuple[list[str], str] 
 
     return_java_type = byte_code_type_to_java_type(return_type, mapper)
     return parameter_java_types, return_java_type
+
+
+def convert_android_methods_to_jvm_frames(methods: list[dict]) -> list[dict]:
+    return [
+        {
+            "function": m["name"],
+            "module": m["class_name"],
+            "signature": m["signature"],
+        }
+        for m in methods
+    ]
+
+
+def merge_jvm_frames_with_android_methods(frames: list[dict], methods: list[dict]) -> None:
+    assert len(frames) == len(methods)
+    for f, m in zip(frames, methods):
+        m["class_name"] = f["module"]
+        m["name"] = f["function"]
+        if "signature" in f:
+            m["signature"] = f["signature"]

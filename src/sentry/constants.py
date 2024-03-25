@@ -43,7 +43,7 @@ COMMIT_RANGE_DELIMITER = ".."
 SEMVER_FAKE_PACKAGE = "__sentry_fake__"
 
 SORT_OPTIONS = {
-    "priority": _("Priority"),
+    "trends": _("Trends"),
     "date": _("Last Seen"),
     "new": _("First Seen"),
     "freq": _("Frequency"),
@@ -639,12 +639,13 @@ TRUSTED_RELAYS_DEFAULT = None
 JOIN_REQUESTS_DEFAULT = True
 AI_SUGGESTED_SOLUTION = True
 GITHUB_COMMENT_BOT_DEFAULT = True
+DATA_CONSENT_DEFAULT = False
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
 EVENTS_MEMBER_ADMIN_DEFAULT = True
 ALERTS_MEMBER_WRITE_DEFAULT = True
 
-# Defined at https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
+# Defined at https://github.com/getsentry/relay/blob/master/py/sentry_relay/consts.py
 DataCategory = sentry_relay.consts.DataCategory
 
 CRASH_RATE_ALERT_SESSION_COUNT_ALIAS = "_total_count"

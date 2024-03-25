@@ -1,21 +1,31 @@
-import {useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {MetricSamplesTable} from 'sentry/components/ddm/metricSamplesTable';
+import {
+  type Field,
+  MetricSamplesTable,
+  SearchableMetricSamplesTable,
+} from 'sentry/components/ddm/metricSamplesTable';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {MRI} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isCustomMetric} from 'sentry/utils/metrics';
-import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
+import type {
+  FocusedMetricsSeries,
+  MetricQueryWidgetParams,
+  MetricWidgetQueryParams,
+} from 'sentry/utils/metrics/types';
+import {MetricQueryType} from 'sentry/utils/metrics/types';
+import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples';
 import useOrganization from 'sentry/utils/useOrganization';
 import {CodeLocations} from 'sentry/views/ddm/codeLocations';
 import type {FocusAreaProps} from 'sentry/views/ddm/context';
 import {useDDMContext} from 'sentry/views/ddm/context';
-import type {SamplesTableProps} from 'sentry/views/ddm/sampleTable';
-import {SampleTable} from 'sentry/views/ddm/sampleTable';
-import {getQueryWithFocusedSeries} from 'sentry/views/ddm/utils';
+import {extendQueryWithGroupBys} from 'sentry/views/ddm/utils';
 
 enum Tab {
   SAMPLES = 'samples',
@@ -23,8 +33,13 @@ enum Tab {
 }
 
 export function WidgetDetails() {
-  const {selectedWidgetIndex, widgets, focusArea, setHighlightedSampleId} =
-    useDDMContext();
+  const {
+    selectedWidgetIndex,
+    widgets,
+    focusArea,
+    setHighlightedSampleId,
+    setMetricsSamples,
+  } = useDDMContext();
 
   const selectedWidget = widgets[selectedWidgetIndex] as
     | MetricWidgetQueryParams
@@ -37,10 +52,21 @@ export function WidgetDetails() {
     [setHighlightedSampleId]
   );
 
+  // TODO(aknaus): better fallback
+  if (selectedWidget?.type === MetricQueryType.FORMULA) {
+    <MetricDetails onRowHover={handleSampleRowHover} focusArea={focusArea} />;
+  }
+
+  const {mri, op, query, focusedSeries} = selectedWidget as MetricQueryWidgetParams;
+
   return (
     <MetricDetails
-      widget={selectedWidget}
+      mri={mri}
+      op={op}
+      query={query}
+      focusedSeries={focusedSeries}
       onRowHover={handleSampleRowHover}
+      setMetricsSamples={setMetricsSamples}
       focusArea={focusArea}
     />
   );
@@ -48,24 +74,43 @@ export function WidgetDetails() {
 
 interface MetricDetailsProps {
   focusArea?: FocusAreaProps;
-  onRowHover?: SamplesTableProps['onRowHover'];
-  widget?: MetricWidgetQueryParams;
+  focusedSeries?: FocusedMetricsSeries[];
+  mri?: MRI;
+  onRowHover?: (sampleId?: string) => void;
+  op?: string;
+  query?: string;
+  setMetricsSamples?: React.Dispatch<
+    React.SetStateAction<MetricsSamplesResults<Field>['data'] | undefined>
+  >;
 }
 
-export function MetricDetails({widget, onRowHover, focusArea}: MetricDetailsProps) {
+export function MetricDetails({
+  mri,
+  op,
+  query,
+  focusedSeries,
+  onRowHover,
+  focusArea,
+  setMetricsSamples,
+}: MetricDetailsProps) {
   const organization = useOrganization();
 
   const [selectedTab, setSelectedTab] = useState(Tab.SAMPLES);
 
-  const isCodeLocationsDisabled = widget?.mri && !isCustomMetric({mri: widget.mri});
+  const isCodeLocationsDisabled = mri && !isCustomMetric({mri});
 
   if (isCodeLocationsDisabled && selectedTab === Tab.CODE_LOCATIONS) {
     setSelectedTab(Tab.SAMPLES);
   }
 
   const queryWithFocusedSeries = useMemo(
-    () => widget && getQueryWithFocusedSeries(widget.query || '', widget.focusedSeries),
-    [widget]
+    () =>
+      focusedSeries &&
+      extendQueryWithGroupBys(
+        query || '',
+        focusedSeries.map(s => s.groupBy)
+      ),
+    [focusedSeries, query]
   );
 
   const handleTabChange = useCallback(
@@ -103,19 +148,30 @@ export function MetricDetails({widget, onRowHover, focusArea}: MetricDetailsProp
         <ContentWrapper>
           <TabPanels>
             <TabPanels.Item key={Tab.SAMPLES}>
-              {organization.features.includes('metrics-samples-list') ? (
-                <MetricSamplesTable mri={widget?.mri} query={queryWithFocusedSeries} />
-              ) : (
-                <SampleTable
-                  mri={widget?.mri}
-                  {...focusArea?.selection?.range}
-                  query={queryWithFocusedSeries}
-                  onRowHover={onRowHover}
-                />
-              )}
+              <MetricSampleTableWrapper organization={organization}>
+                {organization.features.includes('metrics-samples-list-search') ? (
+                  <SearchableMetricSamplesTable
+                    focusArea={focusArea?.selection?.range}
+                    mri={mri}
+                    onRowHover={onRowHover}
+                    op={op}
+                    query={queryWithFocusedSeries}
+                    setMetricsSamples={setMetricsSamples}
+                  />
+                ) : (
+                  <MetricSamplesTable
+                    focusArea={focusArea?.selection?.range}
+                    mri={mri}
+                    onRowHover={onRowHover}
+                    op={op}
+                    query={queryWithFocusedSeries}
+                    setMetricsSamples={setMetricsSamples}
+                  />
+                )}
+              </MetricSampleTableWrapper>
             </TabPanels.Item>
             <TabPanels.Item key={Tab.CODE_LOCATIONS}>
-              <CodeLocations mri={widget?.mri} {...focusArea?.selection?.range} />
+              <CodeLocations mri={mri} {...focusArea?.selection?.range} />
             </TabPanels.Item>
           </TabPanels>
         </ContentWrapper>
@@ -123,6 +179,11 @@ export function MetricDetails({widget, onRowHover, focusArea}: MetricDetailsProp
     </TrayWrapper>
   );
 }
+
+const MetricSampleTableWrapper = HookOrDefault({
+  hookName: 'component:ddm-metrics-samples-list',
+  defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
+});
 
 const TrayWrapper = styled('div')`
   padding-top: ${space(4)};

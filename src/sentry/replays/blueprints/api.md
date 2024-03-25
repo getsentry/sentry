@@ -31,7 +31,7 @@ This document is structured by resource with each resource having actions that c
   - offset (optional, number)
     Default: 0
   - query (optional, string) - Search query with space-separated field/value pairs. ie: `?query=count_errors:>2 AND duration:<1h`.
-  - queryReferrer(optional, string) - Specify the page which this query is being made from. Used for cross project query on issue replays page. Pass `queryReferrer=issueReplays` for this query.
+  - queryReferrer(optional, string) - Specify the page which this query is being made from.
     Some fields in the API response have their own dedicated parameters, or are otherwide not supported in the `query` param. They are:
 
     | Response Field      | Parameter       |
@@ -488,6 +488,18 @@ With download query argument.
 
   Content-Type application/octet-stream
 
+## Replay Video [/projects/<organization_slug>/<project_slug>/replays/<replay_id>/videos/<segment_id>/]
+
+### Fetch Replay Video [GET]
+
+Returns the bytes of a replay-segment video.
+
+- Response 200
+
+  ```
+  \x00\x00\x00
+  ```
+
 ## Replay Tag Keys [/projects/<organization_slug>/<project_slug>/replays/tags/]
 
 ### Fetch Tag Keys [GET]
@@ -596,3 +608,108 @@ Retrieve a collection of click events associated with a replay.
     ]
   }
   ```
+
+## Replays Viewed Status [/organizations/<organization_slug>/replays-viewed/]
+
+- Parameters
+
+  - project (optional, string)
+  - id (required, string) - The id(s) of the replay to retrieve. To specify multiple ids, use the format `?id=a&id=b ...`. A maximum of 100 id's can be specified.
+
+### Browse Replays Viewed Status [GET]
+
+Returns a collection of replay-ids and their viewed state. The user is targeted based on the authorization context. Replay-ids are specified in the URL parameters.
+Nonexistent ids will return `false`.
+
+**Attributes**
+
+| Column   | Type   | Description                                              |
+| -------- | ------ | -------------------------------------------------------- |
+| id       | string | A replay-id.                                             |
+| has_seen | bool   | Returns true if the authorized user has seen the replay. |
+
+- Request
+
+  - Headers
+
+    Cookie: \_ga=GA1.2.17576183...
+
+- Response 200
+
+  ```json
+  {
+    "data": [
+      {
+        "id": "81220fbf68494b30a5129ceb4cc5937d",
+        "has_seen": true
+      },
+      {
+        "id": "731c51a5f3954da68516229db9219be0",
+        "has_seen": false
+      }
+    ]
+  }
+  ```
+
+## Replay Viewed By [/organizations/<organization_slug>/replays/<replay_id>/viewed-by/]
+
+### Fetch Replay Viewed By [GET]
+
+| Column  | Type        | Description                                        |
+| ------- | ----------- | -------------------------------------------------- |
+| id      | string      | A replay-id.                                       |
+| seen_by | array[User] | An array of user types who have viewed the replay. |
+
+- Response 200
+
+  ```json
+  {
+    "data": {
+      "id": "81220fbf68494b30a5129ceb4cc5937d",
+      "seen_by": [
+        {
+          "id": "884411",
+          "name": "some.body@sentry.io",
+          "username": "d93522a35cb64c13991104bd73d44519",
+          "email": "some.body@sentry.io",
+          "avatarUrl": "https://gravatar.com/avatar/d93522a35cb64c13991104bd73d44519d93522a35cb64c13991104bd73d44519?s=32&d=mm",
+          "isActive": true,
+          "hasPasswordAuth": false,
+          "isManaged": false,
+          "dateJoined": "2022-07-25T23:36:29.593212Z",
+          "lastLogin": "2024-03-14T18:11:28.740309Z",
+          "has2fa": true,
+          "lastActive": "2024-03-15T22:22:06.925934Z",
+          "isSuperuser": true,
+          "isStaff": false,
+          "experiments": {},
+          "emails": [
+            {
+              "id": "2231333",
+              "email": "some.body@sentry.io",
+              "is_verified": true
+            }
+          ],
+          "avatar": {
+            "avatarType": "upload",
+            "avatarUuid": "499dcd0764da42a589654a2224086e67",
+            "avatarUrl": "https://sentry.io/avatar/499dcd0764da42a589654a2224086e67/"
+          },
+          "type": "user"
+        }
+      ]
+    }
+  }
+  ```
+
+### Create Replay Viewed [POST]
+
+A POST request is issued with no body. The URL and authorization context is used to construct a new viewed replay entry.
+
+- Request
+
+  - Headers
+
+    Cookie: \_ga=GA1.2.17576183...
+
+- Response 204

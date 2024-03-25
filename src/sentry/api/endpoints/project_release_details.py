@@ -10,7 +10,8 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ReleaseSerializer
 from sentry.models.activity import Activity
-from sentry.models.release import Release, UnsafeReleaseDeletion
+from sentry.models.release import Release
+from sentry.models.releases.exceptions import UnsafeReleaseDeletion
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.snuba.sessions import STATS_PERIODS
 from sentry.types.activity import ActivityType

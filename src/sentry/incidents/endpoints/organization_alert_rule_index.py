@@ -1,9 +1,8 @@
 from copy import deepcopy
-from datetime import datetime
+from datetime import UTC, datetime
 
 from django.db.models import DateTimeField, IntegerField, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Coalesce
-from django.utils.timezone import make_aware
 from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -35,7 +34,8 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidParams
 from sentry.incidents.logic import get_slack_actions_with_async_lookups
-from sentry.incidents.models import AlertRule, Incident
+from sentry.incidents.models.alert_rule import AlertRule
+from sentry.incidents.models.incident import Incident
 from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
 from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
 from sentry.integrations.slack.utils import RedisRuleStatus
@@ -239,7 +239,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             )
 
         if "date_triggered" in sort_key:
-            far_past_date = Value(make_aware(datetime.min), output_field=DateTimeField())
+            far_past_date = Value(datetime.min.replace(tzinfo=UTC), output_field=DateTimeField())
             alert_rules = alert_rules.annotate(
                 date_triggered=Coalesce(
                     Subquery(
@@ -341,6 +341,7 @@ Metric alert rule trigger actions follow the following structure:
 - `inputChannelId`: The ID of the Slack channel. This is only used for the Slack action, and can be used as an alternative to providing the `targetIdentifier`.
 - `integrationId`: The integration ID. This is required for every action type excluding `email` and `sentry_app.`
 - `sentryAppId`: The ID of the Sentry app. This is required when `type` is `sentry_app`.
+- `priority`: The severity of the Pagerduty alert or the priority of the Opsgenie alert (optional). Defaults for Pagerduty are `critical` for critical and `warning` for warning. Defaults for Opsgenie are `P1` for critical and `P2` for warning.
 """
     )
     environment = serializers.CharField(

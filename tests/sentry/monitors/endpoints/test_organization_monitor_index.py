@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
 from django.conf import settings
@@ -45,8 +45,8 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         self.check_valid_response(response, [monitor])
 
     def test_sort_status(self):
-        last_checkin = datetime.now() - timedelta(minutes=1)
-        last_checkin_older = datetime.now() - timedelta(minutes=5)
+        last_checkin = datetime.now(UTC) - timedelta(minutes=1)
+        last_checkin_older = datetime.now(UTC) - timedelta(minutes=5)
 
         def add_status_monitor(
             env_status_key: str,
@@ -80,8 +80,6 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         monitor_disabled = add_status_monitor("OK", "DISABLED")
         monitor_error_older_checkin = add_status_monitor("ERROR", "ACTIVE", last_checkin_older)
         monitor_error = add_status_monitor("ERROR")
-        monitor_missed_checkin = add_status_monitor("MISSED_CHECKIN")
-        monitor_timed_out = add_status_monitor("TIMEOUT")
 
         monitor_muted = add_status_monitor("ACTIVE")
         monitor_muted.update(is_muted=True)
@@ -94,8 +92,6 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
             [
                 monitor_error,
                 monitor_error_older_checkin,
-                monitor_timed_out,
-                monitor_missed_checkin,
                 monitor_ok,
                 monitor_active,
                 monitor_muted,
@@ -113,8 +109,6 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
                 monitor_muted,
                 monitor_active,
                 monitor_ok,
-                monitor_missed_checkin,
-                monitor_timed_out,
                 monitor_error_older_checkin,
                 monitor_error,
             ],
@@ -243,7 +237,7 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
     def test_monitor_environment_include_new(self):
         monitor = self._create_monitor()
         self._create_monitor_environment(
-            monitor, status=MonitorStatus.OK, last_checkin=datetime.now() - timedelta(minutes=1)
+            monitor, status=MonitorStatus.OK, last_checkin=datetime.now(UTC) - timedelta(minutes=1)
         )
 
         monitor_visible = self._create_monitor(name="visible")
@@ -265,13 +259,13 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         self._create_monitor_environment(
             monitor,
             status=MonitorStatus.OK,
-            last_checkin=datetime.now() - timedelta(minutes=1),
+            last_checkin=datetime.now(UTC) - timedelta(minutes=1),
         )
         self._create_monitor_environment(
             monitor,
             status=MonitorStatus.PENDING_DELETION,
             name="deleted_environment",
-            last_checkin=datetime.now() - timedelta(minutes=1),
+            last_checkin=datetime.now(UTC) - timedelta(minutes=1),
         )
 
         response = self.get_success_response(self.organization.slug)

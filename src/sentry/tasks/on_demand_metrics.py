@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
-from typing import Any
 
 import sentry_sdk
 from celery.exceptions import SoftTimeLimitExceeded
@@ -25,7 +24,7 @@ from sentry.relay.config.metric_extraction import (
 )
 from sentry.search.events import fields
 from sentry.search.events.builder import QueryBuilder
-from sentry.search.events.types import EventsResponse, QueryBuilderConfig
+from sentry.search.events.types import EventsResponse, ParamsType, QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.snuba.referrer import Referrer
@@ -183,7 +182,7 @@ def schedule_on_demand_check() -> None:
     time_limit=120,
     expires=180,
 )
-def process_widget_specs(widget_query_ids: list[int], *args, **kwargs) -> None:
+def process_widget_specs(widget_query_ids: list[int], *args: object, **kwargs: object) -> None:
     """
     Child task spawned from :func:`schedule_on_demand_check`.
     """
@@ -278,7 +277,7 @@ def _set_widget_on_demand_state(
     specs: Sequence[HashedMetricSpec],
     is_low_cardinality: bool | None,
     enabled_features: set[str],
-):
+) -> None:
     specs_per_version: dict[int, list[HashedMetricSpec]] = {}
     for hash, spec, spec_version in specs:
         specs_per_version.setdefault(spec_version.version, [])
@@ -316,8 +315,8 @@ def set_or_create_on_demand_state(
     organization: Organization,
     is_low_cardinality: bool,
     feature_enabled: bool,
-    current_widget_specs,
-):
+    current_widget_specs: set[str],
+) -> None:
     specs = _get_widget_on_demand_specs(widget_query, organization)
 
     specs_per_version: dict[int, list[HashedMetricSpec]] = {}
@@ -466,7 +465,7 @@ def _query_cardinality(
     # Restrict period down to an allowlist so we're not slamming snuba with giant queries
     if period not in [TASK_QUERY_PERIOD, DASHBOARD_QUERY_PERIOD]:
         raise Exception("Cardinality can only be queried with 1h or 30m")
-    params: dict[str, Any] = {
+    params: ParamsType = {
         "statsPeriod": period,
         "organization_id": organization.id,
         "projects": Project.objects.filter(organization=organization),

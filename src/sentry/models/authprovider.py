@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
+from typing import Any
 
 from django.db import models
 from django.utils import timezone
@@ -66,6 +68,20 @@ class AuthProvider(ReplicatedControlModel):
         serialized = serialize_auth_provider(self)
         region_replica_service.upsert_replicated_auth_provider(
             auth_provider=serialized, region_name=region_name
+        )
+
+    @classmethod
+    def handle_async_deletion(
+        cls,
+        identifier: int,
+        region_name: str,
+        shard_identifier: int,
+        payload: Mapping[str, Any] | None,
+    ) -> None:
+        from sentry.services.hybrid_cloud.replica.service import region_replica_service
+
+        region_replica_service.delete_replicated_auth_provider(
+            auth_provider_id=identifier, region_name=region_name
         )
 
     class flags(TypedClassBitField):

@@ -5,11 +5,12 @@ from unittest import mock
 import pytest
 from django.utils import timezone
 
-from sentry.incidents.models import AlertRule
+from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.dashboard_widget import DashboardWidgetQuery, DashboardWidgetQueryOnDemand
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
+from sentry.relay.config.experimental import TimeChecker
 from sentry.relay.config.metric_extraction import (
     get_current_widget_specs,
     get_metric_extraction_config,
@@ -78,14 +79,14 @@ def create_project_threshold(
 @django_db_all
 def test_get_metric_extraction_config_empty_no_alerts(default_project: Project) -> None:
     with Feature(ON_DEMAND_METRICS):
-        assert not get_metric_extraction_config(default_project)
+        assert not get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
 
 
 @django_db_all
 def test_get_metric_extraction_config_empty_feature_flag_off(default_project: Project) -> None:
     create_alert("count()", "transaction.duration:>=1000", default_project)
 
-    assert not get_metric_extraction_config(default_project)
+    assert not get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
 
 
 @django_db_all
@@ -94,7 +95,7 @@ def test_get_metric_extraction_config_empty_standard_alerts(default_project: Pro
         # standard alerts are not included in the config
         create_alert("count()", "", default_project)
 
-        assert not get_metric_extraction_config(default_project)
+        assert not get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
 
 
 @django_db_all
@@ -102,7 +103,7 @@ def test_get_metric_extraction_config_single_alert(default_project: Project) -> 
     with Feature(ON_DEMAND_METRICS):
         create_alert("count()", "transaction.duration:>=1000", default_project)
 
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
 
         assert config
         assert config["metrics"] == [
@@ -130,7 +131,7 @@ def test_get_metric_extraction_config_with_double_write_env_alert(
             environment=default_environment,
         )
 
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
 
         assert config
         assert config["metrics"] == [
@@ -174,7 +175,7 @@ def test_get_metric_extraction_config_single_alert_with_mri(default_project: Pro
             default_project,
         )
 
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
 
         assert config is None
 
@@ -185,7 +186,7 @@ def test_get_metric_extraction_config_multiple_alerts(default_project: Project) 
         create_alert("count()", "transaction.duration:>=1000", default_project)
         create_alert("count()", "transaction.duration:>=2000", default_project)
 
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
 
         assert config
         assert len(config["metrics"]) == 2
@@ -205,10 +206,12 @@ def test_get_metric_extraction_config_multiple_alerts_above_max_limit(
         create_alert("count()", "transaction.duration:>=1000", default_project)
         create_alert("count()", "transaction.duration:>=2000", default_project)
 
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
 
         with mock.patch("sentry_sdk.capture_exception") as capture_exception:
-            config = get_metric_extraction_config(default_project)
+            config = get_metric_extraction_config(
+                TimeChecker(timedelta(seconds=0)), default_project
+            )
             assert config
 
             assert capture_exception.call_count == 2
@@ -229,7 +232,7 @@ def test_get_metric_extraction_config_multiple_alerts_duplicated(default_project
         create_alert("count()", "transaction.duration:>=1000", default_project)
         create_alert("count()", "transaction.duration:>=1000", default_project)
 
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
 
         assert config
         assert len(config["metrics"]) == 1
@@ -246,7 +249,7 @@ def test_get_metric_extraction_config_environment(
             "count()", "transaction.duration:>0", default_project, environment=default_environment
         )
 
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
 
         assert config
         # assert that the deduplication works with environments
@@ -265,7 +268,7 @@ def test_get_metric_extraction_config_single_standard_widget(default_project: Pr
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(["count()"], "", default_project)
 
-        assert not get_metric_extraction_config(default_project)
+        assert not get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
 
 
 @django_db_all
@@ -273,7 +276,7 @@ def test_get_metric_extraction_config_single_widget(default_project: Project) ->
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(["count()"], "transaction.duration:>=1000", default_project)
 
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
 
         assert config
         assert config["metrics"] == [
@@ -310,7 +313,7 @@ def test_get_metric_extraction_config_single_widget_multiple_aggregates(
             ["count()", "avg(transaction.duration)"], "transaction.duration:>=1000", default_project
         )
 
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
 
         assert config
         assert config["metrics"] == [
@@ -370,7 +373,7 @@ def test_get_metric_extraction_config_single_widget_multiple_count_if(
         ]
         create_widget(aggregates, "transaction.duration:>=1000", default_project)
 
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
 
         assert config
         assert config["metrics"] == [
@@ -473,7 +476,7 @@ def test_get_metric_extraction_config_multiple_aggregates_single_field(
             default_project,
         )
 
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
 
         assert config
         assert config["metrics"] == [
@@ -509,7 +512,7 @@ def test_get_metric_extraction_config_multiple_widgets_duplicated(default_projec
         )
         create_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 2")
 
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
 
         assert config
         assert config["metrics"] == [
@@ -566,7 +569,9 @@ def test_get_metric_extraction_config_multiple_widgets_above_max_limit(
         create_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 2")
 
         with mock.patch("sentry_sdk.capture_exception") as capture_exception:
-            config = get_metric_extraction_config(default_project)
+            config = get_metric_extraction_config(
+                TimeChecker(timedelta(seconds=0)), default_project
+            )
             assert config
 
             assert capture_exception.call_count == 2
@@ -591,7 +596,9 @@ def test_get_metric_extraction_config_multiple_widgets_not_above_max_limit_ident
         create_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 2")
 
         with mock.patch("sentry_sdk.capture_exception") as capture_exception:
-            config = get_metric_extraction_config(default_project)
+            config = get_metric_extraction_config(
+                TimeChecker(timedelta(seconds=0)), default_project
+            )
             assert config
 
             assert capture_exception.call_count == 0
@@ -617,7 +624,9 @@ def test_get_metric_extraction_config_multiple_widgets_above_max_limit_ordered_s
         process_widget_specs([widget_query.id])
 
         with mock.patch("sentry_sdk.capture_exception") as capture_exception:
-            config = get_metric_extraction_config(default_project)
+            config = get_metric_extraction_config(
+                TimeChecker(timedelta(seconds=0)), default_project
+            )
 
             assert config
             assert len(config["metrics"]) == 8  # 4 * 2 spec versions
@@ -660,7 +669,9 @@ def test_get_metric_extraction_config_multiple_widgets_not_using_extended_specs(
         create_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 2")
 
         with mock.patch("sentry_sdk.capture_exception") as capture_exception:
-            config = get_metric_extraction_config(default_project)
+            config = get_metric_extraction_config(
+                TimeChecker(timedelta(seconds=0)), default_project
+            )
             assert config
 
             assert capture_exception.call_count == 2
@@ -680,14 +691,19 @@ def test_get_metric_extraction_config_multiple_widgets_not_using_extended_specs(
 def test_get_metric_extraction_config_multiple_widgets_above_extended_max_limit(
     default_project: Project,
 ) -> None:
-    with Feature({ON_DEMAND_METRICS_WIDGETS: True}), override_options(
-        {"on_demand.extended_widget_spec_orgs": [default_project.organization.id]}
+    with (
+        Feature({ON_DEMAND_METRICS_WIDGETS: True}),
+        override_options(
+            {"on_demand.extended_widget_spec_orgs": [default_project.organization.id]}
+        ),
     ):
         create_widget(["count()"], "transaction.duration:>=1100", default_project)
         create_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 2")
 
         with mock.patch("sentry_sdk.capture_exception") as capture_exception:
-            config = get_metric_extraction_config(default_project)
+            config = get_metric_extraction_config(
+                TimeChecker(timedelta(seconds=0)), default_project
+            )
             assert config
 
             assert capture_exception.call_count == 2
@@ -707,13 +723,16 @@ def test_get_metric_extraction_config_multiple_widgets_above_extended_max_limit(
 def test_get_metric_extraction_config_multiple_widgets_under_extended_max_limit(
     default_project: Project,
 ) -> None:
-    with Feature({ON_DEMAND_METRICS_WIDGETS: True}), override_options(
-        {"on_demand.extended_widget_spec_orgs": [default_project.organization.id]}
+    with (
+        Feature({ON_DEMAND_METRICS_WIDGETS: True}),
+        override_options(
+            {"on_demand.extended_widget_spec_orgs": [default_project.organization.id]}
+        ),
     ):
         create_widget(["count()"], "transaction.duration:>=1100", default_project)
         create_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 2")
 
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
 
         assert config
         # Revert to 2 after {"include_environment_tag"} becomes the default
@@ -727,7 +746,7 @@ def test_get_metric_extraction_config_alerts_and_widgets_off(default_project: Pr
         create_alert("count()", "transaction.duration:>=1000", default_project)
         create_widget(["count()"], "transaction.duration:>=1000", default_project)
 
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
 
         assert config
         assert config["metrics"] == [
@@ -752,7 +771,7 @@ def test_get_metric_extraction_config_alerts_and_widgets(default_project: Projec
             ["count()", "avg(transaction.duration)"], "transaction.duration:>=1000", default_project
         )
 
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
 
         assert config
         assert config["metrics"] == [
@@ -804,7 +823,7 @@ def test_get_metric_extraction_config_with_failure_count(default_project: Projec
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(["failure_count()"], "transaction.duration:>=1000", default_project)
 
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
 
         assert config
         assert config["metrics"] == [
@@ -864,7 +883,7 @@ def test_get_metric_extraction_config_with_apdex(default_project: Project) -> No
         # preferred.
         create_project_threshold(default_project, 200, TransactionMetric.DURATION.value)
 
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
 
         assert config
         assert len(config["metrics"]) == 1
@@ -901,6 +920,35 @@ def test_get_metric_extraction_config_with_apdex(default_project: Project) -> No
 
 
 @django_db_all
+@pytest.mark.parametrize(
+    "field,query_hash",
+    [("user", "899e9132"), ("geo.city", "a85d58a1"), ("non-existent-field", "f2d80826")],
+)
+def test_get_metric_extraction_config_with_count_unique(
+    default_project: Project, field: str, query_hash: str
+) -> None:
+    duration = 1000
+    query = f"transaction.duration:>={duration}"
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
+        widget_query, _, _ = create_widget([f"count_unique({field})"], query, default_project)
+        assert widget_query.aggregates == [f"count_unique({field})"]
+        assert widget_query.conditions == query
+        assert widget_query.columns == []
+
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
+        assert config
+        # Let's only assert the current version of the spec
+        spec = config["metrics"][0]
+        assert spec["mri"] == "s:transactions/on_demand@none"  # A set rather than a counter
+        assert spec["condition"] == {"name": "event.duration", "op": "gte", "value": duration}
+        assert spec["field"] == field  # We are extracting the specified field
+        assert spec["tags"] == [
+            {"key": "query_hash", "value": query_hash},
+            {"field": "event.environment", "key": "environment"},
+        ]
+
+
+@django_db_all
 @pytest.mark.parametrize("measurement_rating", ["good", "meh", "poor", "any"])
 @pytest.mark.parametrize("measurement", ["measurements.lcp"])
 def test_get_metric_extraction_config_with_count_web_vitals(
@@ -913,7 +961,7 @@ def test_get_metric_extraction_config_with_count_web_vitals(
             default_project,
         )
 
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
 
         vital = measurement.split(".")[1]
 
@@ -1130,11 +1178,11 @@ def test_get_metric_extraction_config_with_count_web_vitals(
             ]
 
 
-@pytest.mark.skip(reason="Re-enable when user misery is supported again.")
 @django_db_all
 def test_get_metric_extraction_config_with_user_misery(default_project: Project) -> None:
     threshold = 100
     duration = 1000
+    # User misery is extracted, querying is behind the version 2 feature flag
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(
             [f"user_misery({threshold})"],
@@ -1142,15 +1190,16 @@ def test_get_metric_extraction_config_with_user_misery(default_project: Project)
             default_project,
         )
 
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
 
         assert config
         assert config["metrics"] == [
             {
+                # Spec version 1
                 "category": "transaction",
                 "condition": {"name": "event.duration", "op": "gte", "value": float(duration)},
                 # This is necessary for calculating unique users
-                "field": "event.user.id",
+                "field": "event.sentry_user",
                 "mri": "s:transactions/on_demand@none",
                 "tags": [
                     {
@@ -1163,10 +1212,11 @@ def test_get_metric_extraction_config_with_user_misery(default_project: Project)
                 ],
             },
             {
+                # Spec version 2
                 "category": "transaction",
                 "condition": {"name": "event.duration", "op": "gte", "value": float(duration)},
                 # This is necessary for calculating unique users
-                "field": "event.user.id",
+                "field": "event.sentry_user",
                 "mri": "s:transactions/on_demand@none",
                 "tags": [
                     {
@@ -1181,7 +1231,6 @@ def test_get_metric_extraction_config_with_user_misery(default_project: Project)
         ]
 
 
-@pytest.mark.skip(reason="Re-enable when user misery is supported again.")
 @django_db_all
 def test_get_metric_extraction_config_user_misery_with_tag_columns(
     default_project: Project,
@@ -1197,7 +1246,7 @@ def test_get_metric_extraction_config_user_misery_with_tag_columns(
             columns=["lcp.element", "custom"],
         )
 
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
 
         assert config
         assert config["metrics"] == [
@@ -1205,7 +1254,7 @@ def test_get_metric_extraction_config_user_misery_with_tag_columns(
                 "category": "transaction",
                 "condition": {"name": "event.duration", "op": "gte", "value": float(duration)},
                 # This is necessary for calculating unique users
-                "field": "event.user.id",
+                "field": "event.sentry_user",
                 "mri": "s:transactions/on_demand@none",
                 "tags": [
                     {
@@ -1223,7 +1272,7 @@ def test_get_metric_extraction_config_user_misery_with_tag_columns(
                 "category": "transaction",
                 "condition": {"name": "event.duration", "op": "gte", "value": float(duration)},
                 # This is necessary for calculating unique users
-                "field": "event.user.id",
+                "field": "event.sentry_user",
                 "mri": "s:transactions/on_demand@none",
                 "tags": [
                     {
@@ -1249,10 +1298,10 @@ def test_get_metric_extraction_config_epm_with_non_tag_columns(default_project: 
             f"transaction.duration:>={duration}",
             default_project,
             "Dashboard",
-            columns=["user.id", "release"],
+            columns=["user.id", "user", "release"],
         )
 
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
 
         assert config
         assert config["metrics"] == [
@@ -1262,8 +1311,9 @@ def test_get_metric_extraction_config_epm_with_non_tag_columns(default_project: 
                 "field": None,
                 "mri": "c:transactions/on_demand@none",
                 "tags": [
-                    {"key": "query_hash", "value": "d9f30df7"},
+                    {"key": "query_hash", "value": "cfdef6f8"},
                     {"key": "user.id", "field": "event.user.id"},
+                    {"key": "user", "field": "event.sentry_user"},
                     {"key": "release", "field": "event.release"},
                     {"key": "environment", "field": "event.environment"},
                 ],
@@ -1274,8 +1324,9 @@ def test_get_metric_extraction_config_epm_with_non_tag_columns(default_project: 
                 "field": None,
                 "mri": "c:transactions/on_demand@none",
                 "tags": [
-                    {"key": "query_hash", "value": "52427c0a"},
+                    {"key": "query_hash", "value": "2916fc7c"},
                     {"key": "user.id", "field": "event.user.id"},
+                    {"key": "user", "field": "event.sentry_user"},
                     {"key": "release", "field": "event.release"},
                     {"key": "environment", "field": "event.environment"},
                 ],
@@ -1295,7 +1346,7 @@ def test_get_metric_extraction_config_with_high_cardinality(default_project: Pro
             columns=["user.id", "release", "count()"],
         )
 
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
 
         assert not config
 
@@ -1305,9 +1356,12 @@ def test_get_metric_extraction_config_multiple_widgets_with_high_cardinality(
     default_project: Project,
 ) -> None:
     duration = 1000
-    with Feature({ON_DEMAND_METRICS_WIDGETS: True}), mock.patch(
-        "sentry.relay.config.metric_extraction._is_widget_query_low_cardinality"
-    ) as mock_cardinality:
+    with (
+        Feature({ON_DEMAND_METRICS_WIDGETS: True}),
+        mock.patch(
+            "sentry.relay.config.metric_extraction._is_widget_query_low_cardinality"
+        ) as mock_cardinality,
+    ):
         mock_cardinality.side_effect = [True, False, True]
         create_widget(
             ["epm()"],
@@ -1331,7 +1385,7 @@ def test_get_metric_extraction_config_multiple_widgets_with_high_cardinality(
             title="Widget3",
         )
 
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
 
         assert config
         # Revert to 2 after {"include_environment_tag"} becomes the default
@@ -1342,11 +1396,15 @@ def test_get_metric_extraction_config_multiple_widgets_with_high_cardinality(
 @override_options({"on_demand.max_widget_cardinality.count": 1})
 def test_get_metric_extraction_config_with_extraction_enabled(default_project: Project) -> None:
     duration = 1000
-    with Feature({ON_DEMAND_METRICS_WIDGETS: True}), mock.patch(
-        "sentry.relay.config.metric_extraction._can_widget_query_use_stateful_extraction"
-    ) as mock_can_use_stateful, mock.patch(
-        "sentry.relay.config.metric_extraction._widget_query_stateful_extraction_enabled"
-    ) as mock_extraction_enabled:
+    with (
+        Feature({ON_DEMAND_METRICS_WIDGETS: True}),
+        mock.patch(
+            "sentry.relay.config.metric_extraction._can_widget_query_use_stateful_extraction"
+        ) as mock_can_use_stateful,
+        mock.patch(
+            "sentry.relay.config.metric_extraction._widget_query_stateful_extraction_enabled"
+        ) as mock_extraction_enabled,
+    ):
         mock_can_use_stateful.return_value = True
         mock_extraction_enabled.return_value = True
         create_widget(
@@ -1356,7 +1414,7 @@ def test_get_metric_extraction_config_with_extraction_enabled(default_project: P
             columns=["user.id", "release", "count()"],
         )
 
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
 
         assert config
 
@@ -1372,11 +1430,15 @@ def test_stateful_get_metric_extraction_config_with_extraction_disabled(
     default_project: Project,
 ) -> None:
     duration = 1000
-    with Feature({ON_DEMAND_METRICS_WIDGETS: True}), mock.patch(
-        "sentry.relay.config.metric_extraction._can_widget_query_use_stateful_extraction"
-    ) as mock_can_use_stateful, mock.patch(
-        "sentry.relay.config.metric_extraction._widget_query_stateful_extraction_enabled"
-    ) as mock_extraction_enabled:
+    with (
+        Feature({ON_DEMAND_METRICS_WIDGETS: True}),
+        mock.patch(
+            "sentry.relay.config.metric_extraction._can_widget_query_use_stateful_extraction"
+        ) as mock_can_use_stateful,
+        mock.patch(
+            "sentry.relay.config.metric_extraction._widget_query_stateful_extraction_enabled"
+        ) as mock_extraction_enabled,
+    ):
         mock_can_use_stateful.return_value = True
         mock_extraction_enabled.return_value = False
         create_widget(
@@ -1386,7 +1448,7 @@ def test_stateful_get_metric_extraction_config_with_extraction_disabled(
             columns=["user.id", "release", "count()"],
         )
 
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
 
         assert not config
 
@@ -1397,11 +1459,15 @@ def test_stateful_get_metric_extraction_config_multiple_widgets_with_extraction_
     default_project: Project,
 ) -> None:
     duration = 1000
-    with Feature({ON_DEMAND_METRICS_WIDGETS: True}), mock.patch(
-        "sentry.relay.config.metric_extraction._can_widget_query_use_stateful_extraction"
-    ) as mock_can_use_stateful, mock.patch(
-        "sentry.relay.config.metric_extraction._widget_query_stateful_extraction_enabled"
-    ) as mock_extraction_enabled:
+    with (
+        Feature({ON_DEMAND_METRICS_WIDGETS: True}),
+        mock.patch(
+            "sentry.relay.config.metric_extraction._can_widget_query_use_stateful_extraction"
+        ) as mock_can_use_stateful,
+        mock.patch(
+            "sentry.relay.config.metric_extraction._widget_query_stateful_extraction_enabled"
+        ) as mock_extraction_enabled,
+    ):
         mock_can_use_stateful.return_value = True
         mock_extraction_enabled.side_effect = [True, False, True]
         create_widget(
@@ -1426,7 +1492,7 @@ def test_stateful_get_metric_extraction_config_multiple_widgets_with_extraction_
             title="Widget3",
         )
 
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
 
         assert config
         # Revert to 2 after {"include_environment_tag"} becomes the default
@@ -1467,7 +1533,7 @@ def test_stateful_get_metric_extraction_config_enabled_with_multiple_versions(
             "enabled:enrolled",
         ]
 
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
 
         # Check that the first version being enabled outputs both specs.
         assert config
@@ -1480,7 +1546,7 @@ def test_stateful_get_metric_extraction_config_enabled_with_multiple_versions(
             extraction_row_default.extraction_state = "disabled:manual"
             extraction_row_default.save()
 
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
 
         # In the future with separate version decisions, assert that there is only one spec in config here.
         assert not config
@@ -1505,7 +1571,7 @@ def test_stateful_get_metric_extraction_config_with_low_cardinality(
             columns=["user.id", "release", "count()"],
         )
 
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
 
         assert config
 
@@ -1516,7 +1582,7 @@ def test_get_metric_extraction_config_with_unicode_character(default_project: Pr
         # This will cause the Unicode bug to be raised for the current version
         create_widget(["count()"], "user.name:Armén", default_project)
         create_widget(["count()"], "user.name:Kevan", default_project, title="Dashboard Foo")
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
 
         assert config
         assert config["metrics"] == [
@@ -1564,15 +1630,26 @@ def test_get_metric_extraction_config_with_unicode_character(default_project: Pr
 
 
 @django_db_all
-@pytest.mark.parametrize("metric", [("epm()"), ("eps()")])
-def test_get_metric_extraction_config_with_no_tag_spec(
-    default_project: Project, metric: str
+@pytest.mark.parametrize(
+    "metric,query,query_hashes",
+    [
+        ("epm()", "transaction.duration:>=1000", ["8f8293cf", "5200e087"]),
+        ("eps()", "transaction.duration:>=1000", ["9ffdd8ac", "162178e9"]),
+        ("epm()", "", []),
+    ],
+)
+def test_get_metric_extraction_config_epm_eps(
+    default_project: Project, metric: str, query: str, query_hashes: list[str]
 ) -> None:
-    query_hashes = ["8f8293cf", "5200e087"] if metric == "epm()" else ["9ffdd8ac", "162178e9"]
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
-        create_widget([metric], "transaction.duration:>=1000", default_project)
+        create_widget([metric], query, default_project)
 
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
+
+        # epm() and eps() are supported by standard metrics when there's no query
+        if query == "":
+            assert config is None
+            return None
 
         assert config
         assert config["metrics"] == [
@@ -1623,7 +1700,7 @@ def test_get_metrics_extraction_config_features_combinations(
 
     features = {feature: True for feature in enabled_features}
     with Feature(features):
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
         if number_of_metrics == 0:
             assert config is None
         else:
@@ -1642,7 +1719,7 @@ def test_get_metric_extraction_config_with_transactions_dataset(default_project:
 
     # We test with prefilling, and we expect that both alerts are fetched since we support both datasets.
     with Feature({ON_DEMAND_METRICS_PREFILL: True}):
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
 
         assert config
         assert config["metrics"] == [
@@ -1668,7 +1745,7 @@ def test_get_metric_extraction_config_with_transactions_dataset(default_project:
 
     # We test without prefilling, and we expect that only alerts for performance metrics are fetched.
     with Feature({ON_DEMAND_METRICS: True}):
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
 
         assert config
         assert config["metrics"] == [
@@ -1694,7 +1771,7 @@ def test_get_metric_extraction_config_with_no_spec(default_project: Project) -> 
     )
 
     with Feature({ON_DEMAND_METRICS: True}):
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
 
         assert config
         assert len(config["metrics"]) == 1
@@ -1749,7 +1826,7 @@ def test_include_environment_for_widgets(default_project: Project) -> None:
 
     with Feature([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS]):
         widget, _, _ = create_widget([aggr], query, default_project)
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
         # Because we have two specs we will have two metrics.
         # The second spec includes the environment tag as part of the query hash.
         assert config and config["metrics"] == [
@@ -1805,28 +1882,29 @@ def test_include_environment_for_widgets_with_multiple_env(default_project: Proj
 
     with Feature([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS]):
         widget_query, _, _ = create_widget(aggrs, query, default_project, columns=columns)
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
         assert config
 
-        with Feature("organizations:on-demand-metrics-query-spec-version-two"):
-            config = get_metric_extraction_config(default_project)
-            process_widget_specs([widget_query.id])
-            assert config
-            assert [
-                next(filter(lambda t: t["key"] == "query_hash", spec["tags"]))["value"]
-                for spec in config["metrics"]
-            ] == [
-                "4b08d58c",
-                "470072b4",
-                "6bc4f99b",
-                "e50094f0",
-                "0a272be4",
-            ]
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
+        process_widget_specs([widget_query.id])
+        assert config
+        assert [
+            next(filter(lambda t: t["key"] == "query_hash", spec["tags"]))["value"]
+            for spec in config["metrics"]
+        ] == [
+            "4b08d58c",
+            "da718f56",
+            "470072b4",
+            "6bc4f99b",
+            "e50094f0",
+            "0a272be4",
+        ]
 
         on_demand_entries = widget_query.dashboardwidgetqueryondemand_set.all()
         assert [entry.spec_hashes for entry in on_demand_entries if entry.spec_version == 1] == [
             [
                 "4b08d58c",
+                "da718f56",
                 "470072b4",
                 "6bc4f99b",
                 "e50094f0",
@@ -1837,6 +1915,7 @@ def test_include_environment_for_widgets_with_multiple_env(default_project: Proj
         assert [entry.spec_hashes for entry in on_demand_entries if entry.spec_version == 2] == [
             [
                 "4b08d58c",
+                "da718f56",
                 "470072b4",
                 "6bc4f99b",
                 "e50094f0",
@@ -1854,7 +1933,7 @@ def test_alert_and_widget_colliding(default_project: Project) -> None:
 
     with Feature([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS]):
         widget, _, _ = create_widget([aggr], query, default_project)
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
         # Because we have two specs we will have two metrics.
         assert config and config["metrics"] == [
             widget_to_metric_spec("f1353b0f", condition),
@@ -1864,7 +1943,7 @@ def test_alert_and_widget_colliding(default_project: Project) -> None:
         # Once we deprecate the current spec version, the widget will not create
         # the f1353b0f, thus, there will be no more duplicated specs
         alert = create_alert(aggr, query, default_project)
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
         # Now that we iterate over the widgets first, we will pick the spec generated by the widget
         # which includes the environment as a tag
         assert config and config["metrics"] == [
@@ -1922,7 +2001,7 @@ def test_event_type(
 
     with Feature([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS]):
         widget, _, _ = create_widget([aggr], query, default_project)
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
         if not config_assertion:
             assert config is None
         else:
@@ -1941,7 +2020,7 @@ def test_level_field(default_project: Project) -> None:
 
     with Feature(ON_DEMAND_METRICS_WIDGETS):
         create_widget([aggr], query, default_project)
-        config = get_metric_extraction_config(default_project)
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
         assert config is None
 
 
@@ -1964,7 +2043,9 @@ def test_widget_modifed_after_on_demand(default_project: Project) -> None:
         with mock.patch("sentry_sdk.capture_exception") as capture_exception:
 
             process_widget_specs([widget_query.id])
-            config = get_metric_extraction_config(default_project)
+            config = get_metric_extraction_config(
+                TimeChecker(timedelta(seconds=0)), default_project
+            )
 
             assert config and config["metrics"]
 

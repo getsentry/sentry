@@ -49,15 +49,9 @@ def has_role_in_organization(role: str, organization: Organization, user_id: int
         user_is_active=True,
         user_id=user_id,
         organization_id=organization.id,
+        role=role,
     )
-    teams_with_org_role = organization.get_teams_with_org_roles([role])
-    return bool(
-        query.filter(role=role).exists()
-        or OrganizationMemberTeam.objects.filter(
-            team__in=teams_with_org_role,
-            organizationmember_id__in=list(query.values_list("id", flat=True)),
-        ).exists()
-    )
+    return query.exists()
 
 
 class Access(abc.ABC):
@@ -99,11 +93,6 @@ class Access(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def roles(self) -> Iterable[str] | None:
-        pass
-
-    @property
-    @abc.abstractmethod
     def team_ids_with_membership(self) -> frozenset[int]:
         pass
 
@@ -140,16 +129,10 @@ class Access(abc.ABC):
         """
         return scope in self.scopes
 
-    # TODO(cathy): remove this
     def get_organization_role(self) -> OrganizationRole | None:
         if self.role is not None:
             return organization_roles.get(self.role)
         return None
-
-    def get_organization_roles(self) -> Iterable[OrganizationRole]:
-        if self.roles is not None:
-            return [organization_roles.get(r) for r in self.roles]
-        return []
 
     @abc.abstractmethod
     def has_role_in_organization(
@@ -236,10 +219,6 @@ class DbAccess(Access):
     @property
     def role(self) -> str | None:
         return self._member.role if self._member else None
-
-    @property
-    def roles(self) -> Iterable[str] | None:
-        return self._member.get_all_org_roles() if self._member else None
 
     @cached_property
     def _team_memberships(self) -> Mapping[Team, OrganizationMemberTeam]:
@@ -471,15 +450,6 @@ class RpcBackedAccess(Access):
         if self.rpc_user_organization_context.member is None:
             return None
         return self.rpc_user_organization_context.member.role
-
-    @property
-    def roles(self) -> Iterable[str] | None:
-        if self.rpc_user_organization_context.member is None:
-            return None
-        return access_service.get_all_org_roles(
-            member_id=self.rpc_user_organization_context.member.id,
-            organization_id=self.rpc_user_organization_context.organization.id,
-        )
 
     def has_role_in_organization(
         self, role: str, organization: Organization, user_id: int | None
@@ -842,10 +812,6 @@ class OrganizationlessAccess(Access):
     def role(self) -> str | None:
         return None
 
-    @property
-    def roles(self) -> Iterable[str] | None:
-        return None
-
     def has_role_in_organization(
         self, role: str, organization: Organization, user_id: int | None
     ) -> bool:
@@ -961,11 +927,13 @@ def from_request_org_and_scopes(
         )
 
         superuser_scopes = get_superuser_scopes(auth_state, request.user)
+        if scopes:
+            superuser_scopes = superuser_scopes.union(set(scopes))
 
         return ApiBackedOrganizationGlobalAccess(
             rpc_user_organization_context=rpc_user_org_context,
             auth_state=auth_state,
-            scopes=scopes if scopes is not None else superuser_scopes,
+            scopes=superuser_scopes,
         )
 
     if hasattr(request, "auth") and not request.user.is_authenticated:
@@ -1063,11 +1031,13 @@ def from_request(
         sso_state = auth_state.sso_state
 
         superuser_scopes = get_superuser_scopes(auth_state, request.user)
+        if scopes:
+            superuser_scopes = superuser_scopes.union(set(scopes))
 
         return OrganizationGlobalAccess(
             organization=organization,
             _member=member,
-            scopes=scopes if scopes is not None else superuser_scopes,
+            scopes=superuser_scopes,
             sso_is_valid=sso_state.is_valid,
             requires_sso=sso_state.is_required,
             permissions=access_service.get_permissions_for_user(request.user.id),

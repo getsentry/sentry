@@ -1,5 +1,6 @@
 import {getInterval} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {MultiSeriesEventsStats} from 'sentry/types';
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
@@ -11,8 +12,11 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {RELEASE_COMPARISON} from 'sentry/views/starfish/colours';
-import Chart from 'sentry/views/starfish/components/chart';
+import {
+  PRIMARY_RELEASE_COLOR,
+  SECONDARY_RELEASE_COLOR,
+} from 'sentry/views/starfish/colours';
+import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
@@ -27,14 +31,11 @@ const WARM_START_CONDITIONS = ['span.op:app.start.warm', 'span.description:"Warm
 
 export function transformData(data?: MultiSeriesEventsStats, primaryRelease?: string) {
   const transformedSeries: {[releaseName: string]: Series} = {};
+
   if (defined(data)) {
     Object.keys(data).forEach(releaseName => {
       transformedSeries[releaseName] = {
         seriesName: releaseName,
-        color:
-          releaseName === primaryRelease
-            ? RELEASE_COMPARISON.PRIMARY_RELEASE_COLOR
-            : RELEASE_COMPARISON.SECONDARY_RELEASE_COLOR,
         data:
           data[releaseName]?.data?.map(datum => {
             return {
@@ -42,6 +43,12 @@ export function transformData(data?: MultiSeriesEventsStats, primaryRelease?: st
               value: datum[1][0].count,
             } as SeriesDataUnit;
           }) ?? [],
+        ...(primaryRelease === releaseName
+          ? {color: PRIMARY_RELEASE_COLOR}
+          : {
+              color: SECONDARY_RELEASE_COLOR,
+              lineStyle: {type: 'dashed'},
+            }),
       };
     });
   }
@@ -62,7 +69,8 @@ function StartDurationWidget({additionalFilters, chartHeight}: Props) {
     isLoading: isReleasesLoading,
   } = useReleaseSelection();
 
-  const startType = decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? '';
+  const startType =
+    decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? COLD_START_TYPE;
 
   const query = new MutableSearch([
     ...(startType === COLD_START_TYPE ? COLD_START_CONDITIONS : WARM_START_CONDITIONS),
@@ -103,7 +111,9 @@ function StartDurationWidget({additionalFilters, chartHeight}: Props) {
 
   // Only transform the data is we know there's at least one release
   const transformedSeries = hasReleaseData
-    ? Object.values(transformData(series, primaryRelease)).sort()
+    ? Object.values(transformData(series, primaryRelease)).sort((releaseA, _releaseB) =>
+        releaseA.seriesName === primaryRelease ? -1 : 1
+      )
     : [];
 
   return (
@@ -128,12 +138,12 @@ function StartDurationWidget({additionalFilters, chartHeight}: Props) {
         grid={{
           left: '0',
           right: '0',
-          top: '8px',
+          top: space(2),
           bottom: '0',
         }}
         showLegend
         definedAxisTicks={2}
-        isLineChart
+        type={ChartType.LINE}
         aggregateOutputFormat="duration"
         tooltipFormatterOptions={{
           valueFormatter: value =>

@@ -1,3 +1,4 @@
+import copy
 from collections.abc import Mapping, Sequence
 from typing import Any
 from unittest import mock
@@ -16,7 +17,281 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
-EXPECTED_STACKTRACE_STRING = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", line 20, in divide_by_zero_another\n    divide_by_zero_another()'
+EXPECTED_STACKTRACE_STRING = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", line divide_by_zero\n    divide = 1/0'
+BASE_APP_DATA: dict[str, Any] = {
+    "app": {
+        "type": "component",
+        "description": "in-app",
+        "hash": "hash",
+        "component": {
+            "id": "app",
+            "name": "in-app",
+            "contributes": True,
+            "hint": None,
+            "values": [
+                {
+                    "id": "exception",
+                    "name": "exception",
+                    "contributes": True,
+                    "hint": None,
+                    "values": [
+                        {
+                            "id": "stacktrace",
+                            "name": "stack-trace",
+                            "contributes": True,
+                            "hint": None,
+                            "values": [
+                                {
+                                    "id": "frame",
+                                    "name": None,
+                                    "contributes": True,
+                                    "hint": None,
+                                    "values": [
+                                        {
+                                            "id": "module",
+                                            "name": None,
+                                            "contributes": True,
+                                            "hint": None,
+                                            "values": ["__main__"],
+                                        },
+                                        {
+                                            "id": "filename",
+                                            "name": None,
+                                            "contributes": False,
+                                            "hint": None,
+                                            "values": ["python_onboarding.py"],
+                                        },
+                                        {
+                                            "id": "function",
+                                            "name": None,
+                                            "contributes": True,
+                                            "hint": None,
+                                            "values": ["divide_by_zero"],
+                                        },
+                                        {
+                                            "id": "context-line",
+                                            "name": None,
+                                            "contributes": True,
+                                            "hint": None,
+                                            "values": ["divide = 1/0"],
+                                        },
+                                    ],
+                                }
+                            ],
+                        },
+                        {
+                            "id": "type",
+                            "name": None,
+                            "contributes": True,
+                            "hint": None,
+                            "values": ["ZeroDivisionError"],
+                        },
+                        {
+                            "id": "value",
+                            "name": None,
+                            "contributes": False,
+                            "hint": None,
+                            "values": ["division by zero"],
+                        },
+                    ],
+                }
+            ],
+        },
+    }
+}
+CHAINED_APP_DATA: dict[str, Any] = {
+    "app": {
+        "type": "component",
+        "description": "in-app",
+        "hash": "hash",
+        "component": {
+            "id": "app",
+            "name": "in-app",
+            "contributes": True,
+            "hint": None,
+            "values": [
+                {
+                    "id": "chained-exception",
+                    "name": None,
+                    "contributes": True,
+                    "hint": None,
+                    "values": [
+                        {
+                            "id": "exception",
+                            "name": "exception",
+                            "contributes": True,
+                            "hint": None,
+                            "values": [
+                                {
+                                    "id": "stacktrace",
+                                    "name": "stack-trace",
+                                    "contributes": True,
+                                    "hint": None,
+                                    "values": [
+                                        {
+                                            "id": "frame",
+                                            "name": None,
+                                            "contributes": True,
+                                            "hint": None,
+                                            "values": [
+                                                {
+                                                    "id": "module",
+                                                    "name": None,
+                                                    "contributes": True,
+                                                    "hint": None,
+                                                    "values": ["__main__"],
+                                                },
+                                                {
+                                                    "id": "filename",
+                                                    "name": None,
+                                                    "contributes": False,
+                                                    "hint": None,
+                                                    "values": ["python_onboarding.py"],
+                                                },
+                                                {
+                                                    "id": "function",
+                                                    "name": None,
+                                                    "contributes": True,
+                                                    "hint": None,
+                                                    "values": ["divide_by_zero"],
+                                                },
+                                                {
+                                                    "id": "context-line",
+                                                    "name": None,
+                                                    "contributes": True,
+                                                    "hint": None,
+                                                    "values": ["divide = 1/0"],
+                                                },
+                                            ],
+                                        }
+                                    ],
+                                },
+                                {
+                                    "id": "type",
+                                    "name": None,
+                                    "contributes": True,
+                                    "hint": None,
+                                    "values": ["ZeroDivisionError"],
+                                },
+                                {
+                                    "id": "value",
+                                    "name": None,
+                                    "contributes": False,
+                                    "hint": None,
+                                    "values": ["division by zero"],
+                                },
+                            ],
+                        },
+                        {
+                            "id": "exception",
+                            "name": "exception",
+                            "contributes": True,
+                            "hint": None,
+                            "values": [
+                                {
+                                    "id": "stacktrace",
+                                    "name": "stack-trace",
+                                    "contributes": True,
+                                    "hint": None,
+                                    "values": [
+                                        {
+                                            "id": "frame",
+                                            "name": None,
+                                            "contributes": True,
+                                            "hint": None,
+                                            "values": [
+                                                {
+                                                    "id": "module",
+                                                    "name": None,
+                                                    "contributes": True,
+                                                    "hint": None,
+                                                    "values": ["__main__"],
+                                                },
+                                                {
+                                                    "id": "filename",
+                                                    "name": None,
+                                                    "contributes": False,
+                                                    "hint": None,
+                                                    "values": ["python_onboarding.py"],
+                                                },
+                                                {
+                                                    "id": "function",
+                                                    "name": None,
+                                                    "contributes": True,
+                                                    "hint": None,
+                                                    "values": ["<module>"],
+                                                },
+                                                {
+                                                    "id": "context-line",
+                                                    "name": None,
+                                                    "contributes": True,
+                                                    "hint": None,
+                                                    "values": ["divide_by_zero()"],
+                                                },
+                                            ],
+                                        },
+                                        {
+                                            "id": "frame",
+                                            "name": None,
+                                            "contributes": True,
+                                            "hint": None,
+                                            "values": [
+                                                {
+                                                    "id": "module",
+                                                    "name": None,
+                                                    "contributes": True,
+                                                    "hint": None,
+                                                    "values": ["__main__"],
+                                                },
+                                                {
+                                                    "id": "filename",
+                                                    "name": None,
+                                                    "contributes": False,
+                                                    "hint": None,
+                                                    "values": ["python_onboarding.py"],
+                                                },
+                                                {
+                                                    "id": "function",
+                                                    "name": None,
+                                                    "contributes": True,
+                                                    "hint": None,
+                                                    "values": ["divide_by_zero"],
+                                                },
+                                                {
+                                                    "id": "context-line",
+                                                    "name": None,
+                                                    "contributes": True,
+                                                    "hint": None,
+                                                    "values": [
+                                                        'raise Exception("Catch divide by zero error")'
+                                                    ],
+                                                },
+                                            ],
+                                        },
+                                    ],
+                                },
+                                {
+                                    "id": "type",
+                                    "name": None,
+                                    "contributes": True,
+                                    "hint": None,
+                                    "values": ["Exception"],
+                                },
+                                {
+                                    "id": "value",
+                                    "name": None,
+                                    "contributes": False,
+                                    "hint": None,
+                                    "values": ["Catch divide by zero error"],
+                                },
+                            ],
+                        },
+                    ],
+                }
+            ],
+        },
+    }
+}
 
 
 @region_silo_test
@@ -34,23 +309,13 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                         "stacktrace": {
                             "frames": [
                                 {
-                                    "function": "divide_by_zero_another",
+                                    "function": "divide_by_zero",
                                     "module": "__main__",
                                     "filename": "python_onboarding.py",
                                     "abs_path": "/Users/jodi/python_onboarding/python_onboarding.py",
                                     "lineno": 20,
-                                    "context_line": " divide_by_zero_another()",
+                                    "context_line": " divide = 1/0",
                                     "in_app": True,
-                                },
-                                # The non-in-app frame should not be included in the stacktrace
-                                {
-                                    "function": "another_function",
-                                    "module": "__main__",
-                                    "filename": "python_onboarding.py",
-                                    "abs_path": "/Users/jodi/python_onboarding/python_onboarding.py",
-                                    "lineno": 40,
-                                    "context_line": " another_function()",
-                                    "in_app": False,
                                 },
                             ]
                         },
@@ -67,43 +332,47 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         self.path = f"/api/0/issues/{self.group.id}/similar-issues-embeddings/"
         self.similar_group = self.create_group(project=self.project)
 
-    def create_exception_values(
-        self,
-        num_values: int,
-        num_frames_per_value: int,
-        starting_frame_number: int = 1,
-        in_app: bool = True,
-    ) -> list[dict[str, Any]]:
-        """
-        Return an exception value dictionary, where the line number corresponds to the total frame
-        number
-        """
-        exception_values = []
-        frame_count = starting_frame_number
-        for _ in range(num_values):
-            value: dict[str, Any] = {"type": "Error", "value": "this is an error"}
-            frames = []
-            for _ in range(num_frames_per_value):
-                frame = {
-                    "function": "function",
-                    "module": "__main__",
-                    "filename": "python_onboarding.py",
-                    "abs_path": "/Users/jodi/python_onboarding/python_onboarding.py",
-                    "lineno": frame_count,
-                    "context_line": "function()",
-                    "in_app": in_app,
+    def create_frames(self, num_frames, contributes=True, start_index=1):
+        frames = []
+        for i in range(start_index, start_index + num_frames):
+            frames.append(
+                {
+                    "id": "frame",
+                    "name": None,
+                    "contributes": contributes,
+                    "hint": None,
+                    "values": [
+                        {
+                            "id": "filename",
+                            "name": None,
+                            "contributes": contributes,
+                            "hint": None,
+                            "values": ["hello.py"],
+                        },
+                        {
+                            "id": "function",
+                            "name": None,
+                            "contributes": contributes,
+                            "hint": None,
+                            "values": ["hello_there"],
+                        },
+                        {
+                            "id": "context-line",
+                            "name": None,
+                            "contributes": contributes,
+                            "hint": None,
+                            "values": ["test = " + str(i) + "!"],
+                        },
+                    ],
                 }
-                frames.append(frame)
-                frame_count += 1
-            value.update({"stacktrace": {"frames": frames}})
-            exception_values.append(value)
-        return exception_values
+            )
+        return frames
 
     def get_expected_response(
         self,
         group_ids: Sequence[int],
-        message_similarities: Sequence[float],
-        exception_similarities: Sequence[float],
+        message_distances: Sequence[float],
+        exception_distances: Sequence[float],
         should_be_grouped: Sequence[str],
     ) -> Sequence[tuple[Any, Mapping[str, Any]]]:
         serialized_groups = serialize(
@@ -115,112 +384,143 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 (
                     group,
                     {
-                        "message": message_similarities[i],
-                        "exception": exception_similarities[i],
+                        "message": message_distances[i],
+                        "exception": exception_distances[i],
                         "shouldBeGrouped": should_be_grouped[i],
                     },
                 )
             )
         return response
 
-    def test_get_stacktrace_string(self):
-        stacktrace_string = get_stacktrace_string(self.base_error_trace["exception"], self.event)  # type: ignore
-        assert stacktrace_string == EXPECTED_STACKTRACE_STRING
+    def test_get_stacktrace_string_simple(self):
+        stacktrace_str = get_stacktrace_string(BASE_APP_DATA)
+        expected_stacktrace_str = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", line divide_by_zero\n    divide = 1/0'
+        assert stacktrace_str == expected_stacktrace_str
 
     def test_get_stacktrace_string_no_values(self):
-        stacktrace_string = get_stacktrace_string({"values": []}, self.event)
+        stacktrace_string = get_stacktrace_string({})
         assert stacktrace_string == ""
 
-    def test_get_stacktrace_string_50_frames(self):
-        """Test that when there are 50 frames, all frames are included"""
+    def test_get_stacktrace_string_contributing_exception_no_frames(self):
+        data_non_contributing_frame = copy.deepcopy(BASE_APP_DATA)
+        data_non_contributing_frame["app"]["component"]["values"][0]["values"][0]["values"] = []
+        stacktrace_str = get_stacktrace_string(data_non_contributing_frame)
+        assert stacktrace_str == "ZeroDivisionError: division by zero"
 
-        # Exception value where the line number corresponds to the total frame number
-        exception_values = self.create_exception_values(num_values=5, num_frames_per_value=10)
-        large_error_trace = {
-            "exception": {"values": exception_values},
-            "platform": "python",
-        }
-        event = self.store_event(data=large_error_trace, project_id=self.project)
-        stacktrace_string = get_stacktrace_string(large_error_trace["exception"], event)  # type: ignore
+    def test_get_stacktrace_string_contributing_exception_no_contributing_frames(self):
+        data_no_contributing_frame = copy.deepcopy(BASE_APP_DATA)
+        data_no_contributing_frame["app"]["component"]["values"][0]["values"][0][
+            "values"
+        ] = self.create_frames(1, False)
+        stacktrace_str = get_stacktrace_string(data_no_contributing_frame)
+        assert stacktrace_str == "ZeroDivisionError: division by zero"
 
-        # Assert that we take all exception frames
-        for line_no in range(1, 51):
-            assert str(line_no) in stacktrace_string
+    def test_get_stacktrace_string_no_contributing_exception(self):
+        data_no_contributing_frame = copy.deepcopy(BASE_APP_DATA)
+        data_no_contributing_frame["app"]["component"]["values"][0]["contributes"] = False
+        stacktrace_str = get_stacktrace_string(data_no_contributing_frame)
+        assert stacktrace_str == ""
 
-    def test_get_stacktrace_string_over_50_frames(self):
-        """Test that when there are 60 frames, frames 1-45, and frames 56-60 are included"""
+    def test_get_stacktrace_string_non_contributing_frame(self):
+        data_non_contributing_frame = copy.deepcopy(BASE_APP_DATA)
+        data_non_contributing_frame["app"]["component"]["values"][0]["values"][0][
+            "values"
+        ] += self.create_frames(1, False)
+        stacktrace_str = get_stacktrace_string(data_non_contributing_frame)
+        expected_stacktrace_str = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", line divide_by_zero\n    divide = 1/0'
+        assert stacktrace_str == expected_stacktrace_str
 
-        # Exception value where the line number corresponds to the total frame number
-        exception_values = self.create_exception_values(num_values=4, num_frames_per_value=15)
-        large_error_trace = {
-            "exception": {"values": exception_values},
-            "platform": "python",
-        }
-        event = self.store_event(data=large_error_trace, project_id=self.project)
-        stacktrace_string = get_stacktrace_string(large_error_trace["exception"], event)  # type: ignore
+    def test_get_stacktrace_string_no_stacktrace(self):
+        data_no_stacktrace = copy.deepcopy(BASE_APP_DATA)
+        data_no_stacktrace["app"]["component"]["values"].pop(0)
+        stacktrace_str = get_stacktrace_string(data_no_stacktrace)
+        assert stacktrace_str == ""
 
-        # Assert that we take only the last 5 frames of the last exception
-        for line_no in range(46, 56):
-            assert str(line_no) not in stacktrace_string
-        for line_no in range(56, 61):
-            assert str(line_no) in stacktrace_string
+    def test_get_stacktrace_string_chained(self):
+        stacktrace_str = get_stacktrace_string(CHAINED_APP_DATA)
+        expected_stacktrace_str = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", line divide_by_zero\n    divide = 1/0\nException: Catch divide by zero error\n  File "python_onboarding.py", line <module>\n    divide_by_zero()\n  File "python_onboarding.py", line divide_by_zero\n    raise Exception("Catch divide by zero error")'
+        assert stacktrace_str == expected_stacktrace_str
 
-    def test_get_stacktrace_string_non_in_app_frames(self):
-        """Test that only in-app frames are included and count towards the frame count limit of 50"""
-        # Make 20 in-app frames
-        exception_values_in_app_start = self.create_exception_values(
-            num_values=2, num_frames_per_value=10
+    def test_get_stacktrace_string_system(self):
+        data_system = copy.deepcopy(BASE_APP_DATA)
+        data_system["system"] = data_system.pop("app")
+        stacktrace_str = get_stacktrace_string(data_system)
+        expected_stacktrace_str = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", line divide_by_zero\n    divide = 1/0'
+        assert stacktrace_str == expected_stacktrace_str
+
+    def test_get_stacktrace_string_app_and_system(self):
+        data = copy.deepcopy(BASE_APP_DATA)
+        data_system = copy.deepcopy(BASE_APP_DATA)
+        data_system = data_system.pop("app")
+        data_system["component"]["values"][0]["values"][0]["values"] = self.create_frames(1, True)
+        data.update({"system": data_system})
+
+        stacktrace_str = get_stacktrace_string(data)
+        expected_stacktrace_str = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", line divide_by_zero\n    divide = 1/0'
+        assert stacktrace_str == expected_stacktrace_str
+
+    def test_get_stacktrace_string_no_app_no_system(self):
+        data = {"default": "something"}
+        stacktrace_str = get_stacktrace_string(data)
+        assert stacktrace_str == ""
+
+    def test_get_stacktrace_string_over_50_contributing_frames(self):
+        """Check that when there are over 50 contributing frames, the last 50 are included."""
+
+        data_frames = copy.deepcopy(BASE_APP_DATA)
+        # Create 30 contributing frames, 1-30 -> last 20 should be included
+        data_frames["app"]["component"]["values"][0]["values"][0]["values"] = self.create_frames(
+            30, True
         )
-        # Make 10 non in-app frames
-        exception_values_non_in_app = self.create_exception_values(
-            num_values=1, num_frames_per_value=10, starting_frame_number=21, in_app=False
+        # Create 20 non-contributing frames, 31-50 -> none should be included
+        data_frames["app"]["component"]["values"][0]["values"][0]["values"] += self.create_frames(
+            20, False, 31
         )
-        # Make 30 in-app frames
-        exception_values_in_app_end = self.create_exception_values(
-            num_values=3, num_frames_per_value=10, starting_frame_number=31
+        # Create 30 contributing frames, 51-80 -> all should be included
+        data_frames["app"]["component"]["values"][0]["values"][0]["values"] += self.create_frames(
+            30, True, 51
         )
+        stacktrace_str = get_stacktrace_string(data_frames)
 
-        exception_values = (
-            exception_values_in_app_start
-            + exception_values_non_in_app
-            + exception_values_in_app_end
-        )
+        num_frames = 0
+        for i in range(1, 11):
+            assert ("test = " + str(i) + "!") not in stacktrace_str
+        for i in range(11, 31):
+            num_frames += 1
+            assert ("test = " + str(i) + "!") in stacktrace_str
+        for i in range(31, 51):
+            assert ("test = " + str(i) + "!") not in stacktrace_str
+        for i in range(51, 81):
+            num_frames += 1
+            assert ("test = " + str(i) + "!") in stacktrace_str
+        assert num_frames == 50
 
-        large_error_trace = {
-            "exception": {"values": exception_values},
-            "platform": "python",
-        }
-        event = self.store_event(data=large_error_trace, project_id=self.project)
-        stacktrace_string = get_stacktrace_string(large_error_trace["exception"], event)  # type: ignore
-
-        # Assert that the only the in-app frames are taken
-        for line_no in range(1, 21):
-            assert str(line_no) in stacktrace_string
-        for line_no in range(21, 31):
-            assert str(line_no) not in stacktrace_string
-        for line_no in range(31, 61):
-            assert str(line_no) in stacktrace_string
+    def test_get_stacktrace_string_no_exception(self):
+        data_no_exception = copy.deepcopy(BASE_APP_DATA)
+        data_no_exception["app"]["component"]["values"][0]["id"] = "not-exception"
+        stacktrace_str = get_stacktrace_string(data_no_exception)
+        assert stacktrace_str == ""
 
     def test_get_formatted_results(self):
         new_group = self.create_group(project=self.project)
         response_1: SimilarIssuesEmbeddingsData = {
-            "message_similarity": 0.95,
+            "message_distance": 0.05,
             "parent_group_id": self.similar_group.id,
             "should_group": True,
-            "stacktrace_similarity": 0.99,
+            "stacktrace_distance": 0.01,
         }
         response_2: SimilarIssuesEmbeddingsData = {
-            "message_similarity": 0.51,
+            "message_distance": 0.49,
             "parent_group_id": new_group.id,
             "should_group": False,
-            "stacktrace_similarity": 0.23,
+            "stacktrace_distance": 0.23,
         }
         group_similar_endpoint = GroupSimilarIssuesEmbeddingsEndpoint()
         formatted_results = group_similar_endpoint.get_formatted_results(
             responses=[response_1, response_2], user=self.user
         )
         assert formatted_results == self.get_expected_response(
-            [self.similar_group.id, new_group.id], [0.95, 0.51], [0.99, 0.23], ["Yes", "No"]
+            [self.similar_group.id, new_group.id], [0.95, 0.51], [0.99, 0.77], ["Yes", "No"]
         )
 
     def test_no_feature_flag(self):
@@ -235,10 +535,10 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
             "responses": [
                 {
-                    "message_similarity": 0.95,
+                    "message_distance": 0.05,
                     "parent_group_id": self.similar_group.id,
                     "should_group": True,
-                    "stacktrace_similarity": 0.99,
+                    "stacktrace_distance": 0.01,
                 }
             ]
         }
@@ -283,22 +583,22 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
             "responses": [
                 {
-                    "message_similarity": 0.95,
+                    "message_distance": 0.05,
                     "parent_group_id": self.similar_group.id,
                     "should_group": True,
-                    "stacktrace_similarity": 0.998,  # Over threshold
+                    "stacktrace_distance": 0.002,  # Over threshold
                 },
                 {
-                    "message_similarity": 0.95,
+                    "message_distance": 0.05,
                     "parent_group_id": similar_group_over_threshold.id,
                     "should_group": True,
-                    "stacktrace_similarity": 0.998,
+                    "stacktrace_distance": 0.002,  # Over threshold
                 },
                 {
-                    "message_similarity": 0.95,
+                    "message_distance": 0.05,
                     "parent_group_id": similar_group_under_threshold.id,
                     "should_group": False,
-                    "stacktrace_similarity": 0.95,
+                    "stacktrace_distance": 0.05,  # Under threshold
                 },
             ]
         }
@@ -306,7 +606,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         response = self.client.get(
             self.path,
-            data={"k": "1", "threshold": "0.99"},
+            data={"k": "1", "threshold": "0.01"},
         )
 
         assert response.data == self.get_expected_response(
@@ -339,16 +639,16 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
             "responses": [
                 {
-                    "message_similarity": 0.95,
+                    "message_distance": 0.05,
                     "parent_group_id": self.similar_group.id,
                     "should_group": True,
-                    "stacktrace_similarity": 0.99,
+                    "stacktrace_distance": 0.01,
                 },
                 {
-                    "message_similarity": 0.95,
+                    "message_distance": 0.05,
                     "parent_group_id": 10000000,  # An arbitrarily large group ID that will not exist
                     "should_group": True,
-                    "stacktrace_similarity": 0.99,
+                    "stacktrace_distance": 0.01,
                 },
             ]
         }
@@ -361,7 +661,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
     @with_feature("projects:similarity-embeddings")
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
-    def test_empty_return(self, mock_seer_request, mock_record):
+    def test_empty_seer_return(self, mock_seer_request, mock_record):
         mock_seer_request.return_value = HTTPResponse([])
         response = self.client.get(self.path)
         assert response.data == []
@@ -376,40 +676,41 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
 
     @with_feature("projects:similarity-embeddings")
-    def test_no_in_app_frames(self):
-        error_trace_no_in_app_frames = {
-            "fingerprint": ["my-route", "{{ default }}"],
+    def test_no_contributing_exception(self):
+        data_no_contributing_exception = {
+            "fingerprint": ["message"],
+            "message": "Message",
             "exception": {
-                "values": self.create_exception_values(
-                    num_values=1, num_frames_per_value=10, in_app=False
-                )
+                "values": [
+                    {
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "divide_by_zero",
+                                    "module": "__main__",
+                                    "filename": "python_onboarding.py",
+                                    "abs_path": "/Users/jodi/python_onboarding/python_onboarding.py",
+                                    "lineno": 20,
+                                    "context_line": " divide = 1/0",
+                                    "in_app": False,
+                                },
+                            ]
+                        },
+                        "type": "ZeroDivisionError",
+                        "value": "division by zero",
+                    }
+                ]
             },
+            "platform": "python",
         }
-        event_no_in_app_frames = self.store_event(
-            data=error_trace_no_in_app_frames, project_id=self.project
+        event_no_contributing_exception = self.store_event(
+            data=data_no_contributing_exception, project_id=self.project
         )
-        group_no_in_app_frames = event_no_in_app_frames.group
-        assert group_no_in_app_frames
-        response = self.client.get(
-            f"/api/0/issues/{group_no_in_app_frames.id}/similar-issues-embeddings/",
-            data={"k": "1", "threshold": "0.98"},
-        )
+        group_no_contributing_exception = event_no_contributing_exception.group
+        assert group_no_contributing_exception
 
-        assert response.data == []
-
-    @with_feature("projects:similarity-embeddings")
-    def test_no_stacktrace(self):
-        error_trace_no_stacktrace = {
-            "fingerprint": ["my-route", "{{ default }}"],
-            "exception": {"values": []},
-        }
-        event_no_stacktrace = self.store_event(
-            data=error_trace_no_stacktrace, project_id=self.project
-        )
-        group_no_stacktrace = event_no_stacktrace.group
-        assert group_no_stacktrace
         response = self.client.get(
-            f"/api/0/issues/{group_no_stacktrace.id}/similar-issues-embeddings/",
+            f"/api/0/issues/{group_no_contributing_exception.id}/similar-issues-embeddings/",
             data={"k": "1", "threshold": "0.98"},
         )
 
@@ -436,10 +737,10 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
             "responses": [
                 {
-                    "message_similarity": 0.95,
+                    "message_distance": 0.05,
                     "parent_group_id": self.similar_group.id,
                     "should_group": True,
-                    "stacktrace_similarity": 0.99,
+                    "stacktrace_distance": 0.01,
                 }
             ]
         }

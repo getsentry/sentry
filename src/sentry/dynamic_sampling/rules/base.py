@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 
 import sentry_sdk
 
-from sentry import features, quotas
+from sentry import quotas
 from sentry.db.models import Model
 from sentry.dynamic_sampling.rules.biases.base import Bias
 from sentry.dynamic_sampling.rules.combine import get_relay_biases_combinator
@@ -13,7 +13,6 @@ from sentry.dynamic_sampling.rules.utils import PolymorphicRule, RuleType, get_e
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     get_boost_low_volume_projects_sample_rate,
 )
-from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_sliding_window_sample_rate
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 
@@ -45,18 +44,6 @@ def is_recently_added(model: Model) -> bool:
     return False
 
 
-def is_sliding_window_enabled(organization: Organization) -> bool:
-    return not features.has(
-        "organizations:ds-sliding-window-org", organization, actor=None
-    ) and features.has("organizations:ds-sliding-window", organization, actor=None)
-
-
-def is_sliding_window_org_enabled(organization: Organization) -> bool:
-    return features.has(
-        "organizations:ds-sliding-window-org", organization, actor=None
-    ) and not features.has("organizations:ds-sliding-window", organization, actor=None)
-
-
 def get_guarded_blended_sample_rate(organization: Organization, project: Project) -> float:
     sample_rate = quotas.backend.get_blended_sample_rate(organization_id=organization.id)
 
@@ -75,20 +62,11 @@ def get_guarded_blended_sample_rate(organization: Organization, project: Project
     if is_recently_added(model=project) or is_recently_added(model=organization):
         return 1.0
 
-    # We want to use the normal sliding window only if the sliding window at the org level is disabled.
-    if is_sliding_window_enabled(organization):
-        # In case we use sliding window, we want to fall back to the original sample rate in case there was an error,
-        # whereas if we don't find a value in cache, we just sample at 100% under the assumption that the project
-        # has just been created.
-        sample_rate = get_sliding_window_sample_rate(
-            org_id=organization.id, project_id=project.id, error_sample_rate_fallback=sample_rate
-        )
-    else:
-        # In case we use the prioritise by project, we want to fall back to the original sample rate in case there are
-        # any issues.
-        sample_rate = get_boost_low_volume_projects_sample_rate(
-            org_id=organization.id, project_id=project.id, error_sample_rate_fallback=sample_rate
-        )
+    # When using the boosted project sample rate, we want to fall back to the blended sample rate in case there are
+    # any issues.
+    sample_rate, _ = get_boost_low_volume_projects_sample_rate(
+        org_id=organization.id, project_id=project.id, error_sample_rate_fallback=sample_rate
+    )
 
     return float(sample_rate)
 

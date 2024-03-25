@@ -456,7 +456,7 @@ class GroupManager(BaseManager["Group"]):
             group.substatus = substatus
             if should_update_priority:
                 priority = get_priority_for_ongoing_group(group)
-                if priority:
+                if priority and group.priority != priority:
                     group.priority = priority
                     updated_priority[group.id] = priority
 

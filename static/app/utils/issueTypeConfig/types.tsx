@@ -28,6 +28,10 @@ export type IssueTypeConfig = {
    */
   attachments: DisabledWithReasonConfig;
   /**
+   * Should show Autofix for this issue type
+   */
+  autofix: boolean;
+  /**
    * Is the "Open in Discover" button available for this issue
    */
   discover: DisabledWithReasonConfig;
@@ -85,6 +89,10 @@ export type IssueTypeConfig = {
    * Is the Tags tab show for this issue
    */
   tags: DisabledWithReasonConfig;
+  /**
+   * Displays the trace timeline and trace link for this issue
+   */
+  traceTimeline: boolean;
   /**
    * Is the User Feedback tab shown for this issue
    */

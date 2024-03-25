@@ -13,7 +13,8 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
-from sentry.models.release import DB_VERSION_LENGTH, Release, follows_semver_versioning_scheme
+from sentry.models.release import Release, follows_semver_versioning_scheme
+from sentry.models.releases.constants import DB_VERSION_LENGTH
 from sentry.utils import metrics
 
 

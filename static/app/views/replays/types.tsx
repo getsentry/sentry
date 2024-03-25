@@ -58,8 +58,8 @@ export type ReplayRecord = {
   project_id: string;
   releases: null | string[];
   sdk: {
-    name: string;
-    version: string;
+    name: null | string;
+    version: null | string;
   };
   /**
    * The **earliest** timestamp received as determined by the SDK.
@@ -107,6 +107,8 @@ export type ReplayListLocationQuery = {
   statsPeriod?: string;
   utc?: 'true' | 'false';
 };
+
+export type ReplayListQueryReferrer = 'issueReplays' | 'transactionReplays';
 
 // Sync with ReplayListRecord below
 export const REPLAY_LIST_FIELDS = [

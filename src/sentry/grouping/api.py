@@ -2,13 +2,17 @@ from __future__ import annotations
 
 import re
 from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, TypedDict
+
+import sentry_sdk
 
 from sentry import options
 from sentry.db.models.fields.node import NodeData
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.enhancer import LATEST_VERSION, Enhancements
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
+from sentry.grouping.result import CalculatedHashes
 from sentry.grouping.strategies.base import DEFAULT_GROUPING_ENHANCEMENTS_BASE, GroupingContext
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.grouping.utils import (
@@ -27,6 +31,7 @@ from sentry.grouping.variants import (
     FallbackVariant,
     SaltedComponentVariant,
 )
+from sentry.models.grouphash import GroupHash
 from sentry.utils.safe import get_path
 
 if TYPE_CHECKING:
@@ -55,6 +60,19 @@ _synthetic_exception_type_re = re.compile(
     """,
     re.X,
 )
+
+
+@dataclass
+class GroupHashInfo:
+    config: GroupingConfig
+    hashes: CalculatedHashes
+    grouphashes: list[GroupHash]
+    existing_grouphash: GroupHash | None
+
+
+NULL_GROUPING_CONFIG: GroupingConfig = {"id": "", "enhancements": ""}
+NULL_HASHES = CalculatedHashes(hashes=[], hierarchical_hashes=[], tree_labels=[])
+NULL_GROUPHASH_INFO = GroupHashInfo(NULL_GROUPING_CONFIG, NULL_HASHES, [], None)
 
 
 class GroupingConfigNotFound(LookupError):
@@ -139,6 +157,7 @@ class BackgroundGroupingConfigLoader(GroupingConfigLoader):
         return options.get("store.background-grouping-config-id")
 
 
+@sentry_sdk.tracing.trace
 def get_grouping_config_dict_for_project(project, silent=True) -> GroupingConfig:
     """Fetches all the information necessary for grouping from the project
     settings.  The return value of this is persisted with the event on

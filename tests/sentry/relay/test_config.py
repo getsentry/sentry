@@ -1,5 +1,6 @@
 import time
 from datetime import datetime, timedelta, timezone
+from typing import Any
 from unittest import mock
 from unittest.mock import ANY, patch
 
@@ -139,7 +140,7 @@ SOME_EXCEPTION = RuntimeError("foo")
 @django_db_all
 @region_silo_test
 @mock.patch("sentry.relay.config.generate_rules", side_effect=SOME_EXCEPTION)
-@mock.patch("sentry.relay.config.logger")
+@mock.patch("sentry.relay.config.experimental.logger")
 def test_get_experimental_config_dyn_sampling(mock_logger, _, default_project):
     keys = ProjectKey.objects.filter(project=default_project)
     with Feature({"organizations:dynamic-sampling": True}):
@@ -766,6 +767,10 @@ def test_performance_calculate_score(default_project):
     with Feature(features):
         config = get_project_config(default_project, full_config=True).to_dict()["config"]
 
+        # Set a version field that is returned even though it's optional.
+        for profile in config["performanceScore"]["profiles"]:
+            profile["version"] = "1"
+
         validate_project_config(json.dumps(config), strict=True)
         performance_score = config["performanceScore"]["profiles"]
         assert performance_score[0] == {
@@ -788,6 +793,7 @@ def test_performance_calculate_score(default_project):
                 "name": "event.contexts.browser.name",
                 "value": "Chrome",
             },
+            "version": "1",
         }
         assert performance_score[1] == {
             "name": "Firefox",
@@ -827,6 +833,7 @@ def test_performance_calculate_score(default_project):
                 "name": "event.contexts.browser.name",
                 "value": "Firefox",
             },
+            "version": "1",
         }
         assert performance_score[2] == {
             "name": "Safari",
@@ -866,6 +873,7 @@ def test_performance_calculate_score(default_project):
                 "name": "event.contexts.browser.name",
                 "value": "Safari",
             },
+            "version": "1",
         }
         assert performance_score[3] == {
             "name": "Edge",
@@ -887,6 +895,7 @@ def test_performance_calculate_score(default_project):
                 "name": "event.contexts.browser.name",
                 "value": "Edge",
             },
+            "version": "1",
         }
         assert performance_score[4] == {
             "name": "Opera",
@@ -908,38 +917,79 @@ def test_performance_calculate_score(default_project):
                 "name": "event.contexts.browser.name",
                 "value": "Opera",
             },
+            "version": "1",
         }
 
 
 @django_db_all
 @region_silo_test
-def test_project_config_cardinality_limits(default_project, insta_snapshot):
-    options = override_options(
-        {
-            "sentry-metrics.cardinality-limiter.limits.performance.per-org": [
-                {"window_seconds": 1000, "granularity_seconds": 100, "limit": 10}
-            ],
-            "sentry-metrics.cardinality-limiter.limits.releasehealth.per-org": [
-                {"window_seconds": 2000, "granularity_seconds": 200, "limit": 20}
-            ],
-            "sentry-metrics.cardinality-limiter.limits.spans.per-org": [
-                {"window_seconds": 3000, "granularity_seconds": 300, "limit": 30}
-            ],
-            "sentry-metrics.cardinality-limiter.limits.custom.per-org": [
-                {"window_seconds": 4000, "granularity_seconds": 400, "limit": 40}
-            ],
-            "sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org": [
-                {"window_seconds": 5000, "granularity_seconds": 500, "limit": 50}
-            ],
-        },
-    )
+@pytest.mark.parametrize("passive", [False, True])
+def test_project_config_cardinality_limits(default_project, insta_snapshot, passive):
+    options: dict[Any, Any] = {
+        "sentry-metrics.cardinality-limiter.limits.performance.per-org": [
+            {"window_seconds": 1000, "granularity_seconds": 100, "limit": 10}
+        ],
+        "sentry-metrics.cardinality-limiter.limits.releasehealth.per-org": [
+            {"window_seconds": 2000, "granularity_seconds": 200, "limit": 20}
+        ],
+        "sentry-metrics.cardinality-limiter.limits.spans.per-org": [
+            {"window_seconds": 3000, "granularity_seconds": 300, "limit": 30}
+        ],
+        "sentry-metrics.cardinality-limiter.limits.custom.per-org": [
+            {"window_seconds": 4000, "granularity_seconds": 400, "limit": 40}
+        ],
+        "sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org": [
+            {"window_seconds": 5000, "granularity_seconds": 500, "limit": 50}
+        ],
+        "sentry-metrics.cardinality-limiter.limits.profiles.per-org": [
+            {"window_seconds": 3600, "granularity_seconds": 600, "limit": 60}
+        ],
+    }
+
+    if passive:
+        options["relay.cardinality-limiter.passive-limits-by-org"] = {
+            str(default_project.organization.id): [
+                "sessions",
+                "transactions",
+                "spans",
+                "profiles",
+                "custom",
+            ]
+        }
 
     features = Feature({"organizations:relay-cardinality-limiter": True})
 
-    with options, features:
+    with override_options(options), features:
         project_cfg = get_project_config(default_project, full_config=True)
 
         cfg = project_cfg.to_dict()
         _validate_project_config(cfg["config"])
 
         insta_snapshot(cfg["config"]["metrics"])
+
+
+@patch(
+    "sentry.relay.config._get_generic_project_filters",
+    lambda *args, **kwargs: {
+        "version": 1,
+        "filters": [
+            {
+                "id": "test-id",
+                "isEnabled": True,
+                "condition": {
+                    "op": "not",
+                    "inner": {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Firefox",
+                    },
+                },
+            }
+        ],
+    },
+)
+@django_db_all
+@region_silo_test
+def test_project_config_valid_with_generic_filters(default_project):
+    config = get_project_config(default_project).to_dict()
+    _validate_project_config(config["config"])

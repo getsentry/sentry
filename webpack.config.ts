@@ -14,7 +14,6 @@ import path from 'node:path';
 import TerserPlugin from 'terser-webpack-plugin';
 import webpack from 'webpack';
 import type {Configuration as DevServerConfig} from 'webpack-dev-server';
-import WebpackHookPlugin from 'webpack-hook-plugin';
 import FixStyleOnlyEntriesPlugin from 'webpack-remove-empty-scripts';
 
 import LastBuiltPlugin from './build-utils/last-built-plugin';
@@ -78,7 +77,6 @@ const HAS_WEBPACK_DEV_SERVER_CONFIG =
 const NO_DEV_SERVER = !!env.NO_DEV_SERVER; // Do not run webpack dev server
 const SHOULD_FORK_TS = DEV_MODE && !env.NO_TS_FORK; // Do not run fork-ts plugin (or if not dev env)
 const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
-const SHOULD_RUN_SPOTLIGHT = DEV_MODE && !env.NO_SPOTLIGHT; // Do not run spotlight sidecar
 const SHOULD_ADD_RSDOCTOR = Boolean(env.RSDOCTOR);
 
 // Deploy previews are built using vercel. We can check if we're in vercel's
@@ -100,6 +98,7 @@ const SENTRY_EXPERIMENTAL_SPA =
 // is true. This is to make sure we can validate that the experimental SPA mode is
 // working properly.
 const SENTRY_SPA_DSN = SENTRY_EXPERIMENTAL_SPA ? env.SENTRY_SPA_DSN : undefined;
+const CODECOV_TOKEN = env.CODECOV_TOKEN;
 
 // this is the path to the django "sentry" app, we output the webpack build here to `dist`
 // so that `django collectstatic` and so that we can serve the post-webpack bundles
@@ -448,6 +447,8 @@ const appConfig: Configuration = {
       crypto: require.resolve('crypto-browserify'),
       // `yarn why` says this is only needed in dev deps
       string_decoder: false,
+      // For framer motion v6, might be able to remove on v11
+      'process/browser': require.resolve('process/browser'),
     },
 
     modules: ['node_modules'],
@@ -607,15 +608,6 @@ if (
   }
 }
 
-// We want Spotlight only in Dev mode - Local and UI only
-if (SHOULD_RUN_SPOTLIGHT) {
-  appConfig.plugins?.push(
-    new WebpackHookPlugin({
-      onBuildStart: ['yarn run spotlight-sidecar'],
-    })
-  );
-}
-
 // XXX(epurkhiser): Sentry (development) can be run in an experimental
 // pure-SPA mode, where ONLY /api* requests are proxied directly to the API
 // backend (in this case, sentry.io), otherwise ALL requests are rewritten
@@ -766,6 +758,18 @@ const minificationPlugins = [
 if (IS_PRODUCTION) {
   // NOTE: can't do plugins.push(Array) because webpack/webpack#2217
   minificationPlugins.forEach(plugin => appConfig.plugins?.push(plugin));
+}
+
+if (CODECOV_TOKEN) {
+  const {codecovWebpackPlugin} = require('@codecov/webpack-plugin');
+
+  appConfig.plugins?.push(
+    codecovWebpackPlugin({
+      enableBundleAnalysis: true,
+      bundleName: 'sentry-webpack-bundle',
+      uploadToken: CODECOV_TOKEN,
+    })
+  );
 }
 
 // Cache webpack builds

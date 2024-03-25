@@ -12,8 +12,9 @@ import {IconChevron, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Frame, MRI} from 'sentry/types';
-import type {MetricCodeLocationFrame, SelectionRange} from 'sentry/utils/metrics/types';
-import {useMetricCodeLocations} from 'sentry/utils/metrics/useMetricsCorrelations';
+import type {MetricCodeLocationFrame} from 'sentry/utils/metrics/types';
+import {useMetricCodeLocations} from 'sentry/utils/metrics/useMetricsCodeLocations';
+import type {SelectionRange} from 'sentry/views/ddm/chart/types';
 
 interface CodeLocationsProps extends SelectionRange {
   mri?: MRI;
@@ -43,7 +44,7 @@ export function CodeLocations({mri, ...rangeOpts}: CodeLocationsProps) {
     );
   }
 
-  if (!Array.isArray(data?.metrics) || data?.metrics.length === 0) {
+  if (!Array.isArray(data) || data.length === 0) {
     return (
       <CenterContent>
         <EmptyMessage
@@ -56,7 +57,7 @@ export function CodeLocations({mri, ...rangeOpts}: CodeLocationsProps) {
     );
   }
 
-  const codeLocations = data.metrics[0].codeLocations ?? [];
+  const codeLocations = data[0].frames ?? [];
 
   // We only want to show the first 5 code locations
   const codeLocationsToShow = codeLocations.slice(0, 5);

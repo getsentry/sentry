@@ -29,7 +29,7 @@ import type {
   UseCase,
 } from 'sentry/types/metrics';
 import {statsPeriodToDays} from 'sentry/utils/dates';
-import {isMeasurement as isMeasurementName} from 'sentry/utils/discover/fields';
+import {isMeasurement} from 'sentry/utils/discover/fields';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {formatMRI, formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
@@ -39,12 +39,16 @@ import type {
   MetricWidgetQueryParams,
 } from 'sentry/utils/metrics/types';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
+import {
+  isMetricFormula,
+  type MetricsQueryApiQueryParams,
+} from 'sentry/utils/metrics/useMetricsQuery';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import useRouter from 'sentry/utils/useRouter';
 
 export function getDefaultMetricDisplayType(
-  mri: MetricsQuery['mri'],
-  op: MetricsQuery['op']
+  mri?: MetricsQuery['mri'],
+  op?: MetricsQuery['op']
 ): MetricDisplayType {
   if (mri?.startsWith('c') || op === 'count') {
     return MetricDisplayType.BAR;
@@ -220,15 +224,31 @@ export function useClearQuery() {
   }, [routerRef]);
 }
 
+export function unescapeMetricsFormula(formula: string) {
+  // Remove the $ from variable names
+  return formula.replaceAll('$', '');
+}
+
 export function getMetricsSeriesName(
-  field: string,
+  query: MetricsQueryApiQueryParams,
   groupBy?: Record<string, string>,
   isMultiQuery: boolean = true
 ) {
+  let name = '';
+  if (isMetricFormula(query)) {
+    name = unescapeMetricsFormula(query.formula);
+  } else {
+    name = formatMRIField(MRIToField(query.mri, query.op));
+  }
+
+  if (isMultiQuery) {
+    name = `${query.name}: ${name}`;
+  }
+
   const groupByEntries = Object.entries(groupBy ?? {});
 
   if (!groupByEntries || !groupByEntries.length) {
-    return formatMRIField(field);
+    return name;
   }
 
   const formattedGrouping = groupByEntries
@@ -236,9 +256,19 @@ export function getMetricsSeriesName(
     .join(', ');
 
   if (isMultiQuery) {
-    return `${formatMRIField(field)} - ${formattedGrouping}`;
+    return `${name} - ${formattedGrouping}`;
   }
   return formattedGrouping;
+}
+
+export function getMetricsSeriesId(
+  query: MetricsQueryApiQueryParams,
+  groupBy?: Record<string, string>
+) {
+  if (Object.keys(groupBy ?? {}).length === 0) {
+    return `${query.name}`;
+  }
+  return `${query.name}-${JSON.stringify(groupBy)}`;
 }
 
 export function groupByOp(metrics: MetricMeta[]): Record<string, MetricMeta[]> {
@@ -254,20 +284,41 @@ export function groupByOp(metrics: MetricMeta[]): Record<string, MetricMeta[]> {
   return groupedByOp;
 }
 
-export function isMeasurement({mri}: {mri: MRI}) {
+export function isTransactionMeasurement({mri}: {mri: MRI}) {
   const {name} = parseMRI(mri) ?? {name: ''};
-  return isMeasurementName(name);
+  return isMeasurement(name);
+}
+
+export function isSpanMeasurement({mri}: {mri: MRI}) {
+  if (
+    mri === 'd:spans/http.response_content_length@byte' ||
+    mri === 'd:spans/http.decoded_response_content_length@byte' ||
+    mri === 'd:spans/http.response_transfer_size@byte'
+  ) {
+    return true;
+  }
+
+  const parsedMRI = parseMRI(mri);
+  if (
+    parsedMRI &&
+    parsedMRI.useCase === 'spans' &&
+    parsedMRI.name.startsWith('webvital.')
+  ) {
+    return true;
+  }
+
+  return false;
 }
 
 export function isCustomMeasurement({mri}: {mri: MRI}) {
   const DEFINED_MEASUREMENTS = new Set(Object.keys(getMeasurements()));
 
   const {name} = parseMRI(mri) ?? {name: ''};
-  return !DEFINED_MEASUREMENTS.has(name) && isMeasurementName(name);
+  return !DEFINED_MEASUREMENTS.has(name) && isMeasurement(name);
 }
 
 export function isStandardMeasurement({mri}: {mri: MRI}) {
-  return isMeasurement({mri}) && !isCustomMeasurement({mri});
+  return isTransactionMeasurement({mri}) && !isCustomMeasurement({mri});
 }
 
 export function isTransactionDuration({mri}: {mri: MRI}) {
@@ -278,16 +329,16 @@ export function isCustomMetric({mri}: {mri: MRI}) {
   return mri.includes(':custom/');
 }
 
-export function isSpanMetric({mri}: {mri: MRI}) {
-  return mri.includes(':spans/');
+export function isSpanSelfTime({mri}: {mri: MRI}) {
+  return mri === 'd:spans/exclusive_time@millisecond';
 }
 
 export function getFieldFromMetricsQuery(metricsQuery: MetricsQuery) {
   if (isCustomMetric(metricsQuery)) {
-    return MRIToField(metricsQuery.mri, metricsQuery.op!);
+    return MRIToField(metricsQuery.mri, metricsQuery.op);
   }
 
-  return formatMRIField(MRIToField(metricsQuery.mri, metricsQuery.op!));
+  return formatMRIField(MRIToField(metricsQuery.mri, metricsQuery.op));
 }
 
 export function getFormattedMQL({mri, op, query, groupBy}: MetricsQuery): string {
@@ -328,14 +379,6 @@ export function isFormattedMQL(mql: string) {
   }
 
   return true;
-}
-
-export function getWidgetTitle(queries: MetricsQuery[]) {
-  if (queries.length === 1) {
-    return getFormattedMQL(queries[0]);
-  }
-
-  return queries.map(({mri, op}) => formatMRIField(MRIToField(mri, op ?? ''))).join(', ');
 }
 
 // TODO: consider moving this to utils/dates.tsx

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import itertools
 import logging
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from django.db.models import Value
@@ -26,7 +26,6 @@ from sentry.constants import EXTENSION_LANGUAGE_MAP
 from sentry.integrations.github.client import GitHubAppsClient
 from sentry.models.group import Group, GroupStatus
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
-from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.pullrequest import CommentType, PullRequest
@@ -203,7 +202,8 @@ def safe_for_comment(
         return []
 
     patch_parsers = PATCH_PARSERS
-    if features.has("organizations:integrations-open-pr-comment-js", organization):
+    # NOTE: if we are testing beta patch parsers, add check here
+    if features.has("organizations:integrations-open-pr-comment-beta-langs", organization):
         patch_parsers = BETA_PATCH_PARSERS
 
     for file in pr_files:
@@ -288,7 +288,8 @@ def get_top_5_issues_by_count_for_file(
     organization = projects[0].organization
 
     patch_parsers = PATCH_PARSERS
-    if features.has("organizations:integrations-open-pr-comment-js", organization):
+    # NOTE: if we are testing beta patch parsers, add check here
+    if features.has("organizations:integrations-open-pr-comment-beta-langs", organization):
         patch_parsers = BETA_PATCH_PARSERS
 
     # fetches the appropriate parser for formatting the snuba query given the file extension
@@ -300,8 +301,8 @@ def get_top_5_issues_by_count_for_file(
 
     group_ids = list(
         Group.objects.filter(
-            first_seen__gte=datetime.now() - timedelta(days=90),
-            last_seen__gte=datetime.now() - timedelta(days=14),
+            first_seen__gte=datetime.now(UTC) - timedelta(days=90),
+            last_seen__gte=datetime.now(UTC) - timedelta(days=14),
             status=GroupStatus.UNRESOLVED,
             project__in=projects,
         )
@@ -432,14 +433,6 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         metrics.incr(OPEN_PR_METRICS_BASE.format(key="error"), tags={"type": "missing_org"})
         return
 
-    if not OrganizationOption.objects.get_value(
-        organization=organization,
-        key="sentry:github_open_pr_bot",
-        default=True,
-    ):
-        logger.info("github.open_pr_comment.option_missing", extra={"organization_id": org_id})
-        return
-
     # check PR repo exists to get repo name
     try:
         repo = Repository.objects.get(id=pull_request.repository_id)
@@ -480,7 +473,8 @@ def open_pr_comment_workflow(pr_id: int) -> None:
     top_issues_per_file = []
 
     patch_parsers = PATCH_PARSERS
-    if features.has("organizations:integrations-open-pr-comment-js", organization):
+    # NOTE: if we are testing beta patch parsers, add check here
+    if features.has("organizations:integrations-open-pr-comment-beta-langs", organization):
         patch_parsers = BETA_PATCH_PARSERS
 
     file_extensions = set()
@@ -526,6 +520,16 @@ def open_pr_comment_workflow(pr_id: int) -> None:
                 },
             )
 
+        if file_extension in ["php"]:
+            logger.info(
+                "github.open_pr_comment.php",
+                extra={
+                    "organization_id": org_id,
+                    "repository_id": repo.id,
+                    "extension": file_extension,
+                    "has_function_names": bool(function_names),
+                },
+            )
         if not len(function_names):
             continue
 

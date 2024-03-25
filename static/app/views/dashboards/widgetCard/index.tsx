@@ -25,7 +25,7 @@ import {getFormattedDate} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
-import {hasDDMFeature} from 'sentry/utils/metrics/features';
+import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import {ExtractedMetricsTag} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {
@@ -40,7 +40,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
-import {MetricWidgetCard} from 'sentry/views/dashboards/widgetCard/metricWidgetCard';
+import {MetricWidgetCard} from 'sentry/views/dashboards/metrics/widgetCard';
 import {Toolbar} from 'sentry/views/dashboards/widgetCard/toolbar';
 
 import type {DashboardFilters, Widget} from '../types';
@@ -272,7 +272,7 @@ class WidgetCard extends Component<Props, State> {
     );
 
     if (widget.widgetType === WidgetType.METRICS) {
-      if (hasDDMFeature(organization)) {
+      if (hasCustomMetrics(organization)) {
         return (
           <MetricWidgetCard
             index={this.props.index}

@@ -1,6 +1,6 @@
 import math
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any
 from unittest import mock
 from uuid import uuid4
@@ -8,13 +8,14 @@ from uuid import uuid4
 import pytest
 from django.test import override_settings
 from django.urls import reverse
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 from snuba_sdk.column import Column
 from snuba_sdk.function import Function
 
 from sentry.discover.models import TeamKeyTransaction
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.group import GroupStatus
+from sentry.models.project import Project
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.releaseprojectenvironment import ReleaseStages
 from sentry.models.transaction_threshold import (
@@ -31,6 +32,7 @@ from sentry.testutils.cases import (
 )
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.discover import user_misery_formula
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_not_arm64
 from sentry.types.group import GroupSubStatus
@@ -141,6 +143,39 @@ class OrganizationEventsEndpointTestBase(APITestCase, SnubaTestCase):
         for tag, value in dict(span["tags"]).items():
             span["tags"][tag] = str(value)
         return span
+
+    def _setup_user_misery(
+        self, per_transaction_threshold: bool = False, project: Project | None = None
+    ) -> None:
+        _project = project or self.project
+        # If duration is > 300 * 4 then the user is fruistrated
+        # There's a total of 4 users and three of them reach the frustration threshold
+        events = [
+            ("one", 300),
+            ("two", 300),
+            ("one", 3000),  # Frustrated
+            ("two", 3000),  # Frustrated
+            ("three", 400),
+            ("four", 4000),  # Frustrated
+        ]
+        for idx, event in enumerate(events):
+            data = self.load_data(
+                timestamp=before_now(minutes=(10 + idx)),
+                duration=timedelta(milliseconds=event[1]),
+            )
+            data["event_id"] = f"{idx}" * 32
+            data["transaction"] = f"/count_miserable/horribilis/{idx}"
+            data["user"] = {"email": f"{event[0]}@example.com"}
+            self.store_event(data, project_id=_project.id)
+
+            if per_transaction_threshold and idx % 2:
+                ProjectTransactionThresholdOverride.objects.create(
+                    transaction=f"/count_miserable/horribilis/{idx}",
+                    project=_project,
+                    organization=_project.organization,
+                    threshold=100 * idx,
+                    metric=TransactionMetric.DURATION.value,
+                )
 
 
 @region_silo_test
@@ -1337,13 +1372,13 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         replaced_release = self.create_release(
             version="replaced_release",
             environments=[self.environment],
-            adopted=django_timezone.now(),
-            unadopted=django_timezone.now(),
+            adopted=timezone.now(),
+            unadopted=timezone.now(),
         )
         adopted_release = self.create_release(
             version="adopted_release",
             environments=[self.environment],
-            adopted=django_timezone.now(),
+            adopted=timezone.now(),
         )
         self.create_release(version="not_adopted_release", environments=[self.environment])
 
@@ -1606,30 +1641,14 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["failure_rate()"] == 0.75
 
     def test_count_miserable_alias_field(self):
-        events = [
-            ("one", 300),
-            ("one", 300),
-            ("two", 3000),
-            ("two", 3000),
-            ("three", 300),
-            ("three", 3000),
-        ]
-        for idx, event in enumerate(events):
-            data = self.load_data(
-                timestamp=before_now(minutes=(10 + idx)),
-                duration=timedelta(milliseconds=event[1]),
-            )
-            data["event_id"] = f"{idx}" * 32
-            data["transaction"] = f"/count_miserable/horribilis/{idx}"
-            data["user"] = {"email": f"{event[0]}@example.com"}
-            self.store_event(data, project_id=self.project.id)
+        self._setup_user_misery()
         query = {"field": ["count_miserable(user, 300)"], "query": "event.type:transaction"}
         response = self.do_request(query)
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         data = response.data["data"]
-        assert data[0]["count_miserable(user, 300)"] == 2
+        assert data[0]["count_miserable(user, 300)"] == 3
 
     @mock.patch(
         "sentry.search.events.fields.MAX_QUERYABLE_TRANSACTION_THRESHOLDS",
@@ -1683,27 +1702,10 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         ProjectTransactionThreshold.objects.create(
             project=self.project,
             organization=self.project.organization,
-            threshold=400,
+            threshold=400,  # This is higher than the default threshold
             metric=TransactionMetric.DURATION.value,
         )
-
-        events = [
-            ("one", 400),
-            ("one", 400),
-            ("two", 3000),
-            ("two", 3000),
-            ("three", 300),
-            ("three", 3000),
-        ]
-        for idx, event in enumerate(events):
-            data = self.load_data(
-                timestamp=before_now(minutes=(10 + idx)),
-                duration=timedelta(milliseconds=event[1]),
-            )
-            data["event_id"] = f"{idx}" * 32
-            data["transaction"] = f"/count_miserable/horribilis/{event[0]}"
-            data["user"] = {"email": f"{idx}@example.com"}
-            self.store_event(data, project_id=self.project.id)
+        self._setup_user_misery()
 
         query = {
             "field": [
@@ -1715,28 +1717,33 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             "sort": "count_miserable_user",
         }
 
-        response = self.do_request(
-            query,
-        )
+        def _expected(index: int, count: int) -> dict[str, Any]:
+            return {
+                "transaction": f"/count_miserable/horribilis/{index}",
+                "project_threshold_config": ["duration", 400],
+                "count_miserable(user)": count,
+            }
 
+        response = self.do_request(query)
         assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 3
-        data = response.data["data"]
-        assert data[0]["count_miserable(user)"] == 0
-        assert data[1]["count_miserable(user)"] == 1
-        assert data[2]["count_miserable(user)"] == 2
+        # Sorted by count_miserable_user, however, withing the same count_miserable_user,
+        # the order is not guaranteed
+        for expected in [
+            _expected(0, 0),
+            _expected(1, 0),
+            _expected(2, 1),
+            _expected(3, 1),
+            _expected(4, 0),
+            _expected(5, 1),
+        ]:
+            assert expected in response.data["data"]
 
+        # The condition will exclude transactions with count_miserable(user) == 0
         query["query"] = "event.type:transaction count_miserable(user):>0"
-
-        response = self.do_request(
-            query,
-        )
-
+        response = self.do_request(query)
         assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 2
-        data = response.data["data"]
-        assert abs(data[0]["count_miserable(user)"]) == 1
-        assert abs(data[1]["count_miserable(user)"]) == 2
+        for expected in [_expected(2, 1), _expected(3, 1), _expected(5, 1)]:
+            assert expected in response.data["data"]
 
     def test_user_misery_denominator(self):
         """This is to test against a bug where the denominator of misery(total unique users) was wrong
@@ -1794,7 +1801,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert len(response.data["data"]) == 1
         data = response.data["data"]
         # (3 frustrated + 5.8875) / (6 + 117.75)
-        assert abs(data[0]["user_misery()"] - 0.071818) < 0.0001
+        assert abs(data[0]["user_misery()"] - user_misery_formula(3, 6)) < 0.0001
 
     def test_user_misery_alias_field(self):
         events = [
@@ -1820,7 +1827,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         data = response.data["data"]
-        assert abs(data[0]["user_misery(300)"] - 0.0653) < 0.0001
+        assert abs(data[0]["user_misery(300)"] - user_misery_formula(2, 3)) < 0.0001
 
     def test_apdex_denominator_correct(self):
         """This is to test against a bug where the denominator of apdex(total count) was wrong
@@ -1984,9 +1991,9 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 3
         data = response.data["data"]
-        assert data[0]["user_misery()"] == pytest.approx(0.04916, rel=1e-3)
-        assert data[1]["user_misery()"] == pytest.approx(0.05751, rel=1e-3)
-        assert data[2]["user_misery()"] == pytest.approx(0.06586, rel=1e-3)
+        assert data[0]["user_misery()"] == user_misery_formula(0, 2)
+        assert data[1]["user_misery()"] == user_misery_formula(1, 2)
+        assert data[2]["user_misery()"] == user_misery_formula(2, 2)
 
         query["query"] = "event.type:transaction user_misery():>0.050"
 
@@ -1997,36 +2004,11 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 2
         data = response.data["data"]
-        assert data[0]["user_misery()"] == pytest.approx(0.05751, rel=1e-3)
-        assert data[1]["user_misery()"] == pytest.approx(0.06586, rel=1e-3)
+        assert data[0]["user_misery()"] == user_misery_formula(1, 2)
+        assert data[1]["user_misery()"] == user_misery_formula(2, 2)
 
     def test_user_misery_alias_field_with_transaction_threshold(self):
-        events = [
-            ("one", 300),
-            ("two", 300),
-            ("one", 3000),
-            ("two", 3000),
-            ("three", 400),
-            ("four", 4000),
-        ]
-        for idx, event in enumerate(events):
-            data = self.load_data(
-                timestamp=before_now(minutes=(10 + idx)),
-                duration=timedelta(milliseconds=event[1]),
-            )
-            data["event_id"] = f"{idx}" * 32
-            data["transaction"] = f"/count_miserable/horribilis/{idx}"
-            data["user"] = {"email": f"{event[0]}@example.com"}
-            self.store_event(data, project_id=self.project.id)
-
-            if idx % 2:
-                ProjectTransactionThresholdOverride.objects.create(
-                    transaction=f"/count_miserable/horribilis/{idx}",
-                    project=self.project,
-                    organization=self.project.organization,
-                    threshold=100 * idx,
-                    metric=TransactionMetric.DURATION.value,
-                )
+        self._setup_user_misery(per_transaction_threshold=True)
 
         query = {
             "field": [
@@ -2045,12 +2027,12 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200, response.content
 
         expected = [
-            ("/count_miserable/horribilis/0", ["duration", 300], 0.049578),
-            ("/count_miserable/horribilis/1", ["duration", 100], 0.049578),
-            ("/count_miserable/horribilis/2", ["duration", 300], 0.058),
-            ("/count_miserable/horribilis/3", ["duration", 300], 0.058),
-            ("/count_miserable/horribilis/4", ["duration", 300], 0.049578),
-            ("/count_miserable/horribilis/5", ["duration", 500], 0.058),
+            ("/count_miserable/horribilis/0", ["duration", 300], user_misery_formula(0, 1)),
+            ("/count_miserable/horribilis/1", ["duration", 100], user_misery_formula(0, 1)),
+            ("/count_miserable/horribilis/2", ["duration", 300], user_misery_formula(1, 1)),
+            ("/count_miserable/horribilis/3", ["duration", 300], user_misery_formula(1, 1)),
+            ("/count_miserable/horribilis/4", ["duration", 300], user_misery_formula(0, 1)),
+            ("/count_miserable/horribilis/5", ["duration", 500], user_misery_formula(1, 1)),
         ]
 
         assert len(response.data["data"]) == 6
@@ -2070,9 +2052,9 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 3
         data = response.data["data"]
-        assert data[0]["user_misery()"] == pytest.approx(0.058, rel=1e-3)
-        assert data[1]["user_misery()"] == pytest.approx(0.058, rel=1e-3)
-        assert data[2]["user_misery()"] == pytest.approx(0.058, rel=1e-3)
+        assert data[0]["user_misery()"] == user_misery_formula(1, 1)
+        assert data[1]["user_misery()"] == user_misery_formula(1, 1)
+        assert data[2]["user_misery()"] == user_misery_formula(1, 1)
 
     def test_user_misery_alias_field_with_transaction_threshold_and_project_threshold(self):
         project = self.create_project()
@@ -2084,32 +2066,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             metric=TransactionMetric.DURATION.value,
         )
 
-        events = [
-            ("one", 300),
-            ("two", 300),
-            ("one", 3000),
-            ("two", 3000),
-            ("three", 400),
-            ("four", 4000),
-        ]
-        for idx, event in enumerate(events):
-            data = self.load_data(
-                timestamp=before_now(minutes=(10 + idx)),
-                duration=timedelta(milliseconds=event[1]),
-            )
-            data["event_id"] = f"{idx}" * 32
-            data["transaction"] = f"/count_miserable/horribilis/{idx}"
-            data["user"] = {"email": f"{event[0]}@example.com"}
-            self.store_event(data, project_id=project.id)
-
-            if idx % 2:
-                ProjectTransactionThresholdOverride.objects.create(
-                    transaction=f"/count_miserable/horribilis/{idx}",
-                    project=project,
-                    organization=project.organization,
-                    threshold=100 * idx,
-                    metric=TransactionMetric.DURATION.value,
-                )
+        self._setup_user_misery(per_transaction_threshold=True, project=project)
 
         project2 = self.create_project()
 
@@ -2138,31 +2095,26 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
         assert response.status_code == 200, response.content
 
+        zero_one = user_misery_formula(0, 1)
+        one_one = user_misery_formula(1, 1)
         expected = [
-            (
-                "/count_miserable/horribilis/0",
-                ["duration", 100],
-                0.049578,
-            ),  # Uses project threshold
-            ("/count_miserable/horribilis/1", ["duration", 100], 0.049578),  # Uses txn threshold
-            ("/count_miserable/horribilis/2", ["duration", 100], 0.058),  # Uses project threshold
-            ("/count_miserable/horribilis/3", ["duration", 300], 0.058),  # Uses txn threshold
-            (
-                "/count_miserable/horribilis/4",
-                ["duration", 100],
-                0.049578,
-            ),  # Uses project threshold
-            ("/count_miserable/horribilis/5", ["duration", 500], 0.058),  # Uses txn threshold
-            ("/count_miserable/horribilis/project2", ["duration", 300], 0.058),  # Uses fallback
+            # Uses project threshold
+            ("/count_miserable/horribilis/0", ["duration", 100], zero_one),
+            ("/count_miserable/horribilis/1", ["duration", 100], zero_one),  # Uses txn threshold
+            ("/count_miserable/horribilis/2", ["duration", 100], one_one),  # Uses project threshold
+            ("/count_miserable/horribilis/3", ["duration", 300], one_one),  # Uses txn threshold
+            # Uses project threshold
+            ("/count_miserable/horribilis/4", ["duration", 100], zero_one),
+            ("/count_miserable/horribilis/5", ["duration", 500], one_one),  # Uses txn threshold
+            ("/count_miserable/horribilis/project2", ["duration", 300], one_one),  # Uses fallback
         ]
 
-        assert len(response.data["data"]) == 7
         data = response.data["data"]
         for i, record in enumerate(expected):
             name, threshold_config, misery = record
             assert data[i]["transaction"] == name
             assert data[i]["project_threshold_config"] == threshold_config
-            assert data[i]["user_misery()"] == pytest.approx(misery, rel=1e-3)
+            assert data[i]["user_misery()"] == misery
 
         query["query"] = "event.type:transaction user_misery():>0.050"
 
@@ -3337,7 +3289,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["percentile(transaction.duration, 0.99)"] == 5000
         assert data[0]["apdex(300)"] == 0.0
         assert data[0]["count_miserable(user, 300)"] == 1
-        assert data[0]["user_misery(300)"] == 0.058
+        assert data[0]["user_misery(300)"] == user_misery_formula(1, 1)
         assert data[0]["failure_rate()"] == 0.5
 
         features = {
@@ -3402,10 +3354,10 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["apdex(300)"] == 0.0
         assert data[0]["apdex()"] == 0.0
         assert data[0]["count_miserable(user, 300)"] == 1
-        assert data[0]["user_misery(300)"] == 0.058
+        assert data[0]["user_misery(300)"] == user_misery_formula(1, 1)
         assert data[0]["failure_rate()"] == 0.5
         assert data[0]["project_threshold_config"] == ["duration", 300]
-        assert data[0]["user_misery()"] == 0.058
+        assert data[0]["user_misery()"] == user_misery_formula(1, 1)
         assert data[0]["count_miserable(user)"] == 1
 
         query = {
@@ -3548,7 +3500,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert len(data) == 1
         assert data[0]["apdex(300)"] == 0.0
         assert data[0]["count_miserable(user, 300)"] == 1
-        assert data[0]["user_misery(300)"] == 0.058
+        assert data[0]["user_misery(300)"] == user_misery_formula(1, 1)
         assert data[0]["failure_rate()"] == 0.5
 
         query = {
@@ -4174,7 +4126,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
     @mock.patch("sentry.utils.snuba.quantize_time")
     def test_quantize_dates(self, mock_quantize):
         self.create_project()
-        mock_quantize.return_value = before_now(days=1).replace(tzinfo=timezone.utc)
+        mock_quantize.return_value = before_now(days=1)
 
         # Don't quantize short time periods
         query = {"statsPeriod": "1h", "query": "", "field": ["id", "timestamp"]}
@@ -5946,7 +5898,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
-            before_now(hours=1).replace(tzinfo=timezone.utc),
+            before_now(hours=1),
             user=user_data,
         )
         event, _, group_info = self.store_search_issue(
@@ -5954,7 +5906,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group2"],
             "prod",
-            before_now(hours=1).replace(tzinfo=timezone.utc),
+            before_now(hours=1),
             user=user_data,
         )
         assert group_info is not None
@@ -6028,7 +5980,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
             1,
             ["group1-fingerprint"],
             None,
-            before_now(hours=1).replace(tzinfo=timezone.utc),
+            before_now(hours=1),
             user=user_data,
         )
         assert group_info is not None

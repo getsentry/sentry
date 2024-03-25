@@ -202,7 +202,7 @@ function MonitorForm({
     return rv;
   }
 
-  const selectedProjectId = selection.projects[0];
+  const selectedProjectId = monitor?.project.id ?? selection.projects[0];
   const selectedProject = selectedProjectId
     ? projects.find(p => p.id === selectedProjectId.toString())
     : null;

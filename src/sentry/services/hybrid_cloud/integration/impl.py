@@ -10,7 +10,7 @@ from sentry import analytics
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import AppPlatformEvent
 from sentry.constants import SentryAppInstallationStatus
-from sentry.incidents.models import INCIDENT_STATUS, IncidentStatus
+from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus
 from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.msteams import MsTeamsClient
 from sentry.models.integrations import Integration, OrganizationIntegration
@@ -32,7 +32,6 @@ from sentry.services.hybrid_cloud.integration.serial import (
     serialize_integration_external_project,
     serialize_organization_integration,
 )
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json, metrics
@@ -355,9 +354,9 @@ class DatabaseBackedIntegrationService(IntegrationService):
         sentry_app_id: int,
         action_id: int,
         incident_id: int,
-        organization: RpcOrganizationSummary,
         new_status: int,
         incident_attachment_json: str,
+        organization_id: int,
         metric_value: str | None = None,
         notification_uuid: str | None = None,
     ) -> bool:
@@ -367,7 +366,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
 
         try:
             install = SentryAppInstallation.objects.get(
-                organization_id=organization.id,
+                organization_id=organization_id,
                 sentry_app=sentry_app,
                 status=SentryAppInstallationStatus.INSTALLED,
             )
@@ -377,7 +376,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
                 extra={
                     "action": action_id,
                     "incident": incident_id,
-                    "organization": organization.slug,
+                    "organization_id": organization_id,
                     "sentry_app_id": sentry_app.id,
                 },
                 exc_info=True,
@@ -403,7 +402,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if alert_rule_action_ui_component:
             analytics.record(
                 "alert_rule_ui_component_webhook.sent",
-                organization_id=organization.id,
+                organization_id=organization_id,
                 sentry_app_id=sentry_app.id,
                 event=f"{app_platform_event.resource}.{app_platform_event.action}",
             )

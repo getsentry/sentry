@@ -5,10 +5,8 @@ from collections.abc import Callable, Iterable, Mapping
 from enum import Enum
 from typing import IO, Any
 
-import sentry_sdk
-from django.conf import settings
 from django.db import models
-from django.db.models.signals import post_delete, pre_delete
+from django.db.models.signals import post_delete
 from django.utils import timezone
 from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import SymbolicError
@@ -21,10 +19,8 @@ from sentry.db.models import (
     Model,
     region_silo_only_model,
 )
-from sentry.nodestore.base import NodeStorage
-from sentry.utils import json, metrics
+from sentry.utils import json
 from sentry.utils.hashlib import sha1_text
-from sentry.utils.services import LazyServiceWrapper
 
 # Sentinel values used to represent a null state in the database. This is done since the `NULL` type in the db is
 # always different from `NULL`.
@@ -135,93 +131,7 @@ def delete_file_for_artifact_bundle(instance, **kwargs):
         instance.file.delete()
 
 
-def delete_bundle_from_index(instance, **kwargs):
-    from sentry.debug_files.artifact_bundle_indexing import remove_artifact_bundle_from_indexes
-
-    try:
-        remove_artifact_bundle_from_indexes(instance)
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
-
-
-pre_delete.connect(delete_bundle_from_index, sender=ArtifactBundle)
 post_delete.connect(delete_file_for_artifact_bundle, sender=ArtifactBundle)
-
-indexstore = LazyServiceWrapper(
-    NodeStorage,
-    settings.SENTRY_INDEXSTORE,
-    settings.SENTRY_INDEXSTORE_OPTIONS,
-    metrics_path="indexstore",
-)
-
-
-@region_silo_only_model
-class ArtifactBundleFlatFileIndex(Model):
-    __relocation_scope__ = RelocationScope.Excluded
-
-    project_id = BoundedBigIntegerField(db_index=True)
-    release_name = models.CharField(max_length=250)
-    dist_name = models.CharField(max_length=64, default=NULL_STRING)
-    date_added = models.DateTimeField(default=timezone.now)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_artifactbundleflatfileindex"
-
-        unique_together = (("project_id", "release_name", "dist_name"),)
-
-    def _indexstore_id(self) -> str:
-        return f"bundle_index:{self.project_id}:{self.id}"
-
-    def update_flat_file_index(self, data: str):
-        encoded_data = data.encode()
-
-        metric_name = "debug_id_index" if self.release_name == NULL_STRING else "url_index"
-        metrics.distribution(
-            f"artifact_bundle_flat_file_indexing.{metric_name}.size_in_bytes",
-            value=len(encoded_data),
-            unit="byte",
-        )
-
-        indexstore.set_bytes(self._indexstore_id(), encoded_data)
-        self.update(date_added=timezone.now())
-
-    def load_flat_file_index(self) -> bytes | None:
-        return indexstore.get_bytes(self._indexstore_id())
-
-
-@region_silo_only_model
-class FlatFileIndexState(Model):
-    __relocation_scope__ = RelocationScope.Excluded
-
-    flat_file_index = FlexibleForeignKey("sentry.ArtifactBundleFlatFileIndex")
-    artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
-    indexing_state = models.IntegerField(
-        choices=ArtifactBundleIndexingState.choices(), db_index=True
-    )
-    date_added = models.DateTimeField(default=timezone.now)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_flatfileindexstate"
-
-        unique_together = (("flat_file_index", "artifact_bundle"),)
-
-    @staticmethod
-    def mark_as_indexed(
-        flat_file_index_id: int,
-        artifact_bundle_id: int,
-    ) -> bool:
-        updated_rows = FlatFileIndexState.objects.filter(
-            flat_file_index_id=flat_file_index_id,
-            artifact_bundle_id=artifact_bundle_id,
-            indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
-        ).update(
-            indexing_state=ArtifactBundleIndexingState.WAS_INDEXED.value, date_added=timezone.now()
-        )
-
-        # If we had one row being updated, it means that the cas operation succeeded.
-        return updated_rows == 1
 
 
 @region_silo_only_model
@@ -232,13 +142,6 @@ class ArtifactBundleIndex(Model):
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
     url = models.TextField()
     date_added = models.DateTimeField(default=timezone.now)
-
-    # TODO: legacy fields:
-    # These will eventually be removed in a migration, as they can be joined
-    # via the `{Release,}ArtifactBundle` tables.
-    release_name = models.CharField(max_length=250)
-    dist_name = models.CharField(max_length=64, default=NULL_STRING)
-    date_last_modified = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"

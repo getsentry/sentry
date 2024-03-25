@@ -3,7 +3,7 @@ from __future__ import annotations
 import io
 import tempfile
 from copy import deepcopy
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from functools import cached_property, cmp_to_key
 from pathlib import Path
 from unittest.mock import MagicMock
@@ -14,7 +14,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from django.apps import apps
 from django.db import connections, router
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 from sentry_relay.auth import generate_key_pair
 
 from sentry.backup.crypto import (
@@ -42,7 +42,8 @@ from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
 from sentry.db.models.fields.bounded import BoundedBigAutoField
 from sentry.db.models.paranoia import ParanoidModel
-from sentry.incidents.models import (
+from sentry.incidents.models.alert_rule import AlertRuleMonitorType
+from sentry.incidents.models.incident import (
     IncidentActivity,
     IncidentSnapshot,
     IncidentSubscription,
@@ -50,6 +51,7 @@ from sentry.incidents.models import (
     PendingIncidentSnapshot,
     TimeSeriesSnapshot,
 )
+from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apikey import ApiKey
@@ -347,8 +349,8 @@ class BackupTestCase(TransactionTestCase):
         UserIP.objects.create(
             user=user,
             ip_address="127.0.0.2",
-            first_seen=datetime(2012, 4, 5, 3, 29, 45, tzinfo=timezone.utc),
-            last_seen=datetime(2012, 4, 5, 3, 29, 45, tzinfo=timezone.utc),
+            first_seen=datetime(2012, 4, 5, 3, 29, 45, tzinfo=UTC),
+            last_seen=datetime(2012, 4, 5, 3, 29, 45, tzinfo=UTC),
         )
         Authenticator.objects.create(user=user, type=1)
 
@@ -422,14 +424,14 @@ class BackupTestCase(TransactionTestCase):
         NeglectedRule.objects.create(
             rule=rule,
             organization=org,
-            disable_date=datetime.now(),
-            sent_initial_email_date=datetime.now(),
-            sent_final_email_date=datetime.now(),
+            disable_date=timezone.now(),
+            sent_initial_email_date=timezone.now(),
+            sent_final_email_date=timezone.now(),
         )
         CustomDynamicSamplingRule.update_or_create(
             condition={"op": "equals", "name": "environment", "value": "prod"},
-            start=django_timezone.now(),
-            end=django_timezone.now() + timedelta(hours=1),
+            start=timezone.now(),
+            end=timezone.now() + timedelta(hours=1),
             project_ids=[project.id],
             organization_id=org.id,
             num_samples=100,
@@ -458,6 +460,17 @@ class BackupTestCase(TransactionTestCase):
         )
         trigger = self.create_alert_rule_trigger(alert_rule=alert, excluded_projects=[project])
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
+        activated_alert = self.create_alert_rule(
+            organization=org,
+            projects=[project],
+            monitor_type=AlertRuleMonitorType.ACTIVATED,
+            activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
+        )
+        self.create_alert_rule_activation(
+            alert_rule=activated_alert, project=project, metric_value=100
+        )
+        activated_trigger = self.create_alert_rule_trigger(alert_rule=activated_alert)
+        self.create_alert_rule_trigger_action(alert_rule_trigger=activated_trigger)
 
         # Incident*
         incident = self.create_incident(org, [project])
@@ -469,8 +482,8 @@ class BackupTestCase(TransactionTestCase):
         IncidentSnapshot.objects.create(
             incident=incident,
             event_stats_snapshot=TimeSeriesSnapshot.objects.create(
-                start=datetime.utcnow() - timedelta(hours=24),
-                end=datetime.utcnow(),
+                start=timezone.now() - timedelta(hours=24),
+                end=timezone.now(),
                 values=[[1.0, 2.0, 3.0], [1.5, 2.5, 3.5]],
                 period=1,
             ),
@@ -486,7 +499,7 @@ class BackupTestCase(TransactionTestCase):
 
         # *Snapshot
         PendingIncidentSnapshot.objects.create(
-            incident=incident, target_run_date=datetime.utcnow() + timedelta(hours=4)
+            incident=incident, target_run_date=timezone.now() + timedelta(hours=4)
         )
 
         # Dashboard
@@ -590,7 +603,7 @@ class BackupTestCase(TransactionTestCase):
         ApiGrant.objects.create(
             user=owner,
             application=app.application,
-            expires_at="2022-01-01 11:11",
+            expires_at="2022-01-01 11:11+00:00",
             redirect_uri="https://example.com",
             scope_list=["openid", "profile", "email"],
         )

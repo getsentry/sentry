@@ -26,7 +26,6 @@ from sentry.api.exceptions import (
 from sentry.api.utils import MAX_STATS_PERIOD
 from sentry.auth.access import NoAccess, from_request
 from sentry.auth.authenticators.totp import TotpInterface
-from sentry.auth.staff import is_active_staff
 from sentry.constants import ALL_ACCESS_PROJECTS_SLUG
 from sentry.models.apikey import ApiKey
 from sentry.models.authidentity import AuthIdentity
@@ -233,16 +232,11 @@ class OrganizationAndStaffPermissionTest(PermissionBaseTestCase):
         superuser = self.create_user(is_superuser=True)
         assert self.has_object_perm("GET", self.org, user=superuser, is_superuser=True)
 
-    @mock.patch("sentry.api.permissions.is_active_staff", wraps=is_active_staff)
-    def test_staff(self, mock_is_active_staff):
+    def test_staff(self):
         staff_user = self.create_user(is_staff=True)
-
         assert self.has_object_perm("GET", self.org, user=staff_user, is_staff=True)
-        # ensure we fail the scope check and call is_active_staff
-        assert mock_is_active_staff.call_count == 3
 
-    @mock.patch("sentry.api.permissions.is_active_staff", wraps=is_active_staff)
-    def test_staff_passes_2FA(self, mock_is_active_staff):
+    def test_staff_passes_2FA(self):
         staff_user = self.create_user(is_staff=True)
         request = self.make_request(user=serialize_rpc_user(staff_user), is_staff=True)
         permission = self.permission_cls()
@@ -250,7 +244,6 @@ class OrganizationAndStaffPermissionTest(PermissionBaseTestCase):
         self.org.save()
 
         assert not permission.is_not_2fa_compliant(request=request, organization=self.org)
-        assert mock_is_active_staff.call_count == 1
 
 
 class BaseOrganizationEndpointTest(TestCase):

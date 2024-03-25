@@ -1,7 +1,7 @@
 import re
 import zoneinfo
 from collections.abc import Mapping
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from typing import Any, overload
 
 from dateutil.parser import parse
@@ -11,7 +11,7 @@ from django.utils.timezone import is_aware, make_aware
 from sentry import quotas
 from sentry.constants import MAX_ROLLUP_POINTS
 
-epoch = datetime(1970, 1, 1, tzinfo=timezone.utc)
+epoch = datetime(1970, 1, 1, tzinfo=UTC)
 
 # Factory is an obscure GMT alias
 AVAILABLE_TIMEZONES = frozenset(zoneinfo.available_timezones() - {"Factory"})
@@ -24,22 +24,6 @@ def ensure_aware(value: datetime) -> datetime:
     if is_aware(value):
         return value
     return make_aware(value)
-
-
-def to_timestamp(value: datetime) -> float:
-    """
-    Convert a time zone aware datetime to a POSIX timestamp (with fractional
-    component.)
-    """
-    return (value - epoch).total_seconds()
-
-
-def to_timestamp_from_iso_format(value: str) -> float:
-    """
-    Convert a str representation of datetime in iso format to
-    a POSIX timestamp
-    """
-    return datetime.fromisoformat(value).timestamp()
 
 
 @overload
@@ -65,11 +49,14 @@ def to_datetime(value: float | int | None) -> datetime | None:
     return epoch + timedelta(seconds=value)
 
 
+def date_to_utc_datetime(d: date) -> datetime:
+    """Convert a `date` to an aware `datetime`."""
+    return datetime(d.year, d.month, d.day, tzinfo=UTC)
+
+
 def floor_to_utc_day(value: datetime) -> datetime:
-    """
-    Floors a given datetime to UTC midnight.
-    """
-    return value.astimezone(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    """Floors a given datetime to UTC midnight."""
+    return value.astimezone(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
 
 
 def parse_date(datestr: str, timestr: str) -> datetime | None:
@@ -94,7 +81,7 @@ def parse_timestamp(value: Any) -> datetime | None:
     if isinstance(value, datetime):
         return value
     elif isinstance(value, (int, float)):
-        return datetime.fromtimestamp(value, timezone.utc)
+        return datetime.fromtimestamp(value, UTC)
     value = (value or "").rstrip("Z").encode("ascii", "replace").split(b".", 1)
     if not value:
         return None
@@ -107,7 +94,7 @@ def parse_timestamp(value: Any) -> datetime | None:
             rv = rv.replace(microsecond=int(value[1].ljust(6, b"0")[:6]))
         except ValueError:
             return None
-    return rv.replace(tzinfo=timezone.utc)
+    return rv.replace(tzinfo=UTC)
 
 
 def parse_stats_period(period: str) -> timedelta | None:
@@ -196,7 +183,7 @@ def outside_retention_with_modified_start(
 
     # Need to support timezone-aware and naive datetimes since
     # Snuba API only deals in naive UTC
-    now = datetime.now(timezone.utc) if start.tzinfo else datetime.utcnow()
+    now = datetime.now(UTC) if start.tzinfo else datetime.utcnow()
     start = max(start, now - timedelta(days=retention))
 
     return start > end, start

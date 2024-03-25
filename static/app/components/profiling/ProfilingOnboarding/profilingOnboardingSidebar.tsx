@@ -49,11 +49,6 @@ export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
   );
 
   useEffect(() => {
-    // If we already picked a project, don't do anything
-    if (currentProject) {
-      return;
-    }
-
     // we'll only ever select an unsupportedProject if they do not have a supported project in their organization
     if (supportedProjects.length === 0 && unsupportedProjects.length > 0) {
       if (pageFilters.selection.projects[0] === ALL_ACCESS_PROJECTS) {

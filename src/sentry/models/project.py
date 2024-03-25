@@ -312,8 +312,9 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
     def next_short_id(self, delta: int = 1) -> int:
         from sentry.models.counter import Counter
 
-        with sentry_sdk.start_span(op="project.next_short_id") as span, metrics.timer(
-            "project.next_short_id"
+        with (
+            sentry_sdk.start_span(op="project.next_short_id") as span,
+            metrics.timer("project.next_short_id"),
         ):
             span.set_data("project_id", self.id)
             span.set_data("project_slug", self.slug)
@@ -412,13 +413,13 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         return self.slug
 
     def transfer_to(self, organization):
-        from sentry.incidents.models import AlertRule
+        from sentry.incidents.models.alert_rule import AlertRule
         from sentry.models.actor import ACTOR_TYPES
         from sentry.models.environment import Environment, EnvironmentProject
         from sentry.models.integrations.external_issue import ExternalIssue
         from sentry.models.projectteam import ProjectTeam
-        from sentry.models.release import ReleaseProject
         from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+        from sentry.models.releases.release_project import ReleaseProject
         from sentry.models.rule import Rule
         from sentry.models.scheduledeletion import RegionScheduledDeletion
         from sentry.monitors.models import Monitor
@@ -547,7 +548,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
             return True
 
     def remove_team(self, team):
-        from sentry.incidents.models import AlertRule
+        from sentry.incidents.models.alert_rule import AlertRule
         from sentry.models.projectteam import ProjectTeam
         from sentry.models.rule import Rule
 

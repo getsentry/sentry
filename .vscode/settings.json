@@ -7,45 +7,17 @@
     "**/*.pyc": true,
     "build": true,
     "htmlcov": true,
+    "model-manifest.json": true,
     "node_modules": true,
     "src/sentry/locale": true,
-    "src/sentry/static/sentry/dist/": true,
-    "model-manifest.json": true
+    "src/sentry/static/sentry/dist/": true
   },
   "search.followSymlinks": false,
   "files.trimTrailingWhitespace": true,
   "files.trimFinalNewlines": true,
   "files.insertFinalNewline": true,
 
-  "[javascript]": {
-    "editor.formatOnSave": true,
-    "editor.tabSize": 2,
-    "editor.defaultFormatter": "biomejs.biome",
-    "editor.codeActionsOnSave": {
-      "quickfix.biome": "explicit",
-      "source.fixAll.eslint": "explicit"
-    }
-  },
-
-  "[typescript]": {
-    "editor.formatOnSave": true,
-    "editor.tabSize": 2,
-    "editor.defaultFormatter": "biomejs.biome",
-    "editor.codeActionsOnSave": {
-      "quickfix.biome": "explicit",
-      "source.fixAll.eslint": "explicit"
-    }
-  },
-  // Exclude Specific Files from Auto-Imports
-  "typescript.preferences.autoImportFileExcludePatterns": [
-    "**/config/chartcuterie/*",
-    "**/node_modules/@testing-library/*",
-    "**/node_modules/@tanstack/react-query"
-  ],
-  // Avoid relative imports
-  "typescript.preferences.importModuleSpecifier": "non-relative",
-
-  "[typescriptreact]": {
+  "[javascript][typescript][javascriptreact][typescriptreact]": {
     "editor.formatOnSave": true,
     "editor.tabSize": 2,
     "editor.defaultFormatter": "esbenp.prettier-vscode",
@@ -55,14 +27,24 @@
     }
   },
 
-  "[javascriptreact]": {
+  "[python]": {
+    "editor.insertSpaces": true,
+    "editor.detectIndentation": false,
+    "editor.tabSize": 4,
     "editor.formatOnSave": true,
-    "editor.tabSize": 2,
-    "editor.defaultFormatter": "esbenp.prettier-vscode",
     "editor.codeActionsOnSave": {
-      "quickfix.biome": "explicit",
-      "source.fixAll.eslint": "explicit"
-    }
+      "source.organizeImports": "explicit"
+    },
+    "editor.defaultFormatter": "ms-python.black-formatter"
+  },
+
+  // auto-formatting breaks Django templates
+  // see https://github.com/Microsoft/vscode/issues/44342
+  "[html]": {
+    "editor.insertSpaces": true,
+    "editor.detectIndentation": false,
+    "editor.tabSize": 2,
+    "editor.formatOnSave": false
   },
 
   "[less]": {
@@ -72,20 +54,23 @@
     }
   },
 
-  "[python]": {
-    "editor.formatOnSave": true,
-    "editor.codeActionsOnSave": {
-      "source.organizeImports": "explicit"
-    },
-    "editor.defaultFormatter": "ms-python.black-formatter"
-  },
-
-  "[html]": {
-    "editor.formatOnSave": false
-  },
-
   "[json]": {
+    "editor.insertSpaces": true,
+    "editor.detectIndentation": false,
+    "editor.tabSize": 2,
+    "editor.formatOnSave": true,
     "editor.defaultFormatter": "biomejs.biome",
+    "editor.codeActionsOnSave": {
+      "quickfix.biome": "explicit"
+    }
+  },
+
+  "[yaml]": {
+    "editor.insertSpaces": true,
+    "editor.detectIndentation": false,
+    "editor.tabSize": 2,
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
     "editor.codeActionsOnSave": {
       "quickfix.biome": "explicit"
     }
@@ -97,6 +82,21 @@
     }
   },
 
+  "[dockerfile]": {
+    "editor.insertSpaces": true,
+    "editor.detectIndentation": false,
+    "editor.tabSize": 4,
+    "editor.formatOnSave": true
+  },
+
+  // Exclude Specific Files from Auto-Imports
+  "typescript.preferences.autoImportFileExcludePatterns": [
+    "**/config/chartcuterie/*",
+    "**/node_modules/@testing-library/*",
+    "**/node_modules/@tanstack/react-query"
+  ],
+  // Avoid relative imports
+  "typescript.preferences.importModuleSpecifier": "non-relative",
   "editor.tabSize": 4,
   "python.testing.pytestEnabled": true,
   "python.testing.unittestEnabled": false,

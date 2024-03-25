@@ -1,10 +1,10 @@
 from contextlib import contextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest.mock import Mock, patch
 
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 
 from sentry.auth import staff
 from sentry.auth.staff import (
@@ -23,7 +23,6 @@ from sentry.auth.staff import (
 from sentry.auth.system import SystemToken
 from sentry.middleware.placeholder import placeholder_get_response
 from sentry.middleware.staff import StaffMiddleware
-from sentry.models.user import User
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import control_silo_test
@@ -31,7 +30,7 @@ from sentry.utils.auth import mark_sso_complete
 
 UNSET = object()
 
-BASETIME = datetime(2022, 3, 21, 0, 0, tzinfo=timezone.utc)
+BASETIME = datetime(2022, 3, 21, 0, 0, tzinfo=UTC)
 
 EXPIRE_TIME = timedelta(hours=4, minutes=1)
 
@@ -60,8 +59,9 @@ def override_org_id(new_org_id: int):
 class StaffTestCase(TestCase):
     def setUp(self):
         super().setUp()
-        self.current_datetime = django_timezone.now()
+        self.current_datetime = timezone.now()
         self.default_token = "abcdefghijklmnog"
+        self.staff_user = self.create_user(is_staff=True)
 
     def build_request(
         self,
@@ -74,7 +74,7 @@ class StaffTestCase(TestCase):
         user=None,
     ):
         if user is None:
-            user = self.user
+            user = self.staff_user
         request = self.make_request(user=user)
         if cookie_token is not None:
             request.COOKIES[COOKIE_NAME] = signing.get_cookie_signer(
@@ -96,8 +96,7 @@ class StaffTestCase(TestCase):
         return request
 
     def test_ips(self):
-        user = User(is_staff=True)
-        request = self.make_request(user=user)
+        request = self.make_request(user=self.staff_user)
         request.META["REMOTE_ADDR"] = "10.0.0.1"
 
         # no ips = any host
@@ -114,8 +113,7 @@ class StaffTestCase(TestCase):
         assert staff.is_active is True
 
     def test_sso(self):
-        user = User(is_staff=True)
-        request = self.make_request(user=user)
+        request = self.make_request(user=self.staff_user)
 
         # no ips = any host
         staff = Staff(request)
@@ -180,15 +178,14 @@ class StaffTestCase(TestCase):
         assert staff.is_active is False
 
     def test_login_saves_session(self):
-        user = self.create_user("foo@example.com")
         request = self.make_request()
         staff = Staff(request, allowed_ips=())
-        staff.set_logged_in(user)
+        staff.set_logged_in(self.staff_user)
 
         # request.user wasn't set
         assert not staff.is_active
 
-        request.user = user
+        request.user = self.staff_user
         assert staff.is_active
 
         # See mypy issue: https://github.com/python/mypy/issues/9457
@@ -197,7 +194,7 @@ class StaffTestCase(TestCase):
         assert data["exp"] == (self.current_datetime + MAX_AGE).strftime("%s")
         assert data["idl"] == (self.current_datetime + IDLE_MAX_AGE).strftime("%s")
         assert len(data["tok"]) == 12
-        assert data["uid"] == str(user.id)
+        assert data["uid"] == str(self.staff_user.id)
 
     def test_logout_clears_session(self):
         request = self.build_request()

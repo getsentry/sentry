@@ -1,5 +1,5 @@
 import unittest
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from django.urls import reverse
 
@@ -7,9 +7,10 @@ from sentry.api.serializers.rest_framework.release import ReleaseSerializer
 from sentry.constants import MAX_VERSION_LENGTH
 from sentry.models.activity import Activity
 from sentry.models.files.file import File
-from sentry.models.release import Release, ReleaseProject
+from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releasefile import ReleaseFile
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
@@ -125,7 +126,7 @@ class UpdateReleaseDetailsTest(APITestCase):
                 "version": release.version,
             },
         )
-        response = self.client.put(url, data={"dateReleased": datetime.utcnow().isoformat() + "Z"})
+        response = self.client.put(url, data={"dateReleased": datetime.now(UTC).isoformat()})
 
         assert response.status_code == 200, (response.status_code, response.content)
 
@@ -155,7 +156,7 @@ class UpdateReleaseDetailsTest(APITestCase):
                 "version": release.version,
             },
         )
-        response = self.client.put(url, data={"dateReleased": datetime.utcnow().isoformat() + "Z"})
+        response = self.client.put(url, data={"dateReleased": datetime.now(UTC).isoformat()})
 
         assert response.status_code == 200, (response.status_code, response.content)
 
@@ -286,7 +287,7 @@ class ReleaseSerializerTest(unittest.TestCase):
         result = serializer.validated_data
         assert result["ref"] == self.ref
         assert result["url"] == self.url
-        assert result["dateReleased"] == datetime(1000, 10, 10, 6, 6, tzinfo=timezone.utc)
+        assert result["dateReleased"] == datetime(1000, 10, 10, 6, 6, tzinfo=UTC)
         assert result["commits"] == self.commits
 
     def test_fields_not_required(self):

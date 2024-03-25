@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import FeedbackOnboardingSidebar from 'sentry/components/feedback/feedbackOnboarding/sidebar';
 import Hook from 'sentry/components/hook';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
@@ -42,6 +43,7 @@ import type {Organization} from 'sentry/types';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {hasMetricsSidebarItem} from 'sentry/utils/metrics/features';
 import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
@@ -49,6 +51,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import MetricsOnboardingSidebar from 'sentry/views/ddm/ddmOnboarding/sidebar';
+import {releaseLevelAsBadgeProps as HTTPModuleBadgeProps} from 'sentry/views/performance/http/settings';
 
 import {ProfilingOnboardingSidebar} from '../profiling/ProfilingOnboarding/profilingOnboardingSidebar';
 
@@ -70,8 +73,8 @@ function togglePanel(panel: SidebarPanelKey) {
   SidebarPanelStore.togglePanel(panel);
 }
 
-function hidePanel() {
-  SidebarPanelStore.hidePanel();
+function hidePanel(hash?: string) {
+  SidebarPanelStore.hidePanel(hash);
 }
 
 function useOpenOnboardingSidebar(organization?: Organization) {
@@ -269,6 +272,7 @@ function Sidebar() {
                   to={`/organizations/${organization.slug}/performance/http/`}
                   id="performance-http"
                   icon={<SubitemDot collapsed />}
+                  {...HTTPModuleBadgeProps}
                 />
               </Feature>
               <Feature features="starfish-browser-webvitals" organization={organization}>
@@ -300,7 +304,7 @@ function Sidebar() {
                   to={`/organizations/${organization.slug}/performance/mobile/app-startup`}
                   id="performance-mobile-app-startup"
                   icon={<SubitemDot collapsed />}
-                  isAlpha
+                  isNew
                 />
               </Feature>
               <Feature features="starfish-browser-resource-module-ui">
@@ -309,6 +313,15 @@ function Sidebar() {
                   label={<GuideAnchor target="starfish">{t('Resources')}</GuideAnchor>}
                   to={`/organizations/${organization.slug}/performance/browser/resources`}
                   id="performance-browser-resources"
+                  icon={<SubitemDot collapsed />}
+                />
+              </Feature>
+              <Feature features="performance-trace-explorer">
+                <SidebarItem
+                  {...sidebarItemProps}
+                  label={<GuideAnchor target="traces">{t('Traces')}</GuideAnchor>}
+                  to={`/organizations/${organization.slug}/performance/traces`}
+                  id="performance-trace-explorer"
                   icon={<SubitemDot collapsed />}
                 />
               </Feature>
@@ -431,8 +444,8 @@ function Sidebar() {
     </Feature>
   );
 
-  const ddmPath = `/organizations/${organization?.slug}/ddm/`;
-  const ddm = hasOrganization && (
+  const metricsPath = `/organizations/${organization?.slug}/metrics/`;
+  const metrics = hasOrganization && hasMetricsSidebarItem(organization) && (
     <Feature
       features={['ddm-ui', 'custom-metrics']}
       organization={organization}
@@ -442,10 +455,10 @@ function Sidebar() {
         {...sidebarItemProps}
         icon={<IconGraph />}
         label={t('Metrics')}
-        to={ddmPath}
-        search={location.pathname === normalizeUrl(ddmPath) ? location.search : ''}
-        id="ddm"
-        isAlpha
+        to={metricsPath}
+        search={location.pathname === normalizeUrl(metricsPath) ? location.search : ''}
+        id="metrics"
+        isBeta
       />
     </Feature>
   );
@@ -529,7 +542,7 @@ function Sidebar() {
                 {performance}
                 {starfish}
                 {profiling}
-                {ddm}
+                {metrics}
                 {replays}
                 {feedback}
                 {monitors}
@@ -557,6 +570,12 @@ function Sidebar() {
           <PerformanceOnboardingSidebar
             currentPanel={activePanel}
             onShowPanel={() => togglePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING)}
+            hidePanel={() => hidePanel('performance-sidequest')}
+            {...sidebarItemProps}
+          />
+          <FeedbackOnboardingSidebar
+            currentPanel={activePanel}
+            onShowPanel={() => togglePanel(SidebarPanelKey.FEEDBACK_ONBOARDING)}
             hidePanel={hidePanel}
             {...sidebarItemProps}
           />

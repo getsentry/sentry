@@ -3,6 +3,7 @@ from typing import Any
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.app import env
+from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import SentryAppStatus
 from sentry.models.apiapplication import ApiApplication
@@ -85,7 +86,11 @@ class SentryAppSerializer(Serializer):
         user_org_ids = attrs["user_org_ids"]
 
         if owner:
-            if (env.request and is_active_superuser(env.request)) or owner.id in user_org_ids:
+            # TODO(schew2381): Check if superuser needs this for Sentry Apps in the UI.
+            elevated_user = env.request and (
+                is_active_superuser(env.request) or is_active_staff(env.request)
+            )
+            if elevated_user or owner.id in user_org_ids:
                 client_secret = (
                     obj.application.client_secret if obj.show_auth_info(access) else MASKED_VALUE
                 )

@@ -21,6 +21,7 @@ from sentry.integrations.utils.commit_context import (
 from sentry.locks import locks
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
+from sentry.models.group import Group
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.project import Project
@@ -280,8 +281,10 @@ def process_commit_context(
                     extra={"organization_id": project.organization_id},
                 )
                 repo = Repository.objects.filter(id=commit.repository_id)
+                group = Group.objects.get_from_cache(id=group_id)
                 if (
-                    installation is not None
+                    group.level is not logging.INFO  # Don't comment on info level issues
+                    and installation is not None
                     and repo.exists()
                     and repo.get().provider == "integrations:github"
                 ):

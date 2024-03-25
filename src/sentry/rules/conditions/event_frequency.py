@@ -63,7 +63,7 @@ class EventFrequencyForm(forms.Form):
     )
     value = forms.IntegerField(widget=forms.TextInput())
     comparisonType = forms.ChoiceField(
-        choices=list(sorted(comparison_types.items(), key=lambda item: item[1])),
+        choices=tuple(comparison_types.items()),
         required=False,
     )
     comparisonInterval = forms.ChoiceField(
@@ -75,7 +75,10 @@ class EventFrequencyForm(forms.Form):
     )
 
     def clean(self) -> dict[str, Any] | None:
-        cleaned_data: dict[str, Any] = super().clean()
+        cleaned_data = super().clean()
+        if cleaned_data is None:
+            return None
+
         # Don't store an empty string here if the value isn't passed
         if cleaned_data.get("comparisonInterval") == "":
             del cleaned_data["comparisonInterval"]
@@ -188,7 +191,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         end = timezone.now()
         # For conditions with interval >= 1 hour we don't need to worry about read your writes
         # consistency. Disable it so that we can scale to more nodes.
-        option_override_cm = contextlib.nullcontext()
+        option_override_cm: contextlib.AbstractContextManager[object] = contextlib.nullcontext()
         if duration >= timedelta(hours=1):
             option_override_cm = options_override({"consistent": False})
         with option_override_cm:

@@ -4,13 +4,15 @@ import logging
 
 import msgpack
 from arroyo.backends.kafka.consumer import KafkaPayload
-from arroyo.types import Message
+from arroyo.dlq import InvalidMessage
+from arroyo.types import BrokerValue, Message
 
 from sentry.models.project import Project
 from sentry.utils import metrics
 
 from .processors import (
     IngestMessage,
+    Retriable,
     process_attachment_chunk,
     process_event,
     process_individual_attachment,
@@ -21,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 def decode_and_process_chunks(
-    raw_message: Message[KafkaPayload], consumer_type: str
+    raw_message: Message[KafkaPayload], consumer_type: str, reprocess_only_stuck_events: bool
 ) -> IngestMessage | None:
     """
     The first pass for the `attachments` topic:
@@ -37,16 +39,29 @@ def decode_and_process_chunks(
         tags={"consumer": consumer_type},
         unit="byte",
     )
-    message: IngestMessage = msgpack.unpackb(raw_payload, use_list=False)
 
-    if message["type"] == "attachment_chunk":
-        process_attachment_chunk(message)
-        return None
+    try:
+        message: IngestMessage = msgpack.unpackb(raw_payload, use_list=False)
 
-    return message
+        if message["type"] == "attachment_chunk":
+            if not reprocess_only_stuck_events:
+                process_attachment_chunk(message)
+            return None
+
+        return message
+    except Exception as exc:
+        # If the retriable exception was raised, we should not DLQ
+        if isinstance(exc, Retriable):
+            raise
+
+        raw_value = raw_message.value
+        assert isinstance(raw_value, BrokerValue)
+        raise InvalidMessage(raw_value.partition, raw_value.offset) from exc
 
 
-def process_attachments_and_events(raw_message: Message[IngestMessage]) -> None:
+def process_attachments_and_events(
+    raw_message: Message[IngestMessage], reprocess_only_stuck_events: bool
+) -> None:
     """
     The second pass for the `attachments` topic processes *individual* `attachments`
     which are not needed for event processing, and the `event` itself,
@@ -71,9 +86,10 @@ def process_attachments_and_events(raw_message: Message[IngestMessage]) -> None:
         return None
 
     if message_type == "attachment":
-        process_individual_attachment(message, project)
+        if not reprocess_only_stuck_events:
+            process_individual_attachment(message, project)
     elif message_type == "event":
-        process_event(message, project)
+        process_event(message, project, reprocess_only_stuck_events)
     elif message_type == "user_report":
         process_userreport(message, project)
     else:

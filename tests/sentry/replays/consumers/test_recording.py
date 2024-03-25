@@ -14,8 +14,11 @@ from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import Replay
 
 from sentry.models.organizationonboardingtask import OnboardingTask, OnboardingTaskStatus
 from sentry.replays.consumers.recording import ProcessReplayRecordingStrategyFactory
-from sentry.replays.consumers.recording_buffered import RecordingBufferedStrategyFactory
-from sentry.replays.lib.storage import RecordingSegmentStorageMeta, StorageBlob
+from sentry.replays.consumers.recording_buffered import (
+    RecordingBufferedStrategyFactory,
+    cast_payload_from_bytes,
+)
+from sentry.replays.lib.storage import _make_recording_filename, _make_video_filename, storage_kv
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.testutils.cases import TransactionTestCase
 
@@ -63,13 +66,24 @@ class RecordingTestCase(TransactionTestCase):
             assert bytes == b'[{"hello":"world"}]'
 
     def get_recording_data(self, segment_id):
-        recording_segment = RecordingSegmentStorageMeta(
-            project_id=self.project.id,
-            replay_id=self.replay_id,
-            segment_id=segment_id,
-            retention_days=30,
+        return storage_kv.get(
+            _make_recording_filename(
+                project_id=self.project.id,
+                replay_id=self.replay_id,
+                segment_id=segment_id,
+                retention_days=30,
+            )
         )
-        return StorageBlob().get(recording_segment)
+
+    def get_video_data(self, segment_id):
+        return storage_kv.get(
+            _make_video_filename(
+                project_id=self.project.id,
+                replay_id=self.replay_id,
+                segment_id=segment_id,
+                retention_days=30,
+            )
+        )
 
     def processing_factory(self):
         return ProcessReplayRecordingStrategyFactory(
@@ -107,6 +121,8 @@ class RecordingTestCase(TransactionTestCase):
         message: bytes = b'[{"hello":"world"}]',
         segment_id: int = 0,
         compressed: bool = False,
+        replay_event: bytes | None = None,
+        replay_video: bytes | None = None,
     ) -> list[ReplayRecording]:
         message = zlib.compress(message) if compressed else message
         return [
@@ -118,7 +134,11 @@ class RecordingTestCase(TransactionTestCase):
                 "project_id": self.project.id,
                 "received": int(time.time()),
                 "retention_days": 30,
-                "payload": f'{{"segment_id":{segment_id}}}\n'.encode() + message,
+                "payload": cast_payload_from_bytes(
+                    f'{{"segment_id":{segment_id}}}\n'.encode() + message
+                ),
+                "replay_event": replay_event,  # type: ignore
+                "replay_video": replay_video,  # type: ignore
             }
         ]
 
@@ -128,6 +148,38 @@ class RecordingTestCase(TransactionTestCase):
         segment_id = 0
         self.submit(self.nonchunked_messages(segment_id=segment_id, compressed=True))
         self.assert_replay_recording_segment(segment_id, compressed=True)
+
+        self.project.refresh_from_db()
+        assert self.project.flags.has_replays
+
+        mock_onboarding_task.assert_called_with(
+            organization_id=self.project.organization_id,
+            task=OnboardingTask.SESSION_REPLAY,
+            status=OnboardingTaskStatus.COMPLETE,
+            date_completed=ANY,
+        )
+
+        mock_record.assert_called_with(
+            "first_replay.sent",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            platform=self.project.platform,
+            user_id=self.organization.default_owner_id,
+        )
+
+    @patch("sentry.models.OrganizationOnboardingTask.objects.record")
+    @patch("sentry.analytics.record")
+    def test_event_with_replay_video(self, mock_record, mock_onboarding_task):
+        segment_id = 0
+        self.submit(
+            self.nonchunked_messages(
+                segment_id=segment_id,
+                compressed=True,
+                replay_video=b"hello, world!",
+            )
+        )
+        self.assert_replay_recording_segment(segment_id, compressed=True)
+        assert self.get_video_data(segment_id) == b"hello, world!"
 
         self.project.refresh_from_db()
         assert self.project.flags.has_replays

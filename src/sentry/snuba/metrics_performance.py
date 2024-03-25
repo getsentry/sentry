@@ -17,7 +17,7 @@ from sentry.search.events.builder import (
     TopMetricsQueryBuilder,
 )
 from sentry.search.events.fields import get_function_alias
-from sentry.search.events.types import EventsResponse, QueryBuilderConfig
+from sentry.search.events.types import EventsResponse, ParamsType, QueryBuilderConfig
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import MetricSpecType
@@ -90,7 +90,7 @@ def query(
 def bulk_timeseries_query(
     selected_columns: Sequence[str],
     queries: list[str],
-    params: dict[str, str],
+    params: ParamsType,
     rollup: int,
     referrer: str,
     zerofill_results: bool = True,
@@ -191,7 +191,7 @@ def bulk_timeseries_query(
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    params: dict[str, Any],
+    params: ParamsType,
     rollup: int,
     referrer: str,
     zerofill_results: bool = True,
@@ -211,7 +211,7 @@ def timeseries_query(
     equations, columns = categorize_columns(selected_columns)
     metrics_compatible = not equations
 
-    def run_metrics_query(inner_params: dict[str, Any]):
+    def run_metrics_query(inner_params: ParamsType):
         with sentry_sdk.start_span(op="mep", description="TimeseriesMetricQueryBuilder"):
             metrics_query = TimeseriesMetricQueryBuilder(
                 inner_params,

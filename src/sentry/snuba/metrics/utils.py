@@ -90,6 +90,7 @@ MetricOperationType = Literal[
     "on_demand_eps",
     "on_demand_failure_count",
     "on_demand_failure_rate",
+    "on_demand_count_unique",
     "on_demand_count_web_vitals",
     "on_demand_user_misery",
 ]
@@ -198,10 +199,19 @@ USE_CASE_ID_TO_ENTITY_KEYS = {
         EntityKey.GenericMetricsSets,
         EntityKey.GenericMetricsDistributions,
     },
+    UseCaseID.PROFILES: {
+        EntityKey.GenericMetricsCounters,
+        EntityKey.GenericMetricsSets,
+        EntityKey.GenericMetricsDistributions,
+    },
     UseCaseID.CUSTOM: {
         EntityKey.GenericMetricsCounters,
         EntityKey.GenericMetricsSets,
         EntityKey.GenericMetricsDistributions,
+        EntityKey.GenericMetricsGauges,
+    },
+    UseCaseID.METRIC_STATS: {
+        EntityKey.GenericMetricsCounters,
         EntityKey.GenericMetricsGauges,
     },
 }
@@ -364,6 +374,7 @@ DERIVED_OPERATIONS = (
     "on_demand_eps",
     "on_demand_failure_count",
     "on_demand_failure_rate",
+    "on_demand_count_unique",
     "on_demand_count_web_vitals",
     "on_demand_user_misery",
 )

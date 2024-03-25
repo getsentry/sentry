@@ -29,6 +29,7 @@ def run_procs(
                 subprocess.Popen(
                     cmd,
                     stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
                     env={
                         **constants.user_environ,
                         **proc.base_env,
@@ -43,13 +44,10 @@ def run_procs(
 
     all_good = True
     for name, final_cmd, p in procs:
-        p.wait()
+        out, _ = p.communicate()
         if p.returncode != 0:
             all_good = False
-            if p.stdout is None:
-                out = ""
-            else:
-                out = p.stdout.read().decode()
+            out_str = "" if out is None else out.decode()
             print(
                 f"""
 ❌ {name}
@@ -58,7 +56,7 @@ failed command (code p.returncode):
     {proc.quote(final_cmd)}
 
 Output:
-{out}
+{out_str}
 
 """
             )
@@ -72,25 +70,10 @@ def main(context: dict[str, str]) -> int:
     repo = context["repo"]
     reporoot = context["reporoot"]
 
-    venv_dir, python_version, requirements, editable_paths, bins = venv.get(reporoot, "sentry")
+    venv_dir, python_version, requirements, editable_paths, bins = venv.get(reporoot, repo)
     url, sha256 = config.get_python(reporoot, python_version)
-    print(f"ensuring venv at {venv_dir}...")
+    print(f"ensuring {repo} venv at {venv_dir}...")
     venv.ensure(venv_dir, python_version, url, sha256)
-
-    if not run_procs(
-        repo,
-        reporoot,
-        venv_dir,
-        (
-            (
-                "git and precommit",
-                # this can't be done in paralell with python dependencies
-                # as multiple pips cannot act on the same venv
-                ("make", "setup-git"),
-            ),
-        ),
-    ):
-        return 1
 
     # This is for engineers with existing dev environments transitioning over.
     # Bootstrap will set devenv-managed volta up but they won't be running
@@ -133,6 +116,21 @@ def main(context: dict[str, str]) -> int:
     ):
         return 1
 
+    if not run_procs(
+        repo,
+        reporoot,
+        venv_dir,
+        (
+            (
+                "git and precommit",
+                # this can't be done in paralell with python dependencies
+                # as multiple pips cannot act on the same venv
+                ("make", "setup-git"),
+            ),
+        ),
+    ):
+        return 1
+
     if not os.path.exists(f"{constants.home}/.sentry/config.yml") or not os.path.exists(
         f"{constants.home}/.sentry/sentry.conf.py"
     ):
@@ -141,7 +139,7 @@ def main(context: dict[str, str]) -> int:
     # TODO: check healthchecks for redis and postgres to short circuit this
     proc.run(
         (
-            f"{venv_dir}/bin/sentry",
+            f"{venv_dir}/bin/{repo}",
             "devservices",
             "up",
             "redis",
@@ -157,7 +155,7 @@ def main(context: dict[str, str]) -> int:
         (
             (
                 "python migrations",
-                (f"{venv_dir}/bin/sentry", "upgrade", "--noinput"),
+                (f"{venv_dir}/bin/{repo}", "upgrade", "--noinput"),
             ),
         ),
     ):

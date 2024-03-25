@@ -27,30 +27,26 @@ export function SamplesTables({transactionName}) {
       return (
         <EventSplitContainer>
           <ErrorBoundary mini>
-            {primaryRelease && (
-              <div>
-                <EventSamples
-                  cursorName={MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE}
-                  sortKey={MobileSortKeys.RELEASE_1_EVENT_SAMPLE_TABLE}
-                  release={primaryRelease}
-                  transaction={transactionName}
-                  footerAlignedPagination
-                />
-              </div>
-            )}
+            <div>
+              <EventSamples
+                cursorName={MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE}
+                sortKey={MobileSortKeys.RELEASE_1_EVENT_SAMPLE_TABLE}
+                release={primaryRelease}
+                transaction={transactionName}
+                footerAlignedPagination
+              />
+            </div>
           </ErrorBoundary>
           <ErrorBoundary mini>
-            {secondaryRelease && (
-              <div>
-                <EventSamples
-                  cursorName={MobileCursors.RELEASE_2_EVENT_SAMPLE_TABLE}
-                  sortKey={MobileSortKeys.RELEASE_2_EVENT_SAMPLE_TABLE}
-                  release={secondaryRelease}
-                  transaction={transactionName}
-                  footerAlignedPagination
-                />
-              </div>
-            )}
+            <div>
+              <EventSamples
+                cursorName={MobileCursors.RELEASE_2_EVENT_SAMPLE_TABLE}
+                sortKey={MobileSortKeys.RELEASE_2_EVENT_SAMPLE_TABLE}
+                release={secondaryRelease}
+                transaction={transactionName}
+                footerAlignedPagination
+              />
+            </div>
           </ErrorBoundary>
         </EventSplitContainer>
       );

@@ -19,6 +19,7 @@ import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pa
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {
   PRIMARY_RELEASE_ALIAS,
   ReleaseComparisonSelector,
@@ -90,6 +91,11 @@ function ScreenSummary() {
   };
 
   const crumbs: Crumb[] = [
+    {
+      label: t('Performance'),
+      to: normalizeUrl(`/organizations/${organization.slug}/performance/`),
+      preservePageFilters: true,
+    },
     {
       to: startupModule,
       label: t('App Starts'),

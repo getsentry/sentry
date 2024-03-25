@@ -30,6 +30,8 @@ from snuba_sdk import (
 from sentry import features
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
+from sentry.models.dashboard_widget import DashboardWidgetQueryOnDemand
+from sentry.models.organization import Organization
 from sentry.search.events import constants, fields
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.builder.utils import (
@@ -57,8 +59,9 @@ from sentry.snuba.metrics.extraction import (
     QUERY_HASH_KEY,
     MetricSpecType,
     OnDemandMetricSpec,
+    OnDemandMetricSpecVersioning,
     fetch_on_demand_metric_spec,
-    should_use_on_demand_metrics,
+    should_use_on_demand_metrics_for_querying,
 )
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
 from sentry.snuba.metrics.query import (
@@ -68,7 +71,6 @@ from sentry.snuba.metrics.query import (
     MetricsQuery,
 )
 from sentry.snuba.metrics.utils import get_num_intervals
-from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import DATASETS, bulk_snql_query, raw_snql_query
 
 
@@ -153,13 +155,37 @@ class MetricsQueryBuilder(QueryBuilder):
 
         return super().are_columns_resolved()
 
+    def _is_on_demand_extraction_disabled(self, query_hash: str) -> bool:
+        spec_version = OnDemandMetricSpecVersioning.get_query_spec_version(self.organization_id)
+        on_demand_entries = DashboardWidgetQueryOnDemand.objects.filter(
+            spec_hashes__contains=[query_hash],
+            spec_version=spec_version.version,
+            dashboard_widget_query__widget__dashboard__organization_id=self.organization_id,
+        )
+        if any(not entry.extraction_enabled() for entry in on_demand_entries):
+            with sentry_sdk.push_scope() as scope:
+                scope.set_extra("entries", on_demand_entries)
+                scope.set_extra("hash", query_hash)
+                sentry_sdk.capture_message(
+                    "extraction disabled for one of the matching on-demand rows"
+                )
+            return True
+
+        return False
+
     def _get_on_demand_metric_spec(self, field: str) -> OnDemandMetricSpec | None:
         if not field:
             return None
 
         groupby_columns = self._get_group_bys()
 
-        if not should_use_on_demand_metrics(self.dataset, field, self.query, groupby_columns):
+        if not should_use_on_demand_metrics_for_querying(
+            Organization.objects.get_from_cache(id=self.organization_id),
+            dataset=self.dataset,
+            aggregate=field,
+            query=self.query,
+            groupbys=groupby_columns,
+        ):
             return None
 
         try:
@@ -172,7 +198,7 @@ class MetricsQueryBuilder(QueryBuilder):
                     "Must include on demand metrics type when querying on demand"
                 )
 
-            return fetch_on_demand_metric_spec(
+            metric_spec = fetch_on_demand_metric_spec(
                 self.organization_id,
                 field=field,
                 query=self.query,
@@ -180,6 +206,11 @@ class MetricsQueryBuilder(QueryBuilder):
                 groupbys=groupby_columns,
                 spec_type=self.builder_config.on_demand_metrics_type,
             )
+
+            if self._is_on_demand_extraction_disabled(metric_spec.query_hash):
+                return None
+
+            return metric_spec
         except Exception as e:
             sentry_sdk.capture_exception(e)
             return None
@@ -666,7 +697,7 @@ class MetricsQueryBuilder(QueryBuilder):
         # timestamp{,.to_{hour,day}} need a datetime string
         # last_seen needs an integer
         if isinstance(value, datetime) and name not in constants.TIMESTAMP_FIELDS:
-            value = int(to_timestamp(value)) * 1000
+            value = int(value.timestamp()) * 1000
 
         if name in constants.TIMESTAMP_FIELDS:
             if (
@@ -1022,18 +1053,23 @@ class MetricsQueryBuilder(QueryBuilder):
         groupbys = self.groupby
         if not groupbys and self.use_on_demand:
             # Need this otherwise top_events returns only 1 item
-            groupbys = [Column(col) for col in self._get_group_bys()]
-        groupby_aliases = [
-            (
-                groupby.alias
-                if isinstance(groupby, (AliasedExpression, CurriedFunction))
-                else groupby.name
-            )
-            for groupby in groupbys
-            if not (
-                isinstance(groupby, CurriedFunction) and groupby.function == "team_key_transaction"
-            )
-        ]
+            groupbys = [self.resolve_column(col) for col in self._get_group_bys()]
+            # Later the query is made by passing these columns to metrics layer so we can just have the aliases be the
+            # raw groupbys
+            groupby_aliases = self._get_group_bys()
+        else:
+            groupby_aliases = [
+                (
+                    groupby.alias
+                    if isinstance(groupby, (AliasedExpression, CurriedFunction))
+                    else groupby.name
+                )
+                for groupby in groupbys
+                if not (
+                    isinstance(groupby, CurriedFunction)
+                    and groupby.function == "team_key_transaction"
+                )
+            ]
         # The typing for these are weak (all using Any) since the results from snuba can contain an assortment of types
         value_map: dict[str, Any] = defaultdict(dict)
         groupby_values: list[Any] = []
@@ -1404,7 +1440,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         query: str | None = None,
         selected_columns: list[str] | None = None,
         limit: int | None = 10000,
-        groupby: Column | None = None,
+        groupby: Column | list[Column] | None = None,
         config: QueryBuilderConfig | None = None,
     ):
         self.interval = interval
@@ -1426,7 +1462,10 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
 
         # If additional groupby is provided it will be used first before time
         if groupby is not None:
-            self.groupby.insert(0, groupby)
+            if isinstance(groupby, list):
+                self.groupby = groupby + self.groupby
+            else:
+                self.groupby.insert(0, groupby)
 
     def resolve_granularity(self) -> Granularity:
         """Find the largest granularity that is smaller than the interval"""

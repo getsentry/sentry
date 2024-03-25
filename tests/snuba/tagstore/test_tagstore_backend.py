@@ -1234,6 +1234,66 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             ),
         ]
 
+    # mock default value only for "limit" argument of get_group_tag_value_iter()
+    # it is set to 1 to avoid creating 1000+ tags for the test
+    @mock.patch.object(
+        SnubaTagStorage.get_group_tag_value_iter,
+        "__defaults__",
+        (
+            (),
+            "-first_seen",
+            1,
+            0,
+            None,
+        ),
+    )
+    def test_get_group_tag_value_paginator_sort_by_last_seen(self):
+        # the tag with "quux" value has the lowest "first_seen"
+        self.store_event(
+            data={
+                "event_id": "5" * 32,
+                "message": "message 1",
+                "platform": "python",
+                "environment": "test",
+                "fingerprint": ["group-1"],
+                "timestamp": iso_format(self.now - timedelta(seconds=5)),
+                "tags": {
+                    "foo": "quux",
+                },
+                "user": {"id": "user1"},
+                "exception": exception,
+            },
+            project_id=self.proj1.id,
+        )
+
+        # the tag with "quux" value has the highest "last_seen"
+        self.store_event(
+            data={
+                "event_id": "6" * 32,
+                "message": "message 1",
+                "platform": "python",
+                "environment": "test",
+                "fingerprint": ["group-1"],
+                "timestamp": iso_format(self.now),
+                "tags": {
+                    "foo": "quux",
+                },
+                "user": {"id": "user1"},
+                "exception": exception,
+            },
+            project_id=self.proj1.id,
+        )
+
+        top_key = self.ts.get_group_tag_value_paginator(
+            self.proj1group1,
+            [],
+            "foo",
+            tenant_ids={"referrer": "r", "organization_id": 1234},
+        ).get_result(1)[0]
+
+        # top key should be "quux" as it's the most recent than "bar"
+        assert top_key.value == "quux"
+
     def test_get_group_seen_values_for_environments(self):
         assert self.ts.get_group_seen_values_for_environments(
             [self.proj1.id],

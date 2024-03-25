@@ -1,15 +1,15 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import MutableMapping, Sequence
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import sentry_sdk
 from django.utils import timezone
 
 from sentry import features
 from sentry.models.environment import Environment
+from sentry.search.events.types import ParamsType
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.entity_subscription import (
     BaseEntitySubscription,
@@ -43,6 +43,8 @@ def create_subscription_in_snuba(query_subscription_id, **kwargs):
     """
     Task to create a corresponding subscription in Snuba from a `QuerySubscription` in
     Sentry. We store the snuba subscription id locally on success.
+
+    TODO: utilize query_extra from QuerySubscription in request
     """
     try:
         subscription = QuerySubscription.objects.get(id=query_subscription_id)
@@ -195,9 +197,9 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
 def build_query_builder(
     entity_subscription: BaseEntitySubscription,
     query: str,
-    project_ids: Sequence[int],
+    project_ids: list[int],
     environment: Environment | None,
-    params: MutableMapping[str, Any] | None = None,
+    params: ParamsType | None = None,
 ) -> QueryBuilder:
     return entity_subscription.build_query_builder(query, project_ids, environment, params)
 
@@ -215,11 +217,12 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
             snuba_query,
             subscription.project.organization_id,
         )
+        # TODO: determine whether concatenating query_extra is proper
         snql_query = build_query_builder(
-            entity_subscription,
-            snuba_query.query,
-            [subscription.project_id],
-            snuba_query.environment,
+            entity_subscription=entity_subscription,
+            query=f'{snuba_query.query}{f" and {subscription.query_extra}" if subscription.query_extra else ""}',
+            project_ids=[subscription.project_id],
+            environment=snuba_query.environment,
             params={
                 "organization_id": subscription.project.organization_id,
                 "project_id": [subscription.project_id],

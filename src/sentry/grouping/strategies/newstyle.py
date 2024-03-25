@@ -645,7 +645,12 @@ def single_exception(
 
             raw = interface.value
             if raw is not None:
-                normalized = normalize_message_for_grouping(raw)
+                favors_other_component = stacktrace_component.contributes or (
+                    ns_error_component is not None and ns_error_component.contributes
+                )
+                normalized = normalize_message_for_grouping(
+                    raw, event, share_analytics=(not favors_other_component)
+                )
                 hint = "stripped event-specific values" if raw != normalized else None
                 if normalized:
                     value_component.update(values=[normalized], hint=hint)

@@ -89,7 +89,7 @@ describe('Issues Similar View', function () {
 
     await waitFor(() => expect(mock).toHaveBeenCalled());
 
-    expect(screen.getByText('Show 3 issues below threshold')).toBeInTheDocument();
+    expect(await screen.findByText('Show 3 issues below threshold')).toBeInTheDocument();
   });
 
   it('can merge and redirect to new parent', async function () {
@@ -184,7 +184,7 @@ describe('Issues Similar View', function () {
     await waitFor(() => expect(mock).toHaveBeenCalled());
 
     expect(
-      screen.getByText("There don't seem to be any similar issues.")
+      await screen.findByText("There don't seem to be any similar issues.")
     ).toBeInTheDocument();
     expect(
       screen.queryByText(
@@ -211,8 +211,8 @@ describe('Issues Similar Embeddings View', function () {
   ]);
 
   const similarEmbeddingsScores = [
-    {exception: 0.9987, message: 0.3748, shouldBeGrouped: 'Yes'},
-    {exception: 0.9985, message: 0.3738, shouldBeGrouped: 'Yes'},
+    {exception: 0.01, message: 0.3748, shouldBeGrouped: 'Yes'},
+    {exception: 0.005, message: 0.3738, shouldBeGrouped: 'Yes'},
     {exception: 0.7384, message: 0.3743, shouldBeGrouped: 'No'},
     {exception: 0.3849, message: 0.4738, shouldBeGrouped: 'No'},
   ];
@@ -228,7 +228,7 @@ describe('Issues Similar Embeddings View', function () {
 
   beforeEach(function () {
     mock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/group-id/similar-issues-embeddings/?k=5&threshold=0.99',
+      url: '/organizations/org-slug/issues/group-id/similar-issues-embeddings/?k=10&threshold=0.01',
       body: mockData.simlarEmbeddings,
     });
   });
@@ -266,8 +266,8 @@ describe('Issues Similar Embeddings View', function () {
 
     await waitFor(() => expect(mock).toHaveBeenCalled());
 
+    expect(await screen.findByText('Would Group')).toBeInTheDocument();
     expect(screen.queryByText('Show 3 issues below threshold')).not.toBeInTheDocument();
-    expect(screen.queryByText('Would Group')).toBeInTheDocument();
   });
 
   it('can merge and redirect to new parent', async function () {
@@ -368,7 +368,7 @@ describe('Issues Similar Embeddings View', function () {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
     mock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/group-id/similar-issues-embeddings/?k=5&threshold=0.99',
+      url: '/organizations/org-slug/issues/group-id/similar-issues-embeddings/?k=10&threshold=0.01',
       body: [],
     });
 
@@ -391,7 +391,7 @@ describe('Issues Similar Embeddings View', function () {
     await waitFor(() => expect(mock).toHaveBeenCalled());
 
     expect(
-      screen.getByText(
+      await screen.findByText(
         "There don't seem to be any similar issues. This can occur when the issue has no stacktrace or in-app frames."
       )
     ).toBeInTheDocument();

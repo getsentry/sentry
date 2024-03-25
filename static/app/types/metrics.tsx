@@ -62,10 +62,18 @@ export interface MetricsQueryApiResponse {
   }[][];
   end: string;
   intervals: string[];
-  meta: [
-    {name: string; type: string},
-    {group_bys: string[]; limit: number | null; order: string | null},
-  ][];
+  meta: (
+    | {name: string; type: string}
+    // The last entry in meta has a different shape
+    | {
+        group_bys: string[];
+        limit: number | null;
+        order: string | null;
+        scaling_factor?: number | null;
+        unit?: string | null;
+        unit_family?: 'duration' | 'information' | null;
+      }
+  )[][];
   start: string;
 }
 
@@ -92,6 +100,7 @@ export type MetricMeta = {
   // name is returned by the API but should not be used, use parseMRI(mri).name instead
   // name: string;
   operations: MetricsOperation[];
+  projectIds: number[];
   type: MetricType;
   unit: string;
 };

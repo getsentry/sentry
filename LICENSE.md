@@ -1,12 +1,12 @@
-# Functional Source License, Version 1.0, Apache 2.0 Change License
+# Functional Source License, Version 1.1, Apache 2.0 Future License
 
 ## Abbreviation
 
-FSL-1.0-Apache-2.0
+FSL-1.1-Apache-2.0
 
 ## Notice
 
-Copyright 2008-2023 Functional Software, Inc. dba Sentry
+Copyright 2008-2024 Functional Software, Inc. dba Sentry
 
 ## Terms and Conditions
 
@@ -30,18 +30,15 @@ and redistribute the Software for any Permitted Purpose identified below.
 ### Permitted Purpose
 
 A Permitted Purpose is any purpose other than a Competing Use. A Competing Use
-means use of the Software in or for a commercial product or service that
-competes with the Software or any other product or service we offer using the
-Software as of the date we make the Software available.
+means making the Software available to others in a commercial product or
+service that:
 
-Competing Uses specifically include using the Software:
+1. substitutes for the Software;
 
-1. as a substitute for any of our products or services;
+2. substitutes for any other product or service we offer using the Software
+   that exists as of the date we make the Software available; or
 
-2. in a way that exposes the APIs of the Software; and
-
-3. in a product or service that offers the same or substantially similar
-   functionality to the Software.
+3. offers the same or substantially similar functionality as the Software.
 
 Permitted Purposes specifically include using the Software:
 
@@ -51,9 +48,8 @@ Permitted Purposes specifically include using the Software:
 
 3. for non-commercial research; and
 
-4. in connection with software development services or managed services that
-   you provide to a licensee using the Software in accordance with these Terms
-   and Conditions.
+4. in connection with professional services that you provide to a licensee
+   using the Software in accordance with these Terms and Conditions.
 
 ### Patents
 
@@ -88,12 +84,13 @@ Except for displaying the License Details and identifying us as the origin of
 the Software, you have no right under these Terms and Conditions to use our
 trademarks, trade names, service marks or product names.
 
-## Change License
+## Grant of Future License
 
-On the second anniversary of the date we make the Software available, the
-Software will become available under the Apache 2.0 license. On that date, the
-Terms and Conditions above automatically terminate and the following terms
-become effective:
+We hereby irrevocably grant you an additional license to use the Software under
+the Apache License, Version 2.0 that is effective on the second anniversary of
+the date we make the Software available. On or after that date, you may use the
+Software under the Apache License, Version 2.0, in which case the following
+will apply:
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License.

@@ -11,11 +11,10 @@ from django.http.response import HttpResponseBase
 from django.urls import ResolverMatch, resolve
 from rest_framework import status
 
-from sentry import options
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.models.integrations import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
+from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
@@ -92,7 +91,7 @@ class BaseRequestParser(abc.ABC):
             tags={"destination_region": region.name},
             sample_rate=1.0,
         ):
-            region_client = RegionSiloClient(region)
+            region_client = RegionSiloClient(region, retry=True)
             return region_client.proxy_request(incoming_request=self.request)
 
     def get_responses_from_region_silos(
@@ -145,24 +144,14 @@ class BaseRequestParser(abc.ABC):
         if len(regions) < 1:
             return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
-        # TODO(hybridcloud) Rename/remove this once webhookpayloads are stable.
         shard_identifier = shard_identifier_override or self.webhook_identifier.value
-        rollout_rate = options.get("hybridcloud.webhookpayload.rollout")
-        if ((shard_identifier % 100000) / 100000) < rollout_rate:
-            for region in regions:
-                WebhookPayload.create_from_request(
-                    region=region.name,
-                    provider=self.provider,
-                    identifier=shard_identifier,
-                    request=self.request,
-                )
-        else:
-            for outbox in ControlOutbox.for_webhook_update(
-                shard_identifier=shard_identifier,
-                region_names=[region.name for region in regions],
+        for region in regions:
+            WebhookPayload.create_from_request(
+                region=region.name,
+                provider=self.provider,
+                identifier=shard_identifier,
                 request=self.request,
-            ):
-                outbox.save()
+            )
 
         return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
@@ -177,23 +166,14 @@ class BaseRequestParser(abc.ABC):
             return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
         identifier = integration.id
-        rollout_rate = options.get("hybridcloud.webhookpayload.rollout")
-        if ((identifier % 100000) / 100000) < rollout_rate:
-            for region in regions:
-                WebhookPayload.create_from_request(
-                    region=region.name,
-                    provider=self.provider,
-                    identifier=identifier,
-                    request=self.request,
-                    integration_id=identifier,
-                )
-        else:
-            for outbox in ControlOutbox.for_webhook_update(
-                shard_identifier=integration.id,
+        for region in regions:
+            WebhookPayload.create_from_request(
+                region=region.name,
+                provider=self.provider,
+                identifier=identifier,
                 request=self.request,
-                region_names=[region.name for region in regions],
-            ):
-                outbox.save()
+                integration_id=identifier,
+            )
         return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
     def get_response_from_first_region(self):
