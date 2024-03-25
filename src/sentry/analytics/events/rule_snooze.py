@@ -15,7 +15,7 @@ class RuleSnoozeAction(analytics.Event):
 
 class RuleSnoozed(RuleSnoozeAction):
     type = "rule.snoozed"
-    attributes = RuleSnoozeAction.attributes + (analytics.Attribute("until", required=False),)  # type: ignore
+    attributes = RuleSnoozeAction.attributes + (analytics.Attribute("until", required=False),)  # type: ignore[assignment]
 
 
 class RuleUnSnoozed(RuleSnoozeAction):
