@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from datetime import timedelta
+from typing import Any
 from urllib.parse import urlencode, urlparse, urlunparse
 
 from django.urls import reverse
@@ -86,7 +87,7 @@ def detect_broken_monitor_envs():
             continue
 
         # Map user email to a dictionary of monitors and their earliest incident start date amongst its broken environments
-        user_broken_envs = defaultdict(
+        user_broken_envs: dict[str, dict[str, Any]] = defaultdict(
             lambda: defaultdict(
                 lambda: {"environment_names": [], "earliest_start": django_timezone.now()}
             )
