@@ -233,7 +233,7 @@ class ControlSiloOrganizationEndpoint(Endpoint):
     A base class for endpoints that use an organization scoping but lives in the control silo
     """
 
-    permission_classes = (OrganizationPermission,)
+    permission_classes: tuple[type[BasePermission], ...] = (OrganizationPermission,)
 
     def convert_args(
         self, request: Request, organization_slug: str | None = None, *args: Any, **kwargs: Any

@@ -5,7 +5,7 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace';
-import {Tooltip} from 'sentry/components/tooltip';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconChevron, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -164,6 +164,8 @@ export function SpanProfileDetails({
     return null;
   }
 
+  const percentage = formatPercentage(nodes[index].count / totalWeight);
+
   return (
     <Fragment>
       <SpanDetails>
@@ -172,15 +174,23 @@ export function SpanProfileDetails({
         </SpanDetailsItem>
         <SpanDetailsItem>
           <SectionSubtext>
-            <Tooltip title={t('%s out of %s samples', nodes[index].count, totalWeight)}>
-              {tct('Showing stacks [index] of [total] ([percentage])', {
-                index: index + 1,
-                total: maxNodes,
-                percentage: formatPercentage(nodes[index].count / totalWeight),
-              })}
-            </Tooltip>
+            {tct('Showing stacks [index] of [total] ([percentage])', {
+              index: index + 1,
+              total: maxNodes,
+              percentage,
+            })}
           </SectionSubtext>
         </SpanDetailsItem>
+        <QuestionTooltip
+          position="top"
+          size="xs"
+          title={t(
+            '%s out of %s (%s) of the call stacks collected during this span',
+            nodes[index].count,
+            totalWeight,
+            percentage
+          )}
+        />
         <SpanDetailsItem>
           <ButtonBar merged>
             <Button

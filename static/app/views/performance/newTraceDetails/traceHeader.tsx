@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -26,10 +27,54 @@ import {MetaData} from '../transactionDetails/styles';
 import {isTraceNode} from './guards';
 import type {TraceTree} from './traceTree';
 
+function TraceHeaderEmptyTrace() {
+  return (
+    <TraceHeaderContainer>
+      <TraceHeaderRow textAlign="left">
+        <MetaData
+          headingText={t('User')}
+          tooltipText=""
+          bodyText={'\u2014'}
+          subtext={null}
+        />
+        <MetaData
+          headingText={t('Browser')}
+          tooltipText=""
+          bodyText={'\u2014'}
+          subtext={null}
+        />
+      </TraceHeaderRow>
+      <TraceHeaderRow textAlign="right">
+        <GuideAnchor target="trace_view_guide_breakdown">
+          <MetaData
+            headingText={t('Events')}
+            tooltipText=""
+            bodyText={'\u2014'}
+            subtext={null}
+          />
+        </GuideAnchor>
+        <MetaData
+          headingText={t('Issues')}
+          tooltipText=""
+          bodyText={'\u2014'}
+          subtext={null}
+        />
+        <MetaData
+          headingText={t('Total Duration')}
+          tooltipText=""
+          bodyText={'\u2014'}
+          subtext={null}
+        />
+      </TraceHeaderRow>
+    </TraceHeaderContainer>
+  );
+}
+
 type TraceHeaderProps = {
   metaResults: UseApiQueryResult<TraceMeta | null, any>;
   organization: Organization;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
+  traceID: string | undefined;
   traces: TraceSplitResults<TraceFullDetailed> | null;
   tree: TraceTree;
 };
@@ -40,7 +85,12 @@ export default function TraceHeader({
   traces,
   organization,
   tree,
+  traceID,
 }: TraceHeaderProps) {
+  if (traces?.transactions.length === 0 && traces.orphan_errors.length === 0) {
+    return <TraceHeaderEmptyTrace />;
+  }
+
   const traceNode = tree.root.children[0];
 
   if (!(traceNode && isTraceNode(traceNode))) {
@@ -53,20 +103,13 @@ export default function TraceHeader({
   const errorsAndIssuesCount = errors + performanceIssues;
 
   const replay_id = rootEventResults?.data?.contexts.replay?.replay_id;
-
-  const isEmptyTrace =
-    traces?.transactions &&
-    traces?.transactions.length === 0 &&
-    traces?.orphan_errors &&
-    traces.orphan_errors.length === 0;
-
   const showLoadingIndicator =
     (rootEventResults.isLoading && rootEventResults.fetchStatus !== 'idle') ||
     metaResults.isLoading;
 
   return (
     <TraceHeaderContainer>
-      <TraceHeaderRow>
+      <TraceHeaderRow textAlign="left">
         <MetaData
           headingText={t('User')}
           tooltipText=""
@@ -95,6 +138,28 @@ export default function TraceHeader({
           }
           subtext={null}
         />
+        <MetaData
+          headingText={t('Trace')}
+          tooltipText=""
+          bodyText={
+            showLoadingIndicator ? (
+              <LoadingIndicator size={20} mini />
+            ) : traceID ? (
+              <Fragment>
+                {getShortEventId(traceID)}
+                <CopyToClipboardButton
+                  borderless
+                  size="zero"
+                  iconSize="xs"
+                  text={traceID}
+                />
+              </Fragment>
+            ) : (
+              '\u2014'
+            )
+          }
+          subtext={null}
+        />
         {replay_id && (
           <MetaData
             headingText={t('Replay')}
@@ -115,7 +180,7 @@ export default function TraceHeader({
           />
         )}
       </TraceHeaderRow>
-      <TraceHeaderRow>
+      <TraceHeaderRow textAlign="right">
         <GuideAnchor target="trace_view_guide_breakdown">
           <MetaData
             headingText={t('Events')}
@@ -169,9 +234,7 @@ export default function TraceHeader({
           headingText={t('Total Duration')}
           tooltipText=""
           bodyText={
-            isEmptyTrace ? (
-              getDuration(0, 2, true)
-            ) : metaResults.isLoading ? (
+            metaResults.isLoading ? (
               <LoadingIndicator size={20} mini />
             ) : traceNode.space?.[1] ? (
               getDuration(traceNode.space[1] / 1000, 2, true)
@@ -195,8 +258,9 @@ const TraceHeaderContainer = styled(FlexBox)`
   justify-content: space-between;
 `;
 
-const TraceHeaderRow = styled(FlexBox)`
+const TraceHeaderRow = styled(FlexBox)<{textAlign: 'left' | 'right'}>`
   gap: ${space(2)};
+  text-align: ${p => p.textAlign};
 `;
 
 const ReplayLinkBody = styled(FlexBox)`

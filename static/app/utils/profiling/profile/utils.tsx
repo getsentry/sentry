@@ -167,7 +167,7 @@ export function wrapWithSpan<T>(parentSpan: Span | undefined, fn: () => T, optio
     sentrySpan.setStatus('internal_error');
     throw error;
   } finally {
-    sentrySpan.finish();
+    sentrySpan.end();
   }
 }
 

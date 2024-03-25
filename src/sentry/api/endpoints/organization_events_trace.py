@@ -430,7 +430,7 @@ def query_trace_data(
     params: Mapping[str, str],
     limit: int,
     event_id: str | None,
-    get_measurements: bool,
+    use_spans: bool,
 ) -> tuple[Sequence[SnubaTransaction], Sequence[SnubaError]]:
     transaction_columns = [
         "id",
@@ -456,7 +456,7 @@ def query_trace_data(
         # Target is the event_id the frontend plans to render, we try to sort it to the top so it loads even if its not
         # within the query limit, needs to be the first orderby cause it takes precedence over finding the root
         transaction_orderby.insert(0, "-target")
-    if get_measurements:
+    if use_spans:
         transaction_columns.extend(
             [
                 "measurements.key",
@@ -528,7 +528,7 @@ def query_trace_data(
         result["issue.ids"] = occurrence_issue_ids.get(result["id"], {})
         result["occurrence_id"] = occurrence_ids.get(result["id"])
         result["trace.parent_transaction"] = None
-        if get_measurements:
+        if use_spans:
             result["measurements"] = {
                 key: {
                     "value": value,
@@ -608,7 +608,7 @@ def augment_transactions_with_spans(
 
         if ts_params["max"] and ts_params["min"]:
             sentry_sdk.set_measurement(
-                "trace_view.trace_duration", ts_params["max"] - ts_params["min"]
+                "trace_view.trace_duration", (ts_params["max"] - ts_params["min"]).total_seconds()
             )
             sentry_sdk.set_tag("trace_view.missing_timestamp_constraints", False)
         else:
@@ -821,8 +821,6 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
         detailed: bool = request.GET.get("detailed", "0") == "1"
         # Temporary url params until we finish migrating the frontend
         use_spans: bool = request.GET.get("useSpans", "0") == "1"
-        # Temporary until we can test getMeasurements in prod a bit to make sure the performance impact is reasonable
-        get_measurements: bool = request.GET.get("getMeasurements", "0") == "1"
         update_params_with_timestamp(request, params)
 
         sentry_sdk.set_tag("trace_view.using_spans", str(use_spans))
@@ -843,7 +841,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
         with handle_query_errors():
             if use_spans:
                 transactions, errors = query_trace_data(
-                    trace_id, params, limit, event_id, get_measurements
+                    trace_id, params, limit, event_id, use_spans
                 )
                 transactions = augment_transactions_with_spans(
                     transactions, errors, trace_id, params
