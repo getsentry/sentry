@@ -323,6 +323,14 @@ def is_process_disabled(project_id: int, event_id: str, platform: str) -> bool:
     return random.random() < rollout_rate
 
 
+@sentry_sdk.tracing.trace
+def normalize_event(data: Any) -> Any:
+    normalizer = StoreNormalizer(
+        remove_other=False, is_renormalize=True, **DEFAULT_STORE_NORMALIZER_ARGS
+    )
+    return normalizer.normalize_event(dict(data))
+
+
 def do_process_event(
     cache_key: str,
     start_time: int | None,
@@ -464,10 +472,7 @@ def do_process_event(
         # - persist e.g. incredibly large stacktraces from minidumps
         # - store event timestamps that are older than our retention window
         #   (also happening with minidumps)
-        normalizer = StoreNormalizer(
-            remove_other=False, is_renormalize=True, **DEFAULT_STORE_NORMALIZER_ARGS
-        )
-        data = normalizer.normalize_event(dict(data))
+        data = normalize_event(data)
 
         issues = data.get("processing_issues")
 
