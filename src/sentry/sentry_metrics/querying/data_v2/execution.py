@@ -12,6 +12,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.constants import SNUBA_QUERY_LIMIT
 from sentry.sentry_metrics.querying.data_v2.preparation.base import IntermediateQuery
+from sentry.sentry_metrics.querying.data_v2.utils import adjust_time_bounds_with_interval
 from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
     MetricsQueryExecutionError,
@@ -25,7 +26,6 @@ from sentry.sentry_metrics.querying.visitors import (
 )
 from sentry.sentry_metrics.visibility import get_metrics_blocking_state
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.metrics import to_intervals
 from sentry.snuba.metrics_layer.query import bulk_run_query
 from sentry.utils import metrics
 from sentry.utils.snuba import SnubaError
@@ -293,8 +293,8 @@ class ScheduledQuery:
         """
         Aligns the date range of the query to the outermost bounds of the interval time range considering the interval.
 
-        For example, if we were to query from 9:30 to 11:30 with 1 hour of interval, the new aligned date range would
-        be 9:00 to 12:00. This is done so that we can use higher granularities at the storage later to satisfy the
+        For example, if we were to query from 09:30 to 11:30 with 1 hour of interval, the new aligned date range would
+        be 09:00 to 12:00. This is done so that we can use higher granularities at the storage later to satisfy the
         query since now we can use 3 buckets of 1 hour but if we were to keep the original interval, we were forced to
         query all the minutes between 9:30 and 11:30 since the biggest granularity < hour is minute.
 
@@ -304,16 +304,15 @@ class ScheduledQuery:
         # We use as a reference the interval supplied via the initial version of the query.
         interval = metrics_query.rollup.interval
         if interval:
-            modified_start, modified_end, intervals_number = to_intervals(
+            modified_start, modified_end, intervals_number = adjust_time_bounds_with_interval(
                 metrics_query.start,
                 metrics_query.end,
                 interval,
             )
-            if modified_start and modified_end:
-                return (
-                    metrics_query.set_start(modified_start).set_end(modified_end),
-                    intervals_number,
-                )
+            return (
+                metrics_query.set_start(modified_start).set_end(modified_end),
+                intervals_number,
+            )
 
         return metrics_query, None
 
