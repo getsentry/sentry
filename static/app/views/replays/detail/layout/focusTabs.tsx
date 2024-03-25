@@ -30,7 +30,7 @@ function getReplayTabs({
     [TabKey.CONSOLE]: t('Console'),
     [TabKey.NETWORK]: t('Network'),
     [TabKey.ERRORS]: t('Errors'),
-    [TabKey.TRACE]: !hasTraceTable || isVideoReplay ? null : t('Trace'),
+    [TabKey.TRACE]: hasTraceTable || isVideoReplay ? null : t('Trace'),
     [TabKey.PERF]: null,
     [TabKey.A11Y]: isVideoReplay ? null : (
       <Fragment>
