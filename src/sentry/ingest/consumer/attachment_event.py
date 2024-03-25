@@ -4,24 +4,24 @@ import logging
 
 import msgpack
 from arroyo.backends.kafka.consumer import KafkaPayload
-from arroyo.dlq import InvalidMessage
-from arroyo.types import BrokerValue, Message
+from arroyo.types import Message
 
 from sentry.models.project import Project
 from sentry.utils import metrics
 
 from .processors import (
     IngestMessage,
-    Retriable,
     process_attachment_chunk,
     process_event,
     process_individual_attachment,
     process_userreport,
 )
+from .utils import dlq_invalid_messages
 
 logger = logging.getLogger(__name__)
 
 
+@dlq_invalid_messages
 def decode_and_process_chunks(
     raw_message: Message[KafkaPayload], consumer_type: str, reprocess_only_stuck_events: bool
 ) -> IngestMessage | None:
@@ -40,25 +40,17 @@ def decode_and_process_chunks(
         unit="byte",
     )
 
-    try:
-        message: IngestMessage = msgpack.unpackb(raw_payload, use_list=False)
+    message: IngestMessage = msgpack.unpackb(raw_payload, use_list=False)
 
-        if message["type"] == "attachment_chunk":
-            if not reprocess_only_stuck_events:
-                process_attachment_chunk(message)
-            return None
+    if message["type"] == "attachment_chunk":
+        if not reprocess_only_stuck_events:
+            process_attachment_chunk(message)
+        return None
 
-        return message
-    except Exception as exc:
-        # If the retriable exception was raised, we should not DLQ
-        if isinstance(exc, Retriable):
-            raise
-
-        raw_value = raw_message.value
-        assert isinstance(raw_value, BrokerValue)
-        raise InvalidMessage(raw_value.partition, raw_value.offset) from exc
+    return message
 
 
+@dlq_invalid_messages
 def process_attachments_and_events(
     raw_message: Message[IngestMessage], reprocess_only_stuck_events: bool
 ) -> None:
