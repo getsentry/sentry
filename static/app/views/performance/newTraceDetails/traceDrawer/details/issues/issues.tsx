@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import * as qs from 'query-string';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import Count from 'sentry/components/count';
@@ -20,7 +21,6 @@ import type {Group, Organization} from 'sentry/types';
 import type {TraceErrorOrIssue} from 'sentry/utils/performance/quickTrace/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import type {
@@ -158,14 +158,13 @@ function getSearchParamFromNode(node: TraceTreeNode<TraceTree.NodeValue>) {
 
 function IssueListHeader({node}: {node: TraceTreeNode<TraceTree.NodeValue>}) {
   const {errors, performance_issues} = node;
-  const location = useLocation();
   const organization = useOrganization();
   const params = useParams<{traceSlug?: string}>();
 
   const traceSlug = params.traceSlug?.trim() ?? '';
 
   const dateSelection = useMemo(() => {
-    const normalizedParams = normalizeDateTimeParams(location.query, {
+    const normalizedParams = normalizeDateTimeParams(qs.parse(window.location.search), {
       allowAbsolutePageDatetime: true,
     });
     const start = decodeScalar(normalizedParams.start);
@@ -173,7 +172,7 @@ function IssueListHeader({node}: {node: TraceTreeNode<TraceTree.NodeValue>}) {
     const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
 
     return {start, end, statsPeriod};
-  }, [location.query]);
+  }, []);
 
   return (
     <StyledPanelHeader disablePadding>
