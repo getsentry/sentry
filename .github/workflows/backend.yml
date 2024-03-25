@@ -197,7 +197,7 @@ jobs:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       - uses: getsentry/action-setup-venv@f0daafa9688e48f939cace0378a46f2d422bd81f # v2.0.0
         with:
-          python-version: 3.11.6
+          python-version: 3.12.1
           cache-dependency-path: requirements-dev-frozen.txt
           install-cmd: python3 -m tools.hack_pip && pip install -q --constraint requirements-dev-frozen.txt pip-tools
       - name: check requirements
@@ -280,7 +280,7 @@ jobs:
 
       - uses: getsentry/action-setup-venv@f0daafa9688e48f939cace0378a46f2d422bd81f # v2.0.0
         with:
-          python-version: 3.11.6
+          python-version: 3.12.1
           cache-dependency-path: requirements-dev-frozen.txt
           install-cmd: python3 -m tools.hack_pip && pip install -r requirements-dev-frozen.txt
 

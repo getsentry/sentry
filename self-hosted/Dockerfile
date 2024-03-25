@@ -1,4 +1,4 @@
-FROM python:3.11.6-slim-bullseye
+FROM python:3.12.1-slim-bullseye
 
 LABEL maintainer="oss@sentry.io"
 LABEL org.opencontainers.image.title="Sentry"

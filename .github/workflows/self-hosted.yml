@@ -28,7 +28,7 @@ jobs:
 
       - uses: getsentry/action-setup-venv@f0daafa9688e48f939cace0378a46f2d422bd81f # v2.0.0
         with:
-          python-version: 3.11.6
+          python-version: 3.12.1
           cache-dependency-path: requirements-dev-frozen.txt
           install-cmd: python3 -m tools.hack_pip && pip install pip setuptools wheel -c requirements-dev-frozen.txt
 
@@ -56,7 +56,7 @@ jobs:
         run: yarn install --frozen-lockfile --production
 
       - run: |
-          SETUPTOOLS_USE_DISTUTILS=stdlib python setup.py bdist_wheel --build-number 0
+          python setup.py bdist_wheel --build-number 0
           cp requirements-frozen.txt dist/
 
       - run: docker login --username '${{ github.actor }}' --password-stdin ghcr.io <<< "$GHCR_TOKEN"
