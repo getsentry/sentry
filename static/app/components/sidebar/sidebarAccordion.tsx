@@ -229,7 +229,7 @@ const FloatingSidebar = styled('div')<{
     }
   }
 
-  ${p => !p.horizontal && `box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);`}
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
 `;
 
 const SidebarAccordionWrapper = styled('div')`
