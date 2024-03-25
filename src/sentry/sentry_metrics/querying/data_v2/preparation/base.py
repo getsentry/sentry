@@ -11,6 +11,14 @@ from sentry.sentry_metrics.querying.units import MeasurementUnit, UnitFamily
 class IntermediateQuery:
     """
     Represents an intermediate query that can be run through a series of immutable transformations.
+
+    Attributes:
+        metrics_query: The query that needs to be run.
+        order: The order of the groups that are returned.
+        limit: The maximum number of groups to return.
+        unit_family: The UnitFamily of the query.
+        unit: The unit of the query.
+        scaling_factor: The scaling factor that was applied on the query to normalize it to unit.
     """
 
     metrics_query: MetricsQuery
