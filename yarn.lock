@@ -8918,10 +8918,10 @@ mobx-react@~7.6.0:
   dependencies:
     mobx-react-lite "^3.4.0"
 
-mobx@^6.8.0:
-  version "6.8.0"
-  resolved "https://registry.yarnpkg.com/mobx/-/mobx-6.8.0.tgz#59051755fdb5c8a9f3f2e0a9b6abaf86bab7f843"
-  integrity sha512-+o/DrHa4zykFMSKfS8Z+CPSEg5LW9tSNGTuN8o6MF1GKxlfkSHSeJn5UtgxvPkGgaouplnrLXCF+duAsmm6FHQ==
+mobx@^6.12.1:
+  version "6.12.1"
+  resolved "https://registry.yarnpkg.com/mobx/-/mobx-6.12.1.tgz#78a32cfe6e1a2339426e284f8c5d90b0a5396fc5"
+  integrity sha512-HN5/fmWCnePVI4u3Y487x3G0LIQ+qnQjowylhVxXPvBmbwottKm8R7GrsYAqljzekZUj+LoBcAUp3l8/3EPCGQ==
 
 mockdate@3.0.5:
   version "3.0.5"
