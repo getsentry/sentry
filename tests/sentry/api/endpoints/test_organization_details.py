@@ -421,8 +421,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "defaultRole": "owner",
             "require2FA": True,
             "allowJoinRequests": False,
-            "aggregatedDataConsent": False,
-            "genAIConsent": False,
+            "aggregatedDataConsent": True,
+            "genAIConsent": True,
         }
 
         # needed to set require2FA
@@ -484,10 +484,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["githubPRBot"]) in log.data["githubPRBot"]
         assert "to {}".format(data["githubOpenPRBot"]) in log.data["githubOpenPRBot"]
         assert "to {}".format(data["githubNudgeInvite"]) in log.data["githubNudgeInvite"]
-        assert (
-            "to {}".format(not data["aggregatedDataConsent"]) in log.data["aggregatedDataConsent"]
-        )
-        assert "to {}".format(not data["genAIConsent"]) in log.data["genAIConsent"]
+        assert "to {}".format(data["aggregatedDataConsent"]) in log.data["aggregatedDataConsent"]
+        assert "to {}".format(data["genAIConsent"]) in log.data["genAIConsent"]
 
     @responses.activate
     @patch(
