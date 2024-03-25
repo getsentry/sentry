@@ -26,7 +26,7 @@ from sentry.api.utils import get_date_range_from_params, handle_query_errors
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.sentry_metrics.querying.data_v2 import (
-    MetricsAPIQueryTransformer,
+    MetricsAPIQueryResultsTransformer,
     MetricsQueriesPlan,
     run_metrics_queries_plan,
 )
@@ -455,7 +455,7 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
                 environments=self.get_environments(request, organization),
                 referrer=Referrer.API_ORGANIZATION_METRICS_QUERY.value,
                 query_type=self._get_query_type_from_request(request),
-            ).apply_transformer(MetricsAPIQueryTransformer())
+            ).apply_transformer(MetricsAPIQueryResultsTransformer())
         except InvalidMetricsQueryError as e:
             return Response(status=400, data={"detail": str(e)})
         except LatestReleaseNotFoundError as e:

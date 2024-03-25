@@ -279,7 +279,7 @@ class UsedGroupBysVisitor(QueryExpressionVisitor[set[str]]):
         return string_group_bys
 
 
-class UnitsNormalizationV2Visitor(QueryExpressionVisitor[tuple[UnitMetadata, QueryExpression]]):
+class UnitsNormalizationVisitor(QueryExpressionVisitor[tuple[UnitMetadata, QueryExpression]]):
     """
     Visitor that recursively transforms the `QueryExpression` components to have the same unit.
     """
