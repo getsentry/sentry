@@ -1754,7 +1754,7 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
               key={i}
               className="TraceBar"
               style={{
-                left: `${left * 1000}%`,
+                left: `${left * 100}%`,
                 width: `${width * 100}%`,
                 backgroundColor: props.color,
               }}
