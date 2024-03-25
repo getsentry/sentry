@@ -398,7 +398,7 @@ export function formatAbbreviatedNumber(
   const absNumber = Math.abs(value);
   const abbreviations = ['k', 'm', 'b'];
   const index = Math.floor(Math.log10(absNumber) / 3);
-  if (index < 0) return value.toString(); // Less than 1000, no abbreviation
+  if (index < 0) return formatNumberWithDynamicDecimalPoints(value); // Less than 1000, no abbreviation
   if (index >= abbreviations.length) return `${Math.floor(value / 1000000000)}b`; // Too big to abbreviate
   const suffix = abbreviations[Math.min(index - 1, abbreviations.length)] ?? '';
   const scaledNumber = value / Math.pow(10, index * 3);

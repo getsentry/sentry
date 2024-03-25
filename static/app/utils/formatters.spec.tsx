@@ -188,6 +188,13 @@ describe('parseClockToSeconds', function () {
 });
 
 describe('formatAbbreviatedNumber()', function () {
+  it('should format numbers smaller than 1', function () {
+    expect(formatAbbreviatedNumber(0.1)).toBe('0.1');
+    expect(formatAbbreviatedNumber(0.01)).toBe('0.01');
+    expect(formatAbbreviatedNumber(0.123)).toBe('0.12');
+    expect(formatAbbreviatedNumber(0.99999)).toBe('1');
+  });
+
   it('should abbreviate numbers', function () {
     expect(formatAbbreviatedNumber(0)).toBe('0');
     expect(formatAbbreviatedNumber(100)).toBe('100');
