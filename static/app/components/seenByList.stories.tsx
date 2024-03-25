@@ -54,7 +54,7 @@ export default storyBook(SeenByList, story => {
     );
   });
 
-  story('Shows users except yourself', () => {
+  story('Always shows users except yourself', () => {
     const user = useUser();
     const {members, fetching} = useLoadedMembers();
 
