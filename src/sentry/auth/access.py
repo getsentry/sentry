@@ -927,11 +927,13 @@ def from_request_org_and_scopes(
         )
 
         superuser_scopes = get_superuser_scopes(auth_state, request.user)
+        if scopes:
+            superuser_scopes = superuser_scopes.union(set(scopes))
 
         return ApiBackedOrganizationGlobalAccess(
             rpc_user_organization_context=rpc_user_org_context,
             auth_state=auth_state,
-            scopes=scopes if scopes is not None else superuser_scopes,
+            scopes=superuser_scopes,
         )
 
     if hasattr(request, "auth") and not request.user.is_authenticated:
@@ -1029,11 +1031,13 @@ def from_request(
         sso_state = auth_state.sso_state
 
         superuser_scopes = get_superuser_scopes(auth_state, request.user)
+        if scopes:
+            superuser_scopes = superuser_scopes.union(set(scopes))
 
         return OrganizationGlobalAccess(
             organization=organization,
             _member=member,
-            scopes=scopes if scopes is not None else superuser_scopes,
+            scopes=superuser_scopes,
             sso_is_valid=sso_state.is_valid,
             requires_sso=sso_state.is_required,
             permissions=access_service.get_permissions_for_user(request.user.id),
