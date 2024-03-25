@@ -186,7 +186,7 @@ class GoogleCloudFile(File):
                 )
                 if "r" in self._mode:
                     self._is_dirty = False
-                    self.storage.try_get(_try_download)
+                    self._storage.try_get(_try_download)
         return self._file
 
     @file.setter
