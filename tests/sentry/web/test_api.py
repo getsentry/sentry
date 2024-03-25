@@ -16,6 +16,7 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.scheduled import run_deletion
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, create_test_regions, region_silo_test
 from sentry.utils import json
 
@@ -164,17 +165,17 @@ class ClientConfigViewTest(TestCase):
             assert data["features"] == ["organizations:create", "organizations:customer-domains"]
 
     def test_react_concurrent_feature(self):
-        with self.feature({"organizations:react-concurrent-renderer": True}):
+        with override_options({"organizations:react-concurrent-renderer-enabled": True}):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"
             data = json.loads(resp.content)
             assert data["features"] == [
                 "organizations:create",
-                "organizations:react-concurrent-renderer",
+                "organizations:react-concurrent-renderer-enabled",
             ]
 
-        with self.feature({"organizations:react-concurrent-renderer": False}):
+        with override_options({"organizations:react-concurrent-renderer-enabled": False}):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"
