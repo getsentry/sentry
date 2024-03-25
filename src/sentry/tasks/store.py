@@ -99,6 +99,7 @@ class SaveEventTaskKind:
     from_reprocessing: bool = False
 
 
+@sentry_sdk.tracing.trace
 def submit_save_event(
     task_kind: SaveEventTaskKind,
     project_id: int,
@@ -322,6 +323,14 @@ def is_process_disabled(project_id: int, event_id: str, platform: str) -> bool:
     return random.random() < rollout_rate
 
 
+@sentry_sdk.tracing.trace
+def normalize_event(data: Any) -> Any:
+    normalizer = StoreNormalizer(
+        remove_other=False, is_renormalize=True, **DEFAULT_STORE_NORMALIZER_ARGS
+    )
+    return normalizer.normalize_event(dict(data))
+
+
 def do_process_event(
     cache_key: str,
     start_time: int | None,
@@ -463,10 +472,7 @@ def do_process_event(
         # - persist e.g. incredibly large stacktraces from minidumps
         # - store event timestamps that are older than our retention window
         #   (also happening with minidumps)
-        normalizer = StoreNormalizer(
-            remove_other=False, is_renormalize=True, **DEFAULT_STORE_NORMALIZER_ARGS
-        )
-        data = normalizer.normalize_event(dict(data))
+        data = normalize_event(data)
 
         issues = data.get("processing_issues")
 
@@ -629,6 +635,7 @@ def delete_raw_event(project_id: int, event_id: str | None, allow_hint_clear: bo
                 )
 
 
+@sentry_sdk.tracing.trace
 def create_failed_event(
     cache_key: str,
     data: Event | None,
@@ -801,12 +808,13 @@ def _do_save_event(
             with metrics.timer("tasks.store.do_save_event.event_manager.save"):
                 manager = EventManager(data)
                 # event.project.organization is populated after this statement.
-                manager.save(
-                    project_id,
-                    assume_normalized=True,
-                    start_time=start_time,
-                    cache_key=cache_key,
-                )
+                with sentry_sdk.start_span(op="event_manager.save"):
+                    manager.save(
+                        project_id,
+                        assume_normalized=True,
+                        start_time=start_time,
+                        cache_key=cache_key,
+                    )
                 # Put the updated event back into the cache so that post_process
                 # has the most recent data.
                 data = manager.get_data()
