@@ -85,6 +85,19 @@ class CursorWrapper:
             # If the 'project_id' list is very long, consider filtering these IDs in the application logic before passing them to the query.
             if 'project_id' in sql and isinstance(params, list) and len(params) > 1000:
                 raise ValueError('Project ID list is too long. Consider filtering these IDs in the application logic.')
+            # Implementing pagination using LIMIT and OFFSET
+            # Check if 'LIMIT' is already present in the query to avoid duplication
+            if 'LIMIT' not in sql.upper():
+                sql += ' LIMIT %s OFFSET %s'
+                # Assuming params is a list and the last two parameters are limit and offset respectively
+                if not isinstance(params, list) or len(params) < 2:
+                    raise ValueError('Parameters for LIMIT and OFFSET are missing or invalid')
+                limit, offset = params[-2:]
+                # Validate limit and offset
+                if not (isinstance(limit, int) and isinstance(offset, int) and limit > 0 and offset >= 0):
+                    raise ValueError('Invalid LIMIT or OFFSET values')
+                # Adjust params to exclude limit and offset
+                params = params[:-2]
             return self.cursor.execute(sql, clean_bad_params(params))
         return self.cursor.execute(sql)
 
