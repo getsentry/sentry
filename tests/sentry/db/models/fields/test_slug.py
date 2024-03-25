@@ -78,7 +78,7 @@ class IdOrSlugLookupTests(TestCase):
         self.assertEqual(params, ["123slug"])
 
     @patch("sentry.db.models.fields.slug.IdOrSlugLookup.process_rhs")
-    def test_as_sql_with_alphaetic_rhs(self, mock_process_rhs) -> None:
+    def test_as_sql_with_alphabetic_rhs(self, mock_process_rhs) -> None:
         mock_process_rhs.return_value = ("%s", ["slug"])
 
         lookup = IdOrSlugLookup("slug__id_or_slug", "slug")
