@@ -52,6 +52,7 @@ export function DomainCell({projectId, domain}: Props) {
 const DomainDescription = styled('div')`
   display: flex;
   gap: ${space(1)};
+  justify-content: center;
 `;
 
 const NULL_DESCRIPTION = <span>&lt;null&gt;</span>;
