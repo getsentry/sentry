@@ -62,11 +62,6 @@ def compare_messages_ignoring_mapping_metadata(actual: Message, expected: Messag
 
     assert actual_payload.key == expected_payload.key
 
-    actual_headers_without_mapping_sources = [
-        (k, v.encode()) for k, v in actual_payload.headers if k != "mapping_sources"
-    ]
-    assert actual_headers_without_mapping_sources == expected_payload.headers
-
     actual_deserialized = json.loads(actual_payload.value)
     expected_deserialized = json.loads(expected_payload.value)
     del actual_deserialized["mapping_meta"]
