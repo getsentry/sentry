@@ -49,7 +49,7 @@ def process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | N
     try:
         project_id = get_project_id(message.payload.headers)
     except Exception:
-        logger.exception("Failed to parse project_id")
+        logger.exception("Failed to parse span message header")
         return None
 
     if project_id is None or project_id not in options.get(
@@ -61,7 +61,6 @@ def process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | N
     try:
         span = _deserialize_span(message.payload.value)
         segment_id = span["segment_id"]
-        project_id = span["project_id"]
     except Exception:
         logger.exception("Failed to process span payload")
         return None
