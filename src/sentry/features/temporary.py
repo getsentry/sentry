@@ -190,6 +190,7 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:project-event-date-limit", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:project-stats", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:related-events", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+    manager.add("organizations:related-issues", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:relay-cardinality-limiter", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:release-comparison-performance", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:release-health-drop-sessions", OrganizationFeature, FeatureHandlerStrategy.REMOTE)

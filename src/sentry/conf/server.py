@@ -1814,6 +1814,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:project-stats": True,
     # Enable the new Related Events feature
     "organizations:related-events": False,
+    # Enable related issues feature
+    "organizations:related-issues": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
