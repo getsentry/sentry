@@ -64,7 +64,7 @@ class CursorWrapper:
     """
     A wrapper around the postgresql_psycopg2 backend which handles various events
     from cursors, such as auto reconnects and lazy time zone evaluation.
-    """
+    ""
 
     def __init__(self, db, cursor):
         self.db = db
@@ -80,7 +80,11 @@ class CursorWrapper:
     @auto_reconnect_cursor
     @more_better_error_messages
     def execute(self, sql, params=None):
+        # Optimize query parameters for performance
         if params is not None:
+            # If the 'project_id' list is very long, consider filtering these IDs in the application logic before passing them to the query.
+            if 'project_id' in sql and isinstance(params, list) and len(params) > 1000:
+                raise ValueError('Project ID list is too long. Consider filtering these IDs in the application logic.')
             return self.cursor.execute(sql, clean_bad_params(params))
         return self.cursor.execute(sql)
 
