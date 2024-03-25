@@ -32,7 +32,7 @@ export function useCreateDashboard(
             const filteredDependencies: MetricWidgetQueryParams[] = [];
             dependencies.forEach(dependency => {
               if (!queryIdsInArray.has(dependency.id)) {
-                filteredDependencies.push(dependency);
+                filteredDependencies.push({...dependency, isHidden: true});
                 queryIdsInArray.add(dependency.id);
               }
             });
@@ -62,7 +62,10 @@ export function useCreateDashboard(
         if (isError) {
           return null;
         }
-        return convertToDashboardWidget([...dependencies, widget], widget.displayType);
+        return convertToDashboardWidget(
+          [...dependencies.map(query => ({...query, isHidden: true})), widget],
+          widget.displayType
+        );
       })
       .filter((widget): widget is Widget => widget !== null);
   }, [isMultiChartMode, widgets, formulaDependencies]);
