@@ -33,13 +33,6 @@ def create_feedback_issue(monkeypatch):
 
 
 @pytest.fixture
-def save_event_feedback(monkeypatch):
-    mock = Mock()
-    monkeypatch.setattr("sentry.ingest.consumer.processors.save_event_feedback", mock)
-    return mock
-
-
-@pytest.fixture
 def preprocess_event(monkeypatch):
     mock = Mock()
     monkeypatch.setattr("sentry.ingest.consumer.processors.preprocess_event", mock)
@@ -47,8 +40,8 @@ def preprocess_event(monkeypatch):
 
 
 @django_db_all
-def test_processor_calls_create_feedback_issue(
-    default_project, create_feedback_issue, save_event_feedback, preprocess_event, monkeypatch
+def test_processing_calls_create_feedback_issue(
+    default_project, create_feedback_issue, preprocess_event, monkeypatch
 ):
     # Tests the feedback branch of the ingest consumer process_event fx
     monkeypatch.setattr("sentry.features.has", lambda *a, **kw: True)
@@ -94,8 +87,5 @@ def test_processor_calls_create_feedback_issue(
     assert create_feedback_issue.call_args[0][0]["type"] == "feedback"
     assert create_feedback_issue.call_args[0][1] == project_id
 
-    # also test that the save_event_feedback celery task isn't called (rabbit is too volatile)
-    assert save_event_feedback.call_count == 0
-
-    # preprocess_event is for error events
+    # preprocess_event is for error events only, make sure it wasn't called
     assert preprocess_event.call_count == 0

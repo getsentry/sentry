@@ -89,7 +89,7 @@ def create_feedback_issue(monkeypatch):
 
 
 @django_db_all(transaction=True)
-def test_consumer_reads_from_topic_and_calls_create_feedback(
+def test_consumer_reads_from_topic_and_creates_feedback_issue(
     task_runner,
     kafka_producer,
     kafka_admin,
@@ -195,5 +195,5 @@ def test_consumer_gets_event_unstuck_and_reprocess_only_stuck_events(
     assert create_feedback_issue.call_count == 1
     assert create_feedback_issue.call_args[0][0]["event_id"] == event_id2
     assert create_feedback_issue.call_args[0][0]["type"] == "feedback"
-    assert create_feedback_issue.call_args[0][0].get("contexts", {}).get("feedback")
+    assert create_feedback_issue.call_args[0][0].get("contexts", {}).get("feedback") is not None
     assert create_feedback_issue.call_args[0][1] == default_project.id
