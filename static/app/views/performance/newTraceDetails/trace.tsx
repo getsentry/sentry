@@ -2191,6 +2191,10 @@ const TraceStylingWrapper = styled('div')`
     display: flex;
     align-items: center;
 
+    svg {
+      fill: ${p => p.theme.subText};
+    }
+
     &.Left {
       left: 0;
     }
