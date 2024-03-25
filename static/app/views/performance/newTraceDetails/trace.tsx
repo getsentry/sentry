@@ -2003,6 +2003,9 @@ const TraceStylingWrapper = styled('div')`
       justify-content: center;
 
       svg {
+        width: 12px;
+        height: 12px;
+        margin-left: 2px;
         fill: ${p => p.theme.white};
       }
     }
