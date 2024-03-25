@@ -166,6 +166,7 @@ function MetricWidgetViewerModal({
           name: '',
           id: generateEquationId(),
           type: MetricQueryType.FORMULA,
+          isHidden: false,
         },
       ];
     });

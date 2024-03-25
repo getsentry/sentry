@@ -5,7 +5,6 @@ from typing import Any
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
-from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import BrokerValue, Commit, Message, Partition
 from sentry_kafka_schemas import get_codec
 from sentry_kafka_schemas.codecs import Codec
@@ -14,6 +13,7 @@ from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
 from sentry import options
 from sentry.spans.buffer.redis import RedisSpansBuffer
 from sentry.spans.produce_segment import produce_segment_to_kafka
+from sentry.utils.arroyo import MultiprocessingPool, RunTaskWithMultiprocessing
 
 logger = logging.getLogger(__name__)
 SPAN_SCHEMA: Codec[SpanEvent] = get_codec("snuba-spans")
@@ -63,12 +63,32 @@ def process_message(message: Message[KafkaPayload]):
 
 
 class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
+    def __init__(
+        self,
+        max_batch_size: int,
+        max_batch_time: int,
+        num_processes: int,
+        input_block_size: int | None,
+        output_block_size: int | None,
+    ):
+        super().__init__()
+        self.max_batch_size = max_batch_size
+        self.max_batch_time = max_batch_time
+        self.input_block_size = input_block_size
+        self.output_block_size = output_block_size
+        self.pool = MultiprocessingPool(num_processes)
+
     def create_with_partitions(
         self,
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        return RunTask(
+        return RunTaskWithMultiprocessing(
             function=process_message,
             next_step=CommitOffsets(commit),
+            max_batch_size=self.max_batch_size,
+            max_batch_time=self.max_batch_time,
+            pool=self.pool,
+            input_block_size=self.input_block_size,
+            output_block_size=self.output_block_size,
         )

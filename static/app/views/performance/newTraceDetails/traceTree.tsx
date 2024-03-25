@@ -727,7 +727,7 @@ export class TraceTree {
               child.value &&
               'start_timestamp' in child.value &&
               typeof child.value.start_timestamp === 'number' &&
-              child.value.start_timestamp > start_timestamp
+              child.value.start_timestamp < start_timestamp
             ) {
               start_timestamp = child.value.start_timestamp;
             }
