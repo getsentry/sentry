@@ -313,8 +313,13 @@ export class TraceTree {
       tree.eventsCount += 1;
 
       if (isTraceTransaction(value)) {
-        traceNode.addErrorsFromArray(value.errors);
-        traceNode.addPerformanceIssuesFromArray(value.performance_issues);
+        for (const error of value.errors) {
+          traceNode.errors.add(error);
+        }
+
+        for (const performanceIssue of value.performance_issues) {
+          traceNode.performance_issues.add(performanceIssue);
+        }
       } else {
         traceNode.errors.add(value);
       }
@@ -507,10 +512,16 @@ export class TraceTree {
         project_slug: undefined,
       });
 
-      node.addErrorsFromArray(getRelatedSpanErrorsFromTransaction(span, parent));
-      node.addPerformanceIssuesFromArray(
-        getRelatedPerformanceIssuesFromTransaction(span, parent)
-      );
+      for (const error of getRelatedSpanErrorsFromTransaction(span, parent)) {
+        node.errors.add(error);
+      }
+
+      for (const performanceIssue of getRelatedPerformanceIssuesFromTransaction(
+        span,
+        parent
+      )) {
+        node.performance_issues.add(performanceIssue);
+      }
 
       // This is the case where the current span is the parent of a txn at the
       // trace level. When zooming into the parent of the txn, we want to place a copy
@@ -641,8 +652,15 @@ export class TraceTree {
       }
 
       autoGroupedNode.groupCount = groupMatchCount + 1;
-      autoGroupedNode.addErrorsFromArray(errors);
-      autoGroupedNode.addPerformanceIssuesFromArray(performance_issues);
+
+      for (const error of errors) {
+        autoGroupedNode.errors.add(error);
+      }
+
+      for (const performanceIssue of performance_issues) {
+        autoGroupedNode.performance_issues.add(performanceIssue);
+      }
+
       autoGroupedNode.space = [
         start * autoGroupedNode.multiplier,
         (end - start) * autoGroupedNode.multiplier,
@@ -741,10 +759,13 @@ export class TraceTree {
             }
 
             if (child.has_errors) {
-              autoGroupedNode.addErrorsFromArray([...child.errors]);
-              autoGroupedNode.addPerformanceIssuesFromArray([
-                ...child.performance_issues,
-              ]);
+              for (const error of child.errors) {
+                autoGroupedNode.errors.add(error);
+              }
+
+              for (const performanceIssue of child.performance_issues) {
+                autoGroupedNode.performance_issues.add(performanceIssue);
+              }
             }
 
             autoGroupedNode.children.push(node.children[j]);
@@ -1061,8 +1082,13 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     }
 
     if (isTransactionNode(this)) {
-      this.addErrorsFromArray(this.value.errors);
-      this.addPerformanceIssuesFromArray(this.value.performance_issues);
+      for (const error of this.value.errors) {
+        this.errors.add(error);
+      }
+
+      for (const issue of this.value.performance_issues) {
+        this.performance_issues.add(issue);
+      }
     }
 
     // For error nodes, its value is the only associated issue.
@@ -1126,18 +1152,6 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     }
 
     return node;
-  }
-
-  addErrorsFromArray(errors: TraceErrorType[]) {
-    for (const error of errors) {
-      this.errors.add(error);
-    }
-  }
-
-  addPerformanceIssuesFromArray(performanceIssues: TracePerformanceIssue[]) {
-    for (const issue of performanceIssues) {
-      this.performance_issues.add(issue);
-    }
   }
 
   get isOrphaned() {
