@@ -23,7 +23,7 @@ def _backfill_alert_rule_projects(apps, schema_editor):
             )
             continue
 
-        alert_rule = snuba_query.sentry_alertrule
+        alert_rule = snuba_query.alertrule_set.get()
 
         AlertRuleProjects.objects.create(
             alert_rule=alert_rule,
@@ -32,7 +32,7 @@ def _backfill_alert_rule_projects(apps, schema_editor):
 
 
 class Migration(CheckedMigration):
-    is_dangerous = False
+    is_dangerous = True
 
     dependencies = [
         ("sentry", "0686_remove_config_from_checkin_state_operation"),
