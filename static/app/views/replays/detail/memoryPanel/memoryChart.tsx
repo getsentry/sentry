@@ -133,16 +133,6 @@ export default function MemoryChart({
         lineStyle: {opacity: 0, width: 2},
       },
       {
-        id: 'freeMemory',
-        seriesName: t('Free Heap Memory'),
-        data: memoryFrames.map(frame => ({
-          value: frame.data.memory.totalJSHeapSize - frame.data.memory.usedJSHeapSize,
-          name: frame.offsetMs,
-        })),
-        stack: 'heap-memory',
-        lineStyle: {opacity: 0, width: 2},
-      },
-      {
         id: 'replayStart',
         seriesName: 'Replay Start',
         data: [{value: 0, name: 0}],
@@ -158,45 +148,42 @@ export default function MemoryChart({
     [durationMs, memoryFrames]
   );
 
-  const currentTimeSeries = useMemo(
-    (): Series => ({
-      id: 'currentTime',
-      seriesName: t('Current player time'),
-      data: [],
-      markLine: {
-        symbol: ['', ''],
-        data: [{xAxis: currentTime}],
-        label: {show: false},
-        lineStyle: {type: 'solid', color: theme.purple300, width: 2},
+  const dynamicSeries = useMemo(
+    (): Series[] => [
+      {
+        id: 'currentTime',
+        seriesName: t('Current player time'),
+        data: [],
+        markLine: {
+          symbol: ['', ''],
+          data: [{xAxis: currentTime}],
+          label: {show: false},
+          lineStyle: {type: 'solid', color: theme.purple300, width: 2},
+        },
       },
-    }),
-
-    [currentTime, theme.purple300]
+      {
+        id: 'hoverTime',
+        seriesName: t('Hover player time'),
+        data: [],
+        markLine: {
+          symbol: ['', ''],
+          data: currentHoverTime ? [{xAxis: currentHoverTime}] : [],
+          label: {show: false},
+          lineStyle: {type: 'solid', color: theme.purple200, width: 2},
+        },
+      },
+    ],
+    [currentTime, currentHoverTime, theme.purple200, theme.purple300]
   );
 
-  const hoverTimeSeries = useMemo(
-    (): Series => ({
-      id: 'hoverTime',
-      seriesName: t('Hover player time'),
-      data: [],
-      markLine: {
-        symbol: ['', ''],
-        data: currentHoverTime ? [{xAxis: currentHoverTime}] : [],
-        label: {show: false},
-        lineStyle: {type: 'solid', color: theme.purple200, width: 2},
-      },
-    }),
-    [currentHoverTime, theme.purple200]
+  const series = useMemo(
+    () => staticSeries.concat(dynamicSeries),
+    [dynamicSeries, staticSeries]
   );
 
   return (
     <div id="replay-memory-chart">
-      <AreaChart
-        autoHeightResize
-        height="auto"
-        series={staticSeries.concat(currentTimeSeries, hoverTimeSeries)}
-        {...chartOptions}
-      />
+      <AreaChart autoHeightResize height="auto" series={series} {...chartOptions} />
     </div>
   );
 }
