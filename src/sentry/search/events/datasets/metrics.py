@@ -1472,6 +1472,11 @@ class MetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
+    # TODO: This function uses the sum of ttfb and inp score counts as the denominator because
+    # measurements.score.total was incorrectly double counting due to the issue described here:
+    # https://github.com/getsentry/relay/pull/3324
+    # Update this function to use measurements.score.total as the denominator once the issue is
+    # resolved and any historic data is out of retention.
     def _resolve_weighted_web_vital_score_function(
         self,
         args: Mapping[str, str | Column | SelectType | int | float],
@@ -1522,15 +1527,35 @@ class MetricsDatasetConfig(DatasetConfig):
                                             "greater",
                                             [
                                                 Function(
-                                                    "countIf",
+                                                    "plus",
                                                     [
-                                                        Column("value"),
                                                         Function(
-                                                            "equals",
+                                                            "countIf",
                                                             [
-                                                                Column("metric_id"),
-                                                                self.resolve_metric(
-                                                                    "measurements.score.total"
+                                                                Column("value"),
+                                                                Function(
+                                                                    "equals",
+                                                                    [
+                                                                        Column("metric_id"),
+                                                                        self.resolve_metric(
+                                                                            "measurements.score.ttfb"
+                                                                        ),
+                                                                    ],
+                                                                ),
+                                                            ],
+                                                        ),
+                                                        Function(
+                                                            "countIf",
+                                                            [
+                                                                Column("value"),
+                                                                Function(
+                                                                    "equals",
+                                                                    [
+                                                                        Column("metric_id"),
+                                                                        self.resolve_metric(
+                                                                            "measurements.score.inp"
+                                                                        ),
+                                                                    ],
                                                                 ),
                                                             ],
                                                         ),
@@ -1554,15 +1579,35 @@ class MetricsDatasetConfig(DatasetConfig):
                                             ],
                                         ),
                                         Function(
-                                            "countIf",
+                                            "plus",
                                             [
-                                                Column("value"),
                                                 Function(
-                                                    "equals",
+                                                    "countIf",
                                                     [
-                                                        Column("metric_id"),
-                                                        self.resolve_metric(
-                                                            "measurements.score.total"
+                                                        Column("value"),
+                                                        Function(
+                                                            "equals",
+                                                            [
+                                                                Column("metric_id"),
+                                                                self.resolve_metric(
+                                                                    "measurements.score.ttfb"
+                                                                ),
+                                                            ],
+                                                        ),
+                                                    ],
+                                                ),
+                                                Function(
+                                                    "countIf",
+                                                    [
+                                                        Column("value"),
+                                                        Function(
+                                                            "equals",
+                                                            [
+                                                                Column("metric_id"),
+                                                                self.resolve_metric(
+                                                                    "measurements.score.inp"
+                                                                ),
+                                                            ],
                                                         ),
                                                     ],
                                                 ),
