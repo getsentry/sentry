@@ -540,12 +540,12 @@ def find_roots(stack_frame_path: FrameFilename, source_path: str) -> tuple[str, 
 
             if stack_root:  # append trailing slash
                 stack_root = f"{stack_root}{stack_path_delim}"
+                if stack_frame_path.leading_slash:
+                    stack_root = f"/{stack_root}"
             if stack_frame_path.frame_type() == "packaged":
                 next_dir = overlap_to_check[0]
                 stack_root = f"{stack_root}{next_dir}/"
                 source_root = f"{source_root}{next_dir}/"
-            if stack_frame_path.leading_slash:
-                stack_root = f"/{stack_root}"
 
             return (stack_root, source_root)
 

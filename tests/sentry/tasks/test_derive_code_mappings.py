@@ -338,10 +338,16 @@ class TestGoDeriveCodeMappings(BaseDeriveCodeMappings):
                     "in_app": True,
                     "filename": "/Users/JohnDoe/Documents/code/sentry/kangaroo.go",
                 },
+                {
+                    "in_app": True,
+                    "filename": "/src/cmd/vroom/profile.go",
+                },
             ],
             self.platform,
         )
 
+    @responses.activate
+    @with_feature({"organizations:derive-code-mappings-go": True})
     def test_derive_code_mappings_go_abs_filename(self):
         repo_name = "go_repo"
         with patch(
@@ -356,6 +362,8 @@ class TestGoDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.source_root == ""
             assert code_mapping.repository.name == repo_name
 
+    @responses.activate
+    @with_feature({"organizations:derive-code-mappings-go": True})
     def test_derive_code_mappings_go_long_abs_filename(self):
         repo_name = "go_repo"
         with patch(
@@ -367,6 +375,22 @@ class TestGoDeriveCodeMappings(BaseDeriveCodeMappings):
             derive_code_mappings(self.project.id, self.event_data)
             code_mapping = RepositoryProjectPathConfig.objects.all()[0]
             assert code_mapping.stack_root == "/Users/JohnDoe/Documents/code/"
+            assert code_mapping.source_root == ""
+            assert code_mapping.repository.name == repo_name
+
+    @responses.activate
+    @with_feature({"organizations:derive-code-mappings-go": True})
+    def test_derive_code_mappings_go_normal(self):
+        repo_name = "go_repo"
+        with patch(
+            "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org"
+        ) as mock_get_trees_for_org:
+            mock_get_trees_for_org.return_value = {
+                repo_name: RepoTree(Repo(repo_name, "master"), ["cmd/vroom/profile.go"])
+            }
+            derive_code_mappings(self.project.id, self.event_data)
+            code_mapping = RepositoryProjectPathConfig.objects.all()[0]
+            assert code_mapping.stack_root == "/src/"
             assert code_mapping.source_root == ""
             assert code_mapping.repository.name == repo_name
 
