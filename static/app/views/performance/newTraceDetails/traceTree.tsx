@@ -313,10 +313,10 @@ export class TraceTree {
       tree.eventsCount += 1;
 
       if (isTraceTransaction(value)) {
-        traceNode.errors.push(...value.errors);
-        traceNode.performance_issues.push(...value.performance_issues);
+        traceNode.addErrorsFromArray(value.errors);
+        traceNode.addPerformanceIssuesFromArray(value.performance_issues);
       } else {
-        traceNode.errors.push(value);
+        traceNode.errors.add(value);
       }
 
       if (parent) {
@@ -507,8 +507,10 @@ export class TraceTree {
         project_slug: undefined,
       });
 
-      node.errors = getRelatedSpanErrorsFromTransaction(span, parent);
-      node.performance_issues = getRelatedPerformanceIssuesFromTransaction(span, parent);
+      node.addErrorsFromArray(getRelatedSpanErrorsFromTransaction(span, parent));
+      node.addPerformanceIssuesFromArray(
+        getRelatedPerformanceIssuesFromTransaction(span, parent)
+      );
 
       // This is the case where the current span is the parent of a txn at the
       // trace level. When zooming into the parent of the txn, we want to place a copy
@@ -580,10 +582,10 @@ export class TraceTree {
         isSpanNode(tail.children[0]) &&
         tail.children[0].value.op === head.value.op
       ) {
-        if ((tail?.errors?.length ?? 0) > 0) {
+        if ((tail?.errors?.size ?? 0) > 0) {
           errors.push(...tail?.errors);
         }
-        if ((tail?.performance_issues?.length ?? 0) > 0) {
+        if ((tail?.performance_issues?.size ?? 0) > 0) {
           performance_issues.push(...tail.performance_issues);
         }
 
@@ -602,10 +604,10 @@ export class TraceTree {
 
       // Checking the tail node for errors as it is not included in the grouping
       // while loop, but is hidden when the autogrouped node is collapsed
-      if ((tail?.errors?.length ?? 0) > 0) {
+      if ((tail?.errors?.size ?? 0) > 0) {
         errors.push(...tail?.errors);
       }
-      if ((tail?.performance_issues?.length ?? 0) > 0) {
+      if ((tail?.performance_issues?.size ?? 0) > 0) {
         performance_issues.push(...tail.performance_issues);
       }
 
@@ -639,8 +641,8 @@ export class TraceTree {
       }
 
       autoGroupedNode.groupCount = groupMatchCount + 1;
-      autoGroupedNode.errors = errors;
-      autoGroupedNode.performance_issues = performance_issues;
+      autoGroupedNode.addErrorsFromArray(errors);
+      autoGroupedNode.addPerformanceIssuesFromArray(performance_issues);
       autoGroupedNode.space = [
         start * autoGroupedNode.multiplier,
         (end - start) * autoGroupedNode.multiplier,
@@ -739,20 +741,10 @@ export class TraceTree {
             }
 
             if (child.has_errors) {
-              if (
-                child.value &&
-                'errors' in child.value &&
-                Array.isArray(child.value.errors)
-              ) {
-                autoGroupedNode.errors.push(...child.errors);
-              }
-              if (
-                child.value &&
-                'performance_issues' in child.value &&
-                Array.isArray(child.performance_issues)
-              ) {
-                autoGroupedNode.performance_issues.push(...child.performance_issues);
-              }
+              autoGroupedNode.addErrorsFromArray([...child.errors]);
+              autoGroupedNode.addPerformanceIssuesFromArray([
+                ...child.performance_issues,
+              ]);
             }
 
             autoGroupedNode.children.push(node.children[j]);
@@ -1009,8 +1001,8 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     project_slug: undefined,
     event_id: undefined,
   };
-  errors: TraceErrorType[] = [];
-  performance_issues: TracePerformanceIssue[] = [];
+  errors: Set<TraceErrorType> = new Set<TraceErrorType>();
+  performance_issues: Set<TracePerformanceIssue> = new Set<TracePerformanceIssue>();
 
   multiplier: number;
   space: [number, number] | null = null;
@@ -1069,13 +1061,13 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     }
 
     if (isTransactionNode(this)) {
-      this.errors = this.value.errors;
-      this.performance_issues = this.value.performance_issues;
+      this.addErrorsFromArray(this.value.errors);
+      this.addPerformanceIssuesFromArray(this.value.performance_issues);
     }
 
     // For error nodes, its value is the only associated issue.
     if (isTraceErrorNode(this)) {
-      this.errors = [this.value];
+      this.errors.add(this.value);
     }
   }
 
@@ -1136,6 +1128,18 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     return node;
   }
 
+  addErrorsFromArray(errors: TraceErrorType[]) {
+    for (const error of errors) {
+      this.errors.add(error);
+    }
+  }
+
+  addPerformanceIssuesFromArray(performanceIssues: TracePerformanceIssue[]) {
+    for (const issue of performanceIssues) {
+      this.performance_issues.add(issue);
+    }
+  }
+
   get isOrphaned() {
     return this.parent?.value && 'orphan_errors' in this.parent.value;
   }
@@ -1174,7 +1178,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
   }
 
   get has_errors(): boolean {
-    return this.errors.length > 0 || this.performance_issues.length > 0;
+    return this.errors.size > 0 || this.performance_issues.size > 0;
   }
 
   get parent_transaction(): TraceTreeNode<TraceTree.Transaction> | null {
@@ -1488,7 +1492,7 @@ export class ParentAutogroupNode extends TraceTreeNode<TraceTree.ChildrenAutogro
   }
 
   get has_errors(): boolean {
-    return this.errors.length > 0 || this.performance_issues.length > 0;
+    return this.errors.size > 0 || this.performance_issues.size > 0;
   }
 
   get autogroupedSegments(): [number, number][] {
@@ -1527,7 +1531,7 @@ export class SiblingAutogroupNode extends TraceTreeNode<TraceTree.SiblingAutogro
   }
 
   get has_errors(): boolean {
-    return this.errors.length > 0 || this.performance_issues.length > 0;
+    return this.errors.size > 0 || this.performance_issues.size > 0;
   }
 
   get autogroupedSegments(): [number, number][] {
