@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import type {ControlProps} from 'sentry/components/forms/controls/selectControl';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
-import type {MemberRole} from 'sentry/types';
+import type {BaseRole} from 'sentry/types';
 
 type OptionType = {
   details: React.ReactNode;
@@ -13,7 +13,7 @@ type OptionType = {
 
 type Props = Omit<ControlProps<OptionType>, 'onChange' | 'value'> & {
   disableUnallowed: boolean;
-  roles: MemberRole[];
+  roles: BaseRole[];
   /**
    * Narrower type than SelectControl because there is no empty value
    */
@@ -27,7 +27,7 @@ function RoleSelectControl({roles, disableUnallowed, ...props}: Props) {
       options={roles
         ?.filter(r => !r.isRetired)
         .map(
-          (r: MemberRole) =>
+          (r: BaseRole) =>
             ({
               value: r.id,
               label: r.name,
