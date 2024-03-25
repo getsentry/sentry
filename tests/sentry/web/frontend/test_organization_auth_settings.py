@@ -299,6 +299,28 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert "Action Required" in message.subject
         assert "Single Sign-On has been disabled" in message.body
 
+    def test_reinvite_provider(self):
+        organization, auth_provider = self.create_org_and_auth_provider()
+        self.create_om_and_link_sso(organization)
+        # Create an unlinked member
+        user_two = self.create_user(email="unlinked@example.com")
+        self.create_member(user=user_two, organization=organization)
+
+        path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
+        self.login_as(self.user, organization_id=organization.id)
+        with self.tasks(), self.feature("organizations:sso-basic"):
+            resp = self.client.post(path, {"op": "reinvite"})
+
+        assert resp.status_code == 302
+        assert resp["Location"] == path
+
+        # We should send emails about SSO changes
+        assert len(mail.outbox) == 1
+        message = mail.outbox[0]
+        assert "Action Required" in message.subject
+        assert "Single Sign-On has been configured" in message.body
+        assert message.to == [user_two.email]
+
     @with_feature("organizations:sso-basic")
     def test_disable_partner_provider(self):
         organization, auth_provider = self.create_org_and_auth_provider("Fly.io")
