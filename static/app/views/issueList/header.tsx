@@ -7,7 +7,6 @@ import Badge from 'sentry/components/badge';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
-import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import QueryCount from 'sentry/components/queryCount';
@@ -106,11 +105,6 @@ function IssueListHeader({
     ? t('Pause real-time updates')
     : t('Enable real-time updates');
 
-  const DataConsentBanner = HookOrDefault({
-    hookName: 'component:data-consent-banner',
-    defaultComponent: null,
-  });
-
   return (
     <Layout.Header noActionWrap>
       <Layout.HeaderContent>
@@ -137,7 +131,6 @@ function IssueListHeader({
           />
         </ButtonBar>
       </Layout.HeaderActions>
-      <DataConsentBanner source="issues" />
       <StyledGlobalEventProcessingAlert projects={selectedProjects} />
       <StyledTabs value={tabValues.has(query) ? query : CUSTOM_TAB_VALUE}>
         <TabList hideBorder>

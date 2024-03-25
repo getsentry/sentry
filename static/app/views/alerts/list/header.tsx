@@ -6,7 +6,6 @@ import ButtonBar from 'sentry/components/buttonBar';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
-import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {IconSettings} from 'sentry/icons';
@@ -39,11 +38,6 @@ function AlertHeader({router, activeTab}: Props) {
       </GlobalSelectionLink>
     </li>
   );
-
-  const DataConsentBanner = HookOrDefault({
-    hookName: 'component:data-consent-banner',
-    defaultComponent: null,
-  });
 
   return (
     <Layout.Header>
@@ -85,7 +79,6 @@ function AlertHeader({router, activeTab}: Props) {
           />
         </ButtonBar>
       </Layout.HeaderActions>
-      <DataConsentBanner source="alerts" />
       <Layout.HeaderNavTabs underlined>
         {alertRulesLink}
         <li className={activeTab === 'stream' ? 'active' : ''}>

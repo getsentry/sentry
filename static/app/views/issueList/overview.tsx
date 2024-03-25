@@ -17,6 +17,7 @@ import {addMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
 import type {Client} from 'sentry/api';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
@@ -1229,6 +1230,11 @@ class IssueListOverview extends Component<Props, State> {
 
     const {numPreviousIssues, numIssuesOnPage} = this.getPageCounts();
 
+    const DataConsentBanner = HookOrDefault({
+      hookName: 'component:data-consent-banner',
+      defaultComponent: null,
+    });
+
     return (
       <Layout.Page>
         <IssueListHeader
@@ -1245,6 +1251,7 @@ class IssueListOverview extends Component<Props, State> {
         />
         <StyledBody>
           <StyledMain>
+            <DataConsentBanner source="issues" />
             <IssueListFilters query={query} onSearch={this.onSearch} />
 
             <Panel>

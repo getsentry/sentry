@@ -7,6 +7,7 @@ import {
   addMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
@@ -166,6 +167,11 @@ function AlertRulesList() {
     <IconArrow color="gray300" size="xs" direction={sort.asc ? 'up' : 'down'} />
   );
 
+  const DataConsentBanner = HookOrDefault({
+    hookName: 'component:data-consent-banner',
+    defaultComponent: null,
+  });
+
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Alerts')} orgSlug={organization.slug} />
@@ -174,6 +180,8 @@ function AlertRulesList() {
         <AlertHeader router={router} activeTab="rules" />
         <Layout.Body>
           <Layout.Main fullWidth>
+            <DataConsentBanner source="alerts" />
+
             <FilterBar
               location={location}
               onChangeFilter={handleChangeFilter}
