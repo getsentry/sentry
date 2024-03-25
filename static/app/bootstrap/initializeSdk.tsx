@@ -24,6 +24,12 @@ const SPA_MODE_TRACE_PROPAGATION_TARGETS = [
   'sentry.dev',
 ];
 
+let lastEventId: string | undefined;
+
+export function getLastEventId(): string | undefined {
+  return lastEventId;
+}
+
 // We don't care about recording breadcrumbs for these hosts. These typically
 // pollute our breadcrumbs since they may occur a LOT.
 //
@@ -59,7 +65,7 @@ function getSentryIntegrations(routes?: Function) {
       },
       enableInp: true,
     }),
-    new Sentry.BrowserProfilingIntegration(),
+    Sentry.browserProfilingIntegration(),
   ];
 
   return integrations;
@@ -151,13 +157,15 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
       return crumb;
     },
 
-    beforeSend(event, _hint) {
+    beforeSend(event, hint) {
       if (isFilteredRequestErrorEvent(event) || isEventWithFileUrl(event)) {
         return null;
       }
 
       handlePossibleUndefinedResponseBodyErrors(event);
       addEndpointTagToRequestError(event);
+
+      lastEventId = event.event_id || hint.event_id;
 
       return event;
     },
@@ -201,10 +209,10 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
   };
   debugIdPolyfillEventProcessor.id = 'debugIdPolyfillEventProcessor';
 
-  Sentry.addGlobalEventProcessor(debugIdPolyfillEventProcessor);
+  Sentry.addEventProcessor(debugIdPolyfillEventProcessor);
 
   // Track timeOrigin Selection by the SDK to see if it improves transaction durations
-  Sentry.addGlobalEventProcessor((event: Sentry.Event, _hint?: Sentry.EventHint) => {
+  Sentry.addEventProcessor((event: Sentry.Event, _hint?: Sentry.EventHint) => {
     event.tags = event.tags || {};
     event.tags['timeOrigin.mode'] = _browserPerformanceTimeOriginMode;
     return event;

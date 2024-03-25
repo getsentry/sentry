@@ -94,7 +94,7 @@ jest.mock('@sentry/react', function sentryReact() {
   const SentryReact = jest.requireActual('@sentry/react');
   return {
     init: jest.fn(),
-    configureScope: jest.fn(),
+    configureScope: jest.fn(), // Needed atm for getsentry - TODO: remove once we moved to v8 api in getsentry
     setTag: jest.fn(),
     setTags: jest.fn(),
     setExtra: jest.fn(),
@@ -104,11 +104,14 @@ jest.mock('@sentry/react', function sentryReact() {
     captureMessage: jest.fn(),
     captureException: jest.fn(),
     showReportDialog: jest.fn(),
+    getDefaultIntegrations: jest.spyOn(SentryReact, 'getDefaultIntegrations'),
     startSpan: jest.spyOn(SentryReact, 'startSpan'),
     finishSpan: jest.fn(),
     lastEventId: jest.fn(),
     getClient: jest.spyOn(SentryReact, 'getClient'),
+    getActiveTransaction: jest.spyOn(SentryReact, 'getActiveTransaction'),
     getCurrentHub: jest.spyOn(SentryReact, 'getCurrentHub'),
+    getCurrentScope: jest.spyOn(SentryReact, 'getCurrentScope'),
     withScope: jest.spyOn(SentryReact, 'withScope'),
     Hub: SentryReact.Hub,
     Scope: SentryReact.Scope,
@@ -123,19 +126,28 @@ jest.mock('@sentry/react', function sentryReact() {
       distribution: jest.fn(),
     },
     reactRouterV3BrowserTracingIntegration: jest.fn().mockReturnValue({}),
-    BrowserTracing: jest.fn().mockReturnValue({}),
-    BrowserProfilingIntegration: jest.fn().mockReturnValue({}),
-    addGlobalEventProcessor: jest.fn(),
+    browserTracingIntegration: jest.fn().mockReturnValue({}),
+    browserProfilingIntegration: jest.fn().mockReturnValue({}),
+    addGlobalEventProcessor: jest.fn(), // Kept atm for getsentry - TODO: remove once we moved to v8 api in getsentry
+    addEventProcessor: jest.fn(),
     BrowserClient: jest.fn().mockReturnValue({
       captureEvent: jest.fn(),
     }),
     startTransaction: () => ({
+      // Kept atm for getsentry - TODO: remove once we moved to v8 api in getsentry
       finish: jest.fn(),
       setTag: jest.fn(),
       setData: jest.fn(),
       setStatus: jest.fn(),
       startChild: jest.fn().mockReturnValue({
         finish: jest.fn(),
+      }),
+    }),
+    startInactiveSpan: () => ({
+      end: jest.fn(),
+      setStatus: jest.fn(),
+      startChild: jest.fn().mockReturnValue({
+        end: jest.fn(),
       }),
     }),
   };

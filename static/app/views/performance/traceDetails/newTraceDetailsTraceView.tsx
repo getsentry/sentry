@@ -152,7 +152,7 @@ function NewTraceView({
   ...props
 }: Props) {
   const [isTransactionBarScrolledTo, setIsTransactionBarScrolledTo] = useState(false);
-  const sentryTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
+  const sentryTransaction = Sentry.getActiveTransaction();
   const sentrySpan = sentryTransaction?.startChild({
     op: 'trace.render',
     description: 'trace-view-content',
@@ -495,7 +495,7 @@ function NewTraceView({
     </TraceDetailBody>
   );
 
-  sentrySpan?.finish();
+  sentrySpan?.end();
 
   return traceView;
 }

@@ -72,7 +72,9 @@ export function useDifferentialFlamegraphModel(
       return DifferentialFlamegraphModel.Empty();
     }
 
-    const txn = Sentry.startTransaction({name: 'differential_flamegraph.import'});
+    const span = Sentry.startInactiveSpan({
+      name: 'differential_flamegraph.import',
+    });
     const flamegraph = DifferentialFlamegraphModel.FromDiff(
       {
         before: beforeFlamegraph,
@@ -81,7 +83,7 @@ export function useDifferentialFlamegraphModel(
       {negated: props.negated},
       theme
     );
-    txn.finish();
+    span?.end();
     return flamegraph;
   }, [beforeFlamegraph, afterFlamegraph, theme, props.negated]);
 

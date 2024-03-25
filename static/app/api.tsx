@@ -607,22 +607,22 @@ export class Client {
               const parameterizedPath = sanitizePath(path);
               const message = '200 treated as error';
 
-              const scope = new Sentry.Scope();
-              scope.setTags({endpoint: `${method} ${parameterizedPath}`, errorReason});
-              scope.setExtras({
-                twoHundredErrorReason,
-                responseJSON,
-                responseText,
-                responseContentType,
-                errorReason,
-              });
-              // Make sure all of these errors group, so we don't produce a bunch of noise
-              scope.setFingerprint([message]);
+              Sentry.withScope(scope => {
+                scope.setTags({endpoint: `${method} ${parameterizedPath}`, errorReason});
+                scope.setExtras({
+                  twoHundredErrorReason,
+                  responseJSON,
+                  responseText,
+                  responseContentType,
+                  errorReason,
+                });
+                // Make sure all of these errors group, so we don't produce a bunch of noise
+                scope.setFingerprint([message]);
 
-              Sentry.captureException(
-                new Error(`${message}: ${method} ${parameterizedPath}`),
-                scope
-              );
+                Sentry.captureException(
+                  new Error(`${message}: ${method} ${parameterizedPath}`)
+                );
+              });
             }
 
             const shouldSkipErrorHandler =

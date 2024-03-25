@@ -1,4 +1,4 @@
-import type {Hub} from '@sentry/core';
+import type {Hub} from '@sentry/types';
 import {fill, isThenable, loadModule} from '@sentry/utils';
 
 export function instrumentUserEvent(getCurrentHub: () => Hub): void {
@@ -37,12 +37,12 @@ function _patchAction(userEvent: any, action: Action, getCurrentHub?: () => Hub)
 
       if (isThenable(maybePromise)) {
         return maybePromise.then((res: unknown) => {
-          span?.finish();
+          span?.end();
           return res;
         });
       }
 
-      span?.finish();
+      span?.end();
       return maybePromise;
     };
   });

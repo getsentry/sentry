@@ -37,7 +37,7 @@ function MetricRulesCreate(props: Props) {
       ? (data.id as string | undefined)
       : undefined;
 
-    metric.endTransaction({name: 'saveAlertRule'});
+    metric.endSpan({name: 'saveAlertRule'});
     const target = alertRuleId
       ? {
           pathname: `/organizations/${organization.slug}/alerts/rules/details/${alertRuleId}/`,

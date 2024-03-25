@@ -1,10 +1,5 @@
 import {Fragment} from 'react';
-import {
-  BrowserClient,
-  defaultIntegrations,
-  defaultStackParser,
-  makeFetchTransport,
-} from '@sentry/react';
+import {BrowserClient, defaultStackParser, makeFetchTransport} from '@sentry/react';
 import * as Sentry from '@sentry/react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -47,7 +42,7 @@ describe('FeatureFeedback', function () {
       const feedbackClient = new Sentry.BrowserClient({
         transport: makeFetchTransport,
         stackParser: defaultStackParser,
-        integrations: defaultIntegrations,
+        integrations: Sentry.getDefaultIntegrations({}),
       });
 
       renderGlobalModal();
