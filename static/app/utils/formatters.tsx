@@ -430,6 +430,25 @@ export function formatAbbreviatedNumber(
 }
 
 /**
+ * Formats a number to a string with a suffix, with a 2 decimal digits
+ * without forcing trailing zeros
+ *
+ * @param value the number to format
+ */
+export function formatAbbreviatedNumberWithDynamicDecimalPoints(
+  value: number | string
+): string {
+  value = Number(value);
+  const absNumber = Math.abs(value);
+  const abbreviations = ['k', 'm', 'b', 't'];
+  const index = Math.floor(Math.log10(absNumber) / 3);
+  if (index < 0) return value.toString(); // Less than 1000, no abbreviation
+  const suffix = abbreviations[Math.min(index - 1, abbreviations.length)] ?? '';
+  const scaledNumber = value / Math.pow(10, index * 3);
+  return formatNumberWithDynamicDecimalPoints(scaledNumber) + suffix;
+}
+
+/**
  * Rounds to 2 decimal digits without forcing trailing zeros
  * Will preserve significant decimals for very small numbers
  * e.g. 0.0001234 -> 0.00012

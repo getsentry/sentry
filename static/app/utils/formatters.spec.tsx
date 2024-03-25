@@ -2,6 +2,7 @@ import {RateUnit} from 'sentry/utils/discover/fields';
 import {
   DAY, // ms in day
   formatAbbreviatedNumber,
+  formatAbbreviatedNumberWithDynamicDecimalPoints,
   formatFloat,
   formatNumberWithDynamicDecimalPoints,
   formatPercentage,
@@ -222,6 +223,32 @@ describe('formatAbbreviatedNumber()', function () {
     expect(formatAbbreviatedNumber('1249.23421', 3)).toBe('1.25k');
     expect(formatAbbreviatedNumber('1239567891299', 3)).toBe('1240b');
     expect(formatAbbreviatedNumber('158.80421626984128', 3)).toBe('159');
+  });
+});
+
+describe('formatAbbreviatedNumberWithDynamicDecimalPoints()', function () {
+  it('should abbreviate numbers', function () {
+    expect(formatAbbreviatedNumberWithDynamicDecimalPoints(0)).toBe('0');
+    expect(formatAbbreviatedNumberWithDynamicDecimalPoints(100)).toBe('100');
+    expect(formatAbbreviatedNumberWithDynamicDecimalPoints(1000)).toBe('1k');
+    expect(formatAbbreviatedNumberWithDynamicDecimalPoints(10000000)).toBe('10m');
+    expect(formatAbbreviatedNumberWithDynamicDecimalPoints(100000000000)).toBe('100b');
+    expect(formatAbbreviatedNumberWithDynamicDecimalPoints(1000000000000)).toBe('1t');
+  });
+
+  it('should abbreviate numbers that are strings', function () {
+    expect(formatAbbreviatedNumberWithDynamicDecimalPoints('00')).toBe('0');
+    expect(formatAbbreviatedNumberWithDynamicDecimalPoints('100')).toBe('100');
+    expect(formatAbbreviatedNumberWithDynamicDecimalPoints('1000')).toBe('1k');
+    expect(formatAbbreviatedNumberWithDynamicDecimalPoints('10000000')).toBe('10m');
+    expect(formatAbbreviatedNumberWithDynamicDecimalPoints('100000000000')).toBe('100b');
+    expect(formatAbbreviatedNumberWithDynamicDecimalPoints('1000000000000')).toBe('1t');
+  });
+
+  it('should round to two decimal points without forcing them', function () {
+    expect(formatAbbreviatedNumberWithDynamicDecimalPoints(100.12)).toBe('100.12');
+    expect(formatAbbreviatedNumberWithDynamicDecimalPoints(1500)).toBe('1.5k');
+    expect(formatAbbreviatedNumberWithDynamicDecimalPoints(1213122)).toBe('1.21m');
   });
 });
 

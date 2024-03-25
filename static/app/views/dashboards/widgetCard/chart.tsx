@@ -438,7 +438,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
               return axisLabelFormatterUsingAggregateOutputType(
                 value,
                 outputType,
-                undefined,
+                true,
                 durationUnit
               );
             }

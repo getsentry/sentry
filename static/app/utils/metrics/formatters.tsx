@@ -3,6 +3,7 @@ import type {MetricType} from 'sentry/types/metrics';
 import {defined, formatBytesBase2, formatBytesBase10} from 'sentry/utils';
 import {
   DAY,
+  formatAbbreviatedNumberWithDynamicDecimalPoints,
   formatNumberWithDynamicDecimalPoints,
   HOUR,
   MICROSECOND,
@@ -258,7 +259,7 @@ export function formatMetricUsingUnit(value: number | null, unit: string) {
       return formatBytesBase10(value, 6);
     case 'none':
     default:
-      return value.toLocaleString();
+      return formatAbbreviatedNumberWithDynamicDecimalPoints(value);
   }
 }
 
@@ -287,7 +288,7 @@ export function formatMetricsUsingUnitAndOp(
 ) {
   if (operation === 'count') {
     // if the operation is count, we want to ignore the unit and always format the value as a number
-    return value?.toLocaleString() ?? '';
+    return value ? formatAbbreviatedNumberWithDynamicDecimalPoints(value) : '';
   }
   return formatMetricUsingUnit(value, unit);
 }
