@@ -906,8 +906,11 @@ export class VirtualizedViewManager {
     );
   }
 
-  computeRelativeLeftPositionFromOrigin(timestamp: number, node_space: [number, number]) {
-    return (timestamp - node_space[0]) / node_space[1];
+  computeRelativeLeftPositionFromOrigin(
+    timestamp: number,
+    entire_space: [number, number]
+  ) {
+    return (timestamp - entire_space[0]) / entire_space[1];
   }
 
   recomputeTimelineIntervals() {
