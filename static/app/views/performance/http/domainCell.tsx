@@ -33,10 +33,10 @@ export function DomainCell({projectId, domain}: Props) {
   };
 
   return (
-    <OverflowEllipsisTextContainer>
-      <DomainDescription>
-        {project && <ProjectAvatar project={project} />}
+    <DomainDescription>
+      {project && <ProjectAvatar project={project} />}
 
+      <OverflowEllipsisTextContainer>
         <Link
           to={normalizeUrl(
             `/organizations/${organization.slug}/performance/http/domains/?${qs.stringify(queryString)}`
@@ -44,15 +44,16 @@ export function DomainCell({projectId, domain}: Props) {
         >
           {domain}
         </Link>
-      </DomainDescription>
-    </OverflowEllipsisTextContainer>
+      </OverflowEllipsisTextContainer>
+    </DomainDescription>
   );
 }
 
 const DomainDescription = styled('div')`
   display: flex;
+  flex-wrap: nowrap;
   gap: ${space(1)};
-  justify-content: center;
+  align-items: center;
 `;
 
 const NULL_DESCRIPTION = <span>&lt;null&gt;</span>;
