@@ -2595,13 +2595,13 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
     def test_performance_score(self):
         self.store_transaction_metric(
             0.03,
-            metric="measurements.score.lcp",
+            metric="measurements.score.ttfb",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
         self.store_transaction_metric(
             0.30,
-            metric="measurements.score.weight.lcp",
+            metric="measurements.score.weight.ttfb",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
@@ -2626,18 +2626,18 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         self.store_transaction_metric(
             1.00,
-            metric="measurements.score.lcp",
+            metric="measurements.score.ttfb",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
         self.store_transaction_metric(
             1.00,
-            metric="measurements.score.weight.lcp",
+            metric="measurements.score.weight.ttfb",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
         self.store_transaction_metric(
-            0.00,
+            1.00,
             metric="measurements.score.fid",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
@@ -2650,7 +2650,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             timestamp=self.min_ago,
         )
         self.store_transaction_metric(
-            1.00,
+            0.00,
             metric="measurements.score.ttfb",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
@@ -2692,7 +2692,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {
                 "field": [
                     "transaction",
-                    "performance_score(measurements.score.lcp)",
                     "performance_score(measurements.score.fcp)",
                     "performance_score(measurements.score.fid)",
                     "performance_score(measurements.score.ttfb)",
@@ -2709,26 +2708,25 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         meta = response.data["meta"]
         field_meta = meta["fields"]
 
-        assert data[0]["performance_score(measurements.score.lcp)"] == 0.7923076923076923
         assert data[0]["performance_score(measurements.score.fcp)"] == 0.5
         assert data[0]["performance_score(measurements.score.fid)"] == 0
-        assert data[0]["performance_score(measurements.score.ttfb)"] == 0
+        assert data[0]["performance_score(measurements.score.ttfb)"] == 0.7923076923076923
         assert data[0]["performance_score(measurements.score.inp)"] == 0.8
 
         assert meta["isMetricsData"]
-        assert field_meta["performance_score(measurements.score.lcp)"] == "number"
+        assert field_meta["performance_score(measurements.score.ttfb)"] == "number"
 
     def test_performance_score_boundaries(self):
         # Scores shouldn't exceed 1 or go below 0, but we can test these boundaries anyways
         self.store_transaction_metric(
             0.65,
-            metric="measurements.score.lcp",
+            metric="measurements.score.ttfb",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
         self.store_transaction_metric(
             0.30,
-            metric="measurements.score.weight.lcp",
+            metric="measurements.score.weight.ttfb",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
@@ -2755,7 +2753,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {
                 "field": [
                     "transaction",
-                    "performance_score(measurements.score.lcp)",
+                    "performance_score(measurements.score.ttfb)",
                     "performance_score(measurements.score.fcp)",
                 ],
                 "query": "event.type:transaction",
@@ -2769,22 +2767,22 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         meta = response.data["meta"]
         field_meta = meta["fields"]
 
-        assert data[0]["performance_score(measurements.score.lcp)"] == 1.0
+        assert data[0]["performance_score(measurements.score.ttfb)"] == 1.0
         assert data[0]["performance_score(measurements.score.fcp)"] == 0.0
 
         assert meta["isMetricsData"]
-        assert field_meta["performance_score(measurements.score.lcp)"] == "number"
+        assert field_meta["performance_score(measurements.score.ttfb)"] == "number"
 
     def test_weighted_performance_score(self):
         self.store_transaction_metric(
             0.03,
-            metric="measurements.score.lcp",
+            metric="measurements.score.ttfb",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
         self.store_transaction_metric(
             0.30,
-            metric="measurements.score.weight.lcp",
+            metric="measurements.score.weight.ttfb",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
@@ -2797,13 +2795,13 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         self.store_transaction_metric(
             1.00,
-            metric="measurements.score.lcp",
+            metric="measurements.score.ttfb",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
         self.store_transaction_metric(
             1.00,
-            metric="measurements.score.weight.lcp",
+            metric="measurements.score.weight.ttfb",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
@@ -2829,7 +2827,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         )
         self.store_transaction_metric(
             1.00,
-            metric="measurements.score.weight.lcp",
+            metric="measurements.score.weight.inp",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
@@ -2844,7 +2842,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {
                 "field": [
                     "transaction",
-                    "weighted_performance_score(measurements.score.lcp)",
+                    "weighted_performance_score(measurements.score.ttfb)",
                     "weighted_performance_score(measurements.score.inp)",
                 ],
                 "query": "event.type:transaction",
@@ -2858,10 +2856,10 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         meta = response.data["meta"]
         field_meta = meta["fields"]
 
-        assert data[0]["weighted_performance_score(measurements.score.lcp)"] == 0.2575
-        assert data[0]["weighted_performance_score(measurements.score.inp)"] == 0.2
+        assert data[0]["weighted_performance_score(measurements.score.ttfb)"] == 0.3433333333333333
+        assert data[0]["weighted_performance_score(measurements.score.inp)"] == 0.26666666666666666
         assert meta["isMetricsData"]
-        assert field_meta["weighted_performance_score(measurements.score.lcp)"] == "number"
+        assert field_meta["weighted_performance_score(measurements.score.ttfb)"] == "number"
 
     def test_invalid_performance_score_column(self):
         self.store_transaction_metric(
@@ -2908,7 +2906,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
     def test_no_weighted_performance_score_column(self):
         self.store_transaction_metric(
             0.0,
-            metric="measurements.score.lcp",
+            metric="measurements.score.ttfb",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
@@ -2916,7 +2914,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {
                 "field": [
                     "transaction",
-                    "weighted_performance_score(measurements.score.lcp)",
+                    "weighted_performance_score(measurements.score.ttfb)",
                 ],
                 "query": "event.type:transaction",
                 "dataset": "metrics",
@@ -2930,20 +2928,20 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         meta = response.data["meta"]
         field_meta = meta["fields"]
 
-        assert data[0]["weighted_performance_score(measurements.score.lcp)"] == 0.0
+        assert data[0]["weighted_performance_score(measurements.score.ttfb)"] == 0.0
         assert meta["isMetricsData"]
-        assert field_meta["weighted_performance_score(measurements.score.lcp)"] == "number"
+        assert field_meta["weighted_performance_score(measurements.score.ttfb)"] == "number"
 
     def test_opportunity_score(self):
         self.store_transaction_metric(
             0.03,
-            metric="measurements.score.lcp",
+            metric="measurements.score.ttfb",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
         self.store_transaction_metric(
             0.30,
-            metric="measurements.score.weight.lcp",
+            metric="measurements.score.weight.ttfb",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
@@ -2968,13 +2966,13 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         self.store_transaction_metric(
             1.0,
-            metric="measurements.score.lcp",
+            metric="measurements.score.ttfb",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
         self.store_transaction_metric(
             1.0,
-            metric="measurements.score.weight.lcp",
+            metric="measurements.score.weight.ttfb",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
@@ -3015,7 +3013,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {
                 "field": [
                     "transaction",
-                    "opportunity_score(measurements.score.lcp)",
+                    "opportunity_score(measurements.score.ttfb)",
                     "opportunity_score(measurements.score.inp)",
                     "opportunity_score(measurements.score.total)",
                 ],
@@ -3029,7 +3027,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         data = response.data["data"]
         meta = response.data["meta"]
 
-        assert data[0]["opportunity_score(measurements.score.lcp)"] == 0.27
+        assert data[0]["opportunity_score(measurements.score.ttfb)"] == 0.27
         # Should be 0.2. Precision issue?
         assert data[0]["opportunity_score(measurements.score.inp)"] == 0.19999999999999996
         assert data[0]["opportunity_score(measurements.score.total)"] == 1.77
@@ -3063,7 +3061,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         )
         self.store_transaction_metric(
             0.5,
-            metric="measurements.score.lcp",
+            metric="measurements.score.ttfb",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
@@ -3079,7 +3077,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                 "field": [
                     "transaction",
                     "count_scores(measurements.score.total)",
-                    "count_scores(measurements.score.lcp)",
+                    "count_scores(measurements.score.ttfb)",
                     "count_scores(measurements.score.inp)",
                 ],
                 "query": "event.type:transaction",
@@ -3093,7 +3091,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         meta = response.data["meta"]
 
         assert data[0]["count_scores(measurements.score.total)"] == 4
-        assert data[0]["count_scores(measurements.score.lcp)"] == 1
+        assert data[0]["count_scores(measurements.score.ttfb)"] == 1
         assert data[0]["count_scores(measurements.score.inp)"] == 1
 
         assert meta["isMetricsData"]
