@@ -2,7 +2,7 @@ import logging
 import re
 from typing import Any
 
-from sentry.lang.java.utils import get_proguard_images
+from sentry.lang.java.utils import get_jvm_images, get_proguard_images
 from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.symbolicator import Symbolicator
 from sentry.models.eventerror import EventError
@@ -64,7 +64,6 @@ def _merge_frame(new_frame: dict[str, Any], symbolicated: dict[str, Any]):
 
 
 def _handles_frame(frame: dict[str, Any]) -> bool:
-    # Skip frames without function or module
     return "function" in frame and "module" in frame
 
 
@@ -148,8 +147,10 @@ def map_symbolicator_process_jvm_errors(
     return mapped_errors
 
 
-def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
-    modules = [{"uuid": id} for id in get_proguard_images(data)]
+def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any):
+    modules = []
+    modules.extend([{"uuid": id, "type": "proguard"} for id in get_proguard_images(data)])
+    modules.extend([{"uuid": id, "type": "source"} for id in get_jvm_images(data)])
 
     stacktrace_infos = find_stacktraces_in_data(data)
     stacktraces = [
@@ -181,7 +182,7 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     )
 
     if not _handle_response_status(data, response):
-        return data
+        return
 
     processing_errors = response.get("errors", [])
     if len(processing_errors) > 0:
@@ -218,5 +219,3 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     ):
         exception["type"] = complete_exception["type"]
         exception["module"] = complete_exception["module"]
-
-    return data
