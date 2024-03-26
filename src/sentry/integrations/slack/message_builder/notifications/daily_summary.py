@@ -152,24 +152,28 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
                     linked_title = self.linkify_error_title(error[0])
                     top_errors_text += f"• {linked_title}\n"
                 error_issue_fields.append(self.make_field(top_errors_text))
-
-            # Add escalated/regressed issues
-            if context.escalated_today or context.regressed_today:
-                issue_state_text = "*Issues that escalated or regressed today*\n"
-                if context.escalated_today:
-                    for escalated_issue in context.escalated_today:
-                        linked_title = self.linkify_error_title(escalated_issue)
-                        issue_state_text += f"• :point_up: {linked_title}\n"
-
-                if context.regressed_today:
-                    if not context.escalated_today:
-                        issue_state_text = "*Issues that escalated or regressed today*\n"
-                    for regressed_issue in context.regressed_today:
-                        linked_title = self.linkify_error_title(regressed_issue)
-                        issue_state_text += f"• :recycle: {linked_title}\n"
-
-                error_issue_fields.append(self.make_field(issue_state_text))
             blocks.append(self.get_section_fields_block(error_issue_fields))
+
+            # Add regressed and escalated issues
+            regressed_escalated_fields = []
+
+            if context.escalated_today:
+                escalated_issue_text = "*Issues that escalated today*\n"
+                for escalated_issue in context.escalated_today:
+                    linked_title = self.linkify_error_title(escalated_issue)
+                    escalated_issue_text += f"• :point_up: {linked_title}\n"
+                regressed_escalated_fields.append(self.make_field(escalated_issue_text))
+
+            if context.regressed_today:
+                regressed_issue_text = "*Issues that regressed today*\n"
+                for regressed_issue in context.regressed_today:
+                    linked_title = self.linkify_error_title(regressed_issue)
+                    regressed_issue_text += f"• :recycle: {linked_title}\n"
+
+                regressed_escalated_fields.append(self.make_field(regressed_issue_text))
+
+            if regressed_escalated_fields:
+                blocks.append(self.get_section_fields_block(regressed_escalated_fields))
 
             # Add performance data
             if context.key_performance_issues:
