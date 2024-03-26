@@ -222,6 +222,30 @@ def drain_mailbox_parallel(payload_id: int) -> None:
     request_failed = False
     delivered = 0
 
+    # Remove batches payloads that have been backlogged for MAX_DELIVERY_AGE.
+    # Once payloads are this old they are low value, and we're better off prioritizing new work.
+    max_age = timezone.now() - MAX_DELIVERY_AGE
+    if payload.date_added < max_age:
+        # We delete chunks of stale messages using a subquery
+        # because postgres cannot do delete with limit
+        stale_query = WebhookPayload.objects.filter(
+            id__gte=payload.id,
+            mailbox_name=payload.mailbox_name,
+            date_added__lte=timezone.now() - MAX_DELIVERY_AGE,
+        ).values("id")[:10000]
+        deleted, _ = WebhookPayload.objects.filter(id__in=stale_query).delete()
+        if deleted:
+            logger.info(
+                "deliver_webhook_parallel.max_age_discard",
+                extra={
+                    "mailbox_name": payload.mailbox_name,
+                    "deleted": deleted,
+                },
+            )
+            metrics.incr(
+                "hybridcloud.deliver_webhooks.delivery", amount=deleted, tags={"outcome": "max_age"}
+            )
+
     while True:
         current_time = timezone.now()
         # We have run until the end of our batch schedule delay. Break the loop so this worker can take another
@@ -247,19 +271,10 @@ def drain_mailbox_parallel(payload_id: int) -> None:
 
         # Use a threadpool to send requests concurrently
         with ThreadPoolExecutor(max_workers=worker_threads) as threadpool:
-            futures = []
-            for record in query[:worker_threads]:
-                if record.date_added < current_time - MAX_DELIVERY_AGE:
-                    # Payload was backlogged for MAX_DELIVERY_AGE. Discard it
-                    # so we can make progress on newer work. This also prevents a slow self-hosted
-                    # server from creating an ever increasing backlog.
-                    record.delete()
-                    metrics.incr(
-                        "hybridcloud.deliver_webhooks.delivery", tags={"outcome": "max_age"}
-                    )
-                    continue
-                futures.append(threadpool.submit(deliver_message_parallel, record))
-
+            futures = {
+                threadpool.submit(deliver_message_parallel, record)
+                for record in query[:worker_threads]
+            }
             for future in as_completed(futures):
                 payload_record, err = future.result()
 
