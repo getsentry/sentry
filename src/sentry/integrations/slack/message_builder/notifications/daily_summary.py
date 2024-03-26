@@ -39,7 +39,7 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
             params={"referrer": self.notification.get_referrer(ExternalProviders.SLACK)}
         )
         title = build_attachment_title(group)
-        attachment_text = self.get_attachment_text(group)
+        attachment_text = self.get_attachment_text(group).replace("\n", " ")
         if not attachment_text:
             return f"<{link}|*{escape_slack_text(title)}*>"
         return f"<{link}|*{escape_slack_text(title)}*>\n{attachment_text}"
