@@ -86,7 +86,7 @@ def get_initial_priority(group: Group) -> PriorityLevel | None:
     initial_priority = group.data.get("metadata", {}).get(
         "initial_priority", None
     ) or group.data.get("initial_priority", None)
-    return PriorityLevel(initial_priority)
+    return PriorityLevel(initial_priority) if initial_priority else None
 
 
 def get_priority_for_ongoing_group(group: Group) -> PriorityLevel | None:
