@@ -742,6 +742,56 @@ class DailySummaryTest(
 
     @responses.activate
     @with_feature("organizations:slack-block-kit")
+    def test_slack_notification_contents_newline_no_attachment_text(self):
+        data = {
+            "timestamp": iso_format(self.now),
+            "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+            "fingerprint": ["group-5"],
+            "exception": {
+                "values": [
+                    {
+                        "type": "WorkerLostError",
+                        "value": None,
+                    }
+                ]
+            },
+        }
+        self.store_event(
+            data=data,
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "project_id": self.project.id,
+                "outcome": Outcome.ACCEPTED,
+                "category": DataCategory.ERROR,
+                "timestamp": self.now,
+                "key_id": 1,
+            },
+            num_times=1,
+        )
+
+        ctx = build_summary_data(
+            timestamp=self.now.timestamp(),
+            duration=ONE_DAY,
+            organization=self.organization,
+            daily=True,
+        )
+        top_projects_context_map = build_top_projects_map(ctx, self.user.id)
+        with self.tasks():
+            DailySummaryNotification(
+                organization=ctx.organization,
+                recipient=self.user,
+                provider=ExternalProviders.SLACK,
+                project_context=top_projects_context_map,
+            ).send()
+        blocks, fallback_text = get_blocks_and_fallback_text()
+        assert "" in blocks[4]["fields"][0]["text"]
+
+    @responses.activate
+    @with_feature("organizations:slack-block-kit")
     def test_limit_to_two_projects(self):
         """Test that if we have data for more than 2 projects that we only show data for the top 2"""
         self.populate_event_data()
