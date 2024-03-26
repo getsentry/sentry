@@ -346,7 +346,6 @@ class DailySummaryTest(
                     resolve=False,
                     level="info",
                 )
-            for _ in range(3):
                 group2 = self.store_event_and_outcomes(
                     self.project.id,
                     self.now,
@@ -354,7 +353,6 @@ class DailySummaryTest(
                     category=DataCategory.ERROR,
                     resolve=False,
                 )
-            for _ in range(3):
                 group3 = self.store_event_and_outcomes(
                     self.project.id,
                     self.now,
