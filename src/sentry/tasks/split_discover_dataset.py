@@ -10,14 +10,13 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetTypes,
 )
 from sentry.search.events.builder import QueryBuilder
-from sentry.search.events.types import EventsResponse, ParamsType, QueryBuilderConfig
+from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.query import RangeQuerySetWrapper
-from sentry.utils.snuba import SnubaTSResult
 
 logger = logging.getLogger("sentry.tasks.split_discover_dataset")
 
@@ -61,13 +60,14 @@ class SplitDiscoverDatasetException(Exception):
 )
 def schedule_widget_discover_split():
     """
-    This task is a part of an effort to split the current "Errors and Transactions" widget that queries Discover,
-    into separate widgets for errors and transactions. This task checks if the widgets current data is sourced from
-    errors, transactions or both, and updates the split_discover_dataset field accordingly.
+    This task is a part of an effort to split the current "Errors and Transactions" widget
+    that queries Discover, into separate widgets for errors and transactions. This task checks
+    if the widgets current data is sourced from errors, transactions or both, and updates the
+    split_discover_dataset field accordingly.
 
-    It does not perform the actual migration of data, but only schedules the update of the split_discover_dataset
-    field which will be used to perform the actual migration from discover dataset to error or
-    transaction dataset in the future.
+    It does not perform the actual migration of data, but only schedules the update of the
+    split_discover_dataset field which will be used to perform the actual migration from
+    discover dataset to error or transaction dataset in the future.
 
     # Ops
     Killswitch option: `split_discover_dataset.enable`
@@ -134,7 +134,7 @@ def update_widget_discover_split(widget: DashboardWidget):
 
     now = datetime.datetime.now()
     yesterday = now - datetime.timedelta(days=1)
-    params = {
+    params: ParamsType = {
         "project_objects": widget.dashboard.projects.all(),
         "start": yesterday,
         "end": now,
@@ -157,7 +157,7 @@ def update_widget_discover_split(widget: DashboardWidget):
 
 
 def get_widget_data(widget: DashboardWidget, params: ParamsType, event_type: str | None = None):
-    widget_query = DashboardWidgetQuery.objects.get(widget_id=widget)
+    widget_query = DashboardWidgetQuery.objects.filter(widget_id=widget).order_by("id").first()
 
     conditions = widget_query.conditions
     if event_type:
@@ -188,21 +188,19 @@ def compare_results(original_data, error_data, transaction_data) -> tuple[bool, 
     error_data_match, transaction_data_match = True, True
     for (o, e, t) in zip(original_data["data"], error_data["data"], transaction_data["data"]):
         for column in o:
-            if not is_datapoint_close(o[column], e.get(column, -1), threshold):
+            if not is_datapoint_close(o[column], e.get(column, float("inf")), threshold):
                 error_data_match = False
-            if not is_datapoint_close(o[column], t.get(column, -1), threshold):
+            if not is_datapoint_close(o[column], t.get(column, float("inf")), threshold):
                 transaction_data_match = False
 
     return error_data_match, transaction_data_match
 
 
-def is_datapoint_close(a: int, b: int, threshold: float) -> bool:
+def is_datapoint_close(a: float, b: float, threshold: float) -> bool:
     return abs((a - b) / a) < threshold
 
 
-def get_split_decision(
-    error_data_match: bool, transaction_data_match: bool
-) -> DashboardWidgetTypes | None:
+def get_split_decision(error_data_match: bool, transaction_data_match: bool):
     if error_data_match and not transaction_data_match:
         decision = DashboardWidgetTypes.ERROR_EVENTS
     elif not error_data_match and transaction_data_match:
@@ -213,26 +211,3 @@ def get_split_decision(
         decision = None
     sentry_sdk.set_tag("split_decision", decision)
     return decision
-
-
-def flatten_results(results: SnubaTSResult | dict[str, SnubaTSResult]):
-    if isinstance(results, SnubaTSResult):
-        return results.data["data"]
-
-    return sum(
-        [timeseries_result.data["data"] for timeseries_result in results.values()],
-        [],
-    )
-
-
-def check_if_results_have_data(results: EventsResponse | dict[str, SnubaTSResult]):
-    data = results.get("data", [{}])
-    # sum up values of dicts in list
-    acc = 0
-    for d in data:
-        for key in d:
-            val = d[key]
-            if isinstance(val, (int, float)):
-                acc += d[key]
-
-    return acc > 0
