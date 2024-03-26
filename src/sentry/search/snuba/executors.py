@@ -5,7 +5,7 @@ import logging
 import time
 from abc import ABCMeta, abstractmethod
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from hashlib import md5
 from math import floor
@@ -1149,18 +1149,17 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
 
     sort_strategies = {
         "date": "last_seen",
-        "freq": "times_seen",
         "new": "first_seen",
-        "trends": "trends",
-        "user": "user_count",
-        # We don't need a corresponding snuba field here, since this sort only happens
-        # in Postgres
-        "inbox": "",
     }
 
     sort_defs = {
         "first_seen": first_seen,
         "last_seen": last_seen_aggregation,
+    }
+
+    column_sort_mapping = {
+        "new": "g.group_first_seen",
+        "date": "score",
     }
 
     def calculate_start_end(
@@ -1318,15 +1317,8 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 request, referrer="search.snuba.group_attributes_search.hits"
             )["data"][0]["count"]
 
-        def get_sort_val(row):
-            if sort_by == "new":
-                return row["g.group_first_seen"]
-            # default is sort by the score
-            return row["score"]
-
-        paginator_options = paginator_options or {}
         paginator_results = SequencePaginator(
-            [(get_sort_val(row), row["g.group_id"]) for row in data],
+            [(row[self.column_sort_mapping[sort_by]], row["g.group_id"]) for row in data],
             reverse=True,
             **paginator_options,
         ).get_result(limit, cursor, known_hits=hits, max_hits=max_hits)
