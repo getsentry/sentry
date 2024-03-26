@@ -53,7 +53,7 @@ class APIIdOrSlugPathParamTest(BaseTestCase, TestCase):
                 url_pattern = base + str(pattern.pattern).replace("^", "").replace(
                     "$", ""
                 )  # Clean up pattern string
-                callback = pattern.callback  # This can be a function or a class
+                callback = pattern.callback
                 if hasattr(callback, "view_class"):
                     callback = callback.view_class
                     yield (url_pattern, callback)
