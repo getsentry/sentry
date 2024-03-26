@@ -223,12 +223,8 @@ def test_consumer_writes_to_dlq(
     dlq_consumer = ConfluentConsumer(
         {
             "bootstrap.servers": "127.0.0.1:9092",
-            "log_level": 6,
-            "enable.auto.commit": False,
-            "enable.auto.offset.store": False,
             "group.id": get_random_group_id(),
             "auto.offset.reset": "earliest",
-            "enable.partition.eof": False,
         }
     )
     dlq_consumer.subscribe([dlq_topic_name])
