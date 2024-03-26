@@ -89,7 +89,7 @@ def generate_restricted_fieldset(
     """Return only the fields requested by the client."""
     if fields:
         for item in response:
-            yield {field: item[field] for field in fields}  # type: ignore
+            yield {field: item[field] for field in fields}  # type: ignore[literal-required, misc]
     else:
         yield from response
 
@@ -107,7 +107,7 @@ def generate_normalized_output(
     for item in response:
         ret_item: ReplayDetailsResponse = {}
         if item["isArchived"]:
-            yield _archived_row(item["replay_id"], item["project_id"])  # type: ignore
+            yield _archived_row(item["replay_id"], item["project_id"])  # type: ignore[misc]
             continue
 
         ret_item["id"] = _strip_dashes(item.pop("replay_id", None))

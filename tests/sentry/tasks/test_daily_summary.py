@@ -592,7 +592,7 @@ class DailySummaryTest(
                 project_context=top_projects_context_map,
             ).send()
         blocks, fallback_text = get_blocks_and_fallback_text()
-        link_text = "http://testserver/organizations/baz/issues/{}/?referrer=slack"
+        link_text = "http://testserver/organizations/baz/issues/{}/?referrer=daily_summary-slack"
         assert (
             fallback_text
             == f"Daily Summary for Your {self.organization.slug.title()} Projects (internal only!!!)"
@@ -633,6 +633,10 @@ class DailySummaryTest(
         assert link_text.format(self.group4.id) in blocks[10]["fields"][0]["text"]
         # check footer
         assert "Getting this at a funky time?" in blocks[12]["elements"][0]["text"]
+        assert (
+            "<http://testserver/settings/account/|*Account Settings*>"
+            in blocks[12]["elements"][0]["text"]
+        )
 
     @responses.activate
     @with_feature("organizations:slack-block-kit")
@@ -681,6 +685,60 @@ class DailySummaryTest(
             in blocks[3]["fields"][0]["text"]
         )
         assert "higher than last 14d avg" in blocks[3]["fields"][1]["text"]
+
+    @responses.activate
+    @with_feature("organizations:slack-block-kit")
+    def test_slack_notification_contents_newline(self):
+        type_string = '"""\nTraceback (most recent call last):\nFile /\'/usr/hb/meow/\''
+        data = {
+            "timestamp": iso_format(self.now),
+            "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+            "fingerprint": ["group-5"],
+            "exception": {
+                "values": [
+                    {
+                        "type": "WorkerLostError",
+                        "value": type_string,
+                    }
+                ]
+            },
+        }
+        self.store_event(
+            data=data,
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "project_id": self.project.id,
+                "outcome": Outcome.ACCEPTED,
+                "category": DataCategory.ERROR,
+                "timestamp": self.now,
+                "key_id": 1,
+            },
+            num_times=1,
+        )
+
+        ctx = build_summary_data(
+            timestamp=self.now.timestamp(),
+            duration=ONE_DAY,
+            organization=self.organization,
+            daily=True,
+        )
+        top_projects_context_map = build_top_projects_map(ctx, self.user.id)
+        with self.tasks():
+            DailySummaryNotification(
+                organization=ctx.organization,
+                recipient=self.user,
+                provider=ExternalProviders.SLACK,
+                project_context=top_projects_context_map,
+            ).send()
+        blocks, fallback_text = get_blocks_and_fallback_text()
+        assert (
+            '""" Traceback (most recent call last): File /\'/us...'
+            in blocks[4]["fields"][0]["text"]
+        )
 
     @responses.activate
     @with_feature("organizations:slack-block-kit")
@@ -765,7 +823,7 @@ class DailySummaryTest(
                 project_context=top_projects_context_map,
             ).send()
         blocks, fallback_text = get_blocks_and_fallback_text()
-        link_text = "http://testserver/organizations/baz/issues/{}/?referrer=slack"
+        link_text = "http://testserver/organizations/baz/issues/{}/?referrer=daily_summary-slack"
         # check the today's event count section
         assert "*Today’s Event Count*" in blocks[3]["fields"][0]["text"]
         assert "higher than last 14d avg" in blocks[3]["fields"][1]["text"]
@@ -813,7 +871,7 @@ class DailySummaryTest(
                 project_context=top_projects_context_map,
             ).send()
         blocks, fallback_text = get_blocks_and_fallback_text()
-        link_text = "http://testserver/organizations/baz/issues/{}/?referrer=slack"
+        link_text = "http://testserver/organizations/baz/issues/{}/?referrer=daily_summary-slack"
         assert f"*{self.project.slug}*" in blocks[2]["text"]["text"]
         # check the today's event count section
         assert "*Today’s Event Count*" in blocks[3]["fields"][0]["text"]

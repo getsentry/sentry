@@ -9,7 +9,7 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Checkbox from 'sentry/components/checkbox';
 import Pagination from 'sentry/components/pagination';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import SearchBar from 'sentry/components/searchBar';
 import Text from 'sentry/components/text';
