@@ -1,4 +1,3 @@
-import inspect
 import re
 from collections.abc import Callable, Generator
 from typing import Any
@@ -8,6 +7,7 @@ from django.test import TestCase
 from django.urls import URLPattern, URLResolver
 from django.urls.resolvers import get_resolver
 
+from sentry.api.bases.doc_integrations import DocIntegrationBaseEndpoint
 from sentry.testutils.cases import BaseTestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import no_silo_test
@@ -22,7 +22,7 @@ class APIIdOrSlugPathParamTest(BaseTestCase, TestCase):
         self.doc_integration = self.create_doc_integration()
 
         self.convert_args_setup_registry: dict[Any, Callable] = {
-            "DocIntegrationBaseEndpoint": self.doc_integration_test,
+            DocIntegrationBaseEndpoint.convert_args: self.doc_integration_test,
         }
 
         self.slug_mappings = {
@@ -33,7 +33,7 @@ class APIIdOrSlugPathParamTest(BaseTestCase, TestCase):
             "doc_integration": self.doc_integration,
         }
 
-        self.other_mappings = {}
+        self.no_slugs_in_kwargs_allowlist = {}
 
     def extract_slug_path_params(self, path: str) -> list[str]:
         """
@@ -76,18 +76,11 @@ class APIIdOrSlugPathParamTest(BaseTestCase, TestCase):
                     callback = callback.view_class
                     yield (url_pattern, callback)
 
-    def get_registry_key(self, obj):
-        """
-        Finds the name of the class that defines the given method.
-        """
-        for cls in inspect.getmro(obj.__class__):
-            if "convert_args" in cls.__dict__:
-                return cls.__name__
-        return None
-
     @patch("sentry.api.bases.doc_integrations.DocIntegrationBaseEndpoint.check_object_permissions")
     @override_options({"api.id-or-slug-enabled": True})
-    def doc_integration_test(self, endpoint_class, slug_params, other_params, *args):
+    def doc_integration_test(
+        self, endpoint_class, slug_params, other_params, check_no_slugs_in_kwargs, *args
+    ):
 
         slug_kwargs = {param: self.slug_mappings[param].slug for param in slug_params}
         id_kwargs = {param: self.slug_mappings[param].id for param in slug_params}
@@ -98,6 +91,9 @@ class APIIdOrSlugPathParamTest(BaseTestCase, TestCase):
 
         _, converted_slugs = endpoint_class().convert_args(request=None, **slug_kwargs)
         _, converted_ids = endpoint_class().convert_args(request=None, **id_kwargs)
+
+        if check_no_slugs_in_kwargs:
+            assert not any(str.endswith(param, "_slug") for param in converted_ids)
 
         assert converted_slugs == converted_ids
         assert all(
@@ -114,6 +110,9 @@ class APIIdOrSlugPathParamTest(BaseTestCase, TestCase):
             if path_params:
                 other_params = self.extract_other_path_params(pattern)
                 if path_params == ["doc_integration_slug"]:
-                    self.convert_args_setup_registry[
-                        self.get_registry_key(callback().convert_args.__self__)
-                    ](callback, path_params, other_params)
+                    check_no_slugs_in_kwargs = (
+                        callback.convert_args not in self.no_slugs_in_kwargs_allowlist
+                    )
+                    self.convert_args_setup_registry[callback.convert_args](
+                        callback, path_params, other_params, check_no_slugs_in_kwargs
+                    )
