@@ -536,6 +536,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         # Create 30 contributing frames, 1-30 -> last 20 should be included
         data_frames["app"]["component"]["values"][0]["values"][0]["values"] = self.create_frames(
             30, True
+        )
         # Create 20 non-contributing frames, 31-50 -> none should be included
         data_frames["app"]["component"]["values"][0]["values"][0]["values"] += self.create_frames(
             20, False, 31
