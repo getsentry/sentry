@@ -94,6 +94,7 @@ from sentry.testutils.silo import assume_test_silo_mode_of, region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
+from sentry.types.group import PriorityLevel
 from sentry.usage_accountant import accountant
 from sentry.utils import json
 from sentry.utils.cache import cache_key_for_event
@@ -2290,6 +2291,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 "location": "/books/",
                 "title": "N+1 Query",
                 "value": description,
+                "initial_priority": PriorityLevel.LOW,
             }
             assert (
                 event.search_message
@@ -2365,6 +2367,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 "location": "/books/",
                 "title": "N+1 Query",
                 "value": "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
+                "initial_priority": PriorityLevel.LOW,
             }
             assert group.location() == "/books/"
             assert group.message == "nope"
