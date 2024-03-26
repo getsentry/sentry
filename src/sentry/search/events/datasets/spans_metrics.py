@@ -490,7 +490,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     ],
                     calculated_args=[resolve_metric_id],
                     snql_distribution=self._resolve_regression_score,
-                    default_result_type="integer",
+                    default_result_type="number",
                 ),
             ]
         }
@@ -842,7 +842,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     ],
                 ),
             ],
-            "regression_score",
+            alias,
         )
 
     def _resolve_throughput_cond(

@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import pytest
 from django.urls import reverse
 
@@ -1080,6 +1082,56 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         meta = response.data["meta"]
         assert meta["dataset"] == "spansMetrics"
         assert meta["fields"]["http_response_rate(200)"] == "percentage"
+
+    def test_regression_score(self):
+        # This span increases in duration
+        self.store_span_metric(
+            1,
+            timestamp=self.six_min_ago,
+            tags={"transaction": "foo", "span.description": "Regressed Span"},
+            project=self.project.id,
+        )
+        self.store_span_metric(
+            100,
+            timestamp=self.min_ago,
+            tags={"transaction": "foo", "span.description": "Regressed Span"},
+            project=self.project.id,
+        )
+
+        # This span stays the same
+        self.store_span_metric(
+            1,
+            timestamp=self.three_days_ago,
+            tags={"transaction": "foo", "span.description": "Non-regressed"},
+            project=self.project.id,
+        )
+        self.store_span_metric(
+            1,
+            timestamp=self.min_ago,
+            tags={"transaction": "foo", "span.description": "Non-regressed"},
+            project=self.project.id,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "span.description",
+                    f"regression_score(span.self_time,{int(self.two_min_ago.timestamp())})",
+                ],
+                "query": "transaction:foo",
+                "dataset": "spansMetrics",
+                "orderby": [
+                    f"-regression_score(span.self_time,{int(self.two_min_ago.timestamp())})"
+                ],
+                "start": (self.six_min_ago - timedelta(minutes=1)).isoformat(),
+                "end": before_now(minutes=0),
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 2
+        assert [row["span.description"] for row in data] == ["Regressed Span", "Non-regressed"]
 
 
 @region_silo_test
