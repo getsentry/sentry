@@ -887,7 +887,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         alias: str | None,
         cond: str,
     ) -> SelectType:
-        return Function(
+        conditional_aggregate = Function(
             "avgIf",
             [
                 Column("value"),
@@ -904,6 +904,14 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         Function(cond, [Column("timestamp"), args["timestamp"]]),
                     ],
                 ),
+            ],
+        )
+        return Function(
+            "if",
+            [
+                Function("isNaN", [conditional_aggregate]),
+                0,
+                conditional_aggregate,
             ],
             alias,
         )

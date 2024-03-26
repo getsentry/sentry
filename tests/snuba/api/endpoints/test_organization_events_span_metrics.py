@@ -1083,18 +1083,18 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert meta["dataset"] == "spansMetrics"
         assert meta["fields"]["http_response_rate(200)"] == "percentage"
 
-    def test_regression_score(self):
+    def test_regression_score_regression(self):
         # This span increases in duration
         self.store_span_metric(
             1,
             timestamp=self.six_min_ago,
-            tags={"transaction": "foo", "span.description": "Regressed Span"},
+            tags={"transaction": "/api/0/projects/", "span.description": "Regressed Span"},
             project=self.project.id,
         )
         self.store_span_metric(
             100,
             timestamp=self.min_ago,
-            tags={"transaction": "foo", "span.description": "Regressed Span"},
+            tags={"transaction": "/api/0/projects/", "span.description": "Regressed Span"},
             project=self.project.id,
         )
 
@@ -1102,13 +1102,13 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         self.store_span_metric(
             1,
             timestamp=self.three_days_ago,
-            tags={"transaction": "foo", "span.description": "Non-regressed"},
+            tags={"transaction": "/api/0/projects/", "span.description": "Non-regressed"},
             project=self.project.id,
         )
         self.store_span_metric(
             1,
             timestamp=self.min_ago,
-            tags={"transaction": "foo", "span.description": "Non-regressed"},
+            tags={"transaction": "/api/0/projects/", "span.description": "Non-regressed"},
             project=self.project.id,
         )
 
@@ -1118,7 +1118,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                     "span.description",
                     f"regression_score(span.self_time,{int(self.two_min_ago.timestamp())})",
                 ],
-                "query": "transaction:foo",
+                "query": "transaction:/api/0/projects/",
                 "dataset": "spansMetrics",
                 "orderby": [
                     f"-regression_score(span.self_time,{int(self.two_min_ago.timestamp())})"
@@ -1132,6 +1132,94 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         data = response.data["data"]
         assert len(data) == 2
         assert [row["span.description"] for row in data] == ["Regressed Span", "Non-regressed"]
+
+    def test_regression_score_added_span(self):
+        # This span only exists after the breakpoint
+        self.store_span_metric(
+            100,
+            timestamp=self.min_ago,
+            tags={"transaction": "/api/0/projects/", "span.description": "Added span"},
+            project=self.project.id,
+        )
+
+        # This span stays the same
+        self.store_span_metric(
+            1,
+            timestamp=self.three_days_ago,
+            tags={"transaction": "/api/0/projects/", "span.description": "Non-regressed"},
+            project=self.project.id,
+        )
+        self.store_span_metric(
+            1,
+            timestamp=self.min_ago,
+            tags={"transaction": "/api/0/projects/", "span.description": "Non-regressed"},
+            project=self.project.id,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "span.description",
+                    f"regression_score(span.self_time,{int(self.two_min_ago.timestamp())})",
+                ],
+                "query": "transaction:/api/0/projects/",
+                "dataset": "spansMetrics",
+                "orderby": [
+                    f"-regression_score(span.self_time,{int(self.two_min_ago.timestamp())})"
+                ],
+                "start": (self.six_min_ago - timedelta(minutes=1)).isoformat(),
+                "end": before_now(minutes=0),
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 2
+        assert [row["span.description"] for row in data] == ["Added span", "Non-regressed"]
+
+    def test_regression_score_removed_span(self):
+        # This span only exists before the breakpoint
+        self.store_span_metric(
+            100,
+            timestamp=self.six_min_ago,
+            tags={"transaction": "/api/0/projects/", "span.description": "Removed span"},
+            project=self.project.id,
+        )
+
+        # This span stays the same
+        self.store_span_metric(
+            1,
+            timestamp=self.three_days_ago,
+            tags={"transaction": "/api/0/projects/", "span.description": "Non-regressed"},
+            project=self.project.id,
+        )
+        self.store_span_metric(
+            1,
+            timestamp=self.min_ago,
+            tags={"transaction": "/api/0/projects/", "span.description": "Non-regressed"},
+            project=self.project.id,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "span.description",
+                    f"regression_score(span.self_time,{int(self.two_min_ago.timestamp())})",
+                ],
+                "query": "transaction:/api/0/projects/",
+                "dataset": "spansMetrics",
+                "orderby": [
+                    f"-regression_score(span.self_time,{int(self.two_min_ago.timestamp())})"
+                ],
+                "start": (self.six_min_ago - timedelta(minutes=1)).isoformat(),
+                "end": before_now(minutes=0),
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 2
+        assert [row["span.description"] for row in data] == ["Non-regressed", "Removed span"]
 
 
 @region_silo_test
