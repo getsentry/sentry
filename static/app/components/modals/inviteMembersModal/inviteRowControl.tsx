@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import type {MultiValueProps} from 'react-select';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
@@ -63,6 +63,19 @@ function InviteRowControl({
 
   const theme = useTheme();
 
+  const isTeamRolesAllowed = useMemo(() => {
+    const selectedRoleOptions = roleOptions.find(roleOption => roleOption.id === role);
+    return selectedRoleOptions?.isTeamRolesAllowed ?? true;
+  }, [role, roleOptions]);
+
+  useEffect(() => {
+    // If a role is chosen which cannot select teams, we must signal to update the parent's state
+    // to reflect this
+    if (!isTeamRolesAllowed) {
+      onChangeTeams([]);
+    }
+  }, [onChangeTeams, role, isTeamRolesAllowed]);
+
   const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
     switch (event.key) {
       case 'Enter':
@@ -119,9 +132,9 @@ function InviteRowControl({
       <TeamSelector
         aria-label={t('Add to Team')}
         data-test-id="select-teams"
-        disabled={disabled}
-        placeholder={t('None')}
-        value={teams}
+        disabled={isTeamRolesAllowed ? disabled : true}
+        placeholder={isTeamRolesAllowed ? t('None') : t('Role cannot apply to teams')}
+        value={isTeamRolesAllowed ? teams : []}
         onChange={onChangeTeams}
         useTeamDefaultIfOnlyOne
         multiple
