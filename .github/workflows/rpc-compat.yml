@@ -25,4 +25,7 @@ jobs:
           sentry rpcschema --canned >> ${GITHUB_OUTPUT}
       - name: Invoke oasdiff on two outputs
         run: |
-          docker ...
+          docker run --rm -t \
+            -v $(tmpdir):/sentry-rpc-schemas:ro \
+            tufin/oasdiff breaking /sentry-rpc-schemas/old.json /sentry-rpc-schemas/new.json
+        # TODO: Read output; translate into pass/fail for the job
