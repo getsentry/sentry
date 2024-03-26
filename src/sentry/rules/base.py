@@ -53,8 +53,8 @@ CallbackFuture = namedtuple("CallbackFuture", ["callback", "kwargs", "key"])
 
 class RuleBase(abc.ABC):
     form_cls: type[forms.Form] = None  # type: ignore[assignment]
-
     logger = logging.getLogger("sentry.rules")
+    should_show_rule: Callable[[], bool] | None = None
 
     def __init__(
         self,
@@ -108,6 +108,12 @@ class RuleBase(abc.ABC):
         self, condition_activity: ConditionActivity, event_map: dict[str, Any]
     ) -> bool:
         raise NotImplementedError
+
+    @property
+    def include_rule(self) -> bool:
+        if self.should_show_rule:
+            return self.should_show_rule()
+        return True
 
 
 class EventState:
