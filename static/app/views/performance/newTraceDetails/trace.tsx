@@ -102,7 +102,9 @@ function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
 }
 
 const COUNT_FORMATTER = Intl.NumberFormat(undefined, {notation: 'compact'});
-const NO_ERRORS = [];
+const NO_ERRORS = new Set<TraceError>();
+const NO_PERFORMANCE_ISSUES = new Set<TracePerformanceIssue>();
+const NO_PROFILES = [];
 
 interface RovingTabIndexState {
   index: number | null;
@@ -928,8 +930,8 @@ function RenderRow(props: {
             manager={props.manager}
             color={makeTraceNodeBarColor(props.theme, props.node)}
             node_space={props.node.space}
-            errors={props.node.value.errors}
-            performance_issues={props.node.value.performance_issues}
+            errors={props.node.errors}
+            performance_issues={props.node.performance_issues}
             profiles={props.node.profiles}
           />
           <button
@@ -949,8 +951,7 @@ function RenderRow(props: {
   }
 
   if (isSpanNode(props.node)) {
-    const errored =
-      props.node.errors.length > 0 || props.node.performance_issues.length > 0;
+    const errored = props.node.errors.size > 0 || props.node.performance_issues.size > 0;
     return (
       <div
         key={props.index}
@@ -1046,7 +1047,7 @@ function RenderRow(props: {
             node_space={props.node.space}
             errors={props.node.errors}
             performance_issues={props.node.performance_issues}
-            profiles={NO_ERRORS}
+            profiles={NO_PROFILES}
           />
           <button
             ref={ref =>
@@ -1121,8 +1122,8 @@ function RenderRow(props: {
             manager={props.manager}
             color={makeTraceNodeBarColor(props.theme, props.node)}
             node_space={props.node.space}
-            performance_issues={NO_ERRORS}
-            profiles={NO_ERRORS}
+            performance_issues={NO_PERFORMANCE_ISSUES}
+            profiles={NO_PROFILES}
             errors={NO_ERRORS}
           />
           <button
@@ -1209,8 +1210,8 @@ function RenderRow(props: {
             color={makeTraceNodeBarColor(props.theme, props.node)}
             node_space={props.node.space}
             errors={NO_ERRORS}
-            performance_issues={NO_ERRORS}
-            profiles={NO_ERRORS}
+            performance_issues={NO_PERFORMANCE_ISSUES}
+            profiles={NO_PROFILES}
           />
           <button
             ref={ref =>
@@ -1457,10 +1458,10 @@ function ChildrenButton(props: {
 
 interface TraceBarProps {
   color: string;
-  errors: TraceTreeNode<TraceTree.Transaction>['value']['errors'];
+  errors: TraceTreeNode<TraceTree.Transaction>['errors'];
   manager: VirtualizedViewManager;
   node_space: [number, number] | null;
-  performance_issues: TraceTreeNode<TraceTree.Transaction>['value']['performance_issues'];
+  performance_issues: TraceTreeNode<TraceTree.Transaction>['performance_issues'];
   profiles: TraceTreeNode<TraceTree.NodeValue>['profiles'];
   virtualized_index: number;
 }
@@ -1500,14 +1501,14 @@ function TraceBar(props: TraceBarProps) {
             manager={props.manager}
           />
         ) : null}
-        {props.errors.length > 0 ? (
+        {props.errors.size > 0 ? (
           <Errors
             node_space={props.node_space}
             errors={props.errors}
             manager={props.manager}
           />
         ) : null}
-        {props.performance_issues.length > 0 ? (
+        {props.performance_issues.size > 0 ? (
           <PerformanceIssues
             node_space={props.node_space}
             performance_issues={props.performance_issues}
@@ -1575,13 +1576,21 @@ function InvisibleTraceBar(props: InvisibleTraceBarProps) {
 interface PerformanceIssuesProps {
   manager: VirtualizedViewManager;
   node_space: [number, number] | null;
-  performance_issues: TracePerformanceIssue[];
+  performance_issues: TraceTreeNode<TraceTree.Transaction>['performance_issues'];
 }
 
 function PerformanceIssues(props: PerformanceIssuesProps) {
+  const performance_issues = useMemo(() => {
+    return [...props.performance_issues];
+  }, [props.performance_issues]);
+
+  if (!props.performance_issues.size) {
+    return null;
+  }
+
   return (
     <Fragment>
-      {props.performance_issues.map((issue, _i) => {
+      {performance_issues.map((issue, _i) => {
         const timestamp = issue.start * 1e3;
         // Clamp the issue timestamp to the span's timestamp
         const left = props.manager.computeRelativeLeftPositionFromOrigin(
@@ -1614,19 +1623,23 @@ function PerformanceIssues(props: PerformanceIssuesProps) {
 }
 
 interface ErrorsProps {
-  errors: TraceError[];
+  errors: TraceTreeNode<TraceTree.Transaction>['errors'];
   manager: VirtualizedViewManager;
   node_space: [number, number] | null;
 }
 
 function Errors(props: ErrorsProps) {
-  if (!props.errors.length) {
+  const errors = useMemo(() => {
+    return [...props.errors];
+  }, [props.errors]);
+
+  if (!props.errors.size) {
     return null;
   }
 
   return (
     <Fragment>
-      {props.errors.map((error, _i) => {
+      {errors.map((error, _i) => {
         const timestamp = error.timestamp ? error.timestamp * 1e3 : props.node_space![0];
         // Clamp the error timestamp to the span's timestamp
         const left = props.manager.computeRelativeLeftPositionFromOrigin(
@@ -1693,10 +1706,10 @@ function Profiles(props: ProfilesProps) {
 interface AutogroupedTraceBarProps {
   color: string;
   entire_space: [number, number] | null;
-  errors: TraceTreeNode<TraceTree.Transaction>['value']['errors'];
+  errors: TraceTreeNode<TraceTree.Transaction>['errors'];
   manager: VirtualizedViewManager;
   node_spaces: [number, number][];
-  performance_issues: TraceTreeNode<TraceTree.Transaction>['value']['performance_issues'];
+  performance_issues: TraceTreeNode<TraceTree.Transaction>['performance_issues'];
   profiles: TraceTreeNode<TraceTree.NodeValue>['profiles'];
   virtualized_index: number;
 }
@@ -1768,14 +1781,14 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
             manager={props.manager}
           />
         ) : null}
-        {props.errors.length > 0 ? (
+        {props.errors.size > 0 ? (
           <Errors
             node_space={props.entire_space}
             errors={props.errors}
             manager={props.manager}
           />
         ) : null}
-        {props.performance_issues.length > 0 ? (
+        {props.performance_issues.size > 0 ? (
           <PerformanceIssues
             node_space={props.entire_space}
             performance_issues={props.performance_issues}
