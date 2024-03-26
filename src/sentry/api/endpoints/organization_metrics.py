@@ -57,11 +57,14 @@ from sentry.utils import metrics
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.dates import get_rollup_from_request, parse_stats_period
 
+# These are the use case ids that are queried by default in case no use case is supplied.
 DEFAULT_USE_CASE_IDS = [
     UseCaseID.TRANSACTIONS,
     UseCaseID.SESSIONS,
     UseCaseID.SPANS,
     UseCaseID.CUSTOM,
+    UseCaseID.PROFILES,
+    UseCaseID.METRIC_STATS,
 ]
 
 
