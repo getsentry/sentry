@@ -10,13 +10,14 @@ from snuba_sdk.conditions import BooleanCondition, BooleanOp, Condition, Op
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.common import SNUBA_QUERY_LIMIT
+from sentry.sentry_metrics.querying.constants import SNUBA_QUERY_LIMIT
 from sentry.sentry_metrics.querying.data_v2.preparation.base import IntermediateQuery
+from sentry.sentry_metrics.querying.data_v2.utils import adjust_time_bounds_with_interval
 from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
     MetricsQueryExecutionError,
 )
-from sentry.sentry_metrics.querying.types import GroupKey, GroupsCollection, QueryOrder, QueryType
+from sentry.sentry_metrics.querying.types import GroupsCollection, QueryOrder, QueryType
 from sentry.sentry_metrics.querying.units import MeasurementUnit, UnitFamily
 from sentry.sentry_metrics.querying.visitors import (
     QueriedMetricsVisitor,
@@ -25,7 +26,6 @@ from sentry.sentry_metrics.querying.visitors import (
 )
 from sentry.sentry_metrics.visibility import get_metrics_blocking_state
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.metrics import to_intervals
 from sentry.snuba.metrics_layer.query import bulk_run_query
 from sentry.utils import metrics
 from sentry.utils.snuba import SnubaError
@@ -69,50 +69,6 @@ def _build_composite_key_from_dict(
             composite_key.append((key, value))
 
     return tuple(composite_key)
-
-
-def _build_indexed_seq(
-    seq: Sequence[Mapping[str, Any]], alignment_keys: Sequence[str]
-) -> Mapping[GroupKey, int]:
-    """
-    Creates an inverted index on the supplied sequence of Snuba rows.
-
-    The index is keyed by the composite key which is computed from a set of alignment keys that define the order in
-    which the key is built.
-
-    Returns:
-        A mapping between composite key and the index of the entry which has that key.
-    """
-    indexed_seq = {}
-    for index, data in enumerate(seq):
-        composite_key = _build_composite_key_from_dict(data, alignment_keys)
-        indexed_seq[composite_key] = index
-
-    return indexed_seq
-
-
-def _build_aligned_seq(
-    seq: Sequence[Mapping[str, Any]],
-    reference_seq: Sequence[Mapping[str, Any]],
-    alignment_keys: Sequence[str],
-    indexed_seq: Mapping[GroupKey, int],
-) -> Sequence[Mapping[str, Any]]:
-    """
-    Aligns a sequence of rows to a reference sequence of rows by using reverse index which was built to speed up the
-    alignment process.
-
-    Returns:
-        The aligned sequence.
-    """
-    aligned_seq = []
-
-    for data in reference_seq:
-        composite_key = _build_composite_key_from_dict(data, alignment_keys)
-        index = indexed_seq.get(composite_key)
-        if index is not None:
-            aligned_seq.append(seq[index])
-
-    return aligned_seq
 
 
 def _push_down_group_filters(
@@ -337,8 +293,8 @@ class ScheduledQuery:
         """
         Aligns the date range of the query to the outermost bounds of the interval time range considering the interval.
 
-        For example, if we were to query from 9:30 to 11:30 with 1 hour of interval, the new aligned date range would
-        be 9:00 to 12:00. This is done so that we can use higher granularities at the storage later to satisfy the
+        For example, if we were to query from 09:30 to 11:30 with 1 hour of interval, the new aligned date range would
+        be 09:00 to 12:00. This is done so that we can use higher granularities at the storage later to satisfy the
         query since now we can use 3 buckets of 1 hour but if we were to keep the original interval, we were forced to
         query all the minutes between 9:30 and 11:30 since the biggest granularity < hour is minute.
 
@@ -348,16 +304,15 @@ class ScheduledQuery:
         # We use as a reference the interval supplied via the initial version of the query.
         interval = metrics_query.rollup.interval
         if interval:
-            modified_start, modified_end, intervals_number = to_intervals(
+            modified_start, modified_end, intervals_number = adjust_time_bounds_with_interval(
                 metrics_query.start,
                 metrics_query.end,
                 interval,
             )
-            if modified_start and modified_end:
-                return (
-                    metrics_query.set_start(modified_start).set_end(modified_end),
-                    intervals_number,
-                )
+            return (
+                metrics_query.set_start(modified_start).set_end(modified_end),
+                intervals_number,
+            )
 
         return metrics_query, None
 
