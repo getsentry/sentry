@@ -2,7 +2,7 @@ import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import Tag from 'sentry/components/tag';
+import {Tag} from 'sentry/components/tag';
 import {IconFire} from 'sentry/icons';
 
 describe('Tag', () => {
