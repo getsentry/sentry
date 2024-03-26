@@ -29,6 +29,7 @@ from sentry.constants import (
     AI_SUGGESTED_SOLUTION,
     ALERTS_MEMBER_WRITE_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
+    DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
@@ -425,6 +426,8 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     githubPRBot: bool
     githubOpenPRBot: bool
     githubNudgeInvite: bool
+    aggregatedDataConsent: bool
+    genAIConsent: bool
     isDynamicallySampled: bool
 
 
@@ -434,7 +437,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
     ) -> MutableMapping[Organization, MutableMapping[str, Any]]:
         return super().get_attrs(item_list, user)
 
-    def serialize(  # type: ignore
+    def serialize(  # type: ignore[explicit-override, override]
         self, obj: Organization, attrs: Mapping[str, Any], user: User, access: Access
     ) -> DetailedOrganizationSerializerResponse:
         # TODO: rectify access argument overriding parent if we want to remove above type ignore
@@ -540,6 +543,10 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "githubNudgeInvite": bool(
                     obj.get_option("sentry:github_nudge_invite", GITHUB_COMMENT_BOT_DEFAULT)
                 ),
+                "genAIConsent": bool(obj.get_option("sentry:gen_ai_consent", DATA_CONSENT_DEFAULT)),
+                "aggregatedDataConsent": bool(
+                    obj.get_option("sentry:aggregated_data_consent", DATA_CONSENT_DEFAULT)
+                ),
             }
         )
 
@@ -614,7 +621,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
 
         return team_list
 
-    def serialize(  # type: ignore
+    def serialize(  # type: ignore[explicit-override, override]
         self, obj: Organization, attrs: Mapping[str, Any], user: User, access: Access
     ) -> DetailedOrganizationSerializerWithProjectsAndTeamsResponse:
         from sentry.api.serializers.models.project import (

@@ -69,7 +69,7 @@ import {TraceTree, type TraceTreeNode} from './traceTree';
 import {useTrace} from './useTrace';
 import {useTraceMeta} from './useTraceMeta';
 
-const DOCUMENT_TITLE = [t('Trace Details'), t('Performance')].join(' — ');
+const DOCUMENT_TITLE = [t('Trace')].join(' — ');
 
 function maybeFocusRow() {
   const focused_node = document.querySelector(".TraceRow[tabIndex='0']");
@@ -204,6 +204,13 @@ function TraceViewContent(props: TraceViewContentProps) {
       return errorTree;
     }
 
+    if (
+      props.trace?.transactions.length === 0 &&
+      props.trace?.orphan_errors.length === 0
+    ) {
+      return TraceTree.Empty();
+    }
+
     if (props.status === 'loading' || rootEvent.status === 'loading') {
       const loadingTrace =
         loadingTraceRef.current ??
@@ -223,7 +230,7 @@ function TraceViewContent(props: TraceViewContentProps) {
       return TraceTree.FromTrace(props.trace, rootEvent.data);
     }
 
-    return TraceTree.Empty();
+    throw new Error('Invalid trace state');
   }, [
     props.traceSlug,
     props.trace,
@@ -536,9 +543,6 @@ function TraceViewContent(props: TraceViewContentProps) {
             transaction={breadcrumbTransaction}
             traceSlug={props.traceSlug}
           />
-          <Layout.Title data-test-id="trace-header">
-            {t('Trace ID: %s', props.traceSlug)}
-          </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
@@ -559,6 +563,7 @@ function TraceViewContent(props: TraceViewContentProps) {
           metaResults={props.metaResults}
           organization={props.organization}
           traces={props.trace}
+          traceID={props.traceSlug}
         />
         <TraceToolbar>
           <TraceSearchInput
@@ -678,7 +683,7 @@ function useRootEvent(trace: TraceSplitResults<TraceFullDetailed> | null) {
     ],
     {
       staleTime: 0,
-      enabled: !!trace,
+      enabled: !!trace && !!root,
     }
   );
 }

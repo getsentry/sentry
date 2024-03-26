@@ -13,7 +13,8 @@ import FeedbackButton from 'sentry/components/replays/header/feedbackButton';
 import HeaderPlaceholder from 'sentry/components/replays/header/headerPlaceholder';
 import ReplayMetaData from 'sentry/components/replays/header/replayMetaData';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconDelete, IconEllipsis, IconUpload} from 'sentry/icons';
+import TimeSince from 'sentry/components/timeSince';
+import {IconCalendar, IconDelete, IconEllipsis, IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -94,11 +95,21 @@ export default function Page({
 
       {replayRecord ? (
         <UserBadge
-          avatarSize={32}
+          avatarSize={24}
           displayName={
-            <Layout.Title>
-              {replayRecord.user.display_name || t('Anonymous User')}
-            </Layout.Title>
+            <DisplayHeader>
+              <Title>{replayRecord.user.display_name || t('Anonymous User')}</Title>
+              {replayRecord && (
+                <TimeContainer>
+                  <IconCalendar color="gray300" size="xs" />
+                  <TimeSince
+                    date={replayRecord.started_at}
+                    isTooltipHoverable
+                    unitStyle="regular"
+                  />
+                </TimeContainer>
+              )}
+            </DisplayHeader>
           }
           user={{
             name: replayRecord.user.display_name || '',
@@ -154,4 +165,27 @@ const ItemSpacer = styled('div')`
   display: flex;
   gap: ${space(1)};
   align-items: center;
+`;
+
+const Title = styled('h1')`
+  ${p => p.theme.overflowEllipsis};
+  ${p => p.theme.text.pageTitle};
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+  color: ${p => p.theme.headingColor};
+  margin: 0;
+  line-height: 1.4;
+`;
+
+const TimeContainer = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
+  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSizeMedium};
+  line-height: 1.4;
+`;
+
+const DisplayHeader = styled('div')`
+  display: flex;
+  flex-direction: column;
 `;

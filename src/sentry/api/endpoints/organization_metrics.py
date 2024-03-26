@@ -6,7 +6,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, options
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -25,8 +25,8 @@ from sentry.api.serializers.models.metrics_code_locations import MetricCodeLocat
 from sentry.api.utils import get_date_range_from_params, handle_query_errors
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.organization import Organization
-from sentry.sentry_metrics.querying.data_v2 import (
-    MetricsAPIQueryTransformer,
+from sentry.sentry_metrics.querying.data import (
+    MetricsAPIQueryResultsTransformer,
     MetricsQueriesPlan,
     run_metrics_queries_plan,
 )
@@ -57,11 +57,14 @@ from sentry.utils import metrics
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.dates import get_rollup_from_request, parse_stats_period
 
+# These are the use case ids that are queried by default in case no use case is supplied.
 DEFAULT_USE_CASE_IDS = [
     UseCaseID.TRANSACTIONS,
     UseCaseID.SESSIONS,
     UseCaseID.SPANS,
     UseCaseID.CUSTOM,
+    UseCaseID.PROFILES,
+    UseCaseID.METRIC_STATS,
 ]
 
 
@@ -455,7 +458,7 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
                 environments=self.get_environments(request, organization),
                 referrer=Referrer.API_ORGANIZATION_METRICS_QUERY.value,
                 query_type=self._get_query_type_from_request(request),
-            ).apply_transformer(MetricsAPIQueryTransformer())
+            ).apply_transformer(MetricsAPIQueryResultsTransformer())
         except InvalidMetricsQueryError as e:
             return Response(status=400, data={"detail": str(e)})
         except LatestReleaseNotFoundError as e:
@@ -491,9 +494,6 @@ class OrganizationMetricsSamplesEndpoint(OrganizationEventsV2EndpointBase):
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
     def get(self, request: Request, organization: Organization) -> Response:
-        if not features.has("organizations:metrics-samples-list", organization, actor=request.user):
-            return Response(status=404)
-
         try:
             snuba_params, params = self.get_snuba_dataclass(request, organization)
         except NoProjects:

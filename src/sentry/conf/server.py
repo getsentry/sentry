@@ -779,7 +779,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.reprocessing2",
     "sentry.tasks.sentry_apps",
     "sentry.tasks.servicehooks",
-    "sentry.tasks.spans",
     "sentry.tasks.store",
     "sentry.tasks.symbolication",
     "sentry.tasks.unmerge",
@@ -942,7 +941,6 @@ CELERY_QUEUES_REGION = [
     Queue("nudge.invite_missing_org_members", routing_key="invite_missing_org_members"),
     Queue("auto_resolve_issues", routing_key="auto_resolve_issues"),
     Queue("on_demand_metrics", routing_key="on_demand_metrics"),
-    Queue("spans.process_segment", routing_key="spans.process_segment"),
 ]
 
 from celery.schedules import crontab
@@ -1494,8 +1492,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:crons-broken-monitor-detection": False,
     # Disables legacy cron ingest endpoints
     "organizations:crons-disable-ingest-endpoints": False,
-    # Disables projects with zero monitors to create new ones
-    "organizations:crons-disable-new-projects": False,
     # Metrics: Enable ingestion and storage of custom metrics. See ddm-ui and ddm-sidebar-item-hidden for UI.
     "organizations:custom-metrics": False,
     # Allow organizations to configure custom external symbol sources.
@@ -1614,8 +1610,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:integrations-msteams-tenant": False,
     # Enable comments of related issues on open PRs for beta languages
     "organizations:integrations-open-pr-comment-beta-langs": False,
-    # Enable Opsgenie integration
-    "organizations:integrations-opsgenie": True,
     # Enable stacktrace linking
     "organizations:integrations-stacktrace-link": True,
     # Allow orgs to automatically create Tickets in Issue Alerts
@@ -1643,10 +1637,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-search-allow-postgres-only-search": False,
     # Whether to make a side/parallel query against events -> group_attributes when searching issues
     "organizations:issue-search-group-attributes-side-query": False,
-    # Flags for enabling CdcEventsDatasetSnubaSearchBackend in sentry.io. No effect in open-source
-    # sentry at the moment.
-    "organizations:issue-search-use-cdc-primary": False,
-    "organizations:issue-search-use-cdc-secondary": False,
     # Enable issue stream performance improvements
     "organizations:issue-stream-performance": False,
     # Enabled latest adopted release filter for issue alerts
@@ -1792,12 +1782,12 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-trends-issues": False,
     # Bypass 30 day date range selection when fetching new trends data
     "organizations:performance-trends-new-data-date-range-default": False,
-    # Enable debug views for trendsv2 to be used internally
-    "organizations:performance-trendsv2-dev-only": False,
     # Enable Performance view
     "organizations:performance-view": True,
     # Enable showing INP web vital in default views
     "organizations:performance-vitals-inp": False,
+    # Enable trace explorer features in performance
+    "organizations:performance-trace-explorer": False,
     # Enable profiling
     "organizations:profiling": False,
     # Enabled for those orgs who participated in the profiling Beta program
@@ -1822,6 +1812,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:project-stats": True,
     # Enable the new Related Events feature
     "organizations:related-events": False,
+    # Enable related issues feature
+    "organizations:related-issues": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
@@ -1967,8 +1959,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:user-feedback-spam-filter-ingest": False,
     # Enable User Feedback v2 UI
     "organizations:user-feedback-ui": False,
-    # Enable User Feedback new onboarding experience
-    "organizations:user-feedback-onboarding": False,
     # Enable view hierarchies options
     "organizations:view-hierarchies-options-dev": False,
     # Enable minimap in the widget viewer modal in dashboards
@@ -1979,8 +1969,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:ai-autofix": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
-    # Workflow 2.0 Auto associate commits to commit sha release
-    "projects:auto-associate-commits-to-release": False,
     # Enable functionality to specify custom inbound filters on events.
     "projects:custom-inbound-filters": False,
     # Enable data forwarding functionality for projects.
@@ -3511,6 +3499,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "group-attributes": "default",
     "snuba-spans": "default",
     "shared-resources-usage": "default",
+    "buffered-segments": "default",
 }
 
 

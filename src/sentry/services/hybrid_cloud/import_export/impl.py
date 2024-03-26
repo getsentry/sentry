@@ -115,7 +115,7 @@ class UniversalImportExportService(ImportExportService):
             )
 
         silo_mode = SiloMode.get_current_mode()
-        model_modes = model._meta.silo_limit.modes  # type: ignore
+        model_modes = model._meta.silo_limit.modes  # type: ignore[attr-defined]
         if silo_mode != SiloMode.MONOLITH and silo_mode not in model_modes:
             return RpcImportError(
                 kind=RpcImportErrorKind.IncorrectSiloModeForModel,
@@ -402,7 +402,7 @@ class UniversalImportExportService(ImportExportService):
                 )
 
             silo_mode = SiloMode.get_current_mode()
-            model_modes = model._meta.silo_limit.modes  # type: ignore
+            model_modes = model._meta.silo_limit.modes  # type: ignore[attr-defined]
             if silo_mode != SiloMode.MONOLITH and silo_mode not in model_modes:
                 return RpcExportError(
                     kind=RpcExportErrorKind.IncorrectSiloModeForModel,
@@ -492,7 +492,7 @@ class UniversalImportExportService(ImportExportService):
                     q &= Q(**query)
                     q = model.query_for_relocation_export(q, in_pk_map)
 
-                pk_name = model._meta.pk.name  # type: ignore
+                pk_name = model._meta.pk.name  # type: ignore[union-attr]
                 queryset = model._base_manager.filter(q).order_by(pk_name)
                 return filter_objects(queryset.iterator())
 

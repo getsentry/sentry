@@ -418,7 +418,7 @@ class ModelSiloLimit(SiloLimit):
             model_attr = getattr(model_class, model_attr_name)
             if callable(model_attr) and getattr(model_attr, "alters_data", False):
                 override = self.create_override(model_attr)
-                override.alters_data = True  # type: ignore
+                override.alters_data = True  # type: ignore[attr-defined]
 
                 # We have to resort to monkey-patching here. Dynamically extending
                 # and replacing the model class is not an option, because that would
