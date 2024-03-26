@@ -1,4 +1,4 @@
-import {BaseAvatar, BaseAvatarProps} from 'sentry/components/avatar/baseAvatar';
+import {BaseAvatar, type BaseAvatarProps} from 'sentry/components/avatar/baseAvatar';
 import type {OrganizationSummary} from 'sentry/types';
 import {explodeSlug} from 'sentry/utils';
 

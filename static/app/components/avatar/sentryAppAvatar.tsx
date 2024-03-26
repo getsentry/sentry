@@ -1,4 +1,4 @@
-import {BaseAvatar, BaseAvatarProps} from 'sentry/components/avatar/baseAvatar';
+import {BaseAvatar, type BaseAvatarProps} from 'sentry/components/avatar/baseAvatar';
 import {IconGeneric} from 'sentry/icons';
 import type {AvatarSentryApp} from 'sentry/types';
 

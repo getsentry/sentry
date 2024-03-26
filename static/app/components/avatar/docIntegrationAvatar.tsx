@@ -1,4 +1,4 @@
-import {BaseAvatar, BaseAvatarProps} from 'sentry/components/avatar/baseAvatar';
+import {BaseAvatar, type BaseAvatarProps} from 'sentry/components/avatar/baseAvatar';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import type {DocIntegration} from 'sentry/types';
 

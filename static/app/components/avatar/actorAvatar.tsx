@@ -7,7 +7,7 @@ import MemberListStore from 'sentry/stores/memberListStore';
 import type {Actor} from 'sentry/types';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 
-import {BaseAvatarProps} from './baseAvatar';
+import type {BaseAvatarProps} from './baseAvatar';
 
 interface Props extends BaseAvatarProps {
   actor: Actor;

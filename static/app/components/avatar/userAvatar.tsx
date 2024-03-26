@@ -1,4 +1,4 @@
-import {BaseAvatar, BaseAvatarProps} from 'sentry/components/avatar/baseAvatar';
+import {BaseAvatar, type BaseAvatarProps} from 'sentry/components/avatar/baseAvatar';
 import type {Actor, AvatarUser} from 'sentry/types';
 import {userDisplayName} from 'sentry/utils/formatters';
 import {isRenderFunc} from 'sentry/utils/isRenderFunc';
