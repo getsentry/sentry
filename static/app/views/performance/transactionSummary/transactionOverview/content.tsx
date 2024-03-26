@@ -332,6 +332,10 @@ function SummaryContent({
     handleOpenAllEventsClick: handleAllEventsViewClick,
   };
 
+  const hasTransactionSummaryCleanupFlag = organization.features.includes(
+    'performance-transaction-summary-cleanup'
+  );
+
   return (
     <Fragment>
       <Layout.Main>
@@ -401,18 +405,21 @@ function SummaryContent({
           />
         </PerformanceAtScaleContextProvider>
 
-        <SuspectSpans
-          location={location}
-          organization={organization}
-          eventView={eventView}
-          totals={
-            defined(totalValues?.['count()'])
-              ? {'count()': totalValues!['count()']}
-              : null
-          }
-          projectId={projectId}
-          transactionName={transactionName}
-        />
+        {!hasTransactionSummaryCleanupFlag && (
+          <SuspectSpans
+            location={location}
+            organization={organization}
+            eventView={eventView}
+            totals={
+              defined(totalValues?.['count()'])
+                ? {'count()': totalValues!['count()']}
+                : null
+            }
+            projectId={projectId}
+            transactionName={transactionName}
+          />
+        )}
+
         <TagExplorer
           eventView={eventView}
           organization={organization}
