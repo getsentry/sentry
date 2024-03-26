@@ -62,6 +62,8 @@ def _merge_frame(new_frame: dict[str, Any], symbolicated: dict[str, Any]):
     if symbolicated.get("in_app") is not None:
         new_frame["in_app"] = symbolicated["in_app"]
 
+    new_frame["lineno"] = symbolicated.get("lineno") or 0
+
 
 def _handles_frame(frame: dict[str, Any]) -> bool:
     return "function" in frame and "module" in frame
