@@ -155,10 +155,10 @@ export enum ImageStatus {
 }
 
 export type Image = {
-  candidates: Array<ImageCandidate>;
   features: ImageFeatures;
   type: string;
   arch?: string;
+  candidates?: Array<ImageCandidate>;
   code_file?: string | null;
   code_id?: string;
   debug_file?: string;

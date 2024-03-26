@@ -36,9 +36,8 @@ function ReplayPreviewPlayer({
   replayRecord,
   handleBackClick,
   handleForwardClick,
-  overlayText,
+  overlayContent,
   showNextAndPrevious,
-  onClickNextReplay,
   playPausePriority,
 }: {
   replayId: string;
@@ -46,8 +45,7 @@ function ReplayPreviewPlayer({
   fullReplayButtonProps?: Partial<ComponentProps<typeof LinkButton>>;
   handleBackClick?: () => void;
   handleForwardClick?: () => void;
-  onClickNextReplay?: () => void;
-  overlayText?: string;
+  overlayContent?: React.ReactNode;
   playPausePriority?: ComponentProps<typeof ReplayPlayPauseButton>['priority'];
   showNextAndPrevious?: boolean;
 }) {
@@ -65,12 +63,16 @@ function ReplayPreviewPlayer({
   const isFullscreen = useIsFullscreen();
   const startOffsetMs = replay?.getStartOffsetMs() ?? 0;
 
+  const referrer = getRouteStringFromRoutes(routes);
+  const fromFeedback = referrer === '/feedback/';
+
   const fullReplayUrl = {
     pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replayId}/`),
     query: {
       referrer: getRouteStringFromRoutes(routes),
-      t_main: TabKey.ERRORS,
+      t_main: fromFeedback ? TabKey.BREADCRUMBS : TabKey.ERRORS,
       t: (currentTime + startOffsetMs) / 1000,
+      f_b_type: fromFeedback ? 'feedback' : undefined,
     },
   };
 
@@ -102,10 +104,7 @@ function ReplayPreviewPlayer({
               </ContextContainer>
             ) : null}
             <StaticPanel>
-              <ReplayPlayer
-                overlayText={overlayText}
-                onClickNextReplay={onClickNextReplay}
-              />
+              <ReplayPlayer overlayContent={overlayContent} />
             </StaticPanel>
           </PlayerContextContainer>
           {isFullscreen && isSidebarOpen ? <Breadcrumbs /> : null}
@@ -120,9 +119,13 @@ function ReplayPreviewPlayer({
                 onClick={() => handleBackClick?.()}
                 aria-label={t('Previous Clip')}
                 disabled={!handleBackClick}
+                analyticsEventName="Replay Preview Player: Clicked Previous Clip"
+                analyticsEventKey="replay_preview_player.clicked_previous_clip"
               />
             )}
             <ReplayPlayPauseButton
+              analyticsEventName="Replay Preview Player: Clicked Play/Plause Clip"
+              analyticsEventKey="replay_preview_player.clicked_play_pause_clip"
               priority={
                 playPausePriority ?? (isFinished || isPlaying ? 'primary' : 'default')
               }
@@ -135,6 +138,8 @@ function ReplayPreviewPlayer({
                 onClick={() => handleForwardClick?.()}
                 aria-label={t('Next Clip')}
                 disabled={!handleForwardClick}
+                analyticsEventName="Replay Preview Player: Clicked Next Clip"
+                analyticsEventKey="replay_preview_player.clicked_next_clip"
               />
             )}
             <Container>

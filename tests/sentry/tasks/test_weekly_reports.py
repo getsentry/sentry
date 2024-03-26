@@ -19,11 +19,13 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.silo import SiloMode, unguarded_write
+from sentry.snuba.referrer import Referrer
 from sentry.tasks.summaries.utils import (
     ONE_DAY,
     OrganizationReportContext,
     ProjectContext,
     organization_project_issue_substatus_summaries,
+    project_key_errors,
 )
 from sentry.tasks.summaries.weekly_reports import (
     deliver_reports,
@@ -200,6 +202,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         assert mock_send_email.call_count == 1
 
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
+    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_transferred_project(self, message_builder):
         self.login_as(user=self.user)
 
@@ -237,6 +240,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         assert message_builder.call_count == 1
 
     @with_feature("organizations:escalating-issues")
+    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_organization_project_issue_substatus_summaries(self):
         self.login_as(user=self.user)
 
@@ -280,6 +284,51 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         assert project_ctx.ongoing_substatus_count == 1
         assert project_ctx.regression_substatus_count == 0
         assert project_ctx.total_substatus_count == 2
+
+    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
+    def test_organization_project_issue_status(self):
+        self.login_as(user=self.user)
+        now = timezone.now()
+        self.project.first_event = now - timedelta(days=3)
+        min_ago = iso_format(now - timedelta(minutes=1))
+        with self.options({"issues.group_attributes.send_kafka": True}):
+            event1 = self.store_event(
+                data={
+                    "event_id": "a" * 32,
+                    "message": "message",
+                    "timestamp": min_ago,
+                    "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                    "fingerprint": ["group-1"],
+                },
+                project_id=self.project.id,
+            )
+            event2 = self.store_event(
+                data={
+                    "event_id": "b" * 32,
+                    "message": "message",
+                    "timestamp": min_ago,
+                    "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                    "fingerprint": ["group-2"],
+                },
+                project_id=self.project.id,
+            )
+            group2 = event2.group
+            group2.status = GroupStatus.RESOLVED
+            group2.substatus = None
+            group2.resolved_at = now - timedelta(minutes=1)
+            group2.save()
+
+        timestamp = now.timestamp()
+        ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
+        with self.feature("organizations:snql-join-reports"):
+            key_errors = project_key_errors(ctx, self.project, Referrer.REPORTS_KEY_ERRORS.value)
+            assert key_errors == [{"events.group_id": event1.group.id, "count()": 1}]
+
+        # without the flag, resolved issues are not filtered out
+        key_errors = project_key_errors(ctx, self.project, Referrer.REPORTS_KEY_ERRORS.value)
+        assert key_errors
+        assert {"group_id": event1.group.id, "count()": 1} in key_errors
+        assert {"group_id": group2.id, "count()": 1} in key_errors
 
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
@@ -370,6 +419,99 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 "ongoing_substatus_count": 2,
                 "regression_substatus_count": 0,
                 "total_substatus_count": 2,
+            }
+            assert len(context["key_errors"]) == 2
+            assert len(context["key_performance_issues"]) == 2
+            assert context["trends"]["total_error_count"] == 2
+            assert context["trends"]["total_transaction_count"] == 10
+            assert "Weekly Report for" in message_params["subject"]
+
+            assert isinstance(context["notification_uuid"], str)
+
+        record.assert_any_call(
+            "weekly_report.sent",
+            user_id=user.id,
+            organization_id=self.organization.id,
+            notification_uuid=mock.ANY,
+            user_project_count=1,
+        )
+
+    @mock.patch("sentry.analytics.record")
+    @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
+    def test_message_builder_simple_snql_join(self, message_builder, record):
+        now = timezone.now()
+        three_days_ago = now - timedelta(days=3)
+
+        user = self.create_user()
+        self.create_member(teams=[self.team], user=user, organization=self.organization)
+        with self.options({"issues.group_attributes.send_kafka": True}):
+            self.store_event(
+                data={
+                    "event_id": "a" * 32,
+                    "message": "message",
+                    "timestamp": iso_format(three_days_ago),
+                    "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                    "fingerprint": ["group-1"],
+                },
+                project_id=self.project.id,
+            )
+
+            self.store_event(
+                data={
+                    "event_id": "b" * 32,
+                    "message": "message",
+                    "timestamp": iso_format(three_days_ago),
+                    "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                    "fingerprint": ["group-2"],
+                },
+                project_id=self.project.id,
+            )
+            self.store_outcomes(
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "outcome": Outcome.ACCEPTED,
+                    "category": DataCategory.ERROR,
+                    "timestamp": three_days_ago,
+                    "key_id": 1,
+                },
+                num_times=2,
+            )
+
+            self.store_outcomes(
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "outcome": Outcome.ACCEPTED,
+                    "category": DataCategory.TRANSACTION,
+                    "timestamp": three_days_ago,
+                    "key_id": 1,
+                },
+                num_times=10,
+            )
+
+        self.create_performance_issue(fingerprint=f"{PerformanceNPlusOneGroupType.type_id}-group1")
+        self.create_performance_issue(fingerprint=f"{PerformanceNPlusOneGroupType.type_id}-group2")
+
+        # store a crons issue just to make sure it's not counted in key_performance_issues
+        self.create_group(type=MonitorCheckInFailure.type_id)
+        with self.feature("organizations:snql-join-reports"):
+            prepare_organization_report(now.timestamp(), ONE_DAY * 7, self.organization.id)
+
+        for call_args in message_builder.call_args_list:
+            message_params = call_args.kwargs
+            context = message_params["context"]
+
+            assert message_params["template"] == "sentry/emails/reports/body.txt"
+            assert message_params["html_template"] == "sentry/emails/reports/body.html"
+
+            assert context["organization"] == self.organization
+            assert context["issue_summary"] == {
+                "escalating_substatus_count": 0,
+                "new_substatus_count": 0,
+                "ongoing_substatus_count": 4,
+                "regression_substatus_count": 0,
+                "total_substatus_count": 4,
             }
             assert len(context["key_errors"]) == 2
             assert len(context["key_performance_issues"]) == 2

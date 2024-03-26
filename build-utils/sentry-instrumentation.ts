@@ -1,6 +1,6 @@
 /* eslint-env node */
-import type Sentry from '@sentry/node';
-import type {Transaction} from '@sentry/types';
+import type * as Sentry from '@sentry/node';
+import type {Span} from '@sentry/types';
 import crypto from 'node:crypto';
 import https from 'node:https';
 import os from 'node:os';
@@ -33,7 +33,7 @@ class SentryInstrumentation {
 
   Sentry?: typeof Sentry;
 
-  transaction?: Transaction;
+  span?: Span;
 
   constructor() {
     // Only run if SENTRY_INSTRUMENTATION` is set or when in ci,
@@ -42,14 +42,14 @@ class SentryInstrumentation {
       return;
     }
 
-    const sentry = require('@sentry/node');
-    const {ProfilingIntegration} = require('@sentry/profiling-node');
+    const sentry = require('@sentry/node') as typeof Sentry;
+    const {nodeProfilingIntegration} = require('@sentry/profiling-node');
 
     sentry.init({
       dsn: 'https://3d282d186d924374800aa47006227ce9@sentry.io/2053674',
       environment: IS_CI ? 'ci' : 'local',
       tracesSampleRate: 1.0,
-      integrations: [new ProfilingIntegration()],
+      integrations: [nodeProfilingIntegration()],
       profilesSampler: ({transactionContext}) => {
         if (transactionContext.name === INCREMENTAL_BUILD_TXN) {
           return 0;
@@ -76,11 +76,9 @@ class SentryInstrumentation {
 
     this.Sentry = sentry;
 
-    this.transaction = sentry.startTransaction({
+    this.span = sentry.startInactiveSpan({
       op: 'webpack-build',
-      name: !this.hasInitializedBuild ? INITIAL_BUILD_TXN : INCREMENTAL_BUILD_TXN,
-      description: 'webpack build times',
-      trimEnd: true,
+      name: INITIAL_BUILD_TXN,
     });
   }
 
@@ -132,21 +130,20 @@ class SentryInstrumentation {
     if (!this.Sentry) {
       return;
     }
-    if (this.hasInitializedBuild) {
-      this.transaction = this.Sentry.startTransaction({
-        op: 'webpack-build',
-        name: !this.hasInitializedBuild ? 'initial-build' : 'incremental-build',
-        description: 'webpack build times',
-        startTimestamp: startTime,
-        trimEnd: true,
-      });
-    }
 
-    this.transaction
+    const span = !this.hasInitializedBuild
+      ? this.span
+      : this.Sentry.startInactiveSpan({
+          op: 'webpack-build',
+          name: INCREMENTAL_BUILD_TXN,
+          startTime,
+        });
+
+    span
       ?.startChild({
         op: 'build',
-        description: 'webpack build',
-        data: {
+        name: 'webpack build',
+        attributes: {
           os: `${os.platform()} ${os.arch()} v${os.release()}`,
           memory: os.freemem()
             ? `${os.freemem() / GB_BYTE} / ${os.totalmem() / GB_BYTE} GB (${
@@ -157,8 +154,9 @@ class SentryInstrumentation {
         },
         startTimestamp: startTime,
       })
-      .finish(endTime);
-    this.transaction?.finish();
+      .end(endTime);
+
+    span?.end();
   }
 
   apply(compiler: webpack.Compiler) {

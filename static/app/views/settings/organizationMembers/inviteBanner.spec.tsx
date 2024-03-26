@@ -36,9 +36,8 @@ describe('inviteBanner', function () {
     });
   });
 
-  it('render banners with feature flag', async function () {
+  it('render banners', async function () {
     const org = OrganizationFixture({
-      features: ['integrations-gh-invite'],
       githubNudgeInvite: true,
     });
 
@@ -60,27 +59,8 @@ describe('inviteBanner', function () {
     expect(screen.getByText('See all 5 missing members')).toBeInTheDocument();
   });
 
-  it('does not render banner if no feature flag', function () {
-    const org = OrganizationFixture({
-      features: [],
-    });
-
-    const {container} = render(
-      <InviteBanner
-        onSendInvite={() => {}}
-        organization={org}
-        allowedRoles={[]}
-        onModalClose={() => {}}
-      />
-    );
-
-    expect(container).toBeEmptyDOMElement();
-  });
-
   it('does not render banner if no option', function () {
-    const org = OrganizationFixture({
-      features: ['integrations-gh-invite'],
-    });
+    const org = OrganizationFixture({});
 
     const {container} = render(
       <InviteBanner
@@ -96,7 +76,6 @@ describe('inviteBanner', function () {
 
   it('does not render banner if no missing members', async function () {
     const org = OrganizationFixture({
-      features: ['integrations-gh-invite'],
       githubNudgeInvite: true,
     });
 
@@ -121,7 +100,6 @@ describe('inviteBanner', function () {
 
   it('does not render banner if no integration', async function () {
     const org = OrganizationFixture({
-      features: ['integrations-gh-invite'],
       githubNudgeInvite: true,
     });
 
@@ -146,7 +124,6 @@ describe('inviteBanner', function () {
 
   it('does not render banner if lacking org:write', function () {
     const org = OrganizationFixture({
-      features: ['integrations-gh-invite'],
       access: [],
       githubNudgeInvite: true,
     });
@@ -165,7 +142,6 @@ describe('inviteBanner', function () {
 
   it('renders banner if snoozed_ts days is longer than threshold', async function () {
     const org = OrganizationFixture({
-      features: ['integrations-gh-invite'],
       githubNudgeInvite: true,
     });
     const promptResponse = {
@@ -199,7 +175,6 @@ describe('inviteBanner', function () {
 
   it('does not render banner if snoozed_ts days is shorter than threshold', async function () {
     const org = OrganizationFixture({
-      features: ['integrations-gh-invite'],
       githubNudgeInvite: true,
     });
     const promptResponse = {
@@ -262,7 +237,6 @@ describe('inviteBanner', function () {
     });
 
     const org = OrganizationFixture({
-      features: ['integrations-gh-invite'],
       githubNudgeInvite: true,
     });
 

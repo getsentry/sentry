@@ -68,12 +68,7 @@ export function OverviewTimeline({monitorList}: Props) {
   );
 
   const handleDeleteEnvironment = async (monitor: Monitor, env: string) => {
-    const success = await deleteMonitorEnvironment(
-      api,
-      organization.slug,
-      monitor.slug,
-      env
-    );
+    const success = await deleteMonitorEnvironment(api, organization.slug, monitor, env);
     if (!success) {
       return;
     }
@@ -87,16 +82,19 @@ export function OverviewTimeline({monitorList}: Props) {
 
       const oldMonitor = oldMonitorList[oldMonitorIdx];
       const newEnvList = oldMonitor.environments.filter(e => e.name !== env);
-      const newMonitor = {
+      const updatedMonitor = {
         ...oldMonitor,
         environments: newEnvList,
       };
 
-      return [
-        ...oldMonitorList.slice(0, oldMonitorIdx),
-        newMonitor,
-        ...oldMonitorList.slice(oldMonitorIdx + 1),
-      ];
+      const left = oldMonitorList.slice(0, oldMonitorIdx);
+      const right = oldMonitorList.slice(oldMonitorIdx + 1);
+
+      if (newEnvList.length === 0) {
+        return [...left, ...right];
+      }
+
+      return [...left, updatedMonitor, ...right];
     });
   };
 
@@ -108,7 +106,7 @@ export function OverviewTimeline({monitorList}: Props) {
     const resp = await setEnvironmentIsMuted(
       api,
       organization.slug,
-      monitor.slug,
+      monitor,
       env,
       isMuted
     );
@@ -128,7 +126,7 @@ export function OverviewTimeline({monitorList}: Props) {
 
   const handleToggleStatus = async (monitor: Monitor) => {
     const status = monitor.status === 'active' ? 'disabled' : 'active';
-    const resp = await updateMonitor(api, organization.slug, monitor.slug, {status});
+    const resp = await updateMonitor(api, organization.slug, monitor, {status});
 
     if (resp === null) {
       return;
@@ -146,18 +144,18 @@ export function OverviewTimeline({monitorList}: Props) {
   return (
     <MonitorListPanel>
       <TimelineWidthTracker ref={elementRef} />
-      <HeaderControls>
-        <ResolutionSelector />
-        <SortSelector />
-      </HeaderControls>
-      <StickyGridLineTimeLabels>
-        <BorderlessGridLineTimeLabels
+      <Header>
+        <HeaderControls>
+          <ResolutionSelector />
+          <SortSelector />
+        </HeaderControls>
+        <GridLineTimeLabels
           timeWindowConfig={timeWindowConfig}
           start={start}
           end={nowRef.current}
           width={timelineWidth}
         />
-      </StickyGridLineTimeLabels>
+      </Header>
       <GridLineOverlay
         stickyCursor
         showCursor={!isLoading}
@@ -192,42 +190,30 @@ const MonitorListPanel = styled(Panel)`
   grid-template-columns: 350px 135px 1fr;
 `;
 
-const HeaderControls = styled(Sticky)`
-  display: flex;
-  gap: ${space(0.5)};
+const Header = styled(Sticky)`
+  display: grid;
+  grid-column: 1/-1;
+  grid-template-columns: subgrid;
+
   z-index: 1;
-  padding: ${space(1.5)} ${space(2)};
-  grid-column: 1/3;
   background: ${p => p.theme.background};
   border-top-left-radius: ${p => p.theme.panelBorderRadius};
-  box-shadow: 0 1px ${p => p.theme.translucentBorder};
-
-  &[data-stuck] {
-    border-radius: 0;
-    border-left: 1px solid ${p => p.theme.border};
-    margin-left: -1px;
-  }
-`;
-
-// We don't need border here because it is already accomplished via box-shadow below
-const BorderlessGridLineTimeLabels = styled(GridLineTimeLabels)`
-  border: none;
-`;
-
-const StickyGridLineTimeLabels = styled(Sticky)`
-  > * {
-    height: 100%;
-  }
-  z-index: 1;
-  background: ${p => p.theme.background};
   border-top-right-radius: ${p => p.theme.panelBorderRadius};
   box-shadow: 0 1px ${p => p.theme.translucentBorder};
 
   &[data-stuck] {
     border-radius: 0;
+    border-left: 1px solid ${p => p.theme.border};
     border-right: 1px solid ${p => p.theme.border};
-    margin-right: -1px;
+    margin: 0 -1px;
   }
+`;
+
+const HeaderControls = styled('div')`
+  grid-column: 1/3;
+  display: flex;
+  gap: ${space(0.5)};
+  padding: ${space(1.5)} ${space(2)};
 `;
 
 const TimelineWidthTracker = styled('div')`

@@ -1,4 +1,3 @@
-import {Component} from 'react';
 import type {RouteContextInterface} from 'react-router';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -11,7 +10,6 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as orgsActionCreators from 'sentry/actionCreators/organizations';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
-import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -93,20 +91,6 @@ describe('OrganizationContext', function () {
     return <div>{org?.slug ?? 'no-org'}</div>;
   }
 
-  /**
-   * Used to test the legacy organization context behavior
-   */
-  class OrganizationNameLegacyConsumer extends Component {
-    static contextTypes = {
-      organization: SentryPropTypeValidators.isOrganization,
-    };
-    declare context: {organization: Organization | undefined};
-
-    render() {
-      return <div>{this.context.organization?.slug ?? 'no-org'}</div>;
-    }
-  }
-
   it('fetches org, projects, teams, and provides organization context', async function () {
     render(
       <OrganizationContextProvider>
@@ -119,17 +103,6 @@ describe('OrganizationContext', function () {
     expect(getOrgMock).toHaveBeenCalled();
     expect(getProjectsMock).toHaveBeenCalled();
     expect(getTeamsMock).toHaveBeenCalled();
-  });
-
-  it('provides legacy organization context', async function () {
-    render(
-      <OrganizationContextProvider>
-        <OrganizationLoaderStub />
-        <OrganizationNameLegacyConsumer />
-      </OrganizationContextProvider>
-    );
-
-    expect(await screen.findByText(organization.slug)).toBeInTheDocument();
   });
 
   it('does not fetch if organization is already set', async function () {
@@ -199,7 +172,7 @@ describe('OrganizationContext', function () {
 
     await waitFor(() => !OrganizationStore.getState().loading);
 
-    expect(openSudo).toHaveBeenCalled();
+    await waitFor(() => expect(openSudo).toHaveBeenCalled());
   });
 
   it('opens sudo modal for superusers on 403s', async function () {

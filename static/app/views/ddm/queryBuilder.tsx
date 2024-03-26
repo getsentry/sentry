@@ -195,7 +195,7 @@ export const QueryBuilder = memo(function QueryBuilder({
         <FlexBlock>
           <OpSelect
             size="md"
-            triggerProps={{prefix: t('Op')}}
+            triggerProps={{prefix: t('Agg')}}
             options={
               selectedMeta?.operations.filter(isAllowedOp).map(op => ({
                 label: op,
@@ -261,7 +261,8 @@ const MetricSelect = styled(CompactSelect)`
 `;
 
 const OpSelect = styled(CompactSelect)`
-  width: 120px;
+  width: 128px;
+  min-width: min-content;
   & > button {
     width: 100%;
   }

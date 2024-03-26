@@ -21,7 +21,7 @@ class DataExportDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
-    owner = ApiOwner.DISCOVER_N_DASHBOARDS
+    owner = ApiOwner.PERFORMANCE
     permission_classes = (OrganizationDataExportPermission,)
 
     def get(self, request: Request, organization: Organization, data_export_id: str) -> Response:

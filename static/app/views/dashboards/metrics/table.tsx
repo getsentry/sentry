@@ -1,14 +1,15 @@
 import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import PanelTable, {PanelTableHeader} from 'sentry/components/panels/panelTable';
+import {PanelTable, PanelTableHeader} from 'sentry/components/panels/panelTable';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricsQueryApiResponse} from 'sentry/types';
-import {formatMetricsUsingUnitAndOp} from 'sentry/utils/metrics/formatters';
-import {formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
+import {unescapeMetricsFormula} from 'sentry/utils/metrics';
+import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
+import {formatMRIField, MRIToField} from 'sentry/utils/metrics/mri';
 import {
   isMetricFormula,
   type MetricsQueryApiQueryParams,
@@ -46,7 +47,7 @@ interface MetricTableProps {
   data: TableData;
   isLoading: boolean;
   borderless?: boolean;
-  onOrderChange?: ({name, order}: {name: string; order: string}) => void;
+  onOrderChange?: ({id, order}: {id: number; order: Order}) => void;
 }
 
 export function MetricTable({
@@ -94,7 +95,6 @@ export function MetricTable({
     <StyledPanelTable
       borderless={borderless}
       headers={data.headers.map((column, index) => {
-        const header = formatMRIField(column.label);
         return (
           <HeaderCell
             key={index}
@@ -105,7 +105,7 @@ export function MetricTable({
             {column.order && (
               <IconArrow direction={column.order === 'asc' ? 'up' : 'down'} size="xs" />
             )}
-            <TextOverflow>{header}</TextOverflow>
+            <TextOverflow>{column.label}</TextOverflow>
           </HeaderCell>
         );
       })}
@@ -164,10 +164,9 @@ export function getTableData(
   const filteredQueries = queries.filter(
     query => !isMetricFormula(query)
   ) as MetricsQueryApiRequestQuery[];
-
   const tags = [...new Set(filteredQueries.flatMap(query => query.groupBy ?? []))];
 
-  const normalizedResults = filteredQueries.map((query, index) => {
+  const normalizedResults = queries.map((query, index) => {
     const queryResults = data.data[index];
     const meta = data.meta[index];
     const lastMetaEntry = data.meta[index]?.[meta.length - 1];
@@ -177,11 +176,7 @@ export function getTableData(
       return {
         by: {...getEmptyGroup(tags), ...group.by},
         totals: group.totals,
-        formattedValue: formatMetricsUsingUnitAndOp(
-          group.totals,
-          metaUnit ?? parseMRI(query.mri)?.unit!,
-          query.op
-        ),
+        formattedValue: formatMetricUsingUnit(group.totals, metaUnit),
       };
     });
 
@@ -211,9 +206,13 @@ export function getTableData(
       type: 'tag',
       order: undefined,
     })),
-    ...filteredQueries.map(query => ({
+    ...queries.map(query => ({
       name: query.name,
-      label: MRIToField(query.mri, query.op),
+      // @ts-expect-error use DashboardMetricsExpression type
+      id: query.id,
+      label: isMetricFormula(query)
+        ? unescapeMetricsFormula(query.formula)
+        : formatMRIField(MRIToField(query.mri, query.op)),
       type: 'field',
       order: query.orderBy,
     })),

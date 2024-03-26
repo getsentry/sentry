@@ -86,7 +86,7 @@ describe('IssueListActions', function () {
 
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
 
-        await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+        await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
 
         await screen.findByRole('dialog');
 
@@ -115,10 +115,7 @@ describe('IssueListActions', function () {
 
         await userEvent.click(screen.getByRole('checkbox'));
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
-        await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
-        await userEvent.hover(
-          screen.getByRole('menuitemradio', {name: 'Set Priority to...'})
-        );
+        await userEvent.click(await screen.findByRole('button', {name: 'Set Priority'}));
         await userEvent.click(screen.getByRole('menuitemradio', {name: 'High'}));
 
         expect(
@@ -170,7 +167,7 @@ describe('IssueListActions', function () {
 
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
 
-        await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+        await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
 
         const modal = screen.getByRole('dialog');
 
@@ -230,10 +227,7 @@ describe('IssueListActions', function () {
       organization: OrganizationFixture({features: ['issue-priority-ui']}),
     });
 
-    await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
-    await userEvent.hover(
-      screen.getByRole('menuitemradio', {name: 'Set Priority to...'})
-    );
+    await userEvent.click(screen.getByRole('button', {name: 'Set Priority'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'High'}));
 
     expect(apiMock).toHaveBeenCalledWith(
@@ -445,7 +439,9 @@ describe('IssueListActions', function () {
 
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
 
-        await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
+        await userEvent.click(
+          await screen.findByRole('button', {name: 'More issue actions'})
+        );
         await userEvent.click(screen.getByRole('menuitemradio', {name: 'Delete'}));
 
         const modal = screen.getByRole('dialog');

@@ -188,7 +188,7 @@ export function divide(numerator: number, denominator: number | undefined) {
 }
 
 /**
- * Finds the index of the mobile replay segment that is neared
+ * Finds the index of the mobile replay segment that is nearest
  */
 export function findVideoSegmentIndex(
   trackList: [ts: number, index: number][],

@@ -1,5 +1,8 @@
+import type {Theme} from '@emotion/react';
+
 import type {Client} from 'sentry/api';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
+import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import type {Organization} from 'sentry/types';
 import type {Event, EventTransaction, Measurement} from 'sentry/types/event';
 import type {
@@ -213,6 +216,28 @@ function maybeInsertMissingInstrumentationSpan(
   );
 
   parent.spanChildren.push(missingInstrumentationSpan);
+}
+
+export function makeTraceNodeBarColor(
+  theme: Theme,
+  node: TraceTreeNode<TraceTree.NodeValue>
+): string {
+  if (isTransactionNode(node)) {
+    return pickBarColor(node.value['transaction.op']);
+  }
+  if (isSpanNode(node)) {
+    return pickBarColor(node.value.op);
+  }
+  if (isAutogroupedNode(node)) {
+    return theme.blue300;
+  }
+  if (isMissingInstrumentationNode(node)) {
+    return theme.gray300;
+  }
+  if (isTraceErrorNode(node)) {
+    return theme.red300;
+  }
+  return pickBarColor('default');
 }
 
 function shouldCollapseNodeByDefault(node: TraceTreeNode<TraceTree.NodeValue>) {
@@ -637,10 +662,11 @@ export class TraceTree {
     while (queue.length > 0) {
       const node = queue.pop()!;
 
+      for (const child of node.children) {
+        queue.push(child);
+      }
+
       if (node.children.length < 5) {
-        for (const child of node.children) {
-          queue.push(child);
-        }
         continue;
       }
 
@@ -701,7 +727,7 @@ export class TraceTree {
               child.value &&
               'start_timestamp' in child.value &&
               typeof child.value.start_timestamp === 'number' &&
-              child.value.start_timestamp > start_timestamp
+              child.value.start_timestamp < start_timestamp
             ) {
               start_timestamp = child.value.start_timestamp;
             }
@@ -1149,6 +1175,19 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
 
   get has_errors(): boolean {
     return this.errors.length > 0 || this.performance_issues.length > 0;
+  }
+
+  get parent_transaction(): TraceTreeNode<TraceTree.Transaction> | null {
+    let node: TraceTreeNode<TraceTree.NodeValue> | null = this.parent;
+
+    while (node) {
+      if (isTransactionNode(node)) {
+        return node;
+      }
+      node = node.parent;
+    }
+
+    return null;
   }
 
   /**

@@ -35,11 +35,29 @@ export enum CheckInStatus {
 }
 
 interface BaseConfig {
+  /**
+   * How long (in minutes) after the expected check-in time will we wait until
+   * we consider the check-in to have been missed.
+   */
   checkin_margin: number;
+  /**
+   * How long (in minutes) is the check-in allowed to run for in
+   * CheckInStatus.IN_PROGRESS before it is considered failed.
+   */
   max_runtime: number;
+  /**
+   * tz database style timezone string
+   */
   timezone: string;
   alert_rule_id?: number;
+  /**
+   * How many consecutive missed or failed check-ins in a row before creating a
+   * new issue.
+   */
   failure_issue_threshold?: number | null;
+  /**
+   * How many successful check-ins in a row before resolving an issue.
+   */
   recovery_threshold?: number | null;
 }
 
@@ -122,13 +140,41 @@ export interface MonitorStat {
 }
 
 export interface CheckIn {
+  /**
+   * Attachment ID for attachments sent via the legacy attachment HTTP
+   * endpoint. This will likely be removed in the future.
+   *
+   * @deprecated
+   */
   attachmentId: number | null;
+  /**
+   * Date the opening check-in was sent
+   */
   dateCreated: string;
+  /**
+   * Duration (in milliseconds)
+   */
   duration: number;
+  /**
+   * environment the check-in was sent to
+   */
   environment: string;
+  /**
+   * What was the monitors nextCheckIn value when this check-in occured, this
+   * is when we expected the check-in to happen.
+   */
   expectedTime: string;
+  /**
+   * Check-in GUID
+   */
   id: string;
+  /**
+   * Status of the check-in
+   */
   status: CheckInStatus;
+  /**
+   * Groups associated to this check-in (determiend by traceId)
+   */
   groups?: {id: number; shortId: string}[];
 }
 
@@ -138,5 +184,5 @@ export interface CheckIn {
 export interface StatusNotice {
   color: ColorOrAlias;
   icon: React.ReactNode;
-  label: React.ReactNode;
+  label?: React.ReactNode;
 }

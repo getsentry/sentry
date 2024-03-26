@@ -2,14 +2,11 @@ import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
-import {Button} from 'sentry/components/button';
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import BufferingOverlay from 'sentry/components/replays/player/bufferingOverlay';
 import FastForwardBadge from 'sentry/components/replays/player/fastForwardBadge';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {IconPlay} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -20,8 +17,7 @@ type Dimensions = ReturnType<typeof useReplayContext>['dimensions'];
 interface Props {
   className?: string;
   isPreview?: boolean;
-  onClickNextReplay?: () => void;
-  overlayText?: string;
+  overlayContent?: React.ReactNode;
 }
 
 function useVideoSizeLogger({
@@ -62,12 +58,7 @@ function useVideoSizeLogger({
   }, [organization, windowDimensions, videoDimensions, didLog, analyticsContext]);
 }
 
-function BasePlayerRoot({
-  className,
-  overlayText,
-  onClickNextReplay,
-  isPreview = false,
-}: Props) {
+function BasePlayerRoot({className, overlayContent, isPreview = false}: Props) {
   const {
     dimensions: videoDimensions,
     fastForwardSpeed,
@@ -75,6 +66,7 @@ function BasePlayerRoot({
     isBuffering,
     isFetching,
     isFinished,
+    isVideoReplay,
   } = useReplayContext();
 
   const windowEl = useRef<HTMLDivElement>(null);
@@ -129,22 +121,16 @@ function BasePlayerRoot({
 
   return (
     <Fragment>
-      {isFinished && overlayText && (
+      {isFinished && overlayContent && (
         <Overlay>
-          <OverlayInnerWrapper>
-            <UpNext>{t('Up Next')}</UpNext>
-            <OverlayText>{overlayText}</OverlayText>
-            <Button onClick={onClickNextReplay} icon={<IconPlay size="md" />}>
-              {t('Play Now')}
-            </Button>
-          </OverlayInnerWrapper>
+          <OverlayInnerWrapper>{overlayContent}</OverlayInnerWrapper>
         </Overlay>
       )}
       <StyledNegativeSpaceContainer ref={windowEl} className="sentry-block">
         <div ref={viewEl} className={className} />
         {fastForwardSpeed ? <PositionedFastForward speed={fastForwardSpeed} /> : null}
         {isBuffering ? <PositionedBuffering /> : null}
-        {isPreview ? null : <PlayerDOMAlert />}
+        {isPreview || isVideoReplay ? null : <PlayerDOMAlert />}
         {isFetching ? <PositionedLoadingIndicator /> : null}
       </StyledNegativeSpaceContainer>
     </Fragment>
@@ -307,14 +293,6 @@ const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
   position: relative;
   width: 100%;
   height: 100%;
-`;
-
-const OverlayText = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-`;
-
-const UpNext = styled('div')`
-  line-height: 0;
 `;
 
 export default SentryPlayerRoot;

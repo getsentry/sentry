@@ -16,7 +16,6 @@ import {PlatformIcon} from 'platformicons';
 import * as qs from 'query-string';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Organization, PlatformKey, Project} from 'sentry/types';
@@ -48,7 +47,12 @@ import {
   isTraceNode,
   isTransactionNode,
 } from './guards';
-import {ParentAutogroupNode, type TraceTree, type TraceTreeNode} from './traceTree';
+import {
+  makeTraceNodeBarColor,
+  ParentAutogroupNode,
+  type TraceTree,
+  type TraceTreeNode,
+} from './traceTree';
 import {
   useVirtualizedList,
   type VirtualizedRow,
@@ -145,6 +149,10 @@ function maybeFocusRow(
 
 interface TraceProps {
   manager: VirtualizedViewManager;
+  onRowClick: (
+    node: TraceTreeNode<TraceTree.NodeValue> | null,
+    event: React.MouseEvent<HTMLElement> | null
+  ) => void;
   onTraceSearch: (query: string) => void;
   previouslyFocusedIndexRef: React.MutableRefObject<number | null>;
   roving_dispatch: React.Dispatch<RovingTabIndexAction>;
@@ -157,7 +165,6 @@ interface TraceProps {
   searchResultsMap: Map<TraceTreeNode<TraceTree.NodeValue>, number>;
   search_dispatch: React.Dispatch<TraceSearchAction>;
   search_state: TraceSearchState;
-  setClickedNode: (node: TraceTreeNode<TraceTree.NodeValue> | null) => void;
   trace: TraceTree;
   trace_id: string;
 }
@@ -169,7 +176,7 @@ function Trace({
   roving_dispatch,
   search_state,
   search_dispatch,
-  setClickedNode: setDetailNode,
+  onRowClick,
   manager,
   scrollQueueRef,
   searchResultsIteratorIndex,
@@ -203,6 +210,7 @@ function Trace({
     manager.initializeTraceSpace([trace.root.space[0], 0, trace.root.space[1], 1]);
     const maybeQueue = decodeScrollQueue(qs.parse(location.search).node);
     const maybeEventId = qs.parse(location.search)?.eventId;
+
     if (maybeQueue || maybeEventId) {
       scrollQueueRef.current = {
         eventId: maybeEventId as string,
@@ -229,20 +237,21 @@ function Trace({
       return;
     }
 
-    const promise = scrollQueueRef.current?.eventId
-      ? manager.scrollToEventID(
-          scrollQueueRef?.current?.eventId,
+    // Node path has higher specificity than eventId
+    const promise = scrollQueueRef.current?.path
+      ? manager.scrollToPath(
           trace,
+          scrollQueueRef.current.path,
           () => setRender(a => (a + 1) % 2),
           {
             api,
             organization,
           }
         )
-      : scrollQueueRef?.current?.path
-        ? manager.scrollToPath(
+      : scrollQueueRef.current.eventId
+        ? manager.scrollToEventID(
+            scrollQueueRef?.current?.eventId,
             trace,
-            scrollQueueRef.current.path,
             () => setRender(a => (a + 1) % 2),
             {
               api,
@@ -266,8 +275,7 @@ function Trace({
         manager.animateViewTo(maybeNode.node.space);
       }
 
-      manager.onScrollEndOutOfBoundsCheck();
-      setDetailNode(maybeNode.node);
+      onRowClick(maybeNode.node, null);
       roving_dispatch({
         type: 'set index',
         index: maybeNode.index,
@@ -275,7 +283,7 @@ function Trace({
       });
 
       manager.list?.scrollToRow(maybeNode.index, 'top');
-      manager.scrollRowIntoViewHorizontally(maybeNode.node, 0);
+      manager.scrollRowIntoViewHorizontally(maybeNode.node, 0, 12, 'exact');
 
       if (search_state.query) {
         onTraceSearch(search_state.query);
@@ -290,7 +298,7 @@ function Trace({
     manager,
     search_state.query,
     onTraceSearch,
-    setDetailNode,
+    onRowClick,
     roving_dispatch,
   ]);
 
@@ -332,7 +340,8 @@ function Trace({
         manager.scrollRowIntoViewHorizontally(
           treeRef.current.list[search_state.resultIndex],
           0,
-          offset
+          offset,
+          'measured'
         );
       }
     }
@@ -412,9 +421,9 @@ function Trace({
     [search_state, search_dispatch, onTraceSearch]
   );
 
-  const onRowClick = useCallback(
+  const onVirtulizedRowClick = useCallback(
     (
-      _event: React.MouseEvent,
+      event: React.MouseEvent<HTMLElement>,
       index: number,
       node: TraceTreeNode<TraceTree.NodeValue>
     ) => {
@@ -428,7 +437,7 @@ function Trace({
           node: node.path,
         },
       });
-      setDetailNode(node);
+      onRowClick(node, event);
       roving_dispatch({type: 'set index', index, node});
 
       if (search_state.resultsLookup.has(node)) {
@@ -445,7 +454,7 @@ function Trace({
     },
     [
       roving_dispatch,
-      setDetailNode,
+      onRowClick,
       search_state,
       search_dispatch,
       previouslyFocusedIndexRef,
@@ -585,7 +594,7 @@ function Trace({
           theme={theme}
           onExpand={handleExpandNode}
           onZoomIn={handleZoomIn}
-          onRowClick={onRowClick}
+          onRowClick={onVirtulizedRowClick}
           onRowKeyDown={onRowKeyDown}
         />
       );
@@ -596,7 +605,7 @@ function Trace({
       handleExpandNode,
       handleZoomIn,
       manager,
-      onRowClick,
+      onVirtulizedRowClick,
       onRowKeyDown,
       organization,
       projectLookup,
@@ -647,8 +656,8 @@ function Trace({
           : null}
 
         {manager.interval_bars.map((_, i) => {
-          const indicatorTimestamp = manager.intervals[i];
-          const timestamp = manager.to_origin + indicatorTimestamp ?? 0;
+          const indicatorTimestamp = manager.intervals[i] ?? 0;
+          const timestamp = manager.to_origin + indicatorTimestamp;
 
           if (trace.type !== 'trace') {
             return null;
@@ -697,7 +706,7 @@ function RenderRow(props: {
     value: boolean
   ) => void;
   onRowClick: (
-    event: React.MouseEvent<Element>,
+    event: React.MouseEvent<HTMLElement>,
     index: number,
     node: TraceTreeNode<TraceTree.NodeValue>
   ) => void;
@@ -800,7 +809,7 @@ function RenderRow(props: {
           <AutogroupedTraceBar
             virtualized_index={virtualized_index}
             manager={props.manager}
-            color={props.theme.blue300}
+            color={makeTraceNodeBarColor(props.theme, props.node)}
             entire_space={props.node.space}
             node_spaces={props.node.autogroupedSegments}
             errors={props.node.errors}
@@ -917,7 +926,7 @@ function RenderRow(props: {
           <TraceBar
             virtualized_index={virtualized_index}
             manager={props.manager}
-            color={pickBarColor(props.node.value['transaction.op'])}
+            color={makeTraceNodeBarColor(props.theme, props.node)}
             node_space={props.node.space}
             errors={props.node.value.errors}
             performance_issues={props.node.value.performance_issues}
@@ -1033,7 +1042,7 @@ function RenderRow(props: {
           <TraceBar
             virtualized_index={virtualized_index}
             manager={props.manager}
-            color={pickBarColor(props.node.value.op)}
+            color={makeTraceNodeBarColor(props.theme, props.node)}
             node_space={props.node.space}
             errors={props.node.errors}
             performance_issues={props.node.performance_issues}
@@ -1110,7 +1119,7 @@ function RenderRow(props: {
           <TraceBar
             virtualized_index={virtualized_index}
             manager={props.manager}
-            color={props.theme.gray300}
+            color={makeTraceNodeBarColor(props.theme, props.node)}
             node_space={props.node.space}
             performance_issues={NO_ERRORS}
             profiles={NO_ERRORS}
@@ -1197,7 +1206,7 @@ function RenderRow(props: {
           <TraceBar
             virtualized_index={virtualized_index}
             manager={props.manager}
-            color={pickBarColor('missing-instrumentation')}
+            color={makeTraceNodeBarColor(props.theme, props.node)}
             node_space={props.node.space}
             errors={NO_ERRORS}
             performance_issues={NO_ERRORS}
@@ -1745,7 +1754,7 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
               key={i}
               className="TraceBar"
               style={{
-                left: `${left * 1000}%`,
+                left: `${left * 100}%`,
                 width: `${width * 100}%`,
                 backgroundColor: props.color,
               }}
@@ -1994,6 +2003,9 @@ const TraceStylingWrapper = styled('div')`
       justify-content: center;
 
       svg {
+        width: 12px;
+        height: 12px;
+        margin-left: 2px;
         fill: ${p => p.theme.white};
       }
     }
@@ -2052,6 +2064,10 @@ const TraceStylingWrapper = styled('div')`
 
       .TraceChildrenCount {
         border: 2px solid ${p => p.theme.error};
+
+        svg {
+          fill: ${p => p.theme.error};
+        }
       }
 
       &:focus,
@@ -2182,6 +2198,10 @@ const TraceStylingWrapper = styled('div')`
     display: flex;
     align-items: center;
 
+    svg {
+      fill: ${p => p.theme.subText};
+    }
+
     &.Left {
       left: 0;
     }
@@ -2266,6 +2286,7 @@ const TraceStylingWrapper = styled('div')`
     svg {
       width: 7px;
       transition: none;
+      fill: ${p => p.theme.textColor};
     }
   }
 
