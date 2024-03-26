@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import time
 from datetime import timedelta
 from typing import Any
 from unittest import mock
@@ -1262,6 +1261,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
     def test_top_events_with_transaction_on_demand_passing_widget_id_unsaved_error(
         self,
     ):
+        self.project = self.create_project(organization=self.organization)
+        Environment.get_or_create(self.project, "production")
         field = "count()"
         field_two = "count()"
         groupbys = ["customtag1", "customtag2"]
@@ -1326,7 +1327,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
         assert bool(response.data["error_value2,"])
 
     def test_top_events_with_transaction_on_demand_passing_widget_id_unsaved_discover(self):
-        time.sleep(5)
+        self.project = self.create_project(organization=self.organization)
+        Environment.get_or_create(self.project, "production")
         field = "count()"
         field_two = "count()"
         groupbys = ["customtag1", "customtag2"]
