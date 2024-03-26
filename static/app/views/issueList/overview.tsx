@@ -490,7 +490,7 @@ class IssueListOverview extends Component<Props, State> {
           return;
         }
         GroupStore.onPopulateStats(groups, data);
-        this.trackTabViewed(groups, data);
+        this.trackTabViewed(groups, data, this.state.queryCount);
       },
       error: err => {
         this.setState({
@@ -502,9 +502,9 @@ class IssueListOverview extends Component<Props, State> {
 
         // End navigation transaction to prevent additional page requests from impacting page metrics.
         // Other transactions include stacktrace preview request
-        const currentTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
+        const currentTransaction = Sentry.getActiveTransaction();
         if (currentTransaction?.op === 'navigation') {
-          currentTransaction.finish();
+          currentTransaction.end();
         }
       },
     });
@@ -821,7 +821,7 @@ class IssueListOverview extends Component<Props, State> {
     }
   }
 
-  trackTabViewed(groups: string[], data: Group[]) {
+  trackTabViewed(groups: string[], data: Group[], numHits: number | null) {
     const {organization, location} = this.props;
     const page = location.query.page;
     const endpointParams = this.getEndpointParams();
@@ -855,6 +855,7 @@ class IssueListOverview extends Component<Props, State> {
       num_old_issues: numOldIssues,
       num_new_issues: numNewIssues,
       num_issues: data.length,
+      total_issues_count: numHits,
       sort: this.getSort(),
     });
   }

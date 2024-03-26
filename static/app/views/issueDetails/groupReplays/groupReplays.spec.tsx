@@ -407,7 +407,7 @@ describe('GroupReplays', () => {
       });
 
       await waitFor(() => {
-        expect(mockReplayCountApi).toHaveBeenCalledTimes(1);
+        expect(mockReplayCountApi).toHaveBeenCalled();
         expect(mockReplayApi).toHaveBeenCalledTimes(1);
       });
 

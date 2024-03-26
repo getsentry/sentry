@@ -588,7 +588,7 @@ def run_sessions_query(
 
     result_groups: Sequence[SessionsQueryGroup] = [
         # Convert group keys back to dictionaries:
-        {"by": group_key.to_output_dict(), **group}  # type: ignore
+        {"by": group_key.to_output_dict(), **group}  # type: ignore[typeddict-item]
         for group_key, group in output_groups.items()
     ]
     result_groups = _order_by_preflight_query_results(
@@ -677,7 +677,7 @@ def _order_by_preflight_query_results(
                     # Added a mypy ignore here because this is a one off as result groups
                     # will never have null group values except when the group exists in the
                     # preflight query but not in the metrics dataset
-                    group_key_dict.update({key: None})  # type: ignore
+                    group_key_dict.update({key: None})  # type: ignore[dict-item]
                 result_groups += [{"by": group_key_dict, **default_group_gen_func()}]
 
         # Pop extra groups returned to match request limit
