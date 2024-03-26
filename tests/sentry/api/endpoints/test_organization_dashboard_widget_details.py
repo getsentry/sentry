@@ -2,6 +2,7 @@ from unittest import mock
 
 from django.urls import reverse
 
+from sentry import options
 from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
@@ -1034,3 +1035,49 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         warnings = response.data["warnings"]
         assert len(warnings["queries"]) == 2
         assert response.data == {"warnings": {"columns": {}, "queries": [None, None]}}
+
+    def test_widget_cardinality(self):
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "transaction": "/example",
+                "message": "how to make fast",
+                "timestamp": iso_format(before_now(minutes=2)),
+                "tags": {"sometag": "foo"},
+            },
+            project_id=self.project.id,
+        )
+        project = self.create_project()
+        self.create_environment(project=project, name="mock_env")
+        data = {
+            "title": "Test Query",
+            "displayType": "table",
+            "widgetType": "discover",
+            "limit": 5,
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "release.stage:adopted",
+                    "columns": ["sometag"],
+                    "fields": [],
+                    "aggregates": ["count()"],
+                }
+            ],
+        }
+
+        option_get = options.get
+
+        def mock_options(option_name):
+            if option_name == "on_demand.max_widget_cardinality.on_query_count":
+                return 0
+            else:
+                return option_get(option_name)
+
+        with mock.patch("sentry.options.get", side_effect=mock_options):
+            with self.feature(ONDEMAND_FEATURES):
+                response = self.client.post(f"{self.url()}?environment=mock_env", data)
+        assert response.status_code == 200, response.data
+        warnings = response.data["warnings"]
+        assert "columns" in warnings
+        assert len(warnings["columns"]) == 1
+        assert warnings["columns"]["sometag"] == "disabled:high-cardinality"

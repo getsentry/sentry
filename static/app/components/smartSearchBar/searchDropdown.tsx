@@ -9,7 +9,7 @@ import {Overlay} from 'sentry/components/overlay';
 import type {BooleanOperator, SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
-import Tag from 'sentry/components/tag';
+import {Tag} from 'sentry/components/tag';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

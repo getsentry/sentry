@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Sequence
 from datetime import timedelta
-from typing import Any
+from typing import Any, Literal, overload
 
 import sentry_sdk
 from snuba_sdk import Column
@@ -87,6 +87,7 @@ def query(
         return results
 
 
+@overload
 def bulk_timeseries_query(
     selected_columns: Sequence[str],
     queries: list[str],
@@ -102,7 +103,49 @@ def bulk_timeseries_query(
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     groupby: Column | None = None,
-    apply_formatting: bool | None = True,
+    *,
+    apply_formatting: Literal[False],
+) -> EventsResponse:
+    ...
+
+
+@overload
+def bulk_timeseries_query(
+    selected_columns: Sequence[str],
+    queries: list[str],
+    params: ParamsType,
+    rollup: int,
+    referrer: str,
+    zerofill_results: bool = True,
+    allow_metric_aggregates=True,
+    comparison_delta: timedelta | None = None,
+    functions_acl: list[str] | None = None,
+    has_metrics: bool = True,
+    use_metrics_layer: bool = False,
+    on_demand_metrics_enabled: bool = False,
+    on_demand_metrics_type: MetricSpecType | None = None,
+    groupby: Column | None = None,
+) -> SnubaTSResult:
+    ...
+
+
+def bulk_timeseries_query(
+    selected_columns: Sequence[str],
+    queries: list[str],
+    params: ParamsType,
+    rollup: int,
+    referrer: str,
+    zerofill_results: bool = True,
+    allow_metric_aggregates=True,
+    comparison_delta: timedelta | None = None,
+    functions_acl: list[str] | None = None,
+    has_metrics: bool = True,
+    use_metrics_layer: bool = False,
+    on_demand_metrics_enabled: bool = False,
+    on_demand_metrics_type: MetricSpecType | None = None,
+    groupby: Column | None = None,
+    *,
+    apply_formatting: bool = True,
 ) -> SnubaTSResult | EventsResponse:
     """
     High-level API for doing *bulk* arbitrary user timeseries queries against events.

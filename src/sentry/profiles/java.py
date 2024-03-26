@@ -112,17 +112,37 @@ def convert_android_methods_to_jvm_frames(methods: list[dict]) -> list[dict]:
     return [
         {
             "function": m["name"],
+            "index": i,
             "module": m["class_name"],
             "signature": m["signature"],
         }
-        for m in methods
+        for i, m in enumerate(methods)
     ]
 
 
 def merge_jvm_frames_with_android_methods(frames: list[dict], methods: list[dict]) -> None:
-    assert len(frames) == len(methods)
-    for f, m in zip(frames, methods):
-        m["class_name"] = f["module"]
-        m["name"] = f["function"]
-        if "signature" in f:
-            m["signature"] = f["signature"]
+    for f in reversed(frames):
+        m = methods[f["index"]]
+        if m.get("data", {}).get("deobfuscation_status", "") != "deobfuscated":
+            m["class_name"] = f["module"]
+            m["data"] = {"deobfuscation_status": "deobfuscated"}
+            m["name"] = f["function"]
+            m["signature"] = f.get("signature", "")
+            m["source_file"] = f.get("abs_path", "")
+            m["source_line"] = f.get("lineno", 0)
+            if "in_app" in f:
+                m["in_app"] = f["in_app"]
+        else:
+            if "inline_frames" in m:
+                m["inline_frames"] = [m]
+            im = {
+                "class_name": f["module"],
+                "data": {"deobfuscation_status": "deobfuscated"},
+                "name": f["function"],
+                "signature": f.get("signature", ""),
+                "source_file": f.get("abs_path", ""),
+                "source_line": f.get("lineno", 0),
+            }
+            if "in_app" in f:
+                im["in_app"] = f["in_app"]
+            m["inline_frames"].append(im)

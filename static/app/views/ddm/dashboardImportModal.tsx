@@ -9,7 +9,7 @@ import {Button} from 'sentry/components/button';
 import TextArea from 'sentry/components/forms/controls/textarea';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import Tag from 'sentry/components/tag';
+import {Tag} from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

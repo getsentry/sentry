@@ -299,10 +299,10 @@ def compare_rust_components(
     contributes, hint, invert, rust_components_ = rust_results
 
     python_components = [
-        (c.contributes, c.is_prefix_frame, c.is_sentinel_frame) for c in component.values
+        (c.contributes, c.hint, c.is_prefix_frame, c.is_sentinel_frame) for c in component.values
     ]
     rust_components = [
-        (c.contributes, c.is_prefix_frame, c.is_sentinel_frame) for c in rust_components_
+        (c.contributes, c.hint, c.is_prefix_frame, c.is_sentinel_frame) for c in rust_components_
     ]
 
     python_res = (component.contributes, component.hint, invert_stacktrace, python_components)

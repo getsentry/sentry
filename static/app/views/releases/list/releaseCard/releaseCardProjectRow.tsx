@@ -15,7 +15,7 @@ import NotAvailable from 'sentry/components/notAvailable';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import PanelItem from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
-import Tag from 'sentry/components/tag';
+import {Tag} from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';

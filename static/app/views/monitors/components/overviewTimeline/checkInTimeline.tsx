@@ -1,9 +1,10 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import DateTime from 'sentry/components/dateTime';
 import {Tooltip} from 'sentry/components/tooltip';
 import {CheckInStatus} from 'sentry/views/monitors/types';
-import {getColorsFromStatus} from 'sentry/views/monitors/utils';
+import {tickStyle} from 'sentry/views/monitors/utils';
 import {getAggregateStatus} from 'sentry/views/monitors/utils/getAggregateStatus';
 import {mergeBuckets} from 'sentry/views/monitors/utils/mergeBuckets';
 
@@ -125,17 +126,56 @@ const JobTick = styled('div')<{
 }>`
   position: absolute;
   top: calc(50% + 1px);
-  transform: translateY(-50%);
-  background: ${p => getColorsFromStatus(p.status, p.theme).tickColor};
-  opacity: 0.7;
   width: 4px;
   height: 14px;
+  transform: translateY(-50%);
+  opacity: 0.7;
+
+  ${p => {
+    const style = tickStyle[p.status];
+
+    if (style.hatchTick === undefined) {
+      return css`
+        background: ${p.theme[style.tickColor]};
+      `;
+    }
+
+    return css`
+      border: 1px solid ${p.theme[style.tickColor]};
+      ${!p.roundedLeft && 'border-left-width: 0'};
+      ${!p.roundedRight && 'border-right-width: 0'};
+
+      background-size: 3px 3px;
+      opacity: 0.5;
+      background-image: linear-gradient(
+          -45deg,
+          ${p.theme[style.hatchTick]} 25%,
+          transparent 25%,
+          transparent 50%,
+          ${p.theme[style.hatchTick]} 50%,
+          ${p.theme[style.hatchTick]} 75%,
+          transparent 75%,
+          transparent
+        ),
+        linear-gradient(
+          45deg,
+          ${p.theme[style.hatchTick]} 25%,
+          transparent 25%,
+          transparent 50%,
+          ${p.theme[style.hatchTick]} 50%,
+          ${p.theme[style.hatchTick]} 75%,
+          transparent 75%,
+          transparent
+        );
+    `;
+  }};
+
   ${p =>
     p.roundedLeft &&
     `
     border-top-left-radius: 2px;
     border-bottom-left-radius: 2px;
-  `}
+  `};
   ${p =>
     p.roundedRight &&
     `

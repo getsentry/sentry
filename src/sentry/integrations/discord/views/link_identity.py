@@ -51,7 +51,7 @@ class DiscordLinkIdentityView(BaseView):
                 context={"organization": organization, "provider": integration.get_provider()},
             )
 
-        Identity.objects.link_identity(user=request.user, idp=idp, external_id=params["discord_id"])  # type: ignore
+        Identity.objects.link_identity(user=request.user, idp=idp, external_id=params["discord_id"])  # type: ignore[arg-type]
 
         analytics.record(
             "integrations.discord.identity_linked",
