@@ -49,6 +49,32 @@ describe('VideoReplayer - no starting gap', () => {
     },
   ];
 
+  const extra = [
+    {
+      id: 6,
+      timestamp: 40_002,
+      duration: 5000,
+    },
+    {
+      id: 7,
+      timestamp: 45_002,
+      duration: 5000,
+    },
+  ];
+
+  const skip = [
+    {
+      id: 7,
+      timestamp: 45_002,
+      duration: 5000,
+    },
+    {
+      id: 8,
+      timestamp: 50_002,
+      duration: 5000,
+    },
+  ];
+
   it('plays and seeks inside of a segment', async () => {
     const root = document.createElement('div');
     const inst = new VideoReplayer(attachments, {
@@ -115,6 +141,86 @@ describe('VideoReplayer - no starting gap', () => {
     // `currentTime` is in seconds
     // @ts-expect-error private
     expect(inst.getVideo(inst._currentIndex)?.currentTime).toEqual(5);
+  });
+
+  it('initially only loads videos from 0 to BUFFER', async () => {
+    const root = document.createElement('div');
+    const inst = new VideoReplayer(attachments, {
+      videoApiPrefix: '/foo/',
+      root,
+      start: 0,
+      onFinished: jest.fn(),
+      onLoaded: jest.fn(),
+    });
+    const playPromise = inst.play(0);
+    jest.advanceTimersByTime(2500);
+    await playPromise;
+    // @ts-expect-error private
+    expect(inst._currentIndex).toEqual(0);
+    // @ts-expect-error private
+    expect(Object.keys(inst._videos).length).toEqual(3);
+  });
+
+  it('should load the correct videos after playing at a timestamp', async () => {
+    const root = document.createElement('div');
+    const inst = new VideoReplayer(attachments.concat(extra), {
+      videoApiPrefix: '/foo/',
+      root,
+      start: 0,
+      onFinished: jest.fn(),
+      onLoaded: jest.fn(),
+    });
+    // play at segment 7
+    const playPromise = inst.play(45_003);
+    jest.advanceTimersByTime(2500);
+    await playPromise;
+    // @ts-expect-error private
+    expect(inst._currentIndex).toEqual(7);
+
+    // videos loaded should be [0, 1, 2, 4, 5, 6, 7]
+    // @ts-expect-error private
+    expect(Object.keys(inst._videos).length).toEqual(7);
+    // @ts-expect-error private
+    expect(inst._videos[0]).toEqual(inst.getVideo(0));
+    // @ts-expect-error private
+    expect(inst._videos[2]).toEqual(inst.getVideo(2));
+    // @ts-expect-error private
+    expect(inst._videos[3]).toEqual(undefined);
+    // @ts-expect-error private
+    expect(inst._videos[4]).toEqual(inst.getVideo(4));
+    // @ts-expect-error private
+    expect(inst._videos[7]).toEqual(inst.getVideo(7));
+  });
+
+  it('should work correctly if we have missing segments', async () => {
+    const root = document.createElement('div');
+    const inst = new VideoReplayer(attachments.concat(skip), {
+      videoApiPrefix: '/foo/',
+      root,
+      start: 0,
+      onFinished: jest.fn(),
+      onLoaded: jest.fn(),
+    });
+    // play at segment 7
+    const playPromise = inst.play(45_003);
+    jest.advanceTimersByTime(2500);
+    await playPromise;
+    // @ts-expect-error private
+    expect(inst._currentIndex).toEqual(6);
+
+    // videos loaded should be [0, 1, 2, 3, 4, 5, 7, 8]
+    // @ts-expect-error private
+    expect(Object.keys(inst._videos).length).toEqual(8);
+    // @ts-expect-error private
+    expect(inst._videos[0]).toEqual(inst.getVideo(0));
+    // @ts-expect-error private
+    expect(inst._videos[2]).toEqual(inst.getVideo(2));
+    // @ts-expect-error private
+    expect(inst._videos[5]).toEqual(inst.getVideo(5));
+    // @ts-expect-error private
+    expect(inst._videos[6]).toEqual(inst.getVideo(6));
+    // @ts-expect-error private
+    expect(inst._videos[7]).toEqual(inst.getVideo(7));
   });
 });
 

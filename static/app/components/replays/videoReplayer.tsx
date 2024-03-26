@@ -43,7 +43,7 @@ export class VideoReplayer {
   private _timer = new Timer();
   private _trackList: [ts: number, index: number][];
   /**
-   * _videos is a dict that maps segmentId to the video element.
+   * _videos is a dict that maps attachment index to the video element.
    * Video elements in this dict are preloaded and ready to be played.
    */
   private _videos: Record<number, HTMLVideoElement>;
@@ -183,8 +183,7 @@ export class VideoReplayer {
   }
 
   /**
-   * Fetches videos from attachments and adds them to the _videos dictionary.
-   * Loads the segment at the requested index.
+   * Fetches the video if it exists, otherwise creates the video and adds to the _videos dictionary.
    */
   protected getOrCreateVideo(index: number | undefined): HTMLVideoElement | undefined {
     const video = this.getVideo(index);
