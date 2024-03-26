@@ -2048,6 +2048,11 @@ register(
     default=2000,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "split_discover_dataset.data_distance_threshold",
+    default=0.1,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 
 # Relocation: whether or not the self-serve API for the feature is enabled. When set on a region

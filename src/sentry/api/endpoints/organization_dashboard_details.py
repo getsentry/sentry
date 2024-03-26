@@ -15,6 +15,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import DashboardDetailsSerializer
 from sentry.models.dashboard import Dashboard, DashboardTombstone
+from sentry.tasks.split_discover_dataset import schedule_widget_discover_split
 
 EDIT_FEATURE = "organizations:dashboards-edit"
 READ_FEATURE = "organizations:dashboards-basic"
@@ -63,6 +64,8 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         """
         if not features.has(READ_FEATURE, organization, actor=request.user):
             return Response(status=404)
+
+        schedule_widget_discover_split()
 
         if isinstance(dashboard, dict):
             return self.respond(dashboard)

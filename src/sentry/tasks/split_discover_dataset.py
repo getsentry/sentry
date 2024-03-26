@@ -19,9 +19,6 @@ from sentry.utils.cache import cache
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.snuba import SnubaTSResult
 
-# from typing import Optional
-
-
 logger = logging.getLogger("sentry.tasks.split_discover_dataset")
 
 TASK_QUERY_PERIOD = "30m"
@@ -146,21 +143,14 @@ def update_widget_discover_split(widget: DashboardWidget):
 
     original_data = get_widget_data(widget, params)
     error_data = get_widget_data(widget, params, event_type="error")
-    transaction_data = get_widget_data(widget, params, event_type="transactions")
+    transaction_data = get_widget_data(widget, params, event_type="transaction")
 
-    compare_results(original_data, error_data, transaction_data)
-
-    metrics.incr(
-        "task.split_discover_dataset.data",
-        tags={"has_error_data": error_data, "has_transaction_data": transaction_data},
+    error_data_match, transaction_data_match = compare_results(
+        original_data, error_data, transaction_data
     )
-    # logger.log(
-    #     logging.INFO,
-    #     f"Checking for data for widget {widget.id}: error={error_data}, transaction={transaction_data}",
-    # )
-    # split = get_split_decision(original_data, error_data, transaction_data)
-    split = None
-    # logger.log(logging.INFO, f"Split decision for widget {widget.id}: {split}")
+
+    split = get_split_decision(error_data_match, transaction_data_match)
+    logger.log(logging.INFO, "Split decision for widget %s: %s", widget.id, split)
     metrics.incr("task.split_discover_dataset.update", tags={"split": split})
 
     widget.update(discover_widget_split=split)
@@ -169,9 +159,9 @@ def update_widget_discover_split(widget: DashboardWidget):
 def get_widget_data(widget: DashboardWidget, params: ParamsType, event_type: str | None = None):
     widget_query = DashboardWidgetQuery.objects.get(widget_id=widget)
 
-    conditions = None
+    conditions = widget_query.conditions
     if event_type:
-        if widget_query.conditions:
+        if conditions:
             conditions = f"({widget_query.conditions}) AND event.type:{event_type}"
         else:
             conditions = f"event.type:{event_type}"
@@ -188,25 +178,36 @@ def get_widget_data(widget: DashboardWidget, params: ParamsType, event_type: str
 
     results = query_builder.run_query(Referrer.METRIC_EXTRACTION_SPLIT_DISCOVER_DATASET.value)
     processed_results = query_builder.process_results(results)
-    # print(processed_results)
-    # check if there are any results
+
     return processed_results
 
 
-def compare_results(original_data, error_data, transaction_data):
-    for (o, e, t) in zip(original_data, error_data, transaction_data):
-        pass
-        # print(f"Original: {o}, Error: {e}, Transaction: {t}")
+def compare_results(original_data, error_data, transaction_data) -> tuple[bool, bool]:
+    threshold = options.get("split_discover_dataset.data_distance_threshold")
 
-    return None
+    error_data_match, transaction_data_match = True, True
+    for (o, e, t) in zip(original_data["data"], error_data["data"], transaction_data["data"]):
+        for column in o:
+            if not is_datapoint_close(o[column], e.get(column, -1), threshold):
+                error_data_match = False
+            if not is_datapoint_close(o[column], t.get(column, -1), threshold):
+                transaction_data_match = False
+
+    return error_data_match, transaction_data_match
 
 
-def get_split_decision(has_error_data, has_transactions_data):
-    if has_error_data and not has_transactions_data:
+def is_datapoint_close(a: int, b: int, threshold: float) -> bool:
+    return abs((a - b) / a) < threshold
+
+
+def get_split_decision(
+    error_data_match: bool, transaction_data_match: bool
+) -> DashboardWidgetTypes | None:
+    if error_data_match and not transaction_data_match:
         decision = DashboardWidgetTypes.ERROR_EVENTS
-    elif not has_error_data and has_transactions_data:
+    elif not error_data_match and transaction_data_match:
         decision = DashboardWidgetTypes.TRANSACTION_LIKE
-    elif has_error_data and has_transactions_data:
+    elif error_data_match and transaction_data_match:
         decision = DashboardWidgetTypes.DISCOVER
     else:
         decision = None
