@@ -159,13 +159,11 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             data = results["data"]
             assert len(data) == 1
             assert data[0][0]["by"] == {}
-
             assert data[0][0]["series"] == [
                 None,
                 expected_identity_series,
                 expected_identity_series,
             ]
-
             assert data[0][0]["totals"] == expected_identity_totals
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
