@@ -3127,6 +3127,10 @@ SENTRY_SDK_CONFIG: ServerSdkConfig = {
     "send_default_pii": True,
     "auto_enabling_integrations": False,
     "enable_db_query_source": True,
+    # Keep alive is enabled to help avoid losing events due to network
+    # connectivity issues. We are specifically enabling this to help ensure
+    # cron monitor check-ins make it through.
+    "keep_alive": True,
 }
 
 SENTRY_DEV_DSN = os.environ.get("SENTRY_DEV_DSN")
