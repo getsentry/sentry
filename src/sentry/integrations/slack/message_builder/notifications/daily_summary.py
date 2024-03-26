@@ -21,6 +21,8 @@ from sentry.utils.http import absolute_uri
 
 from .base import SlackNotificationsMessageBuilder
 
+MAX_CHARS_ONE_LINE = 38
+
 
 class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
     def __init__(
@@ -38,11 +40,11 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
         link = group.get_absolute_url(
             params={"referrer": self.notification.get_referrer(ExternalProviders.SLACK)}
         )
-        title = build_attachment_title(group)
+        title = build_attachment_title(group)[:MAX_CHARS_ONE_LINE]
         attachment_text = self.get_attachment_text(group)
         if not attachment_text:
             return f"<{link}|*{escape_slack_text(title)}*>"
-        attachment_text = attachment_text.replace("\n", " ")
+        attachment_text = attachment_text.replace("\n", " ")[:MAX_CHARS_ONE_LINE]
         return f"<{link}|*{escape_slack_text(title)}*>\n{attachment_text}"
 
     def linkify_release(self, release, organization):
