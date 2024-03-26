@@ -159,7 +159,7 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any):
         {
             "frames": [
                 _normalize_frame(frame, index)
-                for index, frame in enumerate(sinfo.stacktrace.get("frames")) or ()
+                for index, frame in enumerate(sinfo.stacktrace.get("frames") or ())
                 if _handles_frame(frame)
             ],
         }
