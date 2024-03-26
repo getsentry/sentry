@@ -242,7 +242,6 @@ describe('IntegrationDetailedView', function () {
 
   it('can enable github features', async function () {
     org.features.push('integrations-open-pr-comment');
-    org.features.push('integrations-gh-invite');
 
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/config/integrations/?provider_key=github`,
