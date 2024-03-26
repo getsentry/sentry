@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
@@ -20,8 +21,11 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {DurationChart} from 'sentry/views/performance/http/durationChart';
 import decodePanel from 'sentry/views/performance/http/queryParameterDecoders/panel';
 import {ResponseCodeBarChart} from 'sentry/views/performance/http/responseCodeBarChart';
+import {SpanSamplesTable} from 'sentry/views/performance/http/spanSamplesTable';
+import {useSpanSamples} from 'sentry/views/performance/http/useSpanSamples';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
+import {computeAxisMax} from 'sentry/views/starfish/components/chart';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
@@ -29,6 +33,7 @@ import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetrics
 import {
   ModuleName,
   SpanFunction,
+  SpanIndexedField,
   SpanMetricsField,
   type SpanMetricsQueryFilters,
 } from 'sentry/views/starfish/types';
@@ -129,6 +134,25 @@ export function HTTPSamplesPanel() {
       };
     }),
   };
+
+  const durationAxisMax = computeAxisMax([durationData?.[`avg(span.self_time)`]]);
+
+  const {
+    data: samplesData,
+    isFetching: isSamplesDataFetching,
+    error: samplesDataError,
+  } = useSpanSamples({
+    search: MutableSearch.fromQueryObject(filters),
+    fields: [
+      SpanIndexedField.TRANSACTION_ID,
+      SpanIndexedField.SPAN_DESCRIPTION,
+      SpanIndexedField.RESPONSE_CODE,
+    ],
+    min: 0,
+    max: durationAxisMax,
+    enabled: query.panel === 'duration' && durationAxisMax > 0,
+    referrer: 'api.starfish.http-module-samples-panel-samples',
+  });
 
   const handleClose = () => {
     router.replace({
@@ -254,23 +278,35 @@ export function HTTPSamplesPanel() {
             </SegmentedControl>
           </ModuleLayout.Full>
 
-          <ModuleLayout.Full>
-            {query.panel === 'duration' && (
-              <DurationChart
-                series={durationData[`avg(span.self_time)`]}
-                isLoading={isDurationDataFetching}
-                error={durationError}
-              />
-            )}
+          {query.panel === 'duration' && (
+            <Fragment>
+              <ModuleLayout.Full>
+                <DurationChart
+                  series={durationData[`avg(span.self_time)`]}
+                  isLoading={isDurationDataFetching}
+                  error={durationError}
+                />
+              </ModuleLayout.Full>
 
-            {query.panel === 'status' && (
+              <ModuleLayout.Full>
+                <SpanSamplesTable
+                  data={samplesData}
+                  isLoading={isSamplesDataFetching}
+                  error={samplesDataError}
+                />
+              </ModuleLayout.Full>
+            </Fragment>
+          )}
+
+          {query.panel === 'status' && (
+            <ModuleLayout.Full>
               <ResponseCodeBarChart
                 series={responseCodeBarChartSeries}
                 isLoading={isResponseCodeDataLoading}
                 error={responseCodeDataError}
               />
-            )}
-          </ModuleLayout.Full>
+            </ModuleLayout.Full>
+          )}
         </ModuleLayout.Layout>
       </DetailPanel>
     </PageAlertProvider>
