@@ -2,6 +2,7 @@ from unittest import mock
 from urllib.parse import urlencode
 
 import pytest
+from django.utils.functional import cached_property
 
 from sentry import options
 from sentry.integrations.slack.requests.action import SlackActionRequest
@@ -12,7 +13,6 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import control_silo_test, region_silo_test
 from sentry.utils import json
-from sentry.utils.cache import memoize
 
 
 @control_silo_test
@@ -33,7 +33,7 @@ class SlackRequestTest(TestCase):
             options.get("slack.signing-secret"), self.request.body
         )
 
-    @memoize
+    @cached_property
     def slack_request(self):
         return SlackRequest(self.request)
 
@@ -152,7 +152,7 @@ class SlackEventRequestTest(TestCase):
             options.get("slack.signing-secret"), self.request.body
         )
 
-    @memoize
+    @cached_property
     def slack_request(self):
         return SlackEventRequest(self.request)
 
@@ -238,7 +238,7 @@ class SlackActionRequestTest(TestCase):
             options.get("slack.signing-secret"), self.request.body
         )
 
-    @memoize
+    @cached_property
     def slack_request(self):
         return SlackActionRequest(self.request)
 

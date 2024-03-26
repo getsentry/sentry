@@ -356,6 +356,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "detect-performance-issues": {
         "topic": Topic.BUFFERED_SEGMENTS,
         "strategy_factory": "sentry.spans.consumers.detect_performance_issues.factory.DetectPerformanceIssuesStrategyFactory",
+        "click_options": multiprocessing_options(default_max_batch_size=100),
     },
     **settings.SENTRY_KAFKA_CONSUMERS,
 }

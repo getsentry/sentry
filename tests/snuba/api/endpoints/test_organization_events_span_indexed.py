@@ -144,7 +144,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         response = self.do_request(
             {
                 "field": ["span.op", "span.status_code"],
-                "query": "span.status_code:200",
+                "query": "span.module:http span.status_code:200",
                 "project": self.project.id,
                 "dataset": "spansIndexed",
             }
