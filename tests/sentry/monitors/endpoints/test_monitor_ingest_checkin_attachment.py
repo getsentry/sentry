@@ -16,10 +16,8 @@ from sentry.monitors.models import (
     ScheduleType,
 )
 from sentry.testutils.cases import MonitorIngestTestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class MonitorIngestCheckinAttachmentEndpointTest(MonitorIngestTestCase):
     endpoint = "sentry-api-0-organization-monitor-check-in-attachment"
 

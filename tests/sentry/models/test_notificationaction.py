@@ -5,10 +5,8 @@ import pytest
 from sentry.models.notificationaction import ActionService, ActionTarget, NotificationAction
 from sentry.models.notificationaction import logger as NotificationActionLogger
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 @patch.dict(NotificationAction._registry, {})
 class NotificationActionTest(TestCase):
     def setUp(self):

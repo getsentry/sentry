@@ -3,10 +3,8 @@ from django.urls import NoReverseMatch, reverse
 
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
     feature_name = "organizations:discover"
 
@@ -326,7 +324,6 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert response.status_code == 404, response.content
 
 
-@region_silo_test
 class OrganizationDiscoverQueryVisitTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

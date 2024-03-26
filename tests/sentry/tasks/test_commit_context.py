@@ -30,7 +30,6 @@ from sentry.tasks.commit_context import (
 )
 from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.committers import get_frame_paths
 
@@ -96,7 +95,6 @@ class TestCommitContextMixin(TestCase):
         )
 
 
-@region_silo_test
 class TestCommitContextAllFrames(TestCommitContextMixin):
     def setUp(self):
         super().setUp()
@@ -807,7 +805,6 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
         )
 
 
-@region_silo_test
 @patch(
     "sentry.integrations.github.GitHubIntegration.get_commit_context_all_frames", return_value=[]
 )

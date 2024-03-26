@@ -26,7 +26,7 @@ from sentry.snuba.models import SnubaQuery
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import assume_test_silo_mode_of, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode_of
 
 from . import FireTest
 
@@ -34,7 +34,6 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 @freeze_time()
-@region_silo_test
 class EmailActionHandlerTest(FireTest):
     @responses.activate
     def run_test(self, incident, method):
@@ -72,7 +71,6 @@ class EmailActionHandlerTest(FireTest):
         )
 
 
-@region_silo_test
 class EmailActionHandlerGetTargetsTest(TestCase):
     @cached_property
     def incident(self):
@@ -233,7 +231,6 @@ class EmailActionHandlerGetTargetsTest(TestCase):
 
 
 @freeze_time()
-@region_silo_test
 class EmailActionHandlerGenerateEmailContextTest(TestCase):
     def test_simple(self):
         trigger_status = TriggerStatus.ACTIVE

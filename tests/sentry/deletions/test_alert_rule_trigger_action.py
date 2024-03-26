@@ -3,10 +3,8 @@ from sentry.models.notificationmessage import NotificationMessage
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import TestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class DeleteAlertRuleTriggerActionTest(TestCase, HybridCloudTestMixin):
     def test_simple(self):
         incident = self.create_incident()

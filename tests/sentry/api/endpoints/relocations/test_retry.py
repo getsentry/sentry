@@ -24,7 +24,7 @@ from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.backups import generate_rsa_key_pair
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json
 from sentry.utils.relocation import RELOCATION_FILE_TYPE, OrderedTask
 
@@ -41,7 +41,6 @@ def get_test_tarball() -> BytesIO:
         return create_encrypted_export_tarball(data, LocalFileEncryptor(BytesIO(pub_key_pem)))
 
 
-@region_silo_test
 @patch("sentry.analytics.record")
 class RetryRelocationTest(APITestCase):
     endpoint = "sentry-api-0-relocations-retry"

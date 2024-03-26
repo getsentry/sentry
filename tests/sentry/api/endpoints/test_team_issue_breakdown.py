@@ -5,12 +5,10 @@ from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.dates import floor_to_utc_day
 
 
 @freeze_time()
-@region_silo_test
 class TeamIssueBreakdownTest(APITestCase):
     endpoint = "sentry-api-0-team-issue-breakdown"
 

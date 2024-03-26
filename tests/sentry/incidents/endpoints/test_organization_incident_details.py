@@ -6,7 +6,7 @@ from sentry.silo import SiloMode
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class BaseIncidentDetailsTest(APITestCase):
@@ -43,7 +43,6 @@ class BaseIncidentDetailsTest(APITestCase):
         assert resp.status_code == 404
 
 
-@region_silo_test
 class OrganizationIncidentDetailsTest(BaseIncidentDetailsTest):
     @freeze_time()
     def test_simple(self):
@@ -66,7 +65,6 @@ class OrganizationIncidentDetailsTest(BaseIncidentDetailsTest):
         assert [item["id"] for item in resp.data["seenBy"]] == [item["id"] for item in seen_by]
 
 
-@region_silo_test
 class OrganizationIncidentUpdateStatusTest(BaseIncidentDetailsTest):
     method = "put"
 

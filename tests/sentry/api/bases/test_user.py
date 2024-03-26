@@ -12,7 +12,7 @@ from sentry.api.bases.user import (
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.testutils.cases import DRFPermissionTestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import all_silo_test, control_silo_test, no_silo_test, region_silo_test
+from sentry.testutils.silo import all_silo_test, control_silo_test, no_silo_test
 
 
 @all_silo_test
@@ -128,6 +128,5 @@ class ControlUserEndpointTest(BaseUserEndpointTest):
 
 
 # TODO(HC): Delete this once region silo by default changes land
-@region_silo_test
 class RegionSiloUserEndpointTest(BaseUserEndpointTest):
     endpoint = RegionSiloUserEndpoint()

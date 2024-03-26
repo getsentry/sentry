@@ -3,7 +3,7 @@ from functools import cached_property
 from sentry.incidents.models.incident import IncidentActivity, IncidentActivityType
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class BaseIncidentCommentDetailsTest(APITestCase):
@@ -64,7 +64,6 @@ class BaseIncidentCommentDetailsTest(APITestCase):
             )
 
 
-@region_silo_test
 class OrganizationIncidentCommentUpdateEndpointTest(BaseIncidentCommentDetailsTest):
     method = "put"
 
@@ -113,7 +112,6 @@ class OrganizationIncidentCommentUpdateEndpointTest(BaseIncidentCommentDetailsTe
         assert activity.comment == edited_comment
 
 
-@region_silo_test
 class OrganizationIncidentCommentDeleteEndpointTest(BaseIncidentCommentDetailsTest):
     method = "delete"
 

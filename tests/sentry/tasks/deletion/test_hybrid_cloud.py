@@ -24,7 +24,7 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.region import find_regions_for_user
 
 
@@ -74,7 +74,6 @@ def saved_search_owner_id_field():
 
 
 @django_db_all
-@region_silo_test
 def test_no_work_is_no_op(task_runner, saved_search_owner_id_field):
     reset_watermarks()
 
@@ -134,7 +133,6 @@ def setup_deletable_objects(
 
 
 @django_db_all
-@region_silo_test
 def test_region_processing(task_runner):
     reset_watermarks()
 
@@ -213,7 +211,6 @@ def setup_deletion_test():
 
 
 @django_db_all
-@region_silo_test
 def test_cascade_deletion_behavior(task_runner):
     data = setup_deletion_test()
     integration = data["integration"]
@@ -235,7 +232,6 @@ def test_cascade_deletion_behavior(task_runner):
 
 
 @django_db_all
-@region_silo_test
 def test_do_nothing_deletion_behavior(task_runner):
     data = setup_deletion_test()
     integration = data["integration"]
@@ -259,7 +255,6 @@ def test_do_nothing_deletion_behavior(task_runner):
 
 
 @django_db_all
-@region_silo_test
 def test_set_null_deletion_behavior(task_runner):
     data = setup_deletion_test()
     user = data["user"]

@@ -1,10 +1,8 @@
 from sentry.api.serializers import AppPlatformEvent
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 
-@region_silo_test
 class AppPlatformEventSerializerTest(TestCase):
     def setUp(self):
         self.user = self.create_user(username="foo")

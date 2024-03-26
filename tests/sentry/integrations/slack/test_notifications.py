@@ -7,7 +7,6 @@ from sentry.integrations.slack.notifications import _get_attachments, send_notif
 from sentry.notifications.additional_attachment_manager import manager
 from sentry.testutils.cases import SlackActivityNotificationTest
 from sentry.testutils.helpers.notifications import DummyNotification
-from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
@@ -24,7 +23,6 @@ def additional_attachment_generator_block_kit(integration, organization):
     ]
 
 
-@region_silo_test
 class SlackNotificationsTest(SlackActivityNotificationTest):
     def setUp(self):
         super().setUp()

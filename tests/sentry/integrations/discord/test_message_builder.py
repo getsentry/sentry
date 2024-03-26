@@ -10,11 +10,9 @@ from sentry.integrations.discord.message_builder.metric_alerts import (
     get_started_at,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.http import absolute_uri
 
 
-@region_silo_test
 class BuildMetricAlertAttachmentTest(TestCase):
     def setUp(self):
         super().setUp()

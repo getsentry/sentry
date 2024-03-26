@@ -6,10 +6,8 @@ from sentry.models.environment import Environment
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class GetOrCreateTest(TestCase):
     def setUp(self):
         self.project = self.create_project(name="foo")

@@ -12,7 +12,6 @@ from django.urls import reverse
 from sentry.models.debugfile import DifMeta, ProjectDebugFile, create_dif_from_id
 from sentry.models.files.file import File
 from sentry.testutils.cases import APITestCase, TestCase
-from sentry.testutils.silo import region_silo_test
 
 # This is obviously a freely generated UUID and not the checksum UUID.
 # This is permissible if users want to send different UUIDs
@@ -25,7 +24,6 @@ org.slf4j.helpers.Util$ClassContextSecurityManager -> org.a.b.g$a:
 """
 
 
-@region_silo_test
 class DebugFileTest(TestCase):
     def test_delete_dif(self):
         dif = self.create_dif_file(

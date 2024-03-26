@@ -5,10 +5,8 @@ from sentry.models.team import Team
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import TestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class DeleteTeamTest(TestCase, HybridCloudTestMixin):
     def test_simple(self):
         team = self.create_team(name="test")

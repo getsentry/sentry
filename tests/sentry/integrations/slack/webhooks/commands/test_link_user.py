@@ -7,7 +7,7 @@ from sentry.integrations.slack.views.unlink_identity import (
 )
 from sentry.integrations.slack.webhooks.base import NOT_LINKED_MESSAGE
 from sentry.testutils.helpers import get_response_text
-from sentry.testutils.silo import control_silo_test, region_silo_test
+from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 from tests.sentry.integrations.slack.webhooks.commands import SlackCommandsTest
 
@@ -30,7 +30,6 @@ class SlackLinkIdentityViewTest(SlackCommandsTest):
         assert SUCCESS_LINKED_MESSAGE in get_response_text(data)
 
 
-@region_silo_test
 class SlackCommandsLinkUserTest(SlackCommandsTest):
     """Slash commands results are generated on Region Silo"""
 
@@ -68,7 +67,6 @@ class SlackUnlinkIdentityViewTest(SlackCommandsTest):
         assert SUCCESS_UNLINKED_MESSAGE in get_response_text(data)
 
 
-@region_silo_test
 class SlackCommandsUnlinkUserTest(SlackCommandsTest):
     """Slash commands results are generated on Region Silo"""
 

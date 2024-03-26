@@ -6,10 +6,8 @@ from sentry.models.groupresolution import GroupResolution
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class OrganizationIssuesResolvedInReleaseEndpointTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-release-resolved"
     method = "get"

@@ -1,14 +1,12 @@
 from sentry.models.activity import Activity
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class OrganizationActivityTest(APITestCase):
     endpoint = "sentry-api-0-organization-activity"
 

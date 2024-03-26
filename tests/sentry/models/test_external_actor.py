@@ -1,10 +1,8 @@
 from sentry.models.actor import ACTOR_TYPES, Actor
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class ExternalActorTest(TestCase):
     def setUp(self) -> None:
         actor = Actor.objects.create(type=ACTOR_TYPES["team"])

@@ -6,10 +6,8 @@ from sentry.api.serializers import serialize
 from sentry.models.savedsearch import SavedSearch, SortOptions, Visibility
 from sentry.models.search_common import SearchType
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class OrgLevelOrganizationSearchesListTest(APITestCase):
     endpoint = "sentry-api-0-organization-searches"
 
@@ -123,7 +121,6 @@ class OrgLevelOrganizationSearchesListTest(APITestCase):
         )
 
 
-@region_silo_test
 class CreateOrganizationSearchesTest(APITestCase):
     endpoint = "sentry-api-0-organization-searches"
     method = "post"
@@ -347,7 +344,6 @@ class CreateOrganizationSearchesTest(APITestCase):
         assert "This field may not be blank." == resp.data["query"][0]
 
 
-@region_silo_test
 class OrganizationSearchesGetTest(APITestCase):
     endpoint = "sentry-api-0-organization-searches"
     method = "get"

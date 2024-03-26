@@ -9,7 +9,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.scim.endpoints.utils import SCIMFilterError, parse_filter_conditions
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase, SCIMAzureTestCase, SCIMTestCase
-from sentry.testutils.silo import assume_test_silo_mode, no_silo_test, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, no_silo_test
 
 CREATE_USER_POST_DATA = {
     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
@@ -32,7 +32,6 @@ def generate_put_data(member: OrganizationMember, role: str = "") -> dict:
     return put_data
 
 
-@region_silo_test
 class SCIMMemberTestsPermissions(APITestCase):
     def setUp(self):
         super().setUp()
@@ -51,7 +50,6 @@ class SCIMMemberTestsPermissions(APITestCase):
         assert response.status_code == 403
 
 
-@region_silo_test
 class SCIMMemberRoleUpdateTests(SCIMTestCase):
     endpoint = "sentry-api-0-organization-scim-member-details"
     method = "put"
@@ -354,7 +352,6 @@ class SCIMMemberRoleUpdateTests(SCIMTestCase):
         )
 
 
-@region_silo_test
 class SCIMMemberDetailsTests(SCIMTestCase):
     endpoint = "sentry-api-0-organization-scim-member-details"
 
@@ -696,7 +693,6 @@ class SCIMMemberDetailsTests(SCIMTestCase):
     # TODO: test patch with bad op
 
 
-@region_silo_test
 class SCIMMemberDetailsAzureTests(SCIMAzureTestCase):
     endpoint = "sentry-api-0-organization-scim-member-details"
 

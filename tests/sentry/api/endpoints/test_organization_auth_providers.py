@@ -3,10 +3,8 @@ from django.urls import reverse
 from sentry import auth
 from sentry.auth.providers.fly.provider import FlyOAuth2Provider
 from sentry.testutils.cases import APITestCase, PermissionTestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class OrganizationAuthProvidersPermissionTest(PermissionTestCase):
     def setUp(self):
         super().setUp()
@@ -23,7 +21,6 @@ class OrganizationAuthProvidersPermissionTest(PermissionTestCase):
             self.assert_member_can_access(self.path)
 
 
-@region_silo_test
 class OrganizationAuthProviders(APITestCase):
     endpoint = "sentry-api-0-organization-auth-providers"
 

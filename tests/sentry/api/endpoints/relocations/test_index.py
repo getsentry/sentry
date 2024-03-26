@@ -24,7 +24,6 @@ from sentry.testutils.helpers.backups import generate_rsa_key_pair
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 from sentry.utils.relocation import OrderedTask
 
@@ -34,7 +33,6 @@ TEST_DATE_UPDATED = datetime(2023, 1, 23, 1, 24, 45, tzinfo=timezone.utc)
 
 
 @freeze_time(TEST_DATE_UPDATED)
-@region_silo_test
 class GetRelocationsTest(APITestCase):
     endpoint = "sentry-api-0-relocations-index"
 
@@ -273,7 +271,6 @@ class GetRelocationsTest(APITestCase):
         self.get_error_response(status_code=401)
 
 
-@region_silo_test
 @patch("sentry.analytics.record")
 @patch("sentry.signals.relocation_link_promo_code.send_robust")
 class PostRelocationsTest(APITestCase):

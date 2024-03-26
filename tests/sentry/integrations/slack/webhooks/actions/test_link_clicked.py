@@ -1,9 +1,7 @@
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import region_silo_test
 from tests.sentry.integrations.slack.webhooks.actions import BaseEventTest
 
 
-@region_silo_test
 class LinkClickedActionTest(BaseEventTest):
     def setUp(self):
         super().setUp()

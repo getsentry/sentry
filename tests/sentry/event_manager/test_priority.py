@@ -6,7 +6,6 @@ from unittest.mock import MagicMock, patch
 from sentry.event_manager import EventManager
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import PriorityLevel
 from tests.sentry.event_manager.test_severity import make_event
@@ -14,7 +13,6 @@ from tests.sentry.event_manager.test_severity import make_event
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class TestEventManagerPriority(TestCase):
     @patch("sentry.event_manager._get_severity_score", return_value=(0.1121, "ml"))
     @with_feature("projects:issue-priority")

@@ -7,11 +7,9 @@ from django.test import RequestFactory
 
 from sentry.exceptions import PluginError
 from sentry.testutils.cases import PluginTestCase
-from sentry.testutils.silo import region_silo_test
 from sentry_plugins.bitbucket.plugin import BitbucketPlugin
 
 
-@region_silo_test
 class BitbucketPluginTest(PluginTestCase):
     @cached_property
     def plugin(self):

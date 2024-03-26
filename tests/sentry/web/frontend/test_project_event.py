@@ -3,10 +3,8 @@ from django.urls import reverse
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class ProjectEventTest(SnubaTestCase, TestCase):
     def setUp(self):
         super().setUp()
@@ -62,7 +60,6 @@ class ProjectEventTest(SnubaTestCase, TestCase):
         assert resp.status_code == 404
 
 
-@region_silo_test
 class ProjectEventCustomerDomainTest(SnubaTestCase, TestCase):
     def setUp(self):
         super().setUp()

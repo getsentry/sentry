@@ -17,7 +17,7 @@ from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_PATH, PROXY_SIGNATURE_HEADER
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 
 
@@ -310,7 +310,6 @@ def assert_proxy_request(request, is_proxy=True):
         assert request.headers[PROXY_OI_HEADER] is not None
 
 
-@region_silo_test
 class VstsProxyApiClientTest(VstsIntegrationTestCase):
     def setUp(self):
         super().setUp()

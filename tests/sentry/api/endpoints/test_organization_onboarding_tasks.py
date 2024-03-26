@@ -6,10 +6,8 @@ from sentry.models.organizationonboardingtask import (
     OrganizationOnboardingTask,
 )
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class OrganizationOnboardingTaskEndpointTest(APITestCase):
     def setUp(self):
         self.user = self.create_user()

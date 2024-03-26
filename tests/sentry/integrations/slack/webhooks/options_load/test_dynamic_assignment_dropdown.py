@@ -1,6 +1,5 @@
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 
@@ -9,7 +8,6 @@ from . import BaseEventTest
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class DynamicAssignmentDropdownTest(BaseEventTest):
     def setUp(self):
         super().setUp()

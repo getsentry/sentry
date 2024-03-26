@@ -9,11 +9,10 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 
 
-@region_silo_test
 class IssueSyncIntegration(TestCase):
     def test_status_sync_inbound_resolve(self):
         group = self.group
@@ -121,7 +120,6 @@ class IssueSyncIntegration(TestCase):
             }
 
 
-@region_silo_test
 class IssueDefaultTest(TestCase):
     def setUp(self):
         self.group.status = GroupStatus.RESOLVED

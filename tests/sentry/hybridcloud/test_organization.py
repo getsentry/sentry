@@ -26,7 +26,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 
 
 def basic_filled_out_org() -> tuple[Organization, list[User]]:
@@ -249,7 +249,6 @@ class RpcOrganizationMemberTest(TestCase):
 
 
 @django_db_all(transaction=True)
-@region_silo_test
 def test_update_organization_member():
     org = Factories.create_organization()
     user = Factories.create_user(email="test@sentry.io")

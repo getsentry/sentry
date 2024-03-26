@@ -39,7 +39,7 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
@@ -92,7 +92,6 @@ MockResponseInstance = MockResponse({}, {}, "", True, 200, raiseStatusFalse, Non
 MockResponse404 = MockResponse({}, {}, "", False, 404, raiseException, None)
 
 
-@region_silo_test
 class TestSendAlertEvent(TestCase):
     def setUp(self):
         self.sentry_app = self.create_sentry_app(organization=self.organization)
@@ -221,7 +220,6 @@ class TestSendAlertEvent(TestCase):
         assert requests[0]["event_type"] == "event_alert.triggered"
 
 
-@region_silo_test
 @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
 class TestProcessResourceChange(TestCase):
     def setUp(self):
@@ -365,7 +363,6 @@ class TestProcessResourceChange(TestCase):
         assert not safe_urlopen.called
 
 
-@region_silo_test
 @patch("sentry.tasks.sentry_functions.send_sentry_function_webhook.delay")
 class TestProcessResourceChangeSentryFunctions(TestCase):
     def setUp(self):
@@ -449,7 +446,6 @@ class TestProcessResourceChangeSentryFunctions(TestCase):
         assert len(send_sentry_function_webhook.mock_calls) == 0
 
 
-@region_silo_test
 class TestSendResourceChangeWebhook(TestCase):
     def setUp(self):
         self.project = self.create_project()
@@ -529,7 +525,6 @@ class TestInstallationWebhook(TestCase):
         assert len(run.mock_calls) == 0
 
 
-@region_silo_test
 @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
 class TestCommentWebhook(TestCase):
     def setUp(self):
@@ -600,7 +595,6 @@ class TestCommentWebhook(TestCase):
         assert data["data"]["issue_id"] == self.issue.id
 
 
-@region_silo_test
 @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
 class TestWorkflowNotification(TestCase):
     def setUp(self):
@@ -660,7 +654,6 @@ class TestWorkflowNotification(TestCase):
         assert not safe_urlopen.called
 
 
-@region_silo_test
 class TestWebhookRequests(TestCase):
     def setUp(self):
         self.organization = self.create_organization(owner=self.user, id=1)

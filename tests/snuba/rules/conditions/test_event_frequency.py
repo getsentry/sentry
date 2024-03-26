@@ -17,7 +17,6 @@ from sentry.rules.conditions.event_frequency import (
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
 
@@ -461,7 +460,6 @@ class EventFrequencyPercentConditionTestCase(SnubaTestCase, RuleTestCase):
 @freeze_time(
     (timezone.now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0)
 )
-@region_silo_test
 class ErrorIssueFrequencyConditionTestCase(ErrorEventMixin, EventFrequencyConditionTestCase):
     pass
 
@@ -469,7 +467,6 @@ class ErrorIssueFrequencyConditionTestCase(ErrorEventMixin, EventFrequencyCondit
 @freeze_time(
     (timezone.now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0)
 )
-@region_silo_test
 class PerfIssuePlatformIssueFrequencyConditionTestCase(
     PerfIssuePlatformEventMixin,
     EventFrequencyConditionTestCase,
@@ -480,7 +477,6 @@ class PerfIssuePlatformIssueFrequencyConditionTestCase(
 @freeze_time(
     (timezone.now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0)
 )
-@region_silo_test
 class ErrorIssueUniqueUserFrequencyConditionTestCase(
     ErrorEventMixin,
     EventUniqueUserFrequencyConditionTestCase,
@@ -491,7 +487,6 @@ class ErrorIssueUniqueUserFrequencyConditionTestCase(
 @freeze_time(
     (timezone.now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0)
 )
-@region_silo_test
 class PerfIssuePlatformIssueUniqueUserFrequencyConditionTestCase(
     PerfIssuePlatformEventMixin,
     EventUniqueUserFrequencyConditionTestCase,
@@ -502,7 +497,6 @@ class PerfIssuePlatformIssueUniqueUserFrequencyConditionTestCase(
 @freeze_time(
     (timezone.now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0)
 )
-@region_silo_test
 class ErrorIssueEventFrequencyPercentConditionTestCase(
     ErrorEventMixin, EventFrequencyPercentConditionTestCase
 ):
@@ -512,7 +506,6 @@ class ErrorIssueEventFrequencyPercentConditionTestCase(
 @freeze_time(
     (timezone.now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0)
 )
-@region_silo_test
 class PerfIssuePlatformIssueEventFrequencyPercentConditionTestCase(
     PerfIssuePlatformEventMixin,
     EventFrequencyPercentConditionTestCase,

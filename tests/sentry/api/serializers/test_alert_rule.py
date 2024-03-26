@@ -15,7 +15,6 @@ from sentry.models.rule import Rule
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import SnubaQueryEventType
 from sentry.testutils.cases import APITestCase, TestCase
-from sentry.testutils.silo import region_silo_test
 
 NOT_SET = object()
 
@@ -109,7 +108,6 @@ class BaseAlertRuleSerializerTest:
         return rule
 
 
-@region_silo_test
 class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
     def test_simple(self):
         alert_rule = self.create_alert_rule()
@@ -165,7 +163,6 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         self.assert_alert_rule_serialized(alert_rule, result, resolve_threshold=10)
 
 
-@region_silo_test
 class DetailedAlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
     def test_simple(self):
         projects = [self.project, self.create_project()]
@@ -225,7 +222,6 @@ class DetailedAlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         assert result[1]["triggers"] == []
 
 
-@region_silo_test
 class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestCase):
     def test_combined_serializer(self):
         projects = [self.project, self.create_project()]

@@ -13,7 +13,6 @@ from sentry.release_health.sessions import SessionsReleaseHealthBackend
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.sessions import _make_stats
 from sentry.testutils.cases import BaseMetricsTestCase, SnubaTestCase, TestCase
-from sentry.testutils.silo import region_silo_test
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -1133,7 +1132,6 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
         }
 
 
-@region_silo_test
 @parametrize_backend
 class GetProjectReleasesCountTest(TestCase, SnubaTestCase):
     backend = SessionsReleaseHealthBackend()
@@ -1556,7 +1554,6 @@ class CheckNumberOfSessions(TestCase, SnubaTestCase):
             assert set(actual) == {(p1.id, 4), (p2.id, 2)}
 
 
-@region_silo_test
 @parametrize_backend
 class InitWithoutUserTestCase(TestCase, SnubaTestCase):
     backend = SessionsReleaseHealthBackend()

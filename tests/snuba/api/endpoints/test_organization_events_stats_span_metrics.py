@@ -7,12 +7,10 @@ from django.urls import reverse
 from sentry.search.events import constants
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 
 pytestmark = pytest.mark.sentry_metrics
 
 
-@region_silo_test
 class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformanceTestCase):
     endpoint = "sentry-api-0-organization-events-stats"
     METRIC_STRINGS = [
@@ -273,7 +271,6 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         assert data[1][1][0]["count"] == 4.0
 
 
-@region_silo_test
 class OrganizationEventsStatsSpansMetricsEndpointTestWithMetricLayer(
     OrganizationEventsStatsSpansMetricsEndpointTest
 ):

@@ -25,7 +25,6 @@ from sentry.testutils.helpers.backups import (
     export_to_file,
 )
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.json import JSONData
 from tests.sentry.backup import get_matching_exportable_models
 
@@ -52,7 +51,6 @@ class ExportTestCase(BackupTestCase):
         return export_to_encrypted_tarball(tmp_path, scope=scope, filter_by=filter_by)
 
 
-@region_silo_test
 class ScopingTests(ExportTestCase):
     """
     Ensures that only models with the allowed relocation scopes are actually exported.
@@ -132,7 +130,6 @@ class ScopingTests(ExportTestCase):
 
 # Filters should work identically in both silo and monolith modes, so no need to repeat the tests
 # here.
-@region_silo_test
 class FilteringTests(ExportTestCase):
     """
     Ensures that filtering operations include the correct models.

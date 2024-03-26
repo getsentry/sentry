@@ -20,7 +20,6 @@ from sentry.snuba.metrics.naming_layer.public import (
 )
 from sentry.testutils.cases import MetricsAPIBaseTestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.cursors import Cursor
 from tests.sentry.api.endpoints.test_organization_metrics import MOCKED_DERIVED_METRICS
 
@@ -37,7 +36,6 @@ rh_indexer_record = partial(indexer_record, UseCaseID.SESSIONS)
 pytestmark = [pytest.mark.sentry_metrics]
 
 
-@region_silo_test
 @freeze_time(MetricsAPIBaseTestCase.MOCK_DATETIME)
 class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
     endpoint = "sentry-api-0-organization-metrics-data"

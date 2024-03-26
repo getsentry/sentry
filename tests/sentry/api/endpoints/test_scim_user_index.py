@@ -13,7 +13,7 @@ from sentry.silo import SiloMode
 from sentry.testutils.cases import SCIMAzureTestCase, SCIMTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 
 
 def post_data():
@@ -30,7 +30,6 @@ def merge_dictionaries(dict1, dict2):
     return {**dict1, **dict2}
 
 
-@region_silo_test
 class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
     endpoint = "sentry-api-0-organization-scim-member-index"
 
@@ -462,7 +461,6 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
         assert len(response.data["Resources"]) == 7
 
 
-@region_silo_test
 class SCIMMemberIndexAzureTests(SCIMAzureTestCase):
     def test_user_index_get_no_active(self):
         member = self.create_member(organization=self.organization, email="test.user@okta.local")

@@ -6,10 +6,9 @@ from responses import matchers
 from sentry.integrations.slack.client import SlackClient
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 
 
-@region_silo_test
 class SlackClientTest(TestCase):
     def setUp(self):
         self.user_access_token = "xoxp-user-access-token"

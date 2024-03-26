@@ -6,7 +6,6 @@ from django.urls import reverse
 from sentry.api.endpoints.event_grouping_info import get_grouping_info
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from sentry.utils.samples import load_data
@@ -14,7 +13,6 @@ from sentry.utils.samples import load_data
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
     def setUp(self):
         self.login_as(user=self.user)

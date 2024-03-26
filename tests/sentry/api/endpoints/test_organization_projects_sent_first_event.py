@@ -3,10 +3,8 @@ from datetime import UTC, datetime
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class OrganizationProjectsSentFirstEventEndpointTest(APITestCase):
     def setUp(self):
         self.foo = self.create_user("foo@example.com")

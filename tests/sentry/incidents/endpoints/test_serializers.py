@@ -44,7 +44,7 @@ from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 
@@ -62,7 +62,6 @@ class TestAlertRuleSerializerBase(TestCase):
         )
 
 
-@region_silo_test
 class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
     @cached_property
     def valid_params(self):
@@ -756,7 +755,6 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         assert alert_rule.snuba_query.query == "status:unresolved"
 
 
-@region_silo_test
 class TestAlertRuleTriggerSerializer(TestAlertRuleSerializerBase):
     @cached_property
     def other_project(self):
@@ -806,7 +804,6 @@ class TestAlertRuleTriggerSerializer(TestAlertRuleSerializerBase):
         }
 
 
-@region_silo_test
 class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
     @cached_property
     def other_project(self):

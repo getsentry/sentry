@@ -33,7 +33,6 @@ from sentry.testutils.cases import (
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.helpers.discover import user_misery_formula
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_not_arm64
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json
@@ -178,7 +177,6 @@ class OrganizationEventsEndpointTestBase(APITestCase, SnubaTestCase):
                 )
 
 
-@region_silo_test
 class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, PerformanceIssueTestCase):
     def test_no_projects(self):
         response = self.do_request({})
@@ -5676,7 +5674,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["floored_epm()"] == 10
 
 
-@region_silo_test
 class OrganizationEventsProfilesDatasetEndpointTest(OrganizationEventsEndpointTestBase):
     @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
     def test_profiles_dataset_simple(self, mock_snql_query):
@@ -5778,7 +5775,6 @@ class OrganizationEventsProfilesDatasetEndpointTest(OrganizationEventsEndpointTe
         assert set(fields) == unit_keys
 
 
-@region_silo_test
 class OrganizationEventsProfileFunctionsDatasetEndpointTest(
     OrganizationEventsEndpointTestBase, ProfilesSnubaTestCase
 ):
@@ -5869,7 +5865,6 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(
         }
 
 
-@region_silo_test
 class OrganizationEventsIssuePlatformDatasetEndpointTest(
     OrganizationEventsEndpointTestBase, SearchIssueTestMixin, PerformanceIssueTestCase
 ):

@@ -3,10 +3,9 @@ from sentry.models.actor import get_actor_for_user, get_actor_id_for_user
 from sentry.models.rule import Rule
 from sentry.models.user import User
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import assume_test_silo_mode_of, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode_of
 
 
-@region_silo_test
 class TestCreator(TestCase):
     def setUp(self):
         self.user = self.create_user()

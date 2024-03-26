@@ -1,10 +1,8 @@
 from sentry.issues.issue_occurrence import DEFAULT_LEVEL, IssueEvidence, IssueOccurrence
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
-@region_silo_test
 class IssueOccurrenceSerializeTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
         occurrence = self.build_occurrence()
@@ -19,7 +17,6 @@ class IssueOccurrenceSerializeTest(OccurrenceTestMixin, TestCase):
         assert occurrence.level == DEFAULT_LEVEL
 
 
-@region_silo_test
 class IssueOccurrenceSaveAndFetchTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
         occurrence = self.build_occurrence()
@@ -29,7 +26,6 @@ class IssueOccurrenceSaveAndFetchTest(OccurrenceTestMixin, TestCase):
         self.assert_occurrences_identical(occurrence, fetched_occurrence)
 
 
-@region_silo_test
 class IssueOccurrenceEvidenceDisplayPrimaryTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
         important_evidence = IssueEvidence("Hello", "Hi", True)

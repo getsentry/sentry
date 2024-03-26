@@ -4,14 +4,12 @@ from sentry.event_manager import EventManager
 from sentry.models.activity import Activity
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
 from sentry.utils.iterators import chunked
 from tests.sentry.event_manager.test_event_manager import make_event
 
 
-@region_silo_test
 class ActivityTest(TestCase):
     def test_get_activities_for_group_none(self):
         project = self.create_project(name="test_activities_group")

@@ -11,7 +11,6 @@ from sentry.testutils.cases import BaseTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.safe import get_path, set_path
 from sentry.utils.sdk_crashes.sdk_crash_detection import sdk_crash_detection
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import (
@@ -164,7 +163,6 @@ class SDKCrashReportTestMixin(BaseSDKCrashDetectionMixin, SnubaTestCase):
         assert sdk_crash_event.event_id == fetched_sdk_crash_event.event_id
 
 
-@region_silo_test
 class SDKCrashDetectionTest(
     TestCase,
     PerformanceEventTestMixin,

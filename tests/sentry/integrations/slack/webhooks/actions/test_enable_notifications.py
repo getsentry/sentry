@@ -5,13 +5,12 @@ from sentry.integrations.slack.webhooks.action import (
 from sentry.models.identity import Identity
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.silo.base import SiloMode
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json
 
 from . import BaseEventTest
 
 
-@region_silo_test
 class EnableNotificationsActionTest(BaseEventTest):
     def setUp(self):
         super().setUp()

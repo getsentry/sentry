@@ -3,7 +3,6 @@ from datetime import timedelta
 from django.urls import reverse
 
 from sentry.testutils.helpers.datetime import iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.cursors import Cursor
 from sentry.utils.samples import load_data
 from tests.snuba.api.endpoints.test_organization_events_facets_performance import (
@@ -11,7 +10,6 @@ from tests.snuba.api.endpoints.test_organization_events_facets_performance impor
 )
 
 
-@region_silo_test
 class OrganizationEventsFacetsPerformanceHistogramEndpointTest(
     BaseOrganizationEventsFacetsPerformanceEndpointTest
 ):

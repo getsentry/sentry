@@ -24,7 +24,7 @@ from sentry.tasks.deletion.scheduled import (
 )
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import control_silo_test, region_silo_test
+from sentry.testutils.silo import control_silo_test
 
 
 class RegionalRunScheduleDeletionTest(abc.ABC, TestCase):
@@ -188,7 +188,6 @@ class RegionalRunScheduleDeletionTest(abc.ABC, TestCase):
         assert schedule.in_progress is True
 
 
-@region_silo_test
 class RunRegionScheduledDeletionTest(RegionalRunScheduleDeletionTest):
     @property
     def ScheduledDeletion(self) -> type[BaseScheduledDeletion]:

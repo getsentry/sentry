@@ -12,7 +12,7 @@ from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema, resolve_
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import assume_test_silo_mode_of, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = requires_snuba
@@ -22,7 +22,6 @@ def actor_key(actor):
     return actor.id
 
 
-@region_silo_test
 class ProjectOwnershipTestCase(TestCase):
     def setUp(self):
         self.rpc_user = user_service.get_user(user_id=self.user.id)
@@ -686,7 +685,6 @@ class ProjectOwnershipTestCase(TestCase):
         assert assignee.team_id == self.team.id
 
 
-@region_silo_test
 class ResolveActorsTestCase(TestCase):
     def test_no_actors(self):
         assert resolve_actors([], self.project.id) == {}

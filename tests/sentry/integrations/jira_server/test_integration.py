@@ -24,7 +24,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
@@ -83,7 +83,6 @@ class JiraServerIntegrationBaseTest(APITestCase):
         self.login_as(self.user)
 
 
-@region_silo_test
 class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
     def test_get_create_issue_config(self):
         event = self.store_event(
@@ -1037,7 +1036,6 @@ class JiraServerControlIntegrationTest(JiraServerIntegrationBaseTest):
         ]
 
 
-@region_silo_test
 class JiraMigrationIntegrationTest(APITestCase):
     @cached_property
     def integration(self):

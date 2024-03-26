@@ -11,7 +11,6 @@ from sentry.snuba.metrics.naming_layer import get_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.metrics.naming_layer.public import SessionMetricKey
 from sentry.testutils.cases import MetricsAPIBaseTestCase, OrganizationMetricsIntegrationTestCase
-from sentry.testutils.silo import region_silo_test
 from tests.sentry.api.endpoints.test_organization_metrics import (
     MOCKED_DERIVED_METRICS,
     mocked_mri_resolver,
@@ -24,7 +23,6 @@ def mocked_bulk_reverse_resolve(use_case_id, org_id: int, ids: Collection[int]):
     return {}
 
 
-@region_silo_test
 class OrganizationMetricsTagsTest(OrganizationMetricsIntegrationTestCase):
     endpoint = "sentry-api-0-organization-metrics-tags"
 

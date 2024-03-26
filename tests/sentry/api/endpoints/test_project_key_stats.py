@@ -4,12 +4,10 @@ from sentry.constants import DataCategory
 from sentry.models.projectkey import ProjectKey
 from sentry.testutils.cases import APITestCase, OutcomesSnubaTest, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.outcomes import Outcome
 
 
 @freeze_time("2022-01-01 03:30:00")
-@region_silo_test
 class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
     def setUp(self):
         super().setUp()

@@ -14,7 +14,6 @@ from sentry.models.group import Group
 from sentry.seer.utils import SimilarIssuesEmbeddingsData, SimilarIssuesEmbeddingsResponse
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 EXPECTED_STACKTRACE_STRING = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", line divide_by_zero\n    divide = 1/0'
@@ -294,7 +293,6 @@ CHAINED_APP_DATA: dict[str, Any] = {
 }
 
 
-@region_silo_test
 class GroupSimilarIssuesEmbeddingsTest(APITestCase):
     def setUp(self):
         super().setUp()

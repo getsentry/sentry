@@ -6,12 +6,11 @@ from sentry.notifications.types import GroupSubscriptionReason
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import ActivityTestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
 
 
-@region_silo_test
 class NoteTestCase(ActivityTestCase):
     def setUp(self):
         super().setUp()

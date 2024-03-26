@@ -15,7 +15,7 @@ from sentry.issues.grouptype import (
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.performance_issues.event_generators import get_event
-from sentry.testutils.silo import no_silo_test, region_silo_test
+from sentry.testutils.silo import no_silo_test
 from sentry.utils.performance_issues.base import (
     DETECTOR_TYPE_TO_GROUP_TYPE,
     DetectorType,
@@ -87,7 +87,6 @@ def assert_n_plus_one_db_problem(perf_problems):
     )
 
 
-@region_silo_test
 @pytest.mark.django_db
 class PerformanceDetectionTest(TestCase):
     def setUp(self):
@@ -504,7 +503,6 @@ class DetectorTypeToGroupTypeTest(unittest.TestCase):
             ), f"{detector_type} must have a corresponding entry in DETECTOR_TYPE_TO_GROUP_TYPE"
 
 
-@region_silo_test
 class EventPerformanceProblemTest(TestCase):
     def test_save_and_fetch(self):
         event = Event(self.project.id, "something")

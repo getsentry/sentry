@@ -10,10 +10,9 @@ from sentry.models.repository import Repository
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 
 
-@region_silo_test
 class OrganizationRepositoryDeleteTest(APITestCase):
     def assert_rename_pending_delete(self, response, repo, external_id=None):
         assert response.data["status"] == "pending_deletion"

@@ -7,7 +7,6 @@ from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import region_silo_test
 
 
 class TeamDetailsTestBase(APITestCase):
@@ -61,7 +60,6 @@ class TeamDetailsTestBase(APITestCase):
         self.assert_team_status(team_id, TeamStatus.ACTIVE)
 
 
-@region_silo_test
 class TeamDetailsTest(TeamDetailsTestBase):
     def test_simple(self):
         team = self.team  # force creation
@@ -70,7 +68,6 @@ class TeamDetailsTest(TeamDetailsTestBase):
         assert response.data["id"] == str(team.id)
 
 
-@region_silo_test
 class TeamUpdateTest(TeamDetailsTestBase):
     method = "put"
 
@@ -186,7 +183,6 @@ class TeamUpdateTest(TeamDetailsTestBase):
         assert team.slug == "bar"
 
 
-@region_silo_test
 class TeamDeleteTest(TeamDetailsTestBase):
     method = "delete"
 

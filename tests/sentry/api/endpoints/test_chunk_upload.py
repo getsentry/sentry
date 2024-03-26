@@ -21,10 +21,9 @@ from sentry.models.files.utils import MAX_FILE_SIZE
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import override_options
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 
 
-@region_silo_test
 class ChunkUploadTest(APITestCase):
     @pytest.fixture(autouse=True)
     def _restore_upload_url_options(self):

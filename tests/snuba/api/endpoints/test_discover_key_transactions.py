@@ -10,7 +10,6 @@ from sentry.models.projectteam import ProjectTeam
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.pagination import override_pagination_limit
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 
 
@@ -31,7 +30,6 @@ class ClientCallable(Protocol):
         ...
 
 
-@region_silo_test
 class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
     def setUp(self):
         super().setUp()
@@ -673,7 +671,6 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         assert response.status_code == 204, response.content
 
 
-@region_silo_test
 class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
     def setUp(self):
         super().setUp()

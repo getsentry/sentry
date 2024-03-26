@@ -9,10 +9,9 @@ from sentry.models.rule import Rule
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 
 
-@region_silo_test
 class ProjectRuleEnableTestCase(APITestCase):
     endpoint = "sentry-api-0-project-rule-enable"
     method = "PUT"

@@ -4,7 +4,6 @@ from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 from sentry_plugins.bitbucket.testutils import PUSH_EVENT_EXAMPLE
 
 BAD_IP = "109.111.111.10"
@@ -62,7 +61,6 @@ class WebhookTest(APITestCase):
         assert response.status_code == 401
 
 
-@region_silo_test
 class PushEventWebhookTest(APITestCase):
     def test_simple(self):
         project = self.project  # force creation

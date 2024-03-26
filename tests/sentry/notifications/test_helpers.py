@@ -21,14 +21,13 @@ from sentry.notifications.utils import (
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
 
 
 def mock_event(*, transaction, data=None):
     return types.SimpleNamespace(data=data or {}, transaction=transaction)
 
 
-@region_silo_test
 class NotificationHelpersTest(TestCase):
     def setUp(self):
         super().setUp()

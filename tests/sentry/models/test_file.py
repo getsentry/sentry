@@ -12,10 +12,8 @@ from sentry.models.files.file import File
 from sentry.models.files.fileblob import FileBlob
 from sentry.models.files.fileblobindex import FileBlobIndex
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class FileBlobTest(TestCase):
     def test_from_file(self):
         fileobj = ContentFile(b"foo bar")

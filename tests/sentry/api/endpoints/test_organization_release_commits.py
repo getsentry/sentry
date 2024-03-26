@@ -5,10 +5,8 @@ from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class ReleaseCommitsListTest(APITestCase):
     def test_simple(self):
         project = self.create_project(name="foo")

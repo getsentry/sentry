@@ -25,7 +25,6 @@ from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import QuerySubscription
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 
 
 class IncidentGetForSubscriptionTest(TestCase):
@@ -181,7 +180,6 @@ class AlertRuleTest(TestCase):
             assert fetched_sub.subscription_id is not None
 
 
-@region_silo_test
 class AlertRuleFetchForOrganizationTest(TestCase):
     def test_empty(self):
         alert_rule = AlertRule.objects.fetch_for_organization(self.organization)

@@ -7,12 +7,10 @@ from django.test import RequestFactory
 
 from sentry.exceptions import PluginError
 from sentry.testutils.cases import PluginTestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 from sentry_plugins.github.plugin import GitHubPlugin
 
 
-@region_silo_test
 class GitHubPluginTest(PluginTestCase):
     @cached_property
     def plugin(self):

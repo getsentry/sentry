@@ -17,14 +17,13 @@ from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class SlackClientDisable(TestCase):
     def setUp(self):
         self.resp = responses.mock

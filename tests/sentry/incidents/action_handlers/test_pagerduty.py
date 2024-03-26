@@ -12,13 +12,12 @@ from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMetho
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.silo import SiloMode
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json
 
 from . import FireTest
 
 
-@region_silo_test
 @freeze_time()
 class PagerDutyActionHandlerTest(FireTest):
     def setUp(self):
