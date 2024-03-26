@@ -13,15 +13,20 @@ pytestmark = [requires_snuba]
 class HighPriorityIssueConditionTest(RuleTestCase):
     rule_cls = HighPriorityIssueCondition
 
+    def setUp(self):
+        self.rule = Rule(environment_id=1, project=self.project, label="label")
+
     def test_without_flag(self):
-        rule = self.get_rule()
+        rule = self.get_rule(rule=self.rule)
 
         self.assertDoesNotPass(rule, self.event, is_new=False)
         self.assertDoesNotPass(rule, self.event, is_new=True)
 
     @with_feature("projects:high-priority-alerts")
     def test_without_threshold_and_environment(self):
-        rule = self.get_rule(rule=Rule(environment_id=None))
+        self.rule.environment_id = None
+        self.rule.save()
+        rule = self.get_rule(rule=self.rule)
 
         self.assertPasses(rule, self.event, is_new=True)
         self.assertPasses(rule, self.event, is_new=True)
@@ -30,7 +35,7 @@ class HighPriorityIssueConditionTest(RuleTestCase):
 
     @with_feature("projects:high-priority-alerts")
     def test_without_threshold_with_environment(self):
-        rule = self.get_rule(rule=Rule(environment_id=1))
+        rule = self.get_rule(rule=self.rule)
 
         self.assertPasses(rule, self.event, is_new=True, is_new_group_environment=True)
         self.assertPasses(rule, self.event, is_new=False, is_new_group_environment=True)
@@ -44,7 +49,10 @@ class HighPriorityIssueConditionTest(RuleTestCase):
 
     @with_feature("projects:high-priority-alerts")
     def test_with_threshold_without_priority(self):
-        rule = self.get_rule(rule=Rule(environment_id=1, data={"new_issue_threshold_met": True}))
+        self.rule.data["new_issue_threshold_met"] = True
+        self.rule.save()
+        rule = self.get_rule(rule=self.rule)
+
         self.event.group.data["metadata"] = {"severity": "0.7"}
         self.assertPasses(rule, self.event, is_new=True, has_reappeared=False)
         self.assertDoesNotPass(rule, self.event, is_new=False, has_reappeared=False)
@@ -57,7 +65,10 @@ class HighPriorityIssueConditionTest(RuleTestCase):
     @with_feature("projects:high-priority-alerts")
     @with_feature("projects:issue-priority")
     def test_with_threshold_and_priority(self):
-        rule = self.get_rule(rule=Rule(environment_id=1, data={"new_issue_threshold_met": True}))
+        self.rule.data["new_issue_threshold_met"] = True
+        self.rule.save()
+
+        rule = self.get_rule(rule=self.rule)
 
         # This will only pass for new or escalating issues
         self.event.group.update(priority=PriorityLevel.HIGH)

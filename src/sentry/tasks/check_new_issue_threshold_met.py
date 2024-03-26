@@ -1,7 +1,8 @@
-from datetime import timedelta, timezone
+from datetime import timedelta
+
+from django.utils import timezone
 
 from sentry.models.group import Group
-from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.tasks.base import instrumented_task
 
@@ -63,11 +64,6 @@ def check_new_issue_threshold_met(project_id: int) -> None:
 
     Rules with {new_issue_threshold_met: False} will default to using the FirstSeenEventCondition condition when applied.
     """
-    try:
-        project = Project.objects.get(id=project_id)
-    except Project.DoesNotExist:
-        return
-
     rules_with_high_priority = Rule.objects.filter(
         project_id=project_id, data__contains="HighPriorityIssueCondition"
     )
@@ -79,7 +75,7 @@ def check_new_issue_threshold_met(project_id: int) -> None:
         rule.data.get("new_issue_threshold_met") for rule in rules_with_high_priority
     )
     if not threshold_met:
-        threshold_met = calculate_threshold_met(project_id, project.date_added)
+        threshold_met = calculate_threshold_met(project_id)
 
     if not threshold_met:
         return
