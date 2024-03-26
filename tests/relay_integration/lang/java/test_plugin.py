@@ -1022,14 +1022,18 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
             "files": files,
         }
 
-        file_like = BytesIO()
-        with zipfile.ZipFile(file_like, "w") as zip:
-            for source_file in source_files:
-                zip.writestr(f"files/_/_/{source_file}", source_files[source_file])
+        file_like = BytesIO(b"SYSB")
+        with zipfile.ZipFile(file_like, "a") as zip:
+            for path, contents in source_files.items():
+                zip.writestr(f"files/_/_/{path}", contents)
             zip.writestr("manifest.json", json.dumps(manifest))
         file_like.seek(0)
 
-        file = File.objects.create(name="bundle.zip", type="artifact.bundle")
+        file = File.objects.create(
+            name="bundle.zip",
+            type="sourcebundle",
+            headers={"Content-Type": "application/x-sentry-bundle+zip"},
+        )
         file.putfile(file_like)
 
         ProjectDebugFile.objects.create(
@@ -1544,3 +1548,9 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert frames[24].context_line is None
         assert frames[24].pre_context is None
         assert frames[24].post_context is None
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_source_lookup_with_proguard_symbolicator(self):
+        with override_options({"symbolicator.proguard-processing-sample-rate": 1.0}):
+            self.test_source_lookup_with_proguard()
