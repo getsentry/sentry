@@ -1335,6 +1335,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
         spec_two = OnDemandMetricSpec(
             field=field_two, groupbys=groupbys, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY
         )
+        DashboardWidget.objects.filter().delete()
 
         _, widget, __ = create_widget(
             ["count()"],
