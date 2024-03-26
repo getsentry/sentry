@@ -1,6 +1,5 @@
 // XXX: A lot of the UI for this file will be changed once we use IssueListActions
 // We're using GroupList to help us iterate quickly
-import {Fragment} from 'react';
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -40,44 +39,48 @@ function GroupRelatedIssues({params}: Props) {
   const groups = relatedIssues?.same_root_cause?.join(',');
 
   return (
+    <Layout.Body>
+      <Layout.Main fullWidth>
+        <HeaderWrapper>
+          <Title>{t('Related Issues')}</Title>
+          <small>
+            {t(
+              'Related Issues are issues that may have the same root cause and can be acted on together.'
+            )}
+          </small>
+        </HeaderWrapper>
+        {isLoading ? (
+          <LoadingIndicator />
+        ) : isError ? (
+          <LoadingError
+            message={t('Unable to load related issues, please try again later')}
+            onRetry={refetch}
+          />
+        ) : groups ? (
+          <GroupList
+            endpointPath={`/organizations/${orgId}/issues/`}
+            orgSlug={orgId}
+            queryParams={{}}
+            query={`issue.id:${groups}`}
+            source="related-issues-tab"
+            renderEmptyMessage={() => <hr />}
+            renderErrorMessage={() => <hr />}
+          />
+        ) : null}
+      </Layout.Main>
+    </Layout.Body>
+  );
+}
+
+function GroupRelatedIssuesWrapper(props: Props) {
+  return (
     <Feature features={['related-issues']}>
-      <Fragment>
-        <Layout.Body>
-          <Layout.Main fullWidth>
-            <HeaderWrapper>
-              <Title>{t('Related Issues')}</Title>
-              <small>
-                {t(
-                  'Related Issues are issues that may have the same root cause and can be acted on together.'
-                )}
-              </small>
-            </HeaderWrapper>
-            {isLoading ? (
-              <LoadingIndicator />
-            ) : isError ? (
-              <LoadingError
-                message={t('Unable to load related issues, please try again later')}
-                onRetry={refetch}
-              />
-            ) : groups ? (
-              <GroupList
-                endpointPath={`/organizations/${orgId}/issues/`}
-                orgSlug={orgId}
-                queryParams={{}}
-                query={`issue.id:${groups}`}
-                source="related-issues-tab"
-                renderEmptyMessage={() => <hr />}
-                renderErrorMessage={() => <hr />}
-              />
-            ) : null}
-          </Layout.Main>
-        </Layout.Body>
-      </Fragment>
+      <GroupRelatedIssues {...props} />
     </Feature>
   );
 }
 
-export default GroupRelatedIssues;
+export default GroupRelatedIssuesWrapper;
 
 const Title = styled('h4')`
   margin-bottom: ${space(0.75)};
