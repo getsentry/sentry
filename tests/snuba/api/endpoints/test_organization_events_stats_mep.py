@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from time import time
 from typing import Any
 from unittest import mock
 
@@ -1325,6 +1326,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
         assert bool(response.data["error_value2,"])
 
     def test_top_events_with_transaction_on_demand_passing_widget_id_unsaved_discover(self):
+        time.sleep(5)
         field = "count()"
         field_two = "count()"
         groupbys = ["customtag1", "customtag2"]
@@ -1335,7 +1337,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
         spec_two = OnDemandMetricSpec(
             field=field_two, groupbys=groupbys, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY
         )
-        DashboardWidget.objects.filter().delete()
 
         _, widget, __ = create_widget(
             ["count()"],
