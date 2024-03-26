@@ -12,7 +12,7 @@ from django.db import router, transaction
 from django.db.models.signals import post_save
 from django.forms import ValidationError
 from django.utils import timezone as django_timezone
-from snuba_sdk import Column, Condition, Limit, Op
+from snuba_sdk import Column, Condition, Entity, Limit, Op
 
 from sentry import analytics, audit_log, features, quotas
 from sentry.auth.access import SystemAccess
@@ -354,11 +354,13 @@ def build_incident_query_builder(
     for i, column in enumerate(query_builder.columns):
         if column.alias == CRASH_RATE_ALERT_AGGREGATE_ALIAS:
             query_builder.columns[i] = replace(column, alias="count")
-    time_col = ENTITY_TIME_COLUMNS[get_entity_key_from_query_builder(query_builder)]
+    entity_key = get_entity_key_from_query_builder(query_builder)
+    time_col = ENTITY_TIME_COLUMNS[entity_key]
+    entity = Entity(entity_key.value, alias=entity_key.value)
     query_builder.add_conditions(
         [
-            Condition(Column(time_col), Op.GTE, start),
-            Condition(Column(time_col), Op.LT, end),
+            Condition(Column(time_col, entity=entity), Op.GTE, start),
+            Condition(Column(time_col, entity=entity), Op.LT, end),
         ]
     )
     query_builder.limit = Limit(10000)
