@@ -250,11 +250,11 @@ def process_message(buffer: RecordingBuffer, message: bytes) -> None:
         # Record video size for COGS analysis.
         metrics.distribution(
             "replays.recording_consumer.replay_video_size",
-            len(replay_video),  # type: ignore
+            len(replay_video),  # type: ignore[arg-type]
             unit="byte",
         )
         buffer.upload_events.append(
-            {"key": make_video_filename(recording_segment), "value": replay_video}  # type: ignore
+            {"key": make_video_filename(recording_segment), "value": replay_video}  # type: ignore[typeddict-item]
         )
 
     # Initial segment events are recorded in the state machine.

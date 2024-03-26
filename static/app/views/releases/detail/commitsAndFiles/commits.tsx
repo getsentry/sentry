@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import type {RouteComponentProps} from 'react-router';
+import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {CommitRow} from 'sentry/components/commitRow';
@@ -12,6 +13,7 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Commit, Project, Repository} from 'sentry/types';
 import {formatVersion} from 'sentry/utils/formatters';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -75,10 +77,12 @@ function Commits({activeReleaseRepo, releaseRepos, projectSlug}: CommitsProps) {
           )}
         />
         {releaseRepos.length > 1 && (
-          <RepositorySwitcher
-            repositories={releaseRepos}
-            activeRepository={activeReleaseRepo}
-          />
+          <Actions>
+            <RepositorySwitcher
+              repositories={releaseRepos}
+              activeRepository={activeReleaseRepo}
+            />
+          </Actions>
         )}
         {commitListError && <LoadingError onRetry={refetch} />}
         {isLoadingCommitList ? (
@@ -109,5 +113,9 @@ function Commits({activeReleaseRepo, releaseRepos, projectSlug}: CommitsProps) {
     </Layout.Body>
   );
 }
+
+const Actions = styled('div')`
+  margin-bottom: ${space(2)};
+`;
 
 export default withReleaseRepos(Commits);

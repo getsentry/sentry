@@ -799,7 +799,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLay
         assert response.status_code == 200, response.content
         data = response.data["data"]
         for (_, value), expected_value in zip(data, [10, 20, 30, 40, 50, 60]):
-            assert value[0]["count"] == expected_value  # type:ignore
+            assert value[0]["count"] == expected_value  # type: ignore[index]
 
     def test_counter_custom_metric(self):
         mri = "c:custom/sentry.process_profile.track_outcome@second"
@@ -828,7 +828,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLay
         assert response.status_code == 200, response.content
         data = response.data["data"]
         for (_, value), expected_value in zip(data, [10, 20, 30, 40, 50, 60]):
-            assert value[0]["count"] == expected_value  # type:ignore
+            assert value[0]["count"] == expected_value  # type: ignore[index]
 
     def test_distribution_custom_metric(self):
         mri = "d:custom/sentry.process_profile.track_outcome@second"
@@ -859,15 +859,15 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLay
         data = response.data
         min = data[f"min({mri})"]["data"]
         for (_, value), expected_value in zip(min, [10.0, 20.0, 30.0, 40.0, 50.0, 60.0]):
-            assert value[0]["count"] == expected_value  # type:ignore
+            assert value[0]["count"] == expected_value  # type: ignore[index]
 
         max = data[f"max({mri})"]["data"]
         for (_, value), expected_value in zip(max, [30.0, 60.0, 90.0, 120.0, 150.0, 180.0]):
-            assert value[0]["count"] == expected_value  # type:ignore
+            assert value[0]["count"] == expected_value  # type: ignore[index]
 
         p90 = data[f"p90({mri})"]["data"]
         for (_, value), expected_value in zip(p90, [28.0, 56.0, 84.0, 112.0, 140.0, 168.0]):
-            assert value[0]["count"] == expected_value  # type:ignore
+            assert value[0]["count"] == expected_value  # type: ignore[index]
 
     def test_set_custom_metric(self):
         mri = "s:custom/sentry.process_profile.track_outcome@second"
@@ -898,7 +898,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLay
         assert response.status_code == 200, response.content
         data = response.data["data"]
         for (_, value), expected_value in zip(data, [1, 1, 1, 1, 1, 1]):
-            assert value[0]["count"] == expected_value  # type:ignore
+            assert value[0]["count"] == expected_value  # type: ignore[index]
 
     def test_gauge_custom_metric(self):
         mri = "g:custom/sentry.process_profile.track_outcome@second"
@@ -937,23 +937,23 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLay
         data = response.data
         min = data[f"min({mri})"]["data"]
         for (_, value), expected_value in zip(min, [10.0, 20.0, 30.0, 40.0, 50.0, 60.0]):
-            assert value[0]["count"] == expected_value  # type:ignore
+            assert value[0]["count"] == expected_value  # type: ignore[index]
 
         max = data[f"max({mri})"]["data"]
         for (_, value), expected_value in zip(max, [30.0, 60.0, 90.0, 120.0, 150.0, 180.0]):
-            assert value[0]["count"] == expected_value  # type:ignore
+            assert value[0]["count"] == expected_value  # type: ignore[index]
 
         last = data[f"last({mri})"]["data"]
         for (_, value), expected_value in zip(last, [30.0, 60.0, 90.0, 120.0, 150.0, 180.0]):
-            assert value[0]["count"] == expected_value  # type:ignore
+            assert value[0]["count"] == expected_value  # type: ignore[index]
 
         sum = data[f"sum({mri})"]["data"]
         for (_, value), expected_value in zip(sum, [40.0, 80.0, 120.0, 160.0, 200.0, 240.0]):
-            assert value[0]["count"] == expected_value  # type:ignore
+            assert value[0]["count"] == expected_value  # type: ignore[index]
 
         count = data[f"count({mri})"]["data"]
         for (_, value), expected_value in zip(count, [40, 80, 120, 160, 200, 240]):
-            assert value[0]["count"] == expected_value  # type:ignore
+            assert value[0]["count"] == expected_value  # type: ignore[index]
 
 
 @region_silo_test

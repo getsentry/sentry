@@ -395,7 +395,7 @@ def get_stored_metrics_of_projects(
     use_case_id_to_index = defaultdict(list)
     for use_case_id in use_case_ids:
         entity_keys = get_entity_keys_of_use_case_id(use_case_id=use_case_id)
-        for entity_key in entity_keys:
+        for entity_key in entity_keys or ():
             requests.append(
                 _get_metrics_by_project_for_entity_query(
                     entity_key=entity_key,

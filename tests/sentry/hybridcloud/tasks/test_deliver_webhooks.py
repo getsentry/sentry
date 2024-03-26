@@ -363,6 +363,25 @@ class DrainMailboxTest(TestCase):
 
     @responses.activate
     @override_regions(region_config)
+    def test_drain_api_error_forbidden(self):
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/github/webhook/",
+            status=403,
+            body="",
+        )
+        webhook_one = self.create_webhook_payload(
+            mailbox_name="github:123",
+            region_name="us",
+        )
+        drain_mailbox(webhook_one.id)
+        hook = WebhookPayload.objects.filter(id=webhook_one.id).first()
+        # We don't retry 403
+        assert hook is None
+        assert len(responses.calls) == 1
+
+    @responses.activate
+    @override_regions(region_config)
     def test_drain_not_found(self):
         responses.add(
             responses.POST,
@@ -483,6 +502,29 @@ class DrainMailboxParallelTest(TestCase):
 
         # Once start time + batch offset is in the past we stop delivery
         assert WebhookPayload.objects.count() == 1
+
+    @responses.activate
+    @override_regions(region_config)
+    def test_drain_discard_old_messages(self):
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/github/webhook/",
+            status=200,
+            body="",
+        )
+        records = create_payloads(3, "github:123")
+
+        # Make old records
+        for record in records:
+            record.date_added = timezone.now() - timedelta(days=4)
+            record.save()
+
+        drain_mailbox_parallel(records[0].id)
+
+        # Mailbox should be empty
+        assert not WebhookPayload.objects.filter().exists()
+        # No requests sent because records are too old
+        assert len(responses.calls) == 0
 
     @responses.activate
     @override_regions(region_config)

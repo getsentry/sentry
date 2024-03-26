@@ -96,8 +96,8 @@ def patch_sentry_sdk():
                     unit="byte",
                 )
 
-    MetricsAggregator.add = tracked_add  # type: ignore
-    MetricsAggregator._emit = patched_emit  # type: ignore
+    MetricsAggregator.add = tracked_add  # type: ignore[method-assign]
+    MetricsAggregator._emit = patched_emit  # type: ignore[method-assign]
 
 
 def before_emit_metric(key: str, tags: dict[str, Any]) -> bool:

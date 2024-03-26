@@ -98,6 +98,7 @@ const SENTRY_EXPERIMENTAL_SPA =
 // is true. This is to make sure we can validate that the experimental SPA mode is
 // working properly.
 const SENTRY_SPA_DSN = SENTRY_EXPERIMENTAL_SPA ? env.SENTRY_SPA_DSN : undefined;
+const CODECOV_TOKEN = env.CODECOV_TOKEN;
 
 // this is the path to the django "sentry" app, we output the webpack build here to `dist`
 // so that `django collectstatic` and so that we can serve the post-webpack bundles
@@ -757,6 +758,18 @@ const minificationPlugins = [
 if (IS_PRODUCTION) {
   // NOTE: can't do plugins.push(Array) because webpack/webpack#2217
   minificationPlugins.forEach(plugin => appConfig.plugins?.push(plugin));
+}
+
+if (CODECOV_TOKEN) {
+  const {codecovWebpackPlugin} = require('@codecov/webpack-plugin');
+
+  appConfig.plugins?.push(
+    codecovWebpackPlugin({
+      enableBundleAnalysis: true,
+      bundleName: 'sentry-webpack-bundle',
+      uploadToken: CODECOV_TOKEN,
+    })
+  );
 }
 
 // Cache webpack builds

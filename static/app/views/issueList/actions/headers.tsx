@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ToolbarHeader from 'sentry/components/toolbarHeader';
@@ -72,21 +71,10 @@ function Headers({
 
 export default Headers;
 
-const fadeIn = keyframes`
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
-`;
-
 const GraphHeaderWrapper = styled('div')<{isSavedSearchesOpen?: boolean}>`
   width: 160px;
   margin-left: ${space(2)};
   margin-right: ${space(2)};
-  animation: 200ms ${fadeIn} ease-out;
 
   /* prettier-ignore */
   @media (max-width: ${p =>
@@ -115,11 +103,7 @@ const GraphToggle = styled('a')<{active: boolean}>`
   }
 `;
 
-const FadeInHeader = styled(ToolbarHeader)`
-  animation: 200ms ${fadeIn} ease-out;
-`;
-
-const EventsOrUsersLabel = styled(FadeInHeader)`
+const EventsOrUsersLabel = styled(ToolbarHeader)`
   display: inline-grid;
   align-items: center;
   justify-content: flex-end;
@@ -132,7 +116,7 @@ const EventsOrUsersLabel = styled(FadeInHeader)`
   }
 `;
 
-const PriorityLabel = styled(FadeInHeader)<{isSavedSearchesOpen?: boolean}>`
+const PriorityLabel = styled(ToolbarHeader)<{isSavedSearchesOpen?: boolean}>`
   justify-content: flex-end;
   text-align: right;
   width: 70px;
@@ -145,7 +129,7 @@ const PriorityLabel = styled(FadeInHeader)<{isSavedSearchesOpen?: boolean}>`
   }
 `;
 
-const AssigneeLabel = styled(FadeInHeader)<{isSavedSearchesOpen?: boolean}>`
+const AssigneeLabel = styled(ToolbarHeader)<{isSavedSearchesOpen?: boolean}>`
   justify-content: flex-end;
   text-align: right;
   width: 60px;
@@ -160,7 +144,7 @@ const AssigneeLabel = styled(FadeInHeader)<{isSavedSearchesOpen?: boolean}>`
 `;
 
 // Reprocessing
-const StartedColumn = styled(FadeInHeader)`
+const StartedColumn = styled(ToolbarHeader)`
   margin: 0 ${space(2)};
   ${p => p.theme.overflowEllipsis};
   width: 85px;
@@ -170,7 +154,7 @@ const StartedColumn = styled(FadeInHeader)`
   }
 `;
 
-const EventsReprocessedColumn = styled(FadeInHeader)`
+const EventsReprocessedColumn = styled(ToolbarHeader)`
   margin: 0 ${space(2)};
   ${p => p.theme.overflowEllipsis};
   width: 75px;
@@ -180,7 +164,7 @@ const EventsReprocessedColumn = styled(FadeInHeader)`
   }
 `;
 
-const ProgressColumn = styled(FadeInHeader)`
+const ProgressColumn = styled(ToolbarHeader)`
   margin: 0 ${space(2)};
 
   display: none;

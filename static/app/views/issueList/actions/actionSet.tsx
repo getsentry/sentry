@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 
 import ActionLink from 'sentry/components/actions/actionLink';
 import ArchiveActions from 'sentry/components/actions/archive';
-import {IssueActionWrapper} from 'sentry/components/actions/issueActionWrapper';
 import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -18,6 +17,7 @@ import type {IssueTypeConfig} from 'sentry/utils/issueTypeConfig/types';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
+import {FOR_REVIEW_QUERIES} from 'sentry/views/issueList/utils';
 
 import ResolveActions from './resolveActions';
 import ReviewAction from './reviewAction';
@@ -103,16 +103,17 @@ function ActionSet({
     return '';
   };
 
-  // Determine whether to nest "Merge" and "Mark as Reviewed" buttons inside
-  // the dropdown menu based on the current screen size
   const nestMergeAndReviewViewport = useMedia(`(max-width: 1700px)`);
-  const nestMergeAndReview = nestMergeAndReviewViewport && !hasIssuePriority;
+  const nestReview = hasIssuePriority
+    ? !FOR_REVIEW_QUERIES.includes(query)
+    : nestMergeAndReviewViewport;
+  const nestMerge = hasIssuePriority ? true : nestMergeAndReviewViewport;
 
   const menuItems: MenuItemProps[] = [
     {
       key: 'merge',
       label: t('Merge'),
-      hidden: !nestMergeAndReview,
+      hidden: !nestMerge,
       disabled: mergeDisabled,
       details: makeMergeTooltip(),
       onAction: () => {
@@ -127,7 +128,7 @@ function ActionSet({
     {
       key: 'mark-reviewed',
       label: t('Mark Reviewed'),
-      hidden: !nestMergeAndReview,
+      hidden: !nestReview,
       disabled: !canMarkReviewed,
       onAction: () => onUpdate({inbox: false}),
     },
@@ -227,59 +228,51 @@ function ActionSet({
         disabled={ignoreDisabled}
       />
       {hasIssuePriority && (
-        <IssueActionWrapper>
-          <DropdownMenu
-            triggerLabel={t('Set Priority')}
-            size="xs"
-            items={makeGroupPriorityDropdownOptions({
-              onChange: priority => {
-                openConfirmModal({
-                  bypass: !onShouldConfirm(ConfirmAction.SET_PRIORITY),
-                  onConfirm: () => onUpdate({priority}),
-                  message: confirm({
-                    action: ConfirmAction.SET_PRIORITY,
-                    append: ` to ${priority}`,
-                    canBeUndone: true,
-                  }),
-                  confirmText: label('reprioritize'),
-                });
-              },
-            })}
-          />
-        </IssueActionWrapper>
-      )}
-      {!nestMergeAndReview && (
-        <ReviewAction disabled={!canMarkReviewed} onUpdate={onUpdate} />
-      )}
-      {!nestMergeAndReview && (
-        <IssueActionWrapper>
-          <ActionLink
-            aria-label={t('Merge Selected Issues')}
-            type="button"
-            disabled={mergeDisabled}
-            onAction={onMerge}
-            shouldConfirm={onShouldConfirm(ConfirmAction.MERGE)}
-            message={confirm({action: ConfirmAction.MERGE, canBeUndone: false})}
-            confirmLabel={label('merge')}
-            title={makeMergeTooltip()}
-          >
-            {t('Merge')}
-          </ActionLink>
-        </IssueActionWrapper>
-      )}
-      <IssueActionWrapper>
         <DropdownMenu
-          size="sm"
-          items={menuItems}
-          triggerProps={{
-            'aria-label': t('More issue actions'),
-            icon: <IconEllipsis />,
-            showChevron: false,
-            size: 'xs',
-          }}
-          isDisabled={!anySelected}
+          triggerLabel={t('Set Priority')}
+          size="xs"
+          items={makeGroupPriorityDropdownOptions({
+            onChange: priority => {
+              openConfirmModal({
+                bypass: !onShouldConfirm(ConfirmAction.SET_PRIORITY),
+                onConfirm: () => onUpdate({priority}),
+                message: confirm({
+                  action: ConfirmAction.SET_PRIORITY,
+                  append: ` to ${priority}`,
+                  canBeUndone: true,
+                }),
+                confirmText: label('reprioritize'),
+              });
+            },
+          })}
         />
-      </IssueActionWrapper>
+      )}
+      {!nestReview && <ReviewAction disabled={!canMarkReviewed} onUpdate={onUpdate} />}
+      {!nestMerge && (
+        <ActionLink
+          aria-label={t('Merge Selected Issues')}
+          type="button"
+          disabled={mergeDisabled}
+          onAction={onMerge}
+          shouldConfirm={onShouldConfirm(ConfirmAction.MERGE)}
+          message={confirm({action: ConfirmAction.MERGE, canBeUndone: false})}
+          confirmLabel={label('merge')}
+          title={makeMergeTooltip()}
+        >
+          {t('Merge')}
+        </ActionLink>
+      )}
+      <DropdownMenu
+        size="sm"
+        items={menuItems}
+        triggerProps={{
+          'aria-label': t('More issue actions'),
+          icon: <IconEllipsis />,
+          showChevron: false,
+          size: 'xs',
+        }}
+        isDisabled={!anySelected}
+      />
     </Fragment>
   );
 }

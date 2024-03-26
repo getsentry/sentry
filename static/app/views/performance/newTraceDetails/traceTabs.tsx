@@ -59,7 +59,7 @@ export type TraceTabsReducerState = {
 
 export type TraceTabsReducerAction =
   | {
-      payload: TraceTreeNode<TraceTree.NodeValue> | number;
+      payload: Tab['node'] | number;
       type: 'activate tab';
       pin_previous?: boolean;
     }

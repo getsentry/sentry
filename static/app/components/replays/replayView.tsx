@@ -23,6 +23,7 @@ function ReplayView({toggleFullscreen}: Props) {
   const isFullscreen = useIsFullscreen();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const {isFetching, replay} = useReplayContext();
+  const isVideoReplay = replay?.isVideoReplay();
 
   return (
     <Fragment>
@@ -30,7 +31,7 @@ function ReplayView({toggleFullscreen}: Props) {
         <PlayerContainer>
           <ContextContainer>
             <ReplayCurrentUrl />
-            <BrowserOSIcons />
+            <BrowserOSIcons showBrowser={!isVideoReplay} />
             {isFullscreen ? (
               <ReplaySidebarToggleButton
                 isOpen={isSidebarOpen}
@@ -55,7 +56,12 @@ function ReplayView({toggleFullscreen}: Props) {
           </BreadcrumbContainer>
         ) : null}
       </PlayerBreadcrumbContainer>
-      {isFullscreen ? <ReplayController toggleFullscreen={toggleFullscreen} /> : null}
+      {isFullscreen ? (
+        <ReplayController
+          toggleFullscreen={toggleFullscreen}
+          hideFastForward={isVideoReplay}
+        />
+      ) : null}
     </Fragment>
   );
 }
