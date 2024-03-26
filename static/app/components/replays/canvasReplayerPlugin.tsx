@@ -271,7 +271,7 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
       if (img) {
         img.src = target.toDataURL();
         img.style.width = '100%';
-        img.style.height = '100%;';
+        img.style.height = '100%';
       }
 
       prune(e);
