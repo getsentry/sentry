@@ -777,14 +777,14 @@ def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_fi
                 profile["symbolicator_error"] = {
                     "type": EventError.NATIVE_INTERNAL_FAILURE,
                 }
+                sentry_sdk.capture_message("No response from Symbolicator")
             elif response["status"] == "failed":
                 profile["symbolicator_error"] = {
                     "type": EventError.NATIVE_SYMBOLICATOR_FAILED,
                     "status": response["status"],
                     "message": response["message"],
                 }
-            elif len(response["errors"]) > 0:
-                profile["symbolicator_error"] = response["errors"][0]
+                sentry_sdk.capture_message(response["message"])
             elif len(response["stacktraces"]) > 0:
                 merge_jvm_frames_with_android_methods(
                     frames=response["stacktraces"][0]["frames"],
@@ -795,6 +795,7 @@ def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_fi
                 profile["symbolicator_error"] = {
                     "type": EventError.NATIVE_SYMBOLICATOR_FAILED,
                 }
+                sentry_sdk.capture_message(EventError.NATIVE_SYMBOLICATOR_FAILED)
     except SymbolicationTimeout:
         metrics.incr("process_profile.symbolicate.timeout", sample_rate=1.0)
     return False
@@ -813,13 +814,15 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
 
     if project.id in options.get("profiling.deobfuscate-using-symbolicator.enable-for-project"):
         try:
-            if _deobfuscate_using_symbolicator(
-                project=project,
-                profile=profile,
-                debug_file_id=debug_file_id,
-            ):
-                sentry_sdk.set_tag("deobfuscated_with_symbolicator", True)
-                return
+            with sentry_sdk.start_span(op="deobfuscate_with_symbolicator"):
+                success = _deobfuscate_using_symbolicator(
+                    project=project,
+                    profile=profile,
+                    debug_file_id=debug_file_id,
+                )
+                sentry_sdk.set_tag("deobfuscated_with_symbolicator_with_success", success)
+                if success:
+                    return
         except Exception as e:
             sentry_sdk.capture_exception(e)
     _deobfuscate_locally(profile=profile, project=project, debug_file_id=debug_file_id)
