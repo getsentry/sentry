@@ -105,6 +105,7 @@ def test_foo(params):
             "span.group",
             "span.description",
         ],
+        orderby=[f"-regression_score(span.self_time, {int(mid.timestamp())})"],
     )
     print(builder.get_snql_query())
     assert 0

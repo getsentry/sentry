@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
+from datetime import datetime
+from typing import cast
 
 import sentry_sdk
 from snuba_sdk import AliasedExpression, Column, Condition, Function, Identifier, Op, OrderBy
 
 from sentry.api.event_search import SearchFilter
-from sentry.exceptions import IncompatibleMetricsQuery
+from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import builder, constants, fields
 from sentry.search.events.datasets import field_aliases, filter_aliases, function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
@@ -477,7 +479,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     default_result_type="percent_change",
                 ),
                 fields.MetricsFunction(
-                    "regression_score_sum",
+                    "regression_score",
                     required_args=[
                         fields.MetricArg(
                             "column",
@@ -487,7 +489,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         fields.TimestampArg("timestamp"),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=self._resolve_regression_score_sum,
+                    snql_distribution=self._resolve_regression_score,
                     default_result_type="integer",
                 ),
             ]
@@ -498,53 +500,6 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 function_converter[alias] = function_converter[name].alias_as(alias)
 
         return function_converter
-
-    def _resolve_regression_score_sum(
-        self, args: Mapping[str, str | Column | SelectType | int | float], alias: str | None = None
-    ) -> SelectType:
-        return Function(
-            "minus",
-            [
-                Function(
-                    "sumIf",
-                    [
-                        Column("value"),
-                        Function(
-                            "and",
-                            [
-                                Function(
-                                    "equals",
-                                    [
-                                        Column("metric_id"),
-                                        self.resolve_metric("span.self_time"),
-                                    ],
-                                ),
-                                Function("greater", [Column("timestamp"), args["timestamp"]]),
-                            ],
-                        ),
-                    ],
-                ),
-                Function(
-                    "sumIf",
-                    [
-                        Column("value"),
-                        Function(
-                            "and",
-                            [
-                                Function(
-                                    "equals",
-                                    [
-                                        Column("metric_id"),
-                                        self.resolve_metric("span.self_time"),
-                                    ],
-                                ),
-                                Function("less", [Column("timestamp"), args["timestamp"]]),
-                            ],
-                        ),
-                    ],
-                ),
-            ],
-        )
 
     def _span_domain_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         value = search_filter.value.value
@@ -862,6 +817,93 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 args["interval"]
                 if interval is None
                 else Function("divide", [args["interval"], interval]),
+            ],
+            alias,
+        )
+
+    def _resolve_regression_score(
+        self, args: Mapping[str, str | Column | SelectType | int | float], alias: str | None = None
+    ) -> SelectType:
+        return Function(
+            "minus",
+            [
+                Function(
+                    "multiply",
+                    [
+                        self._resolve_average_cond(args, None, "greater"),
+                        self._resolve_throughput_cond(args, None, "greater"),
+                    ],
+                ),
+                Function(
+                    "multiply",
+                    [
+                        self._resolve_average_cond(args, None, "less"),
+                        self._resolve_throughput_cond(args, None, "less"),
+                    ],
+                ),
+            ],
+            "regression_score",
+        )
+
+    def _resolve_throughput_cond(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None,
+        cond: str,
+    ) -> SelectType:
+        assert self.builder.params.start
+        assert self.builder.params.end
+        timestamp = cast(datetime, args["timestamp"])
+        if cond == "greater":
+            interval = (self.builder.params.end - timestamp).total_seconds()
+        elif cond == "less":
+            interval = (timestamp - self.builder.params.start).total_seconds()
+        else:
+            raise InvalidSearchQuery(f"Unsupported condition for cpm: {cond}")
+
+        return Function(
+            "divide",
+            [
+                Function(
+                    "countIf",
+                    [
+                        Function(
+                            cond,
+                            [
+                                Column("timestamp"),
+                                timestamp,
+                            ],
+                        ),
+                    ],
+                ),
+                Function("divide", [interval, 60]),
+            ],
+            alias,
+        )
+
+    def _resolve_average_cond(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None,
+        cond: str,
+    ) -> SelectType:
+        return Function(
+            "avgIf",
+            [
+                Column("value"),
+                Function(
+                    "and",
+                    [
+                        Function(
+                            "equals",
+                            [
+                                Column("metric_id"),
+                                self.resolve_metric("span.self_time"),
+                            ],
+                        ),
+                        Function(cond, [Column("timestamp"), args["timestamp"]]),
+                    ],
+                ),
             ],
             alias,
         )
