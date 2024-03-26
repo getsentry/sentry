@@ -55,7 +55,6 @@ class RoleSerializer(Serializer):
             "allowed": obj in allowed_roles,  # backward compatibility
             "isAllowed": obj in allowed_roles,
             "isRetired": is_retired_role,
-            "isTeamRolesAllowed": obj.is_team_roles_allowed,
         }
 
 
