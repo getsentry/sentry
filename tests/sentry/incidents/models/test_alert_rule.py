@@ -215,6 +215,30 @@ class AlertRuleFetchForOrganizationTest(TestCase):
             AlertRule.objects.fetch_for_organization(self.organization, [project])
         )
 
+    def test_project_on_alert(self):
+        project = self.create_project()
+        alert_rule = self.create_alert_rule()
+        alert_rule.projects.add(project)
+
+        assert [alert_rule] == list(AlertRule.objects.fetch_for_organization(self.organization))
+
+    def test_project_on_alert_and_snuba(self):
+        project1 = self.create_project()
+        alert_rule1 = self.create_alert_rule(projects=[project1])
+        alert_rule1.projects.add(project1)
+
+        # will fetch if there's 1 project in snuba
+        assert [alert_rule1] == list(AlertRule.objects.fetch_for_organization(self.organization))
+
+        project2 = self.create_project()
+        alert_rule2 = self.create_alert_rule(projects=[project2, self.project])
+        alert_rule2.projects.add(project1)
+
+        # Will fetch if there's 1 project in snuba and 1 in alert rule
+        assert {alert_rule1, alert_rule2} == set(
+            AlertRule.objects.fetch_for_organization(self.organization, [project1])
+        )
+
 
 class AlertRuleTriggerActionTargetTest(TestCase):
     def test_user(self):
@@ -392,3 +416,21 @@ class CleanExpiredAlertsTest(TestCase):
         callback = alert_subscription_callback_registry[AlertRuleMonitorType.CONTINUOUS]
         result = callback(subscription)
         assert result is True
+
+
+class AlertRuleFetchForProjectTest(TestCase):
+    def test_simple(self):
+        project = self.create_project()
+        alert_rule = self.create_alert_rule(projects=[project])
+
+        assert [alert_rule] == list(AlertRule.objects.fetch_for_project(project))
+
+    def test_projects_on_snuba_and_alert(self):
+        project1 = self.create_project()
+        alert_rule1 = self.create_alert_rule(projects=[project1, self.project])
+
+        project2 = self.create_project()
+        alert_rule2 = self.create_alert_rule(projects=[project2, self.project])
+        alert_rule2.projects.add(project2)
+
+        assert {alert_rule1, alert_rule2} == set(AlertRule.objects.fetch_for_project(self.project))
