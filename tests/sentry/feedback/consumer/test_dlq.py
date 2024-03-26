@@ -6,7 +6,6 @@ from arroyo.dlq import InvalidMessage
 from arroyo.types import Partition, Topic
 
 from sentry.conf.types.kafka_definition import Topic as TopicNames
-from sentry.ingest.consumer.factory import IngestStrategyFactory
 from sentry.ingest.types import ConsumerType
 from sentry.testutils.pytest.fixtures import django_db_all
 
@@ -19,7 +18,7 @@ but moving its tests here makes it easier to migrate to a separate StrategyFacto
 
 
 @django_db_all
-def test_process_invalid_messages(default_project) -> None:
+def test_process_invalid_messages(default_project, feedback_strategy_factory_cls) -> None:
     # Kafka payloads (bytes)
     payload_invalid = b"bogus message"
     payload_empty_message = msgpack.packb({})
@@ -29,7 +28,7 @@ def test_process_invalid_messages(default_project) -> None:
     payload_empty_event = msgpack.packb(make_ingest_message({}, default_project)[0])
     # required fields: event_id, ??
 
-    strategy_factory = IngestStrategyFactory(
+    strategy_factory = feedback_strategy_factory_cls(
         ConsumerType.Feedback,
         reprocess_only_stuck_events=False,
         num_processes=1,

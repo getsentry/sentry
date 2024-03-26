@@ -11,7 +11,6 @@ from arroyo.types import Partition, Topic
 
 from sentry.conf.types.kafka_definition import Topic as TopicNames
 from sentry.event_manager import EventManager
-from sentry.ingest.consumer.factory import IngestStrategyFactory
 from sentry.ingest.types import ConsumerType
 from sentry.testutils.pytest.fixtures import django_db_all
 from tests.sentry.feedback.consumer.test_utils import make_broker_message, make_ingest_message
@@ -45,7 +44,11 @@ def preprocess_event(monkeypatch):
 
 @django_db_all
 def test_processing_calls_create_feedback_issue(
-    default_project, create_feedback_issue, preprocess_event, monkeypatch
+    default_project,
+    feedback_strategy_factory_cls,
+    create_feedback_issue,
+    preprocess_event,
+    monkeypatch,
 ):
     monkeypatch.setattr("sentry.features.has", lambda *a, **kw: True)
 
@@ -69,7 +72,7 @@ def test_processing_calls_create_feedback_issue(
         },
     }
 
-    strategy_factory = IngestStrategyFactory(
+    strategy_factory = feedback_strategy_factory_cls(
         ConsumerType.Feedback,
         reprocess_only_stuck_events=False,
         num_processes=1,
