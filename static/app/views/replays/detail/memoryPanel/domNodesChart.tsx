@@ -144,41 +144,38 @@ export default function DomNodesChart({
     [datapoints, durationMs, startTimestampMs]
   );
 
-  const currentTimeSeries = useMemo(
-    (): Series => ({
-      id: 'currentTime',
-      seriesName: t('Current player time'),
-      data: [],
-      markLine: {
-        symbol: ['', ''],
-        data: [{xAxis: currentTime}],
-        label: {show: false},
-        lineStyle: {type: 'solid', color: theme.purple300, width: 2},
+  const dynamicSeries = useMemo(
+    (): Series[] => [
+      {
+        id: 'hoverTime',
+        seriesName: t('Hover player time'),
+        data: [],
+        markLine: {
+          symbol: ['', ''],
+          data: currentHoverTime ? [{xAxis: currentHoverTime}] : [],
+          label: {show: false},
+          lineStyle: {type: 'solid', color: theme.purple200, width: 2},
+        },
       },
-    }),
-
-    [currentTime, theme.purple300]
-  );
-
-  const hoverTimeSeries = useMemo(
-    (): Series => ({
-      id: 'hoverTime',
-      seriesName: t('Hover player time'),
-      data: [],
-      markLine: {
-        symbol: ['', ''],
-        data: currentHoverTime ? [{xAxis: currentHoverTime}] : [],
-        label: {show: false},
-        lineStyle: {type: 'solid', color: theme.purple200, width: 2},
+      {
+        id: 'currentTime',
+        seriesName: t('Current player time'),
+        data: [],
+        markLine: {
+          symbol: ['', ''],
+          data: [{xAxis: currentTime}],
+          label: {show: false},
+          lineStyle: {type: 'solid', color: theme.purple300, width: 2},
+        },
       },
-    }),
-    [currentHoverTime, theme.purple200]
+    ],
+    [currentHoverTime, currentTime, theme.purple200, theme.purple300]
   );
 
-  return (
-    <AreaChart
-      series={staticSeries.concat(currentTimeSeries, hoverTimeSeries)}
-      {...chartOptions}
-    />
+  const series = useMemo(
+    () => staticSeries.concat(dynamicSeries),
+    [dynamicSeries, staticSeries]
   );
+
+  return <AreaChart series={series} {...chartOptions} />;
 }
