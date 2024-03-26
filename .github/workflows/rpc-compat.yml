@@ -12,5 +12,17 @@ jobs:
     steps:
       - name: Dump RPC schema for new version
         run: |
-          sentry rpcschema --partial >> ${GITHUB_OUTPUT}
-      # TODO
+          sentry rpcschema --canned >> ${GITHUB_OUTPUT}
+      - name: Find merge base
+        run: |
+          git merge-base ${PR branch and target?}
+      - name: Check out merge base
+        run: |
+          git checkout `git merge-base ${PR branch and target?}`
+        # Think there is a GH-native way to do this rather than a `checkout` command
+      - name: Run RPC schema command again
+        run: |
+          sentry rpcschema --canned >> ${GITHUB_OUTPUT}
+      - name: Invoke oasdiff on two outputs
+        run: |
+          docker ...
