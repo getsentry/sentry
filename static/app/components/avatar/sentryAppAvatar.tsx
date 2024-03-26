@@ -1,12 +1,12 @@
-import BaseAvatar from 'sentry/components/avatar/baseAvatar';
+import {BaseAvatar, BaseAvatarProps} from 'sentry/components/avatar/baseAvatar';
 import {IconGeneric} from 'sentry/icons';
 import type {AvatarSentryApp} from 'sentry/types';
 
-type Props = {
+interface Props extends BaseAvatarProps {
   isColor?: boolean;
   isDefault?: boolean;
   sentryApp?: AvatarSentryApp;
-} & BaseAvatar['props'];
+}
 
 function SentryAppAvatar({isColor = true, sentryApp, isDefault, ...props}: Props) {
   const avatarDetails = sentryApp?.avatars?.find(({color}) => color === isColor);

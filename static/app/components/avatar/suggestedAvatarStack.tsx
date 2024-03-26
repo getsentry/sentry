@@ -2,14 +2,15 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
-import type BaseAvatar from 'sentry/components/avatar/baseAvatar';
+import {BaseAvatarProps} from 'sentry/components/avatar/baseAvatar';
 import type {Actor} from 'sentry/types';
 
-type Props = {
+interface Props
+  extends BaseAvatarProps,
+    Omit<React.ComponentProps<typeof ActorAvatar>, 'actor' | 'hasTooltip'> {
   owners: Actor[];
   reverse?: boolean;
-} & BaseAvatar['props'] &
-  Omit<React.ComponentProps<typeof ActorAvatar>, 'actor' | 'hasTooltip'>;
+}
 
 // Constrain the number of visible suggestions
 const MAX_SUGGESTIONS = 3;

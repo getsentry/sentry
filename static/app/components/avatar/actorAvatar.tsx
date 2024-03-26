@@ -3,24 +3,14 @@ import * as Sentry from '@sentry/react';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import type {TooltipProps} from 'sentry/components/tooltip';
 import MemberListStore from 'sentry/stores/memberListStore';
 import type {Actor} from 'sentry/types';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 
-interface ActorAvatarProps {
+import {BaseAvatarProps} from './baseAvatar';
+
+interface Props extends BaseAvatarProps {
   actor: Actor;
-  className?: string;
-  default?: string;
-  gravatar?: boolean;
-  hasTooltip?: boolean;
-  onClick?: () => void;
-  round?: boolean;
-  size?: number;
-  suggested?: boolean;
-  title?: string;
-  tooltip?: React.ReactNode;
-  tooltipOptions?: Omit<TooltipProps, 'children' | 'title'>;
 }
 
 /**
@@ -40,7 +30,7 @@ function LoadTeamAvatar({
   return <TeamAvatar team={team} {...props} />;
 }
 
-function ActorAvatar({size = 24, hasTooltip = true, actor, ...props}: ActorAvatarProps) {
+function ActorAvatar({size = 24, hasTooltip = true, actor, ...props}: Props) {
   const otherProps = {
     size,
     hasTooltip,
