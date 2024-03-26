@@ -3,7 +3,7 @@ from dataclasses import dataclass, replace
 
 from sentry.sentry_metrics.querying.data_v2.execution import QueryResult
 from sentry.sentry_metrics.querying.data_v2.transformation.base import (
-    QueryTransformer,
+    QueryResultsTransformer,
     QueryTransformerResult,
 )
 from sentry.sentry_metrics.querying.types import QueryOrder
@@ -121,7 +121,7 @@ class MetricsQueriesPlanResult:
     results: list[QueryResult]
 
     def apply_transformer(
-        self, transformer: QueryTransformer[QueryTransformerResult]
+        self, transformer: QueryResultsTransformer[QueryTransformerResult]
     ) -> QueryTransformerResult:
         """
         Applies a transformer on the `results` and returns the value of the transformation.
