@@ -20,6 +20,7 @@ describe('SentryAppExternalInstallation', () => {
     getOrgMock: ReturnType<typeof MockApiClient.addMockResponse>,
     getAppMock: ReturnType<typeof MockApiClient.addMockResponse>,
     getInstallationsMock: ReturnType<typeof MockApiClient.addMockResponse>,
+    getFeaturesMock: ReturnType<typeof MockApiClient.addMockResponse>,
     org1: TOrganization,
     org1Lite: Pick<TOrganization, 'slug' | 'name' | 'id'>,
     org2: TOrganization,
@@ -235,19 +236,9 @@ describe('SentryAppExternalInstallation', () => {
         />
       );
 
-      // await selectEvent.select(screen.getByTestId('org-select'), 'org2');
       await selectEvent.select(screen.getByRole('textbox'), 'org2');
       expect(window.location.assign).toHaveBeenCalledWith(generateOrgSlugUrl('org2'));
-
-      // expect(getOrgMock).toHaveBeenCalledTimes(2);
-      // expect(getOrgMock).toHaveBeenLastCalledWith(
-      //   '/organizations/org2/',
-      //   expect.anything()
-      // );
-      // expect(getInstallationsMock).toHaveBeenCalled();
-      // expect(getFeaturesMock).toHaveBeenCalled();
-
-      // await waitFor(() => expect(screen.getByTestId('install')).toBeEnabled());
+      expect(getFeaturesMock).toHaveBeenCalled();
     });
   });
 });
