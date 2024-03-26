@@ -11,6 +11,7 @@ from sentry.integrations.utils.code_mapping import (
     UnsupportedFrameFilename,
     convert_stacktrace_frame_path_to_source_path,
     filter_source_code_files,
+    find_roots,
     get_extension,
     get_sorted_code_mapping_configs,
     should_include,
@@ -270,6 +271,50 @@ class TestDerivedCodeMappings(TestCase):
             },
         ]
         assert matches == expected_matches
+
+    def test_find_roots_starts_with_period_slash(self):
+        stacktrace_root, source_path = find_roots("./app/", "static/app/")
+        assert stacktrace_root == "./"
+        assert source_path == "static/"
+
+    def test_find_roots_starts_with_period_slash_no_containing_directory(
+        self,
+    ):
+        stacktrace_root, source_path = find_roots("./app/", "app/")
+        assert stacktrace_root == "./"
+        assert source_path == ""
+
+    def test_find_roots_not_matching(self):
+        # THIS CASE IS INCORRECT - needs to be fixed in the "packaged" refactor
+        # correct: stacktrace_root == "sentry/", source_path == "src/sentry/"
+        stacktrace_root, source_path = find_roots("sentry/", "src/sentry/")
+        assert stacktrace_root == ""
+        assert source_path == "src/"
+
+    def test_find_roots_equal(self):
+        stacktrace_root, source_path = find_roots("source/", "source/")
+        assert stacktrace_root == ""
+        assert source_path == ""
+
+    def test_find_roots_starts_with_period_slash_two_levels(self):
+        stacktrace_root, source_path = find_roots("./app/", "app/foo/app/")
+        assert stacktrace_root == "./"
+        assert source_path == "app/foo/"
+
+    def test_find_roots_starts_with_app(self):
+        stacktrace_root, source_path = find_roots("app:///utils/", "utils/")
+        assert stacktrace_root == "app:///"
+        assert source_path == ""
+
+    def test_find_roots_starts_with_multiple_dot_dot_slash(self):
+        stacktrace_root, source_path = find_roots("../../../../../../packages/", "packages/")
+        assert stacktrace_root == "../../../../../../"
+        assert source_path == ""
+
+    def test_find_roots_starts_with_app_dot_dot_slash(self):
+        stacktrace_root, source_path = find_roots("app:///../services/", "services/")
+        assert stacktrace_root == "app:///../"
+        assert source_path == ""
 
 
 class TestConvertStacktraceFramePathToSourcePath(TestCase):
