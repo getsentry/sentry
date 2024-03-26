@@ -2,6 +2,7 @@ from typing import Any
 
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import capture_message
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -21,7 +22,9 @@ class OrganizationRegionEndpointPermissions(SentryPermission):
 
     def has_object_permission(self, request, view, org_mapping: OrganizationMapping):
         if request.auth is None or request.auth.organization_id is None:
-            assert not request.user.is_anonymous, "Anonymous users should not be missing auth"
+            if request.user.is_anonymous:
+                capture_message("Anonymous user missing auth found in object permission check")
+                return False
 
             try:
                 OrganizationMemberMapping.objects.get(
