@@ -12,7 +12,7 @@ from rest_framework.response import Response
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk import Column, Condition, Function, Op
 
-from sentry import constants, eventstore, features
+from sentry import constants, eventstore, features, options
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
@@ -334,6 +334,9 @@ class TraceEvent:
             result["timestamp"] = self.event["precise.finish_ts"]
             result["start_timestamp"] = self.event["precise.start_ts"]
             result["profile_id"] = self.event["profile.id"]
+            # TODO: once we're defaulting measurements we don't need this check
+            if "measurements" in self.event:
+                result["measurements"] = self.event["measurements"]
         if self.nodestore_event:
             result["timestamp"] = self.nodestore_event.data.get("timestamp")
             result["start_timestamp"] = self.nodestore_event.data.get("start_timestamp")
@@ -427,6 +430,7 @@ def query_trace_data(
     params: Mapping[str, str],
     limit: int,
     event_id: str | None,
+    use_spans: bool,
 ) -> tuple[Sequence[SnubaTransaction], Sequence[SnubaError]]:
     transaction_columns = [
         "id",
@@ -452,6 +456,13 @@ def query_trace_data(
         # Target is the event_id the frontend plans to render, we try to sort it to the top so it loads even if its not
         # within the query limit, needs to be the first orderby cause it takes precedence over finding the root
         transaction_orderby.insert(0, "-target")
+    if use_spans:
+        transaction_columns.extend(
+            [
+                "measurements.key",
+                "measurements.value",
+            ]
+        )
     transaction_query = QueryBuilder(
         Dataset.Transactions,
         params,
@@ -517,6 +528,14 @@ def query_trace_data(
         result["issue.ids"] = occurrence_issue_ids.get(result["id"], {})
         result["occurrence_id"] = occurrence_ids.get(result["id"])
         result["trace.parent_transaction"] = None
+        if use_spans:
+            result["measurements"] = {
+                key: {
+                    "value": value,
+                    "type": transaction_query.get_field_type(f"measurements.{key}"),
+                }
+                for key, value in zip(result["measurements.key"], result["measurements.value"])
+            }
 
     return cast(Sequence[SnubaTransaction], transformed_results[0]), cast(
         Sequence[SnubaError], transformed_results[1]
@@ -582,10 +601,20 @@ def augment_transactions_with_spans(
                 error_spans.add(error["trace.span"])
             projects.add(error["project.id"])
         ts_params = find_timestamp_params(transactions)
+        time_buffer = options.get("performance.traces.span_query_timebuffer_hours")
+        sentry_sdk.set_measurement("trace_view.spans.time_buffer", time_buffer)
         if ts_params["min"]:
-            params["start"] = ts_params["min"] - timedelta(hours=1)
+            params["start"] = ts_params["min"] - timedelta(hours=time_buffer)
         if ts_params["max"]:
-            params["end"] = ts_params["max"] + timedelta(hours=1)
+            params["end"] = ts_params["max"] + timedelta(hours=time_buffer)
+
+        if ts_params["max"] and ts_params["min"]:
+            sentry_sdk.set_measurement(
+                "trace_view.trace_duration", (ts_params["max"] - ts_params["min"]).total_seconds()
+            )
+            sentry_sdk.set_tag("trace_view.missing_timestamp_constraints", False)
+        else:
+            sentry_sdk.set_tag("trace_view.missing_timestamp_constraints", True)
 
     with sentry_sdk.start_span(op="augment.transactions", description="get transaction span ids"):
         for index, transaction in enumerate(transactions):
@@ -699,8 +728,10 @@ def update_params_with_timestamp(request: HttpRequest, params: Mapping[str, str]
         example_timestamp: datetime | None = parse_datetime_string(request.GET["timestamp"])
         # While possible, the majority of traces shouldn't take more than a week
         # Starting with 3d for now, but potentially something we can increase if this becomes a problem
-        example_start = example_timestamp - timedelta(days=1, hours=12)
-        example_end = example_timestamp + timedelta(days=1, hours=12)
+        time_buffer = options.get("performance.traces.transaction_query_timebuffer_days")
+        sentry_sdk.set_measurement("trace_view.transactions.time_buffer", time_buffer)
+        example_start = example_timestamp - timedelta(days=time_buffer)
+        example_end = example_timestamp + timedelta(days=time_buffer)
         # If timestamp is being passed it should always overwrite the statsperiod or start & end
         # the client should just not pass a timestamp if we need to overwrite this logic for any reason
         params["start"] = max(params["start"], example_start)
@@ -792,6 +823,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
 
         # Detailed is deprecated now that we want to use spans instead
         detailed: bool = request.GET.get("detailed", "0") == "1"
+        # Temporary url params until we finish migrating the frontend
         use_spans: bool = request.GET.get("useSpans", "0") == "1"
         update_params_with_timestamp(request, params)
 
@@ -812,12 +844,14 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
         )
         with handle_query_errors():
             if use_spans:
-                transactions, errors = query_trace_data(trace_id, params, limit, event_id)
+                transactions, errors = query_trace_data(
+                    trace_id, params, limit, event_id, use_spans
+                )
                 transactions = augment_transactions_with_spans(
                     transactions, errors, trace_id, params
                 )
             else:
-                transactions, errors = query_trace_data(trace_id, params, limit, None)
+                transactions, errors = query_trace_data(trace_id, params, limit, None, False)
             if len(transactions) == 0 and not tracing_without_performance_enabled:
                 return Response(status=404)
             self.record_analytics(transactions, trace_id, self.request.user.id, organization.id)

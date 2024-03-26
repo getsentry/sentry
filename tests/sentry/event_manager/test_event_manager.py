@@ -17,7 +17,6 @@ from django.conf import settings
 from django.core.cache import cache
 from django.test.utils import override_settings
 from django.utils import timezone
-from rest_framework.status import HTTP_404_NOT_FOUND
 
 from fixtures.github import (
     COMPARE_COMMITS_EXAMPLE_WITH_INTERMEDIATE,
@@ -59,7 +58,6 @@ from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.activity import Activity
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.commit import Commit
-from sentry.models.commitauthor import CommitAuthor
 from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupenvironment import GroupEnvironment
@@ -96,6 +94,7 @@ from sentry.testutils.silo import assume_test_silo_mode_of, region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
+from sentry.types.group import PriorityLevel
 from sentry.usage_accountant import accountant
 from sentry.utils import json
 from sentry.utils.cache import cache_key_for_event
@@ -2292,6 +2291,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 "location": "/books/",
                 "title": "N+1 Query",
                 "value": description,
+                "initial_priority": PriorityLevel.LOW,
             }
             assert (
                 event.search_message
@@ -2367,6 +2367,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 "location": "/books/",
                 "title": "N+1 Query",
                 "value": "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
+                "initial_priority": PriorityLevel.LOW,
             }
             assert group.location() == "/books/"
             assert group.message == "nope"
@@ -2614,200 +2615,6 @@ class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):
             release=release,
             commit=commit,
         )
-
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
-    @responses.activate
-    def test_autoassign_commits_on_sha_release_version(self, get_jwt):
-        with self.feature("projects:auto-associate-commits-to-release"):
-            self._create_first_release_commit()
-            # Make a new release with SHA checksum
-            with self.tasks():
-                _ = self.make_release_event(LATER_COMMIT_SHA, self.project.id)
-
-            release2 = Release.objects.get(version=LATER_COMMIT_SHA)
-            commit_list = list(
-                Commit.objects.filter(releasecommit__release=release2).order_by(
-                    "releasecommit__order"
-                )
-            )
-
-            assert len(commit_list) == 2
-            assert commit_list[0].repository_id == self.repo.id
-            assert commit_list[0].organization_id == self.project.organization.id
-            assert commit_list[0].key == EARLIER_COMMIT_SHA
-            assert commit_list[1].repository_id == self.repo.id
-            assert commit_list[1].organization_id == self.project.organization.id
-            assert commit_list[1].key == LATER_COMMIT_SHA
-
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
-    @responses.activate
-    def test_autoassign_commits_first_release(self, get_jwt):
-        with self.feature("projects:auto-associate-commits-to-release"):
-            with self.tasks():
-                _ = self.make_release_event(LATER_COMMIT_SHA, self.project.id)
-
-            release2 = Release.objects.get(version=LATER_COMMIT_SHA)
-            commit_list = list(
-                Commit.objects.filter(releasecommit__release=release2).order_by(
-                    "releasecommit__order"
-                )
-            )
-
-            assert len(commit_list) == 2
-            assert commit_list[0].repository_id == self.repo.id
-            assert commit_list[0].organization_id == self.project.organization.id
-            assert commit_list[0].key == EARLIER_COMMIT_SHA
-            assert commit_list[1].repository_id == self.repo.id
-            assert commit_list[1].organization_id == self.project.organization.id
-            assert commit_list[1].key == LATER_COMMIT_SHA
-
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
-    @responses.activate
-    def test_autoassign_commits_not_a_sha(self, get_jwt):
-        SHA = "not-a-sha"
-        with self.feature("projects:auto-associate-commits-to-release"):
-            with self.tasks():
-                _ = self.make_release_event(SHA, self.project.id)
-
-            release2 = Release.objects.get(version=SHA)
-            commit_list = list(
-                Commit.objects.filter(releasecommit__release=release2).order_by(
-                    "releasecommit__order"
-                )
-            )
-            assert len(commit_list) == 0
-
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
-    @responses.activate
-    def test_autoassign_commit_not_found(self, get_jwt):
-        SHA = "b" * 40
-        responses.add(
-            "GET",
-            f"https://api.github.com/repos/{self.repo_name}/commits/{SHA}",
-            status=HTTP_404_NOT_FOUND,
-        )
-        with self.feature("projects:auto-associate-commits-to-release"):
-            with self.tasks():
-                _ = self.make_release_event(SHA, self.project.id)
-
-            release2 = Release.objects.get(version=SHA)
-            commit_list = list(
-                Commit.objects.filter(releasecommit__release=release2).order_by(
-                    "releasecommit__order"
-                )
-            )
-            assert len(commit_list) == 0
-
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
-    @responses.activate
-    def test_autoassign_commits_release_conflict(self, get_jwt):
-        # Release is created but none of the commits, we should still associate commits
-        with self.feature("projects:auto-associate-commits-to-release"):
-            preexisting_release = self.create_release(
-                project=self.project, version=LATER_COMMIT_SHA
-            )
-            with self.tasks():
-                _ = self.make_release_event(LATER_COMMIT_SHA, self.project.id)
-
-            commit_releases = Release.objects.filter(version=LATER_COMMIT_SHA).all()
-            assert len(commit_releases) == 1
-            assert commit_releases[0].id == preexisting_release.id
-            commit_list = list(
-                Commit.objects.filter(releasecommit__release=preexisting_release).order_by(
-                    "releasecommit__order"
-                )
-            )
-
-            assert len(commit_list) == 2
-            assert commit_list[0].repository_id == self.repo.id
-            assert commit_list[0].organization_id == self.project.organization.id
-            assert commit_list[0].key == EARLIER_COMMIT_SHA
-            assert commit_list[1].repository_id == self.repo.id
-            assert commit_list[1].organization_id == self.project.organization.id
-            assert commit_list[1].key == LATER_COMMIT_SHA
-
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
-    @responses.activate
-    def test_autoassign_commits_commit_conflict(self, get_jwt):
-        # A commit tied to the release is somehow created before the release itself is created.
-        # autoassociation should tie the existing commit to the new release
-        with self.feature("projects:auto-associate-commits-to-release"):
-            author = CommitAuthor.objects.create(
-                organization_id=self.organization.id,
-                email="support@github.com",
-                name="Monalisa Octocat",
-            )
-
-            # Values taken from commit generated from GH response fixtures
-            preexisting_commit = self.create_commit(
-                repo=self.repo,
-                project=self.project,
-                author=author,
-                key=EARLIER_COMMIT_SHA,
-                message="Fix all the bugs",
-                date_added=datetime(2011, 4, 14, 16, 0, 49, tzinfo=UTC),
-            )
-
-            with self.tasks():
-                self.make_release_event(LATER_COMMIT_SHA, self.project.id)
-
-            new_release = Release.objects.get(version=LATER_COMMIT_SHA)
-            commit_list = list(
-                Commit.objects.filter(releasecommit__release=new_release).order_by(
-                    "releasecommit__order"
-                )
-            )
-
-            assert len(commit_list) == 2
-            assert commit_list[0].id == preexisting_commit.id
-            assert commit_list[0].repository_id == self.repo.id
-            assert commit_list[0].organization_id == self.project.organization.id
-            assert commit_list[0].key == EARLIER_COMMIT_SHA
-            assert commit_list[1].repository_id == self.repo.id
-            assert commit_list[1].organization_id == self.project.organization.id
-            assert commit_list[1].key == LATER_COMMIT_SHA
-
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
-    @responses.activate
-    def test_autoassign_commits_feature_not_enabled(self, get_jwt):
-        with self.feature({"projects:auto-associate-commits-to-release": False}):
-            with self.tasks():
-                _ = self.make_release_event(LATER_COMMIT_SHA, self.project.id)
-
-            release2 = Release.objects.get(version=LATER_COMMIT_SHA)
-            commit_list = list(
-                Commit.objects.filter(releasecommit__release=release2).order_by(
-                    "releasecommit__order"
-                )
-            )
-
-            assert len(commit_list) == 0
-
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
-    @responses.activate
-    def test_autoassign_commits_duplicate_events(self, get_jwt):
-        with self.feature({"projects:auto-associate-commits-to-release": True}):
-            with self.tasks():
-                event1 = self.make_release_event(LATER_COMMIT_SHA, self.project.id)
-                event2 = self.make_release_event(LATER_COMMIT_SHA, self.project.id)
-
-            assert event1 != event2
-            assert event1.release == event2.release
-            releases = Release.objects.filter(version=LATER_COMMIT_SHA).all()
-            assert len(releases) == 1
-            commit_list = list(
-                Commit.objects.filter(releasecommit__release=releases[0]).order_by(
-                    "releasecommit__order"
-                )
-            )
-
-            assert len(commit_list) == 2
-            assert commit_list[0].repository_id == self.repo.id
-            assert commit_list[0].organization_id == self.project.organization.id
-            assert commit_list[0].key == EARLIER_COMMIT_SHA
-            assert commit_list[1].repository_id == self.repo.id
-            assert commit_list[1].organization_id == self.project.organization.id
-            assert commit_list[1].key == LATER_COMMIT_SHA
 
 
 @region_silo_test

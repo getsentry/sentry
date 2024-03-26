@@ -29,7 +29,7 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.UNKNOWN,
         "PUT": ApiPublishStatus.UNKNOWN,
     }
-    owner = ApiOwner.DISCOVER_N_DASHBOARDS
+    owner = ApiOwner.PERFORMANCE
 
     permission_classes = (
         IsAuthenticated,

@@ -9,5 +9,5 @@ feedback: 0004_index_together
 hybridcloud: 0015_apitokenreplica_hashed_token_index
 nodestore: 0002_nodestore_no_dictfield
 replays: 0004_index_together
-sentry: 0676_apitoken_hashed_indexes
+sentry: 0681_unpickle_authenticator_again
 social_auth: 0002_default_auto_field

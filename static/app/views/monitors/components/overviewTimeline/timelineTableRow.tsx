@@ -7,7 +7,7 @@ import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Tag from 'sentry/components/tag';
+import {Tag} from 'sentry/components/tag';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
@@ -71,7 +71,6 @@ export function TimelineTableRow({
       >
         <DetailsHeadline>
           <Name>{monitor.name}</Name>
-          {isDisabled && <Tag>{t('Disabled')}</Tag>}
         </DetailsHeadline>
         <ProjectScheduleDetails>
           <DetailsText>{scheduleAsText(monitor.config)}</DetailsText>
@@ -85,6 +84,10 @@ export function TimelineTableRow({
             <DetailsText>{trimSlug(monitor.project.slug)}</DetailsText>
           </ProjectDetails>
         </ProjectScheduleDetails>
+        <MonitorStatuses>
+          {monitor.isMuted && <Tag>{t('Muted')}</Tag>}
+          {isDisabled && <Tag>{t('Disabled')}</Tag>}
+        </MonitorStatuses>
       </DetailsLink>
       <DetailsActions>
         {onToggleStatus && (
@@ -109,8 +112,13 @@ export function TimelineTableRow({
     ...(onToggleMuteEnvironment
       ? [
           (env: string, isMuted: boolean) => ({
-            label: isMuted ? t('Unmute Environment') : t('Mute Environment'),
+            label:
+              isMuted && !monitor.isMuted
+                ? t('Unmute Environment')
+                : t('Mute Environment'),
             key: 'mute',
+            details: monitor.isMuted ? t('Monitor is muted') : undefined,
+            disabled: monitor.isMuted,
             onAction: () => onToggleMuteEnvironment(env, !isMuted),
           }),
         ]
@@ -163,7 +171,7 @@ export function TimelineTableRow({
                   actionCreator(name, isMuted)
                 )}
               />
-              <MonitorEnvironmentLabel monitorEnv={env} monitor={monitor} />
+              <MonitorEnvironmentLabel monitorEnv={env} />
             </EnvRow>
           );
         })}
@@ -227,7 +235,6 @@ const DetailsHeadline = styled('div')`
   display: grid;
   gap: ${space(1)};
 
-  /* We always leave at least enough room for the status toggle button */
   grid-template-columns: 1fr minmax(30px, max-content);
 `;
 
@@ -240,6 +247,12 @@ const ProjectScheduleDetails = styled('div')`
 const ProjectDetails = styled('div')`
   display: flex;
   gap: ${space(0.5)};
+`;
+
+const MonitorStatuses = styled('div')`
+  display: flex;
+  gap: ${space(0.5)};
+  margin-top: ${space(1)};
 `;
 
 const Name = styled('h3')`

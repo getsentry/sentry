@@ -40,6 +40,7 @@ describe('HTTPSamplesPanel', function () {
       statsPeriod: '10d',
       transaction: '/api/0/users',
       transactionMethod: 'GET',
+      panel: 'status',
     },
     hash: '',
     state: undefined,
@@ -92,6 +93,25 @@ describe('HTTPSamplesPanel', function () {
       })
     );
 
+    expect(eventsRequestMock).toHaveBeenNthCalledWith(
+      2,
+      `/organizations/${organization.slug}/events/`,
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          dataset: 'spansMetrics',
+          environment: [],
+          field: ['span.status_code', 'count()'],
+          per_page: 50,
+          sort: 'span.status_code',
+          project: [],
+          query: 'span.module:http span.domain:"\\*.sentry.dev" transaction:/api/0/users',
+          referrer: 'api.starfish.http-module-samples-panel-response-bar-chart',
+          statsPeriod: '10d',
+        },
+      })
+    );
+
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
   });
 
@@ -108,6 +128,7 @@ describe('HTTPSamplesPanel', function () {
       body: {
         data: [
           {
+            'project.id': 1,
             'spm()': 22.18,
             'http_response_rate(3)': 0.01,
             'http_response_rate(4)': 0.025,
@@ -120,7 +141,7 @@ describe('HTTPSamplesPanel', function () {
           fields: {
             'spm()': 'rate',
             'avg(span.self_time)': 'duration',
-            'http_response_rate(2)': 'percentage',
+            'http_response_rate(3)': 'percentage',
             'http_response_rate(4)': 'percentage',
             'http_response_rate(5)': 'percentage',
             'sum(span.self_time)': 'duration',

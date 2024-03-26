@@ -35,7 +35,7 @@ const WEB_VITALS = [
 
 type TraceFooterProps = {
   location: Location;
-  node: TraceTreeNode<TraceTree.NodeValue>;
+  node: TraceTreeNode<TraceTree.NodeValue> | null;
   organization: Organization;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
   traceEventView: EventView;
@@ -89,8 +89,16 @@ function TraceDataLoading() {
 
 export function TraceLevelDetails(props: TraceFooterProps) {
   const issues = useMemo(() => {
+    if (!props.node) {
+      return [];
+    }
+
     return [...props.node.errors, ...props.node.performance_issues];
-  }, [props.node.errors, props.node.performance_issues]);
+  }, [props.node]);
+
+  if (!props.node) {
+    return null;
+  }
 
   if (!(props.node && isTraceNode(props.node))) {
     throw new Error('Expected a trace node');

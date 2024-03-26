@@ -1,15 +1,15 @@
-import BaseAvatar from 'sentry/components/avatar/baseAvatar';
+import {BaseAvatar, type BaseAvatarProps} from 'sentry/components/avatar/baseAvatar';
 import type {Actor, AvatarUser} from 'sentry/types';
 import {userDisplayName} from 'sentry/utils/formatters';
 import {isRenderFunc} from 'sentry/utils/isRenderFunc';
 
 type RenderTooltipFunc = (user: AvatarUser | Actor) => React.ReactNode;
 
-type Props = {
+interface Props extends BaseAvatarProps {
   gravatar?: boolean;
   renderTooltip?: RenderTooltipFunc;
   user?: Actor | AvatarUser;
-} & Omit<BaseAvatar['props'], 'uploadPath' | 'uploadId'>;
+}
 
 function isActor(maybe: AvatarUser | Actor): maybe is Actor {
   return typeof (maybe as AvatarUser).email === 'undefined';

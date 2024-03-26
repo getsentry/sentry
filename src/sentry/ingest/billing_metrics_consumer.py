@@ -16,6 +16,7 @@ from django.db.models import F
 from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMetric
 
 from sentry.constants import DataCategory
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.indexer.strings import (
     SHARED_TAG_STRINGS,
@@ -100,7 +101,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
         value = generic_metric["value"]
         try:
-            quantity = max(int(value), 0)  # type:ignore
+            quantity = max(int(value), 0)  # type: ignore[arg-type]
         except TypeError:
             # Unexpected value type for this metric ID, skip.
             return {}
@@ -175,11 +176,14 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
             project = Project.objects.get_from_cache(id=project_id)
             if not project.flags.has_custom_metrics:
+                organization = Organization.objects.get_from_cache(id=org_id)
                 with sentry_sdk.push_scope() as scope:
                     scope.set_tag("organization_id", org_id)
+                    scope.set_tag("organization_slug", organization.slug)
                     scope.set_tag("project_id", project_id)
+                    scope.set_tag("project_slug", project.slug)
                     sentry_sdk.capture_message(
-                        f"Project {project_id} of organization {org_id} has sent the first custom metric",
+                        "A new project has sent the first custom metric",
                         fingerprint=["new-first-custom-metric"],
                     )
 
