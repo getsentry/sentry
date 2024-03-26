@@ -1,4 +1,5 @@
 import {browserHistory, Router, RouterContext} from 'react-router';
+import {ReactQueryDevtools} from '@tanstack/react-query-devtools';
 
 import DemoHeader from 'sentry/components/demo/demoHeader';
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
@@ -39,6 +40,8 @@ function Main() {
             {routes()}
           </Router>
         </OnboardingContextProvider>
+
+        <ReactQueryDevtools initialIsOpen={false} position="bottom-left" />
       </QueryClientProvider>
     </ThemeAndStyleProvider>
   );
