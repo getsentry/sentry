@@ -564,6 +564,5 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
             derive_code_mappings(self.project.id, self.test_data)
             code_mapping = RepositoryProjectPathConfig.objects.all().first()
 
-            # This works, but ideally it should be "" and ""
             assert code_mapping.stack_root == ""
             assert code_mapping.source_root == ""
