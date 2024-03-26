@@ -24,7 +24,7 @@ type RelatedIssuesResponse = {
   same_root_cause: number[];
 };
 
-function GroupSimilarIssues({params}: Props) {
+function GroupRelatedIssues({params}: Props) {
   const {groupId, orgId} = params;
 
   // Fetch the list of related issues
@@ -33,11 +33,11 @@ function GroupSimilarIssues({params}: Props) {
     isError,
     data: relatedIssues,
     refetch,
-  } = useApiQuery<RelatedIssuesResponse>([`/issues/${groupId}/related-issues/`, {}], {
+  } = useApiQuery<RelatedIssuesResponse>([`/issues/${groupId}/related-issues/`], {
     staleTime: 0,
   });
 
-  const groups = relatedIssues?.same_root_cause.join(',');
+  const groups = relatedIssues?.same_root_cause?.join(',');
 
   return (
     <Feature features={['related-issues']}>
@@ -63,8 +63,8 @@ function GroupSimilarIssues({params}: Props) {
               <GroupList
                 endpointPath={`/organizations/${orgId}/issues/`}
                 orgSlug={orgId}
-                queryParams={{query: `issue.id:${groups}`}}
-                query=""
+                queryParams={{}}
+                query={`issue.id:${groups}`}
                 source="related-issues-tab"
                 renderEmptyMessage={() => <hr />}
                 renderErrorMessage={() => <hr />}
@@ -77,7 +77,7 @@ function GroupSimilarIssues({params}: Props) {
   );
 }
 
-export default GroupSimilarIssues;
+export default GroupRelatedIssues;
 
 const Title = styled('h4')`
   margin-bottom: ${space(0.75)};
