@@ -26,7 +26,7 @@ import {
   TraceTreeNode,
 } from './traceTree';
 
-const COMMON_EVENT_REQUEST_URL =
+const EVENT_REQUEST_URL =
   '/organizations/org-slug/events/project:event_id/?averageColumn=span.self_time';
 
 function makeTrace(
@@ -563,7 +563,7 @@ describe('TreeNode', () => {
       );
 
       MockApiClient.addMockResponse({
-        url: COMMON_EVENT_REQUEST_URL,
+        url: EVENT_REQUEST_URL,
         method: 'GET',
         body: makeEvent({}, [
           makeSpan({
@@ -618,7 +618,7 @@ describe('TreeNode', () => {
       );
 
       MockApiClient.addMockResponse({
-        url: COMMON_EVENT_REQUEST_URL,
+        url: EVENT_REQUEST_URL,
         method: 'GET',
         body: makeEvent({}, [
           makeSpan({description: 'span', op: 'db', span_id: '2'}),
@@ -666,7 +666,7 @@ describe('TreeNode', () => {
         );
 
         MockApiClient.addMockResponse({
-          url: COMMON_EVENT_REQUEST_URL,
+          url: EVENT_REQUEST_URL,
           method: 'GET',
           body: makeEvent({}, [
             makeSpan({
@@ -713,7 +713,7 @@ describe('TreeNode', () => {
       );
 
       MockApiClient.addMockResponse({
-        url: COMMON_EVENT_REQUEST_URL,
+        url: EVENT_REQUEST_URL,
         method: 'GET',
         body: makeEvent({}, [
           makeSpan({description: 'span', op: 'db', span_id: '2'}),
@@ -1366,7 +1366,7 @@ describe('TraceTree', () => {
       //  |- node2 []
 
       MockApiClient.addMockResponse({
-        url: COMMON_EVENT_REQUEST_URL,
+        url: EVENT_REQUEST_URL,
         method: 'GET',
         body: makeEvent({}, [makeSpan({start_timestamp: 0, op: 'span', span_id: '1'})]),
       });
@@ -1491,7 +1491,7 @@ describe('TraceTree', () => {
       );
 
       const request = MockApiClient.addMockResponse({
-        url: COMMON_EVENT_REQUEST_URL,
+        url: EVENT_REQUEST_URL,
         method: 'GET',
         body: makeEvent(),
       });
@@ -1520,7 +1520,7 @@ describe('TraceTree', () => {
       );
 
       const request = MockApiClient.addMockResponse({
-        url: COMMON_EVENT_REQUEST_URL,
+        url: EVENT_REQUEST_URL,
         method: 'GET',
         body: makeEvent({}, [makeSpan()]),
       });
@@ -1564,7 +1564,7 @@ describe('TraceTree', () => {
       );
 
       const first_request = MockApiClient.addMockResponse({
-        url: COMMON_EVENT_REQUEST_URL,
+        url: EVENT_REQUEST_URL,
         method: 'GET',
         body: makeEvent({}, [makeSpan({op: 'db', span_id: 'span'})]),
       });
@@ -1614,7 +1614,7 @@ describe('TraceTree', () => {
       );
 
       MockApiClient.addMockResponse({
-        url: COMMON_EVENT_REQUEST_URL,
+        url: EVENT_REQUEST_URL,
         method: 'GET',
         body: makeEvent({}, [makeSpan({span_id: 'span1', description: 'span1'})]),
       });
@@ -1651,7 +1651,7 @@ describe('TraceTree', () => {
       );
 
       MockApiClient.addMockResponse({
-        url: COMMON_EVENT_REQUEST_URL,
+        url: EVENT_REQUEST_URL,
         method: 'GET',
         body: makeEvent({}, [makeSpan({span_id: 'span 1', description: 'span1'})]),
       });
@@ -1749,7 +1749,7 @@ describe('TraceTree', () => {
       );
 
       MockApiClient.addMockResponse({
-        url: COMMON_EVENT_REQUEST_URL,
+        url: EVENT_REQUEST_URL,
         method: 'GET',
         body: makeEvent({}, [
           makeSpan({description: 'span1'}),
@@ -2225,7 +2225,7 @@ describe('TraceTree', () => {
       );
 
       MockApiClient.addMockResponse({
-        url: COMMON_EVENT_REQUEST_URL,
+        url: EVENT_REQUEST_URL,
         method: 'GET',
         body: makeEvent({}, [
           makeSpan({description: 'parent span', op: 'http', span_id: '1'}),

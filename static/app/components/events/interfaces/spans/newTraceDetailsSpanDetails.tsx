@@ -31,8 +31,8 @@ import {safeURL} from 'sentry/utils/url/safeURL';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {CustomMetricsEventData} from 'sentry/views/ddm/customMetricsEventData';
-import DurationComparison from 'sentry/views/performance/newTraceDetails/traceDrawer/details/durationComparison';
 import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
+import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceTabs';
 import type {
   TraceTree,
@@ -358,7 +358,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
 
     const timingKeys = getSpanSubTimings(span) ?? [];
     const parentTransaction = props.node.parent_transaction;
-    const averageSpanSelfTimeInMs: number | undefined = span['span.average_time']
+    const averageSpanSelfTimeInSeconds: number | undefined = span['span.average_time']
       ? span['span.average_time'] / 1000
       : undefined;
 
@@ -370,20 +370,24 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
         <SpanDetails>
           <table className="table key-value">
             <tbody>
-              <DurationComparison
-                title={t('Duration')}
-                duration={duration}
-                avgDuration={averageSpanSelfTimeInMs}
-              />
+              <Row title={t('Duration')}>
+                <TraceDrawerComponents.DurationComparison
+                  duration={duration}
+                  baseline={averageSpanSelfTimeInSeconds}
+                />
+              </Row>
               {span.exclusive_time ? (
-                <DurationComparison
+                <Row
+                  title={t('Self Time')}
                   toolTipText={t(
                     'The time spent exclusively in this span, excluding the total duration of its children'
                   )}
-                  title={t('Self Time')}
-                  duration={span.exclusive_time / 1000}
-                  avgDuration={averageSpanSelfTimeInMs}
-                />
+                >
+                  <TraceDrawerComponents.DurationComparison
+                    duration={span.exclusive_time / 1000}
+                    baseline={averageSpanSelfTimeInSeconds}
+                  />
+                </Row>
               ) : null}
               {parentTransaction ? (
                 <Row title="Parent Transaction">
