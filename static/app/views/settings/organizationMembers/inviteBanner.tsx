@@ -41,9 +41,7 @@ export function InviteBanner({
   onModalClose,
 }: Props) {
   const isEligibleForBanner =
-    organization.features.includes('integrations-gh-invite') &&
-    organization.access.includes('org:write') &&
-    organization.githubNudgeInvite;
+    organization.access.includes('org:write') && organization.githubNudgeInvite;
   const [sendingInvite, setSendingInvite] = useState<boolean>(false);
   const [showBanner, setShowBanner] = useState<boolean>(false);
   const [missingMembers, setMissingMembers] = useState<MissingMember[]>(
