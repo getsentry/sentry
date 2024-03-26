@@ -5,6 +5,10 @@ import {findVideoSegmentIndex} from './utils';
 
 type RootElem = HTMLDivElement | null;
 
+// The number of segments to load on either side of the requested segment (around 15 seconds)
+// Also the number of segments we load initially
+const BUFFER = 3;
+
 interface OffsetOptions {
   segmentOffsetMs?: number;
 }
@@ -66,9 +70,9 @@ export class VideoReplayer {
       root.appendChild(this.wrapper);
     }
 
-    // initially, only load first 3 videos (15s)
+    // Initially, only load some videos
     this._attachments
-      .slice(0, 3)
+      .slice(0, BUFFER)
       .forEach(
         (attachment, index) => (this._videos[index] = this.createVideo(attachment, index))
       );
@@ -78,7 +82,6 @@ export class VideoReplayer {
   }
 
   private createVideo(segmentData: VideoEvent, index: number) {
-    // don't think we don't have access to currentIndex
     const el = document.createElement('video');
     el.src = `${this._videoApiPrefix}${segmentData.id}/`;
     el.style.display = 'none';
@@ -154,21 +157,25 @@ export class VideoReplayer {
     return this._attachments[index];
   }
 
-  protected getVideo(index: number | undefined): HTMLVideoElement | undefined {
+  /**
+   * Fetches videos from attachments and adds them to the _videos dictionary.
+   * Loads the segment at the requested index.
+   */
+  protected fetchVideo(index: number | undefined): HTMLVideoElement | undefined {
     if (typeof index === 'undefined') {
       return undefined;
     }
 
-    // if we haven't loaded the current video yet
+    // If we haven't loaded the current video yet
     if (!this._videos[index]) {
-      // load videos on either side too
+      // Load videos on either side too
       const lowBound = Math.max(0, index - 3);
       const highBound = Math.min(index + 3, this._attachments.length + 1);
 
-      this._attachments.slice(lowBound, highBound).forEach((attachment, i) => {
-        const dictIndex = index + i;
+      this._attachments.slice(lowBound, highBound).forEach(attachment => {
+        const dictIndex = attachment.id;
 
-        // might be some videos we've already loaded before
+        // Might be some videos we've already loaded before
         if (!this._videos[dictIndex]) {
           this._videos[dictIndex] = this.createVideo(attachment, dictIndex);
         }
@@ -176,8 +183,19 @@ export class VideoReplayer {
 
       this._trackList = this._attachments.map(({timestamp}, i) => [timestamp, i]);
 
-      // load at requested index
+      // Load at requested index
       this.loadSegment(index);
+    }
+
+    return this._videos[index];
+  }
+
+  /**
+   * Returns the video in the dictionary at the requested index.
+   */
+  protected getVideo(index: number | undefined): HTMLVideoElement | undefined {
+    if (typeof index === 'undefined') {
+      return undefined;
     }
 
     return this._videos[index];
@@ -205,10 +223,7 @@ export class VideoReplayer {
     if (!video) {
       return Promise.resolve();
     }
-    // console.log(this._videos);
     video.playbackRate = this.config.speed;
-
-    // console.log(this._currentIndex);
     return video.play();
   }
 
@@ -266,7 +281,7 @@ export class VideoReplayer {
     // Hide current video
     this.hideVideo(this._currentIndex);
 
-    const nextVideo = this.getVideo(index);
+    const nextVideo = this.fetchVideo(index);
     // Show the next video
     this.showVideo(nextVideo);
 
@@ -290,7 +305,7 @@ export class VideoReplayer {
     const loadedSegmentIndex = await this.loadSegment(index, {segmentOffsetMs: 0});
 
     if (loadedSegmentIndex !== undefined) {
-      this.playVideo(this.getVideo(loadedSegmentIndex));
+      this.playVideo(this.fetchVideo(loadedSegmentIndex));
     }
   }
 
@@ -367,7 +382,7 @@ export class VideoReplayer {
       return Promise.resolve();
     }
 
-    return this.playVideo(this.getVideo(loadedSegmentIndex));
+    return this.playVideo(this.fetchVideo(loadedSegmentIndex));
   }
 
   /**
@@ -396,7 +411,7 @@ export class VideoReplayer {
    */
   public pause(videoOffsetMs: number) {
     // Pause the current video
-    const currentVideo = this.getVideo(this._currentIndex);
+    const currentVideo = this.fetchVideo(this._currentIndex);
     currentVideo?.pause();
     this._timer.stop(videoOffsetMs);
 
