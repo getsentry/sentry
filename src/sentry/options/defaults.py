@@ -440,7 +440,7 @@ register(
     "github-enterprise-app.alert-rule-action",
     type=Bool,
     default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # GitHub Auth
