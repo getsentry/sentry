@@ -156,45 +156,15 @@ class FrameFilename:
         self.extension = get_extension(frame_file_path)
         if not self.extension:
             raise UnsupportedFrameFilename("It needs an extension.")
-        if self.frame_type() == "packaged":
-            self._packaged_logic(frame_file_path)
-        else:
-            self._straight_path_logic(frame_file_path)
-
-    def frame_type(self) -> str:
-        type = "packaged"
-        if self.extension not in ["py"]:
-            type = "straight_path"
-        return type
-
-    def _packaged_logic(self, frame_file_path: str) -> None:
-        self.root, self.file_and_dir_path = frame_file_path.split("/", 1)
-
-        # Check that it does have at least a dir
-        if self.file_and_dir_path.find("/") > -1:
-            self.dir_path, self.file_name = self.file_and_dir_path.rsplit("/", 1)
-        else:
-            # A package name, a file but no dir (e.g. requests/models.py)
-            self.dir_path = ""
-            self.file_name = self.file_and_dir_path
-
-    def _straight_path_logic(self, frame_file_path: str) -> None:
-        # Cases:
-        # - some/path/foo.tsx
-        # - ./some/path/foo.tsx
-        # - /some/path/foo.js
-        # - app:///some/path/foo.js
-        # - ../../../some/path/foo.js
-        # - app:///../some/path/foo.js
 
         start_at_index = get_straight_path_prefix_end_index(frame_file_path)
-        slash_index = frame_file_path.find("/", start_at_index)
-        dir_path, self.file_name = frame_file_path.rsplit("/", 1)  # foo.tsx (both)
-        self.root = frame_file_path[0:slash_index]  # some or .some
-        self.dir_path = dir_path.replace(self.root, "")  # some/path/ (both)
-        self.file_and_dir_path = remove_straight_path_prefix(
-            frame_file_path
-        )  # some/path/foo.tsx (both)
+        if start_at_index == 0:
+            self.root = frame_file_path.split("/")[0]
+        else:
+            slash_index = frame_file_path.find("/", start_at_index)
+            self.root = frame_file_path[0:slash_index]
+
+        self.file_name = frame_file_path.split("/")[-1]
 
     def __repr__(self) -> str:
         return f"FrameFilename: {self.full_path}"
@@ -322,12 +292,13 @@ class CodeMappingTreesHelper:
             for src_path in repo_tree.files
             if self._potential_match(src_path, frame_filename)
         ]
+        # It is too risky generating code mappings when there's more
+        # than one file potentially matching
         if len(matched_files) != 1:
             return []
 
         stacktrace_root, source_path = find_roots(frame_filename.raw_path, matched_files[0])
-        # It is too risky generating code mappings when there's more
-        # than one file potentially matching
+
         return [
             CodeMapping(
                 repo=repo_tree.repo,
@@ -336,7 +307,7 @@ class CodeMappingTreesHelper:
             )
         ]
 
-    def _matches_current_code_mappings(self, src_file: str, frame_filename: FrameFilename) -> bool:
+    def _matches_current_code_mappings(self, src_file: str) -> bool:
         # In some cases, once we have derived a code mapping we can exclude files that start with
         # that source path.
         #
@@ -349,54 +320,23 @@ class CodeMappingTreesHelper:
             if src_file.startswith(f"{code_mapping.source_path}/")
         )
 
-    def _potential_match_with_transformation(
-        self, src_file: str, frame_filename: FrameFilename
-    ) -> bool:
-        """Determine if the frame filename represents a source code file.
-
-        Languages like Python include the package name at the front of the frame_filename, thus, we need
-        to drop it before we try to match it.
-        """
-        match = False
-        # For instance:
-        #  src_file: "src/sentry/integrations/slack/client.py"
-        #  frame_filename.full_path: "sentry/integrations/slack/client.py"
-        # This should not match:
-        #  src_file: "src/sentry/utils/uwsgi.py"
-        #  frame_filename: "sentry/wsgi.py"
-        split = src_file.split(f"/{frame_filename.file_and_dir_path}")
-        if any(split) and len(split) > 1:
-            # This is important because we only want stack frames to match when they
-            # include the exact package name
-            # e.g. raven/base.py stackframe should not match this source file: apostello/views/base.py
-            match = (
-                split[0].rfind(f"/{frame_filename.root}") > -1 or split[0] == frame_filename.root
-            )
-        return match
-
-    def _potential_match_no_transformation(
-        self, src_file: str, frame_filename: FrameFilename
-    ) -> bool:
-        # src_file: static/app/utils/handleXhrErrorResponse.tsx
-        # full_name: ./app/utils/handleXhrErrorResponse.tsx
-        # file_and_dir_path: app/utils/handleXhrErrorResponse.tsx
-        return src_file.rfind(frame_filename.file_and_dir_path) > -1
-
     def _potential_match(self, src_file: str, frame_filename: FrameFilename) -> bool:
         """Tries to see if the stacktrace without the root matches the file from the
         source code. Use existing code mappings to exclude some source files
         """
         # Exit early because we should not be processing source files for existing code maps
-        if self._matches_current_code_mappings(src_file, frame_filename):
+        if self._matches_current_code_mappings(src_file):
             return False
 
-        match = False
-        if frame_filename.full_path.endswith(".py"):
-            match = self._potential_match_with_transformation(src_file, frame_filename)
+        src_file_items = src_file.split("/")
+        frame_items = frame_filename.full_path.split("/")
+        if len(src_file_items) > len(frame_items):
+            return src_file.rfind(frame_filename.full_path) > -1
         else:
-            match = self._potential_match_no_transformation(src_file, frame_filename)
-
-        return match
+            num_relevant_items = max(1, len(src_file_items) - 1)
+            relevant_items = frame_items[(len(frame_items) - num_relevant_items) :]
+            relevant_path = "/".join(relevant_items)
+            return src_file.rfind(relevant_path) > -1
 
 
 def create_code_mapping(
@@ -499,6 +439,19 @@ def find_roots(stack_path: str, source_path: str) -> tuple[str, str]:
     Returns a tuple containing the stack_root, and the source_root.
     If there is no overlap, raise an exception since this should not happen
     """
+    if stack_path[0] == "/":
+        stack_path = stack_path[1:]
+
+    if stack_path == source_path:
+        return ("", "")
+    elif source_path.endswith(stack_path):  # Packaged logic
+        source_prefix = source_path.rpartition(stack_path)[0]
+        package_dir = stack_path.split("/")[0]
+        return (f"{package_dir}/", f"{source_prefix}{package_dir}/")
+    elif stack_path.endswith(source_path):
+        stack_prefix = stack_path.rpartition(source_path)[0]
+        return (stack_prefix, "")
+
     stack_path_delim = SLASH if SLASH in stack_path else BACKSLASH
     overlap_to_check = stack_path.split(stack_path_delim)
     stack_root_items: list[str] = []
@@ -511,10 +464,6 @@ def find_roots(stack_path: str, source_path: str) -> tuple[str, str]:
                 stack_root = f"{stack_root}{stack_path_delim}"
             if source_root and source_root[-1] != SLASH:
                 source_root = f"{source_root}{SLASH}"
-            if stack_path.endswith(".py") and len(overlap_to_check) > 1:
-                next_dir = overlap_to_check[0]
-                stack_root = f"{stack_root}{next_dir}{stack_path_delim}"
-                source_root = f"{source_root}{next_dir}{SLASH}"
 
             return (stack_root, source_root)
 
