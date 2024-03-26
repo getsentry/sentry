@@ -37,10 +37,9 @@ export default class SentryAppExternalInstallation extends DeprecatedAsyncView<
 
   getDefaultState() {
     const state = super.getDefaultState();
-    const customerDomain = ConfigStore.get('customerDomain');
     return {
       ...state,
-      selectedOrgSlug: customerDomain?.subdomain,
+      selectedOrgSlug: null,
       organization: null,
       organizations: [],
       reloading: false,
@@ -52,6 +51,20 @@ export default class SentryAppExternalInstallation extends DeprecatedAsyncView<
       ['organizations', '/organizations/'],
       ['sentryApp', `/sentry-apps/${this.sentryAppSlug}/`],
     ];
+  }
+
+  onLoadAllEndpointsSuccess() {
+    // auto select the org if there is only one
+    const {organizations} = this.state;
+    if (organizations.length === 1) {
+      this.onSelectOrg(organizations[0].slug);
+    }
+
+    // now check the subomdain and use that org slug if it exists
+    const customerDomain = ConfigStore.get('customerDomain');
+    if (customerDomain?.subdomain) {
+      this.onSelectOrg(customerDomain.subdomain);
+    }
   }
 
   getTitle() {
@@ -260,6 +273,7 @@ export default class SentryAppExternalInstallation extends DeprecatedAsyncView<
               value={selectedOrgSlug}
               placeholder={t('Select an organization')}
               options={this.getOptions()}
+              data-test-id="org-select"
             />
           )}
         </FieldGroup>
