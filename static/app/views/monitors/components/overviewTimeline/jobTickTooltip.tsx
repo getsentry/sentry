@@ -12,7 +12,7 @@ import type {
   TimeWindowOptions,
 } from 'sentry/views/monitors/components/overviewTimeline/types';
 import type {CheckInStatus} from 'sentry/views/monitors/types';
-import {statusToText,tickStyle} from 'sentry/views/monitors/utils';
+import {statusToText, tickStyle} from 'sentry/views/monitors/utils';
 
 interface Props extends Omit<TooltipProps, 'title'> {
   jobTick: JobTickData;

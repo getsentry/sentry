@@ -4,7 +4,7 @@ import {t, tn} from 'sentry/locale';
 import type {Organization, SelectValue} from 'sentry/types';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import type {MonitorConfig} from 'sentry/views/monitors/types';
-import {ColorOrAlias} from 'sentry/utils/theme';
+import type {ColorOrAlias} from 'sentry/utils/theme';
 import {CheckInStatus, ScheduleType} from 'sentry/views/monitors/types';
 
 export function makeMonitorListQueryKey(
