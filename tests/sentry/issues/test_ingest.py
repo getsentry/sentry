@@ -376,11 +376,14 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
         assert materialize_metadata(occurrence, event) == {
             "type": "default",
             "culprit": occurrence.culprit,
-            "metadata": {"title": occurrence.issue_title, "value": occurrence.subtitle},
+            "metadata": {
+                "title": occurrence.issue_title,
+                "value": occurrence.subtitle,
+                "initial_priority": occurrence.initial_issue_priority,
+            },
             "title": occurrence.issue_title,
             "location": event.location,
             "last_received": json.datetime_to_str(event.datetime),
-            "initial_priority": occurrence.initial_issue_priority,
         }
 
     def test_preserves_existing_metadata(self) -> None:
@@ -394,6 +397,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
             "title": occurrence.issue_title,
             "value": occurrence.subtitle,
             "dogs": "are great",
+            "initial_priority": occurrence.initial_issue_priority,
         }
 
     def test_populates_feedback_metadata(self) -> None:
@@ -419,6 +423,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
             "message": "test",
             "name": "Name Test",
             "source": "crash report widget",
+            "initial_priority": occurrence.initial_issue_priority,
         }
 
 
