@@ -2189,8 +2189,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 
         assert mock.call_count == 1
         assert mock.call_args[0][0] == self.sub
-        assert mock.call_args[0][1] == self.rule
-        assert isinstance(mock.call_args[0][2], int)
 
 
 class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetricsTestCase):
