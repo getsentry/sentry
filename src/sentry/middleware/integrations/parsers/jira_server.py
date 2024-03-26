@@ -13,7 +13,7 @@ from sentry.integrations.jira_server.webhooks import (
 )
 from sentry.middleware.integrations.parsers.base import BaseRequestParser
 from sentry.models.outbox import WebhookProviderIdentifier
-from sentry.ratelimits import is_limited
+from sentry.ratelimits import backend as ratelimiter
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.utils import json
 
@@ -65,7 +65,7 @@ class JiraServerRequestParser(BaseRequestParser):
 
         # If we get fewer than 3000 in 1 hour we don't need to split into buckets
         ratelimit_key = f"webhookpayload:{self.provider}:{integration.id}"
-        if not is_limited(key=ratelimit_key, window=60 * 60, limit=3000):
+        if not ratelimiter.is_limited(key=ratelimit_key, window=60 * 60, limit=3000):
             return str(integration.id)
 
         # Split high volume integrations into 100 buckets.

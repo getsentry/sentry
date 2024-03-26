@@ -8,7 +8,6 @@ from django.urls import reverse
 
 from fixtures.integrations.stub_service import StubService
 from sentry.middleware.integrations.parsers.jira_server import JiraServerRequestParser
-from sentry.models.organizationmapping import OrganizationMapping
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
@@ -32,6 +31,7 @@ class JiraServerRequestParserTest(TestCase):
     def get_response(self, req: HttpRequest) -> HttpResponse:
         return HttpResponse(status=200, content="passthrough")
 
+    @override_regions(region_config)
     def setUp(self):
         super().setUp()
         self.integration = self.create_integration(
@@ -67,9 +67,6 @@ class JiraServerRequestParserTest(TestCase):
         )
         parser = JiraServerRequestParser(request=request, response_handler=self.get_response)
 
-        OrganizationMapping.objects.get(organization_id=self.organization.id).update(
-            region_name="us"
-        )
         with mock.patch(
             "sentry.middleware.integrations.parsers.jira_server.get_integration_from_token"
         ) as mock_get_token:
@@ -97,9 +94,6 @@ class JiraServerRequestParserTest(TestCase):
         )
         parser = JiraServerRequestParser(request=request, response_handler=self.get_response)
 
-        OrganizationMapping.objects.get(organization_id=self.organization.id).update(
-            region_name="us"
-        )
         with mock.patch(
             "sentry.middleware.integrations.parsers.jira_server.get_integration_from_token"
         ) as mock_get_token:
@@ -127,11 +121,8 @@ class JiraServerRequestParserTest(TestCase):
         )
         parser = JiraServerRequestParser(request=request, response_handler=self.get_response)
 
-        OrganizationMapping.objects.get(organization_id=self.organization.id).update(
-            region_name="us"
-        )
         with mock.patch(
-            "sentry.middleware.integrations.parsers.jira_server.is_limited"
+            "sentry.middleware.integrations.parsers.jira_server.ratelimiter.is_limited"
         ) as mock_is_limited, mock.patch(
             "sentry.middleware.integrations.parsers.jira_server.get_integration_from_token"
         ) as mock_get_token:
@@ -157,9 +148,6 @@ class JiraServerRequestParserTest(TestCase):
         request = self.factory.post(route, data=no_changelog, content_type="application/json")
         parser = JiraServerRequestParser(request=request, response_handler=self.get_response)
 
-        OrganizationMapping.objects.get(organization_id=self.organization.id).update(
-            region_name="us"
-        )
         with mock.patch(
             "sentry.middleware.integrations.parsers.jira_server.get_integration_from_token"
         ) as mock_get_token:
