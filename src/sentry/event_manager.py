@@ -71,7 +71,7 @@ from sentry.grouping.ingest import (
 )
 from sentry.grouping.result import CalculatedHashes
 from sentry.ingest.inbound_filters import FilterStatKeys
-from sentry.issues.grouptype import GroupCategory
+from sentry.issues.grouptype import ErrorGroupType, GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context
@@ -1829,11 +1829,16 @@ def _create_group(project: Project, event: Event, **group_creation_kwargs: Any) 
     # add sdk tag to metadata
     group_data.setdefault("metadata", {}).update(sdk_metadata_from_event(event))
 
-    # add severity to metadata for alert filtering
-    severity = _get_severity_metadata_for_group(event)
-    group_data["metadata"].update(severity)
+    # Add severity to metadata for alert filtering for errors events.
+    # We can skip this if the group type is explicitly NOT an error.
+    group_type = group_creation_kwargs.get("type", None)
+    severity: Mapping[str, Any] = {}
+    if not group_type or group_type == ErrorGroupType.type_id:
+        severity = _get_severity_metadata_for_group(event)
+        group_data["metadata"].update(severity)
 
     if features.has("projects:issue-priority", project, actor=None):
+        # the kwargs only include priority for non-error issue platform events, which takes precedence.
         priority = group_creation_kwargs.get("priority", None)
         if priority is None:
             priority = _get_priority_for_group(severity, group_creation_kwargs)
