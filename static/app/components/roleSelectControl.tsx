@@ -31,7 +31,7 @@ function RoleSelectControl({roles, disableUnallowed, ...props}: Props) {
             ({
               value: r.id,
               label: r.name,
-              disabled: disableUnallowed && !r.allowed,
+              disabled: disableUnallowed && !r.isAllowed,
               details: <Details>{r.desc}</Details>,
             }) as OptionType
         )}
