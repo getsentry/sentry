@@ -100,6 +100,7 @@ from sentry.models.userreport import UserReport
 from sentry.net.http import connection_from_url
 from sentry.plugins.base import plugins
 from sentry.quotas.base import index_data_category
+from sentry.receivers.rules import PLATFORMS_WITH_PRIORITY_ALERTS
 from sentry.reprocessing2 import is_reprocessed_event
 from sentry.signals import (
     first_event_received,
@@ -1829,13 +1830,10 @@ def _create_group(project: Project, event: Event, **group_creation_kwargs: Any) 
     # add sdk tag to metadata
     group_data.setdefault("metadata", {}).update(sdk_metadata_from_event(event))
 
-    # Add severity to metadata for alert filtering for errors events.
-    # We can skip this if the group type is explicitly NOT an error.
+    # add severity to metadata for alert filtering
     group_type = group_creation_kwargs.get("type", None)
-    severity: Mapping[str, Any] = {}
-    if not group_type or group_type == ErrorGroupType.type_id:
-        severity = _get_severity_metadata_for_group(event)
-        group_data["metadata"].update(severity)
+    severity = _get_severity_metadata_for_group(event, project.id, group_type)
+    group_data["metadata"].update(severity)
 
     if features.has("projects:issue-priority", project, actor=None):
         # the kwargs only include priority for non-error issue platform events, which takes precedence.
@@ -2163,12 +2161,35 @@ severity_connection_pool = connection_from_url(
 )
 
 
-def _get_severity_metadata_for_group(event: Event) -> Mapping[str, Any]:
+def _get_severity_metadata_for_group(
+    event: Event, project_id: int, group_type: int | None
+) -> Mapping[str, Any]:
     """
-    Returns severity metadata for an event if the feature flag is enabled.
-    Returns {} on feature flag not enabled or exception.
+    Returns severity metadata for an event if all of the following are true
+    - the feature flag is enabled
+    - the event platform supports severity
+    - the event group type is an error
+
+    Returns {} if conditions aren't met or on exception.
     """
-    if features.has("projects:first-event-severity-calculation", event.project):
+    is_supported_platform = any(
+        event.platform.startswith(platform) for platform in PLATFORMS_WITH_PRIORITY_ALERTS
+    )
+    is_error_group = group_type is not None and group_type == ErrorGroupType.type_id
+    feature_enabled = features.has("projects:first-event-severity-calculation", event.project)
+
+    should_calculate_severity = feature_enabled and is_supported_platform and is_error_group
+    if should_calculate_severity:
+        from sentry import ratelimits as ratelimiter
+
+        if ratelimiter.backend.is_limited(
+            f"seer:severity-calculation:{project_id}",
+            limit=5,
+            window=1,  # starting this out 5 requests per second
+        ):
+            logger.warning(
+                "get_severity_metadata_for_group.rate_limited",
+            )
         try:
             severity, reason = _get_severity_score(event)
 
