@@ -439,6 +439,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
     def test_message_builder_simple_snql_join(self, message_builder, record):
+        """Test that with the snql-join flag enabled we filter resolved issues out of key errors"""
         now = timezone.now()
         three_days_ago = now - timedelta(days=3)
 
@@ -528,6 +529,77 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             notification_uuid=mock.ANY,
             user_project_count=1,
         )
+
+    @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
+    def test_message_builder_filter_to_error_level(self, message_builder):
+        """Test that we filter non-error level issues out of key errors"""
+        now = timezone.now()
+        three_days_ago = now - timedelta(days=3)
+
+        user = self.create_user()
+        self.create_member(teams=[self.team], user=user, organization=self.organization)
+        with self.options({"issues.group_attributes.send_kafka": True}):
+            self.store_event(
+                data={
+                    "event_id": "a" * 32,
+                    "message": "message",
+                    "timestamp": iso_format(three_days_ago),
+                    "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                    "fingerprint": ["group-1"],
+                    "level": "info",
+                },
+                project_id=self.project.id,
+            )
+
+            self.store_event(
+                data={
+                    "event_id": "b" * 32,
+                    "message": "message",
+                    "timestamp": iso_format(three_days_ago),
+                    "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                    "fingerprint": ["group-2"],
+                    "level": "error",
+                },
+                project_id=self.project.id,
+            )
+            self.store_outcomes(
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "outcome": Outcome.ACCEPTED,
+                    "category": DataCategory.ERROR,
+                    "timestamp": three_days_ago,
+                    "key_id": 1,
+                },
+                num_times=2,
+            )
+
+            self.store_outcomes(
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "outcome": Outcome.ACCEPTED,
+                    "category": DataCategory.TRANSACTION,
+                    "timestamp": three_days_ago,
+                    "key_id": 1,
+                },
+                num_times=10,
+            )
+        prepare_organization_report(now.timestamp(), ONE_DAY * 7, self.organization.id)
+
+        for call_args in message_builder.call_args_list:
+            message_params = call_args.kwargs
+            context = message_params["context"]
+
+            assert context["organization"] == self.organization
+            assert context["issue_summary"] == {
+                "escalating_substatus_count": 0,
+                "new_substatus_count": 0,
+                "ongoing_substatus_count": 2,
+                "regression_substatus_count": 0,
+                "total_substatus_count": 2,
+            }
+            assert len(context["key_errors"]) == 1
 
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
