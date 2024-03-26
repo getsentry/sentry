@@ -718,7 +718,7 @@ class AuthHelper(Pipeline):
         # provider_key to get_provider, and our get_provider override accepts a null
         # provider_key. But it technically violates the type contract and we'll need
         # to change the superclass to accommodate this one.
-        super().__init__(request, provider_key, organization, auth_provider)  # type: ignore
+        super().__init__(request, provider_key, organization, auth_provider)  # type: ignore[arg-type]
 
         # Override superclass's type hints to be narrower
         self.organization: RpcOrganization = self.organization

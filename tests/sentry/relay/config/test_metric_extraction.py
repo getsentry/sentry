@@ -631,7 +631,7 @@ def test_get_metric_extraction_config_multiple_widgets_above_max_limit_ordered_s
             assert config
             assert len(config["metrics"]) == 8  # 4 * 2 spec versions
 
-            duration_conditions = [spec["condition"]["value"] for spec in config["metrics"]]  # type: ignore
+            duration_conditions = [spec["condition"]["value"] for spec in config["metrics"]]  # type: ignore[typeddict-item]
 
             assert duration_conditions == [
                 1400.0,

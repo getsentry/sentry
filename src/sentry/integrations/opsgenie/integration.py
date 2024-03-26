@@ -99,7 +99,7 @@ class InstallationForm(forms.Form):
 
 
 class InstallationConfigView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> HttpResponse:  # type:ignore
+    def dispatch(self, request: Request, pipeline) -> HttpResponse:  # type: ignore[explicit-override, override]
         if request.method == "POST":
             form = InstallationForm(request.POST)
             if form.is_valid():
@@ -130,7 +130,7 @@ class OpsgenieIntegration(IntegrationInstallation):
             integration_key=team["integration_key"],
         )
 
-    def get_client(self) -> Any:  # type: ignore
+    def get_client(self) -> Any:  # type: ignore[explicit-override]
         raise NotImplementedError("Use get_keyring_client instead.")
 
     def get_organization_config(self) -> Sequence[Any]:
