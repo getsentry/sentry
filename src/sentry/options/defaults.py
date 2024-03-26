@@ -2022,23 +2022,30 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Rollout % for easing out rollout based on the dashboard widget query id
+register(
+    "split_discover_dataset.rollout",
+    default=0.0,
+    type=Float,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Enables split discover dataset task for dashboard widgets.
 register(
     "split_discover_dataset.enable",
-    default=True,
+    default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Number of DashboardWidgets to be checked at once.
 register(
     "split_discover_dataset.query.batch_size",
     type=Int,
-    default=10,
+    default=5,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Number of chunks to split queries across.
 register(
     "split_discover_dataset.query.total_batches",
-    default=100,
+    default=2000,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 

@@ -24,9 +24,6 @@ from sentry.utils.snuba import SnubaTSResult
 
 logger = logging.getLogger("sentry.tasks.split_discover_dataset")
 
-# TTL for cardinality check
-_WIDGET_QUERY_CARDINALITY_TTL = 3600 * 24 * 7  # Cardinality outcome is valid for 7 days.
-_COLUMN_CARDINALITY_TTL = 3600  # Cardinality outcome is valid for 1 hour to match the widget check.
 TASK_QUERY_PERIOD = "30m"
 DASHBOARD_QUERY_PERIOD = "1h"
 
@@ -61,9 +58,9 @@ class SplitDiscoverDatasetException(Exception):
     name="sentry.tasks.split_discover_dataset",
     queue="split_discover_dataset",
     max_retries=0,
-    soft_time_limit=60,
-    time_limit=120,
-    expires=180,
+    soft_time_limit=150,
+    time_limit=180,
+    expires=360,
 )
 def schedule_widget_discover_split():
     """
@@ -83,6 +80,7 @@ def schedule_widget_discover_split():
 
     logger.log(logging.INFO, "Scheduling widget discover split task")
 
+    rollout = options.get("split_discover_dataset.rollout")
     total_batches = options.get("split_discover_dataset.query.total_batches")
     widgets_per_batch = options.get("split_discover_dataset.query.batch_size")
 
@@ -100,6 +98,10 @@ def schedule_widget_discover_split():
     ):
         batch = _get_batch_for_widget(widget_id, total_batches)
         if batch != currently_processing_batch:
+            continue
+
+        if ((widget_id % 1_000) / 1_000) > rollout:
+            # % rollout based on widget_id accurate to 0.1%
             continue
 
         widget_ids.append(widget_id)
