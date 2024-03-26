@@ -45,7 +45,7 @@ class BitbucketRequestParser(BaseRequestParser):
             logging_extra["mapping_id"] = mapping.id
             logger.info("%s.no_region", self.provider, extra=logging_extra)
             return self.get_response_from_control_silo()
-        return self.get_response_from_outbox_creation(
+        return self.get_response_from_webhookpayload(
             regions=[region], shard_identifier_override=mapping.organization_id
         )
 
