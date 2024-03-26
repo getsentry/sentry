@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useCallback, useState} from 'react';
 import type {MultiValueProps} from 'react-select';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
@@ -63,18 +63,17 @@ function InviteRowControl({
 
   const theme = useTheme();
 
-  const isTeamRolesAllowed = useMemo(() => {
-    const selectedRoleOptions = roleOptions.find(roleOption => roleOption.id === role);
-    return selectedRoleOptions?.isTeamRolesAllowed ?? true;
-  }, [role, roleOptions]);
-
-  useEffect(() => {
-    // If a role is chosen which cannot select teams, we must signal to update the parent's state
-    // to reflect this
-    if (!isTeamRolesAllowed) {
-      onChangeTeams([]);
-    }
-  }, [onChangeTeams, role, isTeamRolesAllowed]);
+  const isTeamRolesAllowedForRole = useCallback(
+    roleId => {
+      const roleOptionsMap = roleOptions.reduce(
+        (rolesMap, roleOption) => ({...rolesMap, [roleOption.id]: roleOption}),
+        {}
+      );
+      return roleOptionsMap[roleId]?.isTeamRolesAllowed ?? true;
+    },
+    [roleOptions]
+  );
+  const isTeamRolesAllowed = isTeamRolesAllowedForRole(role);
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
     switch (event.key) {
@@ -127,7 +126,12 @@ function InviteRowControl({
         value={role}
         roles={roleOptions}
         disableUnallowed={roleDisabledUnallowed}
-        onChange={onChangeRole}
+        onChange={roleOption => {
+          onChangeRole(roleOption);
+          if (!isTeamRolesAllowedForRole(roleOption.value)) {
+            onChangeTeams([]);
+          }
+        }}
       />
       <TeamSelector
         aria-label={t('Add to Team')}
