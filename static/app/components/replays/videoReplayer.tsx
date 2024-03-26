@@ -150,7 +150,7 @@ export class VideoReplayer {
   }
 
   protected getSegment(index?: number | undefined): VideoEvent | undefined {
-    if (typeof index === 'undefined') {
+    if (index === undefined) {
       return undefined;
     }
 
@@ -162,7 +162,7 @@ export class VideoReplayer {
    * Loads the segment at the requested index.
    */
   protected fetchVideo(index: number | undefined): HTMLVideoElement | undefined {
-    if (typeof index === 'undefined') {
+    if (index === undefined || index < 0 || index >= this._attachments.length) {
       return undefined;
     }
 
@@ -194,7 +194,7 @@ export class VideoReplayer {
    * Returns the video in the dictionary at the requested index.
    */
   protected getVideo(index: number | undefined): HTMLVideoElement | undefined {
-    if (typeof index === 'undefined') {
+    if (index === undefined) {
       return undefined;
     }
 
