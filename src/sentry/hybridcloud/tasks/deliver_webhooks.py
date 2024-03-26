@@ -222,15 +222,18 @@ def drain_mailbox_parallel(payload_id: int) -> None:
     request_failed = False
     delivered = 0
 
-    # Remove any payloads that have been backlogged for MAX_DELIVERY_AGE.
+    # Remove batches payloads that have been backlogged for MAX_DELIVERY_AGE.
     # Once payloads are this old they are low value, and we're better off prioritizing new work.
     max_age = timezone.now() - MAX_DELIVERY_AGE
     if payload.date_added < max_age:
-        deleted, _ = WebhookPayload.objects.filter(
+        # We delete chunks of stale messages using a subquery
+        # because postgres cannot do delete with limit
+        stale_query = WebhookPayload.objects.filter(
             id__gte=payload.id,
             mailbox_name=payload.mailbox_name,
             date_added__lte=timezone.now() - MAX_DELIVERY_AGE,
-        ).delete()
+        ).values("id")[:10000]
+        deleted, _ = WebhookPayload.objects.filter(id__in=stale_query).delete()
         if deleted:
             logger.info(
                 "deliver_webhook_parallel.max_age_discard",
