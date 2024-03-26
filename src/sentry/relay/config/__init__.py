@@ -286,7 +286,7 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
         metrics_blocking_state = get_metrics_blocking_state_for_relay_config(project)
         timeout.check()
         if metrics_blocking_state is not None:
-            metrics_config.update(metrics_blocking_state)  # type:ignore
+            metrics_config.update(metrics_blocking_state)  # type: ignore[arg-type]
 
     return metrics_config or None
 
@@ -947,7 +947,7 @@ class _ConfigBase:
 
     def __str__(self) -> str:
         try:
-            return utils.json.dumps(self.to_dict(), sort_keys=True)  # type: ignore
+            return utils.json.dumps(self.to_dict(), sort_keys=True)  # type: ignore[arg-type]
         except Exception as e:
             return f"Content Error:{e}"
 
