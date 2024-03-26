@@ -186,6 +186,7 @@ create-db() {
 }
 
 apply-migrations() {
+    create-db
     echo "--> Applying migrations"
     sentry upgrade --noinput
 }
@@ -211,7 +212,6 @@ bootstrap() {
     develop
     init-config
     run-dependent-services
-    create-db
     apply-migrations
     create-superuser
     # Load mocks requires a superuser
@@ -243,7 +243,6 @@ drop-db() {
 
 reset-db() {
     drop-db
-    create-db
     apply-migrations
     create-superuser
     echo 'Finished resetting database. To load mock data, run `./bin/load-mocks`'
