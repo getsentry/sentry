@@ -34,21 +34,16 @@ type AggregateSpanRow = {
   start_ms: number;
 };
 
-const INDEXED_SPANS_CUTOVER_DATE = new Date('2024-02-15');
-function getStartEndDates(selection: PageFilters) {
+// Skip index added on transaction name on this date.
+const INDEXED_SPANS_CUTOVER_DATE = new Date('2024-03-23');
+function getStartDate(selection: PageFilters) {
   if (selection.datetime.period) {
-    const {start, end} = parseStatsPeriod(selection.datetime.period);
+    const {start} = parseStatsPeriod(selection.datetime.period);
 
-    return {
-      start: new Date(start),
-      end: new Date(end),
-    };
+    return new Date(start);
   }
 
-  const end = selection.datetime.end ? new Date(selection.datetime.end) : null;
-  const start = selection.datetime.start ? new Date(selection.datetime.start) : null;
-
-  return {start: start, end: end};
+  return selection.datetime.start ? new Date(selection.datetime.start) : null;
 }
 
 export function useAggregateSpans({
@@ -62,12 +57,9 @@ export function useAggregateSpans({
   const {selection} = usePageFilters();
   let useIndexedSpansBackend = true;
 
-  const {start, end} = getStartEndDates(selection);
+  const start = getStartDate(selection);
 
-  if (
-    (end && end < INDEXED_SPANS_CUTOVER_DATE) ||
-    (start && start < INDEXED_SPANS_CUTOVER_DATE)
-  ) {
+  if (start && start < INDEXED_SPANS_CUTOVER_DATE) {
     useIndexedSpansBackend = false;
   }
 
