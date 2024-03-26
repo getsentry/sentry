@@ -17,7 +17,6 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTrigger,
     AlertRuleTriggerAction,
     alert_subscription_callback_registry,
-    clean_expired_alerts,
     register_alert_subscription_callback,
     update_alert_activations,
 )
@@ -397,19 +396,30 @@ class AlertRuleActivityTest(TestCase):
         ).exists()
 
 
-class CleanExpiredAlertsTest(TestCase):
-    def test_clean_expired_alerts_active(self):
+class UpdateAlertActivationsTest(TestCase):
+    def test_updates_non_expired_alerts(self):
         with self.tasks():
             alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
             alert_rule.subscribe_projects(
                 projects=[self.project], monitor_type=AlertRuleMonitorType.ACTIVATED
             )
             subscription = alert_rule.snuba_query.subscriptions.get()
+            activation = alert_rule.activations.get()
+            assert activation.finished_at is None
+            assert activation.metric_value is None
 
-            clean_expired_alerts(subscription=subscription, alert_rule=alert_rule, value=0)
+            expected_value = 10
+            result = update_alert_activations(
+                subscription=subscription, alert_rule=alert_rule, value=expected_value
+            )
+            assert result is True
             assert QuerySubscription.objects.filter(id=subscription.id).exists()
+            activation = alert_rule.activations.get()
+            # assert activation.is_complete() is True # TODO: enable once we've implemented is_complete()
+            assert activation.finished_at is None
+            assert activation.metric_value == expected_value
 
-    def test_clean_expired_alerts_deactive(self):
+    def test_cleans_expired_alerts(self):
         with self.tasks():
             alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
             alert_rule.subscribe_projects(
@@ -419,13 +429,20 @@ class CleanExpiredAlertsTest(TestCase):
             subscription = alert_rule.snuba_query.subscriptions.get()
             subscription.date_added = timezone.now() - timedelta(days=21)
 
-            result = clean_expired_alerts(subscription=subscription, alert_rule=alert_rule, value=0)
+            expected_value = 10
+            result = update_alert_activations(
+                subscription=subscription, alert_rule=alert_rule, value=expected_value
+            )
 
             assert result is True
             assert subscription.status == QuerySubscription.Status.DELETING.value
             assert not QuerySubscription.objects.filter(id=subscription.id).exists()
+            activation = alert_rule.activations.get()
+            # assert activation.is_complete() is True # TODO: enable once we've implemented is_complete()
+            assert activation.finished_at is not None
+            assert activation.metric_value == expected_value
 
-    def test_clean_expired_alerts_add_processor(self):
+    def test_update_alerts_add_processor(self):
         @register_alert_subscription_callback(AlertRuleMonitorType.CONTINUOUS)
         def mock_processor(_subscription):
             return True
@@ -435,37 +452,13 @@ class CleanExpiredAlertsTest(TestCase):
             alert_subscription_callback_registry[AlertRuleMonitorType.CONTINUOUS] == mock_processor
         )
 
-    def test_clean_expired_alerts_execute_processor(self):
+    def test_update_alerts_execute_processor(self):
         alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.CONTINUOUS)
         subscription = alert_rule.snuba_query.subscriptions.get()
 
         callback = alert_subscription_callback_registry[AlertRuleMonitorType.CONTINUOUS]
         result = callback(subscription)
         assert result is True
-
-    def test_expired_alert_finalizes_activation(self):
-        with self.tasks():
-            alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
-            alert_rule.subscribe_projects(
-                projects=[self.project], monitor_type=AlertRuleMonitorType.ACTIVATED
-            )
-
-            activation = alert_rule.activations.get()
-            assert activation.finished_at is None
-            assert activation.metric_value is None
-
-            subscription = alert_rule.snuba_query.subscriptions.get()
-            subscription.date_added = timezone.now() - timedelta(days=21)
-
-            result = clean_expired_alerts(
-                subscription=subscription, alert_rule=alert_rule, value=100
-            )
-
-            assert result is True
-            activation = alert_rule.activations.get()
-            # assert activation.is_complete() is True # TODO: enable once we've implemented is_complete()
-            assert activation.finished_at is not None
-            assert activation.metric_value == 100
 
 
 class AlertRuleFetchForProjectTest(TestCase):
@@ -484,26 +477,3 @@ class AlertRuleFetchForProjectTest(TestCase):
         alert_rule2.projects.add(project2)
 
         assert {alert_rule1, alert_rule2} == set(AlertRule.objects.fetch_for_project(self.project))
-
-
-class UpdateAlertActivationsTest(TestCase):
-    def test_update_alert_activations_success(self):
-        with self.tasks():
-            alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
-            alert_rule.subscribe_projects(
-                projects=[self.project], monitor_type=AlertRuleMonitorType.ACTIVATED
-            )
-            activation = alert_rule.activations.get()
-            assert activation.metric_value is None
-
-            subscription = alert_rule.snuba_query.subscriptions.get()
-
-            result = update_alert_activations(
-                subscription=subscription, alert_rule=alert_rule, value=50
-            )
-
-            assert result is True
-            activation = alert_rule.activations.get()
-            assert activation.is_complete() is False
-            assert activation.finished_at is None
-            assert activation.metric_value == 50

@@ -611,17 +611,6 @@ class AlertRuleActivity(Model):
 def update_alert_activations(
     subscription: QuerySubscription, alert_rule: AlertRule, value: float
 ) -> bool:
-    alert_rule.activations.filter(finished_at=None, query_subscription=subscription).update(
-        metric_value=value
-    )
-
-    return True
-
-
-@register_alert_subscription_callback(AlertRuleMonitorType.ACTIVATED)
-def clean_expired_alerts(
-    subscription: QuerySubscription, alert_rule: AlertRule, value: float
-) -> bool:
     now = timezone.now()
     subscription_end = subscription.date_added + timedelta(
         seconds=subscription.snuba_query.time_window
@@ -633,6 +622,10 @@ def clean_expired_alerts(
         )
         # NOTE: QuerySubscription deletion will set fk to null on the activation
         delete_snuba_subscription(subscription)
+    else:
+        alert_rule.activations.filter(finished_at=None, query_subscription=subscription).update(
+            metric_value=value
+        )
 
     return True
 
