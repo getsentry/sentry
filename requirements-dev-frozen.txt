@@ -174,7 +174,7 @@ s3transfer==0.10.0
 selenium==4.16.0
 sentry-arroyo==2.16.2
 sentry-cli==2.16.0
-sentry-devenv==1.2.3
+sentry-devenv==1.5.0
 sentry-forked-django-stubs==4.2.7.post3
 sentry-forked-djangorestframework-stubs==3.14.5.post1
 sentry-kafka-schemas==0.1.64

@@ -141,9 +141,6 @@ setup-git() {
 
 node-version-check() {
     # Checks to see if node's version matches the one specified in package.json for Volta.
-    which node
-    node -v
-    cat .volta.json
     node -pe "process.exit(Number(!(process.version == 'v' + require('./.volta.json').volta.node )))" ||
         (
             echo 'Unexpected node version. Recommended to use https://github.com/volta-cli/volta'
