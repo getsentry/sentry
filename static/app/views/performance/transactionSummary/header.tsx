@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -113,6 +113,10 @@ function TransactionHeader({
   const {getReplayCountForTransaction} = useReplayCountForTransactions();
   const replaysCount = getReplayCountForTransaction(transactionName);
 
+  const hasTransactionSummaryCleanupFlag = organization.features.includes(
+    'performance-transaction-summary-cleanup'
+  );
+
   return (
     <Layout.Header>
       <Layout.HeaderContent>
@@ -195,7 +199,12 @@ function TransactionHeader({
               <TabList.Item key={Tab.TRANSACTION_SUMMARY}>{t('Overview')}</TabList.Item>
               <TabList.Item key={Tab.EVENTS}>{t('Sampled Events')}</TabList.Item>
               <TabList.Item key={Tab.TAGS}>{t('Tags')}</TabList.Item>
-              <TabList.Item key={Tab.SPANS}>{t('Spans')}</TabList.Item>
+              {!hasTransactionSummaryCleanupFlag ? (
+                <TabList.Item key={Tab.SPANS}>{t('Spans')}</TabList.Item>
+              ) : (
+                <Fragment />
+              )}
+
               <TabList.Item
                 key={Tab.ANOMALIES}
                 textValue={t('Anomalies')}
