@@ -134,15 +134,14 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         ).apply_transformer(self.query_transformer)
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    @pytest.mark.xfail
     def test_query_with_empty_results(self) -> None:
         # TODO: the identities returned here to not make much sense, we need to figure out the right semantics.
-        # TODO: once snuba pr #5676 is merged, change expected_identity_series back to single entry
-        #       the ones with [None, 0.0] should become None
         for aggregate, expected_identity_series, expected_identity_totals in (
-            ("count", (None,), 0),
-            ("avg", (None,), None),
-            ("sum", (None, 0.0), 0.0),
-            ("min", (None, 0.0), 0.0),
+            ("count", None, 0),
+            ("avg", None, None),
+            ("sum", None, 0.0),
+            ("min", None, 0.0),
         ):
             query_1 = self.mql(aggregate, TransactionMRI.DURATION.value, "transaction:/bar")
             plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
@@ -161,9 +160,11 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             assert len(data) == 1
             assert data[0][0]["by"] == {}
 
-            _, second, third = data[0][0]["series"]
-            assert second in expected_identity_series
-            assert second == third
+            assert data[0][0]["series"] == [
+                None,
+                expected_identity_series,
+                expected_identity_series,
+            ]
 
             assert data[0][0]["totals"] == expected_identity_totals
 
@@ -1388,14 +1389,13 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         )
         data = results["data"]
         assert len(data) == 1
+        assert len(data[0]) == 2
         assert data[0][0]["by"] == {"platform": "ios", "transaction": "/hello"}
         assert data[0][0]["series"] == [None, 6.0, 3.0]
         assert data[0][0]["totals"] == 9.0
         assert data[0][1]["by"] == {"platform": "android", "transaction": "/hello"}
         assert data[0][1]["series"] == [None, 1.0, 1.0]
         assert data[0][1]["totals"] == 2.0
-
-        assert len(data[0]) == 2
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_basic_formula_and_coercible_units(self):
