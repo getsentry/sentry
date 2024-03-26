@@ -164,7 +164,9 @@ function renderBodyCell(
   organization: Organization
 ) {
   if (column.key === 'span.domain') {
-    return <DomainCell domain={row['span.domain']} />;
+    return (
+      <DomainCell projectId={row['project.id']?.toString()} domain={row['span.domain']} />
+    );
   }
 
   if (!meta?.fields) {

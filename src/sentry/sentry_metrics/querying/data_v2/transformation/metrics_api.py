@@ -6,7 +6,7 @@ from typing import Any, cast
 
 from sentry.search.utils import parse_datetime_string
 from sentry.sentry_metrics.querying.data_v2.execution import QueryResult
-from sentry.sentry_metrics.querying.data_v2.transformation.base import QueryTransformer
+from sentry.sentry_metrics.querying.data_v2.transformation.base import QueryResultsTransformer
 from sentry.sentry_metrics.querying.data_v2.utils import undefined_value_to_none
 from sentry.sentry_metrics.querying.errors import MetricsQueryExecutionError
 from sentry.sentry_metrics.querying.types import GroupKey, ResultValue, Series, Totals
@@ -128,7 +128,7 @@ def _generate_full_series(
     return full_series
 
 
-class MetricsAPIQueryTransformer(QueryTransformer[Mapping[str, Any]]):
+class MetricsAPIQueryResultsTransformer(QueryResultsTransformer[Mapping[str, Any]]):
     """
     Represents a transformer that converts the query results into a format which is known by the Metrics API.
     """

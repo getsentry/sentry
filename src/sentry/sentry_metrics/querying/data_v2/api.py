@@ -16,7 +16,7 @@ from sentry.sentry_metrics.querying.data_v2.preparation.base import (
     run_preparation_steps,
 )
 from sentry.sentry_metrics.querying.data_v2.preparation.units_normalization import (
-    UnitNormalizationStep,
+    UnitsNormalizationStep,
 )
 from sentry.sentry_metrics.querying.types import QueryType
 
@@ -74,7 +74,7 @@ def run_metrics_queries_plan(
     if features.has(
         "organizations:ddm-metrics-api-unit-normalization", organization=organization, actor=None
     ):
-        preparation_steps.append(UnitNormalizationStep())
+        preparation_steps.append(UnitsNormalizationStep())
 
     # We run a series of preparation steps which operate on the entire list of queries.
     intermediate_queries = run_preparation_steps(intermediate_queries, *preparation_steps)

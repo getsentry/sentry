@@ -201,4 +201,4 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         return blocks
 
     def as_payload(self) -> Mapping[str, Any]:
-        return self.build()  # type: ignore
+        return self.build()  # type: ignore[return-value]

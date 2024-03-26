@@ -6,7 +6,7 @@ from sentry.sentry_metrics.querying.data_v2.execution import QueryResult
 QueryTransformerResult = TypeVar("QueryTransformerResult")
 
 
-class QueryTransformer(ABC, Generic[QueryTransformerResult]):
+class QueryResultsTransformer(ABC, Generic[QueryTransformerResult]):
     """
     Represents an abstract transformer that can transform QueryResult objects.
     """

@@ -121,7 +121,7 @@ def build_repository_query(metadata: Mapping[str, Any], name: str, query: str) -
 # Github App docs and list of available endpoints
 # https://docs.github.com/en/rest/apps/installations
 # https://docs.github.com/en/rest/overview/endpoints-available-for-github-apps
-class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMixin, CommitContextMixin):  # type: ignore
+class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMixin, CommitContextMixin):  # type: ignore[misc]
     repo_search = True
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
