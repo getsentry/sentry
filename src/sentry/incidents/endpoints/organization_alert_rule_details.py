@@ -300,8 +300,18 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
 
     def check_project_access(func):
         def wrapper(self, request: Request, organization, alert_rule):
-            # a metric alert is only associated with one project at a time
-            project = alert_rule.snuba_query.subscriptions.get().project
+            project = None
+
+            try:
+                # check to see if there's a project associated with the alert rule
+                project = alert_rule.projects.get()
+            except Exception:
+                pass
+
+            # TODO - Cleanup Subscription Project Mapping
+            # if not, check to see if there's a project associated with the snuba query
+            if project is None:
+                project = alert_rule.snuba_query.subscriptions.get().project
 
             if not request.access.has_project_access(project):
                 return Response(status=status.HTTP_403_FORBIDDEN)

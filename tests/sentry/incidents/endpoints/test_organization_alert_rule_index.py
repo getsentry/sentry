@@ -12,6 +12,7 @@ from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.incidents.models.alert_rule import (
     AlertRule,
+    AlertRuleMonitorType,
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
@@ -105,6 +106,19 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase):
         self.login_as(self.user)
         resp = self.get_response(self.organization.slug)
         assert resp.status_code == 404
+
+    def test_filter_by_monitor_type(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        alert_rule1 = self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
+        alert_rule2 = self.create_alert_rule(monitor_type=AlertRuleMonitorType.CONTINUOUS)
+        self.login_as(self.user)
+
+        params = {"monitor_type": 1}
+        with self.feature("organizations:incidents"):
+            resp = self.get_response(self.organization.slug, **params)
+
+        assert serialize([alert_rule2]) not in resp.data
+        assert resp.data == serialize([alert_rule1])
 
 
 @region_silo_test
