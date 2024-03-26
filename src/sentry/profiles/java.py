@@ -112,10 +112,11 @@ def convert_android_methods_to_jvm_frames(methods: list[dict]) -> list[dict]:
     return [
         {
             "function": m["name"],
+            "index": i,
             "module": m["class_name"],
             "signature": m["signature"],
         }
-        for m in methods
+        for i, m in enumerate(methods)
     ]
 
 
