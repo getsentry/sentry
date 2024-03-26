@@ -192,7 +192,6 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any):
 
     for sinfo, complete_stacktrace in zip(stacktrace_infos, response["stacktraces"]):
         raw_frames = sinfo.stacktrace["frames"]
-        # sinfo.stacktrace["frames"] = complete_stacktrace["frames"]
         complete_frames = complete_stacktrace["frames"]
         sinfo.stacktrace["frames"] = []
 
@@ -201,7 +200,10 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any):
             # otherwise use the raw_frame itself.
             matching_frames = [frame for frame in complete_frames if frame["index"] == index]
             if matching_frames:
-                sinfo.stacktrace["frames"].extend(matching_frames)
+                for returned in matching_frames:
+                    new_frame = dict(raw_frame)
+                    _merge_frame(new_frame, returned)
+                    sinfo.stacktrace["frames"].append(new_frame)
             else:
                 sinfo.stacktrace["frames"].append(raw_frame)
 
