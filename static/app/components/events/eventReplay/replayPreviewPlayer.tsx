@@ -86,13 +86,7 @@ function ReplayPreviewPlayer({
           organization={organization}
           referrer="issue-details-replay-header"
         />
-        <LinkButton
-          size="sm"
-          to={fullReplayUrl}
-          {...fullReplayButtonProps}
-          analyticsEventName="Replay Preview Player: Clicked See Full Replay"
-          analyticsEventKey="replay_preview_player.click_see_full_replay"
-        >
+        <LinkButton size="sm" to={fullReplayUrl} {...fullReplayButtonProps}>
           {t('See Full Replay')}
         </LinkButton>
       </HeaderWrapper>
