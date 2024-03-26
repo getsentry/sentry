@@ -208,7 +208,6 @@ describe('IntegrationDetailedView', function () {
   });
 
   it('cannot enable PR bot without GitHub integration', async function () {
-    org.features.push('integrations-open-pr-comment');
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/config/integrations/?provider_key=github`,
       body: {
@@ -241,8 +240,6 @@ describe('IntegrationDetailedView', function () {
   });
 
   it('can enable github features', async function () {
-    org.features.push('integrations-open-pr-comment');
-
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/config/integrations/?provider_key=github`,
       body: {
