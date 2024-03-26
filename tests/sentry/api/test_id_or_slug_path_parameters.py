@@ -1,5 +1,6 @@
+import inspect
 import re
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from typing import Any
 from unittest.mock import patch
 
@@ -19,15 +20,32 @@ class APIIdOrSlugPathParamTest(BaseTestCase, TestCase):
     def setUp(self):
         super().setUp()
         self.doc_integration = self.create_doc_integration()
-        self.mapping = {
+
+        self.convert_args_setup_registry: dict[Any, Callable] = {
+            "DocIntegrationBaseEndpoint": self.doc_integration_test,
+        }
+
+        self.slug_mappings = {
             "doc_integration_slug": self.doc_integration,
         }
+
+        self.reverse_slug_mappings = {
+            "doc_integration": self.doc_integration,
+        }
+
+        self.other_mappings = {}
 
     def extract_slug_path_params(self, path: str) -> list[str]:
         """
         Extracts path parameters from a path string which end with _slug.
         """
         return re.findall(r"<(\w+_slug)>", path)
+
+    def extract_other_path_params(self, path: str) -> list[str]:
+        """
+        Extracts path parameters from a path string which do not end with _slug.
+        """
+        return re.findall(r"<(\w+?)(?<!_slug)>", path)
 
     def extract_all_url_patterns(
         self, urlpatterns, base: str = ""
@@ -58,17 +76,34 @@ class APIIdOrSlugPathParamTest(BaseTestCase, TestCase):
                     callback = callback.view_class
                     yield (url_pattern, callback)
 
+    def get_registry_key(self, obj):
+        """
+        Finds the name of the class that defines the given method.
+        """
+        for cls in inspect.getmro(obj.__class__):
+            if "convert_args" in cls.__dict__:
+                return cls.__name__
+        return None
+
     @patch("sentry.api.bases.doc_integrations.DocIntegrationBaseEndpoint.check_object_permissions")
     @override_options({"api.id-or-slug-enabled": True})
-    def doc_integration_test(self, class_name, path_params, *args):
+    def doc_integration_test(self, endpoint_class, slug_params, other_params, *args):
 
-        slug_kwargs = {param: self.mapping[param].slug for param in path_params}
-        id_kwargs = {param: self.mapping[param].id for param in path_params}
+        slug_kwargs = {param: self.slug_mappings[param].slug for param in slug_params}
+        id_kwargs = {param: self.slug_mappings[param].id for param in slug_params}
 
-        converted_slugs = class_name().convert_args(request=None, **slug_kwargs)
-        converted_ids = class_name().convert_args(request=None, **id_kwargs)
+        if other_params:
+            slug_kwargs.update({param: self.other_mappings[param] for param in other_params})
+            id_kwargs.update({param: self.other_mappings[param] for param in other_params})
+
+        _, converted_slugs = endpoint_class().convert_args(request=None, **slug_kwargs)
+        _, converted_ids = endpoint_class().convert_args(request=None, **id_kwargs)
 
         assert converted_slugs == converted_ids
+        assert all(
+            converted_slugs[key] == self.reverse_slug_mappings[key] for key in converted_slugs
+        )
+        assert all(converted_ids[key] == self.reverse_slug_mappings[key] for key in converted_ids)
 
     def test_if_endpoints_work_with_id_or_slug(self):
         root_resolver = get_resolver()
@@ -77,5 +112,8 @@ class APIIdOrSlugPathParamTest(BaseTestCase, TestCase):
         for pattern, callback in all_urlpatterns:
             path_params = self.extract_slug_path_params(pattern)
             if path_params:
+                other_params = self.extract_other_path_params(pattern)
                 if path_params == ["doc_integration_slug"]:
-                    self.doc_integration_test(callback, self.mapping)
+                    self.convert_args_setup_registry[
+                        self.get_registry_key(callback().convert_args.__self__)
+                    ](callback, path_params, other_params)
