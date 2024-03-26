@@ -11,7 +11,7 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
 import Placeholder from 'sentry/components/placeholder';
-import Tag from 'sentry/components/tag';
+import {Tag} from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
