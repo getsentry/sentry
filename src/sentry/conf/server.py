@@ -1229,6 +1229,12 @@ CELERYBEAT_SCHEDULE_REGION = {
         # Run every 5 minutes
         "schedule": crontab(minute="*/5"),
     },
+    "check_new_issue_threshold_met": {
+        "task": "sentry.tasks.check_new_issue_threshold_met",
+        # 02:00 PDT, 06:00 EDT, 08:00 UTC
+        "schedule": crontab(hour="9", minute="0"),
+        "options": {"expires": 60 * 25},
+    },
 }
 
 # Assign the configuration keys celery uses based on our silo mode.
