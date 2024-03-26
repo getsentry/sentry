@@ -6,11 +6,9 @@ from django.urls import reverse
 from sentry.constants import DataCategory
 from sentry.testutils.cases import APITestCase, OutcomesSnubaTest
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.outcomes import Outcome
 
 
-@region_silo_test
 class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
     def setUp(self):
         super().setUp()

@@ -11,14 +11,12 @@ from sentry.replays.testutils import (
     mock_replay_click,
 )
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.cursors import Cursor
 from sentry.utils.snuba import QueryMemoryLimitExceeded
 
 REPLAYS_FEATURES = {"organizations:session-replay": True}
 
 
-@region_silo_test
 class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
     endpoint = "sentry-api-0-organization-replay-index"
 

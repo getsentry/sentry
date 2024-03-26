@@ -9,7 +9,6 @@ from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIn
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 
 GITHUB_CODEOWNERS = {
     "filepath": "CODEOWNERS",
@@ -18,7 +17,6 @@ GITHUB_CODEOWNERS = {
 }
 
 
-@region_silo_test
 class GitHubAppsClientTest(TestCase):
     base_url = "https://github.example.org/api/v3"
 

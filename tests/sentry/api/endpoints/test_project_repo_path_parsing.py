@@ -3,7 +3,7 @@ from django.urls import reverse
 from sentry.api.endpoints.project_repo_path_parsing import PathMappingSerializer
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class BaseStacktraceLinkTest(APITestCase):
@@ -119,7 +119,6 @@ class PathMappingSerializerTest(TestCase):
         assert serializer.errors["sourceUrl"][0] == "Could not find repo"
 
 
-@region_silo_test
 class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
     def setUp(self):
         super().setUp()
@@ -267,7 +266,6 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
         }
 
 
-@region_silo_test
 class ProjectStacktraceLinkGitlabTest(BaseStacktraceLinkTest):
     def setUp(self):
         super().setUp()

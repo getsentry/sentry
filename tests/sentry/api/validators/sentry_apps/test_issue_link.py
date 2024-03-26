@@ -5,10 +5,8 @@ from typing import Any
 
 from fixtures.schema_validation import invalid_schema
 from sentry.api.validators.sentry_apps.schema import validate_component
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class TestIssueLinkSchemaValidation(unittest.TestCase):
     def setUp(self):
         self.schema: dict[str, Any] = {

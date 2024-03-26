@@ -7,10 +7,8 @@ from google.api_core.exceptions import GoogleAPIError
 from sentry.api.endpoints.relocations import ERR_FEATURE_DISABLED
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.backups import FakeKeyManagementServiceClient, generate_rsa_key_pair
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 @patch(
     "sentry.backup.crypto.KeyManagementServiceClient",
     new_callable=lambda: FakeKeyManagementServiceClient,
