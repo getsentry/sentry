@@ -1144,51 +1144,39 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             event.project.organization_id, "totally unique environment"
         ).id
 
-        assert (
-            tsdb.backend.get_distinct_counts_totals(
-                TSDBModel.users_affected_by_group,
-                (event.group.id,),
-                event.datetime,
-                event.datetime,
-                tenant_ids={"referrer": "r", "organization_id": 123},
-            )
-            == {event.group.id: 1}
-        )
+        assert tsdb.backend.get_distinct_counts_totals(
+            TSDBModel.users_affected_by_group,
+            (event.group.id,),
+            event.datetime,
+            event.datetime,
+            tenant_ids={"referrer": "r", "organization_id": 123},
+        ) == {event.group.id: 1}
 
-        assert (
-            tsdb.backend.get_distinct_counts_totals(
-                TSDBModel.users_affected_by_project,
-                (event.project.id,),
-                event.datetime,
-                event.datetime,
-                tenant_ids={"organization_id": 123, "referrer": "r"},
-            )
-            == {event.project.id: 1}
-        )
+        assert tsdb.backend.get_distinct_counts_totals(
+            TSDBModel.users_affected_by_project,
+            (event.project.id,),
+            event.datetime,
+            event.datetime,
+            tenant_ids={"organization_id": 123, "referrer": "r"},
+        ) == {event.project.id: 1}
 
-        assert (
-            tsdb.backend.get_distinct_counts_totals(
-                TSDBModel.users_affected_by_group,
-                (event.group.id,),
-                event.datetime,
-                event.datetime,
-                environment_id=environment_id,
-                tenant_ids={"organization_id": 123, "referrer": "r"},
-            )
-            == {event.group.id: 1}
-        )
+        assert tsdb.backend.get_distinct_counts_totals(
+            TSDBModel.users_affected_by_group,
+            (event.group.id,),
+            event.datetime,
+            event.datetime,
+            environment_id=environment_id,
+            tenant_ids={"organization_id": 123, "referrer": "r"},
+        ) == {event.group.id: 1}
 
-        assert (
-            tsdb.backend.get_distinct_counts_totals(
-                TSDBModel.users_affected_by_project,
-                (event.project.id,),
-                event.datetime,
-                event.datetime,
-                environment_id=environment_id,
-                tenant_ids={"organization_id": 123, "referrer": "r"},
-            )
-            == {event.project.id: 1}
-        )
+        assert tsdb.backend.get_distinct_counts_totals(
+            TSDBModel.users_affected_by_project,
+            (event.project.id,),
+            event.datetime,
+            event.datetime,
+            environment_id=environment_id,
+            tenant_ids={"organization_id": 123, "referrer": "r"},
+        ) == {event.project.id: 1}
 
         saved_event = eventstore.backend.get_event_by_id(self.project.id, event_id)
         euser = EventUser.from_event(saved_event)
