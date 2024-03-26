@@ -10,6 +10,7 @@ import FieldGroup from 'sentry/components/forms/fieldGroup';
 import SentryAppDetailsModal from 'sentry/components/modals/sentryAppDetailsModal';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import type {Organization, SentryApp, SentryAppInstallation} from 'sentry/types';
 import {generateOrgSlugUrl} from 'sentry/utils';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
@@ -36,9 +37,10 @@ export default class SentryAppExternalInstallation extends DeprecatedAsyncView<
 
   getDefaultState() {
     const state = super.getDefaultState();
+    const customerDomain = ConfigStore.get('customerDomain');
     return {
       ...state,
-      selectedOrgSlug: null,
+      selectedOrgSlug: customerDomain?.subdomain,
       organization: null,
       organizations: [],
       reloading: false,
@@ -131,6 +133,14 @@ export default class SentryAppExternalInstallation extends DeprecatedAsyncView<
   };
 
   onSelectOrg = async (orgSlug: string) => {
+    const customerDomain = ConfigStore.get('customerDomain');
+    // redirect to the org if it's different than the org being selected
+    if (customerDomain?.subdomain && orgSlug !== customerDomain?.subdomain) {
+      const urlWithQuery = generateOrgSlugUrl(orgSlug) + this.props.location.search;
+      window.location.assign(urlWithQuery);
+      return;
+    }
+    // otherwise proceed as normal
     this.setState({selectedOrgSlug: orgSlug, reloading: true});
 
     try {
