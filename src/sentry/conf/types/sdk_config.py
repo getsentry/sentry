@@ -3,6 +3,13 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any, Literal, NotRequired, TypedDict
 
+# This shouild be imported from sentry_sdk, but it is currenntly not avalable
+# due to the way it's being exported
+#
+# see: https://github.com/getsentry/sentry-python/issues/2909
+# see: https://github.com/getsentry/sentry-python/issues/2910
+_Event = Any
+
 
 class SdkConfig(TypedDict):
     release: str | None
@@ -15,8 +22,8 @@ class SdkConfig(TypedDict):
 
     send_client_reports: NotRequired[bool]
     traces_sampler: NotRequired[Callable[[dict[str, Any]], float]]
-    before_send: NotRequired[Callable[[dict[str, Any], object], dict[str, Any]]]
-    before_send_transaction: NotRequired[Callable[[dict[str, Any], object], dict[str, Any]]]
+    before_send: NotRequired[Callable[[_Event, dict[str, Any]], _Event | None]]
+    before_send_transaction: NotRequired[Callable[[_Event, dict[str, Any]], _Event | None]]
     profiles_sample_rate: NotRequired[float]
     profiler_mode: NotRequired[Literal["sleep", "thread", "gevent", "unknown"]]
     enable_db_query_source: NotRequired[bool]
