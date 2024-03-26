@@ -285,11 +285,9 @@ class TestDerivedCodeMappings(TestCase):
         assert source_path == ""
 
     def test_find_roots_not_matching(self):
-        # THIS CASE IS INCORRECT - needs to be fixed in the "packaged" refactor
-        # correct: stacktrace_root == "sentry/", source_path == "src/sentry/"
         stacktrace_root, source_path = find_roots("sentry/", "src/sentry/")
-        assert stacktrace_root == ""
-        assert source_path == "src/"
+        assert stacktrace_root == "sentry/"
+        assert source_path == "src/sentry/"
 
     def test_find_roots_equal(self):
         stacktrace_root, source_path = find_roots("source/", "source/")
