@@ -1,17 +1,9 @@
-import {
-  Component,
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-} from 'react';
+import {createContext, useCallback, useContext, useEffect, useRef} from 'react';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {switchOrganization} from 'sentry/actionCreators/organizations';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
 import {DEPLOY_PREVIEW_CONFIG} from 'sentry/constants';
-import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -35,27 +27,6 @@ const OrganizationLoaderContext = createContext<null | (() => void)>(null);
 
 interface Props {
   children: React.ReactNode;
-}
-
-/**
- * There are still a number of places where we consume the legacy organization
- * context. So for now we still need a component that provides this.
- */
-class LegacyOrganizationContextProvider extends Component<{
-  value: Organization | null;
-  children?: React.ReactNode;
-}> {
-  static childContextTypes = {
-    organization: SentryPropTypeValidators.isOrganization,
-  };
-
-  getChildContext() {
-    return {organization: this.props.value};
-  }
-
-  render() {
-    return this.props.children;
-  }
 }
 
 /**
@@ -147,14 +118,24 @@ export function OrganizationContextProvider({children}: Props) {
       // If the user has an active staff session, the response will not return a
       // 403 but access scopes will be an empty list.
       if (user?.isSuperuser && user?.isStaff && organization?.access?.length === 0) {
-        openSudo({isSuperuser: true, needsReload: true});
+        openSudo({
+          isSuperuser: true,
+          needsReload: true,
+          closeEvents: 'none',
+          closeButton: false,
+        });
       }
 
       return;
     }
 
     if (user?.isSuperuser && error.status === 403) {
-      openSudo({isSuperuser: true, needsReload: true});
+      openSudo({
+        isSuperuser: true,
+        needsReload: true,
+        closeEvents: 'none',
+        closeButton: false,
+      });
     }
 
     // This `catch` can swallow up errors in development (and tests)
@@ -182,9 +163,7 @@ export function OrganizationContextProvider({children}: Props) {
   return (
     <OrganizationLoaderContext.Provider value={loadOrganization}>
       <OrganizationContext.Provider value={organization}>
-        <LegacyOrganizationContextProvider value={organization}>
-          {children}
-        </LegacyOrganizationContextProvider>
+        {children}
       </OrganizationContext.Provider>
     </OrganizationLoaderContext.Provider>
   );

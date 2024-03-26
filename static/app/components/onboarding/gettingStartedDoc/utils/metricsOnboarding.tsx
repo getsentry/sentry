@@ -474,17 +474,12 @@ export const getJavaMetricsOnboarding = (): OnboardingConfig => ({
   ],
 });
 
-const getPythonConfigureSnippet = () => `
+const getPythonConfigureSnippet = (params: DocsParams) => `
 import sentry_sdk
 
 sentry_sdk.init(
-    ...
-    _experiments={
-        # Turns on the metrics module
-        "enable_metrics": True,
-        # Enables sending of code locations for metrics
-        "metric_code_locations": True,
-    },
+  dsn="${params.dsn}",
+  # ...
 )`;
 
 const getPythonVerifySnippet = () => `
@@ -500,7 +495,7 @@ export const getPythonMetricsOnboarding = ({
     {
       type: StepType.INSTALL,
       description: tct(
-        "You need a minimum version [codeVersion:1.38.0] of the [codePackage:sentry-python] SDK and add that as your dependency. You don't need to install any additional packages",
+        "You need a minimum version [codeVersion:1.40.6] of the [codePackage:sentry-python] SDK and add that as your dependency. You don't need to install any additional packages",
         {
           codeVersion: <code />,
           codePackage: <code />,
@@ -514,11 +509,11 @@ export const getPythonMetricsOnboarding = ({
       ],
     },
   ],
-  configure: () => [
+  configure: params => [
     {
       type: StepType.CONFIGURE,
       description: t(
-        'Once the SDK is installed or updated you have to add experimental flag into your SDK init:'
+        "Once the SDK is installed you are ready to go. With the default snippet in place, there's no need for any further configuration."
       ),
       configurations: [
         {
@@ -527,7 +522,7 @@ export const getPythonMetricsOnboarding = ({
               label: 'Python',
               value: 'python',
               language: 'python',
-              code: getPythonConfigureSnippet(),
+              code: getPythonConfigureSnippet(params),
             },
           ],
         },
@@ -580,13 +575,13 @@ export const getPythonMetricsOnboarding = ({
 
 const getDotnetConfigureSnippet = (params: DocsParams) => `
 SentrySdk.Init(options =>
+{
+  options.Dsn = "${params.dsn}";
+  options.ExperimentalMetrics = new ExperimentalMetricsOptions
   {
-    options.Dsn = "${params.dsn}";
-    options.ExperimentalMetrics = new ExperimentalMetricsOptions
-    {
-      EnableCodeLocations = true
-    };
-  });`;
+    EnableCodeLocations = true
+  };
+});`;
 
 const getDotnetVerifySnippet = () => `
 SentrySdk.Metrics.Increment(
@@ -603,7 +598,7 @@ export const getDotnetMetricsOnboarding = ({
     {
       type: StepType.INSTALL,
       description: tct(
-        'You need a minimum version [codeVersion:4.0.0] of the .NET SDK installed',
+        'You need a minimum version [codeVersion:4.0.0] of the .NET SDK installed.',
         {
           codeVersion: <code />,
         }
@@ -611,7 +606,7 @@ export const getDotnetMetricsOnboarding = ({
       configurations: [
         {
           language: 'powershell',
-          code: `dotnet add package ${packageName} -v 4.1.2`,
+          code: `dotnet add package ${packageName}`,
         },
       ],
     },

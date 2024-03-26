@@ -56,6 +56,16 @@ def build_mock_message(data, topic=None):
     return message
 
 
+def process_spans_strategy():
+    return ProcessSpansStrategyFactory(
+        num_processes=2,
+        input_block_size=1,
+        max_batch_size=1,
+        max_batch_time=1,
+        output_block_size=1,
+    )
+
+
 @override_options(
     {
         "standalone-spans.process-spans-consumer.enable": True,
@@ -67,7 +77,7 @@ def test_consumer_pushes_to_redis():
 
     topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_SPANS)["real_topic_name"])
     partition = Partition(topic, 0)
-    strategy = ProcessSpansStrategyFactory().create_with_partitions(
+    strategy = process_spans_strategy().create_with_partitions(
         commit=mock.Mock(),
         partitions={},
     )
@@ -121,7 +131,7 @@ def test_consumer_pushes_to_redis():
 def test_produces_valid_segment_to_kafka(mock_produce):
     topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_SPANS)["real_topic_name"])
     partition = Partition(topic, 0)
-    strategy = ProcessSpansStrategyFactory().create_with_partitions(
+    strategy = process_spans_strategy().create_with_partitions(
         commit=mock.Mock(),
         partitions={},
     )
@@ -169,7 +179,7 @@ def test_produces_valid_segment_to_kafka(mock_produce):
 def test_option_disabled(mock_buffer):
     topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_SPANS)["real_topic_name"])
     partition = Partition(topic, 0)
-    strategy = ProcessSpansStrategyFactory().create_with_partitions(
+    strategy = process_spans_strategy().create_with_partitions(
         commit=mock.Mock(),
         partitions={},
     )
@@ -204,7 +214,7 @@ def test_option_disabled(mock_buffer):
 def test_option_project_rollout(mock_buffer):
     topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_SPANS)["real_topic_name"])
     partition = Partition(topic, 0)
-    strategy = ProcessSpansStrategyFactory().create_with_partitions(
+    strategy = process_spans_strategy().create_with_partitions(
         commit=mock.Mock(),
         partitions={},
     )

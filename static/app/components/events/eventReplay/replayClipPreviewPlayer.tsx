@@ -33,7 +33,7 @@ type Props = {
   handleForwardClick?: () => void;
   isLarge?: boolean;
   onClickNextReplay?: () => void;
-  overlayText?: string;
+  overlayContent?: React.ReactNode;
   showNextAndPrevious?: boolean;
 } & ReturnType<typeof useReplayReader>;
 
@@ -65,14 +65,13 @@ function ReplayClipPreviewPlayer({
   isLarge,
   handleForwardClick,
   handleBackClick,
-  overlayText,
+  overlayContent,
   fetching,
   replay,
   replayRecord,
   fetchError,
   replayId,
   showNextAndPrevious,
-  onClickNextReplay,
 }: Props) {
   useRouteAnalyticsParams({
     event_replay_status: getReplayAnalyticsStatus({fetchError, replayRecord}),
@@ -125,9 +124,8 @@ function ReplayClipPreviewPlayer({
           replayRecord={replayRecord}
           handleBackClick={handleBackClick}
           handleForwardClick={handleForwardClick}
-          overlayText={overlayText}
+          overlayContent={overlayContent}
           showNextAndPrevious={showNextAndPrevious}
-          onClickNextReplay={onClickNextReplay}
           // if the player is large, we want to keep the priority as default
           playPausePriority={isLarge ? 'default' : undefined}
         />
@@ -140,6 +138,10 @@ const PlayerContainer = styled(FluidHeight)<{isLarge?: boolean}>`
   position: relative;
   max-height: ${p =>
     p.isLarge ? REPLAY_LOADING_HEIGHT_LARGE : REPLAY_LOADING_HEIGHT + 16}px;
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    min-height: ${p =>
+      p.isLarge ? REPLAY_LOADING_HEIGHT_LARGE : REPLAY_LOADING_HEIGHT + 16}px;
+  }
 `;
 
 const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)<{isLarge?: boolean}>`

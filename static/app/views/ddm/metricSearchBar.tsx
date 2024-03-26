@@ -10,7 +10,6 @@ import {
   parseSearch,
   Token,
 } from 'sentry/components/searchSyntax/parser';
-import {treeTransformer} from 'sentry/components/searchSyntax/utils';
 import type {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {t} from 'sentry/locale';
@@ -44,23 +43,30 @@ export function ensureQuotedTextFilters(
     return query;
   }
 
-  const newTree = treeTransformer({
-    tree: parsedSearch,
-    transform: token => {
-      if (token.type === Token.FILTER && token.filter === FilterType.TEXT) {
-        if (!token.value.quoted) {
-          return {
-            ...token,
-            // joinQuery() does not access nested tokens, so we need to manipulate the text of the filter instead of it's value
-            text: `${token.key.text}:"${token.value.text}"`,
-          };
-        }
+  for (let i = 0; i < parsedSearch.length; i++) {
+    const token = parsedSearch[i];
+    if (token.type === Token.FILTER && token.filter === FilterType.TEXT) {
+      // joinQuery() does not access nested tokens, so we need to manipulate the text of the filter instead of it's value
+      if (!token.value.quoted) {
+        token.text = `${token.key.text}:"${token.value.text}"`;
       }
-      return token;
-    },
-  });
 
-  return joinQuery(newTree);
+      const spaceToken = parsedSearch[i + 1];
+      const afterSpaceToken = parsedSearch[i + 2];
+      if (
+        spaceToken &&
+        afterSpaceToken &&
+        spaceToken.type === Token.SPACES &&
+        spaceToken.text === '' &&
+        afterSpaceToken.type === Token.FILTER
+      ) {
+        // Ensure there is a space between two filters
+        spaceToken.text = ' ';
+      }
+    }
+  }
+
+  return joinQuery(parsedSearch);
 }
 
 export function MetricSearchBar({

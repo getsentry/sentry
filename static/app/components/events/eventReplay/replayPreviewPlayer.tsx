@@ -36,9 +36,8 @@ function ReplayPreviewPlayer({
   replayRecord,
   handleBackClick,
   handleForwardClick,
-  overlayText,
+  overlayContent,
   showNextAndPrevious,
-  onClickNextReplay,
   playPausePriority,
 }: {
   replayId: string;
@@ -46,8 +45,7 @@ function ReplayPreviewPlayer({
   fullReplayButtonProps?: Partial<ComponentProps<typeof LinkButton>>;
   handleBackClick?: () => void;
   handleForwardClick?: () => void;
-  onClickNextReplay?: () => void;
-  overlayText?: string;
+  overlayContent?: React.ReactNode;
   playPausePriority?: ComponentProps<typeof ReplayPlayPauseButton>['priority'];
   showNextAndPrevious?: boolean;
 }) {
@@ -65,12 +63,16 @@ function ReplayPreviewPlayer({
   const isFullscreen = useIsFullscreen();
   const startOffsetMs = replay?.getStartOffsetMs() ?? 0;
 
+  const referrer = getRouteStringFromRoutes(routes);
+  const fromFeedback = referrer === '/feedback/';
+
   const fullReplayUrl = {
     pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replayId}/`),
     query: {
       referrer: getRouteStringFromRoutes(routes),
-      t_main: TabKey.ERRORS,
+      t_main: fromFeedback ? TabKey.BREADCRUMBS : TabKey.ERRORS,
       t: (currentTime + startOffsetMs) / 1000,
+      f_b_type: fromFeedback ? 'feedback' : undefined,
     },
   };
 
@@ -102,10 +104,7 @@ function ReplayPreviewPlayer({
               </ContextContainer>
             ) : null}
             <StaticPanel>
-              <ReplayPlayer
-                overlayText={overlayText}
-                onClickNextReplay={onClickNextReplay}
-              />
+              <ReplayPlayer overlayContent={overlayContent} />
             </StaticPanel>
           </PlayerContextContainer>
           {isFullscreen && isSidebarOpen ? <Breadcrumbs /> : null}

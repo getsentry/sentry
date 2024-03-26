@@ -8,7 +8,6 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Tag from 'sentry/components/tag';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
@@ -17,11 +16,10 @@ import type {ObjectStatus} from 'sentry/types';
 import {trimSlug} from 'sentry/utils/trimSlug';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import MonitorEnvironmentLabel from 'sentry/views/monitors/components/overviewTimeline/monitorEnvironmentLabel';
 import {StatusToggleButton} from 'sentry/views/monitors/components/statusToggleButton';
 import type {Monitor} from 'sentry/views/monitors/types';
-import {MonitorStatus} from 'sentry/views/monitors/types';
 import {scheduleAsText} from 'sentry/views/monitors/utils';
-import {statusIconColorMap} from 'sentry/views/monitors/utils/constants';
 
 import type {CheckInTimelineProps} from './checkInTimeline';
 import {CheckInTimeline} from './checkInTimeline';
@@ -147,9 +145,8 @@ export function TimelineTableRow({
     >
       {monitorDetails}
       <MonitorEnvContainer>
-        {environments.map(({name, status, isMuted}) => {
-          const envStatus = monitor.isMuted || isMuted ? MonitorStatus.DISABLED : status;
-          const {label, icon} = statusIconColorMap[envStatus];
+        {environments.map(env => {
+          const {name, isMuted} = env;
           return (
             <EnvRow key={name}>
               <DropdownMenu
@@ -166,12 +163,7 @@ export function TimelineTableRow({
                   actionCreator(name, isMuted)
                 )}
               />
-              <EnvWithStatus>
-                <MonitorEnvLabel status={envStatus}>{name}</MonitorEnvLabel>
-                <Tooltip title={label} skipWrapper>
-                  {icon}
-                </Tooltip>
-              </EnvWithStatus>
+              <MonitorEnvironmentLabel monitorEnv={env} monitor={monitor} />
             </EnvRow>
           );
         })}
@@ -267,15 +259,20 @@ interface TimelineRowProps {
 }
 
 const TimelineRow = styled('div')<TimelineRowProps>`
-  display: contents;
+  grid-column: 1/-1;
+
+  display: grid;
+  grid-template-columns: subgrid;
 
   ${p =>
     !p.singleMonitorView &&
     css`
-      &:nth-child(odd) > * {
+      transition: background 50ms ease-in-out;
+
+      &:nth-child(odd) {
         background: ${p.theme.backgroundSecondary};
       }
-      &:hover > * {
+      &:hover {
         background: ${p.theme.backgroundTertiary};
       }
     `}
@@ -293,16 +290,9 @@ const TimelineRow = styled('div')<TimelineRowProps>`
   /* Disabled monitors become more opaque */
   --disabled-opacity: ${p => (p.isDisabled ? '0.6' : 'unset')};
 
-  &:last-child > *:first-child {
+  &:last-child {
     border-bottom-left-radius: ${p => p.theme.borderRadius};
-  }
-
-  &:last-child > *:last-child {
     border-bottom-right-radius: ${p => p.theme.borderRadius};
-  }
-
-  > * {
-    transition: background 50ms ease-in-out;
   }
 `;
 
@@ -330,24 +320,6 @@ const EnvRow = styled('div')`
   justify-content: space-between;
   align-items: center;
   height: calc(${p => p.theme.fontSizeLarge} * ${p => p.theme.text.lineHeightHeading});
-`;
-
-const EnvWithStatus = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr max-content;
-  gap: ${space(0.5)};
-  align-items: center;
-  opacity: var(--disabled-opacity);
-`;
-
-const MonitorEnvLabel = styled('div')<{status: MonitorStatus}>`
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
-  min-width: 0;
-
-  color: ${p => p.theme[statusIconColorMap[p.status].color]};
-  opacity: var(--disabled-opacity);
 `;
 
 const TimelineContainer = styled('div')`

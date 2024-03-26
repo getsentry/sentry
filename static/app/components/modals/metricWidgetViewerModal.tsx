@@ -119,26 +119,47 @@ function MetricWidgetViewerModal({
     [setMetricEquations]
   );
 
-  const handleOrderChange = useCallback((order: Order, index: number) => {
-    setMetricQueries(curr => {
-      return curr.map((query, i) => {
-        const orderBy = i === index ? order : undefined;
-        return {...query, orderBy};
-      });
-    });
-  }, []);
+  const handleOrderChange = useCallback(
+    ({id, order}: {id: number; order: Order}) => {
+      const queryIdx = filteredQueries.findIndex(query => query.id === id);
+      if (queryIdx > -1) {
+        setMetricQueries(curr => {
+          return curr.map((query, i) => {
+            const orderBy = i === queryIdx ? order : undefined;
+            return {...query, orderBy};
+          });
+        });
+        return;
+      }
 
-  const addQuery = useCallback(() => {
-    setMetricQueries(curr => {
-      return [
-        ...curr,
-        {
-          ...metricQueries[metricQueries.length - 1],
-          id: generateQueryId(),
-        },
-      ];
-    });
-  }, [generateQueryId, metricQueries]);
+      const equationIdx = filteredEquations.findIndex(equation => equation.id === id);
+      if (equationIdx > -1) {
+        setMetricEquations(curr => {
+          return curr.map((equation, i) => {
+            const orderBy = i === equationIdx ? order : undefined;
+            return {...equation, orderBy};
+          });
+        });
+      }
+    },
+    [filteredEquations, filteredQueries]
+  );
+
+  const addQuery = useCallback(
+    (queryIndex?: number) => {
+      setMetricQueries(curr => {
+        const query = metricQueries[queryIndex ?? metricQueries.length - 1];
+        return [
+          ...curr,
+          {
+            ...query,
+            id: generateQueryId(),
+          },
+        ];
+      });
+    },
+    [generateQueryId, metricQueries]
+  );
 
   const addEquation = useCallback(() => {
     setMetricEquations(curr => {
@@ -146,8 +167,10 @@ function MetricWidgetViewerModal({
         ...curr,
         {
           formula: '',
+          name: '',
           id: generateEquationId(),
           type: MetricQueryType.FORMULA,
+          isHidden: false,
         },
       ];
     });
@@ -229,7 +252,7 @@ function MetricWidgetViewerModal({
           <ButtonBar gap={1}>
             <LinkButton
               to={getDdmUrl(organization.slug, {
-                widgets: metricQueries,
+                widgets: [...metricQueries, ...metricEquations],
                 ...selection.datetime,
                 project: selection.projects,
                 environment: selection.environments,

@@ -1,10 +1,14 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import * as qs from 'query-string';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import Count from 'sentry/components/count';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
+import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -16,24 +20,30 @@ import {space} from 'sentry/styles/space';
 import type {Group, Organization} from 'sentry/types';
 import type {TraceErrorOrIssue} from 'sentry/utils/performance/quickTrace/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {
-  isAutogroupedNode,
-  isSpanNode,
-  isTraceErrorNode,
-  isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/guards';
+import {decodeScalar} from 'sentry/utils/queryString';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import type {
   TraceTree,
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceTree';
 
+import {
+  isAutogroupedNode,
+  isMissingInstrumentationNode,
+  isSpanNode,
+  isTraceErrorNode,
+  isTransactionNode,
+} from '../../../guards';
+
 import {IssueSummary} from './issueSummary';
 
 type IssueProps = {
-  event_id: string;
   issue: TraceErrorOrIssue;
   organization: Organization;
 };
+
+const MAX_DISPLAYED_ISSUES_COUNT = 10;
 
 function Issue(props: IssueProps) {
   const {
@@ -65,7 +75,7 @@ function Issue(props: IssueProps) {
         <IssueSummary
           data={fetchedIssue}
           organization={props.organization}
-          event_id={props.event_id}
+          event_id={props.issue.event_id}
         />
         <EventOrGroupExtraDetails data={fetchedIssue} />
       </IssueSummaryWrapper>
@@ -107,13 +117,12 @@ function Issue(props: IssueProps) {
 }
 
 type IssueListProps = {
-  event_id: string;
   issues: TraceErrorOrIssue[];
   node: TraceTreeNode<TraceTree.NodeValue>;
   organization: Organization;
 };
 
-export function IssueList({issues, node, organization, event_id}: IssueListProps) {
+export function IssueList({issues, node, organization}: IssueListProps) {
   if (!issues.length) {
     return null;
   }
@@ -121,63 +130,99 @@ export function IssueList({issues, node, organization, event_id}: IssueListProps
   return (
     <StyledPanel>
       <IssueListHeader node={node} />
-      {issues.map((issue, index) => (
-        <Issue
-          key={index}
-          issue={issue}
-          organization={organization}
-          event_id={event_id}
-        />
+      {issues.slice(0, MAX_DISPLAYED_ISSUES_COUNT).map((issue, index) => (
+        <Issue key={index} issue={issue} organization={organization} />
       ))}
     </StyledPanel>
   );
 }
 
-function IssueListHeader({node}: {node: TraceTreeNode<TraceTree.NodeValue>}) {
-  const errors =
-    isSpanNode(node) || isTransactionNode(node)
-      ? node.value.errors.length
-      : isAutogroupedNode(node)
-        ? node.errors.length
-        : isTraceErrorNode(node)
-          ? 1
-          : 0;
+function getSearchParamFromNode(node: TraceTreeNode<TraceTree.NodeValue>) {
+  if (isTransactionNode(node) || isTraceErrorNode(node)) {
+    return `id:${node.value.event_id}`;
+  }
 
-  const performance_issues =
-    isSpanNode(node) || isTransactionNode(node)
-      ? node.value.performance_issues.length
-      : isAutogroupedNode(node)
-        ? node.performance_issues.length
-        : isTraceErrorNode(node)
-          ? 1
-          : 0;
+  // Issues associated to a span or autogrouped node are not queryable, so we query by
+  // the parent transaction's id
+  const parentTransaction = node.parent_transaction;
+  if ((isSpanNode(node) || isAutogroupedNode(node)) && parentTransaction) {
+    return `id:${parentTransaction.value.event_id}`;
+  }
+
+  if (isMissingInstrumentationNode(node)) {
+    throw new Error('Missing instrumentation nodes do not have associated issues');
+  }
+
+  return '';
+}
+
+function IssueListHeader({node}: {node: TraceTreeNode<TraceTree.NodeValue>}) {
+  const {errors, performance_issues} = node;
+  const organization = useOrganization();
+  const params = useParams<{traceSlug?: string}>();
+
+  const traceSlug = params.traceSlug?.trim() ?? '';
+
+  const dateSelection = useMemo(() => {
+    const normalizedParams = normalizeDateTimeParams(qs.parse(window.location.search), {
+      allowAbsolutePageDatetime: true,
+    });
+    const start = decodeScalar(normalizedParams.start);
+    const end = decodeScalar(normalizedParams.end);
+    const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
+
+    return {start, end, statsPeriod};
+  }, []);
 
   return (
     <StyledPanelHeader disablePadding>
       <IssueHeading>
-        {errors > 0 && performance_issues === 0
-          ? tct('[count] [text]', {
-              count: errors,
-              text: tn('Error', 'Errors', errors),
+        {errors.length + performance_issues.length > MAX_DISPLAYED_ISSUES_COUNT
+          ? tct(`[count]+  issues, [link]`, {
+              count: MAX_DISPLAYED_ISSUES_COUNT,
+              link: (
+                <StyledLink
+                  to={{
+                    pathname: `/organizations/${organization.slug}/issues/`,
+                    query: {
+                      query: `trace:${traceSlug} ${getSearchParamFromNode(node)}`,
+                      start: dateSelection.start,
+                      end: dateSelection.end,
+                      statsPeriod: dateSelection.statsPeriod,
+                    },
+                  }}
+                >
+                  {t('View All')}
+                </StyledLink>
+              ),
             })
-          : performance_issues > 0 && errors === 0
+          : errors.length > 0 && performance_issues.length === 0
             ? tct('[count] [text]', {
-                count: errors,
-                text: tn('Performance issue', 'Performance Issues', errors),
+                count: errors.length,
+                text: tn('Error', 'Errors', errors.length),
               })
-            : tct(
-                '[errors] [errorsText] and [performance_issues] [performanceIssuesText]',
-                {
-                  errors,
-                  performance_issues,
-                  errorsText: tn('Error', 'Errors', errors),
-                  performanceIssuesText: tn(
-                    'performance issue',
-                    'performance issues',
-                    performance_issues
+            : performance_issues.length > 0 && errors.length === 0
+              ? tct('[count] [text]', {
+                  count: performance_issues.length,
+                  text: tn(
+                    'Performance issue',
+                    'Performance Issues',
+                    performance_issues.length
                   ),
-                }
-              )}
+                })
+              : tct(
+                  '[errors] [errorsText] and [performance_issues] [performanceIssuesText]',
+                  {
+                    errors: errors.length,
+                    performance_issues: performance_issues.length,
+                    errorsText: tn('Error', 'Errors', errors.length),
+                    performanceIssuesText: tn(
+                      'performance issue',
+                      'performance issues',
+                      performance_issues.length
+                    ),
+                  }
+                )}
       </IssueHeading>
       <GraphHeading>{t('Graph')}</GraphHeading>
       <Heading>{t('Events')}</Heading>
@@ -186,6 +231,10 @@ function IssueListHeader({node}: {node: TraceTreeNode<TraceTree.NodeValue>}) {
     </StyledPanelHeader>
   );
 }
+
+const StyledLink = styled(Link)`
+  margin-left: ${space(0.5)};
+`;
 
 const Heading = styled('div')`
   display: flex;
@@ -232,6 +281,11 @@ const StyledLoadingIndicatorWrapper = styled('div')`
   width: 100%;
   padding: ${space(2)} 0;
   height: 84px;
+
+  /* Add a border between two rows of loading issue states */
+  & + & {
+    border-top: 1px solid ${p => p.theme.border};
+  }
 `;
 
 const StyledIconWrapper = styled(IconWrapper)`

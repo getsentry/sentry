@@ -133,7 +133,7 @@ def transform_spans_to_event_dict(spans):
         sentry_tags = span.get("sentry_tags", {})
 
         if span["is_segment"] is True:
-            event["event_id"] = span["event_id"]
+            event["event_id"] = span.get("event_id")
             event["project_id"] = span["project_id"]
             event["transaction"] = sentry_tags.get("transaction")
             event["release"] = sentry_tags.get("release")

@@ -1,5 +1,8 @@
+import type {Theme} from '@emotion/react';
+
 import type {Client} from 'sentry/api';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
+import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import type {Organization} from 'sentry/types';
 import type {Event, EventTransaction, Measurement} from 'sentry/types/event';
 import type {
@@ -8,7 +11,10 @@ import type {
   TracePerformanceIssue,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
-import {isTraceError} from 'sentry/utils/performance/quickTrace/utils';
+import {
+  isTraceError,
+  isTraceTransaction,
+} from 'sentry/utils/performance/quickTrace/utils';
 
 import {TraceType} from '../traceDetails/newTraceDetailsContent';
 import {isRootTransaction} from '../traceDetails/utils';
@@ -100,9 +106,7 @@ export declare namespace TraceTree {
   type Transaction = TraceFullDetailed;
   interface Span extends RawSpanType {
     childTransaction: Transaction | undefined;
-    errors: TraceError[];
     event: EventTransaction;
-    performance_issues: TracePerformanceIssue[];
   }
   type Trace = TraceSplitResults<Transaction>;
   type TraceError = TraceErrorType;
@@ -214,6 +218,28 @@ function maybeInsertMissingInstrumentationSpan(
   parent.spanChildren.push(missingInstrumentationSpan);
 }
 
+export function makeTraceNodeBarColor(
+  theme: Theme,
+  node: TraceTreeNode<TraceTree.NodeValue>
+): string {
+  if (isTransactionNode(node)) {
+    return pickBarColor(node.value['transaction.op']);
+  }
+  if (isSpanNode(node)) {
+    return pickBarColor(node.value.op);
+  }
+  if (isAutogroupedNode(node)) {
+    return theme.blue300;
+  }
+  if (isMissingInstrumentationNode(node)) {
+    return theme.gray300;
+  }
+  if (isTraceErrorNode(node)) {
+    return theme.red300;
+  }
+  return pickBarColor('default');
+}
+
 function shouldCollapseNodeByDefault(node: TraceTreeNode<TraceTree.NodeValue>) {
   if (isSpanNode(node)) {
     // Android creates TCP connection spans which are noisy and not useful in most cases
@@ -231,6 +257,7 @@ export class TraceTree {
   type: 'loading' | 'empty' | 'error' | 'trace' = 'trace';
   root: TraceTreeNode<null> = TraceTreeNode.Root();
   indicators: TraceTree.Indicator[] = [];
+  eventsCount: number = 0;
 
   private _spanPromises: Map<string, Promise<Event>> = new Map();
   private _list: TraceTreeNode<TraceTree.NodeValue>[] = [];
@@ -266,6 +293,14 @@ export class TraceTree {
     let traceStart = Number.POSITIVE_INFINITY;
     let traceEnd = Number.NEGATIVE_INFINITY;
 
+    const traceNode = new TraceTreeNode(tree.root, trace, {
+      event_id: undefined,
+      project_slug: undefined,
+    });
+
+    // Trace is always expanded by default
+    tree.root.children.push(traceNode);
+
     function visit(
       parent: TraceTreeNode<TraceTree.NodeValue | null>,
       value: TraceFullDetailed | TraceTree.TraceError
@@ -274,6 +309,15 @@ export class TraceTree {
         project_slug: value && 'project_slug' in value ? value.project_slug : undefined,
         event_id: value && 'event_id' in value ? value.event_id : undefined,
       });
+      node.canFetch = true;
+      tree.eventsCount += 1;
+
+      if (isTraceTransaction(value)) {
+        traceNode.errors.push(...value.errors);
+        traceNode.performance_issues.push(...value.performance_issues);
+      } else {
+        traceNode.errors.push(value);
+      }
 
       if (parent) {
         parent.children.push(node as TraceTreeNode<TraceTree.NodeValue>);
@@ -300,14 +344,6 @@ export class TraceTree {
 
       return node;
     }
-
-    const traceNode = new TraceTreeNode(tree.root, trace, {
-      event_id: undefined,
-      project_slug: undefined,
-    });
-
-    // Trace is always expanded by default
-    tree.root.children.push(traceNode);
 
     const transactionQueue = trace.transactions ?? [];
     const orphanErrorsQueue = trace.orphan_errors ?? [];
@@ -464,14 +500,15 @@ export class TraceTree {
       const spanNodeValue: TraceTree.Span = {
         ...span,
         event: data as EventTransaction,
-        errors: getRelatedSpanErrorsFromTransaction(span, parent),
-        performance_issues: getRelatedPerformanceIssuesFromTransaction(span, parent),
         childTransaction: childTransaction?.value,
       };
       const node: TraceTreeNode<TraceTree.Span> = new TraceTreeNode(null, spanNodeValue, {
         event_id: undefined,
         project_slug: undefined,
       });
+
+      node.errors = getRelatedSpanErrorsFromTransaction(span, parent);
+      node.performance_issues = getRelatedPerformanceIssuesFromTransaction(span, parent);
 
       // This is the case where the current span is the parent of a txn at the
       // trace level. When zooming into the parent of the txn, we want to place a copy
@@ -543,11 +580,11 @@ export class TraceTree {
         isSpanNode(tail.children[0]) &&
         tail.children[0].value.op === head.value.op
       ) {
-        if ((tail?.value?.errors?.length ?? 0) > 0) {
-          errors.push(...tail?.value?.errors);
+        if ((tail?.errors?.length ?? 0) > 0) {
+          errors.push(...tail?.errors);
         }
-        if ((tail?.value?.performance_issues?.length ?? 0) > 0) {
-          performance_issues.push(...tail.value.performance_issues);
+        if ((tail?.performance_issues?.length ?? 0) > 0) {
+          performance_issues.push(...tail.performance_issues);
         }
 
         // Collect start/end of all nodes in the list
@@ -565,11 +602,11 @@ export class TraceTree {
 
       // Checking the tail node for errors as it is not included in the grouping
       // while loop, but is hidden when the autogrouped node is collapsed
-      if ((tail?.value?.errors?.length ?? 0) > 0) {
-        errors.push(...tail?.value?.errors);
+      if ((tail?.errors?.length ?? 0) > 0) {
+        errors.push(...tail?.errors);
       }
-      if ((tail?.value?.performance_issues?.length ?? 0) > 0) {
-        performance_issues.push(...tail.value.performance_issues);
+      if ((tail?.performance_issues?.length ?? 0) > 0) {
+        performance_issues.push(...tail.performance_issues);
       }
 
       if (groupMatchCount < 1) {
@@ -625,10 +662,11 @@ export class TraceTree {
     while (queue.length > 0) {
       const node = queue.pop()!;
 
+      for (const child of node.children) {
+        queue.push(child);
+      }
+
       if (node.children.length < 5) {
-        for (const child of node.children) {
-          queue.push(child);
-        }
         continue;
       }
 
@@ -689,7 +727,7 @@ export class TraceTree {
               child.value &&
               'start_timestamp' in child.value &&
               typeof child.value.start_timestamp === 'number' &&
-              child.value.start_timestamp > start_timestamp
+              child.value.start_timestamp < start_timestamp
             ) {
               start_timestamp = child.value.start_timestamp;
             }
@@ -706,16 +744,14 @@ export class TraceTree {
                 'errors' in child.value &&
                 Array.isArray(child.value.errors)
               ) {
-                autoGroupedNode.errors.push(...child.value.errors);
+                autoGroupedNode.errors.push(...child.errors);
               }
               if (
                 child.value &&
                 'performance_issues' in child.value &&
-                Array.isArray(child.value.performance_issues)
+                Array.isArray(child.performance_issues)
               ) {
-                autoGroupedNode.performance_issues.push(
-                  ...child.value.performance_issues
-                );
+                autoGroupedNode.performance_issues.push(...child.performance_issues);
               }
             }
 
@@ -973,6 +1009,8 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     project_slug: undefined,
     event_id: undefined,
   };
+  errors: TraceErrorType[] = [];
+  performance_issues: TracePerformanceIssue[] = [];
 
   multiplier: number;
   space: [number, number] | null = null;
@@ -1028,6 +1066,16 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
 
     if (shouldCollapseNodeByDefault(this)) {
       this.expanded = false;
+    }
+
+    if (isTransactionNode(this)) {
+      this.errors = this.value.errors;
+      this.performance_issues = this.value.performance_issues;
+    }
+
+    // For error nodes, its value is the only associated issue.
+    if (isTraceErrorNode(this)) {
+      this.errors = [this.value];
     }
   }
 
@@ -1126,11 +1174,20 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
   }
 
   get has_errors(): boolean {
-    return (
-      this.value &&
-      (('errors' in this.value && this.value.errors.length > 0) ||
-        ('performance_issues' in this.value && this.value.performance_issues.length > 0))
-    );
+    return this.errors.length > 0 || this.performance_issues.length > 0;
+  }
+
+  get parent_transaction(): TraceTreeNode<TraceTree.Transaction> | null {
+    let node: TraceTreeNode<TraceTree.NodeValue> | null = this.parent;
+
+    while (node) {
+      if (isTransactionNode(node)) {
+        return node;
+      }
+      node = node.parent;
+    }
+
+    return null;
   }
 
   /**
@@ -1405,9 +1462,6 @@ export class ParentAutogroupNode extends TraceTreeNode<TraceTree.ChildrenAutogro
   head: TraceTreeNode<TraceTree.Span>;
   tail: TraceTreeNode<TraceTree.Span>;
   groupCount: number = 0;
-
-  errors: TraceErrorType[] = [];
-  performance_issues: TracePerformanceIssue[] = [];
   profiles: TraceTree.Profile[] = [];
 
   private _autogroupedSegments: [number, number][] | undefined;
@@ -1459,9 +1513,6 @@ export class ParentAutogroupNode extends TraceTreeNode<TraceTree.ChildrenAutogro
 
 export class SiblingAutogroupNode extends TraceTreeNode<TraceTree.SiblingAutogroup> {
   groupCount: number = 0;
-
-  errors: TraceErrorType[] = [];
-  performance_issues: TracePerformanceIssue[] = [];
   profiles: TraceTree.Profile[] = [];
 
   private _autogroupedSegments: [number, number][] | undefined;
