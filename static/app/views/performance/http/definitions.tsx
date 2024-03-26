@@ -22,7 +22,6 @@ export const HTTP_RESPONSE_STATUS_CODES = {
   '303': t('See Other'),
   '304': t('Not Modified'),
   '305': t('Use Proxy'),
-  '306': t('unused'),
   '307': t('Temporary Redirect'),
   '308': t('Permanent Redirect'),
   '400': t('Bad Request'),
