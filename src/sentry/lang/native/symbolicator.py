@@ -65,6 +65,7 @@ class Symbolicator:
     ):
         URLS = settings.SYMBOLICATOR_POOL_URLS
         pool = SymbolicatorPools.default.value
+        # TODO: Add a pool for JVM
         if task_kind.is_low_priority:
             if task_kind.platform == SymbolicatorPlatform.js:
                 pool = SymbolicatorPools.lpq_js.value

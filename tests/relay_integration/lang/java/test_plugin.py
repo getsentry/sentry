@@ -1243,6 +1243,12 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         ]
         assert frames[6].post_context == ["        }", "    }", "}", ""]
 
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_basic_source_lookup_symbolicator(self):
+        with override_options({"symbolicator.proguard-processing-sample-rate": 1.0}):
+            self.test_basic_source_lookup()
+
     def test_source_lookup_with_proguard(self):
         self.upload_proguard_mapping(PROGUARD_SOURCE_LOOKUP_UUID, PROGUARD_SOURCE_LOOKUP_SOURCE)
         debug_id1 = str(uuid4())

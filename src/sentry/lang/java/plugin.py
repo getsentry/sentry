@@ -1,26 +1,20 @@
-from time import time
-
 import sentry_sdk
-from django.conf import settings
 
-from sentry.lang.java.processing import deobfuscate_exception_value, process_jvm_stacktraces
+from sentry.lang.java.processing import deobfuscate_exception_value
 from sentry.lang.java.proguard import open_proguard_mapper
 from sentry.lang.java.utils import (
     deobfuscate_view_hierarchy,
     get_jvm_images,
     get_proguard_images,
     has_proguard_file,
-    should_use_symbolicator_for_proguard,
 )
 from sentry.lang.javascript.utils import get_source_context, trim_line
-from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorPlatform, SymbolicatorTaskKind
 from sentry.models.artifactbundle import ArtifactBundleArchive
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.eventerror import EventError
 from sentry.plugins.base.v2 import Plugin2
 from sentry.reprocessing import report_processing_issue
 from sentry.stacktraces.processing import StacktraceProcessor
-from sentry.tasks.symbolication import SymbolicationTimeout
 
 
 class JavaStacktraceProcessor(StacktraceProcessor):
@@ -296,33 +290,8 @@ class JavaPlugin(Plugin2):
         return False
 
     def get_stacktrace_processors(self, data, stacktrace_infos, platforms, **kwargs):
-        from sentry.models.project import Project
-
-        project_id = data.get("project")
-        project = Project.objects.get_from_cache(id=project_id)
-
-        if "java" not in platforms:
-            return []
-        elif not should_use_symbolicator_for_proguard(project_id):
+        if "java" in platforms:
             return [JavaSourceLookupStacktraceProcessor]
-
-        symbolication_start_time = time()
-
-        def on_symbolicator_request():
-            duration = time() - symbolication_start_time
-            if duration > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
-                raise SymbolicationTimeout
-
-        symbolicator_platform = SymbolicatorPlatform.jvm
-        symbolicator = Symbolicator(
-            task_kind=SymbolicatorTaskKind(platform=symbolicator_platform),
-            on_request=on_symbolicator_request,
-            project=project,
-            event_id=data["event_id"],
-        )
-
-        process_jvm_stacktraces(symbolicator, data)
-        return []
 
     def get_event_preprocessors(self, data):
         if has_proguard_file(data):

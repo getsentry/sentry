@@ -102,13 +102,13 @@ def get_native_symbolication_function(data: Any) -> Callable[[Symbolicator, Any]
 def get_symbolication_function(
     data: Any,
 ) -> tuple[SymbolicatorPlatform, Callable[[Symbolicator, Any], Any] | None]:
-    # from sentry.lang.java.processing import process_jvm_stacktraces
-    # from sentry.lang.java.utils import should_use_symbolicator_for_proguard
+    from sentry.lang.java.processing import process_jvm_stacktraces
+    from sentry.lang.java.utils import should_use_symbolicator_for_proguard
 
     if data["platform"] in ("javascript", "node"):
         return SymbolicatorPlatform.js, process_js_stacktraces
-    # elif data["platform"] == "java" and should_use_symbolicator_for_proguard(data.get("project")):
-    #     return SymbolicatorPlatform.jvm, process_jvm_stacktraces
+    elif data["platform"] == "java" and should_use_symbolicator_for_proguard(data.get("project")):
+        return SymbolicatorPlatform.jvm, process_jvm_stacktraces
     else:
         return SymbolicatorPlatform.native, get_native_symbolication_function(data)
 
@@ -362,6 +362,11 @@ def submit_symbolicate(
             task = symbolicate_js_event_low_priority
         else:
             task = symbolicate_js_event
+    elif task_kind.platform == SymbolicatorPlatform.jvm:
+        if task_kind.is_low_priority:
+            task = symbolicate_jvm_event_low_priority
+        else:
+            task = symbolicate_jvm_event
     elif task_kind.is_reprocessing:
         if task_kind.is_low_priority:
             task = symbolicate_event_from_reprocessing_low_priority
