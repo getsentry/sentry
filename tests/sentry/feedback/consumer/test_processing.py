@@ -1,16 +1,20 @@
 from __future__ import annotations
 
 import datetime
-import time
+import uuid
 from typing import Any
 from unittest.mock import Mock
 
+import msgpack
 import pytest
+from arroyo.types import Partition, Topic
 
+from sentry.conf.types.kafka_definition import Topic as TopicNames
 from sentry.event_manager import EventManager
-from sentry.ingest.consumer.processors import process_event
+from sentry.ingest.consumer.factory import IngestStrategyFactory
+from sentry.ingest.types import ConsumerType
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.utils import json
+from tests.sentry.feedback.consumer.test_utils import make_broker_message, make_ingest_message
 
 """
 Based on test_ingest_consumer_processing.py. Feedback uses the same IngestStrategyFactory as Events,
@@ -43,12 +47,12 @@ def preprocess_event(monkeypatch):
 def test_processing_calls_create_feedback_issue(
     default_project, create_feedback_issue, preprocess_event, monkeypatch
 ):
-    # Tests the feedback branch of the ingest consumer process_event fx
     monkeypatch.setattr("sentry.features.has", lambda *a, **kw: True)
 
     project_id = default_project.id
     now = datetime.datetime.now()
     event: dict[str, Any] = {
+        "event_id": uuid.uuid4().hex,
         "type": "feedback",
         "timestamp": now.isoformat(),
         "start_timestamp": now.isoformat(),
@@ -64,20 +68,24 @@ def test_processing_calls_create_feedback_issue(
             },
         },
     }
-    payload = get_normalized_event(event, default_project)
-    event_id = payload["event_id"]
-    start_time = time.time() - 3600
 
-    process_event(
-        {
-            "payload": json.dumps(payload),
-            "start_time": start_time,
-            "event_id": event_id,
-            "project_id": project_id,
-            "remote_addr": "127.0.0.1",
-        },
-        project=default_project,
+    strategy_factory = IngestStrategyFactory(
+        ConsumerType.Feedback,
+        reprocess_only_stuck_events=False,
+        num_processes=1,
+        max_batch_size=1,
+        max_batch_time=1,
+        input_block_size=None,
+        output_block_size=None,
     )
+    strategy = strategy_factory.create_with_partitions(Mock(), Mock())
+    partition = Partition(Topic(TopicNames.INGEST_FEEDBACK_EVENTS.value), 0)
+    offset = 5
+
+    ingest_message, _ = make_ingest_message(event, default_project, normalize=True)
+    kafka_payload = msgpack.packb(ingest_message)
+    message = make_broker_message(kafka_payload, partition, offset)
+    strategy.submit(message)
 
     assert create_feedback_issue.call_count == 1
     assert (
