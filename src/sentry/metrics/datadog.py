@@ -5,8 +5,7 @@ from typing import Any
 from datadog import initialize
 from datadog.threadstats.base import ThreadStats
 from datadog.util.hostname import get_hostname
-
-from sentry.utils.cache import memoize
+from django.utils.functional import cached_property
 
 from .base import MetricsBackend, Tags
 
@@ -29,7 +28,7 @@ class DatadogMetricsBackend(MetricsBackend):
             # TypeError: 'NoneType' object is not callable
             pass
 
-    @memoize
+    @cached_property
     def stats(self) -> ThreadStats:
         instance = ThreadStats()
         instance.start()

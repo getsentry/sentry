@@ -36,6 +36,7 @@ from sentry.api.event_search import (
 from sentry.constants import DataCategory
 from sentry.discover.arithmetic import is_equation
 from sentry.exceptions import InvalidSearchQuery
+from sentry.features.rollout import in_random_rollout
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
@@ -45,6 +46,8 @@ from sentry.search.events.constants import DEFAULT_PROJECT_THRESHOLD, VITAL_THRE
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import ParsedMRI, parse_mri
 from sentry.snuba.metrics.utils import MetricOperationType
+from sentry.utils.cache import cache
+from sentry.utils.hashlib import md5_text
 from sentry.utils.snuba import is_measurement, is_span_op_breakdown, resolve_column
 
 logger = logging.getLogger(__name__)
@@ -619,7 +622,7 @@ def should_use_on_demand_metrics_for_querying(organization: Organization, **kwar
     return should_use_on_demand_metrics(**kwargs)
 
 
-def should_use_on_demand_metrics(
+def _should_use_on_demand_metrics(
     dataset: str | Dataset | None,
     aggregate: str,
     query: str | None,
@@ -657,6 +660,39 @@ def should_use_on_demand_metrics(
     )
 
     return not supported_by.standard_metrics and supported_by.on_demand_metrics
+
+
+def should_use_on_demand_metrics(
+    dataset: str | Dataset | None,
+    aggregate: str,
+    query: str | None,
+    groupbys: Sequence[str] | None = None,
+    prefilling: bool = False,
+) -> bool:
+    if in_random_rollout("on_demand_metrics.cache_should_use_on_demand"):
+
+        dataset_str = dataset.value if isinstance(dataset, Enum) else str(dataset or "")
+        groupbys_str = ",".join(sorted(groupbys)) if groupbys else ""
+        cache_key = md5_text(
+            f"{dataset_str}-{aggregate}-{query or ''}-{groupbys_str}-prefilling={prefilling}"
+        ).hexdigest()
+        cached_result = cache.get(cache_key)
+        if cached_result:
+            return cached_result
+        else:
+            result = _should_use_on_demand_metrics(
+                dataset=dataset,
+                aggregate=aggregate,
+                query=query,
+                groupbys=groupbys,
+                prefilling=prefilling,
+            )
+            cache.set(cache_key, result, timeout=3600)
+            return result
+
+    return _should_use_on_demand_metrics(
+        dataset=dataset, aggregate=aggregate, query=query, groupbys=groupbys, prefilling=prefilling
+    )
 
 
 def _extract_aggregate_components(aggregate: str) -> tuple[str, list[str]] | None:
