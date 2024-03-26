@@ -1788,6 +1788,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-vitals-inp": False,
     # Enable trace explorer features in performance
     "organizations:performance-trace-explorer": False,
+    # Hides some fields and sections in the transaction summary page that are being deprecated
+    "organizations:performance-transaction-summary-cleanup": False,
     # Enable profiling
     "organizations:profiling": False,
     # Enabled for those orgs who participated in the profiling Beta program
