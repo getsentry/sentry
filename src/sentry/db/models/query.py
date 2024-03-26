@@ -72,7 +72,7 @@ def update(instance: Model, using: str | None = None, **kwargs: Any) -> int:
         raise ValueError("Somehow we have updated multiple rows. This is very, very bad.")
 
 
-update.alters_data = True  # type: ignore
+update.alters_data = True  # type: ignore[attr-defined]
 
 
 def update_or_create(
