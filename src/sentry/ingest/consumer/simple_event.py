@@ -1,5 +1,4 @@
 import logging
-import traceback
 
 import msgpack
 from arroyo.backends.kafka.consumer import KafkaPayload
@@ -64,5 +63,4 @@ def process_simple_event_message(
 
         raw_value = raw_message.value
         assert isinstance(raw_value, BrokerValue)
-        traceback.print_exc()
         raise InvalidMessage(raw_value.partition, raw_value.offset) from exc

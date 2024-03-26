@@ -516,8 +516,8 @@ def get_stream_processor(
         dlq_policy = DlqPolicy(
             KafkaDlqProducer(dlq_producer, ArroyoTopic(dlq_topic_defn["real_topic_name"])),
             DlqLimit(
-                max_invalid_ratio=consumer_definition["dlq_max_invalid_ratio"],
-                max_consecutive_count=consumer_definition["dlq_max_consecutive_count"],
+                max_invalid_ratio=consumer_definition.get("dlq_max_invalid_ratio"),
+                max_consecutive_count=consumer_definition.get("dlq_max_consecutive_count"),
             ),
             None,
         )

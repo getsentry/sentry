@@ -6,6 +6,7 @@ from unittest.mock import Mock
 
 import msgpack
 import pytest
+from confluent_kafka import Consumer as ConfluentConsumer
 from django.conf import settings
 
 from sentry.conf.types.kafka_definition import Topic
@@ -29,6 +30,7 @@ logger = logging.getLogger(__name__)
 
 # Poll this amount of times (for 0.1 sec each) at most to wait for messages
 MAX_POLL_ITERATIONS = 100
+POLL_DURATION_S = 0.1
 
 # Block size for shared memory of the multiprocessing kafka consumer strategy.
 # Any reasonable value will do for tests.
@@ -65,8 +67,7 @@ def get_feedback_message(default_project):
     return inner
 
 
-@pytest.fixture
-def random_group_id():
+def get_random_group_id():
     return f"test-consumer-{random.randint(0, 2 ** 16)}"
 
 
@@ -84,30 +85,29 @@ def test_consumer_reads_from_topic_and_creates_feedback_issue(
     kafka_admin,
     default_project,
     get_feedback_message,
-    random_group_id,
     create_feedback_issue,
     monkeypatch,
 ):
     monkeypatch.setattr("sentry.features.has", lambda *a, **kw: True)
 
     topic = Topic.INGEST_FEEDBACK_EVENTS
-    topic_event_name = get_topic_definition(topic)["real_topic_name"]
+    topic_name = get_topic_definition(topic)["real_topic_name"]
 
     admin = kafka_admin(settings)
-    admin.delete_topic(topic_event_name)
+    admin.delete_topic(topic_name)
     producer = kafka_producer(settings)
 
-    create_topics("default", [topic_event_name])
+    create_topics("default", [topic_name])
 
     message, event_id = get_feedback_message()
-    producer.produce(topic_event_name, message)
+    producer.produce(topic_name, message)
 
     consumer = get_stream_processor(
         "ingest-feedback-events",
         consumer_args=["--max-batch-size=2", "--max-batch-time-ms=5000", "--processes=10"],
-        topic=None,
+        topic=None,  # topic and cluster inferred from consumer defn
         cluster=None,
-        group_id=random_group_id,
+        group_id=get_random_group_id(),
         auto_offset_reset="earliest",
         strict_offset_reset=False,
         enforce_schema=True,
@@ -133,26 +133,25 @@ def test_consumer_gets_event_unstuck_and_reprocess_only_stuck_events(
     kafka_admin,
     default_project,
     get_feedback_message,
-    random_group_id,
     create_feedback_issue,
     monkeypatch,
 ):
     monkeypatch.setattr("sentry.features.has", lambda *a, **kw: True)
 
     topic = Topic.INGEST_FEEDBACK_EVENTS
-    topic_event_name = get_topic_definition(topic)["real_topic_name"]
+    topic_name = get_topic_definition(topic)["real_topic_name"]
 
     admin = kafka_admin(settings)
-    admin.delete_topic(topic_event_name)
+    admin.delete_topic(topic_name)
     producer = kafka_producer(settings)
 
-    create_topics("default", [topic_event_name])
+    create_topics("default", [topic_name])
 
     message1, event_id1 = get_feedback_message()
-    producer.produce(topic_event_name, message1)
+    producer.produce(topic_name, message1)
 
     message2, event_id2 = get_feedback_message()
-    producer.produce(topic_event_name, message2)
+    producer.produce(topic_name, message2)
 
     # an event is "stuck" when it is in the processing store, so lets fake that:
     event_processing_store.store({"project": default_project.id, "event_id": event_id2})
@@ -165,9 +164,9 @@ def test_consumer_gets_event_unstuck_and_reprocess_only_stuck_events(
             "--processes=10",
             "--reprocess-only-stuck-events",
         ],
-        topic=None,
+        topic=None,  # topic and cluster inferred from consumer defn
         cluster=None,
-        group_id=random_group_id,
+        group_id=get_random_group_id(),
         auto_offset_reset="earliest",
         strict_offset_reset=False,
         enforce_schema=True,
@@ -186,3 +185,59 @@ def test_consumer_gets_event_unstuck_and_reprocess_only_stuck_events(
     assert create_feedback_issue.call_args[0][0]["type"] == "feedback"
     assert create_feedback_issue.call_args[0][0].get("contexts", {}).get("feedback") is not None
     assert create_feedback_issue.call_args[0][1] == default_project.id
+
+
+@django_db_all(transaction=True)
+def test_consumer_writes_to_dlq(
+    task_runner,
+    kafka_producer,
+    kafka_admin,
+    default_project,
+):
+    topic = Topic.INGEST_FEEDBACK_EVENTS
+    topic_name = get_topic_definition(topic)["real_topic_name"]
+    dlq_topic = Topic.INGEST_FEEDBACK_EVENTS_DLQ
+    dlq_topic_name = get_topic_definition(dlq_topic)["real_topic_name"]
+
+    admin = kafka_admin(settings)
+    admin.delete_topic(topic_name)
+    admin.delete_topic(dlq_topic_name)
+    producer = kafka_producer(settings)
+
+    create_topics("default", [topic_name, dlq_topic_name])
+
+    invalid_msg = "bad message :("
+    producer.produce(topic_name, invalid_msg)
+
+    consumer = get_stream_processor(
+        "ingest-feedback-events",
+        consumer_args=["--max-batch-size=2", "--max-batch-time-ms=5000", "--processes=10"],
+        topic=None,  # topic and cluster inferred from consumer defn
+        cluster=None,
+        group_id=get_random_group_id(),
+        auto_offset_reset="earliest",
+        strict_offset_reset=False,
+        enforce_schema=True,
+        enable_dlq=True,
+    )
+
+    dlq_consumer = ConfluentConsumer(
+        {
+            "bootstrap.servers": "127.0.0.1:9092",
+            "log_level": 6,
+            "enable.auto.commit": False,
+            "enable.auto.offset.store": False,
+            "group.id": get_random_group_id(),
+            "auto.offset.reset": "earliest",
+            "enable.partition.eof": False,
+        }
+    )
+
+    with task_runner():
+        i = 0
+        while i < MAX_POLL_ITERATIONS:
+            consumer._run_once()
+            message = dlq_consumer.poll(timeout=POLL_DURATION_S)
+            if message is not None and message.error() is None:
+                break
+            i += 1
