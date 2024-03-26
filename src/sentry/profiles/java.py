@@ -126,22 +126,23 @@ def merge_jvm_frames_with_android_methods(frames: list[dict], methods: list[dict
         if m.get("data", {}).get("deobfuscation_status", "") != "deobfuscated":
             m["class_name"] = f["module"]
             m["data"] = {"deobfuscation_status": "deobfuscated"}
-            m["in_app"] = f.get("in_app", False)
             m["name"] = f["function"]
             m["signature"] = f.get("signature", "")
             m["source_file"] = f.get("abs_path", "")
             m["source_line"] = f.get("lineno", 0)
+            if "in_app" in f:
+                m["in_app"] = f["in_app"]
         else:
             if "inline_frames" in m:
                 m["inline_frames"] = [m]
-            m["inline_frames"].append(
-                {
-                    "class_name": f["module"],
-                    "data": {"deobfuscation_status": "deobfuscated"},
-                    "in_app": f.get("in_app", False),
-                    "name": f["function"],
-                    "signature": f.get("signature", ""),
-                    "source_file": f.get("abs_path", ""),
-                    "source_line": f.get("lineno", 0),
-                }
-            )
+            im = {
+                "class_name": f["module"],
+                "data": {"deobfuscation_status": "deobfuscated"},
+                "name": f["function"],
+                "signature": f.get("signature", ""),
+                "source_file": f.get("abs_path", ""),
+                "source_line": f.get("lineno", 0),
+            }
+            if "in_app" in f:
+                im["in_app"] = f["in_app"]
+            m["inline_frames"].append(im)
