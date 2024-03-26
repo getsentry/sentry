@@ -133,7 +133,7 @@ function InviteRowControl({
         aria-label={t('Add to Team')}
         data-test-id="select-teams"
         disabled={isTeamRolesAllowed ? disabled : true}
-        placeholder={isTeamRolesAllowed ? t('None') : t('Role cannot apply to teams')}
+        placeholder={isTeamRolesAllowed ? t('None') : t('Role cannot join teams')}
         value={isTeamRolesAllowed ? teams : []}
         onChange={onChangeTeams}
         useTeamDefaultIfOnlyOne

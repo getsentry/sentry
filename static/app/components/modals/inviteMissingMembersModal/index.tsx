@@ -274,9 +274,7 @@ export function InviteMissingMembersModal({
                 aria-label={t('Add to Team')}
                 data-test-id="select-teams"
                 disabled={!isTeamRolesAllowed}
-                placeholder={
-                  isTeamRolesAllowed ? t('None') : t('Role cannot apply to teams')
-                }
+                placeholder={isTeamRolesAllowed ? t('None') : t('Role cannot join teams')}
                 onChange={opts => setTeams(opts ? opts.map(v => v.value) : [], i)}
                 multiple
                 clearable
