@@ -2173,8 +2173,10 @@ def _get_severity_metadata_for_group(
     """
     from sentry.receivers.rules import PLATFORMS_WITH_PRIORITY_ALERTS
 
-    is_supported_platform = any(
-        event.platform.startswith(platform) for platform in PLATFORMS_WITH_PRIORITY_ALERTS
+    is_supported_platform = (
+        any(event.platform.startswith(platform) for platform in PLATFORMS_WITH_PRIORITY_ALERTS)
+        if event.platform
+        else False
     )
     is_error_group = group_type == ErrorGroupType.type_id if group_type else True
     feature_enabled = features.has("projects:first-event-severity-calculation", event.project)
