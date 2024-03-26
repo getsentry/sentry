@@ -1,9 +1,9 @@
-import type {Theme} from '@emotion/react';
 import cronstrue from 'cronstrue';
 
 import {t, tn} from 'sentry/locale';
 import type {Organization, SelectValue} from 'sentry/types';
 import {shouldUse24Hours} from 'sentry/utils/dates';
+import type {ColorOrAlias} from 'sentry/utils/theme';
 import type {MonitorConfig} from 'sentry/views/monitors/types';
 import {CheckInStatus, ScheduleType} from 'sentry/views/monitors/types';
 
@@ -106,16 +106,45 @@ export const statusToText: Record<CheckInStatus, string> = {
   [CheckInStatus.TIMEOUT]: t('Timed Out'),
 };
 
-export function getColorsFromStatus(status: CheckInStatus, theme: Theme) {
-  const statusToColor: Record<CheckInStatus, {labelColor: string; tickColor: string}> = {
-    [CheckInStatus.ERROR]: {tickColor: theme.red300, labelColor: theme.red400},
-    [CheckInStatus.TIMEOUT]: {tickColor: theme.red300, labelColor: theme.red400},
-    [CheckInStatus.OK]: {tickColor: theme.green300, labelColor: theme.green400},
-    [CheckInStatus.MISSED]: {tickColor: theme.yellow300, labelColor: theme.yellow400},
-    [CheckInStatus.IN_PROGRESS]: {tickColor: theme.disabled, labelColor: theme.disabled},
-  };
-  return statusToColor[status];
+interface TickStyle {
+  /**
+   * The color of the tooltip label
+   */
+  labelColor: ColorOrAlias;
+  /**
+   * The color of the tick
+   */
+  tickColor: ColorOrAlias;
+  /**
+   * Use a cross hatch fill for the tick instead of a solid color. The tick
+   * color will be used as the border color
+   */
+  hatchTick?: ColorOrAlias;
 }
+
+export const tickStyle: Record<CheckInStatus, TickStyle> = {
+  [CheckInStatus.ERROR]: {
+    labelColor: 'red400',
+    tickColor: 'red300',
+  },
+  [CheckInStatus.TIMEOUT]: {
+    labelColor: 'red400',
+    tickColor: 'red300',
+    hatchTick: 'red200',
+  },
+  [CheckInStatus.OK]: {
+    labelColor: 'green400',
+    tickColor: 'green300',
+  },
+  [CheckInStatus.MISSED]: {
+    labelColor: 'yellow400',
+    tickColor: 'yellow300',
+  },
+  [CheckInStatus.IN_PROGRESS]: {
+    labelColor: 'disabled',
+    tickColor: 'disabled',
+  },
+};
 
 export const getScheduleIntervals = (n: number): SelectValue<string>[] => [
   {value: 'minute', label: tn('minute', 'minutes', n)},

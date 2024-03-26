@@ -12,7 +12,7 @@ import type {
   TimeWindowOptions,
 } from 'sentry/views/monitors/components/overviewTimeline/types';
 import type {CheckInStatus} from 'sentry/views/monitors/types';
-import {getColorsFromStatus, statusToText} from 'sentry/views/monitors/utils';
+import {statusToText, tickStyle} from 'sentry/views/monitors/utils';
 
 interface Props extends Omit<TooltipProps, 'title'> {
   jobTick: JobTickData;
@@ -96,7 +96,7 @@ const HiddenHeader = styled('thead')`
 `;
 
 const StatusLabel = styled('td')<{status: CheckInStatus}>`
-  color: ${p => getColorsFromStatus(p.status, p.theme).labelColor};
+  color: ${p => p.theme[tickStyle[p.status].labelColor]};
   text-align: left;
 `;
 
