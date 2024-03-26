@@ -719,9 +719,16 @@ register(
 )
 
 register(
-    "issues.severity.first-event-severity-calculation-rate-limit",
+    "issues.severity.seer-project-rate-limit",
     type=Int,
     default=5,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.severity.seer-global-rate-limit",
+    type=Int,
+    default=25,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
