@@ -9,8 +9,8 @@ from django.utils import timezone
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.data_v2 import (
-    MetricsAPIQueryTransformer,
+from sentry.sentry_metrics.querying.data import (
+    MetricsAPIQueryResultsTransformer,
     MetricsQueriesPlan,
     run_metrics_queries_plan,
 )
@@ -84,7 +84,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         self.prod_env = self.create_environment(name="prod", project=self.project)
         self.dev_env = self.create_environment(name="dev", project=self.project)
 
-        self.query_transformer = MetricsAPIQueryTransformer()
+        self.query_transformer = MetricsAPIQueryResultsTransformer()
 
     def now(self):
         return MOCK_DATETIME
