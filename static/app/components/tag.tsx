@@ -178,7 +178,3 @@ const DismissButton = styled(Button)`
 `;
 
 export {Tag, type TagProps};
-
-const DO_NOT_USE_TAG = Tag;
-
-export default DO_NOT_USE_TAG;
