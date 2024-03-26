@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react';
 
-import Tag from 'sentry/components/tag';
+import {Tag} from 'sentry/components/tag';
 import {t} from 'sentry/locale';
 import {CandidateDownloadStatus} from 'sentry/types/debugImage';
 

@@ -7,7 +7,7 @@ import Duration from 'sentry/components/duration';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
-import Tag from 'sentry/components/tag';
+import {Tag} from 'sentry/components/tag';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';

@@ -1,5 +1,5 @@
 import Link from 'sentry/components/links/link';
-import Tag from 'sentry/components/tag';
+import {Tag} from 'sentry/components/tag';
 import {t} from 'sentry/locale';
 import type {Deploy} from 'sentry/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';

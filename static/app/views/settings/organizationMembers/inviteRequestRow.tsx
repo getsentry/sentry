@@ -7,7 +7,7 @@ import type {InviteModalRenderFunc} from 'sentry/components/modals/memberInviteM
 import {InviteModalHook} from 'sentry/components/modals/memberInviteModalCustomization';
 import PanelItem from 'sentry/components/panels/panelItem';
 import RoleSelectControl from 'sentry/components/roleSelectControl';
-import Tag from 'sentry/components/tag';
+import {Tag} from 'sentry/components/tag';
 import TeamSelector from 'sentry/components/teamSelector';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconClose} from 'sentry/icons';

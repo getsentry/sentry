@@ -8,7 +8,7 @@ import type {ControlProps} from 'sentry/components/forms/controls/selectControl'
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import type {InputProps} from 'sentry/components/input';
 import Input from 'sentry/components/input';
-import Tag from 'sentry/components/tag';
+import {Tag} from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';

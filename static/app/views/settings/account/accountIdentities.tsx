@@ -15,7 +15,7 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import Tag from 'sentry/components/tag';
+import {Tag} from 'sentry/components/tag';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {UserIdentityConfig} from 'sentry/types';
