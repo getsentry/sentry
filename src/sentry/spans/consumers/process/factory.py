@@ -33,7 +33,7 @@ class ProduceSegmentContext:
 def get_project_id(headers: Headers) -> int | None:
     for k, v in headers:
         if k == "project_id":
-            return int(v)
+            return int(v.decode("utf-8"))
 
     return None
 
