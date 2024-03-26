@@ -719,6 +719,13 @@ register(
 )
 
 register(
+    "issues.severity.first-event-severity-calculation-rate-limit",
+    type=Int,
+    default=5,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "issues.severity.default-high-priority-alerts-orgs-allowlist",
     type=Sequence,
     default=[],

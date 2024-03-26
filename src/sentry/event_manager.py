@@ -2183,9 +2183,10 @@ def _get_severity_metadata_for_group(
     if should_calculate_severity:
         from sentry import ratelimits as ratelimiter
 
+        limit = options.get("issues.severity.first-event-severity-calculation-rate-limit", 5)
         if ratelimiter.backend.is_limited(
             f"seer:severity-calculation:{project_id}",
-            limit=5,
+            limit=limit,
             window=1,  # starting this out 5 requests per second
         ):
             logger.warning(
