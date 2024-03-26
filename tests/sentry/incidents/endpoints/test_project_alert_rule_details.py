@@ -9,7 +9,7 @@ from sentry.silo import SiloMode
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -30,7 +30,6 @@ class AlertRuleDetailsBase(APITestCase):
         self.login_as(self.user)
 
 
-@region_silo_test
 class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
     def test_simple(self):
         # self.login_as(self.owner_user)
@@ -41,7 +40,6 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         assert resp.data == serialize(self.alert_rule, serializer=DetailedAlertRuleSerializer())
 
 
-@region_silo_test
 class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
     method = "put"
 
@@ -104,7 +102,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         )
 
 
-@region_silo_test
 class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
     method = "delete"
 

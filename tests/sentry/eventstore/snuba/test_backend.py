@@ -6,12 +6,10 @@ from sentry.eventstore.snuba.backend import SnubaEventStorage
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.utils import snuba
 from sentry.utils.samples import load_data
 
 
-@region_silo_test
 class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
     def setUp(self):
         super().setUp()

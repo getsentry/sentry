@@ -13,7 +13,7 @@ from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_install
 from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 
 SERVICES = [
     {
@@ -31,7 +31,6 @@ METADATA = {
 }
 
 
-@region_silo_test
 class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-alert-rule-available-actions"
     email = AlertRuleTriggerAction.get_registered_type(AlertRuleTriggerAction.Type.EMAIL)

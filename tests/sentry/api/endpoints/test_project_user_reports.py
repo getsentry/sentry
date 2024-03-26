@@ -8,10 +8,8 @@ from sentry.models.group import GroupStatus
 from sentry.models.userreport import UserReport
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class ProjectUserReportListTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -190,7 +188,6 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
         assert response.data == []
 
 
-@region_silo_test
 class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

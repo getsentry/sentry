@@ -17,10 +17,8 @@ from sentry.monitors.models import (
     ScheduleType,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class MarkOkTestCase(TestCase):
     def test_mark_ok_simple(self):
         now = timezone.now().replace(second=0, microsecond=0)
@@ -233,12 +231,15 @@ class MarkOkTestCase(TestCase):
         status_change = status_change.to_dict()
 
         assert payload_type == PayloadType.STATUS_CHANGE
-        assert dict(
-            status_change,
-            **{
-                "fingerprint": [incident.grouphash],
-                "project_id": monitor.project_id,
-                "new_status": GroupStatus.RESOLVED,
-                "new_substatus": None,
-            },
-        ) == dict(status_change)
+        assert (
+            dict(
+                status_change,
+                **{
+                    "fingerprint": [incident.grouphash],
+                    "project_id": monitor.project_id,
+                    "new_status": GroupStatus.RESOLVED,
+                    "new_substatus": None,
+                },
+            )
+            == dict(status_change)
+        )

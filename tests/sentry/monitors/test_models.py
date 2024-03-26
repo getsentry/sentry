@@ -14,10 +14,8 @@ from sentry.monitors.models import (
 )
 from sentry.monitors.validators import ConfigValidator
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class MonitorTestCase(TestCase):
     def test_next_run_crontab(self):
         ts = datetime(2019, 1, 1, 1, 10, 20, tzinfo=timezone.utc)
@@ -194,7 +192,6 @@ class MonitorTestCase(TestCase):
             )
 
 
-@region_silo_test
 class MonitorEnvironmentTestCase(TestCase):
     @override_settings(MAX_ENVIRONMENTS_PER_MONITOR=2)
     def test_monitor_environment_limits(self):

@@ -39,7 +39,7 @@ from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.group import GroupSubStatus
 from sentry.utils.dates import floor_to_utc_day
 from sentry.utils.outcomes import Outcome
@@ -47,7 +47,6 @@ from sentry.utils.outcomes import Outcome
 DISABLED_ORGANIZATIONS_USER_OPTION_KEY = "reports:disabled-organizations"
 
 
-@region_silo_test
 class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCase):
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_integration(self):
