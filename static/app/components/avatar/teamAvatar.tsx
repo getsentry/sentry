@@ -1,12 +1,12 @@
-import BaseAvatar from 'sentry/components/avatar/baseAvatar';
+import {BaseAvatar, type BaseAvatarProps} from 'sentry/components/avatar/baseAvatar';
 import type {Team} from 'sentry/types';
 import {explodeSlug} from 'sentry/utils';
 
-type TeamAvatarProps = {
+interface Props extends BaseAvatarProps {
   team: Team | null | undefined;
-} & BaseAvatar['props'];
+}
 
-function TeamAvatar({team, tooltip: tooltipProp, ...props}: TeamAvatarProps) {
+function TeamAvatar({team, tooltip: tooltipProp, ...props}: Props) {
   if (!team) {
     return null;
   }
