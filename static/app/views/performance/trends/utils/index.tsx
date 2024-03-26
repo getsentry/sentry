@@ -13,8 +13,10 @@ import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-
-import {platformToPerformanceType, ProjectPerformanceType} from '../utils';
+import {
+  platformToPerformanceType,
+  ProjectPerformanceType,
+} from 'sentry/views/performance/utils';
 
 import type {
   NormalizedTrendsTransaction,
@@ -22,13 +24,13 @@ import type {
   TrendParameter,
   TrendsTransaction,
   TrendView,
-} from './types';
+} from '../types';
 import {
   TrendChangeType,
   TrendFunctionField,
   TrendParameterColumn,
   TrendParameterLabel,
-} from './types';
+} from '../types';
 
 export const DEFAULT_TRENDS_STATS_PERIOD = '14d';
 export const DEFAULT_MAX_DURATION = '15min';
@@ -456,3 +458,4 @@ export function modifyTransactionNameTrendsQuery(trendView: TrendView) {
 export function getTopTrendingEvents(location: Location) {
   return decodeScalar(location?.query?.topEvents);
 }
+export {platformToPerformanceType};
