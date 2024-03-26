@@ -178,7 +178,7 @@ sentry-devenv==1.2.3
 sentry-forked-django-stubs==4.2.7.post3
 sentry-forked-djangorestframework-stubs==3.14.5.post1
 sentry-kafka-schemas==0.1.64
-sentry-ophio==0.2.3
+sentry-ophio==0.2.5
 sentry-redis-tools==0.1.7
 sentry-relay==0.8.55
 sentry-sdk==1.40.6
@@ -194,6 +194,7 @@ statsd==3.3.0
 stripe==3.1.0
 structlog==22.1.0
 symbolic==12.8.0
+tiktoken==0.6.0
 time-machine==2.13.0
 tokenize-rt==5.2.0
 tomli==2.0.1

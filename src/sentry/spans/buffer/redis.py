@@ -41,9 +41,10 @@ class RedisSpansBuffer:
         timestamp_key = get_last_processed_timestamp_key(partition)
 
         with self.client.pipeline() as p:
+            # RPUSH is atomic
             p.rpush(segment_key, span)
-            p.get(timestamp_key)
-            p.set(timestamp_key, timestamp)
+            # GETSET is atomic
+            p.getset(timestamp_key, timestamp)
             results = p.execute()
 
         new_key = results[0] == 1

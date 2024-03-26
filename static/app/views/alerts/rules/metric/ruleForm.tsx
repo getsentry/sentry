@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 import type {PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import type {Indicator} from 'sentry/actionCreators/indicator';
 import {
@@ -643,76 +644,79 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       t('Saving your alert rule, hold on...'),
       'loading'
     );
-    try {
-      const transaction = metric.startTransaction({name: 'saveAlertRule'});
-      transaction.setTag('type', AlertRuleType.METRIC);
-      transaction.setTag('operation', !rule.id ? 'create' : 'edit');
-      for (const trigger of sanitizedTriggers) {
-        for (const action of trigger.actions) {
-          if (action.type === 'slack' || action.type === 'discord') {
-            transaction.setTag(action.type, true);
+    await Sentry.withScope(async scope => {
+      try {
+        scope.setTag('type', AlertRuleType.METRIC);
+        scope.setTag('operation', !rule.id ? 'create' : 'edit');
+        for (const trigger of sanitizedTriggers) {
+          for (const action of trigger.actions) {
+            if (action.type === 'slack' || action.type === 'discord') {
+              scope.setTag(action.type, true);
+            }
           }
         }
-      }
-      transaction.setData('actions', sanitizedTriggers);
+        scope.setExtra('actions', sanitizedTriggers);
 
-      const dataset = this.determinePerformanceDataset();
-      this.setState({loading: true});
-      const [data, , resp] = await addOrUpdateRule(
-        this.api,
-        organization.slug,
-        {
-          ...rule,
-          ...model.getTransformedData(),
-          projects: [project.slug],
-          triggers: sanitizedTriggers,
-          resolveThreshold: isEmpty(resolveThreshold) ? null : resolveThreshold,
-          thresholdType,
-          thresholdPeriod,
-          comparisonDelta: comparisonDelta ?? null,
-          timeWindow,
-          aggregate,
-          // Remove eventTypes as it is no longer required for crash free
-          eventTypes: isCrashFreeAlert(rule.dataset) ? undefined : eventTypes,
-          dataset,
-          queryType: DatasetMEPAlertQueryTypes[dataset],
-        },
-        {
-          duplicateRule: this.isDuplicateRule ? 'true' : 'false',
-          wizardV3: 'true',
-          referrer: location?.query?.referrer,
-          sessionId,
-          ...getForceMetricsLayerQueryExtras(organization, dataset),
+        metric.startSpan({name: 'saveAlertRule'});
+
+        const dataset = this.determinePerformanceDataset();
+        this.setState({loading: true});
+        const [data, , resp] = await addOrUpdateRule(
+          this.api,
+          organization.slug,
+          {
+            ...rule,
+            ...model.getTransformedData(),
+            projects: [project.slug],
+            triggers: sanitizedTriggers,
+            resolveThreshold: isEmpty(resolveThreshold) ? null : resolveThreshold,
+            thresholdType,
+            thresholdPeriod,
+            comparisonDelta: comparisonDelta ?? null,
+            timeWindow,
+            aggregate,
+            // Remove eventTypes as it is no longer required for crash free
+            eventTypes: isCrashFreeAlert(rule.dataset) ? undefined : eventTypes,
+            dataset,
+            queryType: DatasetMEPAlertQueryTypes[dataset],
+          },
+          {
+            duplicateRule: this.isDuplicateRule ? 'true' : 'false',
+            wizardV3: 'true',
+            referrer: location?.query?.referrer,
+            sessionId,
+            ...getForceMetricsLayerQueryExtras(organization, dataset),
+          }
+        );
+        // if we get a 202 back it means that we have an async task
+        // running to lookup and verify the channel id for Slack.
+        if (resp?.status === 202) {
+          // if we have a uuid in state, no need to start a new polling cycle
+          if (!this.uuid) {
+            this.uuid = data.uuid;
+            this.setState({loading: true});
+            this.fetchStatus(model);
+          }
+        } else {
+          IndicatorStore.remove(loadingIndicator);
+          this.setState({loading: false});
+          addSuccessMessage(ruleId ? t('Updated alert rule') : t('Created alert rule'));
+          if (onSubmitSuccess) {
+            onSubmitSuccess(data, model);
+          }
         }
-      );
-      // if we get a 202 back it means that we have an async task
-      // running to lookup and verify the channel id for Slack.
-      if (resp?.status === 202) {
-        // if we have a uuid in state, no need to start a new polling cycle
-        if (!this.uuid) {
-          this.uuid = data.uuid;
-          this.setState({loading: true});
-          this.fetchStatus(model);
-        }
-      } else {
+      } catch (err) {
         IndicatorStore.remove(loadingIndicator);
         this.setState({loading: false});
-        addSuccessMessage(ruleId ? t('Updated alert rule') : t('Created alert rule'));
-        if (onSubmitSuccess) {
-          onSubmitSuccess(data, model);
-        }
+        const errors = err?.responseJSON
+          ? Array.isArray(err?.responseJSON)
+            ? err?.responseJSON
+            : Object.values(err?.responseJSON)
+          : [];
+        const apiErrors = errors.length > 0 ? `: ${errors.join(', ')}` : '';
+        this.handleRuleSaveFailure(t('Unable to save alert%s', apiErrors));
       }
-    } catch (err) {
-      IndicatorStore.remove(loadingIndicator);
-      this.setState({loading: false});
-      const errors = err?.responseJSON
-        ? Array.isArray(err?.responseJSON)
-          ? err?.responseJSON
-          : Object.values(err?.responseJSON)
-        : [];
-      const apiErrors = errors.length > 0 ? `: ${errors.join(', ')}` : '';
-      this.handleRuleSaveFailure(t('Unable to save alert%s', apiErrors));
-    }
+    });
   };
 
   /**
@@ -801,7 +805,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
   handleRuleSaveFailure = (msg: ReactNode) => {
     addErrorMessage(msg);
-    metric.endTransaction({name: 'saveAlertRule'});
+    metric.endSpan({name: 'saveAlertRule'});
   };
 
   handleCancel = () => {

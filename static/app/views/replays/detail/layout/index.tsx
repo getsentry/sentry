@@ -21,7 +21,7 @@ const MIN_CONTENT_HEIGHT = 180;
 
 const DIVIDER_SIZE = 16;
 
-function ReplayLayout() {
+function ReplayLayout({isVideoReplay}: {isVideoReplay?: boolean}) {
   const {getLayout} = useReplayLayout();
   const layout = getLayout() ?? LayoutKey.TOPBAR;
 
@@ -43,7 +43,10 @@ function ReplayLayout() {
 
   const controller = (
     <ErrorBoundary mini>
-      <ReplayController toggleFullscreen={toggleFullscreen} />
+      <ReplayController
+        toggleFullscreen={toggleFullscreen}
+        hideFastForward={isVideoReplay}
+      />
     </ErrorBoundary>
   );
 
