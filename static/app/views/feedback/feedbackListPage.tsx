@@ -37,7 +37,6 @@ export default function FeedbackListPage({}: Props) {
   const {hasSetupNewFeedback} = useHaveSelectedProjectsSetupNewFeedback();
 
   const showWhatsNewBanner = hasSetupOneFeedback && !hasSetupNewFeedback;
-  const hasNewOnboarding = organization.features.includes('user-feedback-onboarding');
 
   const feedbackSlug = useCurrentFeedbackId();
   const hasSlug = Boolean(feedbackSlug);
@@ -54,7 +53,7 @@ export default function FeedbackListPage({}: Props) {
     feedbackWidgetPlatforms.includes(p.platform!)
   );
 
-  const showWidgetBanner = showWhatsNewBanner && oneIsWidgetEligible && hasNewOnboarding;
+  const showWidgetBanner = showWhatsNewBanner && oneIsWidgetEligible;
 
   return (
     <SentryDocumentTitle title={t('User Feedback')} orgSlug={organization.slug}>

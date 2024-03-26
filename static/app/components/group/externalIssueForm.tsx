@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react';
+import type {Span} from '@sentry/types';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
@@ -36,13 +37,13 @@ type Props = {
 type State = AbstractExternalIssueForm['state'];
 
 export default class ExternalIssueForm extends AbstractExternalIssueForm<Props, State> {
-  loadTransaction?: ReturnType<typeof Sentry.startTransaction>;
-  submitTransaction?: ReturnType<typeof Sentry.startTransaction>;
+  loadSpan: Span | undefined;
+  submitSpan: Span | undefined;
   trackedLoadStatus = false;
 
   constructor(props) {
     super(props, {});
-    this.loadTransaction = this.startTransaction('load');
+    this.loadSpan = this.startSpan('load');
   }
 
   getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
@@ -57,21 +58,28 @@ export default class ExternalIssueForm extends AbstractExternalIssueForm<Props, 
     this.setState({action}, () => this.reloadData());
   };
 
-  startTransaction = (type: 'load' | 'submit') => {
+  startSpan = (type: 'load' | 'submit') => {
     const {group, integration} = this.props;
     const {action} = this.state;
-    const transaction = Sentry.startTransaction({name: `externalIssueForm.${type}`});
-    Sentry.getCurrentHub().configureScope(scope => scope.setSpan(transaction));
-    transaction.setTag('issueAction', action);
-    transaction.setTag('groupID', group.id);
-    transaction.setTag('projectID', group.project.id);
-    transaction.setTag('integrationSlug', integration.provider.slug);
-    transaction.setTag('integrationType', 'firstParty');
-    return transaction;
+
+    const span = Sentry.withScope(scope => {
+      scope.setTag('issueAction', action);
+      scope.setTag('groupID', group.id);
+      scope.setTag('projectID', group.project.id);
+      scope.setTag('integrationSlug', integration.provider.slug);
+      scope.setTag('integrationType', 'firstParty');
+
+      return Sentry.startInactiveSpan({
+        name: `externalIssueForm.${type}`,
+        forceTransaction: true,
+      });
+    });
+
+    return span;
   };
 
   handlePreSubmit = () => {
-    this.submitTransaction = this.startTransaction('submit');
+    this.submitSpan = this.startSpan('submit');
   };
 
   onSubmitSuccess = (_data: IntegrationExternalIssue): void => {
@@ -88,11 +96,11 @@ export default class ExternalIssueForm extends AbstractExternalIssueForm<Props, 
     onChange(() => addSuccessMessage(MESSAGES_BY_ACTION[action]));
     closeModal();
 
-    this.submitTransaction?.finish();
+    this.submitSpan?.end();
   };
 
   handleSubmitError = () => {
-    this.submitTransaction?.finish();
+    this.submitSpan?.end();
   };
 
   trackLoadStatus = (success: boolean) => {
@@ -111,12 +119,12 @@ export default class ExternalIssueForm extends AbstractExternalIssueForm<Props, 
   };
 
   onLoadAllEndpointsSuccess = () => {
-    this.loadTransaction?.finish();
+    this.loadSpan?.end();
     this.trackLoadStatus(true);
   };
 
   onRequestError = () => {
-    this.loadTransaction?.finish();
+    this.loadSpan?.end();
     this.trackLoadStatus(false);
   };
 

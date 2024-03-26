@@ -33,7 +33,7 @@ class NestedPipelineView(PipelineView):
         self.provider_key = provider_key
         self.config = config or {}
 
-        class NestedPipeline(pipeline_cls):  # type: ignore
+        class NestedPipeline(pipeline_cls):  # type: ignore[misc, valid-type]
             def set_parent_pipeline(self, parent_pipeline: Pipeline) -> None:
                 self.parent_pipeline = parent_pipeline
 
