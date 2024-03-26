@@ -101,7 +101,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
         value = generic_metric["value"]
         try:
-            quantity = max(int(value), 0)  # type:ignore
+            quantity = max(int(value), 0)  # type: ignore[arg-type]
         except TypeError:
             # Unexpected value type for this metric ID, skip.
             return {}

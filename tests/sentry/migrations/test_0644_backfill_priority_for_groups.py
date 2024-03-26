@@ -226,7 +226,7 @@ class BackfillGroupPriority(TestMigrations):
         self.high_priority_groups = []
 
         for desc, group_data, expected_priority in data:
-            group = self.create_group(project, **group_data)  # type: ignore
+            group = self.create_group(project, **group_data)  # type: ignore[arg-type]
 
             if desc == "skip me":
                 skipped_group_count -= 1

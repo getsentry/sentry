@@ -75,8 +75,8 @@ if settings.SENTRY_USE_BIG_INTS:
 
 else:
     # we want full on classes for these
-    class BoundedBigIntegerField(BoundedIntegerField):  # type: ignore
+    class BoundedBigIntegerField(BoundedIntegerField):  # type: ignore[no-redef]
         pass
 
-    class BoundedBigAutoField(BoundedAutoField):  # type: ignore
+    class BoundedBigAutoField(BoundedAutoField):  # type: ignore[no-redef]
         pass
