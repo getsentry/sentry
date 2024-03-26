@@ -15,6 +15,7 @@ export interface Filters {
 export const useIndexedSpans = ({
   filters,
   sorts,
+  cursor,
   limit,
   enabled = true,
   referrer,
@@ -25,6 +26,7 @@ export const useIndexedSpans = ({
   limit: number;
   referrer: string;
   sorts: Sort[];
+  cursor?: string;
   enabled?: boolean;
 }) => {
   const location = useLocation();
@@ -32,6 +34,7 @@ export const useIndexedSpans = ({
 
   return useSpansQuery<SpanIndexedFieldTypes[]>({
     eventView,
+    cursor,
     limit,
     initialData: [],
     enabled,

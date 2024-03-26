@@ -10,6 +10,8 @@ import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
+import {Content} from './content';
+
 function TraceExplorerLandingPage() {
   const organization = useOrganization();
 
@@ -33,9 +35,7 @@ function TraceExplorerLandingPage() {
         </Layout.HeaderContent>
       </Layout.Header>
       <Layout.Body>
-        <Layout.Main>
-          <Fragment />
-        </Layout.Main>
+        <Content />
       </Layout.Body>
     </Fragment>
   );
