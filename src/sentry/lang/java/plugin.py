@@ -300,27 +300,29 @@ class JavaPlugin(Plugin2):
 
         project_id = data.get("project")
         project = Project.objects.get_from_cache(id=project_id)
-        if should_use_symbolicator_for_proguard(project_id):
-            symbolication_start_time = time()
 
-            def on_symbolicator_request():
-                duration = time() - symbolication_start_time
-                if duration > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
-                    raise SymbolicationTimeout
-
-            symbolicator_platform = SymbolicatorPlatform.jvm
-            symbolicator = Symbolicator(
-                task_kind=SymbolicatorTaskKind(platform=symbolicator_platform),
-                on_request=on_symbolicator_request,
-                project=project,
-                event_id=data["event_id"],
-            )
-
-            process_jvm_stacktraces(symbolicator, data)
+        if "java" not in platforms:
             return []
-
-        if "java" in platforms:
+        elif not should_use_symbolicator_for_proguard(project_id):
             return [JavaSourceLookupStacktraceProcessor]
+
+        symbolication_start_time = time()
+
+        def on_symbolicator_request():
+            duration = time() - symbolication_start_time
+            if duration > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
+                raise SymbolicationTimeout
+
+        symbolicator_platform = SymbolicatorPlatform.jvm
+        symbolicator = Symbolicator(
+            task_kind=SymbolicatorTaskKind(platform=symbolicator_platform),
+            on_request=on_symbolicator_request,
+            project=project,
+            event_id=data["event_id"],
+        )
+
+        process_jvm_stacktraces(symbolicator, data)
+        return []
 
     def get_event_preprocessors(self, data):
         if has_proguard_file(data):
