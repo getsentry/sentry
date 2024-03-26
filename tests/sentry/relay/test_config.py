@@ -28,6 +28,7 @@ from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 from sentry.utils.safe import get_path
 
@@ -900,6 +901,7 @@ def test_performance_calculate_score(default_project):
 
 
 @django_db_all
+@region_silo_test
 @pytest.mark.parametrize("passive", [False, True])
 def test_project_config_cardinality_limits(default_project, insta_snapshot, passive):
     options: dict[Any, Any] = {
