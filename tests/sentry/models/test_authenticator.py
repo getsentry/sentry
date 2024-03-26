@@ -71,4 +71,4 @@ def test_authenticator_config_compatibility():
         ]
     }
 
-    assert field_json.to_python(field_json.get_db_prep_value(value)) == value
+    assert field_json.to_python(field_json.get_prep_value(value)) == value

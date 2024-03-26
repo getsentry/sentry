@@ -120,7 +120,7 @@ class AuthenticatorConfig(PickledObjectField):
     def _is_devices_config(self, value: Any) -> bool:
         return isinstance(value, dict) and "devices" in value
 
-    def get_db_prep_value(self, value, *args, **kwargs):
+    def get_prep_value(self, value):
         if self._is_devices_config(value):
             # avoid mutating the original object
             value = copy.deepcopy(value)
@@ -129,7 +129,7 @@ class AuthenticatorConfig(PickledObjectField):
                 if isinstance(device["binding"], AuthenticatorData):
                     device["binding"] = base64.b64encode(device["binding"]).decode()
 
-        return super().get_db_prep_value(value, *args, **kwargs)
+        return super().get_prep_value(value)
 
     def to_python(self, value):
         ret = super().to_python(value)

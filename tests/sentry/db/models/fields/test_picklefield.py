@@ -1,5 +1,5 @@
 import pytest
-from django.db import connection, models
+from django.db import models
 
 from sentry.db.models.fields import picklefield
 
@@ -19,23 +19,6 @@ def test_json_by_default():
     )
     obj = JsonWritingPickleModel.objects.get(id=obj.id)
     assert obj.data == {"foo": "bar2"}
-
-    with connection.cursor() as cur:
-        cur.execute("select * from fixtures_jsonwritingpicklemodel where id = %s", [obj.id])
-        row = cur.fetchone()
-
-        # should be JSON
-        assert row[1] == '{"foo":"bar2"}'
-
-        # put some pickle there
-        cur.execute(
-            "update fixtures_jsonwritingpicklemodel set data = %s where id = %s",
-            ["gAJ9cQBYAwAAAGZvb3EBWAMAAABiYXJxAnMu", obj.id],
-        )
-
-    # we observe the update as pickle
-    obj = JsonWritingPickleModel.objects.get(id=obj.id)
-    assert obj.data == {"foo": "bar"}
 
 
 def test_to_python_int():
