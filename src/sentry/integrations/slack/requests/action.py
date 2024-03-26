@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from typing import Any
 
+from django.utils.functional import cached_property
 from rest_framework import status
 
 from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestError
 from sentry.models.group import Group
 from sentry.utils import json
-from sentry.utils.cache import memoize
 from sentry.utils.json import JSONData
 
 
@@ -24,7 +24,7 @@ class SlackActionRequest(SlackRequest):
     def type(self) -> str:
         return str(self.data.get("type"))
 
-    @memoize
+    @cached_property
     def callback_data(self) -> JSONData:
         """
         We store certain data in ``callback_id`` as JSON. It's a bit hacky, but

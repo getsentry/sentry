@@ -9,6 +9,7 @@ from django.db import models, router, transaction
 from django.db.models.query_utils import DeferredAttribute
 from django.urls import reverse
 from django.utils import timezone as django_timezone
+from django.utils.functional import cached_property
 from rest_framework import serializers, status
 
 from bitfield.types import BitHandler
@@ -72,7 +73,6 @@ from sentry.services.organization.provisioning import (
     organization_provisioning_service,
 )
 from sentry.utils.audit import create_audit_entry
-from sentry.utils.cache import memoize
 
 ERR_DEFAULT_ORG = "You cannot remove the default organization."
 ERR_NO_USER = "This request requires an authenticated user."
@@ -231,7 +231,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     apdexThreshold = serializers.IntegerField(min_value=1, required=False)
 
-    @memoize
+    @cached_property
     def _has_legacy_rate_limits(self):
         org = self.context["organization"]
         return OrganizationOption.objects.filter(

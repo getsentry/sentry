@@ -9,9 +9,9 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.http.request import HttpRequest
 from django.utils.crypto import constant_time_compare
+from django.utils.functional import cached_property
 
 from sentry import options
-from sentry.utils.cache import memoize
 
 INTERNAL_NETWORKS = [
     ipaddress.ip_network(str(net), strict=False) for net in settings.INTERNAL_SYSTEM_IPS
@@ -76,7 +76,7 @@ class SystemToken:
     def is_expired(self) -> bool:
         return False
 
-    @memoize
+    @cached_property
     def user(self) -> AnonymousUser:
         user = AnonymousUser()
         user.is_active = True

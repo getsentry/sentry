@@ -8,11 +8,11 @@ from typing import Any
 from uuid import uuid4
 
 from django.db.models.signals import post_delete
+from django.utils.functional import cached_property
 
 from sentry import nodestore
 from sentry.db.models.utils import Creator
 from sentry.utils import json
-from sentry.utils.cache import memoize
 from sentry.utils.canonical import CANONICAL_TYPES, CanonicalKeyDict
 from sentry.utils.strings import decompress
 
@@ -98,7 +98,7 @@ class NodeData(MutableMapping):
     def copy(self):
         return self.data.copy()
 
-    @memoize
+    @cached_property
     def data(self):
         """
         Get the current data object, fetching from nodestore if necessary.

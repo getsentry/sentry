@@ -1,3 +1,5 @@
+from django.utils.functional import cached_property
+
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
 from sentry.plugins.base import plugins
@@ -5,7 +7,6 @@ from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.services.hybrid_cloud.repository import repository_service
 from sentry.services.hybrid_cloud.repository.model import RpcRepository
-from sentry.utils.cache import memoize
 
 
 class Migrator(Mediator):
@@ -43,7 +44,7 @@ class Migrator(Mediator):
     def repositories(self) -> list[RpcRepository]:
         return repository_service.get_repositories(organization_id=self.organization.id)
 
-    @memoize
+    @cached_property
     def projects(self):
         return list(self.organization.projects)
 
