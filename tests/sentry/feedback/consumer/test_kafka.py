@@ -192,7 +192,6 @@ def test_consumer_writes_to_dlq(
     task_runner,
     kafka_producer,
     kafka_admin,
-    default_project,
 ):
     topic = Topic.INGEST_FEEDBACK_EVENTS
     topic_name = get_topic_definition(topic)["real_topic_name"]
@@ -206,7 +205,7 @@ def test_consumer_writes_to_dlq(
 
     create_topics("default", [topic_name, dlq_topic_name])
 
-    invalid_msg = "bad message :("
+    invalid_msg = b"bad message :("
     producer.produce(topic_name, invalid_msg)
 
     consumer = get_stream_processor(
@@ -217,7 +216,7 @@ def test_consumer_writes_to_dlq(
         group_id=get_random_group_id(),
         auto_offset_reset="earliest",
         strict_offset_reset=False,
-        enforce_schema=True,
+        enforce_schema=False,
         enable_dlq=True,
     )
 
@@ -232,12 +231,16 @@ def test_consumer_writes_to_dlq(
             "enable.partition.eof": False,
         }
     )
+    dlq_consumer.subscribe([dlq_topic_name])
 
     with task_runner():
         i = 0
         while i < MAX_POLL_ITERATIONS:
             consumer._run_once()
             message = dlq_consumer.poll(timeout=POLL_DURATION_S)
-            if message is not None and message.error() is None:
+            if message is not None:
+                if (err := message.error()) is not None:
+                    raise err
+                assert message.value() == invalid_msg
                 break
             i += 1
