@@ -1609,6 +1609,18 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # ms
 
+# Adjusting some time buffers in the trace endpoint
+register(
+    "performance.traces.transaction_query_timebuffer_days",
+    default=1.5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # days
+register(
+    "performance.traces.span_query_timebuffer_hours",
+    default=1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # hours
+
 # Dynamic Sampling system-wide options
 # Size of the sliding window used for dynamic sampling. It is defaulted to 24 hours.
 register("dynamic-sampling:sliding_window.size", default=24, flags=FLAG_AUTOMATOR_MODIFIABLE)
