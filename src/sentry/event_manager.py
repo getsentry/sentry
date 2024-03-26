@@ -100,7 +100,6 @@ from sentry.models.userreport import UserReport
 from sentry.net.http import connection_from_url
 from sentry.plugins.base import plugins
 from sentry.quotas.base import index_data_category
-from sentry.receivers.rules import PLATFORMS_WITH_PRIORITY_ALERTS
 from sentry.reprocessing2 import is_reprocessed_event
 from sentry.signals import (
     first_event_received,
@@ -2172,10 +2171,12 @@ def _get_severity_metadata_for_group(
 
     Returns {} if conditions aren't met or on exception.
     """
+    from sentry.receivers.rules import PLATFORMS_WITH_PRIORITY_ALERTS
+
     is_supported_platform = any(
         event.platform.startswith(platform) for platform in PLATFORMS_WITH_PRIORITY_ALERTS
     )
-    is_error_group = group_type is not None and group_type == ErrorGroupType.type_id
+    is_error_group = group_type == ErrorGroupType.type_id if group_type else True
     feature_enabled = features.has("projects:first-event-severity-calculation", event.project)
 
     should_calculate_severity = feature_enabled and is_supported_platform and is_error_group
