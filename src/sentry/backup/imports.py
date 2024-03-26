@@ -77,7 +77,7 @@ def _clear_model_tables_before_import():
     for model in reversed:
         using = router.db_for_write(model)
         manager = model.with_deleted if issubclass(model, ParanoidModel) else model.objects
-        manager.all().delete()  # type: ignore
+        manager.all().delete()  # type: ignore[attr-defined]
 
         # TODO(getsentry/team-ospo#190): Remove the "Node" kludge below in favor of a more permanent
         # solution.
@@ -158,7 +158,7 @@ def _import(
         # Parse the content JSON and remove and fields that we have marked for deletion in the
         # function.
         shimmed_models = set(DELETED_FIELDS.keys())
-        content_as_json = json.loads(content)  # type: ignore
+        content_as_json = json.loads(content)  # type: ignore[arg-type]
         for json_model in content_as_json:
             if json_model["model"] in shimmed_models:
                 fields_to_remove = DELETED_FIELDS[json_model["model"]]

@@ -25,7 +25,7 @@ click==8.1.7
 click-didyoumean==0.3.0
 click-plugins==1.1.1
 click-repl==0.3.0
-confluent-kafka==2.1.1
+confluent-kafka==2.3.0
 croniter==1.3.10
 cryptography==42.0.4
 cssselect==1.0.3
@@ -118,7 +118,7 @@ rfc3986-validator==0.1.1
 rpds-py==0.15.2
 rsa==4.8
 s3transfer==0.10.0
-sentry-arroyo==2.16.2
+sentry-arroyo==2.16.5
 sentry-kafka-schemas==0.1.64
 sentry-ophio==0.2.5
 sentry-redis-tools==0.1.7

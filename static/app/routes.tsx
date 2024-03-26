@@ -1598,6 +1598,9 @@ function buildRoutes() {
           />
         </Route>
       </Route>
+      <Route path="traces/">
+        <IndexRoute component={make(() => import('sentry/views/performance/traces'))} />
+      </Route>
       <Route path="summary/">
         <IndexRoute
           component={make(
