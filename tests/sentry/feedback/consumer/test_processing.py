@@ -7,25 +7,18 @@ from unittest.mock import Mock
 
 import msgpack
 import pytest
+from arroyo.dlq import InvalidMessage
 from arroyo.types import Partition, Topic
 
 from sentry.conf.types.kafka_definition import Topic as TopicNames
-from sentry.event_manager import EventManager
 from sentry.ingest.types import ConsumerType
 from sentry.testutils.pytest.fixtures import django_db_all
 from tests.sentry.feedback.consumer.test_utils import make_broker_message, make_ingest_message
 
 """
-Based on test_ingest_consumer_processing.py. Feedback uses the same IngestStrategyFactory as Events,
+Based on test_ingest_consumer_processing and test_dlq.py. Feedback uses the same IngestStrategyFactory as Events,
 but moving its tests here makes it easier to migrate to a separate StrategyFactory later.
 """
-
-
-def get_normalized_event(data, project):
-    # Based on test_ingest_consumer_processing.py
-    mgr = EventManager(data, project=project)
-    mgr.normalize()
-    return dict(mgr.get_data())
 
 
 @pytest.fixture
@@ -100,3 +93,40 @@ def test_processing_calls_create_feedback_issue(
 
     # preprocess_event is for error events only, make sure it wasn't called
     assert preprocess_event.call_count == 0
+
+
+@django_db_all
+def test_process_invalid_messages(default_project, feedback_strategy_factory_cls) -> None:
+    # Kafka payloads (bytes)
+    payload_invalid = b"bogus message"
+    payload_empty_message = msgpack.packb({})
+    # required fields for ingest message (not tested individually): type, event_id, project_id, start_time, payload
+
+    payload_invalid_event = msgpack.packb(make_ingest_message(b"hello world", default_project)[0])
+    payload_empty_event = msgpack.packb(make_ingest_message({}, default_project)[0])
+    # required fields: event_id, ??
+
+    strategy_factory = feedback_strategy_factory_cls(
+        ConsumerType.Feedback,
+        reprocess_only_stuck_events=False,
+        num_processes=1,
+        max_batch_size=1,
+        max_batch_time=1,
+        input_block_size=None,
+        output_block_size=None,
+    )
+    strategy = strategy_factory.create_with_partitions(Mock(), Mock())
+    partition = Partition(Topic(TopicNames.INGEST_FEEDBACK_EVENTS.value), 0)
+    offset = 5
+
+    for payload in [
+        payload_invalid,
+        payload_empty_message,
+        payload_invalid_event,
+        payload_empty_event,
+    ]:
+        message = make_broker_message(payload, partition, offset)
+        with pytest.raises(InvalidMessage) as exc_info:
+            strategy.submit(message)
+        assert exc_info.value.partition == partition
+        assert exc_info.value.offset == offset
