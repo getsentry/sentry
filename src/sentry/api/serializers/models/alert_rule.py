@@ -134,6 +134,7 @@ class AlertRuleSerializer(Serializer):
             except Exception:
                 pass
 
+        # TODO - Cleanup Subscription Project Mapping
         snuba_alert_rule_projects = AlertRule.objects.filter(
             id__in=[item.id for item in item_list]
         ).values_list("id", "snuba_query__subscriptions__project__slug")
