@@ -143,6 +143,7 @@ export enum SpanIndexedField {
 }
 
 export type SpanIndexedFieldTypes = {
+  [SpanIndexedField.SPAN_DURATION]: number;
   [SpanIndexedField.SPAN_SELF_TIME]: number;
   [SpanIndexedField.SPAN_GROUP]: string;
   [SpanIndexedField.SPAN_MODULE]: string;
@@ -150,6 +151,8 @@ export type SpanIndexedFieldTypes = {
   [SpanIndexedField.SPAN_OP]: string;
   [SpanIndexedField.ID]: string;
   [SpanIndexedField.SPAN_ACTION]: string;
+  [SpanIndexedField.TRACE]: string;
+  [SpanIndexedField.TRANSACTION]: string;
   [SpanIndexedField.TRANSACTION_ID]: string;
   [SpanIndexedField.TRANSACTION_METHOD]: string;
   [SpanIndexedField.TRANSACTION_OP]: string;
