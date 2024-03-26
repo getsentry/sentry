@@ -9,7 +9,7 @@ from django.utils import timezone
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.data_v2 import (
+from sentry.sentry_metrics.querying.data import (
     MetricsAPIQueryResultsTransformer,
     MetricsQueriesPlan,
     run_metrics_queries_plan,

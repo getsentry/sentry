@@ -1,9 +1,6 @@
 from dataclasses import replace
 
-from sentry.sentry_metrics.querying.data_v2.preparation.base import (
-    IntermediateQuery,
-    PreparationStep,
-)
+from sentry.sentry_metrics.querying.data.preparation.base import IntermediateQuery, PreparationStep
 from sentry.sentry_metrics.querying.units import WithUnit
 from sentry.sentry_metrics.querying.visitors import UnitsNormalizationVisitor
 
