@@ -6,7 +6,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 import {
-  type Monitor,
   type MonitorEnvironment,
   MonitorStatus,
   type StatusNotice,
@@ -14,7 +13,6 @@ import {
 import {statusIconColorMap} from 'sentry/views/monitors/utils/constants';
 
 interface Props {
-  monitor: Monitor;
   monitorEnv: MonitorEnvironment;
 }
 
@@ -34,10 +32,10 @@ const envMutedDisplay: StatusNotice = {
   color: 'subText',
 };
 
-export default function MonitorEnvironmentLabel({monitorEnv, monitor}: Props) {
+export default function MonitorEnvironmentLabel({monitorEnv}: Props) {
   const {name, status, isMuted, activeIncident} = monitorEnv;
   const {userNotifiedTimestamp, envMutedTimestamp} = activeIncident?.brokenNotice ?? {};
-  const envStatus = monitor.isMuted || isMuted ? MonitorStatus.DISABLED : status;
+  const envStatus = isMuted ? MonitorStatus.DISABLED : status;
   const {label, icon, color} = userNotifiedTimestamp
     ? userNotifiedDisplay
     : envMutedTimestamp
