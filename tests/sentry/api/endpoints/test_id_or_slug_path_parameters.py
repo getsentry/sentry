@@ -60,9 +60,10 @@ class APIIdOrSlugPathParamTest(BaseTestCase, TestCase):
 
     @patch("sentry.api.bases.doc_integrations.DocIntegrationBaseEndpoint.check_object_permissions")
     @override_options({"api.id-or-slug-enabled": True})
-    def doc_integration_test(self, class_name, mappings, mock_has_permission):
-        slug_kwargs = {key: value.slug for key, value in mappings.items()}
-        id_kwargs = {key: value.id for key, value in mappings.items()}
+    def doc_integration_test(self, class_name, path_params, *args):
+
+        slug_kwargs = {param: self.mapping[param].slug for param in path_params}
+        id_kwargs = {param: self.mapping[param].id for param in path_params}
 
         converted_slugs = class_name().convert_args(request=None, **slug_kwargs)
         converted_ids = class_name().convert_args(request=None, **id_kwargs)
