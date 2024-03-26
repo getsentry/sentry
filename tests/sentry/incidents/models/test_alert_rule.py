@@ -444,7 +444,7 @@ class UpdateAlertActivationsTest(TestCase):
 
     def test_update_alerts_add_processor(self):
         @register_alert_subscription_callback(AlertRuleMonitorType.CONTINUOUS)
-        def mock_processor(_subscription):
+        def mock_processor(_subscription, _alert_rule, _value):
             return True
 
         assert AlertRuleMonitorType.CONTINUOUS in alert_subscription_callback_registry
