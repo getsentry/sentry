@@ -1082,18 +1082,13 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     }
 
     if (isTransactionNode(this)) {
-      for (const error of this.value.errors) {
-        this.errors.add(error);
-      }
-
-      for (const issue of this.value.performance_issues) {
-        this.performance_issues.add(issue);
-      }
+      this.errors = new Set(this.value.errors);
+      this.performance_issues = new Set(this.value.performance_issues);
     }
 
     // For error nodes, its value is the only associated issue.
     if (isTraceErrorNode(this)) {
-      this.errors.add(this.value);
+      this.errors = new Set([this.value]);
     }
   }
 
