@@ -6,10 +6,6 @@ import type {Client} from 'sentry/api';
 import type {Organization} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
 import clamp from 'sentry/utils/number/clamp';
-import type {
-  TraceError,
-  TracePerformanceIssue,
-} from 'sentry/utils/performance/quickTrace/types';
 import {requestAnimationTimeout} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import {lightTheme as theme} from 'sentry/utils/theme';
 import {
@@ -19,6 +15,7 @@ import {
   isSiblingAutogroupedNode,
   isSpanNode,
   isTraceErrorNode,
+  isTraceNode,
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/guards';
 import {
@@ -1969,15 +1966,15 @@ function hasEventWithEventId(
   node: TraceTreeNode<TraceTree.NodeValue>,
   eventId: string
 ): boolean {
-  // Search in errors
-  const errors: TraceError[] = isAutogroupedNode(node)
-    ? node.errors
-    : node.value && 'errors' in node.value && Array.isArray(node.value.errors)
-      ? node.value.errors
-      : [];
+  // Skip trace nodes since they accumulate all errors and performance issues
+  // in the trace and is not an event.
+  if (isTraceNode(node)) {
+    return false;
+  }
 
-  if (errors.length > 0) {
-    for (const e of errors) {
+  // Search in errors
+  if (node.errors.size > 0) {
+    for (const e of node.errors) {
       if (e.event_id === eventId) {
         return true;
       }
@@ -1985,16 +1982,8 @@ function hasEventWithEventId(
   }
 
   // Search in performance issues
-  const performance_issues: TracePerformanceIssue[] = isAutogroupedNode(node)
-    ? node.performance_issues
-    : node.value &&
-        'performance_issues' in node.value &&
-        Array.isArray(node.value.performance_issues)
-      ? node.value.performance_issues
-      : [];
-
-  if (performance_issues.length > 0) {
-    for (const p of performance_issues) {
+  if (node.performance_issues.size > 0) {
+    for (const p of node.performance_issues) {
       if (p.event_id === eventId) {
         return true;
       }
