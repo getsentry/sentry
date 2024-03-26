@@ -145,17 +145,21 @@ function MetricWidgetViewerModal({
     [filteredEquations, filteredQueries]
   );
 
-  const addQuery = useCallback(() => {
-    setMetricQueries(curr => {
-      return [
-        ...curr,
-        {
-          ...metricQueries[metricQueries.length - 1],
-          id: generateQueryId(),
-        },
-      ];
-    });
-  }, [generateQueryId, metricQueries]);
+  const addQuery = useCallback(
+    (queryIndex?: number) => {
+      setMetricQueries(curr => {
+        const query = metricQueries[queryIndex ?? metricQueries.length - 1];
+        return [
+          ...curr,
+          {
+            ...query,
+            id: generateQueryId(),
+          },
+        ];
+      });
+    },
+    [generateQueryId, metricQueries]
+  );
 
   const addEquation = useCallback(() => {
     setMetricEquations(curr => {
