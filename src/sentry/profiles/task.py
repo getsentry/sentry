@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from functools import lru_cache
 from time import time
 from typing import Any
+from uuid import UUID
 
 import msgpack
 import sentry_sdk
@@ -738,7 +739,7 @@ def get_frame_index_map(frames: list[dict[str, Any]]) -> dict[int, list[int]]:
 
 
 @metrics.wraps("process_profile.deobfuscate.with_symbolicator")
-def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_file_id: str) -> None:
+def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_file_id: str) -> bool:
     symbolication_start_time = time()
 
     def on_symbolicator_request():
@@ -760,7 +761,7 @@ def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_fi
                 profile=profile,
                 modules=[
                     {
-                        "uuid": debug_file_id,
+                        "uuid": UUID(debug_file_id).hex,
                     }
                 ],
                 stacktraces=[
@@ -772,27 +773,31 @@ def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_fi
                 ],
                 platform=profile["platform"],
             )
-
             if not response:
                 profile["symbolicator_error"] = {
                     "type": EventError.NATIVE_INTERNAL_FAILURE,
                 }
-                return
+            elif response["status"] == "failed":
+                profile["symbolicator_error"] = {
+                    "type": EventError.NATIVE_SYMBOLICATOR_FAILED,
+                    "status": response["status"],
+                    "message": response["message"],
+                }
             elif len(response["errors"]) > 0:
                 profile["symbolicator_error"] = response["errors"][0]
-                return
             elif len(response["stacktraces"]) > 0:
                 merge_jvm_frames_with_android_methods(
                     frames=response["stacktraces"][0]["frames"],
                     methods=profile["profile"]["methods"],
                 )
+                return True
             else:
                 profile["symbolicator_error"] = {
                     "type": EventError.NATIVE_SYMBOLICATOR_FAILED,
                 }
-                return
     except SymbolicationTimeout:
         metrics.incr("process_profile.symbolicate.timeout", sample_rate=1.0)
+    return False
 
 
 @metrics.wraps("process_profile.deobfuscate")
@@ -808,13 +813,13 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
 
     if project.id in options.get("profiling.deobfuscate-using-symbolicator.enable-for-project"):
         try:
-            _deobfuscate_using_symbolicator(
+            if _deobfuscate_using_symbolicator(
                 project=project,
                 profile=profile,
                 debug_file_id=debug_file_id,
-            )
-            sentry_sdk.set_tag("deobfuscated_with_symbolicator", True)
-            return
+            ):
+                sentry_sdk.set_tag("deobfuscated_with_symbolicator", True)
+                return
         except Exception as e:
             sentry_sdk.capture_exception(e)
     _deobfuscate_locally(profile=profile, project=project, debug_file_id=debug_file_id)
