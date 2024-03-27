@@ -38,7 +38,7 @@ import {
 } from '../utils/constants';
 import type {EditingThreshold, Threshold} from '../utils/types';
 
-export type Props = {
+export type ThresholdGroupRowsProps = {
   allEnvironmentNames: string[];
   project: Project;
   refetch: () => void;
@@ -58,7 +58,7 @@ export function ThresholdGroupRows({
   refetch,
   setTempError,
   threshold: initialThreshold,
-}: Props) {
+}: ThresholdGroupRowsProps) {
   const [editingThresholds, setEditingThresholds] = useState<{
     [key: string]: EditingThreshold;
   }>(() => {
