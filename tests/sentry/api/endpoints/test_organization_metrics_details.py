@@ -6,8 +6,8 @@ import pytest
 
 from sentry.sentry_metrics.use_case_id_registry import (
     UseCaseID,
-    UseCaseIDVisibility,
-    get_use_case_id_visibility,
+    UseCaseIDAPIAccess,
+    get_use_case_id_api_access,
 )
 from sentry.sentry_metrics.visibility import block_metric, block_tags_of_metric
 from sentry.testutils.cases import MetricsAPIBaseTestCase, OrganizationMetricsIntegrationTestCase
@@ -88,7 +88,7 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
         public_use_case_ids = [
             use_case_id
             for use_case_id in all_use_case_ids
-            if get_use_case_id_visibility(use_case_id) == UseCaseIDVisibility.PUBLIC
+            if get_use_case_id_api_access(use_case_id) == UseCaseIDAPIAccess.PUBLIC
         ]
 
         normal_user = self.create_user()
