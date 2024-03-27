@@ -465,7 +465,7 @@ def _transform_search_query(query: Sequence[QueryToken]) -> Sequence[QueryToken]
 
     return transformed_query
 
-
+@metrics.wraps("metrics.extraction.parse_search_query")
 def parse_search_query(
     query: str | None,
     removed_blacklisted: bool = False,
