@@ -19,7 +19,7 @@ import {EventExtraData} from 'sentry/components/events/eventExtraData';
 import {REPLAY_CLIP_OFFSETS} from 'sentry/components/events/eventReplay';
 import ReplayClipPreview from 'sentry/components/events/eventReplay/replayClipPreview';
 import {EventSdk} from 'sentry/components/events/eventSdk';
-import Tags from 'sentry/components/events/eventTagsAndScreenshot/tags';
+import NewTagsUI from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {Breadcrumbs} from 'sentry/components/events/interfaces/breadcrumbs';
 import {getFormattedTimeRangeWithLeadingAndTrailingZero} from 'sentry/components/events/interfaces/spans/utils';
@@ -56,7 +56,7 @@ import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import {CustomMetricsEventData} from 'sentry/views/ddm/customMetricsEventData';
 import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceTabs';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/virtualizedViewManager';
-import {Row} from 'sentry/views/performance/traceDetails/styles';
+import {Row, Tags} from 'sentry/views/performance/traceDetails/styles';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import type {TraceTree, TraceTreeNode} from '../../traceTree';
@@ -268,6 +268,9 @@ export function TransactionNodeDetails({
     .sort();
 
   const parentTransaction = node.parent_transaction;
+  const hasNewTagsUI =
+    location.query.tagsTree === '1' ||
+    organization.features.includes('event-tags-tree-ui');
 
   return (
     <TraceDrawerComponents.DetailContainer>
@@ -409,6 +412,15 @@ export function TransactionNodeDetails({
             </Fragment>
           )}
 
+          {!hasNewTagsUI ? (
+            <Tags
+              enableHiding
+              location={location}
+              organization={organization}
+              tags={event.tags}
+              event={node.value}
+            />
+          ) : null}
           {measurementNames.length > 0 && (
             <tr>
               <td className="key">{t('Measurements')}</td>
@@ -435,9 +447,11 @@ export function TransactionNodeDetails({
           )}
         </tbody>
       </TraceDrawerComponents.Table>
-      <TagsWrapper>
-        <Tags event={event} projectSlug={node.value.project_slug} />
-      </TagsWrapper>
+      {hasNewTagsUI ? (
+        <TagsWrapper>
+          <NewTagsUI event={event} projectSlug={node.value.project_slug} />
+        </TagsWrapper>
+      ) : null}
       {project ? <EventEvidence event={event} project={project} /> : null}
       <ReplaySection event={event} organization={organization} />
       {event.projectSlug ? (
