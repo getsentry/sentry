@@ -9,7 +9,7 @@ from sentry.api.endpoints.relocations import (
 from sentry.api.endpoints.relocations.unpause import ERR_NOT_UNPAUSABLE_STATUS
 from sentry.models.relocation import Relocation
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.utils.relocation import OrderedTask
 
 TEST_DATE_ADDED = datetime(2023, 1, 23, 1, 23, 45, tzinfo=timezone.utc)
@@ -39,13 +39,14 @@ class UnpauseRelocationTest(APITestCase):
             latest_task_attempts=1,
         )
 
-    @with_feature("auth:enterprise-staff-cookie")
     @patch("sentry.tasks.relocation.preprocessing_scan.delay")
     def test_good_staff_unpause_until_validating(self, async_task_scheduled: Mock):
         self.login_as(user=self.staff_user, staff=True)
-        response = self.get_success_response(
-            self.relocation.uuid, untilStep=Relocation.Step.VALIDATING.name, status_code=200
-        )
+
+        with override_options({"staff.user-email-allowlist": [self.staff_user.email]}):
+            response = self.get_success_response(
+                self.relocation.uuid, untilStep=Relocation.Step.VALIDATING.name, status_code=200
+            )
 
         assert response.data["status"] == Relocation.Status.IN_PROGRESS.name
         assert response.data["step"] == Relocation.Step.PREPROCESSING.name

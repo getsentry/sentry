@@ -22,7 +22,6 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.backups import generate_rsa_key_pair
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json
@@ -132,7 +131,6 @@ class RetryRelocationTest(APITestCase):
 
     @override_options({"relocation.enabled": False, "relocation.daily-limit.small": 2})
     @patch("sentry.tasks.relocation.uploading_complete.delay")
-    @with_feature("auth:enterprise-staff-cookie")
     def test_good_staff_when_feature_disabled(
         self, uploading_complete_mock: Mock, analytics_record_mock: Mock
     ):
@@ -141,7 +139,8 @@ class RetryRelocationTest(APITestCase):
         relocation_file_count = RelocationFile.objects.count()
         file_count = File.objects.count()
 
-        response = self.get_success_response(self.relocation.uuid, status_code=201)
+        with override_options({"staff.user-email-allowlist": [self.staff_user.email]}):
+            response = self.get_success_response(self.relocation.uuid, status_code=201)
 
         assert response.data["uuid"] != self.relocation.uuid
         assert response.data["creatorId"] == str(self.staff_user.id)
@@ -297,7 +296,6 @@ class RetryRelocationTest(APITestCase):
 
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 2})
     @patch("sentry.tasks.relocation.uploading_complete.delay")
-    @with_feature("auth:enterprise-staff-cookie")
     def test_bad_staff_owner_not_found(
         self, uploading_complete_mock: Mock, analytics_record_mock: Mock
     ):
@@ -305,7 +303,8 @@ class RetryRelocationTest(APITestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             User.objects.filter(id=self.owner.id).delete()
 
-        response = self.get_error_response(self.relocation.uuid, status_code=400)
+        with override_options({"staff.user-email-allowlist": [self.staff_user.email]}):
+            response = self.get_error_response(self.relocation.uuid, status_code=400)
 
         assert response.data.get("detail") == ERR_OWNER_NO_LONGER_EXISTS
         assert uploading_complete_mock.call_count == 0

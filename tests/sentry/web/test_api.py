@@ -15,7 +15,7 @@ from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.scheduled import run_deletion
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, create_test_regions, region_silo_test
 from sentry.utils import json
 
@@ -188,10 +188,13 @@ class ClientConfigViewTest(TestCase):
         assert data["features"] == ["organizations:create"]
         assert data["customerDomain"] is None
 
-    def _run_test_with_privileges(self, is_superuser: bool, is_staff: bool):
+    def _run_test_with_privileges(
+        self, is_superuser: bool, is_staff: bool, activate_staff_option: bool = False
+    ):
         user = self.create_user("foo@example.com", is_superuser=is_superuser, is_staff=is_staff)
         self.create_organization(owner=user)
         self.login_as(user, superuser=is_superuser, staff=is_staff)
+        staff_option_email_list = [user.email] if activate_staff_option else []
 
         other_org = self.create_organization()
 
@@ -225,6 +228,7 @@ class ClientConfigViewTest(TestCase):
         # Induce last active organization
         with (
             override_settings(SENTRY_USE_CUSTOMER_DOMAINS=True),
+            override_options({"staff.user-email-allowlist": staff_option_email_list}),
             self.feature({"organizations:customer-domains": [other_org.slug]}),
             assume_test_silo_mode(SiloMode.MONOLITH),
         ):
@@ -272,13 +276,13 @@ class ClientConfigViewTest(TestCase):
     def test_superuser(self):
         self._run_test_with_privileges(is_superuser=True, is_staff=False)
 
-    @with_feature("auth:enterprise-staff-cookie")
     def test_staff(self):
-        self._run_test_with_privileges(is_superuser=False, is_staff=True)
+        self._run_test_with_privileges(
+            is_superuser=False, is_staff=True, activate_staff_option=True
+        )
 
-    @with_feature("auth:enterprise-staff-cookie")
     def test_superuser_and_staff(self):
-        self._run_test_with_privileges(is_superuser=True, is_staff=True)
+        self._run_test_with_privileges(is_superuser=True, is_staff=True, activate_staff_option=True)
 
     def test_superuser_cookie_domain(self):
         # Cannot set the superuser cookie domain using override_settings().

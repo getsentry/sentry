@@ -5,7 +5,7 @@ from django.urls import URLResolver, get_resolver, reverse
 
 from sentry.models.organization import OrganizationStatus
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
@@ -266,8 +266,9 @@ class ReactPageViewTest(TestCase):
         other_org = self.create_organization()
 
         self.login_as(self.user)
-        with override_settings(SENTRY_USE_CUSTOMER_DOMAINS=True), self.feature(
-            {"organizations:customer-domains": [other_org.slug]}
+        with (
+            override_settings(SENTRY_USE_CUSTOMER_DOMAINS=True),
+            self.feature({"organizations:customer-domains": [other_org.slug]}),
         ):
             # Should not be able to induce activeorg
             assert "activeorg" not in self.client.session
@@ -280,14 +281,22 @@ class ReactPageViewTest(TestCase):
             assert response.redirect_chain == [(f"http://{other_org.slug}.testserver/issues/", 302)]
             assert "activeorg" not in self.client.session
 
-    def _run_customer_domain_elevated_privileges(self, is_superuser: bool, is_staff: bool):
+    def _run_customer_domain_elevated_privileges(
+        self,
+        is_superuser: bool,
+        is_staff: bool,
+        activate_staff_option: bool = False,
+    ):
         user = self.create_user("foo@example.com", is_superuser=is_superuser, is_staff=is_staff)
         org = self.create_organization(owner=user)
         other_org = self.create_organization()
+        staff_option_email_list = [user.email] if activate_staff_option else []
 
         self.login_as(user, superuser=is_superuser, staff=is_staff)
-        with override_settings(SENTRY_USE_CUSTOMER_DOMAINS=True), self.feature(
-            {"organizations:customer-domains": [other_org.slug]}
+        with (
+            override_settings(SENTRY_USE_CUSTOMER_DOMAINS=True),
+            self.feature({"organizations:customer-domains": [other_org.slug]}),
+            override_options({"staff.user-email-allowlist": staff_option_email_list}),
         ):
             # Induce activeorg
             assert "activeorg" not in self.client.session
@@ -319,13 +328,15 @@ class ReactPageViewTest(TestCase):
     def test_customer_domain_non_member_org_superuser(self):
         self._run_customer_domain_elevated_privileges(is_superuser=True, is_staff=False)
 
-    @with_feature("auth:enterprise-staff-cookie")
     def test_customer_domain_non_member_org_staff(self):
-        self._run_customer_domain_elevated_privileges(is_superuser=False, is_staff=True)
+        self._run_customer_domain_elevated_privileges(
+            is_superuser=False, is_staff=True, activate_staff_option=True
+        )
 
-    @with_feature("auth:enterprise-staff-cookie")
     def test_customer_domain_non_member_org_superuser_and_staff(self):
-        self._run_customer_domain_elevated_privileges(is_superuser=True, is_staff=True)
+        self._run_customer_domain_elevated_privileges(
+            is_superuser=True, is_staff=True, activate_staff_option=True
+        )
 
     def test_customer_domain_superuser(self):
         org = self.create_organization(owner=self.user)
