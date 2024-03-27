@@ -331,12 +331,12 @@ class CodeMappingTreesHelper:
         src_file_items = src_file.split("/")
         frame_items = frame_filename.full_path.split("/")
         if len(src_file_items) > len(frame_items):
-            return src_file.rfind(frame_filename.full_path) > -1
+            return src_file.endswith(frame_filename.full_path)
         else:
             num_relevant_items = max(1, len(src_file_items) - 1)
             relevant_items = frame_items[(len(frame_items) - num_relevant_items) :]
             relevant_path = "/".join(relevant_items)
-            return src_file.rfind(relevant_path) > -1
+            return src_file.endswith(relevant_path)
 
 
 def create_code_mapping(
