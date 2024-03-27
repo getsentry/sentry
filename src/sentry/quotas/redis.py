@@ -66,7 +66,11 @@ class RedisQuota(Quota):
         if key:
             key.project = project
 
-        results = [*self.get_abuse_quotas(project.organization)]
+        results = []
+        for quota in self.get_abuse_quotas(project.organization):
+            if quota.scope == QuotaScope.PROJECT:
+                quota.scope_id = project.id
+            results.append(quota)
 
         # If the organization belongs to the disabled list, we want to stop ingesting custom metrics.
         if project.organization.id in (options.get("custom-metrics-ingestion-disabled-orgs") or ()):
