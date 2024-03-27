@@ -1,9 +1,7 @@
 from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class OrganizationManagerTest(TestCase):
     def test_get_for_user_ids(self):
         user = self.create_user()

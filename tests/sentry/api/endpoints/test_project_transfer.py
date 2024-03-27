@@ -2,10 +2,8 @@ from django.core import mail
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class ProjectTransferTest(APITestCase):
     def test_internal_project(self):
         project = self.create_project()

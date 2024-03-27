@@ -26,7 +26,7 @@ from sentry.models.team import Team
 from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json
@@ -37,7 +37,6 @@ from . import BaseEventTest
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
     def setUp(self):
         super().setUp()

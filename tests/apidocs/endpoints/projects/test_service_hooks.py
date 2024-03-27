@@ -2,10 +2,8 @@ from django.test.client import RequestFactory
 from django.urls import reverse
 
 from fixtures.apidocs_test_case import APIDocsTestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class ProjectServiceHooksDocs(APIDocsTestCase):
     def setUp(self):
         self.create_service_hook(project=self.project, events=("event.created",))

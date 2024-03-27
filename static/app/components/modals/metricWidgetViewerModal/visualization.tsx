@@ -167,7 +167,7 @@ export function MetricVisualization({
     );
   }, [timeseriesData, displayType, isLoading, queries, onOrderChange]);
 
-  if (!timeseriesData || isError) {
+  if (isError && !timeseriesData) {
     return (
       <StyledMetricChartContainer>
         {isLoading && <LoadingIndicator />}

@@ -15,7 +15,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
-import Tag from 'sentry/components/tag';
+import {Tag} from 'sentry/components/tag';
 import {IconChevron, IconFlag, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

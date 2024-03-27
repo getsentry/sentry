@@ -1832,8 +1832,8 @@ describe('TraceTree', () => {
           project_slug: '',
           event_id: '',
         });
-        node.errors = [makeTraceError()];
-        node.performance_issues = [makeTracePerformanceIssue()];
+        node.errors.add(makeTraceError());
+        node.performance_issues.add(makeTracePerformanceIssue());
         root.children.push(node);
       }
 
@@ -1845,8 +1845,8 @@ describe('TraceTree', () => {
       const autogroupedNode = root.children[0];
       assertSiblingAutogroupedNode(autogroupedNode);
       expect(autogroupedNode.has_errors).toBe(true);
-      expect(autogroupedNode.errors).toHaveLength(5);
-      expect(autogroupedNode.performance_issues).toHaveLength(5);
+      expect(autogroupedNode.errors.size).toBe(5);
+      expect(autogroupedNode.performance_issues.size).toBe(5);
     });
 
     it('adds autogrouped siblings as children under autogrouped node', () => {
@@ -1987,8 +1987,8 @@ describe('TraceTree', () => {
             event_id: '',
           }
         );
-        node.errors = [makeTraceError()];
-        node.performance_issues = [makeTracePerformanceIssue()];
+        node.errors.add(makeTraceError());
+        node.performance_issues.add(makeTracePerformanceIssue());
         last.children.push(node);
         last = node;
       }
@@ -2006,8 +2006,8 @@ describe('TraceTree', () => {
 
       assertAutogroupedNode(root.children[0]);
       expect(root.children[0].has_errors).toBe(true);
-      expect(root.children[0].errors).toHaveLength(3);
-      expect(root.children[0].performance_issues).toHaveLength(3);
+      expect(root.children[0].errors.size).toBe(3);
+      expect(root.children[0].performance_issues.size).toBe(3);
     });
 
     it('autogrouping direct children skips rendering intermediary nodes', () => {

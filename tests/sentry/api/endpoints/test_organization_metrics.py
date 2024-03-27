@@ -20,7 +20,7 @@ from sentry.snuba.metrics import (
 )
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
 
@@ -58,7 +58,6 @@ perf_indexer_record = partial(indexer_record, UseCaseID.TRANSACTIONS)
 rh_indexer_record = partial(indexer_record, UseCaseID.SESSIONS)
 
 
-@region_silo_test
 class OrganizationMetricsPermissionTest(APITestCase):
 
     endpoints = (
@@ -104,7 +103,6 @@ class OrganizationMetricsPermissionTest(APITestCase):
             assert response.status_code in (200, 400, 404)
 
 
-@region_silo_test
 class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
     view = "sentry-api-0-organization-metrics-samples"
 

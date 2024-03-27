@@ -164,7 +164,7 @@ def detect_broken_monitor_envs():
                 "view_monitors_link": generate_monitor_overview_url(organization),
             }
             message = MessageBuilder(
-                subject="Your monitors are broken!",
+                subject="Your Cron Monitors Aren't Working",
                 template="sentry/emails/crons/broken-monitors.txt",
                 html_template="sentry/emails/crons/broken-monitors.html",
                 type="crons.broken_monitors",

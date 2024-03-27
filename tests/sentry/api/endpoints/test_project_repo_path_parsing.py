@@ -3,7 +3,7 @@ from django.urls import reverse
 from sentry.api.endpoints.project_repo_path_parsing import PathMappingSerializer
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class BaseStacktraceLinkTest(APITestCase):
@@ -119,7 +119,6 @@ class PathMappingSerializerTest(TestCase):
         assert serializer.errors["sourceUrl"][0] == "Could not find repo"
 
 
-@region_silo_test
 class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
     def setUp(self):
         super().setUp()
@@ -197,7 +196,7 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
             "integrationId": self.integration.id,
             "repositoryId": self.repo.id,
             "provider": "github",
-            "stackRoot": "./",
+            "stackRoot": "",
             "sourceRoot": "src/",
             "defaultBranch": "master",
         }
@@ -212,7 +211,7 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
             "repositoryId": self.repo.id,
             "provider": "github",
             "stackRoot": "sentry/",
-            "sourceRoot": "/",
+            "sourceRoot": "",
             "defaultBranch": "main",
         }
 
@@ -248,7 +247,7 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
             "repositoryId": self.repo.id,
             "provider": "github",
             "stackRoot": "C:\\sentry\\",
-            "sourceRoot": "/",
+            "sourceRoot": "",
             "defaultBranch": "main",
         }
 
@@ -267,7 +266,6 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
         }
 
 
-@region_silo_test
 class ProjectStacktraceLinkGitlabTest(BaseStacktraceLinkTest):
     def setUp(self):
         super().setUp()
@@ -300,7 +298,7 @@ class ProjectStacktraceLinkGitlabTest(BaseStacktraceLinkTest):
             "integrationId": self.integration.id,
             "repositoryId": self.repo.id,
             "provider": "gitlab",
-            "stackRoot": "./",
+            "stackRoot": "",
             "sourceRoot": "src/",
             "defaultBranch": "master",
         }

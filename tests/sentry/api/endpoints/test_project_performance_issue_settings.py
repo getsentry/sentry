@@ -8,11 +8,9 @@ from sentry.api.endpoints.project_performance_issue_settings import SETTINGS_PRO
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.performance_issues.performance_detection import get_merged_settings
 
 
-@region_silo_test
 class ProjectPerformanceIssueSettingsTest(APITestCase):
     endpoint = "sentry-api-0-project-performance-issue-settings"
 
