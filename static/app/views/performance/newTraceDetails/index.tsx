@@ -67,6 +67,7 @@ import Trace from './trace';
 import TraceHeader from './traceHeader';
 import {TraceTree, type TraceTreeNode} from './traceTree';
 import {useTrace} from './useTrace';
+import {useTraceAverageTransactionDurations} from './useTraceAverageTransactionDurations';
 import {useTraceMeta} from './useTraceMeta';
 
 const DOCUMENT_TITLE = [t('Trace')].join(' — ');
@@ -239,6 +240,12 @@ function TraceViewContent(props: TraceViewContentProps) {
     rootEvent.data,
     rootEvent.status,
   ]);
+
+  const averageTransactionDurations = useTraceAverageTransactionDurations({
+    tree,
+    location: props.location,
+    organization: props.organization,
+  });
 
   const [rovingTabIndexState, rovingTabIndexDispatch] = useReducer(
     rovingTabIndexReducer,
@@ -612,6 +619,7 @@ function TraceViewContent(props: TraceViewContentProps) {
           ) : null}
 
           <TraceDrawer
+            averageTransactionDurations={averageTransactionDurations}
             tabs={tabs}
             trace={tree}
             manager={viewManager}

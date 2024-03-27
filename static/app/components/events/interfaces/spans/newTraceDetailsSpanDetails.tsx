@@ -610,8 +610,6 @@ export const SpanDetailContainer = styled('div')`
 `;
 
 export const SpanDetails = styled('div')`
-  padding: ${space(2)};
-
   table.table.key-value td.key {
     max-width: 280px;
   }

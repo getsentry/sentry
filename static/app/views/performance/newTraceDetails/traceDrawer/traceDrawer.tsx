@@ -27,6 +27,7 @@ import {
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/virtualizedViewManager';
 
 import {makeTraceNodeBarColor, type TraceTree, type TraceTreeNode} from '../traceTree';
+import type {TraceAverageTransactionDurationsQueryResults} from '../useTraceAverageTransactionDurations';
 
 import NodeDetail from './tabs/details';
 import {TraceLevelDetails} from './tabs/trace';
@@ -34,6 +35,7 @@ import {TraceLevelDetails} from './tabs/trace';
 const MIN_TRACE_DRAWER_DIMENSTIONS: [number, number] = [480, 30];
 
 type TraceDrawerProps = {
+  averageTransactionDurations: TraceAverageTransactionDurationsQueryResults;
   drawerSize: number;
   layout: 'drawer bottom' | 'drawer left' | 'drawer right';
   location: Location;
@@ -205,6 +207,7 @@ function TraceDrawer(props: TraceDrawerProps) {
               />
             ) : (
               <NodeDetail
+                averageTransactionDurations={props.averageTransactionDurations}
                 node={props.tabs.current.node}
                 organization={props.organization}
                 location={props.location}

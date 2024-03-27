@@ -12,6 +12,7 @@ import {
   isTransactionNode,
 } from '../../guards';
 import type {TraceTree, TraceTreeNode} from '../../traceTree';
+import type {TraceAverageTransactionDurationsQueryResults} from '../../useTraceAverageTransactionDurations';
 import {ErrorNodeDetails} from '../details/error';
 import {MissingInstrumentationNodeDetails} from '../details/missingInstrumentation';
 import {ParentAutogroupNodeDetails} from '../details/parentAutogroup';
@@ -26,7 +27,9 @@ export default function NodeDetail({
   manager,
   scrollToNode,
   onParentClick,
+  averageTransactionDurations,
 }: {
+  averageTransactionDurations: TraceAverageTransactionDurationsQueryResults;
   location: Location;
   manager: VirtualizedViewManager;
   node: TraceTreeNode<TraceTree.NodeValue>;
@@ -37,6 +40,7 @@ export default function NodeDetail({
   if (isTransactionNode(node)) {
     return (
       <TransactionNodeDetails
+        averageTransactionDurations={averageTransactionDurations}
         node={node}
         organization={organization}
         onParentClick={onParentClick}
