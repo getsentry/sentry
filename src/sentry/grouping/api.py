@@ -179,7 +179,7 @@ def get_default_enhancements(config_id=None) -> str:
     base: str | None = DEFAULT_GROUPING_ENHANCEMENTS_BASE
     if config_id is not None:
         base = CONFIGURATIONS[config_id].enhancements_base
-    return Enhancements(rules=[], bases=[base]).dumps()
+    return Enhancements.from_config_string("", bases=[base]).dumps()
 
 
 def get_projects_default_fingerprinting_bases(

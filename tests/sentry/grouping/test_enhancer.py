@@ -58,6 +58,14 @@ family:native                                   max-frames=3
     assert isinstance(dumped, str)
 
 
+def test_parse_empty_with_base():
+    enhancement = Enhancements.from_config_string(
+        "",
+        bases=["newstyle:2023-01-11"],
+    )
+    assert enhancement
+
+
 def test_parsing_errors():
     with pytest.raises(InvalidEnhancerConfig):
         Enhancements.from_config_string("invalid.message:foo -> bar")

@@ -24,6 +24,7 @@ from sentry.utils import metrics
 from sentry.utils.hashlib import hash_value
 from sentry.utils.safe import get_path, set_path
 
+from .exceptions import InvalidEnhancerConfig
 from .matchers import create_match_frame
 from .parser import parse_enhancements
 from .rules import Rule
@@ -65,55 +66,39 @@ class StacktraceState:
 
 
 def merge_rust_enhancements(
-    bases: list[str], rust_enhancements: RustEnhancements | None = None
-) -> RustEnhancements | None:
+    bases: list[str], rust_enhancements: RustEnhancements
+) -> RustEnhancements:
     """
-    Similar to `iter_rules` in Python, this will also merge the parsed enhancements
-    together with the `bases`. It pretty much concatenates all the rules in `bases`
-    (in order) together with all the rules in the incoming `rust_enhancements`.
-    If `rust_enhancements` is `None`, it means nothing was parsed (either due to it
-    being disabled, or due to a parse error). In that case we do not return anything.
+    This will merge the parsed enhancements together with the `bases`.
+    It pretty much concatenates all the rules in `bases` (in order) together
+    with all the rules in the incoming `rust_enhancements`.
     """
-    if not rust_enhancements:
-        return None
-
-    try:
-        merged_rust_enhancements = RustEnhancements.empty()
-        for base_id in bases:
-            base = ENHANCEMENT_BASES.get(base_id)
-            if base:
-                if not base.rust_enhancements:
-                    raise Exception("base has no rust_enhancements")
-                merged_rust_enhancements.extend_from(base.rust_enhancements)
-        merged_rust_enhancements.extend_from(rust_enhancements)
-        return merged_rust_enhancements
-    except Exception:
-        logger.exception("failed merging rust enhancers")
-        return None
+    merged_rust_enhancements = RustEnhancements.empty()
+    for base_id in bases:
+        base = ENHANCEMENT_BASES.get(base_id)
+        if base:
+            merged_rust_enhancements.extend_from(base.rust_enhancements)
+    merged_rust_enhancements.extend_from(rust_enhancements)
+    return merged_rust_enhancements
 
 
 def parse_rust_enhancements(
     source: Literal["config_structure", "config_string"], input: str | bytes
-) -> RustEnhancements | None:
+) -> RustEnhancements:
     """
     Parses ``RustEnhancements`` from either a msgpack-encoded `config_structure`,
     or from the text representation called `config_string`.
     """
-    rust_enhancements = None
 
     try:
         if source == "config_structure":
             assert isinstance(input, bytes)
-            rust_enhancements = RustEnhancements.from_config_structure(input, RUST_CACHE)
+            return RustEnhancements.from_config_structure(input, RUST_CACHE)
         else:
             assert isinstance(input, str)
-            rust_enhancements = RustEnhancements.parse(input, RUST_CACHE)
-
-        metrics.incr("rust_enhancements.parsing_performed", tags={"source": source})
-    except Exception:
-        logger.exception("failed parsing Rust Enhancements from `%s`", source)
-
-    return rust_enhancements
+            return RustEnhancements.parse(input, RUST_CACHE)
+    except RuntimeError as e:  # Rust bindings raise parse errors as `RuntimeError`
+        raise InvalidEnhancerConfig(str(e))
 
 
 RustAssembleResult = tuple[bool | None, str | None, bool, list[RustComponent]]
@@ -288,7 +273,9 @@ class Enhancements:
     # See ``GroupingConfigLoader._get_enhancements`` in src/sentry/grouping/api.py.
 
     @sentry_sdk.tracing.trace
-    def __init__(self, rules, version=None, bases=None, id=None, rust_enhancements=None):
+    def __init__(
+        self, rules, rust_enhancements: RustEnhancements, version=None, bases=None, id=None
+    ):
         self.id = id
         self.rules = rules
         if version is None:
@@ -484,15 +471,15 @@ class Enhancements:
         return base64.urlsafe_b64encode(compressed).decode("ascii").strip("=")
 
     @classmethod
-    def _from_config_structure(cls, data, rust_enhancements=None) -> Enhancements:
+    def _from_config_structure(cls, data, rust_enhancements: RustEnhancements) -> Enhancements:
         version, bases, rules = data
         if version not in VERSIONS:
             raise ValueError("Unknown version")
         return cls(
             rules=[Rule._from_config_structure(x, version=version) for x in rules],
+            rust_enhancements=rust_enhancements,
             version=version,
             bases=bases,
-            rust_enhancements=rust_enhancements,
         )
 
     @classmethod
@@ -524,9 +511,9 @@ class Enhancements:
 
         return Enhancements(
             rules,
+            rust_enhancements=rust_enhancements,
             bases=bases,
             id=id,
-            rust_enhancements=rust_enhancements,
         )
 
 
