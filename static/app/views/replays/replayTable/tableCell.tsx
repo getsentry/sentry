@@ -615,7 +615,13 @@ export function ActivityCell({replay, showDropdownFilters}: Props) {
   );
 }
 
-export function PlayPauseCell({isSelected}: {isSelected: boolean}) {
+export function PlayPauseCell({
+  isSelected,
+  handleClick,
+}: {
+  handleClick: () => void;
+  isSelected: boolean;
+}) {
   const inner = isSelected ? (
     <ReplayPlayPauseButton size="sm" iconSize="sm" priority="default" borderless />
   ) : (
@@ -623,6 +629,7 @@ export function PlayPauseCell({isSelected}: {isSelected: boolean}) {
       title={t('Play')}
       aria-label={t('Play')}
       icon={<IconPlay size="sm" />}
+      onClick={handleClick}
       data-test-id="replay-table-play-button"
       borderless
       size="sm"
