@@ -38,7 +38,11 @@ from sentry.sentry_metrics.querying.errors import (
 from sentry.sentry_metrics.querying.metadata import MetricCodeLocations, get_metric_code_locations
 from sentry.sentry_metrics.querying.samples_list import get_sample_list_executor_cls
 from sentry.sentry_metrics.querying.types import QueryOrder, QueryType
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.sentry_metrics.use_case_id_registry import (
+    UseCaseID,
+    UseCaseIDVisibility,
+    get_use_case_id_visibility,
+)
 from sentry.sentry_metrics.utils import string_to_use_case_id
 from sentry.snuba.metrics import (
     QueryDefinition,
@@ -57,46 +61,63 @@ from sentry.utils import metrics
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.dates import get_rollup_from_request, parse_stats_period
 
-# These are the use case ids that are queried by default in case no use case is supplied.
-DEFAULT_USE_CASE_IDS = [
-    UseCaseID.TRANSACTIONS,
-    UseCaseID.SESSIONS,
-    UseCaseID.SPANS,
-    UseCaseID.CUSTOM,
-    UseCaseID.PROFILES,
-    UseCaseID.METRIC_STATS,
-]
+
+def get_default_use_case_ids(request: Request) -> Sequence[UseCaseID]:
+    """
+    Gets the default use case ids given a Request.
+
+    Args:
+        request: Request of the endpoint.
+
+    Returns:
+        A list of use case ids that can be used for the API request.
+    """
+    default_use_case_ids = []
+
+    for use_case_id in UseCaseID:
+        if (
+            not request.user.is_superuser
+            and get_use_case_id_visibility(use_case_id) == UseCaseIDVisibility.PRIVATE
+        ):
+            continue
+
+        default_use_case_ids.append(default_use_case_ids)
+
+    return default_use_case_ids
 
 
 def get_use_case_id(request: Request) -> UseCaseID:
     """
-    Get useCase from query params and validate it against UseCaseID enum type
-    Raise a ParseError if the use_case parameter is invalid.
-    """
+    Gets the use case id from the Request.
 
+    Args:
+        request: Request of the endpoint.
+
+    Returns:
+        The use case id that was request or a default use case id.
+    """
     try:
-        use_case_param = request.GET.get("useCase", "sessions")
+        use_case_param = request.GET.get("useCase", get_default_use_case_ids(request)[0])
         return string_to_use_case_id(use_case_param)
     except ValueError:
-        raise ParseError(
-            detail=f"Invalid useCase parameter. Please use one of: {[uc.value for uc in UseCaseID]}"
-        )
+        raise ParseError(detail="The supplied use case doesn't exist or it's private.")
 
 
 def get_use_case_ids(request: Request) -> Sequence[UseCaseID]:
     """
-    Gets use case ids from the query params and validates them again the `UseCaseID` enum type.
+    Gets the use case ids from the Request.
 
-    If an empty list is supplied, the use case ids in `DEFAULT_USE_CASE_IDS` will be used.
+    Args:
+        request: Request of the endpoint.
+
+    Returns:
+        The use case ids that were requested or the default use case ids.
     """
-
     try:
-        use_case_params = request.GET.getlist("useCase", DEFAULT_USE_CASE_IDS)
+        use_case_params = request.GET.getlist("useCase", get_default_use_case_ids(request))
         return [string_to_use_case_id(use_case_param) for use_case_param in use_case_params]
     except ValueError:
-        raise ParseError(
-            detail=f"Invalid useCase parameter. Please use one of: {[uc.value for uc in UseCaseID]}"
-        )
+        raise ParseError(detail="The supplied use case doesn't exist or it's private.")
 
 
 class OrganizationMetricsEnrollPermission(OrganizationPermission):
