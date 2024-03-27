@@ -2,6 +2,7 @@ import datetime
 import logging
 
 import sentry_sdk
+from celery.exceptions import SoftTimeLimitExceeded
 
 from sentry import options
 from sentry.models.dashboard_widget import (
@@ -119,9 +120,19 @@ def schedule_widget_discover_split():
 
 
 def update_widgets_with_discover_split(widget_ids: list[int]):
-    widgets = DashboardWidget.objects.filter(id__in=widget_ids)
-    for widget in widgets:
-        update_widget_discover_split(widget)
+    with sentry_sdk.push_scope() as scope:
+        try:
+            widgets = DashboardWidget.objects.filter(id__in=widget_ids)
+            for widget in widgets:
+                update_widget_discover_split(widget)
+        except TimeoutError as e:
+            scope.set_tag("widget_soft_deadline", False)
+            sentry_sdk.capture_exception(e)
+        except SoftTimeLimitExceeded as e:
+            scope.set_tag("widget_soft_deadline", True)
+            sentry_sdk.capture_exception(e)
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
 
 def update_widget_discover_split(widget: DashboardWidget):
