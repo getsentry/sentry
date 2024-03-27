@@ -147,7 +147,7 @@ export function OverviewTimeline({monitorList}: Props) {
       <Header>
         <HeaderControls>
           <ResolutionSelector />
-          <SortSelector />
+          <SortSelector size="xs" />
         </HeaderControls>
         <GridLineTimeLabels
           timeWindowConfig={timeWindowConfig}
