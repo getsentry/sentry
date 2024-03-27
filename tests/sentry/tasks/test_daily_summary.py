@@ -665,18 +665,19 @@ class DailySummaryTest(
         # check error issues
         assert "*Today's Top 3 Error Issues" in blocks[5]["fields"][0]["text"]
         assert link_text.format(self.group1.id) in blocks[5]["fields"][0]["text"]
-        assert "\nIdentity not found." in blocks[5]["fields"][0]["text"]
+        assert "\n`Identity not found.`" in blocks[5]["fields"][0]["text"]
         assert link_text.format(self.group2.id) in blocks[5]["fields"][0]["text"]
         assert link_text.format(self.group2.id) in blocks[5]["fields"][0]["text"]
-        # check escalated or regressed issues
-        assert "*Issues that escalated or regressed today*" in blocks[5]["fields"][1]["text"]
-        assert link_text.format(self.group2.id) in blocks[5]["fields"][1]["text"]
-        assert link_text.format(self.group3.id) in blocks[5]["fields"][1]["text"]
         # check performance issues
-        assert "*Today's Top 3 Performance Issues*" in blocks[6]["text"]["text"]
-        assert link_text.format(self.perf_event.group.id) in blocks[6]["text"]["text"]
-        assert "\ndb - SELECT `books_author`.`id`, `b..." in blocks[6]["text"]["text"]
-        assert link_text.format(self.perf_event2.group.id) in blocks[6]["text"]["text"]
+        assert "*Today's Top 3 Performance Issues*" in blocks[5]["fields"][1]["text"]
+        assert link_text.format(self.perf_event.group.id) in blocks[5]["fields"][1]["text"]
+        assert "\n`db - SELECT books_author.id, b...`" in blocks[5]["fields"][1]["text"]
+        assert link_text.format(self.perf_event2.group.id) in blocks[5]["fields"][1]["text"]
+        # check escalated or regressed issues
+        assert "*Issues that escalated today*" in blocks[6]["fields"][0]["text"]
+        assert link_text.format(self.group3.id) in blocks[6]["fields"][0]["text"]
+        assert "*Issues that regressed today*" in blocks[6]["fields"][1]["text"]
+        assert link_text.format(self.group2.id) in blocks[6]["fields"][1]["text"]
         # repeat above for second project
         assert self.project2.slug in blocks[8]["text"]["text"]
         assert "*Today’s Event Count*" in blocks[3]["fields"][0]["text"]
@@ -987,16 +988,17 @@ class DailySummaryTest(
         assert link_text.format(self.group2.id) in blocks[5]["fields"][0]["text"]
         assert link_text.format(self.group2.id) in blocks[5]["fields"][0]["text"]
         # check escalated or regressed issues
-        assert "*Issues that escalated or regressed today*" in blocks[5]["fields"][1]["text"]
-        assert link_text.format(self.group2.id) in blocks[5]["fields"][1]["text"]
-        assert link_text.format(self.group3.id) in blocks[5]["fields"][1]["text"]
+        assert "*Issues that escalated today*" in blocks[6]["fields"][0]["text"]
+        assert link_text.format(self.group3.id) in blocks[6]["fields"][0]["text"]
+        assert "*Issues that regressed today*" in blocks[6]["fields"][1]["text"]
+        assert link_text.format(self.group2.id) in blocks[6]["fields"][1]["text"]
         # repeat above for second project, skipping where performance issue info would be
-        assert self.project2.slug in blocks[7]["text"]["text"]
-        assert "*Today’s Event Count*" in blocks[8]["fields"][0]["text"]
-        assert "*Today's Top 3 Error Issues" in blocks[9]["fields"][0]["text"]
-        assert link_text.format(self.group4.id) in blocks[9]["fields"][0]["text"]
+        assert self.project2.slug in blocks[8]["text"]["text"]
+        assert "*Today’s Event Count*" in blocks[9]["fields"][0]["text"]
+        assert "*Today's Top 3 Error Issues" in blocks[10]["fields"][0]["text"]
+        assert link_text.format(self.group4.id) in blocks[10]["fields"][0]["text"]
         # check footer
-        assert "Getting this at a funky time?" in blocks[11]["elements"][0]["text"]
+        assert "Getting this at a funky time?" in blocks[12]["elements"][0]["text"]
 
     @responses.activate
     @with_feature("organizations:slack-block-kit")
@@ -1036,13 +1038,13 @@ class DailySummaryTest(
         assert link_text.format(self.group2.id) in blocks[5]["fields"][0]["text"]
         assert link_text.format(self.group2.id) in blocks[5]["fields"][0]["text"]
         # check performance issues - skipped past escalated or regressed issues
-        assert "*Today's Top 3 Performance Issues*" in blocks[6]["text"]["text"]
-        assert link_text.format(self.perf_event.group.id) in blocks[6]["text"]["text"]
-        assert link_text.format(self.perf_event2.group.id) in blocks[6]["text"]["text"]
+        assert "*Today's Top 3 Performance Issues*" in blocks[5]["fields"][1]["text"]
+        assert link_text.format(self.perf_event.group.id) in blocks[5]["fields"][1]["text"]
+        assert link_text.format(self.perf_event2.group.id) in blocks[5]["fields"][1]["text"]
         # repeat above for second project
-        assert self.project2.slug in blocks[8]["text"]["text"]
-        assert "*Today’s Event Count*" in blocks[9]["fields"][0]["text"]
-        assert "*Today's Top 3 Error Issues" in blocks[10]["fields"][0]["text"]
-        assert link_text.format(self.group4.id) in blocks[10]["fields"][0]["text"]
+        assert self.project2.slug in blocks[7]["text"]["text"]
+        assert "*Today’s Event Count*" in blocks[8]["fields"][0]["text"]
+        assert "*Today's Top 3 Error Issues" in blocks[9]["fields"][0]["text"]
+        assert link_text.format(self.group4.id) in blocks[9]["fields"][0]["text"]
         # check footer
-        assert "Getting this at a funky time?" in blocks[12]["elements"][0]["text"]
+        assert "Getting this at a funky time?" in blocks[11]["elements"][0]["text"]
