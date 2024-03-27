@@ -149,7 +149,7 @@ def map_symbolicator_process_jvm_errors(
     return mapped_errors
 
 
-def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any):
+def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     modules = []
     modules.extend([{"uuid": id, "type": "proguard"} for id in get_proguard_images(data)])
     modules.extend([{"uuid": id, "type": "source"} for id in get_jvm_images(data)])
@@ -185,6 +185,8 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any):
 
     if not _handle_response_status(data, response):
         return
+
+    data["processed_by_symbolicator"] = True
 
     processing_errors = response.get("errors", [])
     if len(processing_errors) > 0:
@@ -223,3 +225,5 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any):
     ):
         exception["type"] = complete_exception["type"]
         exception["module"] = complete_exception["module"]
+
+    return data
