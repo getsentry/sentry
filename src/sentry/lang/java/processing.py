@@ -74,8 +74,10 @@ def _merge_frame(new_frame: dict[str, Any], symbolicated: dict[str, Any]):
         new_frame["in_app"] = symbolicated["in_app"]
 
 
-def _handles_frame(frame: dict[str, Any]) -> bool:
-    return "function" in frame and "module" in frame
+def _handles_frame(frame: dict[str, Any], platform: str) -> bool:
+    return (
+        "function" in frame and "module" in frame and (frame.get("platform") or platform) == "java"
+    )
 
 
 FRAME_FIELDS = ("abs_path", "lineno", "function", "module", "filename", "in_app")
@@ -169,7 +171,7 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
             "frames": [
                 _normalize_frame(frame, index)
                 for index, frame in enumerate(sinfo.stacktrace.get("frames") or ())
-                if _handles_frame(frame)
+                if _handles_frame(frame, data.get("platform", "unknown"))
             ],
         }
         for sinfo in stacktrace_infos
