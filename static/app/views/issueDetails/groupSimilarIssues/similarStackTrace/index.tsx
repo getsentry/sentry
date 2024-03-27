@@ -37,6 +37,10 @@ type ItemState = {
   similar: SimilarItem[];
 };
 
+const DataConsentBanner = HookOrDefault({
+  hookName: 'component:data-consent-banner',
+  defaultComponent: null,
+});
 function SimilarStackTrace({params, location, project}: Props) {
   const {orgId, groupId} = params;
 
@@ -155,11 +159,6 @@ function SimilarStackTrace({params, location, project}: Props) {
   const hasSimilarItems =
     (hasSimilarityFeature || hasSimilarityEmbeddingsFeature) &&
     (items.similar.length > 0 || items.filtered.length > 0);
-
-  const DataConsentBanner = HookOrDefault({
-    hookName: 'component:data-consent-banner',
-    defaultComponent: null,
-  });
 
   return (
     <Fragment>

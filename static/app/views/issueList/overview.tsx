@@ -149,6 +149,11 @@ type StatEndpointParams = Omit<EndpointParams, 'cursor' | 'page'> & {
   expand?: string | string[];
 };
 
+const DataConsentBanner = HookOrDefault({
+  hookName: 'component:data-consent-banner',
+  defaultComponent: null,
+});
+
 class IssueListOverview extends Component<Props, State> {
   state: State = this.getInitialState();
 
@@ -1229,11 +1234,6 @@ class IssueListOverview extends Component<Props, State> {
     );
 
     const {numPreviousIssues, numIssuesOnPage} = this.getPageCounts();
-
-    const DataConsentBanner = HookOrDefault({
-      hookName: 'component:data-consent-banner',
-      defaultComponent: null,
-    });
 
     return (
       <Layout.Page>

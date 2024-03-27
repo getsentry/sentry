@@ -56,6 +56,11 @@ function getAlertListQueryKey(orgSlug: string, query: Location['query']): ApiQue
   return [`/organizations/${orgSlug}/combined-rules/`, {query: queryParams}];
 }
 
+const DataConsentBanner = HookOrDefault({
+  hookName: 'component:data-consent-banner',
+  defaultComponent: null,
+});
+
 function AlertRulesList() {
   const location = useLocation();
   const router = useRouter();
@@ -166,11 +171,6 @@ function AlertRulesList() {
   const sortArrow = (
     <IconArrow color="gray300" size="xs" direction={sort.asc ? 'up' : 'down'} />
   );
-
-  const DataConsentBanner = HookOrDefault({
-    hookName: 'component:data-consent-banner',
-    defaultComponent: null,
-  });
 
   return (
     <Fragment>
