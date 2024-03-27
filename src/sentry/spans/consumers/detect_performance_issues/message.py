@@ -9,6 +9,8 @@ from sentry.event_manager import (
     ProjectsMapping,
     _calculate_span_grouping,
     _detect_performance_problems,
+    _get_or_create_environment_many,
+    _get_or_create_release_many,
     _pull_out_data,
 )
 from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
@@ -126,7 +128,7 @@ def _update_occurrence_group_type(jobs: Sequence[Job], projects: ProjectsMapping
 
 
 def transform_spans_to_event_dict(spans):
-    event: dict[str, Any] = {"type": "transaction", "contexts": {}}
+    event: dict[str, Any] = {"type": "transaction", "contexts": {}, "level": "info"}
     processed_spans: list[dict[str, Any]] = []
     for span in spans:
         sentry_tags = span.get("sentry_tags", {})
@@ -137,8 +139,8 @@ def transform_spans_to_event_dict(spans):
             event["transaction"] = sentry_tags.get("transaction")
             event["release"] = sentry_tags.get("release")
             event["environment"] = sentry_tags.get("environment")
-
             event["platform"] = sentry_tags.get("platform")
+            event["tags"] = [["environment", sentry_tags.get("environment")]]
 
             event["contexts"]["trace"] = {
                 "trace_id": span["trace_id"],
@@ -205,6 +207,9 @@ def process_segment(spans: list[dict[str, Any]]):
     ]
 
     _pull_out_data(jobs, projects)
+    _get_or_create_release_many(jobs, projects)
+    # _get_event_user_many(jobs, projects)
+    _get_or_create_environment_many(jobs, projects)
     _calculate_span_grouping(jobs, projects)
     _detect_performance_problems(jobs, projects, is_standalone_spans=True)
     # Updates group type and fingerprint of all performance problems

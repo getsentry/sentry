@@ -39,6 +39,7 @@ def build_mock_span(project_id, span_op=None, **kwargs):
             "transaction.method": "GET",
             "transaction.op": "http.server",
             "user": "id:1",
+            "platform": "python",
         },
         "span_id": "a49b42af9fb69da0",
         "start_timestamp_ms": 1707953018865,

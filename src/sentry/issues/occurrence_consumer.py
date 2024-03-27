@@ -71,6 +71,8 @@ def create_event(project_id: int, event_id: str, event_data: dict[str, Any]) -> 
             "release": event_data.get("release"),
             "environment": event_data.get("environment"),
             "platform": event_data.get("platform"),
+            "tags.key": [tag[0] for tag in event_data.get("tags")],
+            "tags.value": [tag[1] for tag in event_data.get("tags")],
         },
     )
 
@@ -136,7 +138,6 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
     try:
         with metrics.timer("occurrence_ingest.duration", instance="_get_kwargs"):
             metrics.distribution("occurrence.ingest.size.data", len(payload), unit="byte")
-
             occurrence_data = {
                 "id": UUID(payload["id"]).hex,
                 "project_id": payload["project_id"],
