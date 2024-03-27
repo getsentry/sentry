@@ -46,8 +46,8 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
         if not attachment_text:
             return f"<{link}|*{escape_slack_text(formatted_title)}*>"
 
-        attachment_text = attachment_text.replace("\n", " ").replace("`", "")
-        return f"<{link}|*{escape_slack_text(title)}*>\n`{attachment_text}`"
+        formatted_attachment_text = attachment_text.replace("\n", " ").replace("`", "")
+        return f"<{link}|*{escape_slack_text(formatted_title)}*>\n`{self.truncate_text(formatted_attachment_text)}`"
 
     def linkify_release(self, release, organization):
         path = f"/releases/{release.version}/"
