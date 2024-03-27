@@ -46,6 +46,7 @@ from sentry.search.events.constants import DEFAULT_PROJECT_THRESHOLD, VITAL_THRE
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import ParsedMRI, parse_mri
 from sentry.snuba.metrics.utils import MetricOperationType
+from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 from sentry.utils.snuba import is_measurement, is_span_op_breakdown, resolve_column
@@ -464,6 +465,7 @@ def _transform_search_query(query: Sequence[QueryToken]) -> Sequence[QueryToken]
             transformed_query.append(token)
 
     return transformed_query
+
 
 @metrics.wraps("metrics.extraction.parse_search_query")
 def parse_search_query(
