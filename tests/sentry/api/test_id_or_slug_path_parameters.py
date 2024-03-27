@@ -85,7 +85,7 @@ class APIIdOrSlugPathParamTest(BaseTestCase, TestCase):
         slug_kwargs = {param: self.slug_mappings[param].slug for param in slug_params}
         id_kwargs = {param: self.slug_mappings[param].id for param in slug_params}
 
-        other_mappings = {}
+        other_mappings: dict[str, Any] = {}
 
         if other_params:
             slug_kwargs.update({param: other_mappings[param] for param in other_params})
