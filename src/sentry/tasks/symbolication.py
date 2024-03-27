@@ -388,7 +388,7 @@ def submit_symbolicate(
     start_time: int | None,
     queue_switches: int = 0,
     has_attachments: bool = False,
-    symbolicate_platforms: list[SymbolicatorPlatform] = None,
+    symbolicate_platforms: list[SymbolicatorPlatform] | None = None,
 ) -> None:
     # oh how I miss a real `match` statement...
     task = symbolicate_event
@@ -435,7 +435,7 @@ def symbolicate_event(
     data: Event | None = None,
     queue_switches: int = 0,
     has_attachments: bool = False,
-    symbolicate_platforms: list[SymbolicatorPlatform] = None,
+    symbolicate_platforms: list[SymbolicatorPlatform] | None = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -472,7 +472,7 @@ def symbolicate_js_event(
     data: Event | None = None,
     queue_switches: int = 0,
     has_attachments: bool = False,
-    symbolicate_platforms: list[SymbolicatorPlatform] = None,
+    symbolicate_platforms: list[SymbolicatorPlatform] | None = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -510,7 +510,7 @@ def symbolicate_jvm_event(
     data: Event | None = None,
     queue_switches: int = 0,
     has_attachments: bool = False,
-    symbolicate_platforms: list[SymbolicatorPlatform] = None,
+    symbolicate_platforms: list[SymbolicatorPlatform] | None = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -547,7 +547,7 @@ def symbolicate_event_low_priority(
     data: Event | None = None,
     queue_switches: int = 0,
     has_attachments: bool = False,
-    symbolicate_platforms: list[SymbolicatorPlatform] = None,
+    symbolicate_platforms: list[SymbolicatorPlatform] | None = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -587,7 +587,7 @@ def symbolicate_js_event_low_priority(
     data: Event | None = None,
     queue_switches: int = 0,
     has_attachments: bool = False,
-    symbolicate_platforms: list[SymbolicatorPlatform] = None,
+    symbolicate_platforms: list[SymbolicatorPlatform] | None = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -628,7 +628,7 @@ def symbolicate_jvm_event_low_priority(
     data: Event | None = None,
     queue_switches: int = 0,
     has_attachments: bool = False,
-    symbolicate_platforms: list[SymbolicatorPlatform] = None,
+    symbolicate_platforms: list[SymbolicatorPlatform] | None = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -668,7 +668,7 @@ def symbolicate_event_from_reprocessing(
     data: Event | None = None,
     queue_switches: int = 0,
     has_attachments: bool = False,
-    symbolicate_platforms: list[SymbolicatorPlatform] = None,
+    symbolicate_platforms: list[SymbolicatorPlatform] | None = None,
     **kwargs: Any,
 ) -> None:
     return _do_symbolicate_event(
@@ -698,7 +698,7 @@ def symbolicate_event_from_reprocessing_low_priority(
     data: Event | None = None,
     queue_switches: int = 0,
     has_attachments: bool = False,
-    symbolicate_platforms: list[SymbolicatorPlatform] = None,
+    symbolicate_platforms: list[SymbolicatorPlatform] | None = None,
     **kwargs: Any,
 ) -> None:
     return _do_symbolicate_event(
