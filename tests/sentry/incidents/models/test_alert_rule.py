@@ -458,7 +458,7 @@ class UpdateAlertActivationsTest(TestCase):
         subscription = alert_rule.snuba_query.subscriptions.get()
 
         callback = alert_subscription_callback_registry[AlertRuleMonitorType.CONTINUOUS]
-        result = callback(subscription)
+        result = callback(subscription, alert_rule=alert_rule, value=10)
         assert result is True
 
 
