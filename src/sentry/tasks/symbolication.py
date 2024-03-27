@@ -224,15 +224,10 @@ def _do_symbolicate_event(
             has_attachments=has_attachments,
         )
 
-    symbolication_function: Callable[[Symbolicator, Any], Any] | None = None
-    if task_kind.platform == SymbolicatorPlatform.js:
-        symbolication_function = process_js_stacktraces
-    elif task_kind.platform == SymbolicatorPlatform.jvm:
-        from sentry.lang.java.processing import process_jvm_stacktraces
-
-        symbolication_function = process_jvm_stacktraces
-    else:
-        symbolication_function = get_native_symbolication_function(data)
+    try:
+        symbolication_function = get_symbolication_function_for_platform(task_kind.platform, data)
+    except AssertionError:
+        symbolication_function = None
 
     symbolication_function_name = getattr(symbolication_function, "__name__", "none")
 
