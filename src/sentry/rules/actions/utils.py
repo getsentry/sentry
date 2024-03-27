@@ -31,8 +31,8 @@ def check_value_changed(
 
 
 def generate_diff_labels(
-    present_state: dict[str, Any],
-    prior_state: dict[str, Any],
+    present_state: list[dict[str, Any]],
+    prior_state: list[dict[str, Any]],
     rule: Rule,
     key: str,
 ) -> DefaultDict[str, list[str]]:
