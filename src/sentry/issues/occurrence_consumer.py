@@ -71,8 +71,8 @@ def create_event(project_id: int, event_id: str, event_data: dict[str, Any]) -> 
             "release": event_data.get("release"),
             "environment": event_data.get("environment"),
             "platform": event_data.get("platform"),
-            "tags.key": [tag[0] for tag in event_data.get("tags")],
-            "tags.value": [tag[1] for tag in event_data.get("tags")],
+            "tags.key": [tag[0] for tag in event_data.get("tags", [])],
+            "tags.value": [tag[1] for tag in event_data.get("tags", [])],
         },
     )
 
@@ -239,14 +239,11 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                     "title": occurrence_data["issue_title"],
                 }
 
-                if payload.get("is_buffered_spans", False) is True:
-                    return {
-                        "occurrence_data": occurrence_data,
-                        "event_data": event_data,
-                        "is_buffered_spans": True,
-                    }
-
-                return {"occurrence_data": occurrence_data, "event_data": event_data}
+                return {
+                    "occurrence_data": occurrence_data,
+                    "event_data": event_data,
+                    "is_buffered_spans": payload.get("is_buffered_spans", False),
+                }
             else:
                 if not payload.get("event_id"):
                     raise InvalidEventPayloadError(
