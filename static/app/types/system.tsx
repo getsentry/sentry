@@ -134,9 +134,6 @@ export interface Config {
   csrfCookieName: string;
   customerDomain: CustomerDomain | null;
   demoMode: boolean;
-  devtools: {
-    reactQuery?: boolean;
-  };
   disableU2FForSUForm: boolean;
   distPrefix: string;
   dsn: string;
