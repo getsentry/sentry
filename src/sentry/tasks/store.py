@@ -174,10 +174,10 @@ def _do_preprocess_event(
     # Possible values are `js`, `jvm`, and `native`.
     # The event will be submitted to Symbolicator for all returned platforms,
     # one after the other, so we handle mixed stacktraces.
-    platforms = get_symbolication_platforms(data)
-    should_symbolicate = len(platforms) > 0
-    if platforms:
-        first_platform = platforms.pop(0)
+    symbolicate_platforms = get_symbolication_platforms(data)
+    should_symbolicate = len(symbolicate_platforms) > 0
+    if symbolicate_platforms:
+        first_platform = symbolicate_platforms.pop(0)
         symbolication_function = get_symbolication_function_for_platform(first_platform, data)
         symbolication_function_name = getattr(symbolication_function, "__name__", "none")
 
@@ -204,7 +204,7 @@ def _do_preprocess_event(
                 event_id=event_id,
                 start_time=start_time,
                 has_attachments=has_attachments,
-                symbolicate_tasks=platforms,
+                symbolicate_platforms=symbolicate_platforms,
             )
             return
         # else: go directly to process, do not go through the symbolicate queue, do not collect 200
