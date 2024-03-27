@@ -3,10 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from enum import Enum
 
-from sentry_kafka_schemas.codecs import ValidationError
-
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.snuba.metrics import parse_mri
 
 
 class UseCaseIDVisibility(Enum):
@@ -82,17 +79,3 @@ def get_use_case_id_visibility(use_case_id: UseCaseID) -> UseCaseIDVisibility:
     that users should not have access to.
     """
     return USE_CASE_ID_VISIBILITIES.get(use_case_id, UseCaseIDVisibility.PRIVATE)
-
-
-def extract_use_case_id(mri: str) -> UseCaseID:
-    """
-    Returns the use case ID given the MRI, throws an error if MRI is invalid or the use case doesn't exist.
-    """
-    parsed_mri = parse_mri(mri)
-    if parsed_mri is not None:
-        if parsed_mri.namespace in {id.value for id in UseCaseID}:
-            return UseCaseID(parsed_mri.namespace)
-
-        raise ValidationError(f"The use case of the MRI {parsed_mri.namespace} does not exist")
-
-    raise ValidationError(f"The MRI {mri} is not valid")
