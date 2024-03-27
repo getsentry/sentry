@@ -23,17 +23,6 @@ def _get_field_id_option(data: Mapping[str, Any], field_name: str) -> str | None
     return id_option
 
 
-def get_field_id(data: Mapping[str, Any], field_name: str) -> str:
-    """
-    TODO(mgaeta): Hack to convert optional strings to string. SlackRequest
-     should be refactored to deserialize `data` in the constructor.
-    """
-    id_option = _get_field_id_option(data, field_name)
-    if not id_option:
-        raise RuntimeError
-    return id_option
-
-
 @dataclasses.dataclass(frozen=True)
 class SlackRequestError(Exception):
     """
@@ -116,7 +105,7 @@ class SlackRequest:
 
     @property
     def channel_id(self) -> str:
-        return get_field_id(self.data, "channel")
+        return _get_field_id_option(self.data, "channel")
 
     @property
     def response_url(self) -> str:
@@ -124,11 +113,11 @@ class SlackRequest:
 
     @property
     def team_id(self) -> str:
-        return get_field_id(self.data, "team")
+        return _get_field_id_option(self.data, "team")
 
     @property
     def user_id(self) -> str:
-        return get_field_id(self.data, "user")
+        return _get_field_id_option(self.data, "user")
 
     @property
     def data(self) -> Mapping[str, Any]:
