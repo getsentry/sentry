@@ -62,7 +62,7 @@ function ReplayLayout({isVideoReplay = false}: {isVideoReplay?: boolean}) {
   const focusArea = (
     <FluidPanel title={<SmallMarginFocusTabs isVideoReplay={isVideoReplay} />}>
       <ErrorBoundary mini>
-        <FocusArea />
+        <FocusArea isVideoReplay={isVideoReplay} />
       </ErrorBoundary>
     </FluidPanel>
   );

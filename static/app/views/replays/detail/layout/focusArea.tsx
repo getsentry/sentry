@@ -9,8 +9,12 @@ import PerfTable from 'sentry/views/replays/detail/perfTable/index';
 import TagPanel from 'sentry/views/replays/detail/tagPanel';
 import Trace from 'sentry/views/replays/detail/trace/index';
 
-export default function FocusArea() {
-  const {getActiveTab} = useActiveReplayTab();
+export default function FocusArea({isVideoReplay}: {isVideoReplay?: boolean}) {
+  const {getActiveTab} = useActiveReplayTab({isVideoReplay});
+
+  if (isVideoReplay) {
+    return <TagPanel />;
+  }
 
   switch (getActiveTab()) {
     case TabKey.A11Y:
