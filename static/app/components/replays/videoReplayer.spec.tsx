@@ -178,18 +178,20 @@ describe('VideoReplayer - no starting gap', () => {
     expect(inst._currentIndex).toEqual(7);
 
     // videos loaded should be [0, 1, 2, 4, 5, 6, 7]
+    // since we have [0, 1, 2] preloaded initially
+    // and only [4, 5, 6, 7] loaded when segment 7 is requested
+
     // @ts-expect-error private
-    expect(Object.keys(inst._videos).length).toEqual(7);
+    const videos = inst._videos;
     // @ts-expect-error private
-    expect(inst._videos[0]).toEqual(inst.getVideo(0));
-    // @ts-expect-error private
-    expect(inst._videos[2]).toEqual(inst.getVideo(2));
-    // @ts-expect-error private
-    expect(inst._videos[3]).toEqual(undefined);
-    // @ts-expect-error private
-    expect(inst._videos[4]).toEqual(inst.getVideo(4));
-    // @ts-expect-error private
-    expect(inst._videos[7]).toEqual(inst.getVideo(7));
+    const getVideo = index => inst.getVideo(index);
+
+    expect(Object.keys(videos).length).toEqual(7);
+    expect(videos[0]).toEqual(getVideo(0));
+    expect(videos[2]).toEqual(getVideo(2));
+    expect(videos[3]).toEqual(undefined);
+    expect(videos[4]).toEqual(getVideo(4));
+    expect(videos[7]).toEqual(getVideo(7));
   });
 
   it('should work correctly if we have missing segments', async () => {
@@ -208,19 +210,18 @@ describe('VideoReplayer - no starting gap', () => {
     // @ts-expect-error private
     expect(inst._currentIndex).toEqual(6);
 
+    // @ts-expect-error private
+    const videos = inst._videos;
+    // @ts-expect-error private
+    const getVideo = index => inst.getVideo(index);
+
     // videos loaded should be [0, 1, 2, 3, 4, 5, 7, 8]
-    // @ts-expect-error private
-    expect(Object.keys(inst._videos).length).toEqual(8);
-    // @ts-expect-error private
-    expect(inst._videos[0]).toEqual(inst.getVideo(0));
-    // @ts-expect-error private
-    expect(inst._videos[2]).toEqual(inst.getVideo(2));
-    // @ts-expect-error private
-    expect(inst._videos[5]).toEqual(inst.getVideo(5));
-    // @ts-expect-error private
-    expect(inst._videos[6]).toEqual(inst.getVideo(6));
-    // @ts-expect-error private
-    expect(inst._videos[7]).toEqual(inst.getVideo(7));
+    expect(Object.keys(videos).length).toEqual(8);
+    expect(videos[0]).toEqual(getVideo(0));
+    expect(videos[2]).toEqual(getVideo(2));
+    expect(videos[5]).toEqual(getVideo(5));
+    expect(videos[6]).toEqual(getVideo(6));
+    expect(videos[7]).toEqual(getVideo(7));
   });
 });
 
