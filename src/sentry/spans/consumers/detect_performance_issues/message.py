@@ -19,6 +19,7 @@ from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.project import Project
 from sentry.utils import metrics
 from sentry.utils.canonical import CanonicalKeyDict
+from sentry.utils.dates import to_datetime
 
 logger = logging.getLogger(__name__)
 
@@ -149,6 +150,8 @@ def transform_spans_to_event_dict(spans):
             }
             event["received"] = span["received"]
             event["timestamp"] = (span["start_timestamp_ms"] + span["duration_ms"]) / 1000
+            event["datetime"] = to_datetime(event["timestamp"]).strftime("%Y-%m-%dT%H:%M:%SZ")
+
             event["start_timestamp"] = span["start_timestamp_ms"] / 1000
 
             if (profile_id := span.get("profile_id")) is not None:
