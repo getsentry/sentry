@@ -23,7 +23,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from sentry_sdk import Scope
 
-from sentry import analytics, features, options, tsdb
+from sentry import analytics, options, tsdb
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.exceptions import StaffRequired, SuperuserRequired
@@ -256,8 +256,8 @@ class Endpoint(APIView):
         permissions = self.get_permissions()
         if request.user.is_authenticated and len(permissions) == 1:
             permission_cls = permissions[0]
-            enforce_staff_permission = features.has(
-                "auth:enterprise-staff-cookie", actor=request.user
+            enforce_staff_permission = request.user.email in options.get(
+                "staff.user-email-allowlist"
             )
 
             # TODO(schew2381): Remove SuperuserOrStaffFeatureFlaggedPermission

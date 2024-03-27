@@ -3,7 +3,7 @@ from enum import Enum
 
 from rest_framework.request import Request
 
-from sentry import features
+from sentry import options
 
 
 class InactiveReason(str, Enum):
@@ -50,17 +50,17 @@ class ElevatedMode(ABC):
         pass
 
 
-# TODO(schew2381): Delete this method after the feature flag is removed
+# TODO(schew2381): Delete this method after the option is removed
 def has_elevated_mode(request: Request) -> bool:
     """
     This is a temporary helper method that checks if the user on the request has
-    the staff feature flag enabled. If so, it checks is_active_staff and
+    the staff option enabled. If so, it checks is_active_staff and
     otherwise defaults to checking is_active_superuser.
     """
     from sentry.auth.staff import is_active_staff
     from sentry.auth.superuser import is_active_superuser
 
-    enforce_staff_permission = features.has("auth:enterprise-staff-cookie", actor=request.user)
+    enforce_staff_permission = request.user.email in options.get("staff.user-email-allowlist")
 
     if enforce_staff_permission:
         return is_active_staff(request)

@@ -646,6 +646,9 @@ class PerformanceIssueTestCase(BaseTestCase):
                     perf_problem.fingerprint = fingerprint
             return perf_problems
 
+        # NOTE: The pre-commit hook fails to parse this line correctly. To
+        # commit changes anyway, ensure all other pre-commit hooks pass then run
+        # `git commit --no-verify`.
         with (
             mock.patch(
                 "sentry.issues.ingest.send_issue_occurrence_to_eventstream",
@@ -967,9 +970,9 @@ class DRFPermissionTestCase(TestCase):
         return drf_request
 
     def setUp(self):
-        self.superuser_user = self.create_user(is_superuser=True, is_staff=False)
+        self.superuser = self.create_user(is_superuser=True, is_staff=False)
         self.staff_user = self.create_user(is_staff=True, is_superuser=False)
-        self.superuser_request = self.make_request(user=self.superuser_user, is_superuser=True)
+        self.superuser_request = self.make_request(user=self.superuser, is_superuser=True)
         self.staff_request = self.make_request(user=self.staff_user, method="GET", is_staff=True)
 
 

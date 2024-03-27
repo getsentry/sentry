@@ -12,6 +12,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 
@@ -147,19 +148,19 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
 
         self._validate_updated_published_app(response)
 
-    @with_feature("auth:enterprise-staff-cookie")
     def test_staff_update_published_app(self):
-        self.login_as(user=self.staff_user, staff=True)
-        response = self.get_success_response(
-            self.published_app.slug,
-            name=self.published_app.name,
-            author="A Company",
-            webhookUrl="https://newurl.com",
-            redirectUrl="https://newredirecturl.com",
-            isAlertable=True,
-            features=[1, 2],
-            status_code=200,
-        )
+        with override_options({"staff.user-email-allowlist": [self.staff_user.email]}):
+            self.login_as(user=self.staff_user, staff=True)
+            response = self.get_success_response(
+                self.published_app.slug,
+                name=self.published_app.name,
+                author="A Company",
+                webhookUrl="https://newurl.com",
+                redirectUrl="https://newredirecturl.com",
+                isAlertable=True,
+                features=[1, 2],
+                status_code=200,
+            )
 
         self._validate_updated_published_app(response)
 
@@ -253,18 +254,18 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         )
         assert SentryApp.objects.get(id=app.id).popularity == popularity
 
-    @with_feature("auth:enterprise-staff-cookie")
     def test_staff_can_update_popularity(self):
         self.login_as(user=self.staff_user, staff=True)
         app = self.create_sentry_app(name="SampleApp", organization=self.organization)
         assert not app.date_published
 
         popularity = 100
-        self.get_success_response(
-            app.slug,
-            popularity=popularity,
-            status_code=200,
-        )
+        with override_options({"staff.user-email-allowlist": [self.staff_user.email]}):
+            self.get_success_response(
+                app.slug,
+                popularity=popularity,
+                status_code=200,
+            )
         assert SentryApp.objects.get(id=app.id).popularity == popularity
 
     def test_nonsuperuser_nonstaff_cannot_update_popularity(self):
@@ -293,17 +294,17 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         assert app.status == SentryAppStatus.PUBLISHED
         assert app.date_published
 
-    @with_feature("auth:enterprise-staff-cookie")
     def test_staff_can_publish_apps(self):
         self.login_as(user=self.staff_user, staff=True)
         app = self.create_sentry_app(name="SampleApp", organization=self.organization)
         assert not app.date_published
 
-        self.get_success_response(
-            app.slug,
-            status="published",
-            status_code=200,
-        )
+        with override_options({"staff.user-email-allowlist": [self.staff_user.email]}):
+            self.get_success_response(
+                app.slug,
+                status="published",
+                status_code=200,
+            )
 
         app.refresh_from_db()
         assert app.status == SentryAppStatus.PUBLISHED

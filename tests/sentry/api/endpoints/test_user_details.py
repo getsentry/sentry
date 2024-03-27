@@ -11,8 +11,8 @@ from sentry.models.userrole import UserRole
 from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -20,12 +20,13 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 class UserDetailsTest(APITestCase):
     endpoint = "sentry-api-0-user-details"
+    staff_email = "staff@sentry.io"
 
     def setUp(self):
         super().setUp()
         self.user = self.create_user(email="a@example.com", is_managed=False, name="example name")
         self.superuser = self.create_user(is_superuser=True)
-        self.staff_user = self.create_user(is_staff=True)
+        self.staff_user = self.create_user(is_staff=True, email=self.staff_email)
         self.login_as(user=self.user)
 
 
@@ -57,11 +58,11 @@ class UserDetailsGetTest(UserDetailsTest):
         assert "identities" in resp.data
         assert len(resp.data["identities"]) == 0
 
-    @with_feature("auth:enterprise-staff-cookie")
     def test_staff_simple(self):
         self.login_as(user=self.staff_user, staff=True)
 
-        resp = self.get_success_response(self.user.id)
+        with override_options({"staff.user-email-allowlist": [self.staff_user.email]}):
+            resp = self.get_success_response(self.user.id)
 
         assert resp.data["id"] == str(self.user.id)
         assert "identities" in resp.data
@@ -313,8 +314,8 @@ class UserDetailsStaffUpdateTest(UserDetailsTest):
     method = "put"
 
     @fixture(autouse=True)
-    def use_staff_feature_flag(self):
-        with Feature("auth:enterprise-staff-cookie"):
+    def use_staff_option(self):
+        with override_options({"staff.user-email-allowlist": [self.staff_email]}):
             yield
 
     def test_staff_can_change_is_active(self):
@@ -544,15 +545,15 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
         assert response.data["detail"] == "Missing required permission to hard delete account."
         assert User.objects.filter(id=user2.id).exists()
 
-    @with_feature("auth:enterprise-staff-cookie")
     def test_staff_hard_delete_account_without_permission(self):
         self.login_as(user=self.staff_user, staff=True)
         user2 = self.create_user(email="user2@example.com")
 
-        # failed authorization, user does not have users.admin permission to hard delete another user
-        response = self.get_error_response(
-            user2.id, hardDelete=True, organizations=[], status_code=403
-        )
+        with override_options({"staff.user-email-allowlist": [self.staff_user.email]}):
+            # failed authorization, user does not have users.admin permission to hard delete another user
+            response = self.get_error_response(
+                user2.id, hardDelete=True, organizations=[], status_code=403
+            )
 
         assert response.data["detail"] == "Missing required permission to hard delete account."
         assert User.objects.filter(id=user2.id).exists()
@@ -567,7 +568,6 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
         self.get_success_response(user2.id, hardDelete=True, organizations=[], status_code=204)
         assert not User.objects.filter(id=user2.id).exists()
 
-    @with_feature("auth:enterprise-staff-cookie")
     def test_staff_hard_delete_account_with_permission(self):
         self.login_as(user=self.staff_user, staff=True)
         user2 = self.create_user(email="user2@example.com")
@@ -575,22 +575,23 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
         # Add users.admin permission to staff
         UserPermission.objects.create(user=self.staff_user, permission="users.admin")
 
-        self.get_success_response(user2.id, hardDelete=True, organizations=[], status_code=204)
+        with override_options({"staff.user-email-allowlist": [self.staff_user.email]}):
+            self.get_success_response(user2.id, hardDelete=True, organizations=[], status_code=204)
         assert not User.objects.filter(id=user2.id).exists()
 
-    @with_feature("auth:enterprise-staff-cookie")
-    def test_superuser_cannot_hard_delete_with_active_feature_flag(self):
+    def test_superuser_cannot_hard_delete_with_active_option(self):
         self.login_as(user=self.superuser, superuser=True)
         user2 = self.create_user(email="user2@example.com")
 
         # Add users.admin permission to superuser
         UserPermission.objects.create(user=self.superuser, permission="users.admin")
 
-        # Superusers will eventually be prevented from hard deleting accounts
-        # once the feature flag is removed
-        response = self.get_error_response(
-            user2.id, hardDelete=True, organizations=[], status_code=403
-        )
+        with override_options({"staff.user-email-allowlist": [self.superuser.email]}):
+            # Superusers will eventually be prevented from hard deleting accounts
+            # once the option is removed
+            response = self.get_error_response(
+                user2.id, hardDelete=True, organizations=[], status_code=403
+            )
 
         assert response.data["detail"] == "Missing required permission to hard delete account."
         assert User.objects.filter(id=user2.id).exists()

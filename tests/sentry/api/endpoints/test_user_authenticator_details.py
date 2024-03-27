@@ -15,7 +15,6 @@ from sentry.models.authenticator import Authenticator
 from sentry.models.organization import Organization
 from sentry.models.user import User
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 
@@ -389,14 +388,18 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
 
             assert not Authenticator.objects.filter(id=auth.id).exists()
 
-    @with_feature("auth:enterprise-staff-cookie")
     def test_require_2fa__can_delete_last_auth_staff(self):
         self._require_2fa_for_organization()
 
         staff_user = self.create_user(email="a@example.com", is_staff=True)
         self.login_as(user=staff_user, staff=True)
 
-        with override_options({"sms.twilio-account": "twilio-account"}):
+        with override_options(
+            {
+                "sms.twilio-account": "twilio-account",
+                "staff.user-email-allowlist": [staff_user.email],
+            }
+        ):
             # enroll in one auth method
             interface = TotpInterface()
             interface.enroll(self.user)

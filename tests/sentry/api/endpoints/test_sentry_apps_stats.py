@@ -1,6 +1,6 @@
 from sentry.api.serializers.base import serialize
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
@@ -48,11 +48,11 @@ class SentryAppsStatsTest(APITestCase):
         response = self.get_success_response(status_code=200)
         self._check_response(response)
 
-    @with_feature("auth:enterprise-staff-cookie")
     def test_staff_has_access(self):
         staff_user = self.create_user(is_staff=True)
         self.login_as(user=staff_user, staff=True)
-        response = self.get_success_response(status_code=200)
+        with override_options({"staff.user-email-allowlist": [staff_user.email]}):
+            response = self.get_success_response(status_code=200)
         self._check_response(response)
 
     def test_nonsuperusers_have_no_access(self):

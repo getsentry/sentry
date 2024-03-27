@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 
-from sentry import features
+from sentry import features, options
 from sentry.api.exceptions import (
     DataSecrecyError,
     MemberDisabledOverLimit,
@@ -118,13 +118,13 @@ class StaffPermissionMixin:
 
 # NOTE(schew2381): This is a temporary permission that does NOT perform an OR
 # between SuperuserPermission and StaffPermission. Instead, it uses StaffPermission
-# if the feature flag is enabled, and otherwise uses SuperuserPermission. We
+# if the option is enabled for the user, and otherwise checks SuperuserPermission. We
 # need this to handle the transition for endpoints that will only be accessible to
-# staff but not superuser, that currently use SuperuserPermission. Once the
-# feature is rolled out, we can delete this permission and use StaffPermission
+# staff but not superuser, that currently use SuperuserPermission. Once staff is
+# released to the everyone, we can delete this permission and use StaffPermission
 class SuperuserOrStaffFeatureFlaggedPermission(BasePermission):
     def has_permission(self, request: Request, view: object) -> bool:
-        enforce_staff_permission = features.has("auth:enterprise-staff-cookie", actor=request.user)
+        enforce_staff_permission = request.user.email in options.get("staff.user-email-allowlist")
 
         if enforce_staff_permission:
             return StaffPermission().has_permission(request, view)

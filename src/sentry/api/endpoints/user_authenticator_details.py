@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
@@ -165,9 +165,9 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         # We should only be able to delete the last auth method through the
-        # _admin portal, which is indicated by staff. After the feature flag is
+        # _admin portal, which is indicated by staff. After the option is
         # removed, this will only check for is_active_staff.
-        if features.has("auth:enterprise-staff-cookie", actor=request.user):
+        if request.user.email in options.get("staff.user-email-allowlist"):
             check_remaining_auth = not is_active_staff(request)
         else:
             check_remaining_auth = not is_active_superuser(request)

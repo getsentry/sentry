@@ -9,7 +9,7 @@ from sentry.api.serializers.base import serialize
 from sentry.models.integrations.doc_integration import DocIntegration
 from sentry.models.integrations.integration_feature import IntegrationFeature, IntegrationTypes
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.json import JSONData
 
@@ -38,14 +38,18 @@ class DocIntegrationsTest(APITestCase):
 class GetDocIntegrationsTest(DocIntegrationsTest):
     method = "GET"
 
-    @with_feature("auth:enterprise-staff-cookie")
     def test_staff_read_docs(self):
         """
         Tests that all DocIntegrations are returned for staff users,
         along with serialized versions of their avatars and IntegrationFeatures
         """
         self.login_as(user=self.staff_user, staff=True)
-        response = self.get_success_response(status_code=status.HTTP_200_OK)
+
+        with override_options(
+            {"staff.user-email-allowlist": [self.superuser.email, self.staff_user.email]}
+        ):
+            response = self.get_success_response(status_code=status.HTTP_200_OK)
+
         assert len(response.data) == 3
         for doc in [self.doc_1, self.doc_2, self.doc_3]:
             assert serialize(doc) in response.data
