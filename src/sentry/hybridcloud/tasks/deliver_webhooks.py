@@ -216,16 +216,20 @@ def drain_mailbox_parallel(payload_id: int) -> None:
             },
         )
         return
-
-    worker_threads = options.get("hybridcloud.webhookpayload.worker_threads")
-    deadline = timezone.now() + BATCH_SCHEDULE_OFFSET
-    request_failed = False
-    delivered = 0
+    logger.info(
+        "drain_mailbox_parallel.start",
+        extra={"mailbox_name": payload.mailbox_name, "id": payload_id},
+    )
 
     # Remove batches payloads that have been backlogged for MAX_DELIVERY_AGE.
     # Once payloads are this old they are low value, and we're better off prioritizing new work.
     max_age = timezone.now() - MAX_DELIVERY_AGE
     if payload.date_added < max_age:
+        logger.info(
+            "drain_mailbox_parallel.max_age_start",
+            extra={"mailbox_name": payload.mailbox_name, "id": payload_id},
+        )
+
         # We delete chunks of stale messages using a subquery
         # because postgres cannot do delete with limit
         stale_query = WebhookPayload.objects.filter(
@@ -246,6 +250,10 @@ def drain_mailbox_parallel(payload_id: int) -> None:
                 "hybridcloud.deliver_webhooks.delivery", amount=deleted, tags={"outcome": "max_age"}
             )
 
+    worker_threads = options.get("hybridcloud.webhookpayload.worker_threads")
+    deadline = timezone.now() + BATCH_SCHEDULE_OFFSET
+    request_failed = False
+    delivered = 0
     while True:
         current_time = timezone.now()
         # We have run until the end of our batch schedule delay. Break the loop so this worker can take another
@@ -275,6 +283,14 @@ def drain_mailbox_parallel(payload_id: int) -> None:
                 threadpool.submit(deliver_message_parallel, record)
                 for record in query[:worker_threads]
             }
+            logger.info(
+                "drain_mailbox_parallel.send_batch",
+                extra={
+                    "mailbox_name": payload.mailbox_name,
+                    "count": len(futures),
+                    "threads": worker_threads,
+                },
+            )
             for future in as_completed(futures):
                 payload_record, err = future.result()
 
