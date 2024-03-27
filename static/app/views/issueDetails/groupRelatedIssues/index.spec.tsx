@@ -1,6 +1,4 @@
-// import {GroupsFixture} from 'sentry-fixture/groups';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -8,30 +6,18 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {GroupRelatedIssues} from 'sentry/views/issueDetails/groupRelatedIssues';
 
 describe('Related Issues View', function () {
-  let relatedIssuesMock: jest.Mock<any, any, any>;
-  let issuesInfoMock: jest.Mock<any, any, any>;
+  let relatedIssuesMock: jest.Mock;
+  let issuesInfoMock: jest.Mock;
+  const router = RouterFixture();
 
-  const organization = OrganizationFixture({features: ['related-issues']});
+  const organization = OrganizationFixture();
   const orgSlug = organization.slug;
-  const orgIssuesEndpoint = `/organizations/${orgSlug}/issues/`;
   const groupId = '12345678';
+  const relatedGroup = '15';
+  const orgIssuesEndpoint = `/organizations/${orgSlug}/issues/?query=issue.id%3A${relatedGroup}`;
   // XXX: Later I need to figure out why the component receives the orgId as a slug
   const params = {orgId: orgSlug, groupId: groupId};
-
-  const routerContext = RouterContextFixture([
-    {
-      router: {
-        ...RouterFixture(),
-        params: {orgId: orgSlug, projectId: 'project-slug', groupId: groupId},
-      },
-    },
-  ]);
-
-  // const mockData = {
-  //   groups: GroupsFixture().map(issue => [issue]),
-  // };
-
-  const router = RouterFixture();
+  const errorType = 'RuntimeError';
 
   beforeEach(function () {
     // GroupList calls this but we don't need it for this test
@@ -41,39 +27,19 @@ describe('Related Issues View', function () {
     });
     relatedIssuesMock = MockApiClient.addMockResponse({
       url: `/issues/${groupId}/related-issues/`,
-      body: {same_root_cause: [15]},
+      body: {same_root_cause: [relatedGroup]},
     });
     issuesInfoMock = MockApiClient.addMockResponse({
       url: orgIssuesEndpoint,
       body: [
         {
-          id: '15',
-          shortId: 'EARTH-7',
-          title: 'RuntimeError: Invalid device: A949AE01EBB07300D62AE0178F0944DD21F8C98C',
-          level: 'error',
-          status: 'unresolved',
-          statusDetails: {},
-          substatus: 'ongoing',
-          platform: 'other',
+          id: relatedGroup,
           project: {id: '3', name: 'Earth', slug: 'earth', platform: null},
           type: 'error',
           metadata: {
-            value: 'Invalid device: A949AE01EBB07300D62AE0178F0944DD21F8C98C',
-            type: 'RuntimeError',
-            filename: 'example.py',
-            function: 'crash',
-            display_title_with_tree_label: false,
-            in_app_frame_mix: 'in-app-only',
-            sdk: {name: 'sentry.python', name_normalized: 'sentry.python'},
-            initial_priority: 75,
+            type: errorType,
           },
-          hasSeen: true,
-          issueType: 'error',
           issueCategory: 'error',
-          isUnhandled: false,
-          count: '1',
-          userCount: 1,
-          firstSeen: '2024-03-15T20:15:30Z',
           lastSeen: '2024-03-15T20:15:30Z',
         },
       ],
@@ -94,24 +60,13 @@ describe('Related Issues View', function () {
         routeParams={router.params}
         routes={router.routes}
         route={{}}
-      />,
-      {context: routerContext}
+      />
     );
 
-    // The table header has been rendered
-    await waitFor(() => screen.findByText('events'));
-    // Commented out until we find why it's not working
-    // await waitFor(() => screen.findByText('RuntimeError'));
+    // The issue that should show up on the table
+    await waitFor(() => screen.findByText(errorType));
 
     expect(relatedIssuesMock).toHaveBeenCalled();
-
-    expect(issuesInfoMock).toHaveBeenCalledWith(
-      orgIssuesEndpoint,
-      expect.objectContaining({
-        query: expect.objectContaining({
-          query: 'issue.id:15',
-        }),
-      })
-    );
+    expect(issuesInfoMock).toHaveBeenCalled();
   });
 });
