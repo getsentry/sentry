@@ -169,6 +169,10 @@ export interface CheckIn {
    */
   id: string;
   /**
+   * A snapshot of the monitor configuration at the time of the check-in
+   */
+  monitorConfig: MonitorConfig;
+  /**
    * Status of the check-in
    */
   status: CheckInStatus;
