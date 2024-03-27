@@ -71,6 +71,7 @@ EXPOSABLE_FEATURES = [
     "organizations:metric-meta",
     "organizations:standalone-span-ingestion",
     "projects:discard-transaction",
+    "organizations:continuous-profiling",
 ]
 
 EXTRACT_METRICS_VERSION = 1
