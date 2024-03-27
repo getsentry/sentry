@@ -22,7 +22,7 @@ from sentry.utils.json import JSONData
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.safe import get_path
 
-SUPPORTED_LANGUAGES = ["javascript", "python", "node", "ruby", "php"]
+SUPPORTED_LANGUAGES = ["javascript", "python", "node", "ruby", "php", "go"]
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +105,11 @@ def derive_code_mappings(
     # php automatic code mappings currently in LA
     if data["platform"].startswith("php") and not features.has(
         "organizations:derive-code-mappings-php", org
+    ):
+        return
+
+    if data["platform"].startswith("go") and not features.has(
+        "organizations:derive-code-mappings-go", org
     ):
         return
 

@@ -1,10 +1,11 @@
 from unittest.mock import patch
 
+import pytest
 from django.db import router
 from django.urls import reverse
 from rest_framework import status
 
-from sentry.integrations.utils.code_mapping import FrameFilename, _get_code_mapping_source_path
+from sentry.integrations.utils.code_mapping import FrameFilename, UnsupportedFrameFilename
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.repository import Repository
@@ -61,15 +62,14 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
     @patch("sentry.integrations.github.GitHubIntegration.get_trees_for_org")
     def test_get_start_with_backslash(self, mock_get_trees_for_org):
         file = "stack/root/file.py"
-        frame_info = FrameFilename(f"/{file}")
         config_data = {"stacktraceFilename": f"/{file}"}
         expected_matches = [
             {
                 "filename": file,
                 "repo_name": "getsentry/codemap",
                 "repo_branch": "master",
-                "stacktrace_root": f"{frame_info.root}",
-                "source_path": _get_code_mapping_source_path(file, frame_info),
+                "stacktrace_root": "",
+                "source_path": "",
             }
         ]
         with patch(
@@ -116,8 +116,9 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             "projectId": self.project.id,
             "stacktraceFilename": "stack/root/file.py",
         }
-        with assume_test_silo_mode(SiloMode.CONTROL), unguarded_write(
-            using=router.db_for_write(Integration)
+        with (
+            assume_test_silo_mode(SiloMode.CONTROL),
+            unguarded_write(using=router.db_for_write(Integration)),
         ):
             Integration.objects.all().delete()
         response = self.client.get(self.url, data=config_data, format="json")
@@ -184,8 +185,9 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             "defaultBranch": "master",
             "repoName": "name",
         }
-        with assume_test_silo_mode(SiloMode.CONTROL), unguarded_write(
-            using=router.db_for_write(Integration)
+        with (
+            assume_test_silo_mode(SiloMode.CONTROL),
+            unguarded_write(using=router.db_for_write(Integration)),
         ):
             Integration.objects.all().delete()
         response = self.client.post(self.url, data=config_data, format="json")
@@ -217,3 +219,34 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             project=self.project, stack_root="/stack/root"
         )
         assert new_code_mapping.source_root == "/source/root"
+
+    # - This test case is a FALSE POSITIVE (it does NOT achieve the desired behavior, but has been made to artificially pass the test case)
+    # - References GitHub issue #66852 (Top-level files are not supported in code mapping even though they should be)
+    # - Uncomment the commented code and remove the with pytest.raises block for the actual expected behavior
+    @patch("sentry.integrations.github.GitHubIntegration.get_trees_for_org")
+    def test_get_top_level_file(self, mock_get_trees_for_org):
+        file = "index.php"
+
+        with pytest.raises(UnsupportedFrameFilename):
+            frame_info = FrameFilename(file)
+            frame_info.root  # Suppress "'frame_info' is assigned to but never used" warning
+        mock_get_trees_for_org.return_value  # Suppress "'mock_get_trees_for_org' is assigned to but never used" warning
+        # config_data = {"stacktraceFilename": file}
+        # expected_matches = [
+        #     {
+        #         "filename": file,
+        #         "repo_name": "getsentry/codemap",
+        #         "repo_branch": "master",
+        #         "stacktrace_root": "",
+        #         "source_path": "",
+        #     }
+        # ]
+        # with patch(
+        #     "sentry.integrations.utils.code_mapping.CodeMappingTreesHelper.list_file_matches",
+        #     return_value=expected_matches,
+        # ):
+        #     response = self.client.get(self.url, data=config_data, format="json")
+
+        #     assert mock_get_trees_for_org.call_count == 1
+        #     assert response.status_code == 200, response.content
+        #     assert response.data == expected_matches

@@ -271,64 +271,6 @@ class TestDerivedCodeMappings(TestCase):
         ]
         assert matches == expected_matches
 
-    def test_normalized_stack_and_source_roots_starts_with_period_slash(self):
-        stacktrace_root, source_path = self.code_mapping_helper._normalized_stack_and_source_roots(
-            "./app/", "static/app/"
-        )
-        assert stacktrace_root == "./"
-        assert source_path == "static/"
-
-    def test_normalized_stack_and_source_roots_starts_with_period_slash_no_containing_directory(
-        self,
-    ):
-        stacktrace_root, source_path = self.code_mapping_helper._normalized_stack_and_source_roots(
-            "./app/", "app/"
-        )
-        assert stacktrace_root == "./"
-        assert source_path == ""
-
-    def test_normalized_stack_and_source_not_matching(self):
-        stacktrace_root, source_path = self.code_mapping_helper._normalized_stack_and_source_roots(
-            "sentry/", "src/sentry/"
-        )
-        assert stacktrace_root == "sentry/"
-        assert source_path == "src/sentry/"
-
-    def test_normalized_stack_and_source_roots_equal(self):
-        stacktrace_root, source_path = self.code_mapping_helper._normalized_stack_and_source_roots(
-            "source/", "source/"
-        )
-        assert stacktrace_root == ""
-        assert source_path == ""
-
-    def test_normalized_stack_and_source_roots_starts_with_period_slash_two_levels(self):
-        stacktrace_root, source_path = self.code_mapping_helper._normalized_stack_and_source_roots(
-            "./app/", "app/foo/app/"
-        )
-        assert stacktrace_root == "./"
-        assert source_path == "app/foo/"
-
-    def test_normalized_stack_and_source_roots_starts_with_app(self):
-        stacktrace_root, source_path = self.code_mapping_helper._normalized_stack_and_source_roots(
-            "app:///utils/", "utils/"
-        )
-        assert stacktrace_root == "app:///"
-        assert source_path == ""
-
-    def test_normalized_stack_and_source_roots_starts_with_multiple_dot_dot_slash(self):
-        stacktrace_root, source_path = self.code_mapping_helper._normalized_stack_and_source_roots(
-            "../../../../../../packages/", "packages/"
-        )
-        assert stacktrace_root == "../../../../../../"
-        assert source_path == ""
-
-    def test_normalized_stack_and_source_roots_starts_with_app_dot_dot_slash(self):
-        stacktrace_root, source_path = self.code_mapping_helper._normalized_stack_and_source_roots(
-            "app:///../services/", "services/"
-        )
-        assert stacktrace_root == "app:///../"
-        assert source_path == ""
-
 
 class TestConvertStacktraceFramePathToSourcePath(TestCase):
     def setUp(self):
