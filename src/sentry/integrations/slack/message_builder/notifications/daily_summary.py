@@ -45,8 +45,9 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
         attachment_text = self.get_attachment_text(group)
         if not attachment_text:
             return f"<{link}|*{escape_slack_text(formatted_title)}*>"
-        formatted_attachment_text = attachment_text.replace("\n", " ")
-        return f"<{link}|*{escape_slack_text(formatted_title)}*>\n{self.truncate_text(formatted_attachment_text)}"
+
+        attachment_text = attachment_text.replace("\n", " ").replace("`", "")
+        return f"<{link}|*{escape_slack_text(title)}*>\n`{attachment_text}`"
 
     def linkify_release(self, release, organization):
         path = f"/releases/{release.version}/"
@@ -144,15 +145,24 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
                         fields.append(self.make_field(release_text))
                 blocks.append(self.get_section_fields_block(fields))
 
-            # Add Top 3 Error Issues
-            error_issue_fields = []
+            # Add Top 3 Error/Performance Issues
+            top_issue_fields = []
             if context.key_errors:
                 top_errors_text = "*Today's Top 3 Error Issues*\n"
                 for error in context.key_errors:
                     linked_title = self.linkify_error_title(error[0])
                     top_errors_text += f"• {linked_title}\n"
-                error_issue_fields.append(self.make_field(top_errors_text))
-            blocks.append(self.get_section_fields_block(error_issue_fields))
+                top_issue_fields.append(self.make_field(top_errors_text))
+
+            if context.key_performance_issues:
+                top_perf_issues_text = "*Today's Top 3 Performance Issues*\n"
+                for perf_issue in context.key_performance_issues:
+                    linked_title = self.linkify_error_title(perf_issue[0])
+                    top_perf_issues_text += f"• {linked_title}\n"
+                top_issue_fields.append(self.make_field(top_perf_issues_text))
+
+            if top_issue_fields:
+                blocks.append(self.get_section_fields_block(top_issue_fields))
 
             # Add regressed and escalated issues
             regressed_escalated_fields = []
@@ -174,14 +184,6 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
 
             if regressed_escalated_fields:
                 blocks.append(self.get_section_fields_block(regressed_escalated_fields))
-
-            # Add performance data
-            if context.key_performance_issues:
-                top_perf_issues_text = "*Today's Top 3 Performance Issues*\n"
-                for perf_issue in context.key_performance_issues:
-                    linked_title = self.linkify_error_title(perf_issue[0])
-                    top_perf_issues_text += f"• {linked_title}\n"
-                blocks.append(self.get_markdown_block(top_perf_issues_text))
 
             blocks.append(self.get_divider())
 
