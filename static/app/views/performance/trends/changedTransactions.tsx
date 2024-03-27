@@ -40,7 +40,8 @@ import {
   transactionSummaryRouteWithQuery,
 } from 'sentry/views/performance/transactionSummary/utils';
 import {PerformanceChangeExplorer} from 'sentry/views/performance/trends/changeExplorer';
-import {getSelectedTransaction} from 'sentry/views/performance/utils';
+import getSelectedQueryKey from 'sentry/views/performance/trends/utils/getSelectedQueryKey';
+import {getSelectedTransaction} from 'sentry/views/performance/utils/getSelectedTransaction';
 
 import Chart from './chart';
 import type {
@@ -55,7 +56,6 @@ import {TrendChangeType} from './types';
 import {
   getCurrentTrendFunction,
   getCurrentTrendParameter,
-  getSelectedQueryKey,
   getTrendProjectId,
   modifyTrendView,
   normalizeTrends,

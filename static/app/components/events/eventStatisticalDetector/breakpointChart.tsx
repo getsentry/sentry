@@ -1,5 +1,3 @@
-import {useMemo} from 'react';
-
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import type {Event, EventsStatsData} from 'sentry/types';
@@ -11,10 +9,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {transformEventStats} from 'sentry/views/performance/trends/chart';
 import type {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
-import {TrendFunctionField} from 'sentry/views/performance/trends/types';
-import {generateTrendFunctionAsString} from 'sentry/views/performance/trends/utils';
 
 import {DataSection} from '../styles';
 
@@ -77,21 +72,12 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
     }),
   });
 
-  const p95Series = useMemo(
-    () =>
-      transformEventStats(
-        data?.['p95(transaction.duration)']?.data ?? [],
-        generateTrendFunctionAsString(TrendFunctionField.P95, 'transaction.duration')
-      ),
-    [data]
-  );
-
   return (
     <DataSection>
       <TransitionChart loading={isLoading} reloading>
         <TransparentLoadingMask visible={isLoading} />
         <Chart
-          percentileSeries={p95Series}
+          percentileData={data?.['p95(transaction.duration)']?.data ?? []}
           evidenceData={normalizedOccurrenceEvent}
           datetime={datetime}
         />

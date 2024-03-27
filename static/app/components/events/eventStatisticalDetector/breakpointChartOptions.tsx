@@ -2,6 +2,7 @@ import type {Theme} from '@emotion/react';
 
 import VisualMap from 'sentry/components/charts/components/visualMap';
 import type {LineChart as EChartsLineChart} from 'sentry/components/charts/lineChart';
+import type {EventsStatsData} from 'sentry/types';
 import type {Series} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
@@ -9,33 +10,48 @@ import {
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
-import type {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
-import {getIntervalLine} from 'sentry/views/performance/utils';
+import {
+  type NormalizedTrendsTransaction,
+  TrendFunctionField,
+} from 'sentry/views/performance/trends/types';
+import generateTrendFunctionAsString from 'sentry/views/performance/trends/utils/generateTrendFunctionAsString';
+import transformEventStats from 'sentry/views/performance/trends/utils/transformEventStats';
+import {getIntervalLine} from 'sentry/views/performance/utils/getIntervalLine';
 
 export type EventBreakpointChartData = {
   evidenceData: NormalizedTrendsTransaction;
-  percentileSeries: Series[];
+  percentileData?: EventsStatsData;
+  percentileSeries?: Series[];
 };
 
 function getBreakpointChartOptionsFromData(
-  {percentileSeries, evidenceData}: EventBreakpointChartData,
+  {percentileData, evidenceData, percentileSeries}: EventBreakpointChartData,
   theme: Theme
 ) {
+  const transformedSeries = percentileData
+    ? transformEventStats(
+        percentileData,
+        generateTrendFunctionAsString(TrendFunctionField.P95, 'transaction.duration')
+      )
+    : percentileSeries
+      ? percentileSeries
+      : [];
+
   const intervalSeries = getIntervalLine(
     theme,
-    percentileSeries,
+    transformedSeries,
     0.5,
     true,
     evidenceData,
     true
   );
 
-  const series = [...percentileSeries, ...intervalSeries];
+  const series = [...transformedSeries, ...intervalSeries];
 
   const legend = {
     right: 16,
     top: 12,
-    data: percentileSeries.map(s => s.seriesName),
+    data: transformedSeries.map(s => s.seriesName),
   };
 
   const durationUnit = getDurationUnit(series);

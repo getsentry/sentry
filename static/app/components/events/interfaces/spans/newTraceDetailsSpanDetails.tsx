@@ -41,7 +41,7 @@ import type {
 } from 'sentry/views/performance/newTraceDetails/traceTree';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
-import {getPerformanceDuration} from 'sentry/views/performance/utils';
+import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {resolveSpanModule} from 'sentry/views/starfish/utils/resolveSpanModule';

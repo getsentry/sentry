@@ -1,10 +1,6 @@
 import {browserHistory} from 'react-router';
-import type {Theme} from '@emotion/react';
 import type {Location} from 'history';
 
-import MarkArea from 'sentry/components/charts/components/markArea';
-import MarkLine from 'sentry/components/charts/components/markLine';
-import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {backend, frontend, mobile} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
@@ -16,14 +12,11 @@ import type {
   Project,
   ReleaseProject,
 } from 'sentry/types';
-import type {Series} from 'sentry/types/echarts';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {statsPeriodToDays} from 'sentry/utils/dates';
-import {tooltipFormatter} from 'sentry/utils/discover/charts';
 import type {EventData} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
 import {TRACING_FIELDS} from 'sentry/utils/discover/fields';
-import {getDuration} from 'sentry/utils/formatters';
 import getCurrentSentryReactTransaction from 'sentry/utils/getCurrentSentryReactTransaction';
 import {useQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -33,12 +26,8 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import type {
-  NormalizedTrendsTransaction,
-  TrendChangeType,
-} from 'sentry/views/performance/trends/types';
 
-import {DEFAULT_MAX_DURATION, getSelectedQueryKey} from './trends/utils';
+import {DEFAULT_MAX_DURATION} from '../trends/utils';
 
 export const QUERY_KEYS = [
   'environment',
@@ -53,9 +42,6 @@ export const UNPARAMETERIZED_TRANSACTION = '<< unparameterized >>'; // Represent
 const UNPARAMETRIZED_TRANSACTION = '<< unparametrized >>'; // Old spelling. Can be deleted in the future when all data for this transaction name is gone.
 export const EXCLUDE_METRICS_UNPARAM_CONDITIONS = `(!transaction:"${UNPARAMETERIZED_TRANSACTION}" AND !transaction:"${UNPARAMETRIZED_TRANSACTION}")`;
 const SHOW_UNPARAM_BANNER = 'showUnparameterizedBanner';
-
-const DEFAULT_CHART_HEIGHT = 200;
-const X_AXIS_MARGIN_OFFSET = 23;
 
 export enum DiscoverQueryPageSource {
   PERFORMANCE = 'performance',
@@ -331,10 +317,6 @@ export function getTransactionName(location: Location): string | undefined {
   return decodeScalar(transaction);
 }
 
-export function getPerformanceDuration(milliseconds: number) {
-  return getDuration(milliseconds / 1000, milliseconds > 1000 ? 2 : 0, true);
-}
-
 export function getIsMultiProject(projects: readonly number[] | number[]) {
   if (!projects.length) {
     return true; // My projects
@@ -386,281 +368,6 @@ export function getProjectID(
   projects: Project[]
 ): string | undefined {
   return getProject(eventData, projects)?.id;
-}
-
-export function transformTransaction(
-  transaction: NormalizedTrendsTransaction
-): NormalizedTrendsTransaction {
-  if (transaction?.breakpoint) {
-    return {
-      ...transaction,
-      breakpoint: transaction.breakpoint * 1000,
-    };
-  }
-  return transaction;
-}
-
-export function getIntervalLine(
-  theme: Theme,
-  series: Series[],
-  intervalRatio: number,
-  label: boolean,
-  transaction?: NormalizedTrendsTransaction,
-  useRegressionFormat?: boolean
-): LineChartSeries[] {
-  if (!transaction || !series.length || !series[0].data || !series[0].data.length) {
-    return [];
-  }
-
-  const transformedTransaction = transformTransaction(transaction);
-
-  const seriesStart = parseInt(series[0].data[0].name as string, 10);
-  const seriesEnd = parseInt(series[0].data.slice(-1)[0].name as string, 10);
-
-  if (seriesEnd < seriesStart) {
-    return [];
-  }
-
-  const periodLine: LineChartSeries = {
-    data: [],
-    color: theme.textColor,
-    markLine: {
-      data: [],
-      label: {},
-      lineStyle: {
-        color: theme.textColor,
-        type: 'dashed',
-        width: label ? 1 : 2,
-      },
-      symbol: ['none', 'none'],
-      tooltip: {
-        show: false,
-      },
-    },
-    seriesName: 'Baseline',
-  };
-
-  const periodLineLabel = {
-    fontSize: 11,
-    show: label,
-    color: theme.textColor,
-    silent: label,
-  };
-
-  const previousPeriod = {
-    ...periodLine,
-    markLine: {...periodLine.markLine},
-    seriesName: 'Baseline',
-  };
-  const currentPeriod = {
-    ...periodLine,
-    markLine: {...periodLine.markLine},
-    seriesName: 'Baseline',
-  };
-  const periodDividingLine = {
-    ...periodLine,
-    markLine: {...periodLine.markLine},
-    seriesName: 'Baseline',
-  };
-
-  const seriesDiff = seriesEnd - seriesStart;
-  const seriesLine = seriesDiff * intervalRatio + seriesStart;
-  const {breakpoint} = transformedTransaction;
-
-  const divider = breakpoint || seriesLine;
-
-  previousPeriod.markLine.data = [
-    [
-      {value: 'Past', coord: [seriesStart, transformedTransaction.aggregate_range_1]},
-      {coord: [divider, transformedTransaction.aggregate_range_1]},
-    ],
-  ];
-  previousPeriod.markLine.tooltip = {
-    formatter: () => {
-      return [
-        '<div class="tooltip-series tooltip-series-solo">',
-        '<div>',
-        `<span class="tooltip-label"><strong>${t('Past Baseline')}</strong></span>`,
-        // p50() coerces the axis to be time based
-        tooltipFormatter(transformedTransaction.aggregate_range_1, 'duration'),
-        '</div>',
-        '</div>',
-        '<div class="tooltip-arrow"></div>',
-      ].join('');
-    },
-  };
-  currentPeriod.markLine.data = [
-    [
-      {value: 'Present', coord: [divider, transformedTransaction.aggregate_range_2]},
-      {coord: [seriesEnd, transformedTransaction.aggregate_range_2]},
-    ],
-  ];
-  currentPeriod.markLine.tooltip = {
-    formatter: () => {
-      return [
-        '<div class="tooltip-series tooltip-series-solo">',
-        '<div>',
-        `<span class="tooltip-label"><strong>${t('Present Baseline')}</strong></span>`,
-        // p50() coerces the axis to be time based
-        tooltipFormatter(transformedTransaction.aggregate_range_2, 'duration'),
-        '</div>',
-        '</div>',
-        '<div class="tooltip-arrow"></div>',
-      ].join('');
-    },
-  };
-  periodDividingLine.markLine = {
-    data: [
-      {
-        xAxis: divider,
-      },
-    ],
-    label: {show: false},
-    lineStyle: {
-      color: theme.textColor,
-      type: 'solid',
-      width: 2,
-    },
-    symbol: ['none', 'none'],
-    tooltip: {
-      show: false,
-    },
-    silent: true,
-  };
-
-  previousPeriod.markLine.label = {
-    ...periodLineLabel,
-    formatter: 'Past',
-    position: 'insideStartBottom',
-  };
-  currentPeriod.markLine.label = {
-    ...periodLineLabel,
-    formatter: 'Present',
-    position: 'insideEndBottom',
-  };
-
-  const additionalLineSeries = [previousPeriod, currentPeriod, periodDividingLine];
-
-  // Apply new styles for statistical detector regression issue
-  if (useRegressionFormat) {
-    previousPeriod.markLine.label = {
-      ...periodLineLabel,
-      formatter: `Baseline ${getPerformanceDuration(
-        transformedTransaction.aggregate_range_1
-      )}`,
-      position: 'insideStartBottom',
-    };
-
-    periodDividingLine.markLine.lineStyle = {
-      ...periodDividingLine.markLine.lineStyle,
-      color: theme.red300,
-    };
-
-    currentPeriod.markLine.lineStyle = {
-      ...currentPeriod.markLine.lineStyle,
-      color: theme.red300,
-    };
-
-    currentPeriod.markLine.label = {
-      ...periodLineLabel,
-      formatter: `Regressed ${getPerformanceDuration(
-        transformedTransaction.aggregate_range_2
-      )}`,
-      position: 'insideEndBottom',
-      color: theme.red300,
-    };
-
-    additionalLineSeries.push({
-      seriesName: 'Regression Area',
-      markLine: {},
-      markArea: MarkArea({
-        silent: true,
-        itemStyle: {
-          color: theme.red300,
-          opacity: 0.2,
-        },
-        data: [
-          [
-            {
-              xAxis: divider,
-            },
-            {xAxis: seriesEnd},
-          ],
-        ],
-      }),
-      data: [],
-    });
-
-    additionalLineSeries.push({
-      seriesName: 'Baseline Axis Line',
-      type: 'line',
-      markLine:
-        MarkLine({
-          silent: true,
-          label: {
-            show: false,
-          },
-          lineStyle: {color: theme.green400, type: 'solid', width: 4},
-          data: [
-            // The line needs to be hard-coded to a pixel coordinate because
-            // the lowest y-value is dynamic and 'min' doesn't work here
-            [
-              {xAxis: 'min', y: DEFAULT_CHART_HEIGHT - X_AXIS_MARGIN_OFFSET},
-              {xAxis: breakpoint, y: DEFAULT_CHART_HEIGHT - X_AXIS_MARGIN_OFFSET},
-            ],
-          ],
-        }) ?? {},
-      data: [],
-    });
-
-    additionalLineSeries.push({
-      seriesName: 'Regression Axis Line',
-      type: 'line',
-      markLine:
-        MarkLine({
-          silent: true,
-          label: {
-            show: false,
-          },
-          lineStyle: {color: theme.red300, type: 'solid', width: 4},
-          data: [
-            // The line needs to be hard-coded to a pixel coordinate because
-            // the lowest y-value is dynamic and 'min' doesn't work here
-            [
-              {xAxis: breakpoint, y: DEFAULT_CHART_HEIGHT - X_AXIS_MARGIN_OFFSET},
-              {xAxis: 'max', y: DEFAULT_CHART_HEIGHT - X_AXIS_MARGIN_OFFSET},
-            ],
-          ],
-        }) ?? {},
-      data: [],
-    });
-  }
-
-  return additionalLineSeries;
-}
-
-export function getSelectedTransaction(
-  location: Location,
-  trendChangeType: TrendChangeType,
-  transactions?: NormalizedTrendsTransaction[]
-): NormalizedTrendsTransaction | undefined {
-  const queryKey = getSelectedQueryKey(trendChangeType);
-  const selectedTransactionName = decodeScalar(location.query[queryKey]);
-
-  if (!transactions) {
-    return undefined;
-  }
-
-  const selectedTransaction = transactions.find(
-    transaction =>
-      `${transaction.transaction}-${transaction.project}` === selectedTransactionName
-  );
-
-  if (selectedTransaction) {
-    return selectedTransaction;
-  }
-
-  return transactions.length > 0 ? transactions[0] : undefined;
 }
 
 export function usePerformanceGeneralProjectSettings(projectId?: number) {
