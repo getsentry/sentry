@@ -104,8 +104,10 @@ function EventDetailsLink(props: {eventId: string; projectSlug?: string}) {
 }
 
 type DurationComparisonProps = {
-  duration: number;
-  baseline?: number;
+  baseline: number | undefined;
+  totalDuration: number;
+  isComparingSelfDuration?: boolean;
+  selfDuration?: number;
 };
 
 const DURATION_COMPARISON_STATUS_COLORS = {
@@ -126,11 +128,15 @@ const DURATION_COMPARISON_STATUS_COLORS = {
 const MIN_PCT_DURATION_DIFFERENCE = 10;
 
 function DurationComparison(props: DurationComparisonProps) {
+  const duration =
+    props.isComparingSelfDuration && typeof props.selfDuration === 'number'
+      ? props.selfDuration
+      : props.totalDuration;
   if (typeof props.baseline !== 'number' || isNaN(props.baseline)) {
-    return <Duration>{getDuration(props.duration, 2, true)}</Duration>;
+    return <Duration>{getDuration(duration, 2, true)}</Duration>;
   }
 
-  const delta = props.duration - props.baseline;
+  const delta = duration - props.baseline;
   const deltaPct = Number(Math.abs((delta / props.baseline) * 100).toFixed(2));
   const formattedAvgDuration = getDuration(props.baseline, 2, true);
   const status = delta > 0 ? 'slower' : delta < 0 ? 'faster' : 'equal';
@@ -144,9 +150,14 @@ function DurationComparison(props: DurationComparisonProps) {
 
   return (
     <Fragment>
-      <Duration>{getDuration(props.duration, 2, true)}</Duration>
+      <Duration>
+        {getDuration(duration, 2, true)}{' '}
+        {props.isComparingSelfDuration && typeof props.selfDuration === 'number'
+          ? `(${Number(Math.abs((props.selfDuration - props.totalDuration / props.totalDuration) * 100).toFixed())}%)`
+          : null}
+      </Duration>
       {deltaPct >= MIN_PCT_DURATION_DIFFERENCE ? (
-        <Comparison status={status}>({deltaText})</Comparison>
+        <Comparison status={status}>{deltaText}</Comparison>
       ) : null}
     </Fragment>
   );
