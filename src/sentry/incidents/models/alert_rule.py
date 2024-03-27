@@ -5,7 +5,7 @@ from collections import namedtuple
 from collections.abc import Callable
 from datetime import timedelta
 from enum import Enum
-from typing import Any, ClassVar, Self
+from typing import Any, ClassVar, Protocol, Self
 
 from django.conf import settings
 from django.core.cache import cache
@@ -43,9 +43,13 @@ from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
-alert_subscription_callback_registry: dict[
-    AlertRuleMonitorType, Callable[[QuerySubscription], bool]
-] = {}
+
+class SubscriptionCallback(Protocol):
+    def __call__(self, subscription: QuerySubscription, *args: Any, **kwargs: Any) -> bool:
+        ...
+
+
+alert_subscription_callback_registry: dict[AlertRuleMonitorType, SubscriptionCallback] = {}
 
 
 def register_alert_subscription_callback(
