@@ -64,7 +64,7 @@
     "@sentry/utils": "^7.108.0",
     "@spotlightjs/spotlight": "^1.2.13",
     "@tanstack/react-query": "^4.29.7",
-    "@tanstack/react-query-devtools": "4",
+    "@tanstack/react-query-devtools": "^4.36.1",
     "@types/color": "^3.0.3",
     "@types/crypto-js": "^4.1.1",
     "@types/diff": "5.0.2",
