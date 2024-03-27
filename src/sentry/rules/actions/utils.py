@@ -36,12 +36,36 @@ def generate_diff_labels(
     rule: Rule,
     changed_data: DefaultDict[str, list[str]],
     key: str,
-    statement: str,
 ) -> DefaultDict[str, list[str]]:
+    added_statement = "Added {} '{}'"
+    removed_statement = "Removed {} '{}'"
+    added_items = []
+
+    # Added items that are not seen in the prior rule data
     for data in prior_state.get(key, []):
         if data not in present_state.get(key, []):
             label = generate_rule_label(rule.project, rule, data)
-            changed_data[data["id"]].append(statement.format(label))
+            changed_data[data["id"]].append(added_statement.format(key[:-1], label))
+            added_items.append(data["id"])
+
+    # Check if the id is in both but the data has changed
+    for item in added_items:
+        if changed_data.get(item):
+            for data in prior_state.get(key, []):
+                for present_data in present_state.get(key, []):
+                    if data["id"] == item and present_data["id"] == item:
+                        if present_data != data:
+                            old_label = generate_rule_label(rule.project, rule, data)
+                            new_label = generate_rule_label(rule.project, rule, present_data)
+                            changed_data[item] = [
+                                (f"Changed {key[:-1]} from *{old_label}* to *{new_label}*")
+                            ]
+
+    # Removed items
+    for data in present_state.get(key, []):
+        if data not in prior_state.get(key, []) and not changed_data.get(data["id"]):
+            label = generate_rule_label(rule.project, rule, data)
+            changed_data[data["id"]].append(removed_statement.format(key[:-1], label))
 
     return changed_data
 
@@ -70,18 +94,9 @@ def get_changed_data(
     """
     changed_data: DefaultDict[str, list[str]] = defaultdict(list)
     changed_data = generate_diff_labels(
-        rule_data_before, rule_data, rule, changed_data, "conditions", "Added condition '{}'"
+        rule_data_before, rule_data, rule, changed_data, "conditions"
     )
-    changed_data = generate_diff_labels(
-        rule_data, rule_data_before, rule, changed_data, "conditions", "Removed condition '{}'"
-    )
-    changed_data = generate_diff_labels(
-        rule_data_before, rule_data, rule, changed_data, "actions", "Added action '{}'"
-    )
-    changed_data = generate_diff_labels(
-        rule_data, rule_data_before, rule, changed_data, "actions", "Removed action '{}'"
-    )
-
+    changed_data = generate_diff_labels(rule_data_before, rule_data, rule, changed_data, "actions")
     current_frequency = get_frequency_label(rule_data.get("frequency"))
     previous_frequency = get_frequency_label(rule_data_before.get("frequency"))
     if current_frequency != previous_frequency:
