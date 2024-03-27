@@ -100,7 +100,7 @@ def get_use_case_id(request: Request) -> UseCaseID:
         use_case_param = request.GET.get("useCase", get_default_use_case_ids(request)[0])
         return string_to_use_case_id(use_case_param)
     except ValueError:
-        raise ParseError(detail="The supplied use case doesn't exist or it's private.")
+        raise ParseError(detail="The supplied use case doesn't exist or it's private")
 
 
 def get_use_case_ids(request: Request) -> Sequence[UseCaseID]:
@@ -117,7 +117,7 @@ def get_use_case_ids(request: Request) -> Sequence[UseCaseID]:
         use_case_params = request.GET.getlist("useCase", get_default_use_case_ids(request))
         return [string_to_use_case_id(use_case_param) for use_case_param in use_case_params]
     except ValueError:
-        raise ParseError(detail="The supplied use case doesn't exist or it's private.")
+        raise ParseError(detail="The supplied use case doesn't exist or it's private")
 
 
 class OrganizationMetricsEnrollPermission(OrganizationPermission):
