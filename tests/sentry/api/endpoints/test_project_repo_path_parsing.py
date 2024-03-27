@@ -196,8 +196,8 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
             "integrationId": self.integration.id,
             "repositoryId": self.repo.id,
             "provider": "github",
-            "stackRoot": "",
-            "sourceRoot": "src/",
+            "stackRoot": "sentry/",
+            "sourceRoot": "src/sentry/",
             "defaultBranch": "master",
         }
 
@@ -224,8 +224,8 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
             "integrationId": self.integration.id,
             "repositoryId": self.repo.id,
             "provider": "github",
-            "stackRoot": "stuff/hey/here/",
-            "sourceRoot": "src/",
+            "stackRoot": "stuff/hey/here/sentry/",
+            "sourceRoot": "src/sentry/",
             "defaultBranch": "master",
         }
 
@@ -260,8 +260,8 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
             "integrationId": self.integration.id,
             "repositoryId": self.repo.id,
             "provider": "github",
-            "stackRoot": "C:\\potatos\\and\\prs\\",
-            "sourceRoot": "src/",
+            "stackRoot": "C:\\potatos\\and\\prs\\sentry\\",
+            "sourceRoot": "src/sentry/",
             "defaultBranch": "main",
         }
 
@@ -298,8 +298,8 @@ class ProjectStacktraceLinkGitlabTest(BaseStacktraceLinkTest):
             "integrationId": self.integration.id,
             "repositoryId": self.repo.id,
             "provider": "gitlab",
-            "stackRoot": "",
-            "sourceRoot": "src/",
+            "stackRoot": "sentry/",
+            "sourceRoot": "src/sentry/",
             "defaultBranch": "master",
         }
 
