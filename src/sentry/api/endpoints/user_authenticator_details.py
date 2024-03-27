@@ -4,7 +4,6 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
@@ -12,7 +11,7 @@ from sentry.api.bases.user import OrganizationUserPermission, UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.auth.authenticators.u2f import decode_credential_id
-from sentry.auth.staff import is_active_staff
+from sentry.auth.staff import has_staff_option, is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.models.authenticator import Authenticator
 from sentry.models.user import User
@@ -167,7 +166,7 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
         # We should only be able to delete the last auth method through the
         # _admin portal, which is indicated by staff. After the option is
         # removed, this will only check for is_active_staff.
-        if request.user.email in options.get("staff.user-email-allowlist"):
+        if has_staff_option(request.user):
             check_remaining_auth = not is_active_staff(request)
         else:
             check_remaining_auth = not is_active_superuser(request)

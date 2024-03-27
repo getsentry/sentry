@@ -4,7 +4,7 @@ from uuid import uuid4
 from sentry.api.endpoints.relocations.abort import ERR_NOT_ABORTABLE_STATUS
 from sentry.models.relocation import Relocation
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.utils.relocation import OrderedTask
 
 TEST_DATE_ADDED = datetime(2023, 1, 23, 1, 23, 45, tzinfo=timezone.utc)
@@ -34,12 +34,12 @@ class AbortRelocationTest(APITestCase):
             latest_task_attempts=1,
         )
 
-    @with_feature("auth:enterprise-staff-cookie")
     def test_good_staff_abort_in_progress(self):
         self.login_as(user=self.staff_user, staff=True)
         self.relocation.status = Relocation.Status.PAUSE.value
         self.relocation.save()
-        response = self.get_success_response(self.relocation.uuid, status_code=200)
+        with override_options({"staff.user-email-allowlist": [self.staff_user.email]}):
+            response = self.get_success_response(self.relocation.uuid, status_code=200)
 
         assert response.data["status"] == Relocation.Status.FAILURE.name
         assert response.data["step"] == Relocation.Step.PREPROCESSING.name
@@ -53,12 +53,12 @@ class AbortRelocationTest(APITestCase):
         assert response.data["status"] == Relocation.Status.FAILURE.name
         assert response.data["step"] == Relocation.Step.PREPROCESSING.name
 
-    @with_feature("auth:enterprise-staff-cookie")
     def test_good_staff_abort_paused(self):
         self.login_as(user=self.staff_user, staff=True)
         self.relocation.status = Relocation.Status.PAUSE.value
         self.relocation.save()
-        response = self.get_success_response(self.relocation.uuid, status_code=200)
+        with override_options({"staff.user-email-allowlist": [self.staff_user.email]}):
+            response = self.get_success_response(self.relocation.uuid, status_code=200)
 
         assert response.data["status"] == Relocation.Status.FAILURE.name
         assert response.data["step"] == Relocation.Step.PREPROCESSING.name
@@ -72,12 +72,12 @@ class AbortRelocationTest(APITestCase):
         assert response.data["status"] == Relocation.Status.FAILURE.name
         assert response.data["step"] == Relocation.Step.PREPROCESSING.name
 
-    @with_feature("auth:enterprise-staff-cookie")
     def test_bad_staff_already_succeeded(self):
         self.login_as(user=self.staff_user, staff=True)
         self.relocation.status = Relocation.Status.SUCCESS.value
         self.relocation.save()
-        response = self.get_error_response(self.relocation.uuid, status_code=400)
+        with override_options({"staff.user-email-allowlist": [self.staff_user.email]}):
+            response = self.get_error_response(self.relocation.uuid, status_code=400)
 
         assert response.data.get("detail") is not None
         assert response.data.get("detail") == ERR_NOT_ABORTABLE_STATUS
@@ -91,12 +91,12 @@ class AbortRelocationTest(APITestCase):
         assert response.data.get("detail") is not None
         assert response.data.get("detail") == ERR_NOT_ABORTABLE_STATUS
 
-    @with_feature("auth:enterprise-staff-cookie")
     def test_bad_staff_already_failed(self):
         self.login_as(user=self.staff_user, staff=True)
         self.relocation.status = Relocation.Status.FAILURE.value
         self.relocation.save()
-        response = self.get_error_response(self.relocation.uuid, status_code=400)
+        with override_options({"staff.user-email-allowlist": [self.staff_user.email]}):
+            response = self.get_error_response(self.relocation.uuid, status_code=400)
 
         assert response.data.get("detail") is not None
         assert response.data.get("detail") == ERR_NOT_ABORTABLE_STATUS
@@ -110,21 +110,21 @@ class AbortRelocationTest(APITestCase):
         assert response.data.get("detail") is not None
         assert response.data.get("detail") == ERR_NOT_ABORTABLE_STATUS
 
-    @with_feature("auth:enterprise-staff-cookie")
     def test_bad_staff_not_found(self):
         self.login_as(user=self.staff_user, staff=True)
         does_not_exist_uuid = uuid4().hex
-        self.get_error_response(str(does_not_exist_uuid), status_code=404)
+        with override_options({"staff.user-email-allowlist": [self.staff_user.email]}):
+            self.get_error_response(str(does_not_exist_uuid), status_code=404)
 
     def test_bad_superuser_not_found(self):
         self.login_as(user=self.superuser, superuser=True)
         does_not_exist_uuid = uuid4().hex
         self.get_error_response(str(does_not_exist_uuid), status_code=404)
 
-    @with_feature("auth:enterprise-staff-cookie")
-    def test_superuser_fails_with_flag(self):
+    def test_superuser_fails_with_active_option(self):
         self.login_as(user=self.superuser, superuser=True)
-        self.get_error_response(self.relocation.uuid, status_code=403)
+        with override_options({"staff.user-email-allowlist": [self.superuser.email]}):
+            self.get_error_response(self.relocation.uuid, status_code=403)
 
     def test_bad_no_auth(self):
         self.get_error_response(self.relocation.uuid, status_code=401)

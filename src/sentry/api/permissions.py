@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 
-from sentry import features, options
+from sentry import features
 from sentry.api.exceptions import (
     DataSecrecyError,
     MemberDisabledOverLimit,
@@ -15,7 +15,7 @@ from sentry.api.exceptions import (
     TwoFactorRequired,
 )
 from sentry.auth import access
-from sentry.auth.staff import is_active_staff
+from sentry.auth.staff import has_staff_option, is_active_staff
 from sentry.auth.superuser import SUPERUSER_ORG_ID, is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
@@ -124,7 +124,7 @@ class StaffPermissionMixin:
 # released to the everyone, we can delete this permission and use StaffPermission
 class SuperuserOrStaffFeatureFlaggedPermission(BasePermission):
     def has_permission(self, request: Request, view: object) -> bool:
-        enforce_staff_permission = request.user.email in options.get("staff.user-email-allowlist")
+        enforce_staff_permission = has_staff_option(request.user)
 
         if enforce_staff_permission:
             return StaffPermission().has_permission(request, view)

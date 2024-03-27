@@ -14,8 +14,9 @@ from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 from sentry_sdk.api import push_scope
 
-from sentry import analytics, audit_log, options
+from sentry import analytics, audit_log
 from sentry.api.helpers.slugs import sentry_slugify
+from sentry.auth.staff import has_staff_option
 from sentry.constants import SentryAppStatus
 from sentry.coreapi import APIError
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
@@ -76,11 +77,7 @@ def _is_elevated_user(user) -> bool:
     if the option is enabled for the user. Otherwise, it defaults to checking
     that the user can become a superuser.
     """
-    return (
-        user.is_staff
-        if user.email in options.get("staff.user-email-allowlist")
-        else user.is_superuser
-    )
+    return user.is_staff if has_staff_option(user) else user.is_superuser
 
 
 @dataclasses.dataclass

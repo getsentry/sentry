@@ -3,8 +3,6 @@ from enum import Enum
 
 from rest_framework.request import Request
 
-from sentry import options
-
 
 class InactiveReason(str, Enum):
     INVALID_IP = "invalid-ip"
@@ -57,12 +55,10 @@ def has_elevated_mode(request: Request) -> bool:
     the staff option enabled. If so, it checks is_active_staff and
     otherwise defaults to checking is_active_superuser.
     """
-    from sentry.auth.staff import is_active_staff
+    from sentry.auth.staff import has_staff_option, is_active_staff
     from sentry.auth.superuser import is_active_superuser
 
-    enforce_staff_permission = request.user.email in options.get("staff.user-email-allowlist")
-
-    if enforce_staff_permission:
+    if has_staff_option(request.user):
         return is_active_staff(request)
 
     return is_active_superuser(request)

@@ -29,6 +29,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.exceptions import StaffRequired, SuperuserRequired
 from sentry.apidocs.hooks import HTTP_METHOD_NAME
 from sentry.auth import access
+from sentry.auth.staff import has_staff_option
 from sentry.models.environment import Environment
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.silo import SiloLimit, SiloMode
@@ -256,9 +257,7 @@ class Endpoint(APIView):
         permissions = self.get_permissions()
         if request.user.is_authenticated and len(permissions) == 1:
             permission_cls = permissions[0]
-            enforce_staff_permission = request.user.email in options.get(
-                "staff.user-email-allowlist"
-            )
+            enforce_staff_permission = has_staff_option(request.user)
 
             # TODO(schew2381): Remove SuperuserOrStaffFeatureFlaggedPermission
             # from isinstance checks once feature flag is removed.

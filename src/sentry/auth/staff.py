@@ -11,6 +11,7 @@ from django.utils import timezone as django_timezone
 from django.utils.crypto import constant_time_compare, get_random_string
 from rest_framework.request import Request
 
+from sentry import options
 from sentry.auth.elevated_mode import ElevatedMode, InactiveReason
 from sentry.auth.system import is_system_auth
 from sentry.utils.auth import has_completed_sso
@@ -49,6 +50,16 @@ def is_active_staff(request: HttpRequest | Request) -> bool:
         return True
     staff = getattr(request, "staff", None) or Staff(request)
     return staff.is_active
+
+
+# TODO(schew2381): Delete this method after the option is removed
+def has_staff_option(user) -> bool:
+    """
+    Checks if the user can access the staff mode for _admin depending on an option.
+    """
+    if (email := getattr(user, "email", None)) is None:
+        return False
+    return email in options.get("staff.user-email-allowlist")
 
 
 class Staff(ElevatedMode):

@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 from sentry.api.permissions import StaffPermission
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 
 
@@ -26,7 +26,6 @@ class UserPermissionsGetTest(UserPermissionsTest):
         assert "broadcasts.admin" in response.data
         assert "users.admin" in response.data
 
-    @with_feature("auth:enterprise-staff-cookie")
     @patch.object(StaffPermission, "has_permission", wraps=StaffPermission().has_permission)
     def test_staff_lookup_self(self, mock_has_permission):
         staff_user = self.create_user(is_staff=True)
@@ -34,7 +33,8 @@ class UserPermissionsGetTest(UserPermissionsTest):
 
         self.add_user_permission(staff_user, "users.admin")
         self.add_user_permission(staff_user, "broadcasts.admin")
-        response = self.get_success_response("me")
+        with override_options({"staff.user-email-allowlist": [self.staff_user.email]}):
+            response = self.get_success_response("me")
 
         assert len(response.data) == 2
         assert "broadcasts.admin" in response.data
