@@ -5,7 +5,7 @@ import {intervalToMilliseconds} from 'sentry/utils/dates';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {getConfigFromTimeRange} from 'sentry/views/monitors/components/overviewTimeline/utils';
 
-import {TimeWindowConfig} from '../components/overviewTimeline/types';
+import type {TimeWindowConfig} from '../components/overviewTimeline/types';
 
 interface Options {
   /**
