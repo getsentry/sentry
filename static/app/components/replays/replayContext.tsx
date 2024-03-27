@@ -462,6 +462,7 @@ function ProviderNonMemo({
       applyInitialOffset();
       if (autoStart) {
         inst.play(startTimeOffsetMs);
+        setIsPlaying(true);
       }
     },
     [
