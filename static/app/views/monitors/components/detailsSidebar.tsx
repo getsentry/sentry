@@ -16,7 +16,7 @@ import {DEFAULT_MAX_RUNTIME} from 'sentry/views/monitors/components/monitorForm'
 import {MonitorIndicator} from 'sentry/views/monitors/components/monitorIndicator';
 import type {Monitor, MonitorEnvironment} from 'sentry/views/monitors/types';
 import {ScheduleType} from 'sentry/views/monitors/types';
-import {scheduleAsText} from 'sentry/views/monitors/utils';
+import {scheduleAsText} from 'sentry/views/monitors/utils/scheduleAsText';
 
 interface Props {
   monitor: Monitor;
