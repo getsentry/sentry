@@ -95,7 +95,7 @@ export function getDdmUrl(
     urlParams.end = end;
   }
 
-  return `/organizations/${orgSlug}/ddm/?${qs.stringify(urlParams)}`;
+  return `/organizations/${orgSlug}/metrics/?${qs.stringify(urlParams)}`;
 }
 
 const intervalLadders: Record<MetricsDataIntervalLadder, GranularityLadder> = {
