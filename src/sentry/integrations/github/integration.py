@@ -489,9 +489,13 @@ class GitHubUserValidation(PipelineView):
 
         # Check that the authenticated GitHub user is the same as who installed the app.
         authenticated_user_info = get_user_info(payload["access_token"])
-        integration = Integration.objects.get(
-            external_id=pipeline.fetch_state("installation_id"), status=ObjectStatus.ACTIVE
-        )
+        try:
+            integration = Integration.objects.get(
+                external_id=pipeline.fetch_state("installation_id"), status=ObjectStatus.ACTIVE
+            )
+        except Integration.DoesNotExist:
+            return self.error(request)
+
         if authenticated_user_info["login"] != integration.metadata["sender"]["login"]:
             return self.error(request)
 

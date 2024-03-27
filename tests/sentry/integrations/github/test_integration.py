@@ -12,6 +12,7 @@ import responses
 from django.urls import reverse
 
 import sentry
+from fixtures.github import INSTALLATION_EVENT_EXAMPLE
 from sentry.api.utils import generate_organization_url
 from sentry.constants import ObjectStatus
 from sentry.integrations.github import (
@@ -32,6 +33,7 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.utils import json
 from sentry.utils.cache import cache
 
 TREE_RESPONSES = {
@@ -110,6 +112,15 @@ class GitHubIntegrationTest(IntegrationTestCase):
         """This stubs the calls related to a Github App"""
         self.gh_org = "Test-Organization"
         pp = 1
+
+        access_token = "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+        responses.add(
+            responses.POST,
+            "https://github.com/login/oauth/access_token",
+            body=f"access_token={access_token}",
+        )
+
+        responses.add(responses.GET, self.base_url + "/user", json={"login": "octocat"})
 
         responses.add(
             responses.POST,
@@ -220,9 +231,36 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert redirect.netloc == "github.com"
         assert redirect.path == "/apps/sentry-test-app"
 
+        webhook_event = json.loads(INSTALLATION_EVENT_EXAMPLE)
+        webhook_event["installation"]["id"] = self.installation_id
+        resp = self.client.post(
+            path="/extensions/github/webhook/",
+            data=json.dumps(webhook_event),
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="installation",
+            HTTP_X_HUB_SIGNATURE="sha1=beeaaadb9015e847551da969b072f4d64670d359",
+            HTTP_X_GITHUB_DELIVERY="00000000-0000-4000-8000-1234567890ab",
+        )
+        assert resp.status_code == 204
+
         # App installation ID is provided
         resp = self.client.get(
             "{}?{}".format(self.setup_path, urlencode({"installation_id": self.installation_id}))
+        )
+        assert resp.status_code == 302
+        redirect = urlparse(resp["Location"])
+        assert redirect.scheme == "https"
+        assert redirect.netloc == "github.com"
+        assert redirect.path == "/login/oauth/authorize"
+        assert redirect.query == "client_id=github-client-id&state=ddd023d87a913d5226e2a882c4c4cc05"
+
+        resp = self.client.get(
+            "{}?{}".format(
+                self.setup_path,
+                urlencode(
+                    {"code": "12345678901234567890", "state": "ddd023d87a913d5226e2a882c4c4cc05"}
+                ),
+            )
         )
 
         auth_header = responses.calls[0].request.headers["Authorization"]
