@@ -344,6 +344,9 @@ class AlertRule(Model):
         # NOTE: AlertRuleMonitorType.ACTIVATED will be conditionally subscribed given activation triggers
         # On activated subscription, additional query parameters will be added to the constructed query in Snuba
         if self.monitor_type == monitor_type.value:
+            # TODO: remove projects from QuerySubscriptions
+            # This means we will no longer need to utilize `bulk_create_snuba_subscriptions` as there's no value
+            # in iterating over projects to call `create_snuba_subscription` per project
             return bulk_create_snuba_subscriptions(
                 projects,
                 INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,

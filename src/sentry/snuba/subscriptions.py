@@ -134,6 +134,8 @@ def bulk_create_snuba_subscriptions(
     to identify the registered callback associated with this subscription.
     :param snuba_query: A `SnubaQuery` instance to subscribe the projects to.
     :return: A list of QuerySubscriptions
+
+    TODO: remove project from QuerySubscription model
     """
     subscriptions = []
     # TODO: Batch this up properly once we care about multi-project rules.
@@ -155,6 +157,8 @@ def create_snuba_subscription(
     to identify the registered callback associated with this subscription.
     :param snuba_query: A `SnubaQuery` instance to subscribe the project to.
     :return: The QuerySubscription representing the subscription
+
+    TODO: remove project from QuerySubscription model
     """
     subscription = QuerySubscription.objects.create(
         status=QuerySubscription.Status.CREATING.value,
