@@ -176,7 +176,7 @@ def _do_preprocess_event(
     # one after the other, so we handle mixed stacktraces.
     symbolicate_platforms = get_symbolication_platforms(data)
     should_symbolicate = len(symbolicate_platforms) > 0
-    if symbolicate_platforms:
+    if should_symbolicate:
         first_platform = symbolicate_platforms.pop(0)
         symbolication_function = get_symbolication_function_for_platform(first_platform, data)
         symbolication_function_name = getattr(symbolication_function, "__name__", "none")
