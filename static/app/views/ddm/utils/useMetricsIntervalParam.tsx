@@ -56,7 +56,7 @@ const maximumInterval = new GranularityLadder([
   [0, '1m'],
 ]);
 
-function getIntervalOptionsForStatsPeriod(
+export function getIntervalOptionsForStatsPeriod(
   datetime: PageFilters['datetime'],
   isCustomMetricsOnly: boolean
 ) {
