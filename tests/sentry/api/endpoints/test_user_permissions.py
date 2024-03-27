@@ -33,7 +33,7 @@ class UserPermissionsGetTest(UserPermissionsTest):
 
         self.add_user_permission(staff_user, "users.admin")
         self.add_user_permission(staff_user, "broadcasts.admin")
-        with override_options({"staff.user-email-allowlist": [self.staff_user.email]}):
+        with override_options({"staff.user-email-allowlist": [staff_user.email]}):
             response = self.get_success_response("me")
 
         assert len(response.data) == 2

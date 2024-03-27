@@ -41,7 +41,7 @@ class CancelRelocationTest(APITestCase):
     def test_good_staff_cancel_in_progress_at_next_step(self):
         staff_user = self.create_user(is_staff=True)
         self.login_as(user=staff_user, staff=True)
-        with override_options({"staff.user-email-allowlist": [self.staff_user.email]}):
+        with override_options({"staff.user-email-allowlist": [staff_user.email]}):
             response = self.get_success_response(self.relocation.uuid, status_code=200)
 
         assert response.data["status"] == Relocation.Status.IN_PROGRESS.name
