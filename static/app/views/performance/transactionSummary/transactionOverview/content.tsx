@@ -339,12 +339,15 @@ function SummaryContent({
   return (
     <Fragment>
       <Layout.Main>
-        <FilterActions>
-          <Filter
-            organization={organization}
-            currentFilter={spanOperationBreakdownFilter}
-            onChangeFilter={onChangeFilter}
-          />
+        <FilterActions hasTransactionSummaryCleanupFlag>
+          {!hasTransactionSummaryCleanupFlag && (
+            <Filter
+              organization={organization}
+              currentFilter={spanOperationBreakdownFilter}
+              onChangeFilter={onChangeFilter}
+            />
+          )}
+
           <PageFilterBar condensed>
             <EnvironmentPageFilter />
             <DatePageFilter />
@@ -563,7 +566,7 @@ function getTransactionsListSort(
   return {selected: selectedSort, options: sortOptions};
 }
 
-const FilterActions = styled('div')`
+const FilterActions = styled('div')<{hasTransactionSummaryCleanupFlag: boolean}>`
   display: grid;
   gap: ${space(2)};
   margin-bottom: ${space(2)};
@@ -573,7 +576,10 @@ const FilterActions = styled('div')`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
-    grid-template-columns: auto auto 1fr;
+    ${p =>
+      p.hasTransactionSummaryCleanupFlag
+        ? `grid-template-columns: auto 1fr;`
+        : `grid-template-columns: auto auto 1fr;`}
   }
 `;
 
