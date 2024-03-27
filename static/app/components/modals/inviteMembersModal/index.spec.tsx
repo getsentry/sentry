@@ -420,7 +420,9 @@ describe('InviteMembersModal', function () {
         },
       });
 
-      expect(await screen.findByText(initialEmail)).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText(initialEmail)).toBeInTheDocument();
+      });
       await userEvent.click(screen.getByRole('button', {name: 'Send invite request'}));
       const apiMock = mocks[1];
       expect(apiMock).toHaveBeenCalledTimes(1);

@@ -8,6 +8,7 @@ from sentry.api.endpoints.group_event_details import GroupEventDetailsEndpoint
 from sentry.api.endpoints.group_similar_issues_embeddings import (
     GroupSimilarIssuesEmbeddingsEndpoint,
 )
+from sentry.api.endpoints.issues.related_issues import RelatedIssuesEndpoint
 from sentry.api.endpoints.org_auth_token_details import OrgAuthTokenDetailsEndpoint
 from sentry.api.endpoints.org_auth_tokens import OrgAuthTokensEndpoint
 from sentry.api.endpoints.organization_events_root_cause_analysis import (
@@ -433,6 +434,7 @@ from .endpoints.organization_projects_sent_first_event import (
     OrganizationProjectsSentFirstEventEndpoint,
 )
 from .endpoints.organization_recent_searches import OrganizationRecentSearchesEndpoint
+from .endpoints.organization_region import OrganizationRegionEndpoint
 from .endpoints.organization_relay_usage import OrganizationRelayUsage
 from .endpoints.organization_release_assemble import OrganizationReleaseAssembleEndpoint
 from .endpoints.organization_release_commits import OrganizationReleaseCommitsEndpoint
@@ -635,6 +637,8 @@ __all__ = ("urlpatterns",)
 # to the organization (and queryable via short ID)
 
 
+# NOTE: Start adding to ISSUES_URLS instead of here because (?:issues|groups)
+# cannot be reversed and we prefer to always use issues instead of groups
 def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
     return [
         re_path(
@@ -797,6 +801,14 @@ BROADCAST_URLS = [
     re_path(
         r"^(?P<broadcast_id>[^\/]+)/$",
         BroadcastDetailsEndpoint.as_view(),
+    ),
+]
+
+ISSUES_URLS = [
+    re_path(
+        r"^(?P<issue_id>[^\/]+)/related-issues/$",
+        RelatedIssuesEndpoint.as_view(),
+        name="sentry-api-0-issues-related-issues",
     ),
 ]
 
@@ -2080,6 +2092,11 @@ ORGANIZATION_URLS = [
         PromptsActivityEndpoint.as_view(),
         name="sentry-api-0-organization-prompts-activity",
     ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/region/$",
+        OrganizationRegionEndpoint.as_view(),
+        name="sentry-api-0-organization-region",
+    ),
 ]
 
 PROJECT_URLS: list[URLPattern | URLResolver] = [
@@ -2970,6 +2987,10 @@ urlpatterns = [
     re_path(
         r"^(?:issues|groups)/",
         include(create_group_urls("sentry-api-0")),
+    ),
+    re_path(
+        r"^issues/",
+        include(ISSUES_URLS),
     ),
     # Organizations
     re_path(

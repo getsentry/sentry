@@ -3,10 +3,8 @@ from sentry.models.actor import ActorTuple
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class ExtractUserIdsFromMentionsTest(TestCase):
     def test_users(self):
         actor = ActorTuple(self.user.id, User)

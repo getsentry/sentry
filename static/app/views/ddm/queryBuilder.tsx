@@ -4,7 +4,7 @@ import uniqBy from 'lodash/uniqBy';
 
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
-import Tag from 'sentry/components/tag';
+import {Tag} from 'sentry/components/tag';
 import {IconLightning, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -175,6 +175,8 @@ export const QueryBuilder = memo(function QueryBuilder({
     [displayedMetrics, mriMode]
   );
 
+  const projectIdStrings = useMemo(() => projects.map(String), [projects]);
+
   return (
     <QueryBuilderWrapper>
       <FlexBlock>
@@ -195,7 +197,7 @@ export const QueryBuilder = memo(function QueryBuilder({
         <FlexBlock>
           <OpSelect
             size="md"
-            triggerProps={{prefix: t('Op')}}
+            triggerProps={{prefix: t('Agg')}}
             options={
               selectedMeta?.operations.filter(isAllowedOp).map(op => ({
                 label: op,
@@ -233,6 +235,7 @@ export const QueryBuilder = memo(function QueryBuilder({
           disabled={!metricsQuery.mri}
           onChange={handleQueryChange}
           query={metricsQuery.query}
+          projectIds={projectIdStrings}
           blockedTags={selectedMeta?.blockingStatus?.flatMap(s => s.blockedTags) ?? []}
         />
       </SearchBarWrapper>
@@ -261,7 +264,8 @@ const MetricSelect = styled(CompactSelect)`
 `;
 
 const OpSelect = styled(CompactSelect)`
-  width: 120px;
+  width: 128px;
+  min-width: min-content;
   & > button {
     width: 100%;
   }

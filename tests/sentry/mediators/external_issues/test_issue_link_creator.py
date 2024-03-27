@@ -7,10 +7,8 @@ from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class TestIssueLinkCreator(TestCase):
     def setUp(self):
         super().setUp()

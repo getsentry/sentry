@@ -71,7 +71,7 @@ from sentry.grouping.ingest import (
 )
 from sentry.grouping.result import CalculatedHashes
 from sentry.ingest.inbound_filters import FilterStatKeys
-from sentry.issues.grouptype import GroupCategory
+from sentry.issues.grouptype import ErrorGroupType, GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context
@@ -87,7 +87,6 @@ from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.grouplink import GroupLink
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
-from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
@@ -102,15 +101,12 @@ from sentry.net.http import connection_from_url
 from sentry.plugins.base import plugins
 from sentry.quotas.base import index_data_category
 from sentry.reprocessing2 import is_reprocessed_event
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.shared_integrations.exceptions import ApiError
 from sentry.signals import (
     first_event_received,
     first_event_with_minified_stack_trace_received,
     first_transaction_received,
     issue_unresolved,
 )
-from sentry.tasks.commits import fetch_commits
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.tasks.relay import schedule_invalidate_project_config
@@ -480,6 +476,7 @@ class EventManager:
             with metrics.timer("event_manager.save_error_events", tags=metric_tags):
                 return self.save_error_events(project, job, projects, metric_tags, raw, cache_key)
 
+    @sentry_sdk.tracing.trace
     def save_error_events(
         self,
         project: Project,
@@ -710,56 +707,6 @@ def _is_commit_sha(version: str) -> bool:
     return re.match(r"[0-9a-f]{40}", version) is not None
 
 
-def _associate_commits_with_release(release: Release, project: Project) -> None:
-    previous_release = release.get_previous_release(project)
-    possible_repos = (
-        RepositoryProjectPathConfig.objects.select_related("repository")
-        .filter(project=project, repository__provider="integrations:github")
-        .all()
-    )
-    if possible_repos:
-        # If it does exist, kick off a task to look if the commit exists in the repository
-        target_repo = None
-        for repo_proj_path_model in possible_repos:
-            ois = integration_service.get_organization_integrations(
-                org_integration_ids=[repo_proj_path_model.organization_integration_id]
-            )
-            oi = ois[0]
-            if not oi:
-                continue
-            integration = integration_service.get_integration(integration_id=oi.integration_id)
-            if not integration:
-                continue
-            integration_installation = integration.get_installation(
-                organization_id=oi.organization_id
-            )
-            if not integration_installation:
-                continue
-            repo_client = integration_installation.get_client()
-            try:
-                repo_client.get_commit(
-                    repo=repo_proj_path_model.repository.name, sha=release.version
-                )
-                target_repo = repo_proj_path_model.repository
-                break
-            except ApiError as exc:
-                if exc.code != 404:
-                    raise
-
-        if target_repo is not None:
-            # If it does exist, fetch the commits for that repo
-            fetch_commits.apply_async(
-                kwargs={
-                    "release_id": release.id,
-                    "user_id": None,
-                    "refs": [{"repository": target_repo.name, "commit": release.version}],
-                    "prev_release_id": (
-                        previous_release.id if previous_release is not None else None
-                    ),
-                }
-            )
-
-
 @metrics.wraps("save_event.get_or_create_release_many")
 def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     jobs_with_releases: dict[tuple[int, Release], list[Job]] = {}
@@ -794,11 +741,6 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
             )
 
         if release:
-            if features.has(
-                "projects:auto-associate-commits-to-release", projects[project_id]
-            ) and _is_commit_sha(release.version):
-                safe_execute(_associate_commits_with_release, release, projects[project_id])
-
             for job in jobs_to_update:
                 # Don't allow a conflicting 'release' tag
                 data = job["data"]
@@ -1887,11 +1829,16 @@ def _create_group(project: Project, event: Event, **group_creation_kwargs: Any) 
     # add sdk tag to metadata
     group_data.setdefault("metadata", {}).update(sdk_metadata_from_event(event))
 
-    # add severity to metadata for alert filtering
-    severity = _get_severity_metadata_for_group(event)
-    group_data["metadata"].update(severity)
+    # Add severity to metadata for alert filtering for errors events.
+    # We can skip this if the group type is explicitly NOT an error.
+    group_type = group_creation_kwargs.get("type", None)
+    severity: Mapping[str, Any] = {}
+    if not group_type or group_type == ErrorGroupType.type_id:
+        severity = _get_severity_metadata_for_group(event)
+        group_data["metadata"].update(severity)
 
     if features.has("projects:issue-priority", project, actor=None):
+        # the kwargs only include priority for non-error issue platform events, which takes precedence.
         priority = group_creation_kwargs.get("priority", None)
         if priority is None:
             priority = _get_priority_for_group(severity, group_creation_kwargs)

@@ -6,7 +6,7 @@ import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {Button} from 'sentry/components/button';
 import {Hovercard} from 'sentry/components/hovercard';
 import PanelItem from 'sentry/components/panels/panelItem';
-import Tag from 'sentry/components/tag';
+import {Tag} from 'sentry/components/tag';
 import {IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -27,14 +27,6 @@ type LockedFeatureProps = {
   features: string[];
   provider: AuthProvider;
   className?: string;
-};
-
-type FeatureRenderProps = {
-  features: string[];
-  hasFeature: boolean;
-  renderDisabled: (p: LockedFeatureProps) => React.ReactNode;
-  renderInstallButton: (p: RenderInstallButtonProps) => React.ReactNode;
-  children?: (p: FeatureRenderProps) => React.ReactNode;
 };
 
 type Props = {
@@ -103,12 +95,7 @@ function ProviderItem({provider, active, onConfigure}: Props) {
         children({...props, renderDisabled: renderDisabledLock as any})
       }
     >
-      {({
-        hasFeature,
-        features,
-        renderDisabled,
-        renderInstallButton,
-      }: FeatureRenderProps) => (
+      {({hasFeature, features, renderDisabled, renderInstallButton}) => (
         <PanelItem center>
           <ProviderInfo>
             <ProviderLogo
@@ -128,14 +115,20 @@ function ProviderItem({provider, active, onConfigure}: Props) {
           </ProviderInfo>
 
           <FeatureBadge>
-            {!hasFeature && renderDisabled({provider, features})}
+            {!hasFeature &&
+              // renderDisabled is overridden by renderDisabled above
+              (renderDisabled as typeof renderDisabledLock)({provider, features})}
           </FeatureBadge>
 
           <div>
             {active ? (
               <ActiveIndicator />
             ) : (
-              (renderInstallButton ?? defaultRenderInstallButton)({provider, hasFeature})
+              // renderInstallButton is overridden by renderDisabled above
+              (
+                (renderInstallButton as typeof defaultRenderInstallButton) ??
+                defaultRenderInstallButton
+              )({provider, hasFeature})
             )}
           </div>
         </PanelItem>

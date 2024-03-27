@@ -66,6 +66,7 @@ function BasePlayerRoot({className, overlayContent, isPreview = false}: Props) {
     isBuffering,
     isFetching,
     isFinished,
+    isVideoReplay,
   } = useReplayContext();
 
   const windowEl = useRef<HTMLDivElement>(null);
@@ -129,7 +130,7 @@ function BasePlayerRoot({className, overlayContent, isPreview = false}: Props) {
         <div ref={viewEl} className={className} />
         {fastForwardSpeed ? <PositionedFastForward speed={fastForwardSpeed} /> : null}
         {isBuffering ? <PositionedBuffering /> : null}
-        {isPreview ? null : <PlayerDOMAlert />}
+        {isPreview || isVideoReplay ? null : <PlayerDOMAlert />}
         {isFetching ? <PositionedLoadingIndicator /> : null}
       </StyledNegativeSpaceContainer>
     </Fragment>

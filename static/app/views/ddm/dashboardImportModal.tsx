@@ -8,8 +8,8 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import TextArea from 'sentry/components/forms/controls/textarea';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PanelTable from 'sentry/components/panels/panelTable';
-import Tag from 'sentry/components/tag';
+import {PanelTable} from 'sentry/components/panels/panelTable';
+import {Tag} from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -68,7 +68,11 @@ function DashboardImportModal({Header, Body, Footer}: ModalRenderProps) {
       setFormState(curr => ({...curr, step: 'importing'}));
 
       const dashboardJson = JSON.parse(formState.dashboard);
-      const importResult = await parseDashboard(dashboardJson, metricsMeta);
+      const importResult = await parseDashboard(
+        dashboardJson,
+        metricsMeta,
+        organization.slug
+      );
 
       setFormState(curr => ({
         ...curr,
@@ -76,7 +80,7 @@ function DashboardImportModal({Header, Body, Footer}: ModalRenderProps) {
         step: 'add-widgets',
       }));
     }
-  }, [formState.isValid, formState.dashboard, metricsMeta]);
+  }, [formState.isValid, formState.dashboard, metricsMeta, organization.slug]);
 
   const handleCreateDashboard = useCallback(async () => {
     const title = formState.importResult?.title ?? 'Metrics Dashboard';

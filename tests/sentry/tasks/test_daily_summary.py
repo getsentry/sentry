@@ -31,26 +31,32 @@ from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.slack import get_blocks_and_fallback_text
-from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.outcomes import Outcome
 
 
-@region_silo_test
 @freeze_time(before_now(days=2).replace(hour=0, minute=5, second=0, microsecond=0))
 class DailySummaryTest(
     OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCase, SlackActivityNotificationTest
 ):
     def store_event_and_outcomes(
-        self, project_id, timestamp, fingerprint, category, release=None, resolve=True
+        self,
+        project_id,
+        timestamp,
+        fingerprint,
+        category,
+        release=None,
+        resolve=True,
+        level="error",
     ):
         if category == DataCategory.ERROR:
             data = {
                 "timestamp": iso_format(timestamp),
                 "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                 "fingerprint": [fingerprint],
+                "level": level,
                 "exception": {
                     "values": [
                         {
@@ -229,6 +235,18 @@ class DailySummaryTest(
 
     def test_build_summary_data(self):
         self.populate_event_data()
+
+        # add another release to make sure new issues in multiple releases show up
+        release2 = self.create_release(project=self.project, date_added=self.now)
+        for _ in range(2):
+            release2_group = self.store_event_and_outcomes(
+                self.project.id,
+                self.now,
+                fingerprint="group-12",
+                category=DataCategory.ERROR,
+                release=release2.version,
+                resolve=False,
+            )
         summary = build_summary_data(
             timestamp=self.now.timestamp(),
             duration=ONE_DAY,
@@ -239,7 +257,7 @@ class DailySummaryTest(
         project_context_map = cast(
             DailySummaryProjectContext, summary.projects_context_map[project_id]
         )
-        assert project_context_map.total_today == 15  # total outcomes from today
+        assert project_context_map.total_today == 17  # total outcomes from today
         assert project_context_map.comparison_period_avg == 1
         assert len(project_context_map.key_errors) == 3
         assert (self.group1, None, 3) in project_context_map.key_errors
@@ -250,8 +268,10 @@ class DailySummaryTest(
         assert (self.perf_event2.group, None, 1) in project_context_map.key_performance_issues
         assert project_context_map.escalated_today == [self.group3]
         assert project_context_map.regressed_today == [self.group2]
+        assert len(project_context_map.new_in_release) == 2
         assert self.group2 in project_context_map.new_in_release[self.release.id]
         assert self.group3 in project_context_map.new_in_release[self.release.id]
+        assert release2_group in project_context_map.new_in_release[release2.id]
 
         project_id2 = self.project2.id
         project_context_map2 = cast(
@@ -264,6 +284,97 @@ class DailySummaryTest(
         assert project_context_map2.escalated_today == []
         assert project_context_map2.regressed_today == []
         assert project_context_map2.new_in_release == {}
+
+    @with_feature("organizations:snql-join-reports")
+    def test_build_summary_data_filter_to_unresolved(self):
+        with self.options({"issues.group_attributes.send_kafka": True}):
+            for _ in range(3):
+                group1 = self.store_event_and_outcomes(
+                    self.project.id,
+                    self.now,
+                    fingerprint="group-1",
+                    category=DataCategory.ERROR,
+                    resolve=False,
+                )
+
+            for _ in range(3):
+                group2 = self.store_event_and_outcomes(
+                    self.project.id,
+                    self.now,
+                    fingerprint="group-2",
+                    category=DataCategory.ERROR,
+                    resolve=False,
+                )
+
+            for _ in range(3):
+                self.store_event_and_outcomes(
+                    self.project.id,
+                    self.now,
+                    fingerprint="group-3",
+                    category=DataCategory.ERROR,
+                    resolve=True,
+                )
+
+        summary = build_summary_data(
+            timestamp=self.now.timestamp(),
+            duration=ONE_DAY,
+            organization=self.organization,
+            daily=True,
+        )
+        project_id = self.project.id
+        project_context_map = cast(
+            DailySummaryProjectContext, summary.projects_context_map[project_id]
+        )
+        assert project_context_map.total_today == 9  # total outcomes from today
+        assert project_context_map.comparison_period_avg == 0
+        assert len(project_context_map.key_errors) == 2
+        assert (group1, None, 3) in project_context_map.key_errors
+        assert (group2, None, 3) in project_context_map.key_errors
+
+    @with_feature("organizations:snql-join-reports")
+    def test_build_summary_data_filter_to_error_level(self):
+        """Test that non-error level issues are filtered out of the results"""
+        with self.options({"issues.group_attributes.send_kafka": True}):
+            for _ in range(3):
+                group1 = self.store_event_and_outcomes(
+                    self.project.id,
+                    self.now,
+                    fingerprint="group-1",
+                    category=DataCategory.ERROR,
+                    resolve=False,
+                    level="info",
+                )
+                group2 = self.store_event_and_outcomes(
+                    self.project.id,
+                    self.now,
+                    fingerprint="group-2",
+                    category=DataCategory.ERROR,
+                    resolve=False,
+                )
+                group3 = self.store_event_and_outcomes(
+                    self.project.id,
+                    self.now,
+                    fingerprint="group-3",
+                    category=DataCategory.ERROR,
+                    resolve=False,
+                )
+
+        summary = build_summary_data(
+            timestamp=self.now.timestamp(),
+            duration=ONE_DAY,
+            organization=self.organization,
+            daily=True,
+        )
+        project_id = self.project.id
+        project_context_map = cast(
+            DailySummaryProjectContext, summary.projects_context_map[project_id]
+        )
+        assert project_context_map.total_today == 9  # total outcomes from today
+        assert project_context_map.comparison_period_avg == 0
+        assert len(project_context_map.key_errors) == 2
+        assert (group1, None, 3) not in project_context_map.key_errors
+        assert (group2, None, 3) in project_context_map.key_errors
+        assert (group3, None, 3) in project_context_map.key_errors
 
     def test_build_summary_data_dedupes_groups(self):
         """
@@ -372,6 +483,54 @@ class DailySummaryTest(
         )
         assert project_context_map.escalated_today == [self.group2, self.group3]
         assert project_context_map.regressed_today == []
+
+    def test_build_summary_data_group_regressed_escalated_in_the_past(self):
+        """
+        Test that if a group has regressed or escalated some time in the past over 24 hours ago, it does not show up.
+        """
+        for _ in range(2):
+            regressed_past_group = self.store_event_and_outcomes(
+                self.project.id,
+                self.three_days_ago,
+                fingerprint="group-12",
+                category=DataCategory.ERROR,
+                resolve=False,
+            )
+        for _ in range(2):
+            escalated_past_group = self.store_event_and_outcomes(
+                self.project.id,
+                self.three_days_ago,
+                fingerprint="group-13",
+                category=DataCategory.ERROR,
+                resolve=False,
+            )
+        with freeze_time(self.two_days_ago):
+            Activity.objects.create_group_activity(
+                regressed_past_group,
+                ActivityType.SET_REGRESSION,
+                data={
+                    "event_id": regressed_past_group.get_latest_event().event_id,
+                },
+            )
+            Activity.objects.create_group_activity(
+                escalated_past_group,
+                ActivityType.SET_ESCALATING,
+                data={
+                    "event_id": escalated_past_group.get_latest_event().event_id,
+                },
+            )
+        summary = build_summary_data(
+            timestamp=self.now.timestamp(),
+            duration=ONE_DAY,
+            organization=self.organization,
+            daily=True,
+        )
+        project_id = self.project.id
+        project_context_map = cast(
+            DailySummaryProjectContext, summary.projects_context_map[project_id]
+        )
+        assert regressed_past_group not in project_context_map.regressed_today
+        assert escalated_past_group not in project_context_map.escalated_today
 
     @mock.patch("sentry.tasks.summaries.daily_summary.deliver_summary")
     def test_prepare_summary_data(self, mock_deliver_summary):
@@ -484,8 +643,11 @@ class DailySummaryTest(
                 project_context=top_projects_context_map,
             ).send()
         blocks, fallback_text = get_blocks_and_fallback_text()
-        link_text = "http://testserver/organizations/baz/issues/{}/?referrer=slack"
-        assert fallback_text == "Daily Summary for Your Projects (internal only!!!)"
+        link_text = "http://testserver/organizations/baz/issues/{}/?referrer=daily_summary-slack"
+        assert (
+            fallback_text
+            == f"Daily Summary for Your {self.organization.slug.title()} Projects (internal only!!!)"
+        )
         assert f":bell: *{fallback_text}*" in blocks[0]["text"]["text"]
         assert (
             "Your comprehensive overview for today - key issues, performance insights, and more."
@@ -503,7 +665,7 @@ class DailySummaryTest(
         # check error issues
         assert "*Today's Top 3 Error Issues" in blocks[5]["fields"][0]["text"]
         assert link_text.format(self.group1.id) in blocks[5]["fields"][0]["text"]
-        assert "Identity not found." in blocks[5]["fields"][0]["text"]
+        assert "\nIdentity not found." in blocks[5]["fields"][0]["text"]
         assert link_text.format(self.group2.id) in blocks[5]["fields"][0]["text"]
         assert link_text.format(self.group2.id) in blocks[5]["fields"][0]["text"]
         # check escalated or regressed issues
@@ -513,7 +675,7 @@ class DailySummaryTest(
         # check performance issues
         assert "*Today's Top 3 Performance Issues*" in blocks[6]["text"]["text"]
         assert link_text.format(self.perf_event.group.id) in blocks[6]["text"]["text"]
-        assert "db - SELECT `books_author`.`id`, `books_author`.`..." in blocks[6]["text"]["text"]
+        assert "\ndb - SELECT `books_author`.`id`, `books_author`.`..." in blocks[6]["text"]["text"]
         assert link_text.format(self.perf_event2.group.id) in blocks[6]["text"]["text"]
         # repeat above for second project
         assert self.project2.slug in blocks[8]["text"]["text"]
@@ -522,6 +684,10 @@ class DailySummaryTest(
         assert link_text.format(self.group4.id) in blocks[10]["fields"][0]["text"]
         # check footer
         assert "Getting this at a funky time?" in blocks[12]["elements"][0]["text"]
+        assert (
+            "<http://testserver/settings/account/|*Account Settings*>"
+            in blocks[12]["elements"][0]["text"]
+        )
 
     @responses.activate
     @with_feature("organizations:slack-block-kit")
@@ -553,7 +719,10 @@ class DailySummaryTest(
             "yAxis": "count()",
         }
         query_string = urlencode(query_params, doseq=True)
-        assert fallback_text == "Daily Summary for Your Projects (internal only!!!)"
+        assert (
+            fallback_text
+            == f"Daily Summary for Your {self.organization.slug.title()} Projects (internal only!!!)"
+        )
         assert f":bell: *{fallback_text}*" in blocks[0]["text"]["text"]
         assert (
             "Your comprehensive overview for today - key issues, performance insights, and more."
@@ -567,6 +736,110 @@ class DailySummaryTest(
             in blocks[3]["fields"][0]["text"]
         )
         assert "higher than last 14d avg" in blocks[3]["fields"][1]["text"]
+
+    @responses.activate
+    @with_feature("organizations:slack-block-kit")
+    def test_slack_notification_contents_newline(self):
+        type_string = '"""\nTraceback (most recent call last):\nFile /\'/usr/hb/meow/\''
+        data = {
+            "timestamp": iso_format(self.now),
+            "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+            "fingerprint": ["group-5"],
+            "exception": {
+                "values": [
+                    {
+                        "type": "WorkerLostError",
+                        "value": type_string,
+                    }
+                ]
+            },
+        }
+        self.store_event(
+            data=data,
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "project_id": self.project.id,
+                "outcome": Outcome.ACCEPTED,
+                "category": DataCategory.ERROR,
+                "timestamp": self.now,
+                "key_id": 1,
+            },
+            num_times=1,
+        )
+
+        ctx = build_summary_data(
+            timestamp=self.now.timestamp(),
+            duration=ONE_DAY,
+            organization=self.organization,
+            daily=True,
+        )
+        top_projects_context_map = build_top_projects_map(ctx, self.user.id)
+        with self.tasks():
+            DailySummaryNotification(
+                organization=ctx.organization,
+                recipient=self.user,
+                provider=ExternalProviders.SLACK,
+                project_context=top_projects_context_map,
+            ).send()
+        blocks, fallback_text = get_blocks_and_fallback_text()
+        assert (
+            '""" Traceback (most recent call last): File /\'/us...'
+            in blocks[4]["fields"][0]["text"]
+        )
+
+    @responses.activate
+    @with_feature("organizations:slack-block-kit")
+    def test_slack_notification_contents_newline_no_attachment_text(self):
+        data = {
+            "timestamp": iso_format(self.now),
+            "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+            "fingerprint": ["group-5"],
+            "exception": {
+                "values": [
+                    {
+                        "type": "WorkerLostError",
+                        "value": None,
+                    }
+                ]
+            },
+        }
+        self.store_event(
+            data=data,
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "project_id": self.project.id,
+                "outcome": Outcome.ACCEPTED,
+                "category": DataCategory.ERROR,
+                "timestamp": self.now,
+                "key_id": 1,
+            },
+            num_times=1,
+        )
+
+        ctx = build_summary_data(
+            timestamp=self.now.timestamp(),
+            duration=ONE_DAY,
+            organization=self.organization,
+            daily=True,
+        )
+        top_projects_context_map = build_top_projects_map(ctx, self.user.id)
+        with self.tasks():
+            DailySummaryNotification(
+                organization=ctx.organization,
+                recipient=self.user,
+                provider=ExternalProviders.SLACK,
+                project_context=top_projects_context_map,
+            ).send()
+        blocks, fallback_text = get_blocks_and_fallback_text()
+        assert "" in blocks[4]["fields"][0]["text"]
 
     @responses.activate
     @with_feature("organizations:slack-block-kit")
@@ -651,7 +924,7 @@ class DailySummaryTest(
                 project_context=top_projects_context_map,
             ).send()
         blocks, fallback_text = get_blocks_and_fallback_text()
-        link_text = "http://testserver/organizations/baz/issues/{}/?referrer=slack"
+        link_text = "http://testserver/organizations/baz/issues/{}/?referrer=daily_summary-slack"
         # check the today's event count section
         assert "*Today’s Event Count*" in blocks[3]["fields"][0]["text"]
         assert "higher than last 14d avg" in blocks[3]["fields"][1]["text"]
@@ -699,7 +972,7 @@ class DailySummaryTest(
                 project_context=top_projects_context_map,
             ).send()
         blocks, fallback_text = get_blocks_and_fallback_text()
-        link_text = "http://testserver/organizations/baz/issues/{}/?referrer=slack"
+        link_text = "http://testserver/organizations/baz/issues/{}/?referrer=daily_summary-slack"
         assert f"*{self.project.slug}*" in blocks[2]["text"]["text"]
         # check the today's event count section
         assert "*Today’s Event Count*" in blocks[3]["fields"][0]["text"]

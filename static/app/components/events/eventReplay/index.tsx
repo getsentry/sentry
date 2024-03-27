@@ -31,7 +31,7 @@ type Props = {
   group?: Group;
 };
 
-const CLIP_OFFSETS = {
+export const REPLAY_CLIP_OFFSETS = {
   durationAfterMs: 5_000,
   durationBeforeMs: 5_000,
 };
@@ -118,7 +118,12 @@ function EventReplayContent({
     : '';
   const replayUrl = baseUrl ? `${baseUrl}replays/${location.search}/` : '';
   const seeAllReplaysButton = replayUrl ? (
-    <LinkButton size="sm" to={replayUrl}>
+    <LinkButton
+      size="sm"
+      to={replayUrl}
+      analyticsEventKey="issue_details.replay_player.clicked_see_all_replays"
+      analyticsEventName="Issue Details: Replay Player Clicked See All Replays"
+    >
       {t('See All Replays')}
     </LinkButton>
   ) : undefined;
@@ -144,7 +149,7 @@ function EventReplayContent({
               <LazyLoad
                 {...commonProps}
                 component={replayClipPreview}
-                clipOffsets={CLIP_OFFSETS}
+                clipOffsets={REPLAY_CLIP_OFFSETS}
                 overlayContent={overlayContent}
               />
             ) : (

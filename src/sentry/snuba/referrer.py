@@ -430,6 +430,7 @@ class Referrer(Enum):
     API_STARFISH_MOBILE_STARTUP_SPAN_TABLE = "api.starfish.mobile-spartup-span-table"
     API_STARFISH_MOBILE_STARTUP_LOADED_LIBRARIES = "api.starfish.mobile-startup-loaded-libraries"
     API_STARFISH_MOBILE_STARTUP_TOTALS = "api.starfish.mobile-startup-totals"
+    API_TRACE_EXPLORER_TABLE = "api.trace-explorer.table"
 
     API_SPAN_SAMPLE_GET_BOUNDS = "api.spans.sample-get-bounds"
     API_SPAN_SAMPLE_GET_SPAN_IDS = "api.spans.sample-get-span-ids"
@@ -628,6 +629,8 @@ class Referrer(Enum):
     SEARCH = "search"
     SEARCH_GROUP_INDEX = "search.group_index"
     SEARCH_GROUP_INDEX_SAMPLE = "search.group_index_sample"
+    SEARCH_SNUBA_GROUP_ATTRIBUTES_SEARCH_QUERY = "search.snuba.group_attributes_search.query"
+    SEARCH_SNUBA_GROUP_ATTRIBUTES_SEARCH_HITS = "search.snuba.group_attributes_search.hits"
     SERIALIZERS_GROUPSERIALIZERSNUBA__EXECUTE_ERROR_SEEN_STATS_QUERY = (
         "serializers.GroupSerializerSnuba._execute_error_seen_stats_query"
     )

@@ -12,7 +12,7 @@ import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Placeholder from 'sentry/components/placeholder';
-import Tag from 'sentry/components/tag';
+import {Tag} from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -178,11 +178,11 @@ function GroupPriorityLearnMore() {
       <BannerStar2 src={bannerStar} />
       <BannerStar3 src={bannerStar} />
       <p>
-        <strong>{t('Organize, prioritize!')}</strong>
+        <strong>{t('Time to prioritize!')}</strong>
       </p>
       <p>
         {t(
-          'Use priorities to clean up your issues view. Sentry will automatically assign a priority to new issues. Low-priority issues will be hidden from Prioritized.'
+          'Use priority to make your issue stream more actionable. Sentry will automatically assign a priority score to new issues and filter low priority issues from the default view.'
         )}
       </p>
       <LinkButton
@@ -190,7 +190,7 @@ function GroupPriorityLearnMore() {
         external
         size="xs"
       >
-        {t('Learn More')}
+        {t('Learn more')}
       </LinkButton>
       <DismissButton
         size="zero"

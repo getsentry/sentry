@@ -112,6 +112,7 @@ function ReplaysListTable({
   return (
     <Fragment>
       <ReplayTable
+        referrerLocation={'replay'}
         fetchError={fetchError}
         isFetching={isFetching}
         replays={replays}

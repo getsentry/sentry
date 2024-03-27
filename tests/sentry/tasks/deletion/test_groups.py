@@ -10,13 +10,11 @@ from sentry.models.groupredirect import GroupRedirect
 from sentry.tasks.deletion.groups import delete_groups
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class DeleteGroupTest(TestCase):
     def test_simple(self):
         event_id = "a" * 32

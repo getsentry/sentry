@@ -56,7 +56,7 @@ class MessageProcessor:
     def __setstate__(self, config: MetricsIngestConfiguration) -> None:
         # mypy: "cannot access init directly"
         # yes I can, watch me.
-        self.__init__(config)  # type: ignore
+        self.__init__(config)  # type: ignore[misc]
 
     def __get_tags_validator(self) -> Callable[[Mapping[str, str]], bool]:
         """

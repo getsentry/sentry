@@ -17,7 +17,7 @@ from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import add_identity, get_response_text, install_slack, link_team
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
@@ -112,7 +112,6 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
         self.login_as(user)
 
 
-@region_silo_test
 class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
     def setUp(self):
         super().setUp()
@@ -250,7 +249,6 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
             assert len(team_settings) == 0
 
 
-@region_silo_test
 class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
     def setUp(self):
         super().setUp()

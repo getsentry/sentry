@@ -9,16 +9,10 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from hashlib import sha1
 from typing import Any
 
-import sentry_sdk
 from django.dispatch import receiver
-from requests import Response
-from requests.exceptions import HTTPError
-from rest_framework import status
 
-from sentry.exceptions import RestrictedIPAddress
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.sentry_app import SentryApp
@@ -26,16 +20,6 @@ from sentry.models.outbox import OutboxCategory, process_control_outbox
 from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.services.hybrid_cloud.issue import issue_service
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSignal, organization_service
-from sentry.shared_integrations.exceptions import (
-    ApiConflictError,
-    ApiConnectionResetError,
-    ApiError,
-    ApiHostError,
-    ApiTimeoutError,
-)
-from sentry.silo.base import SiloMode
-from sentry.silo.client import SiloClientError
-from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -71,150 +55,6 @@ def process_api_application_updates(object_identifier: int, region_name: str, **
     ) is None:
         return
     api_application  # Currently we do not sync any other api application changes, but if we did, you can use this variable.
-
-
-@receiver(process_control_outbox, sender=OutboxCategory.WEBHOOK_PROXY)
-def process_async_webhooks(
-    payload: Mapping[str, Any],
-    region_name: str,
-    shard_identifier: int,
-    object_identifier: int,
-    **kwds: Any,
-):
-    from sentry.models.outbox import ControlOutbox
-    from sentry.silo.client import RegionSiloClient
-    from sentry.types.region import get_region_by_name
-
-    if SiloMode.get_current_mode() == SiloMode.REGION:
-        sentry_sdk.capture_exception(Exception("Called process_async_webhooks in REGION mode"))
-        return
-
-    logging_context: dict[str, str | int] = {
-        "outbox_message_object_id": object_identifier,
-        "shard_id": shard_identifier,
-    }
-    try:
-        region = get_region_by_name(name=region_name)
-        webhook_payload = ControlOutbox.get_webhook_payload_from_outbox(payload=payload)
-    except Exception:
-        sentry_sdk.capture_exception()
-        logger.exception(
-            "integration_proxy.failed_to_preprocess_outbox_message",
-            extra=logging_context,
-        )
-        raise
-
-    try:
-        client = RegionSiloClient(region=region)
-        with metrics.timer(
-            "integration_proxy.control.process_async_webhooks",
-            tags={"destination_region": region.name},
-        ):
-            request_prefix_hash = sha1(
-                f"{shard_identifier}{object_identifier}".encode()
-            ).hexdigest()
-            logging_context["region"] = region.name
-            logging_context["request_method"] = webhook_payload.method
-            logging_context["proxy_path"] = webhook_payload.path
-            logging_context["request_hash"] = request_prefix_hash
-
-            logger.info(
-                "integration_proxy.issuing_proxy_request",
-                extra=logging_context,
-            )
-
-            response = client.request(
-                method=webhook_payload.method,
-                path=webhook_payload.path,
-                headers=webhook_payload.headers,
-                # We need to send the body as raw bytes to avoid interfering with webhook signatures
-                data=webhook_payload.body.encode("utf-8"),
-                json=False,
-                prefix_hash=request_prefix_hash,
-            )
-        logger.info(
-            "webhook_proxy.complete",
-            extra={
-                "status": getattr(
-                    response, "status_code", 204
-                ),  # Request returns empty dict instead of a response object when the code is a 204
-                **logging_context,
-            },
-        )
-    except SiloClientError as e:
-        metrics.incr(
-            "integration_proxy.control.process_async_webhook.failure",
-            tags={"reason": "silo_client_error", "destination_region": region.name},
-        )
-
-        logger.warning(
-            "webhook_proxy.silo_client_error",
-            extra=logging_context,
-        )
-        sentry_sdk.capture_exception(e)
-    except ApiHostError as err:
-        metrics.incr(
-            "integration_proxy.control.process_async_webhook.failure",
-            tags={"reason": "host_error", "destination_region": region.name},
-        )
-        with sentry_sdk.push_scope() as scope:
-            scope.set_context(
-                "region",
-                {
-                    "name": region.name,
-                    "id": region.category,
-                    "address": region.address,
-                },
-            )
-            err_cause = err.__cause__
-            if err_cause is not None and isinstance(err_cause, RestrictedIPAddress):
-                # Region silos that are IP address restricted are actionable.
-                silo_client_err = SiloClientError("Region silo is IP address restricted")
-                silo_client_err.__cause__ = err
-                sentry_sdk.capture_exception(silo_client_err)
-                return
-            sentry_sdk.capture_exception(err)
-        return
-    except ApiConflictError as e:
-        metrics.incr(
-            "integration_proxy.control.process_async_webhook.failure",
-            tags={"reason": "conflict", "destination_region": region.name},
-        )
-        logger.warning(
-            "webhook_proxy.conflict_occurred",
-            extra={"conflict_text": e.text, **logging_context},
-        )
-    except (ApiTimeoutError, ApiConnectionResetError):
-        metrics.incr(
-            "integration_proxy.control.process_async_webhook.failure",
-            tags={"reason": "timeout_reset", "destination_region": region.name},
-        )
-        logger.warning("integration_proxy.timeout_error", extra=logging_context)
-        raise
-    except ApiError as api_err:
-        err_cause = api_err.__cause__
-        if err_cause is not None and isinstance(err_cause, HTTPError):
-            orig_response: Response | None = err_cause.response
-            if (
-                orig_response is not None
-                and status.HTTP_500_INTERNAL_SERVER_ERROR <= orig_response.status_code < 600
-            ):
-                # Retry on 5xx errors
-                raise
-        # For some integrations, we make use of outboxes to handle asynchronous webhook requests.
-        # There is an edge case where webhook requests eventually become invalid and
-        # the 3rd-party destination (integration provider) will reject them.
-        # JWT expirations is one example of causing this issue. Issues like these are no longer salvageable, and we must
-        # discard these associated webhook outbox messages. If we do not discard them, then these outbox messages
-        # will be re-processed causing a backlog on the ControlOutbox table.
-        metrics.incr(
-            "integration_proxy.control.process_async_webhook.failure",
-            tags={"reason": "discard", "destination_region": region.name},
-        )
-
-        logger.warning("integration_proxy.api_error", extra={"error": api_err, **logging_context})
-
-        return
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.SEND_SIGNAL)

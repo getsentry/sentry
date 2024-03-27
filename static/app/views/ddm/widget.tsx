@@ -34,11 +34,11 @@ import {metricDisplayTypeOptions} from 'sentry/utils/metrics/constants';
 import {formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
 import type {
   FocusedMetricsSeries,
+  MetricDisplayType,
   MetricQueryWidgetParams,
   MetricWidgetQueryParams,
   SortState,
 } from 'sentry/utils/metrics/types';
-import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import {
   isMetricFormula,
   type MetricsQueryApiQueryParams,
@@ -59,6 +59,7 @@ import {SummaryTable} from 'sentry/views/ddm/summaryTable';
 import {useSeriesHover} from 'sentry/views/ddm/useSeriesHover';
 import {extendQueryWithGroupBys} from 'sentry/views/ddm/utils';
 import {createChartPalette} from 'sentry/views/ddm/utils/metricsChartPalette';
+import {useMetricsIntervalParam} from 'sentry/views/ddm/utils/useMetricsIntervalParam';
 
 import {DDM_CHART_GROUP, MIN_WIDGET_WIDTH} from './constants';
 
@@ -138,7 +139,6 @@ export const MetricWidget = memo(
     chartHeight = 300,
     focusedSeries,
     metricsSamples,
-    context = 'ddm',
   }: MetricWidgetProps) => {
     const firstQuery = queries
       .filter(isNotQueryOnly)
@@ -238,7 +238,6 @@ export const MetricWidget = memo(
                   displayType={displayType}
                   tableSort={tableSort}
                   focusedSeries={focusedSeries}
-                  context={context}
                 />
               </ErrorBoundary>
             ) : (
@@ -258,7 +257,6 @@ export const MetricWidget = memo(
 );
 
 interface MetricWidgetBodyProps {
-  context: 'ddm' | 'dashboard';
   displayType: MetricDisplayType;
   filters: PageFilters;
   focusAreaProps: FocusAreaProps;
@@ -297,9 +295,9 @@ const MetricWidgetBody = memo(
     samples,
     filters,
     queries,
-    context,
   }: MetricWidgetBodyProps) => {
     const router = useRouter();
+    const {interval} = useMetricsIntervalParam();
 
     const orderedQueries = useMemo(() => {
       return queries.map(q => {
@@ -319,7 +317,7 @@ const MetricWidgetBody = memo(
       isError,
       error,
     } = useMetricsQuery(orderedQueries, filters, {
-      intervalLadder: displayType === MetricDisplayType.BAR ? 'bar' : context,
+      interval: interval,
     });
 
     const {chartRef, setHoveredSeries} = useSeriesHover();
@@ -370,9 +368,11 @@ const MetricWidgetBody = memo(
         }
 
         const newQuery = extendQueryWithGroupBys(queryToUpdate.query, [series.groupBy]);
-        onQueryChange?.(queryIndex, {query: newQuery});
+        const indexToUpdate = queries.length > 1 ? queryIndex : widgetIndex;
+
+        onQueryChange?.(indexToUpdate, {query: newQuery});
       },
-      [queries, onQueryChange]
+      [queries, onQueryChange, widgetIndex]
     );
 
     const isCumulativeSamplesOp =
@@ -538,6 +538,7 @@ export function getChartTimeseries(
       groupBy: entry.by,
       transaction: entry.by.transaction,
       release: entry.by.release,
+      total: entry.totals,
     }));
   });
 
@@ -560,6 +561,7 @@ export function getChartTimeseries(
     release: item.release as string | undefined,
     isEquationSeries: item.isEquationSeries,
     queryIndex: item.queryIndex,
+    total: item.total,
     emphasis: {
       focus: 'series',
     } as SeriesOption['emphasis'],

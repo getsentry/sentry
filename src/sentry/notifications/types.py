@@ -19,6 +19,9 @@ class NotificationSettingEnum(ValueEqualityEnum):
     QUOTA = "quota"
     # Notifications for when 80% reserved quota is reached
     QUOTA_WARNINGS = "quotaWarnings"
+    # Notifications for when a specific threshold is reached
+    # If set, this overrides any notification preferences for QUOTA and QUOTA_WARNINGS.
+    QUOTA_THRESHOLDS = "quotaThresholds"
     QUOTA_ERRORS = "quotaErrors"
     QUOTA_TRANSACTIONS = "quotaTransactions"
     QUOTA_ATTACHMENTS = "quotaAttachments"
@@ -113,6 +116,10 @@ VALID_VALUES_FOR_KEY = {
         NotificationSettingsOptionEnum.NEVER,
     },
     NotificationSettingEnum.QUOTA_SPEND_ALLOCATIONS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
+    },
+    NotificationSettingEnum.QUOTA_THRESHOLDS: {
         NotificationSettingsOptionEnum.ALWAYS,
         NotificationSettingsOptionEnum.NEVER,
     },

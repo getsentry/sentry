@@ -5,13 +5,11 @@ import pytest
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.visibility import block_metric, block_tags_of_metric
 from sentry.testutils.cases import MetricsAPIBaseTestCase, OrganizationMetricsIntegrationTestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
-@region_silo_test
 class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
     endpoint = "sentry-api-0-organization-metrics-details"
 
@@ -88,7 +86,7 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
             self.store_metric(
                 project.organization.id,
                 project.id,
-                entity,  # type:ignore
+                entity,  # type: ignore[arg-type]
                 mri,
                 {"transaction": "/hello"},
                 int(self.now.timestamp()),

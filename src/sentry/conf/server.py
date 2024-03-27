@@ -734,7 +734,10 @@ CELERY_IMPORTS = (
     "sentry.incidents.tasks",
     "sentry.snuba.tasks",
     "sentry.replays.tasks",
-    "sentry.monitors.tasks",
+    "sentry.monitors.tasks.clock_pulse",
+    "sentry.monitors.tasks.check_missed",
+    "sentry.monitors.tasks.check_timeout",
+    "sentry.monitors.tasks.detect_broken_monitor_envs",
     "sentry.tasks.ai_autofix",
     "sentry.tasks.app_store_connect",
     "sentry.tasks.assemble",
@@ -776,7 +779,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.reprocessing2",
     "sentry.tasks.sentry_apps",
     "sentry.tasks.servicehooks",
-    "sentry.tasks.spans",
     "sentry.tasks.store",
     "sentry.tasks.symbolication",
     "sentry.tasks.unmerge",
@@ -939,7 +941,6 @@ CELERY_QUEUES_REGION = [
     Queue("nudge.invite_missing_org_members", routing_key="invite_missing_org_members"),
     Queue("auto_resolve_issues", routing_key="auto_resolve_issues"),
     Queue("on_demand_metrics", routing_key="on_demand_metrics"),
-    Queue("spans.process_segment", routing_key="spans.process_segment"),
 ]
 
 from celery.schedules import crontab
@@ -955,6 +956,7 @@ CELERYBEAT_SCHEDULE_CONTROL = {
     },
     "sync-options-control": {
         "task": "sentry.tasks.options.sync_options_control",
+        # Run every 10 seconds
         "schedule": timedelta(seconds=10),
         "options": {"expires": 10, "queue": "options.control"},
     },
@@ -972,7 +974,8 @@ CELERYBEAT_SCHEDULE_CONTROL = {
     },
     "reattempt-deletions-control": {
         "task": "sentry.tasks.deletion.reattempt_deletions_control",
-        "schedule": crontab(hour="10", minute="0"),  # 03:00 PDT, 07:00 EDT, 10:00 UTC
+        # 03:00 PDT, 07:00 EDT, 10:00 UTC
+        "schedule": crontab(hour="10", minute="0"),
         "options": {"expires": 60 * 25, "queue": "cleanup.control"},
     },
     "schedule-hybrid-cloud-foreign-key-jobs-control": {
@@ -983,6 +986,7 @@ CELERYBEAT_SCHEDULE_CONTROL = {
     },
     "schedule-vsts-integration-subscription-check": {
         "task": "sentry.tasks.integrations.kickoff_vsts_subscription_check",
+        # Run every 6 hours
         "schedule": crontab_with_minute_jitter(hour="*/6"),
         "options": {"expires": 60 * 25, "queue": "integrations.control"},
     },
@@ -998,7 +1002,7 @@ CELERYBEAT_SCHEDULE_CONTROL = {
 CELERYBEAT_SCHEDULE_REGION = {
     "send-beacon": {
         "task": "sentry.tasks.send_beacon",
-        # Run every hour
+        # Run every 1 hour
         "schedule": crontab(minute="0", hour="*/1"),
         "options": {"expires": 3600},
     },
@@ -1010,16 +1014,19 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "flush-buffers": {
         "task": "sentry.tasks.process_buffer.process_pending",
+        # Run every 10 seconds
         "schedule": timedelta(seconds=10),
         "options": {"expires": 10, "queue": "buffers.process_pending"},
     },
     "sync-options": {
         "task": "sentry.tasks.options.sync_options",
+        # Run every 10 seconds
         "schedule": timedelta(seconds=10),
         "options": {"expires": 10, "queue": "options"},
     },
     "schedule-digests": {
         "task": "sentry.tasks.digests.schedule_digests",
+        # Run every 30 seconds
         "schedule": timedelta(seconds=30),
         "options": {"expires": 30},
     },
@@ -1028,6 +1035,12 @@ CELERYBEAT_SCHEDULE_REGION = {
         # Run every 1 minute
         "schedule": crontab(minute="*/1"),
         "options": {"expires": 60},
+    },
+    "monitors-detect-broken-monitor-envs": {
+        "task": "sentry.monitors.tasks.detect_broken_monitor_envs",
+        # 05:00 PDT, 09:00 EDT, 12:00 UTC
+        "schedule": crontab(minute="0", hour="12"),
+        "options": {"expires": 15 * 60},
     },
     "clear-expired-snoozes": {
         "task": "sentry.tasks.clear_expired_snoozes",
@@ -1049,6 +1062,7 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "collect-project-platforms": {
         "task": "sentry.tasks.collect_project_platforms",
+        # Run every 3 hours
         "schedule": crontab_with_minute_jitter(hour=3),
         "options": {"expires": 3600 * 24},
     },
@@ -1084,23 +1098,20 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "reattempt-deletions": {
         "task": "sentry.tasks.deletion.reattempt_deletions",
-        "schedule": crontab(hour="10", minute="0"),  # 03:00 PDT, 07:00 EDT, 10:00 UTC
+        # 03:00 PDT, 07:00 EDT, 10:00 UTC
+        "schedule": crontab(hour="10", minute="0"),
         "options": {"expires": 60 * 25},
     },
     "schedule-weekly-organization-reports-new": {
         "task": "sentry.tasks.summaries.weekly_reports.schedule_organizations",
-        "schedule": crontab(
-            minute="0", hour="12", day_of_week="monday"  # 05:00 PDT, 09:00 EDT, 12:00 UTC
-        ),
+        # 05:00 PDT, 09:00 EDT, 12:00 UTC
+        "schedule": crontab(minute="0", hour="12", day_of_week="monday"),
         "options": {"expires": 60 * 60 * 3},
     },
     "schedule-daily-organization-reports": {
         "task": "sentry.tasks.summaries.daily_summary.schedule_organizations",
-        "schedule": crontab(
-            minute=0,
-            hour="*/1",  # Run every hour
-            day_of_week="mon-fri",
-        ),
+        # Run every 1 hour on business days
+        "schedule": crontab(minute=0, hour="*/1", day_of_week="mon-fri"),
         "options": {"expires": 60 * 60 * 3},
     },
     "schedule-hybrid-cloud-foreign-key-jobs": {
@@ -1110,6 +1121,7 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "monitor-release-adoption": {
         "task": "sentry.release_health.tasks.monitor_release_adoption",
+        # Run every 1 hour
         "schedule": crontab(minute="0"),
         "options": {"expires": 3600, "queue": "releasemonitor"},
     },
@@ -1121,7 +1133,7 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "fetch-appstore-builds": {
         "task": "sentry.tasks.app_store_connect.refresh_all_builds",
-        # Run every hour
+        # Run every 1 hour
         "schedule": crontab(minute="0", hour="*/1"),
         "options": {"expires": 3600},
     },
@@ -1133,17 +1145,19 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "transaction-name-clusterer": {
         "task": "sentry.ingest.transaction_clusterer.tasks.spawn_clusterers",
+        # Run every 1 hour at minute 17
         "schedule": crontab(minute="17"),
         "options": {"expires": 3600},
     },
     "span.descs.clusterer": {
         "task": "sentry.ingest.span_clusterer.tasks.spawn_span_cluster_projects",
+        # Run every 1 hour at minute 42
         "schedule": crontab(minute="42"),
         "options": {"expires": 3600},
     },
     "auto-enable-codecov": {
         "task": "sentry.tasks.auto_enable_codecov.enable_for_org",
-        # Run job once a day at 00:30
+        # Run every day at 00:30
         "schedule": crontab(minute="30", hour="0"),
         "options": {"expires": 3600},
     },
@@ -1179,18 +1193,20 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "weekly-escalating-forecast": {
         "task": "sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
+        # Run every 6 hours
         "schedule": crontab(minute="0", hour="*/6"),
         "options": {"expires": 60 * 60 * 3},
     },
     "schedule_auto_transition_to_ongoing": {
         "task": "sentry.tasks.schedule_auto_transition_to_ongoing",
-        # Run job every 5 minutes
+        # Run every 5 minutes
         "schedule": crontab(minute="*/5"),
         "options": {"expires": 3600},
     },
     "github_comment_reactions": {
         "task": "sentry.tasks.integrations.github_comment_reactions",
-        "schedule": crontab(minute="0", hour="16"),  # 9:00 PDT, 12:00 EDT, 16:00 UTC
+        # 9:00 PDT, 12:00 EDT, 16:00 UTC
+        "schedule": crontab(minute="0", hour="16"),
     },
     "dynamic-sampling-collect-orgs": {
         "task": "sentry.dynamic_sampling.tasks.collect_orgs",
@@ -1199,24 +1215,19 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "statistical-detectors-detect-regressions": {
         "task": "sentry.tasks.statistical_detectors.run_detection",
+        # Run every 1 hour
         "schedule": crontab(minute="0", hour="*/1"),
     },
     "refresh-artifact-bundles-in-use": {
         "task": "sentry.debug_files.tasks.refresh_artifact_bundles_in_use",
+        # Run every 1 minute
         "schedule": crontab(minute="*/1"),
         "options": {"expires": 60},
     },
     "on-demand-metrics-schedule-on-demand-check": {
         "task": "sentry.tasks.on_demand_metrics.schedule_on_demand_check",
+        # Run every 5 minutes
         "schedule": crontab(minute="*/5"),
-    },
-    "detect_broken_monitor_envs": {
-        "task": "sentry.monitors.tasks.detect_broken_monitor_envs",
-        "schedule": crontab(
-            minute="0",
-            hour="12",  # 05:00 PDT, 09:00 EDT, 12:00 UTC
-        ),
-        "options": {"expires": 15 * 60},
     },
 }
 
@@ -1481,8 +1492,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:crons-broken-monitor-detection": False,
     # Disables legacy cron ingest endpoints
     "organizations:crons-disable-ingest-endpoints": False,
-    # Disables projects with zero monitors to create new ones
-    "organizations:crons-disable-new-projects": False,
     # Metrics: Enable ingestion and storage of custom metrics. See ddm-ui and ddm-sidebar-item-hidden for UI.
     "organizations:custom-metrics": False,
     # Allow organizations to configure custom external symbol sources.
@@ -1601,8 +1610,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:integrations-msteams-tenant": False,
     # Enable comments of related issues on open PRs for beta languages
     "organizations:integrations-open-pr-comment-beta-langs": False,
-    # Enable Opsgenie integration
-    "organizations:integrations-opsgenie": True,
     # Enable stacktrace linking
     "organizations:integrations-stacktrace-link": True,
     # Allow orgs to automatically create Tickets in Issue Alerts
@@ -1630,10 +1637,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-search-allow-postgres-only-search": False,
     # Whether to make a side/parallel query against events -> group_attributes when searching issues
     "organizations:issue-search-group-attributes-side-query": False,
-    # Flags for enabling CdcEventsDatasetSnubaSearchBackend in sentry.io. No effect in open-source
-    # sentry at the moment.
-    "organizations:issue-search-use-cdc-primary": False,
-    "organizations:issue-search-use-cdc-secondary": False,
     # Enable issue stream performance improvements
     "organizations:issue-stream-performance": False,
     # Enabled latest adopted release filter for issue alerts
@@ -1779,12 +1782,14 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-trends-issues": False,
     # Bypass 30 day date range selection when fetching new trends data
     "organizations:performance-trends-new-data-date-range-default": False,
-    # Enable debug views for trendsv2 to be used internally
-    "organizations:performance-trendsv2-dev-only": False,
     # Enable Performance view
     "organizations:performance-view": True,
     # Enable showing INP web vital in default views
     "organizations:performance-vitals-inp": False,
+    # Enable trace explorer features in performance
+    "organizations:performance-trace-explorer": False,
+    # Hides some fields and sections in the transaction summary page that are being deprecated
+    "organizations:performance-transaction-summary-cleanup": False,
     # Enable profiling
     "organizations:profiling": False,
     # Enabled for those orgs who participated in the profiling Beta program
@@ -1809,6 +1814,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:project-stats": True,
     # Enable the new Related Events feature
     "organizations:related-events": False,
+    # Enable related issues feature
+    "organizations:related-issues": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
@@ -1883,6 +1890,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:slack-thread": False,
     # Send Slack notifications to threads for Issue Alerts
     "organizations:slack-thread-issue-alert": False,
+    # Use SNQL table join on weekly reports / daily summary
+    "organizations:snql-join-reports": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -1944,6 +1953,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:use-metrics-layer-in-alerts": False,
     # Enable User Feedback v2 ingest
     "organizations:user-feedback-ingest": False,
+    # Enable User Feedback v2 ingest topic (ingest-feedback-events)
+    "organizations:user-feedback-ingest-topic": False,
     # Use ReplayClipPreview inside the User Feedback Details panel
     "organizations:user-feedback-replay-clip": False,
     # Enable User Feedback spam auto filtering feature UI
@@ -1952,8 +1963,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:user-feedback-spam-filter-ingest": False,
     # Enable User Feedback v2 UI
     "organizations:user-feedback-ui": False,
-    # Enable User Feedback new onboarding experience
-    "organizations:user-feedback-onboarding": False,
     # Enable view hierarchies options
     "organizations:view-hierarchies-options-dev": False,
     # Enable minimap in the widget viewer modal in dashboards
@@ -1964,8 +1973,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:ai-autofix": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
-    # Workflow 2.0 Auto associate commits to commit sha release
-    "projects:auto-associate-commits-to-release": False,
     # Enable functionality to specify custom inbound filters on events.
     "projects:custom-inbound-filters": False,
     # Enable data forwarding functionality for projects.
@@ -3124,6 +3131,10 @@ SENTRY_SDK_CONFIG: ServerSdkConfig = {
     "send_default_pii": True,
     "auto_enabling_integrations": False,
     "enable_db_query_source": True,
+    # Keep alive is enabled to help avoid losing events due to network
+    # connectivity issues. We are specifically enabling this to help ensure
+    # cron monitor check-ins make it through.
+    "keep_alive": True,
 }
 
 SENTRY_DEV_DSN = os.environ.get("SENTRY_DEV_DSN")
@@ -3496,6 +3507,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "group-attributes": "default",
     "snuba-spans": "default",
     "shared-resources-usage": "default",
+    "buffered-segments": "default",
 }
 
 
@@ -3992,6 +4004,8 @@ REGION_PINNED_URL_NAMES = {
     "sentry-chartcuterie-config",
     "sentry-robots-txt",
 }
+# Used in tests to skip forwarding relay paths to a region silo that does not exist.
+APIGATEWAY_PROXY_SKIP_RELAY = False
 
 # Shared resource ids for accounting
 EVENT_PROCESSING_STORE = "rc_processing_redis"

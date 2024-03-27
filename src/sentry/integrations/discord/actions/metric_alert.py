@@ -10,7 +10,6 @@ from sentry.integrations.discord.client import DiscordClient
 from sentry.integrations.discord.message_builder.metric_alerts import (
     DiscordMetricAlertMessageBuilder,
 )
-from sentry.shared_integrations.exceptions import ApiError
 
 from ..utils import logger
 
@@ -53,9 +52,9 @@ def send_incident_alert_notification(
     client = DiscordClient()
     try:
         client.send_message(channel, message)
-    except ApiError as error:
+    except Exception as error:
         logger.warning(
-            "discord.metric_alert.messsage_send_failure",
+            "discord.metric_alert.message_send_failure",
             extra={"error": error, "guild_id": incident.identifier, "channel_id": channel},
         )
         return False

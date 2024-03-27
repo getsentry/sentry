@@ -20,7 +20,7 @@ from sentry.snuba.metrics import (
 )
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
 
@@ -58,7 +58,6 @@ perf_indexer_record = partial(indexer_record, UseCaseID.TRANSACTIONS)
 rh_indexer_record = partial(indexer_record, UseCaseID.SESSIONS)
 
 
-@region_silo_test
 class OrganizationMetricsPermissionTest(APITestCase):
 
     endpoints = (
@@ -104,38 +103,20 @@ class OrganizationMetricsPermissionTest(APITestCase):
             assert response.status_code in (200, 400, 404)
 
 
-@region_silo_test
 class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
     view = "sentry-api-0-organization-metrics-samples"
-    default_features = ["organizations:metrics-samples-list"]
 
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
 
-    def do_request(self, query, features=None, **kwargs):
-        if features is None:
-            features = self.default_features
-        with self.feature(features):
-            return self.client.get(
-                reverse(self.view, kwargs={"organization_slug": self.organization.slug}),
-                query,
-                format="json",
-                **kwargs,
-            )
-
-    def test_feature_flag(self):
-        query = {
-            "mri": "d:spans/exclusive_time@millisecond",
-            "field": ["id"],
-            "project": [self.project.id],
-        }
-
-        response = self.do_request(query, features=[])
-        assert response.status_code == 404, response.data
-
-        response = self.do_request(query, features=["organizations:metrics-samples-list"])
-        assert response.status_code == 200, response.data
+    def do_request(self, query, **kwargs):
+        return self.client.get(
+            reverse(self.view, kwargs={"organization_slug": self.organization.slug}),
+            query,
+            format="json",
+            **kwargs,
+        )
 
     def test_no_project(self):
         query = {

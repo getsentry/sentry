@@ -151,6 +151,8 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
     conditions = serializers.CharField(required=False, allow_blank=True)
     orderby = serializers.CharField(required=False, allow_blank=True)
 
+    is_hidden = serializers.BooleanField(required=False)
+
     on_demand_extraction = DashboardWidgetQueryOnDemandSerializer(many=False, required=False)
     on_demand_extraction_disabled = serializers.BooleanField(required=False)
 
@@ -611,6 +613,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                     name=query.get("name", ""),
                     orderby=query.get("orderby", ""),
                     order=i,
+                    is_hidden=query.get("is_hidden", False),
                 )
             )
         DashboardWidgetQuery.objects.bulk_create(new_queries)
@@ -680,6 +683,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                         field_aliases=query_data.get("field_aliases"),
                         conditions=query_data["conditions"],
                         name=query_data.get("name", ""),
+                        is_hidden=query_data.get("is_hidden", False),
                         orderby=query_data.get("orderby", ""),
                         order=next_order + i,
                     )
@@ -706,6 +710,8 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         query.aggregates = data.get("aggregates", query.aggregates)
         query.columns = data.get("columns", query.columns)
         query.field_aliases = data.get("field_aliases", query.field_aliases)
+        query.is_hidden = data.get("is_hidden", query.is_hidden)
+
         query.order = order
         query.save()
         return query

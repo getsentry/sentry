@@ -34,7 +34,7 @@ import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import useOrganization from 'sentry/utils/useOrganization';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
-import {getPerformanceDuration} from 'sentry/views/performance/utils';
+import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatter';
 
 import KeyValueList from '../keyValueList';

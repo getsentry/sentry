@@ -145,17 +145,21 @@ function MetricWidgetViewerModal({
     [filteredEquations, filteredQueries]
   );
 
-  const addQuery = useCallback(() => {
-    setMetricQueries(curr => {
-      return [
-        ...curr,
-        {
-          ...metricQueries[metricQueries.length - 1],
-          id: generateQueryId(),
-        },
-      ];
-    });
-  }, [generateQueryId, metricQueries]);
+  const addQuery = useCallback(
+    (queryIndex?: number) => {
+      setMetricQueries(curr => {
+        const query = metricQueries[queryIndex ?? metricQueries.length - 1];
+        return [
+          ...curr,
+          {
+            ...query,
+            id: generateQueryId(),
+          },
+        ];
+      });
+    },
+    [generateQueryId, metricQueries]
+  );
 
   const addEquation = useCallback(() => {
     setMetricEquations(curr => {
@@ -166,6 +170,7 @@ function MetricWidgetViewerModal({
           name: '',
           id: generateEquationId(),
           type: MetricQueryType.FORMULA,
+          isHidden: false,
         },
       ];
     });
@@ -247,7 +252,7 @@ function MetricWidgetViewerModal({
           <ButtonBar gap={1}>
             <LinkButton
               to={getDdmUrl(organization.slug, {
-                widgets: metricQueries,
+                widgets: [...metricQueries, ...metricEquations],
                 ...selection.datetime,
                 project: selection.projects,
                 environment: selection.environments,

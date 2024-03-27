@@ -184,6 +184,7 @@ export type ComponentHooks = {
   'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;
   'component:crons-list-page-header': () => React.ComponentType<CronsBillingBannerProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
+  'component:data-consent-banner': () => React.ComponentType<{source: string}> | null;
   'component:data-consent-priority-learn-more': () => React.ComponentType<{}> | null;
   'component:ddm-metrics-samples-list': () => React.ComponentType<DDMMetricsSamplesListProps>;
   'component:disabled-app-store-connect-multiple': () => React.ComponentType<DisabledAppStoreConnectMultiple>;
