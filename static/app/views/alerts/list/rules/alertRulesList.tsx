@@ -181,7 +181,6 @@ function AlertRulesList() {
         <Layout.Body>
           <Layout.Main fullWidth>
             <DataConsentBanner source="alerts" />
-
             <FilterBar
               location={location}
               onChangeFilter={handleChangeFilter}
