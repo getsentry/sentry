@@ -2064,6 +2064,9 @@ SENTRY_FRONTEND_WHITELIST_URLS: list[str] | None = None
 # Configuration for the JavaScript SDK's tracePropagationTargets option - defaults to an empty array
 SENTRY_FRONTEND_TRACE_PROPAGATION_TARGETS: list[str] | None = None
 
+# Configuration for react-query devtools
+SENTRY_FRONTEND_DEVTOOLS_REACT_QUERY = False
+
 # ----
 # APM config
 # ----

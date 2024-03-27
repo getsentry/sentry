@@ -40,7 +40,9 @@ function Main() {
             {routes()}
           </Router>
         </OnboardingContextProvider>
-        <ReactQueryDevtools initialIsOpen={false} position="bottom-left" />
+        {ConfigStore.get('devtools').reactQuery && (
+          <ReactQueryDevtools initialIsOpen={false} position="bottom-left" />
+        )}
       </QueryClientProvider>
     </ThemeAndStyleProvider>
   );
