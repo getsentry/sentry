@@ -51,18 +51,27 @@ def _merge_frame(new_frame: dict[str, Any], symbolicated: dict[str, Any]):
 
     if symbolicated.get("function"):
         new_frame["function"] = symbolicated["function"]
+
     if symbolicated.get("abs_path"):
         new_frame["abs_path"] = symbolicated["abs_path"]
+
+    # Clear abs_path if Symbolicator unset it
+    elif new_frame.get("abs_path"):
+        del new_frame["abs_path"]
+
     if symbolicated.get("filename"):
         new_frame["filename"] = symbolicated["filename"]
-    if symbolicated.get("lineno"):
+
+    # Clear abs_path if Symbolicator unset it
+    elif new_frame.get("filename"):
+        del new_frame["filename"]
+
+    if symbolicated.get("lineno") is not None:
         new_frame["lineno"] = symbolicated["lineno"]
     if symbolicated.get("module"):
         new_frame["module"] = symbolicated["module"]
     if symbolicated.get("in_app") is not None:
         new_frame["in_app"] = symbolicated["in_app"]
-
-    new_frame["lineno"] = symbolicated.get("lineno") or 0
 
 
 def _handles_frame(frame: dict[str, Any]) -> bool:
