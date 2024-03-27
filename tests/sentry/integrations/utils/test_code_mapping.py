@@ -106,16 +106,18 @@ def test_buckets_logic():
 
 
 class TestFrameFilename:
-    # def test_frame_filename_package_and_more_than_one_level(self):
-    #     ff = FrameFilename("getsentry/billing/tax/manager.py")
-    #     assert f"{ff.root}/{ff.dir_path}/{ff.file_name}" == "getsentry/billing/tax/manager.py"
-    #     assert f"{ff.dir_path}/{ff.file_name}" == ff.file_and_dir_path
+    def test_frame_filename_package_and_more_than_one_level(self):
+        pytest.skip("This test is outdated because of refactors have been made to code mappings")
+        ff = FrameFilename("getsentry/billing/tax/manager.py")
+        assert f"{ff.root}/{ff.dir_path}/{ff.file_name}" == "getsentry/billing/tax/manager.py"
+        assert f"{ff.dir_path}/{ff.file_name}" == ff.file_and_dir_path
 
-    # def test_frame_filename_package_and_no_levels(self):
-    #     ff = FrameFilename("root/bar.py")
-    #     assert f"{ff.root}/{ff.file_name}" == "root/bar.py"
-    #     assert f"{ff.root}/{ff.file_and_dir_path}" == "root/bar.py"
-    #     assert ff.dir_path == ""
+    def test_frame_filename_package_and_no_levels(self):
+        pytest.skip("This test is outdated because of refactors have been made to code mappings")
+        ff = FrameFilename("root/bar.py")
+        assert f"{ff.root}/{ff.file_name}" == "root/bar.py"
+        assert f"{ff.root}/{ff.file_and_dir_path}" == "root/bar.py"
+        assert ff.dir_path == ""
 
     def test_frame_filename_repr(self):
         path = "getsentry/billing/tax/manager.py"
