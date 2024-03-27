@@ -21,34 +21,53 @@ export function getStartFromTimeWindow(end: Date, timeWindow: TimeWindow): Date 
 // The pixels to allocate to each time label based on (MMM DD HH:SS AM/PM)
 const TIMELABEL_WIDTH = 100;
 
+const ONE_HOUR = 60;
+
+/**
+ * Acceptable minute durations between time labels. These will be used to
+ * create the TimeWindowConfig when the start and end times fit into these
+ * buckets
+ */
+const CLAMPED_MINUTE_RANGES = [
+  1,
+  10,
+  30,
+  ONE_HOUR,
+  ONE_HOUR * 4,
+  ONE_HOUR * 8,
+  ONE_HOUR * 12,
+];
+
 export function getConfigFromTimeRange(
   start: Date,
   end: Date,
   timelineWidth: number
 ): TimeWindowConfig {
-  // Acceptable intervals between time labels, in minutes
-  const minuteRanges = [1, 10, 30, 60, 4 * 60, 8 * 60, 12 * 60];
-  const startEndMinutes = (end.getTime() - start.getTime()) / (1000 * 60);
-  const timeLabelMinutes = startEndMinutes * (TIMELABEL_WIDTH / timelineWidth);
-  const subMinutePxBuckets = startEndMinutes < timelineWidth;
+  const elapsedMinutes = (end.getTime() - start.getTime()) / (1000 * 60);
 
-  for (const minutes of minuteRanges) {
-    if (minutes >= Math.floor(timeLabelMinutes)) {
-      return {
-        dateLabelFormat: getFormat({timeOnly: true, seconds: subMinutePxBuckets}),
-        elapsedMinutes: startEndMinutes,
-        timeMarkerInterval: minutes,
-        dateTimeProps: {timeOnly: true},
-      };
+  const timeLabelMinutes = elapsedMinutes * (TIMELABEL_WIDTH / timelineWidth);
+  const subMinutePxBuckets = elapsedMinutes < timelineWidth;
+
+  for (const minutes of CLAMPED_MINUTE_RANGES) {
+    if (minutes < Math.floor(timeLabelMinutes)) {
+      continue;
     }
+
+    // Configuration falls into
+    return {
+      dateLabelFormat: getFormat({timeOnly: true, seconds: subMinutePxBuckets}),
+      elapsedMinutes,
+      timeMarkerInterval: minutes,
+      dateTimeProps: {timeOnly: true},
+    };
   }
 
   // Calculate days between each time label interval for larger time ranges
-  const timeLabelIntervalDays = Math.ceil(timeLabelMinutes / (60 * 24));
+  const timeLabelIntervalDays = Math.ceil(timeLabelMinutes / (ONE_HOUR * 24));
   return {
     dateLabelFormat: getFormat(),
-    elapsedMinutes: startEndMinutes,
-    timeMarkerInterval: timeLabelIntervalDays * 60 * 24,
+    elapsedMinutes,
+    timeMarkerInterval: timeLabelIntervalDays * ONE_HOUR * 24,
     dateTimeProps: {dateOnly: true},
   };
 }
