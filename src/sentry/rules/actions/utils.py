@@ -34,38 +34,37 @@ def generate_diff_labels(
     present_state: dict[str, Any],
     prior_state: dict[str, Any],
     rule: Rule,
-    changed_data: DefaultDict[str, list[str]],
     key: str,
 ) -> DefaultDict[str, list[str]]:
     added_statement = "Added {} '{}'"
     removed_statement = "Removed {} '{}'"
     added_items = []
-
+    changed_data: DefaultDict[str, list[str]] = defaultdict(list)
     # Added items that are not seen in the prior rule data
-    for data in prior_state.get(key, []):
-        if data not in present_state.get(key, []):
+    for data in prior_state:
+        if data not in present_state:
             label = generate_rule_label(rule.project, rule, data)
-            changed_data[data["id"]].append(added_statement.format(key[:-1], label))
+            changed_data[data["id"]].append(added_statement.format(key, label))
             added_items.append(data["id"])
 
     # Check if the id is in both but the data has changed
     for item in added_items:
         if changed_data.get(item):
-            for data in prior_state.get(key, []):
-                for present_data in present_state.get(key, []):
+            for data in prior_state:
+                for present_data in present_state:
                     if data["id"] == item and present_data["id"] == item:
                         if present_data != data:
                             old_label = generate_rule_label(rule.project, rule, data)
                             new_label = generate_rule_label(rule.project, rule, present_data)
                             changed_data[item] = [
-                                (f"Changed {key[:-1]} from *{old_label}* to *{new_label}*")
+                                (f"Changed {key} from *{old_label}* to *{new_label}*")
                             ]
 
     # Removed items
-    for data in present_state.get(key, []):
-        if data not in prior_state.get(key, []) and not changed_data.get(data["id"]):
+    for data in present_state:
+        if data not in prior_state and not changed_data.get(data["id"]):
             label = generate_rule_label(rule.project, rule, data)
-            changed_data[data["id"]].append(removed_statement.format(key[:-1], label))
+            changed_data[data["id"]].append(removed_statement.format(key, label))
 
     return changed_data
 
@@ -92,11 +91,19 @@ def get_changed_data(
     """
     Generate a list per type of issue alert rule data of what changes occurred on edit.
     """
-    changed_data: DefaultDict[str, list[str]] = defaultdict(list)
-    changed_data = generate_diff_labels(
-        rule_data_before, rule_data, rule, changed_data, "conditions"
+    prior_conditions_data = rule_data_before.get("conditions", [])
+    present_conditions_data = rule_data.get("conditions", [])
+    changed_conditions = generate_diff_labels(
+        prior_conditions_data, present_conditions_data, rule, "condition"
     )
-    changed_data = generate_diff_labels(rule_data_before, rule_data, rule, changed_data, "actions")
+
+    prior_actions_data = rule_data_before.get("actions", [])
+    present_actions_data = rule_data.get("actions", [])
+    changed_actions = generate_diff_labels(prior_actions_data, present_actions_data, rule, "action")
+
+    changed_conditions_actions = {**changed_conditions, **changed_actions}
+    changed_data: DefaultDict[str, list[str]] = defaultdict(list, changed_conditions_actions)
+
     current_frequency = get_frequency_label(rule_data.get("frequency"))
     previous_frequency = get_frequency_label(rule_data_before.get("frequency"))
     if current_frequency != previous_frequency:
