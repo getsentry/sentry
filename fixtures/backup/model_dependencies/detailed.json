@@ -3224,7 +3224,7 @@
         "guid"
       ],
       [
-        "organization_id",
+        "project_id",
         "slug"
       ]
     ]

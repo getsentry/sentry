@@ -257,7 +257,10 @@ class Monitor(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_monitor"
-        unique_together = (("organization_id", "slug"),)
+        unique_together = (("project_id", "slug"),)
+        indexes = [
+            models.Index(fields=["organization_id", "slug"]),
+        ]
 
     __repr__ = sane_repr("guid", "project_id", "name")
 
