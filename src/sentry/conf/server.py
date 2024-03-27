@@ -1234,8 +1234,8 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "split-discover-dataset": {
         "task": "sentry.tasks.split_discover_dataset",
-        # Run every 1 minute
-        "schedule": crontab(minute="*"),
+        # Run every 3 minutes
+        "schedule": crontab(minute="*/3"),
     },
 }
 

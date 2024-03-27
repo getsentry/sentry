@@ -197,6 +197,8 @@ def compare_results(original_data, error_data, transaction_data) -> tuple[bool, 
 
 
 def is_datapoint_close(a: float, b: float, threshold: float) -> bool:
+    if a == 0:
+        return a == b
     return abs((a - b) / a) < threshold
 
 
