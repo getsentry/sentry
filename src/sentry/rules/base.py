@@ -109,10 +109,11 @@ class RuleBase(abc.ABC):
     ) -> bool:
         raise NotImplementedError
 
+    @classmethod
     @property
-    def include_rule(self) -> bool:
-        if self.should_show_rule:
-            return self.should_show_rule()
+    def include_rule(cls) -> bool:
+        if cls.should_show_rule:
+            return cls.should_show_rule()
         return True
 
 
