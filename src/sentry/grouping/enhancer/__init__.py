@@ -12,9 +12,6 @@ import msgpack
 import sentry_sdk
 import zstandard
 from django.core.cache import cache
-from parsimonious.exceptions import ParseError
-from parsimonious.grammar import Grammar
-from parsimonious.nodes import NodeVisitor
 from sentry_ophio.enhancers import Cache as RustCache
 from sentry_ophio.enhancers import Component as RustComponent
 from sentry_ophio.enhancers import Enhancements as RustEnhancements
@@ -26,18 +23,11 @@ from sentry.stacktraces.functions import set_in_app
 from sentry.utils import metrics
 from sentry.utils.hashlib import hash_value
 from sentry.utils.safe import get_path, set_path
-from sentry.utils.strings import unescape_string
 
-from .actions import Action, FlagAction, VarAction
 from .exceptions import InvalidEnhancerConfig
-from .matchers import (
-    CalleeMatch,
-    CallerMatch,
-    ExceptionFieldMatch,
-    FrameMatch,
-    Match,
-    create_match_frame,
-)
+from .matchers import create_match_frame
+from .parser import parse_enhancements
+from .rules import Rule
 
 DATADOG_KEY = "save_event.stacktrace"
 logger = logging.getLogger(__name__)
@@ -45,52 +35,6 @@ logger = logging.getLogger(__name__)
 # NOTE: The 1_000 here is pretty arbitrary. Our builtin base enhancements have about ~300 rules,
 # So this leaves quite a bit of headroom for custom enhancement rules as well.
 RUST_CACHE = RustCache(1_000)
-
-# Grammar is defined in EBNF syntax.
-enhancements_grammar = Grammar(
-    r"""
-
-enhancements = line*
-
-line = _ (comment / rule / empty) newline?
-
-rule = _ matchers actions
-
-
-matchers         = caller_matcher? frame_matcher+ callee_matcher?
-frame_matcher    = _ negation? matcher_type sep argument
-matcher_type     = ident / quoted_ident
-caller_matcher   = _ "[" _ frame_matcher _ "]" _ "|"
-callee_matcher   = _ "|" _ "[" _ frame_matcher _ "]"
-
-actions          = action+
-action           = flag_action / var_action
-var_action       = _ var_name _ "=" _ ident
-var_name         = "max-frames" / "min-frames" / "invert-stacktrace" / "category"
-flag_action      = _ range? flag flag_action_name
-flag_action_name = "group" / "app" / "prefix" / "sentinel"
-flag             = "+" / "-"
-range            = "^" / "v"
-
-ident            = ~r"[a-zA-Z0-9_\.-]+"
-quoted_ident     = ~r"\"([a-zA-Z0-9_\.:-]+)\""
-
-comment          = ~r"#[^\r\n]*"
-
-argument         = quoted / unquoted
-quoted           = ~r'"([^"\\]*(?:\\.[^"\\]*)*)"'
-unquoted         = ~r"\S+"
-
-sep      = ":"
-space    = " "
-empty    = ""
-negation = "!"
-newline  = ~r"[\r\n]"
-_        = space*
-
-"""
-)
-
 
 VERSIONS = [2]
 LATEST_VERSION = VERSIONS[-1]
@@ -122,55 +66,39 @@ class StacktraceState:
 
 
 def merge_rust_enhancements(
-    bases: list[str], rust_enhancements: RustEnhancements | None = None
-) -> RustEnhancements | None:
+    bases: list[str], rust_enhancements: RustEnhancements
+) -> RustEnhancements:
     """
-    Similar to `iter_rules` in Python, this will also merge the parsed enhancements
-    together with the `bases`. It pretty much concatenates all the rules in `bases`
-    (in order) together with all the rules in the incoming `rust_enhancements`.
-    If `rust_enhancements` is `None`, it means nothing was parsed (either due to it
-    being disabled, or due to a parse error). In that case we do not return anything.
+    This will merge the parsed enhancements together with the `bases`.
+    It pretty much concatenates all the rules in `bases` (in order) together
+    with all the rules in the incoming `rust_enhancements`.
     """
-    if not rust_enhancements:
-        return None
-
-    try:
-        merged_rust_enhancements = RustEnhancements.empty()
-        for base_id in bases:
-            base = ENHANCEMENT_BASES.get(base_id)
-            if base:
-                if not base.rust_enhancements:
-                    raise Exception("base has no rust_enhancements")
-                merged_rust_enhancements.extend_from(base.rust_enhancements)
-        merged_rust_enhancements.extend_from(rust_enhancements)
-        return merged_rust_enhancements
-    except Exception:
-        logger.exception("failed merging rust enhancers")
-        return None
+    merged_rust_enhancements = RustEnhancements.empty()
+    for base_id in bases:
+        base = ENHANCEMENT_BASES.get(base_id)
+        if base:
+            merged_rust_enhancements.extend_from(base.rust_enhancements)
+    merged_rust_enhancements.extend_from(rust_enhancements)
+    return merged_rust_enhancements
 
 
 def parse_rust_enhancements(
     source: Literal["config_structure", "config_string"], input: str | bytes
-) -> RustEnhancements | None:
+) -> RustEnhancements:
     """
     Parses ``RustEnhancements`` from either a msgpack-encoded `config_structure`,
     or from the text representation called `config_string`.
     """
-    rust_enhancements = None
 
     try:
         if source == "config_structure":
             assert isinstance(input, bytes)
-            rust_enhancements = RustEnhancements.from_config_structure(input, RUST_CACHE)
+            return RustEnhancements.from_config_structure(input, RUST_CACHE)
         else:
             assert isinstance(input, str)
-            rust_enhancements = RustEnhancements.parse(input, RUST_CACHE)
-
-        metrics.incr("rust_enhancements.parsing_performed", tags={"source": source})
-    except Exception:
-        logger.exception("failed parsing Rust Enhancements from `%s`", source)
-
-    return rust_enhancements
+            return RustEnhancements.parse(input, RUST_CACHE)
+    except RuntimeError as e:  # Rust bindings raise parse errors as `RuntimeError`
+        raise InvalidEnhancerConfig(str(e))
 
 
 RustAssembleResult = tuple[bool | None, str | None, bool, list[RustComponent]]
@@ -345,7 +273,9 @@ class Enhancements:
     # See ``GroupingConfigLoader._get_enhancements`` in src/sentry/grouping/api.py.
 
     @sentry_sdk.tracing.trace
-    def __init__(self, rules, version=None, bases=None, id=None, rust_enhancements=None):
+    def __init__(
+        self, rules, rust_enhancements: RustEnhancements, version=None, bases=None, id=None
+    ):
         self.id = id
         self.rules = rules
         if version is None:
@@ -541,15 +471,15 @@ class Enhancements:
         return base64.urlsafe_b64encode(compressed).decode("ascii").strip("=")
 
     @classmethod
-    def _from_config_structure(cls, data, rust_enhancements=None) -> Enhancements:
+    def _from_config_structure(cls, data, rust_enhancements: RustEnhancements) -> Enhancements:
         version, bases, rules = data
         if version not in VERSIONS:
             raise ValueError("Unknown version")
         return cls(
             rules=[Rule._from_config_structure(x, version=version) for x in rules],
+            rust_enhancements=rust_enhancements,
             version=version,
             bases=bases,
-            rust_enhancements=rust_enhancements,
         )
 
     @classmethod
@@ -577,196 +507,14 @@ class Enhancements:
     def from_config_string(self, s, bases=None, id=None) -> Enhancements:
         rust_enhancements = parse_rust_enhancements("config_string", s)
 
-        try:
-            tree = enhancements_grammar.parse(s)
-            rules = EnhancementsVisitor().visit(tree)
-        except ParseError as e:
-            context = e.text[e.pos : e.pos + 33]
-            if len(context) == 33:
-                context = context[:-1] + "..."
-            raise InvalidEnhancerConfig(
-                f'Invalid syntax near "{context}" (line {e.line()}, column {e.column()})'
-            )
+        rules = parse_enhancements(s)
 
         return Enhancements(
             rules,
+            rust_enhancements=rust_enhancements,
             bases=bases,
             id=id,
-            rust_enhancements=rust_enhancements,
         )
-
-
-class Rule:
-    def __init__(self, matchers, actions):
-        self.matchers = matchers
-
-        self._exception_matchers = []
-        self._other_matchers = []
-        for matcher in matchers:
-            if isinstance(matcher, ExceptionFieldMatch):
-                self._exception_matchers.append(matcher)
-            else:
-                self._other_matchers.append(matcher)
-
-        self.actions = actions
-        self._is_updater = any(action.is_updater for action in actions)
-        self._is_modifier = any(action.is_modifier for action in actions)
-
-    @property
-    def matcher_description(self):
-        rv = " ".join(x.description for x in self.matchers)
-        for action in self.actions:
-            rv = f"{rv} {action}"
-        return rv
-
-    def _as_modifier_rule(self) -> Rule | None:
-        actions = [action for action in self.actions if action.is_modifier]
-        if actions:
-            return Rule(self.matchers, actions)
-        else:
-            return None
-
-    def _as_updater_rule(self) -> Rule | None:
-        actions = [action for action in self.actions if action.is_updater]
-        if actions:
-            return Rule(self.matchers, actions)
-        else:
-            return None
-
-    def as_dict(self):
-        matchers = {}
-        for matcher in self.matchers:
-            matchers[matcher.key] = matcher.pattern
-        return {"match": matchers, "actions": [str(x) for x in self.actions]}
-
-    def get_matching_frame_actions(
-        self,
-        match_frames: Sequence[dict[str, Any]],
-        exception_data: dict[str, Any],
-        in_memory_cache: dict[str, str],
-    ) -> list[tuple[int, Action]]:
-        """Given a frame returns all the matching actions based on this rule.
-        If the rule does not match `None` is returned.
-        """
-        if not self.matchers:
-            return []
-
-        # 1 - Check if exception matchers match
-        for m in self._exception_matchers:
-            if not m.matches_frame(match_frames, None, exception_data, in_memory_cache):
-                return []
-
-        rv = []
-
-        # 2 - Check if frame matchers match
-        for idx, _ in enumerate(match_frames):
-            if all(
-                m.matches_frame(match_frames, idx, exception_data, in_memory_cache)
-                for m in self._other_matchers
-            ):
-                for action in self.actions:
-                    rv.append((idx, action))
-
-        return rv
-
-    def _to_config_structure(self, version):
-        return [
-            [x._to_config_structure(version) for x in self.matchers],
-            [x._to_config_structure(version) for x in self.actions],
-        ]
-
-    @classmethod
-    def _from_config_structure(cls, tuple, version):
-        return Rule(
-            [Match._from_config_structure(x, version) for x in tuple[0]],
-            [Action._from_config_structure(x, version) for x in tuple[1]],
-        )
-
-
-class EnhancementsVisitor(NodeVisitor):
-    visit_comment = visit_empty = lambda *a: None
-    unwrapped_exceptions = (InvalidEnhancerConfig,)
-
-    def visit_enhancements(self, node, children) -> list[Rule]:
-        rules = []
-        for child in children:
-            if not isinstance(child, str) and child is not None:
-                rules.append(child)
-
-        return rules
-
-    def visit_line(self, node, children):
-        _, line, _ = children
-        comment_or_rule_or_empty = line[0]
-        if comment_or_rule_or_empty:
-            return comment_or_rule_or_empty
-
-    def visit_rule(self, node, children):
-        _, matcher, actions = children
-        return Rule(matcher, actions)
-
-    def visit_matchers(self, node, children):
-        caller_matcher, frame_matchers, callee_matcher = children
-        return caller_matcher + frame_matchers + callee_matcher
-
-    def visit_caller_matcher(self, node, children):
-        _, _, _, inner, _, _, _, _ = children
-        return CallerMatch(inner)
-
-    def visit_callee_matcher(self, node, children):
-        _, _, _, _, _, inner, _, _ = children
-        return CalleeMatch(inner)
-
-    def visit_frame_matcher(self, node, children):
-        _, negation, ty, _, argument = children
-        return FrameMatch.from_key(ty, argument, bool(negation))
-
-    def visit_matcher_type(self, node, children):
-        return node.text
-
-    def visit_argument(self, node, children):
-        return children[0]
-
-    def visit_action(self, node, children):
-        return children[0]
-
-    def visit_flag_action(self, node, children):
-        _, rng, flag, action_name = children
-        return FlagAction(action_name, flag, rng[0] if rng else None)
-
-    def visit_flag_action_name(self, node, children):
-        return node.text
-
-    def visit_var_action(self, node, children):
-        _, var_name, _, _, _, arg = children
-        return VarAction(var_name, arg)
-
-    def visit_var_name(self, node, children):
-        return node.text
-
-    def visit_flag(self, node, children):
-        return node.text == "+"
-
-    def visit_range(self, node, children):
-        if node.text == "^":
-            return "up"
-        return "down"
-
-    def visit_quoted(self, node, children):
-        return unescape_string(node.text[1:-1])
-
-    def visit_unquoted(self, node, children):
-        return node.text
-
-    def generic_visit(self, node, children):
-        return children
-
-    def visit_ident(self, node, children):
-        return node.text
-
-    def visit_quoted_ident(self, node, children):
-        # leading ! are used to indicate negation. make sure they don't appear.
-        return node.match.groups()[0].lstrip("!")
 
 
 def _update_frames_from_cached_values(

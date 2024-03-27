@@ -10,7 +10,7 @@ from sentry.integrations.slack.webhooks.command import (
 )
 from sentry.silo import SiloMode
 from sentry.testutils.helpers import get_response_text, link_user
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json
 from tests.sentry.integrations.slack.webhooks.commands import SlackCommandsTest
 
@@ -38,7 +38,6 @@ class SlackCommandsLinkTeamTestBase(SlackCommandsTest):
         )
 
 
-@region_silo_test
 class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
     @responses.activate
     def test_link_another_team_to_channel(self):
@@ -116,7 +115,6 @@ class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
         assert "Link your Sentry team to this Slack channel!" in get_response_text(data)
 
 
-@region_silo_test
 class SlackCommandsUnlinkTeamTest(SlackCommandsLinkTeamTestBase):
     def setUp(self):
         super().setUp()

@@ -9,12 +9,11 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 
 from . import EXAMPLE_PAYLOAD, get_integration, link_group
 
 
-@region_silo_test
 class JiraServerWebhookEndpointTest(APITestCase):
     endpoint = "sentry-extensions-jiraserver-issue-updated"
     method = "post"

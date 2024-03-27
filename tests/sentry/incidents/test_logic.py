@@ -85,7 +85,7 @@ from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventTy
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
 from sentry.utils import json
 
 pytestmark = [pytest.mark.sentry_metrics]
@@ -440,7 +440,6 @@ class GetIncidentSubscribersTest(TestCase, BaseIncidentsTest):
         assert list(get_incident_subscribers(incident)) == [subscription]
 
 
-@region_silo_test
 class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
     def test_create_alert_rule(self):
         # pytest parametrize does not work in TestCase subclasses, so hack around this
@@ -1306,7 +1305,6 @@ class BaseAlertRuleTriggerActionTest:
         return create_alert_rule_trigger(self.alert_rule, "hello", 1000)
 
 
-@region_silo_test
 class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase):
     def test(self):
         type = AlertRuleTriggerAction.Type.EMAIL
@@ -1643,7 +1641,6 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
         assert action.sentry_app_config is None
 
 
-@region_silo_test
 class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
     @cached_property
     def action(self):
@@ -2288,7 +2285,6 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         assert action.sentry_app_config is None  # priority is not stored inside
 
 
-@region_silo_test
 class DeleteAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
     @cached_property
     def action(self):
@@ -2306,7 +2302,6 @@ class DeleteAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             AlertRuleTriggerAction.objects.get(id=action_id)
 
 
-@region_silo_test
 class GetActionsForTriggerTest(BaseAlertRuleTriggerActionTest, TestCase):
     def test(self):
         assert list(get_actions_for_trigger(self.trigger)) == []
@@ -2319,7 +2314,6 @@ class GetActionsForTriggerTest(BaseAlertRuleTriggerActionTest, TestCase):
         assert list(get_actions_for_trigger(self.trigger)) == [action]
 
 
-@region_silo_test
 class GetAvailableActionIntegrationsForOrgTest(TestCase):
     def test_none(self):
         assert list(get_available_action_integrations_for_org(self.organization)) == []

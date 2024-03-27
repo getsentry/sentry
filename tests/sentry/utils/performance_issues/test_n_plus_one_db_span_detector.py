@@ -10,7 +10,6 @@ from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import TestCase
 from sentry.testutils.performance_issues.event_generators import get_event
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.performance_issues.base import DetectorType
 from sentry.utils.performance_issues.detectors.n_plus_one_db_span_detector import (
     NPlusOneDBSpanDetector,
@@ -22,7 +21,6 @@ from sentry.utils.performance_issues.performance_detection import (
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 
 
-@region_silo_test
 @pytest.mark.django_db
 class NPlusOneDbDetectorTest(unittest.TestCase):
     def setUp(self):

@@ -3,10 +3,8 @@ from django.urls import reverse
 from sentry.models.debugfile import ProguardArtifactRelease, ProjectDebugFile
 from sentry.models.files.file import File
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class ProguardArtifactReleasesEndpointTest(APITestCase):
     def test_create_proguard_artifact_release_successfully(self):
         project = self.create_project(name="foo")

@@ -16,7 +16,6 @@ from sentry.event_manager import (
 from sentry.models.group import Group
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.task_runner import TaskRunner
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 
@@ -31,7 +30,6 @@ def make_event(**kwargs) -> dict[str, Any]:
     return result
 
 
-@region_silo_test
 class TestGetEventSeverity(TestCase):
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
@@ -309,7 +307,6 @@ class TestGetEventSeverity(TestCase):
         assert reason == "microservice_error"
 
 
-@region_silo_test
 class TestEventManagerSeverity(TestCase):
     @patch("sentry.event_manager._get_severity_score", return_value=(0.1121, "ml"))
     def test_flag_on(self, mock_get_severity_score: MagicMock):

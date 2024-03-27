@@ -5,12 +5,10 @@ from django.urls import reverse
 
 from sentry.replays.testutils import assert_expected_response, mock_expected_response, mock_replay
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
-from sentry.testutils.silo import region_silo_test
 
 REPLAYS_FEATURES = {"organizations:session-replay": True}
 
 
-@region_silo_test
 class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
     endpoint = "sentry-api-0-organization-replay-details"
 

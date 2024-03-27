@@ -5,10 +5,8 @@ from sentry.ingest.userreport import save_userreport
 from sentry.models.group import GroupStatus
 from sentry.models.userreport import UserReport
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-user-feedback"
     method = "get"

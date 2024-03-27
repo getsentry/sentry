@@ -6,13 +6,11 @@ from django.urls import reverse
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import MetricsAPIBaseTestCase
 from sentry.testutils.helpers.datetime import freeze_time, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 
 pytestmark = [pytest.mark.sentry_metrics]
 
 
-@region_silo_test
 @freeze_time(MetricsAPIBaseTestCase.MOCK_DATETIME)
 class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
     def setUp(self):
