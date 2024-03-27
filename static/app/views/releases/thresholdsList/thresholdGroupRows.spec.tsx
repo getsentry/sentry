@@ -7,7 +7,7 @@ import type {Organization} from 'sentry/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import type {Threshold} from 'sentry/views/releases/utils/types';
 
-import {type Props, ThresholdGroupRows} from './thresholdGroupRows';
+import {ThresholdGroupRows, type ThresholdGroupRowsProps} from './thresholdGroupRows';
 
 describe('ThresholdGroupRows', () => {
   const PROJECT_NAME = 'test-project';
@@ -44,7 +44,7 @@ describe('ThresholdGroupRows', () => {
     };
   };
 
-  type RenderProps = Props & {org: Organization};
+  type RenderProps = ThresholdGroupRowsProps & {org: Organization};
   const DEFAULT_PROPS: RenderProps = {
     allEnvironmentNames: ['test'],
     project: ProjectFixture(),
