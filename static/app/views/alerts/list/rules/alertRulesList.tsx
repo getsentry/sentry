@@ -48,7 +48,7 @@ function getAlertListQueryKey(orgSlug: string, query: Location['query']): ApiQue
   const queryParams = {...query};
   queryParams.expand = ['latestIncident', 'lastTriggered'];
   queryParams.team = getTeamParams(queryParams.team!);
-  queryParams.monitor_type = '0';
+  queryParams.monitor_type = MonitorType.CONTINUOUS.toString();
 
   if (!queryParams.sort) {
     queryParams.sort = defaultSort;
