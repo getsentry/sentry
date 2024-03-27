@@ -12,10 +12,7 @@ export function IntervalSelect() {
       triggerProps={{
         prefix: t('Interval'),
       }}
-      options={currentIntervalOptions.map(option => ({
-        label: option,
-        value: option,
-      }))}
+      options={currentIntervalOptions}
     />
   );
 }
