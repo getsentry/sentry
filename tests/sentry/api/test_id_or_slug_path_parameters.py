@@ -131,24 +131,21 @@ class APIIdOrSlugPathParamTest(BaseTestCase, TestCase):
 
         assert converted_slugs == converted_ids
         if reverse_other_mappings:
-            assert all(
-                converted_slugs[key].id == self.reverse_slug_mappings.get(key).id
-                or converted_slugs[key].id == reverse_other_mappings[key].id
-                for key in converted_slugs
-            )
-            assert all(
-                converted_ids[key].id == self.reverse_slug_mappings.get(key).id
-                or converted_slugs[key].id == reverse_other_mappings[key].id
-                for key in converted_ids
-            )
+            for key, value in converted_slugs.items():
+                correct_mapping = self.reverse_slug_mappings.get(key, reverse_other_mappings[key])
+                assert value.id == correct_mapping.id
+
+            for key, value in converted_ids.items():
+                correct_mapping = self.reverse_slug_mappings.get(key, reverse_other_mappings[key])
+                assert value.id == correct_mapping.id
+
         else:
             assert all(
-                converted_slugs[key].id == self.reverse_slug_mappings.get(key).id
+                converted_slugs[key].id == self.reverse_slug_mappings[key].id
                 for key in converted_slugs
             )
             assert all(
-                converted_ids[key].id == self.reverse_slug_mappings.get(key).id
-                for key in converted_ids
+                converted_ids[key].id == self.reverse_slug_mappings[key].id for key in converted_ids
             )
 
     @patch("sentry.api.bases.doc_integrations.DocIntegrationBaseEndpoint.check_object_permissions")
