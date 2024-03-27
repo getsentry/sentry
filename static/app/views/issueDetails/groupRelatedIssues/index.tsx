@@ -3,7 +3,7 @@
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-// import Feature from 'sentry/components/acl/feature';
+import Feature from 'sentry/components/acl/feature';
 import GroupList from 'sentry/components/issues/groupList';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
@@ -72,17 +72,17 @@ function GroupRelatedIssues({params}: Props) {
   );
 }
 
-// function GroupRelatedIssuesWrapper(props: Props) {
-//   return (
-//     <Feature features={['related-issues']}>
-//       <GroupRelatedIssues {...props} />
-//     </Feature>
-//   );
-// }
+function GroupRelatedIssuesWrapper(props: Props) {
+  return (
+    <Feature features={['related-issues']}>
+      <GroupRelatedIssues {...props} />
+    </Feature>
+  );
+}
 
-// export {GroupRelatedIssues};
-// export default GroupRelatedIssuesWrapper;
-export default GroupRelatedIssues;
+// Export the component without feature flag controls
+export {GroupRelatedIssues};
+export default GroupRelatedIssuesWrapper;
 
 const Title = styled('h4')`
   margin-bottom: ${space(0.75)};

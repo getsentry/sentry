@@ -1,4 +1,4 @@
-import {GroupsFixture} from 'sentry-fixture/groups';
+// import {GroupsFixture} from 'sentry-fixture/groups';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
@@ -8,8 +8,8 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {GroupRelatedIssues} from 'sentry/views/issueDetails/groupRelatedIssues';
 
 describe('Related Issues View', function () {
-  let related_issues_mock;
-  let issues_info_mock;
+  let relatedIssuesMock: jest.Mock<any, any, any>;
+  let issuesInfoMock: jest.Mock<any, any, any>;
 
   const organization = OrganizationFixture({features: ['related-issues']});
   const orgSlug = organization.slug;
@@ -26,20 +26,51 @@ describe('Related Issues View', function () {
     },
   ]);
 
-  const mockData = {
-    groups: GroupsFixture().map(issue => [issue]),
-  };
+  // const mockData = {
+  //   groups: GroupsFixture().map(issue => [issue]),
+  // };
 
   const router = RouterFixture();
 
   beforeEach(function () {
-    related_issues_mock = MockApiClient.addMockResponse({
+    relatedIssuesMock = MockApiClient.addMockResponse({
       url: `/issues/${groupId}/related-issues/`,
-      body: mockData.groups,
+      body: {same_root_cause: [15]},
     });
-    issues_info_mock = MockApiClient.addMockResponse({
+    issuesInfoMock = MockApiClient.addMockResponse({
       url: `/organizations/${orgSlug}/issues/`,
-      body: mockData.groups,
+      body: [
+        {
+          id: '15',
+          shortId: 'EARTH-7',
+          title: 'RuntimeError: Invalid device: A949AE01EBB07300D62AE0178F0944DD21F8C98C',
+          level: 'error',
+          status: 'unresolved',
+          statusDetails: {},
+          substatus: 'ongoing',
+          platform: 'other',
+          project: {id: '3', name: 'Earth', slug: 'earth', platform: null},
+          type: 'error',
+          metadata: {
+            value: 'Invalid device: A949AE01EBB07300D62AE0178F0944DD21F8C98C',
+            type: 'RuntimeError',
+            filename: 'example.py',
+            function: 'crash',
+            display_title_with_tree_label: false,
+            in_app_frame_mix: 'in-app-only',
+            sdk: {name: 'sentry.python', name_normalized: 'sentry.python'},
+            initial_priority: 75,
+          },
+          hasSeen: true,
+          issueType: 'error',
+          issueCategory: 'error',
+          isUnhandled: false,
+          count: '1',
+          userCount: 1,
+          firstSeen: '2024-03-15T20:15:30Z',
+          lastSeen: '2024-03-15T20:15:30Z',
+        },
+      ],
     });
   });
 
@@ -63,7 +94,7 @@ describe('Related Issues View', function () {
 
     await waitFor(() => screen.findByText('Related Issues'));
 
-    expect(related_issues_mock).toHaveBeenCalled();
-    expect(issues_info_mock).toHaveBeenCalled();
+    expect(relatedIssuesMock).toHaveBeenCalled();
+    expect(issuesInfoMock).toHaveBeenCalled();
   });
 });
