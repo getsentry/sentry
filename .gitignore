@@ -61,3 +61,4 @@ import-graph.dot
 bin/rrweb-output
 model-manifest.json
 .mypy_cache
+trace

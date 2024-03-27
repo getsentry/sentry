@@ -1,0 +1,192 @@
+#!/usr/bin/env python
+
+from sentry.runner import configure
+
+configure()
+
+import argparse
+import pathlib
+from concurrent.futures import ThreadPoolExecutor
+from os import environ, listdir, system
+from os.path import join
+from uuid import uuid4
+
+import sentry_sdk
+import urllib3
+
+from sentry.event_manager import EventManager
+from sentry.utils import json
+
+if "SCRAPE_AUTH_TOKEN" not in environ:
+    raise Exception(
+        "Please set your sentry auth token in the environment variable SCRAPE_AUTH_TOKEN"
+    )
+AUTH_TOKEN = environ["SCRAPE_AUTH_TOKEN"]
+http = urllib3.PoolManager()
+BASE_URL = "https://sentry.sentry.io/api/0/"
+progress = 0
+total_events = 0
+
+
+def save_event(root_dir, project_name, event_id):
+    """Get the event json from prod, then save it to a local file"""
+    r = http.request(
+        "GET",
+        f"{BASE_URL}projects/sentry/{project_name}/events/{event_id}/json/",
+        headers={"Authorization": f"Bearer {AUTH_TOKEN}"},
+    )
+    assert r.status == 200, "Request for event json failed"
+    with open(f"{root_dir}/{event_id}.json", "w") as f:
+        f.write(r.data.decode("utf-8"))
+
+    global progress
+    progress += 1
+    system("clear")
+    print(f"{progress}/{total_events} events loaded for current page")  # NOQA
+
+
+def scrape(trace_id, directory):
+    """Go to discover and get all the event ids for a given trace id"""
+    for offset in range(50):
+        print("retrieving events")  # NOQA
+        r = http.request(
+            "GET",
+            f"{BASE_URL}organizations/sentry/events/",
+            fields=[
+                ("query", f"trace:{trace_id}"),
+                ("field", "id"),
+                ("field", "project.name"),
+                ("cursor", f"0:{offset * 100}:0"),
+                ("per_page", "100"),
+                ("project", "-1"),
+                ("statsPeriod", "8h"),
+            ],
+            headers={"Authorization": f"Bearer {AUTH_TOKEN}"},
+        )
+        assert r.status == 200, "Request for event list failed"
+        content = json.loads(r.data)
+        rows = content.get("data", [])
+        if len(rows) == 0:
+            return
+
+        global total_events
+        global progress
+        total_events = len(rows)
+        progress = 0
+
+        with ThreadPoolExecutor(10) as executor:
+            for row in rows:
+                executor.submit(save_event, directory, row["project.name"], row["id"])
+
+        # There isn't another page, early exit
+        if len(rows) < 100:
+            return
+
+
+def load(directory):
+    files = listdir(directory)
+
+    global total_events
+    global progress
+    total_events = len(files)
+    progress = 0
+
+    # start a transaction so we don't spam the output with errors
+    with sentry_sdk.start_transaction(name="load transactions"):
+        with ThreadPoolExecutor(10) as executor:
+            for file in files:
+                if file.endswith("json"):
+                    executor.submit(load_file, directory, file)
+
+
+def load_file(root_dir, file):
+    with open(join(root_dir, file)) as f:
+        data = json.load(f)
+    manager = EventManager(data)
+    manager.normalize()
+    if "contexts" not in data:
+        return
+    spans = [process_span(span, data) for span in data.get("spans", [])]
+    spans.append(process_event(data))
+    http.request(
+        "POST",
+        "http://127.0.0.1:1218/tests/entities/spans/insert",
+        body=json.dumps(spans),
+    )
+    manager.save(1)
+
+    global progress
+    progress += 1
+    system("clear")
+    print(f"{progress}/{total_events} events loaded into Sentry")  # NOQA
+
+
+def process_span(span, event):
+    span["duration_ms"] = int((span["timestamp"] - span["start_timestamp"]) * 1000)
+    span["received"] = span["timestamp"]
+    span["start_timestamp_ms"] = int(span["start_timestamp"] * 1000)
+    span["exclusive_time_ms"] = int(span["exclusive_time"] * 1000)
+    span["is_segment"] = False
+    span["segment_id"] = str(int(event["event_id"], 16))[:16]
+    span["event_id"] = event["event_id"]
+    # Put everything in project 1 even though they're different projects in prod
+    span["project_id"] = 1
+    span["tags"] = {}
+    return span
+
+
+def process_event(event):
+    """Convert the scraped event into span data"""
+    trace_context = event["contexts"]["trace"]
+    start_ts = event["start_timestamp"]
+    end_ts = event["timestamp"]
+    base_span = {
+        "description": event["transaction"],
+        "duration_ms": int(end_ts - start_ts),
+        "exclusive_time_ms": int(end_ts - start_ts),
+        "group_raw": uuid4().hex[:16],
+        "is_segment": False,
+        "measurements": {},
+        "organization_id": 1,
+        "parent_span_id": trace_context.get("parent_span_id", "0" * 12),
+        "profile_id": uuid4().hex,
+        "project_id": 1,
+        "received": start_ts,
+        "retention_days": 90,
+        "event_id": event["event_id"],
+        "sentry_tags": {},
+        "span_id": trace_context["span_id"],
+        "start_timestamp_ms": int(start_ts * 1000),
+        "tags": {},
+        "trace_id": trace_context["trace_id"],
+    }
+    if "parent_span_id" in trace_context:
+        base_span["parent_span_id"] = trace_context["parent_span_id"]
+    else:
+        del base_span["parent_span_id"]
+
+    return base_span
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Scrape data from production and load it locally")
+    parser.add_argument("trace_id", type=str, help="The trace id to scrape or load")
+    parser.add_argument(
+        "--scrape",
+        action=argparse.BooleanOptionalAction,
+        help="For the given trace id, scrape the events into a local folder",
+    )
+    parser.add_argument(
+        "--load",
+        action=argparse.BooleanOptionalAction,
+        help="For the given trace id, load the events into your local clickhouse",
+    )
+    args = parser.parse_args()
+
+    directory = f"trace/{args.trace_id}"
+    pathlib.Path(directory).mkdir(parents=True, exist_ok=True)
+
+    if args.scrape:
+        scrape(args.trace_id, directory)
+    if args.load:
+        load(directory)
