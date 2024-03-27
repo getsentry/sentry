@@ -56,7 +56,7 @@ describe('WidgetParser', () => {
     jest.clearAllMocks();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: '/organizations/sentry/metrics/tags/',
+      url: '/organizations/test-org/metrics/tags/',
       method: 'GET',
       body: [
         {key: 'foo', name: 'foo'},
@@ -216,7 +216,7 @@ describe('parseDashboard', () => {
     jest.clearAllMocks();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: '/organizations/sentry/metrics/tags/',
+      url: '/organizations/test-org/metrics/tags/',
       method: 'GET',
       body: [
         {key: 'foo', name: 'foo'},
