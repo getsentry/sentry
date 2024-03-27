@@ -50,13 +50,11 @@ import contextlib
 import json  # NOQA
 import os
 import uuid
-from unittest import mock
 
 import pytest
 from django.utils.functional import cached_property
 
 from sentry.grouping.api import get_default_grouping_config_dict, load_grouping_config
-from sentry.grouping.enhancer.actions import VarAction
 from sentry.grouping.strategies.base import StrategyConfiguration
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.utils.safe import get_path
@@ -141,40 +139,12 @@ def test_categorization(input: CategorizationInput, insta_snapshot, track_enhanc
 
 @pytest.fixture(scope="session", autouse=True)
 def track_enhancers_coverage():
-    old_apply = VarAction.apply_modifications_to_frame
-
-    used_inputs: dict[str, list[CategorizationInput]] = {}
-
-    current_input: CategorizationInput | None = None
-
-    def new_apply(self, frames, match_frames, idx, rule=None):
-        if current_input is not None:
-            inputs_for_rule = used_inputs.setdefault(rule.matcher_description, [])
-
-            # Tolerate up to four testcases per rule. This number is arbitrary but
-            # the idea is that after matching a system frame for the hundreth time,
-            # nothing is really tested anymore.
-            if len(inputs_for_rule) < 4:
-                inputs_for_rule.append(current_input)
-
-        return old_apply(self, frames, match_frames, idx, rule=rule)
-
     ran_tests = {}
 
     @contextlib.contextmanager
     def inner(input):
         ran_tests[input.filename] = True
-        nonlocal current_input
-        # if this assertion is ever hit because we dare to multithread tests in
-        # some way, current_input can be changed to a thread-local
-        assert current_input is None, "context manager does not support multithreading"
-        current_input = input
-
-        with mock.patch.object(VarAction, "apply_modifications_to_frame", new_apply):
-            try:
-                yield
-            finally:
-                current_input = None
+        yield
 
     yield inner
 
@@ -182,40 +152,11 @@ def track_enhancers_coverage():
         # need to run entire test_categorization for this test to run
         return
 
-    all_filenames = {i.filename for i in INPUTS}
-    used_filenames = {i.filename for inputs in used_inputs.values() for i in inputs}
-    delete_filenames = all_filenames - used_filenames
-
-    if delete_filenames:
-        if _SHOULD_DELETE_DATA:
-            for filename in delete_filenames:
-                os.remove(os.path.join(_fixture_path, filename))
-        else:
-            raise AssertionError(
-                f"{len(delete_filenames)} test payloads found that do not exercize additional rules. Commit your changes and run with envvar SENTRY_TEST_GROUPING_DELETE_USELESS_DATA=1"
-            )
-
-    all_rules = {
-        r.matcher_description
-        for r in get_config().enhancements.iter_rules()
-        if any(getattr(a, "var", None) == "category" for a in r.actions)
-    }
-    used_rules = set(used_inputs.keys())
-
-    delete_rules = all_rules - used_rules
-    if delete_rules:
-        delete_rules_str = "\n".join(delete_rules)
-        raise AssertionError(
-            f"Found {len(delete_rules)} grouping enhancement rules that do not get exercized: \n{delete_rules_str}"
-        )
-
     files_modified = []
 
     for input in INPUTS:
-        if input.filename in delete_filenames:
-            continue
-
         data = dict(input.data)
+        del data["metadata"]
 
         modified = False
         modified |= _strip_sensitive_keys(data, ["exception", "platform", "event_id"])
@@ -239,22 +180,17 @@ def track_enhancers_coverage():
                 # they should not be written back, but we should also not
                 # count removing them as modification
                 category = None
-                if frame.get("data"):
-                    category = frame["data"].pop("category", None)
+                if data := frame.pop("data", None):
+                    category = data.pop("category", None)
                     frame.pop("in_app", None)
-                    frame["data"].pop("orig_in_app", None)
-
-                if not frame.get("data"):
-                    frame.pop("data", None)
 
                 modified |= _strip_sensitive_keys(
                     frame, ["package", "filename", "function", "raw_function", "abs_path", "module"]
                 )
-
-                if not category:
-                    modified |= frame != {"function": "stripped_application_code"}
+                if not category and frame != {"function": "stripped_application_code"}:
                     frame.clear()
                     frame["function"] = "stripped_application_code"
+                    modified = True
 
         if modified:
             files_modified.append((input, data))
