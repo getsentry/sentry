@@ -334,10 +334,6 @@ function TraceViewContent(props: TraceViewContentProps) {
         window.cancelAnimationFrame(searchingRaf.current.id);
       }
 
-      // @TODO: searchInTraceTree has to tell us if the current selected match is
-      // in the results set and where, so that we dont have to iterate over the results
-      // again to find it. If it is, we need to set the resultIndex to that index and the
-      // resultIteratorIndex to the index of the result in the results array
       searchingRaf.current = searchInTraceTree(
         traceTree,
         query,
