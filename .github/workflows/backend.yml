@@ -344,6 +344,7 @@ jobs:
         migration,
         monolith-dbs,
         typing,
+        check-rpc-for-breaking-changes,
       ]
     name: Backend
     # This is necessary since a failed/skipped dependent job would cause this job to be skipped

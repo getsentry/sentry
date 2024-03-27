@@ -10,22 +10,22 @@ jobs:
   check-rpc-for-breaking-changes:
     runs-on: ubuntu-22.04
     steps:
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
       - name: Dump RPC schema for new version
+        id: newschema
         run: |
-          sentry rpcschema --canned >> ${GITHUB_OUTPUT}
-      - name: Find merge base
+          mkdir schemas
+          sentry rpcschema --canned > schemas/new_schema.json
+      - name: Dump RPC schema for old version
+        id: oldschema
         run: |
-          git merge-base ${PR branch and target?}
-      - name: Check out merge base
-        run: |
-          git checkout `git merge-base ${PR branch and target?}`
-        # Think there is a GH-native way to do this rather than a `checkout` command
-      - name: Run RPC schema command again
-        run: |
-          sentry rpcschema --canned >> ${GITHUB_OUTPUT}
+          git checkout `git merge-base ${{ github.target_ref }} ${{ github.head_ref }}`  # TODO: Look up target ref
+          sentry rpcschema --canned > schemas/old_schema.json
       - name: Invoke oasdiff on two outputs
         run: |
           docker run --rm -t \
-            -v $(tmpdir):/sentry-rpc-schemas:ro \
-            tufin/oasdiff breaking /sentry-rpc-schemas/old.json /sentry-rpc-schemas/new.json
-        # TODO: Read output; translate into pass/fail for the job
+            -v $(pwd)/schemas:/schemas:ro \
+            tufin/oasdiff breaking /schemas/old_schema.json /schemas/new_schema.json \
+            -o ERR
