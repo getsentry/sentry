@@ -831,21 +831,21 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     "multiply",
                     [
                         self._resolve_average_cond(args, None, "greater"),
-                        self._resolve_throughput_cond(args, None, "greater"),
+                        self._resolve_epm_cond(args, None, "greater"),
                     ],
                 ),
                 Function(
                     "multiply",
                     [
                         self._resolve_average_cond(args, None, "less"),
-                        self._resolve_throughput_cond(args, None, "less"),
+                        self._resolve_epm_cond(args, None, "less"),
                     ],
                 ),
             ],
             alias,
         )
 
-    def _resolve_throughput_cond(
+    def _resolve_epm_cond(
         self,
         args: Mapping[str, str | Column | SelectType | int | float],
         alias: str | None,
@@ -859,7 +859,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         elif cond == "less":
             interval = (timestamp - self.builder.params.start).total_seconds()
         else:
-            raise InvalidSearchQuery(f"Unsupported condition for cpm: {cond}")
+            raise InvalidSearchQuery(f"Unsupported condition for epm: {cond}")
 
         return Function(
             "divide",
