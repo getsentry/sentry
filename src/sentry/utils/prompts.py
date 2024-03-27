@@ -18,7 +18,7 @@ DEFAULT_PROMPTS = {
     "metric_alert_ignore_archived_issues": {"required_fields": ["organization_id", "project_id"]},
     "issue_priority": {"required_fields": ["organization_id"]},
     "data_consent_banner": {"required_fields": ["organization_id"]},
-    "data_consent_feature_specific": {"required_fields": ["organization_id"]},
+    "data_consent_priority": {"required_fields": ["organization_id"]},
 }
 
 
