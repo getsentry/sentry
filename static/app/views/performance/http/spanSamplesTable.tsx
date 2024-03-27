@@ -1,3 +1,4 @@
+import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import GridEditable, {
@@ -94,6 +95,10 @@ function renderBodyCell(
     );
   }
 
+  if (column.key === SpanIndexedField.SPAN_DESCRIPTION) {
+    return <SpanDescriptionCell>{row[column.key]}</SpanDescriptionCell>;
+  }
+
   if (!meta?.fields) {
     return row[column.key];
   }
@@ -106,3 +111,7 @@ function renderBodyCell(
     unit: meta.units?.[column.key],
   });
 }
+
+const SpanDescriptionCell = styled('span')`
+  word-break: break-word;
+`;
