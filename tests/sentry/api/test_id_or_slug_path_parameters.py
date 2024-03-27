@@ -19,7 +19,7 @@ def extract_slug_path_params(path: str) -> list[str]:
     return re.findall(r"<(\w+_slug)>", path)
 
 
-def extract_other_path_params(path: str) -> list[str]:
+def extract_non_slug_path_params(path: str) -> list[str]:
     return re.findall(r"<(\w+?)(?<!_slug)>", path)
 
 
@@ -57,10 +57,10 @@ class APIIdOrSlugPathParamTest(BaseTestCase, TestCase):
             1b. The value should be the test method that will be called with the endpoint. You can either reuse an existing test method or create a new one.
         2. If you are introducing a new slug parameter, add the slug to the `slug_mappings` dictionary & `reverse_slug_mappings` dictionary.
         3. Some of our endpoints don't properly handle all slugs in kwargs, and pass them to the base endpoint without converting them. If the endpoint is one of these, add the endpoint's `convert_args` method to the `no_slugs_in_kwargs_allowlist` list.
-        4. Each test method should have the following signature: `def test_method(self, endpoint_class, slug_params, other_params, *args):`
+        4. Each test method should have the following signature: `def test_method(self, endpoint_class, slug_params, non_slug_params, *args):`
             4a. `endpoint_class` is the endpoint class that is being tested.
             4b. `slug_params` is a list of path parameters that end with `_slug`.
-            4c. `other_params` is a list of path parameters that do not end with `_slug`.
+            4c. `non_slug_params` is a list of path parameters that do not end with `_slug`.
             4d. `*args` is a list of additional arguments that can be passed to the test method, including mock objects.
         5. If the endpoint requires additional parameters to be passed to the `convert_args` method, add the parameters to the `other_mappings` & `reverse_other_mappings` dictionaries.
         6. For assertations, use the `assert_conversion` method to compare the results of the `convert_args` method. This is for endpoints that use RPC objects instead of the actual objects or generally don't return the same object.
@@ -169,7 +169,7 @@ class APIIdOrSlugPathParamTest(BaseTestCase, TestCase):
 
     @patch("sentry.api.bases.doc_integrations.DocIntegrationBaseEndpoint.check_object_permissions")
     @override_options({"api.id-or-slug-enabled": True})
-    def doc_integration_test(self, endpoint_class, slug_params, other_params, *args):
+    def doc_integration_test(self, endpoint_class, slug_params, non_slug_params, *args):
 
         slug_kwargs = {param: self.slug_mappings[param].slug for param in slug_params}
         id_kwargs = {param: self.slug_mappings[param].id for param in slug_params}
@@ -182,7 +182,7 @@ class APIIdOrSlugPathParamTest(BaseTestCase, TestCase):
     @patch("sentry.api.bases.sentryapps.SentryAppBaseEndpoint.check_object_permissions")
     @patch("sentry.api.bases.sentryapps.RegionSentryAppBaseEndpoint.check_object_permissions")
     @override_options({"api.id-or-slug-enabled": True})
-    def sentry_app_test(self, endpoint_class, slug_params, other_params, *args):
+    def sentry_app_test(self, endpoint_class, slug_params, non_slug_params, *args):
 
         slug_kwargs = {param: self.slug_mappings[param].slug for param in slug_params}
         id_kwargs = {param: self.slug_mappings[param].id for param in slug_params}
@@ -200,9 +200,9 @@ class APIIdOrSlugPathParamTest(BaseTestCase, TestCase):
             "api_token": api_token,
         }
 
-        if other_params:
-            slug_kwargs.update({param: other_mappings[param] for param in other_params})
-            id_kwargs.update({param: other_mappings[param] for param in other_params})
+        if non_slug_params:
+            slug_kwargs.update({param: other_mappings[param] for param in non_slug_params})
+            id_kwargs.update({param: other_mappings[param] for param in non_slug_params})
 
         # convert both slugs and ids
         _, converted_slugs = endpoint_class().convert_args(request=None, **slug_kwargs)
@@ -215,7 +215,7 @@ class APIIdOrSlugPathParamTest(BaseTestCase, TestCase):
 
     @patch("sentry.api.bases.sentryapps.RegionSentryAppBaseEndpoint.check_object_permissions")
     @override_options({"api.id-or-slug-enabled": True})
-    def region_sentry_app_test(self, endpoint_class, slug_params, other_params, *args):
+    def region_sentry_app_test(self, endpoint_class, slug_params, non_slug_params, *args):
         slug_kwargs = {param: self.slug_mappings[param].slug for param in slug_params}
         id_kwargs = {param: self.slug_mappings[param].id for param in slug_params}
 
@@ -229,6 +229,9 @@ class APIIdOrSlugPathParamTest(BaseTestCase, TestCase):
         self.assert_conversion(endpoint_class, converted_slugs, converted_ids, use_id=True)
 
     def test_if_endpoints_work_with_id_or_slug(self):
+        """
+        Extract all path parameters, split between slugs and other params, and call the convert_args method for each endpoint.
+        """
         root_resolver = get_resolver()
         all_url_patterns = extract_all_url_patterns(root_resolver.url_patterns)
 
@@ -238,7 +241,7 @@ class APIIdOrSlugPathParamTest(BaseTestCase, TestCase):
                 if slug_path_params == ["doc_integration_slug"] or slug_path_params == [
                     "sentry_app_slug"
                 ]:
-                    other_params = extract_other_path_params(pattern)
+                    non_slug_params = extract_non_slug_path_params(pattern)
                     self.convert_args_setup_registry[callback.convert_args](
-                        callback, slug_path_params, other_params
+                        callback, slug_path_params, non_slug_params
                     )
