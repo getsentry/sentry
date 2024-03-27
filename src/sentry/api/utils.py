@@ -218,6 +218,7 @@ def get_date_range_from_stats_period(
         start = get_datetime_from_stats_period(stats_period, now)
 
     elif stats_period_start or stats_period_end:
+
         if not stats_period_start or not stats_period_end:
             raise InvalidParams("statsPeriodStart and statsPeriodEnd are both required")
         start = get_datetime_from_stats_period(stats_period_start, now)
@@ -234,7 +235,7 @@ def get_date_range_from_stats_period(
     elif optional:
         return None, None
 
-    if start >= end:
+    if start > end:
         raise InvalidParams("start must be before end")
 
     return start, end
