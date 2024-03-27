@@ -10,6 +10,9 @@ jobs:
   check-rpc-for-breaking-changes:
     runs-on: ubuntu-22.04
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
@@ -21,6 +24,7 @@ jobs:
       - name: Dump RPC schema for old version
         id: oldschema
         run: |
+          git fetch
           git checkout `git merge-base ${{ github.target_ref }} ${{ github.head_ref }}`  # TODO: Look up target ref
           sentry rpcschema --canned > schemas/old_schema.json
       - name: Invoke oasdiff on two outputs
