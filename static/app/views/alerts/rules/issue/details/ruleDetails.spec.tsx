@@ -92,7 +92,7 @@ describe('AlertRuleDetails', () => {
   it('displays alert rule with list of issues', async () => {
     createWrapper();
     expect(await screen.findAllByText('My alert rule')).toHaveLength(2);
-    expect(screen.getByText('RequestError:')).toBeInTheDocument();
+    expect(await screen.findByText('RequestError:')).toBeInTheDocument();
     expect(screen.getByText('Apr 11, 2019 1:08:59 AM UTC')).toBeInTheDocument();
     expect(screen.getByText('RequestError:')).toHaveAttribute(
       'href',
