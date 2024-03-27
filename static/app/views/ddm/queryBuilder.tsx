@@ -175,6 +175,8 @@ export const QueryBuilder = memo(function QueryBuilder({
     [displayedMetrics, mriMode]
   );
 
+  const projectIdStrings = useMemo(() => projects.map(String), [projects]);
+
   return (
     <QueryBuilderWrapper>
       <FlexBlock>
@@ -233,6 +235,7 @@ export const QueryBuilder = memo(function QueryBuilder({
           disabled={!metricsQuery.mri}
           onChange={handleQueryChange}
           query={metricsQuery.query}
+          projectIds={projectIdStrings}
           blockedTags={selectedMeta?.blockingStatus?.flatMap(s => s.blockedTags) ?? []}
         />
       </SearchBarWrapper>
