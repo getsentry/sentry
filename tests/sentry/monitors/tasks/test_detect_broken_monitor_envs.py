@@ -249,7 +249,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
             [
                 call(
                     **{
-                        "subject": "Your monitors are broken!",
+                        "subject": "Your Cron Monitors Aren't Working",
                         "template": "sentry/emails/crons/broken-monitors.txt",
                         "html_template": "sentry/emails/crons/broken-monitors.html",
                         "type": "crons.broken_monitors",
