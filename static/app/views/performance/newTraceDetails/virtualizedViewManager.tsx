@@ -206,6 +206,9 @@ export class VirtualizedViewManager {
   span_to_px: mat3 = mat3.create();
   row_depth_padding: number = 22;
 
+  // Smallest of time that can be displayed across the entire view.
+  private readonly MAX_ZOOM_PRECISION = 1;
+
   // Column configuration
   columns: {
     list: ViewColumn;
@@ -373,6 +376,15 @@ export class VirtualizedViewManager {
     });
 
     this.previousDividerClientVec = [event.clientX, event.clientY];
+  }
+
+  private scrollbar_width: number = 0;
+  onScrollbarWidthChange(width: number) {
+    if (width === this.scrollbar_width) {
+      return;
+    }
+    this.scrollbar_width = width;
+    this.draw();
   }
 
   registerList(list: VirtualizedList | null) {
@@ -584,21 +596,28 @@ export class VirtualizedViewManager {
 
   zoomIntoSpaceRaf: number | null = null;
   onZoomIntoSpace(space: [number, number]) {
-    if (space[1] <= 0) {
-      // @TODO implement scrolling to 0 width spaces
-      return;
-    }
-
-    const distance_x = space[0] - this.to_origin - this.trace_view.x;
+    let distance_x = space[0] - this.to_origin - this.trace_view.x;
+    let final_x = space[0] - this.to_origin;
+    let final_width = space[1];
     const distance_width = this.trace_view.width - space[1];
+
+    if (space[1] < this.MAX_ZOOM_PRECISION) {
+      distance_x -= this.MAX_ZOOM_PRECISION / 2 - space[1] / 2;
+      final_x -= this.MAX_ZOOM_PRECISION / 2 - space[1] / 2;
+      final_width = this.MAX_ZOOM_PRECISION;
+    }
 
     const start_x = this.trace_view.x;
     const start_width = this.trace_view.width;
 
+    const max_distance = Math.max(Math.abs(distance_x), Math.abs(distance_width));
+    const p = max_distance !== 0 ? Math.log10(max_distance) - 1 : 1;
+    const duration = 200 + 100 * Math.abs(p * p);
+
     const start = performance.now();
     const rafCallback = (now: number) => {
       const elapsed = now - start;
-      const progress = elapsed / 300;
+      const progress = elapsed / duration;
 
       const eased = easeOutSine(progress);
 
@@ -612,7 +631,7 @@ export class VirtualizedViewManager {
         this.zoomIntoSpaceRaf = window.requestAnimationFrame(rafCallback);
       } else {
         this.zoomIntoSpaceRaf = null;
-        this.setTraceView({x: space[0] - this.to_origin, width: space[1]});
+        this.setTraceView({x: final_x, width: final_width});
         this.draw();
       }
     };
@@ -693,7 +712,11 @@ export class VirtualizedViewManager {
     const width = view.width ?? this.trace_view.width;
 
     this.trace_view.x = clamp(x, 0, this.trace_space.width - width);
-    this.trace_view.width = clamp(width, 1, this.trace_space.width - this.trace_view.x);
+    this.trace_view.width = clamp(
+      width,
+      this.MAX_ZOOM_PRECISION,
+      this.trace_space.width - this.trace_view.x
+    );
 
     this.recomputeTimelineIntervals();
     this.recomputeSpanToPxMatrix();
@@ -1194,7 +1217,9 @@ export class VirtualizedViewManager {
 
     if (this.divider) {
       this.divider.style.transform = `translateX(${
-        list_width * this.container_physical_space.width - DIVIDER_WIDTH / 2 - 1
+        list_width * (this.container_physical_space.width - this.scrollbar_width) -
+        DIVIDER_WIDTH / 2 -
+        1
       }px)`;
     }
     if (this.indicator_container) {
@@ -1582,12 +1607,30 @@ export class VirtualizedList {
   }
 }
 
+function maybeToggleScrollbar(
+  container: HTMLElement,
+  containerHeight: number,
+  scrollHeight: number,
+  manager: VirtualizedViewManager
+) {
+  if (scrollHeight > containerHeight) {
+    container.style.overflowY = 'scroll';
+    container.style.scrollbarGutter = 'stable';
+  } else {
+    container.style.overflowY = 'auto';
+    container.style.scrollbarGutter = 'auto';
+  }
+
+  manager.onScrollbarWidthChange(container.offsetWidth - container.clientWidth);
+}
+
 interface UseVirtualizedListProps {
   container: HTMLElement | null;
   items: ReadonlyArray<TraceTreeNode<TraceTree.NodeValue>>;
   manager: VirtualizedViewManager;
   render: (item: VirtualizedRow) => React.ReactNode;
 }
+
 interface UseVirtualizedListResult {
   list: VirtualizedList;
   rendered: React.ReactNode[];
@@ -1665,6 +1708,13 @@ export const useVirtualizedList = (
         list.current.scrollHeight = scrollHeightRef.current;
       }
 
+      maybeToggleScrollbar(
+        elements[0].target as HTMLElement,
+        scrollHeightRef.current,
+        itemsRef.current.length * 24,
+        managerRef.current
+      );
+
       const recomputedItems = findRenderedItems({
         scrollTop: scrollTopRef.current,
         items: itemsRef.current,
@@ -1705,6 +1755,13 @@ export const useVirtualizedList = (
     scrollContainerRef.current!.style.position = 'relative';
     scrollContainerRef.current!.style.willChange = 'transform';
     scrollContainerRef.current!.style.height = `${props.items.length * 24}px`;
+
+    maybeToggleScrollbar(
+      props.container,
+      scrollHeightRef.current,
+      props.items.length * 24,
+      props.manager
+    );
 
     const onScroll = event => {
       if (!list.current) {
@@ -1773,7 +1830,7 @@ export const useVirtualizedList = (
     return () => {
       props.container?.removeEventListener('scroll', onScroll);
     };
-  }, [props.container, props.items, props.items.length]);
+  }, [props.container, props.items, props.items.length, props.manager]);
 
   useLayoutEffect(() => {
     if (!list.current || !styleCache.current || !renderCache.current) {
