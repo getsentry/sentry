@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
+from collections.abc import Iterable
 from datetime import timedelta
 from typing import Any
 from urllib.parse import urlencode, urlparse, urlunparse
@@ -52,6 +53,46 @@ def generate_monitor_detail_url(
     url_parts = list(urlparse(url))
     url_parts[4] = urlencode({"environment": environments}, doseq=True)
     return urlunparse(url_parts)
+
+
+def update_user_monitor_dictionary(
+    user_monitor_entries: dict[str, dict[str, Any]],
+    user_email: str,
+    open_incident: MonitorIncident,
+    project: Project,
+    environment_name: str,
+):
+    user_monitor_entry = user_monitor_entries[user_email][open_incident.monitor.id]
+    user_monitor_entry.update(
+        {
+            "earliest_start": min(
+                open_incident.starting_timestamp,
+                user_monitor_entry["earliest_start"],
+            ),
+            "project_slug": project.slug,
+            "slug": open_incident.monitor.slug,
+        }
+    )
+    if len(user_monitor_entry["environment_names"]) < MAX_ENVIRONMENTS_IN_MONITOR_LINK:
+        user_monitor_entry["environment_names"].append(environment_name)
+
+
+def generate_monitor_email_context(
+    monitor_entries: Iterable[dict[str, Any]], organization: Organization
+):
+    return [
+        (
+            monitor_entry["slug"],
+            generate_monitor_detail_url(
+                organization,
+                monitor_entry["project_slug"],
+                monitor_entry["slug"],
+                monitor_entry["environment_names"],
+            ),
+            monitor_entry["earliest_start"],
+        )
+        for monitor_entry in monitor_entries
+    ]
 
 
 @instrumented_task(
@@ -126,41 +167,16 @@ def detect_broken_monitor_envs():
                     if not user.user_email:
                         continue
 
-                    user_monitor_entry = user_broken_envs[user.user_email][open_incident.monitor.id]
-                    user_monitor_entry.update(
-                        {
-                            "earliest_start": min(
-                                open_incident.starting_timestamp,
-                                user_monitor_entry["earliest_start"],
-                            ),
-                            "project_slug": project.slug,
-                            "slug": open_incident.monitor.slug,
-                        }
+                    update_user_monitor_dictionary(
+                        user_broken_envs, user.user_email, open_incident, project, environment_name
                     )
-                    if (
-                        len(user_monitor_entry["environment_names"])
-                        < MAX_ENVIRONMENTS_IN_MONITOR_LINK
-                    ):
-                        user_monitor_entry["environment_names"].append(environment_name)
 
         # After accumulating all users within the org and which monitors to email them, send the emails
         for user_email, broken_monitors in user_broken_envs.items():
-            broken_monitors_context = [
-                (
-                    monitor_entry["slug"],
-                    generate_monitor_detail_url(
-                        organization,
-                        monitor_entry["project_slug"],
-                        monitor_entry["slug"],
-                        monitor_entry["environment_names"],
-                    ),
-                    monitor_entry["earliest_start"],
-                )
-                for monitor_entry in broken_monitors.values()
-            ]
-
             context = {
-                "broken_monitors": broken_monitors_context,
+                "broken_monitors": generate_monitor_email_context(
+                    broken_monitors.values(), organization
+                ),
                 "view_monitors_link": generate_monitor_overview_url(organization),
             }
             message = MessageBuilder(
