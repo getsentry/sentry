@@ -141,7 +141,8 @@ def _do_preprocess_event(
 ) -> None:
     from sentry.lang.java.utils import has_proguard_file
     from sentry.tasks.symbolication import (
-        get_symbolication_function,
+        get_symbolication_function_for_platform,
+        get_symbolication_platforms,
         should_demote_symbolication,
         submit_symbolicate,
     )
@@ -169,8 +170,15 @@ def _do_preprocess_event(
             "organization", Organization.objects.get_from_cache(id=project.organization_id)
         )
 
-    platform, symbolication_function = get_symbolication_function(data)
-    if symbolication_function:
+    # Get the list of platforms for which we want to use Symbolicator.
+    # Possible values are `js`, `jvm`, and `native`.
+    # The event will be submitted to Symbolicator for all returned platforms,
+    # one after the other, so we handle mixed stacktraces.
+    platforms = get_symbolication_platforms(data)
+    should_symbolicate = len(platforms) > 0
+    if platforms:
+        first_platform = platforms.pop(0)
+        symbolication_function = get_symbolication_function_for_platform(first_platform, data)
         symbolication_function_name = getattr(symbolication_function, "__name__", "none")
 
         if not killswitch_matches_context(
@@ -186,7 +194,7 @@ def _do_preprocess_event(
 
             is_low_priority = should_demote_symbolication(project_id)
             task_kind = SymbolicatorTaskKind(
-                platform=platform,
+                platform=first_platform,
                 is_low_priority=is_low_priority,
                 is_reprocessing=from_reprocessing,
             )
@@ -196,12 +204,13 @@ def _do_preprocess_event(
                 event_id=event_id,
                 start_time=start_time,
                 has_attachments=has_attachments,
+                symbolicate_tasks=platforms,
             )
             return
         # else: go directly to process, do not go through the symbolicate queue, do not collect 200
 
     # NOTE: Events considered for symbolication always go through `do_process_event`
-    if symbolication_function or should_process(data):
+    if should_symbolicate or should_process(data):
         submit_process(
             from_reprocessing=from_reprocessing,
             cache_key=cache_key,

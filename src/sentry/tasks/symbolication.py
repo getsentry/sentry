@@ -99,18 +99,43 @@ def get_native_symbolication_function(data: Any) -> Callable[[Symbolicator, Any]
     return get_native_symbolication_function(data)
 
 
-def get_symbolication_function(
-    data: Any,
-) -> tuple[SymbolicatorPlatform, Callable[[Symbolicator, Any], Any] | None]:
-    from sentry.lang.java.processing import process_jvm_stacktraces
-    from sentry.lang.java.utils import should_use_symbolicator_for_proguard
+def get_symbolication_function_for_platform(
+    platform: SymbolicatorPlatform, data: Any
+) -> Callable[[Symbolicator, Any], Any]:
+    """Returns the symbolication function for the given platform
+    and event data."""
 
-    if data["platform"] in ("javascript", "node"):
-        return SymbolicatorPlatform.js, process_js_stacktraces
-    elif data["platform"] == "java" and should_use_symbolicator_for_proguard(data.get("project")):
-        return SymbolicatorPlatform.jvm, process_jvm_stacktraces
+    from sentry.lang.java.processing import process_jvm_stacktraces
+
+    if platform == SymbolicatorPlatform.js:
+        return process_js_stacktraces
+    elif platform == SymbolicatorPlatform.jvm:
+        return process_jvm_stacktraces
     else:
-        return SymbolicatorPlatform.native, get_native_symbolication_function(data)
+        symbolication_function = get_native_symbolication_function(data)
+        # get_native_symbolication_function already returned something in
+        # get_symbolication_platforms
+        assert symbolication_function is not None
+        return symbolication_function
+
+
+def get_symbolication_platforms(data: Any) -> list[SymbolicatorPlatform]:
+    """Returns a list of Symbolicator platforms
+    that apply to this event."""
+
+    from sentry.lang.java.utils import is_jvm_event, should_use_symbolicator_for_proguard
+    from sentry.lang.javascript.utils import is_js_event
+
+    platforms = []
+
+    if should_use_symbolicator_for_proguard(data.get("project")) and is_jvm_event(data):
+        platforms.append(SymbolicatorPlatform.jvm)
+    if is_js_event(data):
+        platforms.append(SymbolicatorPlatform.js)
+    if get_native_symbolication_function(data) is not None:
+        platforms.append(SymbolicatorPlatform.native)
+
+    return platforms
 
 
 class SymbolicationTimeout(Exception):
@@ -125,9 +150,14 @@ def _do_symbolicate_event(
     data: Event | None = None,
     queue_switches: int = 0,
     has_attachments: bool = False,
+    symbolicate_platforms: list[SymbolicatorPlatform] | None = None,
 ) -> None:
     if data is None:
         data = processing.event_processing_store.get(cache_key)
+
+    # use native as the default for backwards compatibility
+    if symbolicate_platforms is None:
+        symbolicate_platforms = [SymbolicatorPlatform.native]
 
     if data is None:
         metrics.incr(
@@ -165,18 +195,22 @@ def _do_symbolicate_event(
             return
 
     def _continue_to_process_event(was_killswitched: bool = False) -> None:
-        # After JS processing, we check `get_native_symbolication_function`,
-        # because maybe we need to feed it to another round of
-        # `symbolicate_event`, but for *native* that time.
-        if not was_killswitched and task_kind.platform == SymbolicatorPlatform.js:
-            symbolication_function = get_native_symbolication_function(data)
-            if symbolication_function:
+        # Go through the remaining symbolication platforms
+        # and submit the next one.
+        if not was_killswitched:
+            while symbolicate_platforms:
+                next_platform = symbolicate_platforms.pop(0)
+                # Guard against submitting the same platform twice
+                if next_platform == task_kind.platform:
+                    continue
+
                 submit_symbolicate(
-                    task_kind=task_kind.with_platform(SymbolicatorPlatform.native),
+                    task_kind=task_kind.with_platform(next_platform),
                     cache_key=cache_key,
                     event_id=event_id,
                     start_time=start_time,
                     has_attachments=has_attachments,
+                    symbolicate_platforms=symbolicate_platforms,
                 )
                 return
         # else:
@@ -354,6 +388,7 @@ def submit_symbolicate(
     start_time: int | None,
     queue_switches: int = 0,
     has_attachments: bool = False,
+    symbolicate_platforms: list[SymbolicatorPlatform] = None,
 ) -> None:
     # oh how I miss a real `match` statement...
     task = symbolicate_event
@@ -381,6 +416,7 @@ def submit_symbolicate(
         event_id=event_id,
         queue_switches=queue_switches,
         has_attachments=has_attachments,
+        symbolicate_platforms=symbolicate_platforms,
     )
 
 
@@ -399,6 +435,7 @@ def symbolicate_event(
     data: Event | None = None,
     queue_switches: int = 0,
     has_attachments: bool = False,
+    symbolicate_platforms: list[SymbolicatorPlatform] = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -416,6 +453,7 @@ def symbolicate_event(
         data=data,
         queue_switches=queue_switches,
         has_attachments=has_attachments,
+        symbolicate_platforms=symbolicate_platforms,
     )
 
 
@@ -434,6 +472,7 @@ def symbolicate_js_event(
     data: Event | None = None,
     queue_switches: int = 0,
     has_attachments: bool = False,
+    symbolicate_platforms: list[SymbolicatorPlatform] = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -451,6 +490,7 @@ def symbolicate_js_event(
         data=data,
         queue_switches=queue_switches,
         has_attachments=has_attachments,
+        symbolicate_platforms=symbolicate_platforms,
     )
 
 
@@ -470,6 +510,7 @@ def symbolicate_jvm_event(
     data: Event | None = None,
     queue_switches: int = 0,
     has_attachments: bool = False,
+    symbolicate_platforms: list[SymbolicatorPlatform] = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -487,6 +528,7 @@ def symbolicate_jvm_event(
         data=data,
         queue_switches=queue_switches,
         has_attachments=has_attachments,
+        symbolicate_platforms=symbolicate_platforms,
     )
 
 
@@ -505,6 +547,7 @@ def symbolicate_event_low_priority(
     data: Event | None = None,
     queue_switches: int = 0,
     has_attachments: bool = False,
+    symbolicate_platforms: list[SymbolicatorPlatform] = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -525,6 +568,7 @@ def symbolicate_event_low_priority(
         data=data,
         queue_switches=queue_switches,
         has_attachments=has_attachments,
+        symbolicate_platforms=symbolicate_platforms,
     )
 
 
@@ -543,6 +587,7 @@ def symbolicate_js_event_low_priority(
     data: Event | None = None,
     queue_switches: int = 0,
     has_attachments: bool = False,
+    symbolicate_platforms: list[SymbolicatorPlatform] = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -563,6 +608,7 @@ def symbolicate_js_event_low_priority(
         data=data,
         queue_switches=queue_switches,
         has_attachments=has_attachments,
+        symbolicate_platforms=symbolicate_platforms,
     )
 
 
@@ -582,6 +628,7 @@ def symbolicate_jvm_event_low_priority(
     data: Event | None = None,
     queue_switches: int = 0,
     has_attachments: bool = False,
+    symbolicate_platforms: list[SymbolicatorPlatform] = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -602,6 +649,7 @@ def symbolicate_jvm_event_low_priority(
         data=data,
         queue_switches=queue_switches,
         has_attachments=has_attachments,
+        symbolicate_platforms=symbolicate_platforms,
     )
 
 
@@ -620,6 +668,7 @@ def symbolicate_event_from_reprocessing(
     data: Event | None = None,
     queue_switches: int = 0,
     has_attachments: bool = False,
+    symbolicate_platforms: list[SymbolicatorPlatform] = None,
     **kwargs: Any,
 ) -> None:
     return _do_symbolicate_event(
@@ -630,6 +679,7 @@ def symbolicate_event_from_reprocessing(
         data=data,
         queue_switches=queue_switches,
         has_attachments=has_attachments,
+        symbolicate_platforms=symbolicate_platforms,
     )
 
 
@@ -648,6 +698,7 @@ def symbolicate_event_from_reprocessing_low_priority(
     data: Event | None = None,
     queue_switches: int = 0,
     has_attachments: bool = False,
+    symbolicate_platforms: list[SymbolicatorPlatform] = None,
     **kwargs: Any,
 ) -> None:
     return _do_symbolicate_event(
@@ -658,4 +709,5 @@ def symbolicate_event_from_reprocessing_low_priority(
         data=data,
         queue_switches=queue_switches,
         has_attachments=has_attachments,
+        symbolicate_platforms=symbolicate_platforms,
     )
