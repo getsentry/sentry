@@ -22,7 +22,6 @@ from sentry.issues.status_change_consumer import process_status_change_message
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.utils import metrics
-from sentry.utils.dates import to_datetime
 
 logger = logging.getLogger(__name__)
 
@@ -62,14 +61,13 @@ def lookup_event(project_id: int, event_id: str) -> Event:
 
 
 def create_event(project_id: int, event_id: str, event_data: dict[str, Any]) -> Event:
-    datetime_format = "%Y-%m-%dT%H:%M:%SZ"
     return Event(
         event_id=event_id,
         project_id=project_id,
         snuba_data={
             "event_id": event_data["event_id"],
             "project_id": event_data["project_id"],
-            "timestamp": to_datetime(event_data["timestamp"]).strftime(datetime_format),
+            "timestamp": event_data["timestamp"],
             "release": event_data.get("release"),
             "environment": event_data.get("environment"),
             "platform": event_data.get("platform"),

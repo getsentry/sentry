@@ -4,8 +4,6 @@ from collections.abc import Mapping, Sequence, Set
 from copy import deepcopy
 from typing import Any
 
-import sentry_sdk
-
 from sentry.event_manager import (
     Job,
     ProjectsMapping,
@@ -177,14 +175,17 @@ def transform_spans_to_event_dict(spans):
     return event
 
 
-def process_segment(spans: list[dict[str, Any]]):
-    with sentry_sdk.start_span(
-        op="sentry.consumers.detect_performance_issues.process_segment.transform_spans_to_event_dict"
-    ):
-        event = transform_spans_to_event_dict(spans)
-
+def prepare_event_for_occurrence_consumer(event):
     event_light = deepcopy(event)
     event_light["spans"] = []
+    event_light["timestamp"] = event["datetime"]
+    return event_light
+
+
+def process_segment(spans: list[dict[str, Any]]):
+    event = transform_spans_to_event_dict(spans)
+
+    event_light = prepare_event_for_occurrence_consumer(event)
 
     project_id = event["project_id"]
     with metrics.timer("tasks.spans.project.get_from_cache"):
