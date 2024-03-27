@@ -50,15 +50,13 @@ def generate_diff_labels(
     # Check if the id is in both but the data has changed
     for item in added_items:
         if changed_data.get(item):
-            for data in prior_state:
-                for present_data in present_state:
-                    if data["id"] == item and present_data["id"] == item:
-                        if present_data != data:
-                            old_label = generate_rule_label(rule.project, rule, data)
-                            new_label = generate_rule_label(rule.project, rule, present_data)
-                            changed_data[item] = [
-                                (f"Changed {key} from *{old_label}* to *{new_label}*")
-                            ]
+            prior_item = [data for data in prior_state if data["id"] == item]
+            present_item = [data for data in present_state if data["id"] == item]
+            if prior_item and present_item:
+                if prior_item[0] != present_item[0]:
+                    old_label = generate_rule_label(rule.project, rule, prior_item[0])
+                    new_label = generate_rule_label(rule.project, rule, present_item[0])
+                    changed_data[item] = [(f"Changed {key} from *{old_label}* to *{new_label}*")]
 
     # Removed items
     for data in present_state:
