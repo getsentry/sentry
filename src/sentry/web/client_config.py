@@ -452,9 +452,6 @@ class _ClientConfig:
             "links": dict(self.links),
             "user": self.user_details,
             "isAuthenticated": self.user_details is not None,
-            "devtools": {
-                "reactQuery": getattr(settings, "SENTRY_FRONTEND_DEVTOOLS_REACT_QUERY", False),
-            },
         }
 
 

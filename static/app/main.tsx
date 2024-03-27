@@ -4,6 +4,7 @@ import {ReactQueryDevtools} from '@tanstack/react-query-devtools';
 import DemoHeader from 'sentry/components/demo/demoHeader';
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
+import {USE_REACT_QUERY_DEVTOOL} from 'sentry/constants';
 import {routes} from 'sentry/routes';
 import ConfigStore from 'sentry/stores/configStore';
 import {
@@ -40,7 +41,7 @@ function Main() {
             {routes()}
           </Router>
         </OnboardingContextProvider>
-        {ConfigStore.get('devtools')?.reactQuery && (
+        {USE_REACT_QUERY_DEVTOOL && (
           <ReactQueryDevtools initialIsOpen={false} position="bottom-left" />
         )}
       </QueryClientProvider>
