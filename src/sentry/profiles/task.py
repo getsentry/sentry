@@ -755,7 +755,7 @@ def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_fi
     )
 
     try:
-        with sentry_sdk.start_span(op="task.profiling.symbolicate.process_payload"):
+        with sentry_sdk.start_span(op="task.profiling.deobfuscate.process_payload"):
             response = symbolicate(
                 symbolicator=symbolicator,
                 profile=profile,
@@ -773,29 +773,31 @@ def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_fi
                 ],
                 platform=profile["platform"],
             )
-            if not response:
-                profile["symbolicator_error"] = {
-                    "type": EventError.NATIVE_INTERNAL_FAILURE,
-                }
-                sentry_sdk.capture_message("No response from Symbolicator")
-            elif response["status"] == "failed":
-                profile["symbolicator_error"] = {
-                    "type": EventError.NATIVE_SYMBOLICATOR_FAILED,
-                    "status": response["status"],
-                    "message": response["message"],
-                }
-                sentry_sdk.capture_message(response["message"])
-            elif len(response["stacktraces"]) > 0:
-                merge_jvm_frames_with_android_methods(
-                    frames=response["stacktraces"][0]["frames"],
-                    methods=profile["profile"]["methods"],
-                )
-                return True
+            if response:
+                if response["status"] == "failed":
+                    sentry_sdk.set_context(
+                        "deobfuscation_error",
+                        {
+                            "status": response["status"],
+                            "message": response["message"],
+                        },
+                    )
+                    sentry_sdk.capture_message("Deobfuscation via Symbolicator failed")
+                elif "stacktraces" in response:
+                    if "errors" in response:
+                        sentry_sdk.set_context(
+                            "deobfuscation_error",
+                            {
+                                "errors": response["errors"],
+                            },
+                        )
+                    merge_jvm_frames_with_android_methods(
+                        frames=response["stacktraces"][0]["frames"],
+                        methods=profile["profile"]["methods"],
+                    )
+                    return True
             else:
-                profile["symbolicator_error"] = {
-                    "type": EventError.NATIVE_SYMBOLICATOR_FAILED,
-                }
-                sentry_sdk.capture_message(EventError.NATIVE_SYMBOLICATOR_FAILED)
+                sentry_sdk.capture_message("No response from Symbolicator")
     except SymbolicationTimeout:
         metrics.incr("process_profile.symbolicate.timeout", sample_rate=1.0)
     return False
