@@ -268,9 +268,6 @@ export function TransactionNodeDetails({
     .sort();
 
   const parentTransaction = node.parent_transaction;
-  const hasNewTagsUI =
-    location.query.tagsTree === '1' ||
-    organization.features.includes('event-tags-tree-ui');
 
   return (
     <TraceDrawerComponents.DetailContainer>
@@ -412,15 +409,6 @@ export function TransactionNodeDetails({
             </Fragment>
           )}
 
-          {!hasNewTagsUI ? (
-            <Tags
-              enableHiding
-              location={location}
-              organization={organization}
-              tags={event.tags}
-              event={node.value}
-            />
-          ) : null}
           {measurementNames.length > 0 && (
             <tr>
               <td className="key">{t('Measurements')}</td>
@@ -447,11 +435,23 @@ export function TransactionNodeDetails({
           )}
         </tbody>
       </TraceDrawerComponents.Table>
-      {hasNewTagsUI ? (
+      {organization.features.includes('event-tags-tree-ui') ? (
         <TagsWrapper>
           <NewTagsUI event={event} projectSlug={node.value.project_slug} />
         </TagsWrapper>
-      ) : null}
+      ) : (
+        <TraceDrawerComponents.Table className="table key-value">
+          <tbody>
+            <Tags
+              enableHiding
+              location={location}
+              organization={organization}
+              tags={event.tags}
+              event={node.value}
+            />
+          </tbody>
+        </TraceDrawerComponents.Table>
+      )}
       {project ? <EventEvidence event={event} project={project} /> : null}
       <ReplaySection event={event} organization={organization} />
       {event.projectSlug ? (
