@@ -5,13 +5,11 @@ import logging
 import os
 import zlib
 from collections.abc import Sequence
-from hashlib import md5
 from typing import Any, Literal
 
 import msgpack
 import sentry_sdk
 import zstandard
-from django.core.cache import cache
 from sentry_ophio.enhancers import Cache as RustCache
 from sentry_ophio.enhancers import Component as RustComponent
 from sentry_ophio.enhancers import Enhancements as RustEnhancements
@@ -21,7 +19,6 @@ from sentry.features.rollout import in_random_rollout
 from sentry.grouping.component import GroupingComponent
 from sentry.stacktraces.functions import set_in_app
 from sentry.utils import metrics
-from sentry.utils.hashlib import hash_value
 from sentry.utils.safe import get_path, set_path
 
 from .exceptions import InvalidEnhancerConfig
@@ -29,7 +26,6 @@ from .matchers import create_match_frame
 from .parser import parse_enhancements
 from .rules import Rule
 
-DATADOG_KEY = "save_event.stacktrace"
 logger = logging.getLogger(__name__)
 
 # NOTE: The 1_000 here is pretty arbitrary. Our builtin base enhancements have about ~300 rules,
@@ -89,7 +85,6 @@ def parse_rust_enhancements(
     Parses ``RustEnhancements`` from either a msgpack-encoded `config_structure`,
     or from the text representation called `config_string`.
     """
-
     try:
         if source == "config_structure":
             assert isinstance(input, bytes)
@@ -120,49 +115,6 @@ def make_rust_exception_data(
         if isinstance(value, str):
             e[key] = value.encode("utf-8")
     return e
-
-
-def apply_rust_enhancements(
-    rust_enhancements: RustEnhancements | None,
-    match_frames: list[dict[str, bytes]],
-    exception_data: dict[str, Any],
-) -> RustEnhancedFrames | None:
-    """
-    If `RustEnhancements` were successfully parsed and usage is enabled,
-    this will apply all the modifications from enhancement rules to `match_frames`,
-    returning a tuple of `(modified category, modified in_app)` for each frame.
-    """
-    if not rust_enhancements:
-        return None
-
-    try:
-        rust_enhanced_frames = rust_enhancements.apply_modifications_to_frames(
-            match_frames, make_rust_exception_data(exception_data)
-        )
-        metrics.incr("rust_enhancements.modifications_run")
-        return rust_enhanced_frames
-    except Exception:
-        logger.exception("failed running Rust Enhancements modifications")
-        return None
-
-
-def compare_rust_enhancers(
-    frames: Sequence[dict[str, Any]], rust_enhanced_frames: RustEnhancedFrames | None
-):
-    """
-    Compares the results of `rust_enhanced_frames` with the frame modifications
-    applied by Python code directly to `frames`.
-
-    This will log an internal error on every mismatch.
-    """
-    if rust_enhanced_frames:
-        python_frames = list((get_path(f, "data", "category"), f.get("in_app")) for f in frames)
-
-        if python_frames != rust_enhanced_frames:
-            with sentry_sdk.push_scope() as scope:
-                scope.set_extra("python_frames", python_frames)
-                scope.set_extra("rust_enhanced_frames", rust_enhanced_frames)
-                sentry_sdk.capture_message("Rust Enhancements mismatch")
 
 
 def assemble_rust_components(
@@ -300,59 +252,21 @@ class Enhancements:
         frames: Sequence[dict[str, Any]],
         platform: str,
         exception_data: dict[str, Any],
-        extra_fingerprint: str = "",
     ) -> None:
         """This applies the frame modifications to the frames itself. This does not affect grouping."""
 
         # Matching frames are used for matching rules
         match_frames = [create_match_frame(frame, platform) for frame in frames]
 
-        rust_enhanced_frames = apply_rust_enhancements(
-            self.rust_enhancements, match_frames, exception_data
+        rust_enhanced_frames = self.rust_enhancements.apply_modifications_to_frames(
+            match_frames, make_rust_exception_data(exception_data)
         )
 
-        if rust_enhanced_frames:
-            for frame, (category, in_app) in zip(frames, rust_enhanced_frames):
-                if in_app is not None:
-                    set_in_app(frame, in_app)
-                if category is not None:
-                    set_path(frame, "data", "category", value=category)
-            return
-        else:
-            logger.error("Rust enhancements were not applied successfully")
-
-        in_memory_cache: dict[str, str] = {}
-
-        # The extra fingerprint mostly makes sense during test execution when two different group configs
-        # can share the same set of rules and bases
-        stacktrace_fingerprint = _generate_stacktrace_fingerprint(
-            match_frames, exception_data, extra_fingerprint, platform
-        )
-        # The most expensive part of creating groups is applying the rules to frames (next code block)
-        cache_key = f"stacktrace_hash.{stacktrace_fingerprint}"
-        use_cache = bool(stacktrace_fingerprint)
-        if use_cache:
-            frames_changed = _update_frames_from_cached_values(frames, cache_key, platform)
-            if frames_changed:
-                logger.debug("The frames have been loaded from the cache. Skipping some work.")
-                compare_rust_enhancers(frames, rust_enhanced_frames)
-                return
-
-        with sentry_sdk.start_span(op="stacktrace_processing", description="apply_rules_to_frames"):
-            for rule in self._modifier_rules:
-                for idx, action in rule.get_matching_frame_actions(
-                    match_frames, exception_data, in_memory_cache
-                ):
-                    # Both frames and match_frames are updated
-                    action.apply_modifications_to_frame(frames, match_frames, idx, rule=rule)
-            for frame, match_frame in zip(frames, match_frames):
-                if (in_app := match_frame["in_app"]) is not None:
-                    set_in_app(frame, in_app)
-
-        if use_cache:
-            _cache_changed_frame_values(frames, cache_key, platform)
-
-        compare_rust_enhancers(frames, rust_enhanced_frames)
+        for frame, (category, in_app) in zip(frames, rust_enhanced_frames):
+            if in_app is not None:
+                set_in_app(frame, in_app)
+            if category is not None:
+                set_path(frame, "data", "category", value=category)
 
     def update_frame_components_contributions(
         self, components, frames, match_frames, platform, exception_data
@@ -515,139 +429,6 @@ class Enhancements:
             bases=bases,
             id=id,
         )
-
-
-def _update_frames_from_cached_values(
-    frames: Sequence[dict[str, Any]], cache_key: str, platform: str
-) -> bool:
-    """
-    This will update the frames of the stacktrace if it's been cached.
-    Returns True if the merged has correctly happened.
-    """
-    frames_changed = False
-    changed_frames_values = cache.get(cache_key, {})
-
-    # This helps tracking changes in the hit/miss ratio of the cache
-    metrics.incr(
-        f"{DATADOG_KEY}.cache.get",
-        tags={"success": bool(changed_frames_values), "platform": platform},
-    )
-    if changed_frames_values:
-        try:
-            for frame, changed_frame_values in zip(frames, changed_frames_values):
-                if changed_frame_values.get("in_app") is not None:
-                    set_in_app(frame, changed_frame_values["in_app"])
-                    frames_changed = True
-                if changed_frame_values.get("category") is not None:
-                    set_path(frame, "data", "category", value=changed_frame_values["category"])
-                    frames_changed = True
-
-            if frames_changed:
-                logger.debug("We have merged the cached stacktrace to the incoming one.")
-        except Exception:
-            logger.exception(
-                "We have failed to update the stacktrace from the cache. Not aborting execution.",
-                extra={"platform": platform},
-            )
-            # We want tests to fail to prevent breaking the caching system without noticing
-            if os.environ.get("PYTEST_CURRENT_TEST"):
-                raise
-
-    metrics.incr(
-        f"{DATADOG_KEY}.merged_cached_values",
-        tags={"success": frames_changed, "platform": platform},
-    )
-    return frames_changed
-
-
-def _cache_changed_frame_values(
-    frames: Sequence[dict[str, Any]], cache_key: str, platform: str
-) -> None:
-    """Store in the cache the values which have been modified for each frame."""
-    caching_succeeded = False
-    # Check that some other event has not already populated the cache
-    if cache.get(cache_key):
-        return
-
-    try:
-        # XXX: A follow up PR will be required to make sure that only a whitelisted set of parameters
-        # are allowed to be modified in apply_modifications_to_frame, thus, not falling out of date with this
-        changed_frames_values = [
-            {
-                "in_app": frame.get("in_app"),  # Based on FlagAction
-                "category": get_path(frame, "data", "category"),  # Based on VarAction's
-            }
-            for frame in frames
-        ]
-        cache.set(cache_key, changed_frames_values)
-        caching_succeeded = True
-    except Exception:
-        logger.exception("Failed to store changed frames in cache", extra={"platform": platform})
-
-    metrics.incr(
-        f"{DATADOG_KEY}.cache.set",
-        tags={"success": caching_succeeded, "platform": platform},
-    )
-
-
-def _generate_stacktrace_fingerprint(
-    stacktrace_match_frames: Sequence[dict[str, Any]],
-    stacktrace_container: dict[str, Any],
-    enhancements_dumps: str,
-    platform: str,
-) -> str:
-    """Create a fingerprint for the stacktrace. Empty string if unsuccesful."""
-    stacktrace_fingerprint = ""
-    try:
-        stacktrace_frames_fingerprint = _generate_match_frames_fingerprint(stacktrace_match_frames)
-        stacktrace_type_value = _generate_stacktrace_container_fingerprint(stacktrace_container)
-        # Hash of the three components involved for fingerprinting a stacktrace
-        stacktrace_hash = md5()
-        hash_value(
-            stacktrace_hash,
-            (stacktrace_frames_fingerprint, stacktrace_type_value, enhancements_dumps),
-        )
-
-        stacktrace_fingerprint = stacktrace_hash.hexdigest()
-    except Exception:
-        # This will create an error in Sentry to help us evaluate why it failed
-        logger.exception(
-            "Stacktrace hashing failure. Investigate and fix.", extra={"platform": platform}
-        )
-        # We want tests to fail to prevent breaking the caching system without noticing
-        if os.environ.get("PYTEST_CURRENT_TEST"):
-            raise
-
-    # This will help us calculate the success ratio for fingerprint calculation
-    metrics.incr(
-        f"{DATADOG_KEY}.fingerprint",
-        tags={
-            "hashing_failure": stacktrace_fingerprint == "",
-            "platform": platform,
-        },
-    )
-    return stacktrace_fingerprint
-
-
-def _generate_stacktrace_container_fingerprint(stacktrace_container: dict[str, Any]) -> str:
-    stacktrace_type_value = ""
-    if stacktrace_container:
-        cont_type = stacktrace_container.get("type", "")
-        cont_value = stacktrace_container.get("value", "")
-        stacktrace_type_value = f"{cont_type}.{cont_value}"
-
-    return stacktrace_type_value
-
-
-def _generate_match_frames_fingerprint(match_frames: Sequence[dict[str, Any]]) -> str:
-    """Fingerprint representing the stacktrace frames. Raises error if it fails."""
-    stacktrace_hash = md5()
-    for match_frame in match_frames:
-        # We create the hash based on the match_frame since it does not
-        # contain values like the `vars` which is not necessary for grouping
-        hash_value(stacktrace_hash, match_frame)
-
-    return stacktrace_hash.hexdigest()
 
 
 def _load_configs() -> dict[str, Enhancements]:
