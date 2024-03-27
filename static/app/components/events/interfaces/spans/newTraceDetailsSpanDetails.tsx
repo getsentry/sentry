@@ -15,6 +15,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pill from 'sentry/components/pill';
 import Pills from 'sentry/components/pills';
 import {TransactionToProfileButton} from 'sentry/components/profiling/transactionToProfileButton';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {ALL_ACCESS_PROJECTS, PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -24,6 +25,7 @@ import {assert} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
+import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {safeURL} from 'sentry/utils/url/safeURL';
@@ -31,6 +33,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {CustomMetricsEventData} from 'sentry/views/ddm/customMetricsEventData';
 import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
+import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceTabs';
 import type {
   TraceTree,
@@ -342,8 +345,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
     const {start: startTimeWithLeadingZero, end: endTimeWithLeadingZero} =
       getFormattedTimeRangeWithLeadingAndTrailingZero(startTimestamp, endTimestamp);
 
-    const duration = (endTimestamp - startTimestamp) * 1000;
-    const durationString = `${Number(duration.toFixed(3)).toLocaleString()}ms`;
+    const duration = endTimestamp - startTimestamp;
 
     const unknownKeys = Object.keys(span).filter(key => {
       return !isHiddenDataKey(key) && !rawSpanKeys.has(key as any);
@@ -357,6 +359,9 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
 
     const timingKeys = getSpanSubTimings(span) ?? [];
     const parentTransaction = props.node.parent_transaction;
+    const averageSpanSelfTimeInSeconds: number | undefined = span['span.average_time']
+      ? span['span.average_time'] / 1000
+      : undefined;
 
     return (
       <Fragment>
@@ -366,6 +371,24 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
         <SpanDetails>
           <table className="table key-value">
             <tbody>
+              <Row title={t('Duration')}>
+                <strong>{getDuration(duration, 2, true)}</strong>
+              </Row>
+              {span.exclusive_time ? (
+                <Row
+                  title={t('Self Time')}
+                  toolTipText={t(
+                    'The time spent exclusively in this span, excluding the total duration of its children'
+                  )}
+                >
+                  <TraceDrawerComponents.DurationComparison
+                    isComparingSelfDuration
+                    totalDuration={duration}
+                    selfDuration={span.exclusive_time / 1000}
+                    baseline={averageSpanSelfTimeInSeconds}
+                  />
+                </Row>
+              ) : null}
               {parentTransaction ? (
                 <Row title="Parent Transaction">
                   <td className="value">
@@ -422,7 +445,6 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                 </Row>
               )}
               <Row title={t('Status')}>{span.status || ''}</Row>
-              <Row title={t('Duration')}>{durationString}</Row>
               <SpanHTTPInfo span={props.span} />
               <Row
                 title={
@@ -475,11 +497,6 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
               </Row>
               <Row title={t('Span Group')}>
                 {defined(span.hash) ? String(span.hash) : null}
-              </Row>
-              <Row title={t('Span Self Time')}>
-                {defined(span.exclusive_time)
-                  ? `${Number(span.exclusive_time.toFixed(3)).toLocaleString()}ms`
-                  : null}
               </Row>
               {timingKeys.map(timing => (
                 <Row
@@ -647,12 +664,14 @@ export function Row({
   children,
   prefix,
   extra = null,
+  toolTipText,
 }: {
   children: React.ReactNode;
   title: JSX.Element | string | null;
   extra?: React.ReactNode;
   keep?: boolean;
   prefix?: JSX.Element;
+  toolTipText?: string;
 }) {
   if (!keep && !children) {
     return null;
@@ -664,6 +683,7 @@ export function Row({
         <Flex>
           {prefix}
           {title}
+          {toolTipText ? <StyledQuestionTooltip size="xs" title={toolTipText} /> : null}
         </Flex>
       </td>
       <ValueTd className="value">
@@ -739,6 +759,10 @@ const StyledPre = styled('pre')`
 
 const ButtonContainer = styled('div')`
   padding: 8px 10px;
+`;
+
+const StyledQuestionTooltip = styled(QuestionTooltip)`
+  margin-left: ${space(0.5)};
 `;
 
 export default NewTraceDetailsSpanDetail;
