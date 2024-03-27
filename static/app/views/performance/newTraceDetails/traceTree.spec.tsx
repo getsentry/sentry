@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import {EntryType, type Event, type EventTransaction} from 'sentry/types';
+import {EntryType, type Event} from 'sentry/types';
 import type {
   TraceFullDetailed,
   TracePerformanceIssue,
@@ -242,12 +242,10 @@ describe('TreeNode', () => {
             makeTransaction({
               start_timestamp: 0,
               timestamp: 1,
+              measurements: {ttfb: {value: 0, unit: 'millisecond'}},
             }),
           ],
-        }),
-        {
-          measurements: {ttfb: {value: 0, unit: 'millisecond'}},
-        } as unknown as EventTransaction
+        })
       );
 
       expect(tree.indicators.length).toBe(1);
@@ -261,16 +259,14 @@ describe('TreeNode', () => {
             makeTransaction({
               start_timestamp: 0,
               timestamp: 1,
+              measurements: {
+                ttfb: {value: 500, unit: 'millisecond'},
+                fcp: {value: 0.5, unit: 'second'},
+                lcp: {value: 500_000_000, unit: 'nanosecond'},
+              },
             }),
           ],
-        }),
-        {
-          measurements: {
-            ttfb: {value: 500, unit: 'millisecond'},
-            fcp: {value: 0.5, unit: 'second'},
-            lcp: {value: 500_000_000, unit: 'nanosecond'},
-          },
-        } as unknown as EventTransaction
+        })
       );
 
       expect(tree.indicators[0].start).toBe(500);
@@ -285,14 +281,12 @@ describe('TreeNode', () => {
             makeTransaction({
               start_timestamp: 0,
               timestamp: 1,
+              measurements: {
+                ttfb: {value: 2, unit: 'second'},
+              },
             }),
           ],
-        }),
-        {
-          measurements: {
-            ttfb: {value: 2, unit: 'second'},
-          },
-        } as unknown as EventTransaction
+        })
       );
 
       expect(tree.root.space).toEqual([0, 2000]);
@@ -305,14 +299,12 @@ describe('TreeNode', () => {
             makeTransaction({
               start_timestamp: 0,
               timestamp: 1,
+              measurements: {
+                ttfb: {value: 2000, unit: 'millisecond'},
+              },
             }),
           ],
-        }),
-        {
-          measurements: {
-            ttfb: {value: 2000, unit: 'millisecond'},
-          },
-        } as unknown as EventTransaction
+        })
       );
 
       expect(tree.root.space).toEqual([0, 2000]);
@@ -326,15 +318,13 @@ describe('TreeNode', () => {
             makeTransaction({
               start_timestamp: 0,
               timestamp: 1,
+              measurements: {
+                ttfb: {value: 2000, unit: 'millisecond'},
+                lcp: {value: 1000, unit: 'millisecond'},
+              },
             }),
           ],
-        }),
-        {
-          measurements: {
-            ttfb: {value: 2000, unit: 'millisecond'},
-            lcp: {value: 1000, unit: 'millisecond'},
-          },
-        } as unknown as EventTransaction
+        })
       );
 
       expect(tree.indicators[0].start).toBe(1000);

@@ -211,7 +211,7 @@ function TraceViewContent(props: TraceViewContentProps) {
       return TraceTree.Empty();
     }
 
-    if (props.status === 'loading' || rootEvent.status === 'loading') {
+    if (props.status === 'loading') {
       const loadingTrace =
         loadingTraceRef.current ??
         TraceTree.Loading(
@@ -226,19 +226,12 @@ function TraceViewContent(props: TraceViewContentProps) {
       return loadingTrace;
     }
 
-    if (props.trace && rootEvent.status === 'success') {
-      return TraceTree.FromTrace(props.trace, rootEvent.data);
+    if (props.trace) {
+      return TraceTree.FromTrace(props.trace);
     }
 
     throw new Error('Invalid trace state');
-  }, [
-    props.traceSlug,
-    props.trace,
-    props.status,
-    projects,
-    rootEvent.data,
-    rootEvent.status,
-  ]);
+  }, [props.traceSlug, props.trace, props.status, projects]);
 
   const [rovingTabIndexState, rovingTabIndexDispatch] = useReducer(
     rovingTabIndexReducer,
