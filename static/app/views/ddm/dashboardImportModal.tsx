@@ -68,7 +68,11 @@ function DashboardImportModal({Header, Body, Footer}: ModalRenderProps) {
       setFormState(curr => ({...curr, step: 'importing'}));
 
       const dashboardJson = JSON.parse(formState.dashboard);
-      const importResult = await parseDashboard(dashboardJson, metricsMeta);
+      const importResult = await parseDashboard(
+        dashboardJson,
+        metricsMeta,
+        organization.slug
+      );
 
       setFormState(curr => ({
         ...curr,
@@ -76,7 +80,7 @@ function DashboardImportModal({Header, Body, Footer}: ModalRenderProps) {
         step: 'add-widgets',
       }));
     }
-  }, [formState.isValid, formState.dashboard, metricsMeta]);
+  }, [formState.isValid, formState.dashboard, metricsMeta, organization.slug]);
 
   const handleCreateDashboard = useCallback(async () => {
     const title = formState.importResult?.title ?? 'Metrics Dashboard';
