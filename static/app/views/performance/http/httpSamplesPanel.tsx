@@ -291,7 +291,7 @@ export function HTTPSamplesPanel() {
               <ModuleLayout.Full>
                 <SpanSamplesTable
                   data={samplesData}
-                  isLoading={isSamplesDataFetching}
+                  isLoading={isDurationDataFetching || isSamplesDataFetching}
                   error={samplesDataError}
                 />
               </ModuleLayout.Full>
