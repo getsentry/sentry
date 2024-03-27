@@ -39,6 +39,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import cast
 
+from sentry_kafka_schemas.codecs import ValidationError
+
 from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import EntityKey
@@ -369,6 +371,6 @@ def extract_use_case_id(mri: str) -> UseCaseID:
         if parsed_mri.namespace in {id.value for id in UseCaseID}:
             return UseCaseID(parsed_mri.namespace)
 
-        raise Exception(f"The use case of the MRI {parsed_mri.namespace} does not exist")
+        raise ValidationError(f"The use case of the MRI {parsed_mri.namespace} does not exist")
 
-    raise Exception(f"The MRI {mri} is not valid")
+    raise ValidationError(f"The MRI {mri} is not valid")
