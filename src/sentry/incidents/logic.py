@@ -12,7 +12,7 @@ from django.db import router, transaction
 from django.db.models.signals import post_save
 from django.forms import ValidationError
 from django.utils import timezone as django_timezone
-from snuba_sdk import Column, Condition, Entity, Limit, Op
+from snuba_sdk import Column, Condition, Limit, Op
 
 from sentry import analytics, audit_log, features, quotas
 from sentry.auth.access import SystemAccess
@@ -65,6 +65,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
     EntitySubscription,
+    get_entity_from_query_builder,
     get_entity_key_from_query_builder,
     get_entity_subscription_from_snuba_query,
 )
@@ -356,7 +357,7 @@ def build_incident_query_builder(
             query_builder.columns[i] = replace(column, alias="count")
     entity_key = get_entity_key_from_query_builder(query_builder)
     time_col = ENTITY_TIME_COLUMNS[entity_key]
-    entity = Entity(entity_key.value, alias=entity_key.value)
+    entity = get_entity_from_query_builder(query_builder)
     query_builder.add_conditions(
         [
             Condition(Column(time_col, entity=entity), Op.GTE, start),
