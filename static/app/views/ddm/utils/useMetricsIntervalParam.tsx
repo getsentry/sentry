@@ -29,12 +29,10 @@ const ALL_INTERVAL_OPTIONS = [
   {value: '15m', label: t('15 minutes')},
   {value: '30m', label: t('30 minutes')},
   {value: '1h', label: t('1 hour')},
-  {value: '3h', label: t('3 hours')},
-  {value: '6h', label: t('6 hours')},
-  {value: '12h', label: t('12 hours')},
-  {value: '24h', label: t('24 hours')},
-  {value: '2d', label: t('2 days')},
-  {value: '7d', label: t('7 days')},
+  {value: '4h', label: t('4 hours')},
+  {value: '1d', label: t('1 day')},
+  {value: '1w', label: t('1 week')},
+  {value: '4w', label: t('1 month')},
 ];
 
 const minimumInterval = new GranularityLadder([
@@ -48,8 +46,9 @@ const minimumInterval = new GranularityLadder([
 ]);
 
 const maximumInterval = new GranularityLadder([
-  [THIRTY_DAYS, '7d'],
-  [TWO_WEEKS, '2d'],
+  [SIXTY_DAYS, '4w'],
+  [THIRTY_DAYS, '1w'],
+  [TWO_WEEKS, '1w'],
   [ONE_WEEK, '1d'],
   [TWENTY_FOUR_HOURS, '6h'],
   [ONE_HOUR, '15m'],
