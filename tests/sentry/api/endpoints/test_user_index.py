@@ -1,6 +1,6 @@
 from sentry.models.userpermission import UserPermission
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 
 
@@ -19,13 +19,13 @@ class UserListTest(APITestCase):
         self.login_as(self.normal_user)
         self.get_error_response(status_code=403)
 
-    @with_feature("auth:enterprise-staff-cookie")
     def test_staff_simple(self):
         self.staff_user = self.create_user(is_staff=True)
         self.login_as(self.staff_user, staff=True)
 
-        response = self.get_success_response()
-        assert len(response.data) == 3
+        with override_options({"staff.user-email-allowlist": [self.staff_user.email]}):
+            response = self.get_success_response()
+            assert len(response.data) == 3
 
     def test_superuser_simple(self):
         response = self.get_success_response()
