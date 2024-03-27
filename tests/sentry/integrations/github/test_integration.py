@@ -367,7 +367,28 @@ class GitHubIntegrationTest(IntegrationTestCase):
         integration.delete()
 
         # Try again and should be successful
+        webhook_event = json.loads(INSTALLATION_EVENT_EXAMPLE)
+        webhook_event["installation"]["id"] = self.installation_id
+        response = self.client.post(
+            path="/extensions/github/webhook/",
+            data=json.dumps(webhook_event),
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="installation",
+            HTTP_X_HUB_SIGNATURE="sha1=beeaaadb9015e847551da969b072f4d64670d359",
+            HTTP_X_GITHUB_DELIVERY="00000000-0000-4000-8000-1234567890ab",
+        )
+        assert response.status_code == 204
+
         resp = self.client.get(self.init_path_2)
+
+        self.init_path_3 = "{}?{}".format(
+            self.setup_path,
+            urlencode(
+                {"code": "12345678901234567890", "state": "ddd023d87a913d5226e2a882c4c4cc05"}
+            ),
+        )
+        resp = self.client.get(self.init_path_3)
+
         self.assertDialogSuccess(resp)
         integration = Integration.objects.get(external_id=self.installation_id)
         assert integration.provider == "github"
@@ -385,7 +406,15 @@ class GitHubIntegrationTest(IntegrationTestCase):
         resp = self.client.get(
             "{}?{}".format(self.setup_path, urlencode({"installation_id": self.installation_id}))
         )
-        assert b"The GitHub installation could not be found." in resp.content
+        resp = self.client.get(
+            "{}?{}".format(
+                self.setup_path,
+                urlencode(
+                    {"code": "12345678901234567890", "state": "ddd023d87a913d5226e2a882c4c4cc05"}
+                ),
+            )
+        )
+        assert b"Invalid installation request." in resp.content
 
     @responses.activate
     def test_reinstall_flow(self):
@@ -687,10 +716,31 @@ class GitHubIntegrationTest(IntegrationTestCase):
         oi.delete()
         integration.delete()
 
+        webhook_event = json.loads(INSTALLATION_EVENT_EXAMPLE)
+        webhook_event["installation"]["id"] = self.installation_id
+        response = self.client.post(
+            path="/extensions/github/webhook/",
+            data=json.dumps(webhook_event),
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="installation",
+            HTTP_X_HUB_SIGNATURE="sha1=2b3eeeae69825e0c3cf6f845c16b417fa11528ab",
+            HTTP_X_GITHUB_DELIVERY="00000000-0000-4000-8000-1234567890ab",
+        )
+        assert response.status_code == 204
+
         # Try again and should be successful
         resp = self.client.get(
             "{}?{}".format(self.init_path, urlencode({"installation_id": self.installation_id}))
         )
+        resp = self.client.get(
+            "{}?{}".format(
+                self.setup_path,
+                urlencode(
+                    {"code": "12345678901234567890", "state": "ddd023d87a913d5226e2a882c4c4cc05"}
+                ),
+            )
+        )
+
         self.assertDialogSuccess(resp)
         integration = Integration.objects.get(external_id=self.installation_id)
         assert integration.provider == "github"
