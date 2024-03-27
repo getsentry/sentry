@@ -211,6 +211,46 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
+                    "avg_by_timestamp",
+                    required_args=[
+                        fields.MetricArg(
+                            "column",
+                            # TODO: This needs to allow throughput
+                            allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
+                        ),
+                        fields.FunctionArg(
+                            "condition",
+                        ),
+                        fields.TimestampArg("timestamp"),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=lambda args, alias: Function(
+                        "avgIf",
+                        [
+                            Column("value"),
+                            Function(
+                                "and",
+                                [
+                                    Function(
+                                        "equals",
+                                        [
+                                            Column("metric_id"),
+                                            args["metric_id"],
+                                        ],
+                                    ),
+                                    Function(
+                                        args["condition"],
+                                        [Column("timestamp"), args["timestamp"]],
+                                    ),
+                                ],
+                            ),
+                        ],
+                        alias,
+                    ),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                ),
+                fields.MetricsFunction(
                     "percentile",
                     required_args=[
                         fields.with_default(

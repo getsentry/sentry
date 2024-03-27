@@ -1220,6 +1220,42 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert len(data) == 2
         assert [row["span.description"] for row in data] == ["Non-regressed", "Removed span"]
 
+    def test_avg_self_time_by_timestamp(self):
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.six_min_ago,
+            tags={},
+        )
+
+        self.store_span_metric(
+            3,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={},
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    f"avg_by_timestamp(span.self_time,less,{int(self.two_min_ago.timestamp())})",
+                    f"avg_by_timestamp(span.self_time,greater,{int(self.two_min_ago.timestamp())})",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "1h",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0] == {
+            f"avg_by_timestamp(span.self_time,less,{int(self.two_min_ago.timestamp())})": 1.0,
+            f"avg_by_timestamp(span.self_time,greater,{int(self.two_min_ago.timestamp())})": 3.0,
+        }
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsMetricsEnhancedPerformanceEndpointTest
