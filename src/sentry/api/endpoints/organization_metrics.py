@@ -41,8 +41,8 @@ from sentry.sentry_metrics.querying.samples_list import get_sample_list_executor
 from sentry.sentry_metrics.querying.types import QueryOrder, QueryType
 from sentry.sentry_metrics.use_case_id_registry import (
     UseCaseID,
-    UseCaseIDVisibility,
-    get_use_case_id_visibility,
+    UseCaseIDAPIAccess,
+    get_use_case_id_api_access,
 )
 from sentry.sentry_metrics.utils import string_to_use_case_id
 from sentry.snuba.metrics import (
@@ -78,7 +78,7 @@ def get_default_use_case_ids(request: Request) -> Sequence[UseCaseID]:
     for use_case_id in UseCaseID:
         if (
             not has_elevated_mode(request)
-            and get_use_case_id_visibility(use_case_id) == UseCaseIDVisibility.PRIVATE
+            and get_use_case_id_api_access(use_case_id) == UseCaseIDAPIAccess.PRIVATE
         ):
             continue
 
