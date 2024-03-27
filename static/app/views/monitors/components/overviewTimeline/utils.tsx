@@ -2,7 +2,7 @@ import moment from 'moment';
 
 import {getFormat} from 'sentry/utils/dates';
 
-import type {TimeWindow, TimeWindowOptions} from './types';
+import type {TimeWindow, TimeWindowConfig} from './types';
 
 // Stores the elapsed minutes for each selectable resolution
 export const resolutionElapsedMinutes: Record<TimeWindow, number> = {
@@ -25,7 +25,7 @@ export function getConfigFromTimeRange(
   start: Date,
   end: Date,
   timelineWidth: number
-): TimeWindowOptions {
+): TimeWindowConfig {
   // Acceptable intervals between time labels, in minutes
   const minuteRanges = [1, 10, 30, 60, 4 * 60, 8 * 60, 12 * 60];
   const startEndMinutes = (end.getTime() - start.getTime()) / (1000 * 60);

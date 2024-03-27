@@ -9,14 +9,14 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {
   JobTickData,
-  TimeWindowOptions,
+  TimeWindowConfig,
 } from 'sentry/views/monitors/components/overviewTimeline/types';
 import type {CheckInStatus} from 'sentry/views/monitors/types';
 import {statusToText, tickStyle} from 'sentry/views/monitors/utils';
 
 interface Props extends Omit<TooltipProps, 'title'> {
   jobTick: JobTickData;
-  timeWindowConfig: TimeWindowOptions;
+  timeWindowConfig: TimeWindowConfig;
 }
 
 export function JobTickTooltip({jobTick, timeWindowConfig, children, ...props}: Props) {
