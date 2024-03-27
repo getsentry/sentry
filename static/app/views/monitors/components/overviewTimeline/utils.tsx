@@ -1,5 +1,3 @@
-import moment from 'moment';
-
 import {getFormat} from 'sentry/utils/dates';
 
 import type {TimeWindow, TimeWindowConfig} from './types';
@@ -11,12 +9,6 @@ export const resolutionElapsedMinutes: Record<TimeWindow, number> = {
   '7d': 60 * 24 * 7,
   '30d': 60 * 24 * 30,
 };
-
-export function getStartFromTimeWindow(end: Date, timeWindow: TimeWindow): Date {
-  const start = moment(end).subtract(resolutionElapsedMinutes[timeWindow], 'minute');
-
-  return start.toDate();
-}
 
 // The pixels to allocate to each time label based on (MMM DD HH:SS AM/PM)
 const TIMELABEL_WIDTH = 100;
