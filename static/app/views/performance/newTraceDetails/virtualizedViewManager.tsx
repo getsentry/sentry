@@ -1616,12 +1616,12 @@ function maybeToggleScrollbar(
   if (scrollHeight > containerHeight) {
     container.style.overflowY = 'scroll';
     container.style.scrollbarGutter = 'stable';
+    manager.onScrollbarWidthChange(container.offsetWidth - container.clientWidth);
   } else {
     container.style.overflowY = 'auto';
     container.style.scrollbarGutter = 'auto';
+    manager.onScrollbarWidthChange(0);
   }
-
-  manager.onScrollbarWidthChange(container.offsetWidth - container.clientWidth);
 }
 
 interface UseVirtualizedListProps {
