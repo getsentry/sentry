@@ -264,6 +264,14 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_REQUIRED,
 )
 
+# Staff
+register(
+    "staff.user-email-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # API
 # Killswitch for apis to work with id or slug as path parameters
 register(
@@ -1617,6 +1625,18 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # ms
 
+# Adjusting some time buffers in the trace endpoint
+register(
+    "performance.traces.transaction_query_timebuffer_days",
+    default=1.5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # days
+register(
+    "performance.traces.span_query_timebuffer_hours",
+    default=1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # hours
+
 # Dynamic Sampling system-wide options
 # Size of the sliding window used for dynamic sampling. It is defaulted to 24 hours.
 register("dynamic-sampling:sliding_window.size", default=24, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1658,20 +1678,25 @@ register("hybridcloud.regionsiloclient.retries", default=5, flags=FLAG_AUTOMATOR
 register("hybridcloud.rpc.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybridcloud.integrationproxy.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# Break glass controls
-register("hybrid_cloud.rpc.disabled-service-methods", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
-
+# Webhook processing controls
 register(
     "hybridcloud.webhookpayload.use_parallel",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
 register(
     "hybridcloud.webhookpayload.worker_threads",
     default=4,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "hybridcloud.webhookpayload.use_mailbox_buckets",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Break glass controls
+register("hybrid_cloud.rpc.disabled-service-methods", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 # == End hybrid cloud subsystem
 
 # Decides whether an incoming transaction triggers an update of the clustering rule applied to it.

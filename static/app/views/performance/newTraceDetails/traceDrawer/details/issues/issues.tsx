@@ -177,7 +177,7 @@ function IssueListHeader({node}: {node: TraceTreeNode<TraceTree.NodeValue>}) {
   return (
     <StyledPanelHeader disablePadding>
       <IssueHeading>
-        {errors.length + performance_issues.length > MAX_DISPLAYED_ISSUES_COUNT
+        {errors.size + performance_issues.size > MAX_DISPLAYED_ISSUES_COUNT
           ? tct(`[count]+  issues, [link]`, {
               count: MAX_DISPLAYED_ISSUES_COUNT,
               link: (
@@ -196,30 +196,30 @@ function IssueListHeader({node}: {node: TraceTreeNode<TraceTree.NodeValue>}) {
                 </StyledLink>
               ),
             })
-          : errors.length > 0 && performance_issues.length === 0
+          : errors.size > 0 && performance_issues.size === 0
             ? tct('[count] [text]', {
-                count: errors.length,
-                text: tn('Error', 'Errors', errors.length),
+                count: errors.size,
+                text: tn('Error', 'Errors', errors.size),
               })
-            : performance_issues.length > 0 && errors.length === 0
+            : performance_issues.size > 0 && errors.size === 0
               ? tct('[count] [text]', {
-                  count: performance_issues.length,
+                  count: performance_issues.size,
                   text: tn(
                     'Performance issue',
                     'Performance Issues',
-                    performance_issues.length
+                    performance_issues.size
                   ),
                 })
               : tct(
                   '[errors] [errorsText] and [performance_issues] [performanceIssuesText]',
                   {
-                    errors: errors.length,
-                    performance_issues: performance_issues.length,
-                    errorsText: tn('Error', 'Errors', errors.length),
+                    errors: errors.size,
+                    performance_issues: performance_issues.size,
+                    errorsText: tn('Error', 'Errors', errors.size),
                     performanceIssuesText: tn(
                       'performance issue',
                       'performance issues',
-                      performance_issues.length
+                      performance_issues.size
                     ),
                   }
                 )}

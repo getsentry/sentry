@@ -21,6 +21,7 @@ import {METRICS_DOCS_URL} from 'sentry/utils/metrics/constants';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useDDMContext} from 'sentry/views/ddm/context';
 import {useMetricsOnboardingSidebar} from 'sentry/views/ddm/ddmOnboarding/useMetricsOnboardingSidebar';
+import {IntervalSelect} from 'sentry/views/ddm/intervalSelect';
 import {PageHeaderActions} from 'sentry/views/ddm/pageHeaderActions';
 import {Queries} from 'sentry/views/ddm/queries';
 import {MetricScratchpad} from 'sentry/views/ddm/scratchpad';
@@ -72,13 +73,14 @@ export const MetricsLayout = memo(() => {
       <Layout.Body>
         <FloatingFeedbackWidget />
         <Layout.Main fullWidth>
-          <PaddedContainer>
+          <FilterContainer>
             <PageFilterBar condensed>
               <ProjectPageFilter />
               <EnvironmentPageFilter />
               <DatePageFilter />
             </PageFilterBar>
-          </PaddedContainer>
+            <IntervalSelect />
+          </FilterContainer>
           {hasMetrics ? (
             <Fragment>
               <Queries />
@@ -107,10 +109,10 @@ export const MetricsLayout = memo(() => {
   );
 });
 
-const PaddedContainer = styled('div')`
+const FilterContainer = styled('div')`
   margin-bottom: ${space(2)};
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   flex-wrap: wrap;
   gap: ${space(1)};
 `;

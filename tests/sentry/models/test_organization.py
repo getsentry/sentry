@@ -31,10 +31,9 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 
 
-@region_silo_test
 class OrganizationTest(TestCase, HybridCloudTestMixin):
     def test_slugify_on_new_orgs(self):
         org = Organization.objects.create(name="name", slug="---downtown_canada---")
@@ -175,7 +174,6 @@ class OrganizationTest(TestCase, HybridCloudTestMixin):
         self.assertFalse(has_changed(inst, "name"))
 
 
-@region_silo_test
 class Require2fa(TestCase, HybridCloudTestMixin):
     def setUp(self):
         self.owner = self.create_user("foo@example.com")
@@ -421,7 +419,6 @@ class Require2fa(TestCase, HybridCloudTestMixin):
         assert url == "http://acme.testserver/issues/?project=123#ref"
 
 
-@region_silo_test
 class OrganizationDeletionTest(TestCase):
     def add_org_notification_settings(self, org: Organization, user: User):
         with assume_test_silo_mode(SiloMode.CONTROL):

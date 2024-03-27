@@ -1,13 +1,11 @@
 from sentry.models.group import Group
 from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = requires_snuba
 
 
-@region_silo_test
 class SentryManagerTest(TestCase):
     def test_valid_only_message(self):
         proj = self.create_project()

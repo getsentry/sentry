@@ -13,7 +13,6 @@ from sentry.snuba.metrics import to_intervals
 from sentry.testutils.cases import APITestCase, BaseMetricsTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.link_header import parse_link_header
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.cursors import Cursor
 
 pytestmark = pytest.mark.sentry_metrics
@@ -1312,7 +1311,6 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         ]
 
 
-@region_silo_test
 @patch("sentry.release_health.backend", MetricsReleaseHealthBackend())
 class OrganizationSessionsEndpointMetricsTest(
     BaseMetricsTestCase, OrganizationSessionsEndpointTest
@@ -1890,7 +1888,6 @@ class OrganizationSessionsEndpointMetricsTest(
             ]
 
 
-@region_silo_test
 @patch("sentry.release_health.backend", MetricsReleaseHealthBackend())
 class SessionsMetricsSortReleaseTimestampTest(BaseMetricsTestCase, APITestCase):
     def do_request(self, query, user=None, org=None):
