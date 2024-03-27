@@ -81,7 +81,7 @@ def get_default_use_case_ids(request: Request) -> Sequence[UseCaseID]:
         ):
             continue
 
-        default_use_case_ids.append(default_use_case_ids)
+        default_use_case_ids.append(use_case_id)
 
     return default_use_case_ids
 

@@ -1,8 +1,14 @@
 from datetime import timedelta
+from unittest import mock
+from unittest.mock import patch
 
 import pytest
 
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.sentry_metrics.use_case_id_registry import (
+    UseCaseID,
+    UseCaseIDVisibility,
+    get_use_case_id_visibility,
+)
 from sentry.sentry_metrics.visibility import block_metric, block_tags_of_metric
 from sentry.testutils.cases import MetricsAPIBaseTestCase, OrganizationMetricsIntegrationTestCase
 from sentry.testutils.skips import requires_snuba
@@ -68,6 +74,34 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
         response = self.get_success_response(self.organization.slug, useCase="transactions")
 
         assert isinstance(response.data, list)
+
+    @patch("sentry.api.endpoints.organization_metrics.get_metrics_meta")
+    def test_metrics_details_for_public_use_cases(self, get_metrics_meta):
+        get_metrics_meta.return_value = []
+
+        all_use_case_ids = [use_case_id for use_case_id in UseCaseID]
+        public_use_case_ids = [
+            use_case_id
+            for use_case_id in all_use_case_ids
+            if get_use_case_id_visibility(use_case_id) == UseCaseIDVisibility.PUBLIC
+        ]
+
+        self.get_success_response(self.organization.slug, project=[self.project.id])
+        get_metrics_meta.assert_called_once_with(
+            projects=[self.project], use_case_ids=all_use_case_ids, start=mock.ANY, end=mock.ANY
+        )
+
+        other_user = self.create_user("admin_2@localhost", is_superuser=False, is_staff=True)
+        other_organization = self.create_organization(name="baz", slug="baz", owner=other_user)
+        other_team = self.create_team(organization=other_organization)
+        other_project = self.create_project(
+            name="Bar", slug="bar", teams=[other_team], fire_project_created=True
+        )
+
+        self.get_success_response(other_organization.slug, project=[other_project.id])
+        get_metrics_meta.assert_called_once_with(
+            projects=[other_project], use_case_ids=public_use_case_ids, start=mock.ANY, end=mock.ANY
+        )
 
     def test_metrics_details_for_custom_metrics(self):
         project_1 = self.create_project()
