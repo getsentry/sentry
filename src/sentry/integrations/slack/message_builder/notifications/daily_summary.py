@@ -21,6 +21,8 @@ from sentry.utils.http import absolute_uri
 
 from .base import SlackNotificationsMessageBuilder
 
+MAX_CHARS_ONE_LINE = 35
+
 
 class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
     def __init__(
@@ -39,11 +41,12 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
             params={"referrer": self.notification.get_referrer(ExternalProviders.SLACK)}
         )
         title = build_attachment_title(group)
+        formatted_title = self.truncate_text(title)
         attachment_text = self.get_attachment_text(group)
         if not attachment_text:
-            return f"<{link}|*{escape_slack_text(title)}*>"
-        attachment_text = attachment_text.replace("\n", " ")
-        return f"<{link}|*{escape_slack_text(title)}*>\n{attachment_text}"
+            return f"<{link}|*{escape_slack_text(formatted_title)}*>"
+        formatted_attachment_text = attachment_text.replace("\n", " ")
+        return f"<{link}|*{escape_slack_text(formatted_title)}*>\n{self.truncate_text(formatted_attachment_text)}"
 
     def linkify_release(self, release, organization):
         path = f"/releases/{release.version}/"
@@ -51,11 +54,14 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
         release_description = parse_release(release.version).get("description")
         return f":rocket: *<{url}|Release {release_description}>*\n"
 
+    def truncate_text(self, text):
+        if text and len(text) > MAX_CHARS_ONE_LINE:
+            text = text[:MAX_CHARS_ONE_LINE] + "..."
+        return text
+
     def get_attachment_text(self, group):
         attachment_text = build_attachment_text(group)
-        if attachment_text and len(attachment_text) > 50:
-            attachment_text = attachment_text[0:49] + "..."
-        return attachment_text
+        return self.truncate_text(attachment_text)
 
     def build_discover_url(self, project):
         query_params = {
