@@ -80,6 +80,10 @@ def create_event(project_id: int, event_id: str, event_data: dict[str, Any]) -> 
 def create_event_and_issue_occurrence(
     occurrence_data: IssueOccurrenceData, event_data: dict[str, Any]
 ) -> tuple[IssueOccurrence, GroupInfo | None]:
+    """With standalone span ingestion, we won't be storing events in
+    nodestore, so instead we create a light-weight event with a small
+    set of fields that lets us create occurrences.
+    """
     project_id = occurrence_data["project_id"]
     event_id = occurrence_data["event_id"]
     if occurrence_data["event_id"] != event_data["event_id"]:
