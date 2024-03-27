@@ -1,7 +1,7 @@
 import logging
 import re
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, cast
+from typing import Any
 
 import sentry_sdk
 from rest_framework.exceptions import ParseError
@@ -93,7 +93,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
         top_trending_transactions = {}
 
         def get_top_events(user_query, params, event_limit, referrer):
-            top_event_columns = cast(list[str], selected_columns[:])
+            top_event_columns = selected_columns[:]
             top_event_columns.append("count()")
             top_event_columns.append("project_id")
 
@@ -129,17 +129,23 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             ]
             queries = [generate_top_transaction_query(t_e) for t_e in split_top_events]
 
-            timeseries_columns = cast(list[str], selected_columns[:])
+            timeseries_columns = selected_columns[:]
             timeseries_columns.append(trend_function)
 
             # When all projects or my projects options selected,
             # keep only projects that top events belong to to reduce query cardinality
-            used_project_ids = list({event["project"] for event in data})
-
-            request.GET.projectSlugs = used_project_ids  # type: ignore[attr-defined]
+            used_project_ids = set({event["project_id"] for event in data})
 
             # Get new params with pruned projects
             pruned_params = self.get_snuba_params(request, organization)
+            pruned_params["project_objects"] = [
+                project
+                for project in pruned_params["project_objects"]
+                if project.id in used_project_ids
+            ]
+            pruned_params["project_id"] = [
+                project.id for project in pruned_params["project_objects"]
+            ]
 
             result = metrics_performance.bulk_timeseries_query(
                 timeseries_columns,
@@ -164,7 +170,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                     "project_id": item["project_id"],
                 }
 
-            for row in result.get("data", []):  # type: ignore[union-attr]
+            for row in result.get("data", []):
                 result_key = create_result_key(row, translated_groupby, {})
                 if result_key in results:
                     results[result_key]["data"].append(row)

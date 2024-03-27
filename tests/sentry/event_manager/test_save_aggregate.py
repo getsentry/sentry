@@ -12,7 +12,6 @@ from sentry.eventstore.models import Event
 from sentry.grouping.result import CalculatedHashes
 from sentry.models.grouphash import GroupHash
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import region_silo_test
 
 
 @django_db_all(transaction=True)
@@ -39,7 +38,6 @@ from sentry.testutils.silo import region_silo_test
     ],
     ids=(" is_race_free: True ", " is_race_free: False "),
 )
-@region_silo_test
 def test_group_creation_race_new(
     monkeypatch, default_project, is_race_free, use_save_aggregate_new
 ):

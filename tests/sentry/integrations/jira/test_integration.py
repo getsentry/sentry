@@ -24,12 +24,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import (
-    assume_test_silo_mode,
-    assume_test_silo_mode_of,
-    control_silo_test,
-    region_silo_test,
-)
+from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from sentry.utils.signing import sign
@@ -42,7 +37,6 @@ def get_client():
     return StubJiraApiClient()
 
 
-@region_silo_test
 class RegionJiraIntegrationTest(APITestCase):
     def setUp(self):
         super().setUp()
@@ -951,7 +945,6 @@ class JiraIntegrationTest(APITestCase):
         )
 
 
-@region_silo_test
 class JiraMigrationIntegrationTest(APITestCase):
     @cached_property
     def integration(self):

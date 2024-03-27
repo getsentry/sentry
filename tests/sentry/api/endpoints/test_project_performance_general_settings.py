@@ -2,14 +2,12 @@ from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 
 PERFORMANCE_SETTINGS_FEATURES = {
     "organizations:performance-view": True,
 }
 
 
-@region_silo_test
 class ProjectPerformanceGeneralSettingsTest(APITestCase):
     endpoint = "sentry-api-0-project-performance-general-settings"
 

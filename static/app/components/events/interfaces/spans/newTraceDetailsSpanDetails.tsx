@@ -274,7 +274,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   function renderSpanErrorMessage() {
     const {span, organization, node} = props;
 
-    const hasErrors = node.errors.length > 0 || node.performance_issues.length > 0;
+    const hasErrors = node.errors.size > 0 || node.performance_issues.size > 0;
 
     if (!hasErrors || isGapSpan(span)) {
       return null;

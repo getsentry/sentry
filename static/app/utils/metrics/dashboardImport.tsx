@@ -63,7 +63,8 @@ export type ParseResult = {
 
 export async function parseDashboard(
   dashboard: ImportDashboard,
-  availableMetrics: MetricMeta[]
+  availableMetrics: MetricMeta[],
+  orgSlug: string
 ): Promise<ParseResult> {
   const {widgets = []} = dashboard;
 
@@ -77,7 +78,7 @@ export async function parseDashboard(
 
   const results = await Promise.all(
     flatWidgets.map(widget => {
-      const parser = new WidgetParser(widget, availableMetrics);
+      const parser = new WidgetParser(widget, availableMetrics, orgSlug);
       return parser.parse();
     })
   );
@@ -111,10 +112,16 @@ export class WidgetParser {
   private api = new Client();
   private importedWidget: ImportWidget;
   private availableMetrics: MetricMeta[];
+  private orgSlug: string;
 
-  constructor(importedWidget: ImportWidget, availableMetrics: MetricMeta[]) {
+  constructor(
+    importedWidget: ImportWidget,
+    availableMetrics: MetricMeta[],
+    orgSlug: string
+  ) {
     this.importedWidget = importedWidget;
     this.availableMetrics = availableMetrics;
+    this.orgSlug = orgSlug;
   }
 
   // Parsing functions
@@ -407,12 +414,15 @@ export class WidgetParser {
   }
 
   private async fetchAvailableTags(mri: MRI) {
-    const tagsRes = await this.api.requestPromise(`/organizations/sentry/metrics/tags/`, {
-      query: {
-        metric: mri,
-        useCase: 'custom',
-      },
-    });
+    const tagsRes = await this.api.requestPromise(
+      `/organizations/${this.orgSlug}/metrics/tags/`,
+      {
+        query: {
+          metric: mri,
+          useCase: 'custom',
+        },
+      }
+    );
 
     return (tagsRes ?? []).map(tag => tag.key);
   }

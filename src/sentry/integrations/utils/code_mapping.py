@@ -166,6 +166,7 @@ class FrameFilename:
 
         self.file_name = frame_file_path.split("/")[-1]
 
+
     def __repr__(self) -> str:
         return f"FrameFilename: {self.full_path}"
 
@@ -298,7 +299,7 @@ class CodeMappingTreesHelper:
             return []
 
         stacktrace_root, source_path = find_roots(frame_filename.raw_path, matched_files[0])
-
+        
         return [
             CodeMapping(
                 repo=repo_tree.repo,
