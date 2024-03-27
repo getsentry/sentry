@@ -1,8 +1,8 @@
-import {Button, type ButtonProps} from 'sentry/components/button';
 import {CompositeSelect} from 'sentry/components/compactSelect/composite';
 import type {SelectOption} from 'sentry/components/compactSelect/types';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {FormSize} from 'sentry/utils/theme';
 import useRouter from 'sentry/utils/useRouter';
 
 export enum MonitorSortOrder {
@@ -31,7 +31,7 @@ interface Props {
   onChangeOrder?: (order: SelectOption<MonitorSortOrder>) => void;
   onChangeSort?: (sort: SelectOption<MonitorSortOption>) => void;
   order?: MonitorSortOrder;
-  size?: ButtonProps['size'];
+  size?: FormSize;
   sort?: MonitorSortOption;
 }
 
@@ -51,16 +51,12 @@ export function SortSelector({onChangeOrder, onChangeSort, order, sort, size}: P
 
   return (
     <CompositeSelect
-      trigger={triggerProps => (
-        <Button
-          {...triggerProps}
-          size={size ?? 'xs'}
-          aria-label={t('Sort Cron Monitors')}
-          icon={<IconSort size="sm" />}
-        >
-          {SORT_OPTIONS.find(({value}) => value === selectedSort)?.label ?? ''}
-        </Button>
-      )}
+      size={size}
+      triggerLabel={SORT_OPTIONS.find(({value}) => value === selectedSort)?.label ?? ''}
+      triggerProps={{
+        'aria-label': t('Sort Cron Monitors'),
+        icon: <IconSort />,
+      }}
     >
       <CompositeSelect.Region
         aria-label={t('Sort Options')}
