@@ -1,4 +1,4 @@
-import {Fragment, useCallback} from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -199,11 +199,9 @@ function TransactionHeader({
               <TabList.Item key={Tab.TRANSACTION_SUMMARY}>{t('Overview')}</TabList.Item>
               <TabList.Item key={Tab.EVENTS}>{t('Sampled Events')}</TabList.Item>
               <TabList.Item key={Tab.TAGS}>{t('Tags')}</TabList.Item>
-              {!hasTransactionSummaryCleanupFlag ? (
-                <TabList.Item key={Tab.SPANS}>{t('Spans')}</TabList.Item>
-              ) : (
-                <Fragment />
-              )}
+              <TabList.Item key={Tab.SPANS} hidden={hasTransactionSummaryCleanupFlag}>
+                {t('Spans')}
+              </TabList.Item>
 
               <TabList.Item
                 key={Tab.ANOMALIES}
