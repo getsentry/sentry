@@ -10,6 +10,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 
+from sentry import options
 from sentry.api.authentication import ClientIdSecretAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.bases.integration import PARANOID_GET
@@ -249,9 +250,12 @@ class SentryAppAndStaffPermission(StaffPermissionMixin, SentryAppPermission):
 class SentryAppBaseEndpoint(IntegrationPlatformEndpoint):
     permission_classes: tuple[type[BasePermission], ...] = (SentryAppPermission,)
 
-    def convert_args(self, request: Request, sentry_app_slug: str, *args: Any, **kwargs: Any):
+    def convert_args(self, request: Request, sentry_app_slug: str | int, *args: Any, **kwargs: Any):
         try:
-            sentry_app = SentryApp.objects.get(slug=sentry_app_slug)
+            if options.get("api.id-or-slug-enabled"):
+                sentry_app = SentryApp.objects.get(slug__id_or_slug=sentry_app_slug)
+            else:
+                sentry_app = SentryApp.objects.get(slug=sentry_app_slug)
         except SentryApp.DoesNotExist:
             raise Http404
 
@@ -265,8 +269,11 @@ class SentryAppBaseEndpoint(IntegrationPlatformEndpoint):
 
 
 class RegionSentryAppBaseEndpoint(IntegrationPlatformEndpoint):
-    def convert_args(self, request: Request, sentry_app_slug: str, *args: Any, **kwargs: Any):
-        sentry_app = app_service.get_sentry_app_by_slug(slug=sentry_app_slug)
+    def convert_args(self, request: Request, sentry_app_slug: str | int, *args: Any, **kwargs: Any):
+        if options.get("api.id-or-slug-enabled") and str(sentry_app_slug).isnumeric():
+            sentry_app = app_service.get_sentry_app_by_id(id=int(sentry_app_slug))
+        else:
+            sentry_app = app_service.get_sentry_app_by_slug(slug=sentry_app_slug)
         if sentry_app is None:
             raise Http404
 
