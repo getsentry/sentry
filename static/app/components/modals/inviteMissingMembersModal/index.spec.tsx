@@ -17,13 +17,13 @@ const roles = [
     id: 'admin',
     name: 'Admin',
     desc: 'This is the admin role',
-    allowed: true,
+    isAllowed: true,
   },
   {
     id: 'member',
     name: 'Member',
     desc: 'This is the member role',
-    allowed: true,
+    isAllowed: true,
   },
 ] as OrgRole[];
 

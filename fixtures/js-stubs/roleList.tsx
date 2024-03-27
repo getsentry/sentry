@@ -14,6 +14,7 @@ export function OrgRoleListFixture(
       isGlobal: false,
       isRetired: false,
       minimumTeamRole: 'contributor',
+      isTeamRolesAllowed: true,
     },
     {
       id: 'admin',
@@ -24,6 +25,7 @@ export function OrgRoleListFixture(
       isGlobal: false,
       isRetired: false,
       minimumTeamRole: 'admin',
+      isTeamRolesAllowed: true,
     },
     {
       id: 'manager',
@@ -34,6 +36,7 @@ export function OrgRoleListFixture(
       isGlobal: true,
       isRetired: false,
       minimumTeamRole: 'admin',
+      isTeamRolesAllowed: true,
     },
     {
       id: 'owner',
@@ -44,6 +47,7 @@ export function OrgRoleListFixture(
       isGlobal: true,
       isRetired: false,
       minimumTeamRole: 'admin',
+      isTeamRolesAllowed: true,
     },
     ...params,
   ];

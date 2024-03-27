@@ -16,24 +16,28 @@ describe('Role', function () {
         name: 'Member',
         desc: '...',
         minimumTeamRole: 'contributor',
+        isTeamRolesAllowed: true,
       },
       {
         id: 'admin',
         name: 'Admin',
         desc: '...',
         minimumTeamRole: 'admin',
+        isTeamRolesAllowed: true,
       },
       {
         id: 'manager',
         name: 'Manager',
         desc: '...',
         minimumTeamRole: 'admin',
+        isTeamRolesAllowed: true,
       },
       {
         id: 'owner',
         name: 'Owner',
         desc: '...',
         minimumTeamRole: 'admin',
+        isTeamRolesAllowed: true,
       },
     ],
   });
