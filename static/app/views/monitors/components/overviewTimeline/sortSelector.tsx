@@ -2,7 +2,7 @@ import {CompositeSelect} from 'sentry/components/compactSelect/composite';
 import type {SelectOption} from 'sentry/components/compactSelect/types';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {FormSize} from 'sentry/utils/theme';
+import type {FormSize} from 'sentry/utils/theme';
 import useRouter from 'sentry/utils/useRouter';
 
 export enum MonitorSortOrder {
