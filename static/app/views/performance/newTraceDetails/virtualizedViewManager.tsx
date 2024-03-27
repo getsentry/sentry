@@ -1097,7 +1097,7 @@ export class VirtualizedViewManager {
 
     const width = this.text_measurer.measure(text);
 
-    // precomput all anchor points aot, so we make the control flow more readable.
+    // precompute all anchor points aot, so we make the control flow more readable.
     // this wastes some cycles, but it's not a big deal as computers are fast when
     // it comes to simple arithmetic.
     const right_outside =
@@ -1106,6 +1106,7 @@ export class VirtualizedViewManager {
       this.computeTransformXFromTimestamp(span_space[0] + span_space[1]) -
       width -
       TEXT_PADDING;
+
     const left_outside =
       this.computeTransformXFromTimestamp(span_space[0]) - TEXT_PADDING - width;
     const left_inside = this.computeTransformXFromTimestamp(span_space[0]) + TEXT_PADDING;
@@ -1164,8 +1165,24 @@ export class VirtualizedViewManager {
       // anchor it to the inside right place in the span.
       return [1, right_inside];
     }
+
     // While we have space on the right, place the text there
     if (space_right > 0) {
+      if (
+        // If the right edge of the span is within 10% to the right edge of the space,
+        // try and fit the text inside the span if possible. In case the span is too short
+        // to fit the text, anchor_left case above will take care of anchoring it to the left
+        // of the view.
+
+        // Note: the accurate way for us to determine if the text fits to the right side
+        // of the view would have been to compute the scaling matrix for a non zoomed view at 0,0
+        // origin and check if it fits into the distance of space right edge - span right edge. In practice
+        // however, it seems that a magical number works just fine.
+        span_right > this.trace_space.right * 0.9 &&
+        space_right / this.span_to_px[0] < width
+      ) {
+        return [1, right_inside];
+      }
       return [0, right_outside];
     }
 
@@ -1185,6 +1202,7 @@ export class VirtualizedViewManager {
       // anchor it to the inside left of the span
       return [1, left_inside];
     }
+
     return [0, right_outside];
   }
 
