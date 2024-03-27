@@ -37,6 +37,7 @@ class Migration(CheckedMigration):
         ALTER TABLE "sentry_monitor" ADD CONSTRAINT "sentry_monitor_organization_id_slug_c4ac3a42_uniq" UNIQUE USING INDEX "sentry_monitor_organization_id_slug_c4ac3a42_uniq";
         ALTER TABLE "sentry_monitor" DROP CONSTRAINT "sentry_monitor_project_id_slug_1f4d3dc3_uniq";
         DROP INDEX CONCURRENTLY "sentry_moni_organiz_a62466_idx";""",
+                    hints={"tables": ["sentry_monitor"]},
                 ),
             ],
             state_operations=[
