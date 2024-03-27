@@ -214,19 +214,18 @@ def _do_symbolicate_event(
     def _continue_to_process_event(was_killswitched: bool = False) -> None:
         # Go through the remaining symbolication platforms
         # and submit the next one.
-        if not was_killswitched:
-            if symbolicate_platforms:
-                next_platform = symbolicate_platforms.pop(0)
+        if not was_killswitched and symbolicate_platforms:
+            next_platform = symbolicate_platforms.pop(0)
 
-                submit_symbolicate(
-                    task_kind=task_kind.with_platform(next_platform),
-                    cache_key=cache_key,
-                    event_id=event_id,
-                    start_time=start_time,
-                    has_attachments=has_attachments,
-                    symbolicate_platforms=symbolicate_platforms,
-                )
-                return
+            submit_symbolicate(
+                task_kind=task_kind.with_platform(next_platform),
+                cache_key=cache_key,
+                event_id=event_id,
+                start_time=start_time,
+                has_attachments=has_attachments,
+                symbolicate_platforms=symbolicate_platforms,
+            )
+            return
         # else:
         store.submit_process(
             from_reprocessing=task_kind.is_reprocessing,
