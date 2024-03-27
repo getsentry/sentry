@@ -18,7 +18,7 @@ interface TraceSearchInputProps {
   onSearchClear: () => void;
   query: string | undefined;
   resultCount: number | undefined;
-  resultIteratorIndex: number | undefined;
+  resultIteratorIndex: number | null;
   status: TraceSearchState['status'];
 }
 
@@ -71,10 +71,10 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
         )}
       </InputGroup.LeadingItems>
       <InputGroup.Input
+        size="xs"
         type="text"
         name="query"
         autoComplete="off"
-        size="xs"
         placeholder={t('Search in trace')}
         value={props.query}
         onChange={props.onChange}
@@ -85,7 +85,7 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
           {`${
             props.query && !props.resultCount
               ? '0/0'
-              : (props.resultIteratorIndex !== undefined
+              : (props.resultIteratorIndex !== null
                   ? props.resultIteratorIndex + 1
                   : '-') + `/${props.resultCount ?? 0}`
           }`}
