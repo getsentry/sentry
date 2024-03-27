@@ -1628,12 +1628,14 @@ register(
 # Adjusting some time buffers in the trace endpoint
 register(
     "performance.traces.transaction_query_timebuffer_days",
+    type=Float,
     default=1.5,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # days
 register(
     "performance.traces.span_query_timebuffer_hours",
-    default=1,
+    type=Float,
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # hours
 
