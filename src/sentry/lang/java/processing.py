@@ -2,7 +2,11 @@ import logging
 import re
 from typing import Any
 
-from sentry.lang.java.utils import get_jvm_images, get_proguard_images
+from sentry.lang.java.utils import (
+    do_proguard_processing_ab_test,
+    get_jvm_images,
+    get_proguard_images,
+)
 from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.symbolicator import Symbolicator
 from sentry.models.eventerror import EventError
@@ -212,10 +216,12 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     if not _handle_response_status(data, response):
         return
 
-    data["processed_by_symbolicator"] = True
+    should_do_ab_test = do_proguard_processing_ab_test()
+    symbolicator_exceptions = []
+    symbolicator_stacktraces = []
 
     processing_errors = response.get("errors", [])
-    if len(processing_errors) > 0:
+    if len(processing_errors) > 0 and not should_do_ab_test:
         data.setdefault("errors", []).extend(map_symbolicator_process_jvm_errors(processing_errors))
 
     assert len(stacktraces) == len(response["stacktraces"]), (stacktraces, response)
@@ -223,7 +229,7 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     for sinfo, complete_stacktrace in zip(stacktrace_infos, response["stacktraces"]):
         raw_frames = sinfo.stacktrace["frames"]
         complete_frames = complete_stacktrace["frames"]
-        sinfo.stacktrace["frames"] = []
+        new_frames = []
 
         for index, raw_frame in enumerate(raw_frames):
             # If symbolicator returned any matching frames for this raw_frame, use them,
@@ -233,9 +239,14 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
                 for returned in matching_frames:
                     new_frame = dict(raw_frame)
                     _merge_frame(new_frame, returned)
-                    sinfo.stacktrace["frames"].append(new_frame)
+                    new_frames.append(new_frame)
             else:
-                sinfo.stacktrace["frames"].append(raw_frame)
+                new_frames.append(raw_frame)
+
+        if should_do_ab_test:
+            symbolicator_stacktraces.append(new_frames)
+        else:
+            sinfo.stacktrace["frames"] = new_frames
 
         if sinfo.container is not None:
             sinfo.container["raw_stacktrace"] = {
@@ -249,7 +260,19 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         get_path(data, "exception", "values", filter=True, default=()),
         response["exceptions"],
     ):
-        exception["type"] = complete_exception["type"]
-        exception["module"] = complete_exception["module"]
+        if should_do_ab_test:
+            new_exception = dict(exception)
+            new_exception["type"] = complete_exception["type"]
+            new_exception["module"] = complete_exception["module"]
+            symbolicator_exceptions.append(new_exception)
+        else:
+            exception["type"] = complete_exception["type"]
+            exception["module"] = complete_exception["module"]
+
+    if should_do_ab_test:
+        data["symbolicator_stacktraces"] = symbolicator_stacktraces
+        data["symbolicator_exceptions"] = symbolicator_exceptions
+    else:
+        data["processed_by_symbolicator"] = True
 
     return data

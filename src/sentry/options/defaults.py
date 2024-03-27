@@ -591,6 +591,7 @@ register(
 register("symbolicator.proguard-processing-projects", type=Sequence, default=[])
 # Enable use of Symbolicator proguard processing for fraction of projects.
 register("symbolicator.proguard-processing-sample-rate", default=0.0)
+register("symbolicator.proguard-processing-ab-test", default=0.0)
 
 # Post Process Error Hook Sampling
 register(
