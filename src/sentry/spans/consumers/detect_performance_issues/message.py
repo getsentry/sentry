@@ -53,7 +53,7 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
                 payload_type=PayloadType.OCCURRENCE,
                 occurrence=occurrence,
                 event_data=job["event_data"],
-                is_buffered_segment=True,
+                is_buffered_spans=True,
             )
 
 
