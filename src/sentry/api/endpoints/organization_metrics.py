@@ -23,6 +23,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.metrics_code_locations import MetricCodeLocationsSerializer
 from sentry.api.utils import get_date_range_from_params, handle_query_errors
+from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.sentry_metrics.querying.data import (
@@ -76,7 +77,7 @@ def get_default_use_case_ids(request: Request) -> Sequence[UseCaseID]:
 
     for use_case_id in UseCaseID:
         if (
-            not request.user.is_superuser
+            not has_elevated_mode(request)
             and get_use_case_id_visibility(use_case_id) == UseCaseIDVisibility.PRIVATE
         ):
             continue

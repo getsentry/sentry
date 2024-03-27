@@ -19,6 +19,11 @@ pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
     endpoint = "sentry-api-0-organization-metrics-details"
 
+    #         self.user = self.create_user(email="a@example.com", is_managed=False, name="example name")
+    #         self.superuser = self.create_user(is_superuser=True)
+    #         self.staff_user = self.create_user(is_staff=True)
+    #         self.login_as(user=self.user)
+
     @property
     def now(self):
         return MetricsAPIBaseTestCase.MOCK_DATETIME
@@ -86,21 +91,18 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
             if get_use_case_id_visibility(use_case_id) == UseCaseIDVisibility.PUBLIC
         ]
 
+        normal_user = self.create_user()
+        self.login_as(user=normal_user, staff=False)
+        self.get_success_response(self.organization.slug, project=[self.project.id])
+        get_metrics_meta.assert_called_once_with(
+            projects=[self.project], use_case_ids=public_use_case_ids, start=mock.ANY, end=mock.ANY
+        )
+
+        staff_user = self.create_user(is_staff=True)
+        self.login_as(user=staff_user, staff=True)
         self.get_success_response(self.organization.slug, project=[self.project.id])
         get_metrics_meta.assert_called_once_with(
             projects=[self.project], use_case_ids=all_use_case_ids, start=mock.ANY, end=mock.ANY
-        )
-
-        other_user = self.create_user("admin_2@localhost", is_superuser=False, is_staff=True)
-        other_organization = self.create_organization(name="baz", slug="baz", owner=other_user)
-        other_team = self.create_team(organization=other_organization)
-        other_project = self.create_project(
-            name="Bar", slug="bar", teams=[other_team], fire_project_created=True
-        )
-
-        self.get_success_response(other_organization.slug, project=[other_project.id])
-        get_metrics_meta.assert_called_once_with(
-            projects=[other_project], use_case_ids=public_use_case_ids, start=mock.ANY, end=mock.ANY
         )
 
     def test_metrics_details_for_custom_metrics(self):
