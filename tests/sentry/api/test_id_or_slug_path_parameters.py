@@ -85,9 +85,11 @@ class APIIdOrSlugPathParamTest(BaseTestCase, TestCase):
         slug_kwargs = {param: self.slug_mappings[param].slug for param in slug_params}
         id_kwargs = {param: self.slug_mappings[param].id for param in slug_params}
 
+        other_mappings = {}
+
         if other_params:
-            slug_kwargs.update({param: self.other_mappings[param] for param in other_params})
-            id_kwargs.update({param: self.other_mappings[param] for param in other_params})
+            slug_kwargs.update({param: other_mappings[param] for param in other_params})
+            id_kwargs.update({param: other_mappings[param] for param in other_params})
 
         _, converted_slugs = endpoint_class().convert_args(request=None, **slug_kwargs)
         _, converted_ids = endpoint_class().convert_args(request=None, **id_kwargs)
