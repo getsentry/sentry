@@ -344,21 +344,6 @@ class TestPhpDeriveCodeMappings(BaseDeriveCodeMappings):
         )
 
     @responses.activate
-    @with_feature({"organizations:derive-code-mappings-php": False})
-    def test_missing_feature_flag(self):
-        repo_name = "php/place"
-        with patch(
-            "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org"
-        ) as mock_get_trees_for_org:
-            mock_get_trees_for_org.return_value = {
-                repo_name: RepoTree(Repo(repo_name, "master"), ["sentry/potato/kangaroo.php"])
-            }
-            derive_code_mappings(self.project.id, self.event_data)
-            # Check to make sure no code mappings were generated
-            assert not RepositoryProjectPathConfig.objects.exists()
-
-    @responses.activate
-    @with_feature({"organizations:derive-code-mappings-php": True})
     def test_derive_code_mappings_basic_php(self):
         repo_name = "php/place"
         with patch(
@@ -374,7 +359,6 @@ class TestPhpDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.repository.name == repo_name
 
     @responses.activate
-    @with_feature({"organizations:derive-code-mappings-php": True})
     def test_derive_code_mappings_different_roots_php(self):
         repo_name = "php/place"
         with patch(
