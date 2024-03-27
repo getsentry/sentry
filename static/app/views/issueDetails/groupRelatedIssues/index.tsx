@@ -37,6 +37,14 @@ function GroupRelatedIssues({params}: Props) {
   });
 
   const groups = relatedIssues?.same_root_cause?.join(',');
+  // /issues/12345678/related-issues/
+  console.log(`/issues/${groupId}/related-issues/`);
+  // 12345678
+  console.log(groupId);
+  // undefined
+  console.log(relatedIssues);
+  // undefined
+  console.log(groups);
 
   return (
     <Layout.Body>
