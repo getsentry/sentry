@@ -9,7 +9,7 @@ import type {TimeWindowConfig} from '../components/overviewTimeline/types';
 
 interface Options {
   /**
-   * The width of the timeline influences ho we calculate the rollup value
+   * The width of the timeline influences how we calculate the rollup value
    */
   timelineWidth: number;
 }
