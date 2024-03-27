@@ -2,7 +2,6 @@ import logging
 import re
 
 from sentry.attachments import attachment_cache
-from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.safe import get_path
 
@@ -52,11 +51,11 @@ def native_images_from_data(data):
     return get_path(data, "debug_meta", "images", default=(), filter=is_native_image)
 
 
-def is_native_event(data):
+def is_native_event(data, stacktraces):
     if is_native_platform(data.get("platform")):
         return True
 
-    for stacktrace in find_stacktraces_in_data(data):
+    for stacktrace in stacktraces:
         if any(is_native_platform(x) for x in stacktrace.platforms):
             return True
 

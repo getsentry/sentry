@@ -147,3 +147,14 @@ def should_use_symbolicator_for_proguard(project_id: int) -> bool:
         return True
 
     return in_rollout_group(SYMBOLICATOR_PROGUARD_SAMPLE_RATE_OPTION, project_id)
+
+
+def is_jvm_event(data, stacktraces):
+    if data.get("platform") == "java":
+        return True
+
+    for stacktrace in stacktraces:
+        if any(x == "java" for x in stacktrace.platforms):
+            return True
+
+    return False

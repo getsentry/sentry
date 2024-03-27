@@ -140,6 +140,7 @@ def _do_preprocess_event(
     has_attachments: bool = False,
 ) -> None:
     from sentry.lang.java.utils import has_proguard_file
+    from sentry.stacktraces.processing import find_stacktraces_in_data
     from sentry.tasks.symbolication import (
         get_symbolication_function_for_platform,
         get_symbolication_platforms,
@@ -174,11 +175,14 @@ def _do_preprocess_event(
     # Possible values are `js`, `jvm`, and `native`.
     # The event will be submitted to Symbolicator for all returned platforms,
     # one after the other, so we handle mixed stacktraces.
-    symbolicate_platforms = get_symbolication_platforms(data)
+    stacktraces = find_stacktraces_in_data(data)
+    symbolicate_platforms = get_symbolication_platforms(data, stacktraces)
     should_symbolicate = len(symbolicate_platforms) > 0
     if should_symbolicate:
         first_platform = symbolicate_platforms.pop(0)
-        symbolication_function = get_symbolication_function_for_platform(first_platform, data)
+        symbolication_function = get_symbolication_function_for_platform(
+            first_platform, data, stacktraces
+        )
         symbolication_function_name = getattr(symbolication_function, "__name__", "none")
 
         if not killswitch_matches_context(

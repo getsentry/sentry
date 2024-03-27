@@ -17,6 +17,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.processing import realtime_metrics
 from sentry.silo import SiloMode
+from sentry.stacktraces.processing import StacktraceInfo, find_stacktraces_in_data
 from sentry.tasks import store
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -93,14 +94,18 @@ def should_demote_symbolication(
 # This is f*** joke:
 # The `mock.patch` in `test_symbolication.py` will not work with a static import,
 # so we gotta import the function dynamically here. Great! Hooray!
-def get_native_symbolication_function(data: Any) -> Callable[[Symbolicator, Any], Any] | None:
+def get_native_symbolication_function(
+    data: Any, stacktraces: list[StacktraceInfo]
+) -> Callable[[Symbolicator, Any], Any] | None:
     from sentry.lang.native.processing import get_native_symbolication_function
 
-    return get_native_symbolication_function(data)
+    return get_native_symbolication_function(data, stacktraces)
 
 
 def get_symbolication_function_for_platform(
-    platform: SymbolicatorPlatform, data: Any
+    platform: SymbolicatorPlatform,
+    data: Any,
+    stacktraces: list[StacktraceInfo],
 ) -> Callable[[Symbolicator, Any], Any]:
     """Returns the symbolication function for the given platform
     and event data."""
@@ -112,14 +117,16 @@ def get_symbolication_function_for_platform(
     elif platform == SymbolicatorPlatform.jvm:
         return process_jvm_stacktraces
     else:
-        symbolication_function = get_native_symbolication_function(data)
+        symbolication_function = get_native_symbolication_function(data, stacktraces)
         # get_native_symbolication_function already returned something in
         # get_symbolication_platforms
         assert symbolication_function is not None
         return symbolication_function
 
 
-def get_symbolication_platforms(data: Any) -> list[SymbolicatorPlatform]:
+def get_symbolication_platforms(
+    data: Any, stacktraces: list[StacktraceInfo]
+) -> list[SymbolicatorPlatform]:
     """Returns a list of Symbolicator platforms
     that apply to this event."""
 
@@ -128,11 +135,13 @@ def get_symbolication_platforms(data: Any) -> list[SymbolicatorPlatform]:
 
     platforms = []
 
-    if should_use_symbolicator_for_proguard(data.get("project")) and is_jvm_event(data):
+    if should_use_symbolicator_for_proguard(data.get("project")) and is_jvm_event(
+        data, stacktraces
+    ):
         platforms.append(SymbolicatorPlatform.jvm)
-    if is_js_event(data):
+    if is_js_event(data, stacktraces):
         platforms.append(SymbolicatorPlatform.js)
-    if get_native_symbolication_function(data) is not None:
+    if get_native_symbolication_function(data, stacktraces) is not None:
         platforms.append(SymbolicatorPlatform.native)
 
     return platforms
@@ -156,13 +165,14 @@ def _do_symbolicate_event(
         data = processing.event_processing_store.get(cache_key)
 
     task_kind = get_kind_from_task(symbolicate_task)
+    stacktraces = find_stacktraces_in_data(data)
 
     # Backwards compatibility: If the current platform is JS, we may need to do
     # native afterwards. Otherwise we don't do anything.
     if symbolicate_platforms is None:
         if (
             task_kind.platform == SymbolicatorPlatform.js
-            and get_native_symbolication_function(data) is not None
+            and get_native_symbolication_function(data, stacktraces) is not None
         ):
             symbolicate_platforms = [SymbolicatorPlatform.native]
         else:
@@ -229,7 +239,9 @@ def _do_symbolicate_event(
         )
 
     try:
-        symbolication_function = get_symbolication_function_for_platform(task_kind.platform, data)
+        symbolication_function = get_symbolication_function_for_platform(
+            task_kind.platform, data, stacktraces
+        )
     except AssertionError:
         symbolication_function = None
 

@@ -118,3 +118,14 @@ def generate_module(src: str | None) -> str:
             return "/".join(tokens[idx + 1 :])
 
     return CLEAN_MODULE_RE.sub("", filename) or UNKNOWN_MODULE
+
+
+def is_js_event(data, stacktraces):
+    if data.get("platform") in ("javascript", "node"):
+        return True
+
+    for stacktrace in stacktraces:
+        if any(x in ("javascript", "node") for x in stacktrace.platforms):
+            return True
+
+    return False

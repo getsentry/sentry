@@ -455,12 +455,14 @@ def process_native_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     return data
 
 
-def get_native_symbolication_function(data) -> Callable[[Symbolicator, Any], Any] | None:
+def get_native_symbolication_function(
+    data, stacktraces
+) -> Callable[[Symbolicator, Any], Any] | None:
     if is_minidump_event(data):
         return process_minidump
     elif is_applecrashreport_event(data):
         return process_applecrashreport
-    elif is_native_event(data):
+    elif is_native_event(data, stacktraces):
         return process_native_stacktraces
     else:
         return None
