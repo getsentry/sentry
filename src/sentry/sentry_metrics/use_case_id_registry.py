@@ -1,14 +1,19 @@
 from __future__ import annotations
 
-import re
 from collections.abc import Mapping
 from enum import Enum
 
 from sentry_kafka_schemas.codecs import ValidationError
 
 from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.snuba.metrics import parse_mri
 
-MRI_RE_PATTERN = re.compile("^([c|s|d|g|e]):([a-zA-Z0-9_]+)/.*$")
+
+class UseCaseIDVisibility(Enum):
+    # Available to users to query via public endpoints.
+    PUBLIC = 0
+    # Available only internally.
+    PRIVATE = 1
 
 
 class UseCaseID(Enum):
@@ -21,6 +26,17 @@ class UseCaseID(Enum):
     BUNDLE_ANALYSIS = "bundle_analysis"
     METRIC_STATS = "metric_stats"
 
+
+USE_CASE_ID_VISIBILITIES: Mapping[UseCaseID, UseCaseIDVisibility] = {
+    UseCaseID.SPANS: UseCaseIDVisibility.PUBLIC,
+    UseCaseID.TRANSACTIONS: UseCaseIDVisibility.PUBLIC,
+    UseCaseID.SESSIONS: UseCaseIDVisibility.PUBLIC,
+    UseCaseID.ESCALATING_ISSUES: UseCaseIDVisibility.PRIVATE,
+    UseCaseID.CUSTOM: UseCaseIDVisibility.PUBLIC,
+    UseCaseID.PROFILES: UseCaseIDVisibility.PRIVATE,
+    UseCaseID.BUNDLE_ANALYSIS: UseCaseIDVisibility.PRIVATE,
+    UseCaseID.METRIC_STATS: UseCaseIDVisibility.PRIVATE,
+}
 
 # UseCaseKey will be renamed to MetricPathKey
 METRIC_PATH_MAPPING: Mapping[UseCaseID, UseCaseKey] = {
@@ -58,16 +74,25 @@ USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS = {
 }
 
 
-def get_use_case_key(use_case_id: UseCaseID) -> UseCaseKey | None:
-    return METRIC_PATH_MAPPING.get(use_case_id)
+def get_use_case_id_visibility(use_case_id: UseCaseID) -> UseCaseIDVisibility:
+    """
+    Returns the visibility of a use case and defaults to private in case no visibility is provided.
+
+    The rationale for defaulting to private visibility is that we do not want to leak by mistake any internal metrics
+    that users should not have access to.
+    """
+    return USE_CASE_ID_VISIBILITIES.get(use_case_id, UseCaseIDVisibility.PRIVATE)
 
 
 def extract_use_case_id(mri: str) -> UseCaseID:
     """
-    Returns the use case ID given the MRI, returns None if MRI is invalid.
+    Returns the use case ID given the MRI, throws an error if MRI is invalid or the use case doesn't exist.
     """
-    if matched := MRI_RE_PATTERN.match(mri):
-        use_case_str = matched.group(2)
-        if use_case_str in {id.value for id in UseCaseID}:
-            return UseCaseID(use_case_str)
-    raise ValidationError(f"Invalid mri: {mri}")
+    parsed_mri = parse_mri(mri)
+    if parsed_mri is not None:
+        if parsed_mri.namespace in {id.value for id in UseCaseID}:
+            return UseCaseID(parsed_mri.namespace)
+
+        raise ValidationError(f"The use case of the MRI {parsed_mri.namespace} does not exist")
+
+    raise ValidationError(f"The MRI {mri} is not valid")
