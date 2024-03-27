@@ -675,7 +675,7 @@ class DailySummaryTest(
         # check performance issues
         assert "*Today's Top 3 Performance Issues*" in blocks[6]["text"]["text"]
         assert link_text.format(self.perf_event.group.id) in blocks[6]["text"]["text"]
-        assert "\ndb - SELECT `books_author`.`id`, `books_author`.`..." in blocks[6]["text"]["text"]
+        assert "\ndb - SELECT `books_author`.`id`, `b..." in blocks[6]["text"]["text"]
         assert link_text.format(self.perf_event2.group.id) in blocks[6]["text"]["text"]
         # repeat above for second project
         assert self.project2.slug in blocks[8]["text"]["text"]
@@ -786,10 +786,7 @@ class DailySummaryTest(
                 project_context=top_projects_context_map,
             ).send()
         blocks, fallback_text = get_blocks_and_fallback_text()
-        assert (
-            '""" Traceback (most recent call last): File /\'/us...'
-            in blocks[4]["fields"][0]["text"]
-        )
+        assert '""" Traceback (most recent call las...' in blocks[4]["fields"][0]["text"]
 
     @responses.activate
     @with_feature("organizations:slack-block-kit")
@@ -889,8 +886,8 @@ class DailySummaryTest(
                 project_context=top_projects_context_map,
             ).send()
         blocks, fallback_text = get_blocks_and_fallback_text()
-        assert "OperationalErrorThatIsVeryLongForSomeR" in blocks[4]["fields"][0]["text"]
-        assert "QueryCanceled('canceling statement due" in blocks[4]["fields"][0]["text"]
+        assert "OperationalErrorThatIsVeryLongForSo..." in blocks[4]["fields"][0]["text"]
+        assert "QueryCanceled('canceling statement ..." in blocks[4]["fields"][0]["text"]
 
     @responses.activate
     @with_feature("organizations:slack-block-kit")
