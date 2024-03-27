@@ -155,9 +155,18 @@ def _do_symbolicate_event(
     if data is None:
         data = processing.event_processing_store.get(cache_key)
 
-    # use native as the default for backwards compatibility
+    task_kind = get_kind_from_task(symbolicate_task)
+
+    # Backwards compatibility: If the current platform is JS, we may need to do
+    # native afterwards. Otherwise we don't do anything.
     if symbolicate_platforms is None:
-        symbolicate_platforms = [SymbolicatorPlatform.native]
+        if (
+            task_kind.platform == SymbolicatorPlatform.js
+            and get_native_symbolication_function(data) is not None
+        ):
+            symbolicate_platforms = [SymbolicatorPlatform.native]
+        else:
+            symbolicate_platforms = []
 
     if data is None:
         metrics.incr(
@@ -172,8 +181,6 @@ def _do_symbolicate_event(
     has_changed = False
 
     set_current_event_project(project_id)
-
-    task_kind = get_kind_from_task(symbolicate_task)
 
     # check whether the event is in the wrong queue and if so, move it to the other one.
     # we do this at most SYMBOLICATOR_MAX_QUEUE_SWITCHES times.
@@ -198,11 +205,8 @@ def _do_symbolicate_event(
         # Go through the remaining symbolication platforms
         # and submit the next one.
         if not was_killswitched:
-            while symbolicate_platforms:
+            if symbolicate_platforms:
                 next_platform = symbolicate_platforms.pop(0)
-                # Guard against submitting the same platform twice
-                if next_platform == task_kind.platform:
-                    continue
 
                 submit_symbolicate(
                     task_kind=task_kind.with_platform(next_platform),
