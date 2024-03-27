@@ -1,15 +1,13 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useState} from 'react';
 
-import {
-  useDeleteEventAttachmentOptimistic,
-  useFetchEventAttachments,
-} from 'sentry/actionCreators/events';
+import {useDeleteEventAttachmentOptimistic} from 'sentry/actionCreators/events';
 import {openModal} from 'sentry/actionCreators/modal';
 import Screenshot from 'sentry/components/events/eventTagsAndScreenshot/screenshot';
 import Modal, {
   modalCss,
 } from 'sentry/components/events/eventTagsAndScreenshot/screenshot/modal';
 import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
+import useFeedbackScreenshot from 'sentry/components/feedback/feedbackItem/useFeedbackHasScreenshot';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
@@ -23,17 +21,9 @@ type Props = {
 };
 
 export function ScreenshotSection({projectSlug, event, organization}: Props) {
+  const {screenshots} = useFeedbackScreenshot({projectSlug, event});
   const hasContext = !objectIsEmpty(event.user ?? {}) || !objectIsEmpty(event.contexts);
-  const {data: attachments} = useFetchEventAttachments({
-    orgSlug: organization.slug,
-    projectSlug,
-    eventId: event.id,
-  });
   const {mutate: deleteAttachment} = useDeleteEventAttachmentOptimistic();
-  const screenshots = useMemo(() => {
-    return attachments ?? [];
-  }, [attachments]);
-
   const [screenshotInFocus, setScreenshotInFocus] = useState<number>(0);
 
   const handleDeleteScreenshot = useCallback(
