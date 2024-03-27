@@ -25,7 +25,6 @@ from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import QuerySubscription
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 
 
 class IncidentGetForSubscriptionTest(TestCase):
@@ -181,7 +180,6 @@ class AlertRuleTest(TestCase):
             assert fetched_sub.subscription_id is not None
 
 
-@region_silo_test
 class AlertRuleFetchForOrganizationTest(TestCase):
     def test_empty(self):
         alert_rule = AlertRule.objects.fetch_for_organization(self.organization)
@@ -213,6 +211,30 @@ class AlertRuleFetchForOrganizationTest(TestCase):
         )
         assert {alert_rule1, alert_rule2} == set(
             AlertRule.objects.fetch_for_organization(self.organization, [project])
+        )
+
+    def test_project_on_alert(self):
+        project = self.create_project()
+        alert_rule = self.create_alert_rule()
+        alert_rule.projects.add(project)
+
+        assert [alert_rule] == list(AlertRule.objects.fetch_for_organization(self.organization))
+
+    def test_project_on_alert_and_snuba(self):
+        project1 = self.create_project()
+        alert_rule1 = self.create_alert_rule(projects=[project1])
+        alert_rule1.projects.add(project1)
+
+        # will fetch if there's 1 project in snuba
+        assert [alert_rule1] == list(AlertRule.objects.fetch_for_organization(self.organization))
+
+        project2 = self.create_project()
+        alert_rule2 = self.create_alert_rule(projects=[project2, self.project])
+        alert_rule2.projects.add(project1)
+
+        # Will fetch if there's 1 project in snuba and 1 in alert rule
+        assert {alert_rule1, alert_rule2} == set(
+            AlertRule.objects.fetch_for_organization(self.organization, [project1])
         )
 
 
@@ -392,3 +414,21 @@ class CleanExpiredAlertsTest(TestCase):
         callback = alert_subscription_callback_registry[AlertRuleMonitorType.CONTINUOUS]
         result = callback(subscription)
         assert result is True
+
+
+class AlertRuleFetchForProjectTest(TestCase):
+    def test_simple(self):
+        project = self.create_project()
+        alert_rule = self.create_alert_rule(projects=[project])
+
+        assert [alert_rule] == list(AlertRule.objects.fetch_for_project(project))
+
+    def test_projects_on_snuba_and_alert(self):
+        project1 = self.create_project()
+        alert_rule1 = self.create_alert_rule(projects=[project1, self.project])
+
+        project2 = self.create_project()
+        alert_rule2 = self.create_alert_rule(projects=[project2, self.project])
+        alert_rule2.projects.add(project2)
+
+        assert {alert_rule1, alert_rule2} == set(AlertRule.objects.fetch_for_project(self.project))

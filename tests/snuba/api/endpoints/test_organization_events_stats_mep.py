@@ -15,13 +15,11 @@ from sentry.snuba.metrics.extraction import MetricSpecType, OnDemandMetricSpec
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.on_demand import create_widget
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 
 pytestmark = pytest.mark.sentry_metrics
 
 
-@region_silo_test
 class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
     MetricsEnhancedPerformanceTestCase
 ):
@@ -763,7 +761,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         assert data["order"] == 0
 
 
-@region_silo_test
 class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest
 ):
@@ -956,7 +953,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLay
             assert value[0]["count"] == expected_value  # type: ignore[index]
 
 
-@region_silo_test
 class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandWidgets(
     MetricsEnhancedPerformanceTestCase
 ):
@@ -1261,6 +1257,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
     def test_top_events_with_transaction_on_demand_passing_widget_id_unsaved_error(
         self,
     ):
+        self.project = self.create_project(organization=self.organization)
+        Environment.get_or_create(self.project, "production")
         field = "count()"
         field_two = "count()"
         groupbys = ["customtag1", "customtag2"]
@@ -1325,6 +1323,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
         assert bool(response.data["error_value2,"])
 
     def test_top_events_with_transaction_on_demand_passing_widget_id_unsaved_discover(self):
+        self.project = self.create_project(organization=self.organization)
+        Environment.get_or_create(self.project, "production")
         field = "count()"
         field_two = "count()"
         groupbys = ["customtag1", "customtag2"]

@@ -37,7 +37,7 @@ from sentry.models.rule import Rule
 from sentry.models.user import User
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format
-from sentry.testutils.silo import control_silo_test, region_silo_test
+from sentry.testutils.silo import control_silo_test
 from sentry.utils.cursors import Cursor
 from sentry.utils.snuba import raw_snql_query
 
@@ -913,7 +913,6 @@ def dummy_snuba_request_method(limit, offset, org_id, proj_id, timestamp):
     return raw_snql_query(request, referrer)["data"]
 
 
-@region_silo_test
 class CallbackPaginatorTest(APITestCase, SnubaTestCase):
     cls = CallbackPaginator
 

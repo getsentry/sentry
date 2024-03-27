@@ -17,12 +17,10 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.repository import Repository
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 from sentry_plugins.heroku.plugin import HerokuReleaseHook
 
 
-@region_silo_test
 class SetRefsTest(TestCase):
     """
     tests that when finish_release is called on a release hook,
@@ -126,7 +124,6 @@ class SetRefsTest(TestCase):
         )
 
 
-@region_silo_test
 class HookHandleTest(TestCase):
     @pytest.fixture(autouse=True)
     def patch_is_valid_signature(self):
