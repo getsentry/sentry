@@ -7,6 +7,7 @@ from datetime import timedelta
 from typing import Any
 from urllib.parse import urlencode, urlparse, urlunparse
 
+from django.db import router, transaction
 from django.urls import reverse
 from django.utils import timezone as django_timezone
 
@@ -32,6 +33,9 @@ NUM_CONSECUTIVE_BROKEN_CHECKINS = 4
 
 # The number of days a monitor env has to be failing to qualify as broken
 NUM_DAYS_BROKEN_PERIOD = 14
+
+# The number of days until a monitor env is auto-muted AFTER it has been marked broken
+NUM_DAYS_MUTED_PERIOD = 14
 
 # Max number of environments to have in the broken monitor email link
 MAX_ENVIRONMENTS_IN_MONITOR_LINK = 10
@@ -110,8 +114,7 @@ def detect_broken_monitor_envs():
         monitor__status=ObjectStatus.ACTIVE,
         monitor__is_muted=False,
         monitor_environment__is_muted=False,
-        # TODO(davidenwang): Once we start disabling environments, change accordingly
-        monitorenvbrokendetection__user_notified_timestamp=None,
+        monitorenvbrokendetection__env_muted_timestamp=None,
     )
     org_ids_with_open_incidents = (
         open_incidents_qs.all().values_list("monitor__organization_id", flat=True).distinct()
@@ -129,6 +132,12 @@ def detect_broken_monitor_envs():
 
         # Map user email to a dictionary of monitors and their earliest incident start date amongst its broken environments
         user_broken_envs: dict[str, dict[str, Any]] = defaultdict(
+            lambda: defaultdict(
+                lambda: {"environment_names": [], "earliest_start": django_timezone.now()}
+            )
+        )
+        # Same as above but for monitors that will be automatically muted by us
+        user_muted_envs: dict[str, dict[str, Any]] = defaultdict(
             lambda: defaultdict(
                 lambda: {"environment_names": [], "earliest_start": django_timezone.now()}
             )
@@ -170,6 +179,25 @@ def detect_broken_monitor_envs():
                     update_user_monitor_dictionary(
                         user_broken_envs, user.user_email, open_incident, project, environment_name
                     )
+            elif (
+                not detection.env_muted_timestamp
+                and detection.user_notified_timestamp + timedelta(days=NUM_DAYS_MUTED_PERIOD)
+                <= current_time
+            ):
+                environment_name = open_incident.monitor_environment.get_environment().name
+                project = Project.objects.get_from_cache(id=open_incident.monitor.project_id)
+
+                with transaction.atomic(router.db_for_write(MonitorEnvBrokenDetection)):
+                    open_incident.monitor_environment.update(is_muted=True)
+                    detection.update(env_muted_timestamp=django_timezone.now())
+
+                for user in project.member_set:
+                    if not user.user_email:
+                        continue
+
+                    update_user_monitor_dictionary(
+                        user_muted_envs, user.user_email, open_incident, project, environment_name
+                    )
 
         # After accumulating all users within the org and which monitors to email them, send the emails
         for user_email, broken_monitors in user_broken_envs.items():
@@ -184,6 +212,22 @@ def detect_broken_monitor_envs():
                 template="sentry/emails/crons/broken-monitors.txt",
                 html_template="sentry/emails/crons/broken-monitors.html",
                 type="crons.broken_monitors",
+                context=context,
+            )
+            message.send_async([user_email])
+
+        for user_email, muted_monitors in user_muted_envs.items():
+            context = {
+                "muted_monitors": generate_monitor_email_context(
+                    muted_monitors.values(), organization
+                ),
+                "view_monitors_link": generate_monitor_overview_url(organization),
+            }
+            message = MessageBuilder(
+                subject="Your Cron Monitors have been muted",
+                template="sentry/emails/crons/muted-monitors.txt",
+                html_template="sentry/emails/crons/muted-monitors.html",
+                type="crons.muted_monitors",
                 context=context,
             )
             message.send_async([user_email])
