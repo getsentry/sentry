@@ -152,16 +152,16 @@ function GroupPriorityFeedback() {
   );
 }
 
+const DataConsentLearnMore = HookOrDefault({
+  hookName: 'component:data-consent-learn-more',
+  defaultComponent: null,
+});
+
 function GroupPriorityLearnMore() {
   const organization = useOrganization();
   const {isLoading, isError, isPromptDismissed, dismissPrompt} = usePrompt({
     feature: 'issue_priority',
     organization,
-  });
-
-  const DataConsentLearnMore = HookOrDefault({
-    hookName: 'component:data-consent-learn-more',
-    defaultComponent: null,
   });
 
   if (isLoading || isError) {
