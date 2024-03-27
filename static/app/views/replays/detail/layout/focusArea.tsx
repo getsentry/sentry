@@ -13,7 +13,16 @@ export default function FocusArea({isVideoReplay}: {isVideoReplay?: boolean}) {
   const {getActiveTab} = useActiveReplayTab({isVideoReplay});
 
   if (isVideoReplay) {
-    return <TagPanel />;
+    switch (getActiveTab()) {
+      case TabKey.ERRORS:
+        return <ErrorList />;
+      case TabKey.BREADCRUMBS:
+        return <Breadcrumbs />;
+      case TabKey.TAGS:
+      default: {
+        return <TagPanel />;
+      }
+    }
   }
 
   switch (getActiveTab()) {

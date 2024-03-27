@@ -70,7 +70,7 @@ function FocusTabs({className, isVideoReplay}: Props) {
   const {pathname, query} = useLocation();
   const {getActiveTab, setActiveTab} = useActiveReplayTab({isVideoReplay});
   const activeTab = getActiveTab();
-  const supportedVideoTabs = [TabKey.TAGS];
+  const supportedVideoTabs = [TabKey.TAGS, TabKey.ERRORS, TabKey.BREADCRUMBS];
 
   const unsupportedVideoTab = tab => {
     return isVideoReplay && !supportedVideoTabs.includes(tab);
