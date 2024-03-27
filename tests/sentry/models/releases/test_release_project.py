@@ -13,10 +13,8 @@ from sentry.snuba.models import QuerySubscription
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class ReleaseProjectManagerTestCase(TransactionTestCase):
     def test_custom_manager(self):
         self.assertIsInstance(ReleaseProject.objects, ReleaseProjectModelManager)

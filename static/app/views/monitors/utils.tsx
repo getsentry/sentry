@@ -1,11 +1,7 @@
-import type {Theme} from '@emotion/react';
-import cronstrue from 'cronstrue';
-
 import {t, tn} from 'sentry/locale';
 import type {Organization, SelectValue} from 'sentry/types';
-import {shouldUse24Hours} from 'sentry/utils/dates';
-import type {MonitorConfig} from 'sentry/views/monitors/types';
-import {CheckInStatus, ScheduleType} from 'sentry/views/monitors/types';
+import type {ColorOrAlias} from 'sentry/utils/theme';
+import {CheckInStatus} from 'sentry/views/monitors/types';
 
 export function makeMonitorListQueryKey(
   organization: Organization,
@@ -42,62 +38,6 @@ export function makeMonitorDetailsQueryKey(
   ] as const;
 }
 
-export function crontabAsText(crontabInput: string | null): string | null {
-  if (!crontabInput) {
-    return null;
-  }
-  let parsedSchedule: string;
-  try {
-    parsedSchedule = cronstrue.toString(crontabInput, {
-      verbose: false,
-      use24HourTimeFormat: shouldUse24Hours(),
-    });
-  } catch (_e) {
-    return null;
-  }
-
-  return parsedSchedule;
-}
-
-export function scheduleAsText(config: MonitorConfig) {
-  // Crontab format uses cronstrue
-  if (config.schedule_type === ScheduleType.CRONTAB) {
-    const parsedSchedule = crontabAsText(config.schedule);
-    return parsedSchedule ?? t('Unknown schedule');
-  }
-
-  if (config.schedule_type === ScheduleType.INTERVAL) {
-    // Interval format is simpler
-    const [value, timeUnit] = config.schedule;
-
-    if (timeUnit === 'minute') {
-      return tn('Every minute', 'Every %s minutes', value);
-    }
-
-    if (timeUnit === 'hour') {
-      return tn('Every hour', 'Every %s hours', value);
-    }
-
-    if (timeUnit === 'day') {
-      return tn('Every day', 'Every %s days', value);
-    }
-
-    if (timeUnit === 'week') {
-      return tn('Every week', 'Every %s weeks', value);
-    }
-
-    if (timeUnit === 'month') {
-      return tn('Every month', 'Every %s months', value);
-    }
-
-    if (timeUnit === 'year') {
-      return tn('Every year', 'Every %s years', value);
-    }
-  }
-
-  return t('Unknown schedule');
-}
-
 export const statusToText: Record<CheckInStatus, string> = {
   [CheckInStatus.OK]: t('Okay'),
   [CheckInStatus.ERROR]: t('Failed'),
@@ -106,16 +46,45 @@ export const statusToText: Record<CheckInStatus, string> = {
   [CheckInStatus.TIMEOUT]: t('Timed Out'),
 };
 
-export function getColorsFromStatus(status: CheckInStatus, theme: Theme) {
-  const statusToColor: Record<CheckInStatus, {labelColor: string; tickColor: string}> = {
-    [CheckInStatus.ERROR]: {tickColor: theme.red300, labelColor: theme.red400},
-    [CheckInStatus.TIMEOUT]: {tickColor: theme.red300, labelColor: theme.red400},
-    [CheckInStatus.OK]: {tickColor: theme.green300, labelColor: theme.green400},
-    [CheckInStatus.MISSED]: {tickColor: theme.yellow300, labelColor: theme.yellow400},
-    [CheckInStatus.IN_PROGRESS]: {tickColor: theme.disabled, labelColor: theme.disabled},
-  };
-  return statusToColor[status];
+interface TickStyle {
+  /**
+   * The color of the tooltip label
+   */
+  labelColor: ColorOrAlias;
+  /**
+   * The color of the tick
+   */
+  tickColor: ColorOrAlias;
+  /**
+   * Use a cross hatch fill for the tick instead of a solid color. The tick
+   * color will be used as the border color
+   */
+  hatchTick?: ColorOrAlias;
 }
+
+export const tickStyle: Record<CheckInStatus, TickStyle> = {
+  [CheckInStatus.ERROR]: {
+    labelColor: 'red400',
+    tickColor: 'red300',
+  },
+  [CheckInStatus.TIMEOUT]: {
+    labelColor: 'red400',
+    tickColor: 'red300',
+    hatchTick: 'red200',
+  },
+  [CheckInStatus.OK]: {
+    labelColor: 'green400',
+    tickColor: 'green300',
+  },
+  [CheckInStatus.MISSED]: {
+    labelColor: 'yellow400',
+    tickColor: 'yellow300',
+  },
+  [CheckInStatus.IN_PROGRESS]: {
+    labelColor: 'disabled',
+    tickColor: 'disabled',
+  },
+};
 
 export const getScheduleIntervals = (n: number): SelectValue<string>[] => [
   {value: 'minute', label: tn('minute', 'minutes', n)},

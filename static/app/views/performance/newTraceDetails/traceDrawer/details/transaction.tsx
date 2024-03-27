@@ -19,6 +19,7 @@ import {EventExtraData} from 'sentry/components/events/eventExtraData';
 import {REPLAY_CLIP_OFFSETS} from 'sentry/components/events/eventReplay';
 import ReplayClipPreview from 'sentry/components/events/eventReplay/replayClipPreview';
 import {EventSdk} from 'sentry/components/events/eventSdk';
+import Tags from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {Breadcrumbs} from 'sentry/components/events/interfaces/breadcrumbs';
 import {getFormattedTimeRangeWithLeadingAndTrailingZero} from 'sentry/components/events/interfaces/spans/utils';
@@ -55,14 +56,13 @@ import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import {CustomMetricsEventData} from 'sentry/views/ddm/customMetricsEventData';
 import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceTabs';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/virtualizedViewManager';
-import {Row, Tags} from 'sentry/views/performance/traceDetails/styles';
+import {Row} from 'sentry/views/performance/traceDetails/styles';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import type {TraceTree, TraceTreeNode} from '../../traceTree';
 import type {TraceAverageTransactionDurationsQueryResults} from '../../useTraceAverageTransactionDurations';
 
 import {IssueList} from './issues/issues';
-import DurationComparison from './durationComparison';
 import {TraceDrawerComponents} from './styles';
 
 function OpsBreakdown({event}: {event: EventTransaction}) {
@@ -322,11 +322,12 @@ export function TransactionNodeDetails({
 
       <TraceDrawerComponents.Table className="table key-value">
         <tbody>
-          <DurationComparison
-            title={t('Duration')}
-            avgDuration={isNaN(avgDuration) ? undefined : avgDuration / 1000}
-            duration={durationInSeconds}
-          />
+          <Row title={t('Duration')}>
+            <TraceDrawerComponents.DurationComparison
+              totalDuration={durationInSeconds}
+              baseline={avgDuration / 1000}
+            />
+          </Row>
           {parentTransaction ? (
             <Row title="Parent Transaction">
               <td className="value">
@@ -424,14 +425,6 @@ export function TransactionNodeDetails({
             </Fragment>
           )}
 
-          <Tags
-            enableHiding
-            location={location}
-            organization={organization}
-            tags={event.tags}
-            event={node.value}
-          />
-
           {measurementNames.length > 0 && (
             <tr>
               <td className="key">{t('Measurements')}</td>
@@ -458,6 +451,9 @@ export function TransactionNodeDetails({
           )}
         </tbody>
       </TraceDrawerComponents.Table>
+      <TagsWrapper>
+        <Tags event={event} projectSlug={node.value.project_slug} />
+      </TagsWrapper>
       {project ? <EventEvidence event={event} project={project} /> : null}
       <ReplaySection event={event} organization={organization} />
       {event.projectSlug ? (
@@ -531,4 +527,10 @@ const Measurements = styled('div')`
   flex-wrap: wrap;
   gap: ${space(1)};
   padding-top: 10px;
+`;
+
+const TagsWrapper = styled('div')`
+  h3 {
+    color: ${p => p.theme.textColor};
+  }
 `;

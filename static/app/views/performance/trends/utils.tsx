@@ -35,16 +35,10 @@ export const DEFAULT_MAX_DURATION = '15min';
 
 export const TRENDS_FUNCTIONS: TrendFunction[] = [
   {
-    label: 'p50',
-    field: TrendFunctionField.P50,
+    label: 'p99',
+    field: TrendFunctionField.P99,
     alias: 'percentile_range',
-    legendLabel: 'p50',
-  },
-  {
-    label: 'p75',
-    field: TrendFunctionField.P75,
-    alias: 'percentile_range',
-    legendLabel: 'p75',
+    legendLabel: 'p99',
   },
   {
     label: 'p95',
@@ -53,10 +47,16 @@ export const TRENDS_FUNCTIONS: TrendFunction[] = [
     legendLabel: 'p95',
   },
   {
-    label: 'p99',
-    field: TrendFunctionField.P99,
+    label: 'p75',
+    field: TrendFunctionField.P75,
     alias: 'percentile_range',
-    legendLabel: 'p99',
+    legendLabel: 'p75',
+  },
+  {
+    label: 'p50',
+    field: TrendFunctionField.P50,
+    alias: 'percentile_range',
+    legendLabel: 'p50',
   },
   {
     label: 'average',
@@ -156,7 +156,7 @@ export function getCurrentTrendFunction(
   const trendFunctionField =
     _trendFunctionField ?? decodeScalar(location?.query?.trendFunction);
   const trendFunction = TRENDS_FUNCTIONS.find(({field}) => field === trendFunctionField);
-  return trendFunction || TRENDS_FUNCTIONS[0];
+  return trendFunction || TRENDS_FUNCTIONS[1];
 }
 
 function getDefaultTrendParameter(

@@ -5,6 +5,7 @@ import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types'
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import type {Organization} from 'sentry/types';
 import type {Event, EventTransaction, Measurement} from 'sentry/types/event';
+import {MobileVital, WebVital} from 'sentry/utils/fields';
 import type {
   TraceError as TraceErrorType,
   TraceFullDetailed,
@@ -151,6 +152,7 @@ export declare namespace TraceTree {
     duration: number;
     label: string;
     measurement: Measurement;
+    poor: boolean;
     start: number;
     type: 'cls' | 'fcp' | 'fp' | 'lcp' | 'ttfb';
   };
@@ -252,7 +254,28 @@ function shouldCollapseNodeByDefault(node: TraceTreeNode<TraceTree.NodeValue>) {
 }
 
 // cls is not included as it is a cumulative layout shift and not a single point in time
-const RENDERABLE_MEASUREMENTS = ['fcp', 'fp', 'lcp', 'ttfb'];
+const RENDERABLE_MEASUREMENTS = [
+  WebVital.TTFB,
+  WebVital.FP,
+  WebVital.FCP,
+  WebVital.LCP,
+  MobileVital.TIME_TO_FULL_DISPLAY,
+  MobileVital.TIME_TO_INITIAL_DISPLAY,
+].map(n => n.replace('measurements.', ''));
+
+const MEASUREMENT_ACRONYM_MAPPING = {
+  [MobileVital.TIME_TO_FULL_DISPLAY.replace('measurements.', '')]: 'TTFD',
+  [MobileVital.TIME_TO_INITIAL_DISPLAY.replace('measurements.', '')]: 'TTID',
+};
+
+const MEASUREMENT_THRESHOLDS = {
+  [WebVital.TTFB.replace('measurements.', '')]: 600,
+  [WebVital.FP.replace('measurements.', '')]: 3000,
+  [WebVital.FCP.replace('measurements.', '')]: 3000,
+  [WebVital.LCP.replace('measurements.', '')]: 4000,
+  [MobileVital.TIME_TO_INITIAL_DISPLAY.replace('measurements.', '')]: 2000,
+};
+
 export class TraceTree {
   type: 'loading' | 'empty' | 'error' | 'trace' = 'trace';
   root: TraceTreeNode<null> = TraceTreeNode.Root();
@@ -290,7 +313,7 @@ export class TraceTree {
     return newTree;
   }
 
-  static FromTrace(trace: TraceTree.Trace, event?: EventTransaction): TraceTree {
+  static FromTrace(trace: TraceTree.Trace): TraceTree {
     const tree = new TraceTree();
     let traceStart = Number.POSITIVE_INFINITY;
     let traceEnd = Number.NEGATIVE_INFINITY;
@@ -317,10 +340,15 @@ export class TraceTree {
       if (isTraceTransaction(value)) {
         tree.transactionTitles.add(value.transaction);
         tree.projectIDs.add(value.project_id);
-        traceNode.errors.push(...value.errors);
-        traceNode.performance_issues.push(...value.performance_issues);
+        for (const error of value.errors) {
+          traceNode.errors.add(error);
+        }
+
+        for (const performanceIssue of value.performance_issues) {
+          traceNode.performance_issues.add(performanceIssue);
+        }
       } else {
-        traceNode.errors.push(value);
+        traceNode.errors.add(value);
       }
 
       if (parent) {
@@ -338,6 +366,14 @@ export class TraceTree {
         }
 
         traceEnd = Math.max(value.timestamp, traceEnd);
+      }
+
+      if (value && 'measurements' in value) {
+        tree.collectMeasurements(
+          traceStart,
+          value.measurements as Record<string, Measurement>,
+          tree.indicators
+        );
       }
 
       if (value && 'children' in value) {
@@ -381,20 +417,16 @@ export class TraceTree {
       }
     }
 
-    if (event?.measurements) {
-      const indicators = tree
-        .collectMeasurements(traceStart, event.measurements)
-        .sort((a, b) => a.start - b.start);
+    if (tree.indicators.length > 0) {
+      tree.indicators.sort((a, b) => a.start - b.start);
 
-      for (const indicator of indicators) {
+      for (const indicator of tree.indicators) {
         if (indicator.start > traceEnd) {
           traceEnd = indicator.start;
         }
 
         indicator.start *= traceNode.multiplier;
       }
-
-      tree.indicators = indicators;
     }
 
     traceNode.space = [
@@ -511,8 +543,16 @@ export class TraceTree {
         project_slug: undefined,
       });
 
-      node.errors = getRelatedSpanErrorsFromTransaction(span, parent);
-      node.performance_issues = getRelatedPerformanceIssuesFromTransaction(span, parent);
+      for (const error of getRelatedSpanErrorsFromTransaction(span, parent)) {
+        node.errors.add(error);
+      }
+
+      for (const performanceIssue of getRelatedPerformanceIssuesFromTransaction(
+        span,
+        parent
+      )) {
+        node.performance_issues.add(performanceIssue);
+      }
 
       // This is the case where the current span is the parent of a txn at the
       // trace level. When zooming into the parent of the txn, we want to place a copy
@@ -584,10 +624,10 @@ export class TraceTree {
         isSpanNode(tail.children[0]) &&
         tail.children[0].value.op === head.value.op
       ) {
-        if ((tail?.errors?.length ?? 0) > 0) {
+        if ((tail?.errors?.size ?? 0) > 0) {
           errors.push(...tail?.errors);
         }
-        if ((tail?.performance_issues?.length ?? 0) > 0) {
+        if ((tail?.performance_issues?.size ?? 0) > 0) {
           performance_issues.push(...tail.performance_issues);
         }
 
@@ -606,10 +646,10 @@ export class TraceTree {
 
       // Checking the tail node for errors as it is not included in the grouping
       // while loop, but is hidden when the autogrouped node is collapsed
-      if ((tail?.errors?.length ?? 0) > 0) {
+      if ((tail?.errors?.size ?? 0) > 0) {
         errors.push(...tail?.errors);
       }
-      if ((tail?.performance_issues?.length ?? 0) > 0) {
+      if ((tail?.performance_issues?.size ?? 0) > 0) {
         performance_issues.push(...tail.performance_issues);
       }
 
@@ -643,8 +683,15 @@ export class TraceTree {
       }
 
       autoGroupedNode.groupCount = groupMatchCount + 1;
-      autoGroupedNode.errors = errors;
-      autoGroupedNode.performance_issues = performance_issues;
+
+      for (const error of errors) {
+        autoGroupedNode.errors.add(error);
+      }
+
+      for (const performanceIssue of performance_issues) {
+        autoGroupedNode.performance_issues.add(performanceIssue);
+      }
+
       autoGroupedNode.space = [
         start * autoGroupedNode.multiplier,
         (end - start) * autoGroupedNode.multiplier,
@@ -743,19 +790,12 @@ export class TraceTree {
             }
 
             if (child.has_errors) {
-              if (
-                child.value &&
-                'errors' in child.value &&
-                Array.isArray(child.value.errors)
-              ) {
-                autoGroupedNode.errors.push(...child.errors);
+              for (const error of child.errors) {
+                autoGroupedNode.errors.add(error);
               }
-              if (
-                child.value &&
-                'performance_issues' in child.value &&
-                Array.isArray(child.performance_issues)
-              ) {
-                autoGroupedNode.performance_issues.push(...child.performance_issues);
+
+              for (const performanceIssue of child.performance_issues) {
+                autoGroupedNode.performance_issues.add(performanceIssue);
               }
             }
 
@@ -782,10 +822,9 @@ export class TraceTree {
 
   collectMeasurements(
     start_timestamp: number,
-    measurements: Record<string, Measurement>
-  ): TraceTree.Indicator[] {
-    const indicators: TraceTree.Indicator[] = [];
-
+    measurements: Record<string, Measurement>,
+    indicators: TraceTree.Indicator[]
+  ): void {
     for (const measurement of RENDERABLE_MEASUREMENTS) {
       const value = measurements[measurement];
       if (!value) {
@@ -795,19 +834,20 @@ export class TraceTree {
       const timestamp = measurementToTimestamp(
         start_timestamp,
         value.value,
-        value.unit ?? 'milliseconds'
+        value.unit ?? 'millisecond'
       );
 
       indicators.push({
         start: timestamp,
         duration: 0,
         measurement: value,
+        poor: MEASUREMENT_THRESHOLDS[measurement]
+          ? value.value > MEASUREMENT_THRESHOLDS[measurement]
+          : false,
         type: measurement as TraceTree.Indicator['type'],
-        label: measurement.toUpperCase(),
+        label: (MEASUREMENT_ACRONYM_MAPPING[measurement] ?? measurement).toUpperCase(),
       });
     }
-
-    return indicators;
   }
 
   // Returns boolean to indicate if node was updated
@@ -1013,8 +1053,8 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     project_slug: undefined,
     event_id: undefined,
   };
-  errors: TraceErrorType[] = [];
-  performance_issues: TracePerformanceIssue[] = [];
+  errors: Set<TraceErrorType> = new Set<TraceErrorType>();
+  performance_issues: Set<TracePerformanceIssue> = new Set<TracePerformanceIssue>();
 
   multiplier: number;
   space: [number, number] | null = null;
@@ -1073,13 +1113,13 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     }
 
     if (isTransactionNode(this)) {
-      this.errors = this.value.errors;
-      this.performance_issues = this.value.performance_issues;
+      this.errors = new Set(this.value.errors);
+      this.performance_issues = new Set(this.value.performance_issues);
     }
 
     // For error nodes, its value is the only associated issue.
     if (isTraceErrorNode(this)) {
-      this.errors = [this.value];
+      this.errors = new Set([this.value]);
     }
   }
 
@@ -1178,7 +1218,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
   }
 
   get has_errors(): boolean {
-    return this.errors.length > 0 || this.performance_issues.length > 0;
+    return this.errors.size > 0 || this.performance_issues.size > 0;
   }
 
   get parent_transaction(): TraceTreeNode<TraceTree.Transaction> | null {
@@ -1492,7 +1532,7 @@ export class ParentAutogroupNode extends TraceTreeNode<TraceTree.ChildrenAutogro
   }
 
   get has_errors(): boolean {
-    return this.errors.length > 0 || this.performance_issues.length > 0;
+    return this.errors.size > 0 || this.performance_issues.size > 0;
   }
 
   get autogroupedSegments(): [number, number][] {
@@ -1531,7 +1571,7 @@ export class SiblingAutogroupNode extends TraceTreeNode<TraceTree.SiblingAutogro
   }
 
   get has_errors(): boolean {
-    return this.errors.length > 0 || this.performance_issues.length > 0;
+    return this.errors.size > 0 || this.performance_issues.size > 0;
   }
 
   get autogroupedSegments(): [number, number][] {

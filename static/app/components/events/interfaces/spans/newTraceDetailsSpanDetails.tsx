@@ -25,14 +25,15 @@ import {assert} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
+import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {CustomMetricsEventData} from 'sentry/views/ddm/customMetricsEventData';
-import DurationComparison from 'sentry/views/performance/newTraceDetails/traceDrawer/details/durationComparison';
 import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
+import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceTabs';
 import type {
   TraceTree,
@@ -276,7 +277,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   function renderSpanErrorMessage() {
     const {span, organization, node} = props;
 
-    const hasErrors = node.errors.length > 0 || node.performance_issues.length > 0;
+    const hasErrors = node.errors.size > 0 || node.performance_issues.size > 0;
 
     if (!hasErrors || isGapSpan(span)) {
       return null;
@@ -358,7 +359,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
 
     const timingKeys = getSpanSubTimings(span) ?? [];
     const parentTransaction = props.node.parent_transaction;
-    const averageSpanSelfTimeInMs: number | undefined = span['span.average_time']
+    const averageSpanSelfTimeInSeconds: number | undefined = span['span.average_time']
       ? span['span.average_time'] / 1000
       : undefined;
 
@@ -370,20 +371,23 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
         <SpanDetails>
           <table className="table key-value">
             <tbody>
-              <DurationComparison
-                title={t('Duration')}
-                duration={duration}
-                avgDuration={averageSpanSelfTimeInMs}
-              />
+              <Row title={t('Duration')}>
+                <strong>{getDuration(duration, 2, true)}</strong>
+              </Row>
               {span.exclusive_time ? (
-                <DurationComparison
+                <Row
+                  title={t('Self Time')}
                   toolTipText={t(
                     'The time spent exclusively in this span, excluding the total duration of its children'
                   )}
-                  title={t('Self Time')}
-                  duration={span.exclusive_time / 1000}
-                  avgDuration={averageSpanSelfTimeInMs}
-                />
+                >
+                  <TraceDrawerComponents.DurationComparison
+                    isComparingSelfDuration
+                    totalDuration={duration}
+                    selfDuration={span.exclusive_time / 1000}
+                    baseline={averageSpanSelfTimeInSeconds}
+                  />
+                </Row>
               ) : null}
               {parentTransaction ? (
                 <Row title="Parent Transaction">

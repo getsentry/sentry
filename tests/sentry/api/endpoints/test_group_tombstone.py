@@ -3,10 +3,8 @@ from django.urls import reverse
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouptombstone import GroupTombstone
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class GroupTombstoneTest(APITestCase):
     def test_simple(self):
         self.user = self.create_user("foo@example.com")

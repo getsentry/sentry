@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {useMemo} from 'react';
 import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {ErrorBoundary} from '@sentry/react';
@@ -6,9 +6,8 @@ import type {Location} from 'history';
 
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {HeaderTitle} from 'sentry/components/charts/styles';
-import EmptyMessage from 'sentry/components/emptyMessage';
 import TextOverflow from 'sentry/components/textOverflow';
-import {IconSearch, IconWarning} from 'sentry/icons';
+import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, PageFilters} from 'sentry/types';
@@ -106,20 +105,6 @@ export function MetricWidgetCard({
     );
   }, [widget.displayType, metricQueries, timeseriesData, isLoading, showContextMenu]);
 
-  if (!timeseriesData || isError) {
-    if (isError) {
-      const errorMessage =
-        error?.responseJSON?.detail?.toString() || t('Error while fetching metrics data');
-      return (
-        <Fragment>
-          {renderErrorMessage?.(errorMessage)}
-          <ErrorPanel>
-            <IconWarning color="gray500" size="lg" />
-          </ErrorPanel>
-        </Fragment>
-      );
-    }
-  }
   return (
     <DashboardsMEPContext.Provider
       value={{
@@ -165,7 +150,7 @@ export function MetricWidgetCard({
         <ErrorBoundary>
           <WidgetCardBody
             isError={isError}
-            noData={timeseriesData?.data.length === 0}
+            timeseriesData={timeseriesData}
             renderErrorMessage={renderErrorMessage}
             error={error}
           >
@@ -178,29 +163,20 @@ export function MetricWidgetCard({
   );
 }
 
-function WidgetCardBody({children, isError, noData, renderErrorMessage, error}) {
-  if (isError) {
+function WidgetCardBody({children, isError, timeseriesData, renderErrorMessage, error}) {
+  if (isError && !timeseriesData) {
     const errorMessage =
       error?.responseJSON?.detail?.toString() || t('Error while fetching metrics data');
     return (
-      <Fragment>
+      <ErrorWrapper>
         {renderErrorMessage?.(errorMessage)}
         <ErrorPanel>
           <IconWarning color="gray500" size="lg" />
         </ErrorPanel>
-      </Fragment>
+      </ErrorWrapper>
     );
   }
 
-  if (noData) {
-    return (
-      <EmptyMessage
-        icon={<IconSearch size="xxl" />}
-        title={t('No results')}
-        description={t('No results found for the given query')}
-      />
-    );
-  }
   return children;
 }
 
@@ -227,4 +203,8 @@ const WidgetTitle = styled(HeaderTitle)`
   padding-right: ${space(1)};
   ${p => p.theme.overflowEllipsis};
   font-weight: normal;
+`;
+
+const ErrorWrapper = styled('div')`
+  padding-top: ${space(1)};
 `;

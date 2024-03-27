@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import {EntryType, type Event, type EventTransaction} from 'sentry/types';
+import {EntryType, type Event} from 'sentry/types';
 import type {
   TraceFullDetailed,
   TracePerformanceIssue,
@@ -26,7 +26,7 @@ import {
   TraceTreeNode,
 } from './traceTree';
 
-const COMMON_EVENT_REQUEST_URL =
+const EVENT_REQUEST_URL =
   '/organizations/org-slug/events/project:event_id/?averageColumn=span.self_time';
 
 function makeTrace(
@@ -245,12 +245,10 @@ describe('TreeNode', () => {
             makeTransaction({
               start_timestamp: 0,
               timestamp: 1,
+              measurements: {ttfb: {value: 0, unit: 'millisecond'}},
             }),
           ],
-        }),
-        {
-          measurements: {ttfb: {value: 0, unit: 'millisecond'}},
-        } as unknown as EventTransaction
+        })
       );
 
       expect(tree.indicators.length).toBe(1);
@@ -264,16 +262,14 @@ describe('TreeNode', () => {
             makeTransaction({
               start_timestamp: 0,
               timestamp: 1,
+              measurements: {
+                ttfb: {value: 500, unit: 'millisecond'},
+                fcp: {value: 0.5, unit: 'second'},
+                lcp: {value: 500_000_000, unit: 'nanosecond'},
+              },
             }),
           ],
-        }),
-        {
-          measurements: {
-            ttfb: {value: 500, unit: 'millisecond'},
-            fcp: {value: 0.5, unit: 'second'},
-            lcp: {value: 500_000_000, unit: 'nanosecond'},
-          },
-        } as unknown as EventTransaction
+        })
       );
 
       expect(tree.indicators[0].start).toBe(500);
@@ -288,14 +284,12 @@ describe('TreeNode', () => {
             makeTransaction({
               start_timestamp: 0,
               timestamp: 1,
+              measurements: {
+                ttfb: {value: 2, unit: 'second'},
+              },
             }),
           ],
-        }),
-        {
-          measurements: {
-            ttfb: {value: 2, unit: 'second'},
-          },
-        } as unknown as EventTransaction
+        })
       );
 
       expect(tree.root.space).toEqual([0, 2000]);
@@ -308,14 +302,12 @@ describe('TreeNode', () => {
             makeTransaction({
               start_timestamp: 0,
               timestamp: 1,
+              measurements: {
+                ttfb: {value: 2000, unit: 'millisecond'},
+              },
             }),
           ],
-        }),
-        {
-          measurements: {
-            ttfb: {value: 2000, unit: 'millisecond'},
-          },
-        } as unknown as EventTransaction
+        })
       );
 
       expect(tree.root.space).toEqual([0, 2000]);
@@ -329,15 +321,13 @@ describe('TreeNode', () => {
             makeTransaction({
               start_timestamp: 0,
               timestamp: 1,
+              measurements: {
+                ttfb: {value: 2000, unit: 'millisecond'},
+                lcp: {value: 1000, unit: 'millisecond'},
+              },
             }),
           ],
-        }),
-        {
-          measurements: {
-            ttfb: {value: 2000, unit: 'millisecond'},
-            lcp: {value: 1000, unit: 'millisecond'},
-          },
-        } as unknown as EventTransaction
+        })
       );
 
       expect(tree.indicators[0].start).toBe(1000);
@@ -563,7 +553,7 @@ describe('TreeNode', () => {
       );
 
       MockApiClient.addMockResponse({
-        url: COMMON_EVENT_REQUEST_URL,
+        url: EVENT_REQUEST_URL,
         method: 'GET',
         body: makeEvent({}, [
           makeSpan({
@@ -618,7 +608,7 @@ describe('TreeNode', () => {
       );
 
       MockApiClient.addMockResponse({
-        url: COMMON_EVENT_REQUEST_URL,
+        url: EVENT_REQUEST_URL,
         method: 'GET',
         body: makeEvent({}, [
           makeSpan({description: 'span', op: 'db', span_id: '2'}),
@@ -666,7 +656,7 @@ describe('TreeNode', () => {
         );
 
         MockApiClient.addMockResponse({
-          url: COMMON_EVENT_REQUEST_URL,
+          url: EVENT_REQUEST_URL,
           method: 'GET',
           body: makeEvent({}, [
             makeSpan({
@@ -713,7 +703,7 @@ describe('TreeNode', () => {
       );
 
       MockApiClient.addMockResponse({
-        url: COMMON_EVENT_REQUEST_URL,
+        url: EVENT_REQUEST_URL,
         method: 'GET',
         body: makeEvent({}, [
           makeSpan({description: 'span', op: 'db', span_id: '2'}),
@@ -1366,7 +1356,7 @@ describe('TraceTree', () => {
       //  |- node2 []
 
       MockApiClient.addMockResponse({
-        url: COMMON_EVENT_REQUEST_URL,
+        url: EVENT_REQUEST_URL,
         method: 'GET',
         body: makeEvent({}, [makeSpan({start_timestamp: 0, op: 'span', span_id: '1'})]),
       });
@@ -1491,7 +1481,7 @@ describe('TraceTree', () => {
       );
 
       const request = MockApiClient.addMockResponse({
-        url: COMMON_EVENT_REQUEST_URL,
+        url: EVENT_REQUEST_URL,
         method: 'GET',
         body: makeEvent(),
       });
@@ -1520,7 +1510,7 @@ describe('TraceTree', () => {
       );
 
       const request = MockApiClient.addMockResponse({
-        url: COMMON_EVENT_REQUEST_URL,
+        url: EVENT_REQUEST_URL,
         method: 'GET',
         body: makeEvent({}, [makeSpan()]),
       });
@@ -1564,7 +1554,7 @@ describe('TraceTree', () => {
       );
 
       const first_request = MockApiClient.addMockResponse({
-        url: COMMON_EVENT_REQUEST_URL,
+        url: EVENT_REQUEST_URL,
         method: 'GET',
         body: makeEvent({}, [makeSpan({op: 'db', span_id: 'span'})]),
       });
@@ -1614,7 +1604,7 @@ describe('TraceTree', () => {
       );
 
       MockApiClient.addMockResponse({
-        url: COMMON_EVENT_REQUEST_URL,
+        url: EVENT_REQUEST_URL,
         method: 'GET',
         body: makeEvent({}, [makeSpan({span_id: 'span1', description: 'span1'})]),
       });
@@ -1651,7 +1641,7 @@ describe('TraceTree', () => {
       );
 
       MockApiClient.addMockResponse({
-        url: COMMON_EVENT_REQUEST_URL,
+        url: EVENT_REQUEST_URL,
         method: 'GET',
         body: makeEvent({}, [makeSpan({span_id: 'span 1', description: 'span1'})]),
       });
@@ -1749,7 +1739,7 @@ describe('TraceTree', () => {
       );
 
       MockApiClient.addMockResponse({
-        url: COMMON_EVENT_REQUEST_URL,
+        url: EVENT_REQUEST_URL,
         method: 'GET',
         body: makeEvent({}, [
           makeSpan({description: 'span1'}),
@@ -1845,8 +1835,8 @@ describe('TraceTree', () => {
           project_slug: '',
           event_id: '',
         });
-        node.errors = [makeTraceError()];
-        node.performance_issues = [makeTracePerformanceIssue()];
+        node.errors.add(makeTraceError());
+        node.performance_issues.add(makeTracePerformanceIssue());
         root.children.push(node);
       }
 
@@ -1858,8 +1848,8 @@ describe('TraceTree', () => {
       const autogroupedNode = root.children[0];
       assertSiblingAutogroupedNode(autogroupedNode);
       expect(autogroupedNode.has_errors).toBe(true);
-      expect(autogroupedNode.errors).toHaveLength(5);
-      expect(autogroupedNode.performance_issues).toHaveLength(5);
+      expect(autogroupedNode.errors.size).toBe(5);
+      expect(autogroupedNode.performance_issues.size).toBe(5);
     });
 
     it('adds autogrouped siblings as children under autogrouped node', () => {
@@ -2000,8 +1990,8 @@ describe('TraceTree', () => {
             event_id: '',
           }
         );
-        node.errors = [makeTraceError()];
-        node.performance_issues = [makeTracePerformanceIssue()];
+        node.errors.add(makeTraceError());
+        node.performance_issues.add(makeTracePerformanceIssue());
         last.children.push(node);
         last = node;
       }
@@ -2019,8 +2009,8 @@ describe('TraceTree', () => {
 
       assertAutogroupedNode(root.children[0]);
       expect(root.children[0].has_errors).toBe(true);
-      expect(root.children[0].errors).toHaveLength(3);
-      expect(root.children[0].performance_issues).toHaveLength(3);
+      expect(root.children[0].errors.size).toBe(3);
+      expect(root.children[0].performance_issues.size).toBe(3);
     });
 
     it('autogrouping direct children skips rendering intermediary nodes', () => {
@@ -2225,7 +2215,7 @@ describe('TraceTree', () => {
       );
 
       MockApiClient.addMockResponse({
-        url: COMMON_EVENT_REQUEST_URL,
+        url: EVENT_REQUEST_URL,
         method: 'GET',
         body: makeEvent({}, [
           makeSpan({description: 'parent span', op: 'http', span_id: '1'}),
