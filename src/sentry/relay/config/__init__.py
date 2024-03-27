@@ -65,7 +65,6 @@ EXPOSABLE_FEATURES = [
     "organizations:session-replay",
     "organizations:session-replay-combined-envelope-items",
     "organizations:user-feedback-ingest",
-    "organizations:user-feedback-ingest-topic",
     "organizations:session-replay-recording-scrubbing",
     "organizations:device-class-synthesis",
     "organizations:custom-metrics",
