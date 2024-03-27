@@ -19,9 +19,9 @@ describe('getIntervalOptionsForStatsPeriod', () => {
         false
       )
     ).toEqual([
-      {value: '24h', label: '24 hours'},
-      {value: '2d', label: '2 days'},
-      {value: '7d', label: '7 days'},
+      {value: '1d', label: '1 day'},
+      {value: '1w', label: '1 week'},
+      {value: '4w', label: '1 month'},
     ]);
   });
 
@@ -44,9 +44,9 @@ describe('getIntervalOptionsForStatsPeriod', () => {
         true
       )
     ).toEqual([
-      {value: '24h', label: '24 hours'},
-      {value: '2d', label: '2 days'},
-      {value: '7d', label: '7 days'},
+      {value: '1d', label: '1 day'},
+      {value: '1w', label: '1 week'},
+      {value: '4w', label: '1 month'},
     ]);
   });
 });
