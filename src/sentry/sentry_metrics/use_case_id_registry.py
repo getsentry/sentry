@@ -6,10 +6,12 @@ from enum import Enum
 from sentry.sentry_metrics.configuration import UseCaseKey
 
 
-class UseCaseIDVisibility(Enum):
-    # Available to users to query via public endpoints.
+class UseCaseIDAPIAccess(Enum):
+    """
+    Represents the access levels of a UseCaseID for sentry's APIs.
+    """
+
     PUBLIC = 0
-    # Available only internally.
     PRIVATE = 1
 
 
@@ -24,15 +26,15 @@ class UseCaseID(Enum):
     METRIC_STATS = "metric_stats"
 
 
-USE_CASE_ID_VISIBILITIES: Mapping[UseCaseID, UseCaseIDVisibility] = {
-    UseCaseID.SPANS: UseCaseIDVisibility.PUBLIC,
-    UseCaseID.TRANSACTIONS: UseCaseIDVisibility.PUBLIC,
-    UseCaseID.SESSIONS: UseCaseIDVisibility.PUBLIC,
-    UseCaseID.ESCALATING_ISSUES: UseCaseIDVisibility.PRIVATE,
-    UseCaseID.CUSTOM: UseCaseIDVisibility.PUBLIC,
-    UseCaseID.PROFILES: UseCaseIDVisibility.PRIVATE,
-    UseCaseID.BUNDLE_ANALYSIS: UseCaseIDVisibility.PRIVATE,
-    UseCaseID.METRIC_STATS: UseCaseIDVisibility.PRIVATE,
+USE_CASE_ID_API_ACCESSES: Mapping[UseCaseID, UseCaseIDAPIAccess] = {
+    UseCaseID.SPANS: UseCaseIDAPIAccess.PUBLIC,
+    UseCaseID.TRANSACTIONS: UseCaseIDAPIAccess.PUBLIC,
+    UseCaseID.SESSIONS: UseCaseIDAPIAccess.PUBLIC,
+    UseCaseID.ESCALATING_ISSUES: UseCaseIDAPIAccess.PRIVATE,
+    UseCaseID.CUSTOM: UseCaseIDAPIAccess.PUBLIC,
+    UseCaseID.PROFILES: UseCaseIDAPIAccess.PRIVATE,
+    UseCaseID.BUNDLE_ANALYSIS: UseCaseIDAPIAccess.PRIVATE,
+    UseCaseID.METRIC_STATS: UseCaseIDAPIAccess.PRIVATE,
 }
 
 # UseCaseKey will be renamed to MetricPathKey
@@ -71,11 +73,11 @@ USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS = {
 }
 
 
-def get_use_case_id_visibility(use_case_id: UseCaseID) -> UseCaseIDVisibility:
+def get_use_case_id_api_access(use_case_id: UseCaseID) -> UseCaseIDAPIAccess:
     """
-    Returns the visibility of a use case and defaults to private in case no visibility is provided.
+    Returns the api access visibility of a use case and defaults to private in case no api access is provided.
 
     The rationale for defaulting to private visibility is that we do not want to leak by mistake any internal metrics
     that users should not have access to.
     """
-    return USE_CASE_ID_VISIBILITIES.get(use_case_id, UseCaseIDVisibility.PRIVATE)
+    return USE_CASE_ID_API_ACCESSES.get(use_case_id, UseCaseIDAPIAccess.PRIVATE)
