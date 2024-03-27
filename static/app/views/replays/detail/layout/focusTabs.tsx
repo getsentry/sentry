@@ -81,7 +81,6 @@ function FocusTabs({className, isVideoReplay}: Props) {
       {Object.entries(getReplayTabs({organization, isVideoReplay})).map(([tab, label]) =>
         label ? (
           <ListLink
-            disabledTooltip={t('This feature is coming soon')}
             disabled={unsupportedVideoTab(tab)}
             data-test-id={`replay-details-${tab}-btn`}
             key={tab}
@@ -97,7 +96,11 @@ function FocusTabs({className, isVideoReplay}: Props) {
               });
             }}
           >
-            {label}
+            <Tooltip
+              title={unsupportedVideoTab(tab) ? t('This feature is coming soon') : null}
+            >
+              {label}
+            </Tooltip>
           </ListLink>
         ) : null
       )}

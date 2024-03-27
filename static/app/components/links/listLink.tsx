@@ -4,7 +4,6 @@ import classNames from 'classnames';
 import type {LocationDescriptor} from 'history';
 import * as qs from 'query-string';
 
-import {Tooltip} from 'sentry/components/tooltip';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
@@ -20,10 +19,6 @@ type Props = LinkProps & {
    */
   activeClassName?: string;
   disabled?: boolean;
-  /**
-   * Tooltip to display if the link is disabled
-   */
-  disabledTooltip?: string;
   index?: boolean;
   /**
    * Should be should be supplied by the parent component
@@ -41,7 +36,6 @@ function ListLink({
   activeClassName = 'active',
   index = false,
   disabled = false,
-  disabledTooltip,
   ...props
 }: Props) {
   const router = useRouter();
@@ -56,11 +50,9 @@ function ListLink({
       className={classNames({[activeClassName]: active}, className)}
       disabled={disabled}
     >
-      <Tooltip title={disabled ? disabledTooltip : null}>
-        <RouterLink {...props} onlyActiveOnIndex={index} to={disabled ? '' : target}>
-          {children}
-        </RouterLink>
-      </Tooltip>
+      <RouterLink {...props} onlyActiveOnIndex={index} to={disabled ? '' : target}>
+        {children}
+      </RouterLink>
     </StyledLi>
   );
 }
@@ -73,12 +65,16 @@ const StyledLi = styled('li', {
   ${p =>
     p.disabled &&
     `
-   a {
-    color:${p.theme.disabled} !important;
-    pointer-events: none;
-    :hover {
-      color: ${p.theme.disabled}  !important;
+  a {
+      color:${p.theme.disabled} !important;
+      :hover {
+        color: ${p.theme.disabled}  !important;
+      }
+      cursor: default !important;
     }
-   }
+
+  a:active {
+    pointer-events: none;
+  }
 `}
 `;
