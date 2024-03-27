@@ -153,7 +153,7 @@ function GroupPriorityFeedback() {
 }
 
 const DataConsentLearnMore = HookOrDefault({
-  hookName: 'component:data-consent-learn-more',
+  hookName: 'component:data-consent-priority-learn-more',
   defaultComponent: null,
 });
 
