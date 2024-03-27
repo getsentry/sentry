@@ -242,7 +242,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                 return {
                     "occurrence_data": occurrence_data,
                     "event_data": event_data,
-                    "is_buffered_spans": payload.get("is_buffered_spans", False),
+                    "is_buffered_spans": payload.get("is_buffered_spans") is True,
                 }
             else:
                 if not payload.get("event_id"):
