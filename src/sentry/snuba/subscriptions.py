@@ -125,7 +125,7 @@ def update_snuba_query(
 
 def bulk_create_snuba_subscriptions(
     projects, subscription_type, snuba_query, query_extra: str | None = None
-):
+) -> list[QuerySubscription]:
     """
     Creates a subscription to a snuba query for each project.
 
