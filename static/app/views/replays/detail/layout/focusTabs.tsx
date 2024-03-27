@@ -68,17 +68,23 @@ type Props = {
 function FocusTabs({className, isVideoReplay}: Props) {
   const organization = useOrganization();
   const {pathname, query} = useLocation();
-  const {getActiveTab, setActiveTab} = useActiveReplayTab();
+  const {getActiveTab, setActiveTab} = useActiveReplayTab({isVideoReplay});
   const activeTab = getActiveTab();
+  const supportedVideoTabs = [TabKey.TAGS];
+
+  const unsupportedVideoTab = tab => {
+    return isVideoReplay && !supportedVideoTabs.includes(tab);
+  };
 
   return (
     <ScrollableTabs className={className} underlined>
       {Object.entries(getReplayTabs({organization, isVideoReplay})).map(([tab, label]) =>
         label ? (
           <ListLink
+            disabled={unsupportedVideoTab(tab)}
             data-test-id={`replay-details-${tab}-btn`}
             key={tab}
-            isActive={() => tab === activeTab}
+            isActive={() => (unsupportedVideoTab(tab) ? false : tab === activeTab)}
             to={`${pathname}?${queryString.stringify({...query, t_main: tab})}`}
             onClick={e => {
               e.preventDefault();
@@ -90,7 +96,11 @@ function FocusTabs({className, isVideoReplay}: Props) {
               });
             }}
           >
-            {label}
+            <Tooltip
+              title={unsupportedVideoTab(tab) ? t('This feature is coming soon') : null}
+            >
+              {label}
+            </Tooltip>
           </ListLink>
         ) : null
       )}
