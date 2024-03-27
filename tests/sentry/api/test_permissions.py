@@ -18,7 +18,7 @@ class PermissionsTest(DRFPermissionTestCase):
     def test_staff_permission(self):
         assert self.staff_permission.has_permission(self.staff_request, None)
 
-    def test_superuser_or_staff_feature_flagged_permission_active_flag(self):
+    def test_superuser_or_staff_feature_flagged_permission_active(self):
         with override_options(
             {"staff.user-email-allowlist": [self.superuser.email, self.staff_user.email]}
         ):
@@ -30,7 +30,7 @@ class PermissionsTest(DRFPermissionTestCase):
             # With active staff
             assert self.superuser_staff_flagged_permission.has_permission(self.staff_request, None)
 
-    def test_superuser_or_staff_feature_flagged_permission_inactive_flag(self):
+    def test_superuser_or_staff_feature_flagged_permission_inactive(self):
         # With active staff
         assert not self.superuser_staff_flagged_permission.has_permission(self.staff_request, None)
 
