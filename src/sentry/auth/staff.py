@@ -52,7 +52,7 @@ def is_active_staff(request: HttpRequest | Request) -> bool:
     return staff.is_active
 
 
-# TODO(schew2381): Delete after staff is GA'd and the options are removed.
+# TODO(schew2381): Delete after staff is GA'd and the options are removed
 def has_staff_option(user) -> bool:
     """
     This checks two options, the first being whether or not staff has been GA'd.
