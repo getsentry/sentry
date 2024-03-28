@@ -393,7 +393,11 @@ export class VirtualizedViewManager {
 
   registerIndicatorContainerRef(ref: HTMLElement | null) {
     if (ref) {
-      ref.style.width = this.columns.span_list.width * 100 + '%';
+      const correction =
+        (this.scrollbar_width / this.container_physical_space.width) *
+        this.columns.span_list.width;
+      ref.style.transform = `translateX(${-this.scrollbar_width}px)`;
+      ref.style.width = (this.columns.span_list.width - correction) * 100 + '%';
     }
     this.indicator_container = ref;
   }
@@ -1241,7 +1245,10 @@ export class VirtualizedViewManager {
       }px)`;
     }
     if (this.indicator_container) {
-      this.indicator_container.style.width = span_list_width * 100 + '%';
+      const correction =
+        (this.scrollbar_width / this.container_physical_space.width) * span_list_width;
+      this.indicator_container.style.transform = `translateX(${-this.scrollbar_width}px)`;
+      this.indicator_container.style.width = (span_list_width - correction) * 100 + '%';
     }
 
     for (let i = 0; i < this.columns.list.column_refs.length; i++) {
