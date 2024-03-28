@@ -75,7 +75,7 @@ export class VideoReplayer {
     }
 
     // Initially, only load some videos
-    this.createVideoForRange({low: 0, high: PRELOAD_BUFFER});
+    this.preloadVideos({low: 0, high: PRELOAD_BUFFER});
 
     this._trackList = this._attachments.map(({timestamp}, i) => [timestamp, i]);
     this.loadSegment(0);
@@ -126,9 +126,13 @@ export class VideoReplayer {
   /**
    * Create videos from a slice of _attachments, given the start and end index.
    */
-  protected createVideoForRange({low, high}: {high: number; low: number}) {
-    return this._attachments.slice(low, high).forEach((attachment, index) => {
-      const dictIndex = index + low;
+  protected preloadVideos({low, high}: {high: number; low: number}) {
+    // Make sure we don't go out of bounds
+    const l = Math.max(0, low);
+    const h = Math.min(high, this._attachments.length + 1);
+
+    return this._attachments.slice(l, h).forEach((attachment, index) => {
+      const dictIndex = index + l;
 
       // Might be some videos we've already loaded before
       if (!this._videos[dictIndex]) {
@@ -178,28 +182,6 @@ export class VideoReplayer {
     if (index === undefined || index < 0 || index >= this._attachments.length) {
       return undefined;
     }
-
-    return this._videos[index];
-  }
-
-  /**
-   * Fetches the video if it exists, otherwise creates the video and adds to the _videos dictionary.
-   */
-  protected getOrCreateVideo(index: number | undefined): HTMLVideoElement | undefined {
-    const video = this.getVideo(index);
-
-    if (video) {
-      return video;
-    }
-
-    if (index === undefined) {
-      return undefined;
-    }
-
-    // If we haven't loaded the current video yet, we should load videos on either side too
-    const low = Math.max(0, index - PRELOAD_BUFFER);
-    const high = Math.min(index + PRELOAD_BUFFER, this._attachments.length + 1);
-    this.createVideoForRange({low, high});
 
     return this._videos[index];
   }
@@ -284,14 +266,14 @@ export class VideoReplayer {
     // Hide current video
     this.hideVideo(this._currentIndex);
 
-    const nextVideo = this.getOrCreateVideo(index);
-    // Show the next video
-    this.showVideo(nextVideo);
-
     // Preload the next few videos
     if (index < this._attachments.length) {
-      this.getOrCreateVideo(index + 1);
+      this.preloadVideos({low: index, high: index + PRELOAD_BUFFER});
     }
+
+    const nextVideo = this.getVideo(index);
+    // Show the next video
+    this.showVideo(nextVideo);
 
     // Set video to proper offset
     if (nextVideo) {
@@ -312,8 +294,14 @@ export class VideoReplayer {
   protected async playSegmentAtIndex(index: number | undefined) {
     const loadedSegmentIndex = await this.loadSegment(index, {segmentOffsetMs: 0});
 
+    // Preload videos before and after this index
+    this.preloadVideos({
+      low: loadedSegmentIndex - PRELOAD_BUFFER,
+      high: loadedSegmentIndex + PRELOAD_BUFFER,
+    });
+
     if (loadedSegmentIndex !== undefined) {
-      this.playVideo(this.getOrCreateVideo(loadedSegmentIndex));
+      this.playVideo(this.getVideo(loadedSegmentIndex));
     }
   }
 
@@ -390,7 +378,13 @@ export class VideoReplayer {
       return Promise.resolve();
     }
 
-    return this.playVideo(this.getOrCreateVideo(loadedSegmentIndex));
+    // Preload videos before and after this index
+    this.preloadVideos({
+      low: loadedSegmentIndex - PRELOAD_BUFFER,
+      high: loadedSegmentIndex + PRELOAD_BUFFER,
+    });
+
+    return this.playVideo(this.getVideo(loadedSegmentIndex));
   }
 
   /**
@@ -418,8 +412,16 @@ export class VideoReplayer {
    * Pause at a specific time in the replay. Note that this gets called when seeking.
    */
   public pause(videoOffsetMs: number) {
+    const index = this._currentIndex ?? 0;
+
+    // Preload videos before and after this index
+    this.preloadVideos({
+      low: index - PRELOAD_BUFFER,
+      high: index + PRELOAD_BUFFER,
+    });
+
     // Pause the current video
-    const currentVideo = this.getOrCreateVideo(this._currentIndex);
+    const currentVideo = this.getVideo(this._currentIndex);
     currentVideo?.pause();
     this._timer.stop(videoOffsetMs);
 
