@@ -339,7 +339,7 @@ function SummaryContent({
   return (
     <Fragment>
       <Layout.Main>
-        <FilterActions hasTransactionSummaryCleanupFlag>
+        <FilterActions hasTransactionSummaryCleanupFlag={hasTransactionSummaryCleanupFlag}>
           {!hasTransactionSummaryCleanupFlag && (
             <Filter
               organization={organization}
