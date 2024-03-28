@@ -70,6 +70,7 @@ class TestGetEventSeverity(TestCase):
             "/v0/issues/severity-score",
             body=json.dumps(payload),
             headers={"content-type": "application/json;charset=utf-8"},
+            timeout=0.2,
         )
         mock_logger_info.assert_called_with(
             "Got severity score of %s for event %s",
@@ -116,6 +117,7 @@ class TestGetEventSeverity(TestCase):
                 "/v0/issues/severity-score",
                 body=json.dumps(payload),
                 headers={"content-type": "application/json;charset=utf-8"},
+                timeout=0.2,
             )
             mock_logger_info.assert_called_with(
                 "Got severity score of %s for event %s",
