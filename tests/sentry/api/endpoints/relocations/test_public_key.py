@@ -6,7 +6,6 @@ from google.api_core.exceptions import GoogleAPIError
 from sentry.api.endpoints.relocations import ERR_FEATURE_DISABLED
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.backups import FakeKeyManagementServiceClient, generate_rsa_key_pair
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 
 
@@ -57,8 +56,7 @@ class GetRelocationPublicKeyTest(APITestCase):
         assert bytes(response.data["public_key"], "utf-8") == self.pub_key_pem
         assert fake_kms_client.get_public_key.call_count == 1
 
-    @override_options({"relocation.enabled": True})
-    @with_feature("auth:enterprise-staff-cookie")
+    @override_options({"relocation.enabled": True, "staff.ga-rollout": True})
     def test_good_staff_when_feature_enabled(self, fake_kms_client: FakeKeyManagementServiceClient):
         staff = self.create_user("staff", is_staff=True, is_active=True)
         self.login_as(user=staff, staff=True)
@@ -69,7 +67,7 @@ class GetRelocationPublicKeyTest(APITestCase):
         assert bytes(response.data["public_key"], "utf-8") == self.pub_key_pem
         assert fake_kms_client.get_public_key.call_count == 1
 
-    @with_feature("auth:enterprise-staff-cookie")
+    @override_options({"staff.ga-rollout": True})
     def test_good_staff_when_feature_disabled(
         self, fake_kms_client: FakeKeyManagementServiceClient
     ):
@@ -132,7 +130,7 @@ class GetRelocationPublicKeyTest(APITestCase):
 
         assert fake_kms_client.get_public_key.call_count == 0
 
-    @with_feature("auth:enterprise-staff-cookie")
+    @override_options({"staff.ga-rollout": True})
     def test_bad_staff_missing_cookie_when_feature_disabled(
         self, fake_kms_client: FakeKeyManagementServiceClient
     ):
