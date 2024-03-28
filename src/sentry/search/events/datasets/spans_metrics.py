@@ -505,7 +505,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     ],
                     calculated_args=[resolve_metric_id],
                     snql_distribution=lambda args, alias: self._resolve_avg_condition(
-                        args, alias, args["condition"]
+                        args, args["condition"], alias
                     ),
                     default_result_type="number",
                 ),
@@ -849,14 +849,14 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 Function(
                     "multiply",
                     [
-                        self._resolve_avg_condition(args, None, "greater"),
+                        self._resolve_avg_condition(args, "greater"),
                         self._resolve_epm_condition(args, "greater"),
                     ],
                 ),
                 Function(
                     "multiply",
                     [
-                        self._resolve_avg_condition(args, None, "less"),
+                        self._resolve_avg_condition(args, "less"),
                         self._resolve_epm_condition(args, "less"),
                     ],
                 ),
@@ -898,8 +898,8 @@ class SpansMetricsDatasetConfig(DatasetConfig):
     def _resolve_avg_condition(
         self,
         args: Mapping[str, str | Column | SelectType | int | float],
-        alias: str | None,
         condition: str,
+        alias: str | None = None,
     ) -> SelectType:
         conditional_aggregate = Function(
             "avgIf",
