@@ -12,10 +12,22 @@ from sentry.api.base import Endpoint
 from sentry.api.bases.doc_integrations import DocIntegrationBaseEndpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization_integrations import RegionOrganizationIntegrationBaseEndpoint
 from sentry.api.bases.organizationmember import OrganizationMemberEndpoint
 from sentry.api.bases.sentryapps import RegionSentryAppBaseEndpoint, SentryAppBaseEndpoint
+from sentry.api.endpoints.codeowners.external_actor.user_details import ExternalUserDetailsEndpoint
 from sentry.api.endpoints.integrations.sentry_apps import SentryInternalAppTokenDetailsEndpoint
+from sentry.api.endpoints.organization_code_mapping_codeowners import (
+    OrganizationCodeMappingCodeOwnersEndpoint,
+)
+from sentry.api.endpoints.organization_code_mapping_details import (
+    OrganizationCodeMappingDetailsEndpoint,
+)
+from sentry.api.endpoints.organization_dashboard_details import OrganizationDashboardDetailsEndpoint
 from sentry.api.endpoints.organization_search_details import OrganizationSearchDetailsEndpoint
+from sentry.models.repository import Repository
+from sentry.scim.endpoints.members import OrganizationSCIMMemberDetails
+from sentry.scim.endpoints.teams import OrganizationSCIMTeamDetails
 from sentry.testutils.cases import BaseTestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import no_silo_test
@@ -89,9 +101,16 @@ class APIIdOrSlugPathParamTest(BaseTestCase, TestCase):
             RegionSentryAppBaseEndpoint.convert_args: self.region_sentry_app_test,
             SentryInternalAppTokenDetailsEndpoint.convert_args: self.sentry_app_token_test,
             OrganizationEndpoint.convert_args: self.organization_test,
+            RegionOrganizationIntegrationBaseEndpoint.convert_args: self.region_organization_integration_test,
+            OrganizationCodeMappingCodeOwnersEndpoint.convert_args: self.organization_code_mapping_codeowners_test,
+            OrganizationCodeMappingDetailsEndpoint.convert_args: self.organization_code_mapping_codeowners_test,
             OrganizationSearchDetailsEndpoint.convert_args: self.organization_search_details_test,
             OrganizationMemberEndpoint.convert_args: self.organization_member_test,
+            OrganizationSCIMMemberDetails.convert_args: self.organization_member_test,
+            OrganizationSCIMTeamDetails.convert_args: self.organization_team_test,
             GroupEndpoint.convert_args: self.group_test,
+            ExternalUserDetailsEndpoint.convert_args: self.external_user_details_test,
+            OrganizationDashboardDetailsEndpoint.convert_args: self.organization_dashboard_details_test,
         }
 
         self.doc_integration = self.create_doc_integration()
@@ -100,6 +119,16 @@ class APIIdOrSlugPathParamTest(BaseTestCase, TestCase):
         self.organization = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.organization)
         self.group = self.create_group(project=self.project)
+        self.incident = self.create_incident(organization=self.organization)
+
+        self.repo = Repository.objects.create(
+            name="example", organization_id=self.organization.id, integration_id=self.integration.id
+        )
+
+        self.code_mapping = self.create_code_mapping(
+            repo=self.repo,
+            project=self.project,
+        )
 
         # Step 2: Add new slugs to the mappings
         # Add slug mappings for the test methods
@@ -278,6 +307,61 @@ class APIIdOrSlugPathParamTest(BaseTestCase, TestCase):
 
         self.assert_conversion(endpoint_class, converted_slugs, converted_ids)
 
+    @patch("sentry.api.bases.organization.OrganizationEndpoint.check_object_permissions")
+    @patch("sentry.types.region.subdomain_is_region")
+    @override_options({"api.id-or-slug-enabled": True})
+    def region_organization_integration_test(self, endpoint_class, slug_params, *args):
+        slug_kwargs = {param: self.slug_mappings[param].slug for param in slug_params}
+        id_kwargs = {param: self.slug_mappings[param].id for param in slug_params}
+
+        non_slug_mappings: dict[str, Any] = {
+            "integration_id": 1,
+        }
+
+        request = Request(request=self.make_request())
+
+        _, converted_slugs = endpoint_class().convert_args(
+            request=request, **slug_kwargs, **non_slug_mappings
+        )
+        _, converted_ids = endpoint_class().convert_args(
+            request=request, **id_kwargs, **non_slug_mappings
+        )
+
+        self.assert_conversion(
+            endpoint_class,
+            converted_slugs,
+            converted_ids,
+            reverse_non_slug_mappings=non_slug_mappings,
+        )
+
+    @patch("sentry.api.bases.organization.OrganizationEndpoint.check_object_permissions")
+    @patch("sentry.types.region.subdomain_is_region")
+    @override_options({"api.id-or-slug-enabled": True})
+    def organization_code_mapping_codeowners_test(self, endpoint_class, slug_params, *args):
+        slug_kwargs = {param: self.slug_mappings[param].slug for param in slug_params}
+        id_kwargs = {param: self.slug_mappings[param].id for param in slug_params}
+
+        request = Request(request=self.make_request())
+
+        non_slug_mappings: dict[str, Any] = {
+            "config_id": self.code_mapping.id,
+        }
+
+        reverse_non_slug_mappings: dict[str, Any] = {
+            "config": self.code_mapping,
+        }
+
+        _, converted_slugs = endpoint_class().convert_args(
+            request=request, **slug_kwargs, **non_slug_mappings
+        )
+        _, converted_ids = endpoint_class().convert_args(
+            request=request, **id_kwargs, **non_slug_mappings
+        )
+
+        self.assert_conversion(
+            endpoint_class, converted_slugs, converted_ids, reverse_non_slug_mappings
+        )
+
     @patch(
         "sentry.api.endpoints.organization_search_details.OrganizationSearchDetailsEndpoint.check_object_permissions"
     )
@@ -339,6 +423,34 @@ class APIIdOrSlugPathParamTest(BaseTestCase, TestCase):
 
         self.assert_conversion(endpoint_class, converted_slugs, converted_ids)
 
+    @patch("sentry.api.bases.organization.OrganizationEndpoint.check_object_permissions")
+    @patch("sentry.types.region.subdomain_is_region")
+    @override_options({"api.id-or-slug-enabled": True})
+    def organization_team_test(self, endpoint_class, slug_params, *args):
+        slug_kwargs = {param: self.slug_mappings[param].slug for param in slug_params}
+        id_kwargs = {param: self.slug_mappings[param].id for param in slug_params}
+
+        request = Request(request=self.make_request())
+
+        non_slug_mappings: dict[str, Any] = {
+            "team_id": self.team.id,
+        }
+
+        reverse_non_slug_mappings: dict[str, Any] = {
+            "team": self.team,
+        }
+
+        _, converted_slugs = endpoint_class().convert_args(
+            request=request, **slug_kwargs, **non_slug_mappings
+        )
+        _, converted_ids = endpoint_class().convert_args(
+            request=request, **id_kwargs, **non_slug_mappings
+        )
+
+        self.assert_conversion(
+            endpoint_class, converted_slugs, converted_ids, reverse_non_slug_mappings
+        )
+
     @patch("sentry.api.bases.group.GroupEndpoint.check_object_permissions")
     @override_options({"api.id-or-slug-enabled": True})
     def group_test(self, endpoint_class, slug_params, *args):
@@ -365,6 +477,62 @@ class APIIdOrSlugPathParamTest(BaseTestCase, TestCase):
         self.assert_conversion(
             endpoint_class, converted_slugs, converted_ids, reverse_non_slug_mappings
         )
+
+    @patch("sentry.api.bases.organization.OrganizationEndpoint.check_object_permissions")
+    @override_options({"api.id-or-slug-enabled": True})
+    def external_user_details_test(self, endpoint_class, slug_params, *args):
+        slug_kwargs = {param: self.slug_mappings[param].slug for param in slug_params}
+        id_kwargs = {param: self.slug_mappings[param].id for param in slug_params}
+
+        request = Request(request=self.make_request())
+
+        external_user = self.create_external_user(organization=self.organization)
+
+        non_slug_mappings: dict[str, Any] = {
+            "external_user_id": external_user.id,
+        }
+
+        reverse_non_slug_mappings: dict[str, Any] = {
+            "external_user": external_user,
+        }
+
+        _, converted_slugs = endpoint_class().convert_args(
+            request=request, **slug_kwargs, **non_slug_mappings
+        )
+        _, converted_ids = endpoint_class().convert_args(
+            request=request, **id_kwargs, **non_slug_mappings
+        )
+
+        self.assert_conversion(
+            endpoint_class, converted_slugs, converted_ids, reverse_non_slug_mappings
+        )
+
+    @patch("sentry.api.bases.organization.OrganizationEndpoint.check_object_permissions")
+    @patch(
+        "sentry.api.endpoints.organization_dashboard_details.OrganizationDashboardBase._get_dashboard"
+    )
+    @override_options({"api.id-or-slug-enabled": True})
+    def organization_dashboard_details_test(self, endpoint_class, slug_params, *args):
+        slug_kwargs = {param: self.slug_mappings[param].slug for param in slug_params}
+        id_kwargs = {param: self.slug_mappings[param].id for param in slug_params}
+
+        request = Request(request=self.make_request())
+
+        non_slug_mappings: dict[str, Any] = {
+            "dashboard_id": "dashboard.id",
+        }
+
+        _, converted_slugs = endpoint_class().convert_args(
+            request=request, **slug_kwargs, **non_slug_mappings
+        )
+        _, converted_ids = endpoint_class().convert_args(
+            request=request, **id_kwargs, **non_slug_mappings
+        )
+
+        converted_slugs.pop("dashboard")
+        converted_ids.pop("dashboard")
+
+        self.assert_conversion(endpoint_class, converted_slugs, converted_ids)
 
     def test_if_endpoints_work_with_id_or_slug(self):
         """
