@@ -255,7 +255,7 @@ export function TransactionNodeDetails({
   const {start: startTimeWithLeadingZero, end: endTimeWithLeadingZero} =
     getFormattedTimeRangeWithLeadingAndTrailingZero(startTimestamp, endTimestamp);
 
-  const duration = (endTimestamp - startTimestamp) * node.multiplier;
+  const duration = endTimestamp - startTimestamp;
 
   const measurementNames = Object.keys(node.value.measurements ?? {})
     .filter(name => isCustomMeasurement(`measurements.${name}`))
@@ -366,7 +366,9 @@ export function TransactionNodeDetails({
               {node.value.profile_id}
             </Row>
           ) : null}
-          <Row title="Duration">{`${Number(duration.toFixed(3)).toLocaleString()}ms`}</Row>
+          <Row title="Duration">
+            <TraceDrawerComponents.Duration duration={duration} baseline={undefined} />
+          </Row>
           <Row title="Date Range">
             {getDynamicText({
               fixed: 'Mar 19, 2021 11:06:27 AM UTC',

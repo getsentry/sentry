@@ -25,7 +25,6 @@ import {assert} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
-import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {safeURL} from 'sentry/utils/url/safeURL';
@@ -372,7 +371,10 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
           <table className="table key-value">
             <tbody>
               <Row title={t('Duration')}>
-                <strong>{getDuration(duration, 2, true)}</strong>
+                <TraceDrawerComponents.Duration
+                  duration={duration}
+                  baseline={undefined}
+                />
               </Row>
               {span.exclusive_time ? (
                 <Row
@@ -381,10 +383,9 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                     'The time spent exclusively in this span, excluding the total duration of its children'
                   )}
                 >
-                  <TraceDrawerComponents.DurationComparison
-                    isComparingSelfDuration
-                    totalDuration={duration}
-                    selfDuration={span.exclusive_time / 1000}
+                  <TraceDrawerComponents.Duration
+                    ratio={span.exclusive_time / 1000 / duration}
+                    duration={span.exclusive_time / 1000}
                     baseline={averageSpanSelfTimeInSeconds}
                   />
                 </Row>
