@@ -76,6 +76,7 @@ from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.integrations.discord.utils.channel import ChannelType
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.models.actor import ActorTuple, get_actor_for_user, get_actor_id_for_user
+from sentry.models.group import GroupStatus
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, ApiTimeoutError
@@ -85,7 +86,9 @@ from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventTy
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
+from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, region_silo_test
 from sentry.utils import json
 
 pytestmark = [pytest.mark.sentry_metrics]
@@ -289,6 +292,22 @@ class BaseIncidentAggregatesTest(BaseIncidentsTest):
 class GetIncidentAggregatesTest(TestCase, BaseIncidentAggregatesTest):
     def test_projects(self):
         assert get_incident_aggregates(self.project_incident) == {"count": 4}
+
+    @override_options({"issues.group_attributes.send_kafka": True})
+    @with_feature("organizations:metric-alert-ignore-archived")
+    def test_is_unresolved_query(self):
+        incident = self.create_incident(
+            date_started=self.now - timedelta(minutes=5),
+            query="is:unresolved",
+            projects=[self.project],
+        )
+        event = self.create_event(self.now - timedelta(minutes=1))
+        self.create_event(self.now - timedelta(minutes=2))
+        self.create_event(self.now - timedelta(minutes=3))
+        self.create_event(self.now - timedelta(minutes=4))
+
+        event.group.update(status=GroupStatus.UNRESOLVED)
+        assert get_incident_aggregates(incident) == {"count": 4}
 
 
 class GetCrashRateIncidentAggregatesTest(TestCase, SnubaTestCase):

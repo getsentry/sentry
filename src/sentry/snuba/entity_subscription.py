@@ -672,7 +672,7 @@ def get_entity_from_query_builder(query_builder: QueryBuilder) -> Entity | None:
     if isinstance(match, Join):
         # need to specify Entity for Join queries
         match = match.relationships[0].lhs
-        return Entity(match.name)
+        return Entity(name=match.name, alias=match.name)
     return None
 
 
