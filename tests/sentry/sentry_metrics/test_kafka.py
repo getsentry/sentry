@@ -57,8 +57,8 @@ class KafkaMetricsInterfaceTest(GenericMetricsTestMixIn, TestCase):
 
         counter_value = json.dumps(counter_metric).encode("utf-8")
 
-        produced_message = broker_storage.consume(Partition(my_topic, 0), 1)
+        produced_message = broker_storage.consume(Partition(my_topic, 0), 0)
         assert produced_message is not None
         assert produced_message.payload.value == counter_value
         # check that there's no other remaining message in the topic
-        assert broker_storage.consume(Partition(my_topic, 0), 2) is None
+        assert broker_storage.consume(Partition(my_topic, 0), 1) is None
