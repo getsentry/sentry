@@ -30,6 +30,9 @@ logger = logging.getLogger(__name__)
 
 
 class SymbolicatorPlatform(Enum):
+    """The platforms for which we want to
+    invoke Symbolicator."""
+
     jvm = "jvm"
     js = "js"
     native = "native"
@@ -37,6 +40,11 @@ class SymbolicatorPlatform(Enum):
 
 @dataclass(frozen=True)
 class SymbolicatorTaskKind:
+    """Bundles information about a symbolication task:
+    the platform, whether it's on the low priority queue, and
+    whether it's an existing event being reprocessed.
+    """
+
     platform: SymbolicatorPlatform
     is_low_priority: bool = False
     is_reprocessing: bool = False

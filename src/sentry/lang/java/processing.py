@@ -38,6 +38,9 @@ def deobfuscate_exception_value(data: Any) -> Any:
 
 
 def _merge_frame(new_frame: dict[str, Any], symbolicated: dict[str, Any]):
+    """Merges `symbolicated` into `new_frame`. This updates
+    `new_frame` in place."""
+
     if symbolicated.get("function"):
         new_frame["function"] = symbolicated["function"]
 
@@ -71,6 +74,8 @@ def _merge_frame(new_frame: dict[str, Any], symbolicated: dict[str, Any]):
 
 
 def _handles_frame(frame: dict[str, Any], platform: str) -> bool:
+    "Returns whether the frame should be symbolicated by JVM symbolication."
+
     return (
         "function" in frame and "module" in frame and (frame.get("platform") or platform) == "java"
     )
@@ -80,6 +85,8 @@ FRAME_FIELDS = ("abs_path", "lineno", "function", "module", "filename", "in_app"
 
 
 def _normalize_frame(raw_frame: Any, index: int) -> dict:
+    "Normalizes the frame into just the fields necessary for symbolication and adds an index."
+
     frame = {"index": index}
     for key in FRAME_FIELDS:
         if (value := raw_frame.get(key)) is not None:
@@ -89,6 +96,8 @@ def _normalize_frame(raw_frame: Any, index: int) -> dict:
 
 
 def _get_exceptions_for_symbolication(data: Any) -> list[dict[str, Any]]:
+    "Returns the exceptions contained in `data` for symbolication."
+
     exceptions = []
 
     for exc in get_path(data, "exception", "values", filter=True, default=()):
@@ -97,7 +106,10 @@ def _get_exceptions_for_symbolication(data: Any) -> list[dict[str, Any]]:
     return exceptions
 
 
-def _handle_response_status(event_data: Any, response_json: dict[str, Any]):
+def _handle_response_status(event_data: Any, response_json: dict[str, Any]) -> bool | None:
+    """Checks the response from Symbolicator and reports errors.
+    Returns `True` on success."""
+
     if not response_json:
         error = SymbolicationFailed(type=EventError.NATIVE_INTERNAL_FAILURE)
     elif response_json["status"] == "completed":
@@ -115,6 +127,8 @@ def _handle_response_status(event_data: Any, response_json: dict[str, Any]):
 
 
 def _get_release_package(project: Project, release_name: str | None) -> str | None:
+    """Gets the release package for the given project and release."""
+
     if not release_name:
         return None
 
@@ -125,6 +139,8 @@ def _get_release_package(project: Project, release_name: str | None) -> str | No
 def map_symbolicator_process_jvm_errors(
     errors: list[dict[str, Any]] | None,
 ) -> list[dict[str, Any]]:
+    "Maps processing errors reported by Symbolicator to existing Python errors."
+
     if errors is None:
         return []
 
@@ -157,6 +173,8 @@ def map_symbolicator_process_jvm_errors(
 
 
 def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
+    """Uses Symbolicator to symbolicate a JVM event."""
+
     modules = []
     modules.extend([{"uuid": id, "type": "proguard"} for id in get_proguard_images(data)])
     modules.extend([{"uuid": id, "type": "source"} for id in get_jvm_images(data)])
