@@ -17,10 +17,12 @@ from sentry.utils.json import JSONData
 class DocIntegrationsTest(APITestCase):
     endpoint = "sentry-api-0-doc-integrations"
 
+    staff_email = "staff@test.com"
+
     def setUp(self):
         self.user = self.create_user(email="jinx@lol.com")
-        self.superuser = self.create_user(email="vi@lol.com", is_superuser=True)
-        self.staff_user = self.create_user(is_staff=True)
+        self.superuser = self.create_user(is_superuser=True, email="vi@lol.com")
+        self.staff_user = self.create_user(is_staff=True, email="staff@test.com")
         self.doc_1 = self.create_doc_integration(name="test_1", is_draft=False, has_avatar=True)
         self.doc_2 = self.create_doc_integration(name="test_2", is_draft=True, has_avatar=True)
         self.doc_3 = self.create_doc_integration(
@@ -45,9 +47,7 @@ class GetDocIntegrationsTest(DocIntegrationsTest):
         """
         self.login_as(user=self.staff_user, staff=True)
 
-        with override_options(
-            {"staff.user-email-allowlist": [self.superuser.email, self.staff_user.email]}
-        ):
+        with override_options({"staff.user-email-allowlist": [self.staff_user.email]}):
             response = self.get_success_response(status_code=status.HTTP_200_OK)
 
         assert len(response.data) == 3

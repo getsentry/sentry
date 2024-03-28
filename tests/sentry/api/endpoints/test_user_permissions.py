@@ -6,12 +6,9 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 
 
-class UserPermissionsTest(APITestCase):
-    endpoint = "sentry-api-0-user-permissions"
-
-
 @control_silo_test
-class UserPermissionsGetTest(UserPermissionsTest):
+class UserPermissionsGetTest(APITestCase):
+    endpoint = "sentry-api-0-user-permissions"
     method = "GET"
 
     def test_superuser_lookup_self(self):

@@ -58,11 +58,11 @@ class UserDetailsGetTest(UserDetailsTest):
         assert "identities" in resp.data
         assert len(resp.data["identities"]) == 0
 
+    @override_options({"staff.user-email-allowlist": [UserDetailsTest.staff_email]})
     def test_staff_simple(self):
         self.login_as(user=self.staff_user, staff=True)
 
-        with override_options({"staff.user-email-allowlist": [self.staff_user.email]}):
-            resp = self.get_success_response(self.user.id)
+        resp = self.get_success_response(self.user.id)
 
         assert resp.data["id"] == str(self.user.id)
         assert "identities" in resp.data
@@ -545,15 +545,15 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
         assert response.data["detail"] == "Missing required permission to hard delete account."
         assert User.objects.filter(id=user2.id).exists()
 
+    @override_options({"staff.user-email-allowlist": [UserDetailsTest.staff_email]})
     def test_staff_hard_delete_account_without_permission(self):
         self.login_as(user=self.staff_user, staff=True)
         user2 = self.create_user(email="user2@example.com")
 
-        with override_options({"staff.user-email-allowlist": [self.staff_user.email]}):
-            # failed authorization, user does not have users.admin permission to hard delete another user
-            response = self.get_error_response(
-                user2.id, hardDelete=True, organizations=[], status_code=403
-            )
+        # failed authorization, user does not have users.admin permission to hard delete another user
+        response = self.get_error_response(
+            user2.id, hardDelete=True, organizations=[], status_code=403
+        )
 
         assert response.data["detail"] == "Missing required permission to hard delete account."
         assert User.objects.filter(id=user2.id).exists()
@@ -568,6 +568,7 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
         self.get_success_response(user2.id, hardDelete=True, organizations=[], status_code=204)
         assert not User.objects.filter(id=user2.id).exists()
 
+    @override_options({"staff.user-email-allowlist": [UserDetailsTest.staff_email]})
     def test_staff_hard_delete_account_with_permission(self):
         self.login_as(user=self.staff_user, staff=True)
         user2 = self.create_user(email="user2@example.com")
@@ -575,8 +576,7 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
         # Add users.admin permission to staff
         UserPermission.objects.create(user=self.staff_user, permission="users.admin")
 
-        with override_options({"staff.user-email-allowlist": [self.staff_user.email]}):
-            self.get_success_response(user2.id, hardDelete=True, organizations=[], status_code=204)
+        self.get_success_response(user2.id, hardDelete=True, organizations=[], status_code=204)
         assert not User.objects.filter(id=user2.id).exists()
 
     def test_superuser_cannot_hard_delete_with_active_option(self):

@@ -276,13 +276,15 @@ class PostRelocationsTest(APITestCase):
     endpoint = "sentry-api-0-relocations-index"
     method = "POST"
 
+    staff_email = "staff@test.com"
+
     def setUp(self):
         super().setUp()
         self.owner = self.create_user(
             email="owner", is_superuser=False, is_staff=False, is_active=True
         )
         self.superuser = self.create_user(is_superuser=True)
-        self.staff_user = self.create_user(is_staff=True)
+        self.staff_user = self.create_user(is_staff=True, email="staff@test.com")
 
     def tmp_keys(self, tmp_dir: str) -> tuple[Path, Path]:
         (priv_key_pem, pub_key_pem) = generate_rsa_key_pair()
@@ -528,7 +530,13 @@ class PostRelocationsTest(APITestCase):
             sender=RelocationIndexEndpoint,
         )
 
-    @override_options({"relocation.enabled": False, "relocation.daily-limit.small": 1})
+    @override_options(
+        {
+            "relocation.enabled": False,
+            "relocation.daily-limit.small": 1,
+            "staff.user-email-allowlist": [staff_email],
+        }
+    )
     @patch("sentry.tasks.relocation.uploading_complete.delay")
     def test_good_staff_when_feature_disabled(
         self,
@@ -542,12 +550,9 @@ class PostRelocationsTest(APITestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with (
-                open(FRESH_INSTALL_PATH) as f,
-                override_options({"staff.user-email-allowlist": [self.staff_user.email]}),
-            ):
+            with open(FRESH_INSTALL_PATH) as f:
                 data = json.load(f)
-                with (open(tmp_pub_key_path, "rb") as p,):
+                with open(tmp_pub_key_path, "rb") as p:
                     response = self.get_success_response(
                         owner=self.owner.username,
                         file=SimpleUploadedFile(
@@ -949,19 +954,22 @@ class PostRelocationsTest(APITestCase):
 
         assert relocation_link_promo_code_signal_mock.call_count == 0
 
-    @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
+    @override_options(
+        {
+            "relocation.enabled": True,
+            "relocation.daily-limit.small": 1,
+            "staff.user-email-allowlist": [staff_email],
+        }
+    )
     def test_bad_staff_nonexistent_owner(
         self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
     ):
         self.login_as(user=self.staff_user, staff=True)
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with (
-                open(FRESH_INSTALL_PATH) as f,
-                override_options({"staff.user-email-allowlist": [self.staff_user.email]}),
-            ):
+            with open(FRESH_INSTALL_PATH) as f:
                 data = json.load(f)
-                with (open(tmp_pub_key_path, "rb") as p,):
+                with open(tmp_pub_key_path, "rb") as p:
                     response = self.get_error_response(
                         owner="doesnotexist",
                         file=SimpleUploadedFile(
@@ -1153,7 +1161,13 @@ class PostRelocationsTest(APITestCase):
             sender=RelocationIndexEndpoint,
         )
 
-    @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
+    @override_options(
+        {
+            "relocation.enabled": True,
+            "relocation.daily-limit.small": 1,
+            "staff.user-email-allowlist": [staff_email],
+        }
+    )
     def test_good_no_throttle_for_staff(
         self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
     ):
@@ -1163,12 +1177,9 @@ class PostRelocationsTest(APITestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with (
-                open(FRESH_INSTALL_PATH) as f,
-                override_options({"staff.user-email-allowlist": [self.staff_user.email]}),
-            ):
+            with open(FRESH_INSTALL_PATH) as f:
                 data = json.load(f)
-                with (open(tmp_pub_key_path, "rb") as p,):
+                with open(tmp_pub_key_path, "rb") as p:
                     initial_response = self.get_success_response(
                         owner=self.owner.username,
                         file=SimpleUploadedFile(

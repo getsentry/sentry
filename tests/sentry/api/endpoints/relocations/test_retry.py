@@ -45,13 +45,15 @@ class RetryRelocationTest(APITestCase):
     endpoint = "sentry-api-0-relocations-retry"
     method = "POST"
 
+    staff_email = "staff@test.com"
+
     def setUp(self):
         super().setUp()
         self.owner = self.create_user(
             email="owner", is_superuser=False, is_staff=True, is_active=True
         )
         self.superuser = self.create_user(is_superuser=True)
-        self.staff_user = self.create_user(is_staff=True)
+        self.staff_user = self.create_user(is_staff=True, email=self.staff_email)
         self.relocation: Relocation = Relocation.objects.create(
             date_added=TEST_DATE_ADDED,
             creator_id=self.superuser.id,
@@ -129,7 +131,13 @@ class RetryRelocationTest(APITestCase):
             uuid=response.data["uuid"],
         )
 
-    @override_options({"relocation.enabled": False, "relocation.daily-limit.small": 2})
+    @override_options(
+        {
+            "relocation.enabled": False,
+            "relocation.daily-limit.small": 2,
+            "staff.user-email-allowlist": [staff_email],
+        }
+    )
     @patch("sentry.tasks.relocation.uploading_complete.delay")
     def test_good_staff_when_feature_disabled(
         self, uploading_complete_mock: Mock, analytics_record_mock: Mock
@@ -139,8 +147,7 @@ class RetryRelocationTest(APITestCase):
         relocation_file_count = RelocationFile.objects.count()
         file_count = File.objects.count()
 
-        with override_options({"staff.user-email-allowlist": [self.staff_user.email]}):
-            response = self.get_success_response(self.relocation.uuid, status_code=201)
+        response = self.get_success_response(self.relocation.uuid, status_code=201)
 
         assert response.data["uuid"] != self.relocation.uuid
         assert response.data["creatorId"] == str(self.staff_user.id)
@@ -294,7 +301,13 @@ class RetryRelocationTest(APITestCase):
         assert response.data.get("detail") == ERR_FILE_NO_LONGER_EXISTS
         assert uploading_complete_mock.call_count == 0
 
-    @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 2})
+    @override_options(
+        {
+            "relocation.enabled": True,
+            "relocation.daily-limit.small": 2,
+            "staff.user-email-allowlist": [staff_email],
+        }
+    )
     @patch("sentry.tasks.relocation.uploading_complete.delay")
     def test_bad_staff_owner_not_found(
         self, uploading_complete_mock: Mock, analytics_record_mock: Mock
@@ -303,8 +316,7 @@ class RetryRelocationTest(APITestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             User.objects.filter(id=self.owner.id).delete()
 
-        with override_options({"staff.user-email-allowlist": [self.staff_user.email]}):
-            response = self.get_error_response(self.relocation.uuid, status_code=400)
+        response = self.get_error_response(self.relocation.uuid, status_code=400)
 
         assert response.data.get("detail") == ERR_OWNER_NO_LONGER_EXISTS
         assert uploading_complete_mock.call_count == 0

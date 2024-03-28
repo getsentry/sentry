@@ -11,12 +11,14 @@ from sentry.testutils.silo import control_silo_test
 class UserDetailsTest(APITestCase):
     endpoint = "sentry-api-0-user-permission-details"
 
+    staff_email = "staff@test.com"
+
     def setUp(self):
         super().setUp()
         self.superuser = self.create_user(is_superuser=True)
         self.add_user_permission(self.superuser, "users.admin")
 
-        self.staff_user = self.create_user(is_staff=True)
+        self.staff_user = self.create_user(is_staff=True, email=self.staff_email)
         self.add_user_permission(self.staff_user, "users.admin")
 
         self.normal_user = self.create_user(is_superuser=False, is_staff=False)
@@ -50,22 +52,22 @@ class UserPermissionDetailsGetTest(UserDetailsTest):
         self.login_as(self.superuser, superuser=True)
         self.get_error_response("me", "broadcasts.admin", status_code=404)
 
+    @override_options({"staff.user-email-allowlist": [UserDetailsTest.staff_email]})
     @patch.object(StaffPermission, "has_permission", wraps=StaffPermission().has_permission)
     def test_staff_with_permission(self, mock_has_permission):
         self.login_as(self.staff_user, staff=True)
         self.add_user_permission(self.staff_user, "broadcasts.admin")
 
-        with override_options({"staff.user-email-allowlist": [self.staff_user.email]}):
-            self.get_success_response("me", "broadcasts.admin", status_code=204)
+        self.get_success_response("me", "broadcasts.admin", status_code=204)
         # ensure we fail the scope check and call is_active_staff
         assert mock_has_permission.call_count == 1
 
+    @override_options({"staff.user-email-allowlist": [UserDetailsTest.staff_email]})
     @patch.object(StaffPermission, "has_permission", wraps=StaffPermission().has_permission)
     def test_staff_without_permission(self, mock_has_permission):
         self.login_as(self.staff_user, staff=True)
 
-        with override_options({"staff.user-email-allowlist": [self.staff_user.email]}):
-            self.get_error_response("me", "broadcasts.admin", status_code=404)
+        self.get_error_response("me", "broadcasts.admin", status_code=404)
         # ensure we fail the scope check and call is_active_staff
         assert mock_has_permission.call_count == 1
 
@@ -91,25 +93,25 @@ class UserPermissionDetailsPostTest(UserDetailsTest):
             user=self.superuser, permission="broadcasts.admin"
         ).exists()
 
+    @override_options({"staff.user-email-allowlist": [UserDetailsTest.staff_email]})
     @patch.object(StaffPermission, "has_permission", wraps=StaffPermission().has_permission)
     def test_staff_with_permission(self, mock_has_permission):
         self.login_as(self.staff_user, staff=True)
 
-        with override_options({"staff.user-email-allowlist": [self.staff_user.email]}):
-            self.get_success_response("me", "broadcasts.admin", status_code=201)
+        self.get_success_response("me", "broadcasts.admin", status_code=201)
         assert UserPermission.objects.filter(
             user=self.staff_user, permission="broadcasts.admin"
         ).exists()
         # ensure we fail the scope check and call is_active_staff
         assert mock_has_permission.call_count == 1
 
+    @override_options({"staff.user-email-allowlist": [UserDetailsTest.staff_email]})
     @patch.object(StaffPermission, "has_permission", wraps=StaffPermission().has_permission)
     def test_staff_duplicate_permission(self, mock_has_permission):
         self.login_as(self.staff_user, staff=True)
         self.add_user_permission(self.staff_user, "broadcasts.admin")
 
-        with override_options({"staff.user-email-allowlist": [self.staff_user.email]}):
-            self.get_error_response("me", "broadcasts.admin", status_code=410)
+        self.get_error_response("me", "broadcasts.admin", status_code=410)
         assert UserPermission.objects.filter(
             user=self.staff_user, permission="broadcasts.admin"
         ).exists()
@@ -138,25 +140,25 @@ class UserPermissionDetailsDeleteTest(UserDetailsTest):
             user=self.superuser, permission="broadcasts.admin"
         ).exists()
 
+    @override_options({"staff.user-email-allowlist": [UserDetailsTest.staff_email]})
     @patch.object(StaffPermission, "has_permission", wraps=StaffPermission().has_permission)
     def test_staff_with_permission(self, mock_has_permission):
         self.login_as(self.staff_user, staff=True)
         self.add_user_permission(self.staff_user, "broadcasts.admin")
 
-        with override_options({"staff.user-email-allowlist": [self.staff_user.email]}):
-            self.get_success_response("me", "broadcasts.admin", status_code=204)
+        self.get_success_response("me", "broadcasts.admin", status_code=204)
         assert not UserPermission.objects.filter(
             user=self.staff_user, permission="broadcasts.admin"
         ).exists()
         # ensure we fail the scope check and call is_active_staff
         assert mock_has_permission.call_count == 1
 
+    @override_options({"staff.user-email-allowlist": [UserDetailsTest.staff_email]})
     @patch.object(StaffPermission, "has_permission", wraps=StaffPermission().has_permission)
     def test_staff_without_permission(self, mock_has_permission):
         self.login_as(self.staff_user, staff=True)
 
-        with override_options({"staff.user-email-allowlist": [self.staff_user.email]}):
-            self.get_error_response("me", "broadcasts.admin", status_code=404)
+        self.get_error_response("me", "broadcasts.admin", status_code=404)
         assert not UserPermission.objects.filter(
             user=self.staff_user, permission="broadcasts.admin"
         ).exists()

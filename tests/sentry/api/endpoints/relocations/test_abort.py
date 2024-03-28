@@ -14,13 +14,16 @@ class AbortRelocationTest(APITestCase):
     endpoint = "sentry-api-0-relocations-abort"
     method = "put"
 
+    superuser_email = "superuser@test.com"
+    staff_email = "staff@test.com"
+
     def setUp(self):
         super().setUp()
         self.owner = self.create_user(
             email="owner", is_superuser=False, is_staff=True, is_active=True
         )
-        self.superuser = self.create_user(is_superuser=True)
-        self.staff_user = self.create_user(is_staff=True)
+        self.superuser = self.create_user(is_superuser=True, email=self.superuser_email)
+        self.staff_user = self.create_user(is_staff=True, email=self.staff_email)
         self.relocation: Relocation = Relocation.objects.create(
             date_added=TEST_DATE_ADDED,
             creator_id=self.superuser.id,
@@ -34,12 +37,12 @@ class AbortRelocationTest(APITestCase):
             latest_task_attempts=1,
         )
 
+    @override_options({"staff.user-email-allowlist": [staff_email]})
     def test_good_staff_abort_in_progress(self):
         self.login_as(user=self.staff_user, staff=True)
         self.relocation.status = Relocation.Status.PAUSE.value
         self.relocation.save()
-        with override_options({"staff.user-email-allowlist": [self.staff_user.email]}):
-            response = self.get_success_response(self.relocation.uuid, status_code=200)
+        response = self.get_success_response(self.relocation.uuid, status_code=200)
 
         assert response.data["status"] == Relocation.Status.FAILURE.name
         assert response.data["step"] == Relocation.Step.PREPROCESSING.name
@@ -53,12 +56,12 @@ class AbortRelocationTest(APITestCase):
         assert response.data["status"] == Relocation.Status.FAILURE.name
         assert response.data["step"] == Relocation.Step.PREPROCESSING.name
 
+    @override_options({"staff.user-email-allowlist": [staff_email]})
     def test_good_staff_abort_paused(self):
         self.login_as(user=self.staff_user, staff=True)
         self.relocation.status = Relocation.Status.PAUSE.value
         self.relocation.save()
-        with override_options({"staff.user-email-allowlist": [self.staff_user.email]}):
-            response = self.get_success_response(self.relocation.uuid, status_code=200)
+        response = self.get_success_response(self.relocation.uuid, status_code=200)
 
         assert response.data["status"] == Relocation.Status.FAILURE.name
         assert response.data["step"] == Relocation.Step.PREPROCESSING.name
@@ -72,12 +75,12 @@ class AbortRelocationTest(APITestCase):
         assert response.data["status"] == Relocation.Status.FAILURE.name
         assert response.data["step"] == Relocation.Step.PREPROCESSING.name
 
+    @override_options({"staff.user-email-allowlist": [staff_email]})
     def test_bad_staff_already_succeeded(self):
         self.login_as(user=self.staff_user, staff=True)
         self.relocation.status = Relocation.Status.SUCCESS.value
         self.relocation.save()
-        with override_options({"staff.user-email-allowlist": [self.staff_user.email]}):
-            response = self.get_error_response(self.relocation.uuid, status_code=400)
+        response = self.get_error_response(self.relocation.uuid, status_code=400)
 
         assert response.data.get("detail") is not None
         assert response.data.get("detail") == ERR_NOT_ABORTABLE_STATUS
@@ -91,12 +94,12 @@ class AbortRelocationTest(APITestCase):
         assert response.data.get("detail") is not None
         assert response.data.get("detail") == ERR_NOT_ABORTABLE_STATUS
 
+    @override_options({"staff.user-email-allowlist": [staff_email]})
     def test_bad_staff_already_failed(self):
         self.login_as(user=self.staff_user, staff=True)
         self.relocation.status = Relocation.Status.FAILURE.value
         self.relocation.save()
-        with override_options({"staff.user-email-allowlist": [self.staff_user.email]}):
-            response = self.get_error_response(self.relocation.uuid, status_code=400)
+        response = self.get_error_response(self.relocation.uuid, status_code=400)
 
         assert response.data.get("detail") is not None
         assert response.data.get("detail") == ERR_NOT_ABORTABLE_STATUS
@@ -110,21 +113,21 @@ class AbortRelocationTest(APITestCase):
         assert response.data.get("detail") is not None
         assert response.data.get("detail") == ERR_NOT_ABORTABLE_STATUS
 
+    @override_options({"staff.user-email-allowlist": [staff_email]})
     def test_bad_staff_not_found(self):
         self.login_as(user=self.staff_user, staff=True)
         does_not_exist_uuid = uuid4().hex
-        with override_options({"staff.user-email-allowlist": [self.staff_user.email]}):
-            self.get_error_response(str(does_not_exist_uuid), status_code=404)
+        self.get_error_response(str(does_not_exist_uuid), status_code=404)
 
     def test_bad_superuser_not_found(self):
         self.login_as(user=self.superuser, superuser=True)
         does_not_exist_uuid = uuid4().hex
         self.get_error_response(str(does_not_exist_uuid), status_code=404)
 
+    @override_options({"staff.user-email-allowlist": [superuser_email]})
     def test_superuser_fails_with_active_option(self):
         self.login_as(user=self.superuser, superuser=True)
-        with override_options({"staff.user-email-allowlist": [self.superuser.email]}):
-            self.get_error_response(self.relocation.uuid, status_code=403)
+        self.get_error_response(self.relocation.uuid, status_code=403)
 
     def test_bad_no_auth(self):
         self.get_error_response(self.relocation.uuid, status_code=401)
