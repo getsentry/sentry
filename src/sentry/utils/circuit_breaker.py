@@ -4,7 +4,7 @@ from django.core.cache import cache
 
 from sentry.utils import metrics
 
-DEFAULT_ERROR_LIMIT = 100
+DEFAULT_ERROR_LIMIT = 30
 ERROR_COUNT_CACHE_KEY = lambda key: f"circuit_breaker:{key}-error-count"
 PASSTHROUGH_COUNT_CACHE_KEY = lambda key: f"circuit_breaker:{key}-passthrough"
 
