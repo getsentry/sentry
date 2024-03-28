@@ -5,13 +5,33 @@ import type {Organization, Team} from './organization';
 import type {Deploy} from './release';
 import type {DynamicSamplingBias} from './sampling';
 
-// Minimal project representation for use with avatars.
+/**
+ * Minimal project representation for use with avatars.
+ *
+ * Convert to ProjectOption instead.
+ *
+ * @deprecated
+ */
 export type AvatarProject = {
   slug: string;
   id?: string | number;
   platform?: PlatformKey;
 };
 
+/**
+ * Minimal project representation for use with avatars, project selector, etc.
+ */
+export interface ProjectOption {
+  environments: string[];
+  id: string;
+  isMember: boolean;
+  platform: PlatformKey;
+  slug: string;
+}
+
+/**
+ * Full project records
+ */
 export type Project = {
   access: Scope[];
   allowedDomains: string[];
@@ -20,9 +40,15 @@ export type Project = {
   digestsMinDelay: number;
   dynamicSamplingBiases: DynamicSamplingBias[] | null;
   environments: string[];
+  /**
+   * @deprecated
+   */
   eventProcessing: {
     symbolicationDegraded: boolean;
   };
+  /**
+   * @deprecated
+   */
   features: string[];
   firstEvent: string | null;
   firstTransactionEvent: boolean;
@@ -44,14 +70,15 @@ export type Project = {
   name: string;
   organization: Organization;
   plugins: Plugin[];
-
   processingIssues: number;
   relayPiiConfig: string;
+
   resolveAge: number;
   safeFields: string[];
   scrapeJavaScript: boolean;
   scrubIPAddresses: boolean;
   sensitiveFields: string[];
+  slug: string;
   subjectTemplate: string;
   team: Team;
   teams: Team[];
@@ -59,9 +86,13 @@ export type Project = {
   builtinSymbolSources?: string[];
   defaultEnvironment?: string;
   hasUserReports?: boolean;
+  /**
+   * @deprecated
+   */
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   latestRelease?: {version: string} | null;
   options?: Record<string, boolean | string>;
+  platform?: PlatformKey;
   securityToken?: string;
   securityTokenHeader?: string;
   sessionStats?: {
@@ -73,8 +104,11 @@ export type Project = {
   subjectPrefix?: string;
   symbolSources?: string;
   transactionStats?: TimeseriesValue[];
-} & AvatarProject;
+};
 
+/**
+ * @deprecated
+ */
 export type MinimalProject = Pick<Project, 'id' | 'slug' | 'platform'>;
 
 // Response from project_keys endpoints.
