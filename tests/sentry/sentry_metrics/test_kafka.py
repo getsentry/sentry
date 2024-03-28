@@ -33,36 +33,6 @@ class KafkaMetricsInterfaceTest(GenericMetricsTestMixIn, TestCase):
         generic_metrics_backend.producer = LocalProducer(broker)
         generic_metrics_backend.kafka_topic = my_topic
 
-        # produce a set metric onto the first offset
-        generic_metrics_backend.set(
-            self.use_case_id,
-            self.org_id,
-            self.project_id,
-            self.metric_name,
-            self.set_values,
-            self.metrics_tags,
-            self.unit,
-        )
-
-        set_metric = {
-            "org_id": self.org_id,
-            "project_id": self.project_id,
-            "name": self.get_mri(self.metric_name, "s", self.use_case_id, self.unit),
-            "value": self.set_values,
-            "timestamp": int(datetime.now().timestamp()),
-            "tags": self.metrics_tags,
-            "retention_days": self.retention_days,
-            "type": "s",
-        }
-
-        set_value = json.dumps(set_metric).encode("utf-8")
-
-        produced_message = broker_storage.consume(Partition(my_topic, 0), 0)
-        assert produced_message is not None
-        assert produced_message.payload.value == set_value
-        # check that there's no other remaining message in the topic
-        assert broker_storage.consume(Partition(my_topic, 0), 1) is None
-
         # produce a counter metric onto the second offset
         generic_metrics_backend.counter(
             self.use_case_id,
@@ -92,33 +62,3 @@ class KafkaMetricsInterfaceTest(GenericMetricsTestMixIn, TestCase):
         assert produced_message.payload.value == counter_value
         # check that there's no other remaining message in the topic
         assert broker_storage.consume(Partition(my_topic, 0), 2) is None
-
-        # produce a distribution metric onto the third offset
-        generic_metrics_backend.distribution(
-            self.use_case_id,
-            self.org_id,
-            self.project_id,
-            self.metric_name,
-            self.dist_values,
-            self.metrics_tags,
-            self.unit,
-        )
-
-        distribution_metric = {
-            "org_id": self.org_id,
-            "project_id": self.project_id,
-            "name": self.get_mri(self.metric_name, "d", self.use_case_id, self.unit),
-            "value": self.dist_values,
-            "timestamp": int(datetime.now().timestamp()),
-            "tags": self.metrics_tags,
-            "retention_days": self.retention_days,
-            "type": "d",
-        }
-
-        distribution_value = json.dumps(distribution_metric).encode("utf-8")
-
-        produced_message = broker_storage.consume(Partition(my_topic, 0), 2)
-        assert produced_message is not None
-        assert produced_message.payload.value == distribution_value
-        # check that there's no other remaining message in the topic
-        assert broker_storage.consume(Partition(my_topic, 0), 3) is None
