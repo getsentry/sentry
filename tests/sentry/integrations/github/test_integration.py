@@ -111,6 +111,15 @@ class GitHubIntegrationTest(IntegrationTestCase):
         self.gh_org = "Test-Organization"
         pp = 1
 
+        access_token = "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+        responses.add(
+            responses.POST,
+            "https://github.com/login/oauth/access_token",
+            body=f"access_token={access_token}",
+        )
+
+        responses.add(responses.GET, self.base_url + "/user", json={"login": "octocat"})
+
         responses.add(
             responses.POST,
             self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
@@ -218,6 +227,21 @@ class GitHubIntegrationTest(IntegrationTestCase):
         redirect = urlparse(resp["Location"])
         assert redirect.scheme == "https"
         assert redirect.netloc == "github.com"
+        assert redirect.path == "/login/oauth/authorize"
+        assert redirect.query == "client_id=github-client-id&state=9cae5e88803f35ed7970fc131e6e65d3"
+
+        resp = self.client.get(
+            "{}?{}".format(
+                self.setup_path,
+                urlencode(
+                    {"code": "12345678901234567890", "state": "9cae5e88803f35ed7970fc131e6e65d3"}
+                ),
+            )
+        )
+        assert resp.status_code == 302
+        redirect = urlparse(resp["Location"])
+        assert redirect.scheme == "https"
+        assert redirect.netloc == "github.com"
         assert redirect.path == "/apps/sentry-test-app"
 
         # App installation ID is provided
@@ -225,7 +249,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             "{}?{}".format(self.setup_path, urlencode({"installation_id": self.installation_id}))
         )
 
-        auth_header = responses.calls[0].request.headers["Authorization"]
+        auth_header = responses.calls[2].request.headers["Authorization"]
         assert auth_header == "Bearer jwt_token_1"
 
         self.assertDialogSuccess(resp)
@@ -303,8 +327,15 @@ class GitHubIntegrationTest(IntegrationTestCase):
             ),
             urlencode({"installation_id": self.installation_id}),
         )
+        self.setup_path_2 = "{}?{}".format(
+            self.setup_path,
+            urlencode(
+                {"code": "12345678901234567890", "state": "9cae5e88803f35ed7970fc131e6e65d3"}
+            ),
+        )
         with self.feature({"organizations:customer-domains": [self.organization_2.slug]}):
             resp = self.client.get(self.init_path_2)
+            resp = self.client.get(self.setup_path_2)
             self.assertTemplateUsed(resp, "sentry/integrations/github-integration-failed.html")
             assert (
                 b'{"success":false,"data":{"error":"Github installed on another Sentry organization."}}'
@@ -330,6 +361,8 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         # Try again and should be successful
         resp = self.client.get(self.init_path_2)
+        resp = self.client.get(self.setup_path_2)
+
         self.assertDialogSuccess(resp)
         integration = Integration.objects.get(external_id=self.installation_id)
         assert integration.provider == "github"
@@ -347,7 +380,15 @@ class GitHubIntegrationTest(IntegrationTestCase):
         resp = self.client.get(
             "{}?{}".format(self.setup_path, urlencode({"installation_id": self.installation_id}))
         )
-        assert b"The GitHub installation could not be found." in resp.content
+        resp = self.client.get(
+            "{}?{}".format(
+                self.setup_path,
+                urlencode(
+                    {"code": "12345678901234567890", "state": "ddd023d87a913d5226e2a882c4c4cc05"}
+                ),
+            )
+        )
+        assert b"Invalid installation request." in resp.content
 
     @responses.activate
     def test_disable_plugin_when_fully_migrated(self):
@@ -594,6 +635,17 @@ class GitHubIntegrationTest(IntegrationTestCase):
             resp = self.client.get(
                 "{}?{}".format(self.init_path, urlencode({"installation_id": self.installation_id}))
             )
+            resp = self.client.get(
+                "{}?{}".format(
+                    self.setup_path,
+                    urlencode(
+                        {
+                            "code": "12345678901234567890",
+                            "state": "9cae5e88803f35ed7970fc131e6e65d3",
+                        }
+                    ),
+                )
+            )
 
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/integrations/github-integration-failed.html")
@@ -614,6 +666,14 @@ class GitHubIntegrationTest(IntegrationTestCase):
         # Try again and should be successful
         resp = self.client.get(
             "{}?{}".format(self.init_path, urlencode({"installation_id": self.installation_id}))
+        )
+        resp = self.client.get(
+            "{}?{}".format(
+                self.setup_path,
+                urlencode(
+                    {"code": "12345678901234567890", "state": "9cae5e88803f35ed7970fc131e6e65d3"}
+                ),
+            )
         )
         self.assertDialogSuccess(resp)
         integration = Integration.objects.get(external_id=self.installation_id)
