@@ -31,6 +31,7 @@ export interface ProjectBadgeProps
 }
 
 function ProjectBadge({
+  useEnsureOrganization();
   project,
   to,
   hideOverflow = true,
@@ -79,4 +80,12 @@ const StyledLink = styled(Link)`
   }
 `;
 
-export default ProjectBadge;
+import { OrganizationContextProvider } from 'sentry/views/organizationContext';
+
+export default function WrappedProjectBadge(props) {
+  return (
+    <OrganizationContextProvider>
+      <ProjectBadge {...props} />
+    </OrganizationContextProvider>
+  );
+}
