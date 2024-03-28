@@ -760,6 +760,13 @@ register(
 )
 
 register(
+    "issues.severity.seer-timout",
+    type=Float,
+    default=0.2,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "issues.severity.default-high-priority-alerts-orgs-allowlist",
     type=Sequence,
     default=[],
