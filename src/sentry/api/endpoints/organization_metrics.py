@@ -63,6 +63,13 @@ from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.dates import get_rollup_from_request, parse_stats_period
 
 
+def can_access_use_case_id(request: Request, use_case_id: UseCaseID) -> bool:
+    api_access = get_use_case_id_api_access(use_case_id)
+    return api_access == UseCaseIDAPIAccess.PUBLIC or (
+        has_elevated_mode(request) and api_access == UseCaseIDAPIAccess.PRIVATE
+    )
+
+
 def get_default_use_case_ids(request: Request) -> Sequence[UseCaseID]:
     """
     Gets the default use case ids given a Request.
@@ -76,10 +83,7 @@ def get_default_use_case_ids(request: Request) -> Sequence[UseCaseID]:
     default_use_case_ids = []
 
     for use_case_id in UseCaseID:
-        if (
-            not has_elevated_mode(request)
-            and get_use_case_id_api_access(use_case_id) == UseCaseIDAPIAccess.PRIVATE
-        ):
+        if not can_access_use_case_id(request, use_case_id):
             continue
 
         default_use_case_ids.append(use_case_id)
@@ -89,7 +93,7 @@ def get_default_use_case_ids(request: Request) -> Sequence[UseCaseID]:
 
 def get_use_case_id(request: Request) -> UseCaseID:
     """
-    Gets the use case id from the Request.
+    Gets the use case id from the Request. If the use case id is malformed or private the entire request will fail.
 
     Args:
         request: Request of the endpoint.
@@ -98,15 +102,19 @@ def get_use_case_id(request: Request) -> UseCaseID:
         The use case id that was request or a default use case id.
     """
     try:
-        use_case_param = request.GET.get("useCase", UseCaseID.SESSIONS.value)
-        return string_to_use_case_id(use_case_param)
+        use_case_id = string_to_use_case_id(request.GET.get("useCase", UseCaseID.SESSIONS.value))
+        if not can_access_use_case_id(request, use_case_id):
+            raise ValueError
+
+        return use_case_id
     except ValueError:
         raise ParseError(detail="The supplied use case doesn't exist or it's private")
 
 
 def get_use_case_ids(request: Request) -> Sequence[UseCaseID]:
     """
-    Gets the use case ids from the Request.
+    Gets the use case ids from the Request. If at least one use case id is malformed or private the entire request
+    will fail.
 
     Args:
         request: Request of the endpoint.
@@ -115,10 +123,17 @@ def get_use_case_ids(request: Request) -> Sequence[UseCaseID]:
         The use case ids that were requested or the default use case ids.
     """
     try:
-        use_case_params = request.GET.getlist("useCase", get_default_use_case_ids(request))
-        return [string_to_use_case_id(use_case_param) for use_case_param in use_case_params]
+        use_case_ids = [
+            string_to_use_case_id(use_case_param)
+            for use_case_param in request.GET.getlist("useCase", get_default_use_case_ids(request))
+        ]
+        for use_case_id in use_case_ids:
+            if not can_access_use_case_id(request, use_case_id):
+                raise ValueError
+
+        return use_case_ids
     except ValueError:
-        raise ParseError(detail="The supplied use case doesn't exist or it's private")
+        raise ParseError(detail="One or more supplied use cases doesn't exist or it's private")
 
 
 class OrganizationMetricsEnrollPermission(OrganizationPermission):
