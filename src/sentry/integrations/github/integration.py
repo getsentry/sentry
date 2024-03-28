@@ -118,6 +118,12 @@ def build_repository_query(metadata: Mapping[str, Any], name: str, query: str) -
     return f"{account_type}:{name} {query}".encode()
 
 
+def get_document_origin(org) -> str:
+    if org and features.has("organizations:customer-domains", org.organization):
+        return f'"{generate_organization_url(org.organization.slug)}"'
+    return "document.origin"
+
+
 # Github App docs and list of available endpoints
 # https://docs.github.com/en/rest/apps/installations
 # https://docs.github.com/en/rest/overview/endpoints-available-for-github-apps
@@ -374,13 +380,6 @@ class GitHubInstallation(PipelineView):
             ).exists()
 
         if integration_pending_deletion_exists:
-            document_origin = "document.origin"
-            if self.active_organization and features.has(
-                "organizations:customer-domains", self.active_organization.organization
-            ):
-                document_origin = (
-                    f'"{generate_organization_url(self.active_organization.organization.slug)}"'
-                )
             return render_to_response(
                 "sentry/integrations/github-integration-failed.html",
                 context={
@@ -389,7 +388,7 @@ class GitHubInstallation(PipelineView):
                         "success": False,
                         "data": {"error": _("GitHub installation pending deletion.")},
                     },
-                    "document_origin": document_origin,
+                    "document_origin": get_document_origin(self.active_organization),
                 },
                 request=request,
             )
@@ -405,13 +404,6 @@ class GitHubInstallation(PipelineView):
             return pipeline.next_step()
 
         if installations_exist:
-            document_origin = "document.origin"
-            if self.active_organization and features.has(
-                "organizations:customer-domains", self.active_organization.organization
-            ):
-                document_origin = (
-                    f'"{generate_organization_url(self.active_organization.organization.slug)}"'
-                )
             return render_to_response(
                 "sentry/integrations/github-integration-failed.html",
                 context={
@@ -420,7 +412,7 @@ class GitHubInstallation(PipelineView):
                         "success": False,
                         "data": {"error": _("Github installed on another Sentry organization.")},
                     },
-                    "document_origin": document_origin,
+                    "document_origin": get_document_origin(self.active_organization),
                 },
                 request=request,
             )
