@@ -41,20 +41,20 @@ export interface BaseWidgetParams {
   sort?: SortState;
 }
 
-export interface MetricQueryWidgetParams extends BaseWidgetParams, MetricsQuery {
+export interface MetricsQueryWidget extends BaseWidgetParams, MetricsQuery {
   type: MetricExpressionType.QUERY;
   powerUserMode?: boolean;
 }
 
-export interface MetricFormulaWidgetParams extends BaseWidgetParams {
+export interface MetricsEquationWidget extends BaseWidgetParams {
   formula: string;
   type: MetricExpressionType.EQUATION;
 }
 
-export type MetricWidgetQueryParams = MetricQueryWidgetParams | MetricFormulaWidgetParams;
+export type MetricsWidget = MetricsQueryWidget | MetricsEquationWidget;
 
 export interface MetricsQueryParams {
-  widgets: string; // stringified json representation of MetricWidgetQueryParams
+  widgets: string; // stringified json representation of MetricsWidget
   end?: DateString;
   environment?: string[];
   project?: number[];
