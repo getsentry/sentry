@@ -13,7 +13,7 @@ import {MetricVisualization} from 'sentry/components/modals/metricWidgetViewerMo
 import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
-import {getDdmUrl} from 'sentry/utils/metrics';
+import {getMetricsUrl} from 'sentry/utils/metrics';
 import {toDisplayType} from 'sentry/utils/metrics/dashboard';
 import {MetricQueryType} from 'sentry/utils/metrics/types';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -32,7 +32,7 @@ import {
   getMetricWidgetTitle,
   useGenerateExpressionId,
 } from 'sentry/views/dashboards/metrics/utils';
-import {MetricDetails} from 'sentry/views/ddm/widgetDetails';
+import {MetricDetails} from 'sentry/views/metrics/widgetDetails';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 interface Props extends ModalRenderProps, WidgetViewerModalOptions {
@@ -251,7 +251,7 @@ function MetricWidgetViewerModal({
         <Footer>
           <ButtonBar gap={1}>
             <LinkButton
-              to={getDdmUrl(organization.slug, {
+              to={getMetricsUrl(organization.slug, {
                 widgets: [...metricQueries, ...metricEquations],
                 ...selection.datetime,
                 project: selection.projects,

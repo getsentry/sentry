@@ -56,7 +56,7 @@ describe('WidgetParser', () => {
     jest.clearAllMocks();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: '/organizations/sentry/metrics/tags/',
+      url: '/organizations/test-org/metrics/tags/',
       method: 'GET',
       body: [
         {key: 'foo', name: 'foo'},
@@ -74,7 +74,7 @@ describe('WidgetParser', () => {
   it('should parse a widget with single timeseries', async () => {
     const widgetToImport = mockWidget();
 
-    const result = new WidgetParser(widgetToImport, availableMetrics).parse();
+    const result = new WidgetParser(widgetToImport, availableMetrics, 'test-org').parse();
     const {report, widget} = await result;
 
     expect(report.outcome).toEqual('success');
@@ -106,7 +106,7 @@ describe('WidgetParser', () => {
         'sum:sentry.bar.baz{}',
       ]),
     });
-    const result = new WidgetParser(widgetToImport, availableMetrics).parse();
+    const result = new WidgetParser(widgetToImport, availableMetrics, 'test-org').parse();
     const {report, widget} = await result;
 
     expect(report.outcome).toEqual('success');
@@ -145,7 +145,7 @@ describe('WidgetParser', () => {
       requests: mockRequests(['sum:sentry.foo.bar.avg{foo:bar} by {baz}']),
     });
 
-    const result = new WidgetParser(widgetToImport, availableMetrics).parse();
+    const result = new WidgetParser(widgetToImport, availableMetrics, 'test-org').parse();
     const {report, widget} = await result;
 
     expect(report.outcome).toEqual('success');
@@ -172,7 +172,7 @@ describe('WidgetParser', () => {
       requests: mockRequests(['sum:sentry.unknown-metric{foo:bar} by {baz}']),
     });
 
-    const result = new WidgetParser(widgetToImport, availableMetrics).parse();
+    const result = new WidgetParser(widgetToImport, availableMetrics, 'test-org').parse();
     const {report} = await result;
 
     expect(report.outcome).toEqual('error');
@@ -187,7 +187,7 @@ describe('WidgetParser', () => {
       requests: mockRequests(['sum:sentry.foo.bar{not-a-tag:bar} by {baz}']),
     });
 
-    const result = new WidgetParser(widget, availableMetrics).parse();
+    const result = new WidgetParser(widget, availableMetrics, 'test-org').parse();
     const {report} = await result;
 
     expect(report.outcome).toEqual('warning');
@@ -201,7 +201,7 @@ describe('WidgetParser', () => {
       requests: mockRequests(['sum:sentry.foo.bar{foo:bar*} by {baz}']),
     });
 
-    const result = new WidgetParser(widget, availableMetrics).parse();
+    const result = new WidgetParser(widget, availableMetrics, 'test-org').parse();
     const {report} = await result;
 
     expect(report.outcome).toEqual('warning');
@@ -216,7 +216,7 @@ describe('parseDashboard', () => {
     jest.clearAllMocks();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: '/organizations/sentry/metrics/tags/',
+      url: '/organizations/test-org/metrics/tags/',
       method: 'GET',
       body: [
         {key: 'foo', name: 'foo'},
@@ -239,7 +239,7 @@ describe('parseDashboard', () => {
       widgets: [mockWidget(), mockWidget()],
     } as ImportDashboard;
 
-    const result = await parseDashboard(dashboard, availableMetrics);
+    const result = await parseDashboard(dashboard, availableMetrics, 'test-org');
     const {report, widgets} = result;
 
     expect(report.length).toEqual(2);
@@ -263,7 +263,7 @@ describe('parseDashboard', () => {
       ],
     } as ImportDashboard;
 
-    const result = await parseDashboard(dashboard, availableMetrics);
+    const result = await parseDashboard(dashboard, availableMetrics, 'test-org');
     const {report, widgets} = result;
 
     expect(report.length).toEqual(2);
@@ -293,7 +293,7 @@ describe('parseDashboard', () => {
       ],
     } as ImportDashboard;
 
-    const result = await parseDashboard(dashboard, availableMetrics);
+    const result = await parseDashboard(dashboard, availableMetrics, 'test-org');
 
     const {report, widgets} = result;
     expect(report.length).toEqual(1);

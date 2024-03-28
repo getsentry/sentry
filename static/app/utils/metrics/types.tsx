@@ -53,7 +53,7 @@ export interface MetricFormulaWidgetParams extends BaseWidgetParams {
 
 export type MetricWidgetQueryParams = MetricQueryWidgetParams | MetricFormulaWidgetParams;
 
-export interface DdmQueryParams {
+export interface MetricsQueryParams {
   widgets: string; // stringified json representation of MetricWidgetQueryParams
   end?: DateString;
   environment?: string[];

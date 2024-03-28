@@ -587,6 +587,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Enable use of Symbolicator proguard processing for specific projects.
+register("symbolicator.proguard-processing-projects", type=Sequence, default=[])
+# Enable use of Symbolicator proguard processing for fraction of projects.
+register("symbolicator.proguard-processing-sample-rate", default=0.0)
+
 # Post Process Error Hook Sampling
 register(
     "post-process.use-error-hook-sampling", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
@@ -1628,12 +1633,14 @@ register(
 # Adjusting some time buffers in the trace endpoint
 register(
     "performance.traces.transaction_query_timebuffer_days",
+    type=Float,
     default=1.5,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # days
 register(
     "performance.traces.span_query_timebuffer_hours",
-    default=1,
+    type=Float,
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # hours
 

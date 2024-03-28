@@ -19,7 +19,7 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import MonitorEnvironmentLabel from 'sentry/views/monitors/components/overviewTimeline/monitorEnvironmentLabel';
 import {StatusToggleButton} from 'sentry/views/monitors/components/statusToggleButton';
 import type {Monitor} from 'sentry/views/monitors/types';
-import {scheduleAsText} from 'sentry/views/monitors/utils';
+import {scheduleAsText} from 'sentry/views/monitors/utils/scheduleAsText';
 
 import type {CheckInTimelineProps} from './checkInTimeline';
 import {CheckInTimeline} from './checkInTimeline';

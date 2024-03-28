@@ -87,7 +87,7 @@ jsonschema==4.20.0
 jsonschema-path==0.3.2
 jsonschema-spec==0.2.4
 jsonschema-specifications==2023.7.1
-kombu==5.3.4
+kombu==5.3.6
 lazy-object-proxy==1.10.0
 lxml==4.9.3
 lxml-stubs==0.4.0
@@ -178,7 +178,7 @@ sentry-devenv==1.2.3
 sentry-forked-django-stubs==4.2.7.post3
 sentry-forked-djangorestframework-stubs==3.14.5.post1
 sentry-kafka-schemas==0.1.64
-sentry-ophio==0.2.5
+sentry-ophio==0.2.6
 sentry-redis-tools==0.1.7
 sentry-relay==0.8.55
 sentry-sdk==1.43.0
