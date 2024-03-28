@@ -119,7 +119,7 @@ class EventAttributeCondition(EventCondition):
             if path[1] not in ("type", "value"):
                 return []
 
-            return [getattr(e, path[1]) for e in event.interfaces["exception"].values]
+            return [getattr(e, path[1]) for e in (event.interfaces.get("exception") or {}).values]
 
         elif path[0] == "error":
             # TODO: add support for error.main_thread
@@ -132,7 +132,7 @@ class EventAttributeCondition(EventCondition):
 
             return [
                 e.mechanism.handled != negate
-                for e in event.interfaces["exception"].values
+                for e in (event.interfaces.get("exception") or {}).values
                 if e.mechanism is not None and getattr(e.mechanism, "handled") is not None
             ]
 
