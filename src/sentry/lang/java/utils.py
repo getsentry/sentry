@@ -12,6 +12,7 @@ from sentry.ingest.consumer.processors import CACHE_TIMEOUT
 from sentry.lang.java.proguard import open_proguard_mapper
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.project import Project
+from sentry.stacktraces.processing import StacktraceInfo
 from sentry.utils import json
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.safe import get_path
@@ -149,7 +150,10 @@ def should_use_symbolicator_for_proguard(project_id: int) -> bool:
     return in_rollout_group(SYMBOLICATOR_PROGUARD_SAMPLE_RATE_OPTION, project_id)
 
 
-def is_jvm_event(data, stacktraces):
+def is_jvm_event(data: Any, stacktraces: list[StacktraceInfo]) -> bool:
+    """Returns whether `data` is a JVM event, based on its platform and
+    the supplied stacktraces."""
+
     if data.get("platform") == "java":
         return True
 

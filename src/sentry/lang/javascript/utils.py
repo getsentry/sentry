@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import re
 from os.path import splitext
+from typing import Any
 from urllib.parse import urlsplit
+
+from sentry.stacktraces.processing import StacktraceInfo
 
 # number of surrounding lines (on each side) to fetch
 LINES_OF_CONTEXT = 5
@@ -120,7 +123,10 @@ def generate_module(src: str | None) -> str:
     return CLEAN_MODULE_RE.sub("", filename) or UNKNOWN_MODULE
 
 
-def is_js_event(data, stacktraces):
+def is_js_event(data: Any, stacktraces: list[StacktraceInfo]) -> bool:
+    """Returns whether `data` is a JS event, based on its platform and
+    the supplied stacktraces."""
+
     if data.get("platform") in ("javascript", "node"):
         return True
 
