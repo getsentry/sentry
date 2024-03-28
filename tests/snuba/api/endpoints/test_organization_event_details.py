@@ -301,6 +301,7 @@ class EventComparisonTest(MetricsEnhancedPerformanceTestCase):
         self.init_snuba()
         self.ten_mins_ago = before_now(minutes=10)
         self.transaction_data = load_data("transaction", timestamp=self.ten_mins_ago)
+        self.RESULT_COLUMN = "span.averageResults"
         event = self.store_event(self.transaction_data, self.project)
         self.url = reverse(
             self.endpoint,
@@ -325,7 +326,53 @@ class EventComparisonTest(MetricsEnhancedPerformanceTestCase):
         for entry in entries:
             if entry["type"] == "spans":
                 for span in entry["data"]:
-                    if span["span_id"] == "26b881987e4bad99":
-                        assert span["span.average_time"] == 1.0
-                    if span["span_id"] == "c048b4fffdc4279d":
-                        assert "span.average_time" not in span
+                    if span["op"] == "db":
+                        assert span[self.RESULT_COLUMN] == {"avg(span.self_time)": 1.0}
+                    if span["op"] == "django.middleware":
+                        assert self.RESULT_COLUMN not in span
+
+    def test_get_multiple_columns(self):
+        self.store_span_metric(
+            2,
+            internal_metric=constants.SPAN_METRICS_MAP["span.duration"],
+            timestamp=self.ten_mins_ago,
+            tags={"span.group": "26b881987e4bad99"},
+        )
+        response = self.client.get(self.url, {"averageColumn": ["span.self_time", "span.duration"]})
+        assert response.status_code == 200, response.content
+        entries = response.data["entries"]  # type: ignore[attr-defined]
+        for entry in entries:
+            if entry["type"] == "spans":
+                for span in entry["data"]:
+                    if span["op"] == "db":
+                        assert span[self.RESULT_COLUMN] == {
+                            "avg(span.self_time)": 1.0,
+                            "avg(span.duration)": 2.0,
+                        }
+                    if span["op"] == "django.middlewares":
+                        assert self.RESULT_COLUMN not in span
+
+    def test_nan_column(self):
+        # If there's nothing stored for a metric, span.duration in this case the query returns nan
+        response = self.client.get(self.url, {"averageColumn": ["span.self_time", "span.duration"]})
+        assert response.status_code == 200, response.content
+        entries = response.data["entries"]  # type: ignore[attr-defined]
+        for entry in entries:
+            if entry["type"] == "spans":
+                for span in entry["data"]:
+                    if span["op"] == "db":
+                        assert span[self.RESULT_COLUMN] == {"avg(span.self_time)": 1.0}
+                    if span["op"] == "django.middlewares":
+                        assert self.RESULT_COLUMN not in span
+
+    def test_invalid_column(self):
+        # If there's nothing stored for a metric, span.duration in this case the query returns nan
+        response = self.client.get(
+            self.url, {"averageColumn": ["span.self_time", "span.everything"]}
+        )
+        assert response.status_code == 200, response.content
+        entries = response.data["entries"]  # type: ignore[attr-defined]
+        for entry in entries:
+            if entry["type"] == "spans":
+                for span in entry["data"]:
+                    assert self.RESULT_COLUMN not in span
