@@ -331,7 +331,7 @@ class AcceptOrganizationInviteTest(APITestCase):
     def get_om_and_init_invite(self):
         with assume_test_silo_mode(SiloMode.REGION), outbox_runner():
             om = OrganizationMember.objects.create(
-                email="newuser@example.com",
+                email=self.user.email,
                 role="member",
                 token="abc",
                 organization=self.organization,
@@ -392,7 +392,7 @@ class AcceptOrganizationInviteTest(APITestCase):
         with assume_test_silo_mode(SiloMode.REGION):
             om = OrganizationMember.objects.get(id=om.id)
         assert om.user_id is None
-        assert om.email == "newuser@example.com"
+        assert om.email == "bar@example.com"
 
     @mock.patch("sentry.auth.authenticators.U2fInterface.try_enroll", return_value=True)
     def test_accept_pending_invite__u2f_enroll(self, try_enroll):
@@ -488,7 +488,7 @@ class AcceptOrganizationInviteTest(APITestCase):
         with assume_test_silo_mode(SiloMode.REGION):
             om = OrganizationMember.objects.get(id=om.id)
         assert om.user_id is None
-        assert om.email == "newuser@example.com"
+        assert om.email == "bar@example.com"
 
         assert log.exception.call_count == 1
         assert log.exception.call_args[0][0] == "Invalid pending invite cookie"
@@ -510,7 +510,7 @@ class AcceptOrganizationInviteTest(APITestCase):
         with assume_test_silo_mode(SiloMode.REGION):
             om = OrganizationMember.objects.get(id=om.id)
         assert om.user_id is None
-        assert om.email == "newuser@example.com"
+        assert om.email == "bar@example.com"
 
     @mock.patch("sentry.api.endpoints.user_authenticator_enroll.logger")
     @mock.patch("sentry.auth.authenticators.U2fInterface.try_enroll", return_value=True)

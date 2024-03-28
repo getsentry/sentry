@@ -1,4 +1,5 @@
 from datetime import timedelta
+from uuid import uuid4
 
 from django.conf import settings
 from django.db import router
@@ -15,6 +16,7 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.outbox import outbox_context
+from sentry.models.useremail import UserEmail
 from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
@@ -117,7 +119,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         self.login_as(self.user)
 
         om = Factories.create_member(
-            email="newuser@example.com", token="abc", organization=self.organization
+            email=self.user.email, token="abc", organization=self.organization
         )
         for path in self._get_paths([om.id, om.token]):
             resp = self.client.get(path)
@@ -131,7 +133,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         self.login_as(self.user)
 
         om = Factories.create_member(
-            email="newuser@example.com", token="abc", organization=self.organization
+            email=self.user.email, token="abc", organization=self.organization
         )
 
         for path in self._get_paths([om.id, om.token]):
@@ -165,7 +167,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
 
             with assume_test_silo_mode_of(OrganizationMember), outbox_context(flush=False):
                 om = OrganizationMember.objects.create(
-                    email="newuser@example.com", token="abc", organization_id=self.organization.id
+                    email=self.user.email, token="abc", organization_id=self.organization.id
                 )
             with unguarded_write(using=router.db_for_write(OrganizationMemberMapping)):
                 OrganizationMemberMapping.objects.create(
@@ -211,7 +213,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         self.login_as(self.user)
 
         om = Factories.create_member(
-            email="newuser@example.com", token="abc", organization=self.organization
+            email=self.user.email, token="abc", organization=self.organization
         )
         for path in self._get_paths([om.id, om.token]):
             resp = self.client.get(path)
@@ -225,7 +227,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         self.login_as(self.user)
 
         om = Factories.create_member(
-            email="newuser@example.com", token="abc", organization=self.organization
+            email=self.user.email, token="abc", organization=self.organization
         )
         for path in self._get_paths([om.id, om.token]):
             resp = self.client.get(path)
@@ -307,6 +309,61 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         assert om.is_pending
         assert om.token
 
+    def test_cannot_accept_without_matching_verified_email(self):
+        newuser = self.create_user()
+
+        newuser_email = UserEmail.objects.get(user=newuser, email=newuser.email)
+        newuser_email.is_verified = False
+        newuser_email.save()
+
+        self.login_as(newuser)
+
+        assert not newuser_email.is_verified
+
+        om = Factories.create_member(
+            email=newuser.email,
+            role="member",
+            token="abc",
+            organization=self.organization,
+            invite_status=InviteStatus.APPROVED.value,
+        )
+
+        for path in self._get_paths([om.id, om.token]):
+            resp = self.client.post(path)
+            assert resp.status_code == 403, resp.content
+
+        with assume_test_silo_mode_of(OrganizationMember):
+            om = OrganizationMember.objects.get(id=om.id)
+
+        assert om.is_pending
+        assert om.token
+
+    def test_can_accept_with_matching_verified_email(self):
+        urls = self._get_urls()
+
+        for url in urls:
+            newuser = self.create_user()  # implicitly verifies the email
+            self.login_as(newuser)
+
+            om = Factories.create_member(
+                email=newuser.email,
+                role="member",
+                token=uuid4().hex,
+                organization=self.organization,
+                invite_status=InviteStatus.APPROVED.value,
+            )
+
+            path = self._get_path(url, [om.id, om.token])
+            resp = self.client.post(path)
+
+            assert resp.status_code == 204, resp.content
+
+            with assume_test_silo_mode_of(OrganizationMember):
+                om = OrganizationMember.objects.get(id=om.id)
+
+            assert not om.is_pending
+            assert not om.token
+
     def test_member_already_exists(self):
         urls = self._get_urls()
 
@@ -317,7 +374,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             om = Factories.create_member(
                 email=user.email,
                 role="member",
-                token="abc",
+                token=uuid4().hex,
                 organization=self.organization,
             )
             path = self._get_path(url, [om.id, om.token])
@@ -355,7 +412,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             self.login_as(user)
 
             om = Factories.create_member(
-                email="newuser" + str(i) + "@example.com",
+                email=user.email,
                 role="member",
                 token="abc",
                 organization=self.organization,
@@ -408,19 +465,19 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             self.login_as(user)
 
             om = Factories.create_member(
-                email="newuser" + str(i) + "@example.com",
+                email=user.email,
                 role="member",
                 token="abc",
                 organization=self.organization,
             )
             path = self._get_path(url, [om.id, om.token])
             resp = self.client.get(path)
-            assert resp.status_code == 200
+            assert resp.status_code == 200, resp.content
             self._assert_pending_invite_details_in_session(om)
 
             self._enroll_user_in_2fa(user)
             resp = self.client.post(path)
-            assert resp.status_code == 204
+            assert resp.status_code == 204, resp.content
 
             self._assert_pending_invite_details_not_in_session(resp)
 
