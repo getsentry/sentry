@@ -78,7 +78,6 @@ export class VideoReplayer {
     this.preloadVideos({low: 0, high: PRELOAD_BUFFER});
 
     this._trackList = this._attachments.map(({timestamp}, i) => [timestamp, i]);
-    this.loadSegment(0);
   }
 
   private createVideo(segmentData: VideoEvent, index: number) {
