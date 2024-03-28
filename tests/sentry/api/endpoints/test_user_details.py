@@ -11,7 +11,6 @@ from sentry.models.userrole import UserRole
 from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
@@ -314,8 +313,8 @@ class UserDetailsStaffUpdateTest(UserDetailsTest):
     method = "put"
 
     @fixture(autouse=True)
-    def use_staff_feature_flag(self):
-        with Feature("auth:enterprise-staff-cookie"):
+    def _activate_staff_mode(self):
+        with override_options({"staff.ga-rollout": True}):
             yield
 
     def test_staff_can_change_is_active(self):
