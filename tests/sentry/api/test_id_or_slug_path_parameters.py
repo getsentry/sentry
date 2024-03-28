@@ -384,7 +384,7 @@ class APIIdOrSlugPathParamTest(BaseTestCase, TestCase):
                             callback, slug_path_params
                         )
                     elif slug_path_params == ["organization_slug"]:
-                        if self.convert_args_setup_registry.get(callback.convert_args):
-                            self.convert_args_setup_registry[callback.convert_args](
-                                callback, slug_path_params
-                            )
+                        if convert_args := self.convert_args_setup_registry.get(
+                            callback.convert_args
+                        ):
+                            convert_args(callback, slug_path_params)

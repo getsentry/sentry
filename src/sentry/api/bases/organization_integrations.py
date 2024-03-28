@@ -75,7 +75,7 @@ class RegionOrganizationIntegrationBaseEndpoint(RegionIntegrationEndpoint):
     def convert_args(
         self,
         request: Request,
-        organization_slug: str | None = None,
+        organization_slug: str | int | None = None,
         integration_id: str | None = None,
         *args: Any,
         **kwargs: Any,

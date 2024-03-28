@@ -523,6 +523,10 @@ class OrganizationEndpoint(Endpoint):
         *args: Any,
         **kwargs: Any,
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        """
+        We temporarily allow the organization_slug to be an integer as it actually can be both slug or id
+        Eventually, we will rename this method to organization_id_or_slug
+        """
         if not subdomain_is_region(request):
             subdomain = getattr(request, "subdomain", None)
             if subdomain is not None and subdomain != organization_slug:
