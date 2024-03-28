@@ -15,9 +15,10 @@ def circuit_breaker_activated(
     passthrough_limit: int | None = None,
 ) -> bool:
     """
-    Check if the circuit breaker is activated for the given key. If the error limit is exceeded, the circuit breaker can
-    allow a certain number of requests to pass through per minute. This is defined by the passthrough limit. If the
-    passthrough limit is not provided, the circuit breaker will block all requests once the error limit is exceeded.
+    Activates the circuit breaker if the error count for a cache key exceeds the error limit.
+
+    The circuit breaker can allow a certain number of requests to pass through per minute, defined by
+    the passthrough limit if provided.
     """
     failure_count = cache.get(ERROR_COUNT_CACHE_KEY(key), 0)
     if failure_count < error_limit:
