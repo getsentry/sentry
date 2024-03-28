@@ -23,7 +23,7 @@ from sentry.silo import SiloMode
 from sentry.tasks.integrations.slack.find_channel_id_for_rule import find_channel_id_for_rule
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack, with_feature
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json
 
 
@@ -74,7 +74,6 @@ class ProjectRuleBaseTestCase(APITestCase):
         ]
 
 
-@region_silo_test
 class ProjectRuleListTest(ProjectRuleBaseTestCase):
     def test_simple(self):
         response = self.get_success_response(
@@ -85,7 +84,6 @@ class ProjectRuleListTest(ProjectRuleBaseTestCase):
         assert len(response.data) == Rule.objects.filter(project=self.project).count()
 
 
-@region_silo_test
 class CreateProjectRuleTest(ProjectRuleBaseTestCase):
     method = "post"
 

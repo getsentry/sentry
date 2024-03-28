@@ -2,7 +2,6 @@ from sentry.api.bases.project import ProjectAndStaffPermission, ProjectPermissio
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.silo import region_silo_test
 
 
 class ProjectPermissionBase(TestCase):
@@ -18,7 +17,6 @@ class ProjectPermissionBase(TestCase):
         return perm.has_permission(request, None) and perm.has_object_permission(request, None, obj)
 
 
-@region_silo_test
 class ProjectPermissionTest(ProjectPermissionBase):
     def test_regular_user(self):
         user = self.create_user(is_superuser=False)
@@ -221,7 +219,6 @@ class ProjectPermissionTest(ProjectPermissionBase):
         assert not self.has_object_perm("DELETE", project, user=sentry_app.proxy_user)
 
 
-@region_silo_test
 class ProjectPermissionNoJoinLeaveTest(ProjectPermissionBase):
     def setUp(self):
         super().setUp()
@@ -390,7 +387,6 @@ class ProjectPermissionNoJoinLeaveTest(ProjectPermissionBase):
         assert not self.has_object_perm("DELETE", self.project, auth=key)
 
 
-@region_silo_test
 class ProjectAndStaffPermissionTest(ProjectPermissionBase):
     def setUp(self):
         super().setUp()

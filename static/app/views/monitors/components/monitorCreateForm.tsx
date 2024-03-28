@@ -31,7 +31,8 @@ import {
 } from 'sentry/views/monitors/components/monitorForm';
 import type {Monitor} from 'sentry/views/monitors/types';
 import {ScheduleType} from 'sentry/views/monitors/types';
-import {crontabAsText, getScheduleIntervals} from 'sentry/views/monitors/utils';
+import {getScheduleIntervals} from 'sentry/views/monitors/utils';
+import {crontabAsText} from 'sentry/views/monitors/utils/crontabAsText';
 
 const DEFAULT_SCHEDULE_CONFIG = {
   scheduleType: 'crontab',

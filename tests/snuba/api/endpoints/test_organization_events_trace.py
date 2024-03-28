@@ -9,7 +9,6 @@ from sentry import options
 from sentry.issues.grouptype import NoiseConfig, PerformanceFileIOMainThreadGroupType
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
@@ -281,7 +280,6 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase):
         )
 
 
-@region_silo_test
 class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBase):
     url_name = "sentry-api-0-organization-events-trace-light"
 
@@ -799,7 +797,6 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
         assert response.status_code == 404
 
 
-@region_silo_test
 class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
     url_name = "sentry-api-0-organization-events-trace"
     check_generation = True
@@ -1563,13 +1560,38 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert "measurements" not in trace_transaction
 
 
-@region_silo_test
 class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpointTest):
     check_generation = False
 
     def client_get(self, data, url=None):
         data["useSpans"] = 1
         return super().client_get(data, url)
+
+    def test_simple(self):
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={"project": -1},
+            )
+        assert response.status_code == 200, response.content
+        trace_transaction = response.data["transactions"][0]
+        self.assert_trace_data(trace_transaction)
+        # We shouldn't have detailed fields here
+        assert "transaction.status" not in trace_transaction
+        assert "tags" not in trace_transaction
+
+    def test_simple_with_limit(self):
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={"project": -1, "limit": 200},
+            )
+        assert response.status_code == 200, response.content
+        trace_transaction = response.data["transactions"][0]
+        self.assert_trace_data(trace_transaction)
+        # We shouldn't have detailed fields here
+        assert "transaction.status" not in trace_transaction
+        assert "tags" not in trace_transaction
 
     @pytest.mark.skip(
         "Loops can only be orphans cause the most recent parent to be saved will overwrite the previous"
@@ -1638,11 +1660,29 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
         trace_transaction = response.data["transactions"][0]
         self.assert_event(trace_transaction, self.gen1_events[0], "root")
 
+    def test_timestamp_optimization_without_mock(self):
+        """Make sure that even if the params are smaller the query still works"""
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={
+                    "project": -1,
+                    "timestamp": self.root_event.timestamp,
+                    "statsPeriod": "90d",
+                },
+            )
+        assert response.status_code == 200, response.content
+        trace_transaction = response.data["transactions"][0]
+        self.assert_trace_data(trace_transaction)
+        # We shouldn't have detailed fields here
+        assert "transaction.status" not in trace_transaction
+        assert "tags" not in trace_transaction
+
     def test_measurements(self):
         self.load_trace()
         with self.feature(self.FEATURES):
             response = self.client_get(
-                data={"project": -1, "getMeasurements": 1},
+                data={"project": -1},
             )
         assert response.status_code == 200, response.content
         trace_transaction = response.data["transactions"][0]
@@ -1654,7 +1694,6 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
         assert root["measurements"]["fid"]["type"] == "duration"
 
 
-@region_silo_test
 class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBase):
     url_name = "sentry-api-0-organization-events-trace-meta"
 

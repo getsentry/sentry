@@ -10,7 +10,6 @@ from sentry.models.commitauthor import CommitAuthor
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 from sentry_plugins.github.testutils import PUSH_EVENT_EXAMPLE
 
 
@@ -25,7 +24,6 @@ def mock_baxter_response():
         yield
 
 
-@region_silo_test
 class PushEventWebhookTest(APITestCase):
     @mock_baxter_response()
     def test_simple(self):

@@ -132,7 +132,7 @@ def get_document_origin(org) -> str:
 # Github App docs and list of available endpoints
 # https://docs.github.com/en/rest/apps/installations
 # https://docs.github.com/en/rest/overview/endpoints-available-for-github-apps
-class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMixin, CommitContextMixin):  # type: ignore
+class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMixin, CommitContextMixin):  # type: ignore[misc]
     repo_search = True
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
@@ -353,9 +353,6 @@ class GitHubIntegrationProvider(IntegrationProvider):
         if state.get("sender"):
             integration["metadata"]["sender"] = state["sender"]
 
-        if state.get("reinstall_id"):
-            integration["reinstall_id"] = state["reinstall_id"]
-
         return integration
 
     def setup(self) -> None:
@@ -372,9 +369,6 @@ class GitHubInstallation(PipelineView):
         return f"https://github.com/apps/{slugify(name)}"
 
     def dispatch(self, request: Request, pipeline: Pipeline) -> HttpResponse:
-        if "reinstall_id" in request.GET:
-            pipeline.bind_state("reinstall_id", request.GET["reinstall_id"])
-
         if "installation_id" not in request.GET:
             return self.redirect(self.get_app_url())
 

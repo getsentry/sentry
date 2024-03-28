@@ -5,7 +5,7 @@ import logging
 import time
 from abc import ABCMeta, abstractmethod
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from hashlib import md5
 from math import floor
@@ -51,7 +51,7 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
-from sentry.search.utils import SupportedConditions, validate_cdc_search_filters
+from sentry.search.utils import SupportedConditions
 from sentry.snuba.dataset import Dataset
 from sentry.utils import json, metrics, snuba
 from sentry.utils.cursors import Cursor, CursorResult
@@ -1113,236 +1113,9 @@ class InvalidQueryForExecutor(Exception):
     pass
 
 
-class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
-    sort_strategies = {
-        "date": "last_seen",
-        "freq": "times_seen",
-        "new": "first_seen",
-        "trends": "trends",
-        "user": "user_count",
-    }
-
-    entities = {
-        "event": Entity("events", alias="e"),
-        "group": Entity("groupedmessage", alias="g"),
-    }
-    times_seen_aggregation = Function(
-        "ifNull", [Function("count", [Column("group_id", entities["event"])]), 0]
-    )
-    first_seen_aggregation = Function(
-        "ifNull",
-        [
-            Function(
-                "multiply",
-                [
-                    Function(
-                        "toUInt64", [Function("min", [Column("timestamp", entities["event"])])]
-                    ),
-                    1000,
-                ],
-            ),
-            0,
-        ],
-    )
-    last_seen_aggregation = Function(
-        "ifNull",
-        [
-            Function(
-                "multiply",
-                [
-                    Function(
-                        "toUInt64", [Function("max", [Column("timestamp", entities["event"])])]
-                    ),
-                    1000,
-                ],
-            ),
-            0,
-        ],
-    )
-
-    aggregation_defs = {
-        "times_seen": times_seen_aggregation,
-        "first_seen": first_seen_aggregation,
-        "last_seen": last_seen_aggregation,
-        # https://github.com/getsentry/sentry/blob/804c85100d0003cfdda91701911f21ed5f66f67c/src/sentry/event_manager.py#L241-L271
-        "trends": Function(
-            "toUInt64",
-            [
-                Function(
-                    "plus",
-                    [
-                        Function(
-                            "multiply",
-                            [
-                                Function(
-                                    "log",
-                                    [times_seen_aggregation],
-                                ),
-                                600,
-                            ],
-                        ),
-                        last_seen_aggregation,
-                    ],
-                )
-            ],
-        ),
-        "user_count": Function(
-            "ifNull", [Function("uniq", [Column("tags[sentry:user]", entities["event"])]), 0]
-        ),
-    }
-
-    def calculate_start_end(
-        self,
-        retention_window_start: datetime | None,
-        search_filters: Sequence[SearchFilter] | None,
-        date_from: datetime | None,
-        date_to: datetime | None,
-    ) -> tuple[datetime, datetime, datetime]:
-        now = timezone.now()
-        end = None
-        end_params = [_f for _f in [date_to, get_search_filter(search_filters, "date", "<")] if _f]
-        if end_params:
-            end = min(end_params)
-
-        if not end:
-            end = now + ALLOWED_FUTURE_DELTA
-
-        retention_date = max(_f for _f in [retention_window_start, now - timedelta(days=90)] if _f)
-        start_params = [date_from, retention_date, get_search_filter(search_filters, "date", ">")]
-        start = max(_f for _f in start_params if _f)
-        end = max([retention_date, end])
-        return start, end, retention_date
-
-    def query(
-        self,
-        projects: Sequence[Project],
-        retention_window_start: datetime | None,
-        group_queryset: BaseQuerySet,
-        environments: Sequence[Environment] | None,
-        sort_by: str,
-        limit: int,
-        cursor: Cursor | None,
-        count_hits: bool,
-        paginator_options: Mapping[str, Any] | None,
-        search_filters: Sequence[SearchFilter] | None,
-        date_from: datetime | None,
-        date_to: datetime | None,
-        max_hits: int | None = None,
-        referrer: str | None = None,
-        actor: Any | None = None,
-        aggregate_kwargs: TrendsSortWeights | None = None,
-        use_group_snuba_dataset: bool = False,
-    ) -> CursorResult[Group]:
-        if not validate_cdc_search_filters(search_filters):
-            raise InvalidQueryForExecutor("Search filters invalid for this query executor")
-
-        start, end, retention_date = self.calculate_start_end(
-            retention_window_start, search_filters, date_from, date_to
-        )
-
-        if start == retention_date and end == retention_date:
-            # Both `start` and `end` must have been trimmed to `retention_date`,
-            # so this entire search was against a time range that is outside of
-            # retention. We'll return empty results to maintain backwards compatibility
-            # with Django search (for now).
-            return self.empty_result
-
-        if start >= end:
-            # TODO: This maintains backwards compatibility with Django search, but
-            # in the future we should find a way to notify the user that their search
-            # is invalid.
-            return self.empty_result
-
-        e_event = self.entities["event"]
-        e_group = self.entities["group"]
-
-        where_conditions = [
-            Condition(Column("project_id", e_event), Op.IN, [p.id for p in projects]),
-            Condition(Column("timestamp", e_event), Op.GTE, start),
-            Condition(Column("timestamp", e_event), Op.LT, end),
-        ]
-        # TODO: This is still basically only handling status, handle this better once we introduce
-        # more conditions.
-        for search_filter in search_filters or ():
-            where_conditions.append(
-                Condition(
-                    Column(search_filter.key.name, e_group), Op.IN, search_filter.value.raw_value
-                )
-            )
-
-        if environments:
-            # TODO: Should this be handled via filter_keys, once we have a snql compatible version?
-            where_conditions.append(
-                Condition(Column("environment", e_event), Op.IN, [e.name for e in environments])
-            )
-
-        sort_func = self.aggregation_defs[self.sort_strategies[sort_by]]
-
-        having = []
-        if cursor is not None:
-            op = Op.GTE if cursor.is_prev else Op.LTE
-            having.append(Condition(sort_func, op, cursor.value))
-
-        tenant_ids = {"organization_id": projects[0].organization_id} if projects else None
-
-        query = Query(
-            match=Join([Relationship(e_event, "grouped", e_group)]),
-            select=[
-                Column("id", e_group),
-                replace(sort_func, alias="score"),
-            ],
-            where=where_conditions,
-            groupby=[Column("id", e_group)],
-            having=having,
-            orderby=[OrderBy(sort_func, direction=Direction.DESC)],
-            limit=Limit(limit + 1),
-        )
-        request = Request(
-            dataset="events",
-            app_id="cdc",
-            query=query,
-            tenant_ids=tenant_ids,
-        )
-        data = snuba.raw_snql_query(request, referrer="search.snuba.cdc_search.query")["data"]
-
-        hits_query = Query(
-            match=Join([Relationship(e_event, "grouped", e_group)]),
-            select=[
-                Function("uniq", [Column("id", e_group)], alias="count"),
-            ],
-            where=where_conditions,
-        )
-        hits = None
-        if count_hits:
-            request = Request(
-                dataset="events", app_id="cdc", query=hits_query, tenant_ids=tenant_ids
-            )
-            hits = snuba.raw_snql_query(request, referrer="search.snuba.cdc_search.hits")["data"][
-                0
-            ]["count"]
-
-        paginator_options = paginator_options or {}
-        paginator_results = SequencePaginator(
-            [(row["score"], row["g.id"]) for row in data],
-            reverse=True,
-            **paginator_options,
-        ).get_result(limit, cursor, known_hits=hits, max_hits=max_hits)
-        # We filter against `group_queryset` here so that we recheck all conditions in Postgres.
-        # Since replay between Postgres and Clickhouse can happen, we might get back results that
-        # have changed state in Postgres. By rechecking them we guarantee than any returned results
-        # have the correct state.
-        # TODO: This can result in us returning less than a full page of results, but shouldn't
-        # affect cursors. If we want to, we can iterate and query snuba until we manage to get a
-        # full page. In practice, this will likely only skip a couple of results at worst, and
-        # probably not be noticeable to the user, so holding off for now to reduce complexity.
-        groups = group_queryset.in_bulk(paginator_results.results)
-        paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
-
-        # TODO: Add types to paginators and remove this
-        return cast(CursorResult[Group], paginator_results)
-
-
 class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
+    ISSUE_FIELD_NAME = "group_id"
+
     entities = {
         "event": Entity("events", alias="e"),
         "attrs": Entity("group_attributes", alias="g"),
@@ -1370,7 +1143,24 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             ),
             0,
         ],
+        alias="score",
     )
+    first_seen = Column("group_first_seen", entities["attrs"])
+
+    sort_strategies = {
+        "date": "last_seen",
+        "new": "first_seen",
+    }
+
+    sort_defs = {
+        "first_seen": first_seen,
+        "last_seen": last_seen_aggregation,
+    }
+
+    column_sort_mapping = {
+        "new": "g.group_first_seen",
+        "date": "score",
+    }
 
     def calculate_start_end(
         self,
@@ -1477,7 +1267,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 )
             )
 
-        sort_func = self.last_seen_aggregation
+        sort_func = self.sort_defs[self.sort_strategies[sort_by]]
 
         having = []
         if cursor is not None:
@@ -1485,15 +1275,18 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             having.append(Condition(sort_func, op, cursor.value))
 
         tenant_ids = {"organization_id": projects[0].organization_id} if projects else None
+        groupby = [Column("group_id", attr_entity)]
+        select = [Column("group_id", attr_entity)]
+        if sort_by == "new":
+            groupby.append(Column("group_first_seen", attr_entity))
+            select.append(Column("group_first_seen", attr_entity))
+        select.append(sort_func)
 
         query = Query(
             match=Join([Relationship(event_entity, "attributes", attr_entity)]),
-            select=[
-                Column("group_id", attr_entity),
-                replace(sort_func, alias="score"),
-            ],
+            select=select,
             where=where_conditions,
-            groupby=[Column("group_id", attr_entity)],
+            groupby=groupby,
             having=having,
             orderby=[OrderBy(sort_func, direction=Direction.DESC)],
             limit=Limit(limit + 1),
@@ -1524,9 +1317,8 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 request, referrer="search.snuba.group_attributes_search.hits"
             )["data"][0]["count"]
 
-        paginator_options = paginator_options or {}
         paginator_results = SequencePaginator(
-            [(row["score"], row["g.group_id"]) for row in data],
+            [(row[self.column_sort_mapping[sort_by]], row["g.group_id"]) for row in data],
             reverse=True,
             **paginator_options,
         ).get_result(limit, cursor, known_hits=hits, max_hits=max_hits)

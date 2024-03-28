@@ -15,10 +15,8 @@ from sentry.models.userreport import UserReport
 from sentry.tasks.deletion.groups import delete_groups
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class DeleteGroupTest(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

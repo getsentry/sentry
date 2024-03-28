@@ -12,7 +12,7 @@ import {PanelTable} from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
-import Tag from 'sentry/components/tag';
+import {Tag} from 'sentry/components/tag';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

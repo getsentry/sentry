@@ -4,10 +4,8 @@ from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class OrganizationSentryFunctionDetails(APITestCase):
     endpoint = "sentry-api-0-organization-sentry-function-details"
 

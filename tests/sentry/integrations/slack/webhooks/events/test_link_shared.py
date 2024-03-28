@@ -6,13 +6,11 @@ import responses
 
 from sentry.integrations.slack.unfurl import Handler, make_type_coercer
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 from . import LINK_SHARED_EVENT, BaseEventTest, build_test_block
 
 
-@region_silo_test
 class LinkSharedEventTest(BaseEventTest):
     @responses.activate
     @patch(

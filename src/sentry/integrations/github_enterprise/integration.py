@@ -419,9 +419,6 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
             "idp_config": state["oauth_config_information"],
         }
 
-        if state.get("reinstall_id"):
-            integration["reinstall_id"] = state["reinstall_id"]
-
         return integration
 
     def setup(self):
@@ -442,8 +439,6 @@ class GitHubEnterpriseInstallationRedirect(PipelineView):
 
     def dispatch(self, request: Request, pipeline) -> HttpResponse:
         installation_data = pipeline.fetch_state(key="installation_data")
-        if "reinstall_id" in request.GET:
-            pipeline.bind_state("reinstall_id", request.GET["reinstall_id"])
 
         if "installation_id" in request.GET:
             pipeline.bind_state("installation_id", request.GET["installation_id"])

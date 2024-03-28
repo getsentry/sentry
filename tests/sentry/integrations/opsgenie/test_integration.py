@@ -15,7 +15,7 @@ from sentry.tasks.integrations.migrate_opsgenie_plugins import (
     ALERT_LEGACY_INTEGRATIONS_WITH_NAME,
 )
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
-from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 
 EXTERNAL_ID = "test-app"
@@ -221,7 +221,6 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
             installation.update_organization_config(data)
 
 
-@region_silo_test
 class OpsgenieMigrationIntegrationTest(APITestCase):
     @cached_property
     def integration(self):

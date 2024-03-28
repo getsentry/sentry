@@ -16,11 +16,9 @@ from sentry.testutils.helpers.backups import (
     clear_database,
     export_to_file,
 )
-from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 
-@region_silo_test
 class SnapshotTests(BackupTestCase):
     """
     Tests against specific JSON snapshots.

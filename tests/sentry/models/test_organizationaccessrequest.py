@@ -5,10 +5,8 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class SendRequestEmailTest(TestCase):
     def test_sends_email_to_everyone(self):
         owner = self.create_user("owner@example.com")
@@ -42,6 +40,24 @@ class SendRequestEmailTest(TestCase):
 
         assert len(mail.outbox) == 2, [m.subject for m in mail.outbox]
         assert sorted(m.to[0] for m in mail.outbox) == sorted([owner.email, team_admin.email])
+
+    @with_feature("organizations:customer-domains")
+    def test_sends_no_email_to_invited_member(self):
+        owner = self.create_user("owner@example.com")
+
+        org = self.create_organization(owner=owner)
+        team = self.create_team(organization=org)
+        self.create_team_membership(team=team, user=owner)
+
+        requesting_member = self.create_member(
+            organization=org, role="member", email="joe@example.com"
+        )
+        request = OrganizationAccessRequest.objects.create(member=requesting_member, team=team)
+
+        with self.tasks():
+            request.send_request_email()
+
+        assert len(mail.outbox) == 0
 
     @with_feature("organizations:customer-domains")
     def test_sends_email_with_link(self):

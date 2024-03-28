@@ -25,9 +25,6 @@ class BitbucketRequestParserTest(TestCase):
     region = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
     region_config = (region,)
 
-    def setUp(self):
-        super().setUp()
-
     def get_integration(self) -> Integration:
         return self.create_integration(
             organization=self.organization, external_id="bitbucket:1", provider="bitbucket"

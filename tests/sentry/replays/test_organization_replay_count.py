@@ -20,12 +20,10 @@ from sentry.testutils.cases import (
     SnubaTestCase,
 )
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 
 pytestmark = pytest.mark.sentry_metrics
 
 
-@region_silo_test
 class OrganizationReplayCountEndpointTest(
     APITestCase, SnubaTestCase, ReplaysSnubaTestCase, PerformanceIssueTestCase
 ):
