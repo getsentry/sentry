@@ -214,6 +214,8 @@ def test_apply_legacy_settings(settings):
     settings.SENTRY_FILESTORE = "some-filestore"
     settings.SENTRY_FILESTORE_OPTIONS = {"filestore-foo": "filestore-bar"}
     settings.SENTRY_FILESTORE_RELOCATION = {"relocation-baz": "relocation-qux"}
+    settings.SENTRY_RELOCATION_FILESTORE = "some-other-filestore"
+    settings.SENTRY_RELOCATION_FILESTORE_OPTIONS = {"relocation-baz": "relocation-qux"}
     with pytest.warns(DeprecatedSettingWarning) as warninfo:
         apply_legacy_settings(settings)
     assert settings.CELERY_ALWAYS_EAGER is False
@@ -229,7 +231,8 @@ def test_apply_legacy_settings(settings):
         "mail.mailgun-api-key": "mailgun-api-key",
         "filestore.backend": "some-filestore",
         "filestore.options": {"filestore-foo": "filestore-bar"},
-        "filestore.relocation": {"relocation-baz": "relocation-qux"},
+        "filestore.relocation-backend": "some-other-filestore",
+        "filestore.relocation-options": {"relocation-baz": "relocation-qux"},
     }
     assert settings.DEFAULT_FROM_EMAIL == "mail-from"
     assert settings.ALLOWED_HOSTS == ["*"]
@@ -243,7 +246,11 @@ def test_apply_legacy_settings(settings):
             ("SENTRY_ENABLE_EMAIL_REPLIES", "SENTRY_OPTIONS['mail.enable-replies']"),
             ("SENTRY_FILESTORE", "SENTRY_OPTIONS['filestore.backend']"),
             ("SENTRY_FILESTORE_OPTIONS", "SENTRY_OPTIONS['filestore.options']"),
-            ("SENTRY_FILESTORE_RELOCATION", "SENTRY_OPTIONS['filestore.relocation']"),
+            ("SENTRY_RELOCATION_FILESTORE", "SENTRY_OPTIONS['filestore.relocation-backend']"),
+            (
+                "SENTRY_RELOCATION_FILESTORE_OPTIONS",
+                "SENTRY_OPTIONS['filestore.relocation-options']",
+            ),
             ("SENTRY_REDIS_OPTIONS", 'SENTRY_OPTIONS["redis.clusters"]'),
             ("SENTRY_SMTP_HOSTNAME", "SENTRY_OPTIONS['mail.reply-hostname']"),
             ("SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE", "SENTRY_OPTIONS['system.rate-limit']"),
