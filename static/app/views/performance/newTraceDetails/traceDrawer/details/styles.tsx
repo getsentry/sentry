@@ -145,15 +145,15 @@ function DurationComparison(props: DurationComparisonProps) {
     status === 'equal'
       ? t(`Equal to avg %s`, `${deltaPct}%`, formattedAvgDuration)
       : status === 'faster'
-        ? t(`-%s faster than avg %s`, `${deltaPct}%`, formattedAvgDuration)
-        : t(`+%s slower than avg %s`, `${deltaPct}%`, formattedAvgDuration);
+        ? t(`%s faster than avg %s`, `${deltaPct}%`, formattedAvgDuration)
+        : t(`%s slower than avg %s`, `${deltaPct}%`, formattedAvgDuration);
 
   return (
     <Fragment>
       <Duration>
         {getDuration(duration, 2, true)}{' '}
         {props.isComparingSelfDuration && typeof props.selfDuration === 'number'
-          ? `(${Number(Math.abs((props.selfDuration - props.totalDuration / props.totalDuration) * 100).toFixed())}%)`
+          ? `(${Number(Math.abs((props.selfDuration / props.totalDuration) * 100).toFixed())}%)`
           : null}
       </Duration>
       {deltaPct >= MIN_PCT_DURATION_DIFFERENCE ? (
