@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
+import {Button} from 'sentry/components/button';
 import {IconGroup} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
@@ -21,10 +22,12 @@ export function SiblingAutogroupNodeDetails({
   node,
   organization,
   onParentClick,
+  scrollToNode,
 }: {
   node: SiblingAutogroupNode;
   onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   organization: Organization;
+  scrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
 }) {
   const theme = useTheme();
   const issues = useMemo(() => {
@@ -35,14 +38,23 @@ export function SiblingAutogroupNodeDetails({
 
   return (
     <TraceDrawerComponents.DetailContainer>
-      <TraceDrawerComponents.IconTitleWrapper>
-        <TraceDrawerComponents.IconBorder
-          backgroundColor={makeTraceNodeBarColor(theme, node)}
-        >
-          <IconGroup />
-        </TraceDrawerComponents.IconBorder>
-        <div style={{fontWeight: 'bold'}}>{t('Autogroup')}</div>
-      </TraceDrawerComponents.IconTitleWrapper>
+      <TraceDrawerComponents.HeaderContainer>
+        <TraceDrawerComponents.Title>
+          <TraceDrawerComponents.IconTitleWrapper>
+            <TraceDrawerComponents.IconBorder
+              backgroundColor={makeTraceNodeBarColor(theme, node)}
+            >
+              <IconGroup />
+            </TraceDrawerComponents.IconBorder>
+            <div style={{fontWeight: 'bold'}}>{t('Autogroup')}</div>
+          </TraceDrawerComponents.IconTitleWrapper>
+        </TraceDrawerComponents.Title>
+        <TraceDrawerComponents.Actions>
+          <Button size="xs" onClick={_e => scrollToNode(node)}>
+            {t('Show in view')}
+          </Button>
+        </TraceDrawerComponents.Actions>
+      </TraceDrawerComponents.HeaderContainer>
 
       <IssueList issues={issues} node={node} organization={organization} />
 
