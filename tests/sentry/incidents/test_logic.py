@@ -88,7 +88,7 @@ from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, Snuba
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
 from sentry.utils import json
 
 pytestmark = [pytest.mark.sentry_metrics]
