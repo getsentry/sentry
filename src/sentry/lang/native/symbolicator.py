@@ -243,8 +243,10 @@ class Symbolicator:
 
         :param exceptions: The event's exceptions. These must contain a `type` and a `module`.
         :param stacktraces: The event's stacktraces. Frames must contain a `function` and a `module`.
-        :param modules: ProGuard modules to use for deobfuscation. They must contain a `uuid`.
+        :param modules: ProGuard modules and source bundles. They must contain a `uuid` and have a
+                        `type` of either "proguard" or "source".
         :param release_package: The name of the release's package. This is optional.
+                                Used for determining whether frames are in-app.
         :param apply_source_context: Whether to add source context to frames.
         """
         source = get_internal_source(self.project)
