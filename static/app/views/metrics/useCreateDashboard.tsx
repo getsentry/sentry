@@ -2,7 +2,11 @@ import {useMemo} from 'react';
 
 import {openCreateDashboardFromScratchpad} from 'sentry/actionCreators/modal';
 import {convertToDashboardWidget} from 'sentry/utils/metrics/dashboard';
-import {MetricExpressionType, type MetricsWidget} from 'sentry/utils/metrics/types';
+import {
+  isMetricsEquationWidget,
+  MetricExpressionType,
+  type MetricsWidget,
+} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
@@ -22,7 +26,7 @@ export function useCreateDashboard(
     if (!isMultiChartMode) {
       const queryIdsInArray = new Set<number>();
       const widgetsWithDependencies = widgets.reduce<MetricsWidget[]>((acc, widget) => {
-        if (widget.type === MetricExpressionType.EQUATION) {
+        if (isMetricsEquationWidget(widget)) {
           const {dependencies, isError} = formulaDependencies[widget.id];
           if (isError) {
             return acc;
