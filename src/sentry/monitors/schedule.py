@@ -90,6 +90,9 @@ def get_prev_schedule(
             dtstart=start_ts,
             until=reference_ts,
         )
-        return rule.before(reference_ts).replace(second=0, microsecond=0)
+        prev_ts = rule.before(reference_ts)
+                if prev_ts is None:
+                    return start_ts
+                return prev_ts.replace(second=0, microsecond=0)
 
     raise NotImplementedError("unknown schedule_type")
