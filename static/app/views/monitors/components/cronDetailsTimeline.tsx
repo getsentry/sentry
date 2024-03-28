@@ -45,7 +45,8 @@ export function CronDetailsTimeline({monitor, organization}: Props) {
       monitorStatsQueryKey,
       {
         query: {
-          monitor: monitor.slug,
+          monitor: monitor.id,
+          useGUIDs: true,
           ...selectionQuery,
           ...location.query,
         },
@@ -131,7 +132,7 @@ export function CronDetailsTimeline({monitor, organization}: Props) {
       />
       <TimelineTableRow
         monitor={monitor}
-        bucketedData={monitorStats?.[monitor.slug]}
+        bucketedData={monitorStats?.[monitor.id]}
         timeWindowConfig={timeWindowConfig}
         start={dates.start}
         end={dates.end}
