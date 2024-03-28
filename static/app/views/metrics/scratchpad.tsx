@@ -7,10 +7,7 @@ import type {Field} from 'sentry/components/metrics/metricSamplesTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getMetricsCorrelationSpanUrl} from 'sentry/utils/metrics';
-import {
-  MetricExpressionType,
-  type MetricWidgetQueryParams,
-} from 'sentry/utils/metrics/types';
+import {MetricExpressionType, type MetricsWidget} from 'sentry/utils/metrics/types';
 import type {MetricsQueryApiQueryParams} from 'sentry/utils/metrics/useMetricsQuery';
 import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -48,7 +45,7 @@ export function MetricScratchpad() {
   }, [widgets]);
 
   const handleChange = useCallback(
-    (index: number, widget: Partial<MetricWidgetQueryParams>) => {
+    (index: number, widget: Partial<MetricsWidget>) => {
       updateWidget(index, widget);
     },
     [updateWidget]
@@ -161,7 +158,7 @@ function MultiChartWidgetQueries({
 }: {
   children: (queries: MetricsQueryApiQueryParams[]) => JSX.Element;
   formulaDependencies: ReturnType<typeof useFormulaDependencies>;
-  widget: MetricWidgetQueryParams;
+  widget: MetricsWidget;
 }) {
   const queries = useMemo(() => {
     return [

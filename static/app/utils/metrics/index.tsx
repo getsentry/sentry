@@ -36,7 +36,7 @@ import {formatMRI, formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metr
 import type {
   MetricsQuery,
   MetricsQueryParams,
-  MetricWidgetQueryParams,
+  MetricsWidget,
 } from 'sentry/utils/metrics/types';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import {
@@ -78,7 +78,7 @@ export function getMetricsUrl(
     project,
     ...otherParams
   }: Omit<MetricsQueryParams, 'project' | 'widgets'> & {
-    widgets: Partial<MetricWidgetQueryParams>[];
+    widgets: Partial<MetricsWidget>[];
     project?: (string | number)[];
   }
 ) {

@@ -10,7 +10,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isCustomMeasurement} from 'sentry/utils/metrics';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
-import type {MetricFormulaWidgetParams} from 'sentry/utils/metrics/types';
+import type {MetricsEquationWidget} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useMetricsContext} from 'sentry/views/metrics/context';
 import {useCreateDashboard} from 'sentry/views/metrics/useCreateDashboard';
@@ -18,7 +18,7 @@ import type {useFormulaDependencies} from 'sentry/views/metrics/utils/useFormula
 
 type ContextMenuProps = {
   formulaDependencies: ReturnType<typeof useFormulaDependencies>;
-  formulaWidget: MetricFormulaWidgetParams;
+  formulaWidget: MetricsEquationWidget;
   widgetIndex: number;
 };
 
@@ -119,7 +119,7 @@ export function MetricFormulaContextMenu({
 }
 
 export function useCreateDashboardWidget(
-  formulaWidget: MetricFormulaWidgetParams,
+  formulaWidget: MetricsEquationWidget,
   formulaDependencies: ReturnType<typeof useFormulaDependencies>
 ) {
   const {dependencies, isError} = formulaDependencies[formulaWidget.id];

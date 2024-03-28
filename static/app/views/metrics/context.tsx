@@ -16,10 +16,7 @@ import {
   emptyMetricsQueryWidget,
   NO_QUERY_ID,
 } from 'sentry/utils/metrics/constants';
-import {
-  MetricExpressionType,
-  type MetricWidgetQueryParams,
-} from 'sentry/utils/metrics/types';
+import {MetricExpressionType, type MetricsWidget} from 'sentry/utils/metrics/types';
 import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples';
 import {decodeInteger, decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
@@ -56,11 +53,8 @@ interface MetricsContextValue {
   setSelectedWidgetIndex: (index: number) => void;
   showQuerySymbols: boolean;
   toggleWidgetVisibility: (index: number) => void;
-  updateWidget: (
-    index: number,
-    data: Partial<Omit<MetricWidgetQueryParams, 'type'>>
-  ) => void;
-  widgets: MetricWidgetQueryParams[];
+  updateWidget: (index: number, data: Partial<Omit<MetricsWidget, 'type'>>) => void;
+  widgets: MetricsWidget[];
   highlightedSampleId?: string;
   metricsSamples?: MetricsSamplesResults<Field>['data'];
 }
@@ -96,10 +90,7 @@ export function useMetricWidgets() {
   const updateQuery = useUpdateQuery();
 
   const widgets = useStructuralSharing(
-    useMemo<MetricWidgetQueryParams[]>(
-      () => parseMetricWidgetsQueryParam(urlWidgets),
-      [urlWidgets]
-    )
+    useMemo<MetricsWidget[]>(() => parseMetricWidgetsQueryParam(urlWidgets), [urlWidgets])
   );
 
   // We want to have it as a ref, so that we can use it in the setWidget callback
@@ -107,7 +98,7 @@ export function useMetricWidgets() {
   const currentWidgetsRef = useInstantRef(widgets);
 
   const setWidgets = useCallback(
-    (newWidgets: React.SetStateAction<MetricWidgetQueryParams[]>) => {
+    (newWidgets: React.SetStateAction<MetricsWidget[]>) => {
       const currentWidgets = currentWidgetsRef.current;
       updateQuery({
         widgets: JSON.stringify(
@@ -119,7 +110,7 @@ export function useMetricWidgets() {
   );
 
   const updateWidget = useCallback(
-    (index: number, data: Partial<Omit<MetricWidgetQueryParams, 'type'>>) => {
+    (index: number, data: Partial<Omit<MetricsWidget, 'type'>>) => {
       setWidgets(currentWidgets => {
         const newWidgets = [...currentWidgets];
         newWidgets[index] = {
@@ -308,7 +299,7 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
   );
 
   const handleUpdateWidget = useCallback(
-    (index: number, data: Partial<MetricWidgetQueryParams>) => {
+    (index: number, data: Partial<MetricsWidget>) => {
       updateWidget(index, data);
       handleSetSelectedWidgetIndex(index);
       if (index === focusAreaSelection?.widgetIndex) {

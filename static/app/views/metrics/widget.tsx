@@ -35,8 +35,8 @@ import {formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
 import type {
   FocusedMetricsSeries,
   MetricDisplayType,
-  MetricQueryWidgetParams,
-  MetricWidgetQueryParams,
+  MetricsQueryWidget,
+  MetricsWidget,
   SortState,
 } from 'sentry/utils/metrics/types';
 import {
@@ -67,7 +67,7 @@ type MetricWidgetProps = {
   displayType: MetricDisplayType;
   filters: PageFilters;
   focusAreaProps: FocusAreaProps;
-  onChange: (index: number, data: Partial<MetricWidgetQueryParams>) => void;
+  onChange: (index: number, data: Partial<MetricsWidget>) => void;
   queries: MetricsQueryApiQueryParams[];
   chartHeight?: number;
   context?: 'ddm' | 'dashboard';
@@ -145,14 +145,14 @@ export const MetricWidget = memo(
       .find((query): query is MetricsQueryApiRequestQuery => !isMetricFormula(query));
 
     const handleChange = useCallback(
-      (data: Partial<MetricWidgetQueryParams>) => {
+      (data: Partial<MetricsWidget>) => {
         onChange(index, data);
       },
       [index, onChange]
     );
 
     const handleQueryChange = useCallback(
-      (queryIndex, data: Partial<MetricWidgetQueryParams>) => {
+      (queryIndex, data: Partial<MetricsWidget>) => {
         onChange(queryIndex, data);
       },
       [onChange]
@@ -266,8 +266,8 @@ interface MetricWidgetBodyProps {
   chartHeight?: number;
   focusedSeries?: FocusedMetricsSeries[];
   getChartPalette?: (seriesNames: string[]) => Record<string, string>;
-  onChange?: (data: Partial<MetricWidgetQueryParams>) => void;
-  onQueryChange?: (queryIndex: number, data: Partial<MetricQueryWidgetParams>) => void;
+  onChange?: (data: Partial<MetricsWidget>) => void;
+  onQueryChange?: (queryIndex: number, data: Partial<MetricsQueryWidget>) => void;
   samples?: SamplesProps;
   tableSort?: SortState;
 }
