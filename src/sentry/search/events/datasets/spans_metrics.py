@@ -831,15 +831,15 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 Function(
                     "multiply",
                     [
-                        self._resolve_avg_condition(args, None, "greater"),
-                        self._resolve_epm_condition(args, None, "greater"),
+                        self._resolve_avg_condition(args, "greater"),
+                        self._resolve_epm_condition(args, "greater"),
                     ],
                 ),
                 Function(
                     "multiply",
                     [
-                        self._resolve_avg_condition(args, None, "less"),
-                        self._resolve_epm_condition(args, None, "less"),
+                        self._resolve_avg_condition(args, "less"),
+                        self._resolve_epm_condition(args, "less"),
                     ],
                 ),
             ],
@@ -849,7 +849,6 @@ class SpansMetricsDatasetConfig(DatasetConfig):
     def _resolve_epm_condition(
         self,
         args: Mapping[str, str | Column | SelectType | int | float | datetime],
-        alias: str | None,
         condition: str,
     ) -> SelectType:
         if condition == "greater":
@@ -876,13 +875,11 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 ),
                 Function("divide", [interval, 60]),
             ],
-            alias,
         )
 
     def _resolve_avg_condition(
         self,
         args: Mapping[str, str | Column | SelectType | int | float],
-        alias: str | None,
         condition: str,
     ) -> SelectType:
         conditional_aggregate = Function(
@@ -911,7 +908,6 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 0,
                 conditional_aggregate,
             ],
-            alias,
         )
 
     @property
