@@ -7,7 +7,11 @@ import type {Field} from 'sentry/components/metrics/metricSamplesTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getMetricsCorrelationSpanUrl} from 'sentry/utils/metrics';
-import {MetricExpressionType, type MetricsWidget} from 'sentry/utils/metrics/types';
+import {
+  isMetricsEquationWidget,
+  MetricExpressionType,
+  type MetricsWidget,
+} from 'sentry/utils/metrics/types';
 import type {MetricsQueryApiQueryParams} from 'sentry/utils/metrics/useMetricsQuery';
 import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -163,7 +167,7 @@ function MultiChartWidgetQueries({
   const queries = useMemo(() => {
     return [
       widgetToQuery(widget),
-      ...(widget.type === MetricExpressionType.EQUATION
+      ...(isMetricsEquationWidget(widget)
         ? formulaDependencies[widget.id]?.dependencies?.map(dependency =>
             widgetToQuery(dependency, true)
           )
