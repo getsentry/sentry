@@ -494,3 +494,29 @@ def test_app_no_matches(frame):
     enhancements = Enhancements.from_config_string("app:no +app")
     enhancements.apply_modifications_to_frame([frame], "native", {})
     assert frame.get("in_app")
+
+
+@pytest.mark.parametrize(
+    "package",
+    [
+        "/a/path/to/foo.bar",
+        "C:\\a\\path\\to\\foo.bar",
+        "\\C:\\a\\path\\to\\foo.bar",
+        "\\\\?\\C:\\a\\path\\to\\foo.bar",
+    ],
+)
+def test_basic_package_matching(package):
+    enhancement = Enhancements.from_config_string(
+        """
+        package:**/foo.bar +app
+    """
+    )
+    foobar_rule = enhancement.rules[0]
+
+    assert bool(
+        _get_matching_frame_actions(
+            foobar_rule,
+            [{"package": package}],
+            "native",
+        )
+    )
