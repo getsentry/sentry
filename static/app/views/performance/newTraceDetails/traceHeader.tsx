@@ -79,7 +79,7 @@ type TraceHeaderProps = {
   tree: TraceTree;
 };
 
-export default function TraceHeader({
+export function TraceHeader({
   metaResults,
   rootEventResults,
   traces,

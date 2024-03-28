@@ -16,7 +16,11 @@ export interface UseResizableDrawerOptions {
   /**
    * Triggered while dragging
    */
-  onResize: (newSize: number, maybeOldSize?: number) => void;
+  onResize: (
+    newSize: number,
+    maybeOldSize: number | undefined,
+    userEvent: boolean
+  ) => void;
   /**
    * The local storage key used to persist the size of the container
    */
@@ -46,7 +50,7 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   /**
    * Call this function to manually set the size of the drawer.
    */
-  setSize: (newSize: number) => void;
+  setSize: (newSize: number, userEvent?: boolean) => void;
   /**
    * The resulting size of the container axis. Updated while dragging.
    *
@@ -67,9 +71,9 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   const [isHeld, setIsHeld] = useState(false);
 
   const updateSize = useCallback(
-    (newSize: number) => {
+    (newSize: number, userEvent: boolean = false) => {
       setSize(newSize);
-      options.onResize(newSize);
+      options.onResize(newSize, undefined, userEvent);
       if (options.sizeStorageKey) {
         localStorage.setItem(options.sizeStorageKey, newSize.toString());
       }
@@ -81,7 +85,7 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   // any potentional values set by CSS will be overriden. If no initialDimensions are provided,
   // invoke the onResize callback with the previously stored dimensions.
   useLayoutEffect(() => {
-    options.onResize(options.initialSize ?? 0, size);
+    options.onResize(options.initialSize ?? 0, size, false);
     setSize(options.initialSize ?? 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options.direction]);
@@ -127,7 +131,7 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
           Math.max(options.min, sizeRef.current + positionDelta * (isInverted ? -1 : 1))
         );
 
-        updateSize(newSize);
+        updateSize(newSize, true);
       });
     },
     [options.direction, options.min, updateSize]
@@ -154,7 +158,7 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   );
 
   const onDoubleClick = useCallback(() => {
-    updateSize(options.initialSize);
+    updateSize(options.initialSize, true);
   }, [updateSize, options.initialSize]);
 
   useLayoutEffect(() => {
