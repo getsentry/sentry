@@ -1,6 +1,5 @@
 import {createRef, Fragment, useLayoutEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 import omit from 'lodash/omit';
 
 import {Button} from 'sentry/components/button';
@@ -51,6 +50,7 @@ import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
+import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import {CustomMetricsEventData} from 'sentry/views/ddm/customMetricsEventData';
@@ -201,7 +201,6 @@ function ReplaySection({
 }
 
 type TransactionDetailProps = {
-  location: Location;
   manager: VirtualizedViewManager;
   node: TraceTreeNode<TraceTree.Transaction>;
   onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
@@ -212,10 +211,10 @@ type TransactionDetailProps = {
 export function TransactionNodeDetails({
   node,
   organization,
-  location,
   scrollToNode,
   onParentClick,
 }: TransactionDetailProps) {
+  const location = useLocation();
   const {projects} = useProjects();
   const issues = useMemo(() => {
     return [...node.errors, ...node.performance_issues];
