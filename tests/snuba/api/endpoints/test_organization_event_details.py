@@ -366,7 +366,7 @@ class EventComparisonTest(MetricsEnhancedPerformanceTestCase):
                         assert self.RESULT_COLUMN not in span
 
     def test_invalid_column(self):
-        # If there's nothing stored for a metric, span.duration in this case the query returns nan
+        # If any columns are invalid, ignore average field in results completely
         response = self.client.get(
             self.url, {"averageColumn": ["span.self_time", "span.everything"]}
         )
