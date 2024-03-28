@@ -115,7 +115,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 (event["project_id"], re.sub(r'"', '\\"', event["transaction"])) for event in events
             ]
             conditions = [
-                f"(project_id:{project_id} transaction:{transaction})"
+                f'(project_id:{project_id} transaction:"{transaction}")'
                 for project_id, transaction in pairs
             ]
             return " OR ".join(conditions)

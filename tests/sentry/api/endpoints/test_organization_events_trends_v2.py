@@ -347,7 +347,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
 
     @mock.patch("sentry.api.endpoints.organization_events_trends_v2.detect_breakpoints")
     @mock.patch("sentry.api.endpoints.organization_events_trends_v2.EVENTS_PER_QUERY", 2)
-    def test_foo(self, mock_detect_breakpoints):
+    def test_two_projects_same_transaction_split_queries(self, mock_detect_breakpoints):
         project1 = self.create_project(organization=self.org)
         project2 = self.create_project(organization=self.org)
 
@@ -356,7 +356,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
         for i in range(2):
             self.store_performance_metric(
                 name=TransactionMRI.DURATION.value,
-                tags={"transaction": "foo"},
+                tags={"transaction": "foo bar"},
                 org_id=self.org.id,
                 project_id=project1.id,
                 value=2,
@@ -364,7 +364,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
             )
             self.store_performance_metric(
                 name=TransactionMRI.DURATION.value,
-                tags={"transaction": "bar"},
+                tags={"transaction": '"foo/bar"'},
                 org_id=self.org.id,
                 project_id=project2.id,
                 value=2,
@@ -374,7 +374,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
         # to fall into the SECOND bucket when quering
         self.store_performance_metric(
             name=TransactionMRI.DURATION.value,
-            tags={"transaction": "foo"},
+            tags={"transaction": "foo bar"},
             org_id=self.org.id,
             project_id=project2.id,
             value=2,
@@ -382,7 +382,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
         )
         self.store_performance_metric(
             name=TransactionMRI.DURATION.value,
-            tags={"transaction": "bar"},
+            tags={"transaction": '"foo/bar"'},
             org_id=self.org.id,
             project_id=project1.id,
             value=2,
@@ -411,10 +411,10 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
         trends_call_args_data_1 = mock_detect_breakpoints.call_args_list[0][0][0]["data"]
         trends_call_args_data_2 = mock_detect_breakpoints.call_args_list[1][0][0]["data"]
 
-        assert len(trends_call_args_data_1[f"{project1.id},foo"]) > 0
-        assert len(trends_call_args_data_1[f"{project2.id},bar"]) > 0
-        assert len(trends_call_args_data_2[f"{project1.id},bar"]) > 0
-        assert len(trends_call_args_data_2[f"{project2.id},foo"]) > 0
+        assert len(trends_call_args_data_1[f"{project1.id},foo bar"]) > 0
+        assert len(trends_call_args_data_1[f'{project2.id},"foo/bar"']) > 0
+        assert len(trends_call_args_data_2[f'{project1.id},"foo/bar"']) > 0
+        assert len(trends_call_args_data_2[f"{project2.id},foo bar"]) > 0
 
         for trends_call_args_data in [trends_call_args_data_1, trends_call_args_data_2]:
             for k, v in trends_call_args_data.items():
