@@ -266,6 +266,12 @@ register(
 
 # Staff
 register(
+    "staff.ga-rollout",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "staff.user-email-allowlist",
     type=Sequence,
     default=[],
