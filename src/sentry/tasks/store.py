@@ -16,7 +16,6 @@ from sentry.datascrubbing import scrub_data
 from sentry.eventstore import processing
 from sentry.eventstore.processing.base import Event
 from sentry.features.rollout import in_random_rollout
-from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, create_feedback_issue
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.symbolicator import SymbolicatorTaskKind
 from sentry.models.activity import Activity
@@ -909,23 +908,6 @@ def save_event_transaction(
     **kwargs: Any,
 ) -> None:
     _do_save_event(cache_key, data, start_time, event_id, project_id, **kwargs)
-
-
-@instrumented_task(
-    name="sentry.tasks.store.save_event_feedback",
-    time_limit=65,
-    soft_time_limit=60,
-    silo_mode=SiloMode.REGION,
-)
-def save_event_feedback(
-    cache_key: str | None = None,
-    data: Event | None = None,
-    start_time: int | None = None,
-    event_id: str | None = None,
-    project_id: int | None = None,
-    **kwargs: Any,
-) -> None:
-    create_feedback_issue(data, project_id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
 
 @instrumented_task(
