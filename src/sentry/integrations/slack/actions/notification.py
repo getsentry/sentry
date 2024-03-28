@@ -21,7 +21,6 @@ from sentry.integrations.slack.message_builder.notifications.rule_save_edit impo
 from sentry.integrations.slack.utils import get_channel_id
 from sentry.models.integrations.integration import Integration
 from sentry.models.rule import Rule
-from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
 from sentry.rules import EventState
 from sentry.rules.actions import IntegrationEventAction
@@ -43,7 +42,6 @@ class SlackNotifyServiceAction(IntegrationEventAction):
     integration_key = "workspace"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        rule_fire_history = kwargs.pop("rule_fire_history", None)
         super().__init__(*args, **kwargs)
         # XXX(CEO): when removing the feature flag, put `label` back up as a class var
         self.label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}) and show tags {tags} in notification"  # type: ignore[misc]
@@ -67,7 +65,6 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         self._repository: IssueAlertNotificationMessageRepository = (
             get_default_issue_alert_repository()
         )
-        self._rule_fire_history: RuleFireHistory | None = rule_fire_history
 
     def after(
         self, event: GroupEvent, state: EventState, notification_uuid: str | None = None
@@ -137,7 +134,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 # We are logging because this should never happen, all actions should have an uuid
                 # We can monitor for this, and create an alert if this ever appears
                 _default_logger.info(
-                    "integration.slack.actions: No action uuid",
+                    "No action uuid",
                     extra={
                         "rule_id": rule_id,
                         "notification_uuid": notification_uuid,
@@ -145,7 +142,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 )
 
             new_notification_message_object = NewIssueAlertNotificationMessage(
-                rule_fire_history_id=self._rule_fire_history.id, rule_action_uuid=rule_action_uuid
+                rule_fire_history_id=self.rule_fire_history.id, rule_action_uuid=rule_action_uuid
             )
 
             # Only try to get the parent notification message if the organization is in the FF
@@ -246,7 +243,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                         else None
                     )
                     _default_logger.info(
-                        "integration.slack.actions: Validation error", exc_info=err, extra=extra
+                        "Validation error for new notification message", exc_info=err, extra=extra
                     )
                 except Exception:
                     # if there's an error trying to save a notification message, don't let that error block this flow
