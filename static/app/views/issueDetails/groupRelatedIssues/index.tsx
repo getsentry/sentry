@@ -63,7 +63,7 @@ function GroupRelatedIssues({params}: Props) {
           <GroupList
             endpointPath={`/organizations/${orgSlug}/issues/`}
             orgSlug={orgSlug}
-            queryParams={{query: `issue.id:${groups}`}}
+            queryParams={{query: `issue.id:[${groups}]`}}
             query=""
             source="related-issues-tab"
             renderEmptyMessage={() => <hr />}

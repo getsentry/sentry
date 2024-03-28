@@ -13,8 +13,11 @@ describe('Related Issues View', function () {
   const organization = OrganizationFixture();
   const orgSlug = organization.slug;
   const groupId = '12345678';
-  const relatedGroup = '15';
-  const orgIssuesEndpoint = `/organizations/${orgSlug}/issues/?query=issue.id%3A${relatedGroup}`;
+  const group1 = '15';
+  const group2 = '20';
+  // query=issue.id:[15,20] -> query=issue.id%3A%5B15%2C20%5D
+  const orgIssuesEndpoint = `/organizations/${orgSlug}/issues/?query=issue.id%3A%5B${group1}%2C${group2}%5D`;
+
   const params = {groupId: groupId};
   const errorType = 'RuntimeError';
 
@@ -26,13 +29,14 @@ describe('Related Issues View', function () {
     });
     relatedIssuesMock = MockApiClient.addMockResponse({
       url: `/issues/${groupId}/related-issues/`,
-      body: {same_root_cause: [relatedGroup]},
+      body: {same_root_cause: [group1, group2]},
     });
     issuesInfoMock = MockApiClient.addMockResponse({
       url: orgIssuesEndpoint,
       body: [
         {
-          id: relatedGroup,
+          id: group1,
+          shortId: `EARTH-${group1}`,
           project: {id: '3', name: 'Earth', slug: 'earth', platform: null},
           type: 'error',
           metadata: {
@@ -40,6 +44,17 @@ describe('Related Issues View', function () {
           },
           issueCategory: 'error',
           lastSeen: '2024-03-15T20:15:30Z',
+        },
+        {
+          id: group2,
+          shortId: `EARTH-${group2}`,
+          project: {id: '3', name: 'Earth', slug: 'earth', platform: null},
+          type: 'error',
+          metadata: {
+            type: errorType,
+          },
+          issueCategory: 'error',
+          lastSeen: '2024-03-16T20:15:30Z',
         },
       ],
     });
@@ -62,8 +77,9 @@ describe('Related Issues View', function () {
       />
     );
 
-    // The issue that should show up on the table
-    expect(await screen.findByText(errorType)).toBeInTheDocument();
+    // Wait for the issues showing up on the table
+    expect(await screen.findByText(`EARTH-${group1}`)).toBeInTheDocument();
+    expect(await screen.findByText(`EARTH-${group2}`)).toBeInTheDocument();
 
     expect(relatedIssuesMock).toHaveBeenCalled();
     expect(issuesInfoMock).toHaveBeenCalled();
