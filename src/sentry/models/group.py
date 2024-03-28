@@ -449,6 +449,15 @@ class GroupManager(BaseManager["Group"]):
             from_substatus == GroupSubStatus.ESCALATING
             and activity_type == ActivityType.AUTO_SET_ONGOING
         )
+        logger.info(
+            "group.update_group_status.should_update_priority",
+            extra={
+                "should_update_priority": should_update_priority,
+                "from_substatus": from_substatus,
+                "activity_type": activity_type,
+                "new_substatus": substatus,
+            },
+        )
 
         updated_priority = {}
         for group in selected_groups:
@@ -459,16 +468,29 @@ class GroupManager(BaseManager["Group"]):
                 if priority and group.priority != priority:
                     group.priority = priority
                     updated_priority[group.id] = priority
-            else:
-                logger.info(
-                    "group.update_group_status.priority_not_updated",
-                    extra={
-                        "group_id": group.id,
-                        "from_substatus": from_substatus,
-                        "activity_type": activity_type,
-                        "new_substatus": substatus,
-                    },
-                )
+                    logger.info(
+                        "group.update_group_status.priority_updated",
+                        extra={
+                            "group_id": group.id,
+                            "from_substatus": from_substatus,
+                            "activity_type": activity_type,
+                            "new_substatus": substatus,
+                            "priority": priority,
+                        },
+                    )
+                else:
+                    logger.info(
+                        "group.update_group_status.priority_not_updated",
+                        extra={
+                            "group_id": group.id,
+                            "from_substatus": from_substatus,
+                            "activity_type": activity_type,
+                            "new_substatus": substatus,
+                            "new_priority": priority,
+                            "current_priority": group.priority,
+                        },
+                    )
+
             modified_groups_list.append(group)
 
         Group.objects.bulk_update(modified_groups_list, ["status", "substatus", "priority"])
