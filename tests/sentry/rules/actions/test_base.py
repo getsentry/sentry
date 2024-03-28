@@ -1,6 +1,5 @@
 from uuid import uuid4
 
-from sentry.integrations.msteams import MsTeamsNotifyServiceAction
 from sentry.integrations.slack import SlackNotifyServiceAction
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.actions.base import instantiate_action
@@ -20,7 +19,7 @@ class TestInstantiateAction(TestCase):
             notification_uuid=self.notification_uuid,
         )
 
-    def test_passes_in_rule_fire_history_for_slack(self) -> None:
+    def test_passes_in_rule_fire_history(self) -> None:
         action = {
             "id": SlackNotifyServiceAction.id,
         }
@@ -28,15 +27,13 @@ class TestInstantiateAction(TestCase):
         instance = instantiate_action(
             rule=self.rule, action=action, rule_fire_history=self.rule_fire_history
         )
-        assert hasattr(instance, "_rule_fire_history")
+        assert instance.rule_fire_history is not None
+        assert instance.rule_fire_history == self.rule_fire_history
 
-    def test_ignores_rule_fire_history(self) -> None:
+    def test_respects_empty_rule_fire_history(self) -> None:
         action = {
-            "id": MsTeamsNotifyServiceAction.id,
+            "id": SlackNotifyServiceAction.id,
         }
 
-        instance = instantiate_action(
-            rule=self.rule, action=action, rule_fire_history=self.rule_fire_history
-        )
-        assert not hasattr(instance, "_rule_fire_history")
-        assert not hasattr(instance, "rule_fire_history")
+        instance = instantiate_action(rule=self.rule, action=action)
+        assert instance.rule_fire_history is None

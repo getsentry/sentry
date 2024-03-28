@@ -22,14 +22,14 @@ class TestInit(TestCase):
         instance = SlackNotifyServiceAction(
             self.project, data={}, rule=self.rule, rule_fire_history=self.rule_fire_history
         )
-        assert instance._rule_fire_history is not None
+        assert instance.rule_fire_history is not None
 
     def test_when_rule_fire_history_is_not_passed_in(self) -> None:
         instance = SlackNotifyServiceAction(self.project, data={}, rule=self.rule)
-        assert instance._rule_fire_history is None
+        assert instance.rule_fire_history is None
 
     def test_when_rule_fire_history_is_none(self) -> None:
         instance = SlackNotifyServiceAction(
             self.project, data={}, rule=self.rule, rule_fire_history=None
         )
-        assert instance._rule_fire_history is None
+        assert instance.rule_fire_history is None
