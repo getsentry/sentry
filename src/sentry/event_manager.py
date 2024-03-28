@@ -2185,7 +2185,7 @@ def _get_severity_metadata_for_group(
     if should_calculate_severity:
         from sentry import ratelimits as ratelimiter
 
-        limit = options.get("issues.severity.seer-global-rate-limit", 25)
+        limit = options.get("issues.severity.seer-global-rate-limit", 20)
         if ratelimiter.backend.is_limited(
             "seer:severity-calculation:global-limit",
             limit=limit,
