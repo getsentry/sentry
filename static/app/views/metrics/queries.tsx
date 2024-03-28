@@ -10,6 +10,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
+  isMetricsQueryWidget,
   MetricExpressionType,
   type MetricsEquationWidget,
   type MetricsQuery,
@@ -72,7 +73,7 @@ export function Queries() {
     const querySymbolSet = new Set<string>();
     for (const widget of widgets) {
       const symbol = getQuerySymbol(widget.id);
-      if (widget.type === MetricExpressionType.QUERY) {
+      if (isMetricsQueryWidget(widget)) {
         querySymbolSet.add(symbol);
       }
     }
@@ -89,7 +90,7 @@ export function Queries() {
             key={`${widget.type}_${widget.id}`}
             onFocusCapture={() => setSelectedWidgetIndex(index)}
           >
-            {widget.type === MetricExpressionType.QUERY ? (
+            {isMetricsQueryWidget(widget) ? (
               <Query
                 widget={widget}
                 onChange={handleChange}

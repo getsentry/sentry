@@ -53,6 +53,18 @@ export interface MetricsEquationWidget extends BaseWidgetParams {
 
 export type MetricsWidget = MetricsQueryWidget | MetricsEquationWidget;
 
+export function isMetricsEquationWidget(
+  widget: MetricsWidget
+): widget is MetricsEquationWidget {
+  return widget.type === MetricExpressionType.EQUATION;
+}
+
+export function isMetricsQueryWidget(
+  widget: MetricsWidget
+): widget is MetricsQueryWidget {
+  return widget.type === MetricExpressionType.QUERY;
+}
+
 export interface MetricsQueryParams {
   widgets: string; // stringified json representation of MetricsWidget
   end?: DateString;

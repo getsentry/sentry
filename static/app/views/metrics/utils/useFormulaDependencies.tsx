@@ -1,7 +1,11 @@
 import {useCallback, useMemo} from 'react';
 
 import {unescapeMetricsFormula} from 'sentry/utils/metrics';
-import {MetricExpressionType, type MetricsQueryWidget} from 'sentry/utils/metrics/types';
+import {
+  isMetricsEquationWidget,
+  isMetricsQueryWidget,
+  type MetricsQueryWidget,
+} from 'sentry/utils/metrics/types';
 import {useMetricsContext} from 'sentry/views/metrics/context';
 import {parseFormula} from 'sentry/views/metrics/formulaParser/parser';
 import {type TokenList, TokenType} from 'sentry/views/metrics/formulaParser/types';
@@ -17,7 +21,7 @@ export function useFormulaDependencies() {
   const queriesLookup = useMemo(() => {
     const lookup = new Map<string, MetricsQueryWidget>();
     widgets.forEach(widget => {
-      if (widget.type === MetricExpressionType.QUERY) {
+      if (isMetricsQueryWidget(widget)) {
         lookup.set(getQuerySymbol(widget.id), widget);
       }
     });
@@ -56,7 +60,7 @@ export function useFormulaDependencies() {
 
   const formulaDependencies = useMemo(() => {
     return widgets.reduce((acc: Record<number, FormulaDependencies>, widget) => {
-      if (widget.type === MetricExpressionType.EQUATION) {
+      if (isMetricsEquationWidget(widget)) {
         acc[widget.id] = getFormulaQueryDependencies(widget.formula);
       }
       return acc;
