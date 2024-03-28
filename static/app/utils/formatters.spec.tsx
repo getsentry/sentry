@@ -264,8 +264,9 @@ describe('formatAbbreviatedNumberWithDynamicPrecision()', function () {
     expect(formatAbbreviatedNumberWithDynamicPrecision(100.12)).toBe('100.12');
     expect(formatAbbreviatedNumberWithDynamicPrecision(199.99)).toBe('199.99');
     expect(formatAbbreviatedNumberWithDynamicPrecision(1500)).toBe('1.5k');
+    expect(formatAbbreviatedNumberWithDynamicPrecision(146789)).toBe('146.79k');
+    expect(formatAbbreviatedNumberWithDynamicPrecision(153789)).toBe('153.79k');
     expect(formatAbbreviatedNumberWithDynamicPrecision(1213122)).toBe('1.21m');
-
     expect(formatAbbreviatedNumberWithDynamicPrecision('1249.23421')).toBe('1.25k');
     expect(formatAbbreviatedNumberWithDynamicPrecision('123956789129')).toBe('123.96b');
     expect(formatAbbreviatedNumberWithDynamicPrecision('158.80421626984128')).toBe(
