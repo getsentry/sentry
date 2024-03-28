@@ -19,11 +19,6 @@ pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
     endpoint = "sentry-api-0-organization-metrics-details"
 
-    #         self.user = self.create_user(email="a@example.com", is_managed=False, name="example name")
-    #         self.superuser = self.create_user(is_superuser=True)
-    #         self.staff_user = self.create_user(is_staff=True)
-    #         self.login_as(user=self.user)
-
     @property
     def now(self):
         return MetricsAPIBaseTestCase.MOCK_DATETIME
