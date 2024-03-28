@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import type {Location} from 'history';
 
 import type {Organization} from 'sentry/types';
@@ -23,17 +24,19 @@ export const useTraceAverageTransactionDurations = ({
   location,
   organization,
 }: Props) => {
+  const transactions = useMemo(
+    () => [...tree.transactionTitles],
+    [tree.transactionTitles]
+  );
+
   const conditions = new MutableSearch(
-    [...tree.transactionTitles].reduce<string[]>(
-      (acc, transaction, index, allTransactions) => {
-        acc.push(`transaction:"${transaction}"`);
-        if (index < allTransactions.length - 1) {
-          acc.push('OR');
-        }
-        return acc;
-      },
-      []
-    )
+    transactions.reduce<string[]>((acc, transaction, index, allTransactions) => {
+      acc.push(`transaction:"${transaction}"`);
+      if (index < allTransactions.length - 1) {
+        acc.push('OR');
+      }
+      return acc;
+    }, [])
   );
   conditions.setFilterValues('event.type', ['transaction']);
 
