@@ -36,7 +36,7 @@ django==5.0.3
 django-crispy-forms==1.14.0
 django-csp==3.8
 django-pg-zero-downtime-migrations==0.13
-djangorestframework==3.14.0
+djangorestframework==3.15.1
 drf-spectacular==0.26.3
 email-reply-parser==0.5.12
 fastjsonschema==2.16.2
@@ -101,7 +101,6 @@ python-rapidjson==1.8
 python-u2flib-server==5.0.0
 python-utils==3.3.3
 python3-saml==1.15.0
-pytz==2018.9
 pyuwsgi==2.0.23
 pyvat==1.3.15
 pyyaml==6.0.1
