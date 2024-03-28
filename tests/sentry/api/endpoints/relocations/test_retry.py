@@ -22,7 +22,6 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.backups import generate_rsa_key_pair
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json
@@ -130,9 +129,10 @@ class RetryRelocationTest(APITestCase):
             uuid=response.data["uuid"],
         )
 
-    @override_options({"relocation.enabled": False, "relocation.daily-limit.small": 2})
+    @override_options(
+        {"relocation.enabled": False, "relocation.daily-limit.small": 2, "staff.ga-rollout": True}
+    )
     @patch("sentry.tasks.relocation.uploading_complete.delay")
-    @with_feature("auth:enterprise-staff-cookie")
     def test_good_staff_when_feature_disabled(
         self, uploading_complete_mock: Mock, analytics_record_mock: Mock
     ):
@@ -295,9 +295,10 @@ class RetryRelocationTest(APITestCase):
         assert response.data.get("detail") == ERR_FILE_NO_LONGER_EXISTS
         assert uploading_complete_mock.call_count == 0
 
-    @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 2})
+    @override_options(
+        {"relocation.enabled": True, "relocation.daily-limit.small": 2, "staff.ga-rollout": True}
+    )
     @patch("sentry.tasks.relocation.uploading_complete.delay")
-    @with_feature("auth:enterprise-staff-cookie")
     def test_bad_staff_owner_not_found(
         self, uploading_complete_mock: Mock, analytics_record_mock: Mock
     ):

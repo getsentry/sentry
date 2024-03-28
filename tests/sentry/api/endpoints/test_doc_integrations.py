@@ -9,7 +9,7 @@ from sentry.api.serializers.base import serialize
 from sentry.models.integrations.doc_integration import DocIntegration
 from sentry.models.integrations.integration_feature import IntegrationFeature, IntegrationTypes
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.json import JSONData
 
@@ -38,7 +38,7 @@ class DocIntegrationsTest(APITestCase):
 class GetDocIntegrationsTest(DocIntegrationsTest):
     method = "GET"
 
-    @with_feature("auth:enterprise-staff-cookie")
+    @override_options({"staff.ga-rollout": True})
     def test_staff_read_docs(self):
         """
         Tests that all DocIntegrations are returned for staff users,
