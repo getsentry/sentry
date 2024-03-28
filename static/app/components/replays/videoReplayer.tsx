@@ -77,7 +77,7 @@ export class VideoReplayer {
     // Initially, only load some videos
     this.createVideoForRange({low: 0, high: PRELOAD_BUFFER});
 
-    this._trackList = this._attachments.map(({timestamp}, i) => [timestamp, i]);
+    this._trackList = this._attachments.map(({timestampMs}, i) => [timestampMs, i]);
     this.loadSegment(0);
   }
 
@@ -153,8 +153,8 @@ export class VideoReplayer {
     const resultSegment = this.getSegment(result)!;
     const isExactSegment =
       resultSegment &&
-      timestamp >= resultSegment.timestamp &&
-      timestamp <= resultSegment.timestamp + resultSegment.duration;
+      timestamp >= resultSegment.timestampMs &&
+      timestamp <= resultSegment.timestampMs + resultSegment.duration;
 
     // TODO: Handle the case where relativeOffsetMs > length of the replay/seekbar (shouldn't happen)
     return {
@@ -260,7 +260,7 @@ export class VideoReplayer {
       return -1;
     }
 
-    const currentSegmentOffset = currentSegment.timestamp - this._startTimestamp;
+    const currentSegmentOffset = currentSegment.timestampMs - this._startTimestamp;
 
     // `handleEnd()` dumbly gives the next video, we need to make sure that the
     // current seek time is inside of the video timestamp, as there can be gaps
@@ -366,7 +366,7 @@ export class VideoReplayer {
     // This can be negative if videoOffsetMs is in a gap because `segment` will
     // represent the next video to be played
     const segmentOffsetMs = Math.max(
-      this._startTimestamp + videoOffsetMs - segment.timestamp,
+      this._startTimestamp + videoOffsetMs - segment.timestampMs,
       0
     );
 

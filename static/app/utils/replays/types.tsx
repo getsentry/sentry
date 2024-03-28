@@ -335,5 +335,5 @@ export interface VideoFrameEvent {
 export interface VideoEvent {
   duration: number;
   id: number;
-  timestamp: number;
+  timestampMs: number;
 }

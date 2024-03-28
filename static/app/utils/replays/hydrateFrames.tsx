@@ -36,7 +36,7 @@ export default function hydrateFrames(attachments: unknown[]) {
       videoFrames.push({
         duration: attachment.data.payload.duration,
         id: attachment.data.payload.segmentId,
-        timestamp: attachment.timestamp,
+        timestampMs: attachment.timestamp,
       });
     } else if (isRecordingFrame(attachment)) {
       rrwebFrames.push(attachment);

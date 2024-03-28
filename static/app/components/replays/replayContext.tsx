@@ -426,6 +426,10 @@ function ProviderNonMemo({
         // @ts-expect-error
         replayerRef.current = inst;
         applyInitialOffset();
+        if (autoStart) {
+          inst.play(startTimeOffsetMs);
+          setIsPlaying(true);
+        }
         return;
       }
 

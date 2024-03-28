@@ -265,6 +265,14 @@ export default class ReplayReader {
         clipEndTimestampMs
       )
     );
+    // TODO: offsetMs doesn't do anything in video replays
+    this._videoEvents = this._updateFrameOffsets(
+      this._trimFramesToClipWindow(
+        this._videoEvents,
+        this._replayRecord.started_at.getTime(),
+        clipEndTimestampMs
+      )
+    )
 
     this._errors = this._updateFrameOffsets(
       this._trimFramesToClipWindow(this._errors, clipStartTimestampMs, clipEndTimestampMs)
