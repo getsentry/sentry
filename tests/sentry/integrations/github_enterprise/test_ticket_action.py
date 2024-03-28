@@ -20,7 +20,7 @@ pytestmark = [requires_snuba]
 # Adding GitHub Enterprise ticket action is protected by an option, and we
 # cannot override the option before importing it in the test so we need to
 # manually add it here.
-if GitHubEnterpriseCreateTicketAction not in rules:
+if GitHubEnterpriseCreateTicketAction.id not in rules:
     rules.add(GitHubEnterpriseCreateTicketAction)
 
 

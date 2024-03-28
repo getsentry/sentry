@@ -14,7 +14,7 @@ SENTRY_APP_ALERT_ACTION = "sentry.rules.actions.notify_event_sentry_app.NotifyEv
 # Adding GitHub Enterprise ticket action is protected by an option, and we
 # cannot override the option before importing it in the test so we need to
 # manually add it here.
-if GitHubEnterpriseCreateTicketAction not in default_rules:
+if GitHubEnterpriseCreateTicketAction.id not in default_rules:
     default_rules.add(GitHubEnterpriseCreateTicketAction)
 
 
