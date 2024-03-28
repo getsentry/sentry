@@ -1,5 +1,6 @@
 import type React from 'react';
 import {
+  startTransition,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -59,10 +60,6 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceTabs';
 import {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/virtualizedViewManager';
 
-import {
-  cancelAnimationTimeout,
-  requestAnimationTimeout,
-} from '../../../utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import Breadcrumb from '../breadcrumb';
 
 import TraceDrawer from './traceDrawer/traceDrawer';
@@ -535,13 +532,9 @@ function TraceViewContent(props: TraceViewContentProps) {
     [setTracePreferences]
   );
 
-  const resizeAnimationTimeoutRef = useRef<{id: number} | null>(null);
   const onDrawerResize = useCallback(
     (size: number) => {
-      if (resizeAnimationTimeoutRef.current !== null) {
-        cancelAnimationTimeout(resizeAnimationTimeoutRef.current);
-      }
-      resizeAnimationTimeoutRef.current = requestAnimationTimeout(() => {
+      startTransition(() => {
         setTracePreferences(previousPreferences => {
           return {
             ...previousPreferences,
@@ -552,7 +545,7 @@ function TraceViewContent(props: TraceViewContentProps) {
                 : window.innerWidth),
           };
         });
-      }, 1000);
+      });
     },
     [setTracePreferences]
   );

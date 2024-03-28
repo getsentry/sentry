@@ -1,4 +1,5 @@
 import {useCallback, useLayoutEffect, useRef, useState} from 'react';
+import {flushSync} from 'react-dom';
 
 export interface UseResizableDrawerOptions {
   /**
@@ -68,7 +69,9 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
 
   const updateSize = useCallback(
     (newSize: number) => {
-      setSize(newSize);
+      flushSync(() => {
+        setSize(newSize);
+      });
       options.onResize(newSize);
       if (options.sizeStorageKey) {
         localStorage.setItem(options.sizeStorageKey, newSize.toString());
