@@ -23,7 +23,7 @@ from sentry.lang.native.utils import (
 )
 from sentry.models.eventerror import EventError
 from sentry.stacktraces.functions import trim_function_name
-from sentry.stacktraces.processing import find_stacktraces_in_data
+from sentry.stacktraces.processing import StacktraceInfo, find_stacktraces_in_data
 from sentry.utils import metrics
 from sentry.utils.in_app import is_known_third_party, is_optional_package
 from sentry.utils.safe import get_path, set_path, setdefault_path, trim
@@ -456,8 +456,7 @@ def process_native_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
 
 
 def get_native_symbolication_function(
-    data: Any,
-    stacktraces: list[StacktraceInfo]
+    data: Any, stacktraces: list[StacktraceInfo]
 ) -> Callable[[Symbolicator, Any], Any] | None:
     """
     Returns the appropriate symbolication function (or `None`) that will process
