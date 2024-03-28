@@ -2,7 +2,10 @@ import {useMemo} from 'react';
 
 import {openCreateDashboardFromScratchpad} from 'sentry/actionCreators/modal';
 import {convertToDashboardWidget} from 'sentry/utils/metrics/dashboard';
-import {MetricQueryType, type MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
+import {
+  MetricExpressionType,
+  type MetricWidgetQueryParams,
+} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
@@ -23,7 +26,7 @@ export function useCreateDashboard(
       const queryIdsInArray = new Set<number>();
       const widgetsWithDependencies = widgets.reduce<MetricWidgetQueryParams[]>(
         (acc, widget) => {
-          if (widget.type === MetricQueryType.FORMULA) {
+          if (widget.type === MetricExpressionType.EQUATION) {
             const {dependencies, isError} = formulaDependencies[widget.id];
             if (isError) {
               return acc;
@@ -53,7 +56,7 @@ export function useCreateDashboard(
 
     return widgets
       .map(widget => {
-        if (widget.type !== MetricQueryType.FORMULA) {
+        if (widget.type !== MetricExpressionType.EQUATION) {
           return convertToDashboardWidget([widget], widget.displayType);
         }
 

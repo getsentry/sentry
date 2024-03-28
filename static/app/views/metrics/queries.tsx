@@ -10,8 +10,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
+  MetricExpressionType,
   type MetricFormulaWidgetParams,
-  MetricQueryType,
   type MetricQueryWidgetParams,
   type MetricsQuery,
   type MetricWidgetQueryParams,
@@ -58,10 +58,10 @@ export function Queries() {
   );
 
   const handleAddWidget = useCallback(
-    (type: MetricQueryType) => {
+    (type: MetricExpressionType) => {
       trackAnalytics('ddm.widget.add', {
         organization,
-        type: type === MetricQueryType.QUERY ? 'query' : 'equation',
+        type: type === MetricExpressionType.QUERY ? 'query' : 'equation',
       });
       addWidget(type);
     },
@@ -72,7 +72,7 @@ export function Queries() {
     const querySymbolSet = new Set<string>();
     for (const widget of widgets) {
       const symbol = getQuerySymbol(widget.id);
-      if (widget.type === MetricQueryType.QUERY) {
+      if (widget.type === MetricExpressionType.QUERY) {
         querySymbolSet.add(symbol);
       }
     }
@@ -89,7 +89,7 @@ export function Queries() {
             key={`${widget.type}_${widget.id}`}
             onFocusCapture={() => setSelectedWidgetIndex(index)}
           >
-            {widget.type === MetricQueryType.QUERY ? (
+            {widget.type === MetricExpressionType.QUERY ? (
               <Query
                 widget={widget}
                 onChange={handleChange}
@@ -120,14 +120,14 @@ export function Queries() {
         <Button
           size="sm"
           icon={<IconAdd isCircled />}
-          onClick={() => handleAddWidget(MetricQueryType.QUERY)}
+          onClick={() => handleAddWidget(MetricExpressionType.QUERY)}
         >
           {t('Add query')}
         </Button>
         <Button
           size="sm"
           icon={<IconAdd isCircled />}
-          onClick={() => handleAddWidget(MetricQueryType.FORMULA)}
+          onClick={() => handleAddWidget(MetricExpressionType.EQUATION)}
         >
           {t('Add equation')}
         </Button>
@@ -200,7 +200,7 @@ function Query({
           isSelected={isSelected}
           queryId={widget.id}
           onChange={handleToggle}
-          type={MetricQueryType.QUERY}
+          type={MetricExpressionType.QUERY}
         />
       )}
       <QueryBuilder
@@ -267,7 +267,7 @@ function Formula({
           isSelected={isSelected}
           queryId={widget.id}
           onChange={handleToggle}
-          type={MetricQueryType.FORMULA}
+          type={MetricExpressionType.EQUATION}
         />
       )}
       <FormulaInput
@@ -290,7 +290,7 @@ interface QueryToggleProps {
   isSelected: boolean;
   onChange: (isHidden: boolean) => void;
   queryId: number;
-  type: MetricQueryType;
+  type: MetricExpressionType;
 }
 
 function QueryToggle({
@@ -308,7 +308,7 @@ function QueryToggle({
 
   return (
     <Tooltip title={tooltipTitle} delay={500}>
-      {type === MetricQueryType.QUERY ? (
+      {type === MetricExpressionType.QUERY ? (
         <StyledQuerySymbol
           isHidden={isHidden}
           queryId={queryId}

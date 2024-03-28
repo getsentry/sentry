@@ -19,7 +19,7 @@ import type {
   MetricQueryWidgetParams,
   MetricWidgetQueryParams,
 } from 'sentry/utils/metrics/types';
-import {MetricQueryType} from 'sentry/utils/metrics/types';
+import {MetricExpressionType} from 'sentry/utils/metrics/types';
 import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples';
 import useOrganization from 'sentry/utils/useOrganization';
 import {CodeLocations} from 'sentry/views/metrics/codeLocations';
@@ -53,7 +53,7 @@ export function WidgetDetails() {
   );
 
   // TODO(aknaus): better fallback
-  if (selectedWidget?.type === MetricQueryType.FORMULA) {
+  if (selectedWidget?.type === MetricExpressionType.EQUATION) {
     <MetricDetails onRowHover={handleSampleRowHover} focusArea={focusArea} />;
   }
 
