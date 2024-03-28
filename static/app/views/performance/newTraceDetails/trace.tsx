@@ -167,7 +167,7 @@ interface TraceProps {
   trace_id: string;
 }
 
-function Trace({
+export function Trace({
   trace,
   trace_id,
   roving_state,
@@ -626,8 +626,6 @@ function Trace({
     </TraceStylingWrapper>
   );
 }
-
-export default Trace;
 
 function RenderRow(props: {
   index: number;
