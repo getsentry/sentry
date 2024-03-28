@@ -831,14 +831,14 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 Function(
                     "multiply",
                     [
-                        self._resolve_average_condition(args, None, "greater"),
+                        self._resolve_avg_condition(args, None, "greater"),
                         self._resolve_epm_condition(args, None, "greater"),
                     ],
                 ),
                 Function(
                     "multiply",
                     [
-                        self._resolve_average_condition(args, None, "less"),
+                        self._resolve_avg_condition(args, None, "less"),
                         self._resolve_epm_condition(args, None, "less"),
                     ],
                 ),
@@ -879,7 +879,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
-    def _resolve_average_condition(
+    def _resolve_avg_condition(
         self,
         args: Mapping[str, str | Column | SelectType | int | float],
         alias: str | None,
