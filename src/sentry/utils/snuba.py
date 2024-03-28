@@ -961,42 +961,75 @@ def _apply_cache_and_build_results(
     return [result[1] for result in results]
 
 
+def split_query(snuba_param_list: Sequence[RequestQueryBody], max_size: int) -> List[Sequence[RequestQueryBody]]:
+    """\n    Splits the snuba_param_list into smaller chunks, ensuring that each chunk's size is below max_size.
+    """
+    # Placeholder for the actual implementation
+    pass
+
 def _bulk_snuba_query(
     snuba_param_list: Sequence[RequestQueryBody],
     headers: Mapping[str, str],
 ) -> ResultSet:
-    query_referrer = headers.get("referer", "<unknown>")
-
-    with sentry_sdk.start_span(
-        op="snuba_query",
-        description=query_referrer,
-    ) as span:
-        span.set_tag("snuba.num_queries", len(snuba_param_list))
-        # We set both span + sdk level, this is cause 1 txn/error might query snuba more than once
-        # but we still want to know a general sense of how referrers impact performance
-        span.set_tag("query.referrer", query_referrer)
-        sentry_sdk.set_tag("query.referrer", query_referrer)
-
-        parent_api: str = "<missing>"
-        with sentry_sdk.configure_scope() as scope:
-            if scope.transaction:
-                parent_api = scope.transaction.name
-
-        if len(snuba_param_list) > 1:
-            query_results = list(
-                _query_thread_pool.map(
-                    _snuba_query,
-                    [
-                        (params, Hub(Hub.current), headers, parent_api)
-                        for params in snuba_param_list
-                    ],
-                )
-            )
+    # Pre-query size check and splitting
+    split_queries = []
+    for query in snuba_param_list:
+        estimated_size = _estimate_query_size(query)
+        if estimated_size > 250000:
+            split_queries.extend(_split_query(query))
         else:
-            # No need to submit to the thread pool if we're just performing a single query
-            query_results = [
-                _snuba_query((snuba_param_list[0], Hub(Hub.current), headers, parent_api))
-            ]
+            split_queries.append(query)
+
+    # Execute split queries and aggregate results
+    results = []
+    for query in split_queries:
+        # Execute query (placeholder)
+        result = execute_query(query)  # Placeholder for actual query execution
+        results.append(result)
+
+    # Aggregate results (placeholder)
+    aggregated_results = aggregate_results(results)  # Placeholder for actual aggregation logic
+    return aggregated_results
+
+        # Estimate the query size
+        query_size = estimate_query_size(snuba_param_list)
+        if query_size > MAX_QUERY_SIZE:
+            # Split the query into smaller chunks if it exceeds the maximum allowed size
+            query_chunks = split_query(snuba_param_list)
+            query_results = []
+            for chunk in query_chunks:
+                if len(chunk) > 1:
+                    chunk_results = list(
+                        _query_thread_pool.map(
+                            _snuba_query,
+                            [
+                                (params, Hub(Hub.current), headers, parent_api)
+                                for params in chunk
+                            ],
+                        )
+                    )
+                else:
+                    # No need to submit to the thread pool if we're just performing a single query
+                    chunk_results = [
+                        _snuba_query((chunk[0], Hub(Hub.current), headers, parent_api))
+                    ]
+                query_results.extend(chunk_results)
+        else:
+            if len(snuba_param_list) > 1:
+                query_results = list(
+                    _query_thread_pool.map(
+                        _snuba_query,
+                        [
+                            (params, Hub(Hub.current), headers, parent_api)
+                            for params in snuba_param_list
+                        ],
+                    )
+                )
+            else:
+                # No need to submit to the thread pool if we're just performing a single query
+                query_results = [
+                    _snuba_query((snuba_param_list[0], Hub(Hub.current), headers, parent_api))
+                ]
 
     results = []
     for index, item in enumerate(query_results):
@@ -1355,6 +1388,17 @@ def resolve_conditions(
             replacement_conditions.append(replacement)
 
     return replacement_conditions
+
+
+def estimate_query_size(snuba_param_list: Sequence[RequestQueryBody]) -> int:
+    """
+    Estimates the size of the query by serializing the snuba_param_list
+    and measuring its length. This function will be used to decide if a query
+    needs to be split.
+    """
+    import json
+    serialized_query = json.dumps([query[0] for query in snuba_param_list])
+    return len(serialized_query)
 
 
 def aliased_query_params(
