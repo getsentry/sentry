@@ -92,9 +92,9 @@ def _ensure_monitor_with_config(
     if not monitor:
         monitor, created = Monitor.objects.update_or_create(
             organization_id=project.organization_id,
+            project_id=project.id,
             slug=monitor_slug,
             defaults={
-                "project_id": project.id,
                 "name": monitor_slug,
                 "status": ObjectStatus.ACTIVE,
                 "type": MonitorType.CRON_JOB,
