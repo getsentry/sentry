@@ -4,7 +4,7 @@ import type {MetricMetaCodeLocation} from 'sentry/utils/metrics/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import type {SelectionRange} from 'sentry/views/ddm/chart/types';
+import type {SelectionRange} from 'sentry/views/metrics/chart/types';
 
 type MetricCorrelationOpts = SelectionRange & {
   codeLocations?: boolean;

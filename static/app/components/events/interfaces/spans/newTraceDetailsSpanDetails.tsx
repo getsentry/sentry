@@ -31,7 +31,7 @@ import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types'
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
-import {CustomMetricsEventData} from 'sentry/views/ddm/customMetricsEventData';
+import {CustomMetricsEventData} from 'sentry/views/metrics/customMetricsEventData';
 import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceTabs';
