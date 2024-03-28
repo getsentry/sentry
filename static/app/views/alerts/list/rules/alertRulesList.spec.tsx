@@ -423,6 +423,7 @@ describe('AlertRulesList', () => {
       expect.objectContaining({
         query: {
           expand: ['latestIncident', 'lastTriggered'],
+          monitor_type: '0',
           sort: ['incident_status', 'date_triggered'],
           team: ['myteams', 'unassigned'],
         },
