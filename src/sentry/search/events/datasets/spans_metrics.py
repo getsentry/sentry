@@ -504,7 +504,9 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         fields.TimestampArg("timestamp"),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=lambda args, alias: self._resolve_avg_condition(args, alias, args["condition"]),
+                    snql_distribution=lambda args, alias: self._resolve_avg_condition(
+                        args, alias, args["condition"]
+                    ),
                     default_result_type="number",
                 ),
             ]
@@ -847,14 +849,14 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 Function(
                     "multiply",
                     [
-                        self._resolve_avg_condition(args, "greater"),
+                        self._resolve_avg_condition(args, None, "greater"),
                         self._resolve_epm_condition(args, "greater"),
                     ],
                 ),
                 Function(
                     "multiply",
                     [
-                        self._resolve_avg_condition(args, "less"),
+                        self._resolve_avg_condition(args, None, "less"),
                         self._resolve_epm_condition(args, "less"),
                     ],
                 ),
@@ -925,7 +927,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 0,
                 conditional_aggregate,
             ],
-            alias
+            alias,
         )
 
     @property
