@@ -7,6 +7,7 @@ import {VideoReplayer} from './videoReplayer';
 //
 // advancing by 2000ms ~== 20000s in Timer, but this may depend on hardware, TBD
 jest.useFakeTimers();
+jest.spyOn(window.HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
 
 describe('VideoReplayer - no starting gap', () => {
   beforeEach(() => {

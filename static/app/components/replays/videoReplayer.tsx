@@ -406,6 +406,11 @@ export class VideoReplayer {
    */
   public play(videoOffsetMs: number): Promise<void> {
     this._timer.start(videoOffsetMs);
+
+    // When we seek to a new spot in the replay, pause the old video
+    const currentVideo = this.getVideo(this._currentIndex);
+    currentVideo?.pause();
+
     return this.playSegmentAtTime(videoOffsetMs);
   }
 
