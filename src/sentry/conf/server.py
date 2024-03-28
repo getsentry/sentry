@@ -3978,9 +3978,6 @@ REGION_PINNED_URL_NAMES = {
     "sentry-api-0-shared-group-details",
     # Unscoped profiling URLs
     "sentry-api-0-profiling-project-profile",
-    # Legacy monitor endpoints
-    "sentry-api-0-monitor-ingest-check-in-index",
-    "sentry-api-0-monitor-ingest-check-in-details",
     # These paths are used by relay which is implicitly region scoped
     "sentry-api-0-relays-index",
     "sentry-api-0-relay-register-challenge",
