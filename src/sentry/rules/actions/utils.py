@@ -31,8 +31,8 @@ def check_value_changed(
 
 
 def generate_diff_labels(
-    prior_state: list[dict[str, Any]],
-    present_state: list[dict[str, Any]],
+    prior_state: DefaultDict[str, dict[str, str | int]],
+    present_state: DefaultDict[str, dict[str, str | int]],
     rule: Rule,
     key: str,
 ) -> DefaultDict[str, list[str]]:
@@ -44,21 +44,21 @@ def generate_diff_labels(
     present_ids = set(present_state.keys())
 
     # Added items that are not seen in the prior rule data
-    for item in present_ids.difference(prior_ids):
-        label = generate_rule_label(rule.project, rule, present_state.get(item)[0])
-        changed_data[item].append(added_statement.format(key, label))
+    for id in present_ids.difference(prior_ids):
+        label = generate_rule_label(rule.project, rule, present_state.get(id))
+        changed_data[id].append(added_statement.format(key, label))
 
     # Check if the id is in both but the data has changed
-    for item in set(prior_ids & present_ids):
-        if prior_state.get(item)[0] != present_state.get(item)[0]:
-            old_label = generate_rule_label(rule.project, rule, prior_state.get(item)[0])
-            new_label = generate_rule_label(rule.project, rule, present_state.get(item)[0])
-            changed_data[item] = [(f"Changed {key} from *{old_label}* to *{new_label}*")]
+    for id in set(prior_ids & present_ids):
+        if prior_state.get(id) != present_state.get(id):
+            old_label = generate_rule_label(rule.project, rule, prior_state.get(id))
+            new_label = generate_rule_label(rule.project, rule, present_state.get(id))
+            changed_data[id] = [(f"Changed {key} from *{old_label}* to *{new_label}*")]
 
     # Removed items
-    for item in prior_ids.difference(present_ids):
-        label = generate_rule_label(rule.project, rule, prior_state.get(item)[0])
-        changed_data[item].append(removed_statement.format(key, label))
+    for id in prior_ids.difference(present_ids):
+        label = generate_rule_label(rule.project, rule, prior_state.get(id))
+        changed_data[id].append(removed_statement.format(key, label))
 
     return changed_data
 
@@ -79,15 +79,10 @@ def get_frequency_label(value_str: str | None) -> str | None:
     return None
 
 
-def convert_data(data: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    converted_data = defaultdict(list)
+def convert_data(data: list[dict[str, Any]]) -> DefaultDict[str, dict[str, str | int]]:
+    converted_data: DefaultDict[str, dict[str, str | int]] = defaultdict(dict)
     for datum in data:
-        id = datum["id"]
-        values = {}
-        for d in datum:
-            values[d] = datum[d]
-        converted_data[id].append(values)
-
+        converted_data[datum["id"]] = {k: v for k, v in datum.items()}
     return converted_data
 
 
