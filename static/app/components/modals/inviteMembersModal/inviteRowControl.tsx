@@ -63,7 +63,7 @@ function InviteRowControl({
 
   const theme = useTheme();
 
-  const isTeamRolesAllowedForRole = useCallback(
+  const isTeamRolesAllowedForRole = useCallback<(roleId: string) => boolean>(
     roleId => {
       const roleOptionsMap = roleOptions.reduce(
         (rolesMap, roleOption) => ({...rolesMap, [roleOption.id]: roleOption}),

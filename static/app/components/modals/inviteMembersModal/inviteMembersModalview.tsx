@@ -107,7 +107,7 @@ export default function InviteMembersModalView({
             emails={[...emails]}
             role={role}
             teams={[...teams]}
-            roleOptions={member ? member.orgRoleList : ORG_ROLES}
+            roleOptions={member?.orgRoleList ?? ORG_ROLES}
             roleDisabledUnallowed={willInvite}
             inviteStatus={inviteStatus}
             onRemove={() => removeInviteRow(i)}

@@ -28,7 +28,7 @@ describe('InviteMembersModal', function () {
     return client.addMockResponse({
       url: `/organizations/${orgSlug}/members/me/`,
       method: 'GET',
-      body: {roles},
+      body: {orgRoleList: roles},
     });
   };
 
