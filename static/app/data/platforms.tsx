@@ -432,6 +432,13 @@ export const platforms: PlatformIntegration[] = [
     link: 'https://docs.sentry.io/platforms/php/guides/symfony/',
   },
   {
+    id: 'powershell',
+    name: 'PowerShell',
+    type: 'language',
+    language: 'powershell',
+    link: 'https://docs.sentry.io/platforms/powershell/',
+  },
+  {
     id: 'python',
     name: 'Python',
     type: 'language',

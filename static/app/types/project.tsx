@@ -230,6 +230,7 @@ export type PlatformKey =
   | 'php-monolog'
   | 'php-symfony'
   | 'php-symfony2'
+  | 'powershell'
   | 'python'
   | 'python-aiohttp'
   | 'python-asgi'
