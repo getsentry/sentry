@@ -76,6 +76,7 @@ export default function NodeDetail({
         node={node}
         organization={organization}
         onParentClick={onParentClick}
+        scrollToNode={scrollToNode}
       />
     );
   }
@@ -86,13 +87,18 @@ export default function NodeDetail({
         node={node}
         organization={organization}
         onParentClick={onParentClick}
+        scrollToNode={scrollToNode}
       />
     );
   }
 
   if (isMissingInstrumentationNode(node)) {
     return (
-      <MissingInstrumentationNodeDetails node={node} onParentClick={onParentClick} />
+      <MissingInstrumentationNodeDetails
+        node={node}
+        onParentClick={onParentClick}
+        scrollToNode={scrollToNode}
+      />
     );
   }
 
