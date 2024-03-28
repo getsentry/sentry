@@ -82,7 +82,8 @@ def get_frequency_label(value_str: str | None) -> str | None:
 def convert_data(data: list[dict[str, Any]]) -> DefaultDict[str, dict[str, str | int]]:
     converted_data: DefaultDict[str, dict[str, str | int]] = defaultdict(dict)
     for datum in data:
-        converted_data[datum["id"]] = {k: v for k, v in datum.items()}
+        converted_data[datum.get("id")] = datum
+
     return converted_data
 
 
