@@ -142,7 +142,8 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 )
 
             new_notification_message_object = NewIssueAlertNotificationMessage(
-                rule_fire_history_id=self.rule_fire_history.id, rule_action_uuid=rule_action_uuid
+                rule_fire_history_id=self.rule_fire_history.id if self.rule_fire_history else None,
+                rule_action_uuid=rule_action_uuid,
             )
 
             # Only try to get the parent notification message if the organization is in the FF
