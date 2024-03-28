@@ -505,7 +505,7 @@ class IndexerBatch:
                             *message.payload.headers,
                             ("mapping_sources", mapping_header_content),
                             # XXX: type mismatch, but seems to work fine in prod
-                            ("metric_type", new_payload_value["type"]),  # type: ignore
+                            ("metric_type", new_payload_value["type"]),  # type: ignore[list-item]
                         ],
                     )
                 if self.is_output_sliced:

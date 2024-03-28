@@ -6,11 +6,11 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
     DefaultFieldsModel,
-    EncryptedJsonField,
     FlexibleForeignKey,
     region_silo_only_model,
 )
 from sentry.db.models.fields.array import ArrayField
+from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.fields.slug import SentrySlugField
 
 
@@ -32,7 +32,7 @@ class SentryFunction(DefaultFieldsModel):
     overview = models.TextField(null=True)
     code = models.TextField(null=True)
     events = ArrayField(of=models.TextField, null=True)
-    env_variables = EncryptedJsonField(default=dict)
+    env_variables = JSONField(default=dict)
     objects: ClassVar[SentryFunctionManager] = SentryFunctionManager()
 
     class Meta:

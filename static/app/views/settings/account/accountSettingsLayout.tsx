@@ -2,7 +2,6 @@ import {Component} from 'react';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organizations';
 import type {Client} from 'sentry/api';
-import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
 import type {Organization} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withLatestContext from 'sentry/utils/withLatestContext';
@@ -15,16 +14,6 @@ type Props = React.ComponentProps<typeof SettingsLayout> & {
 };
 
 class AccountSettingsLayout extends Component<Props> {
-  static childContextTypes = {
-    organization: SentryPropTypeValidators.isObject,
-  };
-
-  getChildContext() {
-    return {
-      organization: this.props.organization,
-    };
-  }
-
   componentDidUpdate(prevProps: Props) {
     const {api, organization} = this.props;
     if (prevProps.organization === organization) {

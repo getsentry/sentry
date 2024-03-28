@@ -94,6 +94,7 @@ repos:
     rev: v1.10.0
     hooks:
       - id: python-use-type-annotations
+      - id: python-check-blanket-type-ignore
 
   - repo: https://github.com/python-jsonschema/check-jsonschema
     rev: 0.24.1

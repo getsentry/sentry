@@ -58,7 +58,7 @@ def get_team_transactions(
         # Its completely possible that a team_key_transaction never existed in the metrics dataset
         for project, transaction in team_key_transactions:
             try:
-                resolved_transaction = builder.resolve_tag_value(transaction)  # type: ignore
+                resolved_transaction = builder.resolve_tag_value(transaction)  # type: ignore[attr-defined]
             except IncompatibleMetricsQuery:
                 continue
             if resolved_transaction:

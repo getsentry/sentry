@@ -138,7 +138,7 @@ def get_team_members(team: Team | RpcActor) -> list[RpcActor]:
         team_id = team.id
     else:  # team is either Team or RpcActor, so if recipient_is_team returns false it is because RpcActor has a different type
         raise Exception(
-            "RpcActor team has ActorType %s, expected ActorType Team", team.actor_type  # type: ignore
+            "RpcActor team has ActorType %s, expected ActorType Team", team.actor_type  # type: ignore[union-attr]
         )
 
     # get organization member IDs of all members in the team

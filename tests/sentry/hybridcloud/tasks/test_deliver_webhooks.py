@@ -505,6 +505,29 @@ class DrainMailboxParallelTest(TestCase):
 
     @responses.activate
     @override_regions(region_config)
+    def test_drain_discard_old_messages(self):
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/github/webhook/",
+            status=200,
+            body="",
+        )
+        records = create_payloads(3, "github:123")
+
+        # Make old records
+        for record in records:
+            record.date_added = timezone.now() - timedelta(days=4)
+            record.save()
+
+        drain_mailbox_parallel(records[0].id)
+
+        # Mailbox should be empty
+        assert not WebhookPayload.objects.filter().exists()
+        # No requests sent because records are too old
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    @override_regions(region_config)
     def test_drain_too_many_attempts(self):
         responses.add(
             responses.POST,

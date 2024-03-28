@@ -291,28 +291,28 @@ class GitLabBlameForFilesTest(GitLabClientTest):
             lineno=10,
             ref="master",
             repo=self.repo,
-            code_mapping=None,  # type: ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         self.file_2 = SourceLineInfo(
             path="src/sentry/integrations/github/client_1.py",
             lineno=15,
             ref="master",
             repo=self.repo,
-            code_mapping=None,  # type: ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         self.file_3 = SourceLineInfo(
             path="src/sentry/integrations/github/client_2.py",
             lineno=20,
             ref="master",
             repo=self.repo,
-            code_mapping=None,  # type: ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         self.file_4 = SourceLineInfo(
             path="src/sentry/integrations/github/client_3.py",
             lineno=20,
             ref="master",
             repo=self.repo,
-            code_mapping=None,  # type: ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         self.blame_1 = FileBlameInfo(
             **asdict(self.file_1),

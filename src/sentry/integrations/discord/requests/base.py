@@ -95,7 +95,7 @@ class DiscordRequest:
             user_source = self._data.get("member", None)
             if user_source is None:
                 user_source = self._data
-            return user_source["user"]["id"]  # type: ignore
+            return user_source["user"]["id"]  # type: ignore[index]
         except (AttributeError, TypeError, KeyError):
             return None
 
@@ -276,4 +276,4 @@ class DiscordRequest:
             "discord.interaction.component.get_selected_options",
             extra={"data": self.data, "values": values},
         )
-        return values  # type: ignore
+        return values  # type: ignore[return-value]

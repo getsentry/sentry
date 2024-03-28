@@ -52,7 +52,7 @@ class OccurrenceTestMixin:
             "detection_time": datetime.now().timestamp(),
             "level": "warning",
         }
-        kwargs.update(overrides)  # type: ignore
+        kwargs.update(overrides)  # type: ignore[typeddict-item]
 
         process_occurrence_data(kwargs)
         return kwargs

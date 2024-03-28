@@ -11,40 +11,9 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations import IntegrationFeatures
+from sentry.integrations.utils.code_mapping import find_roots
 from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
-
-SLASH = "/"
-BACKSLASH = "\\"  # This is the Python representation of a single backslash
-
-
-def find_roots(stack_path, source_path):
-    """
-    Returns a tuple containing the stack_root, and the source_root.
-    If there is no overlap, raise an exception since this should not happen
-    """
-    stack_path_delim = SLASH if SLASH in stack_path else BACKSLASH
-    overlap_to_check = stack_path.split(stack_path_delim)
-    stack_root = []
-    while overlap_to_check:
-        if source_path.endswith(overlap := SLASH.join(overlap_to_check)):
-            source_root = source_path.rpartition(overlap)[0]
-            stack_root = stack_path_delim.join(stack_root)
-            if not source_root:  # replace empty source root with "slash"
-                source_root = SLASH
-            if not stack_root:  # replace empty stack root with "dot slash"
-                stack_root = f".{stack_path_delim}"
-            else:  # append trailing slash
-                stack_root = f"{stack_root}{stack_path_delim}"
-
-            return (stack_root, source_root)
-
-        # increase stack root specificity, decrease overlap specifity
-        stack_root.append(overlap_to_check.pop(0))
-
-    # validate_source_url should have ensured the file names match
-    # so if we get here something went wrong and there is a bug
-    raise Exception("Could not find common root from paths")
 
 
 class PathMappingSerializer(CamelSnakeSerializer):

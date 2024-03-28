@@ -42,13 +42,13 @@ class QueryExpressionVisitor(ABC, Generic[TVisited]):
         raise timeseries
 
     def _visit_int(self, int_number: float) -> TVisited:
-        return int_number  # type:ignore
+        return int_number  # type: ignore[return-value]
 
     def _visit_float(self, float_number: float) -> TVisited:
-        return float_number  # type:ignore
+        return float_number  # type: ignore[return-value]
 
     def _visit_string(self, string: str) -> TVisited:
-        return string  # type:ignore
+        return string  # type: ignore[return-value]
 
 
 class QueryConditionVisitor(ABC, Generic[TVisited]):

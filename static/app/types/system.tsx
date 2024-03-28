@@ -176,6 +176,7 @@ export interface Config {
     environment?: string;
     profilesSampleRate?: number;
   };
+  shouldPreloadData: boolean;
   singleOrganization: boolean;
   superUserCookieDomain: string | null;
   superUserCookieName: string;

@@ -76,7 +76,7 @@ def test_group_creation_race_new(
     # Mypy has a bug and can't handle the combo of a `...` input type and a ternary for the value
     # See https://github.com/python/mypy/issues/14661
     save_aggregate_fn: Callable[..., GroupInfo | None] = (
-        _save_aggregate_new if use_save_aggregate_new else _save_aggregate  # type: ignore
+        _save_aggregate_new if use_save_aggregate_new else _save_aggregate  # type: ignore[assignment]
     )
     group_kwargs_fn_name = (
         "_get_group_processing_kwargs" if use_save_aggregate_new else "_get_group_creation_kwargs"

@@ -189,7 +189,7 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
                 env_name = environment_map[monitor_environment_map[meid]]
 
             named_status = status_to_name[status]
-            stats[slug][ts][env_name][named_status] = count  # type: ignore
+            stats[slug][ts][env_name][named_status] = count  # type: ignore[index]
 
         # Flatten the timestamp to env mapping dict into a tuple list, this
         # maintains the ordering

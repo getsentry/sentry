@@ -52,7 +52,7 @@ def validate(
             findings = []
             if (
                 self.max_seen_ordinal_value is None
-                or ordinal_value > self.max_seen_ordinal_value  # type: ignore
+                or ordinal_value > self.max_seen_ordinal_value  # type: ignore[operator]
             ):
                 self.max_seen_ordinal_value = ordinal_value
             else:

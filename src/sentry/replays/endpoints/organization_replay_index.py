@@ -61,7 +61,7 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
 
         for key, value in result.validated_data.items():
             if key not in filter_params:
-                filter_params[key] = value  # type: ignore
+                filter_params[key] = value  # type: ignore[literal-required]
 
         def data_fn(offset: int, limit: int):
             try:

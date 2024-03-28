@@ -112,7 +112,7 @@ class SeerRpcServiceEndpoint(Endpoint):
             raise RpcResolutionException(f"Unknown method {method_name}")
         # As seer is a single service, we just directly expose the methods instead of services.
         method = seer_method_registry[method_name]
-        return method(**arguments)  # type: ignore
+        return method(**arguments)  # type: ignore[operator]
 
     def post(self, request: Request, method_name: str) -> Response:
         if not self._is_authorized(request):

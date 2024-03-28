@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import dataclasses
 from collections.abc import Mapping
 from typing import Any
 from unittest.mock import patch
@@ -12,8 +11,8 @@ from django.urls import reverse
 from rest_framework import status
 
 from sentry.integrations.discord.requests.base import DiscordRequestError, DiscordRequestTypes
+from sentry.middleware.integrations.parsers.base import create_async_request_payload
 from sentry.middleware.integrations.parsers.discord import DiscordRequestParser
-from sentry.models.outbox import ControlOutbox
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.outbox import assert_no_webhook_payloads
@@ -200,8 +199,7 @@ class DiscordRequestParserTest(TestCase):
         }
         parser = self.get_parser(reverse("sentry-integration-discord-interactions"), data=data)
         response = parser.get_response()
-        webhook_payload = ControlOutbox.get_webhook_payload_from_request(request=self.request)
-        payload = dataclasses.asdict(webhook_payload)
+        payload = create_async_request_payload(self.request)
         mock_discord_task.apply_async.assert_called_once_with(
             kwargs={
                 "region_names": ["us"],

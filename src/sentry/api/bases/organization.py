@@ -57,7 +57,7 @@ class OrganizationPermission(SentryPermission):
         if not organization.flags.require_2fa:
             return False
 
-        if request.user.has_2fa():  # type: ignore
+        if request.user.has_2fa():  # type: ignore[union-attr]
             return False
 
         if is_active_superuser(request):
@@ -233,7 +233,7 @@ class ControlSiloOrganizationEndpoint(Endpoint):
     A base class for endpoints that use an organization scoping but lives in the control silo
     """
 
-    permission_classes = (OrganizationPermission,)
+    permission_classes: tuple[type[BasePermission], ...] = (OrganizationPermission,)
 
     def convert_args(
         self, request: Request, organization_slug: str | None = None, *args: Any, **kwargs: Any
@@ -268,7 +268,7 @@ class ControlSiloOrganizationEndpoint(Endpoint):
         kwargs["organization"] = organization_context.organization
 
         # Used for API access logs
-        request._request.organization = organization_context.organization  # type: ignore
+        request._request.organization = organization_context.organization  # type: ignore[attr-defined]
 
         return (args, kwargs)
 
@@ -536,7 +536,7 @@ class OrganizationEndpoint(Endpoint):
 
         bind_organization_context(organization)
 
-        request._request.organization = organization  # type: ignore
+        request._request.organization = organization  # type: ignore[attr-defined]
 
         # Track the 'active' organization when the request came from
         # a cookie based agent (react app)
@@ -566,18 +566,18 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         """
         has_valid_api_key = False
         if is_api_key_auth(request.auth):
-            if request.auth.organization_id != organization.id:  # type: ignore
+            if request.auth.organization_id != organization.id:  # type: ignore[union-attr]
                 return []
-            has_valid_api_key = request.auth.has_scope(  # type: ignore
+            has_valid_api_key = request.auth.has_scope(  # type: ignore[union-attr]
                 "project:releases"
-            ) or request.auth.has_scope(  # type: ignore
+            ) or request.auth.has_scope(  # type: ignore[union-attr]
                 "project:write"
             )
 
         if is_org_auth_token_auth(request.auth):
-            if request.auth.organization_id != organization.id:  # type: ignore
+            if request.auth.organization_id != organization.id:  # type: ignore[union-attr]
                 return []
-            has_valid_api_key = request.auth.has_scope("org:ci")  # type: ignore
+            has_valid_api_key = request.auth.has_scope("org:ci")  # type: ignore[union-attr]
 
         if not (
             has_valid_api_key or (getattr(request, "user", None) and request.user.is_authenticated)
@@ -614,9 +614,9 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         if getattr(request, "user", None) and request.user.id:
             actor_id = "user:%s" % request.user.id
         if getattr(request, "auth", None) and getattr(request.auth, "id", None):
-            actor_id = "apikey:%s" % request.auth.id  # type: ignore
+            actor_id = "apikey:%s" % request.auth.id  # type: ignore[union-attr]
         elif getattr(request, "auth", None) and getattr(request.auth, "entity_id", None):
-            actor_id = "apikey:%s" % request.auth.entity_id  # type: ignore
+            actor_id = "apikey:%s" % request.auth.entity_id  # type: ignore[union-attr]
         if actor_id is not None:
             requested_project_ids = project_ids
             if requested_project_ids is None:

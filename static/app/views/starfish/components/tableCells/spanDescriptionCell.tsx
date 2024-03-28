@@ -57,43 +57,39 @@ export function SpanDescriptionCell({
 
   if (moduleName === ModuleName.DB) {
     return (
-      <DescriptionWrapper>
-        <WiderHovercard
-          position="right"
-          body={
-            <FullSpanDescription
-              group={group}
-              shortDescription={rawDescription}
-              language="sql"
-            />
-          }
-        >
-          {descriptionLink}
-        </WiderHovercard>
-      </DescriptionWrapper>
+      <WiderHovercard
+        position="right"
+        body={
+          <FullSpanDescription
+            group={group}
+            shortDescription={rawDescription}
+            language="sql"
+          />
+        }
+      >
+        {descriptionLink}
+      </WiderHovercard>
     );
   }
 
   if (moduleName === ModuleName.HTTP) {
     return (
-      <DescriptionWrapper>
-        <WiderHovercard
-          position="right"
-          body={
-            <Fragment>
-              <TitleWrapper>{t('Example')}</TitleWrapper>
-              <FullSpanDescription
-                group={group}
-                shortDescription={rawDescription}
-                language="http"
-                filters={spanOp ? {[SPAN_OP]: spanOp} : undefined}
-              />
-            </Fragment>
-          }
-        >
-          {descriptionLink}
-        </WiderHovercard>
-      </DescriptionWrapper>
+      <WiderHovercard
+        position="right"
+        body={
+          <Fragment>
+            <TitleWrapper>{t('Example')}</TitleWrapper>
+            <FullSpanDescription
+              group={group}
+              shortDescription={rawDescription}
+              language="http"
+              filters={spanOp ? {[SPAN_OP]: spanOp} : undefined}
+            />
+          </Fragment>
+        }
+      >
+        {descriptionLink}
+      </WiderHovercard>
     );
   }
 
@@ -103,15 +99,10 @@ export function SpanDescriptionCell({
 const NULL_DESCRIPTION = <span>&lt;null&gt;</span>;
 
 export const WiderHovercard = styled(
-  ({
-    children,
-    className,
-    containerClassName,
-    ...props
-  }: React.ComponentProps<typeof Hovercard>) => (
+  ({children, className, ...props}: React.ComponentProps<typeof Hovercard>) => (
     <Hovercard
       className={(className ?? '') + ' wider'}
-      containerClassName={(containerClassName ?? '') + ' inline-flex'}
+      containerDisplayMode="inline-flex"
       {...props}
     >
       {children}
@@ -126,10 +117,4 @@ export const WiderHovercard = styled(
 
 const TitleWrapper = styled('div')`
   margin-bottom: ${space(1)};
-`;
-
-const DescriptionWrapper = styled('div')`
-  .inline-flex {
-    display: inline-flex;
-  }
 `;

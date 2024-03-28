@@ -379,6 +379,19 @@ class _ClientConfig:
         """
         return self._serialize_regions(self._member_region_names, lambda r: r.name)
 
+    @property
+    def should_preload_data(self) -> bool:
+        """
+        Indicates if the preload-data functionality is enabled when rendering
+        the preload-data.html template. This is only used when layout.html is
+        rendered.
+        """
+        # Don't send requests if there is no logged in user.
+        if not self.user_details:
+            return False
+
+        return True
+
     def get_context(self) -> Mapping[str, Any]:
         return {
             "initialTrace": self.tracing_data,
@@ -397,6 +410,7 @@ class _ClientConfig:
             # Maintain isOnPremise key for backcompat (plugins?).
             "isOnPremise": is_self_hosted(),
             "isSelfHosted": is_self_hosted(),
+            "shouldPreloadData": self.should_preload_data,
             "shouldShowBeaconConsentPrompt": not self.needs_upgrade
             and should_show_beacon_consent_prompt(),
             "invitesEnabled": settings.SENTRY_ENABLE_INVITES,

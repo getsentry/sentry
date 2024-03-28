@@ -1007,7 +1007,7 @@ class DecryptionTests(ImportTestCase):
             sha256 = hashes.SHA256()
             mgf = padding.MGF1(algorithm=sha256)
             oaep_padding = padding.OAEP(mgf=mgf, algorithm=sha256, label=None)
-            encrypted_dek = dek_encryption_key.encrypt(data_encryption_key, oaep_padding)  # type: ignore
+            encrypted_dek = dek_encryption_key.encrypt(data_encryption_key, oaep_padding)  # type: ignore[union-attr]
 
             tar_buffer = io.BytesIO()
             with tarfile.open(fileobj=tar_buffer, mode="w") as tar:
@@ -2385,6 +2385,68 @@ class CustomImportBehaviorTests(ImportTestCase):
                 email="invited-by-owner@test.com",
                 inviter_id__isnull=False,
             ).exists()
+
+            with open(tmp_path, "rb") as tmp_file:
+                verify_models_in_output(expected_models, json.load(tmp_file))
+
+    @expect_models(CUSTOM_IMPORT_BEHAVIOR_TESTED, Project)
+    def test_project_ids_retained_in_global_scope(self, expected_models: list[type[Model]]):
+        owner = self.create_user("testing@example.com")
+        org = self.create_organization(name="Some Org", owner=owner)
+        team = self.create_team(organization=org, name="Some Team")
+
+        # Only the sparse ids of projects 2 and 4 remain.
+        proj1 = self.create_project(organization=org, teams=[team], name="Project Foo")
+        proj2 = self.create_project(organization=org, teams=[team], name="Project Bar")
+        proj3 = self.create_project(organization=org, teams=[team], name="Project Baz")
+        proj4 = self.create_project(organization=org, teams=[team], name="Project Qux")
+        proj1.delete()
+        proj3.delete()
+        existing_proj_ids = [proj2.pk, proj4.pk]
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_global_scope(
+                    tmp_file,
+                    printer=NOOP_PRINTER,
+                )
+
+            imported_proj_ids = list(Project.objects.all().values_list("id", flat=True))
+
+            # Original IDs are retained, to preserve DSNs after a global import.
+            assert set(imported_proj_ids) == set(existing_proj_ids)
+
+            with open(tmp_path, "rb") as tmp_file:
+                verify_models_in_output(expected_models, json.load(tmp_file))
+
+    @expect_models(CUSTOM_IMPORT_BEHAVIOR_TESTED, Project)
+    def test_project_ids_reassigned_in_organization_scope(self, expected_models: list[type[Model]]):
+        owner = self.create_user("testing@example.com")
+        org = self.create_organization(name="Some Org", owner=owner)
+        team = self.create_team(organization=org, name="Some Team")
+
+        # Only the sparse ids of projects 2 and 4 remain.
+        proj1 = self.create_project(organization=org, teams=[team], name="Project Foo")
+        proj2 = self.create_project(organization=org, teams=[team], name="Project Bar")
+        proj3 = self.create_project(organization=org, teams=[team], name="Project Baz")
+        proj4 = self.create_project(organization=org, teams=[team], name="Project Qux")
+        proj1.delete()
+        proj3.delete()
+        existing_proj_ids = [proj2.pk, proj4.pk]
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_organization_scope(
+                    tmp_file,
+                    printer=NOOP_PRINTER,
+                )
+
+            imported_proj_ids = list(Project.objects.all().values_list("id", flat=True))
+
+            # IDs are re-assigned in non-global import scopes.
+            assert set(imported_proj_ids).isdisjoint(set(existing_proj_ids))
 
             with open(tmp_path, "rb") as tmp_file:
                 verify_models_in_output(expected_models, json.load(tmp_file))

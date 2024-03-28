@@ -480,7 +480,7 @@ def test_process_messages_invalid_messages(
         ),
         Message(
             BrokerValue(
-                KafkaPayload(None, formatted_payload, []),  # type: ignore
+                KafkaPayload(None, formatted_payload, []),  # type: ignore[arg-type]
                 Partition(Topic("topic"), 0),
                 1,
                 BROKER_TIMESTAMP,

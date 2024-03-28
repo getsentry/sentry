@@ -62,6 +62,7 @@ export function OrganizationFixture(
     isDefault: false,
     isDynamicallySampled: true,
     isEarlyAdopter: false,
+    genAIConsent: false,
     openMembership: false,
     pendingAccessRequests: 0,
     quota: {
@@ -75,6 +76,7 @@ export function OrganizationFixture(
     safeFields: [],
     scrubIPAddresses: false,
     sensitiveFields: [],
+    aggregatedDataConsent: false,
     storeCrashReports: 0,
     trustedRelays: [],
     teams: [],

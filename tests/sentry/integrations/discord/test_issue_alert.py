@@ -274,7 +274,7 @@ class DiscordNotifyServiceFormTest(TestCase):
 
     def test_has_choices(self):
         form = DiscordNotifyServiceForm(integrations=self.integrations)
-        assert form.fields["server"].choices == [  # type: ignore
+        assert form.fields["server"].choices == [  # type: ignore[attr-defined]
             (self.discord_integration.id, self.discord_integration.name),
             (self.other_integration.id, self.other_integration.name),
         ]

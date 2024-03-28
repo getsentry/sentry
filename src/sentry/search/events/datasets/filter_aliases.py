@@ -53,7 +53,7 @@ def release_filter_converter(
         operator = operator_conversions.get(search_filter.operator, search_filter.operator)
         value = SearchValue(
             reduce(
-                lambda x, y: x + y,  # type: ignore
+                lambda x, y: x + y,  # type: ignore[operator]
                 [
                     parse_release(
                         v,

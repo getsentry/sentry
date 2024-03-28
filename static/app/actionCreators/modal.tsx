@@ -116,13 +116,6 @@ type CreateOwnershipRuleModalOptions = {
   eventData?: Event;
 };
 
-export type EditOwnershipRulesModalOptions = {
-  onSave: (text: string | null) => void;
-  organization: Organization;
-  ownership: IssueOwnership;
-  project: Project;
-};
-
 /**
  * Open the edit ownership modal within issue details
  */
@@ -134,6 +127,13 @@ export async function openIssueOwnershipRuleModal(
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
+
+export type EditOwnershipRulesModalOptions = {
+  onSave: (ownership: IssueOwnership) => void;
+  organization: Organization;
+  ownership: IssueOwnership;
+  project: Project;
+};
 
 export async function openEditOwnershipRules(options: EditOwnershipRulesModalOptions) {
   const mod = await import('sentry/components/modals/editOwnershipRulesModal');

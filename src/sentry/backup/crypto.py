@@ -142,7 +142,7 @@ def create_encrypted_export_tarball(json_export: json.JSONData, encryptor: Encry
     sha256 = hashes.SHA256()
     mgf = padding.MGF1(algorithm=sha256)
     oaep_padding = padding.OAEP(mgf=mgf, algorithm=sha256, label=None)
-    encrypted_dek = dek_encryption_key.encrypt(data_encryption_key, oaep_padding)  # type: ignore
+    encrypted_dek = dek_encryption_key.encrypt(data_encryption_key, oaep_padding)  # type: ignore[union-attr]
 
     # Generate the tarball and write it to to a new output stream.
     tar_buffer = io.BytesIO()
@@ -269,7 +269,7 @@ class LocalFileDecryptor(Decryptor):
             password=None,
             backend=default_backend(),
         )
-        return private_key.decrypt(  # type: ignore
+        return private_key.decrypt(  # type: ignore[union-attr]
             unwrapped.encrypted_data_encryption_key,
             padding.OAEP(
                 mgf=padding.MGF1(algorithm=hashes.SHA256()),

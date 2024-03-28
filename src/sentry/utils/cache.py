@@ -22,7 +22,7 @@ class memoize(Generic[T]):
 
     def __init__(self, func: Callable[[Any], T]) -> None:
         if isinstance(func, classmethod) or isinstance(func, staticmethod):
-            func = func.__func__  # type: ignore
+            func = func.__func__  # type: ignore[unreachable]
 
         self.__name__ = func.__name__
         self.__module__ = func.__module__
@@ -31,7 +31,7 @@ class memoize(Generic[T]):
 
     def __get__(self, obj: Any, type: Any = None) -> T:
         if obj is None:
-            return self  # type: ignore
+            return self  # type: ignore[return-value]
         d, n = vars(obj), self.__name__
         if n not in d:
             value = self.func(obj)

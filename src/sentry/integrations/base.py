@@ -70,7 +70,7 @@ IntegrationMetadata = namedtuple(
 )
 
 
-class IntegrationMetadata(IntegrationMetadata):  # type: ignore
+class IntegrationMetadata(IntegrationMetadata):  # type: ignore[no-redef]
     @staticmethod
     def feature_flag_name(f: str | None) -> str | None:
         """
