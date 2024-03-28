@@ -307,7 +307,7 @@ function Trace({
 
   const handleZoomIn = useCallback(
     (
-      event: React.MouseEvent,
+      event: React.MouseEvent<Element> | React.KeyboardEvent<Element>,
       node: TraceTreeNode<TraceTree.NodeValue>,
       value: boolean
     ) => {
@@ -342,7 +342,7 @@ function Trace({
 
   const handleExpandNode = useCallback(
     (
-      event: React.MouseEvent<Element>,
+      event: React.MouseEvent<Element> | React.KeyboardEvent<Element>,
       node: TraceTreeNode<TraceTree.NodeValue>,
       value: boolean
     ) => {
@@ -439,8 +439,23 @@ function Trace({
           search_dispatch({type: 'clear iterator index'});
         }
       }
+      if (event.key === 'ArrowLeft') {
+        if (node.zoomedIn) handleZoomIn(event, node, false);
+        if (node.expanded) handleExpandNode(event, node, false);
+      }
+      if (event.key === 'ArrowRight') {
+        if (!node.zoomedIn && node.canFetch) handleZoomIn(event, node, true);
+        if (!node.expanded) handleExpandNode(event, node, true);
+      }
     },
-    [manager, roving_dispatch, search_dispatch, trace.list]
+    [
+      manager,
+      roving_dispatch,
+      search_dispatch,
+      handleExpandNode,
+      handleZoomIn,
+      trace.list,
+    ]
   );
 
   // @TODO this is the implementation of infinite scroll. Once the user
