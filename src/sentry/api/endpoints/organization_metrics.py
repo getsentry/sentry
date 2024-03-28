@@ -104,7 +104,7 @@ def get_use_case_id(request: Request) -> UseCaseID:
     try:
         use_case_id = string_to_use_case_id(request.GET.get("useCase", UseCaseID.SESSIONS.value))
         if not can_access_use_case_id(request, use_case_id):
-            raise ValueError
+            raise ParseError(detail="The supplied use case doesn't exist or it's private")
 
         return use_case_id
     except ValueError:
@@ -129,7 +129,7 @@ def get_use_case_ids(request: Request) -> Sequence[UseCaseID]:
         ]
         for use_case_id in use_case_ids:
             if not can_access_use_case_id(request, use_case_id):
-                raise ValueError
+                raise ParseError(detail="The supplied use case doesn't exist or it's private")
 
         return use_case_ids
     except ValueError:
