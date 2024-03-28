@@ -20,6 +20,7 @@ import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Member} from 'sentry/types';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 
 interface Props {
   Footer: ModalRenderProps['Footer'];
@@ -64,8 +65,6 @@ export default function InviteMembersModalView({
   willInvite,
   error,
 }: Props) {
-  const disableInputs = sendingInvites || complete;
-
   const inviteEmails = invites.map(inv => inv.email);
   const hasDuplicateEmails = inviteEmails.length !== new Set(inviteEmails).size;
   const isValidInvites = invites.length > 0 && !hasDuplicateEmails;
@@ -76,18 +75,29 @@ export default function InviteMembersModalView({
     </Alert>
   ) : null;
 
+  const userEmails = member?.user?.emails;
+  const isVerified = userEmails ? userEmails.some(element => element.is_verified) : false;
+
+  const isSuperUser = isActiveSuperuser();
+
+  const disableInputs = sendingInvites || complete || !isVerified || !isSuperUser;
+
   return (
     <Fragment>
       {errorAlert}
       <Heading>{t('Invite New Members')}</Heading>
-      {willInvite ? (
-        <Subtext>{t('Invite new members by email to join your organization.')}</Subtext>
-      ) : (
+      {!isVerified && !isSuperUser ? (
+        <Alert type="warning" showIcon>
+          {t('Please verify your email before inviting other users.')}
+        </Alert>
+      ) : !willInvite && isVerified && !isSuperUser ? (
         <Alert type="warning" showIcon>
           {t(
             'You can’t invite users directly, but we’ll forward your request to an org owner or manager for approval.'
           )}
         </Alert>
+      ) : (
+        <Subtext>{t('Invite new members by email to join your organization.')}</Subtext>
       )}
 
       {headerInfo}
