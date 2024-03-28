@@ -12,11 +12,14 @@ class RuleRegistry:
         self._map: dict[str, type[RuleBase]] = {}
 
     def __contains__(self, rule_id: int) -> bool:
-        return rule_id in self._map
+        rule = self._map.get(rule_id)
+        return rule and rule.include_rule
 
     def __iter__(self) -> Generator[tuple[str, type[RuleBase]], None, None]:
         for rule_type, rule_list in self._rules.items():
             for rule in rule_list:
+                if not rule.include_rule:
+                    continue
                 yield rule_type, rule
 
     def add(self, rule: type[RuleBase]) -> None:
@@ -25,6 +28,6 @@ class RuleRegistry:
 
     def get(self, rule_id: str, type: str | None = None) -> type[RuleBase] | None:
         cls = self._map.get(rule_id)
-        if type is not None and cls not in self._rules[type]:
+        if (type is not None and cls not in self._rules[type]) or not cls.include_rule:
             return None
         return cls
