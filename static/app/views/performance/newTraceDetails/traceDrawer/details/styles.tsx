@@ -107,13 +107,6 @@ function EventDetailsLink(props: {eventId: string; projectSlug?: string}) {
   );
 }
 
-type DurationComparisonProps = {
-  baseline: number | undefined;
-  totalDuration: number;
-  isComparingSelfDuration?: boolean;
-  selfDuration?: number;
-};
-
 const DURATION_COMPARISON_STATUS_COLORS = {
   faster: {
     light: 'green100',
@@ -131,17 +124,23 @@ const DURATION_COMPARISON_STATUS_COLORS = {
 
 const MIN_PCT_DURATION_DIFFERENCE = 10;
 
-function DurationComparison(props: DurationComparisonProps) {
-  const duration =
-    props.isComparingSelfDuration && typeof props.selfDuration === 'number'
-      ? props.selfDuration
-      : props.totalDuration;
-  if (typeof props.baseline !== 'number' || isNaN(props.baseline)) {
-    return <Duration>{getDuration(duration, 2, true)}</Duration>;
+type DurationProps = {
+  baseline: number | undefined;
+  duration: number;
+  ratio?: number;
+};
+
+function Duration(props: DurationProps) {
+  if (typeof props.duration !== 'number' || Number.isNaN(props.duration)) {
+    return <DurationContainer>{t('unknown')}</DurationContainer>;
   }
 
-  const delta = duration - props.baseline;
-  const deltaPct = Number(Math.abs((delta / props.baseline) * 100).toFixed(2));
+  if (props.baseline === undefined || props.baseline === 0) {
+    return <DurationContainer>{getDuration(props.duration, 2, true)}</DurationContainer>;
+  }
+
+  const delta = props.duration - props.baseline;
+  const deltaPct = Math.round(Math.abs((delta / props.baseline) * 100));
   const formattedAvgDuration = getDuration(props.baseline, 2, true);
   const status = delta > 0 ? 'slower' : delta < 0 ? 'faster' : 'equal';
 
@@ -149,17 +148,15 @@ function DurationComparison(props: DurationComparisonProps) {
     status === 'equal'
       ? t(`Equal to avg %s`, `${deltaPct}%`, formattedAvgDuration)
       : status === 'faster'
-        ? t(`-%s faster than avg %s`, `${deltaPct}%`, formattedAvgDuration)
-        : t(`+%s slower than avg %s`, `${deltaPct}%`, formattedAvgDuration);
+        ? t(`%s faster than avg %s`, `${deltaPct}%`, formattedAvgDuration)
+        : t(`%s slower than avg %s`, `${deltaPct}%`, formattedAvgDuration);
 
   return (
     <Fragment>
-      <Duration>
-        {getDuration(duration, 2, true)}{' '}
-        {props.isComparingSelfDuration && typeof props.selfDuration === 'number'
-          ? `(${Number(Math.abs((props.selfDuration - props.totalDuration / props.totalDuration) * 100).toFixed())}%)`
-          : null}
-      </Duration>
+      <DurationContainer>
+        {getDuration(props.duration, 2, true)}{' '}
+        {props.ratio ? `(${(props.ratio * 100).toFixed()}%)` : null}
+      </DurationContainer>
       {deltaPct >= MIN_PCT_DURATION_DIFFERENCE ? (
         <Comparison status={status}>{deltaText}</Comparison>
       ) : null}
@@ -167,7 +164,7 @@ function DurationComparison(props: DurationComparisonProps) {
   );
 }
 
-const Duration = styled('span')`
+const DurationContainer = styled('span')`
   font-weight: bold;
   margin-right: ${space(1)};
 `;
@@ -189,7 +186,7 @@ const TraceDrawerComponents = {
   IconBorder,
   EventDetailsLink,
   Button,
-  DurationComparison,
+  Duration,
 };
 
 export {TraceDrawerComponents};
