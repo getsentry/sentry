@@ -45,7 +45,6 @@ import {
 } from 'sentry/types';
 import {objectIsEmpty} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
@@ -61,6 +60,7 @@ import {Row, Tags} from 'sentry/views/performance/traceDetails/styles';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import type {TraceTree, TraceTreeNode} from '../../traceTree';
+import {useTraceAverageTransactionDuration} from '../../useTraceAverageTransactionDuration';
 
 import {IssueList} from './issues/issues';
 import {TraceDrawerComponents} from './styles';
@@ -202,7 +202,6 @@ function ReplaySection({
 }
 
 type TransactionDetailProps = {
-  averageDurations: TableData | undefined;
   location: Location;
   manager: VirtualizedViewManager;
   node: TraceTreeNode<TraceTree.Transaction>;
@@ -216,7 +215,6 @@ export function TransactionNodeDetails({
   organization,
   location,
   scrollToNode,
-  averageDurations,
   onParentClick,
 }: TransactionDetailProps) {
   const {projects} = useProjects();
@@ -224,15 +222,17 @@ export function TransactionNodeDetails({
     return [...node.errors, ...node.performance_issues];
   }, [node.errors, node.performance_issues]);
 
+  const {data: averageDurationQueryResult} = useTraceAverageTransactionDuration({
+    node,
+    location,
+    organization,
+  });
+
   const avgDurationInSeconds: number = useMemo(() => {
     return (
-      Number(
-        averageDurations?.data?.find(
-          dataRow => dataRow.title === node.value.transaction
-        )?.['avg(transaction.duration)']
-      ) / 1000
+      Number(averageDurationQueryResult?.data[0]?.['avg(transaction.duration)']) / 1000
     );
-  }, [averageDurations, node.value.transaction]);
+  }, [averageDurationQueryResult]);
 
   const {
     data: event,

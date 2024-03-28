@@ -1,7 +1,6 @@
 import type {Location} from 'history';
 
 import type {Organization} from 'sentry/types';
-import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/virtualizedViewManager';
 
 import {
@@ -27,9 +26,7 @@ export default function NodeDetail({
   manager,
   scrollToNode,
   onParentClick,
-  averageDurations,
 }: {
-  averageDurations: TableData | undefined;
   location: Location;
   manager: VirtualizedViewManager;
   node: TraceTreeNode<TraceTree.NodeValue>;
@@ -40,7 +37,6 @@ export default function NodeDetail({
   if (isTransactionNode(node)) {
     return (
       <TransactionNodeDetails
-        averageDurations={averageDurations}
         node={node}
         organization={organization}
         onParentClick={onParentClick}

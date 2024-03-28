@@ -1,4 +1,3 @@
-import {useMemo} from 'react';
 import type {Location} from 'history';
 
 import type {Organization} from 'sentry/types';
@@ -6,46 +5,22 @@ import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
-import type {TraceTree} from './traceTree';
+import type {TraceTree, TraceTreeNode} from './traceTree';
 
 type Props = {
   location: Location;
+  node: TraceTreeNode<TraceTree.Transaction>;
   organization: Organization;
-  tree: TraceTree;
 };
 
-export const useTraceAverageTransactionDurations = ({
-  tree,
+export const useTraceAverageTransactionDuration = ({
+  node,
   location,
   organization,
 }: Props) => {
-  const transactionTitles = useMemo(
-    () => [...tree.transactionTitles],
-    [tree.transactionTitles]
-  );
-
-  const transactionProjectIDs = useMemo(
-    () => [...tree.transactionProjectIDs],
-    [tree.transactionProjectIDs]
-  );
-
-  // Creates a comma separated string of transaction titles
-  const transactionsFilterValues = useMemo(() => {
-    return transactionTitles.reduce<string>(
-      (acc, transaction, index, allTransactions) => {
-        acc = acc + `${transaction}`;
-        if (index < allTransactions.length - 1) {
-          acc = acc + ',';
-        }
-        return acc;
-      },
-      ''
-    );
-  }, [transactionTitles]);
-
   const conditions = new MutableSearch('');
   conditions.setFilterValues('event.type', ['transaction']);
-  conditions.setFilterValues(' transaction', [`[${transactionsFilterValues}]`]);
+  conditions.setFilterValues(' transaction', [node.value.transaction]);
 
   const eventView = EventView.fromSavedQuery({
     id: undefined,
@@ -53,7 +28,7 @@ export const useTraceAverageTransactionDurations = ({
     fields: ['title', 'avg(transaction.duration)'],
     orderby: '-title',
     query: conditions.formatString(),
-    projects: transactionProjectIDs,
+    projects: [node.value.project_id],
     version: 2,
     start: undefined,
     end: undefined,
