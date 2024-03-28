@@ -20,6 +20,7 @@ import {
   isTransactionNode,
 } from './guards';
 import {
+  NoDataNode,
   ParentAutogroupNode,
   SiblingAutogroupNode,
   TraceTree,
@@ -163,6 +164,14 @@ function assertSiblingAutogroupedNode(
 ): asserts node is ParentAutogroupNode {
   if (!(node instanceof SiblingAutogroupNode)) {
     throw new Error('node is not a parent node');
+  }
+}
+
+function assertNoDataNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): asserts node is NoDataNode {
+  if (!(node instanceof NoDataNode)) {
+    throw new Error('node is not a no data node');
   }
 }
 
@@ -592,6 +601,34 @@ describe('TreeNode', () => {
       it('missing instrumentation', () => {
         expect(tree.list[3].path).toEqual(['ms:span', 'txn:event_id']);
       });
+    });
+
+    it('inserts no data node when txn has no span children', async () => {
+      const tree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              transaction: '/',
+              project_slug: 'project',
+              event_id: 'event_id',
+            }),
+          ],
+        })
+      );
+
+      MockApiClient.addMockResponse({
+        url: EVENT_REQUEST_URL,
+        method: 'GET',
+        body: makeEvent({}, []),
+      });
+
+      await tree.zoomIn(tree.list[1], true, {
+        api: new MockApiClient(),
+        organization: OrganizationFixture(),
+      });
+
+      assertNoDataNode(tree.list[2]);
+      expect(tree.list.length).toBe(3);
     });
 
     describe('autogrouped children', () => {

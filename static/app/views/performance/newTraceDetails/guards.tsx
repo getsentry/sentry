@@ -1,5 +1,6 @@
 import {
   MissingInstrumentationNode,
+  NoDataNode,
   ParentAutogroupNode,
   SiblingAutogroupNode,
   type TraceTree,
@@ -54,7 +55,7 @@ export function isTraceErrorNode(
 export function isRootNode(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): node is TraceTreeNode<null> {
-  return node.value === null;
+  return node.value === null && !(node instanceof NoDataNode);
 }
 
 export function isTraceNode(
@@ -64,6 +65,10 @@ export function isTraceNode(
     node.value &&
     ('orphan_errors' in node.value || 'transactions' in node.value)
   );
+}
+
+export function isNoDataNode(node: TraceTreeNode<TraceTree.NodeValue>): boolean {
+  return node instanceof NoDataNode;
 }
 
 export function shouldAddMissingInstrumentationSpan(sdk: string | undefined): boolean {

@@ -23,6 +23,7 @@ import {isRootTransaction} from '../traceDetails/utils';
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
+  isNoDataNode,
   isParentAutogroupedNode,
   isRootNode,
   isSiblingAutogroupedNode,
@@ -141,7 +142,8 @@ export declare namespace TraceTree {
     | ChildrenAutogroup
     | null;
 
-  type NodePath = `${'txn' | 'span' | 'ag' | 'trace' | 'ms' | 'error'}:${string}`;
+  type NodePath =
+    `${'txn' | 'span' | 'ag' | 'trace' | 'ms' | 'error' | 'empty'}:${string}`;
 
   type Metadata = {
     event_id: string | undefined;
@@ -503,8 +505,16 @@ export class TraceTree {
       TraceTreeNode<TraceTree.Span | TraceTree.Transaction>
     > = {};
 
+    // If we've already fetched children, the tree is already assembled
     if (parent.spanChildren.length > 0) {
       parent.zoomedIn = true;
+      return parent;
+    }
+
+    // If we have no spans, insert an empty node to indicate that there is no data
+    if (!spans.length) {
+      parent.zoomedIn = true;
+      parent.spanChildren.push(new NoDataNode(parent));
       return parent;
     }
 
@@ -959,10 +969,7 @@ export class TraceTree {
       .then(data => {
         node.fetchStatus = 'resolved';
 
-        const spans = data.entries.find(s => s.type === 'spans');
-        if (!spans) {
-          return data;
-        }
+        const spans = data.entries.find(s => s.type === 'spans') ?? {data: []};
 
         // Remove existing entries from the list
         const index = this._list.indexOf(node);
@@ -974,9 +981,7 @@ export class TraceTree {
         }
 
         // Api response is not sorted
-        if (spans.data) {
-          spans.data.sort((a, b) => a.start_timestamp - b.start_timestamp);
-        }
+        spans.data.sort((a, b) => a.start_timestamp - b.start_timestamp);
 
         TraceTree.FromSpans(node, data, spans.data, {sdk: data.sdk?.name});
 
@@ -1302,9 +1307,10 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     this._children = children;
   }
 
-  get spanChildren(): TraceTreeNode<
-    TraceTree.Span | TraceTree.MissingInstrumentationSpan
-  >[] {
+  get spanChildren(): (
+    | TraceTreeNode<TraceTree.Span | TraceTree.MissingInstrumentationSpan>
+    | NoDataNode
+  )[] {
     return this._spanChildren;
   }
 
@@ -1580,6 +1586,15 @@ export class SiblingAutogroupNode extends TraceTreeNode<TraceTree.SiblingAutogro
   }
 }
 
+export class NoDataNode extends TraceTreeNode<null> {
+  constructor(parent: TraceTreeNode<TraceTree.NodeValue> | null) {
+    super(parent, null, {
+      event_id: undefined,
+      project_slug: undefined,
+    });
+  }
+}
+
 function partialTransaction(
   partial: Partial<TraceTree.Transaction>
 ): TraceTree.Transaction {
@@ -1687,6 +1702,10 @@ function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
 
   if (isTraceErrorNode(n)) {
     return `error:${n.value.event_id}`;
+  }
+
+  if (isNoDataNode(n)) {
+    return `empty:node`;
   }
 
   if (isRootNode(n)) {
@@ -1842,6 +1861,10 @@ function printNode(t: TraceTreeNode<TraceTree.NodeValue>, offset: number): strin
   }
   if (isTraceNode(t)) {
     return padding + 'Trace';
+  }
+
+  if (isNoDataNode(t)) {
+    return padding + 'No Data';
   }
 
   if (isTraceErrorNode(t)) {
