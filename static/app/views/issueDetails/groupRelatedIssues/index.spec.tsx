@@ -64,7 +64,7 @@ describe('Related Issues View', function () {
     );
 
     // The issue that should show up on the table
-    await waitFor(() => screen.findByText(errorType));
+    expect(await screen.findByText(errorType)).toBeInTheDocument();
 
     expect(relatedIssuesMock).toHaveBeenCalled();
     expect(issuesInfoMock).toHaveBeenCalled();
