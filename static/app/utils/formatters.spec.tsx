@@ -2,6 +2,7 @@ import {RateUnit} from 'sentry/utils/discover/fields';
 import {
   DAY, // ms in day
   formatAbbreviatedNumber,
+  formatAbbreviatedNumberWithDynamicPrecision,
   formatFloat,
   formatNumberWithDynamicDecimalPoints,
   formatPercentage,
@@ -191,7 +192,7 @@ describe('formatAbbreviatedNumber()', function () {
   it('should format numbers smaller than 1', function () {
     expect(formatAbbreviatedNumber(0.1)).toBe('0.1');
     expect(formatAbbreviatedNumber(0.01)).toBe('0.01');
-    expect(formatAbbreviatedNumber(0.123)).toBe('0.12');
+    expect(formatAbbreviatedNumber(0.123)).toBe('0.123');
     expect(formatAbbreviatedNumber(0.99999)).toBe('1');
   });
 
@@ -214,21 +215,62 @@ describe('formatAbbreviatedNumber()', function () {
   });
 
   it('should round to 1 decimal place', function () {
-    expect(formatAbbreviatedNumber(100.12)).toBe('100.1');
+    expect(formatAbbreviatedNumber(100.12)).toBe('100.12');
     expect(formatAbbreviatedNumber(1500)).toBe('1.5k');
     expect(formatAbbreviatedNumber(1213122)).toBe('1.2m');
+    expect(formatAbbreviatedNumber(1011)).toBe('1k');
+    expect(formatAbbreviatedNumber(10911)).toBe('10.9k');
+    expect(formatAbbreviatedNumber(11911)).toBe('11k');
   });
 
-  it('should round to set amount of fraction digits', () => {
-    expect(formatAbbreviatedNumber(100.12, 3)).toBe('100.12');
-    expect(formatAbbreviatedNumber(199.99, 0)).toBe('200');
+  it('should round to set amount of significant digits', () => {
+    expect(formatAbbreviatedNumber(100.12, 3)).toBe('100');
+    expect(formatAbbreviatedNumber(199.99, 3)).toBe('200');
     expect(formatAbbreviatedNumber(1500, 3)).toBe('1.5k');
-    expect(formatAbbreviatedNumber(1213122, 2)).toBe('1.21m');
+    expect(formatAbbreviatedNumber(1213122, 3)).toBe('1.21m');
     expect(formatAbbreviatedNumber(1500000000000, 3)).toBe('1500b');
 
-    expect(formatAbbreviatedNumber('1249.23421', 2)).toBe('1.25k');
-    expect(formatAbbreviatedNumber('1239567891299', 2)).toBe('1239b');
-    expect(formatAbbreviatedNumber('158.80421626984128', 0)).toBe('159');
+    expect(formatAbbreviatedNumber('1249.23421', 3)).toBe('1.25k');
+    expect(formatAbbreviatedNumber('1239567891299', 3)).toBe('1240b');
+    expect(formatAbbreviatedNumber('158.80421626984128', 3)).toBe('159');
+  });
+});
+
+describe('formatAbbreviatedNumberWithDynamicPrecision()', function () {
+  it('should format numbers smaller than 1', function () {
+    expect(formatAbbreviatedNumberWithDynamicPrecision(0.1)).toBe('0.1');
+    expect(formatAbbreviatedNumberWithDynamicPrecision(0.01)).toBe('0.01');
+    expect(formatAbbreviatedNumberWithDynamicPrecision(0.123)).toBe('0.123');
+  });
+
+  it('should abbreviate numbers', function () {
+    expect(formatAbbreviatedNumberWithDynamicPrecision(0)).toBe('0');
+    expect(formatAbbreviatedNumberWithDynamicPrecision(100)).toBe('100');
+    expect(formatAbbreviatedNumberWithDynamicPrecision(1000)).toBe('1k');
+    expect(formatAbbreviatedNumberWithDynamicPrecision(10000000)).toBe('10m');
+    expect(formatAbbreviatedNumberWithDynamicPrecision(100000000000)).toBe('100b');
+  });
+
+  it('should abbreviate numbers that are strings', function () {
+    expect(formatAbbreviatedNumberWithDynamicPrecision('00')).toBe('0');
+    expect(formatAbbreviatedNumberWithDynamicPrecision('100')).toBe('100');
+    expect(formatAbbreviatedNumberWithDynamicPrecision('1000')).toBe('1k');
+    expect(formatAbbreviatedNumberWithDynamicPrecision('10000000')).toBe('10m');
+    expect(formatAbbreviatedNumberWithDynamicPrecision('100000000000')).toBe('100b');
+  });
+
+  it('should round to max two digits', () => {
+    expect(formatAbbreviatedNumberWithDynamicPrecision(1.00001)).toBe('1');
+    expect(formatAbbreviatedNumberWithDynamicPrecision(100.12)).toBe('100.12');
+    expect(formatAbbreviatedNumberWithDynamicPrecision(199.99)).toBe('199.99');
+    expect(formatAbbreviatedNumberWithDynamicPrecision(1500)).toBe('1.5k');
+    expect(formatAbbreviatedNumberWithDynamicPrecision(1213122)).toBe('1.21m');
+
+    expect(formatAbbreviatedNumberWithDynamicPrecision('1249.23421')).toBe('1.25k');
+    expect(formatAbbreviatedNumberWithDynamicPrecision('123956789129')).toBe('123.96b');
+    expect(formatAbbreviatedNumberWithDynamicPrecision('158.80421626984128')).toBe(
+      '158.8'
+    );
   });
 });
 

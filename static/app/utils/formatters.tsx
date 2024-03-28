@@ -385,26 +385,67 @@ export function formatPercentage(value: number, places: number = 2) {
 }
 
 /**
- * Formats a number to a string with a suffix, with a 2 decimal digits
- * without forcing trailing zeros
+ * Formats a number with an abbreviation e.g. 1000 -> 1k.
  *
- * @param value the number to format
+ * @param number the number to format
+ * @param precision the number of significant digits to include
+ * @param includeDecimals when true, formatted number will always include non trailing zero decimal places
  */
 export function formatAbbreviatedNumber(
-  value: number | string,
-  maximumFractionDigits: number = 1
+  number: number | string,
+  precision?: number,
+  includeDecimals?: boolean
 ): string {
-  value = Number(value);
-  const absNumber = Math.abs(value);
+  number = Number(number);
+
   const abbreviations = ['k', 'm', 'b'];
-  const index = Math.floor(Math.log10(absNumber) / 3);
-  if (index < 0) return formatNumberWithDynamicDecimalPoints(value); // Less than 1000, no abbreviation
-  if (index >= abbreviations.length) return `${Math.floor(value / 1000000000)}b`; // Too big to abbreviate
-  const suffix = abbreviations[Math.min(index - 1, abbreviations.length)] ?? '';
-  const scaledNumber = value / Math.pow(10, index * 3);
-  return (
-    formatNumberWithDynamicDecimalPoints(scaledNumber, maximumFractionDigits) + suffix
-  );
+
+  for (let i = 3; i >= 1; i--) {
+    const [suffixNum, suffix] = [Math.pow(10, i * 3), abbreviations[i - 1]] as const;
+    const shortValue = Math.floor(number / suffixNum);
+    const fitsBound = number % suffixNum;
+
+    if (shortValue <= 0) {
+      continue;
+    }
+
+    const useShortValue = !includeDecimals && (shortValue / 10 > 1 || !fitsBound);
+
+    if (useShortValue) {
+      if (precision === undefined) {
+        return `${shortValue}${suffix}`;
+      }
+      const formattedNumber = parseFloat(shortValue.toPrecision(precision)).toString();
+      return `${formattedNumber}${suffix}`;
+    }
+
+    const formattedNumber = formatFloat(
+      number / suffixNum,
+      precision || 1
+    ).toLocaleString(undefined, {
+      maximumSignificantDigits: precision,
+    });
+
+    return `${formattedNumber}${suffix}`;
+  }
+
+  return number.toLocaleString(undefined, {maximumSignificantDigits: precision});
+}
+
+export function formatAbbreviatedNumberWithDynamicPrecision(
+  value: number | string
+): string {
+  const number = Number(value);
+
+  if (number === 0) {
+    return '0';
+  }
+
+  const numOfDigits = Math.floor(Math.log10(Math.abs(number))) + 1;
+
+  const numOfFormattedDigits = numOfDigits % 3 === 0 ? 3 : numOfDigits % 3;
+
+  return formatAbbreviatedNumber(value, numOfFormattedDigits + 2, true);
 }
 
 /**
