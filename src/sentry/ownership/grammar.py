@@ -116,12 +116,11 @@ class Matcher(namedtuple("Matcher", "type pattern")):
     def load(cls, data: Mapping[str, str]) -> Matcher:
         return cls(data["type"], data["pattern"])
 
-    @staticmethod
-    def munge_if_needed(data: PathSearchable) -> tuple[Sequence[Mapping[str, Any]], Sequence[str]]:
+    def munge_if_needed(self, data: PathSearchable) -> tuple[Sequence[Mapping[str, Any]], Sequence[str]]:
         keys = ["filename", "abs_path"]
         platform = data.get("platform")
         sdk_name = get_sdk_name(data)
-        frames = find_stack_frames(data)
+        frames = self.find_in_app_stack_frames(data)
         if platform:
             munged = munged_filename_and_frames(platform, frames, "munged_filename", sdk_name)
             if munged:
@@ -130,13 +129,17 @@ class Matcher(namedtuple("Matcher", "type pattern")):
 
         return frames, keys
 
+    @staticmethod
+    def find_in_app_stack_frames(data: PathSearchable) -> Sequence[Mapping[str, Any]]:
+        return [frame for frame in find_stack_frames if frame.get("in_app")]
+
     def test(self, data: PathSearchable) -> bool:
         if self.type == URL:
             return self.test_url(data)
         elif self.type == PATH:
             return self.test_frames(*self.munge_if_needed(data))
         elif self.type == MODULE:
-            return self.test_frames(find_stack_frames(data), ["module"])
+            return self.test_frames(self.find_in_app_stack_frames(data), ["module"])
         elif self.type.startswith("tags."):
             return self.test_tag(data)
         elif self.type == CODEOWNERS:
