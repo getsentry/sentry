@@ -26,7 +26,7 @@ import {WidgetCardPanel, WidgetTitleRow} from 'sentry/views/dashboards/widgetCar
 import {DashboardsMEPContext} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import {Toolbar} from 'sentry/views/dashboards/widgetCard/toolbar';
 import WidgetCardContextMenu from 'sentry/views/dashboards/widgetCard/widgetCardContextMenu';
-import {getWidgetTitle} from 'sentry/views/ddm/widget';
+import {getWidgetTitle} from 'sentry/views/metrics/widget';
 
 type Props = {
   isEditingDashboard: boolean;

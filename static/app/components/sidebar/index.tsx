@@ -50,7 +50,7 @@ import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import MetricsOnboardingSidebar from 'sentry/views/ddm/ddmOnboarding/sidebar';
+import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
 import {releaseLevelAsBadgeProps as HTTPModuleBadgeProps} from 'sentry/views/performance/http/settings';
 
 import {ProfilingOnboardingSidebar} from '../profiling/ProfilingOnboarding/profilingOnboardingSidebar';

@@ -32,7 +32,7 @@ import {
   getMetricWidgetTitle,
   useGenerateExpressionId,
 } from 'sentry/views/dashboards/metrics/utils';
-import {MetricDetails} from 'sentry/views/ddm/widgetDetails';
+import {MetricDetails} from 'sentry/views/metrics/widgetDetails';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 interface Props extends ModalRenderProps, WidgetViewerModalOptions {

@@ -30,11 +30,11 @@ import {
   filterQueriesByDisplayType,
 } from 'sentry/views/dashboards/metrics/utils';
 import {DisplayType} from 'sentry/views/dashboards/types';
-import {EquationSymbol} from 'sentry/views/ddm/equationSymbol copy';
-import {FormulaInput} from 'sentry/views/ddm/formulaInput';
-import {getCreateAlert} from 'sentry/views/ddm/metricQueryContextMenu';
-import {QueryBuilder} from 'sentry/views/ddm/queryBuilder';
-import {getQuerySymbol, QuerySymbol} from 'sentry/views/ddm/querySymbol';
+import {EquationSymbol} from 'sentry/views/metrics/equationSymbol copy';
+import {FormulaInput} from 'sentry/views/metrics/formulaInput';
+import {getCreateAlert} from 'sentry/views/metrics/metricQueryContextMenu';
+import {QueryBuilder} from 'sentry/views/metrics/queryBuilder';
+import {getQuerySymbol, QuerySymbol} from 'sentry/views/metrics/querySymbol';
 
 interface Props {
   addEquation: () => void;

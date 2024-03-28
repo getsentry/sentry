@@ -39,7 +39,7 @@ import {
 } from 'sentry/views/alerts/utils';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
 import {getSupportedAndOmittedTags} from 'sentry/views/alerts/wizard/options';
-import {MetricSearchBar} from 'sentry/views/ddm/metricSearchBar';
+import {MetricSearchBar} from 'sentry/views/metrics/metricSearchBar';
 
 import {getProjectOptions} from '../utils';
 

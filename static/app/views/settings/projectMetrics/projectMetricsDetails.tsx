@@ -30,7 +30,7 @@ import {useBlockMetric} from 'sentry/utils/metrics/useBlockMetric';
 import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import {CodeLocations} from 'sentry/views/ddm/codeLocations';
+import {CodeLocations} from 'sentry/views/metrics/codeLocations';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {useAccess} from 'sentry/views/settings/projectMetrics/access';
 import {BlockButton} from 'sentry/views/settings/projectMetrics/blockButton';

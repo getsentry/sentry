@@ -18,9 +18,9 @@ import {
   type WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import {getEquationSymbol} from 'sentry/views/ddm/equationSymbol copy';
-import {getQuerySymbol} from 'sentry/views/ddm/querySymbol';
-import {getUniqueQueryIdGenerator} from 'sentry/views/ddm/utils/uniqueQueryId';
+import {getEquationSymbol} from 'sentry/views/metrics/equationSymbol copy';
+import {getQuerySymbol} from 'sentry/views/metrics/querySymbol';
+import {getUniqueQueryIdGenerator} from 'sentry/views/metrics/utils/uniqueQueryId';
 
 function extendQuery(query = '', dashboardFilters?: DashboardFilters) {
   if (!dashboardFilters?.release?.length) {
