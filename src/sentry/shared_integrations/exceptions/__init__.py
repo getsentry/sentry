@@ -169,6 +169,12 @@ class DuplicateDisplayNameError(IntegrationError):
     pass
 
 
+class ConversationBlockedByUserError(ApiError):
+    \"\"\"\n    Error raised when a user has blocked the conversation.\n    \"\"\"
+    code = 403
+    def __init__(self, text: str, url: str | None = None, host: str | None = None, path: str | None = None) -> None:
+        super().__init__(text=f\"User blocked the conversation. {text}\", code=self.code, url=url, host=host, path=path)
+
 class IntegrationFormError(IntegrationError):
     def __init__(self, field_errors: Mapping[str, Any]) -> None:
         super().__init__("Invalid integration action")

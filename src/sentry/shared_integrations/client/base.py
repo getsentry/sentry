@@ -249,7 +249,14 @@ class BaseApiClient(TrackResponseMixin):
                 )
                 if raw_response:
                     return resp
-                resp.raise_for_status()
+                try:
+                    resp.raise_for_status()
+                except HTTPError as e:
+                    if \"ConversationBlockedByUser\" in str(e):
+                        sentry_sdk.capture_message(f\"ConversationBlockedByUserError: User ID and relevant info.\", level='error')
+                        raise ConversationBlockedByUserError from e
+                    else:
+                        raise
         except RestrictedIPAddress as e:
             self.track_response_data("restricted_ip_address", e, extra=extra)
             self.record_error(e)
