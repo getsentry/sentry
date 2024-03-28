@@ -46,7 +46,6 @@ export function CronDetailsTimeline({monitor, organization}: Props) {
       {
         query: {
           monitor: monitor.id,
-          useGUIDs: true,
           ...selectionQuery,
           ...location.query,
         },
