@@ -40,7 +40,7 @@ def test_dlq_invalid_messages(factories, topic_name, consumer_type) -> None:
     organization = factories.create_organization()
     project = factories.create_project(organization=organization)
 
-    valid_payload = msgpack.packb(
+    empty_event_payload = msgpack.packb(
         {
             "type": "event",
             "project_id": project.id,
@@ -49,7 +49,6 @@ def test_dlq_invalid_messages(factories, topic_name, consumer_type) -> None:
             "event_id": "aaa",
         }
     )
-
     bogus_payload = b"bogus message"
 
     partition = Partition(Topic(topic_name), 0)
@@ -66,14 +65,16 @@ def test_dlq_invalid_messages(factories, topic_name, consumer_type) -> None:
     )
     strategy = factory.create_with_partitions(Mock(), Mock())
 
-    # Valid payload raises original error
-    with pytest.raises(Exception) as exc_info:
-        message = make_message(valid_payload, partition, offset)
-        strategy.submit(message)
-    assert not isinstance(exc_info.value, InvalidMessage)
+    # Empty event raises InvalidMessage error (except for Attachments, which drops these in FilterStep)
+    if consumer_type != ConsumerType.Attachments:
+        with pytest.raises(InvalidMessage) as exc_info:
+            message = make_message(empty_event_payload, partition, offset)
+            strategy.submit(message)
+
+        assert exc_info.value.partition == partition
+        assert exc_info.value.offset == offset
 
     # Invalid payload raises InvalidMessage error
-
     with pytest.raises(InvalidMessage) as exc_info:
         message = make_message(bogus_payload, partition, offset)
         strategy.submit(message)
