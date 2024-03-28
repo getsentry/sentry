@@ -612,7 +612,9 @@ export class VirtualizedViewManager {
 
     const max_distance = Math.max(Math.abs(distance_x), Math.abs(distance_width));
     const p = max_distance !== 0 ? Math.log10(max_distance) - 1 : 1;
-    const duration = 200 + 100 * Math.abs(p * p);
+    // We need to clamp the duration to prevent the animation from being too slow,
+    // sometimes the distances are very large as traces can be hours in duration
+    const duration = clamp(200 + 100 * Math.abs(p * p), 200, 600);
 
     const start = performance.now();
     const rafCallback = (now: number) => {
