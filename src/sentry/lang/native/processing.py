@@ -456,8 +456,7 @@ def process_native_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
 
 
 def get_native_symbolication_function(
-    data: Any,
-    stacktraces: list[StacktraceInfo]
+    data: Any, stacktraces: list[StacktraceInfo]
 ) -> Callable[[Symbolicator, Any], Any] | None:
     """
     Returns the appropriate symbolication function (or `None`) that will process
