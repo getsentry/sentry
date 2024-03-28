@@ -288,6 +288,11 @@ export class VideoReplayer {
     // Show the next video
     this.showVideo(nextVideo);
 
+    // Preload the next few videos
+    if (index < this._attachments.length) {
+      this.getOrCreateVideo(index + 1);
+    }
+
     // Set video to proper offset
     if (nextVideo) {
       this.setVideoTime(nextVideo, segmentOffsetMs);
