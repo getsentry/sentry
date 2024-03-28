@@ -37,18 +37,7 @@ def deobfuscate_exception_value(data: Any) -> Any:
     return data
 
 
-def _merge_frame_context(new_frame: dict[str, Any], symbolicated: dict[str, Any]):
-    if symbolicated.get("pre_context"):
-        new_frame["pre_context"] = symbolicated["pre_context"]
-    if symbolicated.get("context_line"):
-        new_frame["context_line"] = symbolicated["context_line"]
-    if symbolicated.get("post_context"):
-        new_frame["post_context"] = symbolicated["post_context"]
-
-
 def _merge_frame(new_frame: dict[str, Any], symbolicated: dict[str, Any]):
-    _merge_frame_context(new_frame, symbolicated)
-
     if symbolicated.get("function"):
         new_frame["function"] = symbolicated["function"]
 
@@ -72,6 +61,13 @@ def _merge_frame(new_frame: dict[str, Any], symbolicated: dict[str, Any]):
         new_frame["module"] = symbolicated["module"]
     if symbolicated.get("in_app") is not None:
         new_frame["in_app"] = symbolicated["in_app"]
+
+    if symbolicated.get("pre_context"):
+        new_frame["pre_context"] = symbolicated["pre_context"]
+    if symbolicated.get("context_line"):
+        new_frame["context_line"] = symbolicated["context_line"]
+    if symbolicated.get("post_context"):
+        new_frame["post_context"] = symbolicated["post_context"]
 
 
 def _handles_frame(frame: dict[str, Any], platform: str) -> bool:
