@@ -88,14 +88,10 @@ def get_storage(config=None):
 
 
 def get_relocation_storage(config=None):
-    if config is not None:
-        backend = config["backend"]
-        relocation = config["relocation"]
-    else:
-        from sentry import options as options_store
+    from sentry import options as options_store
 
-        backend = options_store.get("filestore.backend")
-        relocation = options_store.get("filestore.relocation")
+    backend = options_store.get("filestore.relocation-backend")
+    relocation = options_store.get("filestore.relocation-options")
 
     try:
         backend = settings.SENTRY_FILESTORE_ALIASES[backend]
