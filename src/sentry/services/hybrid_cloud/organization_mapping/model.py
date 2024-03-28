@@ -8,7 +8,7 @@ from datetime import datetime
 from django.utils import timezone
 from pydantic.fields import Field
 
-from sentry.services.hybrid_cloud import RpcModel
+from sentry.services.hybrid_cloud import RpcModel, RpcOptionalUpdate
 from sentry.services.hybrid_cloud.organization import (
     RpcOrganizationMappingFlags,
     RpcOrganizationSummary,
@@ -29,10 +29,7 @@ class RpcOrganizationMappingUpdate(RpcModel):
     status: int = 0
     slug: str = ""
     region_name: str = ""
-    # When not set, no change to customer id performed,
-    # when set with a tuple, the customer_id set to either None or the string
-    # that is the first element.
-    customer_id: tuple[str | None] | None = None
+    customer_id: RpcOptionalUpdate[str] | None = None
     requires_2fa: bool = False
     early_adopter: bool = False
     codecov_access: bool = False

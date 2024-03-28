@@ -8,3 +8,8 @@ class RpcOrganizationSlugReservation(pydantic.BaseModel):
     slug: str
     region_name: str
     reservation_type: int
+
+
+class RpcOrganizationSlugBulkReservation(pydantic.BaseModel):
+    organization_id: int
+    slug: str
