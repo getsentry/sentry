@@ -11,10 +11,10 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type RouteParams = {
   groupId: string;
-  orgId: string; // XXX: Find caller and rename from orgId to orgSlug
 };
 
 type Props = RouteComponentProps<RouteParams, {}>;
@@ -24,7 +24,10 @@ type RelatedIssuesResponse = {
 };
 
 function GroupRelatedIssues({params}: Props) {
-  const {groupId, orgId} = params;
+  const {groupId} = params;
+
+  const organization = useOrganization();
+  const orgSlug = organization.slug;
 
   // Fetch the list of related issues
   const {
@@ -58,9 +61,9 @@ function GroupRelatedIssues({params}: Props) {
           />
         ) : groups ? (
           <GroupList
-            endpointPath={`/organizations/${orgId}/issues/`}
-            orgSlug={orgId}
-            query={`issue.id:${groups}`}
+            endpointPath={`/organizations/${orgSlug}/issues/`}
+            orgSlug={orgSlug}
+            queryParams={{query: `issue.id:[${groups}]`}}
             query=""
             source="related-issues-tab"
             renderEmptyMessage={() => <hr />}

@@ -15,8 +15,7 @@ describe('Related Issues View', function () {
   const groupId = '12345678';
   const relatedGroup = '15';
   const orgIssuesEndpoint = `/organizations/${orgSlug}/issues/?query=issue.id%3A${relatedGroup}`;
-  // XXX: Later I need to figure out why the component receives the orgId as a slug
-  const params = {orgId: orgSlug, groupId: groupId};
+  const params = {groupId: groupId};
   const errorType = 'RuntimeError';
 
   beforeEach(function () {
