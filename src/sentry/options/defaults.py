@@ -266,6 +266,12 @@ register(
 
 # Staff
 register(
+    "staff.ga-rollout",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "staff.user-email-allowlist",
     type=Sequence,
     default=[],
@@ -592,6 +598,11 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Enable use of Symbolicator proguard processing for specific projects.
+register("symbolicator.proguard-processing-projects", type=Sequence, default=[])
+# Enable use of Symbolicator proguard processing for fraction of projects.
+register("symbolicator.proguard-processing-sample-rate", default=0.0)
 
 # Post Process Error Hook Sampling
 register(
@@ -2211,13 +2222,6 @@ register(
 # Sample rate for double writing to experimental dsn
 register(
     "store.experimental-dsn-double-write.sample-rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# sample rate for pickle error collection
-register(
-    "pickle.send-error-to-sentry",
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

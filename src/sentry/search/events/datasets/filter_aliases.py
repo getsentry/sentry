@@ -299,3 +299,13 @@ def device_class_converter(
     if value not in device_class_map:
         raise InvalidSearchQuery(f"{value} is not a supported device.class")
     return Condition(builder.column("device.class"), Op.IN, list(device_class_map[value]))
+
+
+def lowercase_search(
+    builder: builder.QueryBuilder, search_filter: SearchFilter
+) -> WhereType | None:
+    """Convert the search value to lower case"""
+    value = search_filter.value.value
+    return builder.default_filter_converter(
+        SearchFilter(search_filter.key, search_filter.operator, SearchValue(value.lower()))
+    )
