@@ -226,7 +226,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:settings-legal-tos-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:slack-block-kit", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:slack-overage-notifications", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    manager.add("organizations:slack-thread", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:slack-thread-issue-alert", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:snql-join-reports", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:sourcemaps-bundle-flat-file-indexing", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
