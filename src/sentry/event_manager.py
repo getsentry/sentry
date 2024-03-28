@@ -2179,51 +2179,46 @@ def _get_severity_metadata_for_group(
         else False
     )
     is_error_group = group_type == ErrorGroupType.type_id if group_type else True
-    feature_enabled = features.has("projects:first-event-severity-calculation", event.project)
+    if not is_supported_platform or not is_error_group:
+        return {}
 
-    should_calculate_severity = feature_enabled and is_supported_platform and is_error_group
-    if should_calculate_severity:
-        from sentry import ratelimits as ratelimiter
+    from sentry import ratelimits as ratelimiter
 
-        limit = options.get("issues.severity.seer-global-rate-limit", 25)
-        if ratelimiter.backend.is_limited(
-            "seer:severity-calculation:global-limit",
-            limit=limit,
-            window=1,  # starting this out 25 requests per second
-        ):
-            logger.warning(
-                "get_severity_metadata_for_group.rate_limited_globally",
-                extra={"event_id": event.event_id, "project_id": project_id},
-            )
-            metrics.incr("issues.severity.rate_limited_globally")
+    limit = options.get("issues.severity.seer-global-rate-limit", 25)
+    if ratelimiter.backend.is_limited(
+        "seer:severity-calculation:global-limit",
+        limit=limit,
+        window=1,  # starting this out 25 requests per second
+    ):
+        logger.warning(
+            "get_severity_metadata_for_group.rate_limited_globally",
+            extra={"event_id": event.event_id, "project_id": project_id},
+        )
+        metrics.incr("issues.severity.rate_limited_globally")
 
-        limit = options.get("issues.severity.seer-project-rate-limit", 5)
-        if ratelimiter.backend.is_limited(
-            f"seer:severity-calculation:{project_id}",
-            limit=limit,
-            window=1,  # starting this out 5 requests per second
-        ):
-            logger.warning(
-                "get_severity_metadata_for_group.rate_limited_for_project",
-                extra={"event_id": event.event_id, "project_id": project_id},
-            )
-            metrics.incr(
-                "issues.severity.rate_limited_for_project", tags={"project_id": project_id}
-            )
+    limit = options.get("issues.severity.seer-project-rate-limit", 5)
+    if ratelimiter.backend.is_limited(
+        f"seer:severity-calculation:{project_id}",
+        limit=limit,
+        window=1,  # starting this out 5 requests per second
+    ):
+        logger.warning(
+            "get_severity_metadata_for_group.rate_limited_for_project",
+            extra={"event_id": event.event_id, "project_id": project_id},
+        )
+        metrics.incr("issues.severity.rate_limited_for_project", tags={"project_id": project_id})
 
-        try:
-            severity, reason = _get_severity_score(event)
+    try:
+        severity, reason = _get_severity_score(event)
 
-            return {
-                "severity": severity,
-                "severity_reason": reason,
-            }
-        except Exception as e:
-            logger.warning("Failed to calculate severity score for group", repr(e))
+        return {
+            "severity": severity,
+            "severity_reason": reason,
+        }
+    except Exception as e:
+        logger.warning("Failed to calculate severity score for group", repr(e))
 
-            return {}
-
-    return {}
+        return {}
 
 
 def _get_priority_for_group(severity: Mapping[str, Any], kwargs: Mapping[str, Any]) -> int:
