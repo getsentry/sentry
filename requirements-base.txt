@@ -35,6 +35,7 @@ lxml>=4.9.3
 maxminddb>=2.3
 mistune>=2.0.3
 mmh3>=4.0.0
+openapi-pydantic==0.4.0
 packaging>=21.3
 parsimonious>=0.10.0
 petname>=2.6
