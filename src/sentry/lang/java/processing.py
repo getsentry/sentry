@@ -217,8 +217,8 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         return
 
     should_do_ab_test = do_proguard_processing_ab_test()
-    symbolicator_exceptions = []
-    symbolicator_stacktraces = []
+    symbolicator_exceptions: list[dict[str, Any]] = []
+    symbolicator_stacktraces: list[list[dict[str, Any]]] = []
 
     processing_errors = response.get("errors", [])
     if len(processing_errors) > 0 and not should_do_ab_test:
