@@ -456,8 +456,13 @@ def process_native_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
 
 
 def get_native_symbolication_function(
-    data, stacktraces
+    data: Any,
+    stacktraces: list[StacktraceInfo]
 ) -> Callable[[Symbolicator, Any], Any] | None:
+    """
+    Returns the appropriate symbolication function (or `None`) that will process
+    the event, based on the Event `data`, and the supplied `stacktraces`.
+    """
     if is_minidump_event(data):
         return process_minidump
     elif is_applecrashreport_event(data):
