@@ -1,7 +1,6 @@
 import logging
 import re
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any
 
 import sentry_sdk
 from rest_framework.exceptions import ParseError
@@ -22,6 +21,7 @@ from sentry.snuba.discover import create_result_key, zerofill
 from sentry.snuba.metrics_performance import query as metrics_query
 from sentry.snuba.referrer import Referrer
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils.iterators import chunked
 from sentry.utils.snuba import SnubaTSResult
 
 logger = logging.getLogger(__name__)
@@ -90,8 +90,6 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
 
         query = request.GET.get("query")
 
-        top_trending_transactions = {}
-
         def get_top_events(user_query, params, event_limit, referrer):
             top_event_columns = selected_columns[:]
             top_event_columns.append("count()")
@@ -113,21 +111,22 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             )
 
         def generate_top_transaction_query(events):
-            top_transaction_names = [
-                re.sub(r'"', '\\"', event.get("transaction")) for event in events
+            pairs = [
+                (event["project_id"], re.sub(r'"', '\\"', event["transaction"])) for event in events
             ]
-            top_transaction_as_str = ", ".join(
-                f'"{transaction}"' for transaction in top_transaction_names
-            )
-            return f"transaction:[{top_transaction_as_str}]"
+            conditions = [
+                f"(project_id:{project_id} transaction:{transaction})"
+                for project_id, transaction in pairs
+            ]
+            return " OR ".join(conditions)
 
         def get_timeseries(top_events, _, rollup, zerofill_results):
             # Split top events into multiple queries for bulk timeseries query
             data = top_events["data"]
-            split_top_events = [
-                data[i : i + EVENTS_PER_QUERY] for i in range(0, len(data), EVENTS_PER_QUERY)
+
+            queries = [
+                generate_top_transaction_query(chunk) for chunk in chunked(data, EVENTS_PER_QUERY)
             ]
-            queries = [generate_top_transaction_query(t_e) for t_e in split_top_events]
 
             timeseries_columns = selected_columns[:]
             timeseries_columns.append(trend_function)
@@ -162,7 +161,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             translated_groupby = ["project_id", "transaction"]
             results = {}
             formatted_results = {}
-            for index, item in enumerate(top_events["data"]):
+            for index, item in enumerate(data):
                 result_key = create_result_key(item, translated_groupby, {})
                 results[result_key] = {
                     "order": index,
@@ -212,7 +211,6 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             )
 
             # Fetch transactions names with the highest event count
-            nonlocal top_trending_transactions
             top_trending_transactions = get_top_events(
                 user_query=user_query,
                 params=params,
@@ -243,36 +241,22 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             return data
 
         def get_trends_data(stats_data, request):
-            trend_function = request.GET.get("trendFunction", "p50()")
-
-            trends_request: dict[str, Any] = {
-                "data": {},
-                "sort": None,
-                "trendFunction": None,
-            }
-
-            trends_request["sort"] = (
-                "" if trend_type == ANY else request.GET.get("sort", "trend_percentage()")
-            )
-            trends_request["trendFunction"] = trend_function
-
-            # list of requests to send to microservice async
-            trends_requests = []
-
             stats_data = dict(
                 [format_start_end(data) for data in list(stats_data.items()) if data[1] is not None]
             )
 
-            # split the txns data into multiple dictionaries
-            split_transactions_data = [
-                dict(list(stats_data.items())[i : i + EVENTS_PER_QUERY])
-                for i in range(0, len(stats_data), EVENTS_PER_QUERY)
-            ]
+            trend_sort = "" if trend_type == ANY else request.GET.get("sort", "trend_percentage()")
+            trend_function = request.GET.get("trendFunction", "p50()")
 
-            for i in range(len(split_transactions_data)):
-                trends_request = trends_request.copy()
-                trends_request["data"] = split_transactions_data[i]
-                trends_requests.append(trends_request)
+            # list of requests to send to microservice async
+            trends_requests = [
+                {
+                    "data": dict(chunk),
+                    "sort": trend_sort,
+                    "trendFunction": trend_function,
+                }
+                for chunk in chunked(stats_data.items(), EVENTS_PER_QUERY)
+            ]
 
             # send the data to microservice
             results = list(_query_thread_pool.map(detect_breakpoints, trends_requests))
@@ -284,9 +268,9 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 trend_results += output_dict
 
             # sort the results into trending events list
-            if trends_request["sort"] == "trend_percentage()":
+            if trend_sort == "trend_percentage()":
                 trending_events = sorted(trend_results, key=lambda d: d["trend_percentage"])
-            elif trends_request["sort"] == "-trend_percentage()":
+            elif trend_sort == "-trend_percentage()":
                 trending_events = sorted(
                     trend_results, key=lambda d: d["trend_percentage"], reverse=True
                 )

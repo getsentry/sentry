@@ -344,3 +344,80 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
 
         assert len(trends_call_args_data.get(f"{project1.id},bar")) > 0
         assert len(trends_call_args_data.get(f"{project2.id},bar")) > 0
+
+    @mock.patch("sentry.api.endpoints.organization_events_trends_v2.detect_breakpoints")
+    @mock.patch("sentry.api.endpoints.organization_events_trends_v2.EVENTS_PER_QUERY", 2)
+    def test_foo(self, mock_detect_breakpoints):
+        project1 = self.create_project(organization=self.org)
+        project2 = self.create_project(organization=self.org)
+
+        # force these 2 transactions from different projects
+        # to fall into the FIRST bucket when quering
+        for i in range(2):
+            self.store_performance_metric(
+                name=TransactionMRI.DURATION.value,
+                tags={"transaction": "foo"},
+                org_id=self.org.id,
+                project_id=project1.id,
+                value=2,
+                hours_before_now=2,
+            )
+            self.store_performance_metric(
+                name=TransactionMRI.DURATION.value,
+                tags={"transaction": "bar"},
+                org_id=self.org.id,
+                project_id=project2.id,
+                value=2,
+                hours_before_now=2,
+            )
+        # force these 2 transactions from different projects
+        # to fall into the SECOND bucket when quering
+        self.store_performance_metric(
+            name=TransactionMRI.DURATION.value,
+            tags={"transaction": "foo"},
+            org_id=self.org.id,
+            project_id=project2.id,
+            value=2,
+            hours_before_now=2,
+        )
+        self.store_performance_metric(
+            name=TransactionMRI.DURATION.value,
+            tags={"transaction": "bar"},
+            org_id=self.org.id,
+            project_id=project1.id,
+            value=2,
+            hours_before_now=2,
+        )
+
+        with self.feature([*self.features, "organizations:global-views"]):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "end": iso_format(self.now),
+                    "start": iso_format(self.now - timedelta(days=1)),
+                    "interval": "1h",
+                    "field": ["project", "transaction"],
+                    "query": "event.type:transaction",
+                    "project": [project1.id, project2.id],
+                    "trendFunction": "p95(transaction.duration)",
+                    "topEvents": 4,
+                    "statsPeriod": "3h",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+
+        trends_call_args_data_1 = mock_detect_breakpoints.call_args_list[0][0][0]["data"]
+        trends_call_args_data_2 = mock_detect_breakpoints.call_args_list[1][0][0]["data"]
+
+        assert len(trends_call_args_data_1[f"{project1.id},foo"]) > 0
+        assert len(trends_call_args_data_1[f"{project2.id},bar"]) > 0
+        assert len(trends_call_args_data_2[f"{project1.id},bar"]) > 0
+        assert len(trends_call_args_data_2[f"{project2.id},foo"]) > 0
+
+        for trends_call_args_data in [trends_call_args_data_1, trends_call_args_data_2]:
+            for k, v in trends_call_args_data.items():
+                for entry in v["data"]:
+                    # each entry should have exactly 1 data point
+                    assert len(entry[1]) == 1
