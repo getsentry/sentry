@@ -229,6 +229,18 @@ ALL_KILLSWITCH_OPTIONS = {
             "project_id": "A project ID to filter events by.",
         },
     ),
+    "issues.skip-seer-requests": KillswitchInfo(
+        description="""
+        Do not make requests to Seer.
+
+        This is intended as a hard stop on making calls to Seer where Seer
+        may be broken and otherwise causing interruptions or delays to ingestion.
+        Skipping the dependencies on Seer should remove it from the critical path.
+        """,
+        fields={
+            "project_id": "A project ID to filter events by.",
+        },
+    ),
 }
 
 
