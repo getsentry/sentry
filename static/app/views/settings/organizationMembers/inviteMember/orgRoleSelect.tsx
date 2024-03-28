@@ -50,10 +50,10 @@ class OrganizationRoleSelect extends Component<Props> {
 
         <PanelBody>
           {roleList.map(role => {
-            const {desc, name, id, allowed, isRetired: roleRetired} = role;
+            const {desc, name, id, isAllowed, isRetired: roleRetired} = role;
 
             const isRetired = enforceRetired && roleRetired;
-            const isDisabled = disabled || isRetired || (enforceAllowed && !allowed);
+            const isDisabled = disabled || isRetired || (enforceAllowed && !isAllowed);
 
             return (
               <PanelItem

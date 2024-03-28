@@ -107,21 +107,20 @@ export interface DetailedTeam extends Team {
   projects: Project[];
 }
 
-// TODO: Rename to BaseRole
-export interface MemberRole {
+export interface BaseRole {
   desc: string;
   id: string;
   name: string;
-  allowed?: boolean; // Deprecated: use isAllowed
   isAllowed?: boolean;
   isRetired?: boolean;
+  isTeamRolesAllowed?: boolean;
 }
-export interface OrgRole extends MemberRole {
+export interface OrgRole extends BaseRole {
   minimumTeamRole: string;
   isGlobal?: boolean;
   is_global?: boolean; // Deprecated: use isGlobal
 }
-export interface TeamRole extends MemberRole {
+export interface TeamRole extends BaseRole {
   isMinimumRoleFor: string;
 }
 
