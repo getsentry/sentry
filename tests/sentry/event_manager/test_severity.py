@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 from urllib3 import HTTPResponse
 from urllib3.exceptions import MaxRetryError
 
+from sentry import options
 from sentry.event_manager import (
     NON_TITLE_EVENT_TITLES,
     EventManager,
@@ -15,6 +16,7 @@ from sentry.event_manager import (
 )
 from sentry.models.group import Group
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
@@ -315,24 +317,24 @@ class TestGetEventSeverity(TestCase):
 
 
 @region_silo_test
+@apply_feature_flag_on_cls("projects:first-event-severity-calculation")
 class TestEventManagerSeverity(TestCase):
     @patch("sentry.event_manager._get_severity_score", return_value=(0.1121, "ml"))
     def test_flag_on(self, mock_get_severity_score: MagicMock):
-        with self.feature({"projects:first-event-severity-calculation": True}):
-            manager = EventManager(
-                make_event(
-                    exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]},
-                    platform="python",
-                )
+        manager = EventManager(
+            make_event(
+                exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]},
+                platform="python",
             )
-            event = manager.save(self.project.id)
+        )
+        event = manager.save(self.project.id)
 
-            mock_get_severity_score.assert_called()
-            assert (
-                event.group
-                and event.group.get_event_metadata()["severity"] == 0.1121
-                and event.group.get_event_metadata()["severity_reason"] == "ml"
-            )
+        mock_get_severity_score.assert_called()
+        assert (
+            event.group
+            and event.group.get_event_metadata()["severity"] == 0.1121
+            and event.group.get_event_metadata()["severity_reason"] == "ml"
+        )
 
     @patch("sentry.event_manager._get_severity_score", return_value=(0.1121, "ml"))
     def test_flag_off(self, mock_get_severity_score: MagicMock):
@@ -356,7 +358,31 @@ class TestEventManagerSeverity(TestCase):
     def test_get_severity_score_not_called_on_second_event(
         self, mock_get_severity_score: MagicMock
     ):
-        with self.feature({"projects:first-event-severity-calculation": True}):
+        nope_event = EventManager(
+            make_event(
+                exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]},
+                fingerprint=["dogs_are_great"],
+                platform="python",
+            )
+        ).save(self.project.id)
+
+        assert mock_get_severity_score.call_count == 1
+
+        broken_stuff_event = EventManager(
+            make_event(
+                exception={"values": [{"type": "BrokenStuffError", "value": "It broke"}]},
+                fingerprint=["dogs_are_great"],
+                platform="python",
+            )
+        ).save(self.project.id)
+
+        # Same group, but no extra `_get_severity_score` call
+        assert broken_stuff_event.group_id == nope_event.group_id
+        assert mock_get_severity_score.call_count == 1
+
+    @patch("sentry.event_manager._get_severity_score", return_value=(0.1121, "ml"))
+    def test_score_not_clobbered_by_second_event(self, mock_get_severity_score: MagicMock):
+        with TaskRunner():  # Needed because updating groups is normally async
             nope_event = EventManager(
                 make_event(
                     exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]},
@@ -365,7 +391,12 @@ class TestEventManagerSeverity(TestCase):
                 )
             ).save(self.project.id)
 
-            assert mock_get_severity_score.call_count == 1
+            group = Group.objects.get(id=nope_event.group_id)
+
+            # This first assertion isn't useful in and of itself, but it allows us to prove
+            # below that the data gets updated
+            assert group.data["metadata"]["type"] == "NopeError"
+            assert group.data["metadata"]["severity"] == 0.1121
 
             broken_stuff_event = EventManager(
                 make_event(
@@ -375,42 +406,25 @@ class TestEventManagerSeverity(TestCase):
                 )
             ).save(self.project.id)
 
-            # Same group, but no extra `_get_severity_score` call
+            # Both events landed in the same group
             assert broken_stuff_event.group_id == nope_event.group_id
-            assert mock_get_severity_score.call_count == 1
 
-    @patch("sentry.event_manager._get_severity_score", return_value=(0.1121, "ml"))
-    def test_score_not_clobbered_by_second_event(self, mock_get_severity_score: MagicMock):
-        with self.feature({"projects:first-event-severity-calculation": True}):
-            with TaskRunner():  # Needed because updating groups is normally async
-                nope_event = EventManager(
-                    make_event(
-                        exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]},
-                        fingerprint=["dogs_are_great"],
-                        platform="python",
-                    )
-                ).save(self.project.id)
+            group.refresh_from_db()
 
-                group = Group.objects.get(id=nope_event.group_id)
+            # Metadata has been updated, but severity hasn't been clobbered in the process
+            assert group.data["metadata"]["type"] == "BrokenStuffError"
+            assert group.get_event_metadata()["severity"] == 0.1121
 
-                # This first assertion isn't useful in and of itself, but it allows us to prove
-                # below that the data gets updated
-                assert group.data["metadata"]["type"] == "NopeError"
-                assert group.data["metadata"]["severity"] == 0.1121
+    @patch("sentry.event_manager._get_severity_score")
+    def test_killswitch_on(self, mock_get_severity_score: MagicMock):
+        options.set("issues.skip-seer-requests", [self.project.id])
+        event = EventManager(
+            make_event(
+                exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]},
+                platform="python",
+            )
+        ).save(self.project.id)
 
-                broken_stuff_event = EventManager(
-                    make_event(
-                        exception={"values": [{"type": "BrokenStuffError", "value": "It broke"}]},
-                        fingerprint=["dogs_are_great"],
-                        platform="python",
-                    )
-                ).save(self.project.id)
-
-                # Both events landed in the same group
-                assert broken_stuff_event.group_id == nope_event.group_id
-
-                group.refresh_from_db()
-
-                # Metadata has been updated, but severity hasn't been clobbered in the process
-                assert group.data["metadata"]["type"] == "BrokenStuffError"
-                assert group.get_event_metadata()["severity"] == 0.1121
+        assert event.group
+        assert "severity" not in event.group.get_event_metadata()
+        assert mock_get_severity_score.call_count == 0

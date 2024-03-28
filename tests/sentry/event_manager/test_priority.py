@@ -3,9 +3,10 @@ from __future__ import annotations
 import logging
 from unittest.mock import MagicMock, patch
 
+from sentry import options
 from sentry.event_manager import EventManager
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import PriorityLevel
@@ -15,10 +16,10 @@ pytestmark = [requires_snuba]
 
 
 @region_silo_test
+@apply_feature_flag_on_cls("projects:issue-priority")
+@apply_feature_flag_on_cls("projects:first-event-severity-calculation")
 class TestEventManagerPriority(TestCase):
     @patch("sentry.event_manager._get_severity_score", return_value=(0.1121, "ml"))
-    @with_feature("projects:issue-priority")
-    @with_feature("projects:first-event-severity-calculation")
     def test_flag_on(self, mock_get_severity_score: MagicMock):
         manager = EventManager(make_event(level=logging.FATAL, platform="python"))
         event = manager.save(self.project.id)
@@ -30,21 +31,19 @@ class TestEventManagerPriority(TestCase):
         assert event.group.get_event_metadata()["initial_priority"] == 75
 
     @patch("sentry.event_manager._get_severity_score", return_value=(0.1121, "ml"))
-    @with_feature("projects:first-event-severity-calculation")
     def test_flag_off(self, mock_get_severity_score: MagicMock):
-        manager = EventManager(make_event(level=logging.FATAL, platform="python"))
-        event = manager.save(self.project.id)
+        with self.feature({"projects:issue-priority": False}):
+            manager = EventManager(make_event(level=logging.FATAL, platform="python"))
+            event = manager.save(self.project.id)
 
-        mock_get_severity_score.assert_called()
-        assert event.group
-        assert event.group.get_event_metadata()["severity"] == 0.1121
-        assert "initial_priority" not in event.group.get_event_metadata()
-        assert event.group.priority is None
+            mock_get_severity_score.assert_called()
+            assert event.group
+            assert event.group.get_event_metadata()["severity"] == 0.1121
+            assert "initial_priority" not in event.group.get_event_metadata()
+            assert event.group.priority is None
 
     @patch("sentry.event_manager._get_severity_score", return_value=(0.1121, "ml"))
     @patch("sentry.event_manager._get_priority_for_group", return_value=PriorityLevel.HIGH)
-    @with_feature("projects:first-event-severity-calculation")
-    @with_feature("projects:issue-priority")
     def test_get_priority_for_group_not_called_on_second_event(
         self, mock_get_priority_for_group: MagicMock, mock_get_severity_score: MagicMock
     ):
@@ -59,26 +58,26 @@ class TestEventManagerPriority(TestCase):
         assert event2.group_id == event.group_id
         assert mock_get_priority_for_group.call_count == 1
 
-    @with_feature("projects:issue-priority")
     def test_priority_scores_without_severity(self):
-        for level, expected_priority in (
-            (logging.INFO, PriorityLevel.LOW),
-            (logging.DEBUG, PriorityLevel.LOW),
-            (logging.WARNING, PriorityLevel.MEDIUM),
-            (logging.ERROR, PriorityLevel.HIGH),
-            (logging.FATAL, PriorityLevel.HIGH),
-        ):
-            manager = EventManager(make_event(level=level, fingerprint=[level], platform="python"))
-            event = manager.save(self.project.id)
+        with self.feature({"projects:first-event-severity-calculation": False}):
+            for level, expected_priority in (
+                (logging.INFO, PriorityLevel.LOW),
+                (logging.DEBUG, PriorityLevel.LOW),
+                (logging.WARNING, PriorityLevel.MEDIUM),
+                (logging.ERROR, PriorityLevel.HIGH),
+                (logging.FATAL, PriorityLevel.HIGH),
+            ):
+                manager = EventManager(
+                    make_event(level=level, fingerprint=[level], platform="python")
+                )
+                event = manager.save(self.project.id)
 
-            assert event.group
-            assert "severity" not in event.group.get_event_metadata()
-            assert event.group.priority == expected_priority
-            assert event.group.get_event_metadata()["initial_priority"] == expected_priority
+                assert event.group
+                assert "severity" not in event.group.get_event_metadata()
+                assert event.group.priority == expected_priority
+                assert event.group.get_event_metadata()["initial_priority"] == expected_priority
 
     @patch("sentry.event_manager._get_severity_score", return_value=(0.09, "ml"))
-    @with_feature("projects:first-event-severity-calculation")
-    @with_feature("projects:issue-priority")
     def test_priority_scores_with_low_severity(self, mock_get_severity_score: MagicMock):
         for level, expected_priority in (
             (logging.INFO, PriorityLevel.LOW),
@@ -96,9 +95,7 @@ class TestEventManagerPriority(TestCase):
             assert event.group.get_event_metadata()["initial_priority"] == expected_priority
 
     @patch("sentry.event_manager._get_severity_score", return_value=(0.2, "ml"))
-    @with_feature("projects:first-event-severity-calculation")
-    @with_feature("projects:issue-priority")
-    def test_priority_scores_with_high_severity(self, mock_get_severity_score: MagicMock):
+    def test_priority_level_with_high_severity(self, mock_get_severity_score: MagicMock):
         for level, expected_priority in (
             (logging.INFO, PriorityLevel.LOW),
             (logging.DEBUG, PriorityLevel.LOW),
@@ -113,3 +110,27 @@ class TestEventManagerPriority(TestCase):
             assert event.group.get_event_metadata()["severity"] == 0.2
             assert event.group.priority == expected_priority
             assert event.group.get_event_metadata()["initial_priority"] == expected_priority
+
+    @patch("sentry.event_manager._get_severity_score", return_value=(0.2, "ml"))
+    def test_killswitch_on(self, mock_get_severity_score: MagicMock):
+        options.set("issues.skip-seer-requests", [self.project.id])
+        event = EventManager(
+            make_event(level=logging.WARNING, fingerprint=["def"], platform="python")
+        ).save(self.project.id)
+
+        assert event.group
+        assert "severity" not in event.group.get_event_metadata()
+        assert event.group.priority == PriorityLevel.MEDIUM
+        assert event.group.get_event_metadata()["initial_priority"] == PriorityLevel.MEDIUM
+        assert mock_get_severity_score.call_count == 0
+
+        options.set("issues.skip-seer-requests", [])
+        event = EventManager(
+            make_event(level=logging.WARNING, fingerprint=["abc"], platform="python")
+        ).save(self.project.id)
+
+        assert event.group
+        assert event.group.get_event_metadata()["severity"] == 0.2
+        assert event.group.priority == PriorityLevel.HIGH
+        assert event.group.get_event_metadata()["initial_priority"] == PriorityLevel.HIGH
+        assert mock_get_severity_score.call_count == 1

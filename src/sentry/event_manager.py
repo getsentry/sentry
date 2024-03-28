@@ -2173,6 +2173,15 @@ def _get_severity_metadata_for_group(
     """
     from sentry.receivers.rules import PLATFORMS_WITH_PRIORITY_ALERTS
 
+    if killswitch_matches_context("issues.skip-seer-requests", {"project_id": event.project_id}):
+        logger.warning("get_severity_metadata_for_group.seer_killswitch_enabled")
+        metrics.incr("issues.severity.seer_killswitch_enabled")
+        return {}
+
+    feature_enabled = features.has("projects:first-event-severity-calculation", event.project)
+    if not feature_enabled:
+        return {}
+
     is_supported_platform = (
         any(event.platform.startswith(platform) for platform in PLATFORMS_WITH_PRIORITY_ALERTS)
         if event.platform

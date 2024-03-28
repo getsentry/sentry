@@ -853,6 +853,12 @@ register(
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "issues.skip-seer-requests",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Switch for more performant project counter incr
 register(
