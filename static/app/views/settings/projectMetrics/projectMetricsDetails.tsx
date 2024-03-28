@@ -22,7 +22,7 @@ import type {
   Organization,
   Project,
 } from 'sentry/types';
-import {getDdmUrl} from 'sentry/utils/metrics';
+import {getMetricsUrl} from 'sentry/utils/metrics';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import {formatMRI, formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
@@ -138,7 +138,7 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
               aria-label={t('Block Metric')}
             />
             <LinkButton
-              to={getDdmUrl(organization.slug, {
+              to={getMetricsUrl(organization.slug, {
                 statsPeriod: '30d',
                 project: [project.id],
                 widgets: [

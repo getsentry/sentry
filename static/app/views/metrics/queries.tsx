@@ -19,7 +19,7 @@ import {
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DDM_CHART_GROUP} from 'sentry/views/metrics/constants';
-import {useDDMContext} from 'sentry/views/metrics/context';
+import {useMetricsContext} from 'sentry/views/metrics/context';
 import {EquationSymbol} from 'sentry/views/metrics/equationSymbol copy';
 import {FormulaInput} from 'sentry/views/metrics/formulaInput';
 import {MetricFormulaContextMenu} from 'sentry/views/metrics/metricFormulaContextMenu';
@@ -39,7 +39,7 @@ export function Queries() {
     setIsMultiChartMode,
     addWidget,
     toggleWidgetVisibility,
-  } = useDDMContext();
+  } = useMetricsContext();
 
   const organization = useOrganization();
   const {selection} = usePageFilters();

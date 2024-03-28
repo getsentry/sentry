@@ -24,7 +24,7 @@ import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples
 import useOrganization from 'sentry/utils/useOrganization';
 import {CodeLocations} from 'sentry/views/metrics/codeLocations';
 import type {FocusAreaProps} from 'sentry/views/metrics/context';
-import {useDDMContext} from 'sentry/views/metrics/context';
+import {useMetricsContext} from 'sentry/views/metrics/context';
 import {extendQueryWithGroupBys} from 'sentry/views/metrics/utils';
 
 enum Tab {
@@ -39,7 +39,7 @@ export function WidgetDetails() {
     focusArea,
     setHighlightedSampleId,
     setMetricsSamples,
-  } = useDDMContext();
+  } = useMetricsContext();
 
   const selectedWidget = widgets[selectedWidgetIndex] as
     | MetricWidgetQueryParams
