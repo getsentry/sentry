@@ -6,6 +6,7 @@ from django.test import override_settings
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
+from sentry.api.endpoints.internal.rpc import RpcRequestBody
 from sentry.services.hybrid_cloud.organization import RpcUserOrganizationContext
 from sentry.services.hybrid_cloud.rpc import generate_request_signature
 from sentry.testutils.cases import APITestCase
@@ -45,31 +46,36 @@ class RpcServiceEndpointTest(APITestCase):
 
     def test_missing_authentication(self):
         path = self._get_path("organization", "get_organization_by_id")
-        data: dict[str, Any] = {"args": {}, "meta": {"organization_id": self.organization.id}}
+        data: dict[str, Any] = {"meta": {}, "args": {"organization_id": self.organization.id}}
+        assert data == RpcRequestBody(args={"organization_id": self.organization.id}).dict()
         response = self.client.post(path, data=data)
         assert response.status_code == 403
 
     def test_invalid_authentication(self):
         path = self._get_path("organization", "get_organization_by_id")
-        data: dict[str, Any] = {"args": {}, "meta": {"organization_id": self.organization.id}}
+        data: dict[str, Any] = {"meta": {}, "args": {"organization_id": self.organization.id}}
+        assert data == RpcRequestBody(args={"organization_id": self.organization.id}).dict()
         response = self.client.post(path, data=data, HTTP_AUTHORIZATION="rpcsignature trash")
         assert response.status_code == 401
 
     def test_bad_service_name(self):
         path = self._get_path("not_a_service", "not_a_method")
         data: dict[str, Any] = {"args": {}, "meta": {}}
+        assert data == RpcRequestBody(args={}).dict()
         response = self._send_post_request(path, data)
         assert response.status_code == 404
 
     def test_bad_method_name(self):
         path = self._get_path("user", "not_a_method")
         data: dict[str, Any] = {"args": {}, "meta": {}}
+        assert data == RpcRequestBody(args={}).dict()
         response = self._send_post_request(path, data)
         assert response.status_code == 404
 
     def test_no_body(self):
         path = self._get_path("organization", "get_organization_by_id")
         data: dict[str, Any] = {"args": {}, "meta": {}}
+        assert data == RpcRequestBody(args={}).dict()
         response = self._send_post_request(path, data)
         assert response.status_code == 400
         assert response.data == {
