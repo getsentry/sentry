@@ -60,6 +60,7 @@ import {Row, Tags} from 'sentry/views/performance/traceDetails/styles';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import type {TraceTree, TraceTreeNode} from '../../traceTree';
+import type {TraceAverageTransactionDurationsQueryResults} from '../../useTraceAverageTransactionDurations';
 
 import {IssueList} from './issues/issues';
 import {TraceDrawerComponents} from './styles';
@@ -201,6 +202,7 @@ function ReplaySection({
 }
 
 type TransactionDetailProps = {
+  averageTransactionDurations: TraceAverageTransactionDurationsQueryResults;
   location: Location;
   manager: VirtualizedViewManager;
   node: TraceTreeNode<TraceTree.Transaction>;
@@ -215,11 +217,20 @@ export function TransactionNodeDetails({
   location,
   scrollToNode,
   onParentClick,
+  averageTransactionDurations,
 }: TransactionDetailProps) {
   const {projects} = useProjects();
   const issues = useMemo(() => {
     return [...node.errors, ...node.performance_issues];
   }, [node.errors, node.performance_issues]);
+
+  const {data: averageDurationsTableData} = averageTransactionDurations;
+
+  const avgDuration = Number(
+    averageDurationsTableData?.data?.find(
+      dataRow => dataRow.title === node.value.transaction
+    )?.['avg(transaction.duration)']
+  );
 
   const {
     data: event,
@@ -255,7 +266,7 @@ export function TransactionNodeDetails({
   const {start: startTimeWithLeadingZero, end: endTimeWithLeadingZero} =
     getFormattedTimeRangeWithLeadingAndTrailingZero(startTimestamp, endTimestamp);
 
-  const duration = (endTimestamp - startTimestamp) * node.multiplier;
+  const durationInSeconds = endTimestamp - startTimestamp;
 
   const measurementNames = Object.keys(node.value.measurements ?? {})
     .filter(name => isCustomMeasurement(`measurements.${name}`))
@@ -311,6 +322,12 @@ export function TransactionNodeDetails({
 
       <TraceDrawerComponents.Table className="table key-value">
         <tbody>
+          <Row title={t('Duration')}>
+            <TraceDrawerComponents.DurationComparison
+              totalDuration={durationInSeconds}
+              baseline={avgDuration / 1000}
+            />
+          </Row>
           {parentTransaction ? (
             <Row title="Parent Transaction">
               <td className="value">
@@ -366,7 +383,6 @@ export function TransactionNodeDetails({
               {node.value.profile_id}
             </Row>
           ) : null}
-          <Row title="Duration">{`${Number(duration.toFixed(3)).toLocaleString()}ms`}</Row>
           <Row title="Date Range">
             {getDynamicText({
               fixed: 'Mar 19, 2021 11:06:27 AM UTC',
