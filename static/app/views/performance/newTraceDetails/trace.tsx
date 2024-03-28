@@ -9,7 +9,7 @@ import * as qs from 'query-string';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Organization, PlatformKey, Project} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
 import type {
@@ -33,6 +33,7 @@ import type {
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
+  isNoDataNode,
   isParentAutogroupedNode,
   isSpanNode,
   isTraceErrorNode,
@@ -272,6 +273,7 @@ function Trace({
 
       if (!maybeNode) {
         Sentry.captureMessage('Failled to find and scroll to node in tree');
+        setRender(a => (a + 1) % 2);
         return;
       }
 
@@ -664,10 +666,6 @@ function RenderRow(props: {
   trace_id: string;
 }) {
   const virtualized_index = props.index - props.manager.start_virtualized_index;
-  if (!props.node.value) {
-    return null;
-  }
-
   const rowSearchClassName = `${props.isSearchResult ? 'SearchResult' : ''} ${props.searchResultsIteratorIndex === props.index ? 'Highlight' : ''}`;
 
   if (isAutogroupedNode(props.node)) {
@@ -1230,6 +1228,70 @@ function RenderRow(props: {
             ) : null}
           </InvisibleTraceBar>
         </div>
+      </div>
+    );
+  }
+
+  if (isNoDataNode(props.node)) {
+    return (
+      <div
+        key={props.index}
+        ref={r =>
+          props.tabIndex === props.index
+            ? maybeFocusRow(r, props.node, props.previouslyFocusedNodeRef)
+            : null
+        }
+        tabIndex={props.tabIndex === props.index ? 0 : -1}
+        className={`TraceRow ${rowSearchClassName}`}
+        onClick={e => props.onRowClick(e, props.index, props.node)}
+        onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
+        style={{
+          top: props.style.top,
+          height: props.style.height,
+        }}
+      >
+        <div
+          className="TraceLeftColumn"
+          ref={r =>
+            props.manager.registerColumnRef('list', r, virtualized_index, props.node)
+          }
+          style={{
+            width: props.manager.columns.list.width * 100 + '%',
+          }}
+        >
+          <div
+            className="TraceLeftColumnInner"
+            style={{
+              paddingLeft: props.node.depth * props.manager.row_depth_padding,
+            }}
+          >
+            <div className="TraceChildrenCountWrapper">
+              <Connectors node={props.node} manager={props.manager} />
+            </div>
+            <span className="TraceOperation">{t('Empty')}</span>
+            <strong className="TraceEmDash"> — </strong>
+            <span className="TraceDescription">
+              {tct('[type] did not report any span data', {
+                type: props.node.parent
+                  ? isTransactionNode(props.node.parent)
+                    ? 'Transaction'
+                    : isSpanNode(props.node.parent)
+                      ? 'Span'
+                      : ''
+                  : '',
+              })}
+            </span>
+          </div>
+        </div>
+        <div
+          ref={r =>
+            props.manager.registerColumnRef('span_list', r, virtualized_index, props.node)
+          }
+          className={`TraceRightColumn ${props.index % 2 === 0 ? 0 : 'Odd'}`}
+          style={{
+            width: props.manager.columns.span_list.width * 100 + '%',
+          }}
+        />
       </div>
     );
   }

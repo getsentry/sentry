@@ -5,6 +5,7 @@ import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDeta
 
 import {
   isMissingInstrumentationNode,
+  isNoDataNode,
   isParentAutogroupedNode,
   isSiblingAutogroupedNode,
   isSpanNode,
@@ -14,6 +15,7 @@ import {
 import type {TraceTree, TraceTreeNode} from '../../traceTree';
 import {ErrorNodeDetails} from '../details/error';
 import {MissingInstrumentationNodeDetails} from '../details/missingInstrumentation';
+import {NoDataDetails} from '../details/noData';
 import {ParentAutogroupNodeDetails} from '../details/parentAutogroup';
 import {SiblingAutogroupNodeDetails} from '../details/siblingAutogroup';
 import {SpanNodeDetails} from '../details/span';
@@ -93,6 +95,17 @@ export default function NodeDetail({
   if (isMissingInstrumentationNode(node)) {
     return (
       <MissingInstrumentationNodeDetails node={node} onParentClick={onParentClick} />
+    );
+  }
+
+  if (isNoDataNode(node)) {
+    return (
+      <NoDataDetails
+        node={node}
+        onParentClick={onParentClick}
+        organization={organization}
+        scrollToNode={scrollToNode}
+      />
     );
   }
 

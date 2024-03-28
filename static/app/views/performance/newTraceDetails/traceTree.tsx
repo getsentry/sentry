@@ -241,6 +241,9 @@ export function makeTraceNodeBarColor(
   if (isTraceErrorNode(node)) {
     return theme.red300;
   }
+  if (isNoDataNode(node)) {
+    return theme.yellow300;
+  }
   return pickBarColor('default');
 }
 
@@ -512,7 +515,7 @@ export class TraceTree {
     }
 
     // If we have no spans, insert an empty node to indicate that there is no data
-    if (!spans.length) {
+    if (!spans.length && !parent.children.length) {
       parent.zoomedIn = true;
       parent.spanChildren.push(new NoDataNode(parent));
       return parent;

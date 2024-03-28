@@ -67,7 +67,9 @@ export function isTraceNode(
   );
 }
 
-export function isNoDataNode(node: TraceTreeNode<TraceTree.NodeValue>): boolean {
+export function isNoDataNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): node is NoDataNode {
   return node instanceof NoDataNode;
 }
 
