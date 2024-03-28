@@ -9,10 +9,10 @@ import {
   type BaseWidgetParams,
   type FocusedMetricsSeries,
   MetricDisplayType,
-  type MetricFormulaWidgetParams,
-  MetricQueryType,
-  type MetricQueryWidgetParams,
-  type MetricWidgetQueryParams,
+  MetricExpressionType,
+  type MetricsEquationWidget,
+  type MetricsQueryWidget,
+  type MetricsWidget,
   type SortState,
 } from 'sentry/utils/metrics/types';
 import {getUniqueQueryIdGenerator} from 'sentry/views/metrics/utils/uniqueQueryId';
@@ -120,9 +120,9 @@ function isValidId(n: number | undefined): n is number {
 function parseQueryType(
   widget: Record<string, unknown>,
   key: string
-): MetricQueryType | undefined {
+): MetricExpressionType | undefined {
   const value = widget[key];
-  return typeof value === 'number' && Object.values(MetricQueryType).includes(value)
+  return typeof value === 'number' && Object.values(MetricExpressionType).includes(value)
     ? value
     : undefined;
 }
@@ -130,7 +130,7 @@ function parseQueryType(
 function parseQueryWidget(
   widget: Record<string, unknown>,
   baseWidgetParams: BaseWidgetParams
-): MetricQueryWidgetParams | null {
+): MetricsQueryWidget | null {
   const mri = getMRIParam(widget);
   // If we cannot retrieve an MRI, there is nothing to display
   if (!mri) {
@@ -146,14 +146,14 @@ function parseQueryWidget(
     ),
     powerUserMode: parseBooleanParam(widget, 'powerUserMode') ?? false,
     ...baseWidgetParams,
-    type: MetricQueryType.QUERY,
+    type: MetricExpressionType.QUERY,
   };
 }
 
 function parseFormulaWidget(
   widget: Record<string, unknown>,
   baseWidgetParams: BaseWidgetParams
-): MetricFormulaWidgetParams | null {
+): MetricsEquationWidget | null {
   const formula = parseStringParam(widget, 'formula');
   // If we cannot retrieve a formula, there is nothing to display
   if (formula === undefined) {
@@ -163,7 +163,7 @@ function parseFormulaWidget(
   return {
     formula,
     ...baseWidgetParams,
-    type: MetricQueryType.FORMULA,
+    type: MetricExpressionType.EQUATION,
   };
 }
 
@@ -173,10 +173,10 @@ function parseQueryId(widget: Record<string, unknown>, key: string): number {
 }
 
 function fillIds(
-  entries: MetricWidgetQueryParams[],
+  entries: MetricsWidget[],
   indezesWithoutId: Set<number>,
   usedIds: Set<number>
-): MetricWidgetQueryParams[] {
+): MetricsWidget[] {
   if (indezesWithoutId.size > 0) {
     const generateId = getUniqueQueryIdGenerator(usedIds);
     for (const index of indezesWithoutId) {
@@ -190,9 +190,7 @@ function fillIds(
   return entries;
 }
 
-export function parseMetricWidgetsQueryParam(
-  queryParam?: string
-): MetricWidgetQueryParams[] {
+export function parseMetricWidgetsQueryParam(queryParam?: string): MetricsWidget[] {
   let currentWidgets: unknown = undefined;
 
   try {
@@ -206,11 +204,11 @@ export function parseMetricWidgetsQueryParam(
     currentWidgets = [];
   }
 
-  const queries: MetricQueryWidgetParams[] = [];
+  const queries: MetricsQueryWidget[] = [];
   const usedQueryIds = new Set<number>();
   const queryIndezesWithoutId = new Set<number>();
 
-  const formulas: MetricFormulaWidgetParams[] = [];
+  const formulas: MetricsEquationWidget[] = [];
   const usedFormulaIds = new Set<number>();
   const formulaIndezesWithoutId = new Set<number>();
 
@@ -219,15 +217,17 @@ export function parseMetricWidgetsQueryParam(
       return;
     }
 
-    const type = parseQueryType(widget, 'type') ?? MetricQueryType.QUERY;
+    const type = parseQueryType(widget, 'type') ?? MetricExpressionType.QUERY;
 
     const id = parseQueryId(widget, 'id');
-    if (type === MetricQueryType.QUERY ? usedQueryIds.has(id) : usedFormulaIds.has(id)) {
+    if (
+      type === MetricExpressionType.QUERY ? usedQueryIds.has(id) : usedFormulaIds.has(id)
+    ) {
       // We drop widgets with duplicate ids
       return;
     }
     if (id !== NO_QUERY_ID) {
-      if (type === MetricQueryType.QUERY) {
+      if (type === MetricExpressionType.QUERY) {
         usedQueryIds.add(id);
       } else {
         usedFormulaIds.add(id);
@@ -248,7 +248,7 @@ export function parseMetricWidgetsQueryParam(
     };
 
     switch (type) {
-      case MetricQueryType.QUERY: {
+      case MetricExpressionType.QUERY: {
         const query = parseQueryWidget(widget, baseWidgetParams);
         if (!query) {
           break;
@@ -259,7 +259,7 @@ export function parseMetricWidgetsQueryParam(
         }
         break;
       }
-      case MetricQueryType.FORMULA: {
+      case MetricExpressionType.EQUATION: {
         const formula = parseFormulaWidget(widget, baseWidgetParams);
         if (!formula) {
           break;

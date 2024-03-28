@@ -45,7 +45,7 @@ import {DiscoverDatasets, DisplayModes} from 'sentry/utils/discover/types';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {getMetricDisplayType, getMetricsUrl} from 'sentry/utils/metrics';
 import {parseField} from 'sentry/utils/metrics/mri';
-import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
+import type {MetricsWidget} from 'sentry/utils/metrics/types';
 import {decodeList} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
 import type {
@@ -426,7 +426,7 @@ export function getWidgetMetricsUrl(
         groupBy: query.columns,
         query: query.conditions ?? '',
         displayType: getMetricDisplayType(_widget.displayType),
-      } satisfies Partial<MetricWidgetQueryParams>;
+      } satisfies Partial<MetricsWidget>;
     }),
   });
 

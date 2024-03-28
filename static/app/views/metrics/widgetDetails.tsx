@@ -16,10 +16,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isCustomMetric} from 'sentry/utils/metrics';
 import type {
   FocusedMetricsSeries,
-  MetricQueryWidgetParams,
-  MetricWidgetQueryParams,
+  MetricsQueryWidget,
+  MetricsWidget,
 } from 'sentry/utils/metrics/types';
-import {MetricQueryType} from 'sentry/utils/metrics/types';
+import {MetricExpressionType} from 'sentry/utils/metrics/types';
 import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples';
 import useOrganization from 'sentry/utils/useOrganization';
 import {CodeLocations} from 'sentry/views/metrics/codeLocations';
@@ -41,9 +41,7 @@ export function WidgetDetails() {
     setMetricsSamples,
   } = useMetricsContext();
 
-  const selectedWidget = widgets[selectedWidgetIndex] as
-    | MetricWidgetQueryParams
-    | undefined;
+  const selectedWidget = widgets[selectedWidgetIndex] as MetricsWidget | undefined;
 
   const handleSampleRowHover = useCallback(
     (sampleId?: string) => {
@@ -53,11 +51,11 @@ export function WidgetDetails() {
   );
 
   // TODO(aknaus): better fallback
-  if (selectedWidget?.type === MetricQueryType.FORMULA) {
+  if (selectedWidget?.type === MetricExpressionType.EQUATION) {
     <MetricDetails onRowHover={handleSampleRowHover} focusArea={focusArea} />;
   }
 
-  const {mri, op, query, focusedSeries} = selectedWidget as MetricQueryWidgetParams;
+  const {mri, op, query, focusedSeries} = selectedWidget as MetricsQueryWidget;
 
   return (
     <MetricDetails

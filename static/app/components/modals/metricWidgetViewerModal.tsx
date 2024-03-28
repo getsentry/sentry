@@ -15,7 +15,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 import {getMetricsUrl} from 'sentry/utils/metrics';
 import {toDisplayType} from 'sentry/utils/metrics/dashboard';
-import {MetricQueryType} from 'sentry/utils/metrics/types';
+import {MetricExpressionType} from 'sentry/utils/metrics/types';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {
   DashboardMetricsEquation,
@@ -169,7 +169,7 @@ function MetricWidgetViewerModal({
           formula: '',
           name: '',
           id: generateEquationId(),
-          type: MetricQueryType.FORMULA,
+          type: MetricExpressionType.EQUATION,
           isHidden: false,
         },
       ];

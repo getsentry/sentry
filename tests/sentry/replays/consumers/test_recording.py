@@ -144,7 +144,8 @@ class RecordingTestCase(TransactionTestCase):
 
     @patch("sentry.models.OrganizationOnboardingTask.objects.record")
     @patch("sentry.analytics.record")
-    def test_compressed_segment_ingestion(self, mock_record, mock_onboarding_task):
+    @patch("sentry.replays.usecases.ingest.track_outcome")
+    def test_compressed_segment_ingestion(self, track_outcome, mock_record, mock_onboarding_task):
         segment_id = 0
         self.submit(self.nonchunked_messages(segment_id=segment_id, compressed=True))
         self.assert_replay_recording_segment(segment_id, compressed=True)
@@ -167,9 +168,12 @@ class RecordingTestCase(TransactionTestCase):
             user_id=self.organization.default_owner_id,
         )
 
+        assert track_outcome.called
+
     @patch("sentry.models.OrganizationOnboardingTask.objects.record")
     @patch("sentry.analytics.record")
-    def test_event_with_replay_video(self, mock_record, mock_onboarding_task):
+    @patch("sentry.replays.usecases.ingest.track_outcome")
+    def test_event_with_replay_video(self, track_outcome, mock_record, mock_onboarding_task):
         segment_id = 0
         self.submit(
             self.nonchunked_messages(
@@ -199,9 +203,12 @@ class RecordingTestCase(TransactionTestCase):
             user_id=self.organization.default_owner_id,
         )
 
+        assert not track_outcome.called
+
     @patch("sentry.models.OrganizationOnboardingTask.objects.record")
     @patch("sentry.analytics.record")
-    def test_uncompressed_segment_ingestion(self, mock_record, mock_onboarding_task):
+    @patch("sentry.replays.usecases.ingest.track_outcome")
+    def test_uncompressed_segment_ingestion(self, track_outcome, mock_record, mock_onboarding_task):
         segment_id = 0
         self.submit(self.nonchunked_messages(segment_id=segment_id, compressed=False))
         self.assert_replay_recording_segment(segment_id, False)
@@ -223,6 +230,8 @@ class RecordingTestCase(TransactionTestCase):
             platform=self.project.platform,
             user_id=self.organization.default_owner_id,
         )
+
+        assert track_outcome.called
 
     @patch("sentry.models.OrganizationOnboardingTask.objects.record")
     @patch("sentry.analytics.record")

@@ -37,7 +37,7 @@ DEFAULT_RULE_DATA_NEW = {
 }
 
 
-PLATFORMS_WITH_NEW_DEFAULT = ["python", "javascript"]
+PLATFORMS_WITH_PRIORITY_ALERTS = ["python", "javascript"]
 
 
 def has_high_priority_issue_alerts(project: Project) -> bool:
@@ -48,7 +48,7 @@ def has_high_priority_issue_alerts(project: Project) -> bool:
         and project.platform is not None
         and any(
             project.platform.startswith(base_platform)
-            for base_platform in PLATFORMS_WITH_NEW_DEFAULT
+            for base_platform in PLATFORMS_WITH_PRIORITY_ALERTS
         )
     )
 
