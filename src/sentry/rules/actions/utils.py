@@ -44,21 +44,21 @@ def generate_diff_labels(
     present_ids = set(present_state.keys())
 
     # Added items that are not seen in the prior rule data
-    for id in present_ids.difference(prior_ids):
-        label = generate_rule_label(rule.project, rule, present_state.get(id))
-        changed_data[id].append(added_statement.format(key, label))
+    for added_id in present_ids.difference(prior_ids):
+        label = generate_rule_label(rule.project, rule, present_state.get(added_id))
+        changed_data[added_id].append(added_statement.format(key, label))
 
     # Check if the id is in both but the data has changed
-    for id in set(prior_ids & present_ids):
-        if prior_state.get(id) != present_state.get(id):
-            old_label = generate_rule_label(rule.project, rule, prior_state.get(id))
-            new_label = generate_rule_label(rule.project, rule, present_state.get(id))
-            changed_data[id] = [(f"Changed {key} from *{old_label}* to *{new_label}*")]
+    for changed_id in set(prior_ids & present_ids):
+        if prior_state.get(changed_id) != present_state.get(changed_id):
+            old_label = generate_rule_label(rule.project, rule, prior_state.get(changed_id))
+            new_label = generate_rule_label(rule.project, rule, present_state.get(changed_id))
+            changed_data[changed_id] = [(f"Changed {key} from *{old_label}* to *{new_label}*")]
 
     # Removed items
-    for id in prior_ids.difference(present_ids):
-        label = generate_rule_label(rule.project, rule, prior_state.get(id))
-        changed_data[id].append(removed_statement.format(key, label))
+    for removed_id in prior_ids.difference(present_ids):
+        label = generate_rule_label(rule.project, rule, prior_state.get(removed_id))
+        changed_data[removed_id].append(removed_statement.format(key, label))
 
     return changed_data
 
