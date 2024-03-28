@@ -51,7 +51,8 @@ class TestGetEventSeverity(TestCase):
                             "mechanism": {"type": "generic", "handled": True},
                         }
                     ]
-                }
+                },
+                platform="python",
             )
         )
         event = manager.save(self.project.id)
@@ -140,6 +141,7 @@ class TestGetEventSeverity(TestCase):
         manager = EventManager(
             make_event(
                 exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]},
+                platform="python",
             )
         )
         event = manager.save(self.project.id)
@@ -174,6 +176,7 @@ class TestGetEventSeverity(TestCase):
                 make_event(
                     exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]},
                     level=level,
+                    platform="python",
                 )
             )
             event = manager.save(self.project.id)
@@ -193,7 +196,7 @@ class TestGetEventSeverity(TestCase):
         mock_urlopen: MagicMock,
     ) -> None:
         for title in NON_TITLE_EVENT_TITLES:
-            manager = EventManager(make_event(exception={"values": []}))
+            manager = EventManager(make_event(exception={"values": []}, platform="python"))
             event = manager.save(self.project.id)
             # `title` is a property with no setter, but it pulls from `metadata`, so it's equivalent
             # to set it there. (We have to ignore mypy because `metadata` isn't supposed to be mutable.)
@@ -238,7 +241,8 @@ class TestGetEventSeverity(TestCase):
                             "mechanism": {"type": "generic", "handled": True},
                         }
                     ]
-                }
+                },
+                platform="python",
             )
         )
         event = manager.save(self.project.id)
@@ -284,6 +288,7 @@ class TestGetEventSeverity(TestCase):
                         }
                     ],
                 },
+                platform="python",
             )
         )
         event = manager.save(self.project.id)
@@ -313,7 +318,8 @@ class TestEventManagerSeverity(TestCase):
         with self.feature({"projects:first-event-severity-calculation": True}):
             manager = EventManager(
                 make_event(
-                    exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]}
+                    exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]},
+                    platform="python",
                 )
             )
             event = manager.save(self.project.id)
@@ -330,7 +336,8 @@ class TestEventManagerSeverity(TestCase):
         with self.feature({"projects:first-event-severity-calculation": False}):
             manager = EventManager(
                 make_event(
-                    exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]}
+                    exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]},
+                    platform="python",
                 )
             )
             event = manager.save(self.project.id)
@@ -351,6 +358,7 @@ class TestEventManagerSeverity(TestCase):
                 make_event(
                     exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]},
                     fingerprint=["dogs_are_great"],
+                    platform="python",
                 )
             ).save(self.project.id)
 
@@ -360,6 +368,7 @@ class TestEventManagerSeverity(TestCase):
                 make_event(
                     exception={"values": [{"type": "BrokenStuffError", "value": "It broke"}]},
                     fingerprint=["dogs_are_great"],
+                    platform="python",
                 )
             ).save(self.project.id)
 
@@ -375,6 +384,7 @@ class TestEventManagerSeverity(TestCase):
                     make_event(
                         exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]},
                         fingerprint=["dogs_are_great"],
+                        platform="python",
                     )
                 ).save(self.project.id)
 
@@ -389,6 +399,7 @@ class TestEventManagerSeverity(TestCase):
                     make_event(
                         exception={"values": [{"type": "BrokenStuffError", "value": "It broke"}]},
                         fingerprint=["dogs_are_great"],
+                        platform="python",
                     )
                 ).save(self.project.id)
 

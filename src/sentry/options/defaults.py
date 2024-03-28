@@ -746,6 +746,20 @@ register(
 )
 
 register(
+    "issues.severity.seer-project-rate-limit",
+    type=Int,
+    default=5,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.severity.seer-global-rate-limit",
+    type=Int,
+    default=25,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "issues.severity.default-high-priority-alerts-orgs-allowlist",
     type=Sequence,
     default=[],
