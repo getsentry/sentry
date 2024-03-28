@@ -57,7 +57,7 @@ export default function useFetchThresholdsListData({
   });
 
   const thresholds: Threshold[] = useMemo(() => {
-    if (!isActivatedAlert) return thresholds;
+    if (!isActivatedAlert) return data as Threshold[];
     if (!data) return [];
 
     return data.map((thresholdOrRule: Threshold | MetricRule) => {
