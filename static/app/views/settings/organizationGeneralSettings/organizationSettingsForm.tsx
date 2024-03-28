@@ -11,7 +11,7 @@ import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {Hovercard} from 'sentry/components/hovercard';
-import Tag from 'sentry/components/tag';
+import {Tag} from 'sentry/components/tag';
 import organizationSettingsFields from 'sentry/data/forms/organizationGeneralSettings';
 import {IconCodecov, IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';

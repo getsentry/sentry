@@ -128,9 +128,9 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
             if getattr(request, "user", None) and request.user.id:
                 auth = f"user.id: {request.user.id}"
             elif getattr(request, "auth", None) and getattr(request.auth, "id", None):
-                auth = f"auth.id: {request.auth.id}"  # type: ignore
+                auth = f"auth.id: {request.auth.id}"  # type: ignore[union-attr]
             elif getattr(request, "auth", None) and getattr(request.auth, "entity_id", None):
-                auth = f"auth.entity_id: {request.auth.entity_id}"  # type: ignore
+                auth = f"auth.entity_id: {request.auth.entity_id}"  # type: ignore[union-attr]
             if auth is not None:
                 logging_info.update({"auth": auth})
                 logger.info(

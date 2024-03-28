@@ -26,7 +26,6 @@ from sentry.issues.grouptype import GroupCategory, get_group_types_by_category
 from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, STATUS_QUERY_CHOICES, GroupStatus
 from sentry.search.utils import get_teams_for_users
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus, PriorityLevel
 
 
@@ -161,7 +160,6 @@ class ParseSearchQueryTest(unittest.TestCase):
         ]
 
 
-@region_silo_test
 class ConvertQueryValuesTest(TestCase):
     def test_valid_assign_me_converter(self):
         raw_value = "me"
@@ -203,7 +201,6 @@ class ConvertQueryValuesTest(TestCase):
         assert filters[0].value.raw_value == search_val.raw_value
 
 
-@region_silo_test
 class ConvertStatusValueTest(TestCase):
     def test_valid(self):
         for status_string, status_val in STATUS_QUERY_CHOICES.items():
@@ -328,7 +325,6 @@ class ConvertPriorityValueTest(TestCase):
             convert_query_values(filters, [self.project], self.user, None)
 
 
-@region_silo_test
 class ConvertActorOrNoneValueTest(TestCase):
     def test_user(self):
         assert convert_actor_or_none_value(
@@ -354,7 +350,6 @@ class ConvertActorOrNoneValueTest(TestCase):
         assert ret.id == 0
 
 
-@region_silo_test
 class ConvertUserValueTest(TestCase):
     def test_me(self):
         result = convert_user_value(["me"], [self.project], self.user, None)
@@ -371,7 +366,6 @@ class ConvertUserValueTest(TestCase):
         assert convert_user_value(["fake-user"], [], self.user, None)[0].id == 0
 
 
-@region_silo_test
 class ConvertReleaseValueTest(TestCase):
     def test(self):
         assert convert_release_value(["123"], [self.project], self.user, None) == "123"
@@ -382,7 +376,6 @@ class ConvertReleaseValueTest(TestCase):
         assert convert_release_value(["14.*"], [self.project], self.user, None) == "14.*"
 
 
-@region_silo_test
 class ConvertFirstReleaseValueTest(TestCase):
     def test(self):
         assert convert_first_release_value(["123"], [self.project], self.user, None) == ["123"]
@@ -395,7 +388,6 @@ class ConvertFirstReleaseValueTest(TestCase):
         assert convert_first_release_value(["14.*"], [self.project], self.user, None) == ["14.*"]
 
 
-@region_silo_test
 class ConvertCategoryValueTest(TestCase):
     def test(self):
         error_group_types = get_group_types_by_category(GroupCategory.ERROR.value)
@@ -416,7 +408,6 @@ class ConvertCategoryValueTest(TestCase):
             convert_category_value(["hellboy"], [self.project], self.user, None)
 
 
-@region_silo_test
 class ConvertTypeValueTest(TestCase):
     def test(self):
         assert convert_type_value(["error"], [self.project], self.user, None) == [1]
@@ -433,7 +424,6 @@ class ConvertTypeValueTest(TestCase):
             convert_type_value(["hellboy"], [self.project], self.user, None)
 
 
-@region_silo_test
 class DeviceClassValueTest(TestCase):
     def test(self):
         assert convert_device_class_value(["high"], [self.project], self.user, None) == ["3"]

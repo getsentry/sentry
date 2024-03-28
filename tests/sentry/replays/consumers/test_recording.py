@@ -137,8 +137,8 @@ class RecordingTestCase(TransactionTestCase):
                 "payload": cast_payload_from_bytes(
                     f'{{"segment_id":{segment_id}}}\n'.encode() + message
                 ),
-                "replay_event": replay_event,  # type: ignore
-                "replay_video": replay_video,  # type: ignore
+                "replay_event": replay_event,  # type: ignore[typeddict-item]
+                "replay_video": replay_video,  # type: ignore[typeddict-item]
             }
         ]
 

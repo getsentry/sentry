@@ -1598,6 +1598,9 @@ function buildRoutes() {
           />
         </Route>
       </Route>
+      <Route path="traces/">
+        <IndexRoute component={make(() => import('sentry/views/performance/traces'))} />
+      </Route>
       <Route path="summary/">
         <IndexRoute
           component={make(
@@ -2026,10 +2029,10 @@ function buildRoutes() {
     <Fragment>
       <Route
         path="/metrics/"
-        component={make(() => import('sentry/views/ddm'))}
+        component={make(() => import('sentry/views/metrics'))}
         withOrgPath
       >
-        <IndexRoute component={make(() => import('sentry/views/ddm/ddm'))} />
+        <IndexRoute component={make(() => import('sentry/views/metrics/metrics'))} />
       </Route>
       {/* TODO(ddm): fade this out */}
       <Redirect from="/ddm/" to="/metrics/" />

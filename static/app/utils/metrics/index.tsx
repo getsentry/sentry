@@ -34,8 +34,8 @@ import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {formatMRI, formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
 import type {
-  DdmQueryParams,
   MetricsQuery,
+  MetricsQueryParams,
   MetricWidgetQueryParams,
 } from 'sentry/utils/metrics/types';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
@@ -68,7 +68,7 @@ export const getMetricDisplayType = (displayType: unknown): MetricDisplayType =>
   return MetricDisplayType.LINE;
 };
 
-export function getDdmUrl(
+export function getMetricsUrl(
   orgSlug: string,
   {
     widgets,
@@ -77,12 +77,12 @@ export function getDdmUrl(
     statsPeriod,
     project,
     ...otherParams
-  }: Omit<DdmQueryParams, 'project' | 'widgets'> & {
+  }: Omit<MetricsQueryParams, 'project' | 'widgets'> & {
     widgets: Partial<MetricWidgetQueryParams>[];
     project?: (string | number)[];
   }
 ) {
-  const urlParams: Partial<DdmQueryParams> = {
+  const urlParams: Partial<MetricsQueryParams> = {
     ...otherParams,
     project: project?.map(id => (typeof id === 'string' ? parseInt(id, 10) : id)),
     widgets: JSON.stringify(widgets),
@@ -95,7 +95,7 @@ export function getDdmUrl(
     urlParams.end = end;
   }
 
-  return `/organizations/${orgSlug}/ddm/?${qs.stringify(urlParams)}`;
+  return `/organizations/${orgSlug}/metrics/?${qs.stringify(urlParams)}`;
 }
 
 const intervalLadders: Record<MetricsDataIntervalLadder, GranularityLadder> = {

@@ -16,7 +16,7 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
 from sentry.silo import SiloMode
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 FULL_SCOPES = ["vso.code", "vso.graph", "vso.serviceendpoint_manage", "vso.work_write"]
 LIMITED_SCOPES = ["vso.graph", "vso.serviceendpoint_manage", "vso.work_write"]
@@ -527,7 +527,6 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
             installation.get_repositories()
 
 
-@region_silo_test
 class RegionVstsIntegrationTest(VstsIntegrationTestCase):
     def setUp(self):
         super().setUp()

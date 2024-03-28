@@ -169,7 +169,7 @@ def _do_preprocess_event(
             "organization", Organization.objects.get_from_cache(id=project.organization_id)
         )
 
-    is_js, symbolication_function = get_symbolication_function(data)
+    platform, symbolication_function = get_symbolication_function(data)
     if symbolication_function:
         symbolication_function_name = getattr(symbolication_function, "__name__", "none")
 
@@ -186,7 +186,9 @@ def _do_preprocess_event(
 
             is_low_priority = should_demote_symbolication(project_id)
             task_kind = SymbolicatorTaskKind(
-                is_js=is_js, is_low_priority=is_low_priority, is_reprocessing=from_reprocessing
+                platform=platform,
+                is_low_priority=is_low_priority,
+                is_reprocessing=from_reprocessing,
             )
             submit_symbolicate(
                 task_kind,
@@ -278,32 +280,6 @@ def preprocess_event_from_reprocessing(
     )
 
 
-@instrumented_task(
-    name="sentry.tasks.store.retry_process_event",
-    queue="sleep",
-    time_limit=(60 * 5) + 5,
-    soft_time_limit=60 * 5,
-    silo_mode=SiloMode.REGION,
-)
-def retry_process_event(process_task_name: str, task_kwargs: dict[str, Any], **kwargs: Any) -> None:
-    """
-    The only purpose of this task is be enqueued with some ETA set. This is
-    essentially an implementation of ETAs on top of Celery's existing ETAs, but
-    with the intent of having separate workers wait for those ETAs.
-    """
-    tasks = {
-        "process_event": process_event,
-        "process_event_proguard": process_event_proguard,
-        "process_event_from_reprocessing": process_event_from_reprocessing,
-    }
-
-    process_task = tasks.get(process_task_name)
-    if not process_task:
-        raise ValueError(f"Invalid argument for process_task_name: {process_task_name}")
-
-    process_task.delay(**task_kwargs)
-
-
 def is_process_disabled(project_id: int, event_id: str, platform: str) -> bool:
     if killswitch_matches_context(
         "store.load-shed-process-event-projects",
@@ -321,6 +297,14 @@ def is_process_disabled(project_id: int, event_id: str, platform: str) -> bool:
         return False
 
     return random.random() < rollout_rate
+
+
+@sentry_sdk.tracing.trace
+def normalize_event(data: Any) -> Any:
+    normalizer = StoreNormalizer(
+        remove_other=False, is_renormalize=True, **DEFAULT_STORE_NORMALIZER_ARGS
+    )
+    return normalizer.normalize_event(dict(data))
 
 
 def do_process_event(
@@ -464,10 +448,7 @@ def do_process_event(
         # - persist e.g. incredibly large stacktraces from minidumps
         # - store event timestamps that are older than our retention window
         #   (also happening with minidumps)
-        normalizer = StoreNormalizer(
-            remove_other=False, is_renormalize=True, **DEFAULT_STORE_NORMALIZER_ARGS
-        )
-        data = normalizer.normalize_event(dict(data))
+        data = normalize_event(data)
 
         issues = data.get("processing_issues")
 

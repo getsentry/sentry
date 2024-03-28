@@ -19,7 +19,7 @@ from sentry.models.repository import Repository
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.committers import (
     _get_commit_file_changes,
     _match_commits_path,
@@ -248,7 +248,6 @@ class GetPreviousReleasesTestCase(TestCase):
         assert releases[1] == release1
 
 
-@region_silo_test
 class GetEventFileCommitters(CommitTestCase):
     def setUp(self):
         super().setUp()

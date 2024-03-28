@@ -477,7 +477,7 @@ def validate_protected_queries(queries: Sequence[dict[str, str]]) -> None:
         # in None sql query dicts.  However, typing the parameter that way breaks things due to a lack of covariance in
         # the VT TypeVar for Dict.
         if sql is None:
-            continue  # type: ignore
+            continue  # type: ignore[unreachable]
         match = match_fence_query(sql)
         if match:
             operation = match.group("operation")

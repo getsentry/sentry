@@ -18,7 +18,9 @@ from django.utils.translation import gettext_lazy as _
 
 from bitfield import TypedClassBitField
 from sentry import projectoptions
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.db.mixin import PendingDeletionMixin, delete_pending_deletion_option
 from sentry.db.models import (
@@ -639,6 +641,19 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         with outbox_context(transaction.atomic(router.db_for_write(Project))):
             Project.outbox_for_update(self.id, self.organization_id).save()
             return super().delete(**kwargs)
+
+    def normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> int | None:
+        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
+
+        # A `Global` restore implies a blanket restoration of all data. In such a case, we want to
+        # ensure that project IDs remain unchanged, so that recovering users do not need to mint new
+        # DSNs post-recovery.
+        if scope == ImportScope.Global:
+            self.pk = old_pk
+
+        return old_pk
 
 
 pre_delete.connect(delete_pending_deletion_option, sender=Project, weak=False)
