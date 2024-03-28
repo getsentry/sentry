@@ -31,36 +31,39 @@ def check_value_changed(
 
 
 def generate_diff_labels(
-    present_state: list[dict[str, Any]],
     prior_state: list[dict[str, Any]],
+    present_state: list[dict[str, Any]],
     rule: Rule,
     key: str,
 ) -> DefaultDict[str, list[str]]:
     added_statement = "Added {} '{}'"
     removed_statement = "Removed {} '{}'"
-    added_items = []
     changed_data: DefaultDict[str, list[str]] = defaultdict(list)
+
     # Added items that are not seen in the prior rule data
-    for data in prior_state:
-        if data not in present_state:
-            label = generate_rule_label(rule.project, rule, data)
-            changed_data[data["id"]].append(added_statement.format(key, label))
-            added_items.append(data["id"])
+    prior_ids = {item.get("id") for item in prior_state if item.get("id")}
+    present_ids = {item.get("id") for item in present_state if item.get("id")}
+
+    for item in present_ids.difference(prior_ids):
+        present_items = [data for data in present_state if data["id"] == item]
+        label = generate_rule_label(rule.project, rule, present_items[0])
+        changed_data[item].append(added_statement.format(key, label))
 
     # Check if the id is in both but the data has changed
-    for item in added_items:
-        prior_item = [data for data in prior_state if data["id"] == item]
-        present_item = [data for data in present_state if data["id"] == item]
-        if prior_item and present_item and prior_item[0] != present_item[0]:
-            old_label = generate_rule_label(rule.project, rule, prior_item[0])
-            new_label = generate_rule_label(rule.project, rule, present_item[0])
+    for item in set(prior_ids & present_ids):
+        prior_items = [data for data in prior_state if data["id"] == item]
+        present_items = [data for data in present_state if data["id"] == item]
+        if prior_items and present_items and prior_items[0] != present_items[0]:
+            old_label = generate_rule_label(rule.project, rule, prior_items[0])
+            new_label = generate_rule_label(rule.project, rule, present_items[0])
             changed_data[item] = [(f"Changed {key} from *{old_label}* to *{new_label}*")]
 
     # Removed items
-    for data in present_state:
-        if data not in prior_state and not changed_data.get(data["id"]):
-            label = generate_rule_label(rule.project, rule, data)
-            changed_data[data["id"]].append(removed_statement.format(key, label))
+    for item in prior_ids.difference(present_ids):
+        prior_items = [data for data in prior_state if data["id"] == item]
+        if prior_items:
+            label = generate_rule_label(rule.project, rule, prior_items[0])
+            changed_data[item].append(removed_statement.format(key, label))
 
     return changed_data
 
