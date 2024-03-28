@@ -142,6 +142,9 @@ NON_TITLE_EVENT_TITLES = ["<untitled>", "<unknown>", "<unlabeled event>", "Error
 
 HIGH_SEVERITY_THRESHOLD = 0.1
 
+SEER_GLOBAL_RATE_LIMIT_DEFAULT = 20  # 20 requests per second
+SEER_PROJECT_RATE_LIMIT_DEFAULT = 5  # 5 requests per second
+
 
 @dataclass
 class GroupInfo:
@@ -2193,11 +2196,9 @@ def _get_severity_metadata_for_group(
 
     from sentry import ratelimits as ratelimiter
 
-    limit = options.get("issues.severity.seer-global-rate-limit", 25)
+    limit = options.get("issues.severity.seer-global-rate-limit", SEER_GLOBAL_RATE_LIMIT_DEFAULT)
     if ratelimiter.backend.is_limited(
-        "seer:severity-calculation:global-limit",
-        limit=limit,
-        window=1,  # starting this out 25 requests per second
+        "seer:severity-calculation:global-limit", limit=limit, window=1
     ):
         logger.warning(
             "get_severity_metadata_for_group.rate_limited_globally",
@@ -2205,11 +2206,9 @@ def _get_severity_metadata_for_group(
         )
         metrics.incr("issues.severity.rate_limited_globally")
 
-    limit = options.get("issues.severity.seer-project-rate-limit", 5)
+    limit = options.get("issues.severity.seer-project-rate-limit", SEER_PROJECT_RATE_LIMIT_DEFAULT)
     if ratelimiter.backend.is_limited(
-        f"seer:severity-calculation:{project_id}",
-        limit=limit,
-        window=1,  # starting this out 5 requests per second
+        f"seer:severity-calculation:{project_id}", limit=limit, window=1
     ):
         logger.warning(
             "get_severity_metadata_for_group.rate_limited_for_project",
