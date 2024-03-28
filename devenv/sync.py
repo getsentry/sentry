@@ -34,8 +34,8 @@ def run_procs(
                         **constants.user_environ,
                         **proc.base_env,
                         "VIRTUAL_ENV": venv_path,
-                        "VOLTA_HOME": constants.VOLTA_HOME,
-                        "PATH": f"{venv_path}/bin:{proc.base_path}",
+                        "VOLTA_HOME": f"{reporoot}/.devenv/bin/volta-home",
+                        "PATH": f"{venv_path}/bin:{reporoot}/.devenv/bin:{proc.base_path}",
                     },
                     cwd=reporoot,
                 ),
@@ -75,12 +75,8 @@ def main(context: dict[str, str]) -> int:
     print(f"ensuring {repo} venv at {venv_dir}...")
     venv.ensure(venv_dir, python_version, url, sha256)
 
-    # This is for engineers with existing dev environments transitioning over.
-    # Bootstrap will set devenv-managed volta up but they won't be running
-    # devenv bootstrap, just installing devenv then running devenv sync.
-    # make install-js-dev will fail since our run_procs expects devenv-managed
-    # volta.
-    volta.install()
+    # TODO: move volta version into per-repo config
+    volta.install(reporoot)
 
     if constants.DARWIN:
         repo_config = configparser.ConfigParser()
@@ -94,16 +90,18 @@ def main(context: dict[str, str]) -> int:
                 "v0.6.2",
                 "https://github.com/abiosoft/colima/releases/download/v0.6.2/colima-Darwin-x86_64",
                 "43ef3fc80a8347d51b8ec1706f9caf8863bd8727a6f7532caf1ccd20497d8485",
+                reporoot,
             )
         else:
             colima.install(
                 repo_config["colima"]["version"],
                 repo_config["colima"][constants.SYSTEM_MACHINE],
                 repo_config["colima"][f"{constants.SYSTEM_MACHINE}_sha256"],
+                reporoot,
             )
 
         # TODO: move limactl version into per-repo config
-        limactl.install()
+        limactl.install(reporoot)
 
     if not run_procs(
         repo,
