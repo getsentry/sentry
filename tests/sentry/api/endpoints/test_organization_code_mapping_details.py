@@ -5,10 +5,8 @@ from sentry.api.serializers import serialize
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class OrganizationCodeMappingDetailsTest(APITestCase):
     endpoint = "sentry-api-0-organization-code-mapping-details"
 

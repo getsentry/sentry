@@ -11,7 +11,6 @@ from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.performance_issues.event_generators import get_event
-from sentry.testutils.silo import region_silo_test
 
 
 def make_event(**kwargs):
@@ -29,7 +28,6 @@ nplus_one_no_timestamp = {**get_event("n-plus-one-in-django-index-view")}
 del nplus_one_no_timestamp["timestamp"]
 
 
-@region_silo_test
 class NewestIssueViewTest(TestCase, PerformanceIssueTestCase):
     @cached_property
     def path(self):

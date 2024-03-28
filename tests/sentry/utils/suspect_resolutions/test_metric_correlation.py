@@ -6,7 +6,6 @@ from django.utils import timezone
 
 from sentry.models.group import GroupStatus
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.suspect_resolutions.metric_correlation import (
     CandidateMetricCorrResult,
     calculate_pearson_correlation_coefficient,
@@ -16,7 +15,6 @@ from sentry.utils.suspect_resolutions.metric_correlation import (
 WINDOW = 60
 
 
-@region_silo_test
 class MetricCorrelationTest(TestCase):
     def generate_timestamps(self):
         now = datetime.datetime.now()

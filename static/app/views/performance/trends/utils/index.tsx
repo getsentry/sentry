@@ -13,8 +13,10 @@ import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-
-import {platformToPerformanceType, ProjectPerformanceType} from '../utils';
+import {
+  platformToPerformanceType,
+  ProjectPerformanceType,
+} from 'sentry/views/performance/utils';
 
 import type {
   NormalizedTrendsTransaction,
@@ -22,29 +24,23 @@ import type {
   TrendParameter,
   TrendsTransaction,
   TrendView,
-} from './types';
+} from '../types';
 import {
   TrendChangeType,
   TrendFunctionField,
   TrendParameterColumn,
   TrendParameterLabel,
-} from './types';
+} from '../types';
 
 export const DEFAULT_TRENDS_STATS_PERIOD = '14d';
 export const DEFAULT_MAX_DURATION = '15min';
 
 export const TRENDS_FUNCTIONS: TrendFunction[] = [
   {
-    label: 'p50',
-    field: TrendFunctionField.P50,
+    label: 'p99',
+    field: TrendFunctionField.P99,
     alias: 'percentile_range',
-    legendLabel: 'p50',
-  },
-  {
-    label: 'p75',
-    field: TrendFunctionField.P75,
-    alias: 'percentile_range',
-    legendLabel: 'p75',
+    legendLabel: 'p99',
   },
   {
     label: 'p95',
@@ -53,10 +49,16 @@ export const TRENDS_FUNCTIONS: TrendFunction[] = [
     legendLabel: 'p95',
   },
   {
-    label: 'p99',
-    field: TrendFunctionField.P99,
+    label: 'p75',
+    field: TrendFunctionField.P75,
     alias: 'percentile_range',
-    legendLabel: 'p99',
+    legendLabel: 'p75',
+  },
+  {
+    label: 'p50',
+    field: TrendFunctionField.P50,
+    alias: 'percentile_range',
+    legendLabel: 'p50',
   },
   {
     label: 'average',
@@ -156,7 +158,7 @@ export function getCurrentTrendFunction(
   const trendFunctionField =
     _trendFunctionField ?? decodeScalar(location?.query?.trendFunction);
   const trendFunction = TRENDS_FUNCTIONS.find(({field}) => field === trendFunctionField);
-  return trendFunction || TRENDS_FUNCTIONS[0];
+  return trendFunction || TRENDS_FUNCTIONS[1];
 }
 
 function getDefaultTrendParameter(
@@ -456,3 +458,4 @@ export function modifyTransactionNameTrendsQuery(trendView: TrendView) {
 export function getTopTrendingEvents(location: Location) {
   return decodeScalar(location?.query?.topEvents);
 }
+export {platformToPerformanceType};

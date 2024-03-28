@@ -38,7 +38,7 @@ from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class MockSuperUser:
@@ -91,7 +91,6 @@ class PermissionBaseTestCase(TestCase):
         return result_with_obj
 
 
-@region_silo_test
 class OrganizationPermissionTest(PermissionBaseTestCase):
     def org_require_2fa(self):
         self.org.update(flags=F("flags").bitor(Organization.flags.require_2fa))
@@ -218,7 +217,6 @@ class OrganizationPermissionTest(PermissionBaseTestCase):
             assert not self.has_object_perm("POST", self.org, user=user)
 
 
-@region_silo_test
 class OrganizationAndStaffPermissionTest(PermissionBaseTestCase):
     def setUp(self):
         super().setUp()
@@ -282,7 +280,6 @@ class BaseOrganizationEndpointTest(TestCase):
         return request
 
 
-@region_silo_test
 class GetProjectIdsTest(BaseOrganizationEndpointTest):
     def setUp(self):
         self.team_1 = self.create_team(organization=self.org)
@@ -505,7 +502,6 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
             self.endpoint.get_projects(request, self.org)
 
 
-@region_silo_test
 class GetEnvironmentsTest(BaseOrganizationEndpointTest):
     def setUp(self):
         self.project = self.create_project(organization=self.org)
@@ -533,7 +529,6 @@ class GetEnvironmentsTest(BaseOrganizationEndpointTest):
             self.run_test([self.env_1, self.env_2], ["fake", self.env_2.name])
 
 
-@region_silo_test
 class GetFilterParamsTest(BaseOrganizationEndpointTest):
     def setUp(self):
         self.team_1 = self.create_team(organization=self.org)

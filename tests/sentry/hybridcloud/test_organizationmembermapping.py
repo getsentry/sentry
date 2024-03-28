@@ -10,7 +10,7 @@ from sentry.silo import SiloMode
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
 @control_silo_test
@@ -168,7 +168,6 @@ class OrganizationMappingTest(TransactionTestCase, HybridCloudTestMixin):
         assert not om.user_is_active
 
 
-@region_silo_test
 class ReceiverTest(TransactionTestCase, HybridCloudTestMixin):
     def test_process_organization_member_update_receiver(self):
         inviter = self.create_user("foo@example.com")

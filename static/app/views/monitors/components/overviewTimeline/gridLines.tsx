@@ -4,14 +4,14 @@ import moment from 'moment';
 
 import DateTime from 'sentry/components/dateTime';
 import {space} from 'sentry/styles/space';
-import type {TimeWindowOptions} from 'sentry/views/monitors/components/overviewTimeline/types';
+import type {TimeWindowConfig} from 'sentry/views/monitors/components/overviewTimeline/types';
 
 import {useTimelineCursor} from './timelineCursor';
 
 interface Props {
   end: Date;
   start: Date;
-  timeWindowConfig: TimeWindowOptions;
+  timeWindowConfig: TimeWindowConfig;
   width: number;
   className?: string;
   showCursor?: boolean;
@@ -40,7 +40,7 @@ interface TimeMarker {
 function getTimeMarkersFromConfig(
   start: Date,
   end: Date,
-  config: TimeWindowOptions,
+  config: TimeWindowConfig,
   width: number
 ) {
   const {elapsedMinutes, timeMarkerInterval} = config;

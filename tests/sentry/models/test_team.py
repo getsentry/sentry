@@ -9,10 +9,9 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 
 
-@region_silo_test
 class TeamTest(TestCase):
     def test_global_member(self):
         user = self.create_user()
@@ -66,7 +65,6 @@ class TeamTest(TestCase):
         assert Team.objects.filter(id=team.id).exists()
 
 
-@region_silo_test
 class TeamDeletionTest(TestCase):
     def test_hybrid_cloud_deletion(self):
         org = self.create_organization()

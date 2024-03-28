@@ -8,11 +8,9 @@ from sentry.incidents.models.incident import (
 from sentry.models.actor import ActorTuple
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.testutils.silo import region_silo_test
 
 
 @freeze_time()
-@region_silo_test
 class TeamAlertsTriggeredTotalsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-team-alerts-triggered"
 
@@ -167,7 +165,6 @@ class TeamAlertsTriggeredTotalsEndpointTest(APITestCase):
 
 
 @freeze_time()
-@region_silo_test
 class TeamAlertsTriggeredIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-team-alerts-triggered-index"
 

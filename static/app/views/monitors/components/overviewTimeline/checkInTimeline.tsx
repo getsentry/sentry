@@ -9,12 +9,12 @@ import {getAggregateStatus} from 'sentry/views/monitors/utils/getAggregateStatus
 import {mergeBuckets} from 'sentry/views/monitors/utils/mergeBuckets';
 
 import {JobTickTooltip} from './jobTickTooltip';
-import type {MonitorBucketData, TimeWindowOptions} from './types';
+import type {MonitorBucketData, TimeWindowConfig} from './types';
 
 interface TimelineProps {
   end: Date;
   start: Date;
-  timeWindowConfig: TimeWindowOptions;
+  timeWindowConfig: TimeWindowConfig;
   width: number;
 }
 
