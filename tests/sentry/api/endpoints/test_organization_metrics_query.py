@@ -5,12 +5,10 @@ import pytest
 from sentry.snuba.metrics import TransactionMRI
 from sentry.testutils.cases import MetricsAPIBaseTestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import region_silo_test
 
 pytestmark = [pytest.mark.sentry_metrics]
 
 
-@region_silo_test
 @freeze_time(MetricsAPIBaseTestCase.MOCK_DATETIME)
 class OrganizationMetricsQueryTest(MetricsAPIBaseTestCase):
     endpoint = "sentry-api-0-organization-metrics-query"

@@ -646,21 +646,16 @@ class PerformanceIssueTestCase(BaseTestCase):
                     perf_problem.fingerprint = fingerprint
             return perf_problems
 
-        with (
-            mock.patch(
-                "sentry.issues.ingest.send_issue_occurrence_to_eventstream",
-                side_effect=send_issue_occurrence_to_eventstream,
-            ) as mock_eventstream,
-            mock.patch(
-                "sentry.event_manager.detect_performance_problems",
-                side_effect=detect_performance_problems_interceptor,
-            ),
-            mock.patch.object(
-                issue_type, "noise_config", new=NoiseConfig(noise_limit, timedelta(minutes=1))
-            ),
-            override_options(
-                {"performance.issues.all.problem-detection": 1.0, detector_option: 1.0}
-            ),
+        with mock.patch(
+            "sentry.issues.ingest.send_issue_occurrence_to_eventstream",
+            side_effect=send_issue_occurrence_to_eventstream,
+        ) as mock_eventstream, mock.patch(
+            "sentry.event_manager.detect_performance_problems",
+            side_effect=detect_performance_problems_interceptor,
+        ), mock.patch.object(
+            issue_type, "noise_config", new=NoiseConfig(noise_limit, timedelta(minutes=1))
+        ), override_options(
+            {"performance.issues.all.problem-detection": 1.0, detector_option: 1.0}
         ):
             event = perf_event_manager.save(project_id)
             if mock_eventstream.call_args:
@@ -963,13 +958,13 @@ class DRFPermissionTestCase(TestCase):
         Override the return type of make_request b/c DRF permission classes
         expect a DRF request (go figure)
         """
-        drf_request: Request = super().make_request(*arg, **kwargs)  # type: ignore
+        drf_request: Request = super().make_request(*arg, **kwargs)  # type: ignore[assignment]
         return drf_request
 
     def setUp(self):
-        self.superuser_user = self.create_user(is_superuser=True, is_staff=False)
+        self.superuser = self.create_user(is_superuser=True, is_staff=False)
         self.staff_user = self.create_user(is_staff=True, is_superuser=False)
-        self.superuser_request = self.make_request(user=self.superuser_user, is_superuser=True)
+        self.superuser_request = self.make_request(user=self.superuser, is_superuser=True)
         self.staff_request = self.make_request(user=self.staff_user, method="GET", is_staff=True)
 
 

@@ -16,12 +16,11 @@ from sentry.shared_integrations.exceptions import ApiHostError
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_OI_HEADER, PROXY_PATH, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 
 control_address = "http://controlserver"
 
 
-@region_silo_test
 class IntegrationProxyClientTest(TestCase):
     oi_id = 24
     base_url = "https://example.com"

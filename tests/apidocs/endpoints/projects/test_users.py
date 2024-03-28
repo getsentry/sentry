@@ -7,11 +7,9 @@ from django.utils import timezone
 from fixtures.apidocs_test_case import APIDocsTestCase
 from sentry.testutils.cases import SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.eventuser import EventUser
 
 
-@region_silo_test
 class ProjectUsersDocs(APIDocsTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

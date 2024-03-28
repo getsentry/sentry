@@ -144,7 +144,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         response = self.do_request(
             {
                 "field": ["span.op", "span.status_code"],
-                "query": "span.status_code:200",
+                "query": "span.module:http span.status_code:200",
                 "project": self.project.id,
                 "dataset": "spansIndexed",
             }
@@ -190,4 +190,37 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         assert data[0]["replay.id"] == "abc123"
         assert data[0]["browser.name"] == "Chrome"
         assert data[0]["origin.transaction"] == "/pageloads/"
+        assert meta["dataset"] == "spansIndexed"
+
+    def test_span_op_casing(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "sentry_tags": {
+                            "replay_id": "abc123",
+                            "browser.name": "Chrome",
+                            "transaction": "/pageloads/",
+                            "op": "this is a transaction",
+                        }
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ]
+        )
+        response = self.do_request(
+            {
+                "field": ["span.op", "count()"],
+                "query": 'span.op:"ThIs Is a TraNSActiON"',
+                "orderby": "count()",
+                "project": self.project.id,
+                "dataset": "spansIndexed",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["span.op"] == "this is a transaction"
         assert meta["dataset"] == "spansIndexed"

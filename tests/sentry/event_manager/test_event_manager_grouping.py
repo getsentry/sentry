@@ -9,7 +9,6 @@ from sentry.grouping.result import CalculatedHashes
 from sentry.models.group import Group
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -23,7 +22,6 @@ def get_relevant_metrics_calls(mock_fn: MagicMock, key: str) -> list[mock._Call]
     return [call for call in mock_fn.call_args_list if call.args[0] == key]
 
 
-@region_silo_test
 class EventManagerGroupingTest(TestCase):
     def test_puts_events_with_matching_fingerprints_in_same_group(self):
         event = save_new_event(
@@ -112,7 +110,6 @@ class EventManagerGroupingTest(TestCase):
         assert group.message == event2.message
 
 
-@region_silo_test
 class EventManagerGroupingMetricsTest(TestCase):
     @mock.patch("sentry.event_manager.metrics.incr")
     def test_records_avg_calculations_per_event_metrics(self, mock_metrics_incr: MagicMock):

@@ -38,7 +38,7 @@ class RelatedIssues extends Component<Props> {
       end,
       statsPeriod,
       limit: 5,
-      sort: 'new',
+      sort: 'trends',
       ...pick(location.query, [...Object.values(URL_PARAM), 'cursor']),
     };
     const currentFilter = new MutableSearch(decodeScalar(location.query.query, ''));

@@ -5,7 +5,7 @@ import logging
 import time
 from abc import ABCMeta, abstractmethod
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from hashlib import md5
 from math import floor
@@ -1114,6 +1114,8 @@ class InvalidQueryForExecutor(Exception):
 
 
 class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
+    ISSUE_FIELD_NAME = "group_id"
+
     entities = {
         "event": Entity("events", alias="e"),
         "attrs": Entity("group_attributes", alias="g"),
@@ -1141,7 +1143,24 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             ),
             0,
         ],
+        alias="score",
     )
+    first_seen = Column("group_first_seen", entities["attrs"])
+
+    sort_strategies = {
+        "date": "last_seen",
+        "new": "first_seen",
+    }
+
+    sort_defs = {
+        "first_seen": first_seen,
+        "last_seen": last_seen_aggregation,
+    }
+
+    column_sort_mapping = {
+        "new": "g.group_first_seen",
+        "date": "score",
+    }
 
     def calculate_start_end(
         self,
@@ -1248,7 +1267,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 )
             )
 
-        sort_func = self.last_seen_aggregation
+        sort_func = self.sort_defs[self.sort_strategies[sort_by]]
 
         having = []
         if cursor is not None:
@@ -1256,15 +1275,18 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             having.append(Condition(sort_func, op, cursor.value))
 
         tenant_ids = {"organization_id": projects[0].organization_id} if projects else None
+        groupby = [Column("group_id", attr_entity)]
+        select = [Column("group_id", attr_entity)]
+        if sort_by == "new":
+            groupby.append(Column("group_first_seen", attr_entity))
+            select.append(Column("group_first_seen", attr_entity))
+        select.append(sort_func)
 
         query = Query(
             match=Join([Relationship(event_entity, "attributes", attr_entity)]),
-            select=[
-                Column("group_id", attr_entity),
-                replace(sort_func, alias="score"),
-            ],
+            select=select,
             where=where_conditions,
-            groupby=[Column("group_id", attr_entity)],
+            groupby=groupby,
             having=having,
             orderby=[OrderBy(sort_func, direction=Direction.DESC)],
             limit=Limit(limit + 1),
@@ -1295,9 +1317,8 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 request, referrer="search.snuba.group_attributes_search.hits"
             )["data"][0]["count"]
 
-        paginator_options = paginator_options or {}
         paginator_results = SequencePaginator(
-            [(row["score"], row["g.group_id"]) for row in data],
+            [(row[self.column_sort_mapping[sort_by]], row["g.group_id"]) for row in data],
             reverse=True,
             **paginator_options,
         ).get_result(limit, cursor, known_hits=hits, max_hits=max_hits)

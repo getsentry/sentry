@@ -1,9 +1,7 @@
 from fixtures.apidocs_test_case import APIDocsTestCase
 from sentry.models.project import Project
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class OrganizationIndexDocs(APIDocsTestCase):
     endpoint = "sentry-api-0-short-ids-update"
     method = "put"

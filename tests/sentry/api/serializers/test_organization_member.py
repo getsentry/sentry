@@ -9,7 +9,6 @@ from sentry.api.serializers.models.organization_member import (
 )
 from sentry.models.organizationmember import InviteStatus
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 
 
 class OrganizationMemberSerializerTest(TestCase):
@@ -54,7 +53,6 @@ class OrganizationMemberSerializerTest(TestCase):
         assert result["user"]["name"] == "bob"
 
 
-@region_silo_test
 class OrganizationMemberWithProjectsSerializerTest(OrganizationMemberSerializerTest):
     def test_simple(self):
         projects = [self.project, self.project_2]
@@ -78,7 +76,6 @@ class OrganizationMemberWithProjectsSerializerTest(OrganizationMemberSerializerT
         assert [r["projects"] for r in result] == expected_projects
 
 
-@region_silo_test
 class OrganizationMemberWithTeamsSerializerTest(OrganizationMemberSerializerTest):
     def test_simple(self):
         result = serialize(
@@ -101,7 +98,6 @@ class OrganizationMemberWithTeamsSerializerTest(OrganizationMemberSerializerTest
         assert [r["teamRoles"] for r in result] == expected_team_roles
 
 
-@region_silo_test
 class OrganizationMemberSCIMSerializerTest(OrganizationMemberSerializerTest):
     def test_simple(self):
         result = serialize(

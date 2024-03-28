@@ -16,13 +16,11 @@ from sentry.eventstream.snuba import SnubaEventStream, SnubaProtocolEventStream
 from sentry.receivers import create_default_projects
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.utils import json, snuba
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
-@region_silo_test
 class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
     @pytest.fixture(autouse=True)
     def patch_get_producer(self):

@@ -9,12 +9,11 @@ from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import assume_test_silo_mode, no_silo_test, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, no_silo_test
 from sentry.types.region import get_local_region
 
 
 @django_db_all(transaction=True)
-@region_silo_test
 def test_caching_function():
     cache.clear()
 

@@ -6,13 +6,11 @@ from sentry.incidents.action_handlers import SentryAppActionHandler
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 from . import FireTest
 
 
-@region_silo_test
 @freeze_time()
 class SentryAppActionHandlerTest(FireTest):
     def setUp(self):
@@ -85,7 +83,6 @@ class SentryAppActionHandlerTest(FireTest):
         self.run_fire_test("resolve")
 
 
-@region_silo_test
 @freeze_time()
 class SentryAppAlertRuleUIComponentActionHandlerTest(FireTest):
     def setUp(self):

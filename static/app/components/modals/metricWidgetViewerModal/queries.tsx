@@ -6,11 +6,18 @@ import {Button} from 'sentry/components/button';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconAdd, IconClose, IconEllipsis, IconSettings, IconSiren} from 'sentry/icons';
+import {
+  IconAdd,
+  IconClose,
+  IconCopy,
+  IconEllipsis,
+  IconSettings,
+  IconSiren,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {isCustomMetric} from 'sentry/utils/metrics';
-import {MetricQueryType} from 'sentry/utils/metrics/types';
+import {MetricExpressionType} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
@@ -23,15 +30,15 @@ import {
   filterQueriesByDisplayType,
 } from 'sentry/views/dashboards/metrics/utils';
 import {DisplayType} from 'sentry/views/dashboards/types';
-import {EquationSymbol} from 'sentry/views/ddm/equationSymbol copy';
-import {FormulaInput} from 'sentry/views/ddm/formulaInput';
-import {getCreateAlert} from 'sentry/views/ddm/metricQueryContextMenu';
-import {QueryBuilder} from 'sentry/views/ddm/queryBuilder';
-import {getQuerySymbol, QuerySymbol} from 'sentry/views/ddm/querySymbol';
+import {EquationSymbol} from 'sentry/views/metrics/equationSymbol copy';
+import {FormulaInput} from 'sentry/views/metrics/formulaInput';
+import {getCreateAlert} from 'sentry/views/metrics/metricQueryContextMenu';
+import {QueryBuilder} from 'sentry/views/metrics/queryBuilder';
+import {getQuerySymbol, QuerySymbol} from 'sentry/views/metrics/querySymbol';
 
 interface Props {
   addEquation: () => void;
-  addQuery: () => void;
+  addQuery: (index?: number) => void;
   displayType: DisplayType;
   metricEquations: DashboardMetricsEquation[];
   metricQueries: DashboardMetricsQuery[];
@@ -85,7 +92,7 @@ export function Queries({
               disabled={!query.isHidden && visibleExpressions.length === 1}
               isSelected={false}
               queryId={query.id}
-              type={MetricQueryType.QUERY}
+              type={MetricExpressionType.QUERY}
             />
           )}
           <QueryBuilder
@@ -96,6 +103,7 @@ export function Queries({
           <QueryContextMenu
             canRemoveQuery={filteredQueries.length > 1}
             removeQuery={removeQuery}
+            addQuery={addQuery}
             queryIndex={index}
             metricsQuery={query}
           />
@@ -110,7 +118,7 @@ export function Queries({
               disabled={!equation.isHidden && visibleExpressions.length === 1}
               isSelected={false}
               queryId={equation.id}
-              type={MetricQueryType.FORMULA}
+              type={MetricExpressionType.EQUATION}
             />
           )}
           <FormulaInput
@@ -123,7 +131,7 @@ export function Queries({
       ))}
       {displayType !== DisplayType.BIG_NUMBER && (
         <ButtonBar addQuerySymbolSpacing={showQuerySymbols}>
-          <Button size="sm" icon={<IconAdd isCircled />} onClick={addQuery}>
+          <Button size="sm" icon={<IconAdd isCircled />} onClick={() => addQuery()}>
             {t('Add query')}
           </Button>
           <Button size="sm" icon={<IconAdd isCircled />} onClick={addEquation}>
@@ -136,6 +144,7 @@ export function Queries({
 }
 
 interface QueryContextMenuProps {
+  addQuery: (index: number) => void;
   canRemoveQuery: boolean;
   metricsQuery: DashboardMetricsQuery;
   queryIndex: number;
@@ -145,6 +154,7 @@ interface QueryContextMenuProps {
 function QueryContextMenu({
   metricsQuery,
   removeQuery,
+  addQuery,
   canRemoveQuery,
   queryIndex,
 }: QueryContextMenuProps) {
@@ -158,6 +168,15 @@ function QueryContextMenu({
 
   const items = useMemo<MenuItemProps[]>(() => {
     const customMetric = !isCustomMetric({mri: metricsQuery.mri});
+
+    const duplicateQueryItem = {
+      leadingItems: [<IconCopy key="icon" />],
+      key: 'duplicate',
+      label: t('Duplicate'),
+      onAction: () => {
+        addQuery(queryIndex);
+      },
+    };
     const addAlertItem = {
       leadingItems: [<IconSiren key="icon" />],
       key: 'add-alert',
@@ -190,9 +209,17 @@ function QueryContextMenu({
     };
 
     return customMetric
-      ? [addAlertItem, removeQueryItem, settingsItem]
-      : [addAlertItem, removeQueryItem];
-  }, [createAlert, metricsQuery.mri, removeQuery, canRemoveQuery, queryIndex, router]);
+      ? [duplicateQueryItem, addAlertItem, removeQueryItem, settingsItem]
+      : [duplicateQueryItem, addAlertItem, removeQueryItem];
+  }, [
+    createAlert,
+    metricsQuery.mri,
+    removeQuery,
+    addQuery,
+    canRemoveQuery,
+    queryIndex,
+    router,
+  ]);
 
   return (
     <DropdownMenu
@@ -230,7 +257,7 @@ interface QueryToggleProps {
   isSelected: boolean;
   onChange: (isHidden: boolean) => void;
   queryId: number;
-  type: MetricQueryType;
+  type: MetricExpressionType;
 }
 
 function QueryToggle({
@@ -248,7 +275,7 @@ function QueryToggle({
 
   return (
     <Tooltip title={tooltipTitle} delay={500}>
-      {type === MetricQueryType.QUERY ? (
+      {type === MetricExpressionType.QUERY ? (
         <StyledQuerySymbol
           isHidden={isHidden}
           queryId={queryId}

@@ -25,7 +25,8 @@ import {
   SortSelector,
 } from 'sentry/views/monitors/components/overviewTimeline/sortSelector';
 import type {Monitor} from 'sentry/views/monitors/types';
-import {makeMonitorListQueryKey, scheduleAsText} from 'sentry/views/monitors/utils';
+import {makeMonitorListQueryKey} from 'sentry/views/monitors/utils';
+import {scheduleAsText} from 'sentry/views/monitors/utils/scheduleAsText';
 
 interface Props extends ModalRenderProps {}
 

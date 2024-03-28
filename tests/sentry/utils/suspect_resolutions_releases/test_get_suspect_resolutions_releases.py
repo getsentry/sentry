@@ -8,13 +8,11 @@ from sentry.models.grouprelease import GroupRelease
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.signals import release_created
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.suspect_resolutions_releases.get_suspect_resolutions_releases import (
     get_suspect_resolutions_releases,
 )
 
 
-@region_silo_test
 class GetSuspectResolutionsReleasesTest(TestCase):
     @mock.patch("sentry.analytics.record")
     def test_get_suspect_resolutions_releases(self, record):

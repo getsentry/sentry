@@ -1038,8 +1038,8 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "monitors-detect-broken-monitor-envs": {
         "task": "sentry.monitors.tasks.detect_broken_monitor_envs",
-        # 05:00 PDT, 09:00 EDT, 12:00 UTC
-        "schedule": crontab(minute="0", hour="12"),
+        # 12:00 PDT, 15:00 EDT, 19:00 UTC
+        "schedule": crontab(minute="0", hour="19"),
         "options": {"expires": 15 * 60},
     },
     "clear-expired-snoozes": {
@@ -1788,6 +1788,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-vitals-inp": False,
     # Enable trace explorer features in performance
     "organizations:performance-trace-explorer": False,
+    # Hides some fields and sections in the transaction summary page that are being deprecated
+    "organizations:performance-transaction-summary-cleanup": False,
     # Enable profiling
     "organizations:profiling": False,
     # Enabled for those orgs who participated in the profiling Beta program
@@ -3127,6 +3129,10 @@ SENTRY_SDK_CONFIG: ServerSdkConfig = {
     "send_default_pii": True,
     "auto_enabling_integrations": False,
     "enable_db_query_source": True,
+    # Keep alive is enabled to help avoid losing events due to network
+    # connectivity issues. We are specifically enabling this to help ensure
+    # cron monitor check-ins make it through.
+    "keep_alive": True,
 }
 
 SENTRY_DEV_DSN = os.environ.get("SENTRY_DEV_DSN")

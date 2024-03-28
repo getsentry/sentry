@@ -1,13 +1,11 @@
 from sentry.rules.conditions.event_attribute import EventAttributeCondition
 from sentry.rules.match import MatchType
 from sentry.testutils.cases import RuleTestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class EventAttributeConditionTest(RuleTestCase):
     rule_cls = EventAttributeCondition
 

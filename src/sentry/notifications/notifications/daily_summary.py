@@ -46,7 +46,7 @@ class DailySummaryNotification(BaseNotification):
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         return self.get_message_description(self.recipient, self.provider)
 
-    def get_context(self) -> dict[int, DailySummaryProjectContext]:  # type: ignore
+    def get_context(self) -> dict[int, DailySummaryProjectContext]:  # type: ignore[explicit-override, override]
         return self.project_context
 
     def get_notification_title(
