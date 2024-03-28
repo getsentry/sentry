@@ -4,6 +4,7 @@ import logging
 
 from rest_framework.request import Request
 
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.base import Endpoint
 from sentry.api.bases.project import ProjectPermission
@@ -52,7 +53,10 @@ class GroupEndpoint(Endpoint):
         # `issue_id` keyword argument.
         if organization_slug:
             try:
-                organization = Organization.objects.get_from_cache(slug=organization_slug)
+                if options.get("api.id-or-slug-enabled") and str(organization_slug).isnumeric():
+                    organization = Organization.objects.get_from_cache(id=organization_slug)
+                else:
+                    organization = Organization.objects.get_from_cache(slug=organization_slug)
             except Organization.DoesNotExist:
                 raise ResourceDoesNotExist
 
