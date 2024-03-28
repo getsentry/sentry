@@ -419,7 +419,7 @@ invalid_payloads = [
     ),
     (
         {
-            "name": "c:transactions/alert@none" * 21,
+            "name": "c:transactions/alert@" + ("none" * 50),
             "tags": {
                 "environment": "production",
                 "session.status": "errored",
