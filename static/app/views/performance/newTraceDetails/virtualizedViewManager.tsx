@@ -378,6 +378,15 @@ export class VirtualizedViewManager {
     this.previousDividerClientVec = [event.clientX, event.clientY];
   }
 
+  private scrollbar_width: number = 0;
+  onScrollbarWidthChange(width: number) {
+    if (width === this.scrollbar_width) {
+      return;
+    }
+    this.scrollbar_width = width;
+    this.draw();
+  }
+
   registerList(list: VirtualizedList | null) {
     this.list = list;
   }
@@ -1226,7 +1235,9 @@ export class VirtualizedViewManager {
 
     if (this.divider) {
       this.divider.style.transform = `translateX(${
-        list_width * this.container_physical_space.width - DIVIDER_WIDTH / 2 - 1
+        list_width * (this.container_physical_space.width - this.scrollbar_width) -
+        DIVIDER_WIDTH / 2 -
+        1
       }px)`;
     }
     if (this.indicator_container) {
@@ -1614,12 +1625,30 @@ export class VirtualizedList {
   }
 }
 
+function maybeToggleScrollbar(
+  container: HTMLElement,
+  containerHeight: number,
+  scrollHeight: number,
+  manager: VirtualizedViewManager
+) {
+  if (scrollHeight > containerHeight) {
+    container.style.overflowY = 'scroll';
+    container.style.scrollbarGutter = 'stable';
+    manager.onScrollbarWidthChange(container.offsetWidth - container.clientWidth);
+  } else {
+    container.style.overflowY = 'auto';
+    container.style.scrollbarGutter = 'auto';
+    manager.onScrollbarWidthChange(0);
+  }
+}
+
 interface UseVirtualizedListProps {
   container: HTMLElement | null;
   items: ReadonlyArray<TraceTreeNode<TraceTree.NodeValue>>;
   manager: VirtualizedViewManager;
   render: (item: VirtualizedRow) => React.ReactNode;
 }
+
 interface UseVirtualizedListResult {
   list: VirtualizedList;
   rendered: React.ReactNode[];
@@ -1697,6 +1726,13 @@ export const useVirtualizedList = (
         list.current.scrollHeight = scrollHeightRef.current;
       }
 
+      maybeToggleScrollbar(
+        elements[0].target as HTMLElement,
+        scrollHeightRef.current,
+        itemsRef.current.length * 24,
+        managerRef.current
+      );
+
       const recomputedItems = findRenderedItems({
         scrollTop: scrollTopRef.current,
         items: itemsRef.current,
@@ -1737,6 +1773,13 @@ export const useVirtualizedList = (
     scrollContainerRef.current!.style.position = 'relative';
     scrollContainerRef.current!.style.willChange = 'transform';
     scrollContainerRef.current!.style.height = `${props.items.length * 24}px`;
+
+    maybeToggleScrollbar(
+      props.container,
+      scrollHeightRef.current,
+      props.items.length * 24,
+      props.manager
+    );
 
     const onScroll = event => {
       if (!list.current) {
@@ -1805,7 +1848,7 @@ export const useVirtualizedList = (
     return () => {
       props.container?.removeEventListener('scroll', onScroll);
     };
-  }, [props.container, props.items, props.items.length]);
+  }, [props.container, props.items, props.items.length, props.manager]);
 
   useLayoutEffect(() => {
     if (!list.current || !styleCache.current || !renderCache.current) {
