@@ -10,11 +10,17 @@ from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.github_enterprise import GitHubEnterpriseCreateTicketAction, client
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.rule import Rule
+from sentry.rules import rules
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.skips import requires_snuba
 from sentry.types.rules import RuleFuture
 
 pytestmark = [requires_snuba]
+
+# Adding GitHub Enterprise ticket action is protected by an option, and we
+# cannot override the option before importing it in the test so we need to
+# manually add it here.
+rules.add(GitHubEnterpriseCreateTicketAction)
 
 
 class GitHubEnterpriseEnterpriseTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
