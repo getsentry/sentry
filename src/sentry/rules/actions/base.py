@@ -14,7 +14,6 @@ logger = logging.getLogger("sentry.rules")
 
 
 def instantiate_action(rule: Rule, action, rule_fire_history: RuleFireHistory | None = None):
-    from sentry.integrations.slack import SlackNotifyServiceAction
     from sentry.rules import rules
 
     action_id = action["id"]
@@ -23,13 +22,9 @@ def instantiate_action(rule: Rule, action, rule_fire_history: RuleFireHistory | 
         logger.warning("Unregistered action %r", action["id"])
         return None
 
-    if action_id == SlackNotifyServiceAction.id:
-        action_inst = action_cls(
-            rule.project, data=action, rule=rule, rule_fire_history=rule_fire_history
-        )
-    else:
-        action_inst = action_cls(rule.project, data=action, rule=rule)
-
+    action_inst = action_cls(
+        rule.project, data=action, rule=rule, rule_fire_history=rule_fire_history
+    )
     if not isinstance(action_inst, EventAction):
         logger.warning("Unregistered action %r", action["id"])
         return None

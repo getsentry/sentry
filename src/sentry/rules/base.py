@@ -11,6 +11,7 @@ from django import forms
 from sentry.eventstore.models import GroupEvent
 from sentry.models.project import Project
 from sentry.models.rule import Rule
+from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.snuba.dataset import Dataset
 from sentry.types.condition_activity import ConditionActivity
 from sentry.types.rules import RuleFuture
@@ -61,12 +62,13 @@ class RuleBase(abc.ABC):
         project: Project,
         data: dict[str, Any] | None = None,
         rule: Rule | None = None,
-        **kwargs: Any,
+        rule_fire_history: RuleFireHistory | None = None,
     ) -> None:
         self.project = project
         self.data = data or {}
         self.had_data = data is not None
         self.rule = rule
+        self.rule_fire_history = rule_fire_history
 
     id: ClassVar[str]
     label: ClassVar[str]

@@ -16,7 +16,6 @@ from sentry.integrations.slack.message_builder.notifications.rule_save_edit impo
 from sentry.integrations.slack.utils import get_channel_id
 from sentry.models.integrations.integration import Integration
 from sentry.models.rule import Rule
-from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
 from sentry.rules import EventState
 from sentry.rules.actions import IntegrationEventAction
@@ -35,7 +34,6 @@ class SlackNotifyServiceAction(IntegrationEventAction):
     integration_key = "workspace"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        rule_fire_history = kwargs.pop("rule_fire_history", None)
         super().__init__(*args, **kwargs)
         # XXX(CEO): when removing the feature flag, put `label` back up as a class var
         self.label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}) and show tags {tags} in notification"  # type: ignore[misc]
@@ -59,7 +57,6 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         self._repository: IssueAlertNotificationMessageRepository = (
             get_default_issue_alert_repository()
         )
-        self._rule_fire_history: RuleFireHistory | None = rule_fire_history
 
     def after(
         self, event: GroupEvent, state: EventState, notification_uuid: str | None = None
