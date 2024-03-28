@@ -29,16 +29,23 @@ export const useTraceAverageTransactionDurations = ({
     [tree.transactionProjectIDs]
   );
 
-  const conditions = new MutableSearch(
-    transactionTitles.reduce<string[]>((acc, transaction, index, allTransactions) => {
-      acc.push(`transaction:"${transaction}"`);
-      if (index < allTransactions.length - 1) {
-        acc.push('OR');
-      }
-      return acc;
-    }, [])
-  );
+  // Creates a comma separated string of transaction titles
+  const transactionsFilterValues = useMemo(() => {
+    return transactionTitles.reduce<string>(
+      (acc, transaction, index, allTransactions) => {
+        acc = acc + `${transaction}`;
+        if (index < allTransactions.length - 1) {
+          acc = acc + ',';
+        }
+        return acc;
+      },
+      ''
+    );
+  }, [transactionTitles]);
+
+  const conditions = new MutableSearch('');
   conditions.setFilterValues('event.type', ['transaction']);
+  conditions.setFilterValues(' transaction', [`[${transactionsFilterValues}]`]);
 
   const eventView = EventView.fromSavedQuery({
     id: undefined,
