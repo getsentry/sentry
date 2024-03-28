@@ -12,6 +12,7 @@ from sentry.rules.history.preview_strategy import DATASET_TO_COLUMN_NAME, get_da
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
 from sentry.types.condition_activity import ConditionActivity
+from sentry.utils.events import getExceptionFrames
 
 # Maps attributes to snuba columns
 ATTR_CHOICES = {
@@ -163,9 +164,12 @@ class EventAttributeCondition(EventCondition):
             if stacktrace:
                 stacks = [stacktrace]
             else:
-                stacks = [
-                    e.stacktrace for e in event.interfaces["exception"].values if e.stacktrace
-                ]
+if \"exception\" in event.interfaces and event.interfaces[\"exception\"].values is not None:
+    stacks = [
+        e.stacktrace for e in event.interfaces[\"exception\"].values if e.stacktrace
+    ]
+else:
+    stacks = []
             result = []
             for st in stacks:
                 for frame in st.frames:
