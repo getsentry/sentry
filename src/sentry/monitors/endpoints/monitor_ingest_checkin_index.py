@@ -161,9 +161,9 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
                 if create_monitor:
                     monitor, created = Monitor.objects.update_or_create(
                         organization_id=project.organization_id,
+                        project_id=project.id,
                         slug=monitor_data["slug"],
                         defaults={
-                            "project_id": project.id,
                             "name": monitor_data["name"],
                             "status": monitor_data["status"],
                             "type": monitor_data["type"],
