@@ -108,6 +108,9 @@ API_ERRORS = {
 ERR_INTEGRATION_EXISTS_ON_ANOTHER_ORG = _(
     "It seems that your GitHub account has been installed on another Sentry organization. Please uninstall and try again."
 )
+ERR_INTEGRATION_INVALID_INSTALLATION_REQUEST = _(
+    "We could not verify the authenticity of the installation request. We recommend restarting the installation process."
+)
 ERR_INTEGRATION_PENDING_DELETION = _(
     "It seems that your Sentry organization has an installation pending deletion. Please wait ~15min for the uninstall to complete and try again."
 )
@@ -357,8 +360,16 @@ class GitHubInstallation(PipelineView):
         name = options.get("github-app.name")
         return f"https://github.com/apps/{slugify(name)}"
 
+    def _get_document_origin(self) -> str:
+        if self.active_organization and features.has(
+            "organizations:customer-domains", self.active_organization.organization
+        ):
+            return f'"{generate_organization_url(self.active_organization.organization.slug)}"'
+        return "document.origin"
+
     def dispatch(self, request: Request, pipeline: Pipeline) -> HttpResponse:
         if "installation_id" not in request.GET:
+            pipeline.bind_state("installation_user", request.user.id)
             return self.redirect(self.get_app_url())
 
         self.determine_active_organization(request)
@@ -374,13 +385,6 @@ class GitHubInstallation(PipelineView):
             ).exists()
 
         if integration_pending_deletion_exists:
-            document_origin = "document.origin"
-            if self.active_organization and features.has(
-                "organizations:customer-domains", self.active_organization.organization
-            ):
-                document_origin = (
-                    f'"{generate_organization_url(self.active_organization.organization.slug)}"'
-                )
             return render_to_response(
                 "sentry/integrations/github-integration-failed.html",
                 context={
@@ -389,7 +393,7 @@ class GitHubInstallation(PipelineView):
                         "success": False,
                         "data": {"error": _("GitHub installation pending deletion.")},
                     },
-                    "document_origin": document_origin,
+                    "document_origin": self._get_document_origin(),
                 },
                 request=request,
             )
@@ -404,14 +408,24 @@ class GitHubInstallation(PipelineView):
             pipeline.bind_state("installation_id", request.GET["installation_id"])
             return pipeline.next_step()
 
+        if (
+            request.COOKIES.get("sc") != request.GET.get("csrf_token")
+            and pipeline.fetch_state("installation_user") != request.user.id
+        ):
+            return render_to_response(
+                "sentry/integrations/github-integration-failed.html",
+                context={
+                    "error": ERR_INTEGRATION_INVALID_INSTALLATION_REQUEST,
+                    "payload": {
+                        "success": False,
+                        "data": {"error": _("Invalid installation request.")},
+                    },
+                    "document_origin": self._get_document_origin(),
+                },
+                request=request,
+            )
+
         if installations_exist:
-            document_origin = "document.origin"
-            if self.active_organization and features.has(
-                "organizations:customer-domains", self.active_organization.organization
-            ):
-                document_origin = (
-                    f'"{generate_organization_url(self.active_organization.organization.slug)}"'
-                )
             return render_to_response(
                 "sentry/integrations/github-integration-failed.html",
                 context={
@@ -420,7 +434,7 @@ class GitHubInstallation(PipelineView):
                         "success": False,
                         "data": {"error": _("Github installed on another Sentry organization.")},
                     },
-                    "document_origin": document_origin,
+                    "document_origin": self._get_document_origin(),
                 },
                 request=request,
             )
