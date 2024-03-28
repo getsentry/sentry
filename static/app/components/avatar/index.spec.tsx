@@ -54,7 +54,7 @@ describe('Avatar', function () {
       const avatarImage = await screen.findByRole('img');
       expect(avatarImage).toHaveAttribute(
         'src',
-        `${gravatarBaseUrl}/avatar/a94c88e18c44e553497bf642449b6398?d=404&s=120`
+        `${gravatarBaseUrl}/avatar/4af0e27cabbfd1860ab7985e5becc4dedeaf5e00deec23a2d92d5f8bb1191ccb?d=404&s=120`
       );
     });
 
