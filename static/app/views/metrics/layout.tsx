@@ -19,7 +19,7 @@ import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {METRICS_DOCS_URL} from 'sentry/utils/metrics/constants';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useDDMContext} from 'sentry/views/metrics/context';
+import {useMetricsContext} from 'sentry/views/metrics/context';
 import {useMetricsOnboardingSidebar} from 'sentry/views/metrics/ddmOnboarding/useMetricsOnboardingSidebar';
 import {IntervalSelect} from 'sentry/views/metrics/intervalSelect';
 import {PageHeaderActions} from 'sentry/views/metrics/pageHeaderActions';
@@ -29,7 +29,7 @@ import {WidgetDetails} from 'sentry/views/metrics/widgetDetails';
 
 export const MetricsLayout = memo(() => {
   const organization = useOrganization();
-  const {hasMetrics} = useDDMContext();
+  const {hasMetrics} = useMetricsContext();
   const {activateSidebar} = useMetricsOnboardingSidebar();
 
   const addCustomMetric = useCallback(

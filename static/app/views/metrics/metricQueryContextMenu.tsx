@@ -34,7 +34,7 @@ import {
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
-import {useDDMContext} from 'sentry/views/metrics/context';
+import {useMetricsContext} from 'sentry/views/metrics/context';
 import {CreateAlertModal} from 'sentry/views/metrics/createAlertModal';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
@@ -52,7 +52,7 @@ export function MetricQueryContextMenu({
   const organization = useOrganization();
   const router = useRouter();
 
-  const {removeWidget, duplicateWidget, widgets} = useDDMContext();
+  const {removeWidget, duplicateWidget, widgets} = useMetricsContext();
   const createAlert = useMemo(
     () => getCreateAlert(organization, metricsQuery),
     [metricsQuery, organization]

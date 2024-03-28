@@ -12,7 +12,7 @@ import {isCustomMeasurement} from 'sentry/utils/metrics';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import type {MetricFormulaWidgetParams} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useDDMContext} from 'sentry/views/metrics/context';
+import {useMetricsContext} from 'sentry/views/metrics/context';
 import {useCreateDashboard} from 'sentry/views/metrics/useCreateDashboard';
 import type {useFormulaDependencies} from 'sentry/views/metrics/utils/useFormulaDependencies';
 
@@ -28,7 +28,7 @@ export function MetricFormulaContextMenu({
   formulaDependencies,
 }: ContextMenuProps) {
   const organization = useOrganization();
-  const {removeWidget, duplicateWidget, widgets} = useDDMContext();
+  const {removeWidget, duplicateWidget, widgets} = useMetricsContext();
   const canDelete = widgets.length > 1;
 
   const createDashboardWidget = useCreateDashboardWidget(
