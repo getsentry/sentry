@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from datetime import datetime
-from typing import cast
 
 import sentry_sdk
 from snuba_sdk import AliasedExpression, Column, Condition, Function, Identifier, Op, OrderBy
@@ -822,7 +821,9 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         )
 
     def _resolve_regression_score(
-        self, args: Mapping[str, str | Column | SelectType | int | float], alias: str | None = None
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float | datetime],
+        alias: str | None = None,
     ) -> SelectType:
         return Function(
             "minus",
@@ -847,15 +848,14 @@ class SpansMetricsDatasetConfig(DatasetConfig):
 
     def _resolve_epm_condition(
         self,
-        args: Mapping[str, str | Column | SelectType | int | float],
+        args: Mapping[str, str | Column | SelectType | int | float | datetime],
         alias: str | None,
         condition: str,
     ) -> SelectType:
-        timestamp = cast(datetime, args["timestamp"])
         if condition == "greater":
-            interval = (self.builder.params.end - timestamp).total_seconds()
+            interval = (self.builder.params.end - args["timestamp"]).total_seconds()
         elif condition == "less":
-            interval = (timestamp - self.builder.params.start).total_seconds()
+            interval = (args["timestamp"] - self.builder.params.start).total_seconds()
         else:
             raise InvalidSearchQuery(f"Unsupported condition for epm: {condition}")
 
@@ -869,7 +869,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                             condition,
                             [
                                 Column("timestamp"),
-                                timestamp,
+                                args["timestamp"],
                             ],
                         ),
                     ],
