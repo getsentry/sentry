@@ -3726,7 +3726,6 @@ ANOMALY_DETECTION_TIMEOUT = 30
 # TODO: Once this moves to its own service, this URL will need to be updated
 SEVERITY_DETECTION_URL = ANOMALY_DETECTION_URL
 SEVERITY_DETECTION_TIMEOUT = 0.3  # 300 milliseconds
-SEVERITY_DETECTION_RETRIES = 1
 
 SEER_AUTOFIX_URL = ANOMALY_DETECTION_URL  # In local development this is the same as ANOMALY_DETECTION_URL, for prod check getsentry.
 

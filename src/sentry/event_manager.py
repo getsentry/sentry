@@ -2342,9 +2342,7 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
                 reason = "ml"
         except MaxRetryError as e:
             logger.warning(
-                "Unable to get severity score from microservice after %s retr%s. Got MaxRetryError caused by: %s.",
-                SEVERITY_DETECTION_RETRIES,
-                "ies" if SEVERITY_DETECTION_RETRIES > 1 else "y",
+                "Unable to get severity score from microservice. Got MaxRetryError caused by: %s.",
                 repr(e.reason),
                 extra=logger_data,
             )
