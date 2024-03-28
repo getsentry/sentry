@@ -3,6 +3,7 @@ import type {MetricType} from 'sentry/types/metrics';
 import {defined, formatBytesBase2, formatBytesBase10} from 'sentry/utils';
 import {
   DAY,
+  formatAbbreviatedNumberWithDynamicPrecision,
   formatNumberWithDynamicDecimalPoints,
   HOUR,
   MICROSECOND,
@@ -258,7 +259,7 @@ export function formatMetricUsingUnit(value: number | null, unit: string) {
       return formatBytesBase10(value, 6);
     case 'none':
     default:
-      return value.toLocaleString();
+      return formatAbbreviatedNumberWithDynamicPrecision(value);
   }
 }
 

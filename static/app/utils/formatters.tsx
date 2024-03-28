@@ -384,29 +384,24 @@ export function formatPercentage(value: number, places: number = 2) {
   );
 }
 
-const numberFormats = [
-  [1000000000, 'b'],
-  [1000000, 'm'],
-  [1000, 'k'],
-] as const;
-
 /**
- * Formats a number to a string with a suffix
+ * Formats a number with an abbreviation e.g. 1000 -> 1k.
  *
  * @param number the number to format
  * @param precision the number of significant digits to include
+ * @param includeDecimals when true, formatted number will always include non trailing zero decimal places
  */
 export function formatAbbreviatedNumber(
   number: number | string,
-  precision?: number
+  precision?: number,
+  includeDecimals?: boolean
 ): string {
   number = Number(number);
 
-  let lookup: (typeof numberFormats)[number];
+  const abbreviations = ['k', 'm', 'b'];
 
-  // eslint-disable-next-line no-cond-assign
-  for (let i = 0; (lookup = numberFormats[i]); i++) {
-    const [suffixNum, suffix] = lookup;
+  for (let i = 3; i >= 1; i--) {
+    const [suffixNum, suffix] = [Math.pow(10, i * 3), abbreviations[i - 1]] as const;
     const shortValue = Math.floor(number / suffixNum);
     const fitsBound = number % suffixNum;
 
@@ -414,19 +409,43 @@ export function formatAbbreviatedNumber(
       continue;
     }
 
-    const formattedNumber =
-      shortValue / 10 > 1 || !fitsBound
-        ? precision === undefined
-          ? shortValue
-          : parseFloat(shortValue.toPrecision(precision)).toString()
-        : formatFloat(number / suffixNum, precision || 1).toLocaleString(undefined, {
-            maximumSignificantDigits: precision,
-          });
+    const useShortValue = !includeDecimals && (shortValue / 10 > 1 || !fitsBound);
+
+    if (useShortValue) {
+      if (precision === undefined) {
+        return `${shortValue}${suffix}`;
+      }
+      const formattedNumber = parseFloat(shortValue.toPrecision(precision)).toString();
+      return `${formattedNumber}${suffix}`;
+    }
+
+    const formattedNumber = formatFloat(
+      number / suffixNum,
+      precision || 1
+    ).toLocaleString(undefined, {
+      maximumSignificantDigits: precision,
+    });
 
     return `${formattedNumber}${suffix}`;
   }
 
   return number.toLocaleString(undefined, {maximumSignificantDigits: precision});
+}
+
+export function formatAbbreviatedNumberWithDynamicPrecision(
+  value: number | string
+): string {
+  const number = Number(value);
+
+  if (number === 0) {
+    return '0';
+  }
+
+  const numOfDigits = Math.floor(Math.log10(Math.abs(number))) + 1;
+
+  const numOfFormattedDigits = numOfDigits % 3 === 0 ? 3 : numOfDigits % 3;
+
+  return formatAbbreviatedNumber(value, numOfFormattedDigits + 2, true);
 }
 
 /**
@@ -435,16 +454,20 @@ export function formatAbbreviatedNumber(
  * e.g. 0.0001234 -> 0.00012
  * @param value number to format
  */
-export function formatNumberWithDynamicDecimalPoints(value: number): string {
+export function formatNumberWithDynamicDecimalPoints(
+  value: number,
+  maxFractionDigits = 2
+): string {
   if ([0, Infinity, -Infinity, NaN].includes(value)) {
     return value.toLocaleString();
   }
 
   const exponent = Math.floor(Math.log10(Math.abs(value)));
 
-  const maxFractionDigits = exponent >= 0 ? 2 : Math.abs(exponent) + 1;
+  const maximumFractionDigits =
+    exponent >= 0 ? maxFractionDigits : Math.abs(exponent) + 1;
   const numberFormat = {
-    maximumFractionDigits: maxFractionDigits,
+    maximumFractionDigits,
     minimumFractionDigits: 0,
   };
 
