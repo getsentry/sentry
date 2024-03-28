@@ -17,7 +17,6 @@ from django.db import IntegrityError, OperationalError, connection, router, tran
 from django.db.models import Func, Max
 from django.db.models.signals import post_save
 from django.utils.encoding import force_str
-from urllib3 import Retry
 from urllib3.exceptions import MaxRetryError
 from usageaccountant import UsageUnit
 
@@ -2146,16 +2145,6 @@ def _process_existing_aggregate(
 
 severity_connection_pool = connection_from_url(
     settings.SEVERITY_DETECTION_URL,
-    retries=Retry(
-        total=SEVERITY_DETECTION_RETRIES,  # Defaults to 1
-        status_forcelist=[
-            408,  # Request timeout
-            429,  # Too many requests
-            502,  # Bad gateway
-            503,  # Service unavailable
-            504,  # Gateway timeout
-        ],
-    ),
     timeout=settings.SEVERITY_DETECTION_TIMEOUT,  # Defaults to 300 milliseconds
 )
 
@@ -2329,11 +2318,16 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
     with sentry_sdk.start_span(op=op):
         try:
             with metrics.timer(op):
+                timeout = options.get(
+                    "issues.severity.seer-timout",
+                    settings.SEVERITY_DETECTION_TIMEOUT / 1000,
+                )
                 response = severity_connection_pool.urlopen(
                     "POST",
                     "/v0/issues/severity-score",
                     body=json.dumps(payload),
                     headers={"content-type": "application/json;charset=utf-8"},
+                    timeout=timeout,
                 )
                 severity = json.loads(response.data).get("severity")
                 reason = "ml"
