@@ -343,10 +343,14 @@ class CombinedRuleSerializer(Serializer):
         **kwargs: Any,
     ) -> MutableMapping[Any, Any]:
         if isinstance(obj, AlertRule):
+            if attrs is None:
+                attrs = {}
             alert_rule_attrs: MutableMapping[Any, Any] = {**attrs}
             alert_rule_attrs["type"] = "alert_rule"
             return alert_rule_attrs
         elif isinstance(obj, Rule):
+            if attrs is None:
+                attrs = {}
             rule_attrs: MutableMapping[Any, Any] = {**attrs}
             rule_attrs["type"] = "rule"
             return rule_attrs
