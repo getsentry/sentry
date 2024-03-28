@@ -830,36 +830,34 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 Function(
                     "multiply",
                     [
-                        self._resolve_average_cond(args, None, "greater"),
-                        self._resolve_epm_cond(args, None, "greater"),
+                        self._resolve_average_condition(args, None, "greater"),
+                        self._resolve_epm_condition(args, None, "greater"),
                     ],
                 ),
                 Function(
                     "multiply",
                     [
-                        self._resolve_average_cond(args, None, "less"),
-                        self._resolve_epm_cond(args, None, "less"),
+                        self._resolve_average_condition(args, None, "less"),
+                        self._resolve_epm_condition(args, None, "less"),
                     ],
                 ),
             ],
             alias,
         )
 
-    def _resolve_epm_cond(
+    def _resolve_epm_condition(
         self,
         args: Mapping[str, str | Column | SelectType | int | float],
         alias: str | None,
-        cond: str,
+        condition: str,
     ) -> SelectType:
-        assert self.builder.params.start
-        assert self.builder.params.end
         timestamp = cast(datetime, args["timestamp"])
-        if cond == "greater":
+        if condition == "greater":
             interval = (self.builder.params.end - timestamp).total_seconds()
-        elif cond == "less":
+        elif condition == "less":
             interval = (timestamp - self.builder.params.start).total_seconds()
         else:
-            raise InvalidSearchQuery(f"Unsupported condition for epm: {cond}")
+            raise InvalidSearchQuery(f"Unsupported condition for epm: {condition}")
 
         return Function(
             "divide",
@@ -868,7 +866,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     "countIf",
                     [
                         Function(
-                            cond,
+                            condition,
                             [
                                 Column("timestamp"),
                                 timestamp,
@@ -881,11 +879,11 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
-    def _resolve_average_cond(
+    def _resolve_average_condition(
         self,
         args: Mapping[str, str | Column | SelectType | int | float],
         alias: str | None,
-        cond: str,
+        condition: str,
     ) -> SelectType:
         conditional_aggregate = Function(
             "avgIf",
@@ -901,7 +899,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                                 self.resolve_metric("span.self_time"),
                             ],
                         ),
-                        Function(cond, [Column("timestamp"), args["timestamp"]]),
+                        Function(condition, [Column("timestamp"), args["timestamp"]]),
                     ],
                 ),
             ],
