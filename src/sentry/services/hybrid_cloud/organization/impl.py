@@ -61,6 +61,7 @@ from sentry.services.hybrid_cloud.organization_actions.impl import (
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.util import flags_to_bits
 from sentry.silo import unguarded_write
+from sentry.tasks.auth import email_unlink_notifications
 from sentry.types.region import find_regions_for_orgs
 from sentry.utils.audit import create_org_delete_log
 
@@ -589,24 +590,14 @@ class DatabaseBackedOrganizationService(OrganizationService):
         from sentry.auth.exceptions import ProviderNotRegistered
 
         try:
-            provider = manager.get(provider_key)
+            manager.get(provider_key)
         except ProviderNotRegistered as e:
             logger.warning("Could not send SSO unlink emails: %s", e)
             return
 
-        with unguarded_write(using=router.db_for_write(OrganizationMember)):
-            # Flags are not replicated -- these updates are safe to skip outboxes
-            OrganizationMember.objects.filter(organization_id=organization_id).update(
-                flags=F("flags")
-                .bitand(~OrganizationMember.flags["sso:linked"])
-                .bitand(~OrganizationMember.flags["sso:invalid"])
-            )
-
-        member_list = OrganizationMember.objects.filter(
-            organization_id=organization_id,
+        email_unlink_notifications.delay(
+            org_id=organization_id, sending_user_email=sending_user_email, provider_key=provider_key
         )
-        for member in member_list:
-            member.send_sso_unlink_email(sending_user_email, provider)
 
     def count_members_without_sso(self, *, organization_id: int) -> int:
         return OrganizationMember.objects.filter(
