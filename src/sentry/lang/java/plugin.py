@@ -15,6 +15,7 @@ from sentry.models.eventerror import EventError
 from sentry.plugins.base.v2 import Plugin2
 from sentry.reprocessing import report_processing_issue
 from sentry.stacktraces.processing import StacktraceProcessor
+from sentry.utils.safe import get_path
 
 
 class JavaStacktraceProcessor(StacktraceProcessor):
@@ -168,6 +169,56 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
     def close(self):
         for archive in self._archives:
             archive.close()
+
+        # Symbolicator/Python A/B testing
+        if symbolicator_stacktraces := self.data.pop("symbolicator_stacktraces", None):
+            # This should always be set if symbolicator_stacktrace is, but better safe than sorry
+            symbolicator_exceptions = self.data.pop("symbolicator_exceptions", ())
+
+            def frames_differ(a, b):
+                return (
+                    a.get("lineno") != b.get("lineno")
+                    or a.get("abs_path") != b.get("abs_path")
+                    or a.get("function") != b.get("function")
+                    or a.get("filename") != b.get("filename")
+                    or a.get("module") != b.get("module")
+                    or a.get("in_app") != b.get("in_app")
+                    or a.get("context_line") != b.get("context_line")
+                )
+
+            def exceptions_differ(a, b):
+                return a.get("type") != b.get("type") or a.get("module") != b.get("module")
+
+            different_frames = []
+            for symbolicator_stacktrace, stacktrace_info in zip(
+                symbolicator_stacktraces, self.stacktrace_infos
+            ):
+                # NOTE: lets hope that `stacktrace_info` has the already processed frames
+                python_stacktrace = stacktrace_info.container.get("stacktrace")
+
+                for symbolicator_frame, python_frame in zip(
+                    symbolicator_stacktrace, python_stacktrace["frames"]
+                ):
+                    if frames_differ(symbolicator_frame, python_frame):
+                        different_frames.append((symbolicator_frame, python_frame))
+
+            different_exceptions = []
+            for symbolicator_exception, python_exception in zip(
+                symbolicator_exceptions,
+                get_path(self.data, "exception", "values", filter=True, default=()),
+            ):
+                if exceptions_differ(symbolicator_exception, python_exception):
+                    different_exceptions.append((symbolicator_exception, python_exception))
+
+            if different_frames or different_exceptions:
+                with sentry_sdk.push_scope() as scope:
+                    scope.set_extra("different_frames", different_frames)
+                    scope.set_extra("different_exceptions", different_exceptions)
+                    scope.set_extra("event_id", self.data.get("event_id"))
+                    scope.set_tag("project_id", self.project.id)
+                    sentry_sdk.capture_message(
+                        "JVM symbolication differences between symbolicator and python."
+                    )
 
     def handles_frame(self, frame, stacktrace_info):
         key = self._deep_freeze(frame)
