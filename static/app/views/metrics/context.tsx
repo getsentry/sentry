@@ -16,7 +16,10 @@ import {
   emptyMetricsQueryWidget,
   NO_QUERY_ID,
 } from 'sentry/utils/metrics/constants';
-import {MetricQueryType, type MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
+import {
+  MetricExpressionType,
+  type MetricWidgetQueryParams,
+} from 'sentry/utils/metrics/types';
 import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples';
 import {decodeInteger, decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
@@ -36,7 +39,7 @@ export type FocusAreaProps = {
 };
 
 interface MetricsContextValue {
-  addWidget: (type?: MetricQueryType) => void;
+  addWidget: (type?: MetricExpressionType) => void;
   duplicateWidget: (index: number) => void;
   focusArea: FocusAreaProps;
   hasMetrics: boolean;
@@ -143,7 +146,7 @@ export function useMetricWidgets() {
   );
 
   const addWidget = useCallback(
-    (type: MetricQueryType = MetricQueryType.QUERY) => {
+    (type: MetricExpressionType = MetricExpressionType.QUERY) => {
       const lastIndexOfSameType = currentWidgetsRef.current.findLastIndex(
         w => w.type === type
       );
@@ -152,7 +155,7 @@ export function useMetricWidgets() {
       } else {
         setWidgets(currentWidgets => [
           ...currentWidgets,
-          type === MetricQueryType.QUERY
+          type === MetricExpressionType.QUERY
             ? emptyMetricsQueryWidget
             : emptyMetricsFormulaWidget,
         ]);
@@ -297,7 +300,7 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
   }, [focusAreaSelection, handleAddFocusArea, handleRemoveFocusArea]);
 
   const handleAddWidget = useCallback(
-    (type?: MetricQueryType) => {
+    (type?: MetricExpressionType) => {
       addWidget(type);
       handleSetSelectedWidgetIndex(widgets.length);
     },

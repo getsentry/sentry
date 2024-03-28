@@ -7,7 +7,10 @@ import type {Field} from 'sentry/components/metrics/metricSamplesTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getMetricsCorrelationSpanUrl} from 'sentry/utils/metrics';
-import {MetricQueryType, type MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
+import {
+  MetricExpressionType,
+  type MetricWidgetQueryParams,
+} from 'sentry/utils/metrics/types';
 import type {MetricsQueryApiQueryParams} from 'sentry/utils/metrics/useMetricsQuery';
 import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -82,7 +85,8 @@ export function MetricScratchpad() {
   const filteredWidgets = useMemo(() => {
     return widgets.filter(
       w =>
-        w.type !== MetricQueryType.FORMULA || formulaDependencies[w.id]?.isError === false
+        w.type !== MetricExpressionType.EQUATION ||
+        formulaDependencies[w.id]?.isError === false
     );
   }, [formulaDependencies, widgets]);
 
@@ -132,7 +136,7 @@ export function MetricScratchpad() {
           focusedSeries={firstWidget.focusedSeries}
           tableSort={firstWidget.sort}
           queries={filteredWidgets
-            .filter(w => !(w.type === MetricQueryType.FORMULA && w.isHidden))
+            .filter(w => !(w.type === MetricExpressionType.EQUATION && w.isHidden))
             .map(w => widgetToQuery(w))}
           isSelected
           hasSiblings={false}
@@ -162,7 +166,7 @@ function MultiChartWidgetQueries({
   const queries = useMemo(() => {
     return [
       widgetToQuery(widget),
-      ...(widget.type === MetricQueryType.FORMULA
+      ...(widget.type === MetricExpressionType.EQUATION
         ? formulaDependencies[widget.id]?.dependencies?.map(dependency =>
             widgetToQuery(dependency, true)
           )
