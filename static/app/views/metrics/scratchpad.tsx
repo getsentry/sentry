@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import * as echarts from 'echarts/core';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {Field} from 'sentry/components/ddm/metricSamplesTable';
+import type {Field} from 'sentry/components/metrics/metricSamplesTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getMetricsCorrelationSpanUrl} from 'sentry/utils/metrics';

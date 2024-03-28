@@ -1,12 +1,12 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import {
   type Field,
   MetricSamplesTable,
   SearchableMetricSamplesTable,
-} from 'sentry/components/ddm/metricSamplesTable';
-import HookOrDefault from 'sentry/components/hookOrDefault';
+} from 'sentry/components/metrics/metricSamplesTable';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
