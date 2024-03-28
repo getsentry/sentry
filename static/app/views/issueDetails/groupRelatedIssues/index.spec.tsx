@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {GroupRelatedIssues} from 'sentry/views/issueDetails/groupRelatedIssues';
 
