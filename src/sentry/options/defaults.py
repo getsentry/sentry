@@ -755,7 +755,7 @@ register(
 register(
     "issues.severity.seer-global-rate-limit",
     type=Int,
-    default=25,
+    default=20,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
