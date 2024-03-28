@@ -130,6 +130,7 @@ error.type:DatabaseUnavailable                        -> DatabaseUnavailable
 stack.function:assertion_failed stack.module:foo      -> AssertionFailed, foo
 app:true                                        -> aha
 app:true                                        -> {{ default }}
+release:foo                                     -> {{ default }}
 """
     )
     assert rules._to_config_structure() == {
@@ -146,6 +147,7 @@ app:true                                        -> {{ default }}
             },
             {"matchers": [["app", "true"]], "fingerprint": ["aha"], "attributes": {}},
             {"matchers": [["app", "true"]], "fingerprint": ["{{ default }}"], "attributes": {}},
+            {"matchers": [["release", "foo"]], "fingerprint": ["{{ default }}"], "attributes": {}},
         ],
         "version": 1,
     }
