@@ -1,5 +1,5 @@
 import type {MRI} from 'sentry/types/metrics';
-import type {MetricQueryType} from 'sentry/utils/metrics/types';
+import type {MetricExpressionType} from 'sentry/utils/metrics/types';
 
 export type Order = 'asc' | 'desc' | undefined;
 
@@ -9,7 +9,7 @@ export interface DashboardMetricsQuery {
   mri: MRI;
   op: string;
   orderBy: Order;
-  type: MetricQueryType.QUERY;
+  type: MetricExpressionType.QUERY;
   groupBy?: string[];
   isQueryOnly?: boolean;
   limit?: number;
@@ -20,7 +20,7 @@ export interface DashboardMetricsEquation {
   formula: string;
   id: number;
   isHidden: boolean;
-  type: MetricQueryType.FORMULA;
+  type: MetricExpressionType.EQUATION;
 }
 
 export type DashboardMetricsExpression = DashboardMetricsQuery | DashboardMetricsEquation;

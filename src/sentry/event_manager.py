@@ -2172,7 +2172,6 @@ def _get_severity_metadata_for_group(
     Returns {} if conditions aren't met or on exception.
     """
     from sentry.receivers.rules import PLATFORMS_WITH_PRIORITY_ALERTS
-
     if killswitch_matches_context("issues.skip-seer-requests", {"project_id": event.project_id}):
         logger.warning("get_severity_metadata_for_group.seer_killswitch_enabled")
         metrics.incr("issues.severity.seer_killswitch_enabled")
@@ -2193,11 +2192,11 @@ def _get_severity_metadata_for_group(
 
     from sentry import ratelimits as ratelimiter
 
-    limit = options.get("issues.severity.seer-global-rate-limit", 25)
+    limit = options.get("issues.severity.seer-global-rate-limit", 20)
     if ratelimiter.backend.is_limited(
         "seer:severity-calculation:global-limit",
         limit=limit,
-        window=1,  # starting this out 25 requests per second
+        window=1,  # starting this out 20 requests per second
     ):
         logger.warning(
             "get_severity_metadata_for_group.rate_limited_globally",

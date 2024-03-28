@@ -23,7 +23,6 @@ from sentry.tasks.integrations.github.utils import PullRequestFile, PullRequestI
 from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.json import JSONData
 from tests.sentry.tasks.integrations.github.test_pr_comment import GithubCommentTestCase
@@ -82,7 +81,6 @@ class CreateEventTestCase(TestCase):
         )
 
 
-@region_silo_test
 class TestSafeForComment(GithubCommentTestCase):
     def setUp(self):
         super().setUp()
@@ -255,7 +253,6 @@ class TestSafeForComment(GithubCommentTestCase):
         )
 
 
-@region_silo_test
 class TestGetFilenames(GithubCommentTestCase):
     def setUp(self):
         super().setUp()
@@ -384,7 +381,6 @@ class TestGetFilenames(GithubCommentTestCase):
         assert sentry_filenames == set(correct_filenames)
 
 
-@region_silo_test
 class TestGetCommentIssues(CreateEventTestCase):
     def setUp(self):
         self.group_id = [self._create_event(user_id=str(i)) for i in range(6)][0].group.id
@@ -687,7 +683,6 @@ class TestGetCommentIssues(CreateEventTestCase):
             )
 
 
-@region_silo_test
 class TestFormatComment(TestCase):
     def setUp(self):
         super().setUp()

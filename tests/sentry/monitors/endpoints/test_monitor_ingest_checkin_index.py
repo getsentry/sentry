@@ -23,10 +23,8 @@ from sentry.monitors.models import (
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import MonitorIngestTestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 @freeze_time()
 class CreateMonitorCheckInTest(MonitorIngestTestCase):
     endpoint = "sentry-api-0-monitor-ingest-check-in-index"

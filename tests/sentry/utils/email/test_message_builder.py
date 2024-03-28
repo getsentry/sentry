@@ -11,13 +11,12 @@ from sentry.models.user import User
 from sentry.models.useremail import UserEmail
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json
 from sentry.utils.email import MessageBuilder
 from sentry.utils.email.faker import create_fake_email
 
 
-@region_silo_test
 class MessageBuilderTest(TestCase):
     def test_raw_content(self):
         msg = MessageBuilder(

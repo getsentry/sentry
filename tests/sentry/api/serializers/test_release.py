@@ -24,10 +24,9 @@ from sentry.models.useremail import UserEmail
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 
 
-@region_silo_test
 class ReleaseSerializerTest(TestCase, SnubaTestCase):
     def test_simple(self):
         user = self.create_user()

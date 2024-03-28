@@ -1,13 +1,11 @@
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class ProjectCreateSampleTransactionTest(APITestCase):
     def setUp(self):
         super().setUp()
