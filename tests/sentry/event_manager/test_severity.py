@@ -314,7 +314,6 @@ class TestGetEventSeverity(TestCase):
         assert reason == "microservice_error"
 
 
-@region_silo_test
 @apply_feature_flag_on_cls("projects:first-event-severity-calculation")
 class TestEventManagerSeverity(TestCase):
     @patch("sentry.event_manager._get_severity_score", return_value=(0.1121, "ml"))
