@@ -394,3 +394,10 @@ export async function openBulkEditMonitorsModal({onClose, ...options}: ModalOpti
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss, onClose});
 }
+
+export async function openDataConsentModal() {
+  const mod = await import('sentry/components/modals/dataConsentModal');
+  const {default: Modal} = mod;
+
+  openModal(deps => <Modal {...deps} />);
+}
