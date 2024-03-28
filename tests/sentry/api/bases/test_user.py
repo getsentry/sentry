@@ -35,7 +35,7 @@ class UserPermissionTest(DRFPermissionTestCase):
     def test_allows_active_superuser(self):
         # The user passed in and the user on the request must be different to
         # check superuser.
-        self.create_organization(owner=self.superuser_user, id=1000)
+        self.create_organization(owner=self.superuser, id=1000)
         assert self.user_permission.has_object_permission(
             self.superuser_request, None, self.normal_user
         )
@@ -49,8 +49,8 @@ class UserPermissionTest(DRFPermissionTestCase):
     @with_feature("auth:enterprise-superuser-read-write")
     def test_active_superuser_read(self):
         # superuser read can hit GET
-        request = self.make_request(user=self.superuser_user, is_superuser=True, method="GET")
-        self.create_organization(owner=self.superuser_user, id=1000)
+        request = self.make_request(user=self.superuser, is_superuser=True, method="GET")
+        self.create_organization(owner=self.superuser, id=1000)
         assert self.user_permission.has_object_permission(request, None, self.normal_user)
 
         # superuser read cannot hit POST
@@ -61,10 +61,10 @@ class UserPermissionTest(DRFPermissionTestCase):
     @with_feature("auth:enterprise-superuser-read-write")
     def test_active_superuser_write(self):
         # superuser write can hit GET
-        self.add_user_permission(self.superuser_user, "superuser.write")
-        self.create_organization(owner=self.superuser_user, id=1000)
+        self.add_user_permission(self.superuser, "superuser.write")
+        self.create_organization(owner=self.superuser, id=1000)
 
-        request = self.make_request(user=self.superuser_user, is_superuser=True, method="GET")
+        request = self.make_request(user=self.superuser, is_superuser=True, method="GET")
         assert self.user_permission.has_object_permission(request, None, self.normal_user)
 
         # superuser write can hit POST
