@@ -118,6 +118,7 @@ class SlackRequestTest(TestCase):
         request.META = (options.get("slack.signing-secret"), self.request.body)
 
         slack_request = SlackRequest(request)
+        assert slack_request.team_id is None
         assert slack_request.logging_data == {
             "slack_channel_id": "1",
             "slack_user_id": "2",
