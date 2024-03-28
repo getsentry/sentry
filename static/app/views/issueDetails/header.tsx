@@ -141,7 +141,7 @@ function GroupHeaderTabs({
       </TabList.Item>
       <TabList.Item
         key={Tab.RELATED_ISSUES}
-        hidden={organizationFeatures.has('organizations:related-issues')}
+        hidden={!organizationFeatures.has('related-issues')}
         to={`${baseUrl}related/${location.search}`}
       >
         {t('Related Issues')}
