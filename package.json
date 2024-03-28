@@ -66,7 +66,7 @@
     "@tanstack/react-query": "^4.29.7",
     "@tanstack/react-query-devtools": "^4.36.1",
     "@types/color": "^3.0.3",
-    "@types/crypto-js": "^4.1.1",
+    "@types/crypto-js": "^4.2.2",
     "@types/diff": "5.0.2",
     "@types/dompurify": "^3.0.5",
     "@types/invariant": "^2.2.35",
