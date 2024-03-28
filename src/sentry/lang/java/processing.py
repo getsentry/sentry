@@ -124,6 +124,7 @@ def _handle_response_status(event_data: Any, response_json: dict[str, Any]) -> b
         error = SymbolicationFailed(type=EventError.NATIVE_INTERNAL_FAILURE)
 
     write_error(error, event_data)
+    return None
 
 
 def _get_release_package(project: Project, release_name: str | None) -> str | None:
