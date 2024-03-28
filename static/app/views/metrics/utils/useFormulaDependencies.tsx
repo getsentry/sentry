@@ -2,7 +2,7 @@ import {useCallback, useMemo} from 'react';
 
 import {unescapeMetricsFormula} from 'sentry/utils/metrics';
 import {MetricQueryType, type MetricQueryWidgetParams} from 'sentry/utils/metrics/types';
-import {useDDMContext} from 'sentry/views/metrics/context';
+import {useMetricsContext} from 'sentry/views/metrics/context';
 import {parseFormula} from 'sentry/views/metrics/formulaParser/parser';
 import {type TokenList, TokenType} from 'sentry/views/metrics/formulaParser/types';
 import {getQuerySymbol} from 'sentry/views/metrics/querySymbol';
@@ -13,7 +13,7 @@ interface FormulaDependencies {
 }
 
 export function useFormulaDependencies() {
-  const {widgets} = useDDMContext();
+  const {widgets} = useMetricsContext();
   const queriesLookup = useMemo(() => {
     const lookup = new Map<string, MetricQueryWidgetParams>();
     widgets.forEach(widget => {

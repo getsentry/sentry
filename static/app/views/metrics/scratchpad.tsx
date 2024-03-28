@@ -14,7 +14,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {DDM_CHART_GROUP, MIN_WIDGET_WIDTH} from 'sentry/views/metrics/constants';
-import {useDDMContext} from 'sentry/views/metrics/context';
+import {useMetricsContext} from 'sentry/views/metrics/context';
 import {useGetCachedChartPalette} from 'sentry/views/metrics/utils/metricsChartPalette';
 import {useFormulaDependencies} from 'sentry/views/metrics/utils/useFormulaDependencies';
 import {widgetToQuery} from 'sentry/views/metrics/utils/widgetToQuery';
@@ -32,7 +32,7 @@ export function MetricScratchpad() {
     focusArea,
     isMultiChartMode,
     metricsSamples,
-  } = useDDMContext();
+  } = useMetricsContext();
   const {selection} = usePageFilters();
 
   const router = useRouter();

@@ -35,7 +35,7 @@ export type FocusAreaProps = {
   selection?: FocusAreaSelection;
 };
 
-interface DDMContextValue {
+interface MetricsContextValue {
   addWidget: (type?: MetricQueryType) => void;
   duplicateWidget: (index: number) => void;
   focusArea: FocusAreaProps;
@@ -62,7 +62,7 @@ interface DDMContextValue {
   metricsSamples?: MetricsSamplesResults<Field>['data'];
 }
 
-export const DDMContext = createContext<DDMContextValue>({
+export const MetricsContext = createContext<MetricsContextValue>({
   addWidget: () => {},
   duplicateWidget: () => {},
   focusArea: {},
@@ -84,8 +84,8 @@ export const DDMContext = createContext<DDMContextValue>({
   toggleWidgetVisibility: () => {},
 });
 
-export function useDDMContext() {
-  return useContext(DDMContext);
+export function useMetricsContext() {
+  return useContext(MetricsContext);
 }
 
 export function useMetricWidgets() {
@@ -352,7 +352,7 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
   const selectedWidget = widgets[selectedWidgetIndex];
   const isSelectionValid = selectedWidget && !selectedWidget.isHidden;
 
-  const contextValue = useMemo<DDMContextValue>(
+  const contextValue = useMemo<MetricsContextValue>(
     () => ({
       addWidget: handleAddWidget,
       selectedWidgetIndex: isSelectionValid
@@ -397,5 +397,7 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
     ]
   );
 
-  return <DDMContext.Provider value={contextValue}>{children}</DDMContext.Provider>;
+  return (
+    <MetricsContext.Provider value={contextValue}>{children}</MetricsContext.Provider>
+  );
 }

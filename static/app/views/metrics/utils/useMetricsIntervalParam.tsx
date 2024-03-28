@@ -20,7 +20,7 @@ import {MetricQueryType} from 'sentry/utils/metrics/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useDDMContext} from 'sentry/views/metrics/context';
+import {useMetricsContext} from 'sentry/views/metrics/context';
 
 const ALL_INTERVAL_OPTIONS = [
   {value: '10s', label: t('10 seconds')},
@@ -82,7 +82,7 @@ export function getIntervalOptionsForStatsPeriod(
 export function useMetricsIntervalParam() {
   const {datetime} = usePageFilters().selection;
   const {interval} = useLocationQuery({fields: {interval: decodeScalar}});
-  const {widgets} = useDDMContext();
+  const {widgets} = useMetricsContext();
 
   const isCustomMetricsOnly = useMemo(() => {
     return widgets.every(

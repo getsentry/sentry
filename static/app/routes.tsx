@@ -2032,7 +2032,7 @@ function buildRoutes() {
         component={make(() => import('sentry/views/metrics'))}
         withOrgPath
       >
-        <IndexRoute component={make(() => import('sentry/views/metrics/ddm'))} />
+        <IndexRoute component={make(() => import('sentry/views/metrics/metrics'))} />
       </Route>
       {/* TODO(ddm): fade this out */}
       <Redirect from="/ddm/" to="/metrics/" />

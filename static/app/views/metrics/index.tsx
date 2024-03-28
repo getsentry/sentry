@@ -9,7 +9,7 @@ type Props = {
   children: React.ReactNode;
 };
 
-function DDMContainer({children}: Props) {
+function MetricsContainer({children}: Props) {
   const organization = useOrganization();
 
   return (
@@ -28,4 +28,4 @@ function DDMContainer({children}: Props) {
   );
 }
 
-export default DDMContainer;
+export default MetricsContainer;

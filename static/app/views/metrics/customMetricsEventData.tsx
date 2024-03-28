@@ -16,7 +16,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MRI, Organization} from 'sentry/types';
-import {getDdmUrl, getDefaultMetricOp} from 'sentry/utils/metrics';
+import {getDefaultMetricOp, getMetricsUrl} from 'sentry/utils/metrics';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import {
   formatMetricUsingUnit,
@@ -78,7 +78,7 @@ export function CustomMetricsEventData({
                   actionButton: (
                     <LinkButton
                       size="xs"
-                      to={getDdmUrl(organization.slug, {
+                      to={getMetricsUrl(organization.slug, {
                         start: normalizeDateTimeString(widgetStart),
                         end: normalizeDateTimeString(widgetEnd),
                         widgets: [
@@ -190,7 +190,7 @@ function Tags({
       {renderedTags.map(([tagKey, tagValue]) => (
         <StyledPill key={tagKey} name={tagKey}>
           <Link
-            to={getDdmUrl(organization.slug, {
+            to={getMetricsUrl(organization.slug, {
               widgets: [
                 {
                   mri,

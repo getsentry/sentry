@@ -22,7 +22,7 @@ import {MetricQueryType, type MetricQueryWidgetParams} from 'sentry/utils/metric
 import {middleEllipsis} from 'sentry/utils/middleEllipsis';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
-import {useDDMContext} from 'sentry/views/metrics/context';
+import {useMetricsContext} from 'sentry/views/metrics/context';
 import {getCreateAlert} from 'sentry/views/metrics/metricQueryContextMenu';
 import {QuerySymbol} from 'sentry/views/metrics/querySymbol';
 import {useCreateDashboard} from 'sentry/views/metrics/useCreateDashboard';
@@ -44,7 +44,7 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
     showQuerySymbols,
     selectedWidgetIndex,
     isMultiChartMode,
-  } = useDDMContext();
+  } = useMetricsContext();
   const createDashboard = useCreateDashboard(
     widgets,
     formulaDependencies,

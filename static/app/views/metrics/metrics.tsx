@@ -9,12 +9,12 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import useOrganization from 'sentry/utils/useOrganization';
-import {DDMContextProvider, useDDMContext} from 'sentry/views/metrics/context';
+import {DDMContextProvider, useMetricsContext} from 'sentry/views/metrics/context';
 import {MetricsLayout} from 'sentry/views/metrics/layout';
 import {useOptInModal} from 'sentry/views/metrics/optInModal';
 
 function WrappedPageFiltersContainer({children}: {children: React.ReactNode}) {
-  const {isDefaultQuery} = useDDMContext();
+  const {isDefaultQuery} = useMetricsContext();
   return (
     <PageFiltersContainer disablePersistence={isDefaultQuery}>
       {children}
