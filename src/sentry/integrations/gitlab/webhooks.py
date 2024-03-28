@@ -270,10 +270,10 @@ class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
             return result
         (external_id, secret) = result
 
-        integration, installs = integration_service.get_organization_contexts(
+        contexts = integration_service.get_organization_contexts(
             provider=self.provider, external_id=external_id
         )
-        if integration is None:
+        if contexts.integration is None:
             logger.info("gitlab.webhook.invalid-organization", extra=extra)
             extra["reason"] = "There is no integration that matches your organization."
             logger.error(extra["reason"])
@@ -286,16 +286,16 @@ class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
                     # The metadata could be useful to debug
                     # domain_name -> gitlab.com/getsentry-ecosystem/foo'
                     # scopes -> ['api']
-                    "metadata": integration.metadata,
-                    "id": integration.id,  # This is useful to query via Redash
-                    "status": integration.status,  # 0 seems to be active
+                    "metadata": contexts.integration.metadata,
+                    "id": contexts.integration.id,  # This is useful to query via Redash
+                    "status": contexts.integration.status,  # 0 seems to be active
                 },
-                "org_ids": [install.organization_id for install in installs],
+                "org_ids": [install.organization_id for install in contexts.installs],
             },
         }
 
         try:
-            if not constant_time_compare(secret, integration.metadata["webhook_secret"]):
+            if not constant_time_compare(secret, contexts.integration.metadata["webhook_secret"]):
                 # Summary and potential workaround mentioned here:
                 # https://github.com/getsentry/sentry/issues/34903#issuecomment-1262754478
                 # This forces a stack trace to be produced
@@ -328,11 +328,11 @@ class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
             logger.exception(extra["reason"])
             return HttpResponse(status=400, reason=extra["reason"])
 
-        for install in installs:
+        for install in contexts.installs:
             org_context = organization_service.get_organization_by_id(
                 id=install.organization_id, include_teams=False, include_projects=False
             )
             if org_context:
                 organization = org_context.organization
-                handler()(integration, organization, event)
+                handler()(contexts.integration, organization, event)
         return HttpResponse(status=204)
