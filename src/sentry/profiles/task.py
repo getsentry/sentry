@@ -751,7 +751,7 @@ def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_fi
             raise SymbolicationTimeout
 
     symbolicator = Symbolicator(
-        task_kind=SymbolicatorTaskKind(),
+        task_kind=SymbolicatorTaskKind(platform=profile["platform"]),
         on_request=on_symbolicator_request,
         project=project,
         event_id=profile["event_id"],
