@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -29,7 +30,7 @@ import type {TraceTree} from './traceTree';
 function TraceHeaderEmptyTrace() {
   return (
     <TraceHeaderContainer>
-      <TraceHeaderRow>
+      <TraceHeaderRow textAlign="left">
         <MetaData
           headingText={t('User')}
           tooltipText=""
@@ -43,7 +44,7 @@ function TraceHeaderEmptyTrace() {
           subtext={null}
         />
       </TraceHeaderRow>
-      <TraceHeaderRow>
+      <TraceHeaderRow textAlign="right">
         <GuideAnchor target="trace_view_guide_breakdown">
           <MetaData
             headingText={t('Events')}
@@ -73,6 +74,7 @@ type TraceHeaderProps = {
   metaResults: UseApiQueryResult<TraceMeta | null, any>;
   organization: Organization;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
+  traceID: string | undefined;
   traces: TraceSplitResults<TraceFullDetailed> | null;
   tree: TraceTree;
 };
@@ -83,6 +85,7 @@ export default function TraceHeader({
   traces,
   organization,
   tree,
+  traceID,
 }: TraceHeaderProps) {
   if (traces?.transactions.length === 0 && traces.orphan_errors.length === 0) {
     return <TraceHeaderEmptyTrace />;
@@ -94,9 +97,9 @@ export default function TraceHeader({
     throw new Error('Expected a trace node');
   }
 
-  const errors = traceNode.errors.length || metaResults.data?.errors || 0;
+  const errors = traceNode.errors.size || metaResults.data?.errors || 0;
   const performanceIssues =
-    traceNode.performance_issues.length || metaResults.data?.performance_issues || 0;
+    traceNode.performance_issues.size || metaResults.data?.performance_issues || 0;
   const errorsAndIssuesCount = errors + performanceIssues;
 
   const replay_id = rootEventResults?.data?.contexts.replay?.replay_id;
@@ -106,7 +109,7 @@ export default function TraceHeader({
 
   return (
     <TraceHeaderContainer>
-      <TraceHeaderRow>
+      <TraceHeaderRow textAlign="left">
         <MetaData
           headingText={t('User')}
           tooltipText=""
@@ -135,6 +138,28 @@ export default function TraceHeader({
           }
           subtext={null}
         />
+        <MetaData
+          headingText={t('Trace')}
+          tooltipText=""
+          bodyText={
+            showLoadingIndicator ? (
+              <LoadingIndicator size={20} mini />
+            ) : traceID ? (
+              <Fragment>
+                {getShortEventId(traceID)}
+                <CopyToClipboardButton
+                  borderless
+                  size="zero"
+                  iconSize="xs"
+                  text={traceID}
+                />
+              </Fragment>
+            ) : (
+              '\u2014'
+            )
+          }
+          subtext={null}
+        />
         {replay_id && (
           <MetaData
             headingText={t('Replay')}
@@ -155,7 +180,7 @@ export default function TraceHeader({
           />
         )}
       </TraceHeaderRow>
-      <TraceHeaderRow>
+      <TraceHeaderRow textAlign="right">
         <GuideAnchor target="trace_view_guide_breakdown">
           <MetaData
             headingText={t('Events')}
@@ -233,8 +258,9 @@ const TraceHeaderContainer = styled(FlexBox)`
   justify-content: space-between;
 `;
 
-const TraceHeaderRow = styled(FlexBox)`
+const TraceHeaderRow = styled(FlexBox)<{textAlign: 'left' | 'right'}>`
   gap: ${space(2)};
+  text-align: ${p => p.textAlign};
 `;
 
 const ReplayLinkBody = styled(FlexBox)`

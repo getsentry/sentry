@@ -13,7 +13,8 @@ export type RovingTabIndexAction =
       node: TraceTreeNode<TraceTree.NodeValue> | null;
       type: 'initialize';
     }
-  | {index: number; node: TraceTreeNode<TraceTree.NodeValue>; type: 'set index'};
+  | {index: number; node: TraceTreeNode<TraceTree.NodeValue>; type: 'set index'}
+  | {type: 'clear index'};
 
 export type RovingTabIndexUserActions = 'next' | 'previous' | 'last' | 'first';
 
@@ -27,6 +28,8 @@ export function rovingTabIndexReducer(
     }
     case 'set index':
       return {...state, node: action.node, index: action.index};
+    case 'clear index':
+      return {...state, index: null, node: null};
     default:
       throw new Error('Invalid action');
   }

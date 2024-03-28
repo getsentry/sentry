@@ -27,10 +27,9 @@ from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
-@region_silo_test
 class WebhookTest(APITestCase):
     def setUp(self):
         self.url = "/extensions/github/webhook/"
@@ -194,7 +193,6 @@ class InstallationDeleteEventWebhookTest(APITestCase):
         assert integration.status == ObjectStatus.DISABLED
 
 
-@region_silo_test
 class PushEventWebhookTest(APITestCase):
     def setUp(self):
         self.url = "/extensions/github/webhook/"
@@ -497,7 +495,6 @@ class PushEventWebhookTest(APITestCase):
         assert repos[0] == repo
 
 
-@region_silo_test
 class PullRequestEventWebhook(APITestCase):
     def setUp(self):
         self.url = "/extensions/github/webhook/"

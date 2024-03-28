@@ -1,8 +1,10 @@
+import {Fragment} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
@@ -11,19 +13,27 @@ import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {DurationChart} from 'sentry/views/performance/http/durationChart';
+import decodePanel from 'sentry/views/performance/http/queryParameterDecoders/panel';
 import {ResponseCodeBarChart} from 'sentry/views/performance/http/responseCodeBarChart';
+import {SpanSamplesTable} from 'sentry/views/performance/http/spanSamplesTable';
+import {useSpanSamples} from 'sentry/views/performance/http/useSpanSamples';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
+import {computeAxisMax} from 'sentry/views/starfish/components/chart';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {
   ModuleName,
   SpanFunction,
+  SpanIndexedField,
   SpanMetricsField,
   type SpanMetricsQueryFilters,
 } from 'sentry/views/starfish/types';
@@ -31,6 +41,7 @@ import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/
 
 export function HTTPSamplesPanel() {
   const router = useRouter();
+  const location = useLocation();
 
   const query = useLocationQuery({
     fields: {
@@ -38,6 +49,7 @@ export function HTTPSamplesPanel() {
       domain: decodeScalar,
       transaction: decodeScalar,
       transactionMethod: decodeScalar,
+      panel: decodePanel,
     },
   });
 
@@ -53,6 +65,16 @@ export function HTTPSamplesPanel() {
           .filter(Boolean)
           .join(':')
       : undefined;
+
+  const handlePanelChange = newPanelName => {
+    router.replace({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        panel: newPanelName,
+      },
+    });
+  };
 
   const isPanelOpen = Boolean(detailKey);
 
@@ -81,6 +103,17 @@ export function HTTPSamplesPanel() {
   });
 
   const {
+    isFetching: isDurationDataFetching,
+    data: durationData,
+    error: durationError,
+  } = useSpanMetricsSeries({
+    search: MutableSearch.fromQueryObject(filters),
+    yAxis: [`avg(span.self_time)`],
+    enabled: isPanelOpen && query.panel === 'duration',
+    referrer: 'api.starfish.http-module-samples-panel-duration-chart',
+  });
+
+  const {
     data: responseCodeData,
     isFetching: isResponseCodeDataLoading,
     error: responseCodeDataError,
@@ -88,7 +121,7 @@ export function HTTPSamplesPanel() {
     search: MutableSearch.fromQueryObject(filters),
     fields: ['span.status_code', 'count()'],
     sorts: [{field: 'span.status_code', kind: 'asc'}],
-    enabled: isPanelOpen,
+    enabled: isPanelOpen && query.panel === 'status',
     referrer: 'api.starfish.http-module-samples-panel-response-bar-chart',
   });
 
@@ -101,6 +134,25 @@ export function HTTPSamplesPanel() {
       };
     }),
   };
+
+  const durationAxisMax = computeAxisMax([durationData?.[`avg(span.self_time)`]]);
+
+  const {
+    data: samplesData,
+    isFetching: isSamplesDataFetching,
+    error: samplesDataError,
+  } = useSpanSamples({
+    search: MutableSearch.fromQueryObject(filters),
+    fields: [
+      SpanIndexedField.TRANSACTION_ID,
+      SpanIndexedField.SPAN_DESCRIPTION,
+      SpanIndexedField.RESPONSE_CODE,
+    ],
+    min: 0,
+    max: durationAxisMax,
+    enabled: query.panel === 'duration' && durationAxisMax > 0,
+    referrer: 'api.starfish.http-module-samples-panel-samples',
+  });
 
   const handleClose = () => {
     router.replace({
@@ -212,12 +264,49 @@ export function HTTPSamplesPanel() {
           </ModuleLayout.Full>
 
           <ModuleLayout.Full>
-            <ResponseCodeBarChart
-              series={responseCodeBarChartSeries}
-              isLoading={isResponseCodeDataLoading}
-              error={responseCodeDataError}
-            />
+            <SegmentedControl
+              value={query.panel}
+              onChange={handlePanelChange}
+              aria-label={t('Choose breakdown type')}
+            >
+              <SegmentedControl.Item key="duration">
+                {t('By Duration')}
+              </SegmentedControl.Item>
+              <SegmentedControl.Item key="status">
+                {t('By Response Code')}
+              </SegmentedControl.Item>
+            </SegmentedControl>
           </ModuleLayout.Full>
+
+          {query.panel === 'duration' && (
+            <Fragment>
+              <ModuleLayout.Full>
+                <DurationChart
+                  series={durationData[`avg(span.self_time)`]}
+                  isLoading={isDurationDataFetching}
+                  error={durationError}
+                />
+              </ModuleLayout.Full>
+
+              <ModuleLayout.Full>
+                <SpanSamplesTable
+                  data={samplesData}
+                  isLoading={isDurationDataFetching || isSamplesDataFetching}
+                  error={samplesDataError}
+                />
+              </ModuleLayout.Full>
+            </Fragment>
+          )}
+
+          {query.panel === 'status' && (
+            <ModuleLayout.Full>
+              <ResponseCodeBarChart
+                series={responseCodeBarChartSeries}
+                isLoading={isResponseCodeDataLoading}
+                error={responseCodeDataError}
+              />
+            </ModuleLayout.Full>
+          )}
         </ModuleLayout.Layout>
       </DetailPanel>
     </PageAlertProvider>

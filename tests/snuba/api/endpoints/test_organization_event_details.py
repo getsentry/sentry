@@ -7,7 +7,6 @@ from sentry.models.group import Group
 from sentry.search.events import constants
 from sentry.testutils.cases import APITestCase, MetricsEnhancedPerformanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -18,7 +17,6 @@ def format_project_event(project_slug, event_id):
     return f"{project_slug}:{event_id}"
 
 
-@region_silo_test
 class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     def setUp(self):
         super().setUp()
@@ -323,7 +321,7 @@ class EventComparisonTest(MetricsEnhancedPerformanceTestCase):
     def test_get(self):
         response = self.client.get(self.url, {"averageColumn": "span.self_time"})
         assert response.status_code == 200, response.content
-        entries = response.data["entries"]  # type: ignore
+        entries = response.data["entries"]  # type: ignore[attr-defined]
         for entry in entries:
             if entry["type"] == "spans":
                 for span in entry["data"]:

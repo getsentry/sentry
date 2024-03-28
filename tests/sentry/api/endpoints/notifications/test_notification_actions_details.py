@@ -17,11 +17,10 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.slack import install_slack
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json
 
 
-@region_silo_test
 class NotificationActionsDetailsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-notification-actions-details"
 

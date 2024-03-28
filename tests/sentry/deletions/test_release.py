@@ -11,10 +11,9 @@ from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers import TaskRunner
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 
 
-@region_silo_test
 class DeleteReleaseTest(TransactionTestCase, HybridCloudTestMixin):
     def test_simple(self):
         org = self.create_organization()

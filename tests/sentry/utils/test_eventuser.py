@@ -9,13 +9,11 @@ from snuba_sdk import BooleanOp
 
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.eventuser import EventUser
 
 now = before_now(days=1).replace(minute=10, second=0, microsecond=0, tzinfo=None)
 
 
-@region_silo_test
 @freeze_time(now)
 class EventUserTestCase(APITestCase, SnubaTestCase):
     def setUp(self):

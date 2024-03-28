@@ -551,9 +551,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         includes_releases = isinstance(projects_list[0], tuple)
 
         if includes_releases:
-            project_ids: list[ProjectId] = [x[0] for x in projects_list]  # type: ignore
+            project_ids: list[ProjectId] = [x[0] for x in projects_list]  # type: ignore[index]
         else:
-            project_ids = projects_list  # type: ignore
+            project_ids = projects_list  # type: ignore[assignment]
 
         projects, org_id = self._get_projects_and_org_id(project_ids)
 
@@ -565,7 +565,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         ]
 
         if includes_releases:
-            where_clause.append(filter_releases_by_project_release(projects_list))  # type: ignore
+            where_clause.append(filter_releases_by_project_release(projects_list))  # type: ignore[arg-type]
             groupby.append(MetricGroupByField(field="release"))
 
         query = MetricsQuery(
@@ -597,7 +597,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             else:
                 proj_id = get_path(group, "by", "project_id")
                 ret_val.add(proj_id)
-        return ret_val  # type: ignore
+        return ret_val  # type: ignore[return-value]
 
     def check_releases_have_health_data(
         self,
@@ -1079,10 +1079,10 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 rv_row["stats"] = {health_stats_period: health_stats_data[project_id, release]}
 
         if fetch_has_health_data_releases:
-            has_health_data = self.check_has_health_data(fetch_has_health_data_releases)  # type: ignore
+            has_health_data = self.check_has_health_data(fetch_has_health_data_releases)  # type: ignore[assignment]
 
             for key in fetch_has_health_data_releases:
-                rv[key]["has_health_data"] = key in has_health_data  # type: ignore
+                rv[key]["has_health_data"] = key in has_health_data  # type: ignore[operator]
 
         return rv
 
@@ -1520,7 +1520,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                     value[key] = series[key][idx]
                 ret_series.append((timestamp, value))
 
-        return ret_series, totals  # type: ignore
+        return ret_series, totals  # type: ignore[return-value]
 
     def get_project_sessions_count(
         self,

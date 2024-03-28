@@ -3,10 +3,8 @@ from sentry.models.organization import Organization
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import TestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class DeleteAlertRuleTest(TestCase, HybridCloudTestMixin):
     def test_simple(self):
         organization = self.create_organization()

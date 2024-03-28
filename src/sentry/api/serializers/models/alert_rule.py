@@ -16,7 +16,6 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleActivity,
     AlertRuleActivityType,
     AlertRuleExcludedProjects,
-    AlertRuleMonitorType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
 )
@@ -128,9 +127,20 @@ class AlertRuleSerializer(Serializer):
                     ).get("uuid")
             alert_rule_triggers.append(serialized)
 
-        alert_rule_projects = AlertRule.objects.filter(
+        alert_rule_projects = set()
+        for alert_rule in alert_rules.values():
+            try:
+                alert_rule_projects.add([alert_rule.id, alert_rule.projects.get().slug])
+            except Exception:
+                pass
+
+        # TODO - Cleanup Subscription Project Mapping
+        snuba_alert_rule_projects = AlertRule.objects.filter(
             id__in=[item.id for item in item_list]
         ).values_list("id", "snuba_query__subscriptions__project__slug")
+
+        alert_rule_projects.update(snuba_alert_rule_projects)
+
         for alert_rule_id, project_slug in alert_rule_projects:
             rule_result = result[alert_rules[alert_rule_id]].setdefault("projects", [])
             rule_result.append(project_slug)
@@ -244,7 +254,7 @@ class AlertRuleSerializer(Serializer):
             "dateModified": obj.date_modified,
             "dateCreated": obj.date_added,
             "createdBy": attrs.get("created_by", None),
-            "monitorType": attrs.get("monitor_type", AlertRuleMonitorType.CONTINUOUS.value),
+            "monitorType": obj.monitor_type,
         }
         rule_snooze = RuleSnooze.objects.filter(
             Q(user_id=user.id) | Q(user_id=None), alert_rule=obj
@@ -304,7 +314,7 @@ class CombinedRuleSerializer(Serializer):
         alert_rules = [x for x in item_list if isinstance(x, AlertRule)]
         incident_map = {}
         if "latestIncident" in self.expand:
-            for incident in Incident.objects.filter(id__in=[x.incident_id for x in alert_rules]):  # type: ignore
+            for incident in Incident.objects.filter(id__in=[x.incident_id for x in alert_rules]):  # type: ignore[attr-defined]
                 incident_map[incident.id] = serialize(incident, user=user)
 
         serialized_alert_rules = serialize(alert_rules, user=user)
@@ -318,7 +328,7 @@ class CombinedRuleSerializer(Serializer):
             if isinstance(item, AlertRule):
                 alert_rule = serialized_alert_rules.pop(0)
                 if "latestIncident" in self.expand:
-                    alert_rule["latestIncident"] = incident_map.get(item.incident_id)  # type: ignore
+                    alert_rule["latestIncident"] = incident_map.get(item.incident_id)  # type: ignore[attr-defined]
                 results[item] = alert_rule
             elif isinstance(item, Rule):
                 results[item] = rules.pop(0)

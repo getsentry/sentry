@@ -47,5 +47,5 @@ class OutboxBackedOrgAuthTokenService(OrgAuthTokenService):
                 "org_auth_token_id": org_auth_token_id,
                 "date_last_used": date_last_used,
                 "project_last_used_id": project_last_used_id,
-            },  # type:ignore
+            },  # type: ignore[misc]
         ).save()

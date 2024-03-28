@@ -459,7 +459,16 @@ class GroupManager(BaseManager["Group"]):
                 if priority and group.priority != priority:
                     group.priority = priority
                     updated_priority[group.id] = priority
-
+            else:
+                logger.info(
+                    "group.update_group_status.priority_not_updated",
+                    extra={
+                        "group_id": group.id,
+                        "from_substatus": from_substatus,
+                        "activity_type": activity_type,
+                        "new_substatus": substatus,
+                    },
+                )
             modified_groups_list.append(group)
 
         Group.objects.bulk_update(modified_groups_list, ["status", "substatus", "priority"])
@@ -732,7 +741,7 @@ class Group(Model):
             data_source=data_source,
         )
 
-        has_replays = counts.get(self.id, 0) > 0  # type: ignore
+        has_replays = counts.get(self.id, 0) > 0  # type: ignore[call-overload]
         # need to refactor counts so that the type of the key returned in the dict is always a str
         # for typing
         metrics.incr(

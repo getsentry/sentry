@@ -3,7 +3,6 @@ import responses
 
 from sentry.models.rule import Rule
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 
@@ -17,7 +16,6 @@ METADATA = {
 }
 
 
-@region_silo_test
 class OpsgenieClientTest(APITestCase):
     def setUp(self) -> None:
         self.login_as(self.user)

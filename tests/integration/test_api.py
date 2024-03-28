@@ -4,7 +4,7 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.silo import SiloMode
 from sentry.testutils.cases import AuthProviderTestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.auth import SSO_EXPIRY_TIME, SsoSession
 
@@ -12,7 +12,6 @@ pytestmark = [requires_snuba]
 
 
 # TODO: move these into the tests/sentry/auth directory and remove deprecated logic
-@region_silo_test
 class AuthenticationTest(AuthProviderTestCase):
     def setUp(self):
         self.organization = self.create_organization(name="foo")

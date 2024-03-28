@@ -31,7 +31,7 @@ from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.shared_integrations.response.mapping import MappingApiResponse
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.cache import cache
 from sentry.utils.json import JSONData
 
@@ -670,8 +670,9 @@ class GitHubClientMixin(GithubProxyClient):
                 raise ApiRateLimitedError("Not enough requests remaining for GitHub")
 
         file_path_mapping = generate_file_path_mapping(files)
-        data = create_blame_query(file_path_mapping, extra=log_info)
-        cache_key = self.get_cache_key("/graphql", data)
+        query, variables = create_blame_query(file_path_mapping, extra=log_info)
+        data = {"query": query, "variables": variables}
+        cache_key = self.get_cache_key("/graphql", "", json.dumps(data))
         response = self.check_cache(cache_key)
         if response:
             metrics.incr("integrations.github.get_blame_for_files.got_cached")
@@ -683,7 +684,7 @@ class GitHubClientMixin(GithubProxyClient):
             try:
                 response = self.post(
                     path="/graphql",
-                    data={"query": create_blame_query(file_path_mapping, extra=log_info)},
+                    data=data,
                     allow_text=False,
                 )
             except ValueError as e:

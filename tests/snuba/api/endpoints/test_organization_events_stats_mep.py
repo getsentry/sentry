@@ -15,13 +15,11 @@ from sentry.snuba.metrics.extraction import MetricSpecType, OnDemandMetricSpec
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.on_demand import create_widget
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 
 pytestmark = pytest.mark.sentry_metrics
 
 
-@region_silo_test
 class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
     MetricsEnhancedPerformanceTestCase
 ):
@@ -763,7 +761,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         assert data["order"] == 0
 
 
-@region_silo_test
 class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest
 ):
@@ -799,7 +796,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLay
         assert response.status_code == 200, response.content
         data = response.data["data"]
         for (_, value), expected_value in zip(data, [10, 20, 30, 40, 50, 60]):
-            assert value[0]["count"] == expected_value  # type:ignore
+            assert value[0]["count"] == expected_value  # type: ignore[index]
 
     def test_counter_custom_metric(self):
         mri = "c:custom/sentry.process_profile.track_outcome@second"
@@ -828,7 +825,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLay
         assert response.status_code == 200, response.content
         data = response.data["data"]
         for (_, value), expected_value in zip(data, [10, 20, 30, 40, 50, 60]):
-            assert value[0]["count"] == expected_value  # type:ignore
+            assert value[0]["count"] == expected_value  # type: ignore[index]
 
     def test_distribution_custom_metric(self):
         mri = "d:custom/sentry.process_profile.track_outcome@second"
@@ -859,15 +856,15 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLay
         data = response.data
         min = data[f"min({mri})"]["data"]
         for (_, value), expected_value in zip(min, [10.0, 20.0, 30.0, 40.0, 50.0, 60.0]):
-            assert value[0]["count"] == expected_value  # type:ignore
+            assert value[0]["count"] == expected_value  # type: ignore[index]
 
         max = data[f"max({mri})"]["data"]
         for (_, value), expected_value in zip(max, [30.0, 60.0, 90.0, 120.0, 150.0, 180.0]):
-            assert value[0]["count"] == expected_value  # type:ignore
+            assert value[0]["count"] == expected_value  # type: ignore[index]
 
         p90 = data[f"p90({mri})"]["data"]
         for (_, value), expected_value in zip(p90, [28.0, 56.0, 84.0, 112.0, 140.0, 168.0]):
-            assert value[0]["count"] == expected_value  # type:ignore
+            assert value[0]["count"] == expected_value  # type: ignore[index]
 
     def test_set_custom_metric(self):
         mri = "s:custom/sentry.process_profile.track_outcome@second"
@@ -898,7 +895,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLay
         assert response.status_code == 200, response.content
         data = response.data["data"]
         for (_, value), expected_value in zip(data, [1, 1, 1, 1, 1, 1]):
-            assert value[0]["count"] == expected_value  # type:ignore
+            assert value[0]["count"] == expected_value  # type: ignore[index]
 
     def test_gauge_custom_metric(self):
         mri = "g:custom/sentry.process_profile.track_outcome@second"
@@ -937,26 +934,25 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLay
         data = response.data
         min = data[f"min({mri})"]["data"]
         for (_, value), expected_value in zip(min, [10.0, 20.0, 30.0, 40.0, 50.0, 60.0]):
-            assert value[0]["count"] == expected_value  # type:ignore
+            assert value[0]["count"] == expected_value  # type: ignore[index]
 
         max = data[f"max({mri})"]["data"]
         for (_, value), expected_value in zip(max, [30.0, 60.0, 90.0, 120.0, 150.0, 180.0]):
-            assert value[0]["count"] == expected_value  # type:ignore
+            assert value[0]["count"] == expected_value  # type: ignore[index]
 
         last = data[f"last({mri})"]["data"]
         for (_, value), expected_value in zip(last, [30.0, 60.0, 90.0, 120.0, 150.0, 180.0]):
-            assert value[0]["count"] == expected_value  # type:ignore
+            assert value[0]["count"] == expected_value  # type: ignore[index]
 
         sum = data[f"sum({mri})"]["data"]
         for (_, value), expected_value in zip(sum, [40.0, 80.0, 120.0, 160.0, 200.0, 240.0]):
-            assert value[0]["count"] == expected_value  # type:ignore
+            assert value[0]["count"] == expected_value  # type: ignore[index]
 
         count = data[f"count({mri})"]["data"]
         for (_, value), expected_value in zip(count, [40, 80, 120, 160, 200, 240]):
-            assert value[0]["count"] == expected_value  # type:ignore
+            assert value[0]["count"] == expected_value  # type: ignore[index]
 
 
-@region_silo_test
 class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandWidgets(
     MetricsEnhancedPerformanceTestCase
 ):
@@ -1261,6 +1257,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
     def test_top_events_with_transaction_on_demand_passing_widget_id_unsaved_error(
         self,
     ):
+        self.project = self.create_project(organization=self.organization)
+        Environment.get_or_create(self.project, "production")
         field = "count()"
         field_two = "count()"
         groupbys = ["customtag1", "customtag2"]
@@ -1325,6 +1323,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
         assert bool(response.data["error_value2,"])
 
     def test_top_events_with_transaction_on_demand_passing_widget_id_unsaved_discover(self):
+        self.project = self.create_project(organization=self.organization)
+        Environment.get_or_create(self.project, "production")
         field = "count()"
         field_two = "count()"
         groupbys = ["customtag1", "customtag2"]
