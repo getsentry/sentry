@@ -16,12 +16,14 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types';
+import type {Environment, Project} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
+import {TOTAL_ERROR_COUNT_STR} from 'sentry/views/releases/utils/constants';
 
 import Header from '../components/header';
 import type {Threshold} from '../utils/types';
@@ -38,6 +40,7 @@ function ReleaseThresholdList({}: Props) {
   const PAGE_SIZE = 10;
   const router = useRouter();
   const organization = useOrganization();
+
   useEffect(() => {
     const hasV2ReleaseUIEnabled =
       organization.features.includes('releases-v2-internal') ||
@@ -48,10 +51,13 @@ function ReleaseThresholdList({}: Props) {
       router.replace(redirect);
     }
   }, [router, organization]);
+
+  const isActivatedAlert = organization.features.includes('activated-alert-rules');
+
   const {projects} = useProjects();
   const {selection} = usePageFilters();
   const {
-    data: thresholds = [],
+    data: thresholdAndAlerts = [],
     error: requestError,
     isLoading,
     isError,
@@ -60,6 +66,28 @@ function ReleaseThresholdList({}: Props) {
     selectedProjectIds: selection.projects,
     selectedEnvs: selection.environments,
   });
+
+  const thresholds: Threshold[] = useMemo(() => {
+    if (!isActivatedAlert) return thresholds;
+
+    return thresholdAndAlerts.map((thresholdOrRule: Threshold | MetricRule) => {
+      const rule = thresholdOrRule as MetricRule;
+
+      return {
+        date_added: rule.dateCreated,
+        environment: {
+          name: rule.environment,
+          displayName: rule.environment,
+        } as Environment,
+        id: rule.id,
+        project: {id: rule.projects[0], slug: rule.projects[0]},
+        threshold_type: TOTAL_ERROR_COUNT_STR,
+        trigger_type: 'over',
+        value: rule.triggers[0]?.alertThreshold,
+        window_in_seconds: rule.timeWindow,
+      } as Threshold;
+    });
+  }, [isActivatedAlert, thresholdAndAlerts]);
 
   const selectedProjects: Project[] = useMemo(
     () =>
