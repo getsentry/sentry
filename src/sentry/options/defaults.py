@@ -2220,13 +2220,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# sample rate for pickle error collection
-register(
-    "pickle.send-error-to-sentry",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # killswitch for profiling ddm functions metrics.
 # Enable/Disable the ingestion of function metrics
 # in the generic metrics platform
