@@ -20,7 +20,7 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_forma
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
 
-pytestmark = [requires_snuba]
+pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
 class ErrorEventMixin(SnubaTestCase):
