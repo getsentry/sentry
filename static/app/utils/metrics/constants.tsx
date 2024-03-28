@@ -5,7 +5,7 @@ import type {
   MetricQueryWidgetParams,
   SortState,
 } from 'sentry/utils/metrics/types';
-import {MetricDisplayType, MetricQueryType} from 'sentry/utils/metrics/types';
+import {MetricDisplayType, MetricExpressionType} from 'sentry/utils/metrics/types';
 
 export const METRICS_DOCS_URL = 'https://docs.sentry.io/product/metrics/';
 
@@ -32,7 +32,7 @@ export const DEFAULT_SORT_STATE: SortState = {
 export const NO_QUERY_ID = -1;
 
 export const emptyMetricsQueryWidget: MetricQueryWidgetParams = {
-  type: MetricQueryType.QUERY,
+  type: MetricExpressionType.QUERY,
   id: NO_QUERY_ID,
   mri: 'd:transactions/duration@millisecond' satisfies MRI,
   op: 'avg',
@@ -44,7 +44,7 @@ export const emptyMetricsQueryWidget: MetricQueryWidgetParams = {
 };
 
 export const emptyMetricsFormulaWidget: MetricFormulaWidgetParams = {
-  type: MetricQueryType.FORMULA,
+  type: MetricExpressionType.EQUATION,
   id: NO_QUERY_ID,
   formula: '',
   sort: DEFAULT_SORT_STATE,

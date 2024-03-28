@@ -27,28 +27,28 @@ export interface MetricsQuery {
   query?: string;
 }
 
-export enum MetricQueryType {
+export enum MetricExpressionType {
   QUERY = 1,
-  FORMULA = 2,
+  EQUATION = 2,
 }
 
 export interface BaseWidgetParams {
   displayType: MetricDisplayType;
   id: number;
   isHidden: boolean;
-  type: MetricQueryType;
+  type: MetricExpressionType;
   focusedSeries?: FocusedMetricsSeries[];
   sort?: SortState;
 }
 
 export interface MetricQueryWidgetParams extends BaseWidgetParams, MetricsQuery {
-  type: MetricQueryType.QUERY;
+  type: MetricExpressionType.QUERY;
   powerUserMode?: boolean;
 }
 
 export interface MetricFormulaWidgetParams extends BaseWidgetParams {
   formula: string;
-  type: MetricQueryType.FORMULA;
+  type: MetricExpressionType.EQUATION;
 }
 
 export type MetricWidgetQueryParams = MetricQueryWidgetParams | MetricFormulaWidgetParams;
