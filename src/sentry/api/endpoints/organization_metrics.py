@@ -98,7 +98,7 @@ def get_use_case_id(request: Request) -> UseCaseID:
         The use case id that was request or a default use case id.
     """
     try:
-        use_case_param = request.GET.get("useCase", get_default_use_case_ids(request)[0])
+        use_case_param = request.GET.get("useCase", UseCaseID.SESSIONS.value)
         return string_to_use_case_id(use_case_param)
     except ValueError:
         raise ParseError(detail="The supplied use case doesn't exist or it's private")
