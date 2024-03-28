@@ -5,11 +5,14 @@ from typing import Any
 
 import sentry_sdk
 
+from sentry import options
 from sentry.attachments import CachedAttachment, attachment_cache
+from sentry.features.rollout import in_rollout_group
 from sentry.ingest.consumer.processors import CACHE_TIMEOUT
 from sentry.lang.java.proguard import open_proguard_mapper
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.project import Project
+from sentry.stacktraces.processing import StacktraceInfo
 from sentry.utils import json
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.safe import get_path
@@ -134,3 +137,28 @@ def deobfuscation_template(data, map_type, deobfuscation_fn):
 
 def deobfuscate_view_hierarchy(data):
     deobfuscation_template(data, "proguard", _deobfuscate_view_hierarchy)
+
+
+SYMBOLICATOR_PROGUARD_PROJECTS_OPTION = "symbolicator.proguard-processing-projects"
+SYMBOLICATOR_PROGUARD_SAMPLE_RATE_OPTION = "symbolicator.proguard-processing-sample-rate"
+
+
+def should_use_symbolicator_for_proguard(project_id: int) -> bool:
+    if project_id in options.get(SYMBOLICATOR_PROGUARD_PROJECTS_OPTION, []):
+        return True
+
+    return in_rollout_group(SYMBOLICATOR_PROGUARD_SAMPLE_RATE_OPTION, project_id)
+
+
+def is_jvm_event(data: Any, stacktraces: list[StacktraceInfo]) -> bool:
+    """Returns whether `data` is a JVM event, based on its platform and
+    the supplied stacktraces."""
+
+    if data.get("platform") == "java":
+        return True
+
+    for stacktrace in stacktraces:
+        if any(x == "java" for x in stacktrace.platforms):
+            return True
+
+    return False

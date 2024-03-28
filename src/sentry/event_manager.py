@@ -17,7 +17,6 @@ from django.db import IntegrityError, OperationalError, connection, router, tran
 from django.db.models import Func, Max
 from django.db.models.signals import post_save
 from django.utils.encoding import force_str
-from urllib3 import Retry
 from urllib3.exceptions import MaxRetryError
 from usageaccountant import UsageUnit
 
@@ -1829,13 +1828,10 @@ def _create_group(project: Project, event: Event, **group_creation_kwargs: Any) 
     # add sdk tag to metadata
     group_data.setdefault("metadata", {}).update(sdk_metadata_from_event(event))
 
-    # Add severity to metadata for alert filtering for errors events.
-    # We can skip this if the group type is explicitly NOT an error.
+    # add severity to metadata for alert filtering
     group_type = group_creation_kwargs.get("type", None)
-    severity: Mapping[str, Any] = {}
-    if not group_type or group_type == ErrorGroupType.type_id:
-        severity = _get_severity_metadata_for_group(event)
-        group_data["metadata"].update(severity)
+    severity = _get_severity_metadata_for_group(event, project.id, group_type)
+    group_data["metadata"].update(severity)
 
     if features.has("projects:issue-priority", project, actor=None):
         # the kwargs only include priority for non-error issue platform events, which takes precedence.
@@ -2149,26 +2145,61 @@ def _process_existing_aggregate(
 
 severity_connection_pool = connection_from_url(
     settings.SEVERITY_DETECTION_URL,
-    retries=Retry(
-        total=SEVERITY_DETECTION_RETRIES,  # Defaults to 1
-        status_forcelist=[
-            408,  # Request timeout
-            429,  # Too many requests
-            502,  # Bad gateway
-            503,  # Service unavailable
-            504,  # Gateway timeout
-        ],
-    ),
     timeout=settings.SEVERITY_DETECTION_TIMEOUT,  # Defaults to 300 milliseconds
 )
 
 
-def _get_severity_metadata_for_group(event: Event) -> Mapping[str, Any]:
+def _get_severity_metadata_for_group(
+    event: Event, project_id: int, group_type: int | None
+) -> Mapping[str, Any]:
     """
-    Returns severity metadata for an event if the feature flag is enabled.
-    Returns {} on feature flag not enabled or exception.
+    Returns severity metadata for an event if all of the following are true
+    - the feature flag is enabled
+    - the event platform supports severity
+    - the event group type is an error
+
+    Returns {} if conditions aren't met or on exception.
     """
-    if features.has("projects:first-event-severity-calculation", event.project):
+    from sentry.receivers.rules import PLATFORMS_WITH_PRIORITY_ALERTS
+
+    is_supported_platform = (
+        any(event.platform.startswith(platform) for platform in PLATFORMS_WITH_PRIORITY_ALERTS)
+        if event.platform
+        else False
+    )
+    is_error_group = group_type == ErrorGroupType.type_id if group_type else True
+    feature_enabled = features.has("projects:first-event-severity-calculation", event.project)
+
+    should_calculate_severity = feature_enabled and is_supported_platform and is_error_group
+    if should_calculate_severity:
+        from sentry import ratelimits as ratelimiter
+
+        limit = options.get("issues.severity.seer-global-rate-limit", 25)
+        if ratelimiter.backend.is_limited(
+            "seer:severity-calculation:global-limit",
+            limit=limit,
+            window=1,  # starting this out 25 requests per second
+        ):
+            logger.warning(
+                "get_severity_metadata_for_group.rate_limited_globally",
+                extra={"event_id": event.event_id, "project_id": project_id},
+            )
+            metrics.incr("issues.severity.rate_limited_globally")
+
+        limit = options.get("issues.severity.seer-project-rate-limit", 5)
+        if ratelimiter.backend.is_limited(
+            f"seer:severity-calculation:{project_id}",
+            limit=limit,
+            window=1,  # starting this out 5 requests per second
+        ):
+            logger.warning(
+                "get_severity_metadata_for_group.rate_limited_for_project",
+                extra={"event_id": event.event_id, "project_id": project_id},
+            )
+            metrics.incr(
+                "issues.severity.rate_limited_for_project", tags={"project_id": project_id}
+            )
+
         try:
             severity, reason = _get_severity_score(event)
 
@@ -2287,11 +2318,16 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
     with sentry_sdk.start_span(op=op):
         try:
             with metrics.timer(op):
+                timeout = options.get(
+                    "issues.severity.seer-timout",
+                    settings.SEVERITY_DETECTION_TIMEOUT / 1000,
+                )
                 response = severity_connection_pool.urlopen(
                     "POST",
                     "/v0/issues/severity-score",
                     body=json.dumps(payload),
                     headers={"content-type": "application/json;charset=utf-8"},
+                    timeout=timeout,
                 )
                 severity = json.loads(response.data).get("severity")
                 reason = "ml"

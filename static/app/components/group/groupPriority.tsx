@@ -10,6 +10,7 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import Placeholder from 'sentry/components/placeholder';
 import {Tag} from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -151,6 +152,11 @@ function GroupPriorityFeedback() {
   );
 }
 
+const DataConsentLearnMore = HookOrDefault({
+  hookName: 'component:data-consent-priority-learn-more',
+  defaultComponent: null,
+});
+
 function GroupPriorityLearnMore() {
   const organization = useOrganization();
   const {isLoading, isError, isPromptDismissed, dismissPrompt} = usePrompt({
@@ -158,8 +164,12 @@ function GroupPriorityLearnMore() {
     organization,
   });
 
-  if (isLoading || isError || isPromptDismissed) {
+  if (isLoading || isError) {
     return null;
+  }
+
+  if (isPromptDismissed) {
+    return <DataConsentLearnMore />;
   }
 
   return (

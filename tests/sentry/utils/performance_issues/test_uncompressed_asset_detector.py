@@ -9,7 +9,6 @@ from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import TestCase
 from sentry.testutils.performance_issues.event_generators import PROJECT_ID, create_span, get_event
 from sentry.testutils.performance_issues.span_builder import SpanBuilder
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.performance_issues.detectors.uncompressed_asset_detector import (
     UncompressedAssetSpanDetector,
 )
@@ -41,7 +40,6 @@ def create_compressed_asset_span():
     )
 
 
-@region_silo_test
 @pytest.mark.django_db
 class UncompressedAssetsDetectorTest(TestCase):
     def setUp(self):

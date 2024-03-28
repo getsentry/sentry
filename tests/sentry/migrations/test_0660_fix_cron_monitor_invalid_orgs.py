@@ -4,6 +4,7 @@ from sentry.monitors.models import Monitor
 from sentry.testutils.cases import TestMigrations
 
 
+@pytest.mark.skip("Migration is no longer runnable. Retain until migration is removed.")
 class RenamePrioritySortToTrendsTest(TestMigrations):
     migrate_from = "0659_artifactbundleindex_cleanup"
     migrate_to = "0660_fix_cron_monitor_invalid_orgs"

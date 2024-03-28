@@ -1,15 +1,13 @@
 from unittest.mock import patch
 
-from django.test import override_settings
 from django.urls import reverse
 
 from sentry.models.team import Team
 from sentry.signals import receivers_raise_on_send
 from sentry.testutils.cases import SCIMTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import create_test_regions, region_silo_test
 
 
-@region_silo_test
 class SCIMIndexListTest(SCIMTestCase):
     def test_group_index_empty(self):
         url = reverse("sentry-api-0-organization-scim-team-index", args=[self.organization.slug])
@@ -189,8 +187,7 @@ class SCIMIndexListTest(SCIMTestCase):
         assert response.status_code == 400, response.data
 
 
-@override_settings(SENTRY_REGION="na")
-@region_silo_test
+@region_silo_test(regions=create_test_regions("na"))
 class SCIMIndexCreateTest(SCIMTestCase):
     endpoint = "sentry-api-0-organization-scim-team-index"
     method = "post"

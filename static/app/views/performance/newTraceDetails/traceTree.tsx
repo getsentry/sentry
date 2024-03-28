@@ -5,6 +5,7 @@ import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types'
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import type {Organization} from 'sentry/types';
 import type {Event, EventTransaction, Measurement} from 'sentry/types/event';
+import {MobileVital, WebVital} from 'sentry/utils/fields';
 import type {
   TraceError as TraceErrorType,
   TraceFullDetailed,
@@ -151,6 +152,7 @@ export declare namespace TraceTree {
     duration: number;
     label: string;
     measurement: Measurement;
+    poor: boolean;
     start: number;
     type: 'cls' | 'fcp' | 'fp' | 'lcp' | 'ttfb';
   };
@@ -166,7 +168,7 @@ function fetchTransactionSpans(
   event_id: string
 ): Promise<EventTransaction> {
   return api.requestPromise(
-    `/organizations/${organization.slug}/events/${project_slug}:${event_id}/`
+    `/organizations/${organization.slug}/events/${project_slug}:${event_id}/?averageColumn=span.self_time`
   );
 }
 
@@ -252,7 +254,28 @@ function shouldCollapseNodeByDefault(node: TraceTreeNode<TraceTree.NodeValue>) {
 }
 
 // cls is not included as it is a cumulative layout shift and not a single point in time
-const RENDERABLE_MEASUREMENTS = ['fcp', 'fp', 'lcp', 'ttfb'];
+const RENDERABLE_MEASUREMENTS = [
+  WebVital.TTFB,
+  WebVital.FP,
+  WebVital.FCP,
+  WebVital.LCP,
+  MobileVital.TIME_TO_FULL_DISPLAY,
+  MobileVital.TIME_TO_INITIAL_DISPLAY,
+].map(n => n.replace('measurements.', ''));
+
+const MEASUREMENT_ACRONYM_MAPPING = {
+  [MobileVital.TIME_TO_FULL_DISPLAY.replace('measurements.', '')]: 'TTFD',
+  [MobileVital.TIME_TO_INITIAL_DISPLAY.replace('measurements.', '')]: 'TTID',
+};
+
+const MEASUREMENT_THRESHOLDS = {
+  [WebVital.TTFB.replace('measurements.', '')]: 600,
+  [WebVital.FP.replace('measurements.', '')]: 3000,
+  [WebVital.FCP.replace('measurements.', '')]: 3000,
+  [WebVital.LCP.replace('measurements.', '')]: 4000,
+  [MobileVital.TIME_TO_INITIAL_DISPLAY.replace('measurements.', '')]: 2000,
+};
+
 export class TraceTree {
   type: 'loading' | 'empty' | 'error' | 'trace' = 'trace';
   root: TraceTreeNode<null> = TraceTreeNode.Root();
@@ -288,7 +311,7 @@ export class TraceTree {
     return newTree;
   }
 
-  static FromTrace(trace: TraceTree.Trace, event?: EventTransaction): TraceTree {
+  static FromTrace(trace: TraceTree.Trace): TraceTree {
     const tree = new TraceTree();
     let traceStart = Number.POSITIVE_INFINITY;
     let traceEnd = Number.NEGATIVE_INFINITY;
@@ -341,6 +364,14 @@ export class TraceTree {
         traceEnd = Math.max(value.timestamp, traceEnd);
       }
 
+      if (value && 'measurements' in value) {
+        tree.collectMeasurements(
+          traceStart,
+          value.measurements as Record<string, Measurement>,
+          tree.indicators
+        );
+      }
+
       if (value && 'children' in value) {
         for (const child of value.children) {
           visit(node, child);
@@ -382,20 +413,16 @@ export class TraceTree {
       }
     }
 
-    if (event?.measurements) {
-      const indicators = tree
-        .collectMeasurements(traceStart, event.measurements)
-        .sort((a, b) => a.start - b.start);
+    if (tree.indicators.length > 0) {
+      tree.indicators.sort((a, b) => a.start - b.start);
 
-      for (const indicator of indicators) {
+      for (const indicator of tree.indicators) {
         if (indicator.start > traceEnd) {
           traceEnd = indicator.start;
         }
 
         indicator.start *= traceNode.multiplier;
       }
-
-      tree.indicators = indicators;
     }
 
     traceNode.space = [
@@ -791,10 +818,9 @@ export class TraceTree {
 
   collectMeasurements(
     start_timestamp: number,
-    measurements: Record<string, Measurement>
-  ): TraceTree.Indicator[] {
-    const indicators: TraceTree.Indicator[] = [];
-
+    measurements: Record<string, Measurement>,
+    indicators: TraceTree.Indicator[]
+  ): void {
     for (const measurement of RENDERABLE_MEASUREMENTS) {
       const value = measurements[measurement];
       if (!value) {
@@ -804,19 +830,20 @@ export class TraceTree {
       const timestamp = measurementToTimestamp(
         start_timestamp,
         value.value,
-        value.unit ?? 'milliseconds'
+        value.unit ?? 'millisecond'
       );
 
       indicators.push({
         start: timestamp,
         duration: 0,
         measurement: value,
+        poor: MEASUREMENT_THRESHOLDS[measurement]
+          ? value.value > MEASUREMENT_THRESHOLDS[measurement]
+          : false,
         type: measurement as TraceTree.Indicator['type'],
-        label: measurement.toUpperCase(),
+        label: (MEASUREMENT_ACRONYM_MAPPING[measurement] ?? measurement).toUpperCase(),
       });
     }
-
-    return indicators;
   }
 
   // Returns boolean to indicate if node was updated

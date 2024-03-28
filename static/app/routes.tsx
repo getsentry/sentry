@@ -1816,6 +1816,12 @@ function buildRoutes() {
           )}
         />
         <Route
+          path={TabPaths[Tab.RELATED_ISSUES]}
+          component={hoc(
+            make(() => import('sentry/views/issueDetails/groupRelatedIssues'))
+          )}
+        />
+        <Route
           path={TabPaths[Tab.MERGED]}
           component={hoc(make(() => import('sentry/views/issueDetails/groupMerged')))}
         />
@@ -2029,10 +2035,10 @@ function buildRoutes() {
     <Fragment>
       <Route
         path="/metrics/"
-        component={make(() => import('sentry/views/ddm'))}
+        component={make(() => import('sentry/views/metrics'))}
         withOrgPath
       >
-        <IndexRoute component={make(() => import('sentry/views/ddm/ddm'))} />
+        <IndexRoute component={make(() => import('sentry/views/metrics/metrics'))} />
       </Route>
       {/* TODO(ddm): fade this out */}
       <Redirect from="/ddm/" to="/metrics/" />

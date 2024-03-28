@@ -19,6 +19,7 @@ import {EventExtraData} from 'sentry/components/events/eventExtraData';
 import {REPLAY_CLIP_OFFSETS} from 'sentry/components/events/eventReplay';
 import ReplayClipPreview from 'sentry/components/events/eventReplay/replayClipPreview';
 import {EventSdk} from 'sentry/components/events/eventSdk';
+import NewTagsUI from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {Breadcrumbs} from 'sentry/components/events/interfaces/breadcrumbs';
 import {getFormattedTimeRangeWithLeadingAndTrailingZero} from 'sentry/components/events/interfaces/spans/utils';
@@ -52,7 +53,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import useProjects from 'sentry/utils/useProjects';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
-import {CustomMetricsEventData} from 'sentry/views/ddm/customMetricsEventData';
+import {CustomMetricsEventData} from 'sentry/views/metrics/customMetricsEventData';
 import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceTabs';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/virtualizedViewManager';
 import {Row, Tags} from 'sentry/views/performance/traceDetails/styles';
@@ -254,7 +255,7 @@ export function TransactionNodeDetails({
   const {start: startTimeWithLeadingZero, end: endTimeWithLeadingZero} =
     getFormattedTimeRangeWithLeadingAndTrailingZero(startTimestamp, endTimestamp);
 
-  const duration = (endTimestamp - startTimestamp) * node.multiplier;
+  const duration = endTimestamp - startTimestamp;
 
   const measurementNames = Object.keys(node.value.measurements ?? {})
     .filter(name => isCustomMeasurement(`measurements.${name}`))
@@ -365,7 +366,9 @@ export function TransactionNodeDetails({
               {node.value.profile_id}
             </Row>
           ) : null}
-          <Row title="Duration">{`${Number(duration.toFixed(3)).toLocaleString()}ms`}</Row>
+          <Row title="Duration">
+            <TraceDrawerComponents.Duration duration={duration} baseline={undefined} />
+          </Row>
           <Row title="Date Range">
             {getDynamicText({
               fixed: 'Mar 19, 2021 11:06:27 AM UTC',
@@ -408,14 +411,6 @@ export function TransactionNodeDetails({
             </Fragment>
           )}
 
-          <Tags
-            enableHiding
-            location={location}
-            organization={organization}
-            tags={event.tags}
-            event={node.value}
-          />
-
           {measurementNames.length > 0 && (
             <tr>
               <td className="key">{t('Measurements')}</td>
@@ -442,6 +437,23 @@ export function TransactionNodeDetails({
           )}
         </tbody>
       </TraceDrawerComponents.Table>
+      {organization.features.includes('event-tags-tree-ui') ? (
+        <TagsWrapper>
+          <NewTagsUI event={event} projectSlug={node.value.project_slug} />
+        </TagsWrapper>
+      ) : (
+        <TraceDrawerComponents.Table className="table key-value">
+          <tbody>
+            <Tags
+              enableHiding
+              location={location}
+              organization={organization}
+              tags={event.tags}
+              event={node.value}
+            />
+          </tbody>
+        </TraceDrawerComponents.Table>
+      )}
       {project ? <EventEvidence event={event} project={project} /> : null}
       <ReplaySection event={event} organization={organization} />
       {event.projectSlug ? (
@@ -515,4 +527,10 @@ const Measurements = styled('div')`
   flex-wrap: wrap;
   gap: ${space(1)};
   padding-top: 10px;
+`;
+
+const TagsWrapper = styled('div')`
+  h3 {
+    color: ${p => p.theme.textColor};
+  }
 `;

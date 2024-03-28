@@ -1,5 +1,5 @@
 import functools
-from datetime import UTC, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import Mock, call, patch
 from uuid import uuid4
 
@@ -50,13 +50,12 @@ from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.utils import json
 
 
-@region_silo_test
 class GroupListTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
 
@@ -2322,12 +2321,149 @@ class GroupListTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
         self.login_as(user=self.user)
-        response = self.get_success_response(qs_params={"query": "", "useGroupSnubaDataset": "1"})
+        response = self.get_success_response(useGroupSnubaDataset=1, qs_params={"query": ""})
         assert len(response.data) == 1
         assert mock_query.call_count == 1
 
+    @override_options({"issues.group_attributes.send_kafka": True})
+    def test_snuba_order_by_first_seen_of_issue(self):
+        # issue 1: issue 10 minutes ago
+        time = datetime.now() - timedelta(minutes=10)
+        event1 = self.store_event(
+            data={"timestamp": time.timestamp(), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        # issue 2: events 90 minutes ago 1 minute ago
+        time = datetime.now() - timedelta(minutes=90)
+        event2 = self.store_event(
+            data={"timestamp": time.timestamp(), "fingerprint": ["group-2"]},
+            project_id=self.project.id,
+        )
+        time = datetime.now() - timedelta(minutes=1)
+        self.store_event(
+            data={"timestamp": time.timestamp(), "fingerprint": ["group-2"]},
+            project_id=self.project.id,
+        )
 
-@region_silo_test
+        self.login_as(user=self.user)
+        response = self.get_success_response(
+            sort="new",
+            statsPeriod="1h",
+            useGroupSnubaDataset=1,
+            qs_params={"query": ""},
+        )
+
+        assert len(response.data) == 2
+        assert int(response.data[0]["id"]) == event1.group.id
+        assert int(response.data[1]["id"]) == event2.group.id
+
+    @patch(
+        "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
+        side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
+        autospec=True,
+    )
+    @override_options({"issues.group_attributes.send_kafka": True})
+    def test_snuba_order_by_freq(self, mock_query):
+        event1 = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=3)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=2)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        event2 = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=1)), "fingerprint": ["group-2"]},
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+        response = self.get_success_response(
+            sort="freq",
+            statsPeriod="1h",
+            useGroupSnubaDataset=1,
+            qs_params={"query": ""},
+        )
+
+        assert len(response.data) == 2
+        assert int(response.data[0]["id"]) == event1.group.id
+        assert int(response.data[1]["id"]) == event2.group.id
+        assert mock_query.call_count == 1
+
+    @patch(
+        "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
+        side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
+        autospec=True,
+    )
+    @override_options({"issues.group_attributes.send_kafka": True})
+    def test_snuba_order_by_user_count(self, mock_query):
+        user1 = {
+            "email": "foo@example.com",
+        }
+        user2 = {
+            "email": "test@example.com",
+        }
+        user3 = {
+            "email": "test2@example.com",
+        }
+
+        # 2 events, 2 users
+        event1 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=6)),
+                "fingerprint": ["group-1"],
+                "user": user2,
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=5)),
+                "fingerprint": ["group-1"],
+                "user": user3,
+            },
+            project_id=self.project.id,
+        )
+
+        # 3 events, 1 user for group 1
+        event2 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=4)),
+                "fingerprint": ["group-2"],
+                "user": user1,
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=3)),
+                "fingerprint": ["group-2"],
+                "user": user1,
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=2)),
+                "fingerprint": ["group-2"],
+                "user": user1,
+            },
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+        response = self.get_success_response(
+            sort="user_count",
+            useGroupSnubaDataset=1,
+            qs_params={"query": ""},
+        )
+
+        assert len(response.data) == 2
+        assert int(response.data[0]["id"]) == event1.group.id
+        assert int(response.data[1]["id"]) == event2.group.id
+        assert mock_query.call_count == 1
+
+
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
     method = "put"
@@ -3715,7 +3851,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         ).exists()
 
 
-@region_silo_test
 class GroupDeleteTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
     method = "delete"

@@ -10,7 +10,9 @@ from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.files.file import File
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.relay import RelayStoreHelper
+from sentry.testutils.skips import requires_symbolicator
 from sentry.utils import json
 
 PROGUARD_UUID = "6dc7fdb0-d2fb-4c8e-9d6b-bb1aa98929b1"
@@ -394,6 +396,12 @@ class AnotherClassInSameFile {
 
 @pytest.mark.django_db(transaction=True)
 class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
+    @pytest.fixture(autouse=True)
+    def initialize(self, set_sentry_option, live_server):
+        with set_sentry_option("system.url-prefix", live_server.url):
+            # Run test case
+            yield
+
     def upload_proguard_mapping(self, uuid, mapping_file_content):
         url = reverse(
             "sentry-api-0-dsym-files",
@@ -497,6 +505,12 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
             "org.slf4j.helpers.Util$ClassContextSecurityManager " "in getExtraClassContext"
         )
 
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_basic_resolving_symbolicator(self):
+        with override_options({"symbolicator.proguard-processing-sample-rate": 1.0}):
+            self.test_basic_resolving()
+
     def test_resolving_does_not_fail_when_no_value(self):
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
 
@@ -552,6 +566,12 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
         metrics = event.data["_metrics"]
         assert not metrics.get("flag.processing.error")
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_resolving_does_not_fail_when_no_value_symbolicator(self):
+        with override_options({"symbolicator.proguard-processing-sample-rate": 1.0}):
+            self.test_resolving_does_not_fail_when_no_value()
 
     def test_resolving_does_not_fail_when_no_module_or_function(self):
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
@@ -620,6 +640,12 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
         metrics = event.data["_metrics"]
         assert not metrics.get("flag.processing.error")
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_resolving_does_not_fail_when_no_module_or_function_symbolicator(self):
+        with override_options({"symbolicator.proguard-processing-sample-rate": 1.0}):
+            self.test_resolving_does_not_fail_when_no_module_or_function()
 
     def test_sets_inapp_after_resolving(self):
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
@@ -716,6 +742,12 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert frames[3].in_app is False
         assert frames[4].in_app is True
 
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_sets_inapp_after_resolving_symbolicator(self):
+        with override_options({"symbolicator.proguard-processing-sample-rate": 1.0}):
+            self.test_sets_inapp_after_resolving()
+
     def test_resolving_inline(self):
         self.upload_proguard_mapping(PROGUARD_INLINE_UUID, PROGUARD_INLINE_SOURCE)
 
@@ -789,6 +821,12 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert frames[3].lineno == 54
         assert frames[3].filename == "MainActivity.java"
         assert frames[3].module == "io.sentry.sample.MainActivity"
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_resolving_inline_symbolicator(self):
+        with override_options({"symbolicator.proguard-processing-sample-rate": 1.0}):
+            self.test_resolving_inline()
 
     def test_resolving_inline_with_native_frames(self):
         self.upload_proguard_mapping(PROGUARD_INLINE_UUID, PROGUARD_INLINE_SOURCE)
@@ -889,6 +927,12 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert frames[5].function == "__start_thread"
         assert frames[5].package == "/apex/com.android.art/lib64/libart.so"
 
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_resolving_inline_with_native_frames_symbolicator(self):
+        with override_options({"symbolicator.proguard-processing-sample-rate": 1.0}):
+            self.test_resolving_inline_with_native_frames()
+
     def test_error_on_resolving(self):
         url = reverse(
             "sentry-api-0-dsym-files",
@@ -955,10 +999,15 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         event = self.post_and_retrieve_event(event_data)
 
         assert len(event.data["errors"]) == 1
-        assert event.data["errors"][0] == {
-            "mapping_uuid": "071207ac-b491-4a74-957c-2c94fd9594f2",
-            "type": "proguard_missing_lineno",
-        }
+        error = event.data["errors"][0]
+        assert error["mapping_uuid"] == "071207ac-b491-4a74-957c-2c94fd9594f2"
+        assert error["type"] == "proguard_missing_lineno"
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_error_on_resolving_symbolicator(self):
+        with override_options({"symbolicator.proguard-processing-sample-rate": 1.0}):
+            self.test_error_on_resolving()
 
     def upload_jvm_bundle(self, debug_id, source_files):
         files = {}
@@ -973,14 +1022,18 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
             "files": files,
         }
 
-        file_like = BytesIO()
-        with zipfile.ZipFile(file_like, "w") as zip:
-            for source_file in source_files:
-                zip.writestr(f"files/_/_/{source_file}", source_files[source_file])
+        file_like = BytesIO(b"SYSB")
+        with zipfile.ZipFile(file_like, "a") as zip:
+            for path, contents in source_files.items():
+                zip.writestr(f"files/_/_/{path}", contents)
             zip.writestr("manifest.json", json.dumps(manifest))
         file_like.seek(0)
 
-        file = File.objects.create(name="bundle.zip", type="artifact.bundle")
+        file = File.objects.create(
+            name="bundle.zip",
+            type="sourcebundle",
+            headers={"Content-Type": "application/x-sentry-bundle+zip"},
+        )
         file.putfile(file_like)
 
         ProjectDebugFile.objects.create(
@@ -1189,6 +1242,12 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
             "        fun whoops4() {",
         ]
         assert frames[6].post_context == ["        }", "    }", "}", ""]
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_basic_source_lookup_symbolicator(self):
+        with override_options({"symbolicator.proguard-processing-sample-rate": 1.0}):
+            self.test_basic_source_lookup()
 
     def test_source_lookup_with_proguard(self):
         self.upload_proguard_mapping(PROGUARD_SOURCE_LOOKUP_UUID, PROGUARD_SOURCE_LOOKUP_SOURCE)
@@ -1495,3 +1554,9 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert frames[24].context_line is None
         assert frames[24].pre_context is None
         assert frames[24].post_context is None
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_source_lookup_with_proguard_symbolicator(self):
+        with override_options({"symbolicator.proguard-processing-sample-rate": 1.0}):
+            self.test_source_lookup_with_proguard()

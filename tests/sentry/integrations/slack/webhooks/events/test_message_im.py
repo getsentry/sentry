@@ -4,7 +4,7 @@ from sentry.models.identity import Identity, IdentityStatus
 from sentry.silo import SiloMode
 from sentry.testutils.cases import IntegratedApiTestCase
 from sentry.testutils.helpers import get_response_text
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json
 
 from . import BaseEventTest
@@ -50,7 +50,6 @@ MESSAGE_IM_BOT_EVENT = """{
 }"""
 
 
-@region_silo_test
 class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
     def get_block_section_text(self, data):
         blocks = data["blocks"]

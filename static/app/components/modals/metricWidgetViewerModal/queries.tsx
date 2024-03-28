@@ -17,7 +17,7 @@ import {
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {isCustomMetric} from 'sentry/utils/metrics';
-import {MetricQueryType} from 'sentry/utils/metrics/types';
+import {MetricExpressionType} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
@@ -30,11 +30,11 @@ import {
   filterQueriesByDisplayType,
 } from 'sentry/views/dashboards/metrics/utils';
 import {DisplayType} from 'sentry/views/dashboards/types';
-import {EquationSymbol} from 'sentry/views/ddm/equationSymbol copy';
-import {FormulaInput} from 'sentry/views/ddm/formulaInput';
-import {getCreateAlert} from 'sentry/views/ddm/metricQueryContextMenu';
-import {QueryBuilder} from 'sentry/views/ddm/queryBuilder';
-import {getQuerySymbol, QuerySymbol} from 'sentry/views/ddm/querySymbol';
+import {EquationSymbol} from 'sentry/views/metrics/equationSymbol copy';
+import {FormulaInput} from 'sentry/views/metrics/formulaInput';
+import {getCreateAlert} from 'sentry/views/metrics/metricQueryContextMenu';
+import {QueryBuilder} from 'sentry/views/metrics/queryBuilder';
+import {getQuerySymbol, QuerySymbol} from 'sentry/views/metrics/querySymbol';
 
 interface Props {
   addEquation: () => void;
@@ -92,7 +92,7 @@ export function Queries({
               disabled={!query.isHidden && visibleExpressions.length === 1}
               isSelected={false}
               queryId={query.id}
-              type={MetricQueryType.QUERY}
+              type={MetricExpressionType.QUERY}
             />
           )}
           <QueryBuilder
@@ -118,7 +118,7 @@ export function Queries({
               disabled={!equation.isHidden && visibleExpressions.length === 1}
               isSelected={false}
               queryId={equation.id}
-              type={MetricQueryType.FORMULA}
+              type={MetricExpressionType.EQUATION}
             />
           )}
           <FormulaInput
@@ -257,7 +257,7 @@ interface QueryToggleProps {
   isSelected: boolean;
   onChange: (isHidden: boolean) => void;
   queryId: number;
-  type: MetricQueryType;
+  type: MetricExpressionType;
 }
 
 function QueryToggle({
@@ -275,7 +275,7 @@ function QueryToggle({
 
   return (
     <Tooltip title={tooltipTitle} delay={500}>
-      {type === MetricQueryType.QUERY ? (
+      {type === MetricExpressionType.QUERY ? (
         <StyledQuerySymbol
           isHidden={isHidden}
           queryId={queryId}

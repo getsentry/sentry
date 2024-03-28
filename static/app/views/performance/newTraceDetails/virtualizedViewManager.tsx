@@ -206,6 +206,9 @@ export class VirtualizedViewManager {
   span_to_px: mat3 = mat3.create();
   row_depth_padding: number = 22;
 
+  // Smallest of time that can be displayed across the entire view.
+  private readonly MAX_ZOOM_PRECISION = 1;
+
   // Column configuration
   columns: {
     list: ViewColumn;
@@ -375,13 +378,26 @@ export class VirtualizedViewManager {
     this.previousDividerClientVec = [event.clientX, event.clientY];
   }
 
+  private scrollbar_width: number = 0;
+  onScrollbarWidthChange(width: number) {
+    if (width === this.scrollbar_width) {
+      return;
+    }
+    this.scrollbar_width = width;
+    this.draw();
+  }
+
   registerList(list: VirtualizedList | null) {
     this.list = list;
   }
 
   registerIndicatorContainerRef(ref: HTMLElement | null) {
     if (ref) {
-      ref.style.width = this.columns.span_list.width * 100 + '%';
+      const correction =
+        (this.scrollbar_width / this.container_physical_space.width) *
+        this.columns.span_list.width;
+      ref.style.transform = `translateX(${-this.scrollbar_width}px)`;
+      ref.style.width = (this.columns.span_list.width - correction) * 100 + '%';
     }
     this.indicator_container = ref;
   }
@@ -584,21 +600,28 @@ export class VirtualizedViewManager {
 
   zoomIntoSpaceRaf: number | null = null;
   onZoomIntoSpace(space: [number, number]) {
-    if (space[1] <= 0) {
-      // @TODO implement scrolling to 0 width spaces
-      return;
-    }
-
-    const distance_x = space[0] - this.to_origin - this.trace_view.x;
+    let distance_x = space[0] - this.to_origin - this.trace_view.x;
+    let final_x = space[0] - this.to_origin;
+    let final_width = space[1];
     const distance_width = this.trace_view.width - space[1];
+
+    if (space[1] < this.MAX_ZOOM_PRECISION) {
+      distance_x -= this.MAX_ZOOM_PRECISION / 2 - space[1] / 2;
+      final_x -= this.MAX_ZOOM_PRECISION / 2 - space[1] / 2;
+      final_width = this.MAX_ZOOM_PRECISION;
+    }
 
     const start_x = this.trace_view.x;
     const start_width = this.trace_view.width;
 
+    const max_distance = Math.max(Math.abs(distance_x), Math.abs(distance_width));
+    const p = max_distance !== 0 ? Math.log10(max_distance) - 1 : 1;
+    const duration = 200 + 100 * Math.abs(p * p);
+
     const start = performance.now();
     const rafCallback = (now: number) => {
       const elapsed = now - start;
-      const progress = elapsed / 300;
+      const progress = elapsed / duration;
 
       const eased = easeOutSine(progress);
 
@@ -612,7 +635,7 @@ export class VirtualizedViewManager {
         this.zoomIntoSpaceRaf = window.requestAnimationFrame(rafCallback);
       } else {
         this.zoomIntoSpaceRaf = null;
-        this.setTraceView({x: space[0] - this.to_origin, width: space[1]});
+        this.setTraceView({x: final_x, width: final_width});
         this.draw();
       }
     };
@@ -693,7 +716,11 @@ export class VirtualizedViewManager {
     const width = view.width ?? this.trace_view.width;
 
     this.trace_view.x = clamp(x, 0, this.trace_space.width - width);
-    this.trace_view.width = clamp(width, 1, this.trace_space.width - this.trace_view.x);
+    this.trace_view.width = clamp(
+      width,
+      this.MAX_ZOOM_PRECISION,
+      this.trace_space.width - this.trace_view.x
+    );
 
     this.recomputeTimelineIntervals();
     this.recomputeSpanToPxMatrix();
@@ -1097,7 +1124,7 @@ export class VirtualizedViewManager {
 
     const width = this.text_measurer.measure(text);
 
-    // precomput all anchor points aot, so we make the control flow more readable.
+    // precompute all anchor points aot, so we make the control flow more readable.
     // this wastes some cycles, but it's not a big deal as computers are fast when
     // it comes to simple arithmetic.
     const right_outside =
@@ -1106,6 +1133,7 @@ export class VirtualizedViewManager {
       this.computeTransformXFromTimestamp(span_space[0] + span_space[1]) -
       width -
       TEXT_PADDING;
+
     const left_outside =
       this.computeTransformXFromTimestamp(span_space[0]) - TEXT_PADDING - width;
     const left_inside = this.computeTransformXFromTimestamp(span_space[0]) + TEXT_PADDING;
@@ -1164,8 +1192,24 @@ export class VirtualizedViewManager {
       // anchor it to the inside right place in the span.
       return [1, right_inside];
     }
+
     // While we have space on the right, place the text there
     if (space_right > 0) {
+      if (
+        // If the right edge of the span is within 10% to the right edge of the space,
+        // try and fit the text inside the span if possible. In case the span is too short
+        // to fit the text, anchor_left case above will take care of anchoring it to the left
+        // of the view.
+
+        // Note: the accurate way for us to determine if the text fits to the right side
+        // of the view would have been to compute the scaling matrix for a non zoomed view at 0,0
+        // origin and check if it fits into the distance of space right edge - span right edge. In practice
+        // however, it seems that a magical number works just fine.
+        span_right > this.trace_space.right * 0.9 &&
+        space_right / this.span_to_px[0] < width
+      ) {
+        return [1, right_inside];
+      }
       return [0, right_outside];
     }
 
@@ -1185,6 +1229,7 @@ export class VirtualizedViewManager {
       // anchor it to the inside left of the span
       return [1, left_inside];
     }
+
     return [0, right_outside];
   }
 
@@ -1194,11 +1239,16 @@ export class VirtualizedViewManager {
 
     if (this.divider) {
       this.divider.style.transform = `translateX(${
-        list_width * this.container_physical_space.width - DIVIDER_WIDTH / 2 - 1
+        list_width * (this.container_physical_space.width - this.scrollbar_width) -
+        DIVIDER_WIDTH / 2 -
+        1
       }px)`;
     }
     if (this.indicator_container) {
-      this.indicator_container.style.width = span_list_width * 100 + '%';
+      const correction =
+        (this.scrollbar_width / this.container_physical_space.width) * span_list_width;
+      this.indicator_container.style.transform = `translateX(${-this.scrollbar_width}px)`;
+      this.indicator_container.style.width = (span_list_width - correction) * 100 + '%';
     }
 
     for (let i = 0; i < this.columns.list.column_refs.length; i++) {
@@ -1582,12 +1632,30 @@ export class VirtualizedList {
   }
 }
 
+function maybeToggleScrollbar(
+  container: HTMLElement,
+  containerHeight: number,
+  scrollHeight: number,
+  manager: VirtualizedViewManager
+) {
+  if (scrollHeight > containerHeight) {
+    container.style.overflowY = 'scroll';
+    container.style.scrollbarGutter = 'stable';
+    manager.onScrollbarWidthChange(container.offsetWidth - container.clientWidth);
+  } else {
+    container.style.overflowY = 'auto';
+    container.style.scrollbarGutter = 'auto';
+    manager.onScrollbarWidthChange(0);
+  }
+}
+
 interface UseVirtualizedListProps {
   container: HTMLElement | null;
   items: ReadonlyArray<TraceTreeNode<TraceTree.NodeValue>>;
   manager: VirtualizedViewManager;
   render: (item: VirtualizedRow) => React.ReactNode;
 }
+
 interface UseVirtualizedListResult {
   list: VirtualizedList;
   rendered: React.ReactNode[];
@@ -1665,6 +1733,13 @@ export const useVirtualizedList = (
         list.current.scrollHeight = scrollHeightRef.current;
       }
 
+      maybeToggleScrollbar(
+        elements[0].target as HTMLElement,
+        scrollHeightRef.current,
+        itemsRef.current.length * 24,
+        managerRef.current
+      );
+
       const recomputedItems = findRenderedItems({
         scrollTop: scrollTopRef.current,
         items: itemsRef.current,
@@ -1705,6 +1780,13 @@ export const useVirtualizedList = (
     scrollContainerRef.current!.style.position = 'relative';
     scrollContainerRef.current!.style.willChange = 'transform';
     scrollContainerRef.current!.style.height = `${props.items.length * 24}px`;
+
+    maybeToggleScrollbar(
+      props.container,
+      scrollHeightRef.current,
+      props.items.length * 24,
+      props.manager
+    );
 
     const onScroll = event => {
       if (!list.current) {
@@ -1773,7 +1855,7 @@ export const useVirtualizedList = (
     return () => {
       props.container?.removeEventListener('scroll', onScroll);
     };
-  }, [props.container, props.items, props.items.length]);
+  }, [props.container, props.items, props.items.length, props.manager]);
 
   useLayoutEffect(() => {
     if (!list.current || !styleCache.current || !renderCache.current) {
