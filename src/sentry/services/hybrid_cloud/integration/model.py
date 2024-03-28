@@ -69,6 +69,11 @@ class RpcOrganizationIntegration(RpcModel):
         return "disabled"
 
 
+class RpcOrganizationIntegrationContextResult(RpcModel):
+    integration: RpcIntegration | None
+    installs: list[RpcOrganizationIntegration]
+
+
 class RpcIntegrationExternalProject(RpcModel):
     id: int
     organization_integration_id: int

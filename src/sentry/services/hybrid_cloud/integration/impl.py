@@ -26,6 +26,7 @@ from sentry.services.hybrid_cloud.integration import (
 from sentry.services.hybrid_cloud.integration.model import (
     RpcIntegrationExternalProject,
     RpcIntegrationIdentityContext,
+    RpcOrganizationIntegrationContextResult,
 )
 from sentry.services.hybrid_cloud.integration.serial import (
     serialize_integration,
@@ -235,6 +236,22 @@ class DatabaseBackedIntegrationService(IntegrationService):
         provider: str | None = None,
         external_id: str | None = None,
     ) -> tuple[RpcIntegration | None, list[RpcOrganizationIntegration]]:
+        result = self.get_organization_contexts__tmp(
+            organization_id=organization_id,
+            integration_id=integration_id,
+            provider=provider,
+            external_id=external_id,
+        )
+        return result.integration, result.installs
+
+    def get_organization_contexts__tmp(
+        self,
+        *,
+        organization_id: int | None = None,
+        integration_id: int | None = None,
+        provider: str | None = None,
+        external_id: str | None = None,
+    ) -> RpcOrganizationIntegrationContextResult:
         integration = self.get_integration(
             organization_id=organization_id,
             integration_id=integration_id,
@@ -242,12 +259,14 @@ class DatabaseBackedIntegrationService(IntegrationService):
             external_id=external_id,
         )
         if not integration:
-            return (None, [])
+            return RpcOrganizationIntegrationContextResult(integration=None, installs=[])
         organization_integrations = self.get_organization_integrations(
             integration_id=integration.id,
             organization_id=organization_id,
         )
-        return (integration, organization_integrations)
+        return RpcOrganizationIntegrationContextResult(
+            integration=integration, installs=organization_integrations
+        )
 
     def update_integrations(
         self,

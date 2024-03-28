@@ -11,6 +11,7 @@ from sentry.services.hybrid_cloud.integration import RpcIntegration, RpcOrganiza
 from sentry.services.hybrid_cloud.integration.model import (
     RpcIntegrationExternalProject,
     RpcIntegrationIdentityContext,
+    RpcOrganizationIntegrationContextResult,
 )
 from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
@@ -143,6 +144,30 @@ class IntegrationService(RpcService):
         by either integration_id, or a combination of provider and external_id.
         """
 
+    def get_organization_context__tmp(
+        self,
+        *,
+        organization_id: int,
+        integration_id: int | None = None,
+        provider: str | None = None,
+        external_id: str | None = None,
+    ) -> tuple[RpcIntegration | None, RpcOrganizationIntegration | None]:
+        """
+        Returns a tuple of RpcIntegration and RpcOrganizationIntegration. The integration is selected
+        by either integration_id, or a combination of provider and external_id.
+        """
+        # This is a convencience method for unpacking `get_organization_contexts`.
+        # Note that it can't be an @rpc_method because it returns a fixed-size tuple.
+
+        contexts = self.get_organization_contexts__tmp(
+            organization_id=organization_id,
+            integration_id=integration_id,
+            provider=provider,
+            external_id=external_id,
+        )
+
+        return contexts.integration, (contexts.installs[0] if contexts.installs else None)
+
     @rpc_method
     @abstractmethod
     def get_organization_contexts(
@@ -153,9 +178,21 @@ class IntegrationService(RpcService):
         provider: str | None = None,
         external_id: str | None = None,
     ) -> tuple[RpcIntegration | None, list[RpcOrganizationIntegration]]:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def get_organization_contexts__tmp(
+        self,
+        *,
+        organization_id: int | None = None,
+        integration_id: int | None = None,
+        provider: str | None = None,
+        external_id: str | None = None,
+    ) -> RpcOrganizationIntegrationContextResult:
         """
-        Returns a tuple of RpcIntegration and RpcOrganizationIntegrations. The integrations are selected
-        by either integration_id, or a combination of provider and external_id.
+        The integrations are selected by either integration_id, or a combination of
+        provider and external_id.
         """
 
     @rpc_method
