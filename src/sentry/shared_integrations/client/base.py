@@ -250,18 +250,16 @@ class BaseApiClient(TrackResponseMixin):
                 if raw_response:
                     return resp
                 resp.raise_for_status()
-        except RestrictedIPAddress as e:
-            self.track_response_data("restricted_ip_address", e, extra=extra)
+        except (RestrictedIPAddress, ConnectionError, Timeout) as e:
+            error_type = e.__class__.__name__.lower()
+            self.track_response_data(error_type, e, extra=extra)
             self.record_error(e)
-            raise ApiHostError.from_exception(e) from e
-        except ConnectionError as e:
-            self.track_response_data("connection_error", e, extra=extra)
-            self.record_error(e)
-            raise ApiHostError.from_exception(e) from e
-        except Timeout as e:
-            self.track_response_data("timeout", e, extra=extra)
-            self.record_error(e)
-            raise ApiTimeoutError.from_exception(e) from e
+            if isinstance(e, RestrictedIPAddress):
+                raise ApiHostError.from_exception(e) from e
+            elif isinstance(e, ConnectionError):
+                raise ApiHostError.from_exception(e) from e
+            elif isinstance(e, Timeout):
+                raise ApiTimeoutError.from_exception(e) from e
         except RetryError as e:
             self.track_response_data("max_retries", e, extra=extra)
             self.record_error(e)
@@ -277,6 +275,12 @@ class BaseApiClient(TrackResponseMixin):
 
             self.track_response_data(error_resp.status_code, e, resp=error_resp, extra=extra)
             self.record_error(e)
+            error_details = {
+                "http_status": error_resp.status_code,
+                "method": method,
+                "path": full_url,
+            }
+            self.logger.error("HTTP error encountered", extra={"error_details": error_details})
             raise ApiError.from_response(error_resp, url=full_url) from e
 
         except Exception as e:
