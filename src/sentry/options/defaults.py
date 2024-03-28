@@ -312,8 +312,11 @@ register(
 # Filestore (default)
 register("filestore.backend", default="filesystem", flags=FLAG_NOSTORE)
 register("filestore.options", default={"location": "/tmp/sentry-files"}, flags=FLAG_NOSTORE)
+register("filestore.relocation-backend", default="filesystem", flags=FLAG_NOSTORE)
 register(
-    "filestore.relocation", default={"location": "/tmp/sentry-relocation-files"}, flags=FLAG_NOSTORE
+    "filestore.relocation-options",
+    default={"location": "/tmp/sentry-relocation-files"},
+    flags=FLAG_NOSTORE,
 )
 
 # Filestore for control silo
