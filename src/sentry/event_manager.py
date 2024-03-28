@@ -2186,23 +2186,31 @@ def _get_severity_metadata_for_group(
         from sentry import ratelimits as ratelimiter
 
         limit = options.get("issues.severity.seer-global-rate-limit", 25)
-        global_limit_reached = ratelimiter.backend.is_limited(
+        if ratelimiter.backend.is_limited(
             "seer:severity-calculation:global-limit",
             limit=limit,
             window=1,  # starting this out 25 requests per second
-        )
+        ):
+            logger.warning(
+                "get_severity_metadata_for_group.rate_limited_globally",
+                extra={"event_id": event.event_id, "project_id": project_id},
+            )
+            metrics.incr("issues.severity.rate_limited_globally")
 
         limit = options.get("issues.severity.seer-project-rate-limit", 5)
-        project_limit_reached = ratelimiter.backend.is_limited(
+        if ratelimiter.backend.is_limited(
             f"seer:severity-calculation:{project_id}",
             limit=limit,
             window=1,  # starting this out 5 requests per second
-        )
-
-        if global_limit_reached or project_limit_reached:
+        ):
             logger.warning(
-                "get_severity_metadata_for_group.rate_limited",
+                "get_severity_metadata_for_group.rate_limited_for_project",
+                extra={"event_id": event.event_id, "project_id": project_id},
             )
+            metrics.incr(
+                "issues.severity.rate_limited_for_project", tags={"project_id": project_id}
+            )
+
         try:
             severity, reason = _get_severity_score(event)
 
