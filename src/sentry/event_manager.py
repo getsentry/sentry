@@ -117,6 +117,7 @@ from sentry.usage_accountant import record
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
+from sentry.utils.circuit_breaker import ERROR_COUNT_CACHE_KEY, circuit_breaker_activated
 from sentry.utils.dates import to_datetime
 from sentry.utils.event import has_event_minified_stack_trace, has_stacktrace, is_handled
 from sentry.utils.eventuser import EventUser
@@ -144,6 +145,7 @@ HIGH_SEVERITY_THRESHOLD = 0.1
 
 SEER_GLOBAL_RATE_LIMIT_DEFAULT = 20  # 20 requests per second
 SEER_PROJECT_RATE_LIMIT_DEFAULT = 5  # 5 requests per second
+SEER_ERROR_COUNT_KEY = ERROR_COUNT_CACHE_KEY("sentry.seer.severity-failures")
 
 
 @dataclass
@@ -2177,7 +2179,10 @@ def _get_severity_metadata_for_group(
     from sentry.receivers.rules import PLATFORMS_WITH_PRIORITY_ALERTS
 
     if killswitch_matches_context("issues.skip-seer-requests", {"project_id": event.project_id}):
-        logger.warning("get_severity_metadata_for_group.seer_killswitch_enabled")
+        logger.warning(
+            "get_severity_metadata_for_group.seer_killswitch_enabled",
+            extra={"event_id": event.event_id, "project_id": project_id},
+        )
         metrics.incr("issues.severity.seer_killswitch_enabled")
         return {}
 
@@ -2192,6 +2197,14 @@ def _get_severity_metadata_for_group(
     )
     is_error_group = group_type == ErrorGroupType.type_id if group_type else True
     if not is_supported_platform or not is_error_group:
+        return {}
+
+    passthrough_limit = options.get("issues.severity.seer-circuit-breaker-passthrough-limit", 1)
+    if circuit_breaker_activated("sentry.seer.severity", passthrough_limit=passthrough_limit):
+        logger.warning(
+            "get_severity_metadata_for_group.circuit_breaker_activated",
+            extra={"event_id": event.event_id, "project_id": project_id},
+        )
         return {}
 
     from sentry import ratelimits as ratelimiter
@@ -2225,7 +2238,7 @@ def _get_severity_metadata_for_group(
         }
     except Exception as e:
         logger.warning("Failed to calculate severity score for group", repr(e))
-
+        cache.set(SEER_ERROR_COUNT_KEY, cache.get(SEER_ERROR_COUNT_KEY, 0) + 1, timeout=60 * 60)
         return {}
 
 
@@ -2342,11 +2355,14 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
                 reason = "ml"
         except MaxRetryError as e:
             logger.warning(
-                "Unable to get severity score from microservice. Got MaxRetryError caused by: %s.",
+                "Unable to get severity score from microservice after %s retr%s. Got MaxRetryError caused by: %s.",
+                SEVERITY_DETECTION_RETRIES,
+                "ies" if SEVERITY_DETECTION_RETRIES > 1 else "y",
                 repr(e.reason),
                 extra=logger_data,
             )
             reason = "microservice_max_retry"
+            cache.set(SEER_ERROR_COUNT_KEY, cache.get(SEER_ERROR_COUNT_KEY, 0) + 1, timeout=60 * 60)
         except Exception as e:
             logger.warning(
                 "Unable to get severity score from microservice. Got: %s.",
@@ -2354,6 +2370,7 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
                 extra=logger_data,
             )
             reason = "microservice_error"
+            cache.set(SEER_ERROR_COUNT_KEY, cache.get(SEER_ERROR_COUNT_KEY, 0) + 1, timeout=60 * 60)
         else:
             logger.info(
                 "Got severity score of %s for event %s",
@@ -2361,6 +2378,7 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
                 event.data["event_id"],
                 extra=logger_data,
             )
+            cache.set(SEER_ERROR_COUNT_KEY, 0, timeout=60 * 60)
 
     return severity, reason
 

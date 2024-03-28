@@ -733,6 +733,13 @@ register(
 )
 
 register(
+    "issues.severity.seer-circuit-breaker-passthrough-limit",
+    type=Int,
+    default=1,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "issues.severity.default-high-priority-alerts-orgs-allowlist",
     type=Sequence,
     default=[],
