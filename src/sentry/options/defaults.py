@@ -587,6 +587,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Enable use of Symbolicator proguard processing for specific projects.
+register("symbolicator.proguard-processing-projects", type=Sequence, default=[])
+# Enable use of Symbolicator proguard processing for fraction of projects.
+register("symbolicator.proguard-processing-sample-rate", default=0.0)
+
 # Post Process Error Hook Sampling
 register(
     "post-process.use-error-hook-sampling", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
