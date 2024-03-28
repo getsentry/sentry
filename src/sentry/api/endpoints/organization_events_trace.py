@@ -395,13 +395,13 @@ def is_root(item: SnubaTransaction) -> bool:
 def child_sort_key(item: TraceEvent) -> list[int]:
     if item.fetched_nodestore and item.nodestore_event is not None:
         return [
-            item.nodestore_event.data["start_timestamp"],
-            item.nodestore_event.data["timestamp"],
+            float(item.nodestore_event.data["start_timestamp"]),
+            float(item.nodestore_event.data["timestamp"]),
         ]
     elif item.span_serialized:
         return [
-            item.event["precise.start_ts"],
-            item.event["precise.finish_ts"],
+            float(item.event["precise.start_ts"]),
+            float(item.event["precise.finish_ts"]),
             item.event["transaction"],
             item.event["id"],
         ]
