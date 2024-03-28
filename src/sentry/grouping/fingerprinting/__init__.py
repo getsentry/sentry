@@ -283,6 +283,7 @@ MATCHERS = {
     "family": "family",
     "app": "app",
     "sdk": "sdk",
+    "release": "release",
 }
 
 
