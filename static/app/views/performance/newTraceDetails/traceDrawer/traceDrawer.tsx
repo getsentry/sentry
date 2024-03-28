@@ -27,6 +27,7 @@ import {
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/virtualizedViewManager';
 
 import {makeTraceNodeBarColor, type TraceTree, type TraceTreeNode} from '../traceTree';
+import {useTraceAverageTransactionDurations} from '../useTraceAverageTransactionDurations';
 
 import NodeDetail from './tabs/details';
 import {TraceLevelDetails} from './tabs/trace';
@@ -53,6 +54,12 @@ type TraceDrawerProps = {
 function TraceDrawer(props: TraceDrawerProps) {
   const theme = useTheme();
   const panelRef = useRef<HTMLDivElement>(null);
+
+  const {data: averageDurations} = useTraceAverageTransactionDurations({
+    tree: props.trace,
+    location: props.location,
+    organization: props.organization,
+  });
 
   const onDrawerResize = props.onDrawerResize;
   const resizableDrawerOptions: UseResizableDrawerOptions = useMemo(() => {
@@ -205,6 +212,7 @@ function TraceDrawer(props: TraceDrawerProps) {
               />
             ) : (
               <NodeDetail
+                averageDurations={averageDurations}
                 node={props.tabs.current.node}
                 organization={props.organization}
                 location={props.location}

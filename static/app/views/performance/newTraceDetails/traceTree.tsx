@@ -281,6 +281,8 @@ export class TraceTree {
   root: TraceTreeNode<null> = TraceTreeNode.Root();
   indicators: TraceTree.Indicator[] = [];
   eventsCount: number = 0;
+  transactionTitles: Set<string> = new Set();
+  transactionProjectIDs: Set<number> = new Set();
 
   private _spanPromises: Map<string, Promise<Event>> = new Map();
   private _list: TraceTreeNode<TraceTree.NodeValue>[] = [];
@@ -336,6 +338,8 @@ export class TraceTree {
       tree.eventsCount += 1;
 
       if (isTraceTransaction(value)) {
+        tree.transactionTitles.add(value.transaction);
+        tree.transactionProjectIDs.add(value.project_id);
         for (const error of value.errors) {
           traceNode.errors.add(error);
         }
