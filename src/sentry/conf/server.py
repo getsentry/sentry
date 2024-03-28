@@ -2349,9 +2349,13 @@ SENTRY_RELEASE_MONITOR_OPTIONS: dict[str, Any] = {}
 SENTRY_CHART_RENDERER = "sentry.charts.chartcuterie.Chartcuterie"
 SENTRY_CHART_RENDERER_OPTIONS: dict[str, Any] = {}
 
-# User Feedback Spam Detection
-SENTRY_USER_FEEDBACK_SPAM = "sentry.feedback.spam.stub.StubFeedbackSpamDetection"
-SENTRY_USER_FEEDBACK_SPAM_OPTIONS: dict[str, str] = {}
+# LLM Base
+SENTRY_LLM = "sentry.llm.stub.StubLLM"
+SENTRY_LLM_OPTIONS: dict[str, str] = {
+    "url": os.getenv("LLM_URL", ""),
+    "model": os.getenv("LLM_MODEL", ""),
+    "openai_api_key": os.getenv("OPENAI_API_KEY", ""),
+}
 
 
 # URI Prefixes for generating DSN URLs
