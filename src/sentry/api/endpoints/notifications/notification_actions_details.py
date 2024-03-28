@@ -47,7 +47,11 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
 
     permission_classes = (NotificationActionsPermission,)
 
-    def convert_args(self, request: Request, action_id: int, *args, **kwargs):
+    def convert_args(self, request: Request, action_id, *args, **kwargs):
+        try:
+            action_id = int(action_id)
+        except ValueError:
+            raise ResourceDoesNotExist("The action ID must be an integer.")
         parsed_args, parsed_kwargs = super().convert_args(request, *args, **kwargs)
         organization = parsed_kwargs["organization"]
         # projects where the user has access
