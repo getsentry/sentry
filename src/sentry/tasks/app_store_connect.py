@@ -122,13 +122,13 @@ def get_or_create_persisted_build(
     AppStore Connect API. If no build exists yet, a new "pending" build is created.
     """
     try:
-        build_state = AppConnectBuild.objects.get(
-            project=project,
-            app_id=build.app_id,
-            platform=build.platform,
-            bundle_short_version=build.version,
-            bundle_version=build.build_number,
-        )
+build_state = AppConnectBuild.objects.filter(
+    project=project,
+    app_id=build.app_id,
+    platform=build.platform,
+    bundle_short_version=build.version,
+    bundle_version=build.build_number,
+).first()
     except AppConnectBuild.DoesNotExist:
         build_state = AppConnectBuild(
             project=project,
