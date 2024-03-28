@@ -272,7 +272,7 @@ export default class ReplayReader {
         this._replayRecord.started_at.getTime(),
         clipEndTimestampMs
       )
-    )
+    );
 
     this._errors = this._updateFrameOffsets(
       this._trimFramesToClipWindow(this._errors, clipStartTimestampMs, clipEndTimestampMs)
