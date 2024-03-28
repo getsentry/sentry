@@ -39,7 +39,11 @@ function GroupRelatedIssues({params}: Props) {
     staleTime: 0,
   });
 
-  const groups = relatedIssues?.same_root_cause?.join(',');
+  // If the group we're looking related issues for shows up in the table,
+  // it will trigger a bug in getGroupReprocessingStatus because activites would be empty
+  const groups = relatedIssues?.same_root_cause
+    ?.filter(id => id.toString() !== groupId)
+    ?.join(',');
 
   return (
     <Layout.Body>
@@ -66,10 +70,12 @@ function GroupRelatedIssues({params}: Props) {
             queryParams={{query: `issue.id:[${groups}]`}}
             query=""
             source="related-issues-tab"
-            renderEmptyMessage={() => <hr />}
-            renderErrorMessage={() => <hr />}
+            renderEmptyMessage={() => <Title>No related issues</Title>}
+            renderErrorMessage={() => <Title>Error loading related issues</Title>}
           />
-        ) : null}
+        ) : (
+          <b>No related issues found!</b>
+        )}
       </Layout.Main>
     </Layout.Body>
   );
