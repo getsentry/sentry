@@ -2131,11 +2131,6 @@ const TraceStylingWrapper = styled('div')`
       > div {
         height: 100%;
       }
-
-      .TraceError {
-        top: -1px;
-        transform: translate(-50%, 0);
-      }
     }
 
     svg {
