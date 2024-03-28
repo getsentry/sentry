@@ -61,6 +61,7 @@ for cmd in map(
         "sentry.runner.commands.plugins.plugins",
         "sentry.runner.commands.queues.queues",
         "sentry.runner.commands.repair.repair",
+        "sentry.runner.commands.rpcschema.rpcschema",
         "sentry.runner.commands.run.run",
         "sentry.runner.commands.start.start",
         "sentry.runner.commands.tsdb.tsdb",
