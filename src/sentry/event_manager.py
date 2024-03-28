@@ -1326,6 +1326,8 @@ def get_culprit(data: Mapping[str, Any]) -> str:
 
 def assign_event_to_group(event: Event, job: Job, metric_tags: MutableTags) -> GroupInfo | None:
     if job["optimized_grouping"]:
+        # TODO: This logging can come out as soon as it's clear we're successfully landing in this branch in prod
+        logger.info("_save_aggregate_new.called", extra=metric_tags)
         group_info = _save_aggregate_new(
             event=event,
             job=job,
