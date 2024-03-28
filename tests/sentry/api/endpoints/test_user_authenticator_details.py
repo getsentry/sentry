@@ -15,7 +15,6 @@ from sentry.models.authenticator import Authenticator
 from sentry.models.organization import Organization
 from sentry.models.user import User
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 
@@ -389,7 +388,7 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
 
             assert not Authenticator.objects.filter(id=auth.id).exists()
 
-    @with_feature("auth:enterprise-staff-cookie")
+    @override_options({"staff.ga-rollout": True})
     def test_require_2fa__can_delete_last_auth_staff(self):
         self._require_2fa_for_organization()
 
