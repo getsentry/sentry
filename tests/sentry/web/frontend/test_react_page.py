@@ -5,7 +5,7 @@ from django.urls import URLResolver, get_resolver, reverse
 
 from sentry.models.organization import OrganizationStatus
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
@@ -266,8 +266,9 @@ class ReactPageViewTest(TestCase):
         other_org = self.create_organization()
 
         self.login_as(self.user)
-        with override_settings(SENTRY_USE_CUSTOMER_DOMAINS=True), self.feature(
-            {"organizations:customer-domains": [other_org.slug]}
+        with (
+            override_settings(SENTRY_USE_CUSTOMER_DOMAINS=True),
+            self.feature({"organizations:customer-domains": [other_org.slug]}),
         ):
             # Should not be able to induce activeorg
             assert "activeorg" not in self.client.session
@@ -286,8 +287,9 @@ class ReactPageViewTest(TestCase):
         other_org = self.create_organization()
 
         self.login_as(user, superuser=is_superuser, staff=is_staff)
-        with override_settings(SENTRY_USE_CUSTOMER_DOMAINS=True), self.feature(
-            {"organizations:customer-domains": [other_org.slug]}
+        with (
+            override_settings(SENTRY_USE_CUSTOMER_DOMAINS=True),
+            self.feature({"organizations:customer-domains": [other_org.slug]}),
         ):
             # Induce activeorg
             assert "activeorg" not in self.client.session
@@ -319,11 +321,11 @@ class ReactPageViewTest(TestCase):
     def test_customer_domain_non_member_org_superuser(self):
         self._run_customer_domain_elevated_privileges(is_superuser=True, is_staff=False)
 
-    @with_feature("auth:enterprise-staff-cookie")
+    @override_options({"staff.ga-rollout": True})
     def test_customer_domain_non_member_org_staff(self):
         self._run_customer_domain_elevated_privileges(is_superuser=False, is_staff=True)
 
-    @with_feature("auth:enterprise-staff-cookie")
+    @override_options({"staff.ga-rollout": True})
     def test_customer_domain_non_member_org_superuser_and_staff(self):
         self._run_customer_domain_elevated_privileges(is_superuser=True, is_staff=True)
 

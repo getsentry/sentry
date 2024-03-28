@@ -22,7 +22,6 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.backups import generate_rsa_key_pair
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 from sentry.utils.relocation import OrderedTask
@@ -104,7 +103,7 @@ class GetRelocationsTest(APITestCase):
 
         self.success_uuid = Relocation.objects.get(status=Relocation.Status.SUCCESS.value)
 
-    @with_feature("auth:enterprise-staff-cookie")
+    @override_options({"staff.ga-rollout": True})
     def test_good_staff_simple(self):
         self.login_as(user=self.staff_user, staff=True)
         response = self.get_success_response(status_code=200)
@@ -529,9 +528,10 @@ class PostRelocationsTest(APITestCase):
             sender=RelocationIndexEndpoint,
         )
 
-    @override_options({"relocation.enabled": False, "relocation.daily-limit.small": 1})
+    @override_options(
+        {"relocation.enabled": False, "relocation.daily-limit.small": 1, "staff.ga-rollout": True}
+    )
     @patch("sentry.tasks.relocation.uploading_complete.delay")
-    @with_feature("auth:enterprise-staff-cookie")
     def test_good_staff_when_feature_disabled(
         self,
         uploading_complete_mock: Mock,
@@ -948,8 +948,9 @@ class PostRelocationsTest(APITestCase):
 
         assert relocation_link_promo_code_signal_mock.call_count == 0
 
-    @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
-    @with_feature("auth:enterprise-staff-cookie")
+    @override_options(
+        {"relocation.enabled": True, "relocation.daily-limit.small": 1, "staff.ga-rollout": True}
+    )
     def test_bad_staff_nonexistent_owner(
         self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
     ):
@@ -1150,8 +1151,9 @@ class PostRelocationsTest(APITestCase):
             sender=RelocationIndexEndpoint,
         )
 
-    @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
-    @with_feature("auth:enterprise-staff-cookie")
+    @override_options(
+        {"relocation.enabled": True, "relocation.daily-limit.small": 1, "staff.ga-rollout": True}
+    )
     def test_good_no_throttle_for_staff(
         self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
     ):
