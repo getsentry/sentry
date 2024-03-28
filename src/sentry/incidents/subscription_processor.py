@@ -448,11 +448,6 @@ class SubscriptionProcessor:
             # TODO: Delete subscription here.
             return
 
-        # Trigger callbacks for any AlertRules that may need to know about the subscription update
-        invoke_alert_subscription_callback(
-            AlertRuleMonitorType(self.alert_rule.monitor_type), self.subscription
-        )
-
         if subscription_update["timestamp"] <= self.last_update:
             metrics.incr("incidents.alert_rules.skipping_already_processed_update")
             return
@@ -491,6 +486,15 @@ class SubscriptionProcessor:
                 )
             except Exception:
                 logger.exception("Failed to log subscription results for session subscription")
+
+        # Trigger callbacks for any AlertRules that may need to know about the subscription update
+        # TODO: register over/under triggers as alert rule callbacks as well
+        invoke_alert_subscription_callback(
+            AlertRuleMonitorType(self.alert_rule.monitor_type),
+            subscription=self.subscription,
+            alert_rule=self.alert_rule,
+            value=aggregation_value,
+        )
 
         if aggregation_value is None:
             metrics.incr("incidents.alert_rules.skipping_update_invalid_aggregation_value")

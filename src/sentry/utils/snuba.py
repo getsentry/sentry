@@ -143,6 +143,8 @@ SPAN_COLUMN_MAP = {
     "environment": "sentry_tags[environment]",
     "device.class": "sentry_tags[device.class]",
     "category": "sentry_tags[category]",
+    "span.category": "sentry_tags[category]",
+    "span.status_code": "sentry_tags[status_code]",
     "resource.render_blocking_status": "sentry_tags[resource.render_blocking_status]",
     "http.response_content_length": "sentry_tags[http.response_content_length]",
     "http.decoded_response_content_length": "sentry_tags[http.decoded_response_content_length]",

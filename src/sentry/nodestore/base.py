@@ -6,9 +6,9 @@ from typing import Any
 
 import sentry_sdk
 from django.core.cache import BaseCache, InvalidCacheBackendError, caches
+from django.utils.functional import cached_property
 
 from sentry.utils import json
-from sentry.utils.cache import memoize
 from sentry.utils.services import Service
 
 # Cache an instance of the encoder we want to use
@@ -278,7 +278,6 @@ class NodeStorage(local, Service):
             return self.cache.get_many(id_list)
         return {}
 
-    @sentry_sdk.tracing.trace
     def _set_cache_item(self, item_id: str, data: Any) -> None:
         if self.cache and data:
             self.cache.set(item_id, data)
@@ -295,7 +294,7 @@ class NodeStorage(local, Service):
         if self.cache:
             self.cache.delete_many([item_id for item_id in id_list])
 
-    @memoize
+    @cached_property
     def cache(self) -> BaseCache | None:
         try:
             return caches["nodedata"]

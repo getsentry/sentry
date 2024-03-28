@@ -29,7 +29,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {crontabAsText, getScheduleIntervals} from 'sentry/views/monitors/utils';
+import {getScheduleIntervals} from 'sentry/views/monitors/utils';
+import {crontabAsText} from 'sentry/views/monitors/utils/crontabAsText';
 
 import type {IntervalConfig, Monitor, MonitorConfig, MonitorType} from '../types';
 import {ScheduleType} from '../types';

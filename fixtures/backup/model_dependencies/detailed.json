@@ -409,6 +409,11 @@
         "kind": "FlexibleForeignKey",
         "model": "sentry.alertrule",
         "nullable": false
+      },
+      "query_subscription": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.querysubscription",
+        "nullable": true
       }
     },
     "model": "sentry.alertruleactivations",
@@ -3219,7 +3224,7 @@
         "guid"
       ],
       [
-        "organization_id",
+        "project_id",
         "slug"
       ]
     ]

@@ -7,9 +7,12 @@ import click
 @click.option(
     "--dev", default=False, is_flag=True, help="Use settings more conducive to local development."
 )
+@click.option(
+    "--no-clobber", default=False, is_flag=True, help="Don't ask to overwrite existing config."
+)
 @click.argument("directory", required=False)
 @click.pass_context
-def init(ctx, dev, directory):
+def init(ctx, dev, no_clobber, directory):
     "Initialize new configuration directory."
     from sentry.runner.settings import discover_configs, generate_settings
 
@@ -33,18 +36,24 @@ def init(ctx, dev, directory):
 
     py_contents, yaml_contents = generate_settings(dev)
 
-    if os.path.isfile(yaml):
-        click.confirm(
-            "File already exists at '%s', overwrite?" % click.format_filename(yaml), abort=True
+    if not os.path.isfile(yaml):
+        write_yaml = True
+    else:
+        write_yaml = not no_clobber and click.confirm(
+            "File already exists at '%s', overwrite?" % click.format_filename(yaml)
         )
 
-    with click.open_file(yaml, "w") as fp:
-        fp.write(yaml_contents)
+    if write_yaml:
+        with click.open_file(yaml, "w") as fp:
+            fp.write(yaml_contents)
 
-    if os.path.isfile(py):
-        click.confirm(
-            "File already exists at '%s', overwrite?" % click.format_filename(py), abort=True
+    if not os.path.isfile(py):
+        write_py = True
+    else:
+        write_py = not no_clobber and click.confirm(
+            "File already exists at '%s', overwrite?" % click.format_filename(py)
         )
 
-    with click.open_file(py, "w") as fp:
-        fp.write(py_contents)
+    if write_py:
+        with click.open_file(py, "w") as fp:
+            fp.write(py_contents)

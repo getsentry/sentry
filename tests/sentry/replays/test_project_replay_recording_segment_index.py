@@ -9,7 +9,6 @@ from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMet
 from sentry.replays.testutils import mock_replay
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase, TransactionTestCase
 from sentry.testutils.helpers.response import close_streaming_response
-from sentry.testutils.silo import region_silo_test
 
 Message = namedtuple("Message", ["project_id", "replay_id"])
 
@@ -81,7 +80,6 @@ class ProjectReplayRecordingSegmentIndexMixin:
         assert b'[[{"test":"hello 1"}],[{"test":"hello 2"}]]' == close_streaming_response(response)
 
 
-@region_silo_test
 class FilestoreProjectReplayRecordingSegmentIndexTestCase(
     ProjectReplayRecordingSegmentIndexMixin, TransactionTestCase
 ):
@@ -109,7 +107,6 @@ class FilestoreProjectReplayRecordingSegmentIndexTestCase(
         FilestoreBlob().set(metadata, zlib.compress(data) if compressed else data)
 
 
-@region_silo_test
 class StorageProjectReplayRecordingSegmentIndexTestCase(
     ProjectReplayRecordingSegmentIndexMixin, APITestCase, ReplaysSnubaTestCase
 ):

@@ -6,7 +6,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, options
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -23,10 +23,11 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.metrics_code_locations import MetricCodeLocationsSerializer
 from sentry.api.utils import get_date_range_from_params, handle_query_errors
+from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.organization import Organization
-from sentry.sentry_metrics.querying.data_v2 import (
-    MetricsAPIQueryTransformer,
+from sentry.sentry_metrics.querying.data import (
+    MetricsAPIQueryResultsTransformer,
     MetricsQueriesPlan,
     run_metrics_queries_plan,
 )
@@ -38,7 +39,11 @@ from sentry.sentry_metrics.querying.errors import (
 from sentry.sentry_metrics.querying.metadata import MetricCodeLocations, get_metric_code_locations
 from sentry.sentry_metrics.querying.samples_list import get_sample_list_executor_cls
 from sentry.sentry_metrics.querying.types import QueryOrder, QueryType
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.sentry_metrics.use_case_id_registry import (
+    UseCaseID,
+    UseCaseIDAPIAccess,
+    get_use_case_id_api_access,
+)
 from sentry.sentry_metrics.utils import string_to_use_case_id
 from sentry.snuba.metrics import (
     QueryDefinition,
@@ -57,43 +62,78 @@ from sentry.utils import metrics
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.dates import get_rollup_from_request, parse_stats_period
 
-DEFAULT_USE_CASE_IDS = [
-    UseCaseID.TRANSACTIONS,
-    UseCaseID.SESSIONS,
-    UseCaseID.SPANS,
-    UseCaseID.CUSTOM,
-]
+
+def can_access_use_case_id(request: Request, use_case_id: UseCaseID) -> bool:
+    api_access = get_use_case_id_api_access(use_case_id)
+    return api_access == UseCaseIDAPIAccess.PUBLIC or (
+        has_elevated_mode(request) and api_access == UseCaseIDAPIAccess.PRIVATE
+    )
+
+
+def get_default_use_case_ids(request: Request) -> Sequence[UseCaseID]:
+    """
+    Gets the default use case ids given a Request.
+
+    Args:
+        request: Request of the endpoint.
+
+    Returns:
+        A list of use case ids that can be used for the API request.
+    """
+    default_use_case_ids = []
+
+    for use_case_id in UseCaseID:
+        if not can_access_use_case_id(request, use_case_id):
+            continue
+
+        default_use_case_ids.append(use_case_id)
+
+    return default_use_case_ids
 
 
 def get_use_case_id(request: Request) -> UseCaseID:
     """
-    Get useCase from query params and validate it against UseCaseID enum type
-    Raise a ParseError if the use_case parameter is invalid.
-    """
+    Gets the use case id from the Request. If the use case id is malformed or private the entire request will fail.
 
+    Args:
+        request: Request of the endpoint.
+
+    Returns:
+        The use case id that was request or a default use case id.
+    """
     try:
-        use_case_param = request.GET.get("useCase", "sessions")
-        return string_to_use_case_id(use_case_param)
+        use_case_id = string_to_use_case_id(request.GET.get("useCase", UseCaseID.SESSIONS.value))
+        if not can_access_use_case_id(request, use_case_id):
+            raise ParseError(detail="The supplied use case doesn't exist or it's private")
+
+        return use_case_id
     except ValueError:
-        raise ParseError(
-            detail=f"Invalid useCase parameter. Please use one of: {[uc.value for uc in UseCaseID]}"
-        )
+        raise ParseError(detail="The supplied use case doesn't exist or it's private")
 
 
 def get_use_case_ids(request: Request) -> Sequence[UseCaseID]:
     """
-    Gets use case ids from the query params and validates them again the `UseCaseID` enum type.
+    Gets the use case ids from the Request. If at least one use case id is malformed or private the entire request
+    will fail.
 
-    If an empty list is supplied, the use case ids in `DEFAULT_USE_CASE_IDS` will be used.
+    Args:
+        request: Request of the endpoint.
+
+    Returns:
+        The use case ids that were requested or the default use case ids.
     """
-
     try:
-        use_case_params = request.GET.getlist("useCase", DEFAULT_USE_CASE_IDS)
-        return [string_to_use_case_id(use_case_param) for use_case_param in use_case_params]
+        use_case_ids = [
+            string_to_use_case_id(use_case_param)
+            for use_case_param in request.GET.getlist("useCase", get_default_use_case_ids(request))
+        ]
+        for use_case_id in use_case_ids:
+            if not can_access_use_case_id(request, use_case_id):
+                raise ParseError(detail="The supplied use case doesn't exist or it's private")
+
+        return use_case_ids
     except ValueError:
-        raise ParseError(
-            detail=f"Invalid useCase parameter. Please use one of: {[uc.value for uc in UseCaseID]}"
-        )
+        raise ParseError(detail="One or more supplied use cases doesn't exist or it's private")
 
 
 class OrganizationMetricsEnrollPermission(OrganizationPermission):
@@ -455,7 +495,7 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
                 environments=self.get_environments(request, organization),
                 referrer=Referrer.API_ORGANIZATION_METRICS_QUERY.value,
                 query_type=self._get_query_type_from_request(request),
-            ).apply_transformer(MetricsAPIQueryTransformer())
+            ).apply_transformer(MetricsAPIQueryResultsTransformer())
         except InvalidMetricsQueryError as e:
             return Response(status=400, data={"detail": str(e)})
         except LatestReleaseNotFoundError as e:
@@ -491,9 +531,6 @@ class OrganizationMetricsSamplesEndpoint(OrganizationEventsV2EndpointBase):
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
     def get(self, request: Request, organization: Organization) -> Response:
-        if not features.has("organizations:metrics-samples-list", organization, actor=request.user):
-            return Response(status=404)
-
         try:
             snuba_params, params = self.get_snuba_dataclass(request, organization)
         except NoProjects:

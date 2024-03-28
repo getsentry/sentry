@@ -27,7 +27,8 @@ from sentry.sentry_metrics.consumers.indexer.common import (
 from sentry.sentry_metrics.consumers.indexer.parsed_message import ParsedMessage
 from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
 from sentry.sentry_metrics.indexer.base import Metadata
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID, extract_use_case_id
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.snuba.metrics.naming_layer.mri import extract_use_case_id
 from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
@@ -505,7 +506,7 @@ class IndexerBatch:
                             *message.payload.headers,
                             ("mapping_sources", mapping_header_content),
                             # XXX: type mismatch, but seems to work fine in prod
-                            ("metric_type", new_payload_value["type"]),  # type: ignore
+                            ("metric_type", new_payload_value["type"]),  # type: ignore[list-item]
                         ],
                     )
                 if self.is_output_sliced:

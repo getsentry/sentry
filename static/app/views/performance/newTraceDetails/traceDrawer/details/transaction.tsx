@@ -19,6 +19,7 @@ import {EventExtraData} from 'sentry/components/events/eventExtraData';
 import {REPLAY_CLIP_OFFSETS} from 'sentry/components/events/eventReplay';
 import ReplayClipPreview from 'sentry/components/events/eventReplay/replayClipPreview';
 import {EventSdk} from 'sentry/components/events/eventSdk';
+import NewTagsUI from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {Breadcrumbs} from 'sentry/components/events/interfaces/breadcrumbs';
 import {getFormattedTimeRangeWithLeadingAndTrailingZero} from 'sentry/components/events/interfaces/spans/utils';
@@ -52,7 +53,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import useProjects from 'sentry/utils/useProjects';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
-import {CustomMetricsEventData} from 'sentry/views/ddm/customMetricsEventData';
+import {CustomMetricsEventData} from 'sentry/views/metrics/customMetricsEventData';
 import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceTabs';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/virtualizedViewManager';
 import {Row, Tags} from 'sentry/views/performance/traceDetails/styles';
@@ -181,14 +182,14 @@ function ReplaySection({
     <ReplaySectionContainer>
       <ReplaySectionTitle>{t('Session Replay')}</ReplaySectionTitle>
       <ReplayClipPreview
-        analyticsContext="issue_details"
+        analyticsContext="trace-view"
         replaySlug={replayId}
         orgSlug={organization.slug}
         eventTimestampMs={eventTimestampMs}
         clipOffsets={REPLAY_CLIP_OFFSETS}
         fullReplayButtonProps={{
-          analyticsEventKey: 'issue_details.open_replay_details_clicked',
-          analyticsEventName: 'Issue Details: Open Replay Details Clicked',
+          analyticsEventKey: 'trace-view.drawer-open-replay-details-clicked',
+          analyticsEventName: 'Trace View: Open Replay Details Clicked',
           analyticsParams: {
             ...getAnalyticsDataForEvent(event),
             organization,
@@ -300,11 +301,6 @@ export function TransactionNodeDetails({
             icon={<IconOpen />}
             href={`/api/0/projects/${organization.slug}/${node.value.project_slug}/events/${node.value.event_id}/json/`}
             external
-            onClick={() =>
-              trackAnalytics('performance_views.event_details.json_button_click', {
-                organization,
-              })
-            }
           >
             {t('JSON')} (<FileSize bytes={event?.size} />)
           </Button>
@@ -413,14 +409,6 @@ export function TransactionNodeDetails({
             </Fragment>
           )}
 
-          <Tags
-            enableHiding
-            location={location}
-            organization={organization}
-            tags={event.tags}
-            event={node.value}
-          />
-
           {measurementNames.length > 0 && (
             <tr>
               <td className="key">{t('Measurements')}</td>
@@ -447,6 +435,23 @@ export function TransactionNodeDetails({
           )}
         </tbody>
       </TraceDrawerComponents.Table>
+      {organization.features.includes('event-tags-tree-ui') ? (
+        <TagsWrapper>
+          <NewTagsUI event={event} projectSlug={node.value.project_slug} />
+        </TagsWrapper>
+      ) : (
+        <TraceDrawerComponents.Table className="table key-value">
+          <tbody>
+            <Tags
+              enableHiding
+              location={location}
+              organization={organization}
+              tags={event.tags}
+              event={node.value}
+            />
+          </tbody>
+        </TraceDrawerComponents.Table>
+      )}
       {project ? <EventEvidence event={event} project={project} /> : null}
       <ReplaySection event={event} organization={organization} />
       {event.projectSlug ? (
@@ -520,4 +525,10 @@ const Measurements = styled('div')`
   flex-wrap: wrap;
   gap: ${space(1)};
   padding-top: 10px;
+`;
+
+const TagsWrapper = styled('div')`
+  h3 {
+    color: ${p => p.theme.textColor};
+  }
 `;

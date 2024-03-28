@@ -12,7 +12,6 @@ from rest_framework.exceptions import ErrorDetail
 from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.testutils.cases import APITestCase, MetricsEnhancedPerformanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import get_array_column_alias
 
@@ -25,7 +24,6 @@ HistogramSpec = namedtuple(
 ARRAY_COLUMNS = ["measurements", "span_op_breakdowns"]
 
 
-@region_silo_test
 class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -1160,7 +1158,6 @@ class OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTest(
         assert response.data == expected_response
 
 
-@region_silo_test
 class OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTestWithMetricLayer(
     OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTest
 ):

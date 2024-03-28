@@ -1,50 +1,62 @@
+import {Fragment} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Series} from 'sentry/types/echarts';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {DurationChart} from 'sentry/views/performance/http/durationChart';
+import decodePanel from 'sentry/views/performance/http/queryParameterDecoders/panel';
+import {ResponseCodeBarChart} from 'sentry/views/performance/http/responseCodeBarChart';
+import {SpanSamplesTable} from 'sentry/views/performance/http/spanSamplesTable';
+import {useSpanSamples} from 'sentry/views/performance/http/useSpanSamples';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
+import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
+import {computeAxisMax} from 'sentry/views/starfish/components/chart';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {
   ModuleName,
   SpanFunction,
+  SpanIndexedField,
   SpanMetricsField,
   type SpanMetricsQueryFilters,
 } from 'sentry/views/starfish/types';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 
-type Query = {
-  domain?: string;
-  project?: string;
-  transaction?: string;
-  transactionMethod?: string;
-};
-
 export function HTTPSamplesPanel() {
-  const location = useLocation<Query>();
-  const query = location.query;
-
   const router = useRouter();
+  const location = useLocation();
+
+  const query = useLocationQuery({
+    fields: {
+      project: decodeScalar,
+      domain: decodeScalar,
+      transaction: decodeScalar,
+      transactionMethod: decodeScalar,
+      panel: decodePanel,
+    },
+  });
 
   const organization = useOrganization();
 
-  const projectId = decodeScalar(query.project);
-
   const {projects} = useProjects();
-  const project = projects.find(p => projectId === p.id);
+  const project = projects.find(p => query.project === p.id);
 
   // `detailKey` controls whether the panel is open. If all required properties are available, concat them to make a key, otherwise set to `undefined` and hide the panel
   const detailKey =
@@ -53,6 +65,16 @@ export function HTTPSamplesPanel() {
           .filter(Boolean)
           .join(':')
       : undefined;
+
+  const handlePanelChange = newPanelName => {
+    router.replace({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        panel: newPanelName,
+      },
+    });
+  };
 
   const isPanelOpen = Boolean(detailKey);
 
@@ -80,6 +102,58 @@ export function HTTPSamplesPanel() {
     referrer: 'api.starfish.http-module-samples-panel-metrics-ribbon',
   });
 
+  const {
+    isFetching: isDurationDataFetching,
+    data: durationData,
+    error: durationError,
+  } = useSpanMetricsSeries({
+    search: MutableSearch.fromQueryObject(filters),
+    yAxis: [`avg(span.self_time)`],
+    enabled: isPanelOpen && query.panel === 'duration',
+    referrer: 'api.starfish.http-module-samples-panel-duration-chart',
+  });
+
+  const {
+    data: responseCodeData,
+    isFetching: isResponseCodeDataLoading,
+    error: responseCodeDataError,
+  } = useSpanMetrics({
+    search: MutableSearch.fromQueryObject(filters),
+    fields: ['span.status_code', 'count()'],
+    sorts: [{field: 'span.status_code', kind: 'asc'}],
+    enabled: isPanelOpen && query.panel === 'status',
+    referrer: 'api.starfish.http-module-samples-panel-response-bar-chart',
+  });
+
+  const responseCodeBarChartSeries: Series = {
+    seriesName: 'span.status_code',
+    data: (responseCodeData ?? []).map(item => {
+      return {
+        name: item['span.status_code'] || t('N/A'),
+        value: item['count()'],
+      };
+    }),
+  };
+
+  const durationAxisMax = computeAxisMax([durationData?.[`avg(span.self_time)`]]);
+
+  const {
+    data: samplesData,
+    isFetching: isSamplesDataFetching,
+    error: samplesDataError,
+  } = useSpanSamples({
+    search: MutableSearch.fromQueryObject(filters),
+    fields: [
+      SpanIndexedField.TRANSACTION_ID,
+      SpanIndexedField.SPAN_DESCRIPTION,
+      SpanIndexedField.RESPONSE_CODE,
+    ],
+    min: 0,
+    max: durationAxisMax,
+    enabled: query.panel === 'duration' && durationAxisMax > 0,
+    referrer: 'api.starfish.http-module-samples-panel-samples',
+  });
+
   const handleClose = () => {
     router.replace({
       pathname: router.location.pathname,
@@ -94,93 +168,146 @@ export function HTTPSamplesPanel() {
   return (
     <PageAlertProvider>
       <DetailPanel detailKey={detailKey} onClose={handleClose}>
-        <HeaderContainer>
-          {project && (
-            <SpanSummaryProjectAvatar
-              project={project}
-              direction="left"
-              size={40}
-              hasTooltip
-              tooltip={project.slug}
-            />
-          )}
-          <TitleContainer>
-            <Title>
-              <Link
-                to={normalizeUrl(
-                  `/organizations/${organization.slug}/performance/summary?${qs.stringify(
-                    {
-                      project: query.project,
-                      transaction: query.transaction,
-                    }
-                  )}`
+        <ModuleLayout.Layout>
+          <ModuleLayout.Full>
+            <HeaderContainer>
+              {project && (
+                <SpanSummaryProjectAvatar
+                  project={project}
+                  direction="left"
+                  size={40}
+                  hasTooltip
+                  tooltip={project.slug}
+                />
+              )}
+              <TitleContainer>
+                <Title>
+                  <Link
+                    to={normalizeUrl(
+                      `/organizations/${organization.slug}/performance/summary?${qs.stringify(
+                        {
+                          project: query.project,
+                          transaction: query.transaction,
+                        }
+                      )}`
+                    )}
+                  >
+                    {query.transaction &&
+                    query.transactionMethod &&
+                    !query.transaction.startsWith(query.transactionMethod)
+                      ? `${query.transactionMethod} ${query.transaction}`
+                      : query.transaction}
+                  </Link>
+                </Title>
+              </TitleContainer>
+            </HeaderContainer>
+          </ModuleLayout.Full>
+
+          <ModuleLayout.Full>
+            <MetricsRibbon>
+              <MetricReadout
+                align="left"
+                title={getThroughputTitle('http')}
+                value={domainTransactionMetrics?.[0]?.[`${SpanFunction.SPM}()`]}
+                unit={RateUnit.PER_MINUTE}
+                isLoading={areDomainTransactionMetricsFetching}
+              />
+
+              <MetricReadout
+                align="left"
+                title={DataTitles.avg}
+                value={
+                  domainTransactionMetrics?.[0]?.[
+                    `avg(${SpanMetricsField.SPAN_SELF_TIME})`
+                  ]
+                }
+                unit={DurationUnit.MILLISECOND}
+                isLoading={areDomainTransactionMetricsFetching}
+              />
+
+              <MetricReadout
+                align="left"
+                title={t('3XXs')}
+                value={domainTransactionMetrics?.[0]?.[`http_response_rate(3)`]}
+                unit="percentage"
+                isLoading={areDomainTransactionMetricsFetching}
+              />
+
+              <MetricReadout
+                align="left"
+                title={t('4XXs')}
+                value={domainTransactionMetrics?.[0]?.[`http_response_rate(4)`]}
+                unit="percentage"
+                isLoading={areDomainTransactionMetricsFetching}
+              />
+
+              <MetricReadout
+                align="left"
+                title={t('5XXs')}
+                value={domainTransactionMetrics?.[0]?.[`http_response_rate(5)`]}
+                unit="percentage"
+                isLoading={areDomainTransactionMetricsFetching}
+              />
+
+              <MetricReadout
+                align="left"
+                title={DataTitles.timeSpent}
+                value={domainTransactionMetrics?.[0]?.['sum(span.self_time)']}
+                unit={DurationUnit.MILLISECOND}
+                tooltip={getTimeSpentExplanation(
+                  domainTransactionMetrics?.[0]?.['time_spent_percentage()'],
+                  'db'
                 )}
-              >
-                {query.transaction &&
-                query.transactionMethod &&
-                !query.transaction.startsWith(query.transactionMethod)
-                  ? `${query.transactionMethod} ${query.transaction}`
-                  : query.transaction}
-              </Link>
-            </Title>
-          </TitleContainer>
-        </HeaderContainer>
+                isLoading={areDomainTransactionMetricsFetching}
+              />
+            </MetricsRibbon>
+          </ModuleLayout.Full>
 
-        <MetricsRibbon>
-          <MetricReadout
-            align="left"
-            title={getThroughputTitle('http')}
-            value={domainTransactionMetrics?.[0]?.[`${SpanFunction.SPM}()`]}
-            unit={RateUnit.PER_MINUTE}
-            isLoading={areDomainTransactionMetricsFetching}
-          />
+          <ModuleLayout.Full>
+            <SegmentedControl
+              value={query.panel}
+              onChange={handlePanelChange}
+              aria-label={t('Choose breakdown type')}
+            >
+              <SegmentedControl.Item key="duration">
+                {t('By Duration')}
+              </SegmentedControl.Item>
+              <SegmentedControl.Item key="status">
+                {t('By Response Code')}
+              </SegmentedControl.Item>
+            </SegmentedControl>
+          </ModuleLayout.Full>
 
-          <MetricReadout
-            align="left"
-            title={DataTitles.avg}
-            value={
-              domainTransactionMetrics?.[0]?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]
-            }
-            unit={DurationUnit.MILLISECOND}
-            isLoading={areDomainTransactionMetricsFetching}
-          />
+          {query.panel === 'duration' && (
+            <Fragment>
+              <ModuleLayout.Full>
+                <DurationChart
+                  series={durationData[`avg(span.self_time)`]}
+                  isLoading={isDurationDataFetching}
+                  error={durationError}
+                />
+              </ModuleLayout.Full>
 
-          <MetricReadout
-            align="left"
-            title={t('3XXs')}
-            value={domainTransactionMetrics?.[0]?.[`http_response_rate(3)`]}
-            unit="percentage"
-            isLoading={areDomainTransactionMetricsFetching}
-          />
+              <ModuleLayout.Full>
+                <SpanSamplesTable
+                  data={samplesData}
+                  isLoading={isDurationDataFetching || isSamplesDataFetching}
+                  error={samplesDataError}
+                />
+              </ModuleLayout.Full>
+            </Fragment>
+          )}
 
-          <MetricReadout
-            align="left"
-            title={t('4XXs')}
-            value={domainTransactionMetrics?.[0]?.[`http_response_rate(4)`]}
-            unit="percentage"
-            isLoading={areDomainTransactionMetricsFetching}
-          />
-
-          <MetricReadout
-            align="left"
-            title={t('5XXs')}
-            value={domainTransactionMetrics?.[0]?.[`http_response_rate(5)`]}
-            unit="percentage"
-            isLoading={areDomainTransactionMetricsFetching}
-          />
-
-          <MetricReadout
-            align="left"
-            title={DataTitles.timeSpent}
-            value={domainTransactionMetrics?.[0]?.['sum(span.self_time)']}
-            unit={DurationUnit.MILLISECOND}
-            tooltip={getTimeSpentExplanation(
-              domainTransactionMetrics?.[0]?.['time_spent_percentage()'],
-              'db'
-            )}
-            isLoading={areDomainTransactionMetricsFetching}
-          />
-        </MetricsRibbon>
+          {query.panel === 'status' && (
+            <ModuleLayout.Full>
+              <ResponseCodeBarChart
+                series={responseCodeBarChartSeries}
+                isLoading={isResponseCodeDataLoading}
+                error={responseCodeDataError}
+              />
+            </ModuleLayout.Full>
+          )}
+        </ModuleLayout.Layout>
       </DetailPanel>
     </PageAlertProvider>
   );
@@ -191,10 +318,6 @@ const SpanSummaryProjectAvatar = styled(ProjectAvatar)`
 `;
 
 const HeaderContainer = styled('div')`
-  width: 100%;
-  padding-bottom: ${space(2)};
-  padding-top: ${space(1)};
-
   display: grid;
   grid-template-rows: auto auto auto;
 

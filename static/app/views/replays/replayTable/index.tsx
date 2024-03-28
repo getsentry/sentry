@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -114,6 +114,8 @@ const ReplayTable = memo(
               <Row
                 key={replay.id}
                 isPlaying={index === selectedReplayIndex && referrerLocation !== 'replay'}
+                onClick={() => onClickPlay?.(index)}
+                showCursor={onClickPlay !== undefined}
               >
                 {visibleColumns.map(column => {
                   switch (column) {
@@ -246,11 +248,15 @@ const StyledAlert = styled(Alert)`
   margin-bottom: 0;
 `;
 
-const Row = styled('div')<{isPlaying?: boolean}>`
+const Row = styled('div')<{isPlaying?: boolean; showCursor?: boolean}>`
   display: contents;
   & > * {
     background-color: ${p => (p.isPlaying ? p.theme.translucentInnerBorder : 'inherit')};
     border-bottom: 1px solid ${p => p.theme.border};
+    cursor: ${p => (p.showCursor ? 'pointer' : 'default')};
+  }
+  :hover {
+    background-color: ${p => (p.showCursor ? p.theme.translucentInnerBorder : 'inherit')};
   }
 `;
 

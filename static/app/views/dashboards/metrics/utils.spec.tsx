@@ -1,4 +1,4 @@
-import {MetricDisplayType, MetricQueryType} from 'sentry/utils/metrics/types';
+import {MetricDisplayType, MetricExpressionType} from 'sentry/utils/metrics/types';
 import type {DashboardMetricsExpression} from 'sentry/views/dashboards/metrics/types';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
@@ -27,8 +27,9 @@ describe('getMetricExpressions function', () => {
         mri: 'd:transactions/duration@milisecond',
         op: 'avg',
         query: 'foo:bar',
-        type: MetricQueryType.QUERY,
+        type: MetricExpressionType.QUERY,
         orderBy: 'asc',
+        isHidden: false,
       } satisfies DashboardMetricsExpression,
     ]);
   });
@@ -50,7 +51,8 @@ describe('getMetricExpressions function', () => {
       {
         id: 0,
         formula: '$a + $b',
-        type: MetricQueryType.FORMULA,
+        type: MetricExpressionType.EQUATION,
+        isHidden: false,
       } satisfies DashboardMetricsExpression,
     ]);
   });
@@ -84,8 +86,9 @@ describe('getMetricExpressions function', () => {
         mri: 'd:transactions/duration@milisecond',
         op: 'avg',
         query: 'foo:bar release:1.0',
-        type: MetricQueryType.QUERY,
+        type: MetricExpressionType.QUERY,
         orderBy: 'desc',
+        isHidden: false,
       } satisfies DashboardMetricsExpression,
       {
         groupBy: [],
@@ -93,8 +96,9 @@ describe('getMetricExpressions function', () => {
         mri: 'd:transactions/duration@milisecond',
         op: 'avg',
         query: 'foo:baz release:1.0',
-        type: MetricQueryType.QUERY,
+        type: MetricExpressionType.QUERY,
         orderBy: undefined,
+        isHidden: false,
       } satisfies DashboardMetricsExpression,
     ]);
   });
@@ -120,8 +124,9 @@ describe('getMetricExpressions function', () => {
         mri: 'd:transactions/duration@milisecond',
         op: 'avg',
         query: 'release:[1.0,2.0]',
-        type: MetricQueryType.QUERY,
+        type: MetricExpressionType.QUERY,
         orderBy: undefined,
+        isHidden: false,
       } satisfies DashboardMetricsExpression,
     ]);
   });
@@ -152,8 +157,9 @@ describe('expressionsToWidget', () => {
         mri: 'd:transactions/duration@milisecond',
         op: 'avg',
         query: 'foo:bar',
-        type: MetricQueryType.QUERY,
+        type: MetricExpressionType.QUERY,
         orderBy: 'asc',
+        isHidden: true,
       } satisfies DashboardMetricsExpression,
     ];
 
@@ -173,6 +179,7 @@ describe('expressionsToWidget', () => {
           columns: ['release'],
           name: '0',
           orderby: 'asc',
+          isHidden: true,
         },
       ],
     } satisfies Widget);
@@ -183,7 +190,8 @@ describe('expressionsToWidget', () => {
       {
         id: 1,
         formula: '$a + $b',
-        type: MetricQueryType.FORMULA,
+        type: MetricExpressionType.EQUATION,
+        isHidden: false,
       } satisfies DashboardMetricsExpression,
     ];
 
@@ -203,6 +211,7 @@ describe('expressionsToWidget', () => {
           columns: [],
           name: '1',
           orderby: '',
+          isHidden: false,
         },
       ],
     } satisfies Widget);
@@ -216,13 +225,15 @@ describe('expressionsToWidget', () => {
         mri: 'd:transactions/duration@milisecond',
         op: 'avg',
         query: 'foo:bar',
-        type: MetricQueryType.QUERY,
+        type: MetricExpressionType.QUERY,
         orderBy: 'asc',
+        isHidden: true,
       } satisfies DashboardMetricsExpression,
       {
         id: 1,
         formula: '$a + $b',
-        type: MetricQueryType.FORMULA,
+        type: MetricExpressionType.EQUATION,
+        isHidden: false,
       } satisfies DashboardMetricsExpression,
     ];
 

@@ -62,9 +62,9 @@ import {
   getColoredWidgetIndicator,
   getFieldsFromEquations,
   getNumEquations,
-  getWidgetDDMUrl,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
+  getWidgetMetricsUrl,
   getWidgetReleasesUrl,
 } from 'sentry/views/dashboards/utils';
 import {
@@ -1119,7 +1119,7 @@ function OpenButton({
       break;
     case WidgetType.METRICS:
       openLabel = t('Open in Metrics');
-      path = getWidgetDDMUrl(widget, selection, organization);
+      path = getWidgetMetricsUrl(widget, selection, organization);
       break;
     case WidgetType.DISCOVER:
     default:

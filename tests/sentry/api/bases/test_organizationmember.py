@@ -1,9 +1,7 @@
 from sentry.api.bases.organizationmember import MemberAndStaffPermission, MemberPermission
-from sentry.testutils.silo import region_silo_test
 from tests.sentry.api.bases.test_organization import PermissionBaseTestCase
 
 
-@region_silo_test
 class MemberPermissionTest(PermissionBaseTestCase):
     def setUp(self):
         super().setUp()
@@ -56,7 +54,6 @@ class MemberPermissionTest(PermissionBaseTestCase):
         assert self.has_object_perm("DELETE", self.org, user=owner_user)
 
 
-@region_silo_test
 class OrganizationAndStaffPermissionTest(PermissionBaseTestCase):
     def setUp(self):
         super().setUp()

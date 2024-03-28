@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from functools import lru_cache
 from time import time
 from typing import Any
+from uuid import UUID
 
 import msgpack
 import sentry_sdk
@@ -16,7 +17,7 @@ from sentry.constants import DataCategory
 from sentry.lang.java.proguard import open_proguard_mapper
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
 from sentry.lang.native.processing import _merge_image
-from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorTaskKind
+from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorPlatform, SymbolicatorTaskKind
 from sentry.lang.native.utils import native_images_from_data
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.eventerror import EventError
@@ -24,7 +25,12 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, UseCase
 from sentry.profiles.device import classify_device
-from sentry.profiles.java import deobfuscate_signature, format_signature
+from sentry.profiles.java import (
+    convert_android_methods_to_jvm_frames,
+    deobfuscate_signature,
+    format_signature,
+    merge_jvm_frames_with_android_methods,
+)
 from sentry.profiles.utils import get_from_profiling_service
 from sentry.signals import first_profile_received
 from sentry.silo import SiloMode
@@ -444,6 +450,13 @@ def symbolicate(
             dist=profile.get("dist"),
             apply_source_context=False,
         )
+    elif platform == "android":
+        return symbolicator.process_jvm(
+            exceptions=[],
+            stacktraces=stacktraces,
+            modules=modules,
+            release_package=profile.get("transaction_metadata", {}).get("app.identifier"),
+        )
     return symbolicator.process_payload(
         stacktraces=stacktraces, modules=modules, apply_source_context=False
     )
@@ -468,9 +481,12 @@ def run_symbolicate(
         if duration > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
             raise SymbolicationTimeout
 
-    is_js = platform in SHOULD_SYMBOLICATE_JS
+    if platform in SHOULD_SYMBOLICATE_JS:
+        symbolicator_platform = SymbolicatorPlatform.js
+    else:
+        symbolicator_platform = SymbolicatorPlatform.native
     symbolicator = Symbolicator(
-        task_kind=SymbolicatorTaskKind(is_js=is_js),
+        task_kind=SymbolicatorTaskKind(platform=symbolicator_platform),
         on_request=on_symbolicator_request,
         project=project,
         event_id=profile["event_id"],
@@ -725,6 +741,68 @@ def get_frame_index_map(frames: list[dict[str, Any]]) -> dict[int, list[int]]:
     return index_map
 
 
+@metrics.wraps("process_profile.deobfuscate.with_symbolicator")
+def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_file_id: str) -> bool:
+    symbolication_start_time = time()
+
+    def on_symbolicator_request():
+        duration = time() - symbolication_start_time
+        if duration > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
+            raise SymbolicationTimeout
+
+    symbolicator = Symbolicator(
+        task_kind=SymbolicatorTaskKind(),
+        on_request=on_symbolicator_request,
+        project=project,
+        event_id=profile["event_id"],
+    )
+
+    try:
+        with sentry_sdk.start_span(op="task.profiling.symbolicate.process_payload"):
+            response = symbolicate(
+                symbolicator=symbolicator,
+                profile=profile,
+                modules=[
+                    {
+                        "uuid": UUID(debug_file_id).hex,
+                    }
+                ],
+                stacktraces=[
+                    {
+                        "frames": convert_android_methods_to_jvm_frames(
+                            profile["profile"]["methods"]
+                        )
+                    },
+                ],
+                platform=profile["platform"],
+            )
+            if not response:
+                profile["symbolicator_error"] = {
+                    "type": EventError.NATIVE_INTERNAL_FAILURE,
+                }
+            elif response["status"] == "failed":
+                profile["symbolicator_error"] = {
+                    "type": EventError.NATIVE_SYMBOLICATOR_FAILED,
+                    "status": response["status"],
+                    "message": response["message"],
+                }
+            elif len(response["errors"]) > 0:
+                profile["symbolicator_error"] = response["errors"][0]
+            elif len(response["stacktraces"]) > 0:
+                merge_jvm_frames_with_android_methods(
+                    frames=response["stacktraces"][0]["frames"],
+                    methods=profile["profile"]["methods"],
+                )
+                return True
+            else:
+                profile["symbolicator_error"] = {
+                    "type": EventError.NATIVE_SYMBOLICATOR_FAILED,
+                }
+    except SymbolicationTimeout:
+        metrics.incr("process_profile.symbolicate.timeout", sample_rate=1.0)
+    return False
+
+
 @metrics.wraps("process_profile.deobfuscate")
 def _deobfuscate(profile: Profile, project: Project) -> None:
     debug_file_id = profile.get("build_id")
@@ -736,6 +814,22 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                 m["signature"] = format_signature(types)
         return
 
+    if project.id in options.get("profiling.deobfuscate-using-symbolicator.enable-for-project"):
+        try:
+            if _deobfuscate_using_symbolicator(
+                project=project,
+                profile=profile,
+                debug_file_id=debug_file_id,
+            ):
+                sentry_sdk.set_tag("deobfuscated_with_symbolicator", True)
+                return
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+    _deobfuscate_locally(profile=profile, project=project, debug_file_id=debug_file_id)
+
+
+@metrics.wraps("process_profile.deobfuscate.locally")
+def _deobfuscate_locally(profile: Profile, project: Project, debug_file_id: str) -> None:
     with sentry_sdk.start_span(op="proguard.fetch_debug_files"):
         dif_paths = ProjectDebugFile.difcache.fetch_difs(
             project, [debug_file_id], features=["mapping"]
@@ -751,6 +845,7 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
     with sentry_sdk.start_span(op="proguard.remap"):
         for method in profile["profile"]["methods"]:
             method.setdefault("data", {})
+            types = None
             if method.get("signature"):
                 types = deobfuscate_signature(method["signature"], mapper)
                 method["signature"] = format_signature(types)
