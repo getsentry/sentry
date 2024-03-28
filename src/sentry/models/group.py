@@ -468,6 +468,7 @@ class GroupManager(BaseManager["Group"]):
                 if priority and group.priority != priority:
                     group.priority = priority
                     updated_priority[group.id] = priority
+
                     logger.info(
                         "group.update_group_status.priority_updated",
                         extra={
@@ -506,6 +507,14 @@ class GroupManager(BaseManager["Group"]):
 
             if group.id in updated_priority:
                 new_priority = updated_priority[group.id]
+                logger.info(
+                    "group.update_group_status.priority_updated_activity",
+                    extra={
+                        "group_id": group.id,
+                        "priority": updated_priority[group.id],
+                        "group_priority": group.priority,
+                    },
+                )
                 Activity.objects.create_group_activity(
                     group=group,
                     type=ActivityType.SET_PRIORITY,
