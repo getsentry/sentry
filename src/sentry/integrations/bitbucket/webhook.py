@@ -113,7 +113,7 @@ class PushEventWebhook(Webhook):
 class BitbucketWebhookEndpoint(Endpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = ()
     _handlers = {"repo:push": PushEventWebhook}

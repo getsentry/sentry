@@ -181,7 +181,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
 class GitHubEnterpriseWebhookEndpoint(GitHubEnterpriseWebhookBase):
     owner = ApiOwner.ECOSYSTEM
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     _handlers = {
         "push": GitHubEnterprisePushEventWebhook,

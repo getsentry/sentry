@@ -131,8 +131,8 @@ def get_payload_and_token(
 class VercelWebhookEndpoint(Endpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = ()
     permission_classes = ()
