@@ -20,7 +20,6 @@ from sentry.testutils.silo import assume_test_silo_mode, create_test_regions, re
 from sentry.utils import json
 
 
-@region_silo_test
 class CrossDomainXmlTest(TestCase):
     @cached_property
     def path(self):

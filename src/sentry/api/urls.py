@@ -4,6 +4,7 @@ from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
 
 from sentry.api.endpoints.bundle_analysis import BundleAnalysisEndpoint
+from sentry.api.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
 from sentry.api.endpoints.group_event_details import GroupEventDetailsEndpoint
 from sentry.api.endpoints.group_similar_issues_embeddings import (
     GroupSimilarIssuesEmbeddingsEndpoint,
@@ -434,6 +435,7 @@ from .endpoints.organization_projects_sent_first_event import (
     OrganizationProjectsSentFirstEventEndpoint,
 )
 from .endpoints.organization_recent_searches import OrganizationRecentSearchesEndpoint
+from .endpoints.organization_region import OrganizationRegionEndpoint
 from .endpoints.organization_relay_usage import OrganizationRelayUsage
 from .endpoints.organization_release_assemble import OrganizationReleaseAssembleEndpoint
 from .endpoints.organization_release_commits import OrganizationReleaseCommitsEndpoint
@@ -764,6 +766,11 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             r"^(?P<issue_id>[^\/]+)/ai-autofix/$",
             GroupAiAutofixEndpoint.as_view(),
             name=f"{name_prefix}-group-ai-autofix",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^\/]+)/autofix/setup/$",
+            GroupAutofixSetupCheck.as_view(),
+            name=f"{name_prefix}-group-autofix-setup",
         ),
         # Load plugin group urls
         re_path(
@@ -2090,6 +2097,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^/]+)/prompts-activity/$",
         PromptsActivityEndpoint.as_view(),
         name="sentry-api-0-organization-prompts-activity",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/region/$",
+        OrganizationRegionEndpoint.as_view(),
+        name="sentry-api-0-organization-region",
     ),
 ]
 

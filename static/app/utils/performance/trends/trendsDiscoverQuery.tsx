@@ -14,11 +14,11 @@ import type {
   TrendView,
 } from 'sentry/views/performance/trends/types';
 import {
-  generateTrendFunctionAsString,
   getCurrentTrendFunction,
   getCurrentTrendParameter,
   getTopTrendingEvents,
 } from 'sentry/views/performance/trends/utils';
+import generateTrendFunctionAsString from 'sentry/views/performance/trends/utils/generateTrendFunctionAsString';
 
 export type TrendsRequest = {
   eventView: Partial<TrendView>;

@@ -10,6 +10,7 @@ import FieldGroup from 'sentry/components/forms/fieldGroup';
 import SentryAppDetailsModal from 'sentry/components/modals/sentryAppDetailsModal';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import type {Organization, SentryApp, SentryAppInstallation} from 'sentry/types';
 import {generateOrgSlugUrl} from 'sentry/utils';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
@@ -50,6 +51,20 @@ export default class SentryAppExternalInstallation extends DeprecatedAsyncView<
       ['organizations', '/organizations/'],
       ['sentryApp', `/sentry-apps/${this.sentryAppSlug}/`],
     ];
+  }
+
+  onLoadAllEndpointsSuccess() {
+    // auto select the org if there is only one
+    const {organizations} = this.state;
+    if (organizations.length === 1) {
+      this.onSelectOrg(organizations[0].slug);
+    }
+
+    // now check the subomdain and use that org slug if it exists
+    const customerDomain = ConfigStore.get('customerDomain');
+    if (customerDomain?.subdomain) {
+      this.onSelectOrg(customerDomain.subdomain);
+    }
   }
 
   getTitle() {
@@ -131,6 +146,14 @@ export default class SentryAppExternalInstallation extends DeprecatedAsyncView<
   };
 
   onSelectOrg = async (orgSlug: string) => {
+    const customerDomain = ConfigStore.get('customerDomain');
+    // redirect to the org if it's different than the org being selected
+    if (customerDomain?.subdomain && orgSlug !== customerDomain?.subdomain) {
+      const urlWithQuery = generateOrgSlugUrl(orgSlug) + this.props.location.search;
+      window.location.assign(urlWithQuery);
+      return;
+    }
+    // otherwise proceed as normal
     this.setState({selectedOrgSlug: orgSlug, reloading: true});
 
     try {
@@ -250,6 +273,7 @@ export default class SentryAppExternalInstallation extends DeprecatedAsyncView<
               value={selectedOrgSlug}
               placeholder={t('Select an organization')}
               options={this.getOptions()}
+              data-test-id="org-select"
             />
           )}
         </FieldGroup>

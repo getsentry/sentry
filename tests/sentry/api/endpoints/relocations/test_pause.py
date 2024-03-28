@@ -12,13 +12,11 @@ from sentry.api.endpoints.relocations.pause import (
 from sentry.models.relocation import Relocation
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.relocation import OrderedTask
 
 TEST_DATE_ADDED = datetime(2023, 1, 23, 1, 23, 45, tzinfo=timezone.utc)
 
 
-@region_silo_test
 class PauseRelocationTest(APITestCase):
     endpoint = "sentry-api-0-relocations-pause"
     method = "put"

@@ -331,11 +331,10 @@ def normalize_stacktraces_for_grouping(
     # If a grouping config is available, run grouping enhancers
     if grouping_config is not None:
         with sentry_sdk.start_span(op=op, description="apply_modifications_to_frame"):
-            extra_fingerprint = f"{grouping_config.id}.{grouping_config.enhancements.dumps()}"
             for frames, stacktrace_container in zip(stacktrace_frames, stacktrace_containers):
                 # This call has a caching mechanism when the same stacktrace and rules are used
                 grouping_config.enhancements.apply_modifications_to_frame(
-                    frames, platform, stacktrace_container, extra_fingerprint=extra_fingerprint
+                    frames, platform, stacktrace_container
                 )
 
     # normalize `in_app` values, noting and storing the event's mix of in-app and system frames, so

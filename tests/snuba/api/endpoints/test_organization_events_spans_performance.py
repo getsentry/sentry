@@ -12,7 +12,6 @@ from snuba_sdk.orderby import Direction, OrderBy
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 from sentry.utils.samples import load_data
 
@@ -406,7 +405,6 @@ class OrganizationEventsSpansEndpointTestBase(APITestCase, SnubaTestCase):
         return results
 
 
-@region_silo_test
 class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndpointTestBase):
     URL = "sentry-api-0-organization-events-spans-performance"
 
@@ -1139,7 +1137,6 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
         self.assert_suspect_span(response.data, [results])
 
 
-@region_silo_test
 class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpointTestBase):
     URL = "sentry-api-0-organization-events-spans"
 
@@ -1777,7 +1774,6 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
         self.assert_span_examples(response.data, expected_result)
 
 
-@region_silo_test
 class OrganizationEventsSpansStatsEndpointTest(OrganizationEventsSpansEndpointTestBase):
     URL = "sentry-api-0-organization-events-spans-stats"
 

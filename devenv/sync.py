@@ -155,7 +155,7 @@ def main(context: dict[str, str]) -> int:
         (
             (
                 "python migrations",
-                (f"{venv_dir}/bin/{repo}", "upgrade", "--noinput"),
+                ("make", "apply-migrations"),
             ),
         ),
     ):

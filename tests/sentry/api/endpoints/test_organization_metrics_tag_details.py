@@ -10,7 +10,6 @@ from sentry.snuba.metrics.naming_layer import get_mri
 from sentry.snuba.metrics.naming_layer.public import SessionMetricKey
 from sentry.testutils.cases import MetricsAPIBaseTestCase, OrganizationMetricsIntegrationTestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import region_silo_test
 from tests.sentry.api.endpoints.test_organization_metrics import (
     MOCKED_DERIVED_METRICS,
     mocked_mri_resolver,
@@ -23,7 +22,6 @@ def _indexer_record(org_id: int, string: str) -> None:
     indexer.record(use_case_id=UseCaseID.SESSIONS, org_id=org_id, string=string)
 
 
-@region_silo_test
 class OrganizationMetricsTagDetailsTest(OrganizationMetricsIntegrationTestCase):
 
     endpoint = "sentry-api-0-organization-metrics-tag-details"

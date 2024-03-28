@@ -1,14 +1,17 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
-import {Container} from 'sentry/utils/discover/styles';
 import {useLocation} from 'sentry/utils/useLocation';
 
+import {getFieldRenderer} from './table/fieldRenderers';
+import type {ColumnKey, DataRow} from './table/types';
+
 interface TracesSpansTableProps {
-  data: any[];
+  data: DataRow[];
   fields: string[];
   handleCursor: CursorHandler;
   isLoading: boolean;
@@ -24,7 +27,7 @@ export function TracesSpansTable({
 }: TracesSpansTableProps) {
   const location = useLocation();
 
-  const columnOrder = useMemo(() => {
+  const columnOrder: GridColumnOrder<ColumnKey>[] = useMemo(() => {
     return fields.map(field => {
       return {
         key: field,
@@ -52,8 +55,9 @@ export function TracesSpansTable({
 }
 
 function renderBodyCell() {
-  return function (col, row) {
-    return <Container>{row[col.key]}</Container>;
+  return function (column: GridColumnOrder<ColumnKey>, row: DataRow) {
+    const Renderer = getFieldRenderer(column.key);
+    return <Renderer column={column} row={row} />;
   };
 }
 

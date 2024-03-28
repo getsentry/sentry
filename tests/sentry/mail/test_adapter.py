@@ -46,7 +46,7 @@ from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.silo import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, ReplaysSnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
@@ -76,7 +76,6 @@ class BaseMailAdapterTest(TestCase, PerformanceIssueTestCase):
         assert sorted(email.to[0] for email in mail.outbox) == sorted(emails_sent_to)
 
 
-@region_silo_test
 class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):
     def test_get_sendable_user_objects(self):
         user = self.create_user(email="foo@example.com", is_active=True)
@@ -142,7 +141,6 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):
         assert user4.id not in {u.id for u in self.adapter.get_sendable_user_objects(project)}
 
 
-@region_silo_test
 class MailAdapterBuildSubjectPrefixTest(BaseMailAdapterTest):
     def test_default_prefix(self):
         assert build_subject_prefix(self.project) == "[Sentry]"
@@ -155,7 +153,6 @@ class MailAdapterBuildSubjectPrefixTest(BaseMailAdapterTest):
         assert build_subject_prefix(self.project) == prefix
 
 
-@region_silo_test
 class MailAdapterNotifyTest(BaseMailAdapterTest):
     @mock.patch("sentry.analytics.record")
     def test_simple_notification(self, mock_record):
@@ -912,7 +909,6 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         self.assert_notify(event, [user.email], ActionTargetType.MEMBER, str(user.id))
 
 
-@region_silo_test
 class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
     def create_assert_delete_projectownership(
         self,
@@ -1349,7 +1345,6 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
         assert "Regressed issue" in msg.alternatives[0][0]
 
 
-@region_silo_test
 class MailAdapterGetDigestSubjectTest(BaseMailAdapterTest):
     def test_get_digest_subject(self):
         assert (
@@ -1362,7 +1357,6 @@ class MailAdapterGetDigestSubjectTest(BaseMailAdapterTest):
         )
 
 
-@region_silo_test
 class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
     def test_notify_digest(self, notify):
@@ -1717,7 +1711,6 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         assert len(mail.outbox) == 0
 
 
-@region_silo_test
 class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
     @mock.patch("sentry.mail.adapter.logger")
     def test_normal(self, mock_logger):
@@ -1797,7 +1790,6 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
             )
 
 
-@region_silo_test
 class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
     def test_assignment(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -1887,7 +1879,6 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
         assert "notification_uuid" in msg.body
 
 
-@region_silo_test
 class MailAdapterHandleSignalTest(BaseMailAdapterTest):
     def create_report(self):
         user_foo = self.create_user("foo@example.com")

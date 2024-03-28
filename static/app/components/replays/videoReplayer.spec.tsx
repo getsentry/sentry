@@ -7,6 +7,7 @@ import {VideoReplayer} from './videoReplayer';
 //
 // advancing by 2000ms ~== 20000s in Timer, but this may depend on hardware, TBD
 jest.useFakeTimers();
+jest.spyOn(window.HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
 
 describe('VideoReplayer - no starting gap', () => {
   beforeEach(() => {
@@ -45,6 +46,32 @@ describe('VideoReplayer - no starting gap', () => {
     {
       id: 5,
       timestamp: 35_002,
+      duration: 5000,
+    },
+  ];
+
+  const extra = [
+    {
+      id: 6,
+      timestamp: 40_002,
+      duration: 5000,
+    },
+    {
+      id: 7,
+      timestamp: 45_002,
+      duration: 5000,
+    },
+  ];
+
+  const skip = [
+    {
+      id: 7,
+      timestamp: 45_002,
+      duration: 5000,
+    },
+    {
+      id: 8,
+      timestamp: 50_002,
       duration: 5000,
     },
   ];
@@ -115,6 +142,87 @@ describe('VideoReplayer - no starting gap', () => {
     // `currentTime` is in seconds
     // @ts-expect-error private
     expect(inst.getVideo(inst._currentIndex)?.currentTime).toEqual(5);
+  });
+
+  it('initially only loads videos from 0 to BUFFER', async () => {
+    const root = document.createElement('div');
+    const inst = new VideoReplayer(attachments, {
+      videoApiPrefix: '/foo/',
+      root,
+      start: 0,
+      onFinished: jest.fn(),
+      onLoaded: jest.fn(),
+    });
+    const playPromise = inst.play(0);
+    jest.advanceTimersByTime(2500);
+    await playPromise;
+    // @ts-expect-error private
+    expect(inst._currentIndex).toEqual(0);
+    // @ts-expect-error private
+    expect(Object.keys(inst._videos).length).toEqual(3);
+  });
+
+  it('should load the correct videos after playing at a timestamp', async () => {
+    const root = document.createElement('div');
+    const inst = new VideoReplayer(attachments.concat(extra), {
+      videoApiPrefix: '/foo/',
+      root,
+      start: 0,
+      onFinished: jest.fn(),
+      onLoaded: jest.fn(),
+    });
+    // play at segment 7
+    const playPromise = inst.play(45_003);
+    jest.advanceTimersByTime(2500);
+    await playPromise;
+    // @ts-expect-error private
+    expect(inst._currentIndex).toEqual(7);
+
+    // videos loaded should be [0, 1, 2, 4, 5, 6, 7]
+    // since we have [0, 1, 2] preloaded initially
+    // and only [4, 5, 6, 7] loaded when segment 7 is requested
+
+    // @ts-expect-error private
+    const videos = inst._videos;
+    // @ts-expect-error private
+    const getVideo = index => inst.getVideo(index);
+
+    expect(Object.keys(videos).length).toEqual(7);
+    expect(videos[0]).toEqual(getVideo(0));
+    expect(videos[2]).toEqual(getVideo(2));
+    expect(videos[3]).toEqual(undefined);
+    expect(videos[4]).toEqual(getVideo(4));
+    expect(videos[7]).toEqual(getVideo(7));
+  });
+
+  it('should work correctly if we have missing segments', async () => {
+    const root = document.createElement('div');
+    const inst = new VideoReplayer(attachments.concat(skip), {
+      videoApiPrefix: '/foo/',
+      root,
+      start: 0,
+      onFinished: jest.fn(),
+      onLoaded: jest.fn(),
+    });
+    // play at segment 7
+    const playPromise = inst.play(45_003);
+    jest.advanceTimersByTime(2500);
+    await playPromise;
+    // @ts-expect-error private
+    expect(inst._currentIndex).toEqual(6);
+
+    // @ts-expect-error private
+    const videos = inst._videos;
+    // @ts-expect-error private
+    const getVideo = index => inst.getVideo(index);
+
+    // videos loaded should be [0, 1, 2, 3, 4, 5, 7, 8]
+    expect(Object.keys(videos).length).toEqual(8);
+    expect(videos[0]).toEqual(getVideo(0));
+    expect(videos[2]).toEqual(getVideo(2));
+    expect(videos[5]).toEqual(getVideo(5));
+    expect(videos[6]).toEqual(getVideo(6));
+    expect(videos[7]).toEqual(getVideo(7));
   });
 });
 

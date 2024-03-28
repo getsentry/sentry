@@ -4,7 +4,7 @@ import type {MRI} from 'sentry/types';
 import {unescapeMetricsFormula} from 'sentry/utils/metrics';
 import {NO_QUERY_ID} from 'sentry/utils/metrics/constants';
 import {formatMRIField, MRIToField, parseField} from 'sentry/utils/metrics/mri';
-import {MetricDisplayType, MetricQueryType} from 'sentry/utils/metrics/types';
+import {MetricDisplayType, MetricExpressionType} from 'sentry/utils/metrics/types';
 import type {MetricsQueryApiQueryParams} from 'sentry/utils/metrics/useMetricsQuery';
 import type {
   DashboardMetricsEquation,
@@ -18,9 +18,9 @@ import {
   type WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import {getEquationSymbol} from 'sentry/views/ddm/equationSymbol copy';
-import {getQuerySymbol} from 'sentry/views/ddm/querySymbol';
-import {getUniqueQueryIdGenerator} from 'sentry/views/ddm/utils/uniqueQueryId';
+import {getEquationSymbol} from 'sentry/views/metrics/equationSymbol copy';
+import {getQuerySymbol} from 'sentry/views/metrics/querySymbol';
+import {getUniqueQueryIdGenerator} from 'sentry/views/metrics/utils/uniqueQueryId';
 
 function extendQuery(query = '', dashboardFilters?: DashboardFilters) {
   if (!dashboardFilters?.release?.length) {
@@ -49,7 +49,7 @@ function getReleaseQuery(dashboardFilters: DashboardFilters) {
 export function isMetricsFormula(
   query: DashboardMetricsExpression
 ): query is DashboardMetricsEquation {
-  return query.type === MetricQueryType.FORMULA;
+  return query.type === MetricExpressionType.EQUATION;
 }
 
 function getExpressionIdFromWidgetQuery(query: WidgetQuery): number {
@@ -102,7 +102,7 @@ export function getMetricQueries(
     const orderBy = query.orderby ? query.orderby : undefined;
     return {
       id: id,
-      type: MetricQueryType.QUERY,
+      type: MetricExpressionType.QUERY,
       mri: parsed.mri,
       op: parsed.op,
       query: extendQuery(query.conditions, dashboardFilters),
@@ -136,7 +136,7 @@ export function getMetricEquations(widget: Widget): DashboardMetricsEquation[] {
 
       return {
         id: id,
-        type: MetricQueryType.FORMULA,
+        type: MetricExpressionType.EQUATION,
         formula: query.aggregates[0].slice(9),
         isHidden: !!query.isHidden,
       } satisfies DashboardMetricsEquation;
@@ -166,7 +166,7 @@ export function expressionsToApiQueries(
   expressions: DashboardMetricsExpression[]
 ): MetricsQueryApiQueryParams[] {
   return expressions
-    .filter(e => !(e.type === MetricQueryType.FORMULA && e.isHidden))
+    .filter(e => !(e.type === MetricExpressionType.EQUATION && e.isHidden))
     .map(e =>
       isMetricsFormula(e)
         ? {
@@ -247,7 +247,7 @@ export function defaultMetricWidget(): Widget {
     [
       {
         id: 0,
-        type: MetricQueryType.QUERY,
+        type: MetricExpressionType.QUERY,
         mri: 'd:transactions/duration@millisecond',
         op: 'avg',
         query: '',

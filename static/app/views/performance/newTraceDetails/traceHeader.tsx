@@ -97,9 +97,9 @@ export default function TraceHeader({
     throw new Error('Expected a trace node');
   }
 
-  const errors = traceNode.errors.length || metaResults.data?.errors || 0;
+  const errors = traceNode.errors.size || metaResults.data?.errors || 0;
   const performanceIssues =
-    traceNode.performance_issues.length || metaResults.data?.performance_issues || 0;
+    traceNode.performance_issues.size || metaResults.data?.performance_issues || 0;
   const errorsAndIssuesCount = errors + performanceIssues;
 
   const replay_id = rootEventResults?.data?.contexts.replay?.replay_id;

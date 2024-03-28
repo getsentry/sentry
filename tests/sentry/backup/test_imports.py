@@ -79,7 +79,7 @@ from sentry.testutils.helpers.backups import (
     is_control_model,
 )
 from sentry.testutils.hybrid_cloud import use_split_dbs
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json
 from tests.sentry.backup import (
     expect_models,
@@ -96,7 +96,6 @@ class ImportTestCase(BackupTestCase):
         return tmp_path
 
 
-@region_silo_test
 class SanitizationTests(ImportTestCase):
     """
     Ensure that potentially damaging data is properly scrubbed at import time.
@@ -681,7 +680,6 @@ class SanitizationTests(ImportTestCase):
                 assert err.value.context.on.model == "sentry.useroption"
 
 
-@region_silo_test
 class SignalingTests(ImportTestCase):
     """
     Some models are automatically created via signals and similar automagic from related models. We
@@ -758,7 +756,6 @@ class SignalingTests(ImportTestCase):
             self.test_import_signaling_organization()
 
 
-@region_silo_test
 class ScopingTests(ImportTestCase):
     """
     Ensures that only models with the allowed relocation scopes are actually imported.
@@ -887,7 +884,6 @@ class ScopingTests(ImportTestCase):
         )
 
 
-@region_silo_test
 class DatabaseResetTests(ImportTestCase):
     """
     Ensure that database resets work as intended in different import scopes.
@@ -973,7 +969,6 @@ class DatabaseResetTests(ImportTestCase):
 
 # Filters should work identically in both silo and monolith modes, so no need to repeat the tests
 # here.
-@region_silo_test
 class DecryptionTests(ImportTestCase):
     """
     Ensures that decryption actually works. We only test one model for each scope, because it's
@@ -1108,7 +1103,6 @@ class DecryptionTests(ImportTestCase):
 
 # Filters should work identically in both silo and monolith modes, so no need to repeat the tests
 # here.
-@region_silo_test
 class FilterTests(ImportTestCase):
     """
     Ensures that filtering operations include the correct models.
@@ -1349,7 +1343,6 @@ class FilterTests(ImportTestCase):
 COLLISION_TESTED: set[NormalizedModelName] = set()
 
 
-@region_silo_test
 class CollisionTests(ImportTestCase):
     """
     Ensure that collisions are properly handled in different flag modes.
@@ -2215,7 +2208,6 @@ CUSTOM_IMPORT_BEHAVIOR_TESTED: set[NormalizedModelName] = set()
 
 # There is no need to in both monolith and region mode for model-level unit tests - region mode
 # testing along should suffice.
-@region_silo_test
 class CustomImportBehaviorTests(ImportTestCase):
     """
     Test bespoke, per-model behavior. Since these tests are relatively expensive to set up and tear

@@ -1,5 +1,5 @@
 import functools
-from datetime import UTC, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import Mock, call, patch
 from uuid import uuid4
 
@@ -50,13 +50,12 @@ from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.utils import json
 
 
-@region_silo_test
 class GroupListTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
 
@@ -2322,12 +2321,43 @@ class GroupListTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
         self.login_as(user=self.user)
-        response = self.get_success_response(qs_params={"query": "", "useGroupSnubaDataset": "1"})
+        response = self.get_success_response(useGroupSnubaDataset=1, qs_params={"query": ""})
         assert len(response.data) == 1
         assert mock_query.call_count == 1
 
+    @override_options({"issues.group_attributes.send_kafka": True})
+    def test_order_by_first_seen_of_issue(self):
+        # issue 1: issue 10 minutes ago
+        time = datetime.now() - timedelta(minutes=10)
+        event1 = self.store_event(
+            data={"timestamp": time.timestamp(), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        # issue 2: events 90 minutes ago 1 minute agoe
+        time = datetime.now() - timedelta(minutes=90)
+        event2 = self.store_event(
+            data={"timestamp": time.timestamp(), "fingerprint": ["group-2"]},
+            project_id=self.project.id,
+        )
+        time = datetime.now() - timedelta(minutes=1)
+        self.store_event(
+            data={"timestamp": time.timestamp(), "fingerprint": ["group-2"]},
+            project_id=self.project.id,
+        )
 
-@region_silo_test
+        self.login_as(user=self.user)
+        response = self.get_success_response(
+            sort="new",
+            statsPeriod="1h",
+            useGroupSnubaDataset=1,
+            qs_params={"query": ""},
+        )
+
+        assert len(response.data) == 2
+        assert int(response.data[0]["id"]) == event1.group.id
+        assert int(response.data[1]["id"]) == event2.group.id
+
+
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
     method = "put"
@@ -3715,7 +3745,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         ).exists()
 
 
-@region_silo_test
 class GroupDeleteTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
     method = "delete"

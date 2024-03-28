@@ -36,6 +36,10 @@ export function ErrorNodeDetails({
   organization: Organization;
   scrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
 }) {
+  const issues = useMemo(() => {
+    return [...node.errors];
+  }, [node.errors]);
+
   const {isLoading, data} = useApiQuery<EventError>(
     [
       `/organizations/${organization.slug}/events/${node.value.project_slug}:${node.value.event_id}/`,
@@ -89,7 +93,7 @@ export function ErrorNodeDetails({
         </TraceDrawerComponents.Actions>
       </TraceDrawerComponents.HeaderContainer>
 
-      <IssueList issues={node.errors} node={node} organization={organization} />
+      <IssueList issues={issues} node={node} organization={organization} />
 
       <TraceDrawerComponents.Table className="table key-value">
         <tbody>
