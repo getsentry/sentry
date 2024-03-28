@@ -10,10 +10,10 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
-import type {Field} from 'sentry/components/ddm/metricSamplesTable';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import type {Field} from 'sentry/components/metrics/metricSamplesTable';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {Tooltip} from 'sentry/components/tooltip';

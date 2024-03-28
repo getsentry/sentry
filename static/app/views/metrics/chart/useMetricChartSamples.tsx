@@ -5,7 +5,7 @@ import moment from 'moment';
 
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
 import {isChartHovered} from 'sentry/components/charts/utils';
-import type {Field} from 'sentry/components/ddm/metricSamplesTable';
+import type {Field} from 'sentry/components/metrics/metricSamplesTable';
 import {t} from 'sentry/locale';
 import type {EChartClickHandler, ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
