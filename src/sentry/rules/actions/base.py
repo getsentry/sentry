@@ -7,20 +7,24 @@ from typing import Any
 
 from sentry.eventstore.models import GroupEvent
 from sentry.models.rule import Rule
+from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.base import CallbackFuture, EventState, RuleBase
 
 logger = logging.getLogger("sentry.rules")
 
 
-def instantiate_action(rule: Rule, action):
+def instantiate_action(rule: Rule, action, rule_fire_history: RuleFireHistory | None = None):
     from sentry.rules import rules
 
-    action_cls = rules.get(action["id"])
+    action_id = action["id"]
+    action_cls = rules.get(action_id)
     if action_cls is None:
         logger.warning("Unregistered action %r", action["id"])
         return None
 
-    action_inst = action_cls(rule.project, data=action, rule=rule)
+    action_inst = action_cls(
+        rule.project, data=action, rule=rule, rule_fire_history=rule_fire_history
+    )
     if not isinstance(action_inst, EventAction):
         logger.warning("Unregistered action %r", action["id"])
         return None
