@@ -26,8 +26,8 @@ function isReplayTab(tab: string, organization: Organization): tab is TabKey {
   return Object.values<string>(TabKey).includes(tab);
 }
 
-function useActiveReplayTab() {
-  const defaultTab = TabKey.BREADCRUMBS;
+function useActiveReplayTab({isVideoReplay}: {isVideoReplay?: boolean}) {
+  const defaultTab = isVideoReplay ? TabKey.TAGS : TabKey.BREADCRUMBS;
   const organization = useOrganization();
   const {getParamValue, setParamValue} = useUrlParams('t_main', defaultTab);
 

@@ -34,7 +34,7 @@ from sentry.testutils.helpers.backups import (
     clear_database,
     generate_rsa_key_pair,
 )
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json
 
 GOOD_FILE_PATH = get_fixture_path("backup", "fresh-install.json")
@@ -413,7 +413,6 @@ def cli_import_then_export(
             assert len(findings) == 0
 
 
-@region_silo_test
 class GoodImportExportCommandTests(TransactionTestCase):
     """
     Test success cases of the `sentry import` and `sentry export` CLI command. We're not asserting

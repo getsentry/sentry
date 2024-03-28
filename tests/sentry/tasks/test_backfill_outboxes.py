@@ -23,12 +23,7 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import (
-    assume_test_silo_mode,
-    control_silo_test,
-    no_silo_test,
-    region_silo_test,
-)
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, no_silo_test
 from sentry.utils import redis
 
 
@@ -65,7 +60,6 @@ def test_processing_awaits_options():
 
 
 @django_db_all
-@region_silo_test
 def test_region_processing(task_runner):
     with outbox_context(flush=False):
         for i in range(5):

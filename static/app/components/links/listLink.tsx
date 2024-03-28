@@ -65,12 +65,16 @@ const StyledLi = styled('li', {
   ${p =>
     p.disabled &&
     `
-   a {
-    color:${p.theme.disabled} !important;
-    pointer-events: none;
-    :hover {
-      color: ${p.theme.disabled}  !important;
+  a {
+      color:${p.theme.disabled} !important;
+      :hover {
+        color: ${p.theme.disabled}  !important;
+      }
+      cursor: default !important;
     }
-   }
+
+  a:active {
+    pointer-events: none;
+  }
 `}
 `;

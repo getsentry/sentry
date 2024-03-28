@@ -10,7 +10,6 @@ from sentry.models.project import Project
 from sentry.models.user import User
 from sentry.tasks import on_demand_metrics
 from sentry.tasks.on_demand_metrics import (
-    _query_cardinality,
     get_field_cardinality_cache_key,
     process_widget_specs,
     schedule_on_demand_check,
@@ -566,14 +565,3 @@ def assert_on_demand_model(
         return
 
     assert model.spec_hashes == expected_hashes[model.spec_version]  # Still include hashes
-
-
-@mock.patch("sentry.tasks.on_demand_metrics.QueryBuilder")
-@django_db_all
-def test_query_cardinality_called_with_projects(
-    raw_snql_query: Any, project: Project, organization: Organization
-) -> None:
-    _query_cardinality(["sometag"], organization)
-    raw_snql_query.assert_called_once()
-    mock_call = raw_snql_query.mock_calls[0]
-    assert [proj.id for proj in mock_call.kwargs["params"]["projects"]] == [project.id]

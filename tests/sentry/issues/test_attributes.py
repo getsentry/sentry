@@ -17,13 +17,11 @@ from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
-from sentry.testutils.silo import region_silo_test
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 from sentry.utils.snuba import _snql_query
 
 
-@region_silo_test
 class GroupAttributesTest(TestCase):
     def test_retrieve_group_values(self) -> None:
         group = self.create_group()
@@ -141,7 +139,6 @@ class GroupAttributesTest(TestCase):
         ]
 
 
-@region_silo_test
 class PostSaveLogGroupAttributesChangedTest(TestCase):
     def test(self):
         self.run_attr_test(self.group, [], "all")

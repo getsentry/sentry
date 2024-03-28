@@ -72,6 +72,11 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEndpoint):
         expand = request.GET.getlist("expand", [])
         collapse = request.GET.getlist("collapse", ["base"])
         projects = self.get_projects(request, organization)
+        if not projects:
+            raise ParseError(
+                detail="Either the user has not access to any projects or you need to "
+                + "include `projects` with your request. (i.e. projects=1,2,3)"
+            )
         project_ids = [p.id for p in projects]
 
         try:

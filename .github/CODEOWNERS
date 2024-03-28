@@ -480,24 +480,24 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 
 
 ## Issues
+**/issues/**                                        @getsentry/issues
+/src/sentry/api/helpers/source_map_helper.py        @getsentry/issues
+/src/sentry/api/helpers/actionable_items_helper.py  @getsentry/issues
 /src/sentry/event_manager.py                        @getsentry/issues
 /src/sentry/grouping/                               @getsentry/issues
-/src/sentry/issues/                                 @getsentry/issues
 /src/sentry/tasks/post_process.py                   @getsentry/issues
 /src/sentry/tasks/unmerge.py                        @getsentry/issues
+/src/sentry/search/snuba/                           @getsentry/issues
 /tests/sentry/event_manager/                        @getsentry/issues
 /tests/sentry/grouping/                             @getsentry/issues
-/tests/sentry/issues/                               @getsentry/issues
 /tests/sentry/search/                               @getsentry/issues
 /tests/sentry/tasks/test_post_process.py            @getsentry/issues
 /tests/snuba/search/                                @getsentry/issues
-/src/sentry/search/snuba/                           @getsentry/issues
-/static/app/views/issueList                                  @getsentry/issues
-/src/sentry/api/helpers/source_map_helper.py                  @getsentry/issues
-/src/sentry/api/helpers/actionable_items_helper.py                  @getsentry/issues
+/static/app/views/issueList                         @getsentry/issues
+/static/app/views/issueList                         @getsentry/issues
 /static/app/components/events/interfaces/crashContent/exception/actionableItems.tsx   @getsentry/issues
-/static/app/utils/analytics.tsx                                 @getsentry/issues
-/static/app/utils/routeAnalytics/                               @getsentry/issues
+/static/app/utils/analytics.tsx                     @getsentry/issues
+/static/app/utils/routeAnalytics/                   @getsentry/issues
 ## End of Issues
 
 ## Billing

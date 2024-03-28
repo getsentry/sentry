@@ -20,7 +20,6 @@ from sentry.models.file import File
 from sentry.models.release import Release
 from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, ARTIFACT_INDEX_TYPE, ReleaseFile
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 
@@ -40,10 +39,10 @@ def create_exception_with_frames(raw_frames=None, frames=None):
     }
 
     if raw_frames is not None:
-        ex["raw_stacktrace"] = {"frames": raw_frames}  # type: ignore
+        ex["raw_stacktrace"] = {"frames": raw_frames}  # type: ignore[assignment]
 
     if frames is not None:
-        ex["stacktrace"] = {"frames": frames}  # type: ignore
+        ex["stacktrace"] = {"frames": frames}  # type: ignore[assignment]
 
     return ex
 
@@ -73,7 +72,6 @@ def create_event(
     return event
 
 
-@region_silo_test
 class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
     endpoint = "sentry-api-0-event-source-map-debug-blue-thunder-edition"
 

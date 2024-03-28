@@ -435,6 +435,7 @@ def configure_sdk():
     # exclude monitors with sub-minute schedules from using crons
     exclude_beat_tasks = [
         "deliver-from-outbox-control",
+        "deliver-webhooks-control",
         "flush-buffers",
         "sync-options",
         "sync-options-control",
