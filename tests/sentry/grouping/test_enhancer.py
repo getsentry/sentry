@@ -506,17 +506,7 @@ def test_app_no_matches(frame):
     ],
 )
 def test_basic_package_matching(package):
-    enhancement = Enhancements.from_config_string(
-        """
-        package:**/foo.bar +app
-    """
-    )
-    foobar_rule = enhancement.rules[0]
-
-    assert bool(
-        _get_matching_frame_actions(
-            foobar_rule,
-            [{"package": package}],
-            "native",
-        )
-    )
+    enhancements = Enhancements.from_config_string("package:**/foo.bar +app")
+    frame = {"package": package, "in_app": False}
+    enhancements.apply_modifications_to_frame([frame], "native", {})
+    assert frame.get("in_app")
