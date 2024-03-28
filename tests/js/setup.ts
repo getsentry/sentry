@@ -1,3 +1,5 @@
+import '@testing-library/jest-dom';
+
 /* eslint-env node */
 import type {ReactElement} from 'react';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports

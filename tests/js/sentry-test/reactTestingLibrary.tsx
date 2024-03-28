@@ -3,7 +3,6 @@ import type {InjectedRouter} from 'react-router';
 import {cache} from '@emotion/css'; // eslint-disable-line @emotion/no-vanilla
 import {CacheProvider, ThemeProvider} from '@emotion/react';
 import * as rtl from '@testing-library/react'; // eslint-disable-line no-restricted-imports
-import * as reactHooks from '@testing-library/react-hooks'; // eslint-disable-line no-restricted-imports
 import userEvent from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
@@ -156,5 +155,41 @@ instrumentUserEvent(globalSentry?.getCurrentHub.bind(globalSentry));
 // eslint-disable-next-line no-restricted-imports, import/export
 export * from '@testing-library/react';
 
+/**
+ * makes waitFor available again
+ */
+interface PatchRenderHookResult<Result, Props>
+  extends rtl.RenderHookResult<Result, Props> {
+  waitFor: typeof rtl.waitFor;
+}
+
+/**
+ * TODO(react18): Remove wrapper and migrate waitFor
+ * `import {waitFor} from 'sentry-test/reactTestingLibrary';`
+ *
+ * @deprecated
+ */
+const renderHookWrapper = <Result, Props>(
+  ...args: Parameters<typeof rtl.renderHook<Result, Props>>
+): PatchRenderHookResult<Result, Props> => {
+  const result = rtl.renderHook(...args) as PatchRenderHookResult<Result, Props>;
+  result.waitFor = rtl.waitFor;
+  return result;
+};
+
+/**
+ * @deprecated use `import {renderHook} from 'sentry-test/reactTestingLibrary';` instead
+ */
+export const reactHooks = {
+  /**
+   * @deprecated use `import {renderHook} from 'sentry-test/reactTestingLibrary';` instead
+   */
+  renderHook: renderHookWrapper,
+  /**
+   * @deprecated use `import {act} from 'sentry-test/reactTestingLibrary';` instead
+   */
+  act: rtl.act,
+};
+
 // eslint-disable-next-line import/export
-export {render, renderGlobalModal, userEvent, reactHooks, fireEvent};
+export {render, renderGlobalModal, userEvent, fireEvent};
