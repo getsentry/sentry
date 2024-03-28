@@ -104,6 +104,46 @@ class OrganizationMonitorIndexStatsTest(MonitorTestCase):
             },
         ]
 
+    def test_simple_slug(self):
+        resp = self.get_success_response(
+            self.organization.slug,
+            **{
+                "useGUIDs": True,
+                "monitor": [str(self.monitor1.guid), str(self.monitor2.guid)],
+                "since": self.since.timestamp(),
+                "until": self.until.timestamp(),
+                "resolution": "1h",
+            },
+        )
+
+        assert list(resp.data.keys()) == [str(self.monitor1.guid), str(self.monitor2.guid)]
+
+        # Check monitor1's stats
+        hour_one, hour_two, *extra = resp.data[str(self.monitor1.guid)]
+        assert hour_one == [
+            1647846000,
+            {
+                "production": {"in_progress": 1, "ok": 1, "error": 0, "missed": 0, "timeout": 0},
+                "debug": {"in_progress": 0, "ok": 1, "error": 0, "missed": 0, "timeout": 0},
+            },
+        ]
+        assert hour_two == [
+            1647849600,
+            {
+                "production": {"in_progress": 0, "ok": 0, "error": 0, "missed": 1, "timeout": 1},
+                "debug": {"in_progress": 0, "ok": 0, "error": 1, "missed": 0, "timeout": 1},
+            },
+        ]
+
+        # Check monitor2's stats
+        hour_one, *extra = resp.data[str(self.monitor2.guid)]
+        assert hour_one == [
+            1647846000,
+            {
+                "production": {"ok": 2, "error": 0, "missed": 0, "timeout": 0, "in_progress": 0},
+            },
+        ]
+
     def test_filtered(self):
         resp = self.get_success_response(
             self.organization.slug,
