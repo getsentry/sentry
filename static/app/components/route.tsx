@@ -24,10 +24,13 @@ type CustomProps = {
    *
    *   /organizations/:orgId
    *
+   * If withOrgPath is a string it will completely override the route used to
+   * generate the secondary route.
+   *
    * Setting this will wrap the two routes in withDomainRequired and
    * withDomainRedirect respectively.
    */
-  withOrgPath?: boolean;
+  withOrgPath?: true | string;
 };
 
 interface SentryRouteProps extends React.PropsWithChildren<RouteProps & CustomProps> {}
@@ -67,14 +70,16 @@ const Route = BaseRoute as React.ComponentClass<SentryRouteProps>;
 Route.createRouteFromReactElement = function (element: RouteElement): PlainRoute {
   const {withOrgPath, component, path} = element.props;
 
-  if (!withOrgPath) {
+  if (withOrgPath === undefined) {
     return createRouteFromReactElement(element);
   }
+
+  const orgPath = withOrgPath === true ? `/organizations/:orgId${path}` : withOrgPath;
 
   const childRoutes: PlainRoute[] = [
     {
       ...createRouteFromReactElement(element),
-      path: `/organizations/:orgId${path}`,
+      path: orgPath,
       component: withDomainRedirect(component ?? NoOp),
     },
   ];

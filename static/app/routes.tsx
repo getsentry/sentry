@@ -171,98 +171,46 @@ function buildRoutes() {
       />
       <Redirect from="/account/" to="/settings/account/details/" />
       <Redirect from="/share/group/:shareId/" to="/share/issue/:shareId/" />
-      {/* TODO: remove share/issue orgless url */}
       <Route
         path="/share/issue/:shareId/"
         component={make(() => import('sentry/views/sharedGroupDetails'))}
+        withOrgPath
       />
       <Route
-        path="/organizations/:orgId/share/issue/:shareId/"
-        component={make(() => import('sentry/views/sharedGroupDetails'))}
-      />
-      {USING_CUSTOMER_DOMAIN && (
-        <Route
-          path="/unsubscribe/project/:id/"
-          component={make(() => import('sentry/views/unsubscribe/project'))}
-        />
-      )}
-      <Route
-        path="/unsubscribe/:orgId/project/:id/"
+        path="/unsubscribe/project/:id/"
+        withOrgPath="/unsubscribe/:orgId/project/:id/"
         component={make(() => import('sentry/views/unsubscribe/project'))}
       />
-      {USING_CUSTOMER_DOMAIN && (
-        <Route
-          path="/unsubscribe/issue/:id/"
-          component={make(() => import('sentry/views/unsubscribe/issue'))}
-        />
-      )}
       <Route
-        path="/unsubscribe/:orgId/issue/:id/"
+        path="/unsubscribe/issue/:id/"
+        withOrgPath="/unsubscribe/:orgId/issue/:id/"
         component={make(() => import('sentry/views/unsubscribe/issue'))}
       />
       <Route
         path="/organizations/new/"
         component={make(() => import('sentry/views/organizationCreate'))}
       />
-      {USING_CUSTOMER_DOMAIN && (
-        <Route
-          path="/data-export/:dataExportId"
-          component={withDomainRequired(
-            make(() => import('sentry/views/dataExport/dataDownload'))
-          )}
-          key="orgless-data-export-route"
-        />
-      )}
       <Route
-        path="/organizations/:orgId/data-export/:dataExportId"
-        component={withDomainRedirect(
-          make(() => import('sentry/views/dataExport/dataDownload'))
-        )}
-        key="org-data-export"
+        path="/data-export/:dataExportId"
+        component={make(() => import('sentry/views/dataExport/dataDownload'))}
+        withOrgPath
       />
       <Route component={errorHandler(OrganizationContainer)}>
-        {USING_CUSTOMER_DOMAIN && (
-          <Route
-            path="/disabled-member/"
-            component={withDomainRequired(
-              make(() => import('sentry/views/disabledMember'))
-            )}
-            key="orgless-disabled-member-route"
-          />
-        )}
         <Route
-          path="/organizations/:orgId/disabled-member/"
-          component={withDomainRedirect(
-            make(() => import('sentry/views/disabledMember'))
-          )}
-          key="org-disabled-member"
+          path="/disabled-member/"
+          component={make(() => import('sentry/views/disabledMember'))}
+          withOrgPath
         />
       </Route>
-      {USING_CUSTOMER_DOMAIN && (
-        <Route
-          path="/restore/"
-          component={make(() => import('sentry/views/organizationRestore'))}
-        />
-      )}
       <Route
-        path="/organizations/:orgId/restore/"
+        path="/restore/"
+        withOrgPath="/organizations/:orgId/restore/"
         component={make(() => import('sentry/views/organizationRestore'))}
       />
-      {USING_CUSTOMER_DOMAIN && (
-        <Route
-          path="/join-request/"
-          component={withDomainRequired(
-            make(() => import('sentry/views/organizationJoinRequest'))
-          )}
-          key="orgless-join-request"
-        />
-      )}
       <Route
-        path="/join-request/:orgId/"
-        component={withDomainRedirect(
-          make(() => import('sentry/views/organizationJoinRequest'))
-        )}
-        key="org-join-request"
+        path="/join-request/"
+        withOrgPath="/join-request/:orgId/"
+        component={make(() => import('sentry/views/organizationJoinRequest'))}
       />
       <Route
         path="/relocation/"
@@ -272,38 +220,18 @@ function buildRoutes() {
         <IndexRedirect to="get-started/" />
         <Route path=":step/" component={make(() => import('sentry/views/relocation'))} />
       </Route>
-      {USING_CUSTOMER_DOMAIN && (
-        <Route
-          path="/onboarding/"
-          component={errorHandler(withDomainRequired(OrganizationContainer))}
-          key="orgless-onboarding"
-        >
-          <IndexRedirect to="welcome/" />
-          <Route
-            path=":step/"
-            component={make(() => import('sentry/views/onboarding'))}
-          />
-        </Route>
-      )}
       <Route
-        path="/onboarding/:orgId/"
-        component={withDomainRedirect(errorHandler(OrganizationContainer))}
-        key="org-onboarding"
+        path="/onboarding/"
+        withOrgPath="/onboarding/:orgId/"
+        component={errorHandler(OrganizationContainer)}
       >
         <IndexRedirect to="welcome/" />
         <Route path=":step/" component={make(() => import('sentry/views/onboarding'))} />
       </Route>
-      {USING_CUSTOMER_DOMAIN && (
-        <Route
-          path="/stories/"
-          component={make(() => import('sentry/views/stories/index'))}
-          key="orgless-stories"
-        />
-      )}
       <Route
-        path="/organizations/:orgId/stories/"
-        component={withDomainRedirect(make(() => import('sentry/views/stories/index')))}
-        key="org-stories"
+        path="/stories/"
+        component={make(() => import('sentry/views/stories/index'))}
+        withOrgPath
       />
     </Fragment>
   );
