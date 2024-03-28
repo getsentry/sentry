@@ -241,8 +241,9 @@ export const getIntegrationSourceUrl = (
 ) => {
   switch (integrationType) {
     case 'bitbucket':
-    case 'bitbucket_server':
       return `${sourceUrl}#lines-${lineNo}`;
+    case 'bitbucket_server':
+      return `${sourceUrl}#${lineNo}`;
     case 'vsts':
       const url = new URL(sourceUrl);
       if (lineNo) {
