@@ -1,4 +1,4 @@
-import {Fragment, isValidElement, useCallback, useMemo} from 'react';
+import {Fragment, isValidElement, useCallback, useContext, useMemo} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
@@ -10,6 +10,7 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {Flex} from 'sentry/components/profiling/flex';
+import {ExpandedContext} from 'sentry/components/sidebar/sidebarAccordion';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
@@ -84,6 +85,15 @@ export type SidebarItemProps = {
    */
   isBeta?: boolean;
   /**
+   * Is the sidebar collapsed or in mobile view
+   */
+  isFloatingSidebar?: boolean;
+
+  /**
+   * Is this item nested within another item
+   */
+  isNested?: boolean;
+  /**
    * Specify the variant for the badge.
    */
   isNew?: boolean;
@@ -125,8 +135,11 @@ function SidebarItem({
   onClick,
   trailingItems,
   variant,
+  isNested,
+  isFloatingSidebar = false,
   ...props
 }: SidebarItemProps) {
+  const {setOpenMainItem} = useContext(ExpandedContext);
   const router = useRouter();
   // label might be wrapped in a guideAnchor
   let labelString = label;
@@ -170,17 +183,21 @@ function SidebarItem({
 
   const handleItemClick = useCallback(
     (event: React.MouseEvent<HTMLAnchorElement>) => {
+      setOpenMainItem(null);
       !(to || href) && event.preventDefault();
       recordAnalytics();
       onClick?.(id, event);
       showIsNew && localStorage.setItem(isNewSeenKey, 'true');
     },
-    [href, to, id, onClick, recordAnalytics, showIsNew, isNewSeenKey]
+    [href, to, id, onClick, recordAnalytics, showIsNew, isNewSeenKey, setOpenMainItem]
   );
+
+  const isInFloatingSidebar = isNested && isFloatingSidebar;
+  const isInCollapsedState = !isInFloatingSidebar && collapsed;
 
   return (
     <Tooltip
-      disabled={!collapsed && !isTop}
+      disabled={!isInCollapsedState && !isTop}
       title={
         <Flex align="center">
           {label} {badges}
@@ -191,6 +208,7 @@ function SidebarItem({
       <StyledSidebarItem
         {...props}
         id={`sidebar-item-${id}`}
+        isFloatingSidebar={isFloatingSidebar}
         active={isActive ? 'true' : undefined}
         to={toProps}
         className={className}
@@ -198,9 +216,9 @@ function SidebarItem({
         onClick={handleItemClick}
       >
         <InteractionStateLayer isPressed={isActive} color="white" higherOpacity />
-        <SidebarItemWrapper collapsed={collapsed}>
+        <SidebarItemWrapper collapsed={isInCollapsedState}>
           <SidebarItemIcon>{icon}</SidebarItemIcon>
-          {!collapsed && !isTop && (
+          {!isInCollapsedState && !isTop && (
             <SidebarItemLabel>
               <LabelHook id={id}>
                 <TextOverflow>{label}</TextOverflow>
@@ -208,21 +226,21 @@ function SidebarItem({
               </LabelHook>
             </SidebarItemLabel>
           )}
-          {collapsed && showIsNew && (
+          {isInCollapsedState && showIsNew && (
             <CollapsedFeatureBadge
               type="new"
               variant="indicator"
               tooltipProps={tooltipDisabledProps}
             />
           )}
-          {collapsed && isBeta && (
+          {isInCollapsedState && isBeta && (
             <CollapsedFeatureBadge
               type="beta"
               variant="indicator"
               tooltipProps={tooltipDisabledProps}
             />
           )}
-          {collapsed && isAlpha && (
+          {isInCollapsedState && isAlpha && (
             <CollapsedFeatureBadge
               type="alpha"
               variant="indicator"
@@ -230,7 +248,7 @@ function SidebarItem({
             />
           )}
           {badge !== undefined && badge > 0 && (
-            <SidebarItemBadge collapsed={collapsed}>{badge}</SidebarItemBadge>
+            <SidebarItemBadge collapsed={isInCollapsedState}>{badge}</SidebarItemBadge>
           )}
           {trailingItems}
         </SidebarItemWrapper>
@@ -263,15 +281,45 @@ export function isItemActive(
     (item?.label === 'Alerts' &&
       location.pathname.includes('/alerts/') &&
       !location.pathname.startsWith('/settings/')) ||
-    (item?.label === 'Releases' && location.pathname.includes('/release-thresholds/'))
+    (item?.label === 'Releases' && location.pathname.includes('/release-thresholds/')) ||
+    (item?.label === 'Performance' && location.pathname.includes('/performance/')) ||
+    (item?.label === 'Starfish' && location.pathname.includes('/starfish/'))
   );
 }
 
 export default SidebarItem;
 
-const getActiveStyle = ({active, theme}: {active?: string; theme?: Theme}) => {
+const getActiveStyle = ({
+  active,
+  theme,
+  isFloatingSidebar,
+}: {
+  active?: string;
+  isFloatingSidebar?: boolean;
+  theme?: Theme;
+}) => {
   if (!active) {
     return '';
+  }
+  if (isFloatingSidebar) {
+    return css`
+      color: ${theme?.gray500};
+
+      &:active,
+      &:focus,
+      &:hover {
+        color: ${theme?.gray500};
+      }
+
+      &:before {
+        background-color: ${theme?.active};
+        top: 0;
+        left: -15px;
+        width: 5px;
+        height: 30px;
+        border-radius: 0 3px 3px 0;
+      }
+    `;
   }
   return css`
     color: ${theme?.white};
@@ -328,7 +376,7 @@ const StyledSidebarItem = styled(Link, {
 
   &:hover,
   &:focus-visible {
-    color: ${p => p.theme.white};
+    color: ${p => (p.isFloatingSidebar ? p.theme.gray500 : p.theme.white)};
   }
 
   &:focus {
