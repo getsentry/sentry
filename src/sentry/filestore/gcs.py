@@ -381,12 +381,12 @@ class GoogleCloudStorage(Storage):
         # for gets, sets, and deletes. This behavior has been preserved here.
         #
         # To implement a custom retry policy see `src/sentry/utils/retries.py` and the
-        # `GoogleCloudStorageReplayUploadPolicy` class.
+        # `GoogleCloudStorageWithReplayUploadPolicy` class.
         try_repeated(callable)
 
 
-class GoogleCloudStorageReplayUploadPolicy(GoogleCloudStorage):
-    """Replay upload-policy blob-storage class."""
+class GoogleCloudStorageWithReplayUploadPolicy(GoogleCloudStorage):
+    """Google cloud storage class with replay upload policy."""
 
     # "try_del" and "try_get" inherit the default behavior. We don't want to exponentially
     # wait in those contexts. We're maintaining the status-quo for now but in the future we
