@@ -45,6 +45,7 @@ manager.add(11, "elixir", "Elixir", "language")
 manager.add(12, "cfml", "CFML", "language")
 manager.add(13, "groovy", "Groovy", "language")
 manager.add(14, "csp", "CSP Reports", "language")
+manager.add(11, "powershell", "PowerShell", "language")
 
 # Frameworks
 manager.add(20, "flask", "Flask", "integration", prerequisite=["python"])

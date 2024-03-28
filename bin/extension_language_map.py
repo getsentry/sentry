@@ -51,6 +51,7 @@ languages = [
     "lua",
     "ocaml",
     "hcl",
+    "powershell",
 ]
 
 EXTENSION_LANGUAGE_MAP: dict[str, str] = {}
