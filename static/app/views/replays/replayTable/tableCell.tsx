@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import Avatar from 'sentry/components/avatar';
+import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {Button} from 'sentry/components/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import UserBadge from 'sentry/components/idBadge/userBadge';
 import Link from 'sentry/components/links/link';
 import ContextIcon from 'sentry/components/replays/contextIcon';
 import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
@@ -374,21 +374,25 @@ export function ReplayCell({
 
   return (
     <Item isWidget={isWidget} isReplayCell className={className}>
-      <UserBadge
-        avatarSize={24}
-        displayName={
-          replay.is_archived ? (
-            replay.user.display_name || t('Anonymous User')
-          ) : (
-            <MainLink to={detailsTab} onClick={trackNavigationEvent}>
-              {replay.user.display_name || t('Anonymous User')}
-            </MainLink>
-          )
-        }
-        user={getUserBadgeUser(replay)}
-        // this is the subheading for the avatar, so displayEmail in this case is a misnomer
-        displayEmail={subText}
-      />
+      <Row gap={1}>
+        <UserAvatar user={getUserBadgeUser(replay)} size={24} />
+        <SubText>
+          <Row gap={0.5}>
+            {replay.is_archived ? (
+              replay.user.display_name || t('Anonymous User')
+            ) : (
+              <MainLink
+                to={detailsTab}
+                onClick={trackNavigationEvent}
+                data-has-seen={replay.has_seen}
+              >
+                {replay.user.display_name || t('Anonymous User')}
+              </MainLink>
+            )}
+          </Row>
+          <Row gap={0.5}>{subText}</Row>
+        </SubText>
+      </Row>
     </Item>
   );
 }
@@ -417,6 +421,20 @@ const Row = styled('div')<{gap: ValidSize; minWidth?: number}>`
 
 const MainLink = styled(Link)`
   font-size: ${p => p.theme.fontSizeLarge};
+  line-height: normal;
+  ${p => p.theme.overflowEllipsis};
+
+  font-weight: bold;
+  &[data-has-seen='true'] {
+    font-weight: normal;
+  }
+`;
+
+const SubText = styled('div')`
+  font-size: 0.875em;
+  line-height: normal;
+  color: ${p => p.theme.gray300};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 export function TransactionCell({

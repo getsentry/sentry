@@ -41,6 +41,10 @@ export type ReplayRecord = {
    */
   finished_at: Date;
   /**
+   * Whether the currently authenticated user has seen this replay or not.
+   */
+  has_seen: boolean;
+  /**
    * The ID of the Replay instance
    */
   id: string;
@@ -120,6 +124,7 @@ export const REPLAY_LIST_FIELDS = [
   'count_rage_clicks',
   'duration',
   'finished_at',
+  // 'has_seen', // TODO(replay): Ask for this field when the backend starts to support it
   'id',
   'is_archived',
   'os.name',
@@ -139,6 +144,7 @@ export type ReplayListRecord = Pick<
   | 'count_rage_clicks'
   | 'duration'
   | 'finished_at'
+  | 'has_seen'
   | 'id'
   | 'is_archived'
   | 'os'
