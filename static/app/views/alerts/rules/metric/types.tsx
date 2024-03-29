@@ -85,6 +85,11 @@ export type SavedTrigger = Omit<UnsavedTrigger, 'actions'> & {
 
 export type Trigger = Partial<SavedTrigger> & UnsavedTrigger;
 
+export enum ActivationCondition {
+  RELEASE_CONDITION = 0,
+  DEPLOY_CONDITION = 1,
+}
+
 export type UnsavedMetricRule = {
   aggregate: string;
   dataset: Dataset;
@@ -96,6 +101,7 @@ export type UnsavedMetricRule = {
   thresholdType: AlertRuleThresholdType;
   timeWindow: TimeWindow;
   triggers: Trigger[];
+  activationConditions?: ActivationCondition[];
   comparisonDelta?: number | null;
   eventTypes?: EventTypes[];
   monitorType?: MonitorType;

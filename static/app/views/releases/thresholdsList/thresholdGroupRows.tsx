@@ -17,6 +17,7 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   ActionType,
+  ActivationCondition,
   AlertRuleThresholdType,
   AlertRuleTriggerType,
   Dataset,
@@ -232,6 +233,7 @@ export function ThresholdGroupRows({
       eventTypes: [EventTypes.ERROR],
       owner: null,
       queryType: MEPAlertsQueryType.ERROR,
+      activationConditions: [ActivationCondition.RELEASE_CONDITION],
     };
 
     let apiUrl = `/organizations/${organization.slug}/alert-rules/`;
