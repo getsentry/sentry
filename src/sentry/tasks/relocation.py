@@ -788,8 +788,12 @@ def validating_start(uuid: str) -> None:
         )
         # Check if the Google Cloud project's billing account is active
         if not is_billing_account_active(gcp_project_id()):
-            logger.error('Billing account for project is inactive.')
-            fail_relocation(relocation, OrderedTask.VALIDATING_START, 'Google Cloud project billing account is not active.')
+            logger.error("Billing account for project is inactive.")
+            fail_relocation(
+                relocation,
+                OrderedTask.VALIDATING_START,
+                "Google Cloud project billing account is not active.",
+            )
             return
 
         response = cb_client.create_build(project_id=gcp_project_id(), build=build)
