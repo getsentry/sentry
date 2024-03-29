@@ -94,6 +94,7 @@ Retrieve a collection of replays.
 | environment       | optional[string]              | -                                                      |
 | error_ids         | array[string]                 | -                                                      |
 | finished_at       | string                        | The **latest** timestamp received.                     |
+| has_seen          | bool                          | True if the authorized user has seen the replay.       |
 | id                | string                        | The ID of the Replay instance.                         |
 | is_archived       | bool                          | Whether the replay was deleted or not.                 |
 | os.name           | optional[string]              | -                                                      |
@@ -140,6 +141,7 @@ Retrieve a collection of replays.
         "environment": "production",
         "error_ids": ["7e07485f-12f9-416b-8b14-26260799b51f"],
         "finished_at": "2022-07-07T14:15:33.201019",
+        "has_seen": true,
         "id": "7e07485f-12f9-416b-8b14-26260799b51f",
         "is_archived": false,
         "os": {
@@ -206,6 +208,7 @@ Retrieve a single replay instance.
       "environment": "production",
       "error_ids": ["7e07485f-12f9-416b-8b14-26260799b51f"],
       "finished_at": "2022-07-07T14:15:33.201019",
+      "has_seen": false,
       "id": "7e07485f-12f9-416b-8b14-26260799b51f",
       "os": {
         "name": "iOS",
@@ -604,48 +607,6 @@ Retrieve a collection of click events associated with a replay.
       {
         "node_id": 339,
         "timestamp": 1681226444
-      }
-    ]
-  }
-  ```
-
-## Replays Viewed Status [/organizations/<organization_slug>/replays-viewed/]
-
-- Parameters
-
-  - project (optional, string)
-  - id (required, string) - The id(s) of the replay to retrieve. To specify multiple ids, use the format `?id=a&id=b ...`. A maximum of 100 id's can be specified.
-
-### Browse Replays Viewed Status [GET]
-
-Returns a collection of replay-ids and their viewed state. The user is targeted based on the authorization context. Replay-ids are specified in the URL parameters.
-Nonexistent ids will return `false`.
-
-**Attributes**
-
-| Column   | Type   | Description                                              |
-| -------- | ------ | -------------------------------------------------------- |
-| id       | string | A replay-id.                                             |
-| has_seen | bool   | Returns true if the authorized user has seen the replay. |
-
-- Request
-
-  - Headers
-
-    Cookie: \_ga=GA1.2.17576183...
-
-- Response 200
-
-  ```json
-  {
-    "data": [
-      {
-        "id": "81220fbf68494b30a5129ceb4cc5937d",
-        "has_seen": true
-      },
-      {
-        "id": "731c51a5f3954da68516229db9219be0",
-        "has_seen": false
       }
     ]
   }
