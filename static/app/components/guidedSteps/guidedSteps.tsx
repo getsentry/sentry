@@ -2,6 +2,7 @@ import {
   Children,
   createContext,
   isValidElement,
+  useCallback,
   useContext,
   useMemo,
   useState,
@@ -16,6 +17,7 @@ import {space} from 'sentry/styles/space';
 type GuidedStepsProps = {
   children: React.ReactElement<StepProps> | React.ReactElement<StepProps>[];
   className?: string;
+  onStepChange?: (step: number) => void;
 };
 
 interface GuidedStepsContextState {
@@ -57,9 +59,7 @@ function Step({
       <div>
         <StepHeading isActive={isActive}>
           {title}
-          {isCompleted && (
-            <StepDoneIcon data-test-id="step-done-icon" isActive={isActive} size="sm" />
-          )}
+          {isCompleted && <StepDoneIcon isActive={isActive} size="sm" />}
         </StepHeading>
         {isActive && <ChildrenWrapper isActive={isActive}>{children}</ChildrenWrapper>}
       </div>
@@ -104,7 +104,7 @@ function StepButtons() {
   );
 }
 
-export function GuidedSteps({className, children}: GuidedStepsProps) {
+export function GuidedSteps({className, children, onStepChange}: GuidedStepsProps) {
   const [currentStep, setCurrentStep] = useState<number>(() => {
     // If `isCompleted` has been passed in, we should start at the first incomplete step
     const firstIncompleteStepIndex = Children.toArray(children).findIndex(child =>
@@ -115,14 +115,21 @@ export function GuidedSteps({className, children}: GuidedStepsProps) {
   });
 
   const totalSteps = Children.count(children);
+  const handleSetCurrentStep = useCallback(
+    (step: number) => {
+      setCurrentStep(step);
+      onStepChange?.(step);
+    },
+    [onStepChange]
+  );
 
   const value = useMemo(
     () => ({
       currentStep,
-      setCurrentStep,
+      setCurrentStep: handleSetCurrentStep,
       totalSteps,
     }),
-    [currentStep, setCurrentStep, totalSteps]
+    [currentStep, handleSetCurrentStep, totalSteps]
   );
 
   return (
