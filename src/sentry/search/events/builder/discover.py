@@ -1380,7 +1380,7 @@ class BaseQueryBuilder:
 
         ie. any_user_display -> any(user_display)
         """
-        return self.function_alias_map[function.alias].field
+        return self.function_alias_map.get(function.alias, function.alias).field
 
     def get_snql_query(self) -> Request:
         self.validate_having_clause()
