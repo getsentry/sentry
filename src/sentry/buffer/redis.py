@@ -208,6 +208,33 @@ class RedisBuffer(Buffer):
             col: (int(results[i]) if results[i] is not None else 0) for i, col in enumerate(columns)
         }
 
+    def get_redis_connection(self, key: str) -> tuple[Any, bool] | None:
+        # TODO type RedisPipeline instead of using Any here
+        if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
+            conn = self.cluster
+        elif is_instance_rb_cluster(self.cluster, self.is_redis_cluster):
+            conn = self.cluster.get_local_client_for_key(key)
+        else:
+            raise AssertionError("unreachable")
+
+        pipe = conn.pipeline()
+        return (pipe, self.is_redis_cluster)
+
+    def push(self, key: str, value: tuple[int, int]) -> None:
+        pipe, _ = self.get_redis_connection(key)
+        pipe.rpush(key, value)
+        pipe.expire(key, self.expire_key)
+
+    def enqueue(
+        self,
+        model: type[models.Model],
+        filters: dict[str, models.Model | str | int],
+        value: tuple[int, int],
+    ) -> None:
+        key = self._make_key(model, filters)
+        pending_key = self._make_pending_key_from_key(key)
+        self.push(pending_key, value)
+
     def incr(
         self,
         model: type[models.Model],
@@ -226,19 +253,11 @@ class RedisBuffer(Buffer):
             - Perform a set on signal_only (only if True)
         - Add hashmap key to pending flushes
         """
-
         key = self._make_key(model, filters)
         pending_key = self._make_pending_key_from_key(key)
         # We can't use conn.map() due to wanting to support multiple pending
         # keys (one per Redis partition)
-        if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
-            conn = self.cluster
-        elif is_instance_rb_cluster(self.cluster, self.is_redis_cluster):
-            conn = self.cluster.get_local_client_for_key(key)
-        else:
-            raise AssertionError("unreachable")
-
-        pipe = conn.pipeline()
+        pipe, self.is_redis_cluster = self.get_redis_connection(key)
         pipe.hsetnx(key, "m", f"{model.__module__}.{model.__name__}")
         _validate_json_roundtrip(filters, model)
 
