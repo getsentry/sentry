@@ -236,8 +236,8 @@ export function Trace({
     loadedRef.current = true;
 
     if (!scrollQueueRef.current) {
-      if (search_state.query) {
-        onTraceSearch(treeRef.current, search_state.query, null);
+      if (searchStateRef.current.query) {
+        onTraceSearch(treeRef.current, searchStateRef.current.query, null);
       }
       return;
     }
@@ -291,8 +291,8 @@ export function Trace({
       manager.list?.scrollToRow(maybeNode.index, 'top');
       manager.scrollRowIntoViewHorizontally(maybeNode.node, 0, 12, 'exact');
 
-      if (search_state.query) {
-        onTraceSearch(treeRef.current, search_state.query, maybeNode.node);
+      if (searchStateRef.current.query) {
+        onTraceSearch(treeRef.current, searchStateRef.current.query, maybeNode.node);
       }
     });
   }, [
@@ -302,7 +302,6 @@ export function Trace({
     trace,
     trace_id,
     manager,
-    search_state.query,
     onTraceSearch,
     onRowClick,
     roving_dispatch,
@@ -310,7 +309,7 @@ export function Trace({
 
   const handleZoomIn = useCallback(
     (
-      event: React.MouseEvent,
+      event: React.MouseEvent<Element> | React.KeyboardEvent<Element>,
       node: TraceTreeNode<TraceTree.NodeValue>,
       value: boolean
     ) => {
@@ -329,10 +328,10 @@ export function Trace({
         .then(() => {
           setRender(a => (a + 1) % 2);
 
-          if (search_state.query) {
+          if (searchStateRef.current.query) {
             const previousNode =
               rovingTabIndexStateRef.current.node || searchStateRef.current.node;
-            onTraceSearch(treeRef.current, search_state.query, previousNode);
+            onTraceSearch(treeRef.current, searchStateRef.current.query, previousNode);
           }
           treePromiseStatusRef.current!.set(node, 'success');
         })
@@ -340,12 +339,12 @@ export function Trace({
           treePromiseStatusRef.current!.set(node, 'error');
         });
     },
-    [api, organization, search_state, onTraceSearch]
+    [api, organization, onTraceSearch]
   );
 
   const handleExpandNode = useCallback(
     (
-      event: React.MouseEvent<Element>,
+      event: React.MouseEvent<Element> | React.KeyboardEvent<Element>,
       node: TraceTreeNode<TraceTree.NodeValue>,
       value: boolean
     ) => {
@@ -354,13 +353,13 @@ export function Trace({
       treeRef.current.expand(node, value);
       setRender(a => (a + 1) % 2);
 
-      if (search_state.query) {
+      if (searchStateRef.current.query) {
         const previousNode =
           rovingTabIndexStateRef.current.node || searchStateRef.current.node;
-        onTraceSearch(treeRef.current, search_state.query, previousNode);
+        onTraceSearch(treeRef.current, searchStateRef.current.query, previousNode);
       }
     },
-    [search_state, onTraceSearch]
+    [onTraceSearch]
   );
 
   const onVirtulizedRowClick = useCallback(
@@ -381,8 +380,8 @@ export function Trace({
       onRowClick(node, event);
       roving_dispatch({type: 'set index', index, node});
 
-      if (search_state.resultsLookup.has(node)) {
-        const idx = search_state.resultsLookup.get(node)!;
+      if (searchStateRef.current.resultsLookup.has(node)) {
+        const idx = searchStateRef.current.resultsLookup.get(node)!;
 
         search_dispatch({
           type: 'set iterator index',
@@ -394,7 +393,7 @@ export function Trace({
         search_dispatch({type: 'clear iterator index'});
       }
     },
-    [roving_dispatch, onRowClick, search_state, search_dispatch, previouslyFocusedNodeRef]
+    [roving_dispatch, onRowClick, search_dispatch, previouslyFocusedNodeRef]
   );
 
   const onRowKeyDown = useCallback(
@@ -415,7 +414,11 @@ export function Trace({
           treeRef.current.list.length - 1
         );
         manager.scrollToRow(nextIndex);
-        roving_dispatch({type: 'set index', index: nextIndex, node});
+        roving_dispatch({
+          type: 'set index',
+          index: nextIndex,
+          node: treeRef.current.list[nextIndex],
+        });
 
         const nextNode = treeRef.current.list[nextIndex];
         const offset =
@@ -425,8 +428,8 @@ export function Trace({
           manager.scrollRowIntoViewHorizontally(trace.list[nextIndex], 0, offset);
         }
 
-        if (search_state.resultsLookup.has(trace.list[nextIndex])) {
-          const idx = search_state.resultsLookup.get(trace.list[nextIndex])!;
+        if (searchStateRef.current.resultsLookup.has(trace.list[nextIndex])) {
+          const idx = searchStateRef.current.resultsLookup.get(trace.list[nextIndex])!;
 
           search_dispatch({
             type: 'set iterator index',
@@ -438,8 +441,23 @@ export function Trace({
           search_dispatch({type: 'clear iterator index'});
         }
       }
+      if (event.key === 'ArrowLeft') {
+        if (node.zoomedIn) handleZoomIn(event, node, false);
+        if (node.expanded) handleExpandNode(event, node, false);
+      }
+      if (event.key === 'ArrowRight') {
+        if (!node.zoomedIn && node.canFetch) handleZoomIn(event, node, true);
+        if (!node.expanded) handleExpandNode(event, node, true);
+      }
     },
-    [manager, roving_dispatch, search_state, search_dispatch, trace.list]
+    [
+      manager,
+      roving_dispatch,
+      search_dispatch,
+      handleExpandNode,
+      handleZoomIn,
+      trace.list,
+    ]
   );
 
   // @TODO this is the implementation of infinite scroll. Once the user

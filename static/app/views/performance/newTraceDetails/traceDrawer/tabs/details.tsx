@@ -1,5 +1,3 @@
-import type {Location} from 'history';
-
 import type {Organization} from 'sentry/types';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/virtualizedViewManager';
 
@@ -24,12 +22,10 @@ import {TransactionNodeDetails} from '../details/transaction';
 export default function NodeDetail({
   node,
   organization,
-  location,
   manager,
   scrollToNode,
   onParentClick,
 }: {
-  location: Location;
   manager: VirtualizedViewManager;
   node: TraceTreeNode<TraceTree.NodeValue>;
   onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
@@ -42,7 +38,6 @@ export default function NodeDetail({
         node={node}
         organization={organization}
         onParentClick={onParentClick}
-        location={location}
         manager={manager}
         scrollToNode={scrollToNode}
       />
@@ -66,7 +61,6 @@ export default function NodeDetail({
         node={node}
         organization={organization}
         onParentClick={onParentClick}
-        location={location}
         scrollToNode={scrollToNode}
       />
     );

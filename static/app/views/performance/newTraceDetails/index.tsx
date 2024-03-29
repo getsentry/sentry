@@ -9,7 +9,6 @@ import {
 } from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 import * as qs from 'query-string';
 
 import Alert from 'sentry/components/alert';
@@ -88,14 +87,13 @@ function maybeFocusRow() {
 }
 
 export function TraceView() {
-  const location = useLocation();
   const organization = useOrganization();
   const params = useParams<{traceSlug?: string}>();
 
   const traceSlug = params.traceSlug?.trim() ?? '';
 
   const queryParams = useMemo(() => {
-    const normalizedParams = normalizeDateTimeParams(location.query, {
+    const normalizedParams = normalizeDateTimeParams(qs.parse(location.search), {
       allowAbsolutePageDatetime: true,
     });
     const start = decodeScalar(normalizedParams.start);
@@ -103,7 +101,7 @@ export function TraceView() {
     const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
 
     return {start, end, statsPeriod, useSpans: 1};
-  }, [location.query]);
+  }, []);
 
   const traceEventView = useMemo(() => {
     const {start, end, statsPeriod} = queryParams;
@@ -133,7 +131,6 @@ export function TraceView() {
           trace={trace.data ?? null}
           traceSlug={traceSlug}
           organization={organization}
-          location={location}
           traceEventView={traceEventView}
           metaResults={meta}
         />
@@ -148,7 +145,6 @@ const TRACE_TAB: TraceTabsReducerState['tabs'][0] = {
 const STATIC_DRAWER_TABS: TraceTabsReducerState['tabs'] = [TRACE_TAB];
 
 type TraceViewContentProps = {
-  location: Location;
   metaResults: UseApiQueryResult<TraceMeta | null, any>;
   organization: Organization;
   status: UseApiQueryResult<any, any>['status'];
@@ -416,6 +412,7 @@ function TraceViewContent(props: TraceViewContentProps) {
     searchDispatch({type: 'go to previous match'});
   }, []);
 
+  // This should be performed synchronously when reducer actions are dispatched
   useLayoutEffect(() => {
     if (searchState.node && typeof searchStateRef.current.resultIndex === 'number') {
       if (
@@ -425,6 +422,7 @@ function TraceViewContent(props: TraceViewContentProps) {
         return;
       }
 
+      onRowClick(searchState.node, null);
       viewManager.scrollToRow(searchStateRef.current.resultIndex);
 
       const offset =
@@ -443,20 +441,39 @@ function TraceViewContent(props: TraceViewContentProps) {
         );
       }
     }
-  }, [searchState.node, viewManager]);
+  }, [searchState.node, viewManager, onRowClick]);
 
-  const breadcrumbTransaction = useMemo(() => {
-    return {
-      project: rootEvent.data?.projectID ?? '',
-      name: rootEvent.data?.title ?? '',
-    };
-  }, [rootEvent.data]);
+  // This should be performed synchronously when reducer actions are dispatched
+  useLayoutEffect(() => {
+    if (
+      rovingTabIndexState.node &&
+      typeof rovingTabIndexStateRef.current.index === 'number'
+    ) {
+      if (previouslyScrolledToNodeRef.current === rovingTabIndexState.node) {
+        return;
+      }
 
-  const trackOpenInDiscover = useCallback(() => {
-    trackAnalytics('performance_views.trace_view.open_in_discover', {
-      organization: props.organization,
-    });
-  }, [props.organization]);
+      onRowClick(rovingTabIndexState.node, null);
+      viewManager.scrollToRow(rovingTabIndexStateRef.current.index);
+
+      const offset =
+        rovingTabIndexState.node.depth >=
+        (previouslyScrolledToNodeRef.current?.depth ?? 0)
+          ? viewManager.trace_physical_space.width / 2
+          : 0;
+
+      previouslyScrolledToNodeRef.current = rovingTabIndexState.node;
+
+      if (viewManager.isOutsideOfViewOnKeyDown(rovingTabIndexState.node, offset)) {
+        viewManager.scrollRowIntoViewHorizontally(
+          rovingTabIndexState.node,
+          0,
+          offset,
+          'measured'
+        );
+      }
+    }
+  }, [rovingTabIndexState.node, viewManager, onRowClick]);
 
   const syncQuery = useMemo(() => {
     return {search: searchState.query};
@@ -577,8 +594,6 @@ function TraceViewContent(props: TraceViewContentProps) {
     viewManager.resetZoom();
   }, [viewManager]);
 
-  const [dismiss, setDismissed] = useLocalStorageState('trace-view-dismissed', false);
-
   const onTabScrollToNode = useCallback(
     (node: TraceTreeNode<TraceTree.NodeValue>) => {
       scrollToNode(node).then(maybeNode => {
@@ -597,53 +612,14 @@ function TraceViewContent(props: TraceViewContentProps) {
 
   return (
     <TraceExternalLayout>
-      {dismiss ? null : (
-        <Alert
-          type="info"
-          system
-          trailingItems={
-            <Button
-              aria-label="dismiss"
-              priority="link"
-              size="xs"
-              icon={<IconClose />}
-              onClick={() => setDismissed(true)}
-            />
-          }
-        >
-          {tct(
-            'Events now provide richer context by linking directly inside traces. Read [why] we are doing this and what it enables.',
-            {
-              why: (
-                <a href="https://docs.sentry.io/product/sentry-basics/concepts/tracing/trace-view/">
-                  {t('why')}
-                </a>
-              ),
-            }
-          )}
-        </Alert>
-      )}
-      <Layout.Header>
-        <Layout.HeaderContent>
-          <Breadcrumb
-            organization={props.organization}
-            location={props.location}
-            transaction={breadcrumbTransaction}
-            traceSlug={props.traceSlug}
-          />
-        </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <ButtonBar gap={1}>
-            <DiscoverButton
-              size="sm"
-              to={props.traceEventView.getResultsViewUrlTarget(props.organization.slug)}
-              onClick={trackOpenInDiscover}
-            >
-              {t('Open in Discover')}
-            </DiscoverButton>
-          </ButtonBar>
-        </Layout.HeaderActions>
-      </Layout.Header>
+      <TraceUXChangeAlert />
+      <TraceMetadataHeader
+        organization={props.organization}
+        projectID={rootEvent?.data?.projectID ?? ''}
+        title={rootEvent?.data?.title ?? ''}
+        traceSlug={props.traceSlug}
+        traceEventView={props.traceEventView}
+      />
       <TraceInnerLayout>
         <TraceHeader
           tree={tree}
@@ -711,7 +687,6 @@ function TraceViewContent(props: TraceViewContentProps) {
             onDrawerResize={onDrawerResize}
             rootEventResults={rootEvent}
             organization={props.organization}
-            location={props.location}
             traces={props.trace}
             traceEventView={props.traceEventView}
           />
@@ -773,6 +748,89 @@ function useRootEvent(trace: TraceSplitResults<TraceFullDetailed> | null) {
       staleTime: 0,
       enabled: !!trace && !!root,
     }
+  );
+}
+
+interface TraceMetadataHeaderProps {
+  organization: Organization;
+  projectID: string;
+  title: string;
+  traceEventView: EventView;
+  traceSlug: string;
+}
+
+function TraceMetadataHeader(props: TraceMetadataHeaderProps) {
+  const location = useLocation();
+
+  const breadcrumbTransaction = useMemo(() => {
+    return {
+      project: props.projectID ?? '',
+      name: props.title ?? '',
+    };
+  }, [props.projectID, props.title]);
+
+  const trackOpenInDiscover = useCallback(() => {
+    trackAnalytics('performance_views.trace_view.open_in_discover', {
+      organization: props.organization,
+    });
+  }, [props.organization]);
+
+  return (
+    <Layout.Header>
+      <Layout.HeaderContent>
+        <Breadcrumb
+          organization={props.organization}
+          location={location}
+          transaction={breadcrumbTransaction}
+          traceSlug={props.traceSlug}
+        />
+      </Layout.HeaderContent>
+      <Layout.HeaderActions>
+        <ButtonBar gap={1}>
+          <DiscoverButton
+            size="sm"
+            to={props.traceEventView.getResultsViewUrlTarget(props.organization.slug)}
+            onClick={trackOpenInDiscover}
+          >
+            {t('Open in Discover')}
+          </DiscoverButton>
+        </ButtonBar>
+      </Layout.HeaderActions>
+    </Layout.Header>
+  );
+}
+
+function TraceUXChangeAlert() {
+  const [dismiss, setDismissed] = useLocalStorageState('trace-view-dismissed', false);
+  if (dismiss) {
+    return null;
+  }
+
+  return (
+    <Alert
+      type="info"
+      system
+      trailingItems={
+        <Button
+          aria-label="dismiss"
+          priority="link"
+          size="xs"
+          icon={<IconClose />}
+          onClick={() => setDismissed(true)}
+        />
+      }
+    >
+      {tct(
+        'Events now provide richer context by linking directly inside traces. Read [why] we are doing this and what it enables.',
+        {
+          why: (
+            <a href="https://docs.sentry.io/product/sentry-basics/concepts/tracing/trace-view/">
+              {t('why')}
+            </a>
+          ),
+        }
+      )}
+    </Alert>
   );
 }
 
