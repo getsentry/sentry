@@ -79,9 +79,9 @@ function ReplayOptionsMenu({
           title={t('Settings')}
           aria-label={t('Settings')}
           icon={<IconSettings size="sm" />}
-          disabled={disableSettings}
         />
       )}
+      disabled={disableSettings}
     >
       <CompositeSelect.Region
         label={t('Playback Speed')}
@@ -91,26 +91,21 @@ function ReplayOptionsMenu({
           label: `${option}x`,
           value: option,
         }))}
-        isOptionDisabled={() => {
-          return disableSettings;
-        }}
       />
-      {!disableSettings && (
-        <CompositeSelect.Region
-          aria-label={t('Fast-Forward Inactivity')}
-          multiple
-          value={isSkippingInactive ? [SKIP_OPTION_VALUE] : []}
-          onChange={opts => {
-            toggleSkipInactive(opts.length > 0);
-          }}
-          options={[
-            {
-              label: t('Fast-forward inactivity'),
-              value: SKIP_OPTION_VALUE,
-            },
-          ]}
-        />
-      )}
+      <CompositeSelect.Region
+        aria-label={t('Fast-Forward Inactivity')}
+        multiple
+        value={isSkippingInactive ? [SKIP_OPTION_VALUE] : []}
+        onChange={opts => {
+          toggleSkipInactive(opts.length > 0);
+        }}
+        options={[
+          {
+            label: t('Fast-forward inactivity'),
+            value: SKIP_OPTION_VALUE,
+          },
+        ]}
+      />
     </CompositeSelect>
   );
 }
