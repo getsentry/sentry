@@ -17,6 +17,7 @@ class TestMRIUtils(TestCase):
             format_mri_field("sum(c:custom/http.client.active_requests@{request})")
             == "sum(http.client.active_requests)"
         )
+        assert format_mri_field("sum(c:custom/foo...bar@{request})") == "sum(foo...bar)"
         assert format_mri_field("invalid_mri_field") == "invalid_mri_field"
         assert format_mri_field(cast(str, None)) is None
 
