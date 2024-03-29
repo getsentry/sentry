@@ -141,7 +141,7 @@ Retrieve a collection of replays.
         "environment": "production",
         "error_ids": ["7e07485f-12f9-416b-8b14-26260799b51f"],
         "finished_at": "2022-07-07T14:15:33.201019",
-        "has_seen": true,
+        "has_viewed": true,
         "id": "7e07485f-12f9-416b-8b14-26260799b51f",
         "is_archived": false,
         "os": {
@@ -208,7 +208,7 @@ Retrieve a single replay instance.
       "environment": "production",
       "error_ids": ["7e07485f-12f9-416b-8b14-26260799b51f"],
       "finished_at": "2022-07-07T14:15:33.201019",
-      "has_seen": false,
+      "has_viewed": false,
       "id": "7e07485f-12f9-416b-8b14-26260799b51f",
       "os": {
         "name": "iOS",
@@ -616,10 +616,10 @@ Retrieve a collection of click events associated with a replay.
 
 ### Fetch Replay Viewed By [GET]
 
-| Column  | Type        | Description                                        |
-| ------- | ----------- | -------------------------------------------------- |
-| id      | string      | A replay-id.                                       |
-| seen_by | array[User] | An array of user types who have viewed the replay. |
+| Column    | Type        | Description                                        |
+| --------- | ----------- | -------------------------------------------------- |
+| id        | string      | A replay-id.                                       |
+| viewed_by | array[User] | An array of user types who have viewed the replay. |
 
 - Response 200
 
@@ -627,7 +627,7 @@ Retrieve a collection of click events associated with a replay.
   {
     "data": {
       "id": "81220fbf68494b30a5129ceb4cc5937d",
-      "seen_by": [
+      "viewed_by": [
         {
           "id": "884411",
           "name": "some.body@sentry.io",
