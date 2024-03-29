@@ -1834,9 +1834,16 @@ def _create_group(project: Project, event: Event, **group_creation_kwargs: Any) 
     group_data.setdefault("metadata", {}).update(sdk_metadata_from_event(event))
 
     # add severity to metadata for alert filtering
-    group_type = group_creation_kwargs.get("type", None)
-    severity = _get_severity_metadata_for_group(event, project.id, group_type)
-    group_data["metadata"].update(severity)
+    try:
+        group_type = group_creation_kwargs.get("type", None)
+        severity = _get_severity_metadata_for_group(event, project.id, group_type)
+        group_data["metadata"].update(severity)
+    except Exception as e:
+        logger.exception(
+            "Failed to get severity metadata for group",
+            repr(e),
+            extra={"event_id": event.event_id},
+        )
 
     if features.has("projects:issue-priority", project, actor=None):
         # the kwargs only include priority for non-error issue platform events, which takes precedence.
