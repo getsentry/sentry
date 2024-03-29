@@ -103,24 +103,22 @@ def process_profile_task(
     sentry_sdk.set_tag("project", project.id)
     sentry_sdk.set_tag("project.slug", project.slug)
 
-    profile_metadata = {
+    profile_context = {
         "organization_id": profile["organization_id"],
         "project_id": profile["project_id"],
     }
 
     if "profile_id" in profile:
         profile["event_id"] = profile["profile_id"]
-        profile_metadata["profile_id"] = profile["profile_id"]
 
     if "event_id" in profile:
-        profile_metadata["profile_id"] = profile["event_id"]
-
-    if "chunk_id" in profile:
-        profile_metadata["chunk_id"] = profile["chunk_id"]
+        profile_context["profile_id"] = profile["event_id"]
+    elif "chunk_id" in profile:
+        profile_context["chunk_id"] = profile["chunk_id"]
 
     sentry_sdk.set_context(
-        "profile_metadata",
-        profile_metadata,
+        "profile",
+        profile_context,
     )
 
     sentry_sdk.set_tag("platform", profile["platform"])
