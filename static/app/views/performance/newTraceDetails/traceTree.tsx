@@ -1152,7 +1152,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
       clone = new SiblingAutogroupNode(this.parent, this.value, this.metadata);
       clone.groupCount = this.groupCount;
     } else if (isNoDataNode(this)) {
-      node = new NoDataNode(this.parent);
+      clone = new NoDataNode(this.parent);
     } else {
       clone = new TraceTreeNode(this.parent, this.value, this.metadata);
     }
