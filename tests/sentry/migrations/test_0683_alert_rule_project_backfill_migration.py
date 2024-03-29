@@ -35,7 +35,7 @@ class AlertRuleProjectBackfillTest(TestMigrations):
         self.alert_rule.subscribe_projects(projects=[self.project])
         self.query_subscription = self.snuba_query.subscriptions.get()
 
-        assert self.alert_rule.projects is None
+        assert not self.alert_rule.projects.exists()
         assert self.query_subscription.project == self.project
 
     def test(self):
