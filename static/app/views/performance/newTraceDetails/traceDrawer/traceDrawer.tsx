@@ -1,7 +1,6 @@
 import {useCallback, useMemo, useRef, useState} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 
 import {Button} from 'sentry/components/button';
 import {IconChevron, IconPanel, IconPin} from 'sentry/icons';
@@ -36,7 +35,6 @@ const MIN_TRACE_DRAWER_DIMENSTIONS: [number, number] = [480, 27];
 type TraceDrawerProps = {
   drawerSize: number;
   layout: 'drawer bottom' | 'drawer left' | 'drawer right';
-  location: Location;
   manager: VirtualizedViewManager;
   onDrawerResize: (size: number) => void;
   onLayoutChange: (layout: 'drawer bottom' | 'drawer left' | 'drawer right') => void;
@@ -301,7 +299,6 @@ export function TraceDrawer(props: TraceDrawerProps) {
                 tree={props.trace}
                 rootEventResults={props.rootEventResults}
                 organization={props.organization}
-                location={props.location}
                 traces={props.traces}
                 traceEventView={props.traceEventView}
               />
@@ -309,7 +306,6 @@ export function TraceDrawer(props: TraceDrawerProps) {
               <NodeDetail
                 node={props.tabs.current.node}
                 organization={props.organization}
-                location={props.location}
                 manager={props.manager}
                 scrollToNode={props.scrollToNode}
                 onParentClick={onParentClick}
