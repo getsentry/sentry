@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import type {AreaChartProps} from 'sentry/components/charts/areaChart';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import Grid from 'sentry/components/charts/components/grid';
-import {ChartTooltip} from 'sentry/components/charts/components/tooltip';
+import {computeChartTooltip} from 'sentry/components/charts/components/tooltip';
 import XAxis from 'sentry/components/charts/components/xAxis';
 import YAxis from 'sentry/components/charts/components/yAxis';
 import type {useReplayContext} from 'sentry/components/replays/replayContext';
@@ -48,23 +48,24 @@ export default function DomNodesChart({
       left: space(1),
       right: space(1),
     }),
-    tooltip: ChartTooltip({
-      appendToBody: true,
-      trigger: 'axis',
-      renderMode: 'html',
-      chartId: 'replay-dom-nodes-chart',
-      formatter: values => {
-        const firstValue = Array.isArray(values) ? values[0] : values;
-        const seriesTooltips = toArray(values).map(
-          value => `
+    tooltip: computeChartTooltip(
+      {
+        appendToBody: true,
+        trigger: 'axis',
+        renderMode: 'html',
+        chartId: 'replay-dom-nodes-chart',
+        formatter: values => {
+          const firstValue = Array.isArray(values) ? values[0] : values;
+          const seriesTooltips = toArray(values).map(
+            value => `
             <div>
               <span className="tooltip-label">${value.marker}<strong>${value.seriesName}</strong></span>
               ${value.data[1]}
             </div>
           `
-        );
+          );
 
-        return `
+          return `
           <div class="tooltip-series">${seriesTooltips.join('')}</div>
             <div class="tooltip-footer">
               ${t('Date: %s', getFormattedDate(startOffsetMs + firstValue.axisValue, 'MMM D, YYYY hh:mm:ss A z', {local: false}))}
@@ -74,8 +75,10 @@ export default function DomNodesChart({
             </div>
           <div class="tooltip-arrow"></div>
         `;
+        },
       },
-    }),
+      theme
+    ),
     xAxis: XAxis({
       type: 'time',
       axisLabel: {
