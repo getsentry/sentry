@@ -26,7 +26,7 @@ def circuit_breaker_activated(
     The circuit breaker can allow a certain number of requests to pass through per minute, defined by
     the passthrough limit if provided.
     """
-    failure_count = cache.get_or_set(ERROR_COUNT_CACHE_KEY(key), default=0, timeout=60 * 60)
+    failure_count = cache.get_or_set(ERROR_COUNT_CACHE_KEY(key), default=0, timeout=60 * 60) or 0
     if failure_count < error_limit:
         return False  # not blocked
 
