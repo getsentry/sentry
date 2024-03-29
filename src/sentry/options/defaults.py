@@ -778,8 +778,8 @@ register(
 
 register(
     "issues.severity.seer-circuit-breaker-passthrough-limit",
-    type=Sequence,
-    default=[1, 10],  # [failure_threshold, window_size]
+    type=Dict,
+    default={"limit": 1, "window": 10},
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 

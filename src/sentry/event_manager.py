@@ -116,7 +116,11 @@ from sentry.usage_accountant import record
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
-from sentry.utils.circuit_breaker import ERROR_COUNT_CACHE_KEY, circuit_breaker_activated
+from sentry.utils.circuit_breaker import (
+    ERROR_COUNT_CACHE_KEY,
+    CircuitBreakerPassthrough,
+    circuit_breaker_activated,
+)
 from sentry.utils.dates import to_datetime
 from sentry.utils.event import has_event_minified_stack_trace, has_stacktrace, is_handled
 from sentry.utils.eventuser import EventUser
@@ -2196,7 +2200,8 @@ def _get_severity_metadata_for_group(
         return {}
 
     passthrough_data = options.get(
-        "issues.severity.seer-circuit-breaker-passthrough-limit", [1, 10]
+        "issues.severity.seer-circuit-breaker-passthrough-limit",
+        CircuitBreakerPassthrough(limit=1, window=10),
     )
     if circuit_breaker_activated("sentry.seer.severity", passthrough_data=passthrough_data):
         logger.warning(
