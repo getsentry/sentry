@@ -53,8 +53,6 @@ class SentryAppSlugTests(TestCase, APIIdOrSlugTestMixin):
         _, converted_slugs = endpoint_class().convert_args(request=None, **slug_kwargs)
         _, converted_ids = endpoint_class().convert_args(request=None, **id_kwargs)
 
-        assert converted_slugs == converted_ids
-
         # Need to check if a RPC Sentry App is created instead of a Sentry App
         # Because we can't check for equality between the two, we check the ids
         self.assert_conversion(endpoint_class, converted_slugs, converted_ids, use_id=True)
