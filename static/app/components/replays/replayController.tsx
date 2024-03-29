@@ -20,7 +20,7 @@ const COMPACT_WIDTH_BREAKPOINT = 500;
 
 interface Props {
   toggleFullscreen: () => void;
-  hideFastForward?: boolean;
+  disableSettings?: boolean;
   speedOptions?: number[];
 }
 
@@ -62,9 +62,9 @@ function ReplayPlayPauseBar() {
 
 function ReplayOptionsMenu({
   speedOptions,
-  hideFastForward = false,
+  disableSettings,
 }: {
-  hideFastForward: boolean;
+  disableSettings: boolean;
   speedOptions: number[];
 }) {
   const {setSpeed, speed, isSkippingInactive, toggleSkipInactive} = useReplayContext();
@@ -81,6 +81,7 @@ function ReplayOptionsMenu({
           icon={<IconSettings size="sm" />}
         />
       )}
+      disabled={disableSettings}
     >
       <CompositeSelect.Region
         label={t('Playback Speed')}
@@ -91,29 +92,27 @@ function ReplayOptionsMenu({
           value: option,
         }))}
       />
-      {!hideFastForward && (
-        <CompositeSelect.Region
-          aria-label={t('Fast-Forward Inactivity')}
-          multiple
-          value={isSkippingInactive ? [SKIP_OPTION_VALUE] : []}
-          onChange={opts => {
-            toggleSkipInactive(opts.length > 0);
-          }}
-          options={[
-            {
-              label: t('Fast-forward inactivity'),
-              value: SKIP_OPTION_VALUE,
-            },
-          ]}
-        />
-      )}
+      <CompositeSelect.Region
+        aria-label={t('Fast-Forward Inactivity')}
+        multiple
+        value={isSkippingInactive ? [SKIP_OPTION_VALUE] : []}
+        onChange={opts => {
+          toggleSkipInactive(opts.length > 0);
+        }}
+        options={[
+          {
+            label: t('Fast-forward inactivity'),
+            value: SKIP_OPTION_VALUE,
+          },
+        ]}
+      />
     </CompositeSelect>
   );
 }
 
 function ReplayControls({
   toggleFullscreen,
-  hideFastForward = false,
+  disableSettings = false,
   speedOptions = [0.1, 0.25, 0.5, 1, 2, 4, 8, 16],
 }: Props) {
   const barRef = useRef<HTMLDivElement>(null);
@@ -141,7 +140,7 @@ function ReplayControls({
       <ButtonBar gap={1}>
         <ReplayOptionsMenu
           speedOptions={speedOptions}
-          hideFastForward={hideFastForward}
+          disableSettings={disableSettings}
         />
         <ReplayFullscreenButton toggleFullscreen={toggleFullscreen} />
       </ButtonBar>

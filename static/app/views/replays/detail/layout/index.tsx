@@ -45,7 +45,7 @@ function ReplayLayout({isVideoReplay = false}: {isVideoReplay?: boolean}) {
     <ErrorBoundary mini>
       <ReplayController
         toggleFullscreen={toggleFullscreen}
-        hideFastForward={isVideoReplay}
+        disableSettings={isVideoReplay}
       />
     </ErrorBoundary>
   );
