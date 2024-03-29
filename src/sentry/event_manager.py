@@ -2188,8 +2188,10 @@ def _get_severity_metadata_for_group(
     if not is_supported_platform or not is_error_group:
         return {}
 
-    passthrough_limit = options.get("issues.severity.seer-circuit-breaker-passthrough-limit", 1)
-    if circuit_breaker_activated("sentry.seer.severity", passthrough_limit=passthrough_limit):
+    passthrough_data = options.get(
+        "issues.severity.seer-circuit-breaker-passthrough-limit", [1, 10]
+    )
+    if circuit_breaker_activated("sentry.seer.severity", passthrough_data=passthrough_data):
         logger.warning(
             "get_severity_metadata_for_group.circuit_breaker_activated",
             extra={"event_id": event.event_id, "project_id": project_id},
