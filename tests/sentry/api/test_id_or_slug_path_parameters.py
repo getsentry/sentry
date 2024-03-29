@@ -18,6 +18,9 @@ from sentry.api.bases.organizationmember import OrganizationMemberEndpoint
 from sentry.api.bases.sentryapps import RegionSentryAppBaseEndpoint, SentryAppBaseEndpoint
 from sentry.api.endpoints.codeowners.external_actor.user_details import ExternalUserDetailsEndpoint
 from sentry.api.endpoints.integrations.sentry_apps import SentryInternalAppTokenDetailsEndpoint
+from sentry.api.endpoints.notifications.notification_actions_details import (
+    NotificationActionsDetailsEndpoint,
+)
 from sentry.api.endpoints.organization_code_mapping_codeowners import (
     OrganizationCodeMappingCodeOwnersEndpoint,
 )
@@ -26,6 +29,7 @@ from sentry.api.endpoints.organization_code_mapping_details import (
 )
 from sentry.api.endpoints.organization_dashboard_details import OrganizationDashboardDetailsEndpoint
 from sentry.api.endpoints.organization_search_details import OrganizationSearchDetailsEndpoint
+from sentry.incidents.endpoints.bases import OrganizationAlertRuleEndpoint
 from sentry.incidents.endpoints.organization_incident_comment_details import CommentDetailsEndpoint
 from sentry.incidents.models.incident import IncidentActivityType
 from sentry.models.repository import Repository
@@ -98,25 +102,27 @@ class APIIdOrSlugPathParamTest(BaseTestCase, TestCase):
         # Step 1: Add new endpoints to the registry
         # If a new `convert_args` method is created for an endpoint, add the endpoint to the registry and create/assign a test method
         self.convert_args_setup_registry: dict[Any, Callable] = {
-            Endpoint.convert_args: self.ignore_test,
             BaseView.convert_args: self.ignore_test,
+            CommentDetailsEndpoint.convert_args: self.comment_details_test,
             DocIntegrationBaseEndpoint.convert_args: self.doc_integration_test,
-            SentryAppBaseEndpoint.convert_args: self.sentry_app_test,
-            RegionSentryAppBaseEndpoint.convert_args: self.region_sentry_app_test,
-            SentryInternalAppTokenDetailsEndpoint.convert_args: self.sentry_app_token_test,
-            OrganizationEndpoint.convert_args: self.organization_test,
-            RegionOrganizationIntegrationBaseEndpoint.convert_args: self.region_organization_integration_test,
+            Endpoint.convert_args: self.ignore_test,
+            ExternalUserDetailsEndpoint.convert_args: self.external_user_details_test,
+            GroupEndpoint.convert_args: self.group_test,
+            IncidentEndpoint.convert_args: self.incident_test,
+            NotificationActionsDetailsEndpoint.convert_args: self.notification_actions_details_test,
+            OrganizationAlertRuleEndpoint.convert_args: self.organization_alert_rule_test,
             OrganizationCodeMappingCodeOwnersEndpoint.convert_args: self.organization_code_mapping_codeowners_test,
             OrganizationCodeMappingDetailsEndpoint.convert_args: self.organization_code_mapping_codeowners_test,
-            OrganizationSearchDetailsEndpoint.convert_args: self.organization_search_details_test,
+            OrganizationDashboardDetailsEndpoint.convert_args: self.organization_dashboard_details_test,
+            OrganizationEndpoint.convert_args: self.organization_test,
             OrganizationMemberEndpoint.convert_args: self.organization_member_test,
             OrganizationSCIMMemberDetails.convert_args: self.organization_member_test,
             OrganizationSCIMTeamDetails.convert_args: self.organization_team_test,
-            GroupEndpoint.convert_args: self.group_test,
-            ExternalUserDetailsEndpoint.convert_args: self.external_user_details_test,
-            OrganizationDashboardDetailsEndpoint.convert_args: self.organization_dashboard_details_test,
-            IncidentEndpoint.convert_args: self.incident_test,
-            CommentDetailsEndpoint.convert_args: self.comment_details_test,
+            OrganizationSearchDetailsEndpoint.convert_args: self.organization_search_details_test,
+            RegionOrganizationIntegrationBaseEndpoint.convert_args: self.region_organization_integration_test,
+            RegionSentryAppBaseEndpoint.convert_args: self.region_sentry_app_test,
+            SentryAppBaseEndpoint.convert_args: self.sentry_app_test,
+            SentryInternalAppTokenDetailsEndpoint.convert_args: self.sentry_app_token_test,
         }
 
         self.doc_integration = self.create_doc_integration()
@@ -563,7 +569,6 @@ class APIIdOrSlugPathParamTest(BaseTestCase, TestCase):
 
         non_slug_mappings: dict[str, Any] = {
             "incident_identifier": str(self.incident.id),
-            # "activity_id": self.incident_activity.id,
         }
 
         reverse_non_slug_mappings: dict[str, Any] = {
@@ -608,6 +613,85 @@ class APIIdOrSlugPathParamTest(BaseTestCase, TestCase):
         reverse_non_slug_mappings: dict[str, Any] = {
             "incident": self.incident,
             "activity": self.incident_activity,
+        }
+
+        _, converted_slugs = endpoint_class().convert_args(
+            request=request, **slug_kwargs, **non_slug_mappings
+        )
+        _, converted_ids = endpoint_class().convert_args(
+            request=request, **id_kwargs, **non_slug_mappings
+        )
+
+        self.assert_conversion(
+            endpoint_class, converted_slugs, converted_ids, reverse_non_slug_mappings
+        )
+
+    @patch("sentry.api.bases.organization.OrganizationEndpoint.check_object_permissions")
+    @patch("sentry.api.bases.organization.subdomain_is_region")
+    @override_options({"api.id-or-slug-enabled": True})
+    def notification_actions_details_test(self, endpoint_class, slug_params, *args):
+        slug_kwargs = {param: self.slug_mappings[param].slug for param in slug_params}
+        id_kwargs = {param: self.slug_mappings[param].id for param in slug_params}
+
+        request = MagicMock()
+        request.configure_mock(
+            **{
+                "access.has_scope.return_value": True,
+                "_access.organization": MagicMock(),
+                "user.is_authenticated": True,
+                "user.is_superuser": True,
+            }
+        )
+
+        notification_action = self.create_notification_action(
+            organization=self.organization, projects=[self.project]
+        )
+
+        non_slug_mappings: dict[str, Any] = {
+            "action_id": notification_action.id,
+        }
+
+        reverse_non_slug_mappings: dict[str, Any] = {
+            "action": notification_action,
+        }
+
+        _, converted_slugs = endpoint_class().convert_args(
+            request=request, **slug_kwargs, **non_slug_mappings
+        )
+        _, converted_ids = endpoint_class().convert_args(
+            request=request, **id_kwargs, **non_slug_mappings
+        )
+
+        self.assert_conversion(
+            endpoint_class, converted_slugs, converted_ids, reverse_non_slug_mappings
+        )
+
+    @patch("sentry.api.bases.organization.OrganizationEndpoint.check_object_permissions")
+    @patch("sentry.api.bases.organization.subdomain_is_region")
+    @with_feature("organizations:incidents")
+    @override_options({"api.id-or-slug-enabled": True})
+    def organization_alert_rule_test(self, endpoint_class, slug_params, *args):
+        slug_kwargs = {param: self.slug_mappings[param].slug for param in slug_params}
+        id_kwargs = {param: self.slug_mappings[param].id for param in slug_params}
+
+        request = MagicMock()
+        request.configure_mock(
+            **{
+                "access.has_project_access.return_value": True,
+                "_access.organization": MagicMock(),
+                "user.is_authenticated": True,
+                "user.is_superuser": True,
+            }
+        )
+
+        alert_rule = self.create_alert_rule(organization=self.organization, projects=[self.project])
+
+        non_slug_mappings: dict[str, Any] = {
+            "alert_rule_id": alert_rule.id,
+        }
+
+        reverse_non_slug_mappings: dict[str, Any] = {
+            "alert_rule": alert_rule,
         }
 
         _, converted_slugs = endpoint_class().convert_args(
