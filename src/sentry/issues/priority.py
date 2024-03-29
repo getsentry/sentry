@@ -18,6 +18,8 @@ from sentry.types.group import PriorityLevel
 if TYPE_CHECKING:
     from sentry.models.group import Group
 
+logger = logging.getLogger(__name__)
+
 
 class PriorityChangeReason(Enum):
     ESCALATING = "escalating"
@@ -30,7 +32,9 @@ PRIORITY_TO_GROUP_HISTORY_STATUS = {
     PriorityLevel.LOW: GroupHistoryStatus.PRIORITY_LOW,
 }
 
-logger = logging.getLogger(__name__)
+GROUP_HISTORY_STATUS_TO_PRIORITY = {
+    value: key for key, value in PRIORITY_TO_GROUP_HISTORY_STATUS.items()
+}
 
 
 def update_priority(
@@ -93,32 +97,28 @@ def get_priority_for_ongoing_group(group: Group) -> PriorityLevel | None:
     if not features.has("projects:issue-priority", group.project, actor=None):
         return None
 
-    previous_priority_history = (
-        GroupHistory.objects.filter(
-            group_id=group.id, status__in=PRIORITY_TO_GROUP_HISTORY_STATUS.values()
-        )
-        .order_by("-date_added")
-        .first()
-    )
+    previous_priority_history = GroupHistory.objects.filter(
+        group_id=group.id, status__in=PRIORITY_TO_GROUP_HISTORY_STATUS.values()
+    ).order_by("-date_added")
 
-    new_priority = (
-        [
-            priority
-            for priority, status in PRIORITY_TO_GROUP_HISTORY_STATUS.items()
-            if status == previous_priority_history.status
-        ][0]
-        if previous_priority_history
-        else get_initial_priority(group)
-    )
+    new_priority = None
+    if len(previous_priority_history) > 1:
+        # Skip the most recent history entry since that is the current state
+        previous_history = previous_priority_history[1].status
+        new_priority = GROUP_HISTORY_STATUS_TO_PRIORITY.get(previous_history, None)
+
+    if not new_priority:
+        # If we can't find a previous priority history entry, fall back to the initial priority
+        new_priority = get_initial_priority(group)
 
     if not new_priority:
         logger.error(
-            "Unable to determine previous priority value after transitioning group to ongoing",
+            "get_priority_for_ongoing_group.priority_not_found",
             extra={"group": group.id},
         )
         return None
 
-    return PriorityLevel(new_priority)
+    return new_priority
 
 
 def auto_update_priority(group: Group, reason: PriorityChangeReason) -> None:

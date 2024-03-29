@@ -12,13 +12,17 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.types.activity import ActivityType
-from sentry.types.group import PriorityLevel
+from sentry.types.group import GroupSubStatus, PriorityLevel
 
 
 @apply_feature_flag_on_cls("projects:issue-priority")
 class TestUpdatesPriority(TestCase):
     def assert_activity_grouphistory_set(self, group, priority, reason) -> None:
-        activity = Activity.objects.get(group=group, type=ActivityType.SET_PRIORITY.value)
+        activity = (
+            Activity.objects.filter(group=group, type=ActivityType.SET_PRIORITY.value)
+            .order_by("-datetime")
+            .first()
+        )
         assert activity.data == {
             "priority": priority.to_str(),
             "reason": reason.value,
@@ -77,15 +81,12 @@ class TestUpdatesPriority(TestCase):
 
     def test_updates_priority_ongoing(self) -> None:
         self.group = self.create_group(
-            status=GroupStatus.RESOLVED,
-            priority=PriorityLevel.MEDIUM,
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.NEW,
+            priority=PriorityLevel.LOW,
         )
-        GroupHistory.objects.create(
-            group=self.group,
-            organization_id=self.group.project.organization_id,
-            project_id=self.group.project_id,
-            status=GroupHistoryStatus.PRIORITY_LOW,
-        )
+        self.group.data.get("metadata", {})["initial_priority"] = PriorityLevel.LOW
+        auto_update_priority(self.group, PriorityChangeReason.ESCALATING)
         auto_update_priority(self.group, PriorityChangeReason.ONGOING)
         self.group.refresh_from_db()
 
@@ -96,9 +97,11 @@ class TestUpdatesPriority(TestCase):
 
     def test_updates_priority_ongoing_multiple_histories(self) -> None:
         self.group = self.create_group(
-            status=GroupStatus.RESOLVED,
-            priority=PriorityLevel.HIGH,
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.NEW,
+            priority=PriorityLevel.MEDIUM,
         )
+        self.group.data.get("metadata", {})["initial_priority"] = PriorityLevel.MEDIUM
         group_history_data = {
             "group": self.group,
             "organization_id": self.group.project.organization_id,
@@ -110,27 +113,28 @@ class TestUpdatesPriority(TestCase):
         )
         GroupHistory.objects.create(
             **group_history_data,
-            status=GroupHistoryStatus.PRIORITY_MEDIUM,
+            status=GroupHistoryStatus.PRIORITY_HIGH,
         )
         GroupHistory.objects.create(
             **group_history_data,
-            status=GroupHistoryStatus.PRIORITY_HIGH,
+            status=GroupHistoryStatus.PRIORITY_MEDIUM,
         )
+        auto_update_priority(self.group, PriorityChangeReason.ESCALATING)
         auto_update_priority(self.group, PriorityChangeReason.ONGOING)
-        assert self.group.priority == PriorityLevel.HIGH
-        assert not Activity.objects.filter(
+        assert self.group.priority == PriorityLevel.MEDIUM
+        assert Activity.objects.filter(
             group=self.group, type=ActivityType.SET_PRIORITY.value
         ).exists()
         assert (
-            GroupHistory.objects.filter(
-                group=self.group, status=GroupHistoryStatus.PRIORITY_HIGH
-            ).count()
-            == 1
+            GroupHistory.objects.filter(group=self.group).order_by("-date_added").first().status
+            == GroupHistoryStatus.PRIORITY_MEDIUM
         )
 
     def test_updates_priority_ongoing_no_history(self) -> None:
         self.group = self.create_group(
-            status=GroupStatus.RESOLVED,
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.ESCALATING,
+            priority=PriorityLevel.HIGH,
         )
         self.group.data.get("metadata", {})["initial_priority"] = PriorityLevel.MEDIUM
         self.group.save()
@@ -151,7 +155,7 @@ class TestUpdatesPriority(TestCase):
 
         auto_update_priority(self.group, PriorityChangeReason.ONGOING)
         mock_logger.assert_called_with(
-            "Unable to determine previous priority value after transitioning group to ongoing",
+            "get_priority_for_ongoing_group.priority_not_found",
             extra={"group": self.group.id},
         )
         assert not self.group.priority
