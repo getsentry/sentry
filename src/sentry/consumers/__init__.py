@@ -308,8 +308,8 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
             "ingest_profile": "performance",
         },
         "dlq_topic": Topic.INGEST_GENERIC_METRICS_DLQ,
-        "dlq_max_invalid_ratio": 0.01,
-        "dlq_max_consecutive_count": 1000,
+        "dlq_max_invalid_ratio": 1,
+        "dlq_max_consecutive_count": 10000000000000,
     },
     "generic-metrics-last-seen-updater": {
         "topic": Topic.SNUBA_GENERIC_METRICS,
