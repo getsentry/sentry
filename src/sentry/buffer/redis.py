@@ -208,7 +208,12 @@ class RedisBuffer(Buffer):
             col: (int(results[i]) if results[i] is not None else 0) for i, col in enumerate(columns)
         }
 
-    def get_redis_connection(self, key: str) -> tuple[Any, bool] | None:
+    def another_get(self, key: str):
+        """Needs a better name but I'm not entirely sure this is what was intended anyway"""
+        pipe = self.get_redis_connection(key)
+        return pipe.lrange(key, 0, -1)
+
+    def get_redis_connection(self, key: str) -> Any | None:
         # TODO type RedisPipeline instead of using Any here
         if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
             conn = self.cluster
@@ -218,12 +223,12 @@ class RedisBuffer(Buffer):
             raise AssertionError("unreachable")
 
         pipe = conn.pipeline()
-        return (pipe, self.is_redis_cluster)
+        return pipe
 
-    def push(self, key: str, value: tuple[int, int]) -> None:
-        pipe, _ = self.get_redis_connection(key)
+    def push(self, key: str, value: list[int, int] | int) -> None:
+        pipe = self.get_redis_connection(key)
         pipe.rpush(key, value)
-        pipe.expire(key, self.expire_key)
+        pipe.expire(key, self.key_expire)
 
     def enqueue(
         self,

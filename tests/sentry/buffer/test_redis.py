@@ -248,6 +248,33 @@ class TestRedisBuffer:
         # Make sure we didn't queue up more
         assert len(process_pending.apply_async.mock_calls) == 2
 
+    def test_enqueue(self):
+        PROJECT_ID_BUFFER_LIST_KEY = "project_id_buffer_list"
+        project_id = 1
+        project_id2 = 2
+        rule_id = 3
+        group_id = 4
+        event_id = 5
+
+        # store the project ids
+        self.buf.push(key=PROJECT_ID_BUFFER_LIST_KEY, value=project_id)
+        self.buf.push(key=PROJECT_ID_BUFFER_LIST_KEY, value=project_id2)
+        # {'project_id_buffer_list': [1 ,2]}
+        # ^ what I am guessing the data is supposed to look like
+
+        # store the rules and group per project
+        self.buf.enqueue(
+            model=Project, filters={id: project_id}, value={(rule_id, group_id): event_id}
+        )
+        # {pending_key: {(3, 4): 5}}
+
+        # project_ids = self.buf.another_get(PROJECT_ID_BUFFER_LIST_KEY)
+        # this just returns the pipeline idk why. get takes a name and a key and idk what to pass
+
+        # for proj_id in project_ids:
+        #         rule_group_pairs = self.buf.get(model=Project, columns=[group_id, event_id], filters={"id": proj_id})
+        #         print(rule_group_pairs)
+
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.base.Buffer.process")
     def test_process_uses_signal_only(self, process):
