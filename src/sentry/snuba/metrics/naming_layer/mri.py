@@ -69,7 +69,7 @@ def _build_namespace_regex() -> str:
 MRI_METRIC_TYPE_REGEX = r"(c|s|d|g|e)"
 MRI_NAMESPACE_REGEX = _build_namespace_regex()
 MRI_NAME_REGEX = r"([a-zA-Z0-9_]+(?:\.[a-zA-Z0-9_]+)*)"
-MRI_UNIT_REGEX = r"[\w.{}]*"
+MRI_UNIT_REGEX = r"[\s\S\r\n]*"
 MRI_SCHEMA_REGEX_STRING = rf"(?P<entity>{MRI_METRIC_TYPE_REGEX}):(?P<namespace>{MRI_NAMESPACE_REGEX})/(?P<name>{MRI_NAME_REGEX})@(?P<unit>{MRI_UNIT_REGEX})"
 MRI_SCHEMA_REGEX = re.compile(rf"^{MRI_SCHEMA_REGEX_STRING}$")
 MRI_EXPRESSION_REGEX = re.compile(rf"^{OP_REGEX}\(({MRI_SCHEMA_REGEX_STRING})\)$")
