@@ -384,7 +384,7 @@ export function ReplayCell({
               <MainLink
                 to={detailsTab}
                 onClick={trackNavigationEvent}
-                data-has-seen={replay.has_seen}
+                data-has-viewed={replay.has_viewed}
               >
                 {replay.user.display_name || t('Anonymous User')}
               </MainLink>
@@ -425,7 +425,7 @@ const MainLink = styled(Link)`
   ${p => p.theme.overflowEllipsis};
 
   font-weight: bold;
-  &[data-has-seen='true'] {
+  &[data-has-viewed='true'] {
     font-weight: normal;
   }
 `;

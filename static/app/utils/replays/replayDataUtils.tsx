@@ -6,7 +6,7 @@ import getMinMax from 'sentry/utils/getMinMax';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 const defaultValues = {
-  has_seen: false,
+  has_viewed: false,
 };
 
 export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {

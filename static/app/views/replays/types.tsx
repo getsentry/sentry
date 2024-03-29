@@ -124,7 +124,7 @@ export const REPLAY_LIST_FIELDS = [
   'count_rage_clicks',
   'duration',
   'finished_at',
-  // 'has_seen', // TODO(replay): Ask for this field when the backend starts to support it
+  // 'has_viewed', // TODO(replay): Ask for this field when the backend starts to support it
   'id',
   'is_archived',
   'os.name',
@@ -144,7 +144,7 @@ export type ReplayListRecord = Pick<
   | 'count_rage_clicks'
   | 'duration'
   | 'finished_at'
-  | 'has_seen'
+  | 'has_viewed'
   | 'id'
   | 'is_archived'
   | 'os'
