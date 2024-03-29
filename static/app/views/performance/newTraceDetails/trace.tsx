@@ -9,7 +9,7 @@ import * as qs from 'query-string';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Organization, PlatformKey, Project} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
 import type {
@@ -33,6 +33,7 @@ import type {
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
+  isNoDataNode,
   isParentAutogroupedNode,
   isSpanNode,
   isTraceErrorNode,
@@ -167,7 +168,7 @@ interface TraceProps {
   trace_id: string;
 }
 
-function Trace({
+export function Trace({
   trace,
   trace_id,
   roving_state,
@@ -235,8 +236,8 @@ function Trace({
     loadedRef.current = true;
 
     if (!scrollQueueRef.current) {
-      if (search_state.query) {
-        onTraceSearch(treeRef.current, search_state.query, null);
+      if (searchStateRef.current.query) {
+        onTraceSearch(treeRef.current, searchStateRef.current.query, null);
       }
       return;
     }
@@ -272,6 +273,7 @@ function Trace({
 
       if (!maybeNode) {
         Sentry.captureMessage('Failled to find and scroll to node in tree');
+        setRender(a => (a + 1) % 2);
         return;
       }
 
@@ -289,8 +291,8 @@ function Trace({
       manager.list?.scrollToRow(maybeNode.index, 'top');
       manager.scrollRowIntoViewHorizontally(maybeNode.node, 0, 12, 'exact');
 
-      if (search_state.query) {
-        onTraceSearch(treeRef.current, search_state.query, maybeNode.node);
+      if (searchStateRef.current.query) {
+        onTraceSearch(treeRef.current, searchStateRef.current.query, maybeNode.node);
       }
     });
   }, [
@@ -300,7 +302,6 @@ function Trace({
     trace,
     trace_id,
     manager,
-    search_state.query,
     onTraceSearch,
     onRowClick,
     roving_dispatch,
@@ -308,7 +309,7 @@ function Trace({
 
   const handleZoomIn = useCallback(
     (
-      event: React.MouseEvent,
+      event: React.MouseEvent<Element> | React.KeyboardEvent<Element>,
       node: TraceTreeNode<TraceTree.NodeValue>,
       value: boolean
     ) => {
@@ -327,10 +328,10 @@ function Trace({
         .then(() => {
           setRender(a => (a + 1) % 2);
 
-          if (search_state.query) {
+          if (searchStateRef.current.query) {
             const previousNode =
               rovingTabIndexStateRef.current.node || searchStateRef.current.node;
-            onTraceSearch(treeRef.current, search_state.query, previousNode);
+            onTraceSearch(treeRef.current, searchStateRef.current.query, previousNode);
           }
           treePromiseStatusRef.current!.set(node, 'success');
         })
@@ -338,12 +339,12 @@ function Trace({
           treePromiseStatusRef.current!.set(node, 'error');
         });
     },
-    [api, organization, search_state, onTraceSearch]
+    [api, organization, onTraceSearch]
   );
 
   const handleExpandNode = useCallback(
     (
-      event: React.MouseEvent<Element>,
+      event: React.MouseEvent<Element> | React.KeyboardEvent<Element>,
       node: TraceTreeNode<TraceTree.NodeValue>,
       value: boolean
     ) => {
@@ -352,13 +353,13 @@ function Trace({
       treeRef.current.expand(node, value);
       setRender(a => (a + 1) % 2);
 
-      if (search_state.query) {
+      if (searchStateRef.current.query) {
         const previousNode =
           rovingTabIndexStateRef.current.node || searchStateRef.current.node;
-        onTraceSearch(treeRef.current, search_state.query, previousNode);
+        onTraceSearch(treeRef.current, searchStateRef.current.query, previousNode);
       }
     },
-    [search_state, onTraceSearch]
+    [onTraceSearch]
   );
 
   const onVirtulizedRowClick = useCallback(
@@ -379,8 +380,8 @@ function Trace({
       onRowClick(node, event);
       roving_dispatch({type: 'set index', index, node});
 
-      if (search_state.resultsLookup.has(node)) {
-        const idx = search_state.resultsLookup.get(node)!;
+      if (searchStateRef.current.resultsLookup.has(node)) {
+        const idx = searchStateRef.current.resultsLookup.get(node)!;
 
         search_dispatch({
           type: 'set iterator index',
@@ -392,7 +393,7 @@ function Trace({
         search_dispatch({type: 'clear iterator index'});
       }
     },
-    [roving_dispatch, onRowClick, search_state, search_dispatch, previouslyFocusedNodeRef]
+    [roving_dispatch, onRowClick, search_dispatch, previouslyFocusedNodeRef]
   );
 
   const onRowKeyDown = useCallback(
@@ -413,7 +414,11 @@ function Trace({
           treeRef.current.list.length - 1
         );
         manager.scrollToRow(nextIndex);
-        roving_dispatch({type: 'set index', index: nextIndex, node});
+        roving_dispatch({
+          type: 'set index',
+          index: nextIndex,
+          node: treeRef.current.list[nextIndex],
+        });
 
         const nextNode = treeRef.current.list[nextIndex];
         const offset =
@@ -423,8 +428,8 @@ function Trace({
           manager.scrollRowIntoViewHorizontally(trace.list[nextIndex], 0, offset);
         }
 
-        if (search_state.resultsLookup.has(trace.list[nextIndex])) {
-          const idx = search_state.resultsLookup.get(trace.list[nextIndex])!;
+        if (searchStateRef.current.resultsLookup.has(trace.list[nextIndex])) {
+          const idx = searchStateRef.current.resultsLookup.get(trace.list[nextIndex])!;
 
           search_dispatch({
             type: 'set iterator index',
@@ -436,8 +441,23 @@ function Trace({
           search_dispatch({type: 'clear iterator index'});
         }
       }
+      if (event.key === 'ArrowLeft') {
+        if (node.zoomedIn) handleZoomIn(event, node, false);
+        if (node.expanded) handleExpandNode(event, node, false);
+      }
+      if (event.key === 'ArrowRight') {
+        if (!node.zoomedIn && node.canFetch) handleZoomIn(event, node, true);
+        if (!node.expanded) handleExpandNode(event, node, true);
+      }
     },
-    [manager, roving_dispatch, search_state, search_dispatch, trace.list]
+    [
+      manager,
+      roving_dispatch,
+      search_dispatch,
+      handleExpandNode,
+      handleZoomIn,
+      trace.list,
+    ]
   );
 
   // @TODO this is the implementation of infinite scroll. Once the user
@@ -627,8 +647,6 @@ function Trace({
   );
 }
 
-export default Trace;
-
 function RenderRow(props: {
   index: number;
   isSearchResult: boolean;
@@ -664,10 +682,6 @@ function RenderRow(props: {
   trace_id: string;
 }) {
   const virtualized_index = props.index - props.manager.start_virtualized_index;
-  if (!props.node.value) {
-    return null;
-  }
-
   const rowSearchClassName = `${props.isSearchResult ? 'SearchResult' : ''} ${props.searchResultsIteratorIndex === props.index ? 'Highlight' : ''}`;
 
   if (isAutogroupedNode(props.node)) {
@@ -1230,6 +1244,70 @@ function RenderRow(props: {
             ) : null}
           </InvisibleTraceBar>
         </div>
+      </div>
+    );
+  }
+
+  if (isNoDataNode(props.node)) {
+    return (
+      <div
+        key={props.index}
+        ref={r =>
+          props.tabIndex === props.index
+            ? maybeFocusRow(r, props.node, props.previouslyFocusedNodeRef)
+            : null
+        }
+        tabIndex={props.tabIndex === props.index ? 0 : -1}
+        className={`TraceRow ${rowSearchClassName}`}
+        onClick={e => props.onRowClick(e, props.index, props.node)}
+        onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
+        style={{
+          top: props.style.top,
+          height: props.style.height,
+        }}
+      >
+        <div
+          className="TraceLeftColumn"
+          ref={r =>
+            props.manager.registerColumnRef('list', r, virtualized_index, props.node)
+          }
+          style={{
+            width: props.manager.columns.list.width * 100 + '%',
+          }}
+        >
+          <div
+            className="TraceLeftColumnInner"
+            style={{
+              paddingLeft: props.node.depth * props.manager.row_depth_padding,
+            }}
+          >
+            <div className="TraceChildrenCountWrapper">
+              <Connectors node={props.node} manager={props.manager} />
+            </div>
+            <span className="TraceOperation">{t('Empty')}</span>
+            <strong className="TraceEmDash"> — </strong>
+            <span className="TraceDescription">
+              {tct('[type] did not report any span data', {
+                type: props.node.parent
+                  ? isTransactionNode(props.node.parent)
+                    ? 'Transaction'
+                    : isSpanNode(props.node.parent)
+                      ? 'Span'
+                      : ''
+                  : '',
+              })}
+            </span>
+          </div>
+        </div>
+        <div
+          ref={r =>
+            props.manager.registerColumnRef('span_list', r, virtualized_index, props.node)
+          }
+          className={`TraceRightColumn ${props.index % 2 === 0 ? 0 : 'Odd'}`}
+          style={{
+            width: props.manager.columns.span_list.width * 100 + '%',
+          }}
+        />
       </div>
     );
   }
@@ -2130,11 +2208,6 @@ const TraceStylingWrapper = styled('div')`
 
       > div {
         height: 100%;
-      }
-
-      .TraceError {
-        top: -1px;
-        transform: translate(-50%, 0);
       }
     }
 

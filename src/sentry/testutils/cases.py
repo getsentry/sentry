@@ -646,21 +646,16 @@ class PerformanceIssueTestCase(BaseTestCase):
                     perf_problem.fingerprint = fingerprint
             return perf_problems
 
-        with (
-            mock.patch(
-                "sentry.issues.ingest.send_issue_occurrence_to_eventstream",
-                side_effect=send_issue_occurrence_to_eventstream,
-            ) as mock_eventstream,
-            mock.patch(
-                "sentry.event_manager.detect_performance_problems",
-                side_effect=detect_performance_problems_interceptor,
-            ),
-            mock.patch.object(
-                issue_type, "noise_config", new=NoiseConfig(noise_limit, timedelta(minutes=1))
-            ),
-            override_options(
-                {"performance.issues.all.problem-detection": 1.0, detector_option: 1.0}
-            ),
+        with mock.patch(
+            "sentry.issues.ingest.send_issue_occurrence_to_eventstream",
+            side_effect=send_issue_occurrence_to_eventstream,
+        ) as mock_eventstream, mock.patch(
+            "sentry.event_manager.detect_performance_problems",
+            side_effect=detect_performance_problems_interceptor,
+        ), mock.patch.object(
+            issue_type, "noise_config", new=NoiseConfig(noise_limit, timedelta(minutes=1))
+        ), override_options(
+            {"performance.issues.all.problem-detection": 1.0, detector_option: 1.0}
         ):
             event = perf_event_manager.save(project_id)
             if mock_eventstream.call_args:
@@ -967,9 +962,9 @@ class DRFPermissionTestCase(TestCase):
         return drf_request
 
     def setUp(self):
-        self.superuser_user = self.create_user(is_superuser=True, is_staff=False)
+        self.superuser = self.create_user(is_superuser=True, is_staff=False)
         self.staff_user = self.create_user(is_staff=True, is_superuser=False)
-        self.superuser_request = self.make_request(user=self.superuser_user, is_superuser=True)
+        self.superuser_request = self.make_request(user=self.superuser, is_superuser=True)
         self.staff_request = self.make_request(user=self.staff_user, method="GET", is_staff=True)
 
 
@@ -3143,14 +3138,6 @@ class MonitorIngestTestCase(MonitorTestCase):
     """
 
     @property
-    def endpoint_with_org(self):
-        raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
-
-    @property
-    def dsn_auth_headers(self):
-        return {"HTTP_AUTHORIZATION": f"DSN {self.project_key.dsn_public}"}
-
-    @property
     def token_auth_headers(self):
         return {"HTTP_AUTHORIZATION": f"Bearer {self.token.token}"}
 
@@ -3168,17 +3155,6 @@ class MonitorIngestTestCase(MonitorTestCase):
             slug=sentry_app.slug, organization=self.organization
         )
         self.token = self.create_internal_integration_token(install=app, user=self.user)
-
-    def _get_path_functions(self):
-        # Monitor paths are supported both with an org slug and without.  We test both as long as we support both.
-        # Because removing old urls takes time and consideration of the cost of breaking lingering references, a
-        # decision to permanently remove either path schema is a TODO.
-        return (
-            lambda monitor_slug: reverse(self.endpoint, args=[monitor_slug]),
-            lambda monitor_slug: reverse(
-                self.endpoint_with_org, args=[self.organization.slug, monitor_slug]
-            ),
-        )
 
 
 class IntegratedApiTestCase(BaseTestCase):

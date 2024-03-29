@@ -11,6 +11,7 @@ import {lightTheme as theme} from 'sentry/utils/theme';
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
+  isNoDataNode,
   isParentAutogroupedNode,
   isSiblingAutogroupedNode,
   isSpanNode,
@@ -393,7 +394,11 @@ export class VirtualizedViewManager {
 
   registerIndicatorContainerRef(ref: HTMLElement | null) {
     if (ref) {
-      ref.style.width = this.columns.span_list.width * 100 + '%';
+      const correction =
+        (this.scrollbar_width / this.container_physical_space.width) *
+        this.columns.span_list.width;
+      ref.style.transform = `translateX(${-this.scrollbar_width}px)`;
+      ref.style.width = (this.columns.span_list.width - correction) * 100 + '%';
     }
     this.indicator_container = ref;
   }
@@ -612,7 +617,9 @@ export class VirtualizedViewManager {
 
     const max_distance = Math.max(Math.abs(distance_x), Math.abs(distance_width));
     const p = max_distance !== 0 ? Math.log10(max_distance) - 1 : 1;
-    const duration = 200 + 100 * Math.abs(p * p);
+    // We need to clamp the duration to prevent the animation from being too slow,
+    // sometimes the distances are very large as traces can be hours in duration
+    const duration = clamp(200 + 100 * Math.abs(p * p), 200, 600);
 
     const start = performance.now();
     const rafCallback = (now: number) => {
@@ -1068,6 +1075,7 @@ export class VirtualizedViewManager {
         const nextSegment = segments[segments.length - 1];
         if (
           nextSegment?.startsWith('span:') ||
+          nextSegment?.startsWith('empty:') ||
           nextSegment?.startsWith('ag:') ||
           nextSegment?.startsWith('ms:')
         ) {
@@ -1241,7 +1249,10 @@ export class VirtualizedViewManager {
       }px)`;
     }
     if (this.indicator_container) {
-      this.indicator_container.style.width = span_list_width * 100 + '%';
+      const correction =
+        (this.scrollbar_width / this.container_physical_space.width) * span_list_width;
+      this.indicator_container.style.transform = `translateX(${-this.scrollbar_width}px)`;
+      this.indicator_container.style.width = (span_list_width - correction) * 100 + '%';
     }
 
     for (let i = 0; i < this.columns.list.column_refs.length; i++) {
@@ -2031,6 +2042,10 @@ function findInTreeFromSegment(
 
     if (type === 'error' && isTraceErrorNode(node)) {
       return node.value.event_id === id;
+    }
+
+    if (type === 'empty' && isNoDataNode(node)) {
+      return true;
     }
 
     return false;

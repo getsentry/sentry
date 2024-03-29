@@ -1,6 +1,5 @@
 import {createRef, Fragment, useLayoutEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 import omit from 'lodash/omit';
 
 import {Button} from 'sentry/components/button';
@@ -51,6 +50,7 @@ import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
+import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import {CustomMetricsEventData} from 'sentry/views/metrics/customMetricsEventData';
@@ -201,21 +201,20 @@ function ReplaySection({
 }
 
 type TransactionDetailProps = {
-  location: Location;
   manager: VirtualizedViewManager;
   node: TraceTreeNode<TraceTree.Transaction>;
   onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   organization: Organization;
-  scrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
+  scrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>, force?: boolean) => void;
 };
 
 export function TransactionNodeDetails({
   node,
   organization,
-  location,
   scrollToNode,
   onParentClick,
 }: TransactionDetailProps) {
+  const location = useLocation();
   const {projects} = useProjects();
   const issues = useMemo(() => {
     return [...node.errors, ...node.performance_issues];
@@ -255,7 +254,7 @@ export function TransactionNodeDetails({
   const {start: startTimeWithLeadingZero, end: endTimeWithLeadingZero} =
     getFormattedTimeRangeWithLeadingAndTrailingZero(startTimestamp, endTimestamp);
 
-  const duration = (endTimestamp - startTimestamp) * node.multiplier;
+  const duration = endTimestamp - startTimestamp;
 
   const measurementNames = Object.keys(node.value.measurements ?? {})
     .filter(name => isCustomMeasurement(`measurements.${name}`))
@@ -289,7 +288,7 @@ export function TransactionNodeDetails({
           </div>
         </TraceDrawerComponents.Title>
         <TraceDrawerComponents.Actions>
-          <Button size="xs" onClick={_e => scrollToNode(node)}>
+          <Button size="xs" onClick={_e => scrollToNode(node, true)}>
             {t('Show in view')}
           </Button>
           <TraceDrawerComponents.EventDetailsLink
@@ -366,7 +365,9 @@ export function TransactionNodeDetails({
               {node.value.profile_id}
             </Row>
           ) : null}
-          <Row title="Duration">{`${Number(duration.toFixed(3)).toLocaleString()}ms`}</Row>
+          <Row title="Duration">
+            <TraceDrawerComponents.Duration duration={duration} baseline={undefined} />
+          </Row>
           <Row title="Date Range">
             {getDynamicText({
               fixed: 'Mar 19, 2021 11:06:27 AM UTC',
