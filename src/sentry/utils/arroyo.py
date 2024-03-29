@@ -65,6 +65,7 @@ class MetricsWrapper(Metrics):
             amount=value,
             tags=self.__merge_tags(tags),
             stacklevel=stacklevel + 1,
+            sample_rate=1,
         )
 
     def gauge(
@@ -79,6 +80,7 @@ class MetricsWrapper(Metrics):
             value=value,
             tags=self.__merge_tags(tags),
             stacklevel=stacklevel + 1,
+            sample_rate=1,
         )
 
     def timing(
@@ -93,6 +95,7 @@ class MetricsWrapper(Metrics):
             value=value,
             tags=self.__merge_tags(tags),
             stacklevel=stacklevel + 1,
+            sample_rate=1,
         )
 
 
