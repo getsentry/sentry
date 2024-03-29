@@ -49,7 +49,6 @@ export function OverviewTimeline({monitorList}: Props) {
       {
         query: {
           monitor: monitorList.map(m => m.id),
-          useGUIDs: true,
           ...selectionQuery,
           ...location.query,
         },

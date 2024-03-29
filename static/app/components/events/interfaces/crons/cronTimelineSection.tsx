@@ -59,7 +59,6 @@ export function CronTimelineSection({event, organization, project}: Props) {
         query: {
           until: Math.floor(end.getTime() / 1000),
           since: Math.floor(start.getTime() / 1000),
-          useGUIDs: true,
           monitor: monitorId,
           resolution: `${rollup}s`,
         },
