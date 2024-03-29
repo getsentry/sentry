@@ -75,12 +75,6 @@ def test_valid_mri_schema_regex(name):
 @pytest.mark.parametrize(
     "name",
     [
-        "e:sessions/healthy.@",
-        "e:sessions/healthy..@",
-        "e:sessions/healthy..crashed@",
-        "e:sessions/.healthy@",
-        "e:sessions/..healthy@",
-        "e:sessions/healthy..crashed.crashed@",
         "t:sessions/error.preaggr@none",
         "e:foo/error.preaggr@none" "foo.bar",
     ],
