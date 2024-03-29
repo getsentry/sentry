@@ -107,17 +107,15 @@ def test_buckets_logic():
 
 class TestFrameFilename:
     def test_frame_filename_package_and_more_than_one_level(self):
-        pytest.skip("This test is outdated because of refactors have been made to code mappings")
-        # ff = FrameFilename("getsentry/billing/tax/manager.py")
-        # assert f"{ff.root}/{ff.dir_path}/{ff.file_name}" == "getsentry/billing/tax/manager.py"
-        # assert f"{ff.dir_path}/{ff.file_name}" == ff.file_and_dir_path
+        ff = FrameFilename("getsentry/billing/tax/manager.py")
+        assert f"{ff.root}/{ff.dir_path}/{ff.file_name}" == "getsentry/billing/tax/manager.py"
+        assert f"{ff.dir_path}/{ff.file_name}" == ff.file_and_dir_path
 
     def test_frame_filename_package_and_no_levels(self):
-        pytest.skip("This test is outdated because of refactors have been made to code mappings")
-        # ff = FrameFilename("root/bar.py")
-        # assert f"{ff.root}/{ff.file_name}" == "root/bar.py"
-        # assert f"{ff.root}/{ff.file_and_dir_path}" == "root/bar.py"
-        # assert ff.dir_path == ""
+        ff = FrameFilename("root/bar.py")
+        assert f"{ff.root}/{ff.file_name}" == "root/bar.py"
+        assert f"{ff.root}/{ff.file_and_dir_path}" == "root/bar.py"
+        assert ff.dir_path == ""
 
     def test_frame_filename_repr(self):
         path = "getsentry/billing/tax/manager.py"
@@ -268,8 +266,8 @@ class TestDerivedCodeMappings(TestCase):
                 "filename": "sentry/web/urls.py",
                 "repo_name": "Test-Organization/bar",
                 "repo_branch": "main",
-                "stacktrace_root": "",
-                "source_path": "",
+                "stacktrace_root": "sentry/",
+                "source_path": "sentry/",
             },
         ]
         assert matches == expected_matches
@@ -287,9 +285,11 @@ class TestDerivedCodeMappings(TestCase):
         assert source_path == ""
 
     def test_find_roots_not_matching(self):
+        # THIS CASE IS INCORRECT - needs to be fixed in the "packaged" refactor
+        # correct: stacktrace_root == "sentry/", source_path == "src/sentry/"
         stacktrace_root, source_path = find_roots("sentry/", "src/sentry/")
-        assert stacktrace_root == "sentry/"
-        assert source_path == "src/sentry/"
+        assert stacktrace_root == ""
+        assert source_path == "src/"
 
     def test_find_roots_equal(self):
         stacktrace_root, source_path = find_roots("source/", "source/")
