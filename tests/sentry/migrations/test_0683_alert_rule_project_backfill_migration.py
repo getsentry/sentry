@@ -33,7 +33,7 @@ class AlertRuleProjectBackfillTest(TestMigrations):
 
         # creates a QuerySubscription for the alertrule and project
         self.alert_rule.subscribe_projects(projects=[self.project])
-        self.query_subscription = self.snuba_query.query_subscriptions.get()
+        self.query_subscription = self.snuba_query.subscriptions.get()
 
         assert self.alert_rule.projects is None
         assert self.query_subscription.project == self.project
