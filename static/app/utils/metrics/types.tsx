@@ -27,34 +27,46 @@ export interface MetricsQuery {
   query?: string;
 }
 
-export enum MetricQueryType {
+export enum MetricExpressionType {
   QUERY = 1,
-  FORMULA = 2,
+  EQUATION = 2,
 }
 
 export interface BaseWidgetParams {
   displayType: MetricDisplayType;
   id: number;
   isHidden: boolean;
-  type: MetricQueryType;
+  type: MetricExpressionType;
   focusedSeries?: FocusedMetricsSeries[];
   sort?: SortState;
 }
 
-export interface MetricQueryWidgetParams extends BaseWidgetParams, MetricsQuery {
-  type: MetricQueryType.QUERY;
+export interface MetricsQueryWidget extends BaseWidgetParams, MetricsQuery {
+  type: MetricExpressionType.QUERY;
   powerUserMode?: boolean;
 }
 
-export interface MetricFormulaWidgetParams extends BaseWidgetParams {
+export interface MetricsEquationWidget extends BaseWidgetParams {
   formula: string;
-  type: MetricQueryType.FORMULA;
+  type: MetricExpressionType.EQUATION;
 }
 
-export type MetricWidgetQueryParams = MetricQueryWidgetParams | MetricFormulaWidgetParams;
+export type MetricsWidget = MetricsQueryWidget | MetricsEquationWidget;
+
+export function isMetricsEquationWidget(
+  widget: MetricsWidget
+): widget is MetricsEquationWidget {
+  return widget.type === MetricExpressionType.EQUATION;
+}
+
+export function isMetricsQueryWidget(
+  widget: MetricsWidget
+): widget is MetricsQueryWidget {
+  return widget.type === MetricExpressionType.QUERY;
+}
 
 export interface MetricsQueryParams {
-  widgets: string; // stringified json representation of MetricWidgetQueryParams
+  widgets: string; // stringified json representation of MetricsWidget
   end?: DateString;
   environment?: string[];
   project?: number[];

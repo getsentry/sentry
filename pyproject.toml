@@ -18,7 +18,7 @@ skip = "migrations"
 python_files = "test_*.py sentry/testutils/*"
 # note: When updating the traceback format, make sure to update .github/pytest.json
 # We don't use the celery pytest plugin.
-addopts = "-ra --tb=short --strict-markers -p no:celery --nomigrations"
+addopts = "--tb=short -p no:celery --nomigrations"
 # TODO: --import-mode=importlib will become the default soon,
 # currently we have a few relative imports that don't work with that.
 markers = [

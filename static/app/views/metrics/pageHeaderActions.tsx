@@ -18,7 +18,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isCustomMeasurement} from 'sentry/utils/metrics';
 import {MRIToField} from 'sentry/utils/metrics/mri';
-import {MetricQueryType, type MetricQueryWidgetParams} from 'sentry/utils/metrics/types';
+import {MetricExpressionType, type MetricsQueryWidget} from 'sentry/utils/metrics/types';
 import {middleEllipsis} from 'sentry/utils/middleEllipsis';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
@@ -110,8 +110,8 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
     () =>
       widgets
         .filter(
-          (query): query is MetricQueryWidgetParams =>
-            query.type === MetricQueryType.QUERY
+          (query): query is MetricsQueryWidget =>
+            query.type === MetricExpressionType.QUERY
         )
         .map((widget, index) => {
           const createAlert = getCreateAlert(organization, {

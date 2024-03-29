@@ -266,6 +266,12 @@ register(
 
 # Staff
 register(
+    "staff.ga-rollout",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "staff.user-email-allowlist",
     type=Sequence,
     default=[],
@@ -306,8 +312,11 @@ register(
 # Filestore (default)
 register("filestore.backend", default="filesystem", flags=FLAG_NOSTORE)
 register("filestore.options", default={"location": "/tmp/sentry-files"}, flags=FLAG_NOSTORE)
+register("filestore.relocation-backend", default="filesystem", flags=FLAG_NOSTORE)
 register(
-    "filestore.relocation", default={"location": "/tmp/sentry-relocation-files"}, flags=FLAG_NOSTORE
+    "filestore.relocation-options",
+    default={"location": "/tmp/sentry-relocation-files"},
+    flags=FLAG_NOSTORE,
 )
 
 # Filestore for control silo
@@ -419,6 +428,20 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Produce feedback to the new ingest-feedback-events topic, rather than ingest-events
+register(
+    "feedback.ingest-topic.rollout-rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# React concurrent renderer
+register(
+    "organizations:react-concurrent-renderer-enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Analytics
@@ -736,6 +759,27 @@ register(
     "issues.severity.first-event-severity-calculation-projects-allowlist",
     type=Sequence,
     default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.severity.seer-project-rate-limit",
+    type=Int,
+    default=5,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.severity.seer-global-rate-limit",
+    type=Int,
+    default=25,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.severity.seer-timout",
+    type=Float,
+    default=0.2,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2210,13 +2254,6 @@ register(
 # Sample rate for double writing to experimental dsn
 register(
     "store.experimental-dsn-double-write.sample-rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# sample rate for pickle error collection
-register(
-    "pickle.send-error-to-sentry",
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

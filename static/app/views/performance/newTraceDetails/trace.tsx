@@ -2082,6 +2082,7 @@ const TraceStylingWrapper = styled('div')`
     overflow: hidden;
     will-change: width;
     box-shadow: inset 1px 0 0px 0px transparent;
+    cursor: pointer;
 
     .TraceLeftColumnInner {
       height: 100%;
