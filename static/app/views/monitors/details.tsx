@@ -46,7 +46,9 @@ function MonitorDetails({params, location}: Props) {
     organization,
     params.projectId,
     params.monitorSlug,
-    {...location.query}
+    {
+      environment: location.query.environment,
+    }
   );
 
   const {data: monitor} = useApiQuery<Monitor>(queryKey, {
