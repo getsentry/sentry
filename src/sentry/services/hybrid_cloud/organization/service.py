@@ -97,6 +97,20 @@ class OrganizationService(RpcService):
         RpcOrganizationSummary instead of org contexts
         """
 
+    @regional_rpc_method(resolve=ByOrganizationSlug(), return_none_if_mapping_not_found=True)
+    @abstractmethod
+    def get_org_by_id(
+        self,
+        *,
+        id: int,
+        user_id: int | None = None,
+    ) -> RpcOrganizationSummary | None:
+        """
+        Fetches the organization, by an organization id. If user_id is passed, it will enforce visibility
+        rules. This method is differentiated from get_organization_by_id by not being cached and returning
+        RpcOrganizationSummary instead of org contexts
+        """
+
     @regional_rpc_method(resolve=ByRegionName())
     @abstractmethod
     def get_organizations_by_user_and_scope(
