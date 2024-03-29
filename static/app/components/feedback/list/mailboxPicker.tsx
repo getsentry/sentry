@@ -43,7 +43,7 @@ export default function MailboxPicker({onChange, value}: Props) {
           const title =
             count === 1 ? t('1 unassigned item') : t('%s unassigned items', display);
           return (
-            <SegmentedControl.Item key={c.key}>
+            <SegmentedControl.Item key={c.key} aria-label={c.label}>
               <Tooltip disabled={!count} title={title}>
                 <Flex align="center">
                   {c.label}
