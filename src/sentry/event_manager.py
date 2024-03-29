@@ -2241,7 +2241,7 @@ def _get_severity_metadata_for_group(
         }
     except Exception as e:
         logger.warning("Failed to calculate severity score for group", repr(e))
-        cache.incr(SEER_ERROR_COUNT_KEY)
+        update_severity_error_count()
         return {}
 
 
@@ -2283,6 +2283,17 @@ def _get_priority_for_group(severity: Mapping[str, Any], kwargs: Mapping[str, An
         )
 
         return PriorityLevel.MEDIUM
+
+
+def update_severity_error_count(reset=False) -> None:
+    if reset:
+        cache.set(SEER_ERROR_COUNT_KEY, 0, timeout=60 * 60)
+        return
+
+    try:
+        cache.incr(SEER_ERROR_COUNT_KEY)
+    except ValueError:
+        cache.set(SEER_ERROR_COUNT_KEY, 1, timeout=60 * 60)
 
 
 def _get_severity_score(event: Event) -> tuple[float, str]:
@@ -2370,7 +2381,7 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
                 extra=logger_data,
             )
             reason = "microservice_max_retry"
-            cache.incr(SEER_ERROR_COUNT_KEY)
+            update_severity_error_count()
         except Exception as e:
             logger.warning(
                 "Unable to get severity score from microservice. Got: %s.",
@@ -2378,7 +2389,7 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
                 extra=logger_data,
             )
             reason = "microservice_error"
-            cache.incr(SEER_ERROR_COUNT_KEY)
+            update_severity_error_count()
         else:
             logger.info(
                 "Got severity score of %s for event %s",
@@ -2386,7 +2397,7 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
                 event.data["event_id"],
                 extra=logger_data,
             )
-            cache.set(SEER_ERROR_COUNT_KEY, 0, timeout=60 * 60)
+            update_severity_error_count(reset=True)
 
     return severity, reason
 
