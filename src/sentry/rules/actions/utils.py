@@ -31,8 +31,8 @@ def check_value_changed(
 
 
 def generate_diff_labels(
-    prior_state: DefaultDict[str, dict[str, str | int]],
-    present_state: DefaultDict[str, dict[str, str | int]],
+    prior_state: dict[str, dict[str, str | int]],
+    present_state: dict[str, dict[str, str | int]],
     rule: Rule,
     key: str,
 ) -> DefaultDict[str, list[str]]:
@@ -79,10 +79,10 @@ def get_frequency_label(value_str: str | None) -> str | None:
     return None
 
 
-def convert_data(data: list[dict[str, Any]]) -> DefaultDict[str, dict[str, str | int]]:
-    converted_data: DefaultDict[str, dict[str, str | int]] = defaultdict(dict)
+def convert_data(data: list[dict[str, str | int]]) -> dict[str, dict[str, str | int]]:
+    converted_data: dict[str, dict] = {}
     for datum in data:
-        converted_data[datum.get("id")] = datum
+        converted_data[str(datum.get("id"))] = datum
 
     return converted_data
 
