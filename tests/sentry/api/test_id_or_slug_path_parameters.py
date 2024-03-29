@@ -1,7 +1,7 @@
 import re
 from collections.abc import Callable, Generator
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.test import TestCase
 from django.urls import URLPattern, URLResolver
@@ -11,6 +11,7 @@ from rest_framework.request import Request
 from sentry.api.base import Endpoint
 from sentry.api.bases.doc_integrations import DocIntegrationBaseEndpoint
 from sentry.api.bases.group import GroupEndpoint
+from sentry.api.bases.incident import IncidentEndpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.bases.organization_integrations import RegionOrganizationIntegrationBaseEndpoint
 from sentry.api.bases.organizationmember import OrganizationMemberEndpoint
@@ -25,10 +26,13 @@ from sentry.api.endpoints.organization_code_mapping_details import (
 )
 from sentry.api.endpoints.organization_dashboard_details import OrganizationDashboardDetailsEndpoint
 from sentry.api.endpoints.organization_search_details import OrganizationSearchDetailsEndpoint
+from sentry.incidents.endpoints.organization_incident_comment_details import CommentDetailsEndpoint
+from sentry.incidents.models.incident import IncidentActivityType
 from sentry.models.repository import Repository
 from sentry.scim.endpoints.members import OrganizationSCIMMemberDetails
 from sentry.scim.endpoints.teams import OrganizationSCIMTeamDetails
 from sentry.testutils.cases import BaseTestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import no_silo_test
 from sentry.web.frontend.base import BaseView
@@ -111,6 +115,8 @@ class APIIdOrSlugPathParamTest(BaseTestCase, TestCase):
             GroupEndpoint.convert_args: self.group_test,
             ExternalUserDetailsEndpoint.convert_args: self.external_user_details_test,
             OrganizationDashboardDetailsEndpoint.convert_args: self.organization_dashboard_details_test,
+            IncidentEndpoint.convert_args: self.incident_test,
+            CommentDetailsEndpoint.convert_args: self.comment_details_test,
         }
 
         self.doc_integration = self.create_doc_integration()
@@ -120,6 +126,9 @@ class APIIdOrSlugPathParamTest(BaseTestCase, TestCase):
         self.project = self.create_project(organization=self.organization)
         self.group = self.create_group(project=self.project)
         self.incident = self.create_incident(organization=self.organization)
+        self.incident_activity = self.create_incident_activity(
+            incident=self.incident, type=IncidentActivityType.COMMENT.value, user_id=self.user.id
+        )
 
         self.repo = Repository.objects.create(
             name="example", organization_id=self.organization.id, integration_id=self.integration.id
@@ -533,6 +542,84 @@ class APIIdOrSlugPathParamTest(BaseTestCase, TestCase):
         converted_ids.pop("dashboard")
 
         self.assert_conversion(endpoint_class, converted_slugs, converted_ids)
+
+    @patch("sentry.api.bases.organization.OrganizationEndpoint.check_object_permissions")
+    @patch("sentry.api.bases.organization.subdomain_is_region")
+    @with_feature("organizations:incidents")
+    @override_options({"api.id-or-slug-enabled": True})
+    def incident_test(self, endpoint_class, slug_params, *args):
+        slug_kwargs = {param: self.slug_mappings[param].slug for param in slug_params}
+        id_kwargs = {param: self.slug_mappings[param].id for param in slug_params}
+
+        request = MagicMock()
+        request.configure_mock(
+            **{
+                "access.has_project_access.return_value": True,
+                "_access.organization": MagicMock(),
+                "user.is_authenticated": True,
+                "user.id": self.user.id,
+            }
+        )
+
+        non_slug_mappings: dict[str, Any] = {
+            "incident_identifier": str(self.incident.id),
+            # "activity_id": self.incident_activity.id,
+        }
+
+        reverse_non_slug_mappings: dict[str, Any] = {
+            "incident": self.incident,
+            # "activity": self.incident_activity,
+        }
+
+        _, converted_slugs = endpoint_class().convert_args(
+            request=request, **slug_kwargs, **non_slug_mappings
+        )
+        _, converted_ids = endpoint_class().convert_args(
+            request=request, **id_kwargs, **non_slug_mappings
+        )
+
+        self.assert_conversion(
+            endpoint_class, converted_slugs, converted_ids, reverse_non_slug_mappings
+        )
+
+    @patch("sentry.api.bases.organization.OrganizationEndpoint.check_object_permissions")
+    @patch("sentry.api.bases.organization.subdomain_is_region")
+    @with_feature("organizations:incidents")
+    @override_options({"api.id-or-slug-enabled": True})
+    def comment_details_test(self, endpoint_class, slug_params, *args):
+        slug_kwargs = {param: self.slug_mappings[param].slug for param in slug_params}
+        id_kwargs = {param: self.slug_mappings[param].id for param in slug_params}
+
+        request = MagicMock()
+        request.configure_mock(
+            **{
+                "access.has_project_access.return_value": True,
+                "_access.organization": MagicMock(),
+                "user.is_authenticated": True,
+                "user.is_superuser": True,
+            }
+        )
+
+        non_slug_mappings: dict[str, Any] = {
+            "incident_identifier": str(self.incident.id),
+            "activity_id": self.incident_activity.id,
+        }
+
+        reverse_non_slug_mappings: dict[str, Any] = {
+            "incident": self.incident,
+            "activity": self.incident_activity,
+        }
+
+        _, converted_slugs = endpoint_class().convert_args(
+            request=request, **slug_kwargs, **non_slug_mappings
+        )
+        _, converted_ids = endpoint_class().convert_args(
+            request=request, **id_kwargs, **non_slug_mappings
+        )
+
+        self.assert_conversion(
+            endpoint_class, converted_slugs, converted_ids, reverse_non_slug_mappings
+        )
 
     def test_if_endpoints_work_with_id_or_slug(self):
         """
