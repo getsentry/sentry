@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
@@ -55,31 +55,36 @@ export default function MemoryPanel() {
         )}
       />
     ) : (
-      <MemoryChart
-        currentHoverTime={currentHoverTime}
-        currentTime={currentTime}
-        durationMs={replay.getDurationMs()}
-        memoryFrames={memoryFrames}
-        setCurrentHoverTime={setCurrentHoverTime}
-        setCurrentTime={setCurrentTime}
-        startOffsetMs={replay.getStartOffsetMs()}
-      />
+      <Fragment>
+        <ChartTitle>{t('Heap Size')}</ChartTitle>
+        <MemoryChart
+          currentHoverTime={currentHoverTime}
+          currentTime={currentTime}
+          durationMs={replay.getDurationMs()}
+          memoryFrames={memoryFrames}
+          setCurrentHoverTime={setCurrentHoverTime}
+          setCurrentTime={setCurrentTime}
+          startTimestampMs={replay.getStartTimestampMs()}
+        />
+      </Fragment>
     );
 
   const domNodesChart =
     !replay || isFetching ? (
       <Placeholder height="100%" />
     ) : (
-      <DomNodesChart
-        currentHoverTime={currentHoverTime}
-        currentTime={currentTime}
-        durationMs={replay.getDurationMs()}
-        datapoints={domNodeData}
-        setCurrentHoverTime={setCurrentHoverTime}
-        setCurrentTime={setCurrentTime}
-        startOffsetMs={replay.getStartOffsetMs()}
-        startTimestampMs={replay.getStartTimestampMs()}
-      />
+      <Fragment>
+        <ChartTitle>{t('DOM Nodes')}</ChartTitle>
+        <DomNodesChart
+          currentHoverTime={currentHoverTime}
+          currentTime={currentTime}
+          durationMs={replay.getDurationMs()}
+          datapoints={domNodeData}
+          setCurrentHoverTime={setCurrentHoverTime}
+          setCurrentTime={setCurrentTime}
+          startTimestampMs={replay.getStartTimestampMs()}
+        />
+      </Fragment>
     );
 
   return (
@@ -105,7 +110,17 @@ const ChartWrapper = styled('div')`
   padding: ${space(1)};
   overflow: hidden;
   display: flex;
+  flex-direction: column;
   & > * {
     flex-grow: 1;
   }
+`;
+
+const ChartTitle = styled('h5')`
+  font-size: ${p => p.theme.fontSizeLarge};
+  font-weight: ${p => p.theme.text.cardTitle.fontWeight};
+  line-height: ${p => p.theme.text.cardTitle.lineHeight};
+  color: ${p => p.theme.subText};
+  flex: 0 1 auto;
+  margin: 0;
 `;
