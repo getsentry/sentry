@@ -150,6 +150,7 @@ export function OverviewTimeline({monitorList}: Props) {
       </Header>
       <GridLineOverlay
         stickyCursor
+        allowZoom
         showCursor={!isLoading}
         timeWindowConfig={timeWindowConfig}
         start={dates.start}
