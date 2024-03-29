@@ -84,10 +84,12 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
         <StyledTrailingText>
           {`${
             props.query && !props.resultCount
-              ? '0/0'
-              : (props.resultIteratorIndex !== null
-                  ? props.resultIteratorIndex + 1
-                  : '-') + `/${props.resultCount ?? 0}`
+              ? t('no results')
+              : props.query
+                ? (props.resultIteratorIndex !== null
+                    ? props.resultIteratorIndex + 1
+                    : '-') + `/${props.resultCount ?? 0}`
+                : ''
           }`}
         </StyledTrailingText>
         <StyledSearchBarTrailingButton
