@@ -123,6 +123,7 @@ export function CronDetailsTimeline({monitor, organization}: Props) {
         />
       </Header>
       <StyledGridLineOverlay
+        allowZoom={!isLoading}
         showCursor={!isLoading}
         timeWindowConfig={timeWindowConfig}
         start={dates.start}
