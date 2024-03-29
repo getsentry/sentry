@@ -31,17 +31,34 @@ def check_value_changed(
 
 
 def generate_diff_labels(
-    present_state: dict[str, Any],
-    prior_state: dict[str, Any],
+    prior_state: dict[str, dict[str, str | int]],
+    present_state: dict[str, dict[str, str | int]],
     rule: Rule,
-    changed_data: DefaultDict[str, list[str]],
     key: str,
-    statement: str,
 ) -> DefaultDict[str, list[str]]:
-    for data in prior_state.get(key, []):
-        if data not in present_state.get(key, []):
-            label = generate_rule_label(rule.project, rule, data)
-            changed_data[data["id"]].append(statement.format(label))
+    added_statement = "Added {} '{}'"
+    removed_statement = "Removed {} '{}'"
+    changed_data: DefaultDict[str, list[str]] = defaultdict(list)
+
+    prior_ids = set(prior_state.keys())
+    present_ids = set(present_state.keys())
+
+    # Added items that are not seen in the prior rule data
+    for added_id in present_ids.difference(prior_ids):
+        label = generate_rule_label(rule.project, rule, present_state.get(added_id))
+        changed_data[added_id].append(added_statement.format(key, label))
+
+    # Check if the id is in both but the data has changed
+    for changed_id in set(prior_ids & present_ids):
+        if prior_state.get(changed_id) != present_state.get(changed_id):
+            old_label = generate_rule_label(rule.project, rule, prior_state.get(changed_id))
+            new_label = generate_rule_label(rule.project, rule, present_state.get(changed_id))
+            changed_data[changed_id] = [(f"Changed {key} from *{old_label}* to *{new_label}*")]
+
+    # Removed items
+    for removed_id in prior_ids.difference(present_ids):
+        label = generate_rule_label(rule.project, rule, prior_state.get(removed_id))
+        changed_data[removed_id].append(removed_statement.format(key, label))
 
     return changed_data
 
@@ -62,25 +79,32 @@ def get_frequency_label(value_str: str | None) -> str | None:
     return None
 
 
+def convert_data(data: list[dict[str, str | int]]) -> dict[str, dict[str, str | int]]:
+    converted_data: dict[str, dict] = {}
+    for datum in data:
+        converted_data[str(datum.get("id"))] = datum
+
+    return converted_data
+
+
 def get_changed_data(
     rule: Rule, rule_data: dict[str, Any], rule_data_before: dict[str, Any]
 ) -> dict[str, Any]:
     """
     Generate a list per type of issue alert rule data of what changes occurred on edit.
     """
-    changed_data: DefaultDict[str, list[str]] = defaultdict(list)
-    changed_data = generate_diff_labels(
-        rule_data_before, rule_data, rule, changed_data, "conditions", "Added condition '{}'"
+    prior_conditions_data = convert_data(rule_data_before.get("conditions", []))
+    present_conditions_data = convert_data(rule_data.get("conditions", []))
+    changed_conditions = generate_diff_labels(
+        prior_conditions_data, present_conditions_data, rule, "condition"
     )
-    changed_data = generate_diff_labels(
-        rule_data, rule_data_before, rule, changed_data, "conditions", "Removed condition '{}'"
-    )
-    changed_data = generate_diff_labels(
-        rule_data_before, rule_data, rule, changed_data, "actions", "Added action '{}'"
-    )
-    changed_data = generate_diff_labels(
-        rule_data, rule_data_before, rule, changed_data, "actions", "Removed action '{}'"
-    )
+
+    prior_actions_data = convert_data(rule_data_before.get("actions", []))
+    present_actions_data = convert_data(rule_data.get("actions", []))
+    changed_actions = generate_diff_labels(prior_actions_data, present_actions_data, rule, "action")
+
+    changed_conditions_actions = {**changed_conditions, **changed_actions}
+    changed_data: DefaultDict[str, list[str]] = defaultdict(list, changed_conditions_actions)
 
     current_frequency = get_frequency_label(rule_data.get("frequency"))
     previous_frequency = get_frequency_label(rule_data_before.get("frequency"))
