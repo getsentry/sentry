@@ -8,7 +8,6 @@ export interface DateRangePickerProps
   extends Omit<DateRangeProps, 'ranges' | 'onChange'> {
   onChange: (range: Range) => void;
   endDate?: Date;
-  maxDateRange?: number;
   startDate?: Date;
 }
 
