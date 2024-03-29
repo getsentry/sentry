@@ -1,9 +1,11 @@
 import re
 from collections.abc import Callable, Generator
 from typing import Any
+from unittest.mock import patch
 
 from django.urls import URLPattern, URLResolver
 from django.urls.resolvers import get_resolver
+from pytest import fixture
 
 from sentry.api.base import Endpoint
 from sentry.api.bases.doc_integrations import DocIntegrationBaseEndpoint
@@ -32,6 +34,7 @@ from sentry.incidents.models.incident import IncidentActivityType
 from sentry.models.repository import Repository
 from sentry.scim.endpoints.members import OrganizationSCIMMemberDetails
 from sentry.scim.endpoints.teams import OrganizationSCIMTeamDetails
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import no_silo_test
 from sentry.web.frontend.base import BaseView
 
@@ -93,6 +96,34 @@ class APIIdOrSlugPathParamTest(DocIntegrationSlugTests, SentryAppSlugTests, Orga
     Take a look at `sentry_app_token_test` in sentry_app_slug_test.py for an example of how to add a new endpoint to the test.
     """
 
+    @fixture(autouse=True)
+    def _mock_check_object_permissions(self):
+        with patch("rest_framework.views.APIView.check_object_permissions"), override_options(
+            {"api.id-or-slug-enabled": True}
+        ):
+            yield
+
+    def create_models(self):
+        self.doc_integration = self.create_doc_integration()
+        self.sentry_app = self.create_sentry_app(organization=self.organization)
+        self.user = self.create_user()
+        self.organization = self.create_organization(owner=self.user)
+        self.project = self.create_project(organization=self.organization)
+        self.group = self.create_group(project=self.project)
+        self.incident = self.create_incident(organization=self.organization)
+        self.incident_activity = self.create_incident_activity(
+            incident=self.incident, type=IncidentActivityType.COMMENT.value, user_id=self.user.id
+        )
+
+        self.repo = Repository.objects.create(
+            name="example", organization_id=self.organization.id, integration_id=self.integration.id
+        )
+
+        self.code_mapping = self.create_code_mapping(
+            repo=self.repo,
+            project=self.project,
+        )
+
     def setUp(self, *args, **kwargs):
         super().setUp(*args, **kwargs)
 
@@ -122,25 +153,7 @@ class APIIdOrSlugPathParamTest(DocIntegrationSlugTests, SentryAppSlugTests, Orga
             SentryInternalAppTokenDetailsEndpoint.convert_args: self.sentry_app_token_test,
         }
 
-        self.doc_integration = self.create_doc_integration()
-        self.sentry_app = self.create_sentry_app(organization=self.organization)
-        self.user = self.create_user()
-        self.organization = self.create_organization(owner=self.user)
-        self.project = self.create_project(organization=self.organization)
-        self.group = self.create_group(project=self.project)
-        self.incident = self.create_incident(organization=self.organization)
-        self.incident_activity = self.create_incident_activity(
-            incident=self.incident, type=IncidentActivityType.COMMENT.value, user_id=self.user.id
-        )
-
-        self.repo = Repository.objects.create(
-            name="example", organization_id=self.organization.id, integration_id=self.integration.id
-        )
-
-        self.code_mapping = self.create_code_mapping(
-            repo=self.repo,
-            project=self.project,
-        )
+        self.create_models()
 
         # Step 2: Add new slugs to the mappings
         # Add slug mappings for the test methods

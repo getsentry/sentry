@@ -1,9 +1,5 @@
 from typing import Any
 
-from pytest import fixture
-
-from sentry.testutils.helpers.options import override_options
-
 
 class APIIdOrSlugTestMixin:
     slug_mappings: dict[str, Any]
@@ -11,11 +7,6 @@ class APIIdOrSlugTestMixin:
     incident: Any
     code_mapping: Any
     incident_activity: Any
-
-    @fixture(autouse=True)
-    def _activate_id_or_slug_path_params(self):
-        with override_options({"api.id-or-slug-enabled": True}):
-            yield
 
     @property
     def no_slugs_in_kwargs_allowlist(self):

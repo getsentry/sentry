@@ -1,28 +1,11 @@
 from typing import Any
-from unittest.mock import patch
 
-from django.test import TestCase
-from pytest import fixture
-
-from sentry.testutils.cases import BaseTestCase
-from sentry.testutils.silo import no_silo_test
+from sentry.testutils.cases import TestCase
 
 from .test_id_or_slug_path_params_mixin import APIIdOrSlugTestMixin
 
 
-@no_silo_test
-class SentryAppSlugTests(BaseTestCase, TestCase, APIIdOrSlugTestMixin):
-    databases: set[str] | str = "__all__"
-
-    @fixture(autouse=True)
-    def _mock_sentry_app_check_object_permissions(self):
-        with patch(
-            "sentry.api.bases.sentryapps.SentryAppBaseEndpoint.check_object_permissions"
-        ), patch(
-            "sentry.api.bases.sentryapps.RegionSentryAppBaseEndpoint.check_object_permissions"
-        ):
-            yield
-
+class SentryAppSlugTests(TestCase, APIIdOrSlugTestMixin):
     def sentry_app_test(self, endpoint_class, slug_params, *args):
         slug_kwargs = {param: self.slug_mappings[param].slug for param in slug_params}
         id_kwargs = {param: self.slug_mappings[param].id for param in slug_params}

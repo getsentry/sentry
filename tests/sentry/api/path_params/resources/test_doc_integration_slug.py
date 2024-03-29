@@ -1,20 +1,9 @@
-from unittest.mock import patch
-
-from django.test import TestCase
-
-from sentry.testutils.cases import BaseTestCase
-from sentry.testutils.helpers.options import override_options
-from sentry.testutils.silo import no_silo_test
+from sentry.testutils.cases import TestCase
 
 from .test_id_or_slug_path_params_mixin import APIIdOrSlugTestMixin
 
 
-@no_silo_test
-class DocIntegrationSlugTests(BaseTestCase, TestCase, APIIdOrSlugTestMixin):
-    databases: set[str] | str = "__all__"
-
-    @patch("sentry.api.bases.doc_integrations.DocIntegrationBaseEndpoint.check_object_permissions")
-    @override_options({"api.id-or-slug-enabled": True})
+class DocIntegrationSlugTests(TestCase, APIIdOrSlugTestMixin):
     def doc_integration_test(self, endpoint_class, slug_params, *args):
 
         slug_kwargs = {param: self.slug_mappings[param].slug for param in slug_params}

@@ -1,29 +1,22 @@
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-from django.test import TestCase
 from pytest import fixture
 from rest_framework.request import Request
 
-from sentry.testutils.cases import BaseTestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.options import override_options
-from sentry.testutils.silo import no_silo_test
 
 from .test_id_or_slug_path_params_mixin import APIIdOrSlugTestMixin
 
 
-@no_silo_test
-class OrganizationSlugTests(BaseTestCase, TestCase, APIIdOrSlugTestMixin):
-    databases: set[str] | str = "__all__"
-
+class OrganizationSlugTests(TestCase, APIIdOrSlugTestMixin):
     @fixture(autouse=True)
-    def _mock_organization_check_object_permissions(self):
-        with patch("sentry.api.bases.organization.OrganizationEndpoint.check_object_permissions"):
+    def _mock_subdomain_is_region(self):
+        with patch("sentry.api.bases.organization.subdomain_is_region"):
             yield
 
     @patch("sentry.types.region.subdomain_is_region")
-    @override_options({"api.id-or-slug-enabled": True})
     def organization_test(self, endpoint_class, slug_params, *args):
         slug_kwargs = {param: self.slug_mappings[param].slug for param in slug_params}
         id_kwargs = {param: self.slug_mappings[param].id for param in slug_params}
@@ -35,7 +28,6 @@ class OrganizationSlugTests(BaseTestCase, TestCase, APIIdOrSlugTestMixin):
 
         self.assert_conversion(endpoint_class, converted_slugs, converted_ids)
 
-    @patch("sentry.types.region.subdomain_is_region")
     def region_organization_integration_test(self, endpoint_class, slug_params, *args):
         slug_kwargs = {param: self.slug_mappings[param].slug for param in slug_params}
         id_kwargs = {param: self.slug_mappings[param].id for param in slug_params}
@@ -60,7 +52,6 @@ class OrganizationSlugTests(BaseTestCase, TestCase, APIIdOrSlugTestMixin):
             reverse_non_slug_mappings=non_slug_mappings,
         )
 
-    @patch("sentry.types.region.subdomain_is_region")
     def organization_code_mapping_codeowners_test(self, endpoint_class, slug_params, *args):
         slug_kwargs = {param: self.slug_mappings[param].slug for param in slug_params}
         id_kwargs = {param: self.slug_mappings[param].id for param in slug_params}
@@ -86,9 +77,6 @@ class OrganizationSlugTests(BaseTestCase, TestCase, APIIdOrSlugTestMixin):
             endpoint_class, converted_slugs, converted_ids, reverse_non_slug_mappings
         )
 
-    @patch(
-        "sentry.api.endpoints.organization_search_details.OrganizationSearchDetailsEndpoint.check_object_permissions"
-    )
     def organization_search_details_test(self, endpoint_class, slug_params, *args):
         slug_kwargs = {param: self.slug_mappings[param].slug for param in slug_params}
         id_kwargs = {param: self.slug_mappings[param].id for param in slug_params}
@@ -120,7 +108,6 @@ class OrganizationSlugTests(BaseTestCase, TestCase, APIIdOrSlugTestMixin):
     @patch(
         "sentry.api.endpoints.organization_member.requests.invite.details.OrganizationInviteRequestDetailsEndpoint._get_member"
     )
-    @patch("sentry.types.region.subdomain_is_region")
     def organization_member_test(self, endpoint_class, slug_params, *args):
         slug_kwargs = {param: self.slug_mappings[param].slug for param in slug_params}
         id_kwargs = {param: self.slug_mappings[param].id for param in slug_params}
@@ -144,7 +131,6 @@ class OrganizationSlugTests(BaseTestCase, TestCase, APIIdOrSlugTestMixin):
 
         self.assert_conversion(endpoint_class, converted_slugs, converted_ids)
 
-    @patch("sentry.types.region.subdomain_is_region")
     def organization_team_test(self, endpoint_class, slug_params, *args):
         slug_kwargs = {param: self.slug_mappings[param].slug for param in slug_params}
         id_kwargs = {param: self.slug_mappings[param].id for param in slug_params}
@@ -170,7 +156,6 @@ class OrganizationSlugTests(BaseTestCase, TestCase, APIIdOrSlugTestMixin):
             endpoint_class, converted_slugs, converted_ids, reverse_non_slug_mappings
         )
 
-    @patch("sentry.api.bases.group.GroupEndpoint.check_object_permissions")
     def group_test(self, endpoint_class, slug_params, *args):
         slug_kwargs = {param: self.slug_mappings[param].slug for param in slug_params}
         id_kwargs = {param: self.slug_mappings[param].id for param in slug_params}
@@ -248,7 +233,6 @@ class OrganizationSlugTests(BaseTestCase, TestCase, APIIdOrSlugTestMixin):
 
         self.assert_conversion(endpoint_class, converted_slugs, converted_ids)
 
-    @patch("sentry.api.bases.organization.subdomain_is_region")
     @with_feature("organizations:incidents")
     def incident_test(self, endpoint_class, slug_params, *args):
         slug_kwargs = {param: self.slug_mappings[param].slug for param in slug_params}
@@ -284,7 +268,6 @@ class OrganizationSlugTests(BaseTestCase, TestCase, APIIdOrSlugTestMixin):
             endpoint_class, converted_slugs, converted_ids, reverse_non_slug_mappings
         )
 
-    @patch("sentry.api.bases.organization.subdomain_is_region")
     @with_feature("organizations:incidents")
     def comment_details_test(self, endpoint_class, slug_params, *args):
         slug_kwargs = {param: self.slug_mappings[param].slug for param in slug_params}
@@ -321,7 +304,6 @@ class OrganizationSlugTests(BaseTestCase, TestCase, APIIdOrSlugTestMixin):
             endpoint_class, converted_slugs, converted_ids, reverse_non_slug_mappings
         )
 
-    @patch("sentry.api.bases.organization.subdomain_is_region")
     def notification_actions_details_test(self, endpoint_class, slug_params, *args):
         slug_kwargs = {param: self.slug_mappings[param].slug for param in slug_params}
         id_kwargs = {param: self.slug_mappings[param].id for param in slug_params}
@@ -359,7 +341,6 @@ class OrganizationSlugTests(BaseTestCase, TestCase, APIIdOrSlugTestMixin):
             endpoint_class, converted_slugs, converted_ids, reverse_non_slug_mappings
         )
 
-    @patch("sentry.api.bases.organization.subdomain_is_region")
     @with_feature("organizations:incidents")
     def organization_alert_rule_test(self, endpoint_class, slug_params, *args):
         slug_kwargs = {param: self.slug_mappings[param].slug for param in slug_params}
