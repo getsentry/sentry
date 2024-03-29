@@ -243,6 +243,8 @@ def find_stacktraces_in_data(
         )
 
     # Look for stacktraces under the key `stacktrace`
+    if data is None:
+        return
     _append_stacktrace(data.get("stacktrace"))
 
     # The native family includes stacktraces under threads
