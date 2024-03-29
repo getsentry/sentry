@@ -7,11 +7,11 @@ from pytest import fixture
 from sentry.testutils.cases import BaseTestCase
 from sentry.testutils.silo import no_silo_test
 
-from .test_id_or_slug_path_params_utils import APIIdOrSlugTestUtils
+from .test_id_or_slug_path_params_mixin import APIIdOrSlugTestMixin
 
 
 @no_silo_test
-class SentryAppSlugTests(BaseTestCase, TestCase, APIIdOrSlugTestUtils):
+class SentryAppSlugTests(BaseTestCase, TestCase, APIIdOrSlugTestMixin):
     databases: set[str] | str = "__all__"
 
     @fixture(autouse=True)

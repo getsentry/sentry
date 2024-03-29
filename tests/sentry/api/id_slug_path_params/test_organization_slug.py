@@ -10,11 +10,11 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import no_silo_test
 
-from .test_id_or_slug_path_params_utils import APIIdOrSlugTestUtils
+from .test_id_or_slug_path_params_mixin import APIIdOrSlugTestMixin
 
 
 @no_silo_test
-class OrganizationSlugTests(BaseTestCase, TestCase, APIIdOrSlugTestUtils):
+class OrganizationSlugTests(BaseTestCase, TestCase, APIIdOrSlugTestMixin):
     databases: set[str] | str = "__all__"
 
     @fixture(autouse=True)

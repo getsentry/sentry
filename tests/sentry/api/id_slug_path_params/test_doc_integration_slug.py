@@ -6,11 +6,11 @@ from sentry.testutils.cases import BaseTestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import no_silo_test
 
-from .test_id_or_slug_path_params_utils import APIIdOrSlugTestUtils
+from .test_id_or_slug_path_params_mixin import APIIdOrSlugTestMixin
 
 
 @no_silo_test
-class DocIntegrationSlugTests(BaseTestCase, TestCase, APIIdOrSlugTestUtils):
+class DocIntegrationSlugTests(BaseTestCase, TestCase, APIIdOrSlugTestMixin):
     databases: set[str] | str = "__all__"
 
     @patch("sentry.api.bases.doc_integrations.DocIntegrationBaseEndpoint.check_object_permissions")
