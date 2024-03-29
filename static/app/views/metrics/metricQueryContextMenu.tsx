@@ -27,8 +27,8 @@ import {
 } from 'sentry/utils/metrics/dashboard';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import {
+  isMetricsQueryWidget,
   type MetricDisplayType,
-  MetricQueryType,
   type MetricsQuery,
 } from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -64,8 +64,7 @@ export function MetricQueryContextMenu({
   );
 
   // At least one query must remain
-  const canDelete =
-    widgets.filter(widget => widget.type === MetricQueryType.QUERY).length > 1;
+  const canDelete = widgets.filter(isMetricsQueryWidget).length > 1;
 
   const items = useMemo<MenuItemProps[]>(
     () => [

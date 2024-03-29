@@ -4,6 +4,7 @@ from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
 
 from sentry.api.endpoints.bundle_analysis import BundleAnalysisEndpoint
+from sentry.api.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
 from sentry.api.endpoints.group_event_details import GroupEventDetailsEndpoint
 from sentry.api.endpoints.group_similar_issues_embeddings import (
     GroupSimilarIssuesEmbeddingsEndpoint,
@@ -765,6 +766,11 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             r"^(?P<issue_id>[^\/]+)/ai-autofix/$",
             GroupAiAutofixEndpoint.as_view(),
             name=f"{name_prefix}-group-ai-autofix",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^\/]+)/autofix/setup/$",
+            GroupAutofixSetupCheck.as_view(),
+            name=f"{name_prefix}-group-autofix-setup",
         ),
         # Load plugin group urls
         re_path(

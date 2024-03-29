@@ -43,7 +43,7 @@ export function isSiblingAutogroupedNode(
 export function isAutogroupedNode(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): node is ParentAutogroupNode | SiblingAutogroupNode {
-  return !!(node.value && 'autogrouped_by' in node.value);
+  return node instanceof ParentAutogroupNode || node instanceof SiblingAutogroupNode;
 }
 
 export function isTraceErrorNode(

@@ -1146,20 +1146,22 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         alias="score",
     )
     first_seen = Column("group_first_seen", entities["attrs"])
-
-    sort_strategies = {
-        "date": "last_seen",
-        "new": "first_seen",
-    }
+    times_seen_aggregation = Function("count", [], alias="times_seen")
 
     sort_defs = {
-        "first_seen": first_seen,
-        "last_seen": last_seen_aggregation,
+        "date": last_seen_aggregation,
+        "new": first_seen,
+        "freq": times_seen_aggregation,
+        "user_count": Function(
+            "uniq", [Column("tags[sentry:user]", entities["event"])], "user_count"
+        ),
     }
 
-    column_sort_mapping = {
+    sort_strategies = {
         "new": "g.group_first_seen",
         "date": "score",
+        "freq": "times_seen",
+        "user_count": "user_count",
     }
 
     def calculate_start_end(
@@ -1267,7 +1269,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 )
             )
 
-        sort_func = self.sort_defs[self.sort_strategies[sort_by]]
+        sort_func = self.sort_defs[sort_by]
 
         having = []
         if cursor is not None:
@@ -1280,6 +1282,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         if sort_by == "new":
             groupby.append(Column("group_first_seen", attr_entity))
             select.append(Column("group_first_seen", attr_entity))
+
         select.append(sort_func)
 
         query = Query(
@@ -1318,7 +1321,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             )["data"][0]["count"]
 
         paginator_results = SequencePaginator(
-            [(row[self.column_sort_mapping[sort_by]], row["g.group_id"]) for row in data],
+            [(row[self.sort_strategies[sort_by]], row["g.group_id"]) for row in data],
             reverse=True,
             **paginator_options,
         ).get_result(limit, cursor, known_hits=hits, max_hits=max_hits)

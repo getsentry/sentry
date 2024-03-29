@@ -206,7 +206,7 @@ type TransactionDetailProps = {
   node: TraceTreeNode<TraceTree.Transaction>;
   onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   organization: Organization;
-  scrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
+  scrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>, force?: boolean) => void;
 };
 
 export function TransactionNodeDetails({
@@ -255,7 +255,7 @@ export function TransactionNodeDetails({
   const {start: startTimeWithLeadingZero, end: endTimeWithLeadingZero} =
     getFormattedTimeRangeWithLeadingAndTrailingZero(startTimestamp, endTimestamp);
 
-  const duration = (endTimestamp - startTimestamp) * node.multiplier;
+  const duration = endTimestamp - startTimestamp;
 
   const measurementNames = Object.keys(node.value.measurements ?? {})
     .filter(name => isCustomMeasurement(`measurements.${name}`))
@@ -289,7 +289,7 @@ export function TransactionNodeDetails({
           </div>
         </TraceDrawerComponents.Title>
         <TraceDrawerComponents.Actions>
-          <Button size="xs" onClick={_e => scrollToNode(node)}>
+          <Button size="xs" onClick={_e => scrollToNode(node, true)}>
             {t('Show in view')}
           </Button>
           <TraceDrawerComponents.EventDetailsLink
@@ -366,7 +366,9 @@ export function TransactionNodeDetails({
               {node.value.profile_id}
             </Row>
           ) : null}
-          <Row title="Duration">{`${Number(duration.toFixed(3)).toLocaleString()}ms`}</Row>
+          <Row title="Duration">
+            <TraceDrawerComponents.Duration duration={duration} baseline={undefined} />
+          </Row>
           <Row title="Date Range">
             {getDynamicText({
               fixed: 'Mar 19, 2021 11:06:27 AM UTC',

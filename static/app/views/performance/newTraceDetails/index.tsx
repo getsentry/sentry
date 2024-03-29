@@ -65,10 +65,10 @@ import {
 } from '../../../utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import Breadcrumb from '../breadcrumb';
 
-import TraceDrawer from './traceDrawer/traceDrawer';
+import {TraceDrawer} from './traceDrawer/traceDrawer';
 import {isTraceNode} from './guards';
-import Trace from './trace';
-import TraceHeader from './traceHeader';
+import {Trace} from './trace';
+import {TraceHeader} from './traceHeader';
 import {TraceTree, type TraceTreeNode} from './traceTree';
 import {useTrace} from './useTrace';
 import {useTraceMeta} from './useTraceMeta';

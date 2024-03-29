@@ -1038,8 +1038,8 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "monitors-detect-broken-monitor-envs": {
         "task": "sentry.monitors.tasks.detect_broken_monitor_envs",
-        # 05:00 PDT, 09:00 EDT, 12:00 UTC
-        "schedule": crontab(minute="0", hour="12"),
+        # 17:00 PDT, 20:00 EDT, 0:00 UTC
+        "schedule": crontab(minute="0", hour="0"),
         "options": {"expires": 15 * 60},
     },
     "clear-expired-snoozes": {

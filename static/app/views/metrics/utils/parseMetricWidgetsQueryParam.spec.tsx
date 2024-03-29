@@ -1,12 +1,12 @@
 import {emptyMetricsQueryWidget} from 'sentry/utils/metrics/constants';
 import {
   MetricDisplayType,
-  MetricQueryType,
-  type MetricWidgetQueryParams,
+  MetricExpressionType,
+  type MetricsWidget,
 } from 'sentry/utils/metrics/types';
 import {parseMetricWidgetsQueryParam} from 'sentry/views/metrics/utils/parseMetricWidgetsQueryParam';
 
-function testParsing(input: any, result: MetricWidgetQueryParams[]) {
+function testParsing(input: any, result: MetricsWidget[]) {
   expect(parseMetricWidgetsQueryParam(JSON.stringify(input))).toStrictEqual(result);
 }
 
@@ -30,7 +30,7 @@ describe('parseMetricWidgetQueryParam', () => {
         // INPUT
         {
           id: 0,
-          type: MetricQueryType.QUERY,
+          type: MetricExpressionType.QUERY,
           mri: 'd:transactions/duration@millisecond',
           op: 'sum',
           query: 'test:query',
@@ -46,7 +46,7 @@ describe('parseMetricWidgetQueryParam', () => {
       [
         {
           id: 0,
-          type: MetricQueryType.QUERY,
+          type: MetricExpressionType.QUERY,
           mri: 'd:transactions/duration@millisecond',
           op: 'sum',
           query: 'test:query',
@@ -67,7 +67,7 @@ describe('parseMetricWidgetQueryParam', () => {
       [
         {
           id: 0,
-          type: MetricQueryType.QUERY,
+          type: MetricExpressionType.QUERY,
           mri: 'd:transactions/duration@millisecond',
           op: 'sum',
           query: 'test:query',
@@ -80,7 +80,7 @@ describe('parseMetricWidgetQueryParam', () => {
         },
         {
           id: 0,
-          type: MetricQueryType.FORMULA,
+          type: MetricExpressionType.EQUATION,
           formula: 'a + b',
           displayType: 'line',
           sort: {name: 'avg', order: 'desc'},
@@ -89,7 +89,7 @@ describe('parseMetricWidgetQueryParam', () => {
         },
         {
           id: 1,
-          type: MetricQueryType.QUERY,
+          type: MetricExpressionType.QUERY,
           mri: 'd:custom/sentry.event_manager.save@second',
           op: 'avg',
           query: '',
@@ -105,7 +105,7 @@ describe('parseMetricWidgetQueryParam', () => {
       [
         {
           id: 0,
-          type: MetricQueryType.QUERY,
+          type: MetricExpressionType.QUERY,
           mri: 'd:transactions/duration@millisecond',
           op: 'sum',
           query: 'test:query',
@@ -118,7 +118,7 @@ describe('parseMetricWidgetQueryParam', () => {
         },
         {
           id: 1,
-          type: MetricQueryType.QUERY,
+          type: MetricExpressionType.QUERY,
           mri: 'd:custom/sentry.event_manager.save@second',
           op: 'avg',
           query: '',
@@ -132,7 +132,7 @@ describe('parseMetricWidgetQueryParam', () => {
         // Formulas should always be at the end
         {
           id: 0,
-          type: MetricQueryType.FORMULA,
+          type: MetricExpressionType.EQUATION,
           formula: 'a + b',
           displayType: MetricDisplayType.LINE,
           sort: {name: 'avg', order: 'desc'},
@@ -150,11 +150,11 @@ describe('parseMetricWidgetQueryParam', () => {
       [
         {
           id: 0,
-          type: MetricQueryType.QUERY,
+          type: MetricExpressionType.QUERY,
           mri: 'd:transactions/duration@millisecond',
         },
         {
-          type: MetricQueryType.FORMULA,
+          type: MetricExpressionType.EQUATION,
           formula: 'a * 2',
         },
       ],
@@ -162,7 +162,7 @@ describe('parseMetricWidgetQueryParam', () => {
       [
         {
           id: 0,
-          type: MetricQueryType.QUERY,
+          type: MetricExpressionType.QUERY,
           mri: 'd:transactions/duration@millisecond',
           op: 'avg',
           query: '',
@@ -175,7 +175,7 @@ describe('parseMetricWidgetQueryParam', () => {
         },
         {
           id: 0,
-          type: MetricQueryType.FORMULA,
+          type: MetricExpressionType.EQUATION,
           formula: 'a * 2',
           displayType: MetricDisplayType.LINE,
           focusedSeries: [],
@@ -207,7 +207,7 @@ describe('parseMetricWidgetQueryParam', () => {
       [
         {
           id: 0,
-          type: MetricQueryType.QUERY,
+          type: MetricExpressionType.QUERY,
           mri: 'd:transactions/duration@millisecond',
           op: 'avg',
           query: '',
@@ -244,14 +244,14 @@ describe('parseMetricWidgetQueryParam', () => {
         },
         {
           // Missing formula
-          type: MetricQueryType.FORMULA,
+          type: MetricExpressionType.EQUATION,
         },
       ],
       // RESULT
       [
         {
           id: 0,
-          type: MetricQueryType.QUERY,
+          type: MetricExpressionType.QUERY,
           mri: 'd:transactions/duration@millisecond',
           op: 'avg',
           query: '',
@@ -275,7 +275,7 @@ describe('parseMetricWidgetQueryParam', () => {
         },
         {
           // Missing formula
-          type: MetricQueryType.FORMULA,
+          type: MetricExpressionType.EQUATION,
         },
       ],
       // RESULT
@@ -289,7 +289,7 @@ describe('parseMetricWidgetQueryParam', () => {
       [
         {
           id: 0,
-          type: MetricQueryType.QUERY,
+          type: MetricExpressionType.QUERY,
           mri: 'd:transactions/duration@millisecond',
           op: 'sum',
           query: 'test:query',
@@ -305,7 +305,7 @@ describe('parseMetricWidgetQueryParam', () => {
       [
         {
           id: 0,
-          type: MetricQueryType.QUERY,
+          type: MetricExpressionType.QUERY,
           mri: 'd:transactions/duration@millisecond',
           op: 'sum',
           query: 'test:query',
@@ -324,7 +324,7 @@ describe('parseMetricWidgetQueryParam', () => {
     function widgetWithId<T extends number | undefined>(id: T) {
       return {
         id,
-        type: MetricQueryType.QUERY as const,
+        type: MetricExpressionType.QUERY as const,
         mri: 'd:transactions/duration@millisecond' as const,
         op: 'sum' as const,
         query: 'test:query',
@@ -366,7 +366,7 @@ describe('parseMetricWidgetQueryParam', () => {
       [
         {
           id: 5,
-          type: MetricQueryType.QUERY,
+          type: MetricExpressionType.QUERY,
           mri: 'd:transactions/duration@millisecond',
           op: 'sum',
           query: 'test:query',
@@ -382,7 +382,7 @@ describe('parseMetricWidgetQueryParam', () => {
       [
         {
           id: 0,
-          type: MetricQueryType.QUERY,
+          type: MetricExpressionType.QUERY,
           mri: 'd:transactions/duration@millisecond',
           op: 'sum',
           query: 'test:query',

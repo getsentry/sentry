@@ -48,7 +48,8 @@ export function OverviewTimeline({monitorList}: Props) {
       monitorStatsQueryKey,
       {
         query: {
-          monitor: monitorList.map(m => m.slug),
+          monitor: monitorList.map(m => m.id),
+          useGUIDs: true,
           ...selectionQuery,
           ...location.query,
         },
@@ -162,7 +163,7 @@ export function OverviewTimeline({monitorList}: Props) {
           key={monitor.id}
           monitor={monitor}
           timeWindowConfig={timeWindowConfig}
-          bucketedData={monitorStats?.[monitor.slug]}
+          bucketedData={monitorStats?.[monitor.id]}
           start={dates.start}
           end={dates.end}
           width={timelineWidth}

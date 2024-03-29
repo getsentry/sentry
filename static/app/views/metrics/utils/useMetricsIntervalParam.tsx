@@ -16,7 +16,7 @@ import type {PageFilters} from 'sentry/types';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 import {useUpdateQuery} from 'sentry/utils/metrics';
 import {parseMRI} from 'sentry/utils/metrics/mri';
-import {MetricQueryType} from 'sentry/utils/metrics/types';
+import {isMetricsEquationWidget} from 'sentry/utils/metrics/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -87,8 +87,7 @@ export function useMetricsIntervalParam() {
   const isCustomMetricsOnly = useMemo(() => {
     return widgets.every(
       widget =>
-        widget.type === MetricQueryType.FORMULA ||
-        parseMRI(widget.mri)?.useCase === 'custom'
+        isMetricsEquationWidget(widget) || parseMRI(widget.mri)?.useCase === 'custom'
     );
   }, [widgets]);
 

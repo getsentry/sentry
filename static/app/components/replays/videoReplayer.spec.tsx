@@ -7,6 +7,7 @@ import {VideoReplayer} from './videoReplayer';
 //
 // advancing by 2000ms ~== 20000s in Timer, but this may depend on hardware, TBD
 jest.useFakeTimers();
+jest.spyOn(window.HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
 
 describe('VideoReplayer - no starting gap', () => {
   beforeEach(() => {
@@ -85,7 +86,8 @@ describe('VideoReplayer - no starting gap', () => {
       onLoaded: jest.fn(),
     });
     // @ts-expect-error private
-    expect(inst._currentIndex).toEqual(0);
+    // currentIndex is undefined before we ever press play
+    expect(inst._currentIndex).toEqual(undefined);
 
     const playPromise = inst.play(6500);
     jest.advanceTimersByTime(10000);

@@ -168,7 +168,7 @@ interface TraceProps {
   trace_id: string;
 }
 
-function Trace({
+export function Trace({
   trace,
   trace_id,
   roving_state,
@@ -628,8 +628,6 @@ function Trace({
     </TraceStylingWrapper>
   );
 }
-
-export default Trace;
 
 function RenderRow(props: {
   index: number;
@@ -2144,6 +2142,7 @@ const TraceStylingWrapper = styled('div')`
     overflow: hidden;
     will-change: width;
     box-shadow: inset 1px 0 0px 0px transparent;
+    cursor: pointer;
 
     .TraceLeftColumnInner {
       height: 100%;
@@ -2191,11 +2190,6 @@ const TraceStylingWrapper = styled('div')`
 
       > div {
         height: 100%;
-      }
-
-      .TraceError {
-        top: -1px;
-        transform: translate(-50%, 0);
       }
     }
 

@@ -46,7 +46,17 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
         start = normalize_to_epoch(args["start"], args["rollup"])
         end = normalize_to_epoch(args["end"], args["rollup"])
 
-        monitor_slugs: list[str] = request.GET.getlist("monitor")
+        # XXX(eprkhiser): After transition from (organization, slug) being the
+        # unique key for monitors to (project_id, slug) being the unqiue
+        # identifier we can no longer return the slug as the key.
+        #
+        # This flag allows using monitor GUIDs as the monitor lookup instead of
+        # slugs. This will cause the resulting mapping to be a map of slugs to
+        # stats.
+        use_guids = bool(request.GET.get("useGUIDs"))
+
+        # XXX(epurkhiser): Keys are slugs when useGUIDs is not set, otheerwise they are GUIDs
+        monitor_keys: list[str] = request.GET.getlist("monitor")
 
         tracked_statuses = [
             CheckInStatus.IN_PROGRESS,
@@ -56,18 +66,27 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
             CheckInStatus.TIMEOUT,
         ]
 
-        # Pre-fetch the monitor-ids and their slugs. This is an optimization to eliminate a join
-        # against the monitor table which significantly inflates the size of the aggregation
-        # states.
+        # Pre-fetch the monitor-ids and their guid / slug. This is an
+        # optimization to eliminate a join against the monitor table which
+        # significantly inflates the size of the aggregation states.
         #
-        # The ids are used to explicitly scope the query and the slugs are returned as display
-        # data. The slugs have to be fetched (even though we already have them in memory) so we
-        # can maintain a correct mapping of id -> slug.
-        monitor_map = dict(
-            Monitor.objects.filter(
-                organization_id=organization.id, slug__in=monitor_slugs
-            ).values_list("id", "slug")
-        )
+        # The ids are used to explicitly scope the query and the slugs are
+        # returned as display data. The slugs have to be fetched (even though
+        # we already have them in memory) so we can maintain a correct mapping
+        # of id -> slug.
+        if use_guids:
+            monitor_map = {
+                id: str(guid)
+                for id, guid in Monitor.objects.filter(
+                    organization_id=organization.id, guid__in=monitor_keys
+                ).values_list("id", "guid")
+            }
+        else:
+            monitor_map = dict(
+                Monitor.objects.filter(
+                    organization_id=organization.id, slug__in=monitor_keys
+                ).values_list("id", "slug")
+            )
 
         # We only care about the name but we don't want to join to get it. So we're maintaining
         # this map until the very end where we'll map from monitor_environment to environment to
@@ -168,18 +187,18 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
         stats: MonitorToTimestampsMapping = defaultdict(OrderedDict)
 
         # initialize mappings
-        for slug in monitor_slugs:
+        for key in monitor_keys:
             ts = start
             while ts <= end:
-                stats[slug][ts] = defaultdict(status_obj_factory)
+                stats[key][ts] = defaultdict(status_obj_factory)
                 ts += args["rollup"]
 
-        # We manually sort the response output by slug and bucket. This is fine because the set
-        # of slugs is known (they're provided as a query parameter) and there is no pagination.
+        # We manually sort the response output by key and bucket. This is fine because the set
+        # of keys is known (they're provided as a query parameter) and there is no pagination.
         for mid, ts, meid, status, count in sorted(
             list(history), key=lambda k: (monitor_map[k[0]], k[1])
         ):
-            slug = monitor_map[mid]
+            key = monitor_map[mid]
 
             # Monitor environments can be null.  If we find a null monitor environment we
             # default to "production" by convention.
@@ -189,13 +208,13 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
                 env_name = environment_map[monitor_environment_map[meid]]
 
             named_status = status_to_name[status]
-            stats[slug][ts][env_name][named_status] = count  # type: ignore[index]
+            stats[key][ts][env_name][named_status] = count  # type: ignore[index]
 
         # Flatten the timestamp to env mapping dict into a tuple list, this
         # maintains the ordering
         stats_list = {
-            slug: [[ts, env_mapping] for ts, env_mapping in ts_to_envs.items()]
-            for slug, ts_to_envs in stats.items()
+            key: [[ts, env_mapping] for ts, env_mapping in ts_to_envs.items()]
+            for key, ts_to_envs in stats.items()
         }
 
         return Response(stats_list)
