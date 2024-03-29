@@ -1,19 +1,17 @@
-from typing import Any, Protocol
+from typing import Any
 
 from pytest import fixture
 
 from sentry.testutils.helpers.options import override_options
 
 
-class ResourceAPITest(Protocol):
+class APIIdOrSlugTestMixin:
     slug_mappings: dict[str, Any]
     reverse_slug_mappings: dict[str, Any]
     incident: Any
     code_mapping: Any
     incident_activity: Any
 
-
-class APIIdOrSlugTestMixin(ResourceAPITest):
     @fixture(autouse=True)
     def _activate_id_or_slug_path_params(self):
         with override_options({"api.id-or-slug-enabled": True}):
