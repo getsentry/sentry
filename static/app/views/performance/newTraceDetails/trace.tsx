@@ -585,7 +585,7 @@ export function Trace({
     <TraceStylingWrapper
       ref={r => {
         containerRef.current = r;
-        manager.onContainerRef(r);
+        manager.registerContainerRef(r);
       }}
       className={`${trace.indicators.length > 0 ? 'WithIndicators' : ''} ${trace.type !== 'trace' || scrollQueueRef.current ? 'Loading' : ''}`}
     >
@@ -642,6 +642,16 @@ export function Trace({
       </div>
       <div ref={r => setScrollContainer(r)}>
         <div>{virtualizedList.rendered}</div>
+        <div className="TraceRow Hidden">
+          <div
+            className="TraceLeftColumn"
+            ref={r => manager.registerGhostRowRef('list', r)}
+          />
+          <div
+            className="TraceRightColumn"
+            ref={r => manager.registerGhostRowRef('span_list', r)}
+          />
+        </div>
       </div>
     </TraceStylingWrapper>
   );
@@ -707,9 +717,6 @@ function RenderRow(props: {
           ref={r =>
             props.manager.registerColumnRef('list', r, virtualized_index, props.node)
           }
-          style={{
-            width: props.manager.columns.list.width * 100 + '%',
-          }}
         >
           <div
             className={`TraceLeftColumnInner`}
@@ -746,9 +753,6 @@ function RenderRow(props: {
           ref={r =>
             props.manager.registerColumnRef('span_list', r, virtualized_index, props.node)
           }
-          style={{
-            width: props.manager.columns.span_list.width * 100 + '%',
-          }}
           onDoubleClick={e => {
             e.stopPropagation();
             props.manager.onZoomIntoSpace(props.node.space!);
@@ -807,10 +811,8 @@ function RenderRow(props: {
           ref={r =>
             props.manager.registerColumnRef('list', r, virtualized_index, props.node)
           }
-          style={{
-            width: props.manager.columns.list.width * 100 + '%',
-          }}
         >
+          {' '}
           <div
             className={`TraceLeftColumnInner`}
             style={{
@@ -863,9 +865,6 @@ function RenderRow(props: {
             props.manager.registerColumnRef('span_list', r, virtualized_index, props.node)
           }
           className={`TraceRightColumn ${props.index % 2 === 0 ? 0 : 'Odd'}`}
-          style={{
-            width: props.manager.columns.span_list.width * 100 + '%',
-          }}
           onDoubleClick={e => {
             e.stopPropagation();
             props.manager.onZoomIntoSpace(props.node.space!);
@@ -920,9 +919,6 @@ function RenderRow(props: {
           ref={r =>
             props.manager.registerColumnRef('list', r, virtualized_index, props.node)
           }
-          style={{
-            width: props.manager.columns.list.width * 100 + '%',
-          }}
         >
           <div
             className={`TraceLeftColumnInner`}
@@ -978,9 +974,6 @@ function RenderRow(props: {
             props.manager.registerColumnRef('span_list', r, virtualized_index, props.node)
           }
           className={`TraceRightColumn ${props.index % 2 === 0 ? 0 : 'Odd'}`}
-          style={{
-            width: props.manager.columns.span_list.width * 100 + '%',
-          }}
           onDoubleClick={e => {
             e.stopPropagation();
             props.manager.onZoomIntoSpace(props.node.space!);
@@ -1034,9 +1027,6 @@ function RenderRow(props: {
           ref={r =>
             props.manager.registerColumnRef('list', r, virtualized_index, props.node)
           }
-          style={{
-            width: props.manager.columns.list.width * 100 + '%',
-          }}
         >
           <div
             className="TraceLeftColumnInner"
@@ -1055,14 +1045,12 @@ function RenderRow(props: {
             props.manager.registerColumnRef('span_list', r, virtualized_index, props.node)
           }
           className={`TraceRightColumn ${props.index % 2 === 0 ? 0 : 'Odd'}`}
-          style={{
-            width: props.manager.columns.span_list.width * 100 + '%',
-          }}
           onDoubleClick={e => {
             e.stopPropagation();
             props.manager.onZoomIntoSpace(props.node.space!);
           }}
         >
+          {' '}
           <TraceBar
             virtualized_index={virtualized_index}
             manager={props.manager}
@@ -1111,9 +1099,6 @@ function RenderRow(props: {
           ref={r =>
             props.manager.registerColumnRef('list', r, virtualized_index, props.node)
           }
-          style={{
-            width: props.manager.columns.list.width * 100 + '%',
-          }}
         >
           <div
             className="TraceLeftColumnInner"
@@ -1121,6 +1106,7 @@ function RenderRow(props: {
               paddingLeft: props.node.depth * props.manager.row_depth_padding,
             }}
           >
+            {' '}
             <div className="TraceChildrenCountWrapper Root">
               <Connectors node={props.node} manager={props.manager} />
               {props.node.children.length > 0 || props.node.canFetch ? (
@@ -1131,7 +1117,6 @@ function RenderRow(props: {
                 </ChildrenButton>
               ) : null}
             </div>
-
             <span className="TraceOperation">{t('Trace')}</span>
             <strong className="TraceEmDash"> — </strong>
             <span className="TraceDescription">{props.trace_id}</span>
@@ -1142,9 +1127,6 @@ function RenderRow(props: {
             props.manager.registerColumnRef('span_list', r, virtualized_index, props.node)
           }
           className={`TraceRightColumn ${props.index % 2 === 0 ? 0 : 'Odd'}`}
-          style={{
-            width: props.manager.columns.span_list.width * 100 + '%',
-          }}
           onDoubleClick={e => {
             e.stopPropagation();
             props.manager.onZoomIntoSpace(props.node.space!);
@@ -1198,9 +1180,6 @@ function RenderRow(props: {
           ref={r =>
             props.manager.registerColumnRef('list', r, virtualized_index, props.node)
           }
-          style={{
-            width: props.manager.columns.list.width * 100 + '%',
-          }}
         >
           <div
             className="TraceLeftColumnInner"
@@ -1209,7 +1188,7 @@ function RenderRow(props: {
             }}
           >
             <div className="TraceChildrenCountWrapper">
-              <Connectors node={props.node} manager={props.manager} />
+              <Connectors node={props.node} manager={props.manager} />{' '}
             </div>
             <PlatformIcon
               platform={props.projects[props.node.value.project_slug] ?? 'default'}
@@ -1224,9 +1203,6 @@ function RenderRow(props: {
             props.manager.registerColumnRef('span_list', r, virtualized_index, props.node)
           }
           className={`TraceRightColumn ${props.index % 2 === 0 ? 0 : 'Odd'}`}
-          style={{
-            width: props.manager.columns.span_list.width * 100 + '%',
-          }}
           onDoubleClick={e => {
             e.stopPropagation();
             props.manager.onZoomIntoSpace(props.node.space!);
@@ -1271,9 +1247,6 @@ function RenderRow(props: {
           ref={r =>
             props.manager.registerColumnRef('list', r, virtualized_index, props.node)
           }
-          style={{
-            width: props.manager.columns.list.width * 100 + '%',
-          }}
         >
           <div
             className="TraceLeftColumnInner"
@@ -1284,7 +1257,7 @@ function RenderRow(props: {
             <div className="TraceChildrenCountWrapper">
               <Connectors node={props.node} manager={props.manager} />
             </div>
-            <span className="TraceOperation">{t('Empty')}</span>
+            <span className="TraceOperation">{t('Empty')}</span>{' '}
             <strong className="TraceEmDash"> — </strong>
             <span className="TraceDescription">
               {tct('[type] did not report any span data', {
@@ -1304,9 +1277,6 @@ function RenderRow(props: {
             props.manager.registerColumnRef('span_list', r, virtualized_index, props.node)
           }
           className={`TraceRightColumn ${props.index % 2 === 0 ? 0 : 'Odd'}`}
-          style={{
-            width: props.manager.columns.span_list.width * 100 + '%',
-          }}
         />
       </div>
     );
@@ -2010,6 +1980,22 @@ const TraceStylingWrapper = styled('div')`
     transition: none;
     font-size: ${p => p.theme.fontSizeSmall};
 
+    &.Hidden {
+      position: absolute;
+      height: 100%;
+      width: 100%;
+      top: 0;
+      z-index: -1;
+
+      &:hover {
+        background-color: transparent;
+      }
+
+      * {
+        cursor: default !important;
+      }
+    }
+
     .TraceError {
       position: absolute;
       top: 50%;
@@ -2162,6 +2148,8 @@ const TraceStylingWrapper = styled('div')`
     box-shadow: inset 1px 0 0px 0px transparent;
     cursor: pointer;
 
+    width: var(--list-column-width);
+
     .TraceLeftColumnInner {
       height: 100%;
       white-space: nowrap;
@@ -2186,6 +2174,8 @@ const TraceStylingWrapper = styled('div')`
     will-change: width;
     z-index: 1;
     cursor: pointer;
+
+    width: var(--span-column-width);
 
     &:hover {
       .TraceArrow.Visible {
