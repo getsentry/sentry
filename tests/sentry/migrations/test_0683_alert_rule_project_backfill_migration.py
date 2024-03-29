@@ -13,12 +13,13 @@ class AlertRuleProjectBackfillTest(TestMigrations):
 
     def setup_before_migration(self):
         self.snuba_query = create_snuba_query(
-            query_type=SnubaQuery.Type.ERROR,
-            dataset=Dataset.Events,
-            query="",
             aggregate="",
-            time_window=timedelta(minutes=5),
+            dataset=Dataset.Events,
+            environment=None,
+            query="",
+            query_type=SnubaQuery.Type.ERROR,
             resolution=timedelta(minutes=5),
+            time_window=timedelta(minutes=5),
         )
 
         self.alert_rule = AlertRule.objects.create(
