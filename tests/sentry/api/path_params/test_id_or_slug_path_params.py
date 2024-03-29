@@ -35,9 +35,9 @@ from sentry.scim.endpoints.teams import OrganizationSCIMTeamDetails
 from sentry.testutils.silo import no_silo_test
 from sentry.web.frontend.base import BaseView
 
-from .test_doc_integration_slug import DocIntegrationSlugTests
-from .test_organization_slug import OrganizationSlugTests
-from .test_sentry_app_slug import SentryAppSlugTests
+from .resources.test_doc_integration_slug import DocIntegrationSlugTests
+from .resources.test_organization_slug import OrganizationSlugTests
+from .resources.test_sentry_app_slug import SentryAppSlugTests
 
 
 def extract_slug_path_params(path: str) -> list[str]:
