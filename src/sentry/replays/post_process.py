@@ -7,6 +7,7 @@ from typing import Any, TypedDict
 
 from drf_spectacular.utils import extend_schema_serializer
 
+from sentry.api.serializers.models.user import UserSerializerResponse as UserModelResponseType
 from sentry.replays.validators import VALID_FIELD_SET
 
 
@@ -33,7 +34,7 @@ class BrowserResponseType(TypedDict, total=False):
 
 
 class UserResponseType(TypedDict, total=False):
-    id: str | None
+    id: str | None  # string uint64
     username: str | None
     email: str | None
     ip: str | None
@@ -73,6 +74,11 @@ class ReplayDetailsResponse(TypedDict, total=False):
     info_ids: list[str] | None
     count_warnings: int | None
     count_infos: int | None
+
+
+class ReplayViewedByResponse(TypedDict):
+    id: str
+    viewed_by: list[UserModelResponseType]
 
 
 def process_raw_response(
