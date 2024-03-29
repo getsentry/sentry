@@ -11,7 +11,7 @@ class AlertRuleProjectBackfillTest(TestMigrations):
     migrate_from = "0682_monitors_constrain_to_project_id_slug"
     migrate_to = "0683_alert_rule_project_backfill_migration"
 
-    def setup_before_migration(self):
+    def setup_before_migration(self, app):
         self.snuba_query = create_snuba_query(
             aggregate="",
             dataset=Dataset.Events,
