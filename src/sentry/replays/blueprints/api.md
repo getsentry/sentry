@@ -94,7 +94,7 @@ Retrieve a collection of replays.
 | environment       | optional[string]              | -                                                      |
 | error_ids         | array[string]                 | -                                                      |
 | finished_at       | string                        | The **latest** timestamp received.                     |
-| has_seen          | bool                          | True if the authorized user has seen the replay.       |
+| has_viewed        | bool                          | True if the authorized user has viewed the replay.     |
 | id                | string                        | The ID of the Replay instance.                         |
 | is_archived       | bool                          | Whether the replay was deleted or not.                 |
 | os.name           | optional[string]              | -                                                      |
