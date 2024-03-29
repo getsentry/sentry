@@ -11,6 +11,7 @@ import {lightTheme as theme} from 'sentry/utils/theme';
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
+  isNoDataNode,
   isParentAutogroupedNode,
   isSiblingAutogroupedNode,
   isSpanNode,
@@ -1074,6 +1075,7 @@ export class VirtualizedViewManager {
         const nextSegment = segments[segments.length - 1];
         if (
           nextSegment?.startsWith('span:') ||
+          nextSegment?.startsWith('empty:') ||
           nextSegment?.startsWith('ag:') ||
           nextSegment?.startsWith('ms:')
         ) {
@@ -2040,6 +2042,10 @@ function findInTreeFromSegment(
 
     if (type === 'error' && isTraceErrorNode(node)) {
       return node.value.event_id === id;
+    }
+
+    if (type === 'empty' && isNoDataNode(node)) {
+      return true;
     }
 
     return false;
