@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from hashlib import md5
 from math import floor
-from typing import Any, TypedDict, cast
+from typing import Any, Literal, TypedDict, cast
 
 import sentry_sdk
 from django.db.models import Q
@@ -77,6 +77,8 @@ DEFAULT_TRENDS_WEIGHTS: TrendsSortWeights = {
     "v2": True,
     "norm": False,
 }
+
+Entities = Mapping[Literal["event", "attrs"], Entity]
 
 
 @dataclass
@@ -559,6 +561,43 @@ def trends_issue_platform_aggregation(
     )
 
 
+def trends_aggregation_snql(
+    start: datetime,
+    end: datetime,
+    entities: Entities,
+    aggregate_kwargs: TrendsSortWeights,
+) -> Sequence[str]:
+    aggregate_kwargs = aggregate_kwargs or DEFAULT_TRENDS_WEIGHTS
+    return trends_aggregation_impl_snql(
+        TrendsParams(
+            max_pow=16,
+            min_score=0.01,
+            event_age_weight=1,
+            log_level_weight=aggregate_kwargs.get("log_level", DEFAULT_TRENDS_WEIGHTS["log_level"]),
+            stacktrace_weight=aggregate_kwargs.get(
+                "has_stacktrace", DEFAULT_TRENDS_WEIGHTS.get("has_stacktrace")
+            ),
+            event_halflife_hours=aggregate_kwargs.get(
+                "event_halflife_hours", DEFAULT_TRENDS_WEIGHTS.get("event_halflife_hours")
+            ),
+            issue_age_weight=1,
+            issue_halflife_hours=aggregate_kwargs.get(
+                "issue_halflife_hours", DEFAULT_TRENDS_WEIGHTS.get("issue_halflife_hours")
+            ),
+            relative_volume_weight=aggregate_kwargs.get(
+                "relative_volume", DEFAULT_TRENDS_WEIGHTS.get("relative_volume")
+            ),
+            v2=aggregate_kwargs.get("v2", DEFAULT_TRENDS_WEIGHTS.get("v2")),
+            normalize=aggregate_kwargs.get("norm", DEFAULT_TRENDS_WEIGHTS.get("norm")),
+        ),
+        "timestamp",
+        True,
+        start,
+        end,
+        entities,
+    )
+
+
 def trends_aggregation_impl(
     params: TrendsParams,
     timestamp_column: str,
@@ -686,6 +725,193 @@ def trends_aggregation_impl(
                 f"plus(plus({normalized_aggregate_issue_score}, {normalized_aggregate_event_score}), {normalized_relative_volume_score})",
                 "",
             ]
+
+
+def trends_aggregation_impl_snql(
+    params: TrendsParams,
+    timestamp_column: str,
+    use_stacktrace: bool,
+    start: datetime,
+    end: datetime,
+    entities: Entities,
+) -> Sequence[str]:
+    min_score = params.min_score
+    max_pow = params.max_pow
+    event_age_weight = params.event_age_weight
+    event_halflife_hours = params.event_halflife_hours
+    log_level_weight = params.log_level_weight
+    stacktrace_weight = params.stacktrace_weight
+    relative_volume_weight = params.relative_volume_weight
+    issue_age_weight = params.issue_age_weight
+    issue_halflife_hours = params.issue_halflife_hours
+
+    event_age_hours = Function(
+        "divide",
+        [Function("minus", ["now()", Column(timestamp_column, entities["event"])]), 3600],
+    )
+    issue_age_hours = Function(
+        "divide",
+        [
+            Function(
+                "minus",
+                ["now()", Function("min", [Column(timestamp_column, entities["event"]), 3600])],
+            ),
+            3600,
+        ],
+    )
+    log_level_score = Function(
+        "multiIf",
+        [
+            Function("equals", [Column("level", entities["event"]), "'fatal'"]),
+            1.0,
+            Function("equals", [Column("level", entities["event"]), "'error'"]),
+            0.66,
+            Function("equals", [Column("level", entities["event"]), "'warning'"]),
+            0.33,
+            0.0,
+        ],
+    )
+    stacktrace_score = Function(
+        "if", [Function("notEmpty", [Column("exception_stacks.type", entities["event"])]), 1.0, 0.0]
+    )
+    # event_agg_rank:
+    #   ls = log_level_score    {1.0, 0.66, 0.33, 0}
+    #   lw = log_level_weight   [0, 10]
+    #   ss = stacktrace_score   {1.0, 0.0}
+    #   sw = stacktrace_weight  [0, 3]
+    #   as = event_age_score    [1, 0]
+    #   aw = event_age_weight   [1, 5]
+    #
+    #        (ls * lw) + (ss * sw) + (as * aw)     min(f(x)  = 0, when individual scores are all 0
+    # f(x) = ---------------------------------  ,  max(f(x)) = 1, when individual scores are all 1
+    #                  lw + sw + aw
+    #
+
+    if use_stacktrace:
+        event_agg_numerator = Function(
+            "plus",
+            [
+                Function("multiply", [log_level_score, log_level_weight]),
+                Function("multiply", [stacktrace_score, stacktrace_weight]),
+                event_age_weight,
+            ],
+        )
+    else:
+        event_agg_numerator = Function(
+            "plus", [Function("multiply", [log_level_score, log_level_weight]), event_age_weight]
+        )
+
+    event_agg_denominator = Function(
+        "plus", [log_level_weight, stacktrace_weight, event_age_weight]
+    )
+    event_agg_rank = Function(
+        "divide", [event_agg_numerator, event_agg_denominator]
+    )  # values from [0, 1]
+    aggregate_issue_score = Function(
+        "greatest",
+        [
+            min_score,
+            Function(
+                "divide",
+                [
+                    issue_age_weight,
+                    Function(
+                        "pow",
+                        [
+                            2,
+                            Function(
+                                "least",
+                                [
+                                    max_pow,
+                                    Function("divide", [issue_age_hours, issue_halflife_hours]),
+                                ],
+                            ),
+                        ],
+                    ),
+                ],
+            ),
+        ],
+    )
+    aggregate_event_score = Function(
+        "log",
+        [
+            Function(
+                "plus",
+                [
+                    1,
+                    Function(
+                        "sum",
+                        [
+                            Function(
+                                "divide",
+                                [
+                                    event_agg_rank,
+                                    Function(
+                                        "pow",
+                                        [
+                                            2,
+                                            Function(
+                                                "divide", [event_age_hours, event_halflife_hours]
+                                            ),
+                                        ],
+                                    ),
+                                ],
+                            )
+                        ],
+                    ),
+                ],
+            )
+        ],
+    )
+    date_period = end - start
+
+    if date_period.days >= 7:
+        overall_event_count_seconds = 3600 * 24 * 7
+        recent_event_count_seconds = 3600
+    else:
+        overall_event_count_seconds = int(date_period.total_seconds())
+        recent_event_count_seconds = floor(overall_event_count_seconds * 0.01)
+
+    recent_event_count = Function(
+        "countIf",
+        [
+            Function(
+                "lessOrEquals",
+                [
+                    Function("minus", ["now()", timestamp_column]),
+                    recent_event_count_seconds,
+                ],
+            )
+        ],
+    )
+    overall_event_count = Function(
+        "countIf",
+        [
+            Function(
+                "lessOrEquals",
+                [
+                    Function("minus", ["now()", timestamp_column]),
+                    overall_event_count_seconds,
+                ],
+            )
+        ],
+    )
+    relative_volume_weight = min(relative_volume_weight, 10)
+    relative_volume_score = Function(
+        "divide", [recent_event_count, Function("plus", [overall_event_count, 1])]
+    )
+    scaled_relative_volume_score = Function(
+        "divide", [Function("multiply", [relative_volume_weight, relative_volume_score]), 10]
+    )
+    normalized_aggregate_event_score = Function(
+        "divide", [Function("least", [aggregate_event_score, 21]), 21]
+    )
+    return Function(
+        "plus",
+        # [aggregate_issue_score, normalized_aggregate_event_score, scaled_relative_volume_score],
+        [issue_age_hours, 0],
+        alias="trends",
+    )
 
 
 class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
@@ -1148,20 +1374,29 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
     first_seen = Column("group_first_seen", entities["attrs"])
     times_seen_aggregation = Function("count", [], alias="times_seen")
 
-    sort_defs = {
-        "date": last_seen_aggregation,
-        "new": first_seen,
-        "freq": times_seen_aggregation,
-        "user_count": Function(
-            "uniq", [Column("tags[sentry:user]", entities["event"])], "user_count"
-        ),
-    }
+    def get_sort_defs(
+        self,
+        start: datetime,
+        end: datetime,
+        entities: Mapping[Literal["event", "group_attributes"], Entity],
+        aggregate_kwargs: TrendsSortWeights,
+    ) -> Sequence[str]:
+        return {
+            "date": self.last_seen_aggregation,
+            "new": self.first_seen,
+            "freq": self.times_seen_aggregation,
+            "user_count": Function(
+                "uniq", [Column("tags[sentry:user]", self.entities["event"])], "user_count"
+            ),
+            "trends": trends_aggregation_snql(start, end, entities, aggregate_kwargs),
+        }
 
     sort_strategies = {
         "new": "g.group_first_seen",
         "date": "score",
         "freq": "times_seen",
         "user_count": "user_count",
+        "trends": "trends",
     }
 
     def calculate_start_end(
@@ -1269,7 +1504,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 )
             )
 
-        sort_func = self.sort_defs[sort_by]
+        sort_func = self.get_sort_defs(start, end, self.entities, aggregate_kwargs)[sort_by]
 
         having = []
         if cursor is not None:
@@ -1282,6 +1517,8 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         if sort_by == "new":
             groupby.append(Column("group_first_seen", attr_entity))
             select.append(Column("group_first_seen", attr_entity))
+        elif sort_by == "trends":
+            groupby.append(sort_func)
 
         select.append(sort_func)
 
