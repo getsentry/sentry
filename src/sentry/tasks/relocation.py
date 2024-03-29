@@ -786,6 +786,12 @@ def validating_start(uuid: str) -> None:
             timeout=convert_dict_key_case(cb_conf["timeout"], camel_to_snake_keep_underscores),
             options=convert_dict_key_case(cb_conf["options"], camel_to_snake_keep_underscores),
         )
+        # Check if the Google Cloud project's billing account is active
+        if not is_billing_account_active(gcp_project_id()):
+            logger.error('Google Cloud project billing account is not active.', extra={'project_id': gcp_project_id()})
+            fail_relocation(relocation, OrderedTask.VALIDATING_START, 'Google Cloud project billing account is not active.')
+            return
+
         response = cb_client.create_build(project_id=gcp_project_id(), build=build)
 
         with atomic_transaction(
