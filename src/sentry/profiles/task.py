@@ -741,7 +741,7 @@ def get_frame_index_map(frames: list[dict[str, Any]]) -> dict[int, list[int]]:
     return index_map
 
 
-@metrics.wraps("process_profile.deobfuscate.with_symbolicator")
+@metrics.wraps("process_profile.deobfuscate_using_symbolicator")
 def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_file_id: str) -> bool:
     symbolication_start_time = time()
 
@@ -785,15 +785,14 @@ def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_fi
                             "message": response["message"],
                         },
                     )
-                    sentry_sdk.capture_message("Deobfuscation via Symbolicator failed")
-                elif "stacktraces" in response:
-                    if "errors" in response:
-                        sentry_sdk.set_context(
-                            "deobfuscation_error",
-                            {
-                                "errors": response["errors"],
-                            },
-                        )
+                if "errors" in response:
+                    sentry_sdk.set_context(
+                        "deobfuscation_error",
+                        {
+                            "errors": response["errors"],
+                        },
+                    )
+                if "stacktraces" in response:
                     merge_jvm_frames_with_android_methods(
                         frames=response["stacktraces"][0]["frames"],
                         methods=profile["profile"]["methods"],
@@ -803,6 +802,7 @@ def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_fi
                 sentry_sdk.capture_message("No response from Symbolicator")
     except SymbolicationTimeout:
         metrics.incr("process_profile.symbolicate.timeout", sample_rate=1.0)
+    sentry_sdk.capture_message("Deobfuscation via Symbolicator failed")
     return False
 
 
