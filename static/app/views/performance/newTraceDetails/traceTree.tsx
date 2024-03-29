@@ -730,6 +730,10 @@ export class TraceTree {
         continue;
       }
 
+      if (!isSpanNode(node)) {
+        continue;
+      }
+
       if (node.children.length < 5) {
         continue;
       }

@@ -265,36 +265,38 @@ export function Trace({
           )
         : Promise.resolve(null);
 
-    promise.then(maybeNode => {
-      // Important to set scrollQueueRef.current to null and trigger a rerender
-      // after the promise resolves as we show a loading state during scroll,
-      // else the screen could jump around while we fetch span data
-      scrollQueueRef.current = null;
+    promise
+      .then(maybeNode => {
+        if (!maybeNode) {
+          Sentry.captureMessage('Failled to find and scroll to node in tree');
+          return;
+        }
 
-      if (!maybeNode) {
-        Sentry.captureMessage('Failled to find and scroll to node in tree');
+        if (maybeNode.node.space) {
+          manager.animateViewTo(maybeNode.node.space);
+        }
+
+        onRowClick(maybeNode.node, null);
+        roving_dispatch({
+          type: 'set index',
+          index: maybeNode.index,
+          node: maybeNode.node,
+        });
+
+        manager.list?.scrollToRow(maybeNode.index, 'top');
+        manager.scrollRowIntoViewHorizontally(maybeNode.node, 0, 12, 'exact');
+
+        if (searchStateRef.current.query) {
+          onTraceSearch(treeRef.current, searchStateRef.current.query, maybeNode.node);
+        }
+      })
+      .finally(() => {
+        // Important to set scrollQueueRef.current to null and trigger a rerender
+        // after the promise resolves as we show a loading state during scroll,
+        // else the screen could jump around while we fetch span data
+        scrollQueueRef.current = null;
         setRender(a => (a + 1) % 2);
-        return;
-      }
-
-      if (maybeNode.node.space) {
-        manager.animateViewTo(maybeNode.node.space);
-      }
-
-      onRowClick(maybeNode.node, null);
-      roving_dispatch({
-        type: 'set index',
-        index: maybeNode.index,
-        node: maybeNode.node,
       });
-
-      manager.list?.scrollToRow(maybeNode.index, 'top');
-      manager.scrollRowIntoViewHorizontally(maybeNode.node, 0, 12, 'exact');
-
-      if (searchStateRef.current.query) {
-        onTraceSearch(treeRef.current, searchStateRef.current.query, maybeNode.node);
-      }
-    });
   }, [
     api,
     scrollQueueRef,
