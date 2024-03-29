@@ -39,6 +39,7 @@ const DEFAULT_ENVIRONMENT = 'production';
 export function CronTimelineSection({event, organization, project}: Props) {
   const {location} = useRouter();
   const timeWindow: TimeWindow = location.query?.timeWindow ?? '24h';
+  const monitorId = event.tags.find(({key}) => key === 'monitor.id')?.value;
   const monitorSlug = event.tags.find(({key}) => key === 'monitor.slug')?.value;
   const environment = event.tags.find(({key}) => key === 'environment')?.value;
 
@@ -58,18 +59,19 @@ export function CronTimelineSection({event, organization, project}: Props) {
         query: {
           until: Math.floor(end.getTime() / 1000),
           since: Math.floor(start.getTime() / 1000),
-          monitor: monitorSlug,
+          useGUIDs: true,
+          monitor: monitorId,
           resolution: `${rollup}s`,
         },
       },
     ],
     {
       staleTime: 0,
-      enabled: !!monitorSlug && timelineWidth > 0,
+      enabled: !!monitorId && timelineWidth > 0,
     }
   );
 
-  if (!monitorSlug) {
+  if (!monitorId) {
     return null;
   }
 
@@ -121,7 +123,7 @@ export function CronTimelineSection({event, organization, project}: Props) {
             <FadeInContainer>
               <CheckInTimeline
                 width={timelineWidth}
-                bucketedData={monitorStats[monitorSlug]}
+                bucketedData={monitorStats[monitorId]}
                 start={start}
                 end={end}
                 timeWindowConfig={timeWindowConfig}
