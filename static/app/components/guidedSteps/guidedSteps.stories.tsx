@@ -96,11 +96,15 @@ export default storyBook(GuidedSteps, story => {
             </GuidedSteps.Step>
             <GuidedSteps.Step title="Step 2 Title" isCompleted={false}>
               You haven't completed the second step yet, here's how you do it.
-              <GuidedSteps.StepButtons />
+              <GuidedSteps.ButtonWrapper>
+                <GuidedSteps.BackButton />
+              </GuidedSteps.ButtonWrapper>
             </GuidedSteps.Step>
             <GuidedSteps.Step title="Step 3 Title" isCompleted={false}>
               You haven't completed the third step yet, here's how you do it.
-              <GuidedSteps.StepButtons />
+              <GuidedSteps.ButtonWrapper>
+                <GuidedSteps.BackButton />
+              </GuidedSteps.ButtonWrapper>
             </GuidedSteps.Step>
           </GuidedSteps>
         </SizingWindow>
