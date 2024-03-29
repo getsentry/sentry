@@ -53,7 +53,7 @@ jobs:
             all:
               - added|modified: '**/*'
 
-      - uses: getsentry/action-setup-venv@f0daafa9688e48f939cace0378a46f2d422bd81f # v2.0.0
+      - uses: getsentry/action-setup-venv@a133e6fd5fa6abd3f590a1c106abda344f5df69f # v2.1.0
         with:
           python-version: 3.11.6
           cache-dependency-path: |
