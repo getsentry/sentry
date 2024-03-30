@@ -616,10 +616,10 @@ export class VirtualizedViewManager {
     const start_width = this.trace_view.width;
 
     const max_distance = Math.max(Math.abs(distance_x), Math.abs(distance_width));
-    const p = max_distance !== 0 ? Math.log10(max_distance) - 1 : 1;
+    const p = max_distance !== 0 ? Math.log10(max_distance) : 1;
     // We need to clamp the duration to prevent the animation from being too slow,
     // sometimes the distances are very large as traces can be hours in duration
-    const duration = clamp(200 + 100 * Math.abs(p * p), 200, 600);
+    const duration = clamp(200 + 70 * Math.abs(p), 200, 600);
 
     const start = performance.now();
     const rafCallback = (now: number) => {
@@ -1551,7 +1551,7 @@ class TextMeasurer {
       this.number = Math.max(this.number, measurement.width);
     }
 
-    for (const duration of ['ns', 'ms', 's', 'm', 'h', 'd']) {
+    for (const duration of ['ns', 'ms', 's', 'm', 'min', 'h', 'd']) {
       this.duration[duration] = this.ctx.measureText(duration).width;
     }
   }
