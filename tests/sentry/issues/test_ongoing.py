@@ -42,7 +42,15 @@ class TransitionNewToOngoingTest(TestCase):
 
     def test_escalating_to_ongoing(self) -> None:
         group = self.create_group(
-            status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ESCALATING
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.ESCALATING,
+            priority=GroupHistoryStatus.PRIORITY_MEDIUM,
+        )
+        GroupHistory.objects.create(
+            group=group,
+            status=GroupHistoryStatus.PRIORITY_MEDIUM,
+            project=self.project,
+            organization=self.organization,
         )
         GroupHistory.objects.create(
             group=group,

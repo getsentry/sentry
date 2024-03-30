@@ -138,6 +138,12 @@ class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
             organization=self.organization,
             status=GroupHistoryStatus.PRIORITY_MEDIUM,
         )
+        GroupHistory.objects.create(
+            group=self.group,
+            project=self.group.project,
+            organization=self.organization,
+            status=GroupHistoryStatus.PRIORITY_HIGH,
+        )
         message = get_test_message_status_change(
             self.project.id,
             fingerprint=self.fingerprint,
