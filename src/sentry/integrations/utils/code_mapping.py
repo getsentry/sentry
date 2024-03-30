@@ -297,13 +297,22 @@ class CodeMappingTreesHelper:
         if len(matched_files) != 1:
             return []
 
-        stacktrace_root, source_path = find_roots(frame_filename.raw_path, matched_files[0])
+        stack_path = frame_filename.raw_path
+        source_path = matched_files[0]
+        stack_root, source_root = find_roots(stack_path, source_path)
+
+        if (
+            stack_root
+            and source_root
+            and stack_path.replace(stack_root, source_root, 1) != source_path
+        ):
+            return []
 
         return [
             CodeMapping(
                 repo=repo_tree.repo,
-                stacktrace_root=stacktrace_root,  # sentry/
-                source_path=source_path,  # src/sentry/
+                stacktrace_root=stack_root,
+                source_path=source_root,
             )
         ]
 
@@ -439,36 +448,43 @@ def find_roots(stack_path: str, source_path: str) -> tuple[str, str]:
     Returns a tuple containing the stack_root, and the source_root.
     If there is no overlap, raise an exception since this should not happen
     """
+    stack_root = ""
     if stack_path[0] == "/":
+        stack_root += "/"
         stack_path = stack_path[1:]
 
     if stack_path == source_path:
-        return ("", "")
-    elif source_path.endswith(stack_path):  # Packaged logic
+        return (stack_root, "")
+    elif source_path.endswith(stack_path):  # "Packaged" logic
         source_prefix = source_path.rpartition(stack_path)[0]
         package_dir = stack_path.split("/")[0]
-        return (f"{package_dir}/", f"{source_prefix}{package_dir}/")
+        return (f"{stack_root}{package_dir}/", f"{source_prefix}{package_dir}/")
     elif stack_path.endswith(source_path):
         stack_prefix = stack_path.rpartition(source_path)[0]
-        return (stack_prefix, "")
+        return (f"{stack_root}{stack_prefix}", "")
 
-    stack_path_delim = SLASH if SLASH in stack_path else BACKSLASH
-    overlap_to_check = stack_path.split(stack_path_delim)
-    stack_root_items: list[str] = []
-    while overlap_to_check:
-        if source_path.endswith(overlap := SLASH.join(overlap_to_check)):
+    is_backslash_path = False
+    if BACKSLASH in stack_path:
+        stack_path = stack_path.replace(BACKSLASH, SLASH)
+        is_backslash_path = True
+
+    idx = 0
+    while idx < len(stack_path):
+        if source_path.endswith(overlap := stack_path[idx:]):
             source_root = source_path.rpartition(overlap)[0]
-            stack_root = stack_path_delim.join(stack_root_items)
 
             if stack_root:  # append trailing slash
-                stack_root = f"{stack_root}{stack_path_delim}"
+                stack_root = f"{stack_root}/"
             if source_root and source_root[-1] != SLASH:
                 source_root = f"{source_root}{SLASH}"
+            if is_backslash_path:
+                stack_root = stack_root.replace(SLASH, BACKSLASH)
 
             return (stack_root, source_root)
 
         # increase stack root specificity, decrease overlap specifity
-        stack_root_items.append(overlap_to_check.pop(0))
+        stack_root += stack_path[idx]
+        idx += 1
 
     # validate_source_url should have ensured the file names match
     # so if we get here something went wrong and there is a bug
