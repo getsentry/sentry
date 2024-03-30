@@ -468,10 +468,9 @@ def find_roots(stack_path: str, source_path: str) -> tuple[str, str]:
         stack_prefix = stack_path.rpartition(source_path)[0]
         return (f"{stack_root}{stack_prefix}", "")
 
-    is_backslash_path = False
-    if BACKSLASH in stack_path:
+    stack_path_delim = SLASH if SLASH in stack_path else BACKSLASH
+    if stack_path_delim == BACKSLASH:
         stack_path = stack_path.replace(BACKSLASH, SLASH)
-        is_backslash_path = True
 
     idx = 0
     while idx < len(stack_path):
@@ -479,10 +478,10 @@ def find_roots(stack_path: str, source_path: str) -> tuple[str, str]:
             source_root = source_path.rpartition(overlap)[0]
 
             if stack_root:  # append trailing slash
-                stack_root = f"{stack_root}/"
+                stack_root = f"{stack_root}{stack_path_delim}"
             if source_root and source_root[-1] != SLASH:
                 source_root = f"{source_root}{SLASH}"
-            if is_backslash_path:
+            if stack_path_delim == BACKSLASH:
                 stack_root = stack_root.replace(SLASH, BACKSLASH)
 
             return (stack_root, source_root)
