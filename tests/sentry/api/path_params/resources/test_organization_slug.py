@@ -45,6 +45,7 @@ class OrganizationSlugTests(TestCase, APIIdOrSlugTestMixin):
             request=request, **id_kwargs, **non_slug_mappings
         )
 
+        # pass non_slug mapping in reverse because the convert_args method doesn't change the non_slug_mappings
         self.assert_conversion(
             endpoint_class,
             converted_slugs,
