@@ -25,7 +25,7 @@ export default function Stories({location}: Props) {
       <Layout>
         <StoryHeader style={{gridArea: 'head'}} />
 
-        <Sidebar>
+        <Sidebar style={{gridArea: 'aside'}}>
           <Input
             placeholder="Search files by name"
             onChange={e => setSearchTerm(e.target.value.toLowerCase())}
@@ -72,7 +72,6 @@ const Layout = styled('div')`
 `;
 
 const Sidebar = styled('aside')`
-  grid-area: aside;
   display: flex;
   gap: ${space(2)};
   flex-direction: column;
