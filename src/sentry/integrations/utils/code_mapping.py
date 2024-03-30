@@ -301,11 +301,7 @@ class CodeMappingTreesHelper:
         source_path = matched_files[0]
         stack_root, source_root = find_roots(stack_path, source_path)
 
-        if (
-            stack_root
-            and source_root
-            and stack_path.replace(stack_root, source_root, 1) != source_path
-        ):
+        if stack_path.replace(stack_root, source_root, 1) != source_path:
             return []
 
         return [
