@@ -302,6 +302,15 @@ class CodeMappingTreesHelper:
         stack_root, source_root = find_roots(stack_path, source_path)
 
         if stack_path.replace(stack_root, source_root, 1) != source_path:
+            logger.info(
+                "Unexpected stack_path/source_path found. A code mapping was not generated.",
+                extra={
+                    "stack_path": stack_path,
+                    "source_path": source_path,
+                    "stack_root": stack_root,
+                    "source_root": source_root,
+                },
+            )
             return []
 
         return [
