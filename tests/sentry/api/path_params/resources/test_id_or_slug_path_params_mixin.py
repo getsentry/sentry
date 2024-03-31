@@ -69,9 +69,7 @@ class APIIdOrSlugTestMixin:
         reverse_non_slug_mappings=None,
         use_id=False,
     ) -> None:
-        check_no_slugs_in_kwargs = (
-            endpoint_class.convert_args not in self.no_slugs_in_kwargs_allowlist
-        )
+        check_no_slugs_in_kwargs = endpoint_class not in self.no_slugs_in_kwargs_allowlist
         if check_no_slugs_in_kwargs:
             assert not any(str.endswith(param, "_slug") for param in converted_ids)
 

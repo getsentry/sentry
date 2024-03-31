@@ -81,7 +81,7 @@ class APIIdOrSlugPathParamTest(DocIntegrationSlugTests, SentryAppSlugTests, Orga
             1b. The value should be the test method that will be called with the endpoint. You can either reuse an existing test method or create a new one.
         2. If you are introducing a new slug parameter, add the slug to the `slug_mappings` dictionary & `reverse_slug_mappings` dictionary.
         3. Some of our endpoints don't properly handle all slugs in kwargs, and pass them to the base endpoint without converting them. If the endpoint is one of these,
-            add the endpoint's `convert_args` method to the `no_slugs_in_kwargs_allowlist` in the APIIdOrSlugTestUtils class.
+            add the endpoint method to the `no_slugs_in_kwargs_allowlist` in the APIIdOrSlugTestUtils class.
         4. Each test method should have the following signature: `def test_method(self, endpoint_class, slug_params, non_slug_params, *args):`
             4a. `endpoint_class` is the endpoint class that is being tested.
             4b. `slug_params` is a list of path parameters that end with `_slug`.
