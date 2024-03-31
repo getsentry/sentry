@@ -198,6 +198,11 @@ describe('token evaluator', () => {
       expect(evaluate(node, grammar.parse('same_process_as_parent:false')[0])).toBe(true);
     });
   });
+  it('null', () => {
+    // @ts-expect-error force null on type
+    const node = makeSpanNode({same_process_as_parent: null});
+    expect(evaluate(node, grammar.parse('same_process_as_parent:null')[0])).toBe(true);
+  });
   it('undefined', () => {
     const node = makeSpanNode({same_process_as_parent: undefined});
     expect(evaluate(node, grammar.parse('same_process_as_parent:undefined')[0])).toBe(
