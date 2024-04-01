@@ -79,7 +79,7 @@ function ReplayMetaData({replayErrors, replayRecord, showDeadRageClicks = true}:
         {replayRecord ? (
           <ErrorCounts replayErrors={replayErrors} replayRecord={replayRecord} />
         ) : (
-          <HeaderPlaceholder width="80px" height="16px" />
+          <HeaderPlaceholder width="20px" height="16px" />
         )}
       </KeyMetricData>
     </KeyMetrics>
