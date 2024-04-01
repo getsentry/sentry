@@ -14,10 +14,22 @@ import {useTimelineZoom} from './timelineZoom';
 
 interface Props {
   timeWindowConfig: TimeWindowConfig;
+  /**
+   * The size of the timeline
+   */
   width: number;
+  /**
+   * Enable zoom selection
+   */
   allowZoom?: boolean;
   className?: string;
+  /**
+   * Enable the timeline cursor
+   */
   showCursor?: boolean;
+  /**
+   * Enabling causes the cursor tooltip to stick to the top of the viewport.
+   */
   stickyCursor?: boolean;
 }
 
