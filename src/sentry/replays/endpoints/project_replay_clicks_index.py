@@ -81,7 +81,7 @@ class ProjectReplayClicksIndexEndpoint(ProjectEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
-        examples=ReplayExamples.GET_REPLAY_CLIKS,
+        examples=ReplayExamples.GET_REPLAY_CLICKS,
     )
     def get(self, request: Request, project: Project, replay_id: str) -> Response:
         """Retrieve a collection of RRWeb DOM node-ids and the timestamp they were clicked."""
