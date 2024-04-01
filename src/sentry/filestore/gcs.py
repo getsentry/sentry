@@ -242,6 +242,8 @@ class GoogleCloudStorage(Storage):
                 setattr(self, name, value)
 
         self._bucket = None
+        if not self.bucket_name:
+            raise ValueError("A bucket name must be specified for GoogleCloudStorage.")
         self._client = None
 
     @property
