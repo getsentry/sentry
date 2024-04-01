@@ -1,13 +1,5 @@
 import type React from 'react';
-import {
-  Fragment,
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {browserHistory} from 'react-router';
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -17,7 +9,7 @@ import * as qs from 'query-string';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Organization, PlatformKey, Project} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
 import type {
@@ -41,6 +33,7 @@ import type {
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
+  isNoDataNode,
   isParentAutogroupedNode,
   isSpanNode,
   isTraceErrorNode,
@@ -102,7 +95,9 @@ function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
 }
 
 const COUNT_FORMATTER = Intl.NumberFormat(undefined, {notation: 'compact'});
-const NO_ERRORS = [];
+const NO_ERRORS = new Set<TraceError>();
+const NO_PERFORMANCE_ISSUES = new Set<TracePerformanceIssue>();
+const NO_PROFILES = [];
 
 interface RovingTabIndexState {
   index: number | null;
@@ -137,14 +132,14 @@ function computeNextIndexFromAction(
 
 function maybeFocusRow(
   ref: HTMLDivElement | null,
-  index: number,
-  previouslyFocusedIndexRef: React.MutableRefObject<number | null>
+  node: TraceTreeNode<TraceTree.NodeValue>,
+  previouslyFocusedNodeRef: React.MutableRefObject<TraceTreeNode<TraceTree.NodeValue> | null>
 ) {
   if (!ref) return;
-  if (index === previouslyFocusedIndexRef.current) return;
+  if (node === previouslyFocusedNodeRef.current) return;
 
   ref.focus();
-  previouslyFocusedIndexRef.current = index;
+  previouslyFocusedNodeRef.current = node;
 }
 
 interface TraceProps {
@@ -153,15 +148,19 @@ interface TraceProps {
     node: TraceTreeNode<TraceTree.NodeValue> | null,
     event: React.MouseEvent<HTMLElement> | null
   ) => void;
-  onTraceSearch: (query: string) => void;
-  previouslyFocusedIndexRef: React.MutableRefObject<number | null>;
+  onTraceSearch: (
+    tree: TraceTree,
+    query: string,
+    node: TraceTreeNode<TraceTree.NodeValue> | null
+  ) => void;
+  previouslyFocusedNodeRef: React.MutableRefObject<TraceTreeNode<TraceTree.NodeValue> | null>;
   roving_dispatch: React.Dispatch<RovingTabIndexAction>;
   roving_state: RovingTabIndexState;
   scrollQueueRef: React.MutableRefObject<{
     eventId?: string;
     path?: TraceTree.NodePath[];
   } | null>;
-  searchResultsIteratorIndex: number | undefined;
+  searchResultsIteratorIndex: number | null;
   searchResultsMap: Map<TraceTreeNode<TraceTree.NodeValue>, number>;
   search_dispatch: React.Dispatch<TraceSearchAction>;
   search_state: TraceSearchState;
@@ -169,7 +168,7 @@ interface TraceProps {
   trace_id: string;
 }
 
-function Trace({
+export function Trace({
   trace,
   trace_id,
   roving_state,
@@ -181,7 +180,7 @@ function Trace({
   scrollQueueRef,
   searchResultsIteratorIndex,
   searchResultsMap,
-  previouslyFocusedIndexRef,
+  previouslyFocusedNodeRef,
   onTraceSearch,
 }: TraceProps) {
   const theme = useTheme();
@@ -201,6 +200,12 @@ function Trace({
 
   const treeRef = useRef<TraceTree>(trace);
   treeRef.current = trace;
+
+  const searchStateRef = useRef<TraceSearchState>(search_state);
+  searchStateRef.current = search_state;
+
+  const rovingTabIndexStateRef = useRef<RovingTabIndexState>(roving_state);
+  rovingTabIndexStateRef.current = roving_state;
 
   if (
     trace.root.space &&
@@ -231,8 +236,8 @@ function Trace({
     loadedRef.current = true;
 
     if (!scrollQueueRef.current) {
-      if (search_state.query) {
-        onTraceSearch(search_state.query);
+      if (searchStateRef.current.query) {
+        onTraceSearch(treeRef.current, searchStateRef.current.query, null);
       }
       return;
     }
@@ -268,6 +273,7 @@ function Trace({
 
       if (!maybeNode) {
         Sentry.captureMessage('Failled to find and scroll to node in tree');
+        setRender(a => (a + 1) % 2);
         return;
       }
 
@@ -285,8 +291,8 @@ function Trace({
       manager.list?.scrollToRow(maybeNode.index, 'top');
       manager.scrollRowIntoViewHorizontally(maybeNode.node, 0, 12, 'exact');
 
-      if (search_state.query) {
-        onTraceSearch(search_state.query);
+      if (searchStateRef.current.query) {
+        onTraceSearch(treeRef.current, searchStateRef.current.query, maybeNode.node);
       }
     });
   }, [
@@ -296,60 +302,14 @@ function Trace({
     trace,
     trace_id,
     manager,
-    search_state.query,
     onTraceSearch,
     onRowClick,
     roving_dispatch,
   ]);
 
-  const previousSearchResultIndexRef = useRef<number | undefined>(
-    search_state.resultIndex
-  );
-  useLayoutEffect(() => {
-    if (previousSearchResultIndexRef.current === search_state.resultIndex) {
-      return;
-    }
-    if (!manager.list) {
-      return;
-    }
-
-    if (typeof search_state.resultIndex !== 'number') {
-      return;
-    }
-
-    manager.scrollToRow(search_state.resultIndex);
-
-    if (previousSearchResultIndexRef.current === undefined) {
-      return;
-    }
-
-    const previousNode = treeRef.current.list[previousSearchResultIndexRef.current!];
-    previousSearchResultIndexRef.current = search_state.resultIndex;
-
-    if (previousNode) {
-      const nextNode = treeRef.current.list[search_state.resultIndex];
-      const offset =
-        nextNode.depth >= previousNode.depth ? manager.trace_physical_space.width / 2 : 0;
-
-      if (
-        manager.isOutsideOfViewOnKeyDown(
-          treeRef.current.list[search_state.resultIndex],
-          offset
-        )
-      ) {
-        manager.scrollRowIntoViewHorizontally(
-          treeRef.current.list[search_state.resultIndex],
-          0,
-          offset,
-          'measured'
-        );
-      }
-    }
-  }, [search_state.resultIndex, manager]);
-
   const handleZoomIn = useCallback(
     (
-      event: React.MouseEvent,
+      event: React.MouseEvent<Element> | React.KeyboardEvent<Element>,
       node: TraceTreeNode<TraceTree.NodeValue>,
       value: boolean
     ) => {
@@ -367,20 +327,11 @@ function Trace({
         })
         .then(() => {
           setRender(a => (a + 1) % 2);
-          if (search_state.query) {
-            onTraceSearch(search_state.query);
-          }
 
-          if (search_state.resultsLookup.has(node)) {
-            const idx = search_state.resultsLookup.get(node)!;
-
-            search_dispatch({
-              type: 'set iterator index',
-              resultIndex: search_state.results?.[idx]?.index!,
-              resultIteratorIndex: idx,
-            });
-          } else {
-            search_dispatch({type: 'clear iterator index'});
+          if (searchStateRef.current.query) {
+            const previousNode =
+              rovingTabIndexStateRef.current.node || searchStateRef.current.node;
+            onTraceSearch(treeRef.current, searchStateRef.current.query, previousNode);
           }
           treePromiseStatusRef.current!.set(node, 'success');
         })
@@ -388,12 +339,12 @@ function Trace({
           treePromiseStatusRef.current!.set(node, 'error');
         });
     },
-    [api, organization, search_state, search_dispatch, onTraceSearch]
+    [api, organization, onTraceSearch]
   );
 
   const handleExpandNode = useCallback(
     (
-      event: React.MouseEvent<Element>,
+      event: React.MouseEvent<Element> | React.KeyboardEvent<Element>,
       node: TraceTreeNode<TraceTree.NodeValue>,
       value: boolean
     ) => {
@@ -402,23 +353,13 @@ function Trace({
       treeRef.current.expand(node, value);
       setRender(a => (a + 1) % 2);
 
-      if (search_state.query) {
-        onTraceSearch(search_state.query);
-      }
-
-      if (search_state.resultsLookup.has(node)) {
-        const idx = search_state.resultsLookup.get(node)!;
-
-        search_dispatch({
-          type: 'set iterator index',
-          resultIndex: search_state.results?.[idx]?.index!,
-          resultIteratorIndex: idx,
-        });
-      } else {
-        search_dispatch({type: 'clear iterator index'});
+      if (searchStateRef.current.query) {
+        const previousNode =
+          rovingTabIndexStateRef.current.node || searchStateRef.current.node;
+        onTraceSearch(treeRef.current, searchStateRef.current.query, previousNode);
       }
     },
-    [search_state, search_dispatch, onTraceSearch]
+    [onTraceSearch]
   );
 
   const onVirtulizedRowClick = useCallback(
@@ -427,8 +368,7 @@ function Trace({
       index: number,
       node: TraceTreeNode<TraceTree.NodeValue>
     ) => {
-      previousSearchResultIndexRef.current = index;
-      previouslyFocusedIndexRef.current = index;
+      previouslyFocusedNodeRef.current = node;
       const {eventId: _eventId, ...query} = qs.parse(location.search);
       browserHistory.replace({
         pathname: location.pathname,
@@ -440,26 +380,20 @@ function Trace({
       onRowClick(node, event);
       roving_dispatch({type: 'set index', index, node});
 
-      if (search_state.resultsLookup.has(node)) {
-        const idx = search_state.resultsLookup.get(node)!;
+      if (searchStateRef.current.resultsLookup.has(node)) {
+        const idx = searchStateRef.current.resultsLookup.get(node)!;
 
         search_dispatch({
           type: 'set iterator index',
           resultIndex: index,
           resultIteratorIndex: idx,
+          node,
         });
       } else {
         search_dispatch({type: 'clear iterator index'});
       }
     },
-    [
-      roving_dispatch,
-      onRowClick,
-      search_state,
-      search_dispatch,
-      previouslyFocusedIndexRef,
-      previousSearchResultIndexRef,
-    ]
+    [roving_dispatch, onRowClick, search_dispatch, previouslyFocusedNodeRef]
   );
 
   const onRowKeyDown = useCallback(
@@ -480,7 +414,11 @@ function Trace({
           treeRef.current.list.length - 1
         );
         manager.scrollToRow(nextIndex);
-        roving_dispatch({type: 'set index', index: nextIndex, node});
+        roving_dispatch({
+          type: 'set index',
+          index: nextIndex,
+          node: treeRef.current.list[nextIndex],
+        });
 
         const nextNode = treeRef.current.list[nextIndex];
         const offset =
@@ -490,20 +428,36 @@ function Trace({
           manager.scrollRowIntoViewHorizontally(trace.list[nextIndex], 0, offset);
         }
 
-        if (search_state.resultsLookup.has(trace.list[nextIndex])) {
-          const idx = search_state.resultsLookup.get(trace.list[nextIndex])!;
+        if (searchStateRef.current.resultsLookup.has(trace.list[nextIndex])) {
+          const idx = searchStateRef.current.resultsLookup.get(trace.list[nextIndex])!;
 
           search_dispatch({
             type: 'set iterator index',
             resultIndex: nextIndex,
             resultIteratorIndex: idx,
+            node,
           });
         } else {
           search_dispatch({type: 'clear iterator index'});
         }
       }
+      if (event.key === 'ArrowLeft') {
+        if (node.zoomedIn) handleZoomIn(event, node, false);
+        if (node.expanded) handleExpandNode(event, node, false);
+      }
+      if (event.key === 'ArrowRight') {
+        if (!node.zoomedIn && node.canFetch) handleZoomIn(event, node, true);
+        if (!node.expanded) handleExpandNode(event, node, true);
+      }
     },
-    [manager, roving_dispatch, search_state, search_dispatch, trace.list]
+    [
+      manager,
+      roving_dispatch,
+      search_dispatch,
+      handleExpandNode,
+      handleZoomIn,
+      trace.list,
+    ]
   );
 
   // @TODO this is the implementation of infinite scroll. Once the user
@@ -582,7 +536,7 @@ function Trace({
           key={n.key}
           index={n.index}
           organization={organization}
-          previouslyFocusedIndexRef={previouslyFocusedIndexRef}
+          previouslyFocusedNodeRef={previouslyFocusedNodeRef}
           tabIndex={roving_state.index ?? -1}
           isSearchResult={searchResultsMap.has(n.item)}
           searchResultsIteratorIndex={searchResultsIteratorIndex}
@@ -646,7 +600,7 @@ function Trace({
                 <div
                   key={i}
                   ref={r => manager.registerIndicatorRef(r, i, indicator)}
-                  className="TraceIndicator"
+                  className={`TraceIndicator ${indicator.poor ? 'Errored' : ''}`}
                 >
                   <div className="TraceIndicatorLabel">{indicator.label}</div>
                   <div className="TraceIndicatorLine" />
@@ -693,8 +647,6 @@ function Trace({
   );
 }
 
-export default Trace;
-
 function RenderRow(props: {
   index: number;
   isSearchResult: boolean;
@@ -721,19 +673,15 @@ function RenderRow(props: {
     value: boolean
   ) => void;
   organization: Organization;
-  previouslyFocusedIndexRef: React.MutableRefObject<number | null>;
+  previouslyFocusedNodeRef: React.MutableRefObject<TraceTreeNode<TraceTree.NodeValue> | null>;
   projects: Record<Project['slug'], Project['platform']>;
-  searchResultsIteratorIndex: number | undefined;
+  searchResultsIteratorIndex: number | null;
   style: React.CSSProperties;
   tabIndex: number;
   theme: Theme;
   trace_id: string;
 }) {
   const virtualized_index = props.index - props.manager.start_virtualized_index;
-  if (!props.node.value) {
-    return null;
-  }
-
   const rowSearchClassName = `${props.isSearchResult ? 'SearchResult' : ''} ${props.searchResultsIteratorIndex === props.index ? 'Highlight' : ''}`;
 
   if (isAutogroupedNode(props.node)) {
@@ -742,7 +690,7 @@ function RenderRow(props: {
         key={props.index}
         ref={r =>
           props.tabIndex === props.index
-            ? maybeFocusRow(r, props.index, props.previouslyFocusedIndexRef)
+            ? maybeFocusRow(r, props.node, props.previouslyFocusedNodeRef)
             : null
         }
         tabIndex={props.tabIndex === props.index ? 0 : -1}
@@ -842,7 +790,7 @@ function RenderRow(props: {
         key={props.index}
         ref={r =>
           props.tabIndex === props.index
-            ? maybeFocusRow(r, props.index, props.previouslyFocusedIndexRef)
+            ? maybeFocusRow(r, props.node, props.previouslyFocusedNodeRef)
             : null
         }
         tabIndex={props.tabIndex === props.index ? 0 : -1}
@@ -928,8 +876,8 @@ function RenderRow(props: {
             manager={props.manager}
             color={makeTraceNodeBarColor(props.theme, props.node)}
             node_space={props.node.space}
-            errors={props.node.value.errors}
-            performance_issues={props.node.value.performance_issues}
+            errors={props.node.errors}
+            performance_issues={props.node.performance_issues}
             profiles={props.node.profiles}
           />
           <button
@@ -949,14 +897,13 @@ function RenderRow(props: {
   }
 
   if (isSpanNode(props.node)) {
-    const errored =
-      props.node.errors.length > 0 || props.node.performance_issues.length > 0;
+    const errored = props.node.errors.size > 0 || props.node.performance_issues.size > 0;
     return (
       <div
         key={props.index}
         ref={r =>
           props.tabIndex === props.index
-            ? maybeFocusRow(r, props.index, props.previouslyFocusedIndexRef)
+            ? maybeFocusRow(r, props.node, props.previouslyFocusedNodeRef)
             : null
         }
         tabIndex={props.tabIndex === props.index ? 0 : -1}
@@ -1046,7 +993,7 @@ function RenderRow(props: {
             node_space={props.node.space}
             errors={props.node.errors}
             performance_issues={props.node.performance_issues}
-            profiles={NO_ERRORS}
+            profiles={NO_PROFILES}
           />
           <button
             ref={ref =>
@@ -1070,7 +1017,7 @@ function RenderRow(props: {
         key={props.index}
         ref={r =>
           props.tabIndex === props.index
-            ? maybeFocusRow(r, props.index, props.previouslyFocusedIndexRef)
+            ? maybeFocusRow(r, props.node, props.previouslyFocusedNodeRef)
             : null
         }
         tabIndex={props.tabIndex === props.index ? 0 : -1}
@@ -1121,8 +1068,8 @@ function RenderRow(props: {
             manager={props.manager}
             color={makeTraceNodeBarColor(props.theme, props.node)}
             node_space={props.node.space}
-            performance_issues={NO_ERRORS}
-            profiles={NO_ERRORS}
+            performance_issues={NO_PERFORMANCE_ISSUES}
+            profiles={NO_PROFILES}
             errors={NO_ERRORS}
           />
           <button
@@ -1147,7 +1094,7 @@ function RenderRow(props: {
         key={props.index}
         ref={r =>
           props.tabIndex === props.index
-            ? maybeFocusRow(r, props.index, props.previouslyFocusedIndexRef)
+            ? maybeFocusRow(r, props.node, props.previouslyFocusedNodeRef)
             : null
         }
         tabIndex={props.tabIndex === props.index ? 0 : -1}
@@ -1209,8 +1156,8 @@ function RenderRow(props: {
             color={makeTraceNodeBarColor(props.theme, props.node)}
             node_space={props.node.space}
             errors={NO_ERRORS}
-            performance_issues={NO_ERRORS}
-            profiles={NO_ERRORS}
+            performance_issues={NO_PERFORMANCE_ISSUES}
+            profiles={NO_PROFILES}
           />
           <button
             ref={ref =>
@@ -1234,7 +1181,7 @@ function RenderRow(props: {
         key={props.index}
         ref={r =>
           props.tabIndex === props.index
-            ? maybeFocusRow(r, props.index, props.previouslyFocusedIndexRef)
+            ? maybeFocusRow(r, props.node, props.previouslyFocusedNodeRef)
             : null
         }
         tabIndex={props.tabIndex === props.index ? 0 : -1}
@@ -1297,6 +1244,70 @@ function RenderRow(props: {
             ) : null}
           </InvisibleTraceBar>
         </div>
+      </div>
+    );
+  }
+
+  if (isNoDataNode(props.node)) {
+    return (
+      <div
+        key={props.index}
+        ref={r =>
+          props.tabIndex === props.index
+            ? maybeFocusRow(r, props.node, props.previouslyFocusedNodeRef)
+            : null
+        }
+        tabIndex={props.tabIndex === props.index ? 0 : -1}
+        className={`TraceRow ${rowSearchClassName}`}
+        onClick={e => props.onRowClick(e, props.index, props.node)}
+        onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
+        style={{
+          top: props.style.top,
+          height: props.style.height,
+        }}
+      >
+        <div
+          className="TraceLeftColumn"
+          ref={r =>
+            props.manager.registerColumnRef('list', r, virtualized_index, props.node)
+          }
+          style={{
+            width: props.manager.columns.list.width * 100 + '%',
+          }}
+        >
+          <div
+            className="TraceLeftColumnInner"
+            style={{
+              paddingLeft: props.node.depth * props.manager.row_depth_padding,
+            }}
+          >
+            <div className="TraceChildrenCountWrapper">
+              <Connectors node={props.node} manager={props.manager} />
+            </div>
+            <span className="TraceOperation">{t('Empty')}</span>
+            <strong className="TraceEmDash"> — </strong>
+            <span className="TraceDescription">
+              {tct('[type] did not report any span data', {
+                type: props.node.parent
+                  ? isTransactionNode(props.node.parent)
+                    ? 'Transaction'
+                    : isSpanNode(props.node.parent)
+                      ? 'Span'
+                      : ''
+                  : '',
+              })}
+            </span>
+          </div>
+        </div>
+        <div
+          ref={r =>
+            props.manager.registerColumnRef('span_list', r, virtualized_index, props.node)
+          }
+          className={`TraceRightColumn ${props.index % 2 === 0 ? 0 : 'Odd'}`}
+          style={{
+            width: props.manager.columns.span_list.width * 100 + '%',
+          }}
+        />
       </div>
     );
   }
@@ -1457,10 +1468,10 @@ function ChildrenButton(props: {
 
 interface TraceBarProps {
   color: string;
-  errors: TraceTreeNode<TraceTree.Transaction>['value']['errors'];
+  errors: TraceTreeNode<TraceTree.Transaction>['errors'];
   manager: VirtualizedViewManager;
   node_space: [number, number] | null;
-  performance_issues: TraceTreeNode<TraceTree.Transaction>['value']['performance_issues'];
+  performance_issues: TraceTreeNode<TraceTree.Transaction>['performance_issues'];
   profiles: TraceTreeNode<TraceTree.NodeValue>['profiles'];
   virtualized_index: number;
 }
@@ -1500,14 +1511,14 @@ function TraceBar(props: TraceBarProps) {
             manager={props.manager}
           />
         ) : null}
-        {props.errors.length > 0 ? (
+        {props.errors.size > 0 ? (
           <Errors
             node_space={props.node_space}
             errors={props.errors}
             manager={props.manager}
           />
         ) : null}
-        {props.performance_issues.length > 0 ? (
+        {props.performance_issues.size > 0 ? (
           <PerformanceIssues
             node_space={props.node_space}
             performance_issues={props.performance_issues}
@@ -1575,13 +1586,21 @@ function InvisibleTraceBar(props: InvisibleTraceBarProps) {
 interface PerformanceIssuesProps {
   manager: VirtualizedViewManager;
   node_space: [number, number] | null;
-  performance_issues: TracePerformanceIssue[];
+  performance_issues: TraceTreeNode<TraceTree.Transaction>['performance_issues'];
 }
 
 function PerformanceIssues(props: PerformanceIssuesProps) {
+  const performance_issues = useMemo(() => {
+    return [...props.performance_issues];
+  }, [props.performance_issues]);
+
+  if (!props.performance_issues.size) {
+    return null;
+  }
+
   return (
     <Fragment>
-      {props.performance_issues.map((issue, _i) => {
+      {performance_issues.map((issue, _i) => {
         const timestamp = issue.start * 1e3;
         // Clamp the issue timestamp to the span's timestamp
         const left = props.manager.computeRelativeLeftPositionFromOrigin(
@@ -1614,19 +1633,23 @@ function PerformanceIssues(props: PerformanceIssuesProps) {
 }
 
 interface ErrorsProps {
-  errors: TraceError[];
+  errors: TraceTreeNode<TraceTree.Transaction>['errors'];
   manager: VirtualizedViewManager;
   node_space: [number, number] | null;
 }
 
 function Errors(props: ErrorsProps) {
-  if (!props.errors.length) {
+  const errors = useMemo(() => {
+    return [...props.errors];
+  }, [props.errors]);
+
+  if (!props.errors.size) {
     return null;
   }
 
   return (
     <Fragment>
-      {props.errors.map((error, _i) => {
+      {errors.map((error, _i) => {
         const timestamp = error.timestamp ? error.timestamp * 1e3 : props.node_space![0];
         // Clamp the error timestamp to the span's timestamp
         const left = props.manager.computeRelativeLeftPositionFromOrigin(
@@ -1693,10 +1716,10 @@ function Profiles(props: ProfilesProps) {
 interface AutogroupedTraceBarProps {
   color: string;
   entire_space: [number, number] | null;
-  errors: TraceTreeNode<TraceTree.Transaction>['value']['errors'];
+  errors: TraceTreeNode<TraceTree.Transaction>['errors'];
   manager: VirtualizedViewManager;
   node_spaces: [number, number][];
-  performance_issues: TraceTreeNode<TraceTree.Transaction>['value']['performance_issues'];
+  performance_issues: TraceTreeNode<TraceTree.Transaction>['performance_issues'];
   profiles: TraceTreeNode<TraceTree.NodeValue>['profiles'];
   virtualized_index: number;
 }
@@ -1768,14 +1791,14 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
             manager={props.manager}
           />
         ) : null}
-        {props.errors.length > 0 ? (
+        {props.errors.size > 0 ? (
           <Errors
             node_space={props.entire_space}
             errors={props.errors}
             manager={props.manager}
           />
         ) : null}
-        {props.performance_issues.length > 0 ? (
+        {props.performance_issues.size > 0 ? (
           <PerformanceIssues
             node_space={props.entire_space}
             performance_issues={props.performance_issues}
@@ -1912,7 +1935,7 @@ const TraceStylingWrapper = styled('div')`
       min-width: 34px;
       text-align: center;
       position: absolute;
-      font-size: ${p => p.theme.fontSizeExtraSmall};
+      font-size: 10px;
       font-weight: bold;
       color: ${p => p.theme.textColor};
       background-color: ${p => p.theme.background};
@@ -1938,6 +1961,22 @@ const TraceStylingWrapper = styled('div')`
           ${p => p.theme.textColor} 4px 8px
         )
         80%/2px 100% no-repeat;
+    }
+
+    &.Errored {
+      .TraceIndicatorLabel {
+        border: 1px solid ${p => p.theme.error};
+        color: ${p => p.theme.error};
+      }
+
+      .TraceIndicatorLine {
+        background: repeating-linear-gradient(
+            to bottom,
+            transparent 0 4px,
+            ${p => p.theme.error} 4px 8px
+          )
+          80%/2px 100% no-repeat;
+      }
     }
 
     &.Timeline {
@@ -2121,6 +2160,7 @@ const TraceStylingWrapper = styled('div')`
     overflow: hidden;
     will-change: width;
     box-shadow: inset 1px 0 0px 0px transparent;
+    cursor: pointer;
 
     .TraceLeftColumnInner {
       height: 100%;
@@ -2168,11 +2208,6 @@ const TraceStylingWrapper = styled('div')`
 
       > div {
         height: 100%;
-      }
-
-      .TraceError {
-        top: -1px;
-        transform: translate(-50%, 0);
       }
     }
 

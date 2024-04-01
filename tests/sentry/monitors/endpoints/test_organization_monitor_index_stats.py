@@ -3,10 +3,8 @@ from datetime import datetime, timedelta, timezone
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 @freeze_time(datetime(2022, 3, 21, 7, 57, tzinfo=timezone.utc))
 class OrganizationMonitorIndexStatsTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-index-stats"
@@ -71,17 +69,17 @@ class OrganizationMonitorIndexStatsTest(MonitorTestCase):
         resp = self.get_success_response(
             self.organization.slug,
             **{
-                "monitor": [self.monitor1.slug, self.monitor2.slug],
+                "monitor": [str(self.monitor1.guid), str(self.monitor2.guid)],
                 "since": self.since.timestamp(),
                 "until": self.until.timestamp(),
                 "resolution": "1h",
             },
         )
 
-        assert list(resp.data.keys()) == [self.monitor1.slug, self.monitor2.slug]
+        assert list(resp.data.keys()) == [str(self.monitor1.guid), str(self.monitor2.guid)]
 
         # Check monitor1's stats
-        hour_one, hour_two, *extra = resp.data[self.monitor1.slug]
+        hour_one, hour_two, *extra = resp.data[str(self.monitor1.guid)]
         assert hour_one == [
             1647846000,
             {
@@ -98,7 +96,7 @@ class OrganizationMonitorIndexStatsTest(MonitorTestCase):
         ]
 
         # Check monitor2's stats
-        hour_one, *extra = resp.data[self.monitor2.slug]
+        hour_one, *extra = resp.data[str(self.monitor2.guid)]
         assert hour_one == [
             1647846000,
             {
@@ -110,17 +108,17 @@ class OrganizationMonitorIndexStatsTest(MonitorTestCase):
         resp = self.get_success_response(
             self.organization.slug,
             **{
-                "monitor": [self.monitor2.slug],
+                "monitor": [str(self.monitor2.guid)],
                 "since": self.since.timestamp(),
                 "until": self.until.timestamp(),
                 "resolution": "1h",
             },
         )
 
-        assert list(resp.data.keys()) == [self.monitor2.slug]
+        assert list(resp.data.keys()) == [str(self.monitor2.guid)]
 
         # Check monitor2's stats
-        hour_one, *extra = resp.data[self.monitor2.slug]
+        hour_one, *extra = resp.data[str(self.monitor2.guid)]
         assert hour_one == [
             1647846000,
             {
@@ -134,14 +132,14 @@ class OrganizationMonitorIndexStatsTest(MonitorTestCase):
         resp = self.get_success_response(
             self.organization.slug,
             **{
-                "monitor": [self.monitor1.slug],
+                "monitor": [str(self.monitor1.guid)],
                 "since": self.since.timestamp(),
                 "until": two_min_later.timestamp(),
                 "resolution": "1m",
             },
         )
 
-        min_0, min_1, min_2 = resp.data[self.monitor1.slug]
+        min_0, min_1, min_2 = resp.data[str(self.monitor1.guid)]
 
         assert min_0 == [
             1647849420,

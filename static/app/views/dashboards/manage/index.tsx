@@ -32,7 +32,7 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
-import {openDashboardImport} from '../../ddm/dashboardImportModal';
+import {openDashboardImport} from '../../metrics/dashboardImportModal';
 import {DASHBOARDS_TEMPLATES} from '../data';
 import {assignDefaultLayout, getInitialColumnDepths} from '../layoutUtils';
 import type {DashboardDetails, DashboardListItem} from '../types';

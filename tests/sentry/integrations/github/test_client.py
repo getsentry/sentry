@@ -25,7 +25,7 @@ from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import control_silo_test, region_silo_test
+from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 from sentry.utils.cache import cache
 from tests.sentry.integrations.test_helpers import add_control_silo_proxy_response
@@ -37,7 +37,6 @@ GITHUB_CODEOWNERS = {
 }
 
 
-@region_silo_test
 class GitHubAppsClientTest(TestCase):
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     def setUp(self, get_jwt):
@@ -549,7 +548,6 @@ class GithubProxyClientTest(TestCase):
             client.assert_proxy_request(request, is_proxy=True)
 
 
-@region_silo_test
 class GitHubClientFileBlameBase(TestCase):
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     def setUp(self, get_jwt):
@@ -615,7 +613,6 @@ class GitHubClientFileBlameBase(TestCase):
         )
 
 
-@region_silo_test
 class GitHubClientFileBlameIntegrationDisableTest(TestCase):
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     def setUp(self, get_jwt):
@@ -782,7 +779,6 @@ class GitHubClientFileBlameIntegrationDisableTest(TestCase):
         assert self.integration.status == ObjectStatus.DISABLED
 
 
-@region_silo_test
 class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
     """
     Tests that get_blame_for_files builds the correct GraphQL query
@@ -1157,7 +1153,6 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
         }
 
 
-@region_silo_test
 class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
     """
     Tests that get_blame_for_files handles the GraphQL response correctly
@@ -1574,7 +1569,6 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
         )
 
 
-@region_silo_test
 class GitHubClientFileBlameRateLimitTest(GitHubClientFileBlameBase):
     """
     Tests that rate limits are handled correctly

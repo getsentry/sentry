@@ -7,10 +7,8 @@ from sentry.replays.lib.storage import _make_video_filename, storage_kv
 from sentry.replays.testutils import mock_replay
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
 from sentry.testutils.helpers.response import close_streaming_response
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class ReplayVideoDetailsTestCase(APITestCase, ReplaysSnubaTestCase):
     endpoint = "sentry-api-0-project-replay-video-details"
 

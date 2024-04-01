@@ -9,11 +9,10 @@ from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.silo import SiloMode
 from sentry.silo.util import PROXY_BASE_URL_HEADER, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import IntegratedApiTestCase, TestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json
 
 
-@region_silo_test
 class GitHubEnterpriseIssueBasicTest(TestCase, IntegratedApiTestCase):
     @cached_property
     def request(self):

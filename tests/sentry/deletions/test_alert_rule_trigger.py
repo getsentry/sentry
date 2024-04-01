@@ -2,10 +2,8 @@ from sentry.incidents.models.alert_rule import AlertRule, AlertRuleTrigger, Aler
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import TestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class DeleteAlertRuleTriggerTest(TestCase, HybridCloudTestMixin):
     def test_simple(self):
         alert_rule = self.create_alert_rule()
