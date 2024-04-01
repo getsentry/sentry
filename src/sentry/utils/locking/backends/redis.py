@@ -8,7 +8,7 @@ from rediscluster import RedisCluster
 from sentry.utils import redis
 from sentry.utils.locking.backends import LockBackend
 
-delete_lock = redis.load_script("utils/locking/delete_lock.lua")
+delete_lock = redis.load_redis_script("utils/locking/delete_lock.lua")
 
 
 class BaseRedisLockBackend(LockBackend):
@@ -38,7 +38,7 @@ class BaseRedisLockBackend(LockBackend):
 
     def release(self, key: str, routing_key: str | None = None) -> None:
         client = self.get_client(key, routing_key)
-        delete_lock(client, (self.prefix_key(key),), (self.uuid,))
+        delete_lock((self.prefix_key(key),), (self.uuid,), client)
 
     def locked(self, key: str, routing_key: str | None = None) -> bool:
         client = self.get_client(key, routing_key)
