@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from django.db import router
+from django.utils.functional import cached_property
 
 from sentry import analytics
 from sentry.coreapi import APIUnauthorized
@@ -16,7 +17,6 @@ from sentry.models.integrations.sentry_app_installation import SentryAppInstalla
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation
 from sentry.silo import unguarded_write
-from sentry.utils.cache import memoize
 
 
 class GrantExchanger(Mediator):
@@ -82,7 +82,7 @@ class GrantExchanger(Mediator):
         except SentryAppInstallation.DoesNotExist:
             pass
 
-    @memoize
+    @cached_property
     def grant(self):
         try:
             return (

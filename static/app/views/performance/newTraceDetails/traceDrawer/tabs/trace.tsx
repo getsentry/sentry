@@ -1,6 +1,5 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import EventVitals from 'sentry/components/events/eventVitals';
@@ -19,6 +18,7 @@ import type {
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import {useLocation} from 'sentry/utils/useLocation';
 import Tags from 'sentry/views/discover/tags';
 
 import {isTraceNode} from '../../guards';
@@ -34,8 +34,7 @@ const WEB_VITALS = [
 ];
 
 type TraceFooterProps = {
-  location: Location;
-  node: TraceTreeNode<TraceTree.NodeValue>;
+  node: TraceTreeNode<TraceTree.NodeValue> | null;
   organization: Organization;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
   traceEventView: EventView;
@@ -88,9 +87,18 @@ function TraceDataLoading() {
 }
 
 export function TraceLevelDetails(props: TraceFooterProps) {
+  const location = useLocation();
   const issues = useMemo(() => {
+    if (!props.node) {
+      return [];
+    }
+
     return [...props.node.errors, ...props.node.performance_issues];
-  }, [props.node.errors, props.node.performance_issues]);
+  }, [props.node]);
+
+  if (!props.node) {
+    return null;
+  }
 
   if (!(props.node && isTraceNode(props.node))) {
     throw new Error('Expected a trace node');
@@ -133,7 +141,7 @@ export function TraceLevelDetails(props: TraceFooterProps) {
               totalValues={props.tree.eventsCount}
               eventView={props.traceEventView}
               organization={props.organization}
-              location={props.location}
+              location={location}
             />
           </div>
         </WebVitalsAndTags>

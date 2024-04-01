@@ -67,7 +67,7 @@ class _RBCluster:
         decode_responses: bool | None = None,
         hosts: list[dict[int, Any]] | dict[int, Any] | None = None,
         **config: Any,
-    ) -> functools.partial:
+    ) -> rb.Cluster:
         if not decode_responses:
             raise NotImplementedError("decode_responses=False mode is not implemented for `rb`")
         if not hosts:

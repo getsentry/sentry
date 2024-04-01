@@ -134,7 +134,7 @@ class MetricsQueryValidationRunner:
         The validation is performed by calling a function named:
             `validate_<field_name>(self) -> None`
         """
-        for name, _ in self.__dataclass_fields__.items():  # type: ignore
+        for name, _ in self.__dataclass_fields__.items():  # type: ignore[attr-defined]
             if method := getattr(self, f"validate_{name}", None):
                 method()
 

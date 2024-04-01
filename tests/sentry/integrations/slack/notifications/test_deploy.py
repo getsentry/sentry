@@ -8,11 +8,9 @@ from sentry.notifications.notifications.activity.release import ReleaseActivityN
 from sentry.testutils.cases import SlackActivityNotificationTest
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.slack import get_attachment, get_blocks_and_fallback_text
-from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 
 
-@region_silo_test
 class SlackDeployNotificationTest(SlackActivityNotificationTest):
     @responses.activate
     def test_deploy(self):

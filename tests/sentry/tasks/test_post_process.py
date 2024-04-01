@@ -69,7 +69,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
@@ -2253,7 +2253,6 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         assert group.substatus == GroupSubStatus.NEW
 
 
-@region_silo_test
 class PostProcessGroupErrorTest(
     TestCase,
     AssignmentTestMixin,
@@ -2335,7 +2334,6 @@ class PostProcessGroupErrorTest(
         )
 
 
-@region_silo_test
 class PostProcessGroupPerformanceTest(
     TestCase,
     SnubaTestCase,
@@ -2472,7 +2470,6 @@ class PostProcessGroupPerformanceTest(
         ]
 
 
-@region_silo_test
 class PostProcessGroupAggregateEventTest(
     TestCase,
     SnubaTestCase,
@@ -2560,7 +2557,6 @@ class TransactionClustererTestCase(TestCase, SnubaTestCase):
         ]
 
 
-@region_silo_test
 class PostProcessGroupGenericTest(
     TestCase,
     SnubaTestCase,
@@ -2678,7 +2674,6 @@ class PostProcessGroupGenericTest(
         pass
 
 
-@region_silo_test
 class PostProcessGroupFeedbackTest(
     TestCase,
     SnubaTestCase,

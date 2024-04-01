@@ -211,6 +211,8 @@ function GroupReplaysTable({
             setSelectedReplayIndex(selectedReplayIndex + 1);
           }}
           icon={<IconPlay size="md" />}
+          analyticsEventKey="issue_details.replay_tab.play_next_replay"
+          analyticsEventName="Issue Details: Replay Tab Clicked Play Next Replay"
         >
           {t('Play Now')}
         </Button>

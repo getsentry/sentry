@@ -9,6 +9,7 @@ import type {
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
+  isNoDataNode,
   isSpanNode,
   isTraceErrorNode,
   isTraceNode,
@@ -43,6 +44,10 @@ export function getTraceTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
     return t('Trace');
   }
 
+  if (isNoDataNode(node)) {
+    return t('Empty');
+  }
+
   Sentry.captureMessage('Unknown node type in trace drawer');
   return 'Unknown';
 }
@@ -59,7 +64,7 @@ export type TraceTabsReducerState = {
 
 export type TraceTabsReducerAction =
   | {
-      payload: TraceTreeNode<TraceTree.NodeValue> | number;
+      payload: Tab['node'] | number;
       type: 'activate tab';
       pin_previous?: boolean;
     }

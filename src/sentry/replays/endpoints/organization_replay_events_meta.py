@@ -1,5 +1,3 @@
-from collections.abc import Sequence
-
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -29,7 +27,7 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get_field_list(self, organization: Organization, request: Request) -> Sequence[str]:
+    def get_field_list(self, organization: Organization, request: Request) -> list[str]:
         return [
             "error.type",
             "error.value",  # Deprecated, use title instead. See replayDataUtils.tsx

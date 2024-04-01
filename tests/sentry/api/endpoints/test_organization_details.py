@@ -334,7 +334,6 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         )
 
 
-@region_silo_test
 class OrganizationUpdateTest(OrganizationDetailsTestBase):
     method = "put"
 
@@ -425,6 +424,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "defaultRole": "owner",
             "require2FA": True,
             "allowJoinRequests": False,
+            "aggregatedDataConsent": True,
+            "genAIConsent": True,
         }
 
         # needed to set require2FA
@@ -486,6 +487,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["githubPRBot"]) in log.data["githubPRBot"]
         assert "to {}".format(data["githubOpenPRBot"]) in log.data["githubOpenPRBot"]
         assert "to {}".format(data["githubNudgeInvite"]) in log.data["githubNudgeInvite"]
+        assert "to {}".format(data["aggregatedDataConsent"]) in log.data["aggregatedDataConsent"]
+        assert "to {}".format(data["genAIConsent"]) in log.data["genAIConsent"]
 
     @responses.activate
     @patch(
@@ -889,7 +892,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_error_response(self.organization.slug, slug="taken", status_code=400)
 
 
-@region_silo_test
 class OrganizationDeleteTest(OrganizationDetailsTestBase):
     method = "delete"
 
@@ -999,7 +1001,6 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         self.get_error_response(org.slug, status_code=400)
 
 
-@region_silo_test
 class OrganizationSettings2FATest(TwoFactorAPITestCase):
     endpoint = "sentry-api-0-organization-details"
 

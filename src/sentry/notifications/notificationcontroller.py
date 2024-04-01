@@ -85,10 +85,10 @@ class NotificationController:
                 if recipient_is_team(
                     recipient
                 ):  # this call assures the recipient type is okay (so can safely ignore below type errors)
-                    if team_is_valid_recipient(recipient):  # type: ignore
+                    if team_is_valid_recipient(recipient):  # type: ignore[arg-type]
                         self.recipients.append(recipient)
                     else:
-                        self.recipients += get_team_members(recipient)  # type: ignore
+                        self.recipients += get_team_members(recipient)  # type: ignore[arg-type]
                 else:
                     self.recipients.append(recipient)
         else:

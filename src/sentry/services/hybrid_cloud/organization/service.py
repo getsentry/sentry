@@ -97,6 +97,20 @@ class OrganizationService(RpcService):
         RpcOrganizationSummary instead of org contexts
         """
 
+    @regional_rpc_method(resolve=ByOrganizationId("id"), return_none_if_mapping_not_found=True)
+    @abstractmethod
+    def get_org_by_id(
+        self,
+        *,
+        id: int,
+        user_id: int | None = None,
+    ) -> RpcOrganizationSummary | None:
+        """
+        Fetches the organization, by an organization id. If user_id is passed, it will enforce visibility
+        rules. This method is differentiated from get_organization_by_id by not being cached and returning
+        RpcOrganizationSummary instead of org contexts
+        """
+
     @regional_rpc_method(resolve=ByRegionName())
     @abstractmethod
     def get_organizations_by_user_and_scope(
@@ -347,6 +361,18 @@ class OrganizationService(RpcService):
     def send_sso_link_emails(
         self, *, organization_id: int, sending_user_email: str, provider_key: str
     ) -> None:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def send_sso_unlink_emails(
+        self, *, organization_id: int, sending_user_email: str, provider_key: str
+    ) -> None:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def count_members_without_sso(self, *, organization_id: int) -> int:
         pass
 
     @regional_rpc_method(resolve=ByOrganizationId())

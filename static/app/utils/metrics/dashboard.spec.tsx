@@ -81,9 +81,11 @@ describe('convertToDashboardWidget', () => {
             query: '',
             mri: 'd:transactions/measurements.duration@second',
             op: 'p95',
+            isHidden: true,
           },
           {
             formula: '$b / 2',
+            isHidden: false,
           },
         ],
         MetricDisplayType.BAR
@@ -101,6 +103,7 @@ describe('convertToDashboardWidget', () => {
           fields: ['p95(d:transactions/measurements.duration@second)'],
           conditions: '',
           orderby: undefined,
+          isHidden: true,
         },
         {
           name: '',
@@ -109,6 +112,7 @@ describe('convertToDashboardWidget', () => {
           fields: ['equation|$b / 2'],
           conditions: '',
           orderby: undefined,
+          isHidden: false,
         },
       ],
     });

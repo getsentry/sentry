@@ -4,11 +4,10 @@ from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.linksign import generate_signed_link
 
 
-@region_silo_test
 class OrganizationUnsubscribeProjectTest(APITestCase):
     endpoint = "sentry-api-0-organization-unsubscribe-project"
 
@@ -90,7 +89,6 @@ class OrganizationUnsubscribeProjectTest(APITestCase):
             ).exists()
 
 
-@region_silo_test
 class OrganizationUnsubscribeIssueTest(APITestCase):
     endpoint = "sentry-api-0-organization-unsubscribe-issue"
 

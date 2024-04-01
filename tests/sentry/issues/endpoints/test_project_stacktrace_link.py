@@ -6,7 +6,7 @@ from sentry.integrations.example.integration import ExampleIntegration
 from sentry.models.integrations.integration import Integration
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 
 example_base_url = "https://example.com/getsentry/sentry/blob/master"
 git_blame = [
@@ -108,7 +108,6 @@ class BaseProjectStacktraceLink(APITestCase):
         }
 
 
-@region_silo_test
 class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
     endpoint = "sentry-api-0-project-stacktrace-link"
 
@@ -251,7 +250,6 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
         )
 
 
-@region_silo_test
 class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):
     def setUp(self):
         BaseProjectStacktraceLink.setUp(self)

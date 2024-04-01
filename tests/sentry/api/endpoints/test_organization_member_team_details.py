@@ -13,7 +13,6 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.roles import organization_roles
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.silo import region_silo_test
 from tests.sentry.api.endpoints.test_organization_member_index import (
     mock_organization_roles_get_factory,
 )
@@ -88,7 +87,6 @@ class OrganizationMemberTeamTestBase(APITestCase):
         return member
 
 
-@region_silo_test
 class CreateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     method = "post"
 
@@ -299,7 +297,6 @@ class CreateWithOpenMembershipTest(OrganizationMemberTeamTestBase):
         ).exists()
 
 
-@region_silo_test
 class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
     @cached_property
     def org(self):
@@ -442,7 +439,6 @@ class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
         assert oar.requester_id == self.member.user_id
 
 
-@region_silo_test
 class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     method = "delete"
 
@@ -760,7 +756,6 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         ).exists()
 
 
-@region_silo_test
 class ReadOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     endpoint = "sentry-api-0-organization-member-team-details"
     method = "get"
@@ -789,7 +784,6 @@ class ReadOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         )
 
 
-@region_silo_test
 class UpdateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     endpoint = "sentry-api-0-organization-member-team-details"
     method = "put"

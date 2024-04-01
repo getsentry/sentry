@@ -73,7 +73,7 @@ class MetricRulesEdit extends DeprecatedAsyncView<Props, State> {
     const {organization, router} = this.props;
     const {ruleId} = this.props.params;
 
-    metric.endTransaction({name: 'saveAlertRule'});
+    metric.endSpan({name: 'saveAlertRule'});
     router.push(
       normalizeUrl({
         pathname: `/organizations/${organization.slug}/alerts/rules/details/${ruleId}/`,

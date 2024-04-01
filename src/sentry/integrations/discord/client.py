@@ -69,7 +69,7 @@ class DiscordClient(ApiClient):
 
     def get_guild_name(self, guild_id: str) -> str:
         response = self.get(GUILD_URL.format(guild_id=guild_id), headers=self.prepare_auth_header())
-        return response["name"]  # type: ignore
+        return response["name"]  # type: ignore[index]
 
     def get_access_token(self, code: str, url: str):
         data = {
@@ -84,7 +84,7 @@ class DiscordClient(ApiClient):
             "Content-Type": "application/x-www-form-urlencoded",
         }
         response = self.post(TOKEN_URL, json=False, data=urlencode(data), headers=headers)
-        access_token = response["access_token"]  # type: ignore
+        access_token = response["access_token"]  # type: ignore[index]
         return access_token
 
     def get_user_id(self, access_token: str):
@@ -93,7 +93,7 @@ class DiscordClient(ApiClient):
             USER_URL,
             headers=headers,
         )
-        user_id = response["id"]  # type: ignore
+        user_id = response["id"]  # type: ignore[index]
         return user_id
 
     def leave_guild(self, guild_id: str) -> None:
@@ -122,16 +122,9 @@ class DiscordClient(ApiClient):
         - Sends response metrics to Datadog
         - Sends response info to logs
         """
-        discord_code = ""
+        discord_error_code = "no_error_code"
         code_message = ""
-
-        try:
-            discord_response: dict = json.loads(resp.content.decode("utf-8")) or {}  # type: ignore
-            discord_code = discord_response.get("code", "")
-            if str(discord_code) in DISCORD_ERROR_CODES:
-                code_message = DISCORD_ERROR_CODES[discord_code]
-        except Exception:
-            pass
+        include_in_slo = True
 
         is_ok = code in {
             status.HTTP_200_OK,
@@ -140,8 +133,18 @@ class DiscordClient(ApiClient):
             status.HTTP_204_NO_CONTENT,
         }
 
-        # These are excluded since they are not actionable from our side
-        include_in_slo = discord_code not in DISCORD_USER_ERRORS
+        if error:
+            try:
+                discord_error_response: dict = json.loads(resp.content.decode("utf-8")) or {}  # type: ignore[union-attr]
+                discord_error_code = str(discord_error_response.get("code", ""))
+                if discord_error_code in DISCORD_ERROR_CODES:
+                    code_message = DISCORD_ERROR_CODES[discord_error_code]
+                # These are excluded since they are not actionable from our side
+                if discord_error_code in DISCORD_USER_ERRORS:
+                    include_in_slo = False
+            except Exception:
+                pass
+
         metrics.incr(
             f"{self.metrics_prefix}.http_response",
             sample_rate=1.0,
@@ -150,7 +153,7 @@ class DiscordClient(ApiClient):
                 "status": code,
                 "is_ok": is_ok,
                 "include_in_slo": include_in_slo,
-                "discord_code": discord_code,
+                "discord_code": discord_error_code,
             },
         )
 
@@ -158,7 +161,8 @@ class DiscordClient(ApiClient):
             **(extra or {}),
             "status_string": str(code),
             "error": str(error)[:256] if error else None,
-            "discord_code": discord_code if error else None,
+            "include_in_slo": include_in_slo,
+            "discord_code": discord_error_code,
             "code_message": code_message if error else None,
         }
 

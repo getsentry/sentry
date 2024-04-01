@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from typing import Any, Optional, Union
 
 import click
+import sentry_sdk
 
 from sentry import options
 from sentry.utils import metrics
@@ -228,6 +229,18 @@ ALL_KILLSWITCH_OPTIONS = {
             "project_id": "A project ID to filter events by.",
         },
     ),
+    "issues.skip-seer-requests": KillswitchInfo(
+        description="""
+        Do not make requests to Seer.
+
+        This is intended as a hard stop on making calls to Seer where Seer
+        may be broken and otherwise causing interruptions or delays to ingestion.
+        Skipping the dependencies on Seer should remove it from the critical path.
+        """,
+        fields={
+            "project_id": "A project ID to filter events by.",
+        },
+    ),
 }
 
 
@@ -261,6 +274,7 @@ def normalize_value(
     return rv
 
 
+@sentry_sdk.tracing.trace
 def killswitch_matches_context(killswitch_name: str, context: Context, emit_metrics=True) -> bool:
     assert killswitch_name in ALL_KILLSWITCH_OPTIONS
     assert set(ALL_KILLSWITCH_OPTIONS[killswitch_name].fields) == set(context)

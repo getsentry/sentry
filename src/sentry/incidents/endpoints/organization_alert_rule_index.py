@@ -60,11 +60,15 @@ class AlertRuleIndexMixin(Endpoint):
         if not project:
             projects = self.get_projects(request, organization)
             alert_rules = AlertRule.objects.fetch_for_organization(organization, projects)
+
         else:
             alert_rules = AlertRule.objects.fetch_for_project(project)
         if not features.has("organizations:performance-view", organization):
-            # Filter to only error alert rules
             alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
+
+        monitor_type = request.GET.get("monitor_type", None)
+        if monitor_type is not None:
+            alert_rules = alert_rules.filter(monitor_type=monitor_type)
 
         return self.paginate(
             request,
@@ -178,6 +182,11 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                 team_filter_query = team_filter_query | Q(owner_id=None)
 
         alert_rules = AlertRule.objects.fetch_for_organization(organization, projects)
+
+        monitor_type = request.GET.get("monitor_type", None)
+        if monitor_type is not None:
+            alert_rules = alert_rules.filter(monitor_type=monitor_type)
+
         issue_rules = Rule.objects.filter(
             status__in=[ObjectStatus.ACTIVE, ObjectStatus.DISABLED],
             source__in=[RuleSource.ISSUE],
@@ -341,6 +350,7 @@ Metric alert rule trigger actions follow the following structure:
 - `inputChannelId`: The ID of the Slack channel. This is only used for the Slack action, and can be used as an alternative to providing the `targetIdentifier`.
 - `integrationId`: The integration ID. This is required for every action type excluding `email` and `sentry_app.`
 - `sentryAppId`: The ID of the Sentry app. This is required when `type` is `sentry_app`.
+- `priority`: The severity of the Pagerduty alert or the priority of the Opsgenie alert (optional). Defaults for Pagerduty are `critical` for critical and `warning` for warning. Defaults for Opsgenie are `P1` for critical and `P2` for warning.
 """
     )
     environment = serializers.CharField(

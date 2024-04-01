@@ -138,6 +138,23 @@ class DatabaseBackedOrganizationService(OrganizationService):
         except Organization.DoesNotExist:
             return None
 
+    def get_org_by_id(
+        self,
+        *,
+        id: int,
+        user_id: int | None = None,
+    ) -> RpcOrganizationSummary | None:
+        query = Organization.objects.filter(id=id)
+        if user_id is not None:
+            query = query.filter(
+                status=OrganizationStatus.ACTIVE,
+                member_set__user_id=user_id,
+            )
+        try:
+            return serialize_organization_summary(query.get())
+        except Organization.DoesNotExist:
+            return None
+
     def get_organizations_by_user_and_scope(
         self, *, region_name: str, user: RpcUser, scope: str | None = None
     ) -> list[RpcOrganization]:
@@ -581,6 +598,38 @@ class DatabaseBackedOrganizationService(OrganizationService):
         provider = manager.get(provider_key)
         for member in member_list:
             member.send_sso_link_email(sending_user_email, provider)
+
+    def send_sso_unlink_emails(
+        self, *, organization_id: int, sending_user_email: str, provider_key: str
+    ) -> None:
+        from sentry.auth import manager
+        from sentry.auth.exceptions import ProviderNotRegistered
+
+        try:
+            provider = manager.get(provider_key)
+        except ProviderNotRegistered as e:
+            logger.warning("Could not send SSO unlink emails: %s", e)
+            return
+
+        with unguarded_write(using=router.db_for_write(OrganizationMember)):
+            # Flags are not replicated -- these updates are safe to skip outboxes
+            OrganizationMember.objects.filter(organization_id=organization_id).update(
+                flags=F("flags")
+                .bitand(~OrganizationMember.flags["sso:linked"])
+                .bitand(~OrganizationMember.flags["sso:invalid"])
+            )
+
+        member_list = OrganizationMember.objects.filter(
+            organization_id=organization_id,
+        )
+        for member in member_list:
+            member.send_sso_unlink_email(sending_user_email, provider)
+
+    def count_members_without_sso(self, *, organization_id: int) -> int:
+        return OrganizationMember.objects.filter(
+            organization_id=organization_id,
+            flags=F("flags").bitand(~OrganizationMember.flags["sso:linked"]),
+        ).count()
 
     def delete_organization(
         self, *, organization_id: int, user: RpcUser

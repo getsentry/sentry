@@ -79,7 +79,7 @@ from sentry.testutils.helpers.backups import (
     is_control_model,
 )
 from sentry.testutils.hybrid_cloud import use_split_dbs
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json
 from tests.sentry.backup import (
     expect_models,
@@ -96,7 +96,6 @@ class ImportTestCase(BackupTestCase):
         return tmp_path
 
 
-@region_silo_test
 class SanitizationTests(ImportTestCase):
     """
     Ensure that potentially damaging data is properly scrubbed at import time.
@@ -681,7 +680,6 @@ class SanitizationTests(ImportTestCase):
                 assert err.value.context.on.model == "sentry.useroption"
 
 
-@region_silo_test
 class SignalingTests(ImportTestCase):
     """
     Some models are automatically created via signals and similar automagic from related models. We
@@ -758,7 +756,6 @@ class SignalingTests(ImportTestCase):
             self.test_import_signaling_organization()
 
 
-@region_silo_test
 class ScopingTests(ImportTestCase):
     """
     Ensures that only models with the allowed relocation scopes are actually imported.
@@ -887,7 +884,6 @@ class ScopingTests(ImportTestCase):
         )
 
 
-@region_silo_test
 class DatabaseResetTests(ImportTestCase):
     """
     Ensure that database resets work as intended in different import scopes.
@@ -973,7 +969,6 @@ class DatabaseResetTests(ImportTestCase):
 
 # Filters should work identically in both silo and monolith modes, so no need to repeat the tests
 # here.
-@region_silo_test
 class DecryptionTests(ImportTestCase):
     """
     Ensures that decryption actually works. We only test one model for each scope, because it's
@@ -1007,7 +1002,7 @@ class DecryptionTests(ImportTestCase):
             sha256 = hashes.SHA256()
             mgf = padding.MGF1(algorithm=sha256)
             oaep_padding = padding.OAEP(mgf=mgf, algorithm=sha256, label=None)
-            encrypted_dek = dek_encryption_key.encrypt(data_encryption_key, oaep_padding)  # type: ignore
+            encrypted_dek = dek_encryption_key.encrypt(data_encryption_key, oaep_padding)  # type: ignore[union-attr]
 
             tar_buffer = io.BytesIO()
             with tarfile.open(fileobj=tar_buffer, mode="w") as tar:
@@ -1108,7 +1103,6 @@ class DecryptionTests(ImportTestCase):
 
 # Filters should work identically in both silo and monolith modes, so no need to repeat the tests
 # here.
-@region_silo_test
 class FilterTests(ImportTestCase):
     """
     Ensures that filtering operations include the correct models.
@@ -1349,7 +1343,6 @@ class FilterTests(ImportTestCase):
 COLLISION_TESTED: set[NormalizedModelName] = set()
 
 
-@region_silo_test
 class CollisionTests(ImportTestCase):
     """
     Ensure that collisions are properly handled in different flag modes.
@@ -2215,7 +2208,6 @@ CUSTOM_IMPORT_BEHAVIOR_TESTED: set[NormalizedModelName] = set()
 
 # There is no need to in both monolith and region mode for model-level unit tests - region mode
 # testing along should suffice.
-@region_silo_test
 class CustomImportBehaviorTests(ImportTestCase):
     """
     Test bespoke, per-model behavior. Since these tests are relatively expensive to set up and tear
@@ -2385,6 +2377,68 @@ class CustomImportBehaviorTests(ImportTestCase):
                 email="invited-by-owner@test.com",
                 inviter_id__isnull=False,
             ).exists()
+
+            with open(tmp_path, "rb") as tmp_file:
+                verify_models_in_output(expected_models, json.load(tmp_file))
+
+    @expect_models(CUSTOM_IMPORT_BEHAVIOR_TESTED, Project)
+    def test_project_ids_retained_in_global_scope(self, expected_models: list[type[Model]]):
+        owner = self.create_user("testing@example.com")
+        org = self.create_organization(name="Some Org", owner=owner)
+        team = self.create_team(organization=org, name="Some Team")
+
+        # Only the sparse ids of projects 2 and 4 remain.
+        proj1 = self.create_project(organization=org, teams=[team], name="Project Foo")
+        proj2 = self.create_project(organization=org, teams=[team], name="Project Bar")
+        proj3 = self.create_project(organization=org, teams=[team], name="Project Baz")
+        proj4 = self.create_project(organization=org, teams=[team], name="Project Qux")
+        proj1.delete()
+        proj3.delete()
+        existing_proj_ids = [proj2.pk, proj4.pk]
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_global_scope(
+                    tmp_file,
+                    printer=NOOP_PRINTER,
+                )
+
+            imported_proj_ids = list(Project.objects.all().values_list("id", flat=True))
+
+            # Original IDs are retained, to preserve DSNs after a global import.
+            assert set(imported_proj_ids) == set(existing_proj_ids)
+
+            with open(tmp_path, "rb") as tmp_file:
+                verify_models_in_output(expected_models, json.load(tmp_file))
+
+    @expect_models(CUSTOM_IMPORT_BEHAVIOR_TESTED, Project)
+    def test_project_ids_reassigned_in_organization_scope(self, expected_models: list[type[Model]]):
+        owner = self.create_user("testing@example.com")
+        org = self.create_organization(name="Some Org", owner=owner)
+        team = self.create_team(organization=org, name="Some Team")
+
+        # Only the sparse ids of projects 2 and 4 remain.
+        proj1 = self.create_project(organization=org, teams=[team], name="Project Foo")
+        proj2 = self.create_project(organization=org, teams=[team], name="Project Bar")
+        proj3 = self.create_project(organization=org, teams=[team], name="Project Baz")
+        proj4 = self.create_project(organization=org, teams=[team], name="Project Qux")
+        proj1.delete()
+        proj3.delete()
+        existing_proj_ids = [proj2.pk, proj4.pk]
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_organization_scope(
+                    tmp_file,
+                    printer=NOOP_PRINTER,
+                )
+
+            imported_proj_ids = list(Project.objects.all().values_list("id", flat=True))
+
+            # IDs are re-assigned in non-global import scopes.
+            assert set(imported_proj_ids).isdisjoint(set(existing_proj_ids))
 
             with open(tmp_path, "rb") as tmp_file:
                 verify_models_in_output(expected_models, json.load(tmp_file))

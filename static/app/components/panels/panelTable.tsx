@@ -9,7 +9,7 @@ import {space} from 'sentry/styles/space';
 
 import Panel from './panel';
 
-export type PanelTableProps = {
+type PanelTableProps = {
   /**
    * Headers of the table.
    */
@@ -160,7 +160,7 @@ const Wrapper = styled(Panel, {
   overflow: auto;
 `;
 
-export const PanelTableHeader = styled('div')<{sticky: boolean}>`
+const PanelTableHeader = styled('div')<{sticky: boolean}>`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 600;
@@ -182,4 +182,4 @@ export const PanelTableHeader = styled('div')<{sticky: boolean}>`
   `}
 `;
 
-export default PanelTable;
+export {PanelTable, type PanelTableProps, PanelTableHeader};

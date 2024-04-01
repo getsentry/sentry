@@ -35,6 +35,7 @@ from sentry.ingest.transaction_clusterer.rules import (
     get_sorted_rules,
 )
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.relay.config.experimental import TimeChecker, add_experimental_config
@@ -285,7 +286,7 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
         metrics_blocking_state = get_metrics_blocking_state_for_relay_config(project)
         timeout.check()
         if metrics_blocking_state is not None:
-            metrics_config.update(metrics_blocking_state)  # type:ignore
+            metrics_config.update(metrics_blocking_state)  # type: ignore[arg-type]
 
     return metrics_config or None
 
@@ -389,6 +390,361 @@ def _should_extract_abnormal_mechanism(project: Project) -> bool:
     )
 
 
+def _get_browser_performance_profiles(organization: Organization) -> list[dict[str, Any]]:
+    if not features.has("organizations:performance-calculate-score-relay", organization):
+        return []
+
+    shouldIncludeFid = not features.has(
+        "organizations:deprecate-fid-from-performance-score", organization
+    )
+
+    return [
+        {
+            "name": "Chrome",
+            "scoreComponents": [
+                {
+                    "measurement": "fcp",
+                    "weight": 0.15,
+                    "p10": 900.0,
+                    "p50": 1600.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "lcp",
+                    "weight": 0.30,
+                    "p10": 1200.0,
+                    "p50": 2400.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "fid",
+                    "weight": 0.30 if shouldIncludeFid else 0.0,
+                    "p10": 100.0,
+                    "p50": 300.0,
+                    "optional": True,
+                },
+                {
+                    "measurement": "cls",
+                    "weight": 0.15,
+                    "p10": 0.1,
+                    "p50": 0.25,
+                    "optional": False,
+                },
+                {
+                    "measurement": "ttfb",
+                    "weight": 0.10,
+                    "p10": 200.0,
+                    "p50": 400.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Chrome",
+            },
+        },
+        {
+            "name": "Firefox",
+            "scoreComponents": [
+                {
+                    "measurement": "fcp",
+                    "weight": 0.15,
+                    "p10": 900.0,
+                    "p50": 1600.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "lcp",
+                    "weight": 0.30,
+                    "p10": 1200.0,
+                    "p50": 2400.0,
+                    "optional": True,
+                },
+                {
+                    "measurement": "fid",
+                    "weight": 0.30 if shouldIncludeFid else 0.0,
+                    "p10": 100.0,
+                    "p50": 300.0,
+                    "optional": True,
+                },
+                {
+                    "measurement": "cls",
+                    "weight": 0.0,
+                    "p10": 0.1,
+                    "p50": 0.25,
+                    "optional": False,
+                },
+                {
+                    "measurement": "ttfb",
+                    "weight": 0.10,
+                    "p10": 200.0,
+                    "p50": 400.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Firefox",
+            },
+        },
+        {
+            "name": "Safari",
+            "scoreComponents": [
+                {
+                    "measurement": "fcp",
+                    "weight": 0.15,
+                    "p10": 900.0,
+                    "p50": 1600.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "lcp",
+                    "weight": 0.0,
+                    "p10": 1200.0,
+                    "p50": 2400.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "fid",
+                    "weight": 0.0,
+                    "p10": 100.0,
+                    "p50": 300.0,
+                    "optional": True,
+                },
+                {
+                    "measurement": "cls",
+                    "weight": 0.0,
+                    "p10": 0.1,
+                    "p50": 0.25,
+                    "optional": False,
+                },
+                {
+                    "measurement": "ttfb",
+                    "weight": 0.10,
+                    "p10": 200.0,
+                    "p50": 400.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Safari",
+            },
+        },
+        {
+            "name": "Edge",
+            "scoreComponents": [
+                {
+                    "measurement": "fcp",
+                    "weight": 0.15,
+                    "p10": 900.0,
+                    "p50": 1600.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "lcp",
+                    "weight": 0.30,
+                    "p10": 1200.0,
+                    "p50": 2400.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "fid",
+                    "weight": 0.30 if shouldIncludeFid else 0.0,
+                    "p10": 100.0,
+                    "p50": 300.0,
+                    "optional": True,
+                },
+                {
+                    "measurement": "cls",
+                    "weight": 0.15,
+                    "p10": 0.1,
+                    "p50": 0.25,
+                    "optional": False,
+                },
+                {
+                    "measurement": "ttfb",
+                    "weight": 0.10,
+                    "p10": 200.0,
+                    "p50": 400.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Edge",
+            },
+        },
+        {
+            "name": "Opera",
+            "scoreComponents": [
+                {
+                    "measurement": "fcp",
+                    "weight": 0.15,
+                    "p10": 900.0,
+                    "p50": 1600.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "lcp",
+                    "weight": 0.30,
+                    "p10": 1200.0,
+                    "p50": 2400.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "fid",
+                    "weight": 0.30 if shouldIncludeFid else 0.0,
+                    "p10": 100.0,
+                    "p50": 300.0,
+                    "optional": True,
+                },
+                {
+                    "measurement": "cls",
+                    "weight": 0.15,
+                    "p10": 0.1,
+                    "p50": 0.25,
+                    "optional": False,
+                },
+                {
+                    "measurement": "ttfb",
+                    "weight": 0.10,
+                    "p10": 200.0,
+                    "p50": 400.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Opera",
+            },
+        },
+        {
+            "name": "Chrome INP",
+            "scoreComponents": [
+                {
+                    "measurement": "inp",
+                    "weight": 1.0,
+                    "p10": 200.0,
+                    "p50": 500.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "or",
+                "inner": [
+                    {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Chrome",
+                    },
+                    {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Google Chrome",
+                    },
+                ],
+            },
+        },
+        {
+            "name": "Edge INP",
+            "scoreComponents": [
+                {
+                    "measurement": "inp",
+                    "weight": 1.0,
+                    "p10": 200.0,
+                    "p50": 500.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Edge",
+            },
+        },
+        {
+            "name": "Opera INP",
+            "scoreComponents": [
+                {
+                    "measurement": "inp",
+                    "weight": 1.0,
+                    "p10": 200.0,
+                    "p50": 500.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Opera",
+            },
+        },
+    ]
+
+
+def _get_mobile_performance_profiles(organization: Organization) -> list[dict[str, Any]]:
+    if not features.has(
+        "organizations:performance-calculate-mobile-perf-score-relay", organization
+    ):
+        return []
+
+    return [
+        {
+            "name": "Mobile",
+            "version": "mobile.alpha",
+            "scoreComponents": [
+                {
+                    "measurement": "time_to_initial_display",
+                    "weight": 0.25,
+                    "p10": 1800.0,
+                    "p50": 3000.0,
+                    "optional": True,
+                },
+                {
+                    "measurement": "time_to_full_display",
+                    "weight": 0.25,
+                    "p10": 2500.0,
+                    "p50": 4000.0,
+                    "optional": True,
+                },
+                {
+                    "measurement": "app_start_warm",
+                    "weight": 0.25,
+                    "p10": 200.0,
+                    "p50": 500.0,
+                    "optional": True,
+                },
+                {
+                    "measurement": "app_start_cold",
+                    "weight": 0.25,
+                    "p10": 200.0,
+                    "p50": 500.0,
+                    "optional": True,
+                },
+            ],
+            "condition": {
+                "op": "and",
+                "inner": [
+                    {
+                        "op": "or",
+                        "inner": [
+                            {"op": "eq", "name": "event.sdk.name", "value": "sentry.cocoa"},
+                            {"op": "eq", "name": "event.sdk.name", "value": "sentry.java.android"},
+                        ],
+                    },
+                    {"op": "eq", "name": "event.contexts.trace.op", "value": "ui.load"},
+                ],
+            },
+        }
+    ]
+
+
 def _get_project_config(
     project: Project, full_config: bool = True, project_keys: Sequence[ProjectKey] | None = None
 ) -> "ProjectConfig":
@@ -477,300 +833,12 @@ def _get_project_config(
             ),
         }
 
-    if features.has("organizations:performance-calculate-score-relay", project.organization):
-        shouldIncludeFid = not features.has(
-            "organizations:deprecate-fid-from-performance-score", project.organization
-        )
-        config["performanceScore"] = {
-            "profiles": [
-                {
-                    "name": "Chrome",
-                    "scoreComponents": [
-                        {
-                            "measurement": "fcp",
-                            "weight": 0.15,
-                            "p10": 900.0,
-                            "p50": 1600.0,
-                            "optional": False,
-                        },
-                        {
-                            "measurement": "lcp",
-                            "weight": 0.30,
-                            "p10": 1200.0,
-                            "p50": 2400.0,
-                            "optional": False,
-                        },
-                        {
-                            "measurement": "fid",
-                            "weight": 0.30 if shouldIncludeFid else 0.0,
-                            "p10": 100.0,
-                            "p50": 300.0,
-                            "optional": True,
-                        },
-                        {
-                            "measurement": "cls",
-                            "weight": 0.15,
-                            "p10": 0.1,
-                            "p50": 0.25,
-                            "optional": False,
-                        },
-                        {
-                            "measurement": "ttfb",
-                            "weight": 0.10,
-                            "p10": 200.0,
-                            "p50": 400.0,
-                            "optional": False,
-                        },
-                    ],
-                    "condition": {
-                        "op": "eq",
-                        "name": "event.contexts.browser.name",
-                        "value": "Chrome",
-                    },
-                },
-                {
-                    "name": "Firefox",
-                    "scoreComponents": [
-                        {
-                            "measurement": "fcp",
-                            "weight": 0.15,
-                            "p10": 900.0,
-                            "p50": 1600.0,
-                            "optional": False,
-                        },
-                        {
-                            "measurement": "lcp",
-                            "weight": 0.30,
-                            "p10": 1200.0,
-                            "p50": 2400.0,
-                            "optional": True,
-                        },
-                        {
-                            "measurement": "fid",
-                            "weight": 0.30 if shouldIncludeFid else 0.0,
-                            "p10": 100.0,
-                            "p50": 300.0,
-                            "optional": True,
-                        },
-                        {
-                            "measurement": "cls",
-                            "weight": 0.0,
-                            "p10": 0.1,
-                            "p50": 0.25,
-                            "optional": False,
-                        },
-                        {
-                            "measurement": "ttfb",
-                            "weight": 0.10,
-                            "p10": 200.0,
-                            "p50": 400.0,
-                            "optional": False,
-                        },
-                    ],
-                    "condition": {
-                        "op": "eq",
-                        "name": "event.contexts.browser.name",
-                        "value": "Firefox",
-                    },
-                },
-                {
-                    "name": "Safari",
-                    "scoreComponents": [
-                        {
-                            "measurement": "fcp",
-                            "weight": 0.15,
-                            "p10": 900.0,
-                            "p50": 1600.0,
-                            "optional": False,
-                        },
-                        {
-                            "measurement": "lcp",
-                            "weight": 0.0,
-                            "p10": 1200.0,
-                            "p50": 2400.0,
-                            "optional": False,
-                        },
-                        {
-                            "measurement": "fid",
-                            "weight": 0.0,
-                            "p10": 100.0,
-                            "p50": 300.0,
-                            "optional": True,
-                        },
-                        {
-                            "measurement": "cls",
-                            "weight": 0.0,
-                            "p10": 0.1,
-                            "p50": 0.25,
-                            "optional": False,
-                        },
-                        {
-                            "measurement": "ttfb",
-                            "weight": 0.10,
-                            "p10": 200.0,
-                            "p50": 400.0,
-                            "optional": False,
-                        },
-                    ],
-                    "condition": {
-                        "op": "eq",
-                        "name": "event.contexts.browser.name",
-                        "value": "Safari",
-                    },
-                },
-                {
-                    "name": "Edge",
-                    "scoreComponents": [
-                        {
-                            "measurement": "fcp",
-                            "weight": 0.15,
-                            "p10": 900.0,
-                            "p50": 1600.0,
-                            "optional": False,
-                        },
-                        {
-                            "measurement": "lcp",
-                            "weight": 0.30,
-                            "p10": 1200.0,
-                            "p50": 2400.0,
-                            "optional": False,
-                        },
-                        {
-                            "measurement": "fid",
-                            "weight": 0.30 if shouldIncludeFid else 0.0,
-                            "p10": 100.0,
-                            "p50": 300.0,
-                            "optional": True,
-                        },
-                        {
-                            "measurement": "cls",
-                            "weight": 0.15,
-                            "p10": 0.1,
-                            "p50": 0.25,
-                            "optional": False,
-                        },
-                        {
-                            "measurement": "ttfb",
-                            "weight": 0.10,
-                            "p10": 200.0,
-                            "p50": 400.0,
-                            "optional": False,
-                        },
-                    ],
-                    "condition": {
-                        "op": "eq",
-                        "name": "event.contexts.browser.name",
-                        "value": "Edge",
-                    },
-                },
-                {
-                    "name": "Opera",
-                    "scoreComponents": [
-                        {
-                            "measurement": "fcp",
-                            "weight": 0.15,
-                            "p10": 900.0,
-                            "p50": 1600.0,
-                            "optional": False,
-                        },
-                        {
-                            "measurement": "lcp",
-                            "weight": 0.30,
-                            "p10": 1200.0,
-                            "p50": 2400.0,
-                            "optional": False,
-                        },
-                        {
-                            "measurement": "fid",
-                            "weight": 0.30 if shouldIncludeFid else 0.0,
-                            "p10": 100.0,
-                            "p50": 300.0,
-                            "optional": True,
-                        },
-                        {
-                            "measurement": "cls",
-                            "weight": 0.15,
-                            "p10": 0.1,
-                            "p50": 0.25,
-                            "optional": False,
-                        },
-                        {
-                            "measurement": "ttfb",
-                            "weight": 0.10,
-                            "p10": 200.0,
-                            "p50": 400.0,
-                            "optional": False,
-                        },
-                    ],
-                    "condition": {
-                        "op": "eq",
-                        "name": "event.contexts.browser.name",
-                        "value": "Opera",
-                    },
-                },
-                {
-                    "name": "Chrome INP",
-                    "scoreComponents": [
-                        {
-                            "measurement": "inp",
-                            "weight": 1.0,
-                            "p10": 200.0,
-                            "p50": 500.0,
-                            "optional": False,
-                        },
-                    ],
-                    "condition": {
-                        "op": "or",
-                        "inner": [
-                            {
-                                "op": "eq",
-                                "name": "event.contexts.browser.name",
-                                "value": "Chrome",
-                            },
-                            {
-                                "op": "eq",
-                                "name": "event.contexts.browser.name",
-                                "value": "Google Chrome",
-                            },
-                        ],
-                    },
-                },
-                {
-                    "name": "Edge INP",
-                    "scoreComponents": [
-                        {
-                            "measurement": "inp",
-                            "weight": 1.0,
-                            "p10": 200.0,
-                            "p50": 500.0,
-                            "optional": False,
-                        },
-                    ],
-                    "condition": {
-                        "op": "eq",
-                        "name": "event.contexts.browser.name",
-                        "value": "Edge",
-                    },
-                },
-                {
-                    "name": "Opera INP",
-                    "scoreComponents": [
-                        {
-                            "measurement": "inp",
-                            "weight": 1.0,
-                            "p10": 200.0,
-                            "p50": 500.0,
-                            "optional": False,
-                        },
-                    ],
-                    "condition": {
-                        "op": "eq",
-                        "name": "event.contexts.browser.name",
-                        "value": "Opera",
-                    },
-                },
-            ]
-        }
+    performance_score_profiles = [
+        *_get_browser_performance_profiles(project.organization),
+        *_get_mobile_performance_profiles(project.organization),
+    ]
+    if performance_score_profiles:
+        config["performanceScore"] = {"profiles": performance_score_profiles}
 
     with Hub.current.start_span(op="get_filter_settings"):
         if filter_settings := get_filter_settings(project):
@@ -879,7 +947,7 @@ class _ConfigBase:
 
     def __str__(self) -> str:
         try:
-            return utils.json.dumps(self.to_dict(), sort_keys=True)  # type: ignore
+            return utils.json.dumps(self.to_dict(), sort_keys=True)  # type: ignore[arg-type]
         except Exception as e:
             return f"Content Error:{e}"
 

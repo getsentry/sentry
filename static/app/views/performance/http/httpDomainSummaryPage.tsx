@@ -1,7 +1,9 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import FeatureBadge from 'sentry/components/featureBadge';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -13,15 +15,19 @@ import {fromSorts} from 'sentry/utils/discover/eventView';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {
   DomainTransactionsTable,
   isAValidSort,
 } from 'sentry/views/performance/http/domainTransactionsTable';
 import {DurationChart} from 'sentry/views/performance/http/durationChart';
+import {HTTPSamplesPanel} from 'sentry/views/performance/http/httpSamplesPanel';
 import {ResponseRateChart} from 'sentry/views/performance/http/responseRateChart';
+import {RELEASE_LEVEL} from 'sentry/views/performance/http/settings';
 import {ThroughputChart} from 'sentry/views/performance/http/throughputChart';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
@@ -43,12 +49,21 @@ type Query = {
 export function HTTPDomainSummaryPage() {
   const location = useLocation<Query>();
   const organization = useOrganization();
+  const {projects} = useProjects();
 
+  // TODO: Fetch sort information using `useLocationQuery`
   const sortField = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_SORT]);
 
   const sort = fromSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
 
-  const {domain} = location.query;
+  const {domain, project: projectId} = useLocationQuery({
+    fields: {
+      project: decodeScalar,
+      domain: decodeScalar,
+    },
+  });
+
+  const project = projects.find(p => projectId === p.id);
 
   const filters: SpanMetricsQueryFilters = {
     'span.module': ModuleName.HTTP,
@@ -60,7 +75,6 @@ export function HTTPDomainSummaryPage() {
   const {data: domainMetrics, isLoading: areDomainMetricsLoading} = useSpanMetrics({
     search: MutableSearch.fromQueryObject(filters),
     fields: [
-      SpanMetricsField.SPAN_DOMAIN,
       `${SpanFunction.SPM}()`,
       `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
       `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
@@ -114,9 +128,11 @@ export function HTTPDomainSummaryPage() {
   } = useSpanMetrics({
     search: MutableSearch.fromQueryObject(filters),
     fields: [
+      'project.id',
       'transaction',
+      'transaction.method',
       'spm()',
-      'http_response_rate(2)',
+      'http_response_rate(3)',
       'http_response_rate(4)',
       'http_response_rate(5)',
       'avg(span.self_time)',
@@ -152,7 +168,11 @@ export function HTTPDomainSummaryPage() {
               },
             ]}
           />
-          <Layout.Title>{domain}</Layout.Title>
+          <Layout.Title>
+            {project && <ProjectAvatar project={project} size={36} />}
+            {domain}
+            <FeatureBadge type={RELEASE_LEVEL} />
+          </Layout.Title>
         </Layout.HeaderContent>
       </Layout.Header>
 
@@ -259,6 +279,7 @@ export function HTTPDomainSummaryPage() {
 
             <ModuleLayout.Full>
               <DomainTransactionsTable
+                domain={domain}
                 data={transactionsList}
                 error={transactionsListError}
                 isLoading={isTransactionsListLoading}
@@ -270,6 +291,8 @@ export function HTTPDomainSummaryPage() {
           </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>
+
+      <HTTPSamplesPanel />
     </React.Fragment>
   );
 }
