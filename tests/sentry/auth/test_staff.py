@@ -31,7 +31,7 @@ UNSET = object()
 
 BASETIME = datetime(2022, 3, 21, 0, 0, tzinfo=UTC)
 
-EXPIRES_TIME = BASETIME - timedelta(minutes=1)
+EXPIRED_TIME = BASETIME - timedelta(minutes=1)
 
 VALID_TIME = BASETIME + timedelta(minutes=1)
 
@@ -154,7 +154,7 @@ class StaffTestCase(TestCase):
 
     @freeze_time(BASETIME)
     def test_expired(self):
-        request = self.build_request(expires=EXPIRES_TIME)
+        request = self.build_request(expires=EXPIRED_TIME)
         staff = Staff(request, allowed_ips=())
         assert staff.is_active is False
 
@@ -177,6 +177,31 @@ class StaffTestCase(TestCase):
 
         # See mypy issue: https://github.com/python/mypy/issues/9457
         data = request.session.get(SESSION_KEY)  # type:ignore[unreachable]
+        assert data
+        assert data["exp"] == (self.current_datetime + MAX_AGE).strftime("%s")
+        assert len(data["tok"]) == 12
+        assert data["uid"] == str(self.staff_user.id)
+
+    def test_staff_from_request_does_not_modify_session(self):
+        # Active staff in request
+        request = self.make_request(user=self.staff_user, is_staff=True)
+        request.session.modified = False
+        request_staff = getattr(request, "staff")
+        assert request_staff.is_active
+
+        # Mock the signed cookie in the request to match the token in the session
+        request.get_signed_cookie = Mock(return_value=request_staff.token)  # type: ignore[method-assign]
+
+        activated_staff = Staff(request)
+
+        # Staff should still be active
+        assert activated_staff.is_active
+        # The session should not be modified because the staff key in the
+        # session wasn't replaced
+        assert request.session.modified is False
+
+        # See mypy issue: https://github.com/python/mypy/issues/9457
+        data = request.session.get(SESSION_KEY)
         assert data
         assert data["exp"] == (self.current_datetime + MAX_AGE).strftime("%s")
         assert len(data["tok"]) == 12
