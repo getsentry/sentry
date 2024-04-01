@@ -97,7 +97,7 @@ class OrganizationService(RpcService):
         RpcOrganizationSummary instead of org contexts
         """
 
-    @regional_rpc_method(resolve=ByOrganizationSlug(), return_none_if_mapping_not_found=True)
+    @regional_rpc_method(resolve=ByOrganizationId("id"), return_none_if_mapping_not_found=True)
     @abstractmethod
     def get_org_by_id(
         self,
