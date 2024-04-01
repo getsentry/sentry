@@ -207,6 +207,7 @@ class TestTokenAuthentication(TestCase):
             self.auth.authenticate(request)
 
     @override_options({"apitoken.save-hash-on-create": False})
+    @override_options({"apitoken.use-and-update-hash-rate", 1.0})
     def test_token_hashed_with_option_off(self):
         # see https://github.com/getsentry/sentry/pull/65941
         # the UserAuthTokenAuthentication middleware was updated to hash tokens as
@@ -228,6 +229,25 @@ class TestTokenAuthentication(TestCase):
         api_token.refresh_from_db()
         assert api_token.hashed_token == expected_hash
 
+    @override_options({"apitoken.save-hash-on-create": False})
+    @override_options({"apitoken.use-and-update-hash-rate", 0.0})
+    def test_token_not_hashed_with_0_rate(self):
+        api_token = ApiToken.objects.create(user=self.user, token_type=AuthTokenType.USER)
+
+        # we haven't authenticated to the API endpoint yet, so this value should be empty
+        assert api_token.hashed_token is None
+
+        request = HttpRequest()
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {api_token.token}"
+
+        # trigger the authentication middleware
+        result = self.auth.authenticate(request)
+        assert result is not None
+
+        # check for the expected hash value
+        api_token.refresh_from_db()
+        assert api_token.hashed_token is None
+
 
 @no_silo_test
 class TestTokenAuthenticationReplication(TestCase):
@@ -237,6 +257,7 @@ class TestTokenAuthenticationReplication(TestCase):
         self.auth = UserAuthTokenAuthentication()
 
     @override_options({"apitoken.save-hash-on-create": False})
+    @override_options({"apitoken.use-and-update-hash-rate", 1.0})
     def test_hash_is_replicated(self):
         api_token = ApiToken.objects.create(user=self.user, token_type=AuthTokenType.USER)
         expected_hash = hashlib.sha256(api_token.token.encode()).hexdigest()
