@@ -26,13 +26,16 @@ def _backfill_alert_rule_projects(apps, schema_editor):
         alert_rule = snuba_query.alertrule_set.get()
 
         existing_alert_rule_projects = AlertRuleProjects.objects.filter(alert_rule=alert_rule)
-        if (
-            not existing_alert_rule_projects.exists()
-            or existing_alert_rule_projects.project != subscription.project
+        if not existing_alert_rule_projects.exists() or (
+            len(existing_alert_rule_projects) == 1
+            and existing_alert_rule_projects.get().project != subscription.project
         ):
-            if existing_alert_rule_projects.project != subscription.project:
+            if (
+                existing_alert_rule_projects.exists()
+                and existing_alert_rule_projects.get().project != subscription.project
+            ):
                 logger.warning(
-                    "AlertRule found with multiple projects",
+                    "AlertRuleProject found with different project than subscription",
                     extra={"alert_rule_id": alert_rule.id},
                 )
                 existing_alert_rule_projects.delete()
@@ -40,6 +43,11 @@ def _backfill_alert_rule_projects(apps, schema_editor):
             AlertRuleProjects.objects.create(
                 alert_rule=alert_rule,
                 project=subscription.project,
+            )
+        if existing_alert_rule_projects.exists() and len(existing_alert_rule_projects) == 1:
+            logger.warning(
+                "AlertRule found with multiple projects",
+                extra={"alert_rule_id": alert_rule.id},
             )
 
 
