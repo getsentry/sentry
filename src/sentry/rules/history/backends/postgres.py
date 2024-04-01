@@ -47,8 +47,8 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
         group: Group,
         event_id: str | None = None,
         notification_uuid: str | None = None,
-    ) -> None:
-        RuleFireHistory.objects.create(
+    ) -> RuleFireHistory | None:
+        return RuleFireHistory.objects.create(
             project=rule.project,
             rule=rule,
             group=group,
