@@ -2329,7 +2329,6 @@ SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS_PERFORMANCE: dict[str, Any] =
     "num_shards": 1,
     "num_physical_shards": 1,
 }
-
 SENTRY_METRICS_INDEXER_ENABLE_SLICED_PRODUCER = False
 
 # Release Health
