@@ -342,10 +342,11 @@ class UserAuthTokenAuthentication(StandardAuthentication):
 
         rate = options.get("apitoken.use-and-update-hash-rate")
         random_rate = random.random()
+        use_hashed_token = rate > random_rate
 
         if SiloMode.get_current_mode() == SiloMode.REGION:
             try:
-                if rate > random_rate:
+                if use_hashed_token:
                     # Try to find the token by its hashed value first
                     return ApiTokenReplica.objects.get(hashed_token=hashed_token)
                 else:
@@ -360,7 +361,7 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         else:
             try:
                 # Try to find the token by its hashed value first
-                if rate > random_rate:
+                if use_hashed_token:
                     return ApiToken.objects.select_related("user", "application").get(
                         hashed_token=hashed_token
                     )
@@ -376,7 +377,7 @@ class UserAuthTokenAuthentication(StandardAuthentication):
                     # If the token does not exist by plaintext either, it is not a valid token
                     raise AuthenticationFailed("Invalid token")
                 else:
-                    if rate > random_rate:
+                    if use_hashed_token:
                         # Update it with the hashed value if found by plaintext
                         api_token.hashed_token = hashed_token
                         api_token.save(update_fields=["hashed_token"])
