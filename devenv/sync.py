@@ -86,31 +86,20 @@ def main(context: dict[str, str]) -> int:
         repo_config = configparser.ConfigParser()
         repo_config.read(f"{reporoot}/devenv/config.ini")
 
-        # we don't officially support colima on linux yet
-        if constants.CI:
-            # colima 0.6.8 doesn't work with macos-13,
-            # but integration coverage is still handy
+        try:
             colima.install(
-                "v0.6.2",
-                "https://github.com/abiosoft/colima/releases/download/v0.6.2/colima-Darwin-x86_64",
-                "43ef3fc80a8347d51b8ec1706f9caf8863bd8727a6f7532caf1ccd20497d8485",
+                repo_config["colima"]["version"],
+                repo_config["colima"][constants.SYSTEM_MACHINE],
+                repo_config["colima"][f"{constants.SYSTEM_MACHINE}_sha256"],
                 reporoot,
             )
-        else:
-            try:
-                colima.install(
-                    repo_config["colima"]["version"],
-                    repo_config["colima"][constants.SYSTEM_MACHINE],
-                    repo_config["colima"][f"{constants.SYSTEM_MACHINE}_sha256"],
-                    reporoot,
-                )
-            except TypeError:
-                # this is needed for devenv <=1.4.0,>1.2.3 to finish syncing and therefore update itself
-                colima.install(
-                    repo_config["colima"]["version"],
-                    repo_config["colima"][constants.SYSTEM_MACHINE],
-                    repo_config["colima"][f"{constants.SYSTEM_MACHINE}_sha256"],
-                )
+        except TypeError:
+            # this is needed for devenv <=1.4.0,>1.2.3 to finish syncing and therefore update itself
+            colima.install(
+                repo_config["colima"]["version"],
+                repo_config["colima"][constants.SYSTEM_MACHINE],
+                repo_config["colima"][f"{constants.SYSTEM_MACHINE}_sha256"],
+            )
 
         # TODO: move limactl version into per-repo config
         try:
