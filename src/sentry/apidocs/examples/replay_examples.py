@@ -53,7 +53,7 @@ class ReplayExamples:
     GET_REPLAY_CLICKS = [
         OpenApiExample(
             "Retrieve a collection of RRWeb DOM node-ids and the timestamp they were clicked.",
-            value=[{"data": {"node_id": 1, "timestamp": "2024-02-08T15:52:25+00:00"}}],
+            value={"data": [{"node_id": 1, "timestamp": "2024-02-08T15:52:25+00:00"}]},
             status_codes=["200"],
             response_only=True,
         )
