@@ -213,7 +213,9 @@ class Staff(ElevatedMode):
         if not data:
             self._set_logged_out()
         else:
-            self._set_logged_in(_seconds_to_timestamp(data["exp"]), token=data["tok"], user=user)
+            self._set_logged_in(
+                expires=_seconds_to_timestamp(data["exp"]), token=data["tok"], user=user
+            )
 
             if not self.is_active:
                 if self._inactive_reason:
