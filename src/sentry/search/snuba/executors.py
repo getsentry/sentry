@@ -15,6 +15,8 @@ import sentry_sdk
 from django.db.models import Q
 from django.utils import timezone
 from snuba_sdk import (
+    BooleanCondition,
+    BooleanOp,
     Column,
     Condition,
     Direction,
@@ -50,8 +52,9 @@ from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.team import Team
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
-from sentry.search.utils import SupportedConditions
+from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.snuba.dataset import Dataset
 from sentry.utils import json, metrics, snuba
 from sentry.utils.cursors import Cursor, CursorResult
@@ -1113,6 +1116,125 @@ class InvalidQueryForExecutor(Exception):
     pass
 
 
+def get_basic_group_snuba_lookup(search_filter: SearchFilter, attr_entity: Entity) -> Condition:
+    """
+    Returns the basic lookup for a search filter.
+    """
+    return Condition(
+        Column(f"group_{search_filter.key.name}", attr_entity),
+        Op.IN,
+        search_filter.value.raw_value,
+    )
+
+
+def get_assigned(search_filter: SearchFilter, attr_entity: Entity) -> Condition:
+    """
+    Returns the assigned lookup for a search filter.
+    """
+    users = filter(lambda x: isinstance(x, RpcUser), search_filter.value.raw_value)
+    user_ids = [user.id for user in users]
+    teams = filter(lambda x: isinstance(x, Team), search_filter.value.raw_value)
+    team_ids = [team.id for team in teams]
+
+    conditions = []
+    if user_ids:
+        assigned_to_user = Condition(Column("assignee_user_id", attr_entity), Op.IN, user_ids)
+        conditions.append(assigned_to_user)
+
+    if team_ids:
+        assigned_to_team = Condition(Column("assignee_team_id", attr_entity), Op.IN, team_ids)
+        conditions.append(assigned_to_team)
+    # asking for unassigned issues
+    if None in search_filter.value.raw_value:
+        # neither assigned to team or user
+        assigned_to_none_user = Condition(Column("assignee_user_id", attr_entity), Op.IS_NULL, None)
+        assigned_to_none_team = Condition(Column("assignee_team_id", attr_entity), Op.IS_NULL, None)
+        conditions.append(
+            BooleanCondition(
+                op=BooleanOp.AND, conditions=[assigned_to_none_user, assigned_to_none_team]
+            )
+        )
+
+    if len(conditions) == 1:
+        return conditions[0]
+
+    return BooleanCondition(op=BooleanOp.OR, conditions=conditions)
+
+
+def get_suggested(search_filter: SearchFilter, attr_entity: Entity) -> Condition:
+    """
+    Returns the suggested lookup for a search filter.
+    """
+    users = filter(lambda x: isinstance(x, RpcUser), search_filter.value.raw_value)
+    user_ids = [user.id for user in users]
+    teams = filter(lambda x: isinstance(x, Team), search_filter.value.raw_value)
+    team_ids = [team.id for team in teams]
+
+    conditions = []
+    if user_ids:
+        suspect_commit_user = Condition(
+            Column("owner_suspect_commit_user_id", attr_entity), Op.IN, user_ids
+        )
+        ownership_rule_user = Condition(
+            Column("owner_ownership_rule_user_id", attr_entity), Op.IN, user_ids
+        )
+        codeowner_user = Condition(Column("owner_codeowners_user_id", attr_entity), Op.IN, user_ids)
+        conditions = conditions + [suspect_commit_user, ownership_rule_user, codeowner_user]
+
+    if team_ids:
+        ownership_rule_team = Condition(
+            Column("owner_ownership_rule_team_id", attr_entity), Op.IN, team_ids
+        )
+        codowner_team = Condition(Column("owner_codeowners_team_id", attr_entity), Op.IN, team_ids)
+        conditions = conditions + [ownership_rule_team, codowner_team]
+
+    if None in search_filter.value.raw_value:
+        # neither assigned to team or user
+        suspect_commit_user = Condition(
+            Column("owner_suspect_commit_user_id", attr_entity), Op.IS_NULL, None
+        )
+        ownership_rule_user = Condition(
+            Column("owner_ownership_rule_user_id", attr_entity), Op.IS_NULL, None
+        )
+        ownership_rule_team = Condition(
+            Column("owner_ownership_rule_team_id", attr_entity), Op.IS_NULL, None
+        )
+        codeowner_user = Condition(
+            Column("owner_codeowners_user_id", attr_entity), Op.IS_NULL, None
+        )
+        codowner_team = Condition(Column("owner_codeowners_team_id", attr_entity), Op.IS_NULL, None)
+        conditions.append(
+            BooleanCondition(
+                op=BooleanOp.AND,
+                conditions=[
+                    suspect_commit_user,
+                    ownership_rule_user,
+                    ownership_rule_team,
+                    codeowner_user,
+                    codowner_team,
+                ],
+            )
+        )
+
+    if len(conditions) == 1:
+        return conditions[0]
+
+    return BooleanCondition(
+        op=BooleanOp.OR,
+        conditions=conditions,
+    )
+
+
+def get_assigned_or_suggested(search_filter: SearchFilter, attr_entity: Entity) -> Condition:
+    return BooleanCondition(
+        op=BooleanOp.OR,
+        conditions=[
+            get_assigned(search_filter, attr_entity),
+            get_suggested(search_filter, attr_entity),
+        ],
+    )
+
+
 class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
     ISSUE_FIELD_NAME = "group_id"
 
@@ -1121,12 +1243,11 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         "attrs": Entity("group_attributes", alias="g"),
     }
 
-    supported_conditions = [
-        SupportedConditions("status", frozenset(["IN"])),
-        SupportedConditions("substatus", frozenset(["IN"])),
-    ]
     supported_conditions_lookup = {
-        condition.field_name: condition for condition in supported_conditions
+        "status": get_basic_group_snuba_lookup,
+        "substatus": get_basic_group_snuba_lookup,
+        "assigned_or_suggested": get_assigned_or_suggested,
+        "assigned_to": get_assigned,
     }
 
     last_seen_aggregation = Function(
@@ -1192,11 +1313,6 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             supported_condition = self.supported_conditions_lookup.get(search_filter.key.name)
             if not supported_condition:
                 return False
-            if (
-                supported_condition.operators
-                and search_filter.operator not in supported_condition.operators
-            ):
-                return False
         return True
 
     def query(
@@ -1248,15 +1364,9 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             Condition(Column("timestamp", event_entity), Op.GTE, start),
             Condition(Column("timestamp", event_entity), Op.LT, end),
         ]
-        # TODO: This is still basically only handling status, handle this better once we introduce
-        # more conditions.
         for search_filter in search_filters or ():
             where_conditions.append(
-                Condition(
-                    Column(f"group_{search_filter.key.name}", attr_entity),
-                    Op.IN,
-                    search_filter.value.raw_value,
-                )
+                self.supported_conditions_lookup[search_filter.key.name](search_filter, attr_entity)
             )
 
         if environments:
