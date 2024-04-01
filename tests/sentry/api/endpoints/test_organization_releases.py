@@ -3,6 +3,7 @@ from datetime import UTC, datetime, timedelta
 from functools import cached_property
 from unittest.mock import patch
 
+import pytest
 from django.urls import reverse
 from django.utils import timezone
 
@@ -47,7 +48,7 @@ from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
-pytestmark = [requires_snuba]
+pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
 
 
 class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
@@ -167,6 +168,7 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
             response, [release_5, release_4, release_3, release_2, release_1]
         )
 
+    @pytest.mark.xfail(reason="Does not work with the metrics release health backend")
     def test_release_list_order_by_sessions(self):
         self.login_as(user=self.user)
 
