@@ -33,10 +33,7 @@ COOKIE_PATH = getattr(settings, "STAFF_COOKIE_PATH", settings.SESSION_COOKIE_PAT
 COOKIE_HTTPONLY = getattr(settings, "STAFF_COOKIE_HTTPONLY", True)
 
 # the maximum time the session can stay alive
-MAX_AGE = timedelta(hours=4)
-
-# the maximum time the session can stay alive without making another request
-IDLE_MAX_AGE = timedelta(minutes=15)
+MAX_AGE = timedelta(hours=2)
 
 ALLOWED_IPS = frozenset(getattr(settings, "STAFF_ALLOWED_IPS", settings.INTERNAL_IPS) or ())
 
@@ -179,23 +176,6 @@ class Staff(ElevatedMode):
             current_datetime = django_timezone.now()
 
         try:
-            data["idl"] = datetime.fromtimestamp(float(data["idl"]), timezone.utc)
-        except (TypeError, ValueError):
-            logger.warning(
-                "staff.invalid-idle-expiration",
-                extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
-                exc_info=True,
-            )
-            return
-
-        if data["idl"] < current_datetime:
-            logger.info(
-                "staff.session-expired",
-                extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
-            )
-            return
-
-        try:
             data["exp"] = datetime.fromtimestamp(float(data["exp"]), timezone.utc)
         except (TypeError, ValueError):
             logger.warning(
@@ -267,7 +247,6 @@ class Staff(ElevatedMode):
         self._is_active, self._inactive_reason = self.is_privileged_request()
         self.request.session[SESSION_KEY] = {
             "exp": self.expires.strftime("%s"),
-            "idl": (current_datetime + IDLE_MAX_AGE).strftime("%s"),
             "tok": self.token,
             # XXX(dcramer): do we really need the uid safety mechanism
             "uid": self.uid,
@@ -315,7 +294,7 @@ class Staff(ElevatedMode):
     def on_response(self, response) -> None:
         request = self.request
 
-        # always re-bind the cookie to update the idle expiration window
+        # Re-bind the cookie
         if self.is_active:
             response.set_signed_cookie(
                 COOKIE_NAME,
@@ -328,6 +307,6 @@ class Staff(ElevatedMode):
                 path=COOKIE_PATH,
                 domain=COOKIE_DOMAIN,
             )
-        # otherwise, if the session is invalid and there's a cookie set, clear it
+        # otherwise if the session is invalid and there's a cookie set, clear it
         elif not self.is_valid and request.COOKIES.get(COOKIE_NAME):
             response.delete_cookie(COOKIE_NAME)
