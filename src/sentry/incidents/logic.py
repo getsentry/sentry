@@ -600,7 +600,7 @@ def create_alert_rule(
                 alert_rule=alert_rule, condition_type=activation_condition.value
             )
 
-        # initialize projects join table for activated alert rules
+        # initialize projects join table for alert rules
         arps = [AlertRuleProjects(alert_rule=alert_rule, project=project) for project in projects]
         AlertRuleProjects.objects.bulk_create(arps)
 
