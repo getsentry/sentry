@@ -251,29 +251,49 @@ class TestRedisBuffer:
     def test_enqueue(self):
         PROJECT_ID_BUFFER_LIST_KEY = "project_id_buffer_list"
         project_id = 1
-        project_id2 = 2
-        rule_id = 3
-        group_id = 4
-        event_id = 5
+        rule_id = 2
+        group_id = 3
+        event_id = 4
+        group2_id = 5
+        event2_id = 6
+
+        project_id2 = 7
+        rule2_id = 8
+        group3_id = 9
+        event3_id = 10
 
         # store the project ids
-        self.buf.push(key=PROJECT_ID_BUFFER_LIST_KEY, value=project_id)
-        self.buf.push(key=PROJECT_ID_BUFFER_LIST_KEY, value=project_id2)
-        # {'project_id_buffer_list': [1 ,2]}
-        # ^ what I am guessing the data is supposed to look like
+        self.buf.push_to_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=project_id)
+        self.buf.push_to_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=project_id2)
 
         # store the rules and group per project
         self.buf.enqueue(
-            model=Project, filters={id: project_id}, value={(rule_id, group_id): event_id}
+            model=Project,
+            field={"project_id": project_id},
+            value={f"{rule_id}:{group_id}": event_id},
         )
-        # {pending_key: {(3, 4): 5}}
+        self.buf.enqueue(
+            model=Project,
+            field={"project_id": project_id},
+            value={f"{rule_id}:{group2_id}": event2_id},
+        )
+        # ^ this doesn't work because we already have data for that key (field)
+        self.buf.enqueue(
+            model=Project,
+            field={"project_id": project_id2},
+            value={f"{rule2_id}:{group3_id}": event3_id},
+        )
 
-        # project_ids = self.buf.another_get(PROJECT_ID_BUFFER_LIST_KEY)
-        # this just returns the pipeline idk why. get takes a name and a key and idk what to pass
+        project_ids = self.buf.get_set(PROJECT_ID_BUFFER_LIST_KEY)
+        assert project_ids
 
-        # for proj_id in project_ids:
-        #         rule_group_pairs = self.buf.get(model=Project, columns=[group_id, event_id], filters={"id": proj_id})
-        #         print(rule_group_pairs)
+        project_ids_to_rule_data = {}
+
+        for proj_id in project_ids[0]:
+            rule_group_pairs = self.buf.get_hash(Project, {"project_id": proj_id})
+            for pair in rule_group_pairs:
+                for k, v in pair.items():
+                    project_ids_to_rule_data[k] = json.loads(v)
 
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.base.Buffer.process")

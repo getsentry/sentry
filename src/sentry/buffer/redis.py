@@ -208,11 +208,6 @@ class RedisBuffer(Buffer):
             col: (int(results[i]) if results[i] is not None else 0) for i, col in enumerate(columns)
         }
 
-    def another_get(self, key: str):
-        """Needs a better name but I'm not entirely sure this is what was intended anyway"""
-        pipe = self.get_redis_connection(key)
-        return pipe.lrange(key, 0, -1)
-
     def get_redis_connection(self, key: str) -> Any | None:
         # TODO type RedisPipeline instead of using Any here
         if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
@@ -225,20 +220,43 @@ class RedisBuffer(Buffer):
         pipe = conn.pipeline()
         return pipe
 
-    def push(self, key: str, value: list[int, int] | int) -> None:
-        pipe = self.get_redis_connection(key)
-        pipe.rpush(key, value)
+    def push_to_set(self, key: str, value: list[int, int] | int) -> None:
+        pending_key = self._make_pending_key_from_key(key)
+        pipe = self.get_redis_connection(pending_key)
+        pipe.sadd(key, value)
         pipe.expire(key, self.key_expire)
+        pipe.execute()
+
+    def get_set(self, key: str) -> None:
+        pending_key = self._make_pending_key_from_key(key)
+        pipe = self.get_redis_connection(pending_key)
+        pipe.smembers(key)
+        return pipe.execute()
+
+    def push_to_hash(
+        self, key: str, field: dict[str, int], value: dict[str, dict[int, int]]
+    ) -> None:
+        pending_key = self._make_pending_key_from_key(key)
+        pipe = self.get_redis_connection(pending_key)
+        pipe.hsetnx(key, str(field["project_id"]), json.dumps(value))
+        pipe.expire(key, self.key_expire)
+        pipe.execute()
+
+    def get_hash(self, model: type[models.Model], field: dict[str, int]):
+        key = self._make_key(model, field)
+        pending_key = self._make_pending_key_from_key(key)
+        pipe = self.get_redis_connection(pending_key)
+        pipe.hgetall(key)
+        return pipe.execute()
 
     def enqueue(
         self,
         model: type[models.Model],
-        filters: dict[str, models.Model | str | int],
-        value: tuple[int, int],
+        field: dict[str, int],
+        value: dict[str, dict[int, int]],
     ) -> None:
-        key = self._make_key(model, filters)
-        pending_key = self._make_pending_key_from_key(key)
-        self.push(pending_key, value)
+        key = self._make_key(model, field)
+        self.push_to_hash(key, field, value)
 
     def incr(
         self,
@@ -262,7 +280,7 @@ class RedisBuffer(Buffer):
         pending_key = self._make_pending_key_from_key(key)
         # We can't use conn.map() due to wanting to support multiple pending
         # keys (one per Redis partition)
-        pipe, self.is_redis_cluster = self.get_redis_connection(key)
+        pipe = self.get_redis_connection(key)
         pipe.hsetnx(key, "m", f"{model.__module__}.{model.__name__}")
         _validate_json_roundtrip(filters, model)
 
