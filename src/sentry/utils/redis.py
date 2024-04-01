@@ -4,7 +4,7 @@ import importlib.resources
 import logging
 from copy import deepcopy
 from threading import Lock
-from typing import Any, TypeGuard
+from typing import Any, Literal, TypeGuard, TypeVar, overload
 
 import rb
 from django.utils.functional import SimpleLazyObject
@@ -22,6 +22,8 @@ from sentry.utils.versioning import Version, check_versions
 from sentry.utils.warnings import DeprecatedSettingWarning
 
 logger = logging.getLogger(__name__)
+
+T = TypeVar("T", str, bytes)
 
 
 _REDIS_DEFAULT_CLIENT_ARGS = {
@@ -75,10 +77,7 @@ class RBClusterManager:
 
         return rb.Cluster(**config, pool_cls=_shared_pool)
 
-    def get(self, key: str, *, decode_responses: bool = True) -> rb.Cluster:
-        if not decode_responses:
-            raise NotImplementedError("rb does not support decode_responses")
-
+    def get(self, key: str) -> rb.Cluster:
         try:
             return self._clusters[key]
         except KeyError:
@@ -95,15 +94,58 @@ class RBClusterManager:
         return ret
 
 
-class _RedisCluster:
-    def supports(self, config: dict[str, Any]) -> bool:
-        # _RedisCluster supports two configurations:
+class RedisClusterManager:
+    def __init__(self, options_manager: OptionsManager) -> None:
+        self._clusters_bytes: dict[str, RedisCluster[bytes] | StrictRedis[bytes]] = {}
+        self._clusters_str: dict[str, RedisCluster[str] | StrictRedis[str]] = {}
+        self._options_manager = options_manager
+
+    def _supports(self, config: dict[str, Any]) -> bool:
+        # supports two configurations:
         #  * Explicitly configured with is_redis_cluster. This mode is for real redis-cluster.
         #  * No is_redis_cluster, but only 1 host. This represents a singular node Redis running
         #    in non-cluster mode.
         return config.get("is_redis_cluster", False) or len(config.get("hosts", [])) == 1
 
-    def factory(
+    def _cfg(self, key: str) -> dict[str, Any]:
+        # TODO: This would probably be safer with a lock, but I'm not sure
+        # that it's necessary.
+        cfg = self._options_manager.get("redis.clusters", {}).get(key)
+        if cfg is None:
+            raise KeyError(f"Invalid cluster name: {key}")
+
+        if not self._supports(cfg):
+            raise KeyError("Invalid cluster type, expected redis cluster")
+
+        return cfg
+
+    @overload
+    def _factory(
+        self,
+        *,
+        decode_responses: Literal[False],
+        is_redis_cluster: bool = False,
+        readonly_mode: bool = False,
+        hosts: list[dict[Any, Any]] | dict[Any, Any] | None = None,
+        client_args: dict[str, Any] | None = None,
+        **config: Any,
+    ) -> RedisCluster[bytes] | StrictRedis[bytes]:
+        ...
+
+    @overload
+    def _factory(
+        self,
+        *,
+        decode_responses: Literal[True],
+        is_redis_cluster: bool = False,
+        readonly_mode: bool = False,
+        hosts: list[dict[Any, Any]] | dict[Any, Any] | None = None,
+        client_args: dict[str, Any] | None = None,
+        **config: Any,
+    ) -> RedisCluster[str] | StrictRedis[str]:
+        ...
+
+    def _factory(
         self,
         *,
         decode_responses: bool,
@@ -112,7 +154,7 @@ class _RedisCluster:
         hosts: list[dict[Any, Any]] | dict[Any, Any] | None = None,
         client_args: dict[str, Any] | None = None,
         **config: Any,
-    ) -> RetryingRedisCluster | FailoverRedis:
+    ) -> RedisCluster[bytes] | StrictRedis[bytes] | RedisCluster[str] | StrictRedis[str]:
         # StrictRedisCluster expects a list of { host, port } dicts. Coerce the
         # configuration into the correct format if necessary.
         if not hosts:
@@ -129,7 +171,9 @@ class _RedisCluster:
 
         # Redis cluster does not wait to attempt to connect. We'd prefer to not
         # make TCP connections on boot. Wrap the client in a lazy proxy object.
-        def cluster_factory() -> RetryingRedisCluster | FailoverRedis:
+        def cluster_factory() -> RedisCluster[
+            bytes
+        ] | StrictRedis[bytes] | RedisCluster[str] | StrictRedis[str]:
             if is_redis_cluster:
                 return RetryingRedisCluster(
                     # Intentionally copy hosts here because redis-cluster-py
@@ -156,39 +200,26 @@ class _RedisCluster:
         # losing some type safety: SimpleLazyObject acts like the underlying type
         return SimpleLazyObject(cluster_factory)  # type: ignore[return-value]
 
-    def __str__(self) -> str:
-        return "Redis Cluster"
-
-
-class RedisClusterManager:
-    def __init__(self, options_manager: OptionsManager) -> None:
-        self.__clusters: dict[tuple[str, bool], RedisCluster | StrictRedis] = {}
-        self.__options_manager = options_manager
-        self.__cluster_type = _RedisCluster()
-
-    def get(self, key: str, *, decode_responses: bool = True) -> RedisCluster | StrictRedis:
-        cache_key = (key, decode_responses)
+    def get(self, key: str) -> RedisCluster[str] | StrictRedis[str]:
         try:
-            return self.__clusters[cache_key]
+            return self._clusters_str[key]
         except KeyError:
             pass
 
         # Do not access attributes of the `cluster` object to prevent
-        # setup/init of lazy objects. The _RedisCluster type will try to
-        # connect to the cluster during initialization.
+        # setup/init of lazy objects.
+        ret = self._clusters_str[key] = self._factory(**self._cfg(key), decode_responses=True)
+        return ret
 
-        # TODO: This would probably be safer with a lock, but I'm not sure
-        # that it's necessary.
-        cfg = self.__options_manager.get("redis.clusters", {}).get(key)
-        if cfg is None:
-            raise KeyError(f"Invalid cluster name: {key}")
+    def get_binary(self, key: str) -> RedisCluster[bytes] | StrictRedis[bytes]:
+        try:
+            return self._clusters_bytes[key]
+        except KeyError:
+            pass
 
-        if not self.__cluster_type.supports(cfg):
-            raise KeyError(f"Invalid cluster type, expected: {self.__cluster_type}")
-
-        ret = self.__clusters[cache_key] = self.__cluster_type.factory(
-            **cfg, decode_responses=decode_responses
-        )
+        # Do not access attributes of the `cluster` object to prevent
+        # setup/init of lazy objects.
+        ret = self._clusters_bytes[key] = self._factory(**self._cfg(key), decode_responses=False)
         return ret
 
 
@@ -241,7 +272,7 @@ def get_cluster_from_options(
 
 def get_dynamic_cluster_from_options(
     setting: str, config: dict[str, Any]
-) -> tuple[bool, RedisCluster | StrictRedis | rb.Cluster, dict[str, Any]]:
+) -> tuple[bool, RedisCluster[str] | StrictRedis[str] | rb.Cluster, dict[str, Any]]:
     cluster_name = config.get("cluster", "default")
     cluster_opts: dict[str, Any] | None = options.default_manager.get("redis.clusters").get(
         cluster_name
@@ -256,8 +287,8 @@ def get_dynamic_cluster_from_options(
 
 
 def get_cluster_routing_client(
-    cluster: RedisCluster | rb.Cluster, is_redis_cluster: bool
-) -> RedisCluster | rb.RoutingClient:
+    cluster: RedisCluster[T] | rb.Cluster, is_redis_cluster: bool
+) -> RedisCluster[T] | rb.RoutingClient:
     if is_instance_redis_cluster(cluster, is_redis_cluster):
         return cluster
     elif is_instance_rb_cluster(cluster, is_redis_cluster):
@@ -267,18 +298,20 @@ def get_cluster_routing_client(
 
 
 def is_instance_redis_cluster(
-    val: rb.Cluster | RedisCluster, is_redis_cluster: bool
-) -> TypeGuard[RedisCluster]:
+    val: rb.Cluster | RedisCluster[str], is_redis_cluster: bool
+) -> TypeGuard[RedisCluster[str]]:
     return is_redis_cluster
 
 
 def is_instance_rb_cluster(
-    val: rb.Cluster | RedisCluster, is_redis_cluster: bool
+    val: rb.Cluster | RedisCluster[str], is_redis_cluster: bool
 ) -> TypeGuard[rb.Cluster]:
     return not is_redis_cluster
 
 
-def validate_dynamic_cluster(is_redis_cluster: bool, cluster: rb.Cluster | RedisCluster) -> None:
+def validate_dynamic_cluster(
+    is_redis_cluster: bool, cluster: rb.Cluster | RedisCluster[str]
+) -> None:
     try:
         if is_instance_redis_cluster(cluster, is_redis_cluster):
             cluster.ping()

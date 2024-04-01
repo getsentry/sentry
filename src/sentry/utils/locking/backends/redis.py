@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any
 from uuid import uuid4
 
@@ -14,7 +16,7 @@ delete_lock = redis.load_redis_script("utils/locking/delete_lock.lua")
 class BaseRedisLockBackend(LockBackend):
     def __init__(
         self,
-        cluster: RedisCluster | rb.Cluster | StrictRedis,
+        cluster: rb.Cluster | RedisCluster[str] | StrictRedis[str],
         prefix: str = "l:",
         uuid: str | None = None,
     ):
@@ -77,10 +79,13 @@ class RedisBlasterLockBackend(BaseRedisLockBackend):
 
 
 class RedisClusterLockBackend(BaseRedisLockBackend):
-    cluster: RedisCluster | StrictRedis
+    cluster: RedisCluster[str] | StrictRedis[str]
 
     def __init__(
-        self, cluster: str | RedisCluster | StrictRedis, prefix: str = "l:", uuid: str | None = None
+        self,
+        cluster: str | RedisCluster[str] | StrictRedis[str],
+        prefix: str = "l:",
+        uuid: str | None = None,
     ):
         if isinstance(cluster, str):
             cluster = redis.redis_clusters.get(cluster)
@@ -88,7 +93,7 @@ class RedisClusterLockBackend(BaseRedisLockBackend):
 
     def get_client(
         self, key: str, routing_key: int | str | None = None
-    ) -> RedisCluster | StrictRedis:
+    ) -> RedisCluster[str] | StrictRedis[str]:
         return self.cluster
 
 
