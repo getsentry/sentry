@@ -267,21 +267,6 @@ def get_context(group: Group) -> str:
     return context_text.rstrip()
 
 
-def get_option_groups(group: Group) -> Sequence[Mapping[str, Any]]:
-    all_members = group.project.get_members_as_rpc_users()
-    members = list({m.id: m for m in all_members}.values())
-    teams = group.project.teams.all()
-
-    option_groups = []
-    if teams:
-        option_groups.append({"text": "Teams", "options": format_actor_options(teams)})
-
-    if members:
-        option_groups.append({"text": "People", "options": format_actor_options(members)})
-
-    return option_groups
-
-
 def get_option_groups_block_kit(group: Group) -> Sequence[Mapping[str, Any]]:
     all_members = group.project.get_members_as_rpc_users()
     members = list({m.id: m for m in all_members}.values())
@@ -289,13 +274,13 @@ def get_option_groups_block_kit(group: Group) -> Sequence[Mapping[str, Any]]:
 
     option_groups = []
     if teams:
-        team_options = format_actor_options(teams)
+        team_options = format_actor_options(teams, True)
         option_groups.append(
             {"label": {"type": "plain_text", "text": "Teams"}, "options": team_options}
         )
 
     if members:
-        member_options = format_actor_options(members)
+        member_options = format_actor_options(members, True)
         option_groups.append(
             {"label": {"type": "plain_text", "text": "People"}, "options": member_options}
         )
@@ -460,7 +445,7 @@ def build_actions(
             name="assign",
             label="Select Assignee...",
             type="select",
-            selected_options=format_actor_options([assignee]) if assignee else [],
+            selected_options=format_actor_options([assignee], True) if assignee else [],
             option_groups=get_option_groups_block_kit(group),
         )
         return assign_button
@@ -633,7 +618,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             elif action.name == "assign":
                 actions.append(
                     self.get_external_select_action(
-                        action, format_actor_option(assignee) if assignee else None
+                        action, format_actor_option(assignee, True) if assignee else None
                     )
                 )
 
