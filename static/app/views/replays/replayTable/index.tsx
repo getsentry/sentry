@@ -107,6 +107,7 @@ const ReplayTable = memo(
         emptyMessage={emptyMessage}
         gridRows={isFetching ? undefined : gridRows}
         loader={<LoadingIndicator style={{margin: '54px auto'}} />}
+        disableHeaderBorderBottom
       >
         {replays?.map(
           (replay: ReplayListRecord | ReplayListRecordWithTx, index: number) => {
@@ -258,12 +259,12 @@ const Row = styled('div')<{
     p.referrerLocation === 'replay'
       ? `display: contents;
          & > * {
-          border-bottom: 1px solid ${p.theme.border};
+          border-top: 1px solid ${p.theme.border};
           }`
       : `display: contents;
   & > * {
     background-color: ${p.isPlaying ? p.theme.translucentInnerBorder : 'inherit'};
-    border-bottom: 1px solid ${p.theme.border};
+    border-top: 1px solid ${p.theme.border};
     cursor: ${p.showCursor ? 'pointer' : 'default'};
   }
   :hover {
