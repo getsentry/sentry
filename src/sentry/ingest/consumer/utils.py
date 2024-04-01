@@ -9,7 +9,7 @@ from sentry.ingest.consumer.processors import Retriable
 
 def dlq_invalid_messages(f):
     @functools.wraps(f)
-    def inner(raw_message, *args, **kwargs):
+    def inner(raw_message: Message[KafkaPayload], *args, **kwargs):
         if not isinstance(raw_message, Message) or not isinstance(
             raw_message.value.payload, KafkaPayload
         ):
