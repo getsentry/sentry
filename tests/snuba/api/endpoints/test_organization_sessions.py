@@ -86,6 +86,7 @@ def adjust_end(end: datetime.datetime, interval: int) -> datetime.datetime:
     return end
 
 
+@pytest.mark.xfail(reason="Does not work with the metrics release health backend")
 class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

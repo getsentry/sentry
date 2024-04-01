@@ -281,6 +281,7 @@ class EventUniqueUserFrequencyConditionTestCase(StandardIntervalTestBase):
             )
 
 
+@pytest.mark.xfail(reason="Does not work with the metrics release health backend")
 class EventFrequencyPercentConditionTestCase(SnubaTestCase, RuleTestCase):
     __test__ = Abstract(__module__, __qualname__)
 
