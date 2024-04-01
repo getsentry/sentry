@@ -345,7 +345,7 @@ def _update_state_with_spec_limit(
     under the limit and not have churn.
     """
 
-    widget_queries: dict[int, set] = {}
+    widget_queries: dict[int, set[DashboardWidgetQuery]] = {}
 
     for spec in trimmed_specs:
         spec_hash, _, spec_version = spec
