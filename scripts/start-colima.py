@@ -13,8 +13,6 @@ def main(argv: Sequence[str] | None = None) -> int:
         if macos_major_version < 14:
             raise SystemExit(f"macos >= 14 is required to use colima, found {macos_version}")
 
-    print(os.environ["PATH"])
-
     cpus = os.cpu_count()
     if cpus is None:
         raise SystemExit("failed to determine cpu count")
@@ -38,7 +36,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     HOME = os.path.expanduser("~")
     rc = subprocess.call(
         (
-            "/Users/runner/code/sentry/.devenv/bin/colima",
+            "colima",
             "start",
             f"--mount=/var/folders:w,/private/tmp/colima:w,{HOME}:r",
             *args,
