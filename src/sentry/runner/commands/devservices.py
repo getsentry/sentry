@@ -97,6 +97,8 @@ def get_docker_client() -> Generator[docker.DockerClient, None, None]:
             click.echo(f"Waiting for docker to be ready.... (timeout in {max_wait}s)")
             while time.monotonic() < timeout:
                 time.sleep(1)
+                with open("/Users/runner/.colima/_lima/colima/ha.stderr.log", "r") as f:
+                    print(f.read())
                 try:
                     client = ctx.enter_context(_client())
                 except docker.errors.DockerException:
