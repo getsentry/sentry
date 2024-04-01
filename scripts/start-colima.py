@@ -13,11 +13,6 @@ def main(argv: Sequence[str] | None = None) -> int:
         if macos_major_version < 14:
             raise SystemExit(f"macos >= 14 is required to use colima, found {macos_version}")
 
-    import shutil
-    print(shutil.which("colima"))
-    subprocess.call(("colima", "version"))
-    subprocess.call(("/Users/runner/code/sentry/.devenv/bin/colima", "version"))
-
     cpus = os.cpu_count()
     if cpus is None:
         raise SystemExit("failed to determine cpu count")
@@ -48,6 +43,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
     )
     if rc != 0:
+        with open("/Users/runner/.colima/_lima/colima/ha.stderr.log", "r") as f:
+            print(f.read())
         return rc
     return subprocess.call(("docker", "context", "use", "colima"))
 
