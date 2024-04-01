@@ -2799,7 +2799,6 @@ class ActivityTestCase(TestCase):
 
     def get_notification_uuid(self, text: str) -> str:
         # Allow notification\\_uuid and notification_uuid
-        text = text.split("|")[0]
         result = re.search("notification.*_uuid=([a-zA-Z0-9-]+)", text)
         assert result is not None
         return result[1]
