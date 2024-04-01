@@ -101,7 +101,7 @@ export type UnsavedMetricRule = {
   thresholdType: AlertRuleThresholdType;
   timeWindow: TimeWindow;
   triggers: Trigger[];
-  activationConditions?: ActivationCondition[];
+  activationCondition?: ActivationCondition;
   comparisonDelta?: number | null;
   eventTypes?: EventTypes[];
   monitorType?: MonitorType;

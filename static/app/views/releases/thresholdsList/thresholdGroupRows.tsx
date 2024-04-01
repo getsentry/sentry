@@ -233,7 +233,7 @@ export function ThresholdGroupRows({
       eventTypes: [EventTypes.ERROR],
       owner: null,
       queryType: MEPAlertsQueryType.ERROR,
-      activationConditions: [ActivationCondition.RELEASE_CONDITION],
+      activationCondition: ActivationCondition.RELEASE_CONDITION,
     };
 
     let apiUrl = `/organizations/${organization.slug}/alert-rules/`;
