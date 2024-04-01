@@ -5,7 +5,7 @@ import logging
 from collections.abc import Callable
 from copy import deepcopy
 from threading import Lock
-from typing import Any, Protocol, TypeGuard, TypeVar
+from typing import Any, TypeGuard
 
 import rb
 from django.utils.functional import SimpleLazyObject
@@ -25,14 +25,6 @@ from sentry.utils.versioning import Version, check_versions
 from sentry.utils.warnings import DeprecatedSettingWarning
 
 logger = logging.getLogger(__name__)
-
-
-T = TypeVar("T", rb.Cluster, RedisCluster | StrictRedis, covariant=True)
-
-
-class ClusterManager(Protocol[T]):
-    def get(self, key: str, *, decode_responses: bool = True) -> T:
-        ...
 
 
 _REDIS_DEFAULT_CLIENT_ARGS = {
@@ -217,8 +209,8 @@ redis_clusters = RedisClusterManager(options.default_manager)
 def get_cluster_from_options(
     setting: str,
     options: dict[str, Any],
-    cluster_manager: ClusterManager[T] = clusters,
-) -> tuple[T, dict[str, Any]]:
+    cluster_manager: RBClusterManager = clusters,
+) -> tuple[rb.Cluster, dict[str, Any]]:
     cluster_option_name = "cluster"
     default_cluster_name = "default"
     cluster_constructor_option_names = frozenset(("hosts",))
