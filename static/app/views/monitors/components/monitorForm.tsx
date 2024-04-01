@@ -74,7 +74,7 @@ interface TransformedData extends Partial<Omit<Monitor, 'config' | 'alertRule'>>
  * Transform sub-fields for what the API expects
  */
 export function transformMonitorFormData(_data: Record<string, any>, model: FormModel) {
-  const schedType = model.getValue('config.schedule_type');
+  const schedType = model.getValue('config.scheduleType');
   // Remove interval fields if the monitor schedule is crontab
   const filteredFields = model.fields
     .toJSON()
@@ -181,11 +181,11 @@ function MonitorForm({
     const rv = {};
     switch (type) {
       case 'cron_job':
-        rv['config.schedule_type'] = config.schedule_type;
-        rv['config.checkin_margin'] = config.checkin_margin;
-        rv['config.max_runtime'] = config.max_runtime;
-        rv['config.failure_issue_threshold'] = config.failure_issue_threshold;
-        rv['config.recovery_threshold'] = config.recovery_threshold;
+        rv['config.scheduleType'] = config.schedule_type;
+        rv['config.checkinMargin'] = config.checkin_margin;
+        rv['config.maxRuntime'] = config.max_runtime;
+        rv['config.failureIssueThreshold'] = config.failure_issue_threshold;
+        rv['config.recoveryThreshold'] = config.recovery_threshold;
 
         switch (config.schedule_type) {
           case 'interval':
@@ -307,7 +307,7 @@ function MonitorForm({
             </StyledAlert>
           )}
           <StyledSelectField
-            name="config.schedule_type"
+            name="config.scheduleType"
             aria-label={t('Schedule Type')}
             options={SCHEDULE_OPTIONS}
             defaultValue={ScheduleType.CRONTAB}
@@ -318,7 +318,7 @@ function MonitorForm({
           />
           <Observer>
             {() => {
-              const scheduleType = form.current.getValue('config.schedule_type');
+              const scheduleType = form.current.getValue('config.scheduleType');
 
               const parsedSchedule =
                 scheduleType === 'crontab'
@@ -393,7 +393,7 @@ function MonitorForm({
           <Panel>
             <PanelBody>
               <NumberField
-                name="config.checkin_margin"
+                name="config.checkinMargin"
                 min={CHECKIN_MARGIN_MINIMUM}
                 placeholder={tn(
                   'Defaults to %s minute',
@@ -404,7 +404,7 @@ function MonitorForm({
                 label={t('Grace Period')}
               />
               <NumberField
-                name="config.max_runtime"
+                name="config.maxRuntime"
                 min={TIMEOUT_MINIMUM}
                 placeholder={tn(
                   'Defaults to %s minute',
@@ -429,7 +429,7 @@ function MonitorForm({
               <Panel>
                 <PanelBody>
                   <NumberField
-                    name="config.failure_issue_threshold"
+                    name="config.failureIssueThreshold"
                     min={1}
                     placeholder="1"
                     help={t(
@@ -438,7 +438,7 @@ function MonitorForm({
                     label={t('Failure Tolerance')}
                   />
                   <NumberField
-                    name="config.recovery_threshold"
+                    name="config.recoveryThreshold"
                     min={1}
                     placeholder="1"
                     help={t(
