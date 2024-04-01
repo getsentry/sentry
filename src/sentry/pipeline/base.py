@@ -176,6 +176,10 @@ class Pipeline(abc.ABC):
         """
         step_index = self.step_index
 
+        # Add bounds check for step_index
+        if step_index >= len(self.pipeline_views):
+            return self.error("Step index out of range")
+
         if step_index == len(self.pipeline_views):
             return self.finish_pipeline()
 
