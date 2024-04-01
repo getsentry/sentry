@@ -176,9 +176,11 @@ const StyledImageVisualization = styled(ImageVisualization)`
     border-radius: ${p => p.theme.borderRadius};
     max-height: calc(100vh - 300px);
   }
+  background: ${p => p.theme.black};
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
 export const modalCss = css`
   height: 100%;
-  width: auto;
+  width: 100%;
 `;
