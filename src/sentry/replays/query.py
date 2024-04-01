@@ -703,6 +703,11 @@ QUERY_ALIAS_COLUMN_MAP = {
         parameters=[Column("count_info_events")],
         alias="count_infos",
     ),
+    "has_viewed": Function(
+        "has",
+        parameters=[Column("viewed_by_id"), 1234],  # TODO: use actual user_id
+        alias="has_viewed",
+    ),
 }
 
 
@@ -756,6 +761,7 @@ def collect_aliases(fields: list[str]) -> list[str]:
 
 def select_from_fields(fields: list[str]) -> list[Column | Function]:
     """Return a list of columns to select."""
+    # if alias == "has_viewed": dosomething(). Need to pass down user_id for has_viewed query. # TODO:
     return [QUERY_ALIAS_COLUMN_MAP[alias] for alias in collect_aliases(fields)]
 
 
