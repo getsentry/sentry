@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import ipaddress
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from django.conf import settings
 from django.core.signing import BadSignature
@@ -62,6 +62,10 @@ def has_staff_option(user) -> bool:
     if (email := getattr(user, "email", None)) is None:
         return False
     return email in options.get("staff.user-email-allowlist")
+
+
+def _seconds_to_timestamp(seconds: str) -> datetime:
+    return datetime.fromtimestamp(float(seconds), timezone.utc)
 
 
 class Staff(ElevatedMode):
@@ -176,7 +180,7 @@ class Staff(ElevatedMode):
             current_datetime = django_timezone.now()
 
         try:
-            expires_date = data["exp"]
+            expires_date = _seconds_to_timestamp(data["exp"])
         except (TypeError, ValueError):
             logger.warning(
                 "staff.invalid-expiration",
@@ -209,7 +213,7 @@ class Staff(ElevatedMode):
         if not data:
             self._set_logged_out()
         else:
-            self._set_logged_in(expires=data["exp"], token=data["tok"], user=user)
+            self._set_logged_in(_seconds_to_timestamp(data["exp"]), token=data["tok"], user=user)
 
             if not self.is_active:
                 if self._inactive_reason:
@@ -245,7 +249,7 @@ class Staff(ElevatedMode):
         self._is_active, self._inactive_reason = self.is_privileged_request()
 
         session_info = {
-            "exp": expires,
+            "exp": expires.strftime("%s"),
             "tok": self.token,
             # XXX(dcramer): do we really need the uid safety mechanism
             "uid": self.uid,

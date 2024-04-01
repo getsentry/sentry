@@ -78,7 +78,9 @@ class StaffTestCase(TestCase):
             ).sign(self.default_token if cookie_token is UNSET else cookie_token)
         if session_data:
             request.session[SESSION_KEY] = {
-                "exp": self.current_datetime + MAX_AGE if expires is UNSET else expires,
+                "exp": (self.current_datetime + MAX_AGE if expires is UNSET else expires).strftime(
+                    "%s"
+                ),
                 "tok": self.default_token if session_token is UNSET else session_token,
                 "uid": str(user.id) if uid is UNSET else uid,
             }
@@ -176,7 +178,7 @@ class StaffTestCase(TestCase):
         # See mypy issue: https://github.com/python/mypy/issues/9457
         data = request.session.get(SESSION_KEY)  # type:ignore[unreachable]
         assert data
-        assert data["exp"] == self.current_datetime + MAX_AGE
+        assert data["exp"] == (self.current_datetime + MAX_AGE).strftime("%s")
         assert len(data["tok"]) == 12
         assert data["uid"] == str(self.staff_user.id)
 
@@ -198,9 +200,10 @@ class StaffTestCase(TestCase):
         # session wasn't replaced
         assert request.session.modified is False
 
+        # See mypy issue: https://github.com/python/mypy/issues/9457
         data = request.session.get(SESSION_KEY)
         assert data
-        assert data["exp"] == self.current_datetime + MAX_AGE
+        assert data["exp"] == (self.current_datetime + MAX_AGE).strftime("%s")
         assert len(data["tok"]) == 12
         assert data["uid"] == str(self.staff_user.id)
 
