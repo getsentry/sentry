@@ -62,9 +62,9 @@ def clear_expired_raw_events():
     from sentry.models.reprocessingreport import ReprocessingReport
 
     # Max number of times to attempt to query each model
-    MAX_BATCHES_PER_MODEL = 1000
+    MAX_BATCHES_PER_MODEL = 10000
     # Number of rows to fetch/delete for each query
-    LIMIT_PER_QUERY = 1000
+    LIMIT_PER_QUERY = 100
 
     def batched_delete(model_cls, **filter):
         # Django 1.6's `Queryset.delete` runs in this order:
