@@ -110,8 +110,6 @@ class APIIdOrSlugTestMixin:
                 if not key.endswith("_slug")
             )
 
-        # print(converted_slugs, converted_ids, reverse_non_slug_mappings)
-
         if use_id:
             self.assert_ids(
                 converted_slugs, converted_ids, check_no_slugs_in_kwargs, reverse_non_slug_mappings
