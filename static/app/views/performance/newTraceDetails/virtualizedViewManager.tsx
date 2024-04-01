@@ -306,9 +306,9 @@ export class VirtualizedViewManager {
     }
   }
 
-  dividerScale: 1 | undefined = undefined;
-  dividerStartVec: [number, number] | null = null;
-  previousDividerClientVec: [number, number] | null = null;
+  private dividerScale: 1 | undefined = undefined;
+  private dividerStartVec: [number, number] | null = null;
+  private previousDividerClientVec: [number, number] | null = null;
   onDividerMouseDown(event: MouseEvent) {
     if (!this.container) {
       return;
@@ -654,7 +654,7 @@ export class VirtualizedViewManager {
     this.onZoomIntoSpace([this.to_origin, this.trace_space.width]);
   }
 
-  onWheelEndRaf: number | null = null;
+  private onWheelEndRaf: number | null = null;
   enqueueOnWheelEndRaf() {
     if (this.onWheelEndRaf !== null) {
       window.cancelAnimationFrame(this.onWheelEndRaf);
@@ -768,6 +768,11 @@ export class VirtualizedViewManager {
       return;
     }
 
+    if (this.scrollbarScrollViaWheel) {
+      this.scrollbarScrollViaWheel = false;
+      return;
+    }
+
     const scrollLeft = this.horizontal_scrollbar_container?.scrollLeft;
     if (typeof scrollLeft !== 'number') {
       return;
@@ -785,12 +790,14 @@ export class VirtualizedViewManager {
     }
   }
 
-  scrollSyncRaf: number | null = null;
+  private scrollbarScrollViaWheel = false;
+  private scrollSyncRaf: number | null = null;
   onSyncedScrollbarScroll(event: WheelEvent) {
     if (this.isScrolling) {
       return;
     }
 
+    this.scrollbarScrollViaWheel = true;
     const scrollingHorizontally = Math.abs(event.deltaX) >= Math.abs(event.deltaY);
     if (event.deltaX !== 0 && event.deltaX !== -0 && scrollingHorizontally) {
       event.preventDefault();
@@ -798,9 +805,9 @@ export class VirtualizedViewManager {
       return;
     }
 
-    if (this.bringRowIntoViewAnimation !== null) {
-      window.cancelAnimationFrame(this.bringRowIntoViewAnimation);
-      this.bringRowIntoViewAnimation = null;
+    if (this.bringRowIntoViewAnimationRaf !== null) {
+      window.cancelAnimationFrame(this.bringRowIntoViewAnimationRaf);
+      this.bringRowIntoViewAnimationRaf = null;
     }
 
     this.enqueueOnScrollEndOutOfBoundsCheck();
@@ -850,7 +857,7 @@ export class VirtualizedViewManager {
     return transform;
   }
 
-  scrollEndSyncRaf: number | null = null;
+  private scrollEndSyncRaf: number | null = null;
   enqueueOnScrollEndOutOfBoundsCheck() {
     if (this.scrollEndSyncRaf !== null) {
       window.cancelAnimationFrame(this.scrollEndSyncRaf);
@@ -878,7 +885,7 @@ export class VirtualizedViewManager {
     let innerMostNode: TraceTreeNode<any> | undefined;
 
     for (let i = 5; i < this.columns.span_list.column_refs.length - 5; i++) {
-      const width = this.row_measurer.cache.get(this.columns.list.column_nodes[i]);
+      const width = this.row_measurer.cache.get(this.columns.list.column_nodes[i])?.width;
       if (width === undefined) {
         // this is unlikely to happen, but we should trigger a sync measure event if it does
         continue;
@@ -932,7 +939,7 @@ export class VirtualizedViewManager {
     this.animateScrollColumnTo(newTransform, duration);
   }
 
-  bringRowIntoViewAnimation: number | null = null;
+  private bringRowIntoViewAnimationRaf: number | null = null;
   animateScrollColumnTo(x: number, duration: number) {
     const start = performance.now();
 
@@ -956,14 +963,14 @@ export class VirtualizedViewManager {
 
       if (progress < 1) {
         this.columns.list.translate[0] = pos;
-        this.bringRowIntoViewAnimation = window.requestAnimationFrame(animate);
+        this.bringRowIntoViewAnimationRaf = window.requestAnimationFrame(animate);
       } else {
         this.horizontal_scrollbar_container!.scrollLeft = -x;
         this.columns.list.translate[0] = x;
       }
     };
 
-    this.bringRowIntoViewAnimation = window.requestAnimationFrame(animate);
+    this.bringRowIntoViewAnimationRaf = window.requestAnimationFrame(animate);
   }
 
   initialize(container: HTMLElement) {
@@ -1425,7 +1432,7 @@ export class VirtualizedViewManager {
       const indicator_max = this.trace_physical_space.width + 1;
       const indicator_min = -1;
 
-      const label_width = this.indicator_label_measurer.cache.get(entry.indicator);
+      const label_width = this.indicator_label_measurer.cache.get(entry.indicator)?.width;
       const clamped_transform = clamp(transform, -1, indicator_max);
 
       if (label_width === undefined) {
@@ -1534,7 +1541,7 @@ export class VirtualizedViewManager {
 // The backing cache should be a proper LRU cache,
 // so we dont end up storing an infinite amount of elements
 class DOMWidthMeasurer<T> {
-  cache: Map<T, number> = new Map();
+  cache: Map<T, {depth: number; width: number}> = new Map();
   elements: HTMLElement[] = [];
 
   queue: [T, HTMLElement][] = [];
@@ -1587,13 +1594,16 @@ class DOMWidthMeasurer<T> {
   }
 
   measure(node: T, element: HTMLElement): number {
+    // @ts-expect-error we are not going to compare with primitives
+    const depth = typeof node?.depth === 'number' ? node.depth : 0;
     const cache = this.cache.get(node);
-    if (cache !== undefined) {
-      return cache;
+
+    if (cache !== undefined && depth === cache.depth) {
+      return cache.width;
     }
 
     const rect = element.getBoundingClientRect();
-    this.cache.set(node, rect.width);
+    this.cache.set(node, {width: rect.width, depth: depth});
     return rect.width;
   }
 }
