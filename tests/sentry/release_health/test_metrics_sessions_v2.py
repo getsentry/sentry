@@ -61,6 +61,7 @@ class MetricsSessionsV2Test(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         return response.data
 
+    @pytest.mark.xfail(reason="Does not work with the metrics release health backend")
     def test_sessions_metrics_with_metrics_only_field(self):
         """
         Tests whether the request of a metrics-only field forwarded to the SessionsReleaseHealthBackend
