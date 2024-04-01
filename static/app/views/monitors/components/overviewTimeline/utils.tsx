@@ -47,6 +47,8 @@ export function getConfigFromTimeRange(
 
     // Configuration falls into
     return {
+      start,
+      end,
       dateLabelFormat: getFormat({timeOnly: true, seconds: subMinutePxBuckets}),
       elapsedMinutes,
       timeMarkerInterval: minutes,
@@ -57,6 +59,8 @@ export function getConfigFromTimeRange(
   // Calculate days between each time label interval for larger time ranges
   const timeLabelIntervalDays = Math.ceil(timeLabelMinutes / (ONE_HOUR * 24));
   return {
+    start,
+    end,
     dateLabelFormat: getFormat(),
     elapsedMinutes,
     timeMarkerInterval: timeLabelIntervalDays * ONE_HOUR * 24,

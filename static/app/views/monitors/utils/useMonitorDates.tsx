@@ -14,11 +14,6 @@ interface Options {
   timelineWidth: number;
 }
 
-interface Dates {
-  end: Date;
-  start: Date;
-}
-
 interface SelectionQuery {
   resolution: string;
   since: number;
@@ -26,11 +21,6 @@ interface SelectionQuery {
 }
 
 interface UseMonitorTimesResult {
-  /**
-   * Contains Date objects representing the start and end times of the
-   * selection.
-   */
-  dates: Dates;
   /**
    * Contains values used in the monitor-stats API query
    */
@@ -68,16 +58,11 @@ export function useMonitorTimes({timelineWidth}: Options): UseMonitorTimesResult
   const elapsedMinutes = timeWindowConfig.elapsedMinutes;
   const rollup = Math.floor((elapsedMinutes * 60) / timelineWidth);
 
-  const dates = {
-    start: since,
-    end: until,
-  };
-
   const selectionQuery = {
     since: Math.floor(since.getTime() / 1000),
     until: Math.floor(until.getTime() / 1000),
     resolution: `${rollup}s`,
   };
 
-  return {selectionQuery, dates, timeWindowConfig};
+  return {selectionQuery, timeWindowConfig};
 }
