@@ -66,11 +66,12 @@ def test_dlq_invalid_messages(factories, topic_name, consumer_type) -> None:
     )
     strategy = factory.create_with_partitions(Mock(), Mock())
 
-    # Valid payload raises original error
-    with pytest.raises(Exception) as exc_info:
-        message = make_message(valid_payload, partition, offset)
-        strategy.submit(message)
-    assert not isinstance(exc_info.value, InvalidMessage)
+    # Valid payload with empty event raises original error (except Attachments, which filters empty events)
+    if consumer_type != ConsumerType.Attachments:
+        with pytest.raises(Exception) as exc_info:
+            message = make_message(valid_payload, partition, offset)
+            strategy.submit(message)
+        assert not isinstance(exc_info.value, InvalidMessage)
 
     # Invalid payload raises InvalidMessage error
     with pytest.raises(InvalidMessage) as exc_info:
