@@ -121,7 +121,7 @@ export default function Page({
           hideEmail
         />
       ) : (
-        <HeaderPlaceholder width="100%" height="58px" />
+        <HeaderPlaceholder width="30%" height="45px" />
       )}
 
       <ReplayMetaData
