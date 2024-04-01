@@ -4,6 +4,7 @@ import contextlib
 import http
 import json  # noqa
 import os
+import shutil
 import signal
 import subprocess
 import sys
@@ -26,7 +27,7 @@ CI = os.environ.get("CI") is not None
 DARWIN = sys.platform == "darwin"
 COLIMA = os.path.expanduser("~/.local/share/sentry-devenv/bin/colima")
 
-USE_COLIMA = os.path.exists(COLIMA) and os.environ.get("SENTRY_USE_COLIMA") != "0"
+USE_COLIMA = (os.path.exists(COLIMA) or bool(shutil.which("colima"))) and os.environ.get("SENTRY_USE_COLIMA") != "0"
 USE_ORBSTACK = (
     os.path.exists("/Applications/OrbStack.app") and os.environ.get("SENTRY_USE_ORBSTACK") != "0"
 )
@@ -194,7 +195,11 @@ def devservices() -> None:
     os.environ["SENTRY_SKIP_BACKEND_VALIDATION"] = "1"
 
     if CI:
-        click.echo("Assuming docker (CI).")
+        if not DARWIN:
+            click.echo("Assuming docker (CI).")
+            return
+        click.echo("Using colima (CI).")
+        ensure_docker_cli_context("colima")
         return
 
     if USE_DOCKER_DESKTOP:
