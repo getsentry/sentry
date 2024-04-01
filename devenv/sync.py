@@ -76,7 +76,11 @@ def main(context: dict[str, str]) -> int:
     venv.ensure(venv_dir, python_version, url, sha256)
 
     # TODO: move volta version into per-repo config
-    volta.install(reporoot)
+    try:
+        volta.install(reporoot)
+    except TypeError:
+        # this is needed for devenv <= 1.4.0 to finish syncing and therefore update itself
+        volta.install()
 
     if constants.DARWIN:
         repo_config = configparser.ConfigParser()
@@ -93,15 +97,27 @@ def main(context: dict[str, str]) -> int:
                 reporoot,
             )
         else:
-            colima.install(
-                repo_config["colima"]["version"],
-                repo_config["colima"][constants.SYSTEM_MACHINE],
-                repo_config["colima"][f"{constants.SYSTEM_MACHINE}_sha256"],
-                reporoot,
-            )
+            try:
+                colima.install(
+                    repo_config["colima"]["version"],
+                    repo_config["colima"][constants.SYSTEM_MACHINE],
+                    repo_config["colima"][f"{constants.SYSTEM_MACHINE}_sha256"],
+                    reporoot,
+                )
+            except TypeError:
+                # this is needed for devenv <= 1.4.0 to finish syncing and therefore update itself
+                colima.install(
+                    repo_config["colima"]["version"],
+                    repo_config["colima"][constants.SYSTEM_MACHINE],
+                    repo_config["colima"][f"{constants.SYSTEM_MACHINE}_sha256"],
+                )
 
         # TODO: move limactl version into per-repo config
-        limactl.install(reporoot)
+        try:
+            limactl.install(reporoot)
+        except TypeError:
+            # this is needed for devenv <= 1.4.0 to finish syncing and therefore update itself
+            limactl.install()
 
     if not run_procs(
         repo,
