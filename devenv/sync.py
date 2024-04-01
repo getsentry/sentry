@@ -159,6 +159,7 @@ def main(context: dict[str, str]) -> int:
             "redis",
             "postgres",
         ),
+        pathprepend="{reporoot}/.devenv/bin",
         exit=True,
     )
 
