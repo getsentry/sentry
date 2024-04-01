@@ -79,7 +79,7 @@ def main(context: dict[str, str]) -> int:
     try:
         volta.install(reporoot)
     except TypeError:
-        # this is needed for devenv <= 1.4.0 to finish syncing and therefore update itself
+        # this is needed for devenv <=1.4.0,>1.2.3 to finish syncing and therefore update itself
         volta.install()
 
     if constants.DARWIN:
@@ -105,7 +105,7 @@ def main(context: dict[str, str]) -> int:
                     reporoot,
                 )
             except TypeError:
-                # this is needed for devenv <= 1.4.0 to finish syncing and therefore update itself
+                # this is needed for devenv <=1.4.0,>1.2.3 to finish syncing and therefore update itself
                 colima.install(
                     repo_config["colima"]["version"],
                     repo_config["colima"][constants.SYSTEM_MACHINE],
@@ -116,7 +116,7 @@ def main(context: dict[str, str]) -> int:
         try:
             limactl.install(reporoot)
         except TypeError:
-            # this is needed for devenv <= 1.4.0 to finish syncing and therefore update itself
+            # this is needed for devenv <=1.4.0,>1.2.3 to finish syncing and therefore update itself
             limactl.install()
 
     if not run_procs(
