@@ -127,7 +127,7 @@ const StyledPanelHeader = styled(PanelHeader)`
 `;
 
 const StyledPanelBody = styled(PanelBody)<{hasHeader: boolean}>`
-  border: 1px solid ${p => p.theme.border};
+  border: none;
   min-height: 48px;
   overflow: hidden;
   position: relative;
