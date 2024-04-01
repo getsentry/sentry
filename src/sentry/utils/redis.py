@@ -21,7 +21,6 @@ from sentry import options
 from sentry.exceptions import InvalidConfiguration
 from sentry.options import OptionsManager
 from sentry.utils import warnings
-from sentry.utils.imports import import_string
 from sentry.utils.versioning import Version, check_versions
 from sentry.utils.warnings import DeprecatedSettingWarning
 
@@ -143,11 +142,7 @@ class _RedisCluster:
                 assert len(hosts_list) > 0, "Hosts should have at least 1 entry"
                 host = dict(hosts_list[0])
                 host["decode_responses"] = decode_responses
-                return (
-                    import_string(config["client_class"])
-                    if "client_class" in config
-                    else FailoverRedis
-                )(**host, **client_args)
+                return FailoverRedis(**host, **client_args)
 
         return SimpleLazyObject(cluster_factory)
 
