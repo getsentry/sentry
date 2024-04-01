@@ -178,6 +178,7 @@ export class VirtualizedViewManager {
   // that rendering can be done programmatically
   divider: HTMLElement | null = null;
   container: HTMLElement | null = null;
+  horizontal_scrollbar_container: HTMLElement | null = null;
   indicator_container: HTMLElement | null = null;
 
   intervals: (number | undefined)[] = [];
@@ -209,6 +210,7 @@ export class VirtualizedViewManager {
 
   // Smallest of time that can be displayed across the entire view.
   private readonly MAX_ZOOM_PRECISION = 1;
+  private readonly ROW_PADDING_PX = 16;
 
   // Column configuration
   columns: {
@@ -237,6 +239,8 @@ export class VirtualizedViewManager {
     this.onWheelZoom = this.onWheelZoom.bind(this);
     this.onWheelEnd = this.onWheelEnd.bind(this);
     this.onWheelStart = this.onWheelStart.bind(this);
+    this.onNewMaxRowWidth = this.onNewMaxRowWidth.bind(this);
+    this.onHorizontalScrollbarScroll = this.onHorizontalScrollbarScroll.bind(this);
   }
 
   on<K extends keyof VirtualizedViewManagerEvents>(
@@ -729,6 +733,58 @@ export class VirtualizedViewManager {
     this.recomputeSpanToPxMatrix();
   }
 
+  registerHorizontalScrollBarContainerRef(ref: HTMLElement | null) {
+    if (ref) {
+      ref.style.width = this.columns.list.width * 100 + '%';
+      ref.addEventListener('scroll', this.onHorizontalScrollbarScroll, {passive: true});
+    } else {
+      if (this.horizontal_scrollbar_container) {
+        this.horizontal_scrollbar_container.removeEventListener(
+          'scroll',
+          this.onHorizontalScrollbarScroll
+        );
+      }
+    }
+
+    this.horizontal_scrollbar_container = ref;
+  }
+
+  onNewMaxRowWidth(max) {
+    this.syncHorizontalScrollbar(max);
+  }
+
+  syncHorizontalScrollbar(max: number) {
+    const child = this.horizontal_scrollbar_container?.children[0] as
+      | HTMLElement
+      | undefined;
+
+    if (child) {
+      child.style.width = max - this.scrollbar_width + this.ROW_PADDING_PX + 'px';
+    }
+  }
+
+  onHorizontalScrollbarScroll(_event: Event) {
+    if (this.isScrolling) {
+      return;
+    }
+
+    const scrollLeft = this.horizontal_scrollbar_container?.scrollLeft;
+    if (typeof scrollLeft !== 'number') {
+      return;
+    }
+
+    this.enqueueOnScrollEndOutOfBoundsCheck();
+    this.columns.list.translate[0] = this.clampRowTransform(-scrollLeft);
+
+    for (let i = 0; i < this.columns.list.column_refs.length; i++) {
+      const list = this.columns.list.column_refs[i];
+      if (list?.children?.[0]) {
+        (list.children[0] as HTMLElement).style.transform =
+          `translateX(${this.columns.list.translate[0]}px)`;
+      }
+    }
+  }
+
   scrollSyncRaf: number | null = null;
   onSyncedScrollbarScroll(event: WheelEvent) {
     if (this.isScrolling) {
@@ -764,6 +820,7 @@ export class VirtualizedViewManager {
     }
 
     this.scrollSyncRaf = window.requestAnimationFrame(() => {
+      this.horizontal_scrollbar_container!.scrollLeft = -this.columns.list.translate[0];
       for (let i = 0; i < this.columns.list.column_refs.length; i++) {
         const list = this.columns.list.column_refs[i];
         if (list?.children?.[0]) {
@@ -776,7 +833,7 @@ export class VirtualizedViewManager {
 
   clampRowTransform(transform: number): number {
     const columnWidth = this.columns.list.width * this.container_physical_space.width;
-    const max = this.row_measurer.max - columnWidth + 16;
+    const max = this.row_measurer.max - columnWidth + this.ROW_PADDING_PX;
 
     if (this.row_measurer.max < columnWidth) {
       return 0;
@@ -889,6 +946,7 @@ export class VirtualizedViewManager {
 
       const pos = startPosition + distance * eased;
 
+      this.horizontal_scrollbar_container!.scrollLeft = -pos;
       for (let i = 0; i < this.columns.list.column_refs.length; i++) {
         const list = this.columns.list.column_refs[i];
         if (list?.children?.[0]) {
@@ -900,6 +958,7 @@ export class VirtualizedViewManager {
         this.columns.list.translate[0] = pos;
         this.bringRowIntoViewAnimation = window.requestAnimationFrame(animate);
       } else {
+        this.horizontal_scrollbar_container!.scrollLeft = -x;
         this.columns.list.translate[0] = x;
       }
     };
@@ -913,6 +972,8 @@ export class VirtualizedViewManager {
     }
 
     this.container = container;
+
+    this.row_measurer.on('max', this.onNewMaxRowWidth);
 
     this.resize_observer = new ResizeObserver(entries => {
       const entry = entries[0];
@@ -1462,6 +1523,8 @@ export class VirtualizedViewManager {
   }
 
   teardown() {
+    this.row_measurer.off('max', this.onNewMaxRowWidth);
+
     if (this.resize_observer) {
       this.resize_observer.disconnect();
     }
@@ -1482,6 +1545,24 @@ class DOMWidthMeasurer<T> {
     this.drain = this.drain.bind(this);
   }
 
+  listeners: Record<'max', Set<(max: number) => void>> = {
+    max: new Set(),
+  };
+
+  on(event: 'max', cb: (max: number) => void) {
+    this.listeners?.[event]?.add?.(cb);
+  }
+
+  off(event: 'max', cb: (max: number) => void) {
+    this.listeners?.[event]?.delete?.(cb);
+  }
+
+  dispatch(max: number) {
+    for (const listener of this.listeners.max) {
+      listener(max);
+    }
+  }
+
   enqueueMeasure(node: T, element: HTMLElement) {
     if (this.cache.has(node)) {
       return;
@@ -1497,7 +1578,11 @@ class DOMWidthMeasurer<T> {
 
   drain() {
     for (const [node, element] of this.queue) {
-      this.measure(node, element);
+      const width = this.measure(node, element);
+      if (width > this.max) {
+        this.max = width;
+        this.dispatch(this.max);
+      }
     }
   }
 
@@ -1507,12 +1592,9 @@ class DOMWidthMeasurer<T> {
       return cache;
     }
 
-    const width = element.getBoundingClientRect().width;
-    if (width > this.max) {
-      this.max = width;
-    }
-    this.cache.set(node, width);
-    return width;
+    const rect = element.getBoundingClientRect();
+    this.cache.set(node, rect.width);
+    return rect.width;
   }
 }
 

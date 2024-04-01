@@ -10,6 +10,7 @@ import * as qs from 'query-string';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Organization, PlatformKey, Project} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
 import type {
@@ -589,7 +590,14 @@ export function Trace({
       }}
       className={`${trace.indicators.length > 0 ? 'WithIndicators' : ''} ${trace.type !== 'trace' || scrollQueueRef.current ? 'Loading' : ''}`}
     >
-      <div className="TraceDivider" ref={r => manager?.registerDividerRef(r)} />
+      <div
+        className="TraceScrollbarContainer"
+        ref={r => manager.registerHorizontalScrollBarContainerRef(r)}
+      >
+        <div className="TraceScrollbarScroller" />
+        <div className="TraceScrollbarHandle" />
+      </div>
+      <div className="TraceDivider" ref={r => manager.registerDividerRef(r)} />
       <div
         className="TraceIndicatorContainer"
         ref={r => manager.registerIndicatorContainerRef(r)}
@@ -1851,6 +1859,10 @@ const TraceStylingWrapper = styled('div')`
 
     &:before {
       height: 44px;
+
+      .TraceScrollbarContainer {
+        height: 44px;
+      }
     }
 
     .TraceIndicator.Timeline {
@@ -1888,6 +1900,27 @@ const TraceStylingWrapper = styled('div')`
 
     .TraceDivider {
       pointer-events: none;
+    }
+  }
+
+  .TraceScrollbarContainer {
+    height: 26px;
+    position: absolute;
+    left: 0;
+    top: 0;
+    overflow: auto;
+    overscroll-behavior: none;
+
+    .TraceScrollbarScroller {
+      height: 1px;
+      pointer-events: none;
+      visibility: hidden;
+    }
+
+    .TraceScrollbarHandle {
+      width: 24px;
+      height: 12px;
+      border-radius: 6px;
     }
   }
 
@@ -2169,6 +2202,7 @@ const TraceStylingWrapper = styled('div')`
       align-items: center;
       will-change: transform;
       transform-origin: left center;
+      padding-right: ${space(2)};
 
       img {
         width: 16px;
