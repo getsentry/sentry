@@ -20,9 +20,15 @@ export type Project = {
   digestsMinDelay: number;
   dynamicSamplingBiases: DynamicSamplingBias[] | null;
   environments: string[];
+  /**
+   * @deprecated
+   */
   eventProcessing: {
     symbolicationDegraded: boolean;
   };
+  /**
+   * @deprecated
+   */
   features: string[];
   firstEvent: string | null;
   firstTransactionEvent: boolean;
@@ -52,6 +58,7 @@ export type Project = {
   scrapeJavaScript: boolean;
   scrubIPAddresses: boolean;
   sensitiveFields: string[];
+  slug: string;
   subjectTemplate: string;
   team: Team;
   teams: Team[];
@@ -59,9 +66,13 @@ export type Project = {
   builtinSymbolSources?: string[];
   defaultEnvironment?: string;
   hasUserReports?: boolean;
+  /**
+   * @deprecated
+   */
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   latestRelease?: {version: string} | null;
   options?: Record<string, boolean | string>;
+  platform?: PlatformKey;
   securityToken?: string;
   securityTokenHeader?: string;
   sessionStats?: {
