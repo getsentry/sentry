@@ -3,11 +3,9 @@ from datetime import timedelta, timezone
 from sentry.profiles.flamegraph import get_profiles_with_function
 from sentry.testutils.cases import ProfilesSnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 
 
-@region_silo_test
 class GetProfileWithFunctionTest(ProfilesSnubaTestCase):
     def setUp(self):
         super().setUp()

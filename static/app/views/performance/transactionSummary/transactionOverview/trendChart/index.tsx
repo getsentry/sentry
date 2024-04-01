@@ -27,13 +27,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
 import type {TrendFunctionField, TrendView} from 'sentry/views/performance/trends/types';
 import {TrendChangeType} from 'sentry/views/performance/trends/types';
-import {
-  generateTrendFunctionAsString,
-  modifyTrendView,
-  normalizeTrends,
-} from 'sentry/views/performance/trends/utils';
+import {modifyTrendView, normalizeTrends} from 'sentry/views/performance/trends/utils';
+import generateTrendFunctionAsString from 'sentry/views/performance/trends/utils/generateTrendFunctionAsString';
 import type {ViewProps} from 'sentry/views/performance/types';
-import {getSelectedTransaction} from 'sentry/views/performance/utils';
+import {getSelectedTransaction} from 'sentry/views/performance/utils/getSelectedTransaction';
 
 import Content from './content';
 

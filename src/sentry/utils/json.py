@@ -135,7 +135,7 @@ def load(fp: IO[str] | IO[bytes], **kwargs: NoReturn) -> JSONData:
 def loads(
     value: str | bytes, use_rapid_json: bool = False, skip_trace: bool = False, **kwargs: NoReturn
 ) -> JSONData:
-    with sentry_sdk.start_span(op="sentry.utils.json.loads") if not skip_trace else nullcontext():  # type: ignore
+    with sentry_sdk.start_span(op="sentry.utils.json.loads") if not skip_trace else nullcontext():  # type: ignore[attr-defined]
         if use_rapid_json is True:
             return rapidjson.loads(value)
         else:

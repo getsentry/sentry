@@ -79,7 +79,7 @@ function ReplayMetaData({replayErrors, replayRecord, showDeadRageClicks = true}:
         {replayRecord ? (
           <ErrorCounts replayErrors={replayErrors} replayRecord={replayRecord} />
         ) : (
-          <HeaderPlaceholder width="80px" height="16px" />
+          <HeaderPlaceholder width="20px" height="16px" />
         )}
       </KeyMetricData>
     </KeyMetrics>
@@ -89,7 +89,7 @@ function ReplayMetaData({replayErrors, replayRecord, showDeadRageClicks = true}:
 const KeyMetrics = styled('dl')`
   display: grid;
   grid-template-rows: max-content 1fr;
-  grid-template-columns: repeat(5, max-content);
+  grid-template-columns: repeat(4, max-content);
   grid-auto-flow: column;
   gap: 0 ${space(3)};
   align-items: center;

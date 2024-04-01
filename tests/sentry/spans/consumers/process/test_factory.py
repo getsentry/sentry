@@ -11,6 +11,7 @@ from sentry.spans.buffer.redis import get_redis_client
 from sentry.spans.consumers.detect_performance_issues.factory import BUFFERED_SEGMENT_SCHEMA
 from sentry.spans.consumers.process.factory import ProcessSpansStrategyFactory
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
 from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.kafka_config import get_topic_definition
@@ -88,7 +89,13 @@ def test_consumer_pushes_to_redis():
     strategy.submit(
         Message(
             BrokerValue(
-                KafkaPayload(b"key", message1.value().encode("utf-8"), []),
+                KafkaPayload(
+                    b"key",
+                    message1.value().encode("utf-8"),
+                    [
+                        ("project_id", b"1"),
+                    ],
+                ),
                 partition,
                 1,
                 datetime.now(),
@@ -102,7 +109,13 @@ def test_consumer_pushes_to_redis():
     strategy.submit(
         Message(
             BrokerValue(
-                KafkaPayload(b"key", message2.value().encode("utf-8"), []),
+                KafkaPayload(
+                    b"key",
+                    message2.value().encode("utf-8"),
+                    [
+                        ("project_id", b"1"),
+                    ],
+                ),
                 partition,
                 1,
                 datetime.now(),
@@ -120,6 +133,7 @@ def test_consumer_pushes_to_redis():
     ]
 
 
+@django_db_all
 @override_options(
     {
         "standalone-spans.process-spans-consumer.enable": True,
@@ -142,7 +156,13 @@ def test_produces_valid_segment_to_kafka(mock_produce):
     strategy.submit(
         Message(
             BrokerValue(
-                KafkaPayload(b"key", message1.value().encode("utf-8"), []),
+                KafkaPayload(
+                    b"key",
+                    message1.value().encode("utf-8"),
+                    [
+                        ("project_id", b"1"),
+                    ],
+                ),
                 partition,
                 1,
                 datetime.now() - timedelta(minutes=3),
@@ -156,7 +176,13 @@ def test_produces_valid_segment_to_kafka(mock_produce):
     strategy.submit(
         Message(
             BrokerValue(
-                KafkaPayload(b"key", message2.value().encode("utf-8"), []),
+                KafkaPayload(
+                    b"key",
+                    message2.value().encode("utf-8"),
+                    [
+                        ("project_id", b"1"),
+                    ],
+                ),
                 partition,
                 1,
                 datetime.now(),
@@ -190,7 +216,13 @@ def test_option_disabled(mock_buffer):
     strategy.submit(
         Message(
             BrokerValue(
-                KafkaPayload(b"key", message.value().encode("utf-8"), []),
+                KafkaPayload(
+                    b"key",
+                    message.value().encode("utf-8"),
+                    [
+                        ("project_id", b"1"),
+                    ],
+                ),
                 partition,
                 1,
                 datetime.now(),
@@ -207,7 +239,9 @@ def test_option_disabled(mock_buffer):
 @override_options(
     {
         "standalone-spans.process-spans-consumer.enable": True,
-        "standalone-spans.process-spans-consumer.project-allowlist": [],
+        "standalone-spans.process-spans-consumer.project-allowlist": [
+            ("project_id", b"1"),
+        ],
     }
 )
 @mock.patch("sentry.spans.consumers.process.factory.RedisSpansBuffer")
@@ -225,7 +259,13 @@ def test_option_project_rollout(mock_buffer):
     strategy.submit(
         Message(
             BrokerValue(
-                KafkaPayload(b"key", message.value().encode("utf-8"), []),
+                KafkaPayload(
+                    b"key",
+                    message.value().encode("utf-8"),
+                    [
+                        ("project_id", b"1"),
+                    ],
+                ),
                 partition,
                 1,
                 datetime.now(),

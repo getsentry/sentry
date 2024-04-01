@@ -2,7 +2,7 @@ import type {CheckInStatus} from 'sentry/views/monitors/types';
 
 export type TimeWindow = '1h' | '24h' | '7d' | '30d';
 
-export interface TimeWindowOptions {
+export interface TimeWindowConfig {
   /**
    * The time format used for the cursor label and job tick tooltip
    */
@@ -15,6 +15,14 @@ export interface TimeWindowOptions {
    * The elapsed minutes based on the selected resolution
    */
   elapsedMinutes: number;
+  /**
+   * The end of the window
+   */
+  end: Date;
+  /**
+   * The start of the window
+   */
+  start: Date;
   /**
    * The interval between each grid line and time label in minutes
    */

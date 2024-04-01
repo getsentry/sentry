@@ -760,13 +760,13 @@ const commonTheme = {
   // Relative font sizes
   fontSizeRelativeSmall: '0.9em',
 
-  fontSizeExtraSmall: '11px',
-  fontSizeSmall: '12px',
-  fontSizeMedium: '14px',
-  fontSizeLarge: '16px',
-  fontSizeExtraLarge: '18px',
-  codeFontSize: '13px',
-  headerFontSize: '22px',
+  fontSizeExtraSmall: '11px' as const,
+  fontSizeSmall: '12px' as const,
+  fontSizeMedium: '14px' as const,
+  fontSizeLarge: '16px' as const,
+  fontSizeExtraLarge: '18px' as const,
+  codeFontSize: '13px' as const,
+  headerFontSize: '22px' as const,
 
   settings: {
     // Max-width for settings breadcrumbs

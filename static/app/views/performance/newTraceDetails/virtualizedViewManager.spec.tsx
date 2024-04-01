@@ -103,6 +103,9 @@ function makeList(): VirtualizedList {
   } as unknown as VirtualizedList;
 }
 
+const EVENT_REQUEST_URL =
+  '/organizations/org-slug/events/project:event_id/?averageColumn=span.self_time';
+
 describe('VirtualizedViewManger', () => {
   it('initializes space', () => {
     const manager = new VirtualizedViewManager({
@@ -399,7 +402,7 @@ describe('VirtualizedViewManger', () => {
           transactions: [
             makeTransaction({
               event_id: 'event_id',
-              project_slug: 'project_slug',
+              project_slug: 'project',
               children: [],
             }),
           ],
@@ -407,7 +410,7 @@ describe('VirtualizedViewManger', () => {
       );
 
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events/project_slug:event_id/',
+        url: EVENT_REQUEST_URL,
         method: 'GET',
         body: makeEvent(undefined, [makeSpan({span_id: 'span_id'})]),
       });
@@ -415,6 +418,42 @@ describe('VirtualizedViewManger', () => {
       const result = await manager.scrollToPath(
         tree,
         ['span:span_id', 'txn:event_id'],
+        () => void 0,
+        {
+          api: api,
+          organization,
+        }
+      );
+
+      expect(tree.list[1].zoomedIn).toBe(true);
+      expect(result?.node).toBe(tree.list[2]);
+      expect(manager.list.scrollToRow).toHaveBeenCalledWith(2);
+    });
+
+    it('scrolls to empty data node of expanded transaction', async () => {
+      manager.list = makeList();
+
+      const tree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              event_id: 'event_id',
+              project_slug: 'project',
+              children: [],
+            }),
+          ],
+        })
+      );
+
+      MockApiClient.addMockResponse({
+        url: EVENT_REQUEST_URL,
+        method: 'GET',
+        body: makeEvent(undefined, []),
+      });
+
+      const result = await manager.scrollToPath(
+        tree,
+        ['empty:node', 'txn:event_id'],
         () => void 0,
         {
           api: api,
@@ -449,7 +488,7 @@ describe('VirtualizedViewManger', () => {
       );
 
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events/project_slug:event_id/',
+        url: EVENT_REQUEST_URL,
         method: 'GET',
         body: makeEvent(undefined, [
           makeSpan({span_id: 'other_child_span'}),
@@ -458,7 +497,7 @@ describe('VirtualizedViewManger', () => {
       });
 
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events/project_slug:child_event_id/',
+        url: '/organizations/org-slug/events/project_slug:child_event_id/?averageColumn=span.self_time',
         method: 'GET',
         body: makeEvent(undefined, [makeSpan({span_id: 'other_child_span'})]),
       });
@@ -484,7 +523,7 @@ describe('VirtualizedViewManger', () => {
           const tree = makeSingleTransactionTree();
 
           MockApiClient.addMockResponse({
-            url: '/organizations/org-slug/events/project:event_id/',
+            url: EVENT_REQUEST_URL,
             method: 'GET',
             body: makeEvent({}, makeParentAutogroupSpans()),
           });
@@ -510,7 +549,7 @@ describe('VirtualizedViewManger', () => {
           const tree = makeSingleTransactionTree();
 
           MockApiClient.addMockResponse({
-            url: '/organizations/org-slug/events/project:event_id/',
+            url: EVENT_REQUEST_URL,
             method: 'GET',
             body: makeEvent({}, makeParentAutogroupSpans()),
           });
@@ -537,7 +576,7 @@ describe('VirtualizedViewManger', () => {
         const tree = makeSingleTransactionTree();
 
         MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events/project:event_id/',
+          url: EVENT_REQUEST_URL,
           method: 'GET',
           body: makeEvent({}, makeSiblingAutogroupedSpans()),
         });
@@ -563,7 +602,7 @@ describe('VirtualizedViewManger', () => {
         const tree = makeSingleTransactionTree();
 
         MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events/project:event_id/',
+          url: EVENT_REQUEST_URL,
           method: 'GET',
           body: makeEvent({}, [
             makeSpan({
@@ -601,7 +640,7 @@ describe('VirtualizedViewManger', () => {
         const tree = makeSingleTransactionTree();
 
         MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events/project:event_id/',
+          url: EVENT_REQUEST_URL,
           method: 'GET',
           body: makeEvent({}, [
             makeSpan({

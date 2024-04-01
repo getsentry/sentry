@@ -32,7 +32,6 @@ from sentry.tasks.integrations.github.pr_comment import (
 from sentry.tasks.integrations.github.utils import PullRequestIssue
 from sentry.testutils.cases import IntegrationTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.cache import cache
 
@@ -159,7 +158,6 @@ class GithubCommentTestCase(IntegrationTestCase):
         return pr
 
 
-@region_silo_test
 class TestPrToIssueQuery(GithubCommentTestCase):
     def test_simple(self):
         """one pr with one issue"""
@@ -230,7 +228,6 @@ class TestPrToIssueQuery(GithubCommentTestCase):
         )
 
 
-@region_silo_test
 class TestTop5IssuesByCount(TestCase, SnubaTestCase):
     def test_simple(self):
         group1 = [
@@ -339,7 +336,6 @@ class TestTop5IssuesByCount(TestCase, SnubaTestCase):
         assert [issue["group_id"] for issue in res] == [group3, group1]
 
 
-@region_silo_test
 class TestCommentBuilderQueries(GithubCommentTestCase):
     def test_simple(self):
         ev1 = self.store_event(
@@ -384,7 +380,6 @@ class TestCommentBuilderQueries(GithubCommentTestCase):
         )
 
 
-@region_silo_test
 class TestFormatComment(TestCase):
     def test_format_comment(self):
         issues = [
@@ -405,7 +400,6 @@ class TestFormatComment(TestCase):
         assert formatted_comment == expected_comment
 
 
-@region_silo_test
 class TestCommentWorkflow(GithubCommentTestCase):
     def setUp(self):
         super().setUp()
@@ -644,7 +638,6 @@ class TestCommentWorkflow(GithubCommentTestCase):
         )
 
 
-@region_silo_test
 class TestCommentReactionsTask(GithubCommentTestCase):
     base_url = "https://api.github.com"
 

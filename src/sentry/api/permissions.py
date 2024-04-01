@@ -15,9 +15,10 @@ from sentry.api.exceptions import (
     TwoFactorRequired,
 )
 from sentry.auth import access
-from sentry.auth.staff import is_active_staff
+from sentry.auth.staff import has_staff_option, is_active_staff
 from sentry.auth.superuser import SUPERUSER_ORG_ID, is_active_superuser
 from sentry.auth.system import is_system_auth
+from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
 from sentry.services.hybrid_cloud import extract_id_from
 from sentry.services.hybrid_cloud.organization import (
     RpcOrganization,
@@ -117,13 +118,13 @@ class StaffPermissionMixin:
 
 # NOTE(schew2381): This is a temporary permission that does NOT perform an OR
 # between SuperuserPermission and StaffPermission. Instead, it uses StaffPermission
-# if the feature flag is enabled, and otherwise uses SuperuserPermission. We
+# if the option is enabled for the user, and otherwise checks SuperuserPermission. We
 # need this to handle the transition for endpoints that will only be accessible to
-# staff but not superuser, that currently use SuperuserPermission. Once the
-# feature is rolled out, we can delete this permission and use StaffPermission
+# staff but not superuser, that currently use SuperuserPermission. Once staff is
+# released to the everyone, we can delete this permission and use StaffPermission
 class SuperuserOrStaffFeatureFlaggedPermission(BasePermission):
     def has_permission(self, request: Request, view: object) -> bool:
-        enforce_staff_permission = features.has("auth:enterprise-staff-cookie", actor=request.user)
+        enforce_staff_permission = has_staff_option(request.user)
 
         if enforce_staff_permission:
             return StaffPermission().has_permission(request, view)
@@ -155,6 +156,13 @@ class ScopedPermission(BasePermission):
         # session-based auth has all scopes for a logged in user
         if not getattr(request, "auth", None):
             return request.user.is_authenticated
+
+        if is_org_auth_token_auth(request.auth):
+            # Ensure we always update the last used date for the org auth token.
+            # At this point, we don't have the projects yet, so we only update the org auth token's
+            # last used date, clearning the project_last_used_id. We call this method again in endpoints
+            # where a project is available to update the project_last_used_id.
+            update_org_auth_token_last_used(request.auth, [])
 
         allowed_scopes: set[str] = set(self.scope_map.get(request.method, []))
         current_scopes = request.auth.get_scopes()

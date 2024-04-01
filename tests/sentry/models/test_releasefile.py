@@ -20,7 +20,6 @@ from sentry.models.releasefile import (
     update_artifact_index,
 )
 from sentry.testutils.cases import TestCase, TransactionTestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 
@@ -59,7 +58,6 @@ def test_normalize(s, expected):
     assert ReleaseFile.normalize(s) == expected
 
 
-@region_silo_test
 class ReleaseFileTestCase(TestCase):
     def test_count_artifacts(self):
         assert self.release.count_artifacts() == 0
