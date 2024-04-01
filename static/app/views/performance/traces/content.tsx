@@ -60,14 +60,15 @@ export function Content() {
     return [
       SpanIndexedField.PROJECT,
       SpanIndexedField.ID,
+      SpanIndexedField.TRANSACTION_ID,
       SpanIndexedField.TRACE,
       SpanIndexedField.SPAN_OP,
       SpanIndexedField.SPAN_DESCRIPTION,
       SpanIndexedField.TRANSACTION_OP,
       SpanIndexedField.TRANSACTION,
-      SpanIndexedField.TIMESTAMP,
       SpanIndexedField.SPAN_DURATION,
       SpanIndexedField.SPAN_SELF_TIME,
+      SpanIndexedField.TIMESTAMP,
     ];
   }, []);
 
@@ -76,7 +77,7 @@ export function Content() {
     filters,
     limit,
     sorts: [],
-    referrer: '',
+    referrer: 'api.trace-explorer.table',
   });
 
   return (

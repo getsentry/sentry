@@ -1,12 +1,10 @@
 from sentry.rules.filters.issue_occurrences import IssueOccurrencesFilter
 from sentry.testutils.cases import RuleTestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class IssueOccurrencesTest(RuleTestCase):
     rule_cls = IssueOccurrencesFilter
 

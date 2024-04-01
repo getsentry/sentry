@@ -50,7 +50,7 @@ from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import GroupSubStatus
 from sentry.utils.http import absolute_uri
@@ -269,7 +269,6 @@ def build_test_message(
     }
 
 
-@region_silo_test
 class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTestMixin):
     def test_build_group_attachment(self):
         group = self.create_group(project=self.project)
@@ -1004,7 +1003,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert "<https://example.com/|*Click Here*>" in ret["blocks"][1]["text"]["text"]
 
 
-@region_silo_test
 class BuildGroupAttachmentReplaysTest(TestCase):
     @patch("sentry.models.group.Group.has_replays")
     def test_build_replay_issue(self, has_replays):
@@ -1064,7 +1062,6 @@ class BuildGroupAttachmentReplaysTest(TestCase):
         )
 
 
-@region_silo_test
 class BuildIncidentAttachmentTest(TestCase):
     def test_simple(self):
         alert_rule = self.create_alert_rule()
@@ -1187,7 +1184,6 @@ class BuildIncidentAttachmentTest(TestCase):
         }
 
 
-@region_silo_test
 class BuildMetricAlertAttachmentTest(TestCase):
     def test_metric_alert_without_incidents(self):
         alert_rule = self.create_alert_rule()
@@ -1340,7 +1336,6 @@ class BuildMetricAlertAttachmentTest(TestCase):
         }
 
 
-@region_silo_test
 class ActionsTest(TestCase):
     def test_identity_and_action(self):
         group = self.create_group(project=self.project)
@@ -1616,7 +1611,6 @@ class ActionsTest(TestCase):
             )
 
 
-@region_silo_test
 class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, OccurrenceTestMixin):
     @freeze_time("2024-02-23")
     def setUp(self):

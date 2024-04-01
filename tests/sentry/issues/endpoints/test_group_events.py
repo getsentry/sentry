@@ -6,11 +6,9 @@ from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
-from sentry.testutils.silo import region_silo_test
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
-@region_silo_test
 class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceIssueTestCase):
     def setUp(self):
         super().setUp()

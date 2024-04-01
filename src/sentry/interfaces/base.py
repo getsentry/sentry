@@ -164,24 +164,3 @@ class Interface:
         if not body:
             return ""
         return f"<pre>{escape(body)}</pre>"
-
-    # deprecated stuff.  These were deprecated in late 2018, once
-    # determined they are unused we can kill them.
-
-    def get_path(self):
-        from warnings import warn
-
-        warn(DeprecationWarning("Replaced with .path"))
-        return self.path
-
-    def get_alias(self):
-        from warnings import warn
-
-        warn(DeprecationWarning("Replaced with .path"))
-        return self.path
-
-    def get_slug(self):
-        from warnings import warn
-
-        warn(DeprecationWarning("Replaced with .path"))
-        return self.path

@@ -6,7 +6,6 @@ from sentry.rules.history.backends.postgres import PostgresRuleHistoryBackend
 from sentry.rules.history.base import RuleGroupHistory
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -17,7 +16,6 @@ class BasePostgresRuleHistoryBackendTest(TestCase):
         self.backend = PostgresRuleHistoryBackend()
 
 
-@region_silo_test
 class RecordTest(BasePostgresRuleHistoryBackendTest):
     def test(self):
         rule = Rule.objects.create(project=self.event.project)
@@ -31,8 +29,12 @@ class RecordTest(BasePostgresRuleHistoryBackendTest):
         assert RuleFireHistory.objects.filter(rule=rule, group=group_2).count() == 1
         assert RuleFireHistory.objects.filter(rule=rule).count() == 3
 
+    def test_returns_new_instance(self) -> None:
+        rule = Rule.objects.create(project=self.event.project)
+        new_instance = self.backend.record(rule, self.group)
+        assert new_instance is not None
 
-@region_silo_test
+
 @freeze_time()
 class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
     def run_test(self, rule, start, end, expected, cursor=None, per_page=25):
@@ -193,7 +195,6 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
         )
 
 
-@region_silo_test
 @freeze_time()
 class FetchRuleHourlyStatsPaginatedTest(BasePostgresRuleHistoryBackendTest):
     def test(self):

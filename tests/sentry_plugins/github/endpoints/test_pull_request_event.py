@@ -5,7 +5,7 @@ from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry_plugins.github.testutils import (
     PULL_REQUEST_CLOSED_EVENT_EXAMPLE,
     PULL_REQUEST_EDITED_EVENT_EXAMPLE,
@@ -14,7 +14,6 @@ from sentry_plugins.github.testutils import (
 from social_auth.models import UserSocialAuth
 
 
-@region_silo_test
 class PullRequestEventWebhook(APITestCase):
     def test_opened(self):
         project = self.project  # force creation

@@ -16,7 +16,6 @@ from sentry.grouping.fingerprinting import (
     _load_configs,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 
 GROUPING_CONFIG = get_default_grouping_config_dict()
 
@@ -458,7 +457,6 @@ def test_fingerprinting_rules_from_config_structure_preserves_is_builtin(is_buil
     assert rules.rules[0].is_builtin == bool(is_builtin)
 
 
-@region_silo_test
 class BuiltInFingerprintingTest(TestCase):
     def setUp(self):
         super().setUp()

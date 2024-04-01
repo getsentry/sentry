@@ -18,7 +18,7 @@ interface TraceSearchInputProps {
   onSearchClear: () => void;
   query: string | undefined;
   resultCount: number | undefined;
-  resultIteratorIndex: number | undefined;
+  resultIteratorIndex: number | null;
   status: TraceSearchState['status'];
 }
 
@@ -28,7 +28,6 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
   const [status, setStatus] = useState<TraceSearchState['status']>();
 
   const timeoutRef = useRef<number | undefined>(undefined);
-
   const statusRef = useRef<TraceSearchState['status']>(status);
   statusRef.current = status;
 
@@ -72,10 +71,10 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
         )}
       </InputGroup.LeadingItems>
       <InputGroup.Input
+        size="xs"
         type="text"
         name="query"
         autoComplete="off"
-        size="xs"
         placeholder={t('Search in trace')}
         value={props.query}
         onChange={props.onChange}
@@ -85,10 +84,12 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
         <StyledTrailingText>
           {`${
             props.query && !props.resultCount
-              ? '0/0'
-              : (props.resultIteratorIndex !== undefined
-                  ? props.resultIteratorIndex + 1
-                  : '-') + `/${props.resultCount ?? 0}`
+              ? t('no results')
+              : props.query
+                ? (props.resultIteratorIndex !== null
+                    ? props.resultIteratorIndex + 1
+                    : '-') + `/${props.resultCount ?? 0}`
+                : ''
           }`}
         </StyledTrailingText>
         <StyledSearchBarTrailingButton

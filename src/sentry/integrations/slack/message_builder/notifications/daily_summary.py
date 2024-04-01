@@ -21,6 +21,8 @@ from sentry.utils.http import absolute_uri
 
 from .base import SlackNotificationsMessageBuilder
 
+MAX_CHARS_ONE_LINE = 35
+
 
 class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
     def __init__(
@@ -39,10 +41,13 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
             params={"referrer": self.notification.get_referrer(ExternalProviders.SLACK)}
         )
         title = build_attachment_title(group)
-        attachment_text = self.get_attachment_text(group).replace("\n", " ")
+        formatted_title = self.truncate_text(title)
+        attachment_text = self.get_attachment_text(group)
         if not attachment_text:
-            return f"<{link}|*{escape_slack_text(title)}*>"
-        return f"<{link}|*{escape_slack_text(title)}*>\n{attachment_text}"
+            return f"<{link}|*{escape_slack_text(formatted_title)}*>"
+
+        formatted_attachment_text = attachment_text.replace("\n", " ").replace("`", "")
+        return f"<{link}|*{escape_slack_text(formatted_title)}*>\n`{self.truncate_text(formatted_attachment_text)}`"
 
     def linkify_release(self, release, organization):
         path = f"/releases/{release.version}/"
@@ -50,11 +55,14 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
         release_description = parse_release(release.version).get("description")
         return f":rocket: *<{url}|Release {release_description}>*\n"
 
+    def truncate_text(self, text):
+        if text and len(text) > MAX_CHARS_ONE_LINE:
+            text = text[:MAX_CHARS_ONE_LINE] + "..."
+        return text
+
     def get_attachment_text(self, group):
         attachment_text = build_attachment_text(group)
-        if attachment_text and len(attachment_text) > 50:
-            attachment_text = attachment_text[0:49] + "..."
-        return attachment_text
+        return self.truncate_text(attachment_text)
 
     def build_discover_url(self, project):
         query_params = {
@@ -137,40 +145,45 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
                         fields.append(self.make_field(release_text))
                 blocks.append(self.get_section_fields_block(fields))
 
-            # Add Top 3 Error Issues
-            error_issue_fields = []
+            # Add Top 3 Error/Performance Issues
+            top_issue_fields = []
             if context.key_errors:
                 top_errors_text = "*Today's Top 3 Error Issues*\n"
                 for error in context.key_errors:
                     linked_title = self.linkify_error_title(error[0])
                     top_errors_text += f"• {linked_title}\n"
-                error_issue_fields.append(self.make_field(top_errors_text))
+                top_issue_fields.append(self.make_field(top_errors_text))
 
-            # Add escalated/regressed issues
-            if context.escalated_today or context.regressed_today:
-                issue_state_text = "*Issues that escalated or regressed today*\n"
-                if context.escalated_today:
-                    for escalated_issue in context.escalated_today:
-                        linked_title = self.linkify_error_title(escalated_issue)
-                        issue_state_text += f"• :point_up: {linked_title}\n"
-
-                if context.regressed_today:
-                    if not context.escalated_today:
-                        issue_state_text = "*Issues that escalated or regressed today*\n"
-                    for regressed_issue in context.regressed_today:
-                        linked_title = self.linkify_error_title(regressed_issue)
-                        issue_state_text += f"• :recycle: {linked_title}\n"
-
-                error_issue_fields.append(self.make_field(issue_state_text))
-            blocks.append(self.get_section_fields_block(error_issue_fields))
-
-            # Add performance data
             if context.key_performance_issues:
                 top_perf_issues_text = "*Today's Top 3 Performance Issues*\n"
                 for perf_issue in context.key_performance_issues:
                     linked_title = self.linkify_error_title(perf_issue[0])
                     top_perf_issues_text += f"• {linked_title}\n"
-                blocks.append(self.get_markdown_block(top_perf_issues_text))
+                top_issue_fields.append(self.make_field(top_perf_issues_text))
+
+            if top_issue_fields:
+                blocks.append(self.get_section_fields_block(top_issue_fields))
+
+            # Add regressed and escalated issues
+            regressed_escalated_fields = []
+
+            if context.escalated_today:
+                escalated_issue_text = "*Issues that escalated today*\n"
+                for escalated_issue in context.escalated_today:
+                    linked_title = self.linkify_error_title(escalated_issue)
+                    escalated_issue_text += f"• :point_up: {linked_title}\n"
+                regressed_escalated_fields.append(self.make_field(escalated_issue_text))
+
+            if context.regressed_today:
+                regressed_issue_text = "*Issues that regressed today*\n"
+                for regressed_issue in context.regressed_today:
+                    linked_title = self.linkify_error_title(regressed_issue)
+                    regressed_issue_text += f"• :recycle: {linked_title}\n"
+
+                regressed_escalated_fields.append(self.make_field(regressed_issue_text))
+
+            if regressed_escalated_fields:
+                blocks.append(self.get_section_fields_block(regressed_escalated_fields))
 
             blocks.append(self.get_divider())
 
