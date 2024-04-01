@@ -19,7 +19,8 @@ class IdOrSlugLookup(Lookup):
         lhs, lhs_params = self.process_lhs(compiler, connection)
         rhs, rhs_params = self.process_rhs(compiler, connection)
 
-        # Use Django's method to properly quote table and column names
+        # Use Django's built-in SQL compiler methods to properly quote table and column names
+        # lhs initially looks like "table_name"."column_name"
         table_name = lhs.split(".")[0] if "." in lhs else None
 
         if table_name:
