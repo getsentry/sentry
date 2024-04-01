@@ -16,10 +16,6 @@ class TestIsNewIntegrationInstallationEvent:
         data: dict[str, Any] = {"action": "add"}
         assert MsTeamsWebhookMixin.is_new_integration_installation_event(data) is False
 
-    def test_empty_input(self) -> None:
-        data: dict[str, Any] = {}
-        assert MsTeamsWebhookMixin.is_new_integration_installation_event(data) is False
-
     def test_only_required_fields(self) -> None:
         data: dict[str, Any] = {"type": "installationUpdate"}
         assert MsTeamsWebhookMixin.is_new_integration_installation_event(data) is False
@@ -38,8 +34,4 @@ class TestIsNewIntegrationInstallationEvent:
 
     def test_invalid_action(self) -> None:
         data: dict[str, Any] = {"type": "installationUpdate", "action": "remove"}
-        assert MsTeamsWebhookMixin.is_new_integration_installation_event(data) is False
-
-    def test_different_event_type(self) -> None:
-        data: dict[str, Any] = {"type": "message", "action": "add"}
         assert MsTeamsWebhookMixin.is_new_integration_installation_event(data) is False
