@@ -107,7 +107,6 @@ const ReplayTable = memo(
         emptyMessage={emptyMessage}
         gridRows={isFetching ? undefined : gridRows}
         loader={<LoadingIndicator style={{margin: '54px auto'}} />}
-        hasOneRow
       >
         {replays?.map(
           (replay: ReplayListRecord | ReplayListRecordWithTx, index: number) => {

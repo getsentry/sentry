@@ -33,10 +33,6 @@ type PanelTableProps = {
    */
   emptyMessage?: React.ReactNode;
   /**
-   * Whether the table has one row
-   */
-  hasOneRow?: boolean;
-  /**
    * Displays an `<EmptyStateWarning>` if true
    */
   isEmpty?: boolean;
@@ -80,7 +76,6 @@ const PanelTable = forwardRef<HTMLDivElement, PanelTableProps>(function PanelTab
     emptyMessage = t('There are no items to display'),
     emptyAction,
     loader,
-    hasOneRow = false,
     stickyHeaders = false,
     ...props
   }: PanelTableProps,
@@ -96,7 +91,7 @@ const PanelTable = forwardRef<HTMLDivElement, PanelTableProps>(function PanelTab
       columns={headers.length}
       disablePadding={disablePadding}
       className={className}
-      hasRows={shouldShowContent && !hasOneRow}
+      hasRows={shouldShowContent}
       {...props}
     >
       {headers.map((header, i) => (
