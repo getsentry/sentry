@@ -16,6 +16,14 @@ export interface TimeWindowConfig {
    */
   elapsedMinutes: number;
   /**
+   * The end of the window
+   */
+  end: Date;
+  /**
+   * The start of the window
+   */
+  start: Date;
+  /**
    * The interval between each grid line and time label in minutes
    */
   timeMarkerInterval: number;
