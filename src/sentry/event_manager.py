@@ -2286,14 +2286,16 @@ def _get_priority_for_group(severity: Mapping[str, Any], kwargs: Mapping[str, An
 
 
 def update_severity_error_count(reset=False) -> None:
+    timeout = 60 * 60  # 1 hour
     if reset:
-        cache.set(SEER_ERROR_COUNT_KEY, 0, timeout=60 * 60)
+        cache.set(SEER_ERROR_COUNT_KEY, 0, timeout=timeout)
         return
 
     try:
         cache.incr(SEER_ERROR_COUNT_KEY)
+        cache.touch(SEER_ERROR_COUNT_KEY, timeout=timeout)
     except ValueError:
-        cache.set(SEER_ERROR_COUNT_KEY, 1, timeout=60 * 60)
+        cache.set(SEER_ERROR_COUNT_KEY, 1, timeout=timeout)
 
 
 def _get_severity_score(event: Event) -> tuple[float, str]:
