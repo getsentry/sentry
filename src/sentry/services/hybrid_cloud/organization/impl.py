@@ -138,6 +138,23 @@ class DatabaseBackedOrganizationService(OrganizationService):
         except Organization.DoesNotExist:
             return None
 
+    def get_org_by_id(
+        self,
+        *,
+        id: int,
+        user_id: int | None = None,
+    ) -> RpcOrganizationSummary | None:
+        query = Organization.objects.filter(id=id)
+        if user_id is not None:
+            query = query.filter(
+                status=OrganizationStatus.ACTIVE,
+                member_set__user_id=user_id,
+            )
+        try:
+            return serialize_organization_summary(query.get())
+        except Organization.DoesNotExist:
+            return None
+
     def get_organizations_by_user_and_scope(
         self, *, region_name: str, user: RpcUser, scope: str | None = None
     ) -> list[RpcOrganization]:
