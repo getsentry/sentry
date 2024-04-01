@@ -21,6 +21,10 @@ type PanelTableProps = {
   children?: React.ReactNode | (() => React.ReactNode);
   className?: string;
   /**
+   * If true, disables the border-bottom on the header
+   */
+  disableHeaderBorderBottom?: boolean;
+  /**
    * Renders without predefined padding on the header and body cells
    */
   disablePadding?: boolean;
@@ -77,6 +81,7 @@ const PanelTable = forwardRef<HTMLDivElement, PanelTableProps>(function PanelTab
     emptyAction,
     loader,
     stickyHeaders = false,
+    disableHeaderBorderBottom = false,
     ...props
   }: PanelTableProps,
   ref: React.Ref<HTMLDivElement>
@@ -92,6 +97,7 @@ const PanelTable = forwardRef<HTMLDivElement, PanelTableProps>(function PanelTab
       disablePadding={disablePadding}
       className={className}
       hasRows={shouldShowContent}
+      disableHeaderBorderBottom={disableHeaderBorderBottom}
       {...props}
     >
       {headers.map((header, i) => (
@@ -129,6 +135,7 @@ type WrapperProps = {
    * The number of columns the table will have, this is derived from the headers list
    */
   columns: number;
+  disableHeaderBorderBottom: boolean;
   disablePadding: PanelTableProps['disablePadding'];
   hasRows: boolean;
 };
@@ -146,9 +153,12 @@ const Wrapper = styled(Panel, {
   > * {
     ${p => (p.disablePadding ? '' : `padding: ${space(2)};`)}
 
-    &:nth-last-child(n + ${p => (p.hasRows ? p.columns + 1 : 0)}) {
-      border-bottom: 1px solid ${p => p.theme.border};
-    }
+    ${p =>
+      p.disableHeaderBorderBottom
+        ? ''
+        : `&:nth-last-child(n + ${p.hasRows ? p.columns + 1 : 0}) {
+      border-bottom: 1px solid ${p.theme.border};
+    }`}
   }
 
   > ${TableEmptyStateWarning}, > ${LoadingWrapper} {
