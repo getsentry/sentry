@@ -593,12 +593,10 @@ def create_alert_rule(
                 for project in excluded_projects
             ]
             AlertRuleExcludedProjects.objects.bulk_create(exclusions)
-        elif monitor_type == AlertRuleMonitorType.ACTIVATED and projects:
-            # initialize projects join table for activated alert rules
-            arps = [
-                AlertRuleProjects(alert_rule=alert_rule, project=project) for project in projects
-            ]
-            AlertRuleProjects.objects.bulk_create(arps)
+
+        # initialize projects join table for activated alert rules
+        arps = [AlertRuleProjects(alert_rule=alert_rule, project=project) for project in projects]
+        AlertRuleProjects.objects.bulk_create(arps)
 
         if monitor_type == AlertRuleMonitorType.ACTIVATED and activation_condition:
             # NOTE: if monitor_type is activated, activation_condition is required
