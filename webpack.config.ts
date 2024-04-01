@@ -376,9 +376,9 @@ const appConfig: Configuration = {
     ...(SHOULD_ADD_RSDOCTOR ? [new RsdoctorWebpackPlugin({})] : []),
 
     /**
-     * Restrict translation files that are pulled in through app/translations.jsx
-     * and through moment/locale/* to only those which we create bundles for via
-     * locale/catalogs.json.
+     * Restrict translation files that are pulled in through
+     * initializeLocale.tsx and through moment/locale/* to only those which we
+     * create bundles for via locale/catalogs.json.
      *
      * Without this, webpack will still output all of the unused locale files despite
      * the application never loading any of them.
