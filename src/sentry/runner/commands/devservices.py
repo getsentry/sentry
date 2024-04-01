@@ -25,12 +25,17 @@ CI = os.environ.get("CI") is not None
 # assigned as a constant so mypy's "unreachable" detection doesn't fail on linux
 # https://github.com/python/mypy/issues/12286
 DARWIN = sys.platform == "darwin"
+
+# TODO: this needs to be updated for repolocal bins
 COLIMA = os.path.expanduser("~/.local/share/sentry-devenv/bin/colima")
 
-USE_COLIMA = (os.path.exists(COLIMA) or bool(shutil.which("colima"))) and os.environ.get("SENTRY_USE_COLIMA") != "0"
+USE_COLIMA = os.path.exists(COLIMA) and os.environ.get("SENTRY_USE_COLIMA") != "0"
 USE_ORBSTACK = (
     os.path.exists("/Applications/OrbStack.app") and os.environ.get("SENTRY_USE_ORBSTACK") != "0"
 )
+
+if CI and DARWIN:
+    USE_COLIMA = True
 
 if USE_ORBSTACK:
     USE_COLIMA = False
