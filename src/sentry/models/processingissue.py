@@ -133,7 +133,7 @@ class ProcessingIssue(Model):
     checksum = models.CharField(max_length=40, db_index=True)
     type = models.CharField(max_length=30)
     data = GzippedDictField()
-    datetime = models.DateTimeField(default=timezone.now)
+    datetime = models.DateTimeField(default=timezone.now, db_index=True)
 
     objects: ClassVar[ProcessingIssueManager] = ProcessingIssueManager()
 
