@@ -2605,11 +2605,13 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 assert int(response.data[2]["id"]) == event2.group.id
                 assert int(response.data[3]["id"]) == event1.group.id
             elif query == "assigned_or_suggested:[me, my_teams, none]":
+                assert len(response.data) == 5
                 assert int(response.data[0]["id"]) == event9.group.id
                 assert int(response.data[1]["id"]) == event4.group.id
                 assert int(response.data[2]["id"]) == event3.group.id
                 assert int(response.data[3]["id"]) == event2.group.id
                 assert int(response.data[4]["id"]) == event1.group.id
+
             elif query == "assigned_or_suggested:none":
                 assert len(response.data) == 1
                 assert int(response.data[0]["id"]) == event9.group.id
