@@ -153,10 +153,13 @@ const StyledLoadingIndicator = styled('div')`
   height: 100%;
 `;
 
-const StyledImageWrapper = styled('div')`
-  :hover {
-    cursor: zoom-in;
-  }
+const StyledImageWrapper = styled('button')`
+  cursor: zoom-in;
+  background: none;
+  padding: 0;
+  border-radius: ${p => p.theme.borderRadius};
+  border: 0;
+  overflow: hidden;
 `;
 
 const StyledImageVisualization = styled(ImageVisualization)`

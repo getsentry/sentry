@@ -36,7 +36,7 @@ export default function MessageSection({eventData, feedbackItem}: Props) {
         />
       </Flex>
       <Blockquote>
-        <p>{feedbackItem.metadata.message}</p>
+        <pre>{feedbackItem.metadata.message}</pre>
         {eventData && (
           <ScreenshotSection
             event={eventData}
@@ -78,7 +78,7 @@ const Blockquote = styled('blockquote')`
   border-left: 2px solid ${p => p.theme.purple300};
   padding: ${space(2)};
 
-  & > p {
+  & > pre {
     margin-bottom: 0;
     background: none;
     font-family: inherit;

@@ -95,7 +95,7 @@ export function ScreenshotSection({projectSlug, event, organization}: Props) {
             priority: 'danger',
           });
         }}
-        aria-label="delete screenshot"
+        aria-label={t('Delete screenshot')}
       />
     </ScreenshotWrapper>
   ) : null;
