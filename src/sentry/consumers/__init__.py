@@ -405,6 +405,34 @@ def get_stream_processor(
             f"Invalid consumer definition configured for {consumer_name}"
         ) from e
 
+    post_process_forwarders = [
+        "post-process-forwarder-errors",
+        "post-process-forwarder-transactions",
+        "post-process-forwarder-issue-platform",
+    ]
+    subscription_result_consumers = [
+        "events-subscription-results",
+        "transactions-subscription-results",
+        "generic-metrics-subscription-results",
+        "metrics-subscription-results",
+    ]
+    consumers_that_should_have_dlq_but_dont = [
+        "process-spans",
+        "detect-performance-issues",
+        "ingest-monitors",
+        "metrics-last-seen-updater",
+        "generic-metrics-last-seen-updater",
+    ]
+
+    if consumer_name in (post_process_forwarders + subscription_result_consumers):
+        pass
+    elif consumer_name in consumers_that_should_have_dlq_but_dont:
+        logger.warning("Consumer is running without DLQ")
+    else:
+        assert (
+            consumer_definition.get("dlq_topic") is not None
+        ), f"{consumer_name} consumer is missing DLQ"
+
     strategy_factory_cls = import_string(consumer_definition["strategy_factory"])
     consumer_topic = consumer_definition["topic"]
 
