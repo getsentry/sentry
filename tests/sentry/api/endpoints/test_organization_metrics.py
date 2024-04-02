@@ -1,6 +1,8 @@
 import copy
+from contextlib import contextmanager
 from datetime import timedelta
 from functools import partial
+from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
@@ -23,6 +25,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
+from sentry.utils.snuba import SnubaError
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
@@ -604,6 +607,45 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
                     "sum": val * (len(values) - i) * 2,
                     "count": (len(values) - i) * 2,
                 }
+
+    @patch("sentry.api.utils.handle_query_errors")
+    def test_recursion_error(self, mock_handle_error):
+        @contextmanager
+        def mocky():
+            try:
+                yield
+            except Exception as e:
+                if isinstance(e, SnubaError):
+                    if (
+                        len(e.args) > 0
+                        and e.args[0] == "maximum recursion depth exceeded in comparison"
+                    ):
+                        mock_handle_error.recursion_error_happened = True
+                raise
+
+        mock_handle_error.side_effect = mocky
+        query = " OR ".join([f'transaction:"{e}"' for e in range(100)])
+        req = {
+            "mri": "d:transactions/duration@millisecond",
+            "field": [
+                "project",
+                "id",
+                "span.op",
+                "span.description",
+                "span.duration",
+                "span.self_time",
+                "timestamp",
+                "trace",
+                "transaction",
+                "transaction.id",
+            ],
+            "project": [self.project.id],
+            "operation": "p99",
+            "query": query,
+        }
+        res = self.do_request(req)
+        assert mock_handle_error.recursion_error_happened is False
+        assert res.status_code == 200
 
     def test_multiple_span_sample_per_time_bucket(self):
         custom_mri = "d:custom/value@millisecond"
