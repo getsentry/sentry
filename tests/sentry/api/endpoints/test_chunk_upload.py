@@ -104,6 +104,15 @@ class ChunkUploadTest(APITestCase):
             )
             assert response.data["url"] == options.get("system.upload-url-prefix") + self.url
 
+        with override_options({"hybrid_cloud.disable_relative_upload_urls": True}):
+            response = self.client.get(
+                self.url,
+                HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+                HTTP_USER_AGENT="sentry-cli/1.70.1",
+                format="json",
+            )
+            assert response.data["url"] == generate_region_url() + self.url
+
     def test_region_upload_urls(self):
         response = self.client.get(
             self.url,
@@ -137,6 +146,15 @@ class ChunkUploadTest(APITestCase):
         )
 
         assert response.data["url"] == generate_region_url() + self.url
+
+        with override_options({"hybrid_cloud.disable_relative_upload_urls": True}):
+            response = self.client.get(
+                self.url,
+                HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+                HTTP_USER_AGENT="sentry-cli/2.29.99",
+                format="json",
+            )
+            assert response.data["url"] == generate_region_url() + self.url
 
     def test_large_uploads(self):
         with self.feature("organizations:large-debug-files"):
