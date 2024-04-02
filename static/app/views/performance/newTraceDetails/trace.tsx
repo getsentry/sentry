@@ -776,7 +776,7 @@ function RenderRow(props: {
         </div>
         <div
           className={
-            props.index % 2 === 0
+            props.index % 2 === 1
               ? RIGHT_COLUMN_ODD_CLASSNAME
               : RIGHT_COLUMN_EVEN_CLASSNAME
           }
@@ -842,7 +842,6 @@ function RenderRow(props: {
             props.manager.registerColumnRef('list', r, virtualized_index, props.node)
           }
         >
-          {' '}
           <div
             className={`TraceLeftColumnInner`}
             style={{
@@ -895,10 +894,11 @@ function RenderRow(props: {
           ref={r =>
             props.manager.registerColumnRef('span_list', r, virtualized_index, props.node)
           }
-          className={`TraceRightColumn ${props.index % 2 === 0 ? 0 : 'Odd'}`}
-          style={{
-            width: props.manager.columns.span_list.width * 100 + '%',
-          }}
+          className={
+            props.index % 2 === 1
+              ? RIGHT_COLUMN_ODD_CLASSNAME
+              : RIGHT_COLUMN_EVEN_CLASSNAME
+          }
           onDoubleClick={e => {
             e.stopPropagation();
             props.manager.onZoomIntoSpace(props.node.space!);
@@ -1009,10 +1009,11 @@ function RenderRow(props: {
           ref={r =>
             props.manager.registerColumnRef('span_list', r, virtualized_index, props.node)
           }
-          className={`TraceRightColumn ${props.index % 2 === 0 ? 0 : 'Odd'}`}
-          style={{
-            width: props.manager.columns.span_list.width * 100 + '%',
-          }}
+          className={
+            props.index % 2 === 1
+              ? RIGHT_COLUMN_ODD_CLASSNAME
+              : RIGHT_COLUMN_EVEN_CLASSNAME
+          }
           onDoubleClick={e => {
             e.stopPropagation();
             props.manager.onZoomIntoSpace(props.node.space!);
@@ -1083,16 +1084,16 @@ function RenderRow(props: {
           ref={r =>
             props.manager.registerColumnRef('span_list', r, virtualized_index, props.node)
           }
-          className={`TraceRightColumn ${props.index % 2 === 0 ? 0 : 'Odd'}`}
-          style={{
-            width: props.manager.columns.span_list.width * 100 + '%',
-          }}
+          className={
+            props.index % 2 === 1
+              ? RIGHT_COLUMN_ODD_CLASSNAME
+              : RIGHT_COLUMN_EVEN_CLASSNAME
+          }
           onDoubleClick={e => {
             e.stopPropagation();
             props.manager.onZoomIntoSpace(props.node.space!);
           }}
         >
-          {' '}
           <TraceBar
             virtualized_index={virtualized_index}
             manager={props.manager}
@@ -1168,10 +1169,11 @@ function RenderRow(props: {
           ref={r =>
             props.manager.registerColumnRef('span_list', r, virtualized_index, props.node)
           }
-          className={`TraceRightColumn ${props.index % 2 === 0 ? 0 : 'Odd'}`}
-          style={{
-            width: props.manager.columns.span_list.width * 100 + '%',
-          }}
+          className={
+            props.index % 2 === 1
+              ? RIGHT_COLUMN_ODD_CLASSNAME
+              : RIGHT_COLUMN_EVEN_CLASSNAME
+          }
           onDoubleClick={e => {
             e.stopPropagation();
             props.manager.onZoomIntoSpace(props.node.space!);
@@ -1247,10 +1249,11 @@ function RenderRow(props: {
           ref={r =>
             props.manager.registerColumnRef('span_list', r, virtualized_index, props.node)
           }
-          className={`TraceRightColumn ${props.index % 2 === 0 ? 0 : 'Odd'}`}
-          style={{
-            width: props.manager.columns.span_list.width * 100 + '%',
-          }}
+          className={
+            props.index % 2 === 1
+              ? RIGHT_COLUMN_ODD_CLASSNAME
+              : RIGHT_COLUMN_EVEN_CLASSNAME
+          }
           onDoubleClick={e => {
             e.stopPropagation();
             props.manager.onZoomIntoSpace(props.node.space!);
@@ -1324,10 +1327,11 @@ function RenderRow(props: {
           ref={r =>
             props.manager.registerColumnRef('span_list', r, virtualized_index, props.node)
           }
-          className={`TraceRightColumn ${props.index % 2 === 0 ? 0 : 'Odd'}`}
-          style={{
-            width: props.manager.columns.span_list.width * 100 + '%',
-          }}
+          className={
+            props.index % 2 === 1
+              ? RIGHT_COLUMN_ODD_CLASSNAME
+              : RIGHT_COLUMN_EVEN_CLASSNAME
+          }
         />
       </div>
     );
@@ -1395,12 +1399,10 @@ function RenderPlaceholderRow(props: {
       </div>
       <div
         className={
-          props.index % 2 === 0 ? RIGHT_COLUMN_ODD_CLASSNAME : RIGHT_COLUMN_EVEN_CLASSNAME
+          props.index % 2 === 1 ? RIGHT_COLUMN_ODD_CLASSNAME : RIGHT_COLUMN_EVEN_CLASSNAME
         }
         style={{
           width: props.manager.columns.span_list.width * 100 + '%',
-          backgroundColor:
-            props.index % 2 === 0 ? props.theme.backgroundSecondary : undefined,
         }}
       >
         <Placeholder
@@ -2040,6 +2042,24 @@ const TraceStylingWrapper = styled('div')`
     transition: none;
     font-size: ${p => p.theme.fontSizeSmall};
 
+    --row-background-odd: ${p => p.theme.translucentSurface100};
+    --row-background-hover: ${p => p.theme.translucentSurface100};
+    --row-background-focused: ${p => p.theme.translucentSurface200};
+
+    &.Hidden {
+      position: absolute;
+      height: 100%;
+      width: 100%;
+      top: 0;
+      z-index: -1;
+      &:hover {
+        background-color: transparent;
+      }
+      * {
+        cursor: default !important;
+      }
+    }
+
     .TraceError {
       position: absolute;
       top: 50%;
@@ -2192,6 +2212,8 @@ const TraceStylingWrapper = styled('div')`
     box-shadow: inset 1px 0 0px 0px transparent;
     cursor: pointer;
 
+    width: calc(var(--list-column-width) * 100%);
+
     .TraceLeftColumnInner {
       height: 100%;
       white-space: nowrap;
@@ -2216,6 +2238,8 @@ const TraceStylingWrapper = styled('div')`
     will-change: width;
     z-index: 1;
     cursor: pointer;
+
+    width: calc(var(--span-column-width) * 100%);
 
     &:hover {
       .TraceArrow.Visible {
