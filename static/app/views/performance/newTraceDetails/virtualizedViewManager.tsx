@@ -997,7 +997,7 @@ export class VirtualizedViewManager {
       // @ts-expect-error we set a number on purpose
       Math.round(this.columns.span_list.width * 1000) / 1000
     );
-        
+
     this.row_measurer.on('max', this.onNewMaxRowWidth);
 
     this.resize_observer = new ResizeObserver(entries => {
