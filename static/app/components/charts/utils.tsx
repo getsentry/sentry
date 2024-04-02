@@ -171,10 +171,9 @@ export function getDiffInMinutes(datetimeObj: DateTimeObject): number {
     const duration = moment(end).diff(start, 'minutes');
     if (duration > 0) {
       return duration;
-    } 
-      Sentry.captureMessage('Invalid duration: Duration must be positive', 'error');
-      return TWENTY_FOUR_HOURS; // Default positive duration
-    
+    }
+    Sentry.captureMessage('Invalid duration: Duration must be positive', 'error');
+    return TWENTY_FOUR_HOURS; // Default positive duration
   }
 
   // Validate period
@@ -183,13 +182,12 @@ export function getDiffInMinutes(datetimeObj: DateTimeObject): number {
   );
   if (periodHours > 0) {
     return periodHours * 60;
-  } 
-    Sentry.captureMessage(
-      'Invalid period: Period must result in a positive duration',
-      'error'
-    );
-    return TWENTY_FOUR_HOURS; // Default positive duration
-  
+  }
+  Sentry.captureMessage(
+    'Invalid period: Period must result in a positive duration',
+    'error'
+  );
+  return TWENTY_FOUR_HOURS; // Default positive duration
 }
 
 // Max period (in hours) before we can no long include previous period
