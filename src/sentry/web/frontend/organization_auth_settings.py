@@ -18,7 +18,7 @@ from sentry.models.organization import Organization
 from sentry.plugins.base import Response
 from sentry.services.hybrid_cloud.auth import RpcAuthProvider, auth_service
 from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
-from sentry.tasks.auth import email_missing_links
+from sentry.tasks.auth import email_missing_links_control
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import ControlSiloOrganizationView, control_silo_view
 
@@ -124,7 +124,7 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
                 next_uri = f"/settings/{organization.slug}/auth/"
                 return self.redirect(next_uri)
             elif op == "reinvite":
-                email_missing_links.delay(organization.id, request.user.id, provider.key)
+                email_missing_links_control.delay(organization.id, request.user.id, provider.key)
 
                 messages.add_message(request, messages.SUCCESS, OK_REMINDERS_SENT)
 
