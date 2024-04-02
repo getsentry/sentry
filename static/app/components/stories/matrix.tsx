@@ -15,7 +15,7 @@ export type PropMatrix<P extends RenderProps> = Partial<{
 interface Props<P extends RenderProps> {
   propMatrix: PropMatrix<P>;
   render: ElementType<P>;
-  selectedProps: [keyof P, keyof P];
+  selectedProps: [keyof P] | [keyof P, keyof P];
   sizingWindowProps?: SizingWindowProps;
 }
 
@@ -32,7 +32,7 @@ export default function Matrix<P extends RenderProps>({
   );
 
   const values1 = propMatrix[selectedProps[0]] ?? [];
-  const values2 = propMatrix[selectedProps[1]] ?? [];
+  const values2 = selectedProps.length === 2 ? propMatrix[selectedProps[1]] : undefined;
 
   const items = values1.flatMap(value1 => {
     const label = (
@@ -40,13 +40,14 @@ export default function Matrix<P extends RenderProps>({
         <JSXProperty name={String(selectedProps[0])} value={value1} />
       </div>
     );
-    const content = values2.map(value2 => {
+
+    const content = (values2 ?? ['']).map(value2 => {
       return item(
         render,
         {
           ...defaultValues,
           [selectedProps[0]]: value1,
-          [selectedProps[1]]: value2,
+          ...(selectedProps.length === 2 ? {[selectedProps[1]]: value2} : {}),
         },
         sizingWindowProps
       );
@@ -56,17 +57,23 @@ export default function Matrix<P extends RenderProps>({
 
   return (
     <div>
-      <h4 style={{margin: 0}}>
-        <samp>{selectedProps[0] as string | number}</samp> vs{' '}
-        <samp>{selectedProps[1] as string | number}</samp>
-      </h4>
+      {selectedProps.length === 2 ? (
+        <h4 style={{margin: 0}}>
+          <samp>{selectedProps[0] as string | number}</samp> vs{' '}
+          <samp>{selectedProps[1] as string | number}</samp>
+        </h4>
+      ) : (
+        <h4 style={{margin: 0}}>
+          <samp>{selectedProps[0] as string | number}</samp>
+        </h4>
+      )}
       <Grid
         style={{
-          gridTemplateColumns: `max-content repeat(${values2.length}, max-content)`,
+          gridTemplateColumns: `max-content repeat(${values2?.length ?? 1}, max-content)`,
         }}
       >
-        <div key="space-head" />
-        {values2.map(value2 => (
+        {values2 ? <div key="space-head" /> : null}
+        {values2?.map(value2 => (
           <div key={`title-2-${value2}`}>
             <JSXProperty name={String(selectedProps[1])} value={value2} />
           </div>

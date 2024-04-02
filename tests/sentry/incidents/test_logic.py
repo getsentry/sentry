@@ -76,6 +76,7 @@ from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.integrations.discord.utils.channel import ChannelType
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.models.actor import ActorTuple, get_actor_for_user, get_actor_id_for_user
+from sentry.models.group import GroupStatus
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, ApiTimeoutError
@@ -85,7 +86,9 @@ from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventTy
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, region_silo_test
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
+from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
 from sentry.utils import json
 
 pytestmark = [pytest.mark.sentry_metrics]
@@ -290,6 +293,22 @@ class GetIncidentAggregatesTest(TestCase, BaseIncidentAggregatesTest):
     def test_projects(self):
         assert get_incident_aggregates(self.project_incident) == {"count": 4}
 
+    @override_options({"issues.group_attributes.send_kafka": True})
+    @with_feature("organizations:metric-alert-ignore-archived")
+    def test_is_unresolved_query(self):
+        incident = self.create_incident(
+            date_started=self.now - timedelta(minutes=5),
+            query="is:unresolved",
+            projects=[self.project],
+        )
+        event = self.create_event(self.now - timedelta(minutes=1))
+        self.create_event(self.now - timedelta(minutes=2))
+        self.create_event(self.now - timedelta(minutes=3))
+        self.create_event(self.now - timedelta(minutes=4))
+
+        event.group.update(status=GroupStatus.UNRESOLVED)
+        assert get_incident_aggregates(incident) == {"count": 4}
+
 
 class GetCrashRateIncidentAggregatesTest(TestCase, SnubaTestCase):
     def setUp(self):
@@ -440,7 +459,6 @@ class GetIncidentSubscribersTest(TestCase, BaseIncidentsTest):
         assert list(get_incident_subscribers(incident)) == [subscription]
 
 
-@region_silo_test
 class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
     def test_create_alert_rule(self):
         # pytest parametrize does not work in TestCase subclasses, so hack around this
@@ -1306,7 +1324,6 @@ class BaseAlertRuleTriggerActionTest:
         return create_alert_rule_trigger(self.alert_rule, "hello", 1000)
 
 
-@region_silo_test
 class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase):
     def test(self):
         type = AlertRuleTriggerAction.Type.EMAIL
@@ -1643,7 +1660,6 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
         assert action.sentry_app_config is None
 
 
-@region_silo_test
 class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
     @cached_property
     def action(self):
@@ -2288,7 +2304,6 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         assert action.sentry_app_config is None  # priority is not stored inside
 
 
-@region_silo_test
 class DeleteAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
     @cached_property
     def action(self):
@@ -2306,7 +2321,6 @@ class DeleteAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             AlertRuleTriggerAction.objects.get(id=action_id)
 
 
-@region_silo_test
 class GetActionsForTriggerTest(BaseAlertRuleTriggerActionTest, TestCase):
     def test(self):
         assert list(get_actions_for_trigger(self.trigger)) == []
@@ -2319,7 +2333,6 @@ class GetActionsForTriggerTest(BaseAlertRuleTriggerActionTest, TestCase):
         assert list(get_actions_for_trigger(self.trigger)) == [action]
 
 
-@region_silo_test
 class GetAvailableActionIntegrationsForOrgTest(TestCase):
     def test_none(self):
         assert list(get_available_action_integrations_for_org(self.organization)) == []

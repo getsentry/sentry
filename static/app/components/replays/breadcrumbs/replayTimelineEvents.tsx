@@ -74,7 +74,7 @@ function Event({
 }) {
   const theme = useTheme();
   const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
-  const {setActiveTab} = useActiveReplayTab();
+  const {setActiveTab} = useActiveReplayTab({});
 
   const buttons = frames.map((frame, i) => (
     <BreadcrumbItem

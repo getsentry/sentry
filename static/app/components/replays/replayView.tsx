@@ -56,7 +56,12 @@ function ReplayView({toggleFullscreen}: Props) {
           </BreadcrumbContainer>
         ) : null}
       </PlayerBreadcrumbContainer>
-      {isFullscreen ? <ReplayController toggleFullscreen={toggleFullscreen} /> : null}
+      {isFullscreen ? (
+        <ReplayController
+          toggleFullscreen={toggleFullscreen}
+          disableSettings={isVideoReplay}
+        />
+      ) : null}
     </Fragment>
   );
 }

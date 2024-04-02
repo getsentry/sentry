@@ -39,6 +39,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import cast
 
+from sentry_kafka_schemas.codecs import ValidationError
+
 from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import EntityKey
@@ -66,8 +68,8 @@ def _build_namespace_regex() -> str:
 
 MRI_METRIC_TYPE_REGEX = r"(c|s|d|g|e)"
 MRI_NAMESPACE_REGEX = _build_namespace_regex()
-MRI_NAME_REGEX = r"([a-zA-Z0-9_]+(?:\.[a-zA-Z0-9_]+)*)"
-MRI_UNIT_REGEX = r"[\w.]*"
+MRI_NAME_REGEX = r"([a-zA-Z0-9_/.]+)"
+MRI_UNIT_REGEX = r"[\s\S\r\n]*"
 MRI_SCHEMA_REGEX_STRING = rf"(?P<entity>{MRI_METRIC_TYPE_REGEX}):(?P<namespace>{MRI_NAMESPACE_REGEX})/(?P<name>{MRI_NAME_REGEX})@(?P<unit>{MRI_UNIT_REGEX})"
 MRI_SCHEMA_REGEX = re.compile(rf"^{MRI_SCHEMA_REGEX_STRING}$")
 MRI_EXPRESSION_REGEX = re.compile(rf"^{OP_REGEX}\(({MRI_SCHEMA_REGEX_STRING})\)$")
@@ -358,3 +360,17 @@ def get_available_operations(parsed_mri: ParsedMRI) -> Sequence[str]:
     else:
         entity_key = get_entity_key_from_entity_type(parsed_mri.entity, True).value
         return AVAILABLE_GENERIC_OPERATIONS[entity_key]
+
+
+def extract_use_case_id(mri: str) -> UseCaseID:
+    """
+    Returns the use case ID given the MRI, throws an error if MRI is invalid or the use case doesn't exist.
+    """
+    parsed_mri = parse_mri(mri)
+    if parsed_mri is not None:
+        if parsed_mri.namespace in {id.value for id in UseCaseID}:
+            return UseCaseID(parsed_mri.namespace)
+
+        raise ValidationError(f"The use case of the MRI {parsed_mri.namespace} does not exist")
+
+    raise ValidationError(f"The MRI {mri} is not valid")

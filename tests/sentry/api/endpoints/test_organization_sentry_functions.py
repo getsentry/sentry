@@ -7,7 +7,6 @@ from uuid import uuid4
 from sentry.models.sentryfunction import SentryFunction
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import region_silo_test
 
 
 class OrganizationSentryFunctionBase(APITestCase):
@@ -25,7 +24,6 @@ class OrganizationSentryFunctionBase(APITestCase):
         }
 
 
-@region_silo_test
 class OrganizationSentryFunctionsPost(OrganizationSentryFunctionBase):
     method = "POST"
 
@@ -85,7 +83,6 @@ class OrganizationSentryFunctionsPost(OrganizationSentryFunctionBase):
         assert response.data == "organizations:sentry-functions flag set to false"
 
 
-@region_silo_test
 class OrganizationSentryFunctionsGet(OrganizationSentryFunctionBase):
     endpoint = "sentry-api-0-organization-sentry-functions"
     method = "GET"
