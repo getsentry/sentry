@@ -333,6 +333,7 @@ class MarkFailedTestCase(TestCase):
                 "tags": {
                     "monitor.id": str(monitor.guid),
                     "monitor.slug": str(monitor.slug),
+                    "monitor.incident": str(monitor_incidents[0].id),
                 },
             },
         ) == dict(event)
@@ -443,6 +444,7 @@ class MarkFailedTestCase(TestCase):
                 "tags": {
                     "monitor.id": str(monitor.guid),
                     "monitor.slug": str(monitor.slug),
+                    "monitor.incident": str(monitor_incidents[0].id),
                 },
             },
         ) == dict(event)
@@ -553,6 +555,7 @@ class MarkFailedTestCase(TestCase):
                 "tags": {
                     "monitor.id": str(monitor.guid),
                     "monitor.slug": str(monitor.slug),
+                    "monitor.incident": str(monitor_incidents[0].id),
                 },
             },
         ) == dict(event)

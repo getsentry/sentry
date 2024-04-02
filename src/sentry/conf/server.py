@@ -1914,7 +1914,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable INP in the browser starfish webvitals module
     "organizations:starfish-browser-webvitals-replace-fid-with-inp": False,
     # Uses a computed total count to calculate the score in the browser starfish webvitals module, instead of measurements.score.total
-    "organizations:starfish-browser-webvitals-score-with-computed-total-count": False,
+    "organizations:starfish-browser-webvitals-score-computed-total": False,
     # Enable mobile starfish app start module view
     "organizations:starfish-mobile-appstart": False,
     # Enable mobile starfish ui module view
@@ -3568,6 +3568,7 @@ SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.incidents.endpoints",
     "sentry.replays.endpoints",
     "sentry.monitors.endpoints",
+    "sentry.issues.endpoints",
 )
 SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
 
