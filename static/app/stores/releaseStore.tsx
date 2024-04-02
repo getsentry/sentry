@@ -84,6 +84,10 @@ const storeConfig: ReleaseStoreDefinition = {
   },
 
   updateOrganization(org) {
+    if (!org) {
+      console.error('updateOrganization called with null org');
+      return;
+    }
     this.reset();
     this.state.orgSlug = org.slug;
     this.trigger(this.state);
