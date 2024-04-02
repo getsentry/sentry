@@ -124,6 +124,26 @@ def build_repository_query(metadata: Mapping[str, Any], name: str, query: str) -
     return f"{account_type}:{name} {query}".encode()
 
 
+def error(
+    request,
+    org,
+    error_short="Invalid installation request.",
+    error_long=ERR_INTEGRATION_INVALID_INSTALLATION_REQUEST,
+):
+    return render_to_response(
+        "sentry/integrations/github-integration-failed.html",
+        context={
+            "error": error_long,
+            "payload": {
+                "success": False,
+                "data": {"error": _(error_short)},
+            },
+            "document_origin": get_document_origin(org),
+        },
+        request=request,
+    )
+
+
 def get_document_origin(org) -> str:
     if org and features.has("organizations:customer-domains", org.organization):
         return f'"{generate_organization_url(org.organization.slug)}"'
@@ -365,20 +385,6 @@ class GitHubIntegrationProvider(IntegrationProvider):
 
 
 class OAuthLoginView(PipelineView):
-    def error(self, request):
-        return render_to_response(
-            "sentry/integrations/github-integration-failed.html",
-            context={
-                "error": ERR_INTEGRATION_INVALID_INSTALLATION_REQUEST,
-                "payload": {
-                    "success": False,
-                    "data": {"error": _("Invalid installation request.")},
-                },
-                "document_origin": get_document_origin(self.active_organization),
-            },
-            request=request,
-        )
-
     def dispatch(self, request: Request, pipeline) -> HttpResponse:
         self.determine_active_organization(request)
 
@@ -399,7 +405,7 @@ class OAuthLoginView(PipelineView):
 
         # At this point, we are past the GitHub "authorize" step
         if request.GET.get("state") != pipeline.signature:
-            return self.error(request)
+            return error(request, self.active_organization)
 
         # similar to OAuth2CallbackView.get_token_params
         data = {
@@ -418,31 +424,17 @@ class OAuthLoginView(PipelineView):
             payload = {}
 
         if "access_token" not in payload:
-            return self.error(request)
+            return error(request, self.active_organization)
 
         authenticated_user_info = get_user_info(payload["access_token"])
         if "login" not in authenticated_user_info:
-            return self.error(request)
+            return error(request, self.active_organization)
 
         pipeline.bind_state("github_authenticated_user", authenticated_user_info["login"])
         return pipeline.next_step()
 
 
 class GitHubInstallation(PipelineView):
-    def error(self, request):
-        return render_to_response(
-            "sentry/integrations/github-integration-failed.html",
-            context={
-                "error": ERR_INTEGRATION_INVALID_INSTALLATION_REQUEST,
-                "payload": {
-                    "success": False,
-                    "data": {"error": _("Invalid installation request.")},
-                },
-                "document_origin": get_document_origin(self.active_organization),
-            },
-            request=request,
-        )
-
     def get_app_url(self) -> str:
         name = options.get("github-app.name")
         return f"https://github.com/apps/{slugify(name)}"
@@ -468,17 +460,11 @@ class GitHubInstallation(PipelineView):
             ).exists()
 
         if integration_pending_deletion_exists:
-            return render_to_response(
-                "sentry/integrations/github-integration-failed.html",
-                context={
-                    "error": ERR_INTEGRATION_PENDING_DELETION,
-                    "payload": {
-                        "success": False,
-                        "data": {"error": _("GitHub installation pending deletion.")},
-                    },
-                    "document_origin": get_document_origin(self.active_organization),
-                },
-                request=request,
+            return error(
+                request,
+                self.active_organization,
+                error_short="GitHub installation pending deletion.",
+                error_long=ERR_INTEGRATION_PENDING_DELETION,
             )
 
         try:
@@ -491,17 +477,11 @@ class GitHubInstallation(PipelineView):
             return pipeline.next_step()
 
         if installations_exist:
-            return render_to_response(
-                "sentry/integrations/github-integration-failed.html",
-                context={
-                    "error": ERR_INTEGRATION_EXISTS_ON_ANOTHER_ORG,
-                    "payload": {
-                        "success": False,
-                        "data": {"error": _("Github installed on another Sentry organization.")},
-                    },
-                    "document_origin": get_document_origin(self.active_organization),
-                },
-                request=request,
+            return error(
+                request,
+                self.active_organization,
+                error_short="Github installed on another Sentry organization.",
+                error_long=ERR_INTEGRATION_EXISTS_ON_ANOTHER_ORG,
             )
 
         # OrganizationIntegration does not exist, but Integration does exist.
@@ -510,13 +490,13 @@ class GitHubInstallation(PipelineView):
                 external_id=installation_id, status=ObjectStatus.ACTIVE
             )
         except Integration.DoesNotExist:
-            return self.error(request)
+            return error(request, self.active_organization)
 
         # Check that the authenticated GitHub user is the same as who installed the app.
         if (
             pipeline.fetch_state("github_authenticated_user")
             != integration.metadata["sender"]["login"]
         ):
-            return self.error(request)
+            return error(request, self.active_organization)
 
         return pipeline.next_step()
