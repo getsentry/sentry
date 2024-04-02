@@ -384,6 +384,12 @@ export function formatPercentage(value: number, places: number = 2) {
   );
 }
 
+const numberFormatSteps = [
+  [1_000_000_000, 'b'],
+  [1_000_000, 'm'],
+  [1_000, 'k'],
+] as const;
+
 /**
  * Formats a number with an abbreviation e.g. 1000 -> 1k.
  *
@@ -398,18 +404,16 @@ export function formatAbbreviatedNumber(
 ): string {
   number = Number(number);
 
-  const abbreviations = ['k', 'm', 'b'];
-
-  for (let i = 3; i >= 1; i--) {
-    const [suffixNum, suffix] = [Math.pow(10, i * 3), abbreviations[i - 1]] as const;
+  for (const step of numberFormatSteps) {
+    const [suffixNum, suffix] = step;
     const shortValue = Math.floor(number / suffixNum);
-    const fitsBound = number % suffixNum;
+    const fitsBound = number % suffixNum === 0;
 
     if (shortValue <= 0) {
       continue;
     }
 
-    const useShortValue = !includeDecimals && (shortValue / 10 > 1 || !fitsBound);
+    const useShortValue = !includeDecimals && (shortValue > 10 || fitsBound);
 
     if (useShortValue) {
       if (precision === undefined) {
@@ -432,6 +436,11 @@ export function formatAbbreviatedNumber(
   return number.toLocaleString(undefined, {maximumSignificantDigits: precision});
 }
 
+/**
+ * Formats a number with an abbreviation and rounds to 2
+ * decimal digits without forcing trailing zeros.
+ * e. g. 1000 -> 1k, 1234 -> 1.23k
+ */
 export function formatAbbreviatedNumberWithDynamicPrecision(
   value: number | string
 ): string {
@@ -443,6 +452,7 @@ export function formatAbbreviatedNumberWithDynamicPrecision(
 
   const numOfDigits = Math.floor(Math.log10(Math.abs(number))) + 1;
 
+  // works up to 999 billion
   const numOfFormattedDigits = numOfDigits % 3 === 0 ? 3 : numOfDigits % 3;
 
   return formatAbbreviatedNumber(value, numOfFormattedDigits + 2, true);
