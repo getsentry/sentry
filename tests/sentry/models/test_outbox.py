@@ -29,12 +29,7 @@ from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import (
-    assume_test_silo_mode,
-    assume_test_silo_mode_of,
-    control_silo_test,
-    region_silo_test,
-)
+from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.types.region import Region, RegionCategory, get_local_region
 
 
@@ -151,7 +146,6 @@ class ControlOutboxTest(TestCase):
                 t.join()
 
 
-@region_silo_test
 class OutboxDrainTest(TransactionTestCase):
     @patch("sentry.models.outbox.process_region_outbox.send")
     def test_draining_with_disabled_shards(self, mock_send):
@@ -310,7 +304,6 @@ class OutboxDrainTest(TransactionTestCase):
         assert mock_process_region_outbox.call_count == 2
 
 
-@region_silo_test
 class RegionOutboxTest(TestCase):
     def test_creating_org_outboxes(self):
         with outbox_context(flush=False):
@@ -527,7 +520,6 @@ class RegionOutboxTest(TestCase):
             assert RegionOutbox.objects.count() == 0
 
 
-@region_silo_test
 class TestOutboxesManager(TestCase):
     def test_bulk_operations(self):
         org = self.create_organization()

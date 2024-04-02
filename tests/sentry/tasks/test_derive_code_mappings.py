@@ -16,7 +16,7 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.derive_code_mappings import derive_code_mappings, identify_stacktrace_paths
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.silo import assume_test_silo_mode_of, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.locking import UnableToAcquireLock
 
@@ -294,6 +294,20 @@ class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.source_root == ""
             assert code_mapping.repository.name == repo_name
 
+    def test_derive_code_mappings_starts_with_app_complex(self):
+        repo_name = "foo/bar"
+        with patch(
+            "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org"
+        ) as mock_get_trees_for_org:
+            mock_get_trees_for_org.return_value = {
+                repo_name: RepoTree(Repo(repo_name, "master"), ["sentry/utils/errors.js"])
+            }
+            derive_code_mappings(self.project.id, self.event_data)
+            code_mapping = RepositoryProjectPathConfig.objects.all()[0]
+            assert code_mapping.stack_root == "app:///"
+            assert code_mapping.source_root == "sentry/"
+            assert code_mapping.repository.name == repo_name
+
     @responses.activate
     def test_derive_code_mappings_starts_with_multiple_dot_dot_slash(self):
         repo_name = "foo/bar"
@@ -369,7 +383,7 @@ class TestPhpDeriveCodeMappings(BaseDeriveCodeMappings):
             }
             derive_code_mappings(self.project.id, self.event_data)
             code_mapping = RepositoryProjectPathConfig.objects.all()[0]
-            assert code_mapping.stack_root == ""
+            assert code_mapping.stack_root == "/"
             assert code_mapping.source_root == ""
             assert code_mapping.repository.name == repo_name
 
@@ -385,12 +399,11 @@ class TestPhpDeriveCodeMappings(BaseDeriveCodeMappings):
             }
             derive_code_mappings(self.project.id, self.event_data)
             code_mapping = RepositoryProjectPathConfig.objects.all()[0]
-            assert code_mapping.stack_root == "sentry/"
+            assert code_mapping.stack_root == "/sentry/"
             assert code_mapping.source_root == "src/sentry/"
             assert code_mapping.repository.name == repo_name
 
 
-@region_silo_test
 class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
     def setUp(self):
         super().setUp()
@@ -563,7 +576,6 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
             }
             derive_code_mappings(self.project.id, self.test_data)
             code_mapping = RepositoryProjectPathConfig.objects.all().first()
-            # sentry/models/release.py -> models/release.py -> sentry/models/release.py
-            # If the normalization code was used these would be the empty stack root
-            assert code_mapping.stack_root == "sentry/"
-            assert code_mapping.source_root == "sentry/"
+
+            assert code_mapping.stack_root == ""
+            assert code_mapping.source_root == ""

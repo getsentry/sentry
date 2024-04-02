@@ -4,10 +4,9 @@ from django.db import IntegrityError, router, transaction
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
 from sentry.models.user import User
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import assume_test_silo_mode_of, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode_of
 
 
-@region_silo_test
 class DiscoverSavedQueryTest(TestCase):
     def setUp(self):
         super().setUp()

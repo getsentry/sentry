@@ -6,13 +6,11 @@ from sentry.models.deploy import Deploy
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouprelease import GroupRelease
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.suspect_resolutions.resolved_in_active_release import (
     is_resolved_issue_within_active_release,
 )
 
 
-@region_silo_test
 class ResolvedInActiveReleaseTest(TestCase):
     def test_unresolved_issue_in_active_release(self):
         project = self.create_project()

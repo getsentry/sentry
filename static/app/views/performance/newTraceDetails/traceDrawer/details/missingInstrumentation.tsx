@@ -1,40 +1,44 @@
 import {useTheme} from '@emotion/react';
 
+import {Button} from 'sentry/components/button';
 import {IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/formatters';
+import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceTabs';
 import {Row} from 'sentry/views/performance/traceDetails/styles';
 
-import {
-  makeTraceNodeBarColor,
-  type MissingInstrumentationNode,
-  type TraceTree,
-  type TraceTreeNode,
-} from '../../traceTree';
+import {makeTraceNodeBarColor, type MissingInstrumentationNode} from '../../traceTree';
 
 import {TraceDrawerComponents} from './styles';
 
 export function MissingInstrumentationNodeDetails({
   node,
   onParentClick,
-}: {
-  node: MissingInstrumentationNode;
-  onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
-}) {
+  scrollToNode,
+}: TraceTreeNodeDetailsProps<MissingInstrumentationNode>) {
   const theme = useTheme();
   const parentTransaction = node.parent_transaction;
 
   return (
     <TraceDrawerComponents.DetailContainer>
-      <TraceDrawerComponents.IconTitleWrapper>
-        <TraceDrawerComponents.IconBorder
-          backgroundColor={makeTraceNodeBarColor(theme, node)}
-        >
-          <IconSpan size="md" />
-        </TraceDrawerComponents.IconBorder>
-        <div style={{fontWeight: 'bold'}}>{t('Missing Instrumentation')}</div>
-      </TraceDrawerComponents.IconTitleWrapper>
+      <TraceDrawerComponents.HeaderContainer>
+        <TraceDrawerComponents.Title>
+          <TraceDrawerComponents.IconTitleWrapper>
+            <TraceDrawerComponents.IconBorder
+              backgroundColor={makeTraceNodeBarColor(theme, node)}
+            >
+              <IconSpan size="md" />
+            </TraceDrawerComponents.IconBorder>
+            <div style={{fontWeight: 'bold'}}>{t('Missing Instrumentation')}</div>
+          </TraceDrawerComponents.IconTitleWrapper>
+        </TraceDrawerComponents.Title>
+        <TraceDrawerComponents.Actions>
+          <Button size="xs" onClick={_e => scrollToNode(node)}>
+            {t('Show in view')}
+          </Button>
+        </TraceDrawerComponents.Actions>
+      </TraceDrawerComponents.HeaderContainer>
       <TraceDrawerComponents.Table className="table key-value">
         <tbody>
           {parentTransaction ? (

@@ -13,11 +13,11 @@ from sentry.utils.redis import (
     get_dynamic_cluster_from_options,
     is_instance_rb_cluster,
     is_instance_redis_cluster,
-    load_script,
+    load_redis_script,
     validate_dynamic_cluster,
 )
 
-is_rate_limited = load_script("quotas/is_rate_limited.lua")
+is_rate_limited = load_redis_script("quotas/is_rate_limited.lua")
 
 
 class RedisQuota(Quota):
@@ -306,7 +306,7 @@ class RedisQuota(Quota):
             return NotRateLimited()
 
         client = self.__get_redis_client(str(project.organization_id))
-        rejections = is_rate_limited(client, keys, args)
+        rejections = is_rate_limited(keys, args, client)
 
         if not any(rejections):
             return NotRateLimited()

@@ -16,12 +16,10 @@ from sentry.services.hybrid_cloud.integration.serial import serialize_integratio
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import APITestCase, TestCase
-from sentry.testutils.silo import region_silo_test
 
 TOKEN = "JWT anexampletoken"
 
 
-@region_silo_test
 class JiraIssueUpdatedWebhookTest(APITestCase):
     endpoint = "sentry-extensions-jira-issue-updated"
     method = "post"

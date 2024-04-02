@@ -266,6 +266,12 @@ register(
 
 # Staff
 register(
+    "staff.ga-rollout",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "staff.user-email-allowlist",
     type=Sequence,
     default=[],
@@ -288,6 +294,20 @@ register(
     type=Bool,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "apitoken.save-hash-on-create",
+    default=True,
+    type=Bool,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Controls the rate of using the hashed value of User API tokens for lookups when logging in
+# and also updates tokens which are not hashed
+register(
+    "apitoken.use-and-update-hash-rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "api.rate-limit.org-create",
@@ -306,8 +326,11 @@ register(
 # Filestore (default)
 register("filestore.backend", default="filesystem", flags=FLAG_NOSTORE)
 register("filestore.options", default={"location": "/tmp/sentry-files"}, flags=FLAG_NOSTORE)
+register("filestore.relocation-backend", default="filesystem", flags=FLAG_NOSTORE)
 register(
-    "filestore.relocation", default={"location": "/tmp/sentry-relocation-files"}, flags=FLAG_NOSTORE
+    "filestore.relocation-options",
+    default={"location": "/tmp/sentry-relocation-files"},
+    flags=FLAG_NOSTORE,
 )
 
 # Filestore for control silo
@@ -419,6 +442,20 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Produce feedback to the new ingest-feedback-events topic, rather than ingest-events
+register(
+    "feedback.ingest-topic.rollout-rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# React concurrent renderer
+register(
+    "organizations:react-concurrent-renderer-enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Analytics
@@ -587,6 +624,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Enable use of Symbolicator proguard processing for specific projects.
+register("symbolicator.proguard-processing-projects", type=Sequence, default=[])
+# Enable use of Symbolicator proguard processing for fraction of projects.
+register("symbolicator.proguard-processing-sample-rate", default=0.0)
+
 # Post Process Error Hook Sampling
 register(
     "post-process.use-error-hook-sampling", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
@@ -735,6 +777,34 @@ register(
 )
 
 register(
+    "issues.severity.seer-project-rate-limit",
+    type=Int,
+    default=5,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.severity.seer-global-rate-limit",
+    type=Int,
+    default=25,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.severity.seer-circuit-breaker-passthrough-limit",
+    type=Dict,
+    default={"limit": 1, "window": 10},
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.severity.seer-timout",
+    type=Float,
+    default=0.2,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "issues.severity.default-high-priority-alerts-orgs-allowlist",
     type=Sequence,
     default=[],
@@ -851,6 +921,12 @@ register(
 )
 register(
     "api.organization.disable-last-deploys",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.skip-seer-requests",
     type=Sequence,
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -1628,12 +1704,14 @@ register(
 # Adjusting some time buffers in the trace endpoint
 register(
     "performance.traces.transaction_query_timebuffer_days",
+    type=Float,
     default=1.5,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # days
 register(
     "performance.traces.span_query_timebuffer_hours",
-    default=1,
+    type=Float,
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # hours
 
@@ -1678,20 +1756,25 @@ register("hybridcloud.regionsiloclient.retries", default=5, flags=FLAG_AUTOMATOR
 register("hybridcloud.rpc.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybridcloud.integrationproxy.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# Break glass controls
-register("hybrid_cloud.rpc.disabled-service-methods", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
-
+# Webhook processing controls
 register(
     "hybridcloud.webhookpayload.use_parallel",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
 register(
     "hybridcloud.webhookpayload.worker_threads",
     default=4,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "hybridcloud.webhookpayload.use_mailbox_buckets",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Break glass controls
+register("hybrid_cloud.rpc.disabled-service-methods", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 # == End hybrid cloud subsystem
 
 # Decides whether an incoming transaction triggers an update of the clustering rule applied to it.
@@ -2198,13 +2281,6 @@ register(
 # Sample rate for double writing to experimental dsn
 register(
     "store.experimental-dsn-double-write.sample-rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# sample rate for pickle error collection
-register(
-    "pickle.send-error-to-sentry",
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

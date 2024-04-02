@@ -25,7 +25,6 @@ from sentry.rules.history.preview import (
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
 from sentry.utils.samples import load_data
@@ -38,7 +37,6 @@ def get_hours(time: timedelta) -> int:
     return time.days * 24 + time.seconds // (60 * 60)
 
 
-@region_silo_test
 @freeze_time()
 class ProjectRulePreviewTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
     def setUp(self):
@@ -528,7 +526,6 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert result[self.group.id] == prev_two_hour
 
 
-@region_silo_test
 @freeze_time()
 class FrequencyConditionTest(
     TestCase, SnubaTestCase, OccurrenceTestMixin, PerformanceIssueTestCase
@@ -874,7 +871,6 @@ class FrequencyConditionTest(
         assert group.id not in result
 
 
-@region_silo_test
 @freeze_time()
 class GetEventsTest(TestCase, SnubaTestCase):
     def test_get_first_seen(self):

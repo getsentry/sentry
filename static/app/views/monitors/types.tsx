@@ -89,7 +89,7 @@ export interface IntervalConfig extends BaseConfig {
 export type MonitorConfig = CrontabConfig | IntervalConfig;
 
 export interface MonitorEnvBrokenDetection {
-  envMutedTimestamp: string;
+  environmentMutedTimestamp: string;
   userNotifiedTimestamp: string;
 }
 
@@ -168,6 +168,10 @@ export interface CheckIn {
    * Check-in GUID
    */
   id: string;
+  /**
+   * A snapshot of the monitor configuration at the time of the check-in
+   */
+  monitorConfig: MonitorConfig;
   /**
    * Status of the check-in
    */

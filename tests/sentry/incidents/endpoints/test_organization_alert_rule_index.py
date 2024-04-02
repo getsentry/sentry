@@ -32,7 +32,7 @@ from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
@@ -121,7 +121,6 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase):
         assert resp.data == serialize([alert_rule1])
 
 
-@region_silo_test
 @freeze_time()
 class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
     method = "post"
@@ -924,7 +923,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
         assert resp.data["name"][0] == "Ensure this field has no more than 256 characters."
 
 
-@region_silo_test
 @freeze_time()
 class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase):
     method = "post"
@@ -1068,7 +1066,6 @@ class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase):
         mock_find_channel_id_for_alert_rule.assert_called_once_with(kwargs=kwargs)
 
 
-@region_silo_test
 @freeze_time()
 class MetricsCrashRateAlertCreationTest(AlertRuleCreateEndpointTestCrashRateAlert):
     method = "post"

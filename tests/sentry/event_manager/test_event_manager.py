@@ -90,7 +90,7 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_forma
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import assume_test_silo_mode_of, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
@@ -124,7 +124,6 @@ class EventManagerTestMixin:
         return event
 
 
-@region_silo_test
 class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, PerformanceIssueTestCase):
     def test_similar_message_prefix_doesnt_group(self):
         # we had a regression which caused the default hash to just be
@@ -2553,7 +2552,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             assert "grouping.in_app_frame_mix" not in metrics_logged
 
 
-@region_silo_test
 class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):
     def setUp(self):
         super().setUp()
@@ -2617,7 +2615,6 @@ class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):
         )
 
 
-@region_silo_test
 class ReleaseIssueTest(TestCase):
     def setUp(self):
         self.project = self.create_project()
@@ -2747,7 +2744,6 @@ class ReleaseIssueTest(TestCase):
         )
 
 
-@region_silo_test
 @apply_feature_flag_on_cls("organizations:dynamic-sampling")
 class DSLatestReleaseBoostTest(TestCase):
     def setUp(self):

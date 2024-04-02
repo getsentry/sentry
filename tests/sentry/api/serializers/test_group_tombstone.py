@@ -3,10 +3,8 @@ from sentry.models.grouphash import GroupHash
 from sentry.models.grouptombstone import GroupTombstone
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class GroupTombstoneSerializerTest(TestCase):
     def test_simple(self):
         user = self.create_user("foo@example.com")

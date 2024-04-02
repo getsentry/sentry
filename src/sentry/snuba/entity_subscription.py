@@ -6,7 +6,7 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, TypedDict, Union
 
-from snuba_sdk import Column, Condition, Join, Op, Request
+from snuba_sdk import Column, Condition, Entity, Join, Op, Request
 
 from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
@@ -664,6 +664,16 @@ def get_entity_key_from_request(request: Request) -> EntityKey:
         # XXX: Is there a better way to handle this
         match = match.relationships[0].lhs
     return EntityKey(match.name)
+
+
+def get_entity_from_query_builder(query_builder: QueryBuilder) -> Entity | None:
+    request = query_builder.get_snql_query()
+    match = request.query.match
+    if isinstance(match, Join):
+        # need to specify Entity for Join queries
+        match = match.relationships[0].lhs
+        return Entity(name=match.name, alias=match.name)
+    return None
 
 
 def get_entity_key_from_query_builder(query_builder: QueryBuilder) -> EntityKey:
