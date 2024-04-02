@@ -5,9 +5,9 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import FeedbackScreenshot from 'sentry/components/feedback/feedbackItem/feedbackScreenshot';
-import OpenScreenshotModal, {
+import ScreenshotsModal, {
   modalCss,
-} from 'sentry/components/feedback/feedbackItem/openScreenshotModal';
+} from 'sentry/components/feedback/feedbackItem/screenshotsModal';
 import useFeedbackScreenshot from 'sentry/components/feedback/feedbackItem/useFeedbackHasScreenshot';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -29,21 +29,19 @@ export function ScreenshotSection({event, organization, projectSlug}: Props) {
     <ScreenshotWrapper>
       {screenshots.map(screenshot => (
         <li key={screenshot.id}>
-          <FeedbackScreenshot
+          <FixedSizeFeedbackScreenshot
             organization={organization}
             projectSlug={projectSlug}
             screenshot={screenshot}
             onClick={() => {
               openModal(
                 modalProps => (
-                  <OpenScreenshotModal
+                  <ScreenshotsModal
                     {...modalProps}
-                    event={event}
-                    orgSlug={organization.slug}
+                    organization={organization}
                     projectSlug={projectSlug}
-                    eventAttachment={screenshot}
-                    attachments={screenshots}
-                    attachmentIndex={screenshots.indexOf(screenshot)}
+                    screenshots={screenshots}
+                    initialIndex={screenshots.indexOf(screenshot)}
                   />
                 ),
                 {modalCss}
@@ -89,4 +87,9 @@ const ScreenshotWrapper = styled('ul')`
     display: flex;
     gap: ${space(1)};
   }
+`;
+
+const FixedSizeFeedbackScreenshot = styled(FeedbackScreenshot)`
+  max-width: 360px;
+  max-height: 360px;
 `;

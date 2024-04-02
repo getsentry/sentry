@@ -8,10 +8,11 @@ import Panel from 'sentry/components/panels/panel';
 import type {EventAttachment, Organization, Project} from 'sentry/types';
 
 type Props = {
-  onClick: () => void;
   organization: Organization;
   projectSlug: Project['slug'];
   screenshot: EventAttachment;
+  className?: string;
+  onClick?: () => void;
 };
 
 export default function FeedbackScreenshot({
@@ -19,6 +20,7 @@ export default function FeedbackScreenshot({
   screenshot,
   projectSlug,
   onClick,
+  className,
 }: Props) {
   const [isLoading, setIsLoading] = useState(true);
 
@@ -28,23 +30,29 @@ export default function FeedbackScreenshot({
         if (!hasRole) {
           return null;
         }
+
+        const img = (
+          <StyledImageVisualization
+            attachment={screenshot}
+            orgId={organization.slug}
+            projectSlug={projectSlug}
+            eventId={screenshot.event_id}
+            onLoad={() => setIsLoading(false)}
+            onError={() => setIsLoading(false)}
+          />
+        );
         return (
-          <StyledPanel>
+          <StyledPanel className={className}>
             {isLoading && (
               <StyledLoadingIndicator>
                 <LoadingIndicator mini />
               </StyledLoadingIndicator>
             )}
-            <StyledImageButton onClick={onClick}>
-              <StyledImageVisualization
-                attachment={screenshot}
-                orgId={organization.slug}
-                projectSlug={projectSlug}
-                eventId={screenshot.event_id}
-                onLoad={() => setIsLoading(false)}
-                onError={() => setIsLoading(false)}
-              />
-            </StyledImageButton>
+            {onClick ? (
+              <StyledImageButton onClick={onClick}>{img}</StyledImageButton>
+            ) : (
+              img
+            )}
           </StyledPanel>
         );
       }}
@@ -58,9 +66,8 @@ const StyledPanel = styled(Panel)`
   justify-content: center;
   align-items: center;
   margin-bottom: 0;
-  max-width: 360px;
-  max-height: 360px;
   border: 0;
+
   border-radius: ${p => p.theme.borderRadius};
 `;
 
