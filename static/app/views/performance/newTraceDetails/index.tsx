@@ -62,6 +62,7 @@ import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
 } from '../../../utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
+import {capitalize} from '../../../utils/string/capitalize';
 import Breadcrumb from '../breadcrumb';
 
 import {TraceDrawer} from './traceDrawer/traceDrawer';
@@ -140,8 +141,15 @@ export function TraceView() {
 }
 
 const TRACE_TAB: TraceTabsReducerState['tabs'][0] = {
-  node: 'Trace',
+  node: 'trace',
+  label: t('Trace'),
 };
+
+const VITALS_TAB: TraceTabsReducerState['tabs'][0] = {
+  node: 'vitals',
+  label: t('Vitals'),
+};
+
 const STATIC_DRAWER_TABS: TraceTabsReducerState['tabs'] = [TRACE_TAB];
 
 type TraceViewContentProps = {
@@ -292,6 +300,35 @@ function TraceViewContent(props: TraceViewContentProps) {
 
   const tabsStateRef = useRef<TraceTabsReducerState>(tabs);
   tabsStateRef.current = tabs;
+
+  useLayoutEffect(() => {
+    if (tree.type !== 'trace') {
+      return;
+    }
+
+    const newTabs = [TRACE_TAB];
+
+    if (tree.vitals.size > 0) {
+      const types = Array.from(tree.vital_types.values());
+      const label = types.length > 1 ? t('Vitals') : capitalize(types[0]) + ' Vitals';
+
+      newTabs.push({
+        ...VITALS_TAB,
+        label,
+      });
+    }
+
+    tabsDispatch({
+      type: 'initialize',
+      payload: {
+        current: tabs[0],
+        tabs: newTabs,
+        last_clicked: null,
+      },
+    });
+    // We only want to update the tabs when the tree changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tree]);
 
   const onRowClick = useCallback(
     (
