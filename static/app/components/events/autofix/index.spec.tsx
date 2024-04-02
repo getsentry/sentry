@@ -13,10 +13,17 @@ const group = GroupFixture();
 const event = EventFixture();
 
 describe('AiAutofix', () => {
-  beforeAll(() => {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/issues/${group.id}/ai-autofix/`,
       body: null,
+    });
+    MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/autofix/setup/`,
+      body: {
+        genAIConsent: {ok: true},
+        integration: {ok: true},
+      },
     });
   });
 

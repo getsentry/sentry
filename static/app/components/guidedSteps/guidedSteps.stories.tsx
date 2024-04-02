@@ -23,15 +23,15 @@ export default storyBook(GuidedSteps, story => {
       </p>
       <SizingWindow display="block">
         <GuidedSteps>
-          <GuidedSteps.Step title="Step 1 Title">
+          <GuidedSteps.Step title="Step 1 Title" stepKey="step-1">
             This is the first step.
             <GuidedSteps.StepButtons />
           </GuidedSteps.Step>
-          <GuidedSteps.Step title="Step 2 Title">
+          <GuidedSteps.Step title="Step 2 Title" stepKey="step-2">
             This is the second step.
             <GuidedSteps.StepButtons />
           </GuidedSteps.Step>
-          <GuidedSteps.Step title="Step 3 Title">
+          <GuidedSteps.Step title="Step 3 Title" stepKey="step-3">
             This is the third step.
             <GuidedSteps.StepButtons />
           </GuidedSteps.Step>
@@ -61,15 +61,15 @@ export default storyBook(GuidedSteps, story => {
         </p>
         <SizingWindow display="block">
           <GuidedSteps>
-            <GuidedSteps.Step title="Step 1 Title">
+            <GuidedSteps.Step title="Step 1 Title" stepKey="step-1">
               This is the first step.
               <SkipToLastButton />
             </GuidedSteps.Step>
-            <GuidedSteps.Step title="Step 2 Title">
+            <GuidedSteps.Step title="Step 2 Title" stepKey="step-2">
               This is the second step.
               <GuidedSteps.StepButtons />
             </GuidedSteps.Step>
-            <GuidedSteps.Step title="Step 3 Title">
+            <GuidedSteps.Step title="Step 3 Title" stepKey="step-3">
               This is the third step.
               <GuidedSteps.StepButtons />
             </GuidedSteps.Step>
@@ -90,17 +90,17 @@ export default storyBook(GuidedSteps, story => {
         </p>
         <SizingWindow display="block">
           <GuidedSteps>
-            <GuidedSteps.Step title="Step 1 Title" isCompleted>
+            <GuidedSteps.Step title="Step 1 Title" stepKey="step-1" isCompleted>
               Congrats, you finished the first step!
               <GuidedSteps.StepButtons />
             </GuidedSteps.Step>
-            <GuidedSteps.Step title="Step 2 Title" isCompleted={false}>
+            <GuidedSteps.Step title="Step 2 Title" stepKey="step-2" isCompleted={false}>
               You haven't completed the second step yet, here's how you do it.
               <GuidedSteps.ButtonWrapper>
                 <GuidedSteps.BackButton />
               </GuidedSteps.ButtonWrapper>
             </GuidedSteps.Step>
-            <GuidedSteps.Step title="Step 3 Title" isCompleted={false}>
+            <GuidedSteps.Step title="Step 3 Title" stepKey="step-3" isCompleted={false}>
               You haven't completed the third step yet, here's how you do it.
               <GuidedSteps.ButtonWrapper>
                 <GuidedSteps.BackButton />

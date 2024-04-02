@@ -1,13 +1,14 @@
 import {
-  Children,
   createContext,
-  isValidElement,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import styled from '@emotion/styled';
+import orderBy from 'lodash/orderBy';
 
 import {type BaseButtonProps, Button} from 'sentry/components/button';
 import {IconCheckmark} from 'sentry/icons';
@@ -22,46 +23,111 @@ type GuidedStepsProps = {
 
 interface GuidedStepsContextState {
   currentStep: number;
+  getStepNumber: (stepKey: string) => number;
+  registerStep: (step: RegisterStepInfo) => void;
   setCurrentStep: (step: number) => void;
   totalSteps: number;
 }
 
 interface StepProps {
   children: React.ReactNode;
+  stepKey: string;
   title: string;
   isCompleted?: boolean;
-  stepNumber?: number;
 }
+
+type RegisterStepInfo = Pick<StepProps, 'stepKey' | 'isCompleted'>;
+type RegisteredSteps = {[key: string]: {stepNumber: number; isCompleted?: boolean}};
 
 const GuidedStepsContext = createContext<GuidedStepsContextState>({
   currentStep: 0,
   setCurrentStep: () => {},
   totalSteps: 0,
+  registerStep: () => 0,
+  getStepNumber: () => 0,
 });
 
 export function useGuidedStepsContext() {
   return useContext(GuidedStepsContext);
 }
 
-function Step({
-  stepNumber = 1,
-  title,
-  children,
-  isCompleted: completedOverride,
-}: StepProps) {
-  const {currentStep} = useGuidedStepsContext();
+function useGuidedStepsContentValue({
+  onStepChange,
+}: Pick<GuidedStepsProps, 'onStepChange'>): GuidedStepsContextState {
+  const registeredStepsRef = useRef<RegisteredSteps>({});
+  const [totalSteps, setTotalSteps] = useState<number>(0);
+  const [currentStep, setCurrentStep] = useState<number>(1);
+
+  // Steps are registered on initial render to determine the step order and which step to start on.
+  // This allows Steps to be wrapped in other components, but does require that they exist on first
+  // render and that step order does not change.
+  const registerStep = useCallback((props: RegisterStepInfo) => {
+    if (registeredStepsRef.current[props.stepKey]) {
+      return;
+    }
+    const numRegisteredSteps = Object.keys(registeredStepsRef.current).length + 1;
+    registeredStepsRef.current[props.stepKey] = {
+      isCompleted: props.isCompleted,
+      stepNumber: numRegisteredSteps,
+    };
+    setTotalSteps(numRegisteredSteps);
+  }, []);
+
+  const getStepNumber = useCallback((stepKey: string) => {
+    return registeredStepsRef.current[stepKey]?.stepNumber ?? 1;
+  }, []);
+
+  // On initial load, set the current step to the first incomplete step
+  useEffect(() => {
+    const firstIncompleteStep = orderBy(
+      Object.values(registeredStepsRef.current),
+      'stepNumber'
+    ).find(step => step.isCompleted !== true);
+
+    setCurrentStep(firstIncompleteStep?.stepNumber ?? 1);
+  }, []);
+
+  const handleSetCurrentStep = useCallback(
+    (step: number) => {
+      setCurrentStep(step);
+      onStepChange?.(step);
+    },
+    [onStepChange]
+  );
+
+  return useMemo(
+    () => ({
+      currentStep,
+      setCurrentStep: handleSetCurrentStep,
+      totalSteps,
+      registerStep,
+      getStepNumber,
+    }),
+    [currentStep, getStepNumber, handleSetCurrentStep, registerStep, totalSteps]
+  );
+}
+
+function Step(props: StepProps) {
+  const {currentStep, registerStep, getStepNumber} = useGuidedStepsContext();
+  const stepNumber = getStepNumber(props.stepKey);
   const isActive = currentStep === stepNumber;
-  const isCompleted = completedOverride ?? currentStep > stepNumber;
+  const isCompleted = props.isCompleted ?? currentStep > stepNumber;
+
+  useEffect(() => {
+    registerStep({isCompleted: props.isCompleted, stepKey: props.stepKey});
+  }, [props.isCompleted, props.stepKey, registerStep]);
 
   return (
     <StepWrapper data-test-id={`guided-step-${stepNumber}`}>
       <StepNumber isActive={isActive}>{stepNumber}</StepNumber>
       <div>
         <StepHeading isActive={isActive}>
-          {title}
+          {props.title}
           {isCompleted && <StepDoneIcon isActive={isActive} size="sm" />}
         </StepHeading>
-        {isActive && <ChildrenWrapper isActive={isActive}>{children}</ChildrenWrapper>}
+        {isActive && (
+          <ChildrenWrapper isActive={isActive}>{props.children}</ChildrenWrapper>
+        )}
       </div>
     </StepWrapper>
   );
@@ -105,44 +171,11 @@ function StepButtons() {
 }
 
 export function GuidedSteps({className, children, onStepChange}: GuidedStepsProps) {
-  const [currentStep, setCurrentStep] = useState<number>(() => {
-    // If `isCompleted` has been passed in, we should start at the first incomplete step
-    const firstIncompleteStepIndex = Children.toArray(children).findIndex(child =>
-      isValidElement(child) ? child.props.isCompleted !== true : false
-    );
-
-    return Math.max(1, firstIncompleteStepIndex + 1);
-  });
-
-  const totalSteps = Children.count(children);
-  const handleSetCurrentStep = useCallback(
-    (step: number) => {
-      setCurrentStep(step);
-      onStepChange?.(step);
-    },
-    [onStepChange]
-  );
-
-  const value = useMemo(
-    () => ({
-      currentStep,
-      setCurrentStep: handleSetCurrentStep,
-      totalSteps,
-    }),
-    [currentStep, handleSetCurrentStep, totalSteps]
-  );
+  const value = useGuidedStepsContentValue({onStepChange});
 
   return (
     <GuidedStepsContext.Provider value={value}>
-      <StepsWrapper className={className}>
-        {Children.map(children, (child, index) => {
-          if (!child) {
-            return null;
-          }
-
-          return <Step stepNumber={index + 1} {...child.props} />;
-        })}
-      </StepsWrapper>
+      <StepsWrapper className={className}>{children}</StepsWrapper>
     </GuidedStepsContext.Provider>
   );
 }
@@ -212,6 +245,10 @@ const StepDoneIcon = styled(IconCheckmark, {
 
 const ChildrenWrapper = styled('div')<{isActive: boolean}>`
   color: ${p => (p.isActive ? p.theme.textColor : p.theme.subText)};
+
+  p {
+    margin-bottom: ${space(1)};
+  }
 `;
 
 GuidedSteps.Step = Step;
