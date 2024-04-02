@@ -232,16 +232,16 @@ class RedisBuffer(Buffer):
         pending_key = self._make_pending_key_from_key(key)
         pipe = self.get_redis_connection(pending_key)
         if pipe:
-            getattr(pipe, operation)(key, *args)
+            getattr(pipe, operation.value)(key, *args)
             if args:
                 pipe.expire(key, self.key_expire)
             return pipe.execute()
 
     def push_to_set(self, key: str, value: list[int] | int) -> None:
-        self._execute_redis_operation(key, RedisOperation.SET_ADD.value, value)
+        self._execute_redis_operation(key, RedisOperation.SET_ADD, value)
 
     def get_set(self, key: str) -> list[set]:
-        return self._execute_redis_operation(key, RedisOperation.SET_GET.value)
+        return self._execute_redis_operation(key, RedisOperation.SET_GET)
 
     def push_to_hash(
         self,
@@ -251,13 +251,13 @@ class RedisBuffer(Buffer):
         value: int,
     ) -> None:
         key = self._make_key(model, filters)
-        self._execute_redis_operation(key, RedisOperation.HASH_ADD.value, field, value)
+        self._execute_redis_operation(key, RedisOperation.HASH_ADD, field, value)
 
     def get_hash(
         self, model: type[models.Model], field: dict[str, models.Model | str | int]
     ) -> dict[str, str]:
         key = self._make_key(model, field)
-        return self._execute_redis_operation(key, RedisOperation.HASH_GET_ALL.value)
+        return self._execute_redis_operation(key, RedisOperation.HASH_GET_ALL)
 
     def incr(
         self,
