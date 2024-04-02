@@ -46,7 +46,13 @@ export function getTimeStampFromTableDateField(date: keyof TableDataRow): number
     return date;
   }
 
-  return new Date(date).getTime() / 1000;
+  const timestamp = new Date(date).getTime();
+
+  if (isNaN(timestamp)) {
+    throw new Error('Invalid timestamp: NaN');
+  }
+
+  return timestamp / 1000;
 }
 
 export function getFormattedDate(
