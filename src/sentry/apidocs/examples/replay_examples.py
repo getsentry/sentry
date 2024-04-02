@@ -19,7 +19,7 @@ replay_example = {
     "environment": "production",
     "error_ids": ["7e07485f-12f9-416b-8b14-26260799b51f"],
     "finished_at": "2022-07-07T14:15:33.201019",
-    "has_seen": True,
+    "has_viewed": True,
     "id": "7e07485f-12f9-416b-8b14-26260799b51f",
     "is_archived": None,
     "os": {"name": "iOS", "version": "16.2"},
