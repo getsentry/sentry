@@ -1,6 +1,10 @@
 import {useCallback, useState} from 'react';
 
-import type {AutofixData, GroupWithAutofix} from 'sentry/components/events/autofix/types';
+import {
+  type AutofixData,
+  AutofixStepType,
+  type GroupWithAutofix,
+} from 'sentry/components/events/autofix/types';
 import type {Event} from 'sentry/types';
 import {
   type ApiQueryKey,
@@ -10,34 +14,42 @@ import {
 } from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
-type AutofixResponse = {
+export type AutofixResponse = {
   autofix: AutofixData | null;
 };
 
 const POLL_INTERVAL = 2500;
 
-const makeAutofixQueryKey = (groupId: string): ApiQueryKey => [
+export const makeAutofixQueryKey = (groupId: string): ApiQueryKey => [
   `/issues/${groupId}/ai-autofix/`,
 ];
 
 const isPolling = (autofixData?: AutofixData | null) =>
   autofixData?.status === 'PROCESSING';
 
+export const useAutofixData = ({groupId}: {groupId: string}) => {
+  const {data} = useApiQuery<AutofixResponse>(makeAutofixQueryKey(groupId), {
+    staleTime: Infinity,
+    enabled: false,
+    notifyOnChangeProps: ['data'],
+  });
+
+  return data?.autofix ?? null;
+};
+
 export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
   const api = useApi();
   const queryClient = useQueryClient();
 
   const [isReset, setIsReset] = useState<boolean>(false);
-  const initialAutofixData = group.metadata?.autofix ?? null;
 
   const {
     data: apiData,
     isError,
     error,
   } = useApiQuery<AutofixResponse>(makeAutofixQueryKey(group.id), {
-    staleTime: Infinity,
+    staleTime: 0,
     retry: false,
-    initialData: [{autofix: initialAutofixData}, undefined, undefined],
     refetchInterval: data => {
       if (isPolling(data?.[0]?.autofix)) {
         return POLL_INTERVAL;
@@ -52,8 +64,10 @@ export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
       setApiQueryData<AutofixResponse>(queryClient, makeAutofixQueryKey(group.id), {
         autofix: {
           status: 'PROCESSING',
+          run_id: '',
           steps: [
             {
+              type: AutofixStepType.DEFAULT,
               id: '1',
               index: 0,
               status: 'PROCESSING',
