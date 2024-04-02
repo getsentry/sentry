@@ -93,6 +93,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         as_actor=True,
     )  # This will be set to required=True once the frontend starts sending it.
     monitor_type = serializers.IntegerField(required=False, min_value=0)
+    activation_condition = serializers.IntegerField(required=False, allow_null=True, min_value=0)
 
     class Meta:
         model = AlertRule
