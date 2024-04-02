@@ -182,12 +182,10 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             count_over_threshold=len(
                 [
                     result["stacktrace_distance"]
-                    for result in results["responses"]
+                    for result in (results.get("responses") or [])
                     if result and result["stacktrace_distance"] <= 0.01
                 ]
-            )
-            if results.get("responses")
-            else 0,
+            ),
             user_id=request.user.id,
         )
 
