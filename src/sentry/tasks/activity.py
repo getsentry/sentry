@@ -1,5 +1,7 @@
 import logging
 
+from sentry import features
+from sentry.integrations.slack.service import SlackService
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils.safe import safe_execute
@@ -46,3 +48,7 @@ def send_activity_notifications(activity_id):
 
     for notifier in get_activity_notifiers(activity.project):
         notifier.notify_about_activity(activity)
+
+    if features.has("organizations:slack-thread-issue-alert", organization):
+        slack_service = SlackService.default()
+        slack_service.notify_all_threads_for_activity(activity=activity)
