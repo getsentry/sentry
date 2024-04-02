@@ -726,11 +726,7 @@ export class TraceTree {
         queue.push(child);
       }
 
-      if (isSiblingAutogroupedNode(node) || isParentAutogroupedNode(node)) {
-        continue;
-      }
-
-      if (!isSpanNode(node)) {
+      if (isAutogroupedNode(node)) {
         continue;
       }
 
