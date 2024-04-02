@@ -49,6 +49,10 @@ interface BaseConfig {
    * tz database style timezone string
    */
   timezone: string;
+  /**
+   * The id of thee "shadow" alert rule generated when alert assignees are
+   * selected
+   */
   alert_rule_id?: number;
   /**
    * How many consecutive missed or failed check-ins in a row before creating a
@@ -183,7 +187,8 @@ export interface CheckIn {
 }
 
 /**
- * Object used to store config for the display next to an environment in the timeline view
+ * Object used to store config for the display next to an environment in the
+ * timeline view
  */
 export interface StatusNotice {
   color: ColorOrAlias;
