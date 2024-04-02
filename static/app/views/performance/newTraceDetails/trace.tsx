@@ -10,6 +10,7 @@ import * as qs from 'query-string';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Organization, PlatformKey, Project} from 'sentry/types';
 import type {
   TraceError,
@@ -295,36 +296,38 @@ export function Trace({
           )
         : Promise.resolve(null);
 
-    promise.then(maybeNode => {
-      // Important to set scrollQueueRef.current to null and trigger a rerender
-      // after the promise resolves as we show a loading state during scroll,
-      // else the screen could jump around while we fetch span data
-      scrollQueueRef.current = null;
+    promise
+      .then(maybeNode => {
+        if (!maybeNode) {
+          Sentry.captureMessage('Failled to find and scroll to node in tree');
+          return;
+        }
 
-      if (!maybeNode) {
-        Sentry.captureMessage('Failled to find and scroll to node in tree');
+        if (maybeNode.node.space) {
+          manager.animateViewTo(maybeNode.node.space);
+        }
+
+        onRowClick(maybeNode.node, null);
+        roving_dispatch({
+          type: 'set index',
+          index: maybeNode.index,
+          node: maybeNode.node,
+        });
+
+        manager.list?.scrollToRow(maybeNode.index, 'top');
+        manager.scrollRowIntoViewHorizontally(maybeNode.node, 0, 12, 'exact');
+
+        if (searchStateRef.current.query) {
+          onTraceSearch(treeRef.current, searchStateRef.current.query, maybeNode.node);
+        }
+      })
+      .finally(() => {
+        // Important to set scrollQueueRef.current to null and trigger a rerender
+        // after the promise resolves as we show a loading state during scroll,
+        // else the screen could jump around while we fetch span data
+        scrollQueueRef.current = null;
         setRender(a => (a + 1) % 2);
-        return;
-      }
-
-      if (maybeNode.node.space) {
-        manager.animateViewTo(maybeNode.node.space);
-      }
-
-      onRowClick(maybeNode.node, null);
-      roving_dispatch({
-        type: 'set index',
-        index: maybeNode.index,
-        node: maybeNode.node,
       });
-
-      manager.list?.scrollToRow(maybeNode.index, 'top');
-      manager.scrollRowIntoViewHorizontally(maybeNode.node, 0, 12, 'exact');
-
-      if (searchStateRef.current.query) {
-        onTraceSearch(treeRef.current, searchStateRef.current.query, maybeNode.node);
-      }
-    });
   }, [
     api,
     scrollQueueRef,
@@ -619,7 +622,14 @@ export function Trace({
       }}
       className={`${trace.indicators.length > 0 ? 'WithIndicators' : ''} ${trace.type !== 'trace' || scrollQueueRef.current ? 'Loading' : ''}`}
     >
-      <div className="TraceDivider" ref={r => manager?.registerDividerRef(r)} />
+      <div
+        className="TraceScrollbarContainer"
+        ref={r => manager.registerHorizontalScrollBarContainerRef(r)}
+      >
+        <div className="TraceScrollbarScroller" />
+        <div className="TraceScrollbarHandle" />
+      </div>
+      <div className="TraceDivider" ref={r => manager.registerDividerRef(r)} />
       <div
         className="TraceIndicatorContainer"
         ref={r => manager.registerIndicatorContainerRef(r)}
@@ -1881,6 +1891,10 @@ const TraceStylingWrapper = styled('div')`
 
     &:before {
       height: 44px;
+
+      .TraceScrollbarContainer {
+        height: 44px;
+      }
     }
 
     .TraceIndicator.Timeline {
@@ -1918,6 +1932,27 @@ const TraceStylingWrapper = styled('div')`
 
     .TraceDivider {
       pointer-events: none;
+    }
+  }
+
+  .TraceScrollbarContainer {
+    height: 26px;
+    position: absolute;
+    left: 0;
+    top: 0;
+    overflow: auto;
+    overscroll-behavior: none;
+
+    .TraceScrollbarScroller {
+      height: 1px;
+      pointer-events: none;
+      visibility: hidden;
+    }
+
+    .TraceScrollbarHandle {
+      width: 24px;
+      height: 12px;
+      border-radius: 6px;
     }
   }
 
@@ -2221,6 +2256,7 @@ const TraceStylingWrapper = styled('div')`
       align-items: center;
       will-change: transform;
       transform-origin: left center;
+      padding-right: ${space(2)};
 
       img {
         width: 16px;
