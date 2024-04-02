@@ -263,13 +263,17 @@ const Row = styled('div')<{
           }`
       : `display: contents;
   & > * {
-    background-color: ${p.isPlaying ? p.theme.translucentInnerBorder : 'inherit'};
+    background-color: ${p.isPlaying ? p.theme.translucentGray200 : 'inherit'};
     border-top: 1px solid ${p.theme.border};
     cursor: ${p.showCursor ? 'pointer' : 'default'};
   }
   :hover {
     background-color: ${p.showCursor ? p.theme.translucentInnerBorder : 'inherit'};
-  }`}
+  }
+  :active {
+    background-color: ${p.theme.translucentGray200};
+  }
+  `}
 `;
 
 export default ReplayTable;
