@@ -817,7 +817,9 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
 
         try:
             # The trace view isn't useful without global views, so skipping the check here
-            params = self.get_snuba_params(request, organization, check_global_views=False)
+            params = self.get_snuba_params(
+                request, organization, check_global_views=False, include_all_projects=True
+            )
         except NoProjects:
             return Response(status=404)
 

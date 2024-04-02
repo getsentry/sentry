@@ -435,6 +435,7 @@ class OrganizationEndpoint(Endpoint):
         request: Request,
         organization: Organization | RpcOrganization,
         date_filter_optional: bool = False,
+        include_all_accessible: bool = False,
         project_ids: list[int] | set[int] | None = None,
         project_slugs: list[str] | set[str] | None = None,
     ) -> FilterParams:
@@ -488,7 +489,11 @@ class OrganizationEndpoint(Endpoint):
             if isinstance(project_slugs, list):
                 project_slugs = set(project_slugs)
             projects = self.get_projects(
-                request, organization, project_ids=project_ids, project_slugs=project_slugs
+                request,
+                organization,
+                project_ids=project_ids,
+                project_slugs=project_slugs,
+                include_all_accessible=include_all_accessible,
             )
         except ValueError:
             raise ParseError(detail="Invalid project ids")
