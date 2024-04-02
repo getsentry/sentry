@@ -32,14 +32,14 @@ def _backfill_alert_rule_projects(apps, schema_editor):
 
         if len(existing_alert_rule_projects) > 0:
             for arp in existing_alert_rule_projects:
-                if arp.project != subscription.project:
+                if arp.project_id != subscription.project_id:
                     logger.warning(
                         "AlertRuleProject found with different project than subscription",
                         extra={
                             "alert_rule_id": alert_rule.id,
                             "subscription_id": subscription.id,
-                            "subscription_project": subscription.project.id,
-                            "alert_rule_project": arp.project.id,
+                            "subscription_project": subscription.project_id,
+                            "alert_rule_project": arp.project_id,
                         },
                     )
                     arp.delete()
