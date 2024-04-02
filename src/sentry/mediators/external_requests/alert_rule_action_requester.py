@@ -4,6 +4,7 @@ from urllib.parse import urlparse, urlunparse
 from uuid import uuid4
 
 from django.db import router
+from django.utils.functional import cached_property
 from requests import RequestException
 from requests.models import Response
 
@@ -12,7 +13,6 @@ from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.utils import json
-from sentry.utils.cache import memoize
 
 logger = logging.getLogger("sentry.mediators.external-requests")
 
@@ -98,7 +98,7 @@ class AlertRuleActionRequester(Mediator):
             "Sentry-App-Signature": self.sentry_app.build_signature(self.body),
         }
 
-    @memoize
+    @cached_property
     def body(self):
         return json.dumps(
             {
@@ -107,6 +107,6 @@ class AlertRuleActionRequester(Mediator):
             }
         )
 
-    @memoize
+    @cached_property
     def sentry_app(self):
         return self.install.sentry_app

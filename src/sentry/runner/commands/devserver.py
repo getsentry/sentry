@@ -327,6 +327,7 @@ def devserver(
             kafka_consumers.add("ingest-attachments")
             kafka_consumers.add("ingest-transactions")
             kafka_consumers.add("ingest-monitors")
+            kafka_consumers.add("ingest-feedback-events")
 
             if settings.SENTRY_USE_PROFILING:
                 kafka_consumers.add("ingest-profiles")
@@ -334,6 +335,7 @@ def devserver(
             if settings.SENTRY_USE_SPANS_BUFFER:
                 kafka_consumers.add("process-spans")
                 kafka_consumers.add("ingest-occurrences")
+                kafka_consumers.add("detect-performance-issues")
 
         if occurrence_ingest:
             kafka_consumers.add("ingest-occurrences")

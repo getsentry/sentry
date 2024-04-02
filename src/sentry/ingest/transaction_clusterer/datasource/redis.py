@@ -31,7 +31,7 @@ SET_TTL = 24 * 60 * 60
 
 # TODO(iker): accept multiple values to add to the set. Right now, multiple
 # calls for each individual value are required, producing too many Redis calls.
-add_to_set = redis.load_script("utils/sadd_capped.lua")
+add_to_set = redis.load_redis_script("utils/sadd_capped.lua")
 logger = logging.getLogger(__name__)
 
 
@@ -77,7 +77,7 @@ def _record_sample(namespace: ClustererNamespace, project: Project, sample: str)
     with sentry_sdk.start_span(op="cluster.{namespace.value.name}.record_sample"):
         client = get_redis_client()
         redis_key = _get_redis_key(namespace, project)
-        created = add_to_set(client, [redis_key], [sample, MAX_SET_SIZE, SET_TTL])
+        created = add_to_set([redis_key], [sample, MAX_SET_SIZE, SET_TTL], client)
         if created:
             projects_key = _get_projects_key(namespace)
             client.sadd(projects_key, project.id)

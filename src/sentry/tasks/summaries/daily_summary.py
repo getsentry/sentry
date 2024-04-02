@@ -1,10 +1,10 @@
 import logging
 import math
+import zoneinfo
 from collections import defaultdict
 from datetime import datetime
 from typing import DefaultDict, cast
 
-import pytz
 import sentry_sdk
 from django.utils import timezone
 from sentry_sdk import set_tag
@@ -103,7 +103,7 @@ def schedule_organizations(timestamp: float | None = None, duration: int | None 
             users_to_send_to = []
             for user_tz, users in users_by_tz.items():
                 utc_datetime = to_datetime(timestamp)
-                local_timezone = pytz.timezone(user_tz)
+                local_timezone = zoneinfo.ZoneInfo(user_tz)
                 local_datetime = utc_datetime.astimezone(local_timezone)
                 if local_datetime.hour == HOUR_TO_SEND_REPORT:
                     for user in users:
@@ -189,7 +189,12 @@ def build_summary_data(
                 ctx=ctx, project=project, referrer=Referrer.DAILY_SUMMARY_KEY_ERRORS.value
             )
             if key_errors:
-                project_ctx.key_errors = [(e["group_id"], e["count()"]) for e in key_errors]
+                group_id_alias = (
+                    "events.group_id"
+                    if features.has("organizations:snql-join-reports", project.organization)
+                    else "group_id"
+                )
+                project_ctx.key_errors = [(e[group_id_alias], e["count()"]) for e in key_errors]
 
             # Today's Top 3 Performance Issues
             key_performance_issues = project_key_performance_issues(
@@ -207,8 +212,8 @@ def build_summary_data(
             regressed_or_escalated_groups_today = Activity.objects.filter(
                 group__in=([group for group in regressed_or_escalated_groups]),
                 type__in=(ActivityType.SET_REGRESSION.value, ActivityType.SET_ESCALATING.value),
+                datetime__gte=ctx.start,
             )
-
             deduped_groups_by_activity_type: DefaultDict[ActivityType, set] = defaultdict(set)
 
             for activity in regressed_or_escalated_groups_today:
@@ -237,12 +242,17 @@ def build_summary_data(
                 "release_id", flat=True
             )
             releases = Release.objects.filter(id__in=release_projects, date_added__gte=ctx.end)
-            for release in releases[:2]:  # or whatever we limit this to
-                new_groups_in_release = Group.objects.filter(project=project, first_release=release)
-                if new_groups_in_release:
-                    project_ctx.new_in_release = {
-                        release.id: [group for group in new_groups_in_release]
-                    }
+            for release in releases:
+                if len(project_ctx.new_in_release) < 2:  # or whatever we limit this to
+                    new_groups_in_release = Group.objects.filter(
+                        project=project, first_release=release
+                    )
+                    if new_groups_in_release:
+                        project_ctx.new_in_release[release.id] = [
+                            group for group in new_groups_in_release
+                        ][
+                            :3
+                        ]  # limit to 3 issues per release
 
             new_in_release = json.dumps([group for group in project_ctx.new_in_release])
             logger.info(

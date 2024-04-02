@@ -9,14 +9,12 @@ from sentry.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
 
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class EventStorageTest(TestCase):
     def setUp(self):
         self.eventstorage = EventStorage()

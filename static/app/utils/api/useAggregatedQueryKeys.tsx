@@ -4,10 +4,12 @@ import type {ApiResult} from 'sentry/api';
 import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {fetchDataQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {fetchDataQuery, QueryObserver, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
 const BUFFER_WAIT_MS = 20;
+
+type Subscription = () => void;
 
 interface Props<AggregatableQueryKey, Data> {
   /**
@@ -90,6 +92,14 @@ export default function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
 
   const key = getQueryKey([]).at(0);
 
+  const subscriptions = useRef<Subscription[]>([]);
+  useEffect(() => {
+    const subs = subscriptions.current;
+    return () => {
+      subs.forEach(unsubscribe => unsubscribe());
+    };
+  }, []);
+
   // The query keys that this instance cares about
   const prevQueryKeys = useRef<AggregatableQueryKey[]>([]);
 
@@ -111,7 +121,7 @@ export default function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
 
   const timer = useRef<null | NodeJS.Timeout>(null);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(() => {
     const allQueuedQueries = cache.findAll({
       queryKey: ['aggregate', cacheKey, key, 'queued'],
     });
@@ -139,25 +149,24 @@ export default function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
         );
       });
 
-      const promise = queryClient.fetchQuery({
-        queryKey: getQueryKey(queuedAggregatableBatch),
+      const queryKey = getQueryKey(queuedAggregatableBatch);
+      queryClient.fetchQuery({
+        queryKey,
         queryFn: fetchDataQuery(api),
       });
+
+      const observer = new QueryObserver(queryClient, {queryKey});
+      const unsubscribe = observer.subscribe(_result => {
+        queryClient.removeQueries({
+          queryKey: ['aggregate', cacheKey, key, 'inFlight'],
+          predicate: isQueryKeyInBatch,
+        });
+      });
+      subscriptions.current.push(unsubscribe);
 
       if (allQueuedQueries.length > queuedQueriesBatch.length) {
         fetchData();
       }
-
-      // When the promise resolves, it will trigger the cache subscription to fire
-      await promise;
-
-      queryClient.removeQueries({
-        queryKey: ['aggregate', cacheKey, key, 'inFlight'],
-        predicate: isQueryKeyInBatch,
-      });
-      queuedAggregatableBatch.forEach(queryKey => {
-        queryClient.setQueryData(['aggregate', cacheKey, key, 'done', queryKey], true);
-      });
     } catch (error) {
       onError?.(error);
     }

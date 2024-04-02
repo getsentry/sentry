@@ -99,6 +99,7 @@ class SaveEventTaskKind:
     from_reprocessing: bool = False
 
 
+@sentry_sdk.tracing.trace
 def submit_save_event(
     task_kind: SaveEventTaskKind,
     project_id: int,
@@ -139,8 +140,10 @@ def _do_preprocess_event(
     has_attachments: bool = False,
 ) -> None:
     from sentry.lang.java.utils import has_proguard_file
+    from sentry.stacktraces.processing import find_stacktraces_in_data
     from sentry.tasks.symbolication import (
-        get_symbolication_function,
+        get_symbolication_function_for_platform,
+        get_symbolication_platforms,
         should_demote_symbolication,
         submit_symbolicate,
     )
@@ -168,8 +171,18 @@ def _do_preprocess_event(
             "organization", Organization.objects.get_from_cache(id=project.organization_id)
         )
 
-    is_js, symbolication_function = get_symbolication_function(data)
-    if symbolication_function:
+    # Get the list of platforms for which we want to use Symbolicator.
+    # Possible values are `js`, `jvm`, and `native`.
+    # The event will be submitted to Symbolicator for all returned platforms,
+    # one after the other, so we handle mixed stacktraces.
+    stacktraces = find_stacktraces_in_data(data)
+    symbolicate_platforms = get_symbolication_platforms(data, stacktraces)
+    should_symbolicate = len(symbolicate_platforms) > 0
+    if should_symbolicate:
+        first_platform = symbolicate_platforms.pop(0)
+        symbolication_function = get_symbolication_function_for_platform(
+            first_platform, data, stacktraces
+        )
         symbolication_function_name = getattr(symbolication_function, "__name__", "none")
 
         if not killswitch_matches_context(
@@ -185,7 +198,9 @@ def _do_preprocess_event(
 
             is_low_priority = should_demote_symbolication(project_id)
             task_kind = SymbolicatorTaskKind(
-                is_js=is_js, is_low_priority=is_low_priority, is_reprocessing=from_reprocessing
+                platform=first_platform,
+                is_low_priority=is_low_priority,
+                is_reprocessing=from_reprocessing,
             )
             submit_symbolicate(
                 task_kind,
@@ -193,12 +208,13 @@ def _do_preprocess_event(
                 event_id=event_id,
                 start_time=start_time,
                 has_attachments=has_attachments,
+                symbolicate_platforms=symbolicate_platforms,
             )
             return
         # else: go directly to process, do not go through the symbolicate queue, do not collect 200
 
     # NOTE: Events considered for symbolication always go through `do_process_event`
-    if symbolication_function or should_process(data):
+    if should_symbolicate or should_process(data):
         submit_process(
             from_reprocessing=from_reprocessing,
             cache_key=cache_key,
@@ -277,32 +293,6 @@ def preprocess_event_from_reprocessing(
     )
 
 
-@instrumented_task(
-    name="sentry.tasks.store.retry_process_event",
-    queue="sleep",
-    time_limit=(60 * 5) + 5,
-    soft_time_limit=60 * 5,
-    silo_mode=SiloMode.REGION,
-)
-def retry_process_event(process_task_name: str, task_kwargs: dict[str, Any], **kwargs: Any) -> None:
-    """
-    The only purpose of this task is be enqueued with some ETA set. This is
-    essentially an implementation of ETAs on top of Celery's existing ETAs, but
-    with the intent of having separate workers wait for those ETAs.
-    """
-    tasks = {
-        "process_event": process_event,
-        "process_event_proguard": process_event_proguard,
-        "process_event_from_reprocessing": process_event_from_reprocessing,
-    }
-
-    process_task = tasks.get(process_task_name)
-    if not process_task:
-        raise ValueError(f"Invalid argument for process_task_name: {process_task_name}")
-
-    process_task.delay(**task_kwargs)
-
-
 def is_process_disabled(project_id: int, event_id: str, platform: str) -> bool:
     if killswitch_matches_context(
         "store.load-shed-process-event-projects",
@@ -320,6 +310,14 @@ def is_process_disabled(project_id: int, event_id: str, platform: str) -> bool:
         return False
 
     return random.random() < rollout_rate
+
+
+@sentry_sdk.tracing.trace
+def normalize_event(data: Any) -> Any:
+    normalizer = StoreNormalizer(
+        remove_other=False, is_renormalize=True, **DEFAULT_STORE_NORMALIZER_ARGS
+    )
+    return normalizer.normalize_event(dict(data))
 
 
 def do_process_event(
@@ -463,10 +461,7 @@ def do_process_event(
         # - persist e.g. incredibly large stacktraces from minidumps
         # - store event timestamps that are older than our retention window
         #   (also happening with minidumps)
-        normalizer = StoreNormalizer(
-            remove_other=False, is_renormalize=True, **DEFAULT_STORE_NORMALIZER_ARGS
-        )
-        data = normalizer.normalize_event(dict(data))
+        data = normalize_event(data)
 
         issues = data.get("processing_issues")
 
@@ -629,6 +624,7 @@ def delete_raw_event(project_id: int, event_id: str | None, allow_hint_clear: bo
                 )
 
 
+@sentry_sdk.tracing.trace
 def create_failed_event(
     cache_key: str,
     data: Event | None,
@@ -801,12 +797,13 @@ def _do_save_event(
             with metrics.timer("tasks.store.do_save_event.event_manager.save"):
                 manager = EventManager(data)
                 # event.project.organization is populated after this statement.
-                manager.save(
-                    project_id,
-                    assume_normalized=True,
-                    start_time=start_time,
-                    cache_key=cache_key,
-                )
+                with sentry_sdk.start_span(op="event_manager.save"):
+                    manager.save(
+                        project_id,
+                        assume_normalized=True,
+                        start_time=start_time,
+                        cache_key=cache_key,
+                    )
                 # Put the updated event back into the cache so that post_process
                 # has the most recent data.
                 data = manager.get_data()

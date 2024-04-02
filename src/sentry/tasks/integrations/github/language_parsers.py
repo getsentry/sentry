@@ -238,6 +238,7 @@ PATCH_PARSERS: dict[str, Any] = {
     "jsx": JavascriptParser,
     "ts": JavascriptParser,
     "tsx": JavascriptParser,
+    "php": PHPParser,
 }
 
 # for testing new parsers

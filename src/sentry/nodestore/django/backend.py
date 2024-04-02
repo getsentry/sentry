@@ -3,6 +3,8 @@ from __future__ import annotations
 import logging
 import math
 import pickle
+from datetime import datetime, timedelta
+from typing import Any
 
 import sentry_sdk
 from django.utils import timezone
@@ -17,11 +19,11 @@ logger = logging.getLogger("sentry")
 
 
 class DjangoNodeStorage(NodeStorage):
-    def delete(self, id):
+    def delete(self, id: str) -> None:
         Node.objects.filter(id=id).delete()
         self._delete_cache_item(id)
 
-    def _decode(self, value, subkey):
+    def _decode(self, value: bytes | None, subkey: str | None) -> Any | None:
         if value is None:
             return None
 
@@ -37,7 +39,7 @@ class DjangoNodeStorage(NodeStorage):
             logger.exception(str(e))
             return {}
 
-    def _get_bytes(self, id):
+    def _get_bytes(self, id: str) -> bytes | None:
         try:
             data = Node.objects.get(id=id).data
             return decompress(data)
@@ -47,15 +49,15 @@ class DjangoNodeStorage(NodeStorage):
     def _get_bytes_multi(self, id_list: list[str]) -> dict[str, bytes | None]:
         return {n.id: decompress(n.data) for n in Node.objects.filter(id__in=id_list)}
 
-    def delete_multi(self, id_list):
+    def delete_multi(self, id_list: list[str]) -> None:
         Node.objects.filter(id__in=id_list).delete()
         self._delete_cache_items(id_list)
 
     @sentry_sdk.tracing.trace
-    def _set_bytes(self, id, data, ttl=None):
+    def _set_bytes(self, id: str, data: Any, ttl: timedelta | None = None) -> None:
         create_or_update(Node, id=id, values={"data": compress(data), "timestamp": timezone.now()})
 
-    def cleanup(self, cutoff_timestamp):
+    def cleanup(self, cutoff_timestamp: datetime) -> None:
         from sentry.db.deletion import BulkDeleteQuery
 
         total_seconds = (timezone.now() - cutoff_timestamp).total_seconds()
@@ -65,6 +67,6 @@ class DjangoNodeStorage(NodeStorage):
         if self.cache:
             self.cache.clear()
 
-    def bootstrap(self):
+    def bootstrap(self) -> None:
         # Nothing for Django backend to do during bootstrap
         pass

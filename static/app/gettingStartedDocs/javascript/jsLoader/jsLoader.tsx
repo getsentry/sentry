@@ -37,7 +37,7 @@ const getInstallConfig = (params: Params) => [
                 link: (
                   <ExternalLink
                     href={normalizeUrl(
-                      `/settings/projects/${params.projectSlug}/loader-script/`
+                      `/settings/${params.organization.slug}/projects/${params.projectSlug}/loader-script/`
                     )}
                   />
                 ),

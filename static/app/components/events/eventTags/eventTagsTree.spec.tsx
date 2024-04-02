@@ -5,7 +5,6 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {EventTags} from 'sentry/components/events/eventTags';
-import {COLUMN_COUNT} from 'sentry/components/events/eventTags/eventTagsTree';
 
 describe('EventTagsTree', function () {
   const {organization, project, router} = initializeOrg();
@@ -86,7 +85,7 @@ describe('EventTagsTree', function () {
     expect(rows).toHaveLength(expectedRowCount);
 
     const columns = screen.queryAllByTestId('tag-tree-column');
-    expect(columns).toHaveLength(COLUMN_COUNT);
+    expect(columns.length).toBeLessThanOrEqual(2);
 
     const linkDropdowns = screen.queryAllByLabelText('Tag Actions Menu');
     expect(linkDropdowns).toHaveLength(tags.length);

@@ -1,6 +1,5 @@
 from datetime import timedelta
 
-import sentry_sdk
 from rest_framework.response import Response
 from snuba_sdk import Column, Condition, Direction, Function, Op, Or, OrderBy
 
@@ -10,7 +9,6 @@ from sentry.api.bases.organization_events import OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_events_spans_performance import EventID, get_span_description
 from sentry.api.utils import handle_query_errors
 from sentry.search.events.builder import QueryBuilder
-from sentry.search.events.constants import METRICS_MAX_LIMIT
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.search.utils import parse_datetime_string
 from sentry.snuba.dataset import Dataset
@@ -21,8 +19,6 @@ DEFAULT_LIMIT = 50
 QUERY_LIMIT = 10000 // 2
 BUFFER = timedelta(hours=6)
 BASE_REFERRER = "api.organization-events-root-cause-analysis"
-SPAN_ANALYSIS = "span"
-GEO_ANALYSIS = "geo"
 SPAN_ANALYSIS_SCORE_THRESHOLD = 0
 RESPONSE_KEYS = [
     "span_op",
@@ -142,13 +138,11 @@ def init_query_builder(params, transaction, regression_breakpoint, limit, span_s
 
 
 def query_spans(transaction, regression_breakpoint, params, limit, span_score_threshold):
-    referrer = f"{BASE_REFERRER}-{SPAN_ANALYSIS}"
-
     snuba_results = raw_snql_query(
         init_query_builder(
             params, transaction, regression_breakpoint, limit, span_score_threshold
         ).get_snql_query(),
-        referrer,
+        BASE_REFERRER,
     )
     return snuba_results.get("data")
 
@@ -174,68 +168,6 @@ def fetch_span_analysis_results(
     return [{key: row[key] for key in RESPONSE_KEYS} for row in span_data]
 
 
-def fetch_geo_analysis_results(transaction_name, regression_breakpoint, params, limit):
-    def get_geo_data(period):
-        # Copy the params so we aren't modifying the base params each time
-        adjusted_params = {**params}
-
-        if period == "before":
-            adjusted_params["end"] = regression_breakpoint - BUFFER
-        else:
-            adjusted_params["start"] = regression_breakpoint + BUFFER
-
-        geo_code_durations = metrics_query(
-            ["p95(transaction.duration)", "geo.country_code", "tpm()"],
-            f"event.type:transaction transaction:{transaction_name}",
-            adjusted_params,
-            referrer=f"{BASE_REFERRER}-{GEO_ANALYSIS}",
-            limit=METRICS_MAX_LIMIT,
-            # Order by descending TPM to ensure more active countries are prioritized
-            orderby=["-tpm()"],
-        )
-
-        return geo_code_durations
-
-    # For each country code in the second half, compare it to the first half
-    geo_results = [get_geo_data("before"), get_geo_data("after")]
-
-    # Format the data for more efficient comparison
-    for index, result in enumerate(geo_results):
-        geo_results[index] = {
-            f"{data.get('geo.country_code')}": data for data in result.get("data")
-        }
-
-    before_results, after_results = geo_results
-    changed_keys = set(before_results.keys()) & set(after_results.keys())
-    new_keys = set(after_results.keys()) - set(before_results.keys())
-
-    analysis_results = []
-    for key in changed_keys | new_keys:
-        if key == "":
-            continue
-
-        duration_before = (
-            before_results[key]["p95_transaction_duration"] if before_results.get(key) else 0.0
-        )
-        duration_after = after_results[key]["p95_transaction_duration"]
-        if duration_after > duration_before:
-            duration_delta = duration_after - duration_before
-            analysis_results.append(
-                {
-                    "geo.country_code": key,
-                    "duration_before": duration_before,
-                    "duration_after": duration_after,
-                    "duration_delta": duration_delta,
-                    # Multiply duration delta by current TPM to prioritize largest changes
-                    # by most active countries
-                    "score": duration_delta * after_results[key]["tpm"],
-                }
-            )
-
-    analysis_results.sort(key=lambda x: x["score"], reverse=True)
-    return analysis_results[:limit]
-
-
 @region_silo_endpoint
 class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
@@ -247,7 +179,6 @@ class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase
         transaction_name = request.GET.get("transaction")
         project_id = request.GET.get("project")
         regression_breakpoint = request.GET.get("breakpoint")
-        analysis_type = request.GET.get("type", SPAN_ANALYSIS)
         limit = int(request.GET.get("per_page", DEFAULT_LIMIT))
         span_score_threshold = int(
             request.GET.get("span_score_threshold", SPAN_ANALYSIS_SCORE_THRESHOLD)
@@ -266,26 +197,19 @@ class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase
                 ["count()"],
                 f'event.type:transaction transaction:"{transaction_name}"',
                 params,
-                referrer=f"{BASE_REFERRER}-{analysis_type}",
+                referrer=BASE_REFERRER,
             )
 
         if transaction_count_query["data"][0]["count"] == 0:
             return Response(status=400, data="Transaction not found")
 
-        sentry_sdk.set_tag("analysis_type", analysis_type)
-        results = []
-        if analysis_type == SPAN_ANALYSIS:
-            results = fetch_span_analysis_results(
-                transaction_name,
-                regression_breakpoint,
-                params,
-                project_id,
-                limit,
-                span_score_threshold,
-            )
-        elif analysis_type == GEO_ANALYSIS:
-            results = fetch_geo_analysis_results(
-                transaction_name, regression_breakpoint, params, limit
-            )
+        results = fetch_span_analysis_results(
+            transaction_name,
+            regression_breakpoint,
+            params,
+            project_id,
+            limit,
+            span_score_threshold,
+        )
 
         return Response(results, status=200)

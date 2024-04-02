@@ -1,17 +1,21 @@
 from datetime import timedelta
+from unittest import mock
+from unittest.mock import patch
 
 import pytest
 
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.sentry_metrics.use_case_id_registry import (
+    UseCaseID,
+    UseCaseIDAPIAccess,
+    get_use_case_id_api_access,
+)
 from sentry.sentry_metrics.visibility import block_metric, block_tags_of_metric
 from sentry.testutils.cases import MetricsAPIBaseTestCase, OrganizationMetricsIntegrationTestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
-@region_silo_test
 class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
     endpoint = "sentry-api-0-organization-metrics-details"
 
@@ -71,6 +75,102 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
 
         assert isinstance(response.data, list)
 
+    @patch("sentry.api.endpoints.organization_metrics.get_metrics_meta")
+    def test_metrics_details_with_public_use_case(self, get_metrics_meta):
+        get_metrics_meta.return_value = []
+
+        self.login_as(user=self.user, superuser=True)
+        self.get_success_response(
+            self.organization.slug, project=[self.project.id], useCase=UseCaseID.SESSIONS.value
+        )
+        get_metrics_meta.assert_called_once_with(
+            projects=[self.project], use_case_ids=[UseCaseID.SESSIONS], start=mock.ANY, end=mock.ANY
+        )
+
+        get_metrics_meta.reset_mock()
+
+        normal_user = self.create_user()
+        self.create_member(
+            user=normal_user, organization=self.organization, role="member", teams=[]
+        )
+        self.login_as(user=normal_user)
+        self.get_success_response(
+            self.organization.slug, project=[self.project.id], useCase=UseCaseID.SESSIONS.value
+        )
+        get_metrics_meta.assert_called_once_with(
+            projects=[self.project], use_case_ids=[UseCaseID.SESSIONS], start=mock.ANY, end=mock.ANY
+        )
+
+    @patch("sentry.api.endpoints.organization_metrics.get_metrics_meta")
+    def test_metrics_details_with_private_use_case(self, get_metrics_meta):
+        get_metrics_meta.return_value = []
+
+        self.login_as(user=self.user, superuser=True)
+        self.get_success_response(
+            self.organization.slug, project=[self.project.id], useCase=UseCaseID.METRIC_STATS.value
+        )
+        get_metrics_meta.assert_called_once_with(
+            projects=[self.project],
+            use_case_ids=[UseCaseID.METRIC_STATS],
+            start=mock.ANY,
+            end=mock.ANY,
+        )
+
+        get_metrics_meta.reset_mock()
+
+        normal_user = self.create_user()
+        self.create_member(
+            user=normal_user, organization=self.organization, role="member", teams=[]
+        )
+        self.login_as(user=normal_user)
+        self.get_error_response(
+            self.organization.slug,
+            project=[self.project.id],
+            useCase=UseCaseID.METRIC_STATS.value,
+            status_code=400,
+        )
+        get_metrics_meta.assert_not_called()
+
+    @patch("sentry.api.endpoints.organization_metrics.get_metrics_meta")
+    def test_metrics_details_default_use_cases(self, get_metrics_meta):
+        get_metrics_meta.return_value = []
+
+        all_use_case_ids = [use_case_id for use_case_id in UseCaseID]
+        public_use_case_ids = [
+            use_case_id
+            for use_case_id in all_use_case_ids
+            if get_use_case_id_api_access(use_case_id) == UseCaseIDAPIAccess.PUBLIC
+        ]
+
+        # A superuser should have access to all use cases.
+        self.login_as(user=self.user, superuser=True)
+        self.get_success_response(self.organization.slug, project=[self.project.id])
+        get_metrics_meta.assert_called_once_with(
+            projects=[self.project], use_case_ids=all_use_case_ids, start=mock.ANY, end=mock.ANY
+        )
+
+        get_metrics_meta.reset_mock()
+
+        # A staff user should have access to only public use cases.
+        self.login_as(user=self.user, staff=True)
+        self.get_success_response(self.organization.slug, project=[self.project.id])
+        get_metrics_meta.assert_called_once_with(
+            projects=[self.project], use_case_ids=public_use_case_ids, start=mock.ANY, end=mock.ANY
+        )
+
+        get_metrics_meta.reset_mock()
+
+        # A normal user should have access to only public use cases.
+        normal_user = self.create_user()
+        self.create_member(
+            user=normal_user, organization=self.organization, role="member", teams=[]
+        )
+        self.login_as(user=normal_user)
+        self.get_success_response(self.organization.slug, project=[self.project.id])
+        get_metrics_meta.assert_called_once_with(
+            projects=[self.project], use_case_ids=public_use_case_ids, start=mock.ANY, end=mock.ANY
+        )
+
     def test_metrics_details_for_custom_metrics(self):
         project_1 = self.create_project()
         project_2 = self.create_project()
@@ -88,7 +188,7 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
             self.store_metric(
                 project.organization.id,
                 project.id,
-                entity,  # type:ignore
+                entity,  # type: ignore[arg-type]
                 mri,
                 {"transaction": "/hello"},
                 int(self.now.timestamp()),

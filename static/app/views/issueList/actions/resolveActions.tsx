@@ -1,4 +1,3 @@
-import {IssueActionWrapper} from 'sentry/components/actions/issueActionWrapper';
 import ResolveActions from 'sentry/components/actions/resolve';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -44,21 +43,19 @@ function ResolveActionsContainer({
   );
 
   return (
-    <IssueActionWrapper>
-      <ResolveActions
-        hasRelease={hasRelease}
-        multipleProjectsSelected={!selectedProjectSlug}
-        latestRelease={latestRelease}
-        projectSlug={project?.slug}
-        onUpdate={onUpdate}
-        shouldConfirm={onShouldConfirm(ConfirmAction.RESOLVE)}
-        confirmMessage={confirm({action: ConfirmAction.RESOLVE, canBeUndone: true})}
-        confirmLabel={label('resolve')}
-        disabled={resolveDisabled}
-        disableDropdown={resolveDropdownDisabled}
-        projectFetchError={Boolean(fetchError)}
-      />
-    </IssueActionWrapper>
+    <ResolveActions
+      hasRelease={hasRelease}
+      multipleProjectsSelected={!selectedProjectSlug}
+      latestRelease={latestRelease}
+      projectSlug={project?.slug}
+      onUpdate={onUpdate}
+      shouldConfirm={onShouldConfirm(ConfirmAction.RESOLVE)}
+      confirmMessage={confirm({action: ConfirmAction.RESOLVE, canBeUndone: true})}
+      confirmLabel={label('resolve')}
+      disabled={resolveDisabled}
+      disableDropdown={resolveDropdownDisabled}
+      projectFetchError={Boolean(fetchError)}
+    />
   );
 }
 

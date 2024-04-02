@@ -290,6 +290,8 @@ class JavaPlugin(Plugin2):
         return False
 
     def get_stacktrace_processors(self, data, stacktrace_infos, platforms, **kwargs):
+        if data.pop("processed_by_symbolicator", False):
+            return []
         if "java" in platforms:
             return [JavaSourceLookupStacktraceProcessor]
 

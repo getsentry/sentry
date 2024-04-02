@@ -90,7 +90,7 @@ export async function setEnvironmentIsMuted(
 
   try {
     const resp = await api.requestPromise(
-      `/projects/${orgId}/${monitor.project.id}/monitors/${monitor.slug}/environments/${environment}`,
+      `/projects/${orgId}/${monitor.project.slug}/monitors/${monitor.slug}/environments/${environment}`,
       {method: 'PUT', data: {isMuted}}
     );
     clearIndicators();

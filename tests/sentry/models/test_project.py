@@ -28,11 +28,10 @@ from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
-@region_silo_test
 class ProjectTest(APITestCase, TestCase):
     def test_member_set_simple(self):
         user = self.create_user()
@@ -356,7 +355,6 @@ class ProjectTest(APITestCase, TestCase):
         assert self.project.next_short_id(delta=2) == 3
 
 
-@region_silo_test
 class CopyProjectSettingsTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -561,7 +559,6 @@ class FilterToSubscribedUsersTest(TestCase):
         )
 
 
-@region_silo_test
 class ProjectDeletionTest(TestCase):
     def test_hybrid_cloud_deletion(self):
         proj = self.create_project()

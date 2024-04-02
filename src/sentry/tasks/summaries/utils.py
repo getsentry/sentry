@@ -10,8 +10,10 @@ from snuba_sdk.entity import Entity
 from snuba_sdk.expressions import Granularity
 from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
-from snuba_sdk.query import Limit, Query
+from snuba_sdk.query import Join, Limit, Query
+from snuba_sdk.relationships import Relationship
 
+from sentry import features
 from sentry.api.serializers.snuba import zerofill
 from sentry.constants import DataCategory
 from sentry.models.group import Group, GroupStatus
@@ -174,11 +176,53 @@ def project_key_errors(
                 Condition(Column("timestamp"), Op.GTE, ctx.start),
                 Condition(Column("timestamp"), Op.LT, ctx.end + timedelta(days=1)),
                 Condition(Column("project_id"), Op.EQ, project.id),
+                Condition(Column("level"), Op.EQ, "error"),
             ],
             groupby=[Column("group_id")],
             orderby=[OrderBy(Function("count", []), Direction.DESC)],
             limit=Limit(3),
         )
+        if features.has("organizations:snql-join-reports", project.organization):
+            events_entity = Entity("events", alias="events")
+            group_attributes_entity = Entity("group_attributes", alias="group_attributes")
+            query = Query(
+                match=Join([Relationship(events_entity, "attributes", group_attributes_entity)]),
+                select=[Column("group_id", entity=events_entity), Function("count", [])],
+                where=[
+                    Condition(Column("timestamp", entity=events_entity), Op.GTE, ctx.start),
+                    Condition(
+                        Column("timestamp", entity=events_entity),
+                        Op.LT,
+                        ctx.end + timedelta(days=1),
+                    ),
+                    Condition(
+                        Column(
+                            "project_id",
+                            entity=events_entity,
+                        ),
+                        Op.EQ,
+                        project.id,
+                    ),
+                    Condition(
+                        Column(
+                            "project_id",
+                            entity=group_attributes_entity,
+                        ),
+                        Op.EQ,
+                        project.id,
+                    ),
+                    Condition(
+                        Column("group_status", entity=group_attributes_entity),
+                        Op.IN,
+                        GroupStatus.UNRESOLVED,
+                    ),
+                    Condition(Column("level", entity=events_entity), Op.EQ, "error"),
+                ],
+                groupby=[Column("group_id", entity=events_entity)],
+                orderby=[OrderBy(Function("count", []), Direction.DESC)],
+                limit=Limit(3),
+            )
+
         request = Request(
             dataset=Dataset.Events.value,
             app_id="reports",

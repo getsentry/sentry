@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/react';
-import type {Transaction} from '@sentry/types';
+import type {Span} from '@sentry/types';
 
 import type {Image} from 'sentry/types/debugImage';
 
@@ -24,7 +24,7 @@ import {
 } from './utils';
 
 export interface ImportOptions {
-  transaction: Transaction | undefined;
+  span: Span | undefined;
   type: 'flamegraph' | 'flamechart';
   frameFilter?: (frame: Frame) => boolean;
   profileIds?: Readonly<string[]>;
@@ -47,47 +47,36 @@ export function importProfile(
   type: 'flamegraph' | 'flamechart',
   frameFilter?: (frame: Frame) => boolean
 ): ProfileGroup {
-  const transaction = Sentry.startTransaction({
-    op: 'import',
-    name: 'profiles.import',
+  return Sentry.withScope(scope => {
+    const span = Sentry.startInactiveSpan({
+      op: 'import',
+      name: 'profiles.import',
+    });
+
+    try {
+      if (isJSProfile(input)) {
+        scope.setTag('profile.type', 'js-self-profile');
+        return importJSSelfProfile(input, traceID, {span, type});
+      }
+
+      if (isSentrySampledProfile(input)) {
+        scope.setTag('profile.type', 'sentry-sampled');
+        return importSentrySampledProfile(input, {span, type, frameFilter});
+      }
+
+      if (isSchema(input)) {
+        scope.setTag('profile.type', 'schema');
+        return importSchema(input, traceID, {span, type, frameFilter});
+      }
+
+      throw new Error('Unsupported trace format');
+    } catch (error) {
+      span?.setStatus('internal_error');
+      throw error;
+    } finally {
+      span?.end();
+    }
   });
-
-  try {
-    if (isJSProfile(input)) {
-      // In some cases, the SDK may return transaction as undefined and we dont want to throw there.
-      if (transaction) {
-        transaction.setTag('profile.type', 'js-self-profile');
-      }
-      return importJSSelfProfile(input, traceID, {transaction, type});
-    }
-
-    if (isSentrySampledProfile(input)) {
-      // In some cases, the SDK may return transaction as undefined and we dont want to throw there.
-      if (transaction) {
-        transaction.setTag('profile.type', 'sentry-sampled');
-      }
-      return importSentrySampledProfile(input, {transaction, type, frameFilter});
-    }
-
-    if (isSchema(input)) {
-      // In some cases, the SDK may return transaction as undefined and we dont want to throw there.
-      if (transaction) {
-        transaction.setTag('profile.type', 'schema');
-      }
-      return importSchema(input, traceID, {transaction, type, frameFilter});
-    }
-
-    throw new Error('Unsupported trace format');
-  } catch (error) {
-    if (transaction) {
-      transaction.setStatus('internal_error');
-    }
-    throw error;
-  } finally {
-    if (transaction) {
-      transaction.finish();
-    }
-  }
 }
 
 function importJSSelfProfile(
@@ -157,7 +146,7 @@ function importSentrySampledProfile(
 
     profiles.push(
       wrapWithSpan(
-        options.transaction,
+        options.span,
         () =>
           SentrySampledProfile.FromProfile(profile, frameIndex, {
             type: options.type,
@@ -233,16 +222,16 @@ export function importSchema(
 function importSingleProfile(
   profile: Profiling.EventedProfile | Profiling.SampledProfile | JSSelfProfiling.Trace,
   frameIndex: ReturnType<typeof createFrameIndex>,
-  {transaction, type, frameFilter, profileIds}: ImportOptions
+  {span, type, frameFilter, profileIds}: ImportOptions
 ): Profile {
   if (isEventedProfile(profile)) {
-    // In some cases, the SDK may return transaction as undefined and we dont want to throw there.
-    if (!transaction) {
+    // In some cases, the SDK may return spans as undefined and we dont want to throw there.
+    if (!span) {
       return EventedProfile.FromProfile(profile, frameIndex, {type, frameFilter});
     }
 
     return wrapWithSpan(
-      transaction,
+      span,
       () => EventedProfile.FromProfile(profile, frameIndex, {type, frameFilter}),
       {
         op: 'profile.import',
@@ -251,8 +240,8 @@ function importSingleProfile(
     );
   }
   if (isSampledProfile(profile)) {
-    // In some cases, the SDK may return transaction as undefined and we dont want to throw there.
-    if (!transaction) {
+    // In some cases, the SDK may return spans as undefined and we dont want to throw there.
+    if (!span) {
       return SampledProfile.FromProfile(profile, frameIndex, {
         type,
         frameFilter,
@@ -261,7 +250,7 @@ function importSingleProfile(
     }
 
     return wrapWithSpan(
-      transaction,
+      span,
       () =>
         SampledProfile.FromProfile(profile, frameIndex, {type, frameFilter, profileIds}),
       {
@@ -271,8 +260,8 @@ function importSingleProfile(
     );
   }
   if (isJSProfile(profile)) {
-    // In some cases, the SDK may return transaction as undefined and we dont want to throw there.
-    if (!transaction) {
+    // In some cases, the SDK may return spans as undefined and we dont want to throw there.
+    if (!span) {
       return JSSelfProfile.FromProfile(
         profile,
         createFrameIndex('javascript', profile.frames),
@@ -283,7 +272,7 @@ function importSingleProfile(
     }
 
     return wrapWithSpan(
-      transaction,
+      span,
       () =>
         JSSelfProfile.FromProfile(
           profile,

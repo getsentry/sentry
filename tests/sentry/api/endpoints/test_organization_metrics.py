@@ -20,7 +20,7 @@ from sentry.snuba.metrics import (
 )
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
 
@@ -58,7 +58,6 @@ perf_indexer_record = partial(indexer_record, UseCaseID.TRANSACTIONS)
 rh_indexer_record = partial(indexer_record, UseCaseID.SESSIONS)
 
 
-@region_silo_test
 class OrganizationMetricsPermissionTest(APITestCase):
 
     endpoints = (
@@ -80,62 +79,60 @@ class OrganizationMetricsPermissionTest(APITestCase):
             "post",
             "sentry-api-0-organization-metrics-query",
         ),
+        ("get", "sentry-api-0-organization-metrics-samples"),
     )
 
-    def send_request(self, token, method, endpoint, *args):
-        url = reverse(endpoint, args=(self.project.organization.slug,) + args)
+    def setUp(self):
+        self.create_project(name="Bar", slug="bar", teams=[self.team], fire_project_created=True)
+
+    def send_request(self, organization, token, method, endpoint, *args):
+        url = reverse(endpoint, args=(organization.slug,) + args)
         return getattr(self.client, method)(
             url, HTTP_AUTHORIZATION=f"Bearer {token.token}", format="json"
         )
 
-    def test_permissions(self):
+    def test_access_with_wrong_permission_scopes(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=[])
 
         for method, endpoint, *rest in self.endpoints:
-            response = self.send_request(token, method, endpoint, *rest)
+            response = self.send_request(self.organization, token, method, endpoint, *rest)
             assert response.status_code == 403
 
+    def test_access_of_another_organization(self):
+        other_user = self.create_user("admin_2@localhost", is_superuser=True, is_staff=True)
+        self.create_organization(name="foo", slug="foo", owner=other_user)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=other_user, scope_list=["org:read"])
+
+        for method, endpoint, *rest in self.endpoints:
+            response = self.send_request(self.organization, token, method, endpoint, *rest)
+            assert response.status_code == 403
+
+    def test_access_with_permissions(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=["org:read"])
 
         for method, endpoint, *rest in self.endpoints:
-            response = self.send_request(token, method, endpoint, *rest)
+            response = self.send_request(self.organization, token, method, endpoint, *rest)
             assert response.status_code in (200, 400, 404)
 
 
-@region_silo_test
 class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
     view = "sentry-api-0-organization-metrics-samples"
-    default_features = ["organizations:metrics-samples-list"]
 
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
 
-    def do_request(self, query, features=None, **kwargs):
-        if features is None:
-            features = self.default_features
-        with self.feature(features):
-            return self.client.get(
-                reverse(self.view, kwargs={"organization_slug": self.organization.slug}),
-                query,
-                format="json",
-                **kwargs,
-            )
-
-    def test_feature_flag(self):
-        query = {
-            "mri": "d:spans/exclusive_time@millisecond",
-            "field": ["id"],
-            "project": [self.project.id],
-        }
-
-        response = self.do_request(query, features=[])
-        assert response.status_code == 404, response.data
-
-        response = self.do_request(query, features=["organizations:metrics-samples-list"])
-        assert response.status_code == 200, response.data
+    def do_request(self, query, **kwargs):
+        return self.client.get(
+            reverse(self.view, kwargs={"organization_slug": self.organization.slug}),
+            query,
+            format="json",
+            **kwargs,
+        )
 
     def test_no_project(self):
         query = {

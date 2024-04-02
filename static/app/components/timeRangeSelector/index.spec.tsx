@@ -46,14 +46,16 @@ describe('TimeRangeSelector', function () {
     onChange.mockReset();
   });
 
-  it('renders when given relative period', function () {
+  it('renders when given relative period', async function () {
     renderComponent({relative: '9d'});
-    expect(screen.getByRole('button', {name: '9D'})).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: '9D'})).toBeInTheDocument();
   });
 
-  it('renders when given an invalid relative period', function () {
+  it('renders when given an invalid relative period', async function () {
     render(<TimeRangeSelector relative="1y" />, {context: routerContext, organization});
-    expect(screen.getByRole('button', {name: 'Invalid Period'})).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', {name: 'Invalid Period'})
+    ).toBeInTheDocument();
   });
 
   it('hides relative options', async function () {

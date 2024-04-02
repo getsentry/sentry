@@ -14,7 +14,7 @@ class FirstSeenEventCondition(EventCondition):
 
     def passes(self, event: GroupEvent, state: EventState) -> bool:
         # TODO(mgaeta): Bug: Rule is optional.
-        if self.rule.environment_id is None:  # type: ignore
+        if self.rule.environment_id is None:  # type: ignore[union-attr]
             return state.is_new
         else:
             return state.is_new_group_environment

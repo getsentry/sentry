@@ -1,23 +1,29 @@
-import styled from '@emotion/styled';
-
-import {space} from 'sentry/styles/space';
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import A11y from 'sentry/views/replays/detail/accessibility/index';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import Console from 'sentry/views/replays/detail/console';
-import DomNodesChart from 'sentry/views/replays/detail/domNodesChart';
 import ErrorList from 'sentry/views/replays/detail/errorList/index';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
-import MemoryChart from 'sentry/views/replays/detail/memoryChart';
+import MemoryPanel from 'sentry/views/replays/detail/memoryPanel/index';
 import NetworkList from 'sentry/views/replays/detail/network';
 import PerfTable from 'sentry/views/replays/detail/perfTable/index';
 import TagPanel from 'sentry/views/replays/detail/tagPanel';
 import Trace from 'sentry/views/replays/detail/trace/index';
 
-type Props = {};
+export default function FocusArea({isVideoReplay}: {isVideoReplay?: boolean}) {
+  const {getActiveTab} = useActiveReplayTab({isVideoReplay});
 
-function FocusArea({}: Props) {
-  const {getActiveTab} = useActiveReplayTab();
+  if (isVideoReplay) {
+    switch (getActiveTab()) {
+      case TabKey.ERRORS:
+        return <ErrorList />;
+      case TabKey.BREADCRUMBS:
+        return <Breadcrumbs />;
+      case TabKey.TAGS:
+      default: {
+        return <TagPanel />;
+      }
+    }
+  }
 
   switch (getActiveTab()) {
     case TabKey.A11Y:
@@ -31,12 +37,7 @@ function FocusArea({}: Props) {
     case TabKey.ERRORS:
       return <ErrorList />;
     case TabKey.MEMORY:
-      return (
-        <MemoryTabWrapper>
-          <MemoryChart />
-          <DomNodesChart />
-        </MemoryTabWrapper>
-      );
+      return <MemoryPanel />;
     case TabKey.CONSOLE:
       return <Console />;
     case TabKey.TAGS:
@@ -47,12 +48,3 @@ function FocusArea({}: Props) {
     }
   }
 }
-
-const MemoryTabWrapper = styled(FluidHeight)`
-  justify-content: center;
-  gap: ${space(1)};
-  height: 100%;
-  display: flex;
-`;
-
-export default FocusArea;

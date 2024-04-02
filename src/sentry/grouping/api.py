@@ -5,6 +5,8 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, TypedDict
 
+import sentry_sdk
+
 from sentry import options
 from sentry.db.models.fields.node import NodeData
 from sentry.grouping.component import GroupingComponent
@@ -155,6 +157,7 @@ class BackgroundGroupingConfigLoader(GroupingConfigLoader):
         return options.get("store.background-grouping-config-id")
 
 
+@sentry_sdk.tracing.trace
 def get_grouping_config_dict_for_project(project, silent=True) -> GroupingConfig:
     """Fetches all the information necessary for grouping from the project
     settings.  The return value of this is persisted with the event on
@@ -176,7 +179,7 @@ def get_default_enhancements(config_id=None) -> str:
     base: str | None = DEFAULT_GROUPING_ENHANCEMENTS_BASE
     if config_id is not None:
         base = CONFIGURATIONS[config_id].enhancements_base
-    return Enhancements(rules=[], bases=[base]).dumps()
+    return Enhancements.from_config_string("", bases=[base]).dumps()
 
 
 def get_projects_default_fingerprinting_bases(

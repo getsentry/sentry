@@ -450,11 +450,7 @@ class _RemoteSiloCall:
 
         return_value = serial_response["value"]
         service, _ = _look_up_service_method(self.service_name, self.method_name)
-        return (
-            None
-            if return_value is None
-            else service.deserialize_rpc_response(self.method_name, return_value)
-        )
+        return service.deserialize_rpc_response(self.method_name, return_value)
 
     def _metrics_tags(self, **additional_tags: str | int) -> Mapping[str, str | int | None]:
         return dict(

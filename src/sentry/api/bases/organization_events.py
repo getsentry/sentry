@@ -56,19 +56,19 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             )
         )
 
-    def get_equation_list(self, organization: Organization, request: Request) -> Sequence[str]:
+    def get_equation_list(self, organization: Organization, request: Request) -> list[str]:
         """equations have a prefix so that they can be easily included alongside our existing fields"""
         return [
             strip_equation(field) for field in request.GET.getlist("field")[:] if is_equation(field)
         ]
 
-    def get_field_list(self, organization: Organization, request: Request) -> Sequence[str]:
+    def get_field_list(self, organization: Organization, request: Request) -> list[str]:
         return [field for field in request.GET.getlist("field")[:] if not is_equation(field)]
 
-    def get_team_ids(self, request: Request, organization: Organization) -> Sequence[int]:
+    def get_team_ids(self, request: Request, organization: Organization) -> list[int]:
         return [team.id for team in self.get_teams(request, organization)]
 
-    def get_teams(self, request: Request, organization: Organization) -> Sequence[Team]:
+    def get_teams(self, request: Request, organization: Organization) -> list[Team]:
         if not request.user:
             return []
 
@@ -158,12 +158,12 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             return params
 
     def get_orderby(self, request: Request) -> Sequence[str] | None:
-        sort: Sequence[str] = request.GET.getlist("sort")
+        sort = request.GET.getlist("sort")
         if sort:
             return sort
         # Deprecated. `sort` should be used as it is supported by
         # more endpoints.
-        orderby: Sequence[str] = request.GET.getlist("orderby")
+        orderby = request.GET.getlist("orderby")
         if orderby:
             return orderby
         return None

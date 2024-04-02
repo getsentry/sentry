@@ -1,6 +1,7 @@
 import React, {Fragment} from 'react';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import FeatureBadge from 'sentry/components/featureBadge';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -18,6 +19,7 @@ import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/u
 import {DomainsTable, isAValidSort} from 'sentry/views/performance/http/domainsTable';
 import {DurationChart} from 'sentry/views/performance/http/durationChart';
 import {ResponseRateChart} from 'sentry/views/performance/http/responseRateChart';
+import {RELEASE_LEVEL} from 'sentry/views/performance/http/settings';
 import {ThroughputChart} from 'sentry/views/performance/http/throughputChart';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
@@ -85,7 +87,7 @@ export function HTTPLandingPage() {
       'project.id',
       'span.domain',
       'spm()',
-      'http_response_rate(2)',
+      'http_response_rate(3)',
       'http_response_rate(4)',
       'http_response_rate(5)',
       'avg(span.self_time)',
@@ -117,7 +119,10 @@ export function HTTPLandingPage() {
             ]}
           />
 
-          <Layout.Title>{t('HTTP')}</Layout.Title>
+          <Layout.Title>
+            {t('HTTP')}
+            <FeatureBadge type={RELEASE_LEVEL} />
+          </Layout.Title>
         </Layout.HeaderContent>
       </Layout.Header>
 

@@ -19,14 +19,12 @@ import {
   GridLineTimeLabels,
 } from 'sentry/views/monitors/components/overviewTimeline/gridLines';
 import {SortSelector} from 'sentry/views/monitors/components/overviewTimeline/sortSelector';
+import type {Monitor} from 'sentry/views/monitors/types';
 import {makeMonitorListQueryKey} from 'sentry/views/monitors/utils';
+import {useMonitorTimes} from 'sentry/views/monitors/utils/useMonitorDates';
 
-import type {Monitor} from '../../types';
-
-import {ResolutionSelector} from './resolutionSelector';
 import {TimelineTableRow} from './timelineTableRow';
-import type {MonitorBucketData, TimeWindow} from './types';
-import {getConfigFromTimeRange, getStartFromTimeWindow} from './utils';
+import type {MonitorBucketData} from './types';
 
 interface Props {
   monitorList: Monitor[];
@@ -39,24 +37,19 @@ export function OverviewTimeline({monitorList}: Props) {
   const router = useRouter();
   const location = router.location;
 
-  const timeWindow: TimeWindow = location.query?.timeWindow ?? '24h';
-  const nowRef = useRef(new Date());
-  const start = getStartFromTimeWindow(nowRef.current, timeWindow);
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
 
-  const timeWindowConfig = getConfigFromTimeRange(start, nowRef.current, timelineWidth);
-  const rollup = Math.floor((timeWindowConfig.elapsedMinutes * 60) / timelineWidth);
+  const {selectionQuery, timeWindowConfig} = useMonitorTimes({timelineWidth});
+
   const monitorStatsQueryKey = `/organizations/${organization.slug}/monitors-stats/`;
   const {data: monitorStats, isLoading} = useApiQuery<Record<string, MonitorBucketData>>(
     [
       monitorStatsQueryKey,
       {
         query: {
-          until: Math.floor(nowRef.current.getTime() / 1000),
-          since: Math.floor(start.getTime() / 1000),
-          monitor: monitorList.map(m => m.slug),
-          resolution: `${rollup}s`,
+          monitor: monitorList.map(m => m.id),
+          ...selectionQuery,
           ...location.query,
         },
       },
@@ -82,16 +75,19 @@ export function OverviewTimeline({monitorList}: Props) {
 
       const oldMonitor = oldMonitorList[oldMonitorIdx];
       const newEnvList = oldMonitor.environments.filter(e => e.name !== env);
-      const newMonitor = {
+      const updatedMonitor = {
         ...oldMonitor,
         environments: newEnvList,
       };
 
-      return [
-        ...oldMonitorList.slice(0, oldMonitorIdx),
-        newMonitor,
-        ...oldMonitorList.slice(oldMonitorIdx + 1),
-      ];
+      const left = oldMonitorList.slice(0, oldMonitorIdx);
+      const right = oldMonitorList.slice(oldMonitorIdx + 1);
+
+      if (newEnvList.length === 0) {
+        return [...left, ...right];
+      }
+
+      return [...left, updatedMonitor, ...right];
     });
   };
 
@@ -141,24 +137,17 @@ export function OverviewTimeline({monitorList}: Props) {
   return (
     <MonitorListPanel>
       <TimelineWidthTracker ref={elementRef} />
-      <HeaderControls>
-        <ResolutionSelector />
-        <SortSelector />
-      </HeaderControls>
-      <StickyGridLineTimeLabels>
-        <BorderlessGridLineTimeLabels
-          timeWindowConfig={timeWindowConfig}
-          start={start}
-          end={nowRef.current}
-          width={timelineWidth}
-        />
-      </StickyGridLineTimeLabels>
+      <Header>
+        <HeaderControls>
+          <SortSelector size="xs" />
+        </HeaderControls>
+        <GridLineTimeLabels timeWindowConfig={timeWindowConfig} width={timelineWidth} />
+      </Header>
       <GridLineOverlay
         stickyCursor
+        allowZoom
         showCursor={!isLoading}
         timeWindowConfig={timeWindowConfig}
-        start={start}
-        end={nowRef.current}
         width={timelineWidth}
       />
 
@@ -167,9 +156,7 @@ export function OverviewTimeline({monitorList}: Props) {
           key={monitor.id}
           monitor={monitor}
           timeWindowConfig={timeWindowConfig}
-          start={start}
-          bucketedData={monitorStats?.[monitor.slug]}
-          end={nowRef.current}
+          bucketedData={monitorStats?.[monitor.id]}
           width={timelineWidth}
           onDeleteEnvironment={env => handleDeleteEnvironment(monitor, env)}
           onToggleMuteEnvironment={(env, isMuted) =>
@@ -187,42 +174,30 @@ const MonitorListPanel = styled(Panel)`
   grid-template-columns: 350px 135px 1fr;
 `;
 
-const HeaderControls = styled(Sticky)`
-  display: flex;
-  gap: ${space(0.5)};
+const Header = styled(Sticky)`
+  display: grid;
+  grid-column: 1/-1;
+  grid-template-columns: subgrid;
+
   z-index: 1;
-  padding: ${space(1.5)} ${space(2)};
-  grid-column: 1/3;
   background: ${p => p.theme.background};
   border-top-left-radius: ${p => p.theme.panelBorderRadius};
-  box-shadow: 0 1px ${p => p.theme.translucentBorder};
-
-  &[data-stuck] {
-    border-radius: 0;
-    border-left: 1px solid ${p => p.theme.border};
-    margin-left: -1px;
-  }
-`;
-
-// We don't need border here because it is already accomplished via box-shadow below
-const BorderlessGridLineTimeLabels = styled(GridLineTimeLabels)`
-  border: none;
-`;
-
-const StickyGridLineTimeLabels = styled(Sticky)`
-  > * {
-    height: 100%;
-  }
-  z-index: 1;
-  background: ${p => p.theme.background};
   border-top-right-radius: ${p => p.theme.panelBorderRadius};
   box-shadow: 0 1px ${p => p.theme.translucentBorder};
 
   &[data-stuck] {
     border-radius: 0;
+    border-left: 1px solid ${p => p.theme.border};
     border-right: 1px solid ${p => p.theme.border};
-    margin-right: -1px;
+    margin: 0 -1px;
   }
+`;
+
+const HeaderControls = styled('div')`
+  grid-column: 1/3;
+  display: flex;
+  gap: ${space(0.5)};
+  padding: ${space(1.5)} ${space(2)};
 `;
 
 const TimelineWidthTracker = styled('div')`

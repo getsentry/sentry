@@ -166,6 +166,10 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                 result = inbox_search(**query_kwargs)
             else:
                 query_kwargs["referrer"] = "search.group_index"
+                # optional argument to use the group snuba dataset that intentially does not support trends
+                if request.GET.get("useGroupSnubaDataset") and query_kwargs["sort_by"] != "trends":
+                    query_kwargs["use_group_snuba_dataset"] = True
+
                 result = search.query(**query_kwargs)
             return result, query_kwargs
 

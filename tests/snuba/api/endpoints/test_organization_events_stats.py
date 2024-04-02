@@ -16,14 +16,12 @@ from sentry.models.transaction_threshold import ProjectTransactionThreshold, Tra
 from sentry.snuba.discover import OTHER_KEY
 from sentry.testutils.cases import APITestCase, ProfilesSnubaTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 pytestmark = pytest.mark.sentry_metrics
 
 
-@region_silo_test
 class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     endpoint = "sentry-api-0-organization-events-stats"
 
@@ -1108,7 +1106,6 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert all([interval[1][0]["count"] == 0 for interval in response.data["data"]])
 
 
-@region_silo_test
 class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -2626,7 +2623,6 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert response.status_code == 200
 
 
-@region_silo_test
 class OrganizationEventsStatsProfileFunctionDatasetEndpointTest(
     APITestCase, ProfilesSnubaTestCase, SearchIssueTestMixin
 ):
@@ -2692,7 +2688,6 @@ class OrganizationEventsStatsProfileFunctionDatasetEndpointTest(
             }
 
 
-@region_silo_test
 class OrganizationEventsStatsTopNEventsProfileFunctionDatasetEndpointTest(
     APITestCase, ProfilesSnubaTestCase, SearchIssueTestMixin
 ):

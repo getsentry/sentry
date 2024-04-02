@@ -7,12 +7,14 @@ import {
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
 import useProjects from 'sentry/utils/useProjects';
+import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
+import type {
+  TraceTree,
+  TraceTreeNode,
+} from 'sentry/views/performance/newTraceDetails/traceTree';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
-
-import type {TraceTree, TraceTreeNode} from '../../traceTree';
 
 import {TraceDrawerComponents} from './styles';
 
@@ -20,11 +22,8 @@ export function SpanNodeDetails({
   node,
   organization,
   scrollToNode,
-}: {
-  node: TraceTreeNode<TraceTree.Span>;
-  organization: Organization;
-  scrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
-}) {
+  onParentClick,
+}: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.Span>>) {
   const {projects} = useProjects();
   const {event, childTransaction, ...span} = node.value;
   const project = projects.find(proj => proj.slug === event?.projectSlug);
@@ -59,7 +58,7 @@ export function SpanNodeDetails({
           />
         </TraceDrawerComponents.Actions>
       </TraceDrawerComponents.HeaderContainer>
-      {event.projectSlug && (
+      {event.projectSlug ? (
         <ProfilesProvider
           orgSlug={organization.slug}
           projectSlug={event.projectSlug}
@@ -80,12 +79,13 @@ export function SpanNodeDetails({
                   organization={organization}
                   span={span}
                   trace={parseTrace(event)}
+                  onParentClick={onParentClick}
                 />
               </ProfileGroupProvider>
             )}
           </ProfileContext.Consumer>
         </ProfilesProvider>
-      )}
+      ) : null}
     </TraceDrawerComponents.DetailContainer>
   );
 }

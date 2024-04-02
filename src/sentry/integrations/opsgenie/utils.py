@@ -41,7 +41,7 @@ def build_incident_attachment(
         "source": "Sentry",
         "priority": priority,
         "details": {
-            "URL": data["title_link"],  # type: ignore
+            "URL": data["title_link"],  # type: ignore[dict-item]
         },
     }
     return payload

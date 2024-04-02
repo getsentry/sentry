@@ -20,6 +20,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.wait import WebDriverWait
 
+from sentry.silo.base import SiloMode
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.retries import TimedRetryPolicy
 
 logger = logging.getLogger("sentry.testutils")
@@ -438,7 +440,8 @@ def browser(request, live_server):
     # capture an issue where cookie lookup in the frontend failed, but did NOT
     # fail in the acceptance tests because the code worked fine when
     # document.cookie only had one cookie in it.
-    browser.save_cookie("acceptance_test_cookie", "1")
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        browser.save_cookie("acceptance_test_cookie", "1", path="/auth/login/")
 
     if hasattr(request, "cls"):
         request.cls.browser = browser
