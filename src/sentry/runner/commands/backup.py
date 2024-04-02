@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Callable, Generator, Sequence
 from contextlib import contextmanager
 from io import BytesIO
+from threading import Event, Thread
+from time import sleep, time
 from typing import TextIO
 
 import click
@@ -244,6 +246,26 @@ def write_findings(findings_file: TextIO | None, findings: Sequence[Finding], ec
             file.write(encoded)
 
 
+def print_elapsed_time(kind: str, interval_ms: int, done_event: Event, printer: Printer):
+    """
+    Prints an update every `interval_ms` seconds. Intended to be run on a separate thread. When that
+    thread is done with its work, it should `done_event.set()` to indicate to this thread to finish
+    as well.
+    """
+    start_time = time()
+    last_print_time = start_time
+    # TODO(azaslavsky): adjust this to a more reasonable figure
+    check_interval = 0.1  # Check every second if we should exit
+
+    while not done_event.is_set():
+        current_time = time()
+        diff_ms = (current_time - last_print_time) * 1000
+        if diff_ms >= interval_ms:
+            printer.echo(f"{kind}: {(current_time - start_time):.2f} seconds elapsed.")
+            last_print_time = current_time
+        sleep(check_interval)
+
+
 @contextmanager
 def write_import_findings(
     findings_file: TextIO | None, printer: Printer
@@ -254,7 +276,11 @@ def write_import_findings(
 
     from sentry.backup.imports import ImportingError
 
+    done_event = Event()
+    updater_thread = Thread(target=print_elapsed_time, args=("Importing", 100, done_event, printer))
+
     try:
+        updater_thread.start()
         yield
     except ImportingError as e:
         if e.context:
@@ -262,6 +288,9 @@ def write_import_findings(
         raise
     else:
         write_findings(findings_file, [], printer.echo)
+    finally:
+        done_event.set()
+        updater_thread.join()
 
 
 @contextmanager
@@ -274,7 +303,11 @@ def write_export_findings(
 
     from sentry.backup.exports import ExportingError
 
+    done_event = Event()
+    updater_thread = Thread(target=print_elapsed_time, args=("Exporting", 100, done_event, printer))
+
     try:
+        updater_thread.start()
         yield
     except ExportingError as e:
         if e.context:
@@ -282,6 +315,9 @@ def write_export_findings(
         raise
     else:
         write_findings(findings_file, [], printer.echo)
+    finally:
+        done_event.set()
+        updater_thread.join()
 
 
 @click.group(name="backup")
