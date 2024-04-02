@@ -237,7 +237,11 @@ class ControlSiloOrganizationEndpoint(Endpoint):
     permission_classes: tuple[type[BasePermission], ...] = (OrganizationPermission,)
 
     def convert_args(
-        self, request: Request, organization_slug: str | None = None, *args: Any, **kwargs: Any
+        self,
+        request: Request,
+        organization_slug: str | int | None = None,
+        *args: Any,
+        **kwargs: Any,
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         if not subdomain_is_region(request):
             subdomain = getattr(request, "subdomain", None)
@@ -247,9 +251,16 @@ class ControlSiloOrganizationEndpoint(Endpoint):
         if not organization_slug:
             raise ResourceDoesNotExist
 
-        organization_context = organization_service.get_organization_by_slug(
-            slug=organization_slug, only_visible=False, user_id=request.user.id
-        )
+        if options.get("api.id-or-slug-enabled") and str(organization_slug).isnumeric():
+            # It is ok that `get_organization_by_id` doesn't check for visibility as we
+            # don't check the visibility in `get_organization_by_slug` either (only_active=False).
+            organization_context = organization_service.get_organization_by_id(
+                id=organization_slug, user_id=request.user.id
+            )
+        else:
+            organization_context = organization_service.get_organization_by_slug(
+                slug=organization_slug, only_visible=False, user_id=request.user.id
+            )
         if organization_context is None:
             raise ResourceDoesNotExist
 

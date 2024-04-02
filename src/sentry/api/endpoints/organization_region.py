@@ -4,6 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import capture_message
 
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
@@ -59,9 +60,15 @@ class OrganizationRegionEndpoint(Endpoint):
             raise ResourceDoesNotExist
 
         try:
-            org_mapping: OrganizationMapping = OrganizationMapping.objects.get(
-                slug=organization_slug
-            )
+            # We don't use the lookup since OrganizationMapping uses SlugField instead of SentrySlugField
+            if options.get("api.id-or-slug-enabled") and str(organization_slug).isnumeric():
+                org_mapping: OrganizationMapping = OrganizationMapping.objects.get(
+                    organization_id=organization_slug
+                )
+            else:
+                org_mapping: OrganizationMapping = OrganizationMapping.objects.get(
+                    slug=organization_slug
+                )
         except OrganizationMapping.DoesNotExist:
             raise ResourceDoesNotExist
 

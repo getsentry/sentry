@@ -317,11 +317,19 @@ class SentryAppInstallationsBaseEndpoint(IntegrationPlatformEndpoint):
 
     def convert_args(self, request: Request, organization_slug, *args, **kwargs):
         if is_active_superuser(request):
-            organization = organization_service.get_org_by_slug(slug=organization_slug)
+            if options.get("api.id-or-slug-enabled") and str(organization_slug).isnumeric():
+                organization = organization_service.get_org_by_id(id=int(organization_slug))
+            else:
+                organization = organization_service.get_org_by_slug(slug=organization_slug)
         else:
-            organization = organization_service.get_org_by_slug(
-                slug=organization_slug, user_id=request.user.id
-            )
+            if options.get("api.id-or-slug-enabled") and str(organization_slug).isnumeric():
+                organization = organization_service.get_org_by_id(
+                    id=int(organization_slug), user_id=request.user.id
+                )
+            else:
+                organization = organization_service.get_org_by_slug(
+                    slug=organization_slug, user_id=request.user.id
+                )
 
         if organization is None:
             raise Http404
