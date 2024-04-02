@@ -220,40 +220,46 @@ class RedisBuffer(Buffer):
         pipe = conn.pipeline()
         return pipe
 
-    def push_to_set(self, key: str, value: list[int, int] | int) -> None:
+    def push_to_set(self, key: str, value: list[int] | int) -> None:
         pending_key = self._make_pending_key_from_key(key)
         pipe = self.get_redis_connection(pending_key)
-        pipe.sadd(key, value)
-        pipe.expire(key, self.key_expire)
-        pipe.execute()
+        if pipe:
+            pipe.sadd(key, value)
+            pipe.expire(key, self.key_expire)
+            pipe.execute()
 
     def get_set(self, key: str) -> None:
         pending_key = self._make_pending_key_from_key(key)
         pipe = self.get_redis_connection(pending_key)
-        pipe.smembers(key)
-        return pipe.execute()
+        if pipe:
+            pipe.smembers(key)
+            return pipe.execute()
 
     def push_to_hash(
-        self, key: str, field: dict[str, int], value: dict[str, dict[int, int]]
+        self, key: str, field: dict[str, models.Model | str | int], value: dict[str, dict[int, int]]
     ) -> None:
         pending_key = self._make_pending_key_from_key(key)
         pipe = self.get_redis_connection(pending_key)
-        for f, v in value.items():
-            pipe.hsetnx(key, f, v)
-        pipe.expire(key, self.key_expire)
-        pipe.execute()
+        if pipe:
+            for f, v in value.items():
+                pipe.hsetnx(key, f, v)
+            pipe.expire(key, self.key_expire)
+            pipe.execute()
 
-    def get_hash(self, model: type[models.Model], field: dict[str, int]):
+    def get_hash(
+        self, model: type[models.Model], field: dict[str, models.Model | str | int]
+    ) -> None:
         key = self._make_key(model, field)
         pending_key = self._make_pending_key_from_key(key)
         pipe = self.get_redis_connection(pending_key)
-        pipe.hgetall(key)
-        return pipe.execute()
+        if pipe:
+            pipe.hgetall(key)
+            return pipe.execute()
 
     def enqueue(
         self,
         model: type[models.Model],
-        field: dict[str, int],
+        field: dict[str, models.Model | str | int],
         value: dict[str, dict[int, int]],
     ) -> None:
         key = self._make_key(model, field)
@@ -282,6 +288,8 @@ class RedisBuffer(Buffer):
         # We can't use conn.map() due to wanting to support multiple pending
         # keys (one per Redis partition)
         pipe = self.get_redis_connection(key)
+        if not pipe:
+            return
         pipe.hsetnx(key, "m", f"{model.__module__}.{model.__name__}")
         _validate_json_roundtrip(filters, model)
 
