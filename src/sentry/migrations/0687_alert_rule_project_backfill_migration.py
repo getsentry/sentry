@@ -28,9 +28,9 @@ def _backfill_alert_rule_projects(apps, schema_editor):
         alert_rule = snuba_query.alertrule_set.get()
 
         existing_alert_rule_projects = list(AlertRuleProjects.objects.filter(alert_rule=alert_rule))
-        should_create_new = not existing_alert_rule_projects.exists()
+        deleted_old_projects = False
 
-        if not should_create_new and (  # eg. if alert rule already has fk projects
+        if existing_alert_rule_projects and (  # eg. if alert rule already has fk projects
             len(existing_alert_rule_projects) > 1
             or existing_alert_rule_projects[0].project != subscription.project
         ):
@@ -43,9 +43,9 @@ def _backfill_alert_rule_projects(apps, schema_editor):
             )
             for arp in existing_alert_rule_projects:
                 arp.delete()
-            should_create_new = True
+            deleted_old_projects = True
 
-        if should_create_new:
+        if not existing_alert_rule_projects or deleted_old_projects:
             AlertRuleProjects.objects.create(
                 alert_rule=alert_rule,
                 project=subscription.project,
