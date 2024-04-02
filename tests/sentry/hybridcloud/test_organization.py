@@ -202,6 +202,32 @@ def test_get_organization_id(org_factory: Callable[[], tuple[Organization, list[
         assert_get_organization_by_id_works(user_context, orm_org)
 
 
+@assume_test_silo_mode(SiloMode.REGION)
+def assert_get_org_by_id_works(user_context: User | None, orm_org: Organization):
+    assert (
+        organization_service.get_org_by_id(id=-2, user_id=user_context.id if user_context else None)
+        is None
+    )
+    org_context = organization_service.get_org_by_id(
+        id=orm_org.id, user_id=user_context.id if user_context else None
+    )
+    assert org_context is not None
+
+    assert orm_org.id == org_context.id
+    assert orm_org.name == org_context.name
+    assert orm_org.slug == org_context.slug
+
+
+@django_db_all(transaction=True)
+@all_silo_test
+@parameterize_with_orgs
+def test_get_org_id(org_factory: Callable[[], tuple[Organization, list[User]]]):
+    orm_org, orm_users = org_factory()
+
+    for user_context in itertools.chain([None], orm_users):
+        assert_get_org_by_id_works(user_context, orm_org)
+
+
 @django_db_all(transaction=True)
 @all_silo_test
 @parameterize_with_orgs
