@@ -498,16 +498,14 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                             "column",
                             allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
                         ),
-                        fields.FunctionArg(
-                            "condition",
-                        ),
+                        fields.SnQLStringArg("condition", allowed_strings=["greater", "less"]),
                         fields.TimestampArg("timestamp"),
                     ],
                     calculated_args=[resolve_metric_id],
                     snql_distribution=lambda args, alias: self._resolve_avg_condition(
                         args, args["condition"], alias
                     ),
-                    default_result_type="number",
+                    default_result_type="duration",
                 ),
             ]
         }
