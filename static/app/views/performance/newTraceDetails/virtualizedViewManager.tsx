@@ -931,12 +931,12 @@ export class VirtualizedViewManager {
     this.container.style.setProperty(
       '--list-column-width',
       // @ts-expect-error we set a number on purpose
-      this.columns.list.width
+      Math.round(this.columns.list.width * 1000) / 1000
     );
     this.container.style.setProperty(
       '--span-column-width',
       // @ts-expect-error we set a number on purpose
-      this.columns.span_list.width
+      Math.round(this.columns.span_list.width * 1000) / 1000
     );
 
     this.resize_observer = new ResizeObserver(entries => {
