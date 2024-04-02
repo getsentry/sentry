@@ -147,7 +147,6 @@ const metricsFidelityLadder = new GranularityLadder([
   [SIX_HOURS, '5m'],
   [ONE_HOUR, '1m'],
   [0, '1m'],
-
 ]);
 
 /**
@@ -179,11 +178,16 @@ export function getDiffInMinutes(datetimeObj: DateTimeObject): number {
   }
 
   // Validate period
-  const periodHours = parsePeriodToHours(typeof period === 'string' ? period : DEFAULT_STATS_PERIOD);
+  const periodHours = parsePeriodToHours(
+    typeof period === 'string' ? period : DEFAULT_STATS_PERIOD
+  );
   if (periodHours > 0) {
     return periodHours * 60;
   } else {
-    Sentry.captureMessage('Invalid period: Period must result in a positive duration', 'error');
+    Sentry.captureMessage(
+      'Invalid period: Period must result in a positive duration',
+      'error'
+    );
     return TWENTY_FOUR_HOURS; // Default positive duration
   }
 }
