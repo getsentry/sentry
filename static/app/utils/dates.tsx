@@ -34,6 +34,15 @@ export function getUtcDateString(dateObj: moment.MomentInput): string {
   return moment.utc(dateObj).format(moment.HTML5_FMT.DATETIME_LOCAL_SECONDS);
 }
 
+/**
+ * Given a date string or number, return a timestamp in seconds
+ * given: '2024-04-01T20:15:18+00:00'
+ * returns: 1712002518
+ */
+export function getTimeStampFromDateString(date: React.ReactText): number {
+  return new Date(date).getTime() / 1000;
+}
+
 export function getFormattedDate(
   dateObj: moment.MomentInput,
   format: string,

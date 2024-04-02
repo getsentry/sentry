@@ -18,6 +18,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import {getTimeStampFromDateString} from 'sentry/utils/dates';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
 import {
@@ -337,6 +338,9 @@ function TableView(props: TableViewProps) {
         </TransactionLink>
       );
     } else if (columnKey === 'trace') {
+      const timestamp = getTimeStampFromDateString(
+        eventView.hasAggregateField() ? dataRow['max(timestamp)'] : dataRow.timestamp
+      );
       const dateSelection = eventView.normalizeDateSelection(location);
       if (dataRow.trace) {
         const target = getTraceDetailsUrl(
@@ -344,7 +348,7 @@ function TableView(props: TableViewProps) {
           String(dataRow.trace),
           dateSelection,
           {},
-          dataRow.timestamp,
+          timestamp,
           dataRow.id
         );
 

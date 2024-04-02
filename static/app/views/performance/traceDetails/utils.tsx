@@ -19,14 +19,20 @@ export function getTraceDetailsUrl(
   traceSlug: string,
   dateSelection,
   query: Query,
-  timestamp?: string | number,
+  timestamp: string | number | undefined,
   eventId?: string
 ): LocationDescriptorObject {
   const {start, end, statsPeriod} = dateSelection;
 
+  // Give precedence to timestamp over statsPeriod
+  if (timestamp) {
+    delete query.statsPeriod;
+  } else {
+    query.statsPeriod = statsPeriod;
+  }
+
   const queryParams = {
     ...query,
-    statsPeriod,
     [PAGE_URL_PARAM.PAGE_START]: start,
     [PAGE_URL_PARAM.PAGE_END]: end,
   };

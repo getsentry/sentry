@@ -1188,6 +1188,19 @@ class EventView {
       queryString += ' ' + forceAppendRawQueryString;
     }
 
+    // To generate the target url for TRACE ID and EVENT ID links we always include a timestamp,
+    // to speed up the trace endpoint. Adding timestamp for the non-aggregate case and
+    // max(timestamp) for the aggregate case as fields, to accomodate this.
+    if (
+      this.hasAggregateField() &&
+      fields.includes('trace') &&
+      !fields.includes('max(timestamp)')
+    ) {
+      fields.push('max(timestamp)');
+    } else if (!fields.includes('timestamp')) {
+      fields.push('timestamp');
+    }
+
     // generate event query
     const eventQuery = Object.assign(
       omit(picked, DATETIME_QUERY_STRING_KEYS),
