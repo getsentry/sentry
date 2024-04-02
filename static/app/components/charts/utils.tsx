@@ -92,7 +92,12 @@ export class GranularityLadder {
       return minutes >= threshold;
     }) as GranularityStep;
 
-    return step[1];
+    if (step) {
+      return step[1];
+    }
+
+    // Default return value for interval as a fallback
+    return '1h';
   }
 }
 
