@@ -147,6 +147,7 @@ export function traceTabsReducer(
             'last_clicked and current should not be null when nextTabIsPersistent is true'
           );
         }
+
         const nextTab = nextTabIsPersistent
           ? state.last_clicked ?? state.current
           : newTabs[newTabs.length - 1];
@@ -159,6 +160,15 @@ export function traceTabsReducer(
         };
       }
 
+      if (state.current?.node === state.tabs[action.payload].node) {
+        return {
+          ...state,
+          current: newTabs[newTabs.length - 1],
+          last_clicked: state.last_clicked,
+          tabs: newTabs,
+        };
+      }
+
       const next = state.last_clicked ?? newTabs[newTabs.length - 1];
 
       return {
@@ -166,6 +176,18 @@ export function traceTabsReducer(
         current: next,
         last_clicked: next,
         tabs: newTabs,
+      };
+    }
+
+    case 'clear clicked tab': {
+      const next =
+        state.last_clicked === state.current
+          ? state.tabs[state.tabs.length - 1]
+          : state.current;
+      return {
+        ...state,
+        current: next,
+        last_clicked: null,
       };
     }
 

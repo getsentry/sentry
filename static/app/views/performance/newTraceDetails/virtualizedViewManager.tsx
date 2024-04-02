@@ -616,10 +616,10 @@ export class VirtualizedViewManager {
     const start_width = this.trace_view.width;
 
     const max_distance = Math.max(Math.abs(distance_x), Math.abs(distance_width));
-    const p = max_distance !== 0 ? Math.log10(max_distance) - 1 : 1;
+    const p = max_distance !== 0 ? Math.log10(max_distance) : 1;
     // We need to clamp the duration to prevent the animation from being too slow,
     // sometimes the distances are very large as traces can be hours in duration
-    const duration = clamp(200 + 100 * Math.abs(p * p), 200, 600);
+    const duration = clamp(200 + 70 * Math.abs(p), 200, 600);
 
     const start = performance.now();
     const rafCallback = (now: number) => {
@@ -1242,24 +1242,42 @@ export class VirtualizedViewManager {
     const span_list_width = options.span_list ?? this.columns.span_list.width;
 
     if (this.divider) {
-      this.divider.style.transform = `translateX(${
-        list_width * (this.container_physical_space.width - this.scrollbar_width) -
-        DIVIDER_WIDTH / 2 -
-        1
-      }px)`;
+      this.divider.style.setProperty(
+        '--translate-x',
+        // @ts-expect-error we set number value type on purpose
+        Math.round(
+          (list_width * (this.container_physical_space.width - this.scrollbar_width) -
+            DIVIDER_WIDTH / 2 -
+            1) *
+            10
+        ) / 10
+      );
     }
     if (this.indicator_container) {
       const correction =
         (this.scrollbar_width / this.container_physical_space.width) * span_list_width;
-      this.indicator_container.style.transform = `translateX(${-this.scrollbar_width}px)`;
+      // @ts-expect-error we set number value type on purpose
+      this.indicator_container.style.setProperty('--translate-x', -this.scrollbar_width);
       this.indicator_container.style.width = (span_list_width - correction) * 100 + '%';
     }
 
     for (let i = 0; i < this.columns.list.column_refs.length; i++) {
       const list = this.columns.list.column_refs[i];
-      if (list) list.style.width = list_width * 100 + '%';
+      if (list) {
+        list.style.setProperty(
+          '--width',
+          // @ts-expect-error we set number value type on purpose
+          Math.round(list_width * 1000) / 1000
+        );
+      }
       const span = this.columns.span_list.column_refs[i];
-      if (span) span.style.width = span_list_width * 100 + '%';
+      if (span) {
+        span.style.setProperty(
+          '--width',
+          // @ts-expect-error we set number value type on purpose
+          Math.round(span_list_width * 1000) / 1000
+        );
+      }
 
       const span_bar = this.span_bars[i];
       const span_arrow = this.span_arrows[i];
@@ -1472,7 +1490,6 @@ export class VirtualizedViewManager {
 // so we dont end up storing an infinite amount of elements
 class DOMWidthMeasurer<T> {
   cache: Map<T, number> = new Map();
-  elements: HTMLElement[] = [];
 
   queue: [T, HTMLElement][] = [];
   drainRaf: number | null = null;
@@ -1496,8 +1513,9 @@ class DOMWidthMeasurer<T> {
   }
 
   drain() {
-    for (const [node, element] of this.queue) {
-      this.measure(node, element);
+    while (this.queue.length > 0) {
+      const next = this.queue.pop()!;
+      this.measure(next[0], next[1]);
     }
   }
 
@@ -1551,7 +1569,7 @@ class TextMeasurer {
       this.number = Math.max(this.number, measurement.width);
     }
 
-    for (const duration of ['ns', 'ms', 's', 'm', 'h', 'd']) {
+    for (const duration of ['ns', 'ms', 's', 'm', 'min', 'h', 'd']) {
       this.duration[duration] = this.ctx.measureText(duration).width;
     }
   }
