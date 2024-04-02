@@ -38,7 +38,7 @@ import type {
   TraceTree,
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceTree';
-import {renderSpanDetailsValue} from 'sentry/views/performance/traceDetails/newTraceDetailsValueRenderer';
+import {renderGeneralSpanDetailsValue} from 'sentry/views/performance/traceDetails/newTraceDetailsValueRenderer';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
@@ -531,13 +531,13 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
               {Object.entries(nonSizeKeys).map(([key, value]) =>
                 !isHiddenDataKey(key) ? (
                   <Row title={key} key={key}>
-                    {renderSpanDetailsValue(value)}
+                    {renderGeneralSpanDetailsValue(value)}
                   </Row>
                 ) : null
               )}
               {unknownKeys.map(key => (
                 <Row title={key} key={key}>
-                  {renderSpanDetailsValue(span[key])}
+                  {renderGeneralSpanDetailsValue(span[key])}
                 </Row>
               ))}
             </tbody>

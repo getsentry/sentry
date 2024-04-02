@@ -3,12 +3,12 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 
-function renderObject(obj: object): React.ReactNode {
+function ObjectView({obj}: {obj: object}) {
   if (Array.isArray(obj)) {
     return (
       <ListContainer>
         {obj.map((x, i) => (
-          <li key={'array-' + i}>{renderSpanDetailsValue(x)}</li>
+          <li key={'array-' + i}>{renderGeneralSpanDetailsValue(x)}</li>
         ))}
       </ListContainer>
     );
@@ -17,19 +17,19 @@ function renderObject(obj: object): React.ReactNode {
     <ObjectContainer>
       {Object.keys(obj).map(key => (
         <div key={key}>
-          {key}: {renderSpanDetailsValue(obj[key])}
+          {key}: {renderGeneralSpanDetailsValue(obj[key])}
         </div>
       ))}
     </ObjectContainer>
   );
 }
 
-export function renderSpanDetailsValue(value: any): React.ReactNode {
+export function renderGeneralSpanDetailsValue(value: any): React.ReactNode {
   if (typeof value === 'string') {
     return value;
   }
   if (typeof value === 'object') {
-    return renderObject(value);
+    return <ObjectView obj={value} />;
   }
   return JSON.stringify(value, null, 4);
 }
