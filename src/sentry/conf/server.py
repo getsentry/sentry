@@ -1913,6 +1913,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:starfish-browser-webvitals-use-backend-scores": False,
     # Enable INP in the browser starfish webvitals module
     "organizations:starfish-browser-webvitals-replace-fid-with-inp": False,
+    # Uses a computed total count to calculate the score in the browser starfish webvitals module, instead of measurements.score.total
+    "organizations:starfish-browser-webvitals-score-with-computed-total-count": False,
     # Enable mobile starfish app start module view
     "organizations:starfish-mobile-appstart": False,
     # Enable mobile starfish ui module view

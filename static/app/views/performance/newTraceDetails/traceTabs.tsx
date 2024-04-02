@@ -29,7 +29,7 @@ export function getTraceTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
   }
 
   if (isAutogroupedNode(node)) {
-    return t('Autogroup');
+    return t('Autogroup') + ' - ' + node.value.autogrouped_by.op;
   }
 
   if (isMissingInstrumentationNode(node)) {
@@ -53,7 +53,8 @@ export function getTraceTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
 }
 
 type Tab = {
-  node: TraceTreeNode<TraceTree.NodeValue> | 'Trace';
+  node: TraceTreeNode<TraceTree.NodeValue> | 'trace' | 'vitals';
+  label?: string;
 };
 
 export type TraceTabsReducerState = {
@@ -63,6 +64,7 @@ export type TraceTabsReducerState = {
 };
 
 export type TraceTabsReducerAction =
+  | {payload: TraceTabsReducerState; type: 'initialize'}
   | {
       payload: Tab['node'] | number;
       type: 'activate tab';
@@ -77,6 +79,9 @@ export function traceTabsReducer(
   action: TraceTabsReducerAction
 ): TraceTabsReducerState {
   switch (action.type) {
+    case 'initialize': {
+      return action.payload;
+    }
     case 'activate tab': {
       // If an index was passed, activate the tab at that index
       if (typeof action.payload === 'number') {
@@ -147,6 +152,7 @@ export function traceTabsReducer(
             'last_clicked and current should not be null when nextTabIsPersistent is true'
           );
         }
+
         const nextTab = nextTabIsPersistent
           ? state.last_clicked ?? state.current
           : newTabs[newTabs.length - 1];
@@ -159,6 +165,15 @@ export function traceTabsReducer(
         };
       }
 
+      if (state.current?.node === state.tabs[action.payload].node) {
+        return {
+          ...state,
+          current: newTabs[newTabs.length - 1],
+          last_clicked: state.last_clicked,
+          tabs: newTabs,
+        };
+      }
+
       const next = state.last_clicked ?? newTabs[newTabs.length - 1];
 
       return {
@@ -166,6 +181,18 @@ export function traceTabsReducer(
         current: next,
         last_clicked: next,
         tabs: newTabs,
+      };
+    }
+
+    case 'clear clicked tab': {
+      const next =
+        state.last_clicked === state.current
+          ? state.tabs[state.tabs.length - 1]
+          : state.current;
+      return {
+        ...state,
+        current: next,
+        last_clicked: null,
       };
     }
 
