@@ -79,7 +79,7 @@ function ReplaySearchBar(props: Props) {
   }, [api, organization.slug, pageFilters]);
 
   const getTagValues = useCallback(
-    (tag: Tag, searchQuery: string, _params: object): Promise<string[]> => {
+(tag: Tag, searchQuery: string, _params: object): Promise<string[]> => {
       if (isAggregateField(tag.key)) {
         // We can't really auto suggest values for aggregate fields
         // or measurements, so we simply don't
@@ -96,7 +96,8 @@ function ReplaySearchBar(props: Props) {
       }).then(
         tagValues => (tagValues as TagValue[]).map(({value}) => value),
         () => {
-          throw new Error('Unable to fetch event field values');
+          Sentry.captureException(new Error('Unable to fetch event field values'));
+          return [];
         }
       );
     },
@@ -113,6 +114,7 @@ function ReplaySearchBar(props: Props) {
         t('Search for users, duration, clicked elements, count_errors, and more')
       }
       prepareQuery={prepareQuery}
+  );
       maxQueryLength={MAX_QUERY_LENGTH}
       searchSource="replay_index"
       savedSearchType={SavedSearchType.REPLAY}
