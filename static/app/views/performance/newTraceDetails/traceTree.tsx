@@ -1044,7 +1044,13 @@ export class TraceTree {
 
     promise
       .then(data => {
+        // The user may have collapsed the node before the promise resolved. When that
+        // happens, dont update the tree with the resolved data. Alternatively, we could implement
+        // a cancellable promise and avoid this cumbersome heuristic.
         node.fetchStatus = 'resolved';
+        if (!node.expanded) {
+          return data;
+        }
 
         const spans = data.entries.find(s => s.type === 'spans') ?? {data: []};
 
