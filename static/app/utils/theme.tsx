@@ -38,7 +38,6 @@ export const lightColors = {
    * Alternative version of gray200 that's translucent.
    * Useful for borders on tooltips, popovers, and dialogs.
    */
-  translucentGray400: '#3E3446E6',
   translucentGray200: 'rgba(58, 17, 95, 0.14)',
   translucentGray100: 'rgba(45, 0, 85, 0.06)',
 
@@ -106,7 +105,6 @@ export const darkColors = {
    * Alternative version of gray200 that's translucent.
    * Useful for borders on tooltips, popovers, and dialogs.
    */
-  translucentGray400: '#D6D0DC2A',
   translucentGray200: 'rgba(218, 184, 245, 0.16)',
   translucentGray100: 'rgba(208, 168, 240, 0.07)',
 
