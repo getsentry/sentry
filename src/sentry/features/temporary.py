@@ -63,6 +63,7 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:default-high-priority-alerts", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:deprecate-fid-from-performance-score", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:derive-code-mappings", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+    manager.add("organizations:derive-code-mappings-go", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:device-class-synthesis", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:device-classification", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:discover", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
