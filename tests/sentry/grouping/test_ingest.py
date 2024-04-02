@@ -11,13 +11,11 @@ from sentry.grouping.ingest import (
 )
 from sentry.models.group import Group
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class BackgroundGroupingTest(TestCase):
     @patch(
         "sentry.grouping.ingest._calculate_background_grouping",
@@ -89,7 +87,6 @@ class BackgroundGroupingTest(TestCase):
         assert mock_calc_background_grouping.call_count == 0
 
 
-@region_silo_test
 class SecondaryGroupingTest(TestCase):
     def test_applies_secondary_grouping(self):
         project = self.project

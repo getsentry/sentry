@@ -141,7 +141,7 @@ function Breadcrumb(props: Props) {
     } else if (traceSlug) {
       crumbs.push({
         to: '',
-        label: t('Trace View'),
+        label: t('Trace'),
       });
     }
 

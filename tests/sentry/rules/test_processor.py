@@ -20,7 +20,6 @@ from sentry.rules.filters.base import EventFilter
 from sentry.rules.processor import RuleProcessor
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from sentry.utils.safe import safe_execute
@@ -44,7 +43,6 @@ class MockConditionTrue(EventCondition):
         return True
 
 
-@region_silo_test
 class RuleProcessorTest(TestCase):
     def setUp(self):
         event = self.store_event(data={}, project_id=self.project.id)
@@ -356,9 +354,12 @@ class RuleProcessorTest(TestCase):
                 "actions": [EMAIL_ACTION_DATA],
             },
         )
-        with patch("sentry.rules.processor.rules", init_registry()), patch(
-            "sentry.rules.conditions.event_frequency.BaseEventFrequencyCondition.passes"
-        ) as passes:
+        with (
+            patch("sentry.rules.processor.rules", init_registry()),
+            patch(
+                "sentry.rules.conditions.event_frequency.BaseEventFrequencyCondition.passes"
+            ) as passes,
+        ):
             rp = RuleProcessor(
                 self.group_event,
                 is_new=True,
@@ -389,7 +390,6 @@ class MockFilterFalse(EventFilter):
         return False
 
 
-@region_silo_test
 class RuleProcessorTestFilters(TestCase):
     MOCK_SENTRY_RULES_WITH_FILTERS = (
         "sentry.mail.actions.NotifyEmailAction",
@@ -695,7 +695,9 @@ class RuleProcessorTestFilters(TestCase):
         mock_post.assert_called_once()
         assert (
             "notification_uuid"
-            in json.loads(mock_post.call_args[1]["data"]["attachments"])[0]["title_link"]
+            in json.loads(mock_post.call_args[1]["data"]["attachments"])[0]["blocks"][0]["text"][
+                "text"
+            ]
         )
 
     @patch("sentry.shared_integrations.client.base.BaseApiClient.post")

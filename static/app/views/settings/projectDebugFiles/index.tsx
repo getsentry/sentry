@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Checkbox from 'sentry/components/checkbox';
 import Pagination from 'sentry/components/pagination';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';

@@ -1,6 +1,7 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
 
+import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 from snuba_sdk import Column, Condition, Function, Op
@@ -15,10 +16,14 @@ from sentry.api.utils import handle_query_errors
 from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.search.events.builder import SpansMetricsQueryBuilder
+from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.referrer import Referrer
+
+VALID_AVERAGE_COLUMNS = {"span.self_time", "span.duration"}
 
 
-def add_comparison_to_event(event, average_column):
+def add_comparison_to_event(event, average_columns):
     if "spans" not in event.data:
         return
     group_to_span_map = defaultdict(list)
@@ -30,6 +35,7 @@ def add_comparison_to_event(event, average_column):
             group_to_span_map[group].append(span)
 
     # Nothing to add comparisons to
+    sentry_sdk.set_measurement("query.groups", len(group_to_span_map))
     if len(group_to_span_map) == 0:
         return
 
@@ -43,27 +49,35 @@ def add_comparison_to_event(event, average_column):
                 "organization_id": event.organization.id,
             },
             selected_columns=[
-                "group",
-                f"avg({average_column}) as avg",
+                "span.group",
+                *[f"avg({average_column})" for average_column in average_columns],
             ],
+            config=QueryBuilderConfig(transform_alias_to_input_format=True),
             # orderby shouldn't matter, just picking something so results are consistent
-            orderby=["group"],
+            orderby=["span.group"],
         )
         builder.add_conditions(
             [
                 Condition(
-                    Column(builder.resolve_column_name("group")),
+                    Column(builder.resolve_column_name("span.group")),
                     Op.IN,
                     Function("tuple", list(group_to_span_map.keys())),
                 )
             ]
         )
-        result = builder.run_query("Get avg for spans")
-        for result in result["data"]:
-            group = result["group"]
-            avg = result["avg"]
+        result = builder.process_results(
+            builder.run_query(Referrer.API_PERFORMANCE_ORG_EVENT_AVERAGE_SPAN.value)
+        )
+        sentry_sdk.set_measurement("query.groups_found", len(result["data"]))
+        for row in result["data"]:
+            group = row["span.group"]
             for span in group_to_span_map[group]:
-                span["span.average_time"] = avg
+                average_results = {}
+                for col in row:
+                    if col.startswith("avg") and row[col] > 0:
+                        average_results[col] = row[col]
+                if average_results:
+                    span["span.averageResults"] = average_results
 
 
 @region_silo_endpoint
@@ -97,9 +111,12 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
         if event is None:
             return Response({"detail": "Event not found"}, status=404)
 
-        average_column = request.GET.get("averageColumn")
-        if average_column in ["span.self_time"]:
-            add_comparison_to_event(event, average_column)
+        average_columns = request.GET.getlist("averageColumn", [])
+        if (
+            all(col in VALID_AVERAGE_COLUMNS for col in average_columns)
+            and len(average_columns) > 0
+        ):
+            add_comparison_to_event(event, average_columns)
 
         # TODO: Remove `for_group` check once performance issues are moved to the issue platform
         if hasattr(event, "for_group") and event.group:

@@ -17,7 +17,6 @@ from sentry.api.endpoints.organization_metrics_estimation_stats import (
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import APITestCase, BaseMetricsLayerTestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 
 MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
@@ -30,7 +29,6 @@ MINUTE = timedelta(minutes=1)
 pytestmark = pytest.mark.sentry_metrics
 
 
-@region_silo_test
 @freeze_time(MOCK_DATETIME)
 class OrganizationMetricsEstimationStatsEndpointTest(APITestCase, BaseMetricsLayerTestCase):
     endpoint = "sentry-api-0-organization-metrics-estimation-stats"

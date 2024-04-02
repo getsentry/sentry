@@ -140,7 +140,7 @@ def handle_subscription_metrics_logger(
         if subscription.snuba_query.dataset == Dataset.Metrics.value:
             processor = SubscriptionProcessor(subscription)
             # XXX: Temporary hack so that we can extract these values without raising an exception
-            processor.reset_trigger_counts = lambda *arg, **kwargs: None  # type: ignore
+            processor.reset_trigger_counts = lambda *arg, **kwargs: None  # type: ignore[method-assign]
             aggregation_value = processor.get_aggregation_value(subscription_update)
 
             logger.info(

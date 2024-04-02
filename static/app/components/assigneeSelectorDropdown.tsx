@@ -42,22 +42,29 @@ const suggestedReasonTable: Record<SuggestedOwnerReason, string> = {
 const onOpenNoop = (e?: React.MouseEvent) => {
   e?.stopPropagation();
 
-  const txn = Sentry.startTransaction({
-    name: 'assignee_selector_dropdown.open',
-    op: 'ui.render',
-  });
-
-  if (typeof window.requestIdleCallback === 'function') {
-    txn.setTag('finish_strategy', 'idle_callback');
-    window.requestIdleCallback(() => {
-      txn.finish();
+  Sentry.withScope(scope => {
+    const span = Sentry.startInactiveSpan({
+      name: 'assignee_selector_dropdown.open',
+      op: 'ui.render',
+      forceTransaction: true,
     });
-  } else {
-    txn.setTag('finish_strategy', 'timeout');
-    setTimeout(() => {
-      txn.finish();
-    }, 1_000);
-  }
+
+    if (!span) {
+      return;
+    }
+
+    if (typeof window.requestIdleCallback === 'function') {
+      scope.setTag('finish_strategy', 'idle_callback');
+      window.requestIdleCallback(() => {
+        span.end();
+      });
+    } else {
+      scope.setTag('finish_strategy', 'timeout');
+      setTimeout(() => {
+        span.end();
+      }, 1_000);
+    }
+  });
 };
 
 export type SuggestedAssignee = Actor & {

@@ -48,6 +48,7 @@ class Topic(Enum):
     GROUP_ATTRIBUTES = "group-attributes"
     SHARED_RESOURCES_USAGE = "shared-resources-usage"
     SNUBA_SPANS = "snuba-spans"
+    BUFFERED_SEGMENTS = "buffered-segments"
 
 
 class ConsumerDefinition(TypedDict, total=False):

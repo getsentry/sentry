@@ -36,8 +36,8 @@ import type {
 } from 'sentry/utils/performance/segmentExplorer/tagKeyHistogramQuery';
 import TagTransactionsQuery from 'sentry/utils/performance/segmentExplorer/tagTransactionsQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 
-import {getPerformanceDuration} from '../../utils';
 import {eventsRouteWithQuery} from '../transactionEvents/utils';
 import {generateTransactionLink} from '../utils';
 

@@ -8,11 +8,9 @@ from sentry_relay.auth import generate_key_pair
 from sentry.models.relay import Relay, RelayUsage
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 
-@region_silo_test
 class RelayRegisterTest(APITestCase):
     def setUp(self):
         super().setUp()

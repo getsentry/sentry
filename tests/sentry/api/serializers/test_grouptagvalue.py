@@ -3,10 +3,8 @@ from datetime import datetime
 from sentry.api.serializers import serialize
 from sentry.tagstore.types import GroupTagValue
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class GroupTagValueSerializerTest(TestCase):
     def test_with_user(self):
         user = self.create_user()

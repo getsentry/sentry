@@ -3,6 +3,7 @@ from __future__ import annotations
 from django.http import Http404
 from rest_framework.request import Request
 
+from sentry import options
 from sentry.api.base import Endpoint
 from sentry.api.bases.integration import PARANOID_GET
 from sentry.api.permissions import SentryPermission, StaffPermissionMixin
@@ -77,7 +78,10 @@ class DocIntegrationBaseEndpoint(DocIntegrationsBaseEndpoint):
 
     def convert_args(self, request: Request, doc_integration_slug: str, *args, **kwargs):
         try:
-            doc_integration = DocIntegration.objects.get(slug=doc_integration_slug)
+            if options.get("api.id-or-slug-enabled"):
+                doc_integration = DocIntegration.objects.get(slug__id_or_slug=doc_integration_slug)
+            else:
+                doc_integration = DocIntegration.objects.get(slug=doc_integration_slug)
         except DocIntegration.DoesNotExist:
             raise Http404
 

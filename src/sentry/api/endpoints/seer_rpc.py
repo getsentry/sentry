@@ -22,6 +22,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.services.hybrid_cloud.rpc import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.services.hybrid_cloud.sig import SerializableFunctionValueException
 from sentry.silo.base import SiloMode
@@ -112,7 +113,7 @@ class SeerRpcServiceEndpoint(Endpoint):
             raise RpcResolutionException(f"Unknown method {method_name}")
         # As seer is a single service, we just directly expose the methods instead of services.
         method = seer_method_registry[method_name]
-        return method(**arguments)  # type: ignore
+        return method(**arguments)  # type: ignore[operator]
 
     def post(self, request: Request, method_name: str) -> Response:
         if not self._is_authorized(request):
@@ -190,10 +191,16 @@ def get_autofix_state(*, issue_id: int) -> dict:
     return autofix_data
 
 
+def get_organization_slug(*, org_id: int) -> dict:
+    org: Organization = Organization.objects.get(id=org_id)
+    return {"slug": org.slug}
+
+
 seer_method_registry = {
     "on_autofix_step_update": on_autofix_step_update,
     "on_autofix_complete": on_autofix_complete,
     "get_autofix_state": get_autofix_state,
+    "get_organization_slug": get_organization_slug,
 }
 
 

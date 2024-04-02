@@ -27,7 +27,7 @@ type Row = Pick<
   | 'transaction'
   | 'transaction.method'
   | 'spm()'
-  | 'http_response_rate(2)'
+  | 'http_response_rate(3)'
   | 'http_response_rate(4)'
   | 'http_response_rate(5)'
   | 'avg(span.self_time)'
@@ -38,7 +38,7 @@ type Row = Pick<
 type Column = GridColumnHeader<
   | 'transaction'
   | 'spm()'
-  | 'http_response_rate(2)'
+  | 'http_response_rate(3)'
   | 'http_response_rate(4)'
   | 'http_response_rate(5)'
   | 'avg(span.self_time)'
@@ -57,8 +57,8 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: `http_response_rate(2)`,
-    name: t('2XXs'),
+    key: `http_response_rate(3)`,
+    name: t('3XXs'),
     width: 50,
   },
   {
@@ -86,7 +86,7 @@ const COLUMN_ORDER: Column[] = [
 const SORTABLE_FIELDS = [
   'avg(span.self_time)',
   'spm()',
-  'http_response_rate(2)',
+  'http_response_rate(3)',
   'http_response_rate(4)',
   'http_response_rate(5)',
   'time_spent_percentage()',

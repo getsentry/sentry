@@ -5,21 +5,12 @@ from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.dlq import InvalidMessage
 from arroyo.types import BrokerValue, Message
 
-from sentry.conf.types.kafka_definition import Topic
 from sentry.models.project import Project
 from sentry.utils import metrics
 
 from .processors import IngestMessage, Retriable, process_event
 
 logger = logging.getLogger(__name__)
-
-
-consumer_type_to_default_topic = {
-    "events": Topic.INGEST_EVENTS,
-    "transactions": Topic.INGEST_TRANSACTIONS,
-    "attachments": Topic.INGEST_ATTACHMENTS,
-    "ingest-feedback-events": Topic.INGEST_FEEDBACK_EVENTS,
-}
 
 
 def process_simple_event_message(
@@ -68,12 +59,6 @@ def process_simple_event_message(
     except Exception as exc:
         # If the retriable exception was raised, we should not DLQ
         if isinstance(exc, Retriable):
-            raise
-
-        # TODO: Remove this line once all topics (transactions, attachments,
-        # user feedback) also have DLQs
-        default_topic = consumer_type_to_default_topic[consumer_type].value
-        if default_topic != "ingest-events":
             raise
 
         raw_value = raw_message.value

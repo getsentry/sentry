@@ -2,10 +2,8 @@ from django.urls import reverse
 
 from sentry.models.projectkey import ProjectKey, UseCase
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class ListProjectKeysTest(APITestCase):
     def setUp(self):
         super().setUp()
@@ -72,7 +70,6 @@ class ListProjectKeysTest(APITestCase):
         assert response_data["public"] == user_key.public_key
 
 
-@region_silo_test
 class CreateProjectKeyTest(APITestCase):
     def test_simple(self):
         project = self.create_project()

@@ -17,7 +17,6 @@ from django.db import IntegrityError, OperationalError, connection, router, tran
 from django.db.models import Func, Max
 from django.db.models.signals import post_save
 from django.utils.encoding import force_str
-from urllib3 import Retry
 from urllib3.exceptions import MaxRetryError
 from usageaccountant import UsageUnit
 
@@ -71,7 +70,7 @@ from sentry.grouping.ingest import (
 )
 from sentry.grouping.result import CalculatedHashes
 from sentry.ingest.inbound_filters import FilterStatKeys
-from sentry.issues.grouptype import GroupCategory
+from sentry.issues.grouptype import ErrorGroupType, GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context
@@ -87,7 +86,6 @@ from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.grouplink import GroupLink
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
-from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
@@ -102,15 +100,12 @@ from sentry.net.http import connection_from_url
 from sentry.plugins.base import plugins
 from sentry.quotas.base import index_data_category
 from sentry.reprocessing2 import is_reprocessed_event
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.shared_integrations.exceptions import ApiError
 from sentry.signals import (
     first_event_received,
     first_event_with_minified_stack_trace_received,
     first_transaction_received,
     issue_unresolved,
 )
-from sentry.tasks.commits import fetch_commits
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.tasks.relay import schedule_invalidate_project_config
@@ -121,6 +116,11 @@ from sentry.usage_accountant import record
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
+from sentry.utils.circuit_breaker import (
+    ERROR_COUNT_CACHE_KEY,
+    CircuitBreakerPassthrough,
+    circuit_breaker_activated,
+)
 from sentry.utils.dates import to_datetime
 from sentry.utils.event import has_event_minified_stack_trace, has_stacktrace, is_handled
 from sentry.utils.eventuser import EventUser
@@ -145,6 +145,10 @@ CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
 NON_TITLE_EVENT_TITLES = ["<untitled>", "<unknown>", "<unlabeled event>", "Error"]
 
 HIGH_SEVERITY_THRESHOLD = 0.1
+
+SEER_GLOBAL_RATE_LIMIT_DEFAULT = 20  # 20 requests per second
+SEER_PROJECT_RATE_LIMIT_DEFAULT = 5  # 5 requests per second
+SEER_ERROR_COUNT_KEY = ERROR_COUNT_CACHE_KEY("sentry.seer.severity-failures")
 
 
 @dataclass
@@ -711,56 +715,6 @@ def _is_commit_sha(version: str) -> bool:
     return re.match(r"[0-9a-f]{40}", version) is not None
 
 
-def _associate_commits_with_release(release: Release, project: Project) -> None:
-    previous_release = release.get_previous_release(project)
-    possible_repos = (
-        RepositoryProjectPathConfig.objects.select_related("repository")
-        .filter(project=project, repository__provider="integrations:github")
-        .all()
-    )
-    if possible_repos:
-        # If it does exist, kick off a task to look if the commit exists in the repository
-        target_repo = None
-        for repo_proj_path_model in possible_repos:
-            ois = integration_service.get_organization_integrations(
-                org_integration_ids=[repo_proj_path_model.organization_integration_id]
-            )
-            oi = ois[0]
-            if not oi:
-                continue
-            integration = integration_service.get_integration(integration_id=oi.integration_id)
-            if not integration:
-                continue
-            integration_installation = integration.get_installation(
-                organization_id=oi.organization_id
-            )
-            if not integration_installation:
-                continue
-            repo_client = integration_installation.get_client()
-            try:
-                repo_client.get_commit(
-                    repo=repo_proj_path_model.repository.name, sha=release.version
-                )
-                target_repo = repo_proj_path_model.repository
-                break
-            except ApiError as exc:
-                if exc.code != 404:
-                    raise
-
-        if target_repo is not None:
-            # If it does exist, fetch the commits for that repo
-            fetch_commits.apply_async(
-                kwargs={
-                    "release_id": release.id,
-                    "user_id": None,
-                    "refs": [{"repository": target_repo.name, "commit": release.version}],
-                    "prev_release_id": (
-                        previous_release.id if previous_release is not None else None
-                    ),
-                }
-            )
-
-
 @metrics.wraps("save_event.get_or_create_release_many")
 def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     jobs_with_releases: dict[tuple[int, Release], list[Job]] = {}
@@ -795,11 +749,6 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
             )
 
         if release:
-            if features.has(
-                "projects:auto-associate-commits-to-release", projects[project_id]
-            ) and _is_commit_sha(release.version):
-                safe_execute(_associate_commits_with_release, release, projects[project_id])
-
             for job in jobs_to_update:
                 # Don't allow a conflicting 'release' tag
                 data = job["data"]
@@ -1889,10 +1838,19 @@ def _create_group(project: Project, event: Event, **group_creation_kwargs: Any) 
     group_data.setdefault("metadata", {}).update(sdk_metadata_from_event(event))
 
     # add severity to metadata for alert filtering
-    severity = _get_severity_metadata_for_group(event)
-    group_data["metadata"].update(severity)
+    try:
+        group_type = group_creation_kwargs.get("type", None)
+        severity = _get_severity_metadata_for_group(event, project.id, group_type)
+        group_data["metadata"].update(severity)
+    except Exception as e:
+        logger.exception(
+            "Failed to get severity metadata for group",
+            repr(e),
+            extra={"event_id": event.event_id},
+        )
 
     if features.has("projects:issue-priority", project, actor=None):
+        # the kwargs only include priority for non-error issue platform events, which takes precedence.
         priority = group_creation_kwargs.get("priority", None)
         if priority is None:
             priority = _get_priority_for_group(severity, group_creation_kwargs)
@@ -2203,39 +2161,88 @@ def _process_existing_aggregate(
 
 severity_connection_pool = connection_from_url(
     settings.SEVERITY_DETECTION_URL,
-    retries=Retry(
-        total=SEVERITY_DETECTION_RETRIES,  # Defaults to 1
-        status_forcelist=[
-            408,  # Request timeout
-            429,  # Too many requests
-            502,  # Bad gateway
-            503,  # Service unavailable
-            504,  # Gateway timeout
-        ],
-    ),
     timeout=settings.SEVERITY_DETECTION_TIMEOUT,  # Defaults to 300 milliseconds
 )
 
 
-def _get_severity_metadata_for_group(event: Event) -> Mapping[str, Any]:
+def _get_severity_metadata_for_group(
+    event: Event, project_id: int, group_type: int | None
+) -> Mapping[str, Any]:
     """
-    Returns severity metadata for an event if the feature flag is enabled.
-    Returns {} on feature flag not enabled or exception.
+    Returns severity metadata for an event if all of the following are true
+    - the feature flag is enabled
+    - the event platform supports severity
+    - the event group type is an error
+
+    Returns {} if conditions aren't met or on exception.
     """
-    if features.has("projects:first-event-severity-calculation", event.project):
-        try:
-            severity, reason = _get_severity_score(event)
+    from sentry.receivers.rules import PLATFORMS_WITH_PRIORITY_ALERTS
 
-            return {
-                "severity": severity,
-                "severity_reason": reason,
-            }
-        except Exception as e:
-            logger.warning("Failed to calculate severity score for group", repr(e))
+    if killswitch_matches_context("issues.skip-seer-requests", {"project_id": event.project_id}):
+        logger.warning(
+            "get_severity_metadata_for_group.seer_killswitch_enabled",
+            extra={"event_id": event.event_id, "project_id": project_id},
+        )
+        metrics.incr("issues.severity.seer_killswitch_enabled")
+        return {}
 
-            return {}
+    feature_enabled = features.has("projects:first-event-severity-calculation", event.project)
+    if not feature_enabled:
+        return {}
 
-    return {}
+    is_supported_platform = (
+        any(event.platform.startswith(platform) for platform in PLATFORMS_WITH_PRIORITY_ALERTS)
+        if event.platform
+        else False
+    )
+    is_error_group = group_type == ErrorGroupType.type_id if group_type else True
+    if not is_supported_platform or not is_error_group:
+        return {}
+
+    passthrough_data = options.get(
+        "issues.severity.seer-circuit-breaker-passthrough-limit",
+        CircuitBreakerPassthrough(limit=1, window=10),
+    )
+    if circuit_breaker_activated("sentry.seer.severity", passthrough_data=passthrough_data):
+        logger.warning(
+            "get_severity_metadata_for_group.circuit_breaker_activated",
+            extra={"event_id": event.event_id, "project_id": project_id},
+        )
+        return {}
+
+    from sentry import ratelimits as ratelimiter
+
+    limit = options.get("issues.severity.seer-global-rate-limit", SEER_GLOBAL_RATE_LIMIT_DEFAULT)
+    if ratelimiter.backend.is_limited(
+        "seer:severity-calculation:global-limit", limit=limit, window=1
+    ):
+        logger.warning(
+            "get_severity_metadata_for_group.rate_limited_globally",
+            extra={"event_id": event.event_id, "project_id": project_id},
+        )
+        metrics.incr("issues.severity.rate_limited_globally")
+
+    limit = options.get("issues.severity.seer-project-rate-limit", SEER_PROJECT_RATE_LIMIT_DEFAULT)
+    if ratelimiter.backend.is_limited(
+        f"seer:severity-calculation:{project_id}", limit=limit, window=1
+    ):
+        logger.warning(
+            "get_severity_metadata_for_group.rate_limited_for_project",
+            extra={"event_id": event.event_id, "project_id": project_id},
+        )
+        metrics.incr("issues.severity.rate_limited_for_project", tags={"project_id": project_id})
+
+    try:
+        severity, reason = _get_severity_score(event)
+
+        return {
+            "severity": severity,
+            "severity_reason": reason,
+        }
+    except Exception as e:
+        logger.warning("Failed to calculate severity score for group", repr(e))
+        update_severity_error_count()
+        return {}
 
 
 def _get_priority_for_group(severity: Mapping[str, Any], kwargs: Mapping[str, Any]) -> int:
@@ -2276,6 +2283,19 @@ def _get_priority_for_group(severity: Mapping[str, Any], kwargs: Mapping[str, An
         )
 
         return PriorityLevel.MEDIUM
+
+
+def update_severity_error_count(reset=False) -> None:
+    timeout = 60 * 60  # 1 hour
+    if reset:
+        cache.set(SEER_ERROR_COUNT_KEY, 0, timeout=timeout)
+        return
+
+    try:
+        cache.incr(SEER_ERROR_COUNT_KEY)
+        cache.touch(SEER_ERROR_COUNT_KEY, timeout=timeout)
+    except ValueError:
+        cache.set(SEER_ERROR_COUNT_KEY, 1, timeout=timeout)
 
 
 def _get_severity_score(event: Event) -> tuple[float, str]:
@@ -2341,11 +2361,16 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
     with sentry_sdk.start_span(op=op):
         try:
             with metrics.timer(op):
+                timeout = options.get(
+                    "issues.severity.seer-timout",
+                    settings.SEVERITY_DETECTION_TIMEOUT / 1000,
+                )
                 response = severity_connection_pool.urlopen(
                     "POST",
                     "/v0/issues/severity-score",
                     body=json.dumps(payload),
                     headers={"content-type": "application/json;charset=utf-8"},
+                    timeout=timeout,
                 )
                 severity = json.loads(response.data).get("severity")
                 reason = "ml"
@@ -2358,6 +2383,7 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
                 extra=logger_data,
             )
             reason = "microservice_max_retry"
+            update_severity_error_count()
         except Exception as e:
             logger.warning(
                 "Unable to get severity score from microservice. Got: %s.",
@@ -2365,6 +2391,7 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
                 extra=logger_data,
             )
             reason = "microservice_error"
+            update_severity_error_count()
         else:
             logger.info(
                 "Got severity score of %s for event %s",
@@ -2372,6 +2399,7 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
                 event.data["event_id"],
                 extra=logger_data,
             )
+            update_severity_error_count(reset=True)
 
     return severity, reason
 

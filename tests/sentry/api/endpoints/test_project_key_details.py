@@ -3,10 +3,8 @@ from django.urls import reverse
 from sentry.loader.browsersdkversion import get_default_sdk_version_for_project
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus, UseCase
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class UpdateProjectKeyTest(APITestCase):
     def setUp(self):
         super().setUp()
@@ -314,7 +312,6 @@ class UpdateProjectKeyTest(APITestCase):
         assert updated.use_case == UseCase.USER.value
 
 
-@region_silo_test
 class DeleteProjectKeyTest(APITestCase):
     def setUp(self):
         super().setUp()

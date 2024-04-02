@@ -163,7 +163,7 @@ describe('IssueListOverview (actions)', function () {
         headers: {Link: DEFAULT_LINKS_HEADER},
       });
 
-      await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
 
       expect(updateIssueMock).toHaveBeenCalledWith(
         '/organizations/org-slug/issues/',
@@ -207,7 +207,7 @@ describe('IssueListOverview (actions)', function () {
         headers: {Link: DEFAULT_LINKS_HEADER},
       });
 
-      await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
 
       expect(updateIssueMock).toHaveBeenCalledWith(
         '/organizations/org-slug/issues/',
@@ -302,7 +302,10 @@ describe('IssueListOverview (actions)', function () {
         headers: {Link: DEFAULT_LINKS_HEADER},
       });
 
-      await userEvent.click(screen.getByRole('button', {name: 'Mark Reviewed'}));
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'More issue actions'})
+      );
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Mark Reviewed'}));
 
       expect(updateIssueMock).toHaveBeenCalledWith(
         '/organizations/org-slug/issues/',
@@ -360,7 +363,7 @@ describe('IssueListOverview (actions)', function () {
         headers: {Link: DEFAULT_LINKS_HEADER},
       });
 
-      await userEvent.click(screen.getByRole('button', {name: /set priority/i}));
+      await userEvent.click(await screen.findByRole('button', {name: /set priority/i}));
       await userEvent.click(screen.getByRole('menuitemradio', {name: /low/i}));
 
       expect(updateIssueMock).toHaveBeenCalledWith(
@@ -442,7 +445,7 @@ describe('IssueListOverview (actions)', function () {
 
       expect(screen.getByText('Medium priority issue')).toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('button', {name: /set priority/i}));
+      await userEvent.click(await screen.findByRole('button', {name: /set priority/i}));
       await userEvent.click(screen.getByRole('menuitemradio', {name: /low/i}));
 
       expect(updateIssueMock).toHaveBeenCalledWith(

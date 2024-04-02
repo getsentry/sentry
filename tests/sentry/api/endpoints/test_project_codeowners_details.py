@@ -7,10 +7,8 @@ from rest_framework.exceptions import ErrorDetail
 
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
     def setUp(self):
         self.user = self.create_user("admin@sentry.io", is_superuser=True)

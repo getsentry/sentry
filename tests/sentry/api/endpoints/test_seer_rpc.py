@@ -71,3 +71,13 @@ class TestSeerRpc(APITestCase):
         )
         assert response.status_code == 200
         assert response.json() == {"status": "thing", "steps": [1, 2, 3]}
+
+    def test_get_organization_slug(self):
+        org = self.create_organization()
+        path = self._get_path("get_organization_slug")
+        data: dict[str, Any] = {"args": {"org_id": org.id}}
+        response = self.client.post(
+            path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
+        )
+        assert response.status_code == 200
+        assert response.json() == {"slug": org.slug}

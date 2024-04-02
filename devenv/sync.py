@@ -5,7 +5,7 @@ import os
 import subprocess
 
 from devenv import constants
-from devenv.lib import venv  # type: ignore
+from devenv.lib import venv  # type: ignore[attr-defined]
 from devenv.lib import colima, config, limactl, proc, volta
 
 
@@ -155,7 +155,7 @@ def main(context: dict[str, str]) -> int:
         (
             (
                 "python migrations",
-                (f"{venv_dir}/bin/{repo}", "upgrade", "--noinput"),
+                ("make", "apply-migrations"),
             ),
         ),
     ):

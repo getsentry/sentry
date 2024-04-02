@@ -13,10 +13,8 @@ from sentry.snuba.models import QuerySubscription
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class ReleaseProjectManagerTestCase(TransactionTestCase):
     def test_custom_manager(self):
         self.assertIsInstance(ReleaseProject.objects, ReleaseProjectModelManager)
@@ -119,10 +117,11 @@ class ReleaseProjectManagerTestCase(TransactionTestCase):
         # Let the logic flow through to snuba and see whether we properly construct the snuba query
         project = self.create_project(name="foo")
         release = Release.objects.create(organization_id=project.organization_id, version="42")
-        alert_rule = self.create_alert_rule(
-            projects=[project], monitor_type=AlertRuleMonitorType.ACTIVATED
+        self.create_alert_rule(
+            projects=[project],
+            monitor_type=AlertRuleMonitorType.ACTIVATED,
+            activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
         )
-        self.create_alert_rule_activation_condition(alert_rule=alert_rule)
 
         subscribe_project = AlertRule.objects.conditionally_subscribe_project_to_alert_rules
         with patch(

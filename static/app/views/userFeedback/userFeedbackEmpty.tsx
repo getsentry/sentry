@@ -32,7 +32,6 @@ export function UserFeedbackEmpty({projectIds, issueTab = false}: Props) {
     : projects;
 
   const hasAnyFeedback = selectedProjects.some(({hasUserReports}) => hasUserReports);
-  const hasNewOnboarding = organization.features.includes('user-feedback-onboarding');
   const {activateSidebarIssueDetails} = useFeedbackOnboardingSidebarPanel();
 
   const router = useRouter();
@@ -107,25 +106,14 @@ export function UserFeedbackEmpty({projectIds, issueTab = false}: Props) {
         )}
       </p>
       <ButtonList gap={1}>
-        {hasNewOnboarding ? (
-          <Button
-            priority="primary"
-            onClick={activateSidebarIssueDetails}
-            analyticsEventName="Clicked Feedback Onboarding Setup - Issue Details"
-            analyticsEventKey="feedback.issue-details-click-onboarding-setup"
-          >
-            {t('Set up now')}
-          </Button>
-        ) : (
-          <Button
-            external
-            priority="primary"
-            onClick={() => trackAnalyticsInternal('user_feedback.docs_clicked')}
-            href="https://docs.sentry.io/product/user-feedback/"
-          >
-            {t('Read the docs')}
-          </Button>
-        )}
+        <Button
+          priority="primary"
+          onClick={activateSidebarIssueDetails}
+          analyticsEventName="Clicked Feedback Onboarding Setup - Issue Details"
+          analyticsEventKey="feedback.issue-details-click-onboarding-setup"
+        >
+          {t('Set up now')}
+        </Button>
         <Button
           onClick={() => {
             Sentry.showReportDialog({

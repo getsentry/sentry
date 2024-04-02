@@ -52,7 +52,7 @@ from sentry.search.events.types import (
     WhereType,
 )
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID, extract_use_case_id
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import create_result_key
 from sentry.snuba.metrics.extraction import (
@@ -64,6 +64,7 @@ from sentry.snuba.metrics.extraction import (
     should_use_on_demand_metrics_for_querying,
 )
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
+from sentry.snuba.metrics.naming_layer.mri import extract_use_case_id
 from sentry.snuba.metrics.query import (
     MetricField,
     MetricGroupByField,
@@ -1440,7 +1441,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         query: str | None = None,
         selected_columns: list[str] | None = None,
         limit: int | None = 10000,
-        groupby: Column | None = None,
+        groupby: Column | list[Column] | None = None,
         config: QueryBuilderConfig | None = None,
     ):
         self.interval = interval
@@ -1462,7 +1463,10 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
 
         # If additional groupby is provided it will be used first before time
         if groupby is not None:
-            self.groupby.insert(0, groupby)
+            if isinstance(groupby, list):
+                self.groupby = groupby + self.groupby
+            else:
+                self.groupby.insert(0, groupby)
 
     def resolve_granularity(self) -> Granularity:
         """Find the largest granularity that is smaller than the interval"""

@@ -77,7 +77,7 @@ SUPERUSER_SCOPES = settings.SENTRY_SCOPES.union({"org:superuser"})
 SUPERUSER_READONLY_SCOPES = settings.SENTRY_READONLY_SCOPES.union({"org:superuser"})
 
 
-def get_superuser_scopes(auth_state: RpcAuthState, user: Any):
+def get_superuser_scopes(auth_state: RpcAuthState, user: Any) -> set[str]:
     superuser_scopes = SUPERUSER_SCOPES
     if (
         not is_self_hosted()

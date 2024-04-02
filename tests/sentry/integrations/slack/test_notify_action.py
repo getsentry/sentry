@@ -10,7 +10,7 @@ from sentry.notifications.additional_attachment_manager import manager
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
@@ -23,7 +23,6 @@ def additional_attachment_generator(integration, organization):
     return {"title": organization.slug, "text": integration.id}
 
 
-@region_silo_test
 class SlackNotifyActionTest(RuleTestCase):
     rule_cls = SlackNotifyServiceAction
 
@@ -72,7 +71,7 @@ class SlackNotifyActionTest(RuleTestCase):
         attachments = json.loads(data["attachments"][0])
 
         assert len(attachments) == 1
-        assert attachments[0]["title"] == event.title
+        assert event.title in attachments[0]["text"]
 
     def test_render_label(self):
         rule = self.get_rule(
@@ -423,8 +422,8 @@ class SlackNotifyActionTest(RuleTestCase):
             attachments = json.loads(data["attachments"][0])
 
             assert len(attachments) == 2
-            assert attachments[0]["title"] == event.title
-            assert attachments[1]["title"] == self.organization.slug
+            assert event.title in attachments[0]["text"]
+            assert attachments[-1]["title"] == self.organization.slug
             assert attachments[1]["text"] == self.integration.id
             mock_record.assert_called_with(
                 "alert.sent",
