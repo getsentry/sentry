@@ -269,7 +269,7 @@ def make_feedback_issue(project):
             "tags": [("logger", "javascript"), ("environment", "prod"), ("replayId", REPLAY_ID)],
         },
     )
-    if not group_info.group:
+    if not group_info:
         raise ValueError("No group found")
     feedback_issue = group_info.group
     return feedback_issue.get_latest_event()
