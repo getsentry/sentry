@@ -2836,9 +2836,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             timestamp=self.min_ago,
         )
 
-        with self.feature(
-            {"organizations:starfish-browser-webvitals-score-with-computed-total-count": True}
-        ):
+        with self.feature({"organizations:starfish-browser-webvitals-score-computed-total": True}):
             response = self.do_request(
                 {
                     "field": [

@@ -642,7 +642,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     calculated_args=[resolve_metric_id],
                     snql_distribution=self._resolve_weighted_web_vital_score_with_computed_total_count_function
                     if features.has(
-                        "organizations:starfish-browser-webvitals-score-with-computed-total-count",
+                        "organizations:starfish-browser-webvitals-score-computed-total",
                         self.builder.params.organization,
                     )
                     else self._resolve_weighted_web_vital_score_function,
