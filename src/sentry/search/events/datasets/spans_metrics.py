@@ -901,6 +901,9 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         condition: str,
         alias: str | None = None,
     ) -> SelectType:
+        if condition not in {"greater", "less"}:
+            raise InvalidSearchQuery(f"Unsupported condition for avg: {condition}")
+
         conditional_aggregate = Function(
             "avgIf",
             [
