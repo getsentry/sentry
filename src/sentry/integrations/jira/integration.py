@@ -606,25 +606,20 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             "Ensure that your project permissions are correct."
         )
 
-    def fetch_issue_create_meta(self, client, project_id):
+    def fetch_issue_create_meta(self, client, jira_project):
         try:
-            meta = client.get_create_meta_for_project(project_id)
+            meta = client.get_create_meta_for_project(jira_project)
         except ApiUnauthorized:
             logger.info(
                 "jira.fetch-issue-create-meta.unauthorized",
-                extra={"organization_id": self.organization_id, "jira_project": project_id},
+                extra={"organization_id": self.organization_id, "jira_project": jira_project},
             )
             raise IntegrationError(
                 "Jira returned: Unauthorized. " "Please check your configuration settings."
             )
         except ApiError as e:
-            logger.info(
-                "jira.fetch-issue-create-meta.error",
-                extra={
-                    "integration_id": self.model.id,
-                    "organization_id": self.organization_id,
-                    "jira_project": project_id,
-                    "error": str(e),
+            logger.error(f"Failed to fetch issue creation configuration from Jira for project ID: {jira_project}. Error: {str(e)}")
+            raise IntegrationError(f"Failed to fetch issue creation configuration from Jira for project ID: {jira_project}. Please check the project ID and Jira integration settings.")
                 },
             )
             raise IntegrationError(
