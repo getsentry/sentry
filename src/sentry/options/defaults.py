@@ -294,6 +294,20 @@ register(
     type=Bool,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "apitoken.save-hash-on-create",
+    default=True,
+    type=Bool,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Controls the rate of using the hashed value of User API tokens for lookups when logging in
+# and also updates tokens which are not hashed
+register(
+    "apitoken.use-and-update-hash-rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "api.rate-limit.org-create",
@@ -773,6 +787,13 @@ register(
     "issues.severity.seer-global-rate-limit",
     type=Int,
     default=25,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.severity.seer-circuit-breaker-passthrough-limit",
+    type=Dict,
+    default={"limit": 1, "window": 10},
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
