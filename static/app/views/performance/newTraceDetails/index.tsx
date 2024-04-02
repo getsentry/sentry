@@ -321,7 +321,7 @@ function TraceViewContent(props: TraceViewContentProps) {
     tabsDispatch({
       type: 'initialize',
       payload: {
-        current: tabs[0],
+        current: tabs[0] ?? tabsStateRef?.current?.tabs?.[0],
         tabs: newTabs,
         last_clicked: null,
       },
