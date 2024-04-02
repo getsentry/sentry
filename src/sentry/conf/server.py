@@ -1925,6 +1925,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:starfish-view": False,
     # Enable starfish dropdown on the webservice view for switching chart visualization
     "organizations:starfish-wsv-chart-dropdown": False,
+    # Enable UI for regression issues RCA using spans data
+    "organizations:statistical-detectors-rca-spans-only": False,
     # Allow organizations to configure all symbol sources.
     "organizations:symbol-sources": True,
     # Enable team insights page

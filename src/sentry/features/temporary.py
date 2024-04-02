@@ -244,6 +244,7 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:starfish-mobile-ui-module", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:starfish-test-endpoint", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:starfish-view", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:statistical-detectors-rca-spans-only", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:starfish-wsv-chart-dropdown", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:symbol-sources", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:team-workflow-notifications", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
