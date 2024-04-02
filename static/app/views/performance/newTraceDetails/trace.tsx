@@ -11,7 +11,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import type {Organization, PlatformKey, Project} from 'sentry/types';
-import {getDuration} from 'sentry/utils/formatters';
 import type {
   TraceError,
   TracePerformanceIssue,
@@ -92,6 +91,29 @@ function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
   }
 
   return null;
+}
+
+const format = (v: number, abbrev: string, precision: number) => {
+  if (v === 0) {
+    return '0' + abbrev;
+  }
+  return v.toFixed(precision) + abbrev;
+};
+
+function getDuration(duration_ms: number) {
+  if (duration_ms >= 24 * 60 * 60 * 1e3) {
+    return format((duration_ms / 24) * 60 * 60e3, 'd', 2);
+  }
+  if (duration_ms >= 60 * 60 * 1e3) {
+    return format((duration_ms / 60) * 60e3, 'h', 2);
+  }
+  if (duration_ms >= 60 * 1e3) {
+    return format(duration_ms / 60e3, 'min', 2);
+  }
+  if (duration_ms >= 1e3) {
+    return format(duration_ms / 1e3, 's', 2);
+  }
+  return format(duration_ms, 'ms', 2);
 }
 
 const COUNT_FORMATTER = Intl.NumberFormat(undefined, {notation: 'compact'});
@@ -636,11 +658,7 @@ export function Trace({
             >
               <div className="TraceIndicatorLabel">
                 {indicatorTimestamp > 0
-                  ? getDuration(
-                      (manager.trace_view.x + indicatorTimestamp) / 1000,
-                      2,
-                      true
-                    )
+                  ? getDuration(manager.trace_view.x + indicatorTimestamp)
                   : '0s'}
               </div>
               <div className="TraceIndicatorLine" />
@@ -1481,7 +1499,7 @@ function TraceBar(props: TraceBarProps) {
     return null;
   }
 
-  const duration = getDuration(props.node_space[1] / 1000, 2, true);
+  const duration = getDuration(props.node_space[1]);
   const spanTransform = props.manager.computeSpanCSSMatrixTransform(props.node_space);
   const [inside, textTransform] = props.manager.computeSpanTextPlacement(
     props.node_space,
@@ -1743,7 +1761,7 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
     return null;
   }
 
-  const duration = getDuration(props.entire_space[1] / 1000, 2, true);
+  const duration = getDuration(props.entire_space[1]);
   const spanTransform = props.manager.computeSpanCSSMatrixTransform(props.entire_space);
   const [inside, textTransform] = props.manager.computeSpanTextPlacement(
     props.entire_space,
@@ -2189,6 +2207,7 @@ const TraceStylingWrapper = styled('div')`
     will-change: width;
     z-index: 1;
     cursor: pointer;
+    width: calc(var(--width) * 100%);
 
     &:hover {
       .TraceArrow.Visible {
