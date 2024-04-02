@@ -1220,6 +1220,10 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert len(data) == 2
         assert [row["span.description"] for row in data] == ["Non-regressed", "Removed span"]
 
+        # The regression score is <0 for removed spans, this can act as
+        # a way to filter out removed spans when necessary
+        assert data[1][f"regression_score(span.self_time,{int(self.two_min_ago.timestamp())})"] < 0
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsMetricsEnhancedPerformanceEndpointTest
