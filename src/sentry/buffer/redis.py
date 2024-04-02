@@ -240,7 +240,7 @@ class RedisBuffer(Buffer):
     def push_to_set(self, key: str, value: list[int] | int) -> None:
         self._execute_redis_operation(key, RedisOperation.SET_ADD, value)
 
-    def get_set(self, key: str) -> list[set]:
+    def get_set(self, key: str) -> list[set[int]]:
         return self._execute_redis_operation(key, RedisOperation.SET_GET)
 
     def push_to_hash(
