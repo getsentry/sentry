@@ -1527,8 +1527,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:default-high-priority-alerts": False,
     # Enables automatically deriving of code mappings
     "organizations:derive-code-mappings": True,
-    # Enables automatically deriving of PHP code mappings
-    "organizations:derive-code-mappings-php": False,
     # Enable device.class as a selectable column
     "organizations:device-classification": False,
     # Enables synthesis of device.class in ingest
@@ -1913,6 +1911,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:starfish-browser-webvitals-use-backend-scores": False,
     # Enable INP in the browser starfish webvitals module
     "organizations:starfish-browser-webvitals-replace-fid-with-inp": False,
+    # Uses a computed total count to calculate the score in the browser starfish webvitals module, instead of measurements.score.total
+    "organizations:starfish-browser-webvitals-score-computed-total": False,
     # Enable mobile starfish app start module view
     "organizations:starfish-mobile-appstart": False,
     # Enable mobile starfish ui module view
@@ -3566,6 +3566,7 @@ SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.incidents.endpoints",
     "sentry.replays.endpoints",
     "sentry.monitors.endpoints",
+    "sentry.issues.endpoints",
 )
 SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
 

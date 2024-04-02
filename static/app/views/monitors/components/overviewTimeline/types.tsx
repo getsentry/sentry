@@ -20,13 +20,18 @@ export interface TimeWindowConfig {
    */
   end: Date;
   /**
+   * The interval in minutes between each grid line and time label.
+   */
+  markerInterval: number;
+  /**
+   * The smallest allowed interval in minutes between time markers. This is
+   * used to determine the gap between the start and end timeline makers.
+   */
+  minimumMarkerInterval: number;
+  /**
    * The start of the window
    */
   start: Date;
-  /**
-   * The interval between each grid line and time label in minutes
-   */
-  timeMarkerInterval: number;
 }
 
 // TODO(davidenwang): Remove this type as its a little too specific

@@ -24,7 +24,7 @@ from sentry.services.hybrid_cloud.rpcmetrics import RpcMetricRecord
 from sentry.services.hybrid_cloud.sig import SerializableFunctionSignature
 from sentry.silo import SiloMode, SingleProcessSiloModeState
 from sentry.types.region import Region, RegionMappingNotFound
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 from sentry.utils.env import in_test_environment
 
 if TYPE_CHECKING:
@@ -397,10 +397,7 @@ def dispatch_to_local_service(
 
         return value
 
-    return {
-        "meta": {},  # reserved for future use
-        "value": result_to_dict(result),
-    }
+    return result_to_dict(result)
 
 
 _RPC_CONTENT_CHARSET = "utf-8"
@@ -453,11 +450,7 @@ class _RemoteSiloCall:
 
         return_value = serial_response["value"]
         service, _ = _look_up_service_method(self.service_name, self.method_name)
-        return (
-            None
-            if return_value is None
-            else service.deserialize_rpc_response(self.method_name, return_value)
-        )
+        return service.deserialize_rpc_response(self.method_name, return_value)
 
     def _metrics_tags(self, **additional_tags: str | int) -> Mapping[str, str | int | None]:
         return dict(
@@ -467,11 +460,10 @@ class _RemoteSiloCall:
         )
 
     def _send_to_remote_silo(self, use_test_client: bool) -> Any:
-        request_body = {
-            "meta": {},  # reserved for future use
-            "args": self.serial_arguments,
-        }
-        data = json.dumps(request_body).encode(_RPC_CONTENT_CHARSET)
+        from sentry.api.endpoints.internal.rpc import RpcRequestBody
+
+        request_body = RpcRequestBody(args=self.serial_arguments)
+        data = request_body.json().encode(_RPC_CONTENT_CHARSET)
         signature = generate_request_signature(self.path, data)
         headers = {
             "Content-Type": f"application/json; charset={_RPC_CONTENT_CHARSET}",
