@@ -132,22 +132,38 @@ class JiraCloudClient(ApiClient):
         return ""
 
     def get_create_meta_for_project(self, project):
-        params = {"expand": "projects.issuetypes.fields", "projectIds": project}
-        metas = self.get_cached(self.META_URL, params=params)
-        # We saw an empty JSON response come back from the API :(
-        if not metas:
-            logger.info(
-                "jira.get-create-meta.empty-response",
-                extra={"base_url": self.base_url, "project": project},
-            )
-            logger.error(
-                "jira.get-create-meta.empty-response.error",
-                extra={"response_status_code": response.status_code, "response_content": response.content},
-            )
-            return None
+        for attempt in range(3):
+            try:
+                params = {"expand": "projects.issuetypes.fields", "projectIds": project}
+                metas = self.get_cached(self.META_URL, params=params)
+                # We saw an empty JSON response come back from the API :(
+                if not metas:
+                    logger.info(
+                        "jira.get-create-meta.empty-response",
+                        extra={"base_url": self.base_url, "project": project},
+                    )
+                    continue
 
-        # XXX(dcramer): document how this is possible, if it even is
-        if len(metas["projects"]) > 1:
+                # XXX(dcramer): document how this is possible, if it even is
+                if len(metas["projects"]) > 1:
+                    raise ApiError(f"More than one project found matching {project}.")
+
+                try:
+                    return metas["projects"][0]
+                except IndexError:
+                    logger.info(
+                        "jira.get-create-meta.key-error",
+                        extra={"base_url": self.base_url, "project": project},
+                    )
+                    return None
+            except Exception as e:
+                logger.error(
+                    "jira.get-create-meta.retry.error",
+                    extra={"attempt": attempt+1, "error": str(e)},
+                )
+                if attempt < 2:
+                    time.sleep(2)
+        return None
             raise ApiError(f"More than one project found matching {project}.")
 
         try:
