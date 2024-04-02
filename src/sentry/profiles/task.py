@@ -777,21 +777,13 @@ def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_fi
                 platform=profile["platform"],
             )
             if response:
+                deobfuscation_context = {}
                 if response["status"] == "failed":
-                    sentry_sdk.set_context(
-                        "deobfuscation_error",
-                        {
-                            "status": response["status"],
-                            "message": response["message"],
-                        },
-                    )
+                    deobfuscation_context["status"] = response["status"]
+                    deobfuscation_context["message"] = response["message"]
                 if "errors" in response:
-                    sentry_sdk.set_context(
-                        "deobfuscation_error",
-                        {
-                            "errors": response["errors"],
-                        },
-                    )
+                    deobfuscation_context["errors"] = response["errors"]
+                sentry_sdk.set_context("profile deobfuscation", deobfuscation_context)
                 if "stacktraces" in response:
                     merge_jvm_frames_with_android_methods(
                         frames=response["stacktraces"][0]["frames"],
