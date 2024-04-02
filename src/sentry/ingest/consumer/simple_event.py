@@ -55,6 +55,7 @@ def process_simple_event_message(
             return
 
         return process_event(message, project, reprocess_only_stuck_events)
+
     except Exception as exc:
         # If the retriable exception was raised, we should not DLQ
         if isinstance(exc, Retriable):
