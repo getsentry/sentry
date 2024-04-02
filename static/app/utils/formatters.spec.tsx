@@ -241,6 +241,9 @@ describe('formatAbbreviatedNumberWithDynamicPrecision()', function () {
     expect(formatAbbreviatedNumberWithDynamicPrecision(0.1)).toBe('0.1');
     expect(formatAbbreviatedNumberWithDynamicPrecision(0.01)).toBe('0.01');
     expect(formatAbbreviatedNumberWithDynamicPrecision(0.123)).toBe('0.123');
+    expect(formatAbbreviatedNumberWithDynamicPrecision(0.0000046898378059268)).toBe(
+      '0.00000469'
+    );
   });
 
   it('should abbreviate numbers', function () {
@@ -268,7 +271,7 @@ describe('formatAbbreviatedNumberWithDynamicPrecision()', function () {
     expect(formatAbbreviatedNumberWithDynamicPrecision(153789)).toBe('153.79k');
     expect(formatAbbreviatedNumberWithDynamicPrecision(1213122)).toBe('1.21m');
     expect(formatAbbreviatedNumberWithDynamicPrecision('1249.23421')).toBe('1.25k');
-    expect(formatAbbreviatedNumberWithDynamicPrecision('123956789129')).toBe('123.96b');
+    expect(formatAbbreviatedNumberWithDynamicPrecision('123956789129')).toBe('124b');
     expect(formatAbbreviatedNumberWithDynamicPrecision('158.80421626984128')).toBe(
       '158.8'
     );

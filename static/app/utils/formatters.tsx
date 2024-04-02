@@ -452,10 +452,19 @@ export function formatAbbreviatedNumberWithDynamicPrecision(
     return '0';
   }
 
-  const numOfDigits = Math.floor(Math.log10(Math.abs(number))) + 1;
+  const log10 = Math.log10(Math.abs(number));
+  // numbers less than 1 will have a negative log10
+  const numOfDigits = log10 < 0 ? 1 : Math.floor(log10) + 1;
 
-  // works up to 999 billion
-  const numOfFormattedDigits = numOfDigits % 3 === 0 ? 3 : numOfDigits % 3;
+  const maxStep = numberFormatSteps[0][0];
+
+  // if the number is larger than the largest step, we determine the number of digits
+  // by dividing the number by the largest step, otherwise the number of formatted
+  // digits is the number of digits in the number modulo 3 (the number of zeroes between steps)
+  const numOfFormattedDigits =
+    number > maxStep
+      ? Math.floor(Math.log10(number / maxStep))
+      : Math.max(numOfDigits % 3 === 0 ? 3 : numOfDigits % 3, 0);
 
   const maximumSignificantDigits = numOfFormattedDigits + 2;
 
