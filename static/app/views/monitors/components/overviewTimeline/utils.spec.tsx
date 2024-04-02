@@ -10,6 +10,8 @@ describe('Crons Timeline Utils', function () {
       const end = new Date('2023-06-15T11:05:00Z');
       const config = getConfigFromTimeRange(start, end, timelineWidth);
       expect(config).toEqual({
+        start,
+        end,
         dateLabelFormat: getFormat({timeOnly: true, seconds: true}),
         elapsedMinutes: 5,
         timeMarkerInterval: 1,
@@ -22,6 +24,8 @@ describe('Crons Timeline Utils', function () {
       const end = new Date('2023-06-15T23:00:00Z');
       const config = getConfigFromTimeRange(start, end, timelineWidth);
       expect(config).toEqual({
+        start,
+        end,
         dateLabelFormat: getFormat({timeOnly: true}),
         elapsedMinutes: 900,
         timeMarkerInterval: 240,
@@ -34,6 +38,8 @@ describe('Crons Timeline Utils', function () {
       const end = new Date('2023-06-15T11:00:00Z');
       const config = getConfigFromTimeRange(start, end, timelineWidth);
       expect(config).toEqual({
+        start,
+        end,
         dateLabelFormat: getFormat(),
         // 31 elapsed days
         elapsedMinutes: 31 * 24 * 60,

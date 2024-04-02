@@ -16,10 +16,20 @@ export enum MonitorSortOption {
   MUTED = 'muted',
 }
 
-const ORDER_OPTIONS = [
-  {label: t('Ascending'), value: MonitorSortOrder.ASCENDING},
-  {label: t('Descending'), value: MonitorSortOrder.DESCENDING},
-];
+const ORDERING = {
+  [MonitorSortOption.NAME]: [
+    {label: t('A \u2192 Z'), value: MonitorSortOrder.ASCENDING},
+    {label: t('Z \u2192 A'), value: MonitorSortOrder.DESCENDING},
+  ],
+  [MonitorSortOption.STATUS]: [
+    {label: t('Failing First'), value: MonitorSortOrder.ASCENDING},
+    {label: t('Okay First'), value: MonitorSortOrder.DESCENDING},
+  ],
+  [MonitorSortOption.MUTED]: [
+    {label: t('Active First'), value: MonitorSortOrder.ASCENDING},
+    {label: t('Muted First'), value: MonitorSortOrder.DESCENDING},
+  ],
+};
 
 const SORT_OPTIONS = [
   {label: t('Status'), value: MonitorSortOption.STATUS},
@@ -38,8 +48,11 @@ interface Props {
 export function SortSelector({onChangeOrder, onChangeSort, order, sort, size}: Props) {
   const {replace, location} = useRouter();
 
-  const selectedSort = sort ?? location.query?.sort ?? MonitorSortOption.STATUS;
-  const selectedOrder = order ?? location.query?.asc ?? MonitorSortOrder.DESCENDING;
+  const selectedSort: MonitorSortOption =
+    sort ?? location.query?.sort ?? MonitorSortOption.STATUS;
+
+  const selectedOrder: MonitorSortOrder =
+    order ?? location.query?.asc ?? MonitorSortOrder.ASCENDING;
 
   const defaultOnChange = (newSort: MonitorSortOption, newOrder: MonitorSortOrder) => {
     replace({...location, query: {...location.query, asc: newOrder, sort: newSort}});
@@ -49,11 +62,16 @@ export function SortSelector({onChangeOrder, onChangeSort, order, sort, size}: P
   const handleChangeOrder =
     onChangeOrder ?? (newOrder => defaultOnChange(selectedSort, newOrder.value));
 
+  const label = SORT_OPTIONS.find(({value}) => value === selectedSort)?.label ?? '';
+  const orderLabel =
+    ORDERING[selectedSort].find(({value}) => value === selectedOrder)?.label ?? '';
+
   return (
     <CompositeSelect
       size={size}
-      triggerLabel={SORT_OPTIONS.find(({value}) => value === selectedSort)?.label ?? ''}
+      triggerLabel={`${label} \u2014 ${orderLabel}`}
       triggerProps={{
+        prefix: t('Sort By'),
         'aria-label': t('Sort Cron Monitors'),
         icon: <IconSort />,
       }}
@@ -68,7 +86,7 @@ export function SortSelector({onChangeOrder, onChangeSort, order, sort, size}: P
         aria-label={t('Sort Order Options')}
         value={selectedOrder}
         onChange={handleChangeOrder}
-        options={ORDER_OPTIONS}
+        options={ORDERING[selectedSort]}
       />
     </CompositeSelect>
   );

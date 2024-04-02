@@ -30,7 +30,6 @@ def register_temporary_features(manager: FeatureManager):
     # NOTE: Please maintain alphabetical order when adding new feature flags
 
     # Features that don't use resource scoping
-    manager.add("auth:enterprise-staff-cookie", SystemFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("auth:enterprise-superuser-read-write", SystemFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("auth:register", SystemFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:create", SystemFeature, FeatureHandlerStrategy.INTERNAL)
@@ -226,7 +225,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:settings-legal-tos-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:slack-block-kit", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:slack-overage-notifications", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    manager.add("organizations:slack-thread", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:slack-thread-issue-alert", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:snql-join-reports", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:sourcemaps-bundle-flat-file-indexing", OrganizationFeature, FeatureHandlerStrategy.REMOTE)

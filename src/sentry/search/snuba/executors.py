@@ -1152,16 +1152,14 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         "date": last_seen_aggregation,
         "new": first_seen,
         "freq": times_seen_aggregation,
-        "user_count": Function(
-            "uniq", [Column("tags[sentry:user]", entities["event"])], "user_count"
-        ),
+        "user": Function("uniq", [Column("tags[sentry:user]", entities["event"])], "user_count"),
     }
 
     sort_strategies = {
         "new": "g.group_first_seen",
         "date": "score",
         "freq": "times_seen",
-        "user_count": "user_count",
+        "user": "user_count",
     }
 
     def calculate_start_end(
