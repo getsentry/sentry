@@ -151,6 +151,9 @@ from sentry.replays.endpoints.organization_replay_index import OrganizationRepla
 from sentry.replays.endpoints.organization_replay_selector_index import (
     OrganizationReplaySelectorIndexEndpoint,
 )
+from sentry.replays.endpoints.organization_replay_viewed_by import (
+    OrganizationReplayViewedByEndpoint,
+)
 from sentry.replays.endpoints.project_replay_accessibility_issues import (
     ProjectReplayAccessibilityIssuesEndpoint,
 )
@@ -1924,6 +1927,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/replays-events-meta/$",
         OrganizationReplayEventsMetaEndpoint.as_view(),
         name="sentry-api-0-organization-replay-events-meta",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^/]+)/replays/(?P<replay_id>[\w-]+)/viewed-by/$",
+        OrganizationReplayViewedByEndpoint.as_view(),
+        name="sentry-api-0-organization-replay-viewed-by",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/functions/$",
