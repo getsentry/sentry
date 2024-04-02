@@ -174,6 +174,7 @@ function maybeFocusRow(
 }
 
 interface TraceProps {
+  forceRerender: number;
   manager: VirtualizedViewManager;
   onRowClick: (
     node: TraceTreeNode<TraceTree.NodeValue> | null,
@@ -185,6 +186,7 @@ interface TraceProps {
     node: TraceTreeNode<TraceTree.NodeValue> | null
   ) => void;
   previouslyFocusedNodeRef: React.MutableRefObject<TraceTreeNode<TraceTree.NodeValue> | null>;
+  rerender: () => void;
   roving_dispatch: React.Dispatch<RovingTabIndexAction>;
   roving_state: RovingTabIndexState;
   scrollQueueRef: React.MutableRefObject<{
@@ -213,6 +215,8 @@ export function Trace({
   searchResultsMap,
   previouslyFocusedNodeRef,
   onTraceSearch,
+  rerender,
+  forceRerender,
 }: TraceProps) {
   const theme = useTheme();
   const api = useApi();
@@ -220,7 +224,9 @@ export function Trace({
   const organization = useOrganization();
 
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const [_rerender, setRender] = useState(0);
+
+  const rerenderRef = useRef<TraceProps['rerender']>(rerender);
+  rerenderRef.current = rerender;
 
   const treePromiseStatusRef =
     useRef<Map<TraceTreeNode<TraceTree.NodeValue>, 'loading' | 'error' | 'success'>>();
@@ -275,20 +281,15 @@ export function Trace({
 
     // Node path has higher specificity than eventId
     const promise = scrollQueueRef.current?.path
-      ? manager.scrollToPath(
-          trace,
-          scrollQueueRef.current.path,
-          () => setRender(a => (a + 1) % 2),
-          {
-            api,
-            organization,
-          }
-        )
+      ? manager.scrollToPath(trace, scrollQueueRef.current.path, rerenderRef.current, {
+          api,
+          organization,
+        })
       : scrollQueueRef.current.eventId
         ? manager.scrollToEventID(
             scrollQueueRef?.current?.eventId,
             trace,
-            () => setRender(a => (a + 1) % 2),
+            rerenderRef.current,
             {
               api,
               organization,
@@ -326,7 +327,7 @@ export function Trace({
         // after the promise resolves as we show a loading state during scroll,
         // else the screen could jump around while we fetch span data
         scrollQueueRef.current = null;
-        setRender(a => (a + 1) % 2);
+        rerenderRef.current();
       });
   }, [
     api,
@@ -351,7 +352,7 @@ export function Trace({
       }
 
       event.stopPropagation();
-      setRender(a => (a + 1) % 2);
+      rerenderRef.current();
 
       treeRef.current
         .zoomIn(node, value, {
@@ -359,7 +360,7 @@ export function Trace({
           organization,
         })
         .then(() => {
-          setRender(a => (a + 1) % 2);
+          rerenderRef.current();
 
           if (searchStateRef.current.query) {
             const previousNode =
@@ -384,7 +385,7 @@ export function Trace({
       event.stopPropagation();
 
       treeRef.current.expand(node, value);
-      setRender(a => (a + 1) % 2);
+      rerenderRef.current();
 
       if (searchStateRef.current.query) {
         const previousNode =
@@ -586,7 +587,7 @@ export function Trace({
         />
       );
     },
-    // we add _rerender as a dependency to trigger the virtualized list rerender
+    // we add rerender as a dependency to trigger the virtualized list rerender
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       handleExpandNode,
@@ -602,7 +603,7 @@ export function Trace({
       theme,
       trace_id,
       trace.type,
-      _rerender,
+      forceRerender,
     ]
   );
 

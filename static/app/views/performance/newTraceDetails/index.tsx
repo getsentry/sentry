@@ -321,7 +321,7 @@ function TraceViewContent(props: TraceViewContentProps) {
     tabsDispatch({
       type: 'initialize',
       payload: {
-        current: tabs[0],
+        current: tabs[0] ?? tabsStateRef?.current?.tabs?.[0],
         tabs: newTabs,
         last_clicked: null,
       },
@@ -654,6 +654,8 @@ function TraceViewContent(props: TraceViewContentProps) {
     [scrollToNode, viewManager]
   );
 
+  const [forceRender, rerender] = useReducer(x => x + (1 % 2), 0);
+
   return (
     <TraceExternalLayout>
       <TraceUXChangeAlert />
@@ -707,16 +709,16 @@ function TraceViewContent(props: TraceViewContentProps) {
             onTraceSearch={onTraceSearch}
             previouslyFocusedNodeRef={previouslyFocusedNodeRef}
             manager={viewManager}
+            forceRerender={forceRender}
+            rerender={rerender}
           />
 
-          {tree.type === 'loading' ? (
+          {tree.type === 'loading' || scrollQueueRef.current ? (
             <TraceLoading />
           ) : tree.type === 'error' ? (
             <TraceError />
           ) : tree.type === 'empty' ? (
             <TraceEmpty />
-          ) : scrollQueueRef.current ? (
-            <TraceLoading />
           ) : null}
 
           <TraceDrawer
