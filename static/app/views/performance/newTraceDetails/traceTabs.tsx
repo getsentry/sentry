@@ -169,6 +169,18 @@ export function traceTabsReducer(
       };
     }
 
+    case 'clear clicked tab': {
+      const next =
+        state.last_clicked === state.current
+          ? state.tabs[state.tabs.length - 1]
+          : state.current;
+      return {
+        ...state,
+        current: next,
+        last_clicked: null,
+      };
+    }
+
     default: {
       throw new Error('Invalid action');
     }
