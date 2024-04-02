@@ -89,7 +89,7 @@ export interface IntervalConfig extends BaseConfig {
 export type MonitorConfig = CrontabConfig | IntervalConfig;
 
 export interface MonitorEnvBrokenDetection {
-  envMutedTimestamp: string;
+  environmentMutedTimestamp: string;
   userNotifiedTimestamp: string;
 }
 

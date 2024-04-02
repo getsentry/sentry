@@ -8,7 +8,7 @@ import {SearchBarTrailingButton} from 'sentry/components/searchBar';
 import {IconChevron, IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {TraceSearchState} from 'sentry/views/performance/newTraceDetails/traceSearch';
+import type {TraceSearchState} from 'sentry/views/performance/newTraceDetails/traceSearch/traceSearch';
 
 interface TraceSearchInputProps {
   onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
@@ -84,10 +84,12 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
         <StyledTrailingText>
           {`${
             props.query && !props.resultCount
-              ? '0/0'
-              : (props.resultIteratorIndex !== null
-                  ? props.resultIteratorIndex + 1
-                  : '-') + `/${props.resultCount ?? 0}`
+              ? t('no results')
+              : props.query
+                ? (props.resultIteratorIndex !== null
+                    ? props.resultIteratorIndex + 1
+                    : '-') + `/${props.resultCount ?? 0}`
+                : ''
           }`}
         </StyledTrailingText>
         <StyledSearchBarTrailingButton

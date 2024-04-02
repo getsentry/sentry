@@ -40,7 +40,7 @@ export function OverviewTimeline({monitorList}: Props) {
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
 
-  const {dates, selectionQuery, timeWindowConfig} = useMonitorTimes({timelineWidth});
+  const {selectionQuery, timeWindowConfig} = useMonitorTimes({timelineWidth});
 
   const monitorStatsQueryKey = `/organizations/${organization.slug}/monitors-stats/`;
   const {data: monitorStats, isLoading} = useApiQuery<Record<string, MonitorBucketData>>(
@@ -48,7 +48,7 @@ export function OverviewTimeline({monitorList}: Props) {
       monitorStatsQueryKey,
       {
         query: {
-          monitor: monitorList.map(m => m.slug),
+          monitor: monitorList.map(m => m.id),
           ...selectionQuery,
           ...location.query,
         },
@@ -141,19 +141,13 @@ export function OverviewTimeline({monitorList}: Props) {
         <HeaderControls>
           <SortSelector size="xs" />
         </HeaderControls>
-        <GridLineTimeLabels
-          timeWindowConfig={timeWindowConfig}
-          start={dates.start}
-          end={dates.end}
-          width={timelineWidth}
-        />
+        <GridLineTimeLabels timeWindowConfig={timeWindowConfig} width={timelineWidth} />
       </Header>
       <GridLineOverlay
         stickyCursor
+        allowZoom
         showCursor={!isLoading}
         timeWindowConfig={timeWindowConfig}
-        start={dates.start}
-        end={dates.end}
         width={timelineWidth}
       />
 
@@ -162,9 +156,7 @@ export function OverviewTimeline({monitorList}: Props) {
           key={monitor.id}
           monitor={monitor}
           timeWindowConfig={timeWindowConfig}
-          bucketedData={monitorStats?.[monitor.slug]}
-          start={dates.start}
-          end={dates.end}
+          bucketedData={monitorStats?.[monitor.id]}
           width={timelineWidth}
           onDeleteEnvironment={env => handleDeleteEnvironment(monitor, env)}
           onToggleMuteEnvironment={(env, isMuted) =>

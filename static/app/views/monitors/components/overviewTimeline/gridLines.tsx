@@ -1,20 +1,35 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 import moment from 'moment';
 
+import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import DateTime from 'sentry/components/dateTime';
 import {space} from 'sentry/styles/space';
+import useRouter from 'sentry/utils/useRouter';
 import type {TimeWindowConfig} from 'sentry/views/monitors/components/overviewTimeline/types';
 
 import {useTimelineCursor} from './timelineCursor';
+import {useTimelineZoom} from './timelineZoom';
 
 interface Props {
-  end: Date;
-  start: Date;
   timeWindowConfig: TimeWindowConfig;
+  /**
+   * The size of the timeline
+   */
   width: number;
+  /**
+   * Enable zoom selection
+   */
+  allowZoom?: boolean;
   className?: string;
+  /**
+   * Enable the timeline cursor
+   */
   showCursor?: boolean;
+  /**
+   * Enabling causes the cursor tooltip to stick to the top of the viewport.
+   */
   stickyCursor?: boolean;
 }
 
@@ -37,19 +52,15 @@ interface TimeMarker {
   position: number;
 }
 
-function getTimeMarkersFromConfig(
-  start: Date,
-  end: Date,
-  config: TimeWindowConfig,
-  width: number
-) {
-  const {elapsedMinutes, timeMarkerInterval} = config;
+function getTimeMarkersFromConfig(config: TimeWindowConfig, width: number) {
+  const {start, end, elapsedMinutes, timeMarkerInterval} = config;
   const msPerPixel = (elapsedMinutes * 60 * 1000) / width;
 
   const times: TimeMarker[] = [];
 
   const lastTimeMark = moment(end);
   alignTimeMarkersToStartOf(lastTimeMark, timeMarkerInterval);
+
   // Generate time markers which represent location of grid lines/time labels
   for (let i = 1; i < elapsedMinutes / timeMarkerInterval; i++) {
     const timeMark = moment(lastTimeMark).subtract(i * timeMarkerInterval, 'minute');
@@ -57,64 +68,78 @@ function getTimeMarkersFromConfig(
     times.push({date: timeMark.toDate(), position});
   }
 
-  return times;
+  return times.reverse();
 }
 
-export function GridLineTimeLabels({
-  width,
-  timeWindowConfig,
-  start,
-  end,
-  className,
-}: Props) {
+export function GridLineTimeLabels({width, timeWindowConfig, className}: Props) {
   return (
     <LabelsContainer className={className}>
-      {getTimeMarkersFromConfig(start, end, timeWindowConfig, width).map(
-        ({date, position}) => (
-          <TimeLabelContainer key={date.getTime()} left={position}>
-            <TimeLabel date={date} {...timeWindowConfig.dateTimeProps} />
-          </TimeLabelContainer>
-        )
-      )}
+      {getTimeMarkersFromConfig(timeWindowConfig, width).map(({date, position}) => (
+        <TimeLabelContainer key={date.getTime()} left={position}>
+          <TimeLabel date={date} {...timeWindowConfig.dateTimeProps} />
+        </TimeLabelContainer>
+      ))}
     </LabelsContainer>
   );
 }
 
 export function GridLineOverlay({
-  end,
   width,
   timeWindowConfig,
-  start,
   showCursor,
   stickyCursor,
+  allowZoom,
   className,
 }: Props) {
-  const {dateLabelFormat} = timeWindowConfig;
+  const router = useRouter();
+  const {start, dateLabelFormat} = timeWindowConfig;
 
-  const makeCursorText = useCallback(
-    (percentPosition: number) => {
-      const timeOffset = (end.getTime() - start.getTime()) * percentPosition;
+  const msPerPixel = (timeWindowConfig.elapsedMinutes * 60 * 1000) / width;
 
-      return moment(start.getTime() + timeOffset).format(dateLabelFormat);
-    },
-    [dateLabelFormat, end, start]
+  const dateFromPosition = useCallback(
+    (position: number) => moment(start.getTime() + msPerPixel * position),
+    [msPerPixel, start]
   );
 
+  const makeCursorLabel = useCallback(
+    (position: number) => dateFromPosition(position).format(dateLabelFormat),
+    [dateFromPosition, dateLabelFormat]
+  );
+
+  const handleZoom = useCallback(
+    (startX: number, endX: number) =>
+      updateDateTime(
+        {
+          start: dateFromPosition(startX).toDate(),
+          end: dateFromPosition(endX).toDate(),
+        },
+        router
+      ),
+    [dateFromPosition, router]
+  );
+
+  const {
+    selectionContainerRef,
+    timelineSelector,
+    isActive: selectionIsActive,
+  } = useTimelineZoom<HTMLDivElement>({enabled: !!allowZoom, onSelect: handleZoom});
+
   const {cursorContainerRef, timelineCursor} = useTimelineCursor<HTMLDivElement>({
-    enabled: showCursor,
+    enabled: showCursor && !selectionIsActive,
     sticky: stickyCursor,
-    labelText: makeCursorText,
+    labelText: makeCursorLabel,
   });
 
+  const overlayRef = mergeRefs(cursorContainerRef, selectionContainerRef);
+
   return (
-    <Overlay ref={cursorContainerRef} className={className}>
+    <Overlay ref={overlayRef} className={className}>
       {timelineCursor}
+      {timelineSelector}
       <GridLineContainer>
-        {getTimeMarkersFromConfig(start, end, timeWindowConfig, width).map(
-          ({date, position}) => (
-            <Gridline key={date.getTime()} left={position} />
-          )
-        )}
+        {getTimeMarkersFromConfig(timeWindowConfig, width).map(({date, position}) => (
+          <Gridline key={date.getTime()} left={position} />
+        ))}
       </GridLineContainer>
     </Overlay>
   );
