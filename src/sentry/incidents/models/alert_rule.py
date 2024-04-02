@@ -356,6 +356,7 @@ class AlertRule(Model):
         # On activated subscription, additional query parameters will be added to the constructed query in Snuba
         created_subscriptions = []
         if self.monitor_type == monitor_type.value:
+            # NOTE: QuerySubscriptions hold reference to Projects which should match the AlertRule's project reference
             created_subscriptions = bulk_create_snuba_subscriptions(
                 projects,
                 INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
