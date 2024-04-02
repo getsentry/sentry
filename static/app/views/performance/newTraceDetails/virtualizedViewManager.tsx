@@ -298,17 +298,10 @@ export class VirtualizedViewManager {
     this.recomputeSpanToPxMatrix();
   }
 
-  onContainerRef(container: HTMLElement | null) {
-    if (container) {
-      this.initialize(container);
-    } else {
-      this.teardown();
-    }
-  }
-
   dividerScale: 1 | undefined = undefined;
   dividerStartVec: [number, number] | null = null;
   previousDividerClientVec: [number, number] | null = null;
+
   onDividerMouseDown(event: MouseEvent) {
     if (!this.container) {
       return;
@@ -390,6 +383,27 @@ export class VirtualizedViewManager {
     }
     this.scrollbar_width = width;
     this.draw();
+  }
+
+  registerContainerRef(container: HTMLElement | null) {
+    if (container) {
+      this.initialize(container);
+    } else {
+      this.teardown();
+    }
+  }
+
+  registerGhostRowRef(column: string, ref: HTMLElement | null) {
+    if (column === 'list' && ref) {
+      const scrollableElement = ref.children[0] as HTMLElement | undefined;
+      if (scrollableElement) {
+        ref.addEventListener('wheel', this.onSyncedScrollbarScroll, {passive: false});
+      }
+    }
+
+    if (column === 'span_list' && ref) {
+      ref.addEventListener('wheel', this.onWheelZoom, {passive: false});
+    }
   }
 
   registerList(list: VirtualizedList | null) {
@@ -973,6 +987,17 @@ export class VirtualizedViewManager {
 
     this.container = container;
 
+    this.container.style.setProperty(
+      '--list-column-width',
+      // @ts-expect-error we set a number on purpose
+      Math.round(this.columns.list.width * 1000) / 1000
+    );
+    this.container.style.setProperty(
+      '--span-column-width',
+      // @ts-expect-error we set a number on purpose
+      Math.round(this.columns.span_list.width * 1000) / 1000
+    );
+
     this.row_measurer.on('max', this.onNewMaxRowWidth);
 
     this.resize_observer = new ResizeObserver(entries => {
@@ -1322,24 +1347,20 @@ export class VirtualizedViewManager {
       this.indicator_container.style.width = (span_list_width - correction) * 100 + '%';
     }
 
-    for (let i = 0; i < this.columns.list.column_refs.length; i++) {
-      const list = this.columns.list.column_refs[i];
-      if (list) {
-        list.style.setProperty(
-          '--width',
-          // @ts-expect-error we set number value type on purpose
-          Math.round(list_width * 1000) / 1000
-        );
-      }
-      const span = this.columns.span_list.column_refs[i];
-      if (span) {
-        span.style.setProperty(
-          '--width',
-          // @ts-expect-error we set number value type on purpose
-          Math.round(span_list_width * 1000) / 1000
-        );
-      }
+    if (this.container) {
+      this.container.style.setProperty(
+        '--list-column-width',
+        // @ts-expect-error we set number value type on purpose
+        Math.round(list_width * 1000) / 1000
+      );
+      this.container.style.setProperty(
+        '--span-column-width',
+        // @ts-expect-error we set number value type on purpose
+        Math.round(span_list_width * 1000) / 1000
+      );
+    }
 
+    for (let i = 0; i < this.columns.list.column_refs.length; i++) {
       const span_bar = this.span_bars[i];
       const span_arrow = this.span_arrows[i];
 
