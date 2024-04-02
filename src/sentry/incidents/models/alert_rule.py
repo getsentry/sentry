@@ -159,7 +159,8 @@ class AlertRuleManager(BaseManager["AlertRule"]):
             )
             created_subscriptions = []
             for alert_rule in project_alert_rules:
-                if alert_rule.activation_conditions.filter(
+                # an alert rule should only ever have a single condition
+                if alert_rule.activation_condition.filter(
                     condition_type=activation_condition.value
                 ).exists():
                     # if an activated alert rule exists with the passed condition
