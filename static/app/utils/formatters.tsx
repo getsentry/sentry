@@ -394,12 +394,12 @@ const numberFormatSteps = [
  * Formats a number with an abbreviation e.g. 1000 -> 1k.
  *
  * @param number the number to format
- * @param precision the number of significant digits to include
+ * @param maximumSignificantDigits the number of significant digits to include
  * @param includeDecimals when true, formatted number will always include non trailing zero decimal places
  */
 export function formatAbbreviatedNumber(
   number: number | string,
-  precision?: number,
+  maximumSignificantDigits?: number,
   includeDecimals?: boolean
 ): string {
   number = Number(number);
@@ -416,24 +416,26 @@ export function formatAbbreviatedNumber(
     const useShortValue = !includeDecimals && (shortValue > 10 || fitsBound);
 
     if (useShortValue) {
-      if (precision === undefined) {
+      if (maximumSignificantDigits === undefined) {
         return `${shortValue}${suffix}`;
       }
-      const formattedNumber = parseFloat(shortValue.toPrecision(precision)).toString();
+      const formattedNumber = parseFloat(
+        shortValue.toPrecision(maximumSignificantDigits)
+      ).toString();
       return `${formattedNumber}${suffix}`;
     }
 
     const formattedNumber = formatFloat(
       number / suffixNum,
-      precision || 1
+      maximumSignificantDigits || 1
     ).toLocaleString(undefined, {
-      maximumSignificantDigits: precision,
+      maximumSignificantDigits,
     });
 
     return `${formattedNumber}${suffix}`;
   }
 
-  return number.toLocaleString(undefined, {maximumSignificantDigits: precision});
+  return number.toLocaleString(undefined, {maximumSignificantDigits});
 }
 
 /**
@@ -455,7 +457,9 @@ export function formatAbbreviatedNumberWithDynamicPrecision(
   // works up to 999 billion
   const numOfFormattedDigits = numOfDigits % 3 === 0 ? 3 : numOfDigits % 3;
 
-  return formatAbbreviatedNumber(value, numOfFormattedDigits + 2, true);
+  const maximumSignificantDigits = numOfFormattedDigits + 2;
+
+  return formatAbbreviatedNumber(value, maximumSignificantDigits, true);
 }
 
 /**
