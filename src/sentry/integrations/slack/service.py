@@ -52,6 +52,15 @@ class SlackService:
             )
             return None
 
+        if activity.user_id is None:
+            self._logger.info(
+                "machine/system updates are ignored at this time, nothing to do",
+                extra={
+                    "activity_id": activity.id,
+                },
+            )
+            return None
+
         # The same message is sent to all the threads, so this needs to only happen once
         notification_to_send = self._get_notification_message_to_send(activity=activity)
         if not notification_to_send:
