@@ -298,6 +298,9 @@ function TraceViewContent(props: TraceViewContentProps) {
     last_clicked: null,
   });
 
+  const tabsStateRef = useRef<TraceTabsReducerState>(tabs);
+  tabsStateRef.current = tabs;
+
   useLayoutEffect(() => {
     if (tree.type !== 'trace') {
       return;
@@ -537,8 +540,12 @@ function TraceViewContent(props: TraceViewContentProps) {
       query: queryParamsWithoutNode,
     });
 
+    tabsDispatch({type: 'clear clicked tab'});
+    rovingTabIndexDispatch({type: 'clear index'});
+    searchDispatch({type: 'clear node'});
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [tree]);
 
   const traceContainerRef = useRef<HTMLElement | null>(null);
   useOnClickOutside(traceContainerRef, onOutsideClick);
