@@ -2837,7 +2837,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         )
 
         with self.feature(
-            {"organizations:starfish-browser-webvitals-score-with-computed-total-count": True}
+            {"organizations:starfish-browser-webvitals-score-computed-total": True}
         ):
             response = self.do_request(
                 {
