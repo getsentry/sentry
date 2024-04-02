@@ -1178,6 +1178,8 @@ def parse_search_query(
 ) -> list[
     SearchFilter
 ]:  # TODO: use the `Sequence[QueryToken]` type and update the code that fails type checking.
+    if query is None:
+        return []
     if config is None:
         config = default_config
 
