@@ -56,15 +56,12 @@ function makeTransaction(overrides: Partial<TraceFullDetailed> = {}): TraceFullD
 
 function makeSpan(overrides: Partial<RawSpanType> = {}): TraceTree.Span {
   return {
+    span_id: '',
     op: '',
     description: '',
-    span_id: '',
     start_timestamp: 0,
     timestamp: 10,
     event: makeEvent(),
-    errors: [],
-    performance_issues: [],
-    childTransaction: undefined,
     ...overrides,
   } as TraceTree.Span;
 }
@@ -2172,10 +2169,14 @@ describe('TraceTree', () => {
 
       for (let i = 0; i < 5; i++) {
         root.children.push(
-          new TraceTreeNode(root, makeSpan({start_timestamp: i, timestamp: i + 1}), {
-            project_slug: '',
-            event_id: '',
-          })
+          new TraceTreeNode(
+            root,
+            makeSpan({start_timestamp: i, op: 'db', timestamp: i + 1}),
+            {
+              project_slug: '',
+              event_id: '',
+            }
+          )
         );
       }
 

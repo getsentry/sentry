@@ -83,6 +83,7 @@ export type TraceFullDetailed = Omit<TraceFull, 'children'> & {
   measurements?: Record<string, Measurement>;
   profile_id?: string;
   tags?: EventTag[];
+  transaction?: string;
 };
 
 export type TraceSplitResults<U extends TraceFull | TraceFullDetailed | EventLite> = {
