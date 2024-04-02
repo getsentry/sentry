@@ -59,7 +59,6 @@ export function CronTimelineSection({event, organization, project}: Props) {
         query: {
           until: Math.floor(end.getTime() / 1000),
           since: Math.floor(start.getTime() / 1000),
-          useGUIDs: true,
           monitor: monitorId,
           resolution: `${rollup}s`,
         },
@@ -103,15 +102,11 @@ export function CronTimelineSection({event, organization, project}: Props) {
         <TimelineWidthTracker ref={elementRef} />
         <StyledGridLineTimeLabels
           timeWindowConfig={timeWindowConfig}
-          start={start}
-          end={end}
           width={timelineWidth}
         />
         <GridLineOverlay
           showCursor={!isLoading}
           timeWindowConfig={timeWindowConfig}
-          start={start}
-          end={end}
           width={timelineWidth}
         />
         {monitorStats && !isLoading ? (
@@ -124,8 +119,6 @@ export function CronTimelineSection({event, organization, project}: Props) {
               <CheckInTimeline
                 width={timelineWidth}
                 bucketedData={monitorStats[monitorId]}
-                start={start}
-                end={end}
                 timeWindowConfig={timeWindowConfig}
                 environment={environment ?? DEFAULT_ENVIRONMENT}
               />

@@ -4,16 +4,11 @@ import {useTheme} from '@emotion/react';
 import {Button} from 'sentry/components/button';
 import {IconGroup} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceTabs';
 import {Row} from 'sentry/views/performance/traceDetails/styles';
 
-import {
-  makeTraceNodeBarColor,
-  type ParentAutogroupNode,
-  type TraceTree,
-  type TraceTreeNode,
-} from '../../traceTree';
+import {makeTraceNodeBarColor, type ParentAutogroupNode} from '../../traceTree';
 
 import {IssueList} from './issues/issues';
 import {TraceDrawerComponents} from './styles';
@@ -23,12 +18,7 @@ export function ParentAutogroupNodeDetails({
   organization,
   onParentClick,
   scrollToNode,
-}: {
-  node: ParentAutogroupNode;
-  onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
-  organization: Organization;
-  scrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
-}) {
+}: TraceTreeNodeDetailsProps<ParentAutogroupNode>) {
   const theme = useTheme();
   const issues = useMemo(() => {
     return [...node.errors, ...node.performance_issues];

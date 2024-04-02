@@ -12,8 +12,6 @@ import {JobTickTooltip} from './jobTickTooltip';
 import type {MonitorBucketData, TimeWindowConfig} from './types';
 
 interface TimelineProps {
-  end: Date;
-  start: Date;
   timeWindowConfig: TimeWindowConfig;
   width: number;
 }
@@ -33,7 +31,8 @@ function getBucketedCheckInsPosition(
 }
 
 export function CheckInTimeline(props: CheckInTimelineProps) {
-  const {bucketedData, start, end, timeWindowConfig, width, environment} = props;
+  const {bucketedData, timeWindowConfig, width, environment} = props;
+  const {start, end} = timeWindowConfig;
 
   const elapsedMs = end.getTime() - start.getTime();
   const msPerPixel = elapsedMs / width;
@@ -79,11 +78,10 @@ export interface MockCheckInTimelineProps extends TimelineProps {
 
 export function MockCheckInTimeline({
   mockTimestamps,
-  start,
-  end,
   timeWindowConfig,
   width,
 }: MockCheckInTimelineProps) {
+  const {start, end} = timeWindowConfig;
   const elapsedMs = end.getTime() - start.getTime();
   const msPerPixel = elapsedMs / width;
 
