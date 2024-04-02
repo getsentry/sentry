@@ -140,6 +140,10 @@ class JiraCloudClient(ApiClient):
                 "jira.get-create-meta.empty-response",
                 extra={"base_url": self.base_url, "project": project},
             )
+            logger.error(
+                "jira.get-create-meta.empty-response.error",
+                extra={"response_status_code": response.status_code, "response_content": response.content},
+            )
             return None
 
         # XXX(dcramer): document how this is possible, if it even is
