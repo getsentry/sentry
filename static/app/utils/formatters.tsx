@@ -459,7 +459,7 @@ export function formatAbbreviatedNumberWithDynamicPrecision(
 }
 
 /**
- * Rounds to 2 decimal digits without forcing trailing zeros
+ * Rounds to specified number of decimal digits (defaults to 2) without forcing trailing zeros
  * Will preserve significant decimals for very small numbers
  * e.g. 0.0001234 -> 0.00012
  * @param value number to format
