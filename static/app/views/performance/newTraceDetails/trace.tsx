@@ -28,7 +28,7 @@ import {
 import type {
   TraceSearchAction,
   TraceSearchState,
-} from 'sentry/views/performance/newTraceDetails/traceSearch';
+} from 'sentry/views/performance/newTraceDetails/traceSearch/traceSearch';
 
 import {
   isAutogroupedNode,
