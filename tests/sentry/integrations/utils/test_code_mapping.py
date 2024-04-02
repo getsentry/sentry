@@ -15,7 +15,6 @@ from sentry.integrations.utils.code_mapping import (
     get_extension,
     get_sorted_code_mapping_configs,
     should_include,
-    stacktrace_buckets,
 )
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.silo.base import SiloMode
@@ -96,7 +95,8 @@ def test_buckets_logic():
         "getsentry/billing/tax/manager.py",
         "/cronscripts/monitoringsync.php",
     ] + UNSUPPORTED_FRAME_FILENAMES
-    buckets = stacktrace_buckets(stacktraces)
+    helper = CodeMappingTreesHelper({})
+    buckets = helper._stacktrace_buckets(stacktraces)
     assert buckets == {
         "./app": [FrameFilename("./app/utils/handleXhrErrorResponse.tsx")],
         "app:": [FrameFilename("app://foo.js")],
