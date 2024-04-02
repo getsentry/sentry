@@ -491,6 +491,24 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     snql_distribution=self._resolve_regression_score,
                     default_result_type="number",
                 ),
+                fields.MetricsFunction(
+                    "avg_by_timestamp",
+                    required_args=[
+                        fields.MetricArg(
+                            "column",
+                            allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
+                        ),
+                        fields.FunctionArg(
+                            "condition",
+                        ),
+                        fields.TimestampArg("timestamp"),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=lambda args, alias: self._resolve_avg_condition(
+                        args, args["condition"], alias
+                    ),
+                    default_result_type="number",
+                ),
             ]
         }
 
@@ -881,6 +899,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         self,
         args: Mapping[str, str | Column | SelectType | int | float],
         condition: str,
+        alias: str | None = None,
     ) -> SelectType:
         conditional_aggregate = Function(
             "avgIf",
@@ -908,6 +927,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 0,
                 conditional_aggregate,
             ],
+            alias,
         )
 
     @property
