@@ -50,8 +50,8 @@ import {
   searchInTraceTree,
   traceSearchReducer,
   type TraceSearchState,
-} from 'sentry/views/performance/newTraceDetails/traceSearch';
-import {TraceSearchInput} from 'sentry/views/performance/newTraceDetails/traceSearchInput';
+} from 'sentry/views/performance/newTraceDetails/traceSearch/traceSearch';
+import {TraceSearchInput} from 'sentry/views/performance/newTraceDetails/traceSearch/traceSearchInput';
 import {
   traceTabsReducer,
   type TraceTabsReducerState,
