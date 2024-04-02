@@ -27,8 +27,8 @@ import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDeta
 
 import {makeTraceNodeBarColor, type TraceTree, type TraceTreeNode} from '../traceTree';
 
-import NodeDetail from './tabs/details';
 import {TraceLevelDetails} from './tabs/trace';
+import {TraceTreeNodeDetails} from './tabs/traceTreeNodeDetails';
 
 const MIN_TRACE_DRAWER_DIMENSTIONS: [number, number] = [480, 27];
 
@@ -303,7 +303,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
                 traceEventView={props.traceEventView}
               />
             ) : (
-              <NodeDetail
+              <TraceTreeNodeDetails
                 node={props.tabs.current.node}
                 organization={props.organization}
                 manager={props.manager}

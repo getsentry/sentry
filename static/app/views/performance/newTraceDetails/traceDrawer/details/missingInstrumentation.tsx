@@ -4,15 +4,11 @@ import {Button} from 'sentry/components/button';
 import {IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/formatters';
+import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceTabs';
 import {Row} from 'sentry/views/performance/traceDetails/styles';
 
-import {
-  makeTraceNodeBarColor,
-  type MissingInstrumentationNode,
-  type TraceTree,
-  type TraceTreeNode,
-} from '../../traceTree';
+import {makeTraceNodeBarColor, type MissingInstrumentationNode} from '../../traceTree';
 
 import {TraceDrawerComponents} from './styles';
 
@@ -20,11 +16,7 @@ export function MissingInstrumentationNodeDetails({
   node,
   onParentClick,
   scrollToNode,
-}: {
-  node: MissingInstrumentationNode;
-  onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
-  scrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
-}) {
+}: TraceTreeNodeDetailsProps<MissingInstrumentationNode>) {
   const theme = useTheme();
   const parentTransaction = node.parent_transaction;
 

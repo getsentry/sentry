@@ -26,6 +26,7 @@ import {generateStats} from 'sentry/components/events/opsBreakdown';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import FileSize from 'sentry/components/fileSize';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {LazyRender, type LazyRenderProps} from 'sentry/components/lazyRender';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -54,12 +55,14 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import {CustomMetricsEventData} from 'sentry/views/metrics/customMetricsEventData';
+import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceTabs';
-import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/virtualizedViewManager';
+import type {
+  TraceTree,
+  TraceTreeNode,
+} from 'sentry/views/performance/newTraceDetails/traceTree';
 import {Row, Tags} from 'sentry/views/performance/traceDetails/styles';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
-
-import type {TraceTree, TraceTreeNode} from '../../traceTree';
 
 import {IssueList} from './issues/issues';
 import {TraceDrawerComponents} from './styles';
@@ -200,12 +203,8 @@ function ReplaySection({
   ) : null;
 }
 
-type TransactionDetailProps = {
-  manager: VirtualizedViewManager;
-  node: TraceTreeNode<TraceTree.Transaction>;
-  onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
-  organization: Organization;
-  scrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>, force?: boolean) => void;
+const LAZY_RENDER_PROPS: Partial<LazyRenderProps> = {
+  observerOptions: {rootMargin: '50px'},
 };
 
 export function TransactionNodeDetails({
@@ -213,7 +212,7 @@ export function TransactionNodeDetails({
   organization,
   scrollToNode,
   onParentClick,
-}: TransactionDetailProps) {
+}: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.Transaction>>) {
   const location = useLocation();
   const {projects} = useProjects();
   const issues = useMemo(() => {
@@ -288,7 +287,7 @@ export function TransactionNodeDetails({
           </div>
         </TraceDrawerComponents.Title>
         <TraceDrawerComponents.Actions>
-          <Button size="xs" onClick={_e => scrollToNode(node, true)}>
+          <Button size="xs" onClick={_e => scrollToNode(node)}>
             {t('Show in view')}
           </Button>
           <TraceDrawerComponents.EventDetailsLink
@@ -436,25 +435,29 @@ export function TransactionNodeDetails({
           )}
         </tbody>
       </TraceDrawerComponents.Table>
-      {organization.features.includes('event-tags-tree-ui') ? (
-        <TagsWrapper>
-          <NewTagsUI event={event} projectSlug={node.value.project_slug} />
-        </TagsWrapper>
-      ) : (
-        <TraceDrawerComponents.Table className="table key-value">
-          <tbody>
-            <Tags
-              enableHiding
-              location={location}
-              organization={organization}
-              tags={event.tags}
-              event={node.value}
-            />
-          </tbody>
-        </TraceDrawerComponents.Table>
-      )}
+      <LazyRender {...LAZY_RENDER_PROPS} containerHeight={200}>
+        {organization.features.includes('event-tags-tree-ui') ? (
+          <TagsWrapper>
+            <NewTagsUI event={event} projectSlug={node.value.project_slug} />
+          </TagsWrapper>
+        ) : (
+          <TraceDrawerComponents.Table className="table key-value">
+            <tbody>
+              <Tags
+                enableHiding
+                location={location}
+                organization={organization}
+                tags={event.tags}
+                event={node.value}
+              />
+            </tbody>
+          </TraceDrawerComponents.Table>
+        )}
+      </LazyRender>
       {project ? <EventEvidence event={event} project={project} /> : null}
-      <ReplaySection event={event} organization={organization} />
+      <LazyRender {...LAZY_RENDER_PROPS} containerHeight={480}>
+        <ReplaySection event={event} organization={organization} />
+      </LazyRender>
       {event.projectSlug ? (
         <Entries
           definedEvent={event}
