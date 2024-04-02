@@ -14,7 +14,7 @@
     "id": "10172"
   },
   "issue": {
-    "id": 101,
+    "id": "101",
     "fields": {
       "assignee": {
         "emailAddress": "jess@sentry.io",
