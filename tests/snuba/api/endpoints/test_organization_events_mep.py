@@ -2838,18 +2838,21 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             timestamp=self.min_ago,
         )
 
-        response = self.do_request(
-            {
-                "field": [
-                    "transaction",
-                    "weighted_performance_score(measurements.score.ttfb)",
-                    "weighted_performance_score(measurements.score.inp)",
-                ],
-                "query": "event.type:transaction",
-                "dataset": "metrics",
-                "per_page": 50,
-            }
-        )
+        with self.feature(
+            {"organizations:starfish-browser-webvitals-score-with-computed-total-count": True}
+        ):
+            response = self.do_request(
+                {
+                    "field": [
+                        "transaction",
+                        "weighted_performance_score(measurements.score.ttfb)",
+                        "weighted_performance_score(measurements.score.inp)",
+                    ],
+                    "query": "event.type:transaction",
+                    "dataset": "metrics",
+                    "per_page": 50,
+                }
+            )
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         data = response.data["data"]
