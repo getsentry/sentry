@@ -329,7 +329,7 @@ steps:
   - /findings/compare-baseline-config.json
   id: compare-baseline-config
   name: gcr.io/cloud-builders/docker
-  timeout: 900s
+  timeout: 300s
   waitFor:
   - export-baseline-config
   - export-raw-relocation-data
@@ -361,7 +361,7 @@ steps:
   - /findings/compare-colliding-users.json
   id: compare-colliding-users
   name: gcr.io/cloud-builders/docker
-  timeout: 900s
+  timeout: 300s
   waitFor:
   - export-colliding-users
   - compare-baseline-config
