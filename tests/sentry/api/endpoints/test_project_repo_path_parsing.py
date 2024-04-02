@@ -224,8 +224,8 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
             "integrationId": self.integration.id,
             "repositoryId": self.repo.id,
             "provider": "github",
-            "stackRoot": "stuff/hey/here/sentry/",
-            "sourceRoot": "src/sentry/",
+            "stackRoot": "stuff/hey/here/",
+            "sourceRoot": "src/",
             "defaultBranch": "master",
         }
 
@@ -260,8 +260,8 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
             "integrationId": self.integration.id,
             "repositoryId": self.repo.id,
             "provider": "github",
-            "stackRoot": "C:\\potatos\\and\\prs\\sentry\\",
-            "sourceRoot": "src/sentry/",
+            "stackRoot": "C:\\potatos\\and\\prs\\",
+            "sourceRoot": "src/",
             "defaultBranch": "main",
         }
 
