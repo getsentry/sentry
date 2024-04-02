@@ -463,10 +463,10 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
     def test_create_alert_rule(self):
         # pytest parametrize does not work in TestCase subclasses, so hack around this
         # TODO: backfill projects so all monitor_types include 'projects' fk
-        for monitor_type, expected_projects in [
-            (None, 0),
-            (AlertRuleMonitorType.CONTINUOUS, 0),
-            (AlertRuleMonitorType.ACTIVATED, 1),
+        for monitor_type in [
+            None,
+            AlertRuleMonitorType.CONTINUOUS,
+            AlertRuleMonitorType.ACTIVATED,
         ]:
             name = "hello"
             query = "level:error"
@@ -513,7 +513,8 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             assert alert_rule.threshold_type == threshold_type.value
             assert alert_rule.resolve_threshold == resolve_threshold
             assert alert_rule.threshold_period == threshold_period
-            assert alert_rule.projects.all().count() == expected_projects
+            # We now create an AlertRuleProject for all rule monitor types
+            assert alert_rule.projects.all().count() == 1
 
     def test_create_activated_alert_rule_errors_without_condition(self):
         name = "hello"
@@ -815,6 +816,8 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert set(self.alert_rule.snuba_query.event_types) == set(event_types)
         assert self.alert_rule.threshold_type == threshold_type.value
         assert self.alert_rule.threshold_period == threshold_period
+        assert self.alert_rule.projects.all().count() == 2
+        assert self.alert_rule.projects.all()[0] == updated_projects[0]
 
     def test_update_subscription(self):
         old_subscription_id = self.alert_rule.snuba_query.subscriptions.get().subscription_id
