@@ -165,7 +165,69 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert group.data["metadata"]["autofix"]["status"] == "PROCESSING"
 
     @patch("sentry.models.Group.get_recommended_event_for_environments", return_value=None)
-    def test_ai_autofix_post_without_event_id_error(self, mock_event):
+    @patch("sentry.api.endpoints.group_ai_autofix.GroupAiAutofixEndpoint._call_autofix")
+    def test_ai_autofix_post_without_event_id_no_recommended_event(self, mock_call, mock_event):
+        release = self.create_release(project=self.project, version="1.0.0")
+
+        repo = self.create_repo(
+            project=self.project,
+            name="getsentry/sentry",
+            provider="integrations:github",
+        )
+        self.create_code_mapping(project=self.project, repo=repo)
+
+        data = load_data("python", timestamp=before_now(minutes=1))
+        event = self.store_event(
+            data={
+                **data,
+                "release": release.version,
+                "exception": {"values": [{"type": "exception", "data": {"values": []}}]},
+            },
+            project_id=self.project.id,
+        )
+
+        group = event.group
+
+        assert group is not None
+        group.save()
+
+        url = f"/api/0/issues/{group.id}/ai-autofix/"
+        self.login_as(user=self.user)
+        response = self.client.post(url, data={"instruction": "Yes"}, format="json")
+        mock_call.assert_called_with(
+            ANY,
+            group,
+            [
+                {
+                    "provider": "integrations:github",
+                    "owner": "getsentry",
+                    "name": "sentry",
+                }
+            ],
+            ANY,
+            "Yes",
+            TIMEOUT_SECONDS,
+        )
+
+        actual_group_arg = mock_call.call_args[0][1]
+        assert actual_group_arg.id == group.id
+
+        serialized_event_arg = mock_call.call_args[0][3]
+        assert any(
+            [entry.get("type") == "exception" for entry in serialized_event_arg.get("entries", [])]
+        )
+
+        group = Group.objects.get(id=group.id)
+
+        assert response.status_code == 202
+        assert "autofix" in group.data["metadata"]
+        assert group.data["metadata"]["autofix"]["status"] == "PROCESSING"
+
+    @patch("sentry.models.Group.get_recommended_event_for_environments", return_value=None)
+    @patch("sentry.models.Group.get_latest_event", return_value=None)
+    def test_ai_autofix_post_without_event_id_error(
+        self, mock_latest_event, mock_recommended_event
+    ):
         release = self.create_release(project=self.project, version="1.0.0")
 
         repo = self.create_repo(
