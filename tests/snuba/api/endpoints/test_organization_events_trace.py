@@ -1691,6 +1691,19 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
         assert root["measurements"]["fid"]["value"] == 3.5
         assert root["measurements"]["fid"]["type"] == "duration"
 
+    def test_project_param(self):
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            # If project is included we should only include the parts of the trace for that given project
+            response = self.client_get(
+                data={"project": self.project.id},
+            )
+        assert response.status_code == 200, response.content
+        trace_transaction = response.data["transactions"][0]
+        self.assert_event(trace_transaction, self.root_event, "root")
+        # No children since they belong to a different project
+        assert len(trace_transaction["children"]) == 0
+
 
 class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBase):
     url_name = "sentry-api-0-organization-events-trace-meta"
