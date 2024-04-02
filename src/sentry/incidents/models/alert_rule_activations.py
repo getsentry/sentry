@@ -29,7 +29,7 @@ class AlertRuleActivationCondition(Model):
 
     __relocation_scope__ = RelocationScope.Organization
 
-    alert_rule = FlexibleForeignKey("sentry.AlertRule", related_name="activation_conditions")
+    alert_rule = FlexibleForeignKey("sentry.AlertRule", related_name="activation_condition")
     label = models.TextField()
     condition_type = models.SmallIntegerField(null=True)
 
