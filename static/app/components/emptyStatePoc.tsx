@@ -1,4 +1,3 @@
-import {useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
@@ -6,13 +5,11 @@ import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
 import {Button} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import {IconCheckmark} from 'sentry/icons';
+import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
 
 export default function UpdatedEmptyState() {
-  const [step, setStep] = useState(1);
-
   return (
     <div>
       <HeaderWrapper>
@@ -23,85 +20,35 @@ export default function UpdatedEmptyState() {
       <Divider />
       <Body>
         <Setup>
-          <BodyTitle>Set up Python SDK</BodyTitle>
-          <StepWrapper>
-            <SubStepWrapper>
-              <StepConnector isCurrentStep={step === 1} />
-              <Step>
-                <CircledNumber isCurrentStep={step === 1}>1</CircledNumber>
-                <div>
-                  <StepHeader>
-                    <StepTitle isCurrentStep={step === 1}>Install Sentry</StepTitle>
-                    {step > 1 && <IconCheckmark size="sm" />}
-                  </StepHeader>
-                  {step === 1 && (
-                    <StepBody>
-                      <StepDescription>
-                        Use the following command to install our Python SDK
-                      </StepDescription>
-                      <CodeSnippet language="python">
-                        pip install --upgrade sentry-sdk
-                      </CodeSnippet>
-                      <StepButton onClick={() => setStep(2)}>Next</StepButton>
-                    </StepBody>
-                  )}
-                </div>
-              </Step>
-            </SubStepWrapper>
-            <SubStepWrapper>
-              <StepConnector isCurrentStep={step === 2} />
-              <Step>
-                <CircledNumber isCurrentStep={step === 2}>2</CircledNumber>
-                <div>
-                  <StepHeader>
-                    <StepTitle isCurrentStep={step === 2}>Configure</StepTitle>
-                    {step > 2 && <IconCheckmark size="sm" />}
-                  </StepHeader>
-                  {step === 2 && (
-                    <StepBody>
-                      <StepDescription>
-                        Add the following code to your application, as early in the
-                        lifecycle as possible.
-                      </StepDescription>
-                      <CodeSnippet language="python">
-                        {`import sentry_sdk
+          <GuidedSteps>
+            <GuidedSteps.Step title="Install Sentry">
+              Use the following command to install our Python SDK
+              <CodeSnippet language="python">
+                pip install --upgrade sentry-sdk
+              </CodeSnippet>
+              <GuidedSteps.StepButtons />
+            </GuidedSteps.Step>
+            <GuidedSteps.Step title="Install Sentry">
+              Add the following code to your application, as early in the lifecycle as
+              possible.
+              <CodeSnippet language="python">
+                {`import sentry_sdk
 sentry_sdk.init(dsn="http://dc21aeced16ec1aaee075661e7a063f0@localhost:8000/18",
 enable_tracing=True)`}
-                      </CodeSnippet>
-                      <StepButton onClick={() => setStep(1)}>Back</StepButton>
-                      <StepButton onClick={() => setStep(3)}>Next</StepButton>
-                    </StepBody>
-                  )}
-                </div>
-              </Step>
-            </SubStepWrapper>
-            <SubStepWrapper>
-              <Step>
-                <CircledNumber isCurrentStep={step === 3}>3</CircledNumber>
-                <div>
-                  <StepHeader>
-                    <StepTitle isCurrentStep={step === 3}>Verify</StepTitle>
-                  </StepHeader>
-                  {step === 3 && (
-                    <StepBody>
-                      <StepDescription>
-                        Add this intentional error to your application to test that
-                        everything is working right away.
-                      </StepDescription>
-                      <CodeSnippet language="python">
-                        division_by_zero = 1 / 0
-                      </CodeSnippet>
-                      <StatusWrapper>
-                        <WaitingIndicator />
-                        <WaitingText>Waiting for first event</WaitingText>
-                      </StatusWrapper>
-                      <StepButton onClick={() => setStep(2)}>Back</StepButton>
-                    </StepBody>
-                  )}
-                </div>
-              </Step>
-            </SubStepWrapper>
-          </StepWrapper>
+              </CodeSnippet>
+              <GuidedSteps.StepButtons />
+            </GuidedSteps.Step>
+            <GuidedSteps.Step title="Verify">
+              Add this intentional error to your application to test that everything is
+              working right away.
+              <CodeSnippet language="python">division_by_zero = 1 / 0</CodeSnippet>
+              <StatusWrapper>
+                <WaitingIndicator />
+                <WaitingText>Waiting for first event</WaitingText>
+              </StatusWrapper>
+              <GuidedSteps.StepButtons />
+            </GuidedSteps.Step>
+          </GuidedSteps>
         </Setup>
         <Preview>
           <BodyTitle>Preview Sentry Issue</BodyTitle>
@@ -192,55 +139,11 @@ const Divider = styled('hr')`
   margin-bottom: 0;
 `;
 
-const StepWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(3)};
-`;
-
-const StepTitle = styled('div')<{isCurrentStep: boolean}>`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: 600;
-  color: ${p => (p.isCurrentStep ? p.theme.gray500 : p.theme.gray300)};
-`;
-
-const StepDescription = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
-
-const StepBody = styled('div')`
-  width: 100%;
-`;
-
 const Arcade = styled('iframe')`
   width: 600px;
   max-width: 100%;
   height: 440px;
   border: 0;
-`;
-
-const CircledNumber = styled('div')<{isCurrentStep: boolean}>`
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  color: ${p => (p.isCurrentStep ? 'white' : p.theme.gray300)};
-  background-color: ${p => (p.isCurrentStep ? p.theme.purple300 : p.theme.gray100)};
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 12px;
-`;
-
-const StepHeader = styled('div')`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: ${space(1)};
-`;
-
-const StepButton = styled(Button)`
-  margin-top: ${space(1)};
-  margin-bottom: ${space(1)};
 `;
 
 const StatusWrapper = styled('div')`
@@ -257,25 +160,4 @@ const WaitingIndicator = styled(motion.div)`
 
 const WaitingText = styled('div')`
   color: ${p => p.theme.pink300};
-`;
-
-const StepConnector = styled('div')<{isCurrentStep: boolean}>`
-  position: absolute;
-  height: ${p => (p.isCurrentStep ? '85%' : '40%')};
-  top: 30px;
-  left: 11px;
-  border: 1px ${p => p.theme.border} solid;
-`;
-
-const Step = styled('div')`
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  gap: ${space(2)};
-`;
-
-const SubStepWrapper = styled('div')`
-  position: relative;
-  display: flex;
-  align-items: flex-start;
 `;
