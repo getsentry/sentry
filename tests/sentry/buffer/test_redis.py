@@ -268,20 +268,23 @@ class TestRedisBuffer:
         self.buf.push_to_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=project_id2)
 
         # store the rules and group per project
-        self.buf.enqueue(
+        self.buf.push_to_hash(
             model=Project,
-            field={"project_id": project_id},
-            value={f"{rule_id}:{group_id}": event_id},
+            filters={"project_id": project_id},
+            field=f"{rule_id}:{group_id}",
+            value=event_id,
         )
-        self.buf.enqueue(
+        self.buf.push_to_hash(
             model=Project,
-            field={"project_id": project_id},
-            value={f"{rule_id}:{group2_id}": event2_id},
+            filters={"project_id": project_id},
+            field=f"{rule_id}:{group2_id}",
+            value=event2_id,
         )
-        self.buf.enqueue(
+        self.buf.push_to_hash(
             model=Project,
-            field={"project_id": project_id2},
-            value={f"{rule2_id}:{group3_id}": event3_id},
+            filters={"project_id": project_id2},
+            field=f"{rule2_id}:{group3_id}",
+            value=event3_id,
         )
 
         project_ids = self.buf.get_set(PROJECT_ID_BUFFER_LIST_KEY)

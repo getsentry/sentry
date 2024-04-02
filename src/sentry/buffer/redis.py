@@ -220,50 +220,36 @@ class RedisBuffer(Buffer):
         pipe = conn.pipeline()
         return pipe
 
-    def push_to_set(self, key: str, value: list[int] | int) -> None:
+    def _execute_redis_operation(self, key: str, operation: str, *args: Any) -> Any:
         pending_key = self._make_pending_key_from_key(key)
         pipe = self.get_redis_connection(pending_key)
         if pipe:
-            pipe.sadd(key, value)
-            pipe.expire(key, self.key_expire)
-            pipe.execute()
-
-    def get_set(self, key: str) -> None:
-        pending_key = self._make_pending_key_from_key(key)
-        pipe = self.get_redis_connection(pending_key)
-        if pipe:
-            pipe.smembers(key)
+            getattr(pipe, operation)(key, *args)
+            if args:
+                pipe.expire(key, self.key_expire)
             return pipe.execute()
 
+    def push_to_set(self, key: str, value: list[int] | int) -> None:
+        self._execute_redis_operation(key, "sadd", value)
+
+    def get_set(self, key: str) -> list[set]:
+        return self._execute_redis_operation(key, "smembers")
+
     def push_to_hash(
-        self, key: str, field: dict[str, models.Model | str | int], value: dict[str, dict[int, int]]
+        self,
+        model: type[models.Model],
+        filters: dict[str, models.Model | str | int],
+        field: str,
+        value: int,
     ) -> None:
-        pending_key = self._make_pending_key_from_key(key)
-        pipe = self.get_redis_connection(pending_key)
-        if pipe:
-            for f, v in value.items():
-                pipe.hsetnx(key, f, v)
-            pipe.expire(key, self.key_expire)
-            pipe.execute()
+        key = self._make_key(model, filters)
+        self._execute_redis_operation(key, "hsetnx", field, value)
 
     def get_hash(
         self, model: type[models.Model], field: dict[str, models.Model | str | int]
-    ) -> None:
+    ) -> dict[str, str]:
         key = self._make_key(model, field)
-        pending_key = self._make_pending_key_from_key(key)
-        pipe = self.get_redis_connection(pending_key)
-        if pipe:
-            pipe.hgetall(key)
-            return pipe.execute()
-
-    def enqueue(
-        self,
-        model: type[models.Model],
-        field: dict[str, models.Model | str | int],
-        value: dict[str, dict[int, int]],
-    ) -> None:
-        key = self._make_key(model, field)
-        self.push_to_hash(key, field, value)
+        return self._execute_redis_operation(key, "hgetall")
 
     def incr(
         self,
