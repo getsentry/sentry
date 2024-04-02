@@ -52,8 +52,6 @@ class MetricsIngestConfiguration:
     internal_metrics_tag: str | None
     writes_limiter_cluster_options: Mapping[str, Any]
     writes_limiter_namespace: str
-    cardinality_limiter_cluster_options: Mapping[str, Any]
-    cardinality_limiter_namespace: str
 
     should_index_tag_values: bool
     schema_validation_rule_option_name: str | None = None
@@ -84,8 +82,6 @@ def get_ingest_config(
                 internal_metrics_tag="release-health",
                 writes_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS,
                 writes_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
-                cardinality_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS,
-                cardinality_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
                 should_index_tag_values=True,
                 schema_validation_rule_option_name=RELEASE_HEALTH_SCHEMA_VALIDATION_RULES_OPTION_NAME,
             )
@@ -100,8 +96,6 @@ def get_ingest_config(
                 internal_metrics_tag="perf",
                 writes_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS_PERFORMANCE,
                 writes_limiter_namespace=PERFORMANCE_PG_NAMESPACE,
-                cardinality_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS_PERFORMANCE,
-                cardinality_limiter_namespace=PERFORMANCE_PG_NAMESPACE,
                 is_output_sliced=settings.SENTRY_METRICS_INDEXER_ENABLE_SLICED_PRODUCER,
                 should_index_tag_values=False,
                 schema_validation_rule_option_name=GENERIC_METRICS_SCHEMA_VALIDATION_RULES_OPTION_NAME,
@@ -118,8 +112,6 @@ def get_ingest_config(
                 internal_metrics_tag="release-health",
                 writes_limiter_cluster_options={},
                 writes_limiter_namespace="test-namespace-rh",
-                cardinality_limiter_cluster_options={},
-                cardinality_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
                 should_index_tag_values=True,
                 schema_validation_rule_option_name=RELEASE_HEALTH_SCHEMA_VALIDATION_RULES_OPTION_NAME,
             )
@@ -135,8 +127,6 @@ def get_ingest_config(
                 internal_metrics_tag="perf",
                 writes_limiter_cluster_options={},
                 writes_limiter_namespace="test-namespace-perf",
-                cardinality_limiter_cluster_options={},
-                cardinality_limiter_namespace=PERFORMANCE_PG_NAMESPACE,
                 should_index_tag_values=False,
                 schema_validation_rule_option_name=GENERIC_METRICS_SCHEMA_VALIDATION_RULES_OPTION_NAME,
             )
