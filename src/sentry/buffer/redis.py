@@ -238,7 +238,8 @@ class RedisBuffer(Buffer):
     ) -> None:
         pending_key = self._make_pending_key_from_key(key)
         pipe = self.get_redis_connection(pending_key)
-        pipe.hsetnx(key, str(field["project_id"]), json.dumps(value))
+        for f, v in value.items():
+            pipe.hsetnx(key, f, v)
         pipe.expire(key, self.key_expire)
         pipe.execute()
 

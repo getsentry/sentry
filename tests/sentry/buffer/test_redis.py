@@ -1,5 +1,6 @@
 import datetime
 import pickle
+from collections import defaultdict
 from unittest import mock
 
 import pytest
@@ -277,7 +278,6 @@ class TestRedisBuffer:
             field={"project_id": project_id},
             value={f"{rule_id}:{group2_id}": event2_id},
         )
-        # ^ this doesn't work because we already have data for that key (field)
         self.buf.enqueue(
             model=Project,
             field={"project_id": project_id2},
@@ -287,13 +287,24 @@ class TestRedisBuffer:
         project_ids = self.buf.get_set(PROJECT_ID_BUFFER_LIST_KEY)
         assert project_ids
 
-        project_ids_to_rule_data = {}
-
+        project_ids_to_rule_data = defaultdict(list)
         for proj_id in project_ids[0]:
             rule_group_pairs = self.buf.get_hash(Project, {"project_id": proj_id})
             for pair in rule_group_pairs:
                 for k, v in pair.items():
-                    project_ids_to_rule_data[k] = json.loads(v)
+                    if isinstance(k, bytes):
+                        k = k.decode("utf-8")
+                    if isinstance(v, bytes):
+                        v = v.decode("utf-8")
+                    project_ids_to_rule_data[int(proj_id)].append({k: v})
+
+        assert project_ids_to_rule_data[project_id][0].get(f"{rule_id}:{group_id}") == str(event_id)
+        assert project_ids_to_rule_data[project_id][1].get(f"{rule_id}:{group2_id}") == str(
+            event2_id
+        )
+        assert project_ids_to_rule_data[project_id2][0].get(f"{rule2_id}:{group3_id}") == str(
+            event3_id
+        )
 
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.base.Buffer.process")
