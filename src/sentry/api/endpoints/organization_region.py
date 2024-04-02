@@ -61,7 +61,6 @@ class OrganizationRegionEndpoint(Endpoint):
 
         try:
             # We don't use the lookup since OrganizationMapping uses organization_id as a BigIntField instead of a ForeignKey
-            org_mapping: OrganizationMapping
             if options.get("api.id-or-slug-enabled") and str(organization_slug).isnumeric():
                 org_mapping = OrganizationMapping.objects.get(organization_id=organization_slug)
             else:
