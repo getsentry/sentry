@@ -36,7 +36,7 @@ EDIT_FEATURE = ["organizations:dashboards-edit"]
 pytestmark = pytest.mark.sentry_metrics
 
 
-@pytest.mark.xfail(reason="Does not work with the metrics release health backend")
+# @pytest.mark.xfail(reason="Does not work with the metrics release health backend")
 @no_silo_test
 class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     def setUp(self):

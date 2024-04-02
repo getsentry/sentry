@@ -37,9 +37,9 @@ from sentry.search.events.constants import (
 from sentry.silo import SiloMode
 from sentry.testutils.cases import (
     APITestCase,
+    BaseMetricsLayerTestCase,
     ReleaseCommitPatchTest,
     SetRefsTestCase,
-    SnubaTestCase,
     TestCase,
 )
 from sentry.testutils.outbox import outbox_runner
@@ -51,8 +51,11 @@ from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
 
 
-class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
+class OrganizationReleaseListTest(APITestCase, BaseMetricsLayerTestCase):
     endpoint = "sentry-api-0-organization-releases"
+
+    def now(self):
+        return timezone.now()
 
     def assert_expected_versions(self, response, expected):
         assert [item["version"] for item in response.data] == [e.version for e in expected]
@@ -168,7 +171,6 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
             response, [release_5, release_4, release_3, release_2, release_1]
         )
 
-    @pytest.mark.xfail(reason="Does not work with the metrics release health backend")
     def test_release_list_order_by_sessions(self):
         self.login_as(user=self.user)
 
