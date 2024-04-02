@@ -277,7 +277,7 @@ def write_import_findings(
     from sentry.backup.imports import ImportingError
 
     done_event = Event()
-    updater_thread = Thread(target=print_elapsed_time, args=("Importing", 10, done_event, printer))
+    updater_thread = Thread(target=print_elapsed_time, args=("Importing", 100, done_event, printer))
 
     try:
         updater_thread.start()
@@ -304,7 +304,7 @@ def write_export_findings(
     from sentry.backup.exports import ExportingError
 
     done_event = Event()
-    updater_thread = Thread(target=print_elapsed_time, args=("Exporting", 10, done_event, printer))
+    updater_thread = Thread(target=print_elapsed_time, args=("Exporting", 100, done_event, printer))
 
     try:
         updater_thread.start()
