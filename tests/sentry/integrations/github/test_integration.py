@@ -12,6 +12,7 @@ import responses
 from django.urls import reverse
 
 import sentry
+from fixtures.github import INSTALLATION_EVENT_EXAMPLE
 from sentry.api.utils import generate_organization_url
 from sentry.constants import ObjectStatus
 from sentry.integrations.github import (
@@ -32,6 +33,7 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.utils import json
 from sentry.utils.cache import cache
 
 TREE_RESPONSES = {
@@ -389,6 +391,64 @@ class GitHubIntegrationTest(IntegrationTestCase):
             )
         )
         assert b"Invalid installation request." in resp.content
+
+    @responses.activate
+    def test_github_user_mismatch(self):
+        self._stub_github()
+
+        # Emulate GitHub installation
+        init_path_1 = "{}?{}".format(
+            reverse(
+                "sentry-organization-integrations-setup",
+                kwargs={
+                    "organization_slug": self.organization.slug,
+                    "provider_id": self.provider.key,
+                },
+            ),
+            urlencode({"installation_id": self.installation_id}),
+        )
+        self.client.get(init_path_1)
+
+        webhook_event = json.loads(INSTALLATION_EVENT_EXAMPLE)
+        webhook_event["installation"]["id"] = self.installation_id
+        webhook_event["sender"]["login"] = "attacker"
+        resp = self.client.post(
+            path="/extensions/github/webhook/",
+            data=json.dumps(webhook_event),
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="installation",
+            HTTP_X_HUB_SIGNATURE="sha1=d184e6717f8bfbcc291ebc8c0756ee446c6c9486",
+            HTTP_X_GITHUB_DELIVERY="00000000-0000-4000-8000-1234567890ab",
+        )
+        assert resp.status_code == 204
+
+        # Validate the installation user
+        user_2 = self.create_user("foo@example.com")
+        org_2 = self.create_organization(name="Rowdy Tiger", owner=user_2)
+        self.login_as(user_2)
+        init_path_2 = "{}?{}".format(
+            reverse(
+                "sentry-organization-integrations-setup",
+                kwargs={
+                    "organization_slug": org_2.slug,
+                    "provider_id": self.provider.key,
+                },
+            ),
+            urlencode({"installation_id": self.installation_id}),
+        )
+        setup_path_2 = "{}?{}".format(
+            self.setup_path,
+            urlencode(
+                {"code": "12345678901234567890", "state": "9cae5e88803f35ed7970fc131e6e65d3"}
+            ),
+        )
+        with self.feature({"organizations:customer-domains": [org_2.slug]}):
+            resp = self.client.get(init_path_2)
+            resp = self.client.get(setup_path_2)
+            self.assertTemplateUsed(resp, "sentry/integrations/github-integration-failed.html")
+            assert resp.status_code == 200
+            assert b'window.opener.postMessage({"success":false' in resp.content
+            assert b"Invalid installation request." in resp.content
 
     @responses.activate
     def test_disable_plugin_when_fully_migrated(self):
