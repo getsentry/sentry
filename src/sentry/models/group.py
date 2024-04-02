@@ -354,19 +354,6 @@ class GroupManager(BaseManager["Group"]):
                 raise Group.DoesNotExist()
         return groups
 
-    def from_kwargs(self, project, **kwargs):
-        from sentry.event_manager import EventManager
-        from sentry.exceptions import HashDiscarded
-
-        manager = EventManager(kwargs)
-        manager.normalize()
-        try:
-            return manager.save(project)
-
-        # TODO(jess): this method maybe isn't even used?
-        except HashDiscarded as e:
-            logger.info("discarded.hash", extra={"project_id": project, "description": str(e)})
-
     def from_event_id(self, project, event_id):
         """Resolves the 32 character event_id string into a Group for which it is found."""
         group_id = None
