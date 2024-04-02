@@ -106,7 +106,6 @@ class MemberTeamFields extends Component<Props> {
               <SelectMembers
                 disabled={disabled}
                 key={teamSelected ? teamValue : memberValue}
-                project={project}
                 organization={organization}
                 // The value from the endpoint is of type `number`, `SelectMembers` require value to be of type `string`
                 value={`${ruleData.targetIdentifier}`}
