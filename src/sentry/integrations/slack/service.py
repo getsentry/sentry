@@ -42,6 +42,7 @@ class SlackService:
         that specific group and project.
 
         If the group is not associated with an activity, return early as there's nothing to do.
+        If the user is not associated with an activity, return early as we only care about user activities.
         """
         if activity.group is None:
             self._logger.info(
