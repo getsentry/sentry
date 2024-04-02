@@ -5,6 +5,7 @@ import logging
 from django.db import migrations
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.utils.query import RangeQuerySetWrapper
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +14,8 @@ def _backfill_alert_rule_projects(apps, schema_editor):
     QuerySubscriptions = apps.get_model("sentry", "QuerySubscription")
     AlertRuleProjects = apps.get_model("sentry", "AlertRuleProjects")
 
-    for subscription in QuerySubscriptions.objects.all():
+    # use RangeQuerySetWrapper to avoid loading all subscriptions into memory
+    for subscription in RangeQuerySetWrapper(QuerySubscriptions.objects.all()):
 
         snuba_query = subscription.snuba_query
         if not snuba_query:
@@ -25,12 +27,12 @@ def _backfill_alert_rule_projects(apps, schema_editor):
 
         alert_rule = snuba_query.alertrule_set.get()
 
-        existing_alert_rule_projects = AlertRuleProjects.objects.filter(alert_rule=alert_rule)
+        existing_alert_rule_projects = list(AlertRuleProjects.objects.filter(alert_rule=alert_rule))
         should_create_new = not existing_alert_rule_projects.exists()
 
-        if existing_alert_rule_projects.exists() and (
+        if not should_create_new and (  # eg. if alert rule already has fk projects
             len(existing_alert_rule_projects) > 1
-            or existing_alert_rule_projects.get().project != subscription.project
+            or existing_alert_rule_projects[0].project != subscription.project
         ):
             logger.warning(
                 "AlertRuleProject found with different project than subscription",
@@ -39,7 +41,8 @@ def _backfill_alert_rule_projects(apps, schema_editor):
                     "project_count": len(existing_alert_rule_projects),
                 },
             )
-            existing_alert_rule_projects.delete()
+            for arp in existing_alert_rule_projects:
+                arp.delete()
             should_create_new = True
 
         if should_create_new:
