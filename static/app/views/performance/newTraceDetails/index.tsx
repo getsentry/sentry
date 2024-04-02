@@ -713,12 +713,12 @@ function TraceViewContent(props: TraceViewContentProps) {
             rerender={rerender}
           />
 
-          {tree.type === 'loading' || scrollQueueRef.current ? (
-            <TraceLoading />
-          ) : tree.type === 'error' ? (
+          {tree.type === 'error' ? (
             <TraceError />
           ) : tree.type === 'empty' ? (
             <TraceEmpty />
+          ) : tree.type === 'loading' || scrollQueueRef.current ? (
+            <TraceLoading />
           ) : null}
 
           <TraceDrawer
