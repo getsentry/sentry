@@ -37,10 +37,10 @@ export default function MonitorEnvironmentLabel({monitorEnv}: Props) {
   const {userNotifiedTimestamp, environmentMutedTimestamp} =
     activeIncident?.brokenNotice ?? {};
   const envStatus = isMuted ? MonitorStatus.DISABLED : status;
-  const {label, icon, color} = userNotifiedTimestamp
-    ? userNotifiedDisplay
-    : environmentMutedTimestamp
-      ? envMutedDisplay
+  const {label, icon, color} = environmentMutedTimestamp
+    ? envMutedDisplay
+    : userNotifiedTimestamp
+      ? userNotifiedDisplay
       : statusIconColorMap[envStatus];
 
   return (
