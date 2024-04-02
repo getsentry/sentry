@@ -190,10 +190,8 @@ def build_footer(
         # If this notification is triggered via the "Send Test Notification"
         # button then the label is not defined, but the url works.
         text = rules[0].label if rules[0].label else "Test Alert"
-        footer += f" via {url_format.format(text=text, url=rule_url)}"
 
-        if features.has("organizations:slack-block-kit", project.organization):
-            footer = url_format.format(text=text, url=rule_url)
+        footer = url_format.format(text=text, url=rule_url)
 
         if len(rules) > 1:
             footer += f" (+{len(rules) - 1} other)"
