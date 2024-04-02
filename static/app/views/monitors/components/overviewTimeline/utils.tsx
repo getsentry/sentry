@@ -41,7 +41,7 @@ const CLAMPED_MINUTE_RANGES = [
 ];
 
 /**
- * Compute the TimeWindowConfig given the timeline date bounadies and the width
+ * Compute the TimeWindowConfig given the timeline date boundaries and the width
  * of the timeline.
  */
 export function getConfigFromTimeRange(
@@ -54,20 +54,20 @@ export function getConfigFromTimeRange(
   // Display only the time (no date) when the window is less than 24 hours
   const timeOnly = elapsedMinutes <= ONE_HOUR * 24;
 
-  const minimuWidth = timeOnly ? TIMELABEL_WIDTH_TIME : TIMELABEL_WIDTH_DATE;
+  const minimumWidth = timeOnly ? TIMELABEL_WIDTH_TIME : TIMELABEL_WIDTH_DATE;
 
-  // When one pixel represent less than at least one minute we also want to
+  // When one pixel represents less than at least one minute we also want to
   // display second values on our labels.
   const displaySeconds = elapsedMinutes < timelineWidth;
 
   // Compute the smallest minute value that we are willing to space our ticks
-  // apart by. This will be at least minimuWidth.
+  // apart by. This will be at least minimumWidth.
 
   // Calculate the minutes per pixel of the timeline
   const minutesPerPixel = elapsedMinutes / timelineWidth;
 
-  // Calculate minutes at the minimuWidth
-  const minTickMinutesApart = minutesPerPixel * minimuWidth;
+  // Calculate minutes at the minimumWidth
+  const minTickMinutesApart = minutesPerPixel * minimumWidth;
 
   const baseConfig = {
     start,
