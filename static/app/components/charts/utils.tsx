@@ -142,6 +142,7 @@ const metricsFidelityLadder = new GranularityLadder([
   [SIX_HOURS, '5m'],
   [ONE_HOUR, '1m'],
   [0, '1m'],
+
 ]);
 
 /**
@@ -161,13 +162,25 @@ export function getSeriesApiInterval(datetimeObj: DateTimeObject) {
 export function getDiffInMinutes(datetimeObj: DateTimeObject): number {
   const {period, start, end} = datetimeObj;
 
-  if (start && end) {
-    return moment(end).diff(start, 'minutes');
+  // Validate start and end dates
+  if (start && end && moment(end).isValid() && moment(start).isValid()) {
+    const duration = moment(end).diff(start, 'minutes');
+    if (duration > 0) {
+      return duration;
+    } else {
+      Sentry.captureMessage('Invalid duration: Duration must be positive', 'error');
+      return TWENTY_FOUR_HOURS; // Default positive duration
+    }
   }
 
-  return (
-    parsePeriodToHours(typeof period === 'string' ? period : DEFAULT_STATS_PERIOD) * 60
-  );
+  // Validate period
+  const periodHours = parsePeriodToHours(typeof period === 'string' ? period : DEFAULT_STATS_PERIOD);
+  if (periodHours > 0) {
+    return periodHours * 60;
+  } else {
+    Sentry.captureMessage('Invalid period: Period must result in a positive duration', 'error');
+    return TWENTY_FOUR_HOURS; // Default positive duration
+  }
 }
 
 // Max period (in hours) before we can no long include previous period
