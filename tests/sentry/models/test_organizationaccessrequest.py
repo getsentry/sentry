@@ -5,10 +5,8 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class SendRequestEmailTest(TestCase):
     def test_sends_email_to_everyone(self):
         owner = self.create_user("owner@example.com")

@@ -5,14 +5,12 @@ from django.core.mail.message import EmailMultiAlternatives
 from sentry.models.activity import Activity
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import get_attachment, get_channel
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class AssignedNotificationAPITest(APITestCase):
     def validate_email(self, outbox, index, email, txt_msg, html_msg):
         msg = outbox[index]

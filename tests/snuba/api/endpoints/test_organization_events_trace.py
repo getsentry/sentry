@@ -9,7 +9,6 @@ from sentry import options
 from sentry.issues.grouptype import NoiseConfig, PerformanceFileIOMainThreadGroupType
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
@@ -281,7 +280,6 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase):
         )
 
 
-@region_silo_test
 class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBase):
     url_name = "sentry-api-0-organization-events-trace-light"
 
@@ -799,7 +797,6 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
         assert response.status_code == 404
 
 
-@region_silo_test
 class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
     url_name = "sentry-api-0-organization-events-trace"
     check_generation = True
@@ -1563,7 +1560,6 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert "measurements" not in trace_transaction
 
 
-@region_silo_test
 class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpointTest):
     check_generation = False
 
@@ -1698,7 +1694,6 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
         assert root["measurements"]["fid"]["type"] == "duration"
 
 
-@region_silo_test
 class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBase):
     url_name = "sentry-api-0-organization-events-trace-meta"
 

@@ -354,19 +354,6 @@ class GroupManager(BaseManager["Group"]):
                 raise Group.DoesNotExist()
         return groups
 
-    def from_kwargs(self, project, **kwargs):
-        from sentry.event_manager import EventManager
-        from sentry.exceptions import HashDiscarded
-
-        manager = EventManager(kwargs)
-        manager.normalize()
-        try:
-            return manager.save(project)
-
-        # TODO(jess): this method maybe isn't even used?
-        except HashDiscarded as e:
-            logger.info("discarded.hash", extra={"project_id": project, "description": str(e)})
-
     def from_event_id(self, project, event_id):
         """Resolves the 32 character event_id string into a Group for which it is found."""
         group_id = None
@@ -449,6 +436,15 @@ class GroupManager(BaseManager["Group"]):
             from_substatus == GroupSubStatus.ESCALATING
             and activity_type == ActivityType.AUTO_SET_ONGOING
         )
+        logger.info(
+            "group.update_group_status.should_update_priority",
+            extra={
+                "should_update_priority": should_update_priority,
+                "from_substatus": from_substatus,
+                "activity_type": activity_type,
+                "new_substatus": substatus,
+            },
+        )
 
         updated_priority = {}
         for group in selected_groups:
@@ -459,6 +455,29 @@ class GroupManager(BaseManager["Group"]):
                 if priority and group.priority != priority:
                     group.priority = priority
                     updated_priority[group.id] = priority
+
+                    logger.info(
+                        "group.update_group_status.priority_updated",
+                        extra={
+                            "group_id": group.id,
+                            "from_substatus": from_substatus,
+                            "activity_type": activity_type,
+                            "new_substatus": substatus,
+                            "priority": priority,
+                        },
+                    )
+                else:
+                    logger.info(
+                        "group.update_group_status.priority_not_updated",
+                        extra={
+                            "group_id": group.id,
+                            "from_substatus": from_substatus,
+                            "activity_type": activity_type,
+                            "new_substatus": substatus,
+                            "new_priority": priority,
+                            "current_priority": group.priority,
+                        },
+                    )
 
             modified_groups_list.append(group)
 
@@ -475,6 +494,14 @@ class GroupManager(BaseManager["Group"]):
 
             if group.id in updated_priority:
                 new_priority = updated_priority[group.id]
+                logger.info(
+                    "group.update_group_status.priority_updated_activity",
+                    extra={
+                        "group_id": group.id,
+                        "priority": updated_priority[group.id],
+                        "group_priority": group.priority,
+                    },
+                )
                 Activity.objects.create_group_activity(
                     group=group,
                     type=ActivityType.SET_PRIORITY,

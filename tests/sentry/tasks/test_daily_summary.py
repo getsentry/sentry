@@ -31,26 +31,32 @@ from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.slack import get_blocks_and_fallback_text
-from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.outcomes import Outcome
 
 
-@region_silo_test
 @freeze_time(before_now(days=2).replace(hour=0, minute=5, second=0, microsecond=0))
 class DailySummaryTest(
     OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCase, SlackActivityNotificationTest
 ):
     def store_event_and_outcomes(
-        self, project_id, timestamp, fingerprint, category, release=None, resolve=True
+        self,
+        project_id,
+        timestamp,
+        fingerprint,
+        category,
+        release=None,
+        resolve=True,
+        level="error",
     ):
         if category == DataCategory.ERROR:
             data = {
                 "timestamp": iso_format(timestamp),
                 "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                 "fingerprint": [fingerprint],
+                "level": level,
                 "exception": {
                     "values": [
                         {
@@ -324,6 +330,51 @@ class DailySummaryTest(
         assert len(project_context_map.key_errors) == 2
         assert (group1, None, 3) in project_context_map.key_errors
         assert (group2, None, 3) in project_context_map.key_errors
+
+    @with_feature("organizations:snql-join-reports")
+    def test_build_summary_data_filter_to_error_level(self):
+        """Test that non-error level issues are filtered out of the results"""
+        with self.options({"issues.group_attributes.send_kafka": True}):
+            for _ in range(3):
+                group1 = self.store_event_and_outcomes(
+                    self.project.id,
+                    self.now,
+                    fingerprint="group-1",
+                    category=DataCategory.ERROR,
+                    resolve=False,
+                    level="info",
+                )
+                group2 = self.store_event_and_outcomes(
+                    self.project.id,
+                    self.now,
+                    fingerprint="group-2",
+                    category=DataCategory.ERROR,
+                    resolve=False,
+                )
+                group3 = self.store_event_and_outcomes(
+                    self.project.id,
+                    self.now,
+                    fingerprint="group-3",
+                    category=DataCategory.ERROR,
+                    resolve=False,
+                )
+
+        summary = build_summary_data(
+            timestamp=self.now.timestamp(),
+            duration=ONE_DAY,
+            organization=self.organization,
+            daily=True,
+        )
+        project_id = self.project.id
+        project_context_map = cast(
+            DailySummaryProjectContext, summary.projects_context_map[project_id]
+        )
+        assert project_context_map.total_today == 9  # total outcomes from today
+        assert project_context_map.comparison_period_avg == 0
+        assert len(project_context_map.key_errors) == 2
+        assert (group1, None, 3) not in project_context_map.key_errors
+        assert (group2, None, 3) in project_context_map.key_errors
+        assert (group3, None, 3) in project_context_map.key_errors
 
     def test_build_summary_data_dedupes_groups(self):
         """
@@ -614,18 +665,19 @@ class DailySummaryTest(
         # check error issues
         assert "*Today's Top 3 Error Issues" in blocks[5]["fields"][0]["text"]
         assert link_text.format(self.group1.id) in blocks[5]["fields"][0]["text"]
-        assert "\nIdentity not found." in blocks[5]["fields"][0]["text"]
+        assert "\n`Identity not found.`" in blocks[5]["fields"][0]["text"]
         assert link_text.format(self.group2.id) in blocks[5]["fields"][0]["text"]
         assert link_text.format(self.group2.id) in blocks[5]["fields"][0]["text"]
-        # check escalated or regressed issues
-        assert "*Issues that escalated or regressed today*" in blocks[5]["fields"][1]["text"]
-        assert link_text.format(self.group2.id) in blocks[5]["fields"][1]["text"]
-        assert link_text.format(self.group3.id) in blocks[5]["fields"][1]["text"]
         # check performance issues
-        assert "*Today's Top 3 Performance Issues*" in blocks[6]["text"]["text"]
-        assert link_text.format(self.perf_event.group.id) in blocks[6]["text"]["text"]
-        assert "\ndb - SELECT `books_author`.`id`, `books_author`.`..." in blocks[6]["text"]["text"]
-        assert link_text.format(self.perf_event2.group.id) in blocks[6]["text"]["text"]
+        assert "*Today's Top 3 Performance Issues*" in blocks[5]["fields"][1]["text"]
+        assert link_text.format(self.perf_event.group.id) in blocks[5]["fields"][1]["text"]
+        assert "\n`db - SELECT books_author.id, b...`" in blocks[5]["fields"][1]["text"]
+        assert link_text.format(self.perf_event2.group.id) in blocks[5]["fields"][1]["text"]
+        # check escalated or regressed issues
+        assert "*Issues that escalated today*" in blocks[6]["fields"][0]["text"]
+        assert link_text.format(self.group3.id) in blocks[6]["fields"][0]["text"]
+        assert "*Issues that regressed today*" in blocks[6]["fields"][1]["text"]
+        assert link_text.format(self.group2.id) in blocks[6]["fields"][1]["text"]
         # repeat above for second project
         assert self.project2.slug in blocks[8]["text"]["text"]
         assert "*Today’s Event Count*" in blocks[3]["fields"][0]["text"]
@@ -735,10 +787,108 @@ class DailySummaryTest(
                 project_context=top_projects_context_map,
             ).send()
         blocks, fallback_text = get_blocks_and_fallback_text()
-        assert (
-            '""" Traceback (most recent call last): File /\'/us...'
-            in blocks[4]["fields"][0]["text"]
+        assert '""" Traceback (most recent call las...' in blocks[4]["fields"][0]["text"]
+
+    @responses.activate
+    @with_feature("organizations:slack-block-kit")
+    def test_slack_notification_contents_newline_no_attachment_text(self):
+        data = {
+            "timestamp": iso_format(self.now),
+            "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+            "fingerprint": ["group-5"],
+            "exception": {
+                "values": [
+                    {
+                        "type": "WorkerLostError",
+                        "value": None,
+                    }
+                ]
+            },
+        }
+        self.store_event(
+            data=data,
+            project_id=self.project.id,
+            assert_no_errors=False,
         )
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "project_id": self.project.id,
+                "outcome": Outcome.ACCEPTED,
+                "category": DataCategory.ERROR,
+                "timestamp": self.now,
+                "key_id": 1,
+            },
+            num_times=1,
+        )
+
+        ctx = build_summary_data(
+            timestamp=self.now.timestamp(),
+            duration=ONE_DAY,
+            organization=self.organization,
+            daily=True,
+        )
+        top_projects_context_map = build_top_projects_map(ctx, self.user.id)
+        with self.tasks():
+            DailySummaryNotification(
+                organization=ctx.organization,
+                recipient=self.user,
+                provider=ExternalProviders.SLACK,
+                project_context=top_projects_context_map,
+            ).send()
+        blocks, fallback_text = get_blocks_and_fallback_text()
+        assert "" in blocks[4]["fields"][0]["text"]
+
+    @responses.activate
+    @with_feature("organizations:slack-block-kit")
+    def test_slack_notification_contents_truncate_text(self):
+        data = {
+            "timestamp": iso_format(self.now),
+            "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+            "fingerprint": ["group-5"],
+            "exception": {
+                "values": [
+                    {
+                        "type": "OperationalErrorThatIsVeryLongForSomeReasonOhMy",
+                        "value": "QueryCanceled('canceling statement due to user request\n')",
+                    }
+                ]
+            },
+        }
+        self.store_event(
+            data=data,
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "project_id": self.project.id,
+                "outcome": Outcome.ACCEPTED,
+                "category": DataCategory.ERROR,
+                "timestamp": self.now,
+                "key_id": 1,
+            },
+            num_times=1,
+        )
+
+        ctx = build_summary_data(
+            timestamp=self.now.timestamp(),
+            duration=ONE_DAY,
+            organization=self.organization,
+            daily=True,
+        )
+        top_projects_context_map = build_top_projects_map(ctx, self.user.id)
+        with self.tasks():
+            DailySummaryNotification(
+                organization=ctx.organization,
+                recipient=self.user,
+                provider=ExternalProviders.SLACK,
+                project_context=top_projects_context_map,
+            ).send()
+        blocks, fallback_text = get_blocks_and_fallback_text()
+        assert "OperationalErrorThatIsVeryLongForSo..." in blocks[4]["fields"][0]["text"]
+        assert "QueryCanceled('canceling statement ..." in blocks[4]["fields"][0]["text"]
 
     @responses.activate
     @with_feature("organizations:slack-block-kit")
@@ -838,16 +988,17 @@ class DailySummaryTest(
         assert link_text.format(self.group2.id) in blocks[5]["fields"][0]["text"]
         assert link_text.format(self.group2.id) in blocks[5]["fields"][0]["text"]
         # check escalated or regressed issues
-        assert "*Issues that escalated or regressed today*" in blocks[5]["fields"][1]["text"]
-        assert link_text.format(self.group2.id) in blocks[5]["fields"][1]["text"]
-        assert link_text.format(self.group3.id) in blocks[5]["fields"][1]["text"]
+        assert "*Issues that escalated today*" in blocks[6]["fields"][0]["text"]
+        assert link_text.format(self.group3.id) in blocks[6]["fields"][0]["text"]
+        assert "*Issues that regressed today*" in blocks[6]["fields"][1]["text"]
+        assert link_text.format(self.group2.id) in blocks[6]["fields"][1]["text"]
         # repeat above for second project, skipping where performance issue info would be
-        assert self.project2.slug in blocks[7]["text"]["text"]
-        assert "*Today’s Event Count*" in blocks[8]["fields"][0]["text"]
-        assert "*Today's Top 3 Error Issues" in blocks[9]["fields"][0]["text"]
-        assert link_text.format(self.group4.id) in blocks[9]["fields"][0]["text"]
+        assert self.project2.slug in blocks[8]["text"]["text"]
+        assert "*Today’s Event Count*" in blocks[9]["fields"][0]["text"]
+        assert "*Today's Top 3 Error Issues" in blocks[10]["fields"][0]["text"]
+        assert link_text.format(self.group4.id) in blocks[10]["fields"][0]["text"]
         # check footer
-        assert "Getting this at a funky time?" in blocks[11]["elements"][0]["text"]
+        assert "Getting this at a funky time?" in blocks[12]["elements"][0]["text"]
 
     @responses.activate
     @with_feature("organizations:slack-block-kit")
@@ -887,13 +1038,13 @@ class DailySummaryTest(
         assert link_text.format(self.group2.id) in blocks[5]["fields"][0]["text"]
         assert link_text.format(self.group2.id) in blocks[5]["fields"][0]["text"]
         # check performance issues - skipped past escalated or regressed issues
-        assert "*Today's Top 3 Performance Issues*" in blocks[6]["text"]["text"]
-        assert link_text.format(self.perf_event.group.id) in blocks[6]["text"]["text"]
-        assert link_text.format(self.perf_event2.group.id) in blocks[6]["text"]["text"]
+        assert "*Today's Top 3 Performance Issues*" in blocks[5]["fields"][1]["text"]
+        assert link_text.format(self.perf_event.group.id) in blocks[5]["fields"][1]["text"]
+        assert link_text.format(self.perf_event2.group.id) in blocks[5]["fields"][1]["text"]
         # repeat above for second project
-        assert self.project2.slug in blocks[8]["text"]["text"]
-        assert "*Today’s Event Count*" in blocks[9]["fields"][0]["text"]
-        assert "*Today's Top 3 Error Issues" in blocks[10]["fields"][0]["text"]
-        assert link_text.format(self.group4.id) in blocks[10]["fields"][0]["text"]
+        assert self.project2.slug in blocks[7]["text"]["text"]
+        assert "*Today’s Event Count*" in blocks[8]["fields"][0]["text"]
+        assert "*Today's Top 3 Error Issues" in blocks[9]["fields"][0]["text"]
+        assert link_text.format(self.group4.id) in blocks[9]["fields"][0]["text"]
         # check footer
-        assert "Getting this at a funky time?" in blocks[12]["elements"][0]["text"]
+        assert "Getting this at a funky time?" in blocks[11]["elements"][0]["text"]

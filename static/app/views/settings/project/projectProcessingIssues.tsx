@@ -17,7 +17,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import Tag from 'sentry/components/tag';
+import {Tag} from 'sentry/components/tag';
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import formGroups from 'sentry/data/forms/processingIssues';

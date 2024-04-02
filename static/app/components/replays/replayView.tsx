@@ -59,7 +59,7 @@ function ReplayView({toggleFullscreen}: Props) {
       {isFullscreen ? (
         <ReplayController
           toggleFullscreen={toggleFullscreen}
-          hideFastForward={isVideoReplay}
+          disableSettings={isVideoReplay}
         />
       ) : null}
     </Fragment>

@@ -8,11 +8,9 @@ from django.urls import reverse
 
 from sentry.loader.dynamic_sdk_options import DynamicSdkLoaderOption
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 
-@region_silo_test
 class JavaScriptSdkLoaderTest(TestCase):
     @pytest.fixture(autouse=True)
     def set_settings(self):
