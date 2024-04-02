@@ -118,7 +118,7 @@ class ProjectEndpoint(Endpoint):
         **kwargs,
     ):
         try:
-            if options.get("api.id-or-slug-enabled") and str(organization_slug).isnumeric():
+            if options.get("api.id-or-slug-enabled"):
                 project = (
                     Project.objects.filter(
                         organization__slug__id_or_slug=organization_slug,
@@ -139,7 +139,7 @@ class ProjectEndpoint(Endpoint):
             try:
                 # Project may have been renamed
                 redirect = ProjectRedirect.objects.select_related("project")
-                if options.get("api.id-or-slug-enabled") and str(organization_slug).isnumeric():
+                if options.get("api.id-or-slug-enabled"):
                     redirect = redirect.get(
                         organization__id=organization_slug,
                         redirect_slug__id_or_slug=project_slug,
