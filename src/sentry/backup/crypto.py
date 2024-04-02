@@ -4,7 +4,7 @@ import io
 import tarfile
 from abc import ABC, abstractmethod
 from functools import lru_cache
-from typing import BinaryIO, NamedTuple
+from typing import IO, NamedTuple
 
 from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
@@ -51,10 +51,10 @@ class EncryptionError(Exception):
 
 class Encryptor(ABC):
     """
-    A `BinaryIO`-wrapper that contains relevant information and methods to encrypt some an in-memory JSON-ifiable dict.
+    A `IO[bytes]`-wrapper that contains relevant information and methods to encrypt some an in-memory JSON-ifiable dict.
     """
 
-    __fp: BinaryIO
+    __fp: IO[bytes]
 
     @abstractmethod
     def get_public_key_pem(self) -> bytes:
@@ -66,7 +66,7 @@ class LocalFileEncryptor(Encryptor):
     Encrypt using a public key stored on the local machine.
     """
 
-    def __init__(self, fp: BinaryIO):
+    def __init__(self, fp: IO[bytes]):
         self.__fp = fp
 
     def get_public_key_pem(self) -> bytes:
@@ -81,7 +81,7 @@ class GCPKMSEncryptor(Encryptor):
 
     crypto_key_version: CryptoKeyVersion | None = None
 
-    def __init__(self, fp: BinaryIO):
+    def __init__(self, fp: IO[bytes]):
         self.__fp = fp
 
     @classmethod
@@ -176,7 +176,7 @@ class UnwrappedEncryptedExportTarball(NamedTuple):
     encrypted_json_blob: str
 
 
-def unwrap_encrypted_export_tarball(tarball: BinaryIO) -> UnwrappedEncryptedExportTarball:
+def unwrap_encrypted_export_tarball(tarball: IO[bytes]) -> UnwrappedEncryptedExportTarball:
     export = None
     encrypted_dek = None
     public_key_pem = None
@@ -213,11 +213,11 @@ class DecryptionError(Exception):
 
 class Decryptor(ABC):
     """
-    A `BinaryIO`-wrapper that contains relevant information and methods to decrypt an encrypted
+    A `IO[bytes]`-wrapper that contains relevant information and methods to decrypt an encrypted
     tarball.
     """
 
-    __fp: BinaryIO
+    __fp: IO[bytes]
 
     @abstractmethod
     def read(self) -> bytes:
@@ -233,7 +233,7 @@ class LocalFileDecryptor(Decryptor):
     Decrypt using a private key stored on the local machine.
     """
 
-    def __init__(self, fp: BinaryIO):
+    def __init__(self, fp: IO[bytes]):
         self.__fp = fp
 
     @classmethod
@@ -285,7 +285,7 @@ class GCPKMSDecryptor(Decryptor):
     Management Service.
     """
 
-    def __init__(self, fp: BinaryIO):
+    def __init__(self, fp: IO[bytes]):
         self.__fp = fp
 
     @classmethod
@@ -332,7 +332,7 @@ class GCPKMSDecryptor(Decryptor):
         return decrypt_response.plaintext
 
 
-def decrypt_encrypted_tarball(tarball: BinaryIO, decryptor: Decryptor) -> bytes:
+def decrypt_encrypted_tarball(tarball: IO[bytes], decryptor: Decryptor) -> bytes:
     """
     A tarball encrypted by a call to `_export` with `encrypt_with` set has some specific properties
     (filenames, etc). This method handles all of those, and decrypts using the provided private key
