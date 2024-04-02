@@ -1559,7 +1559,7 @@ function InvisibleTraceBar(props: InvisibleTraceBarProps) {
     return null;
   }
 
-  const transform = `translateX(${props.manager.computeTransformXFromTimestamp(props.node_space[0])}px)`;
+  const spanTransform = `translateX(${props.manager.computeTransformXFromTimestamp(props.node_space[0])}px)`;
   return (
     <div
       ref={r =>
@@ -1570,9 +1570,14 @@ function InvisibleTraceBar(props: InvisibleTraceBarProps) {
         )
       }
       className="TraceBar Invisible"
-      style={{
-        transform,
-      }}
+      style={
+        {
+          transform: spanTransform,
+          // undefined css variables break style rules
+          '--inverse-span-scale': 1,
+          // unknown css variables cannot be part of the style object
+        } as React.CSSProperties
+      }
       onDoubleClick={e => {
         e.stopPropagation();
         props.manager.onZoomIntoSpace(props.node_space!);
@@ -2010,6 +2015,10 @@ const TraceStylingWrapper = styled('div')`
     transition: none;
     font-size: ${p => p.theme.fontSizeSmall};
 
+    --row-background-odd: ${p => p.theme.translucentSurface100};
+    --row-background-hover: ${p => p.theme.translucentSurface100};
+    --row-background-focused: ${p => p.theme.translucentSurface200};
+
     .TraceError {
       position: absolute;
       top: 50%;
@@ -2060,11 +2069,11 @@ const TraceStylingWrapper = styled('div')`
     }
 
     .TraceRightColumn.Odd {
-      background-color: ${p => p.theme.backgroundSecondary};
+      background-color: var(--row-background-odd);
     }
 
     &:hover {
-      background-color: ${p => p.theme.backgroundSecondary};
+      background-color: var(--row-background-hovered);
     }
 
     &.Highlight {
@@ -2078,7 +2087,7 @@ const TraceStylingWrapper = styled('div')`
     &.Highlight,
     &:focus {
       outline: none;
-      background-color: ${p => p.theme.backgroundTertiary};
+      background-color: var(--row-background-focused);
 
       .TraceRightColumn.Odd {
         background-color: transparent !important;
@@ -2087,7 +2096,7 @@ const TraceStylingWrapper = styled('div')`
 
     &:focus,
     &[tabindex='0'] {
-      background-color: ${p => p.theme.backgroundTertiary};
+      background-color: var(--row-background-focused);
       box-shadow: inset 0 0 0 1px ${p => p.theme.blue300} !important;
 
       .TraceLeftColumn {

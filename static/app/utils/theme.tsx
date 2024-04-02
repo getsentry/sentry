@@ -21,6 +21,9 @@ export const lightColors = {
   surface300: '#FFFFFF',
   surface400: '#FFFFFF',
 
+  translucentSurface100: '#F5F3F7B6',
+  translucentSurface200: '#FAF9FBE6',
+
   /**
    * Hover color. Deprecated – use <InteractionStateLayer /> instead for interaction
    * (hover/press) states.
@@ -87,6 +90,9 @@ export const darkColors = {
   surface200: '#1A141F',
   surface300: '#241D2A',
   surface400: '#2C2433',
+
+  translucentSurface100: '#18121CB3',
+  translucentSurface200: '#1A141FB3',
 
   /**
    * Hover color. Deprecated – use <InteractionStateLayer /> instead for interaction
