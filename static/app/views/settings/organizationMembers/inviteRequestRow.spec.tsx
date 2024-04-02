@@ -21,21 +21,21 @@ const roles: OrgRole[] = [
     name: 'Admin',
     desc: 'This is the admin role',
     minimumTeamRole: '',
-    allowed: true,
+    isAllowed: true,
   },
   {
     id: 'member',
     name: 'Member',
     desc: 'This is the member role',
     minimumTeamRole: '',
-    allowed: true,
+    isAllowed: true,
   },
   {
     id: 'owner',
     name: 'Owner',
     desc: 'This is the owner role',
     minimumTeamRole: '',
-    allowed: false,
+    isAllowed: false,
   },
 ];
 
