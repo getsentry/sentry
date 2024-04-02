@@ -635,6 +635,7 @@ module = [
     "sentry.nodestore.filesystem.backend",
     "sentry.reprocessing2",
     "sentry.relay.config.metric_extraction",
+    "sentry.runner.commands.backup",
     "sentry.snuba.metrics.extraction",
     "sentry.tasks.reprocessing2",
     "tests.sentry.api.endpoints.issues.*",

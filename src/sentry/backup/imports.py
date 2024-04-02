@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import BinaryIO
+from typing import IO
 from uuid import uuid4
 
 from django.core import serializers
@@ -89,7 +89,7 @@ def _clear_model_tables_before_import():
 
 
 def _import(
-    src: BinaryIO,
+    src: IO[bytes],
     scope: ImportScope,
     *,
     decryptor: Decryptor | None = None,
@@ -405,7 +405,7 @@ def _import(
 
 
 def import_in_user_scope(
-    src: BinaryIO,
+    src: IO[bytes],
     *,
     decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
@@ -434,7 +434,7 @@ def import_in_user_scope(
 
 
 def import_in_organization_scope(
-    src: BinaryIO,
+    src: IO[bytes],
     *,
     decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
@@ -465,7 +465,7 @@ def import_in_organization_scope(
 
 
 def import_in_config_scope(
-    src: BinaryIO,
+    src: IO[bytes],
     *,
     decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
@@ -497,7 +497,7 @@ def import_in_config_scope(
 
 
 def import_in_global_scope(
-    src: BinaryIO,
+    src: IO[bytes],
     *,
     decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
