@@ -479,7 +479,7 @@ class MonitorCheckIn(Model):
     """
 
     attachment_id = BoundedBigIntegerField(null=True)
-    config = JSONField(default=dict)
+    config = JSONField(default=dict, null=True)
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=("guid",))
 
