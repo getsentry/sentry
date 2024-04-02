@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
-ArgumentDict = Mapping[str, Any]
+ArgumentDict = dict[str, Any]
 
 OptionValue = Any
 
