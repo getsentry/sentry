@@ -3,14 +3,12 @@ from __future__ import annotations
 import functools
 import importlib.resources
 import logging
-from collections.abc import Callable
 from copy import deepcopy
 from threading import Lock
 from typing import Any, Generic, TypeGuard, TypeVar, overload
 
 import rb
 from django.utils.functional import SimpleLazyObject
-from rb.clients import LocalClient
 from redis.client import Script, StrictRedis
 from redis.connection import ConnectionPool
 from rediscluster import RedisCluster
@@ -331,35 +329,8 @@ def check_cluster_versions(
     )
 
 
-def load_script(
-    path: str,
-) -> Callable[[rb.Cluster | RedisCluster | LocalClient, Any, Any], Any]:
-    script: list[Script] = []
-
-    # This changes the argument order of the ``Script.__call__`` method to
-    # encourage using the script with a specific Redis client, rather
-    # than implicitly using the first client that the script was registered
-    # with. (This can prevent lots of bizarre behavior when dealing with
-    # clusters of Redis servers.)
-    def call_script(
-        client: rb.Cluster | RedisCluster | LocalClient, keys: Any, args: Any
-    ) -> Callable[[Any, Any, Any], Any]:
-        # Executes load_script's path as a Lua script on a Redis server.
-        # Takes the client to execute the script on as the first argument,
-        # followed by the values that will be provided as ``KEYS`` and ``ARGV``
-        # to the script as two sequence arguments.
-        if not script:
-            # XXX: Script is a list here. We're doing this to work around the lack of
-            # `nonlocal` in python 3, so that we only instantiate the script once.
-            script.append(
-                Script(
-                    client,
-                    importlib.resources.files("sentry").joinpath("scripts", path).read_bytes(),
-                )
-            )
-            # Unset the client here to keep things as close to how they worked before
-            # as possible. It will always be overridden on `__call__` anyway.
-            script[0].registered_client = None
-        return script[0](keys, args, client)
-
-    return call_script
+def load_redis_script(path: str) -> Script:
+    return Script(
+        None,
+        importlib.resources.files("sentry").joinpath("scripts", path).read_bytes(),
+    )

@@ -1,4 +1,3 @@
-import importlib.resources
 import itertools
 import logging
 import random
@@ -22,6 +21,7 @@ from sentry.utils.redis import (
     check_cluster_versions,
     get_cluster_from_options,
     is_instance_rb_cluster,
+    load_redis_script,
 )
 from sentry.utils.versioning import Version
 
@@ -31,9 +31,7 @@ T = TypeVar("T")
 
 SketchParameters = namedtuple("SketchParameters", "depth width capacity")
 
-CountMinScript = Script(
-    None, importlib.resources.files("sentry").joinpath("scripts/tsdb/cmsketch.lua").read_bytes()
-)
+CountMinScript = load_redis_script("tsdb/cmsketch.lua")
 
 
 class SuppressionWrapper(Generic[T]):
