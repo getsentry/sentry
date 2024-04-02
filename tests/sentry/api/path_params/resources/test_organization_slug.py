@@ -423,7 +423,7 @@ class OrganizationSlugTests(TestCase, APIIdOrSlugTestMixin):
 
         request = Request(request=self.make_request())
 
-        self.reverse_non_slug_mappings = {
+        reverse_non_slug_mappings: dict[str, Any] = {
             "organization_mapping": OrganizationMapping.objects.get(slug=self.organization.slug)
         }
 
@@ -434,6 +434,6 @@ class OrganizationSlugTests(TestCase, APIIdOrSlugTestMixin):
             endpoint_class,
             converted_slugs,
             converted_ids,
-            self.reverse_non_slug_mappings,
+            reverse_non_slug_mappings,
             use_id=True,
         )
