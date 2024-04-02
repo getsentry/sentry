@@ -4,6 +4,8 @@ import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/pars
 import ConfigStore from 'sentry/stores/configStore';
 import type {DateString} from 'sentry/types';
 
+import type {TableDataRow} from './discover/discoverQuery';
+
 // TODO(billy): Move to TimeRangeSelector specific utils
 export const DEFAULT_DAY_START_TIME = '00:00:00';
 export const DEFAULT_DAY_END_TIME = '23:59:59';
@@ -35,11 +37,15 @@ export function getUtcDateString(dateObj: moment.MomentInput): string {
 }
 
 /**
- * Given a date string or number, return a timestamp in seconds
+ * Given a date field from a table row, return a timestamp
  * given: '2024-04-01T20:15:18+00:00'
  * returns: 1712002518
  */
-export function getTimeStampFromDateString(date: React.ReactText): number {
+export function getTimeStampFromTableDateField(date: keyof TableDataRow): number {
+  if (typeof date === 'number') {
+    return date;
+  }
+
   return new Date(date).getTime() / 1000;
 }
 
