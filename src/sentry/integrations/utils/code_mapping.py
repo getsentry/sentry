@@ -140,14 +140,36 @@ class CodeMappingTreesHelper:
             ]
 
             for file in matches:
-                stacktrace_root, source_path = find_roots(frame_filename.raw_path, file)
+                stack_path = frame_filename.raw_path
+                source_path = file
+
+                try:
+                    stack_root, source_root = find_roots(stack_path, source_path)
+                except Exception:
+                    logger.info(
+                        "Unexpected format for stack_path or source_path",
+                        extra={"stack_path": stack_path, "source_path": source_path},
+                    )
+
+                if stack_path.replace(stack_root, source_root, 1) != source_path:
+                    logger.info(
+                        "Unexpected stack_path/source_path found. A code mapping was not generated.",
+                        extra={
+                            "stack_path": stack_path,
+                            "source_path": source_path,
+                            "stack_root": stack_root,
+                            "source_root": source_root,
+                        },
+                    )
+                    return []
+
                 file_matches.append(
                     {
                         "filename": file,
                         "repo_name": repo_tree.repo.name,
                         "repo_branch": repo_tree.repo.branch,
-                        "stacktrace_root": stacktrace_root,
-                        "source_path": source_path,
+                        "stacktrace_root": stack_root,
+                        "source_path": source_root,
                     }
                 )
         return file_matches
@@ -234,7 +256,14 @@ class CodeMappingTreesHelper:
 
         stack_path = frame_filename.raw_path
         source_path = matched_files[0]
-        stack_root, source_root = find_roots(stack_path, source_path)
+
+        try:
+            stack_root, source_root = find_roots(stack_path, source_path)
+        except Exception:
+            logger.info(
+                "Unexpected format for stack_path or source_path",
+                extra={"stack_path": stack_path, "source_path": source_path},
+            )
 
         if stack_path.replace(stack_root, source_root, 1) != source_path:
             logger.info(
