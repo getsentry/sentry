@@ -356,7 +356,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
         for i in range(2):
             self.store_performance_metric(
                 name=TransactionMRI.DURATION.value,
-                tags={"transaction": "foo bar"},
+                tags={"transaction": "foo bar*"},
                 org_id=self.org.id,
                 project_id=project1.id,
                 value=2,
@@ -364,7 +364,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
             )
             self.store_performance_metric(
                 name=TransactionMRI.DURATION.value,
-                tags={"transaction": '"foo/bar"'},
+                tags={"transaction": 'foo bar\\\\"'},
                 org_id=self.org.id,
                 project_id=project2.id,
                 value=2,
@@ -374,7 +374,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
         # to fall into the SECOND bucket when quering
         self.store_performance_metric(
             name=TransactionMRI.DURATION.value,
-            tags={"transaction": "foo bar"},
+            tags={"transaction": "foo bar*"},
             org_id=self.org.id,
             project_id=project2.id,
             value=2,
@@ -382,7 +382,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
         )
         self.store_performance_metric(
             name=TransactionMRI.DURATION.value,
-            tags={"transaction": '"foo/bar"'},
+            tags={"transaction": 'foo bar\\\\"'},
             org_id=self.org.id,
             project_id=project1.id,
             value=2,
@@ -411,13 +411,16 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
         trends_call_args_data_1 = mock_detect_breakpoints.call_args_list[0][0][0]["data"]
         trends_call_args_data_2 = mock_detect_breakpoints.call_args_list[1][0][0]["data"]
 
-        assert len(trends_call_args_data_1[f"{project1.id},foo bar"]) > 0
-        assert len(trends_call_args_data_1[f'{project2.id},"foo/bar"']) > 0
-        assert len(trends_call_args_data_2[f'{project1.id},"foo/bar"']) > 0
-        assert len(trends_call_args_data_2[f"{project2.id},foo bar"]) > 0
+        assert len(trends_call_args_data_1[f"{project1.id},foo bar*"]) > 0
+        assert len(trends_call_args_data_1[f'{project2.id},foo bar\\\\"']) > 0
+        assert len(trends_call_args_data_2[f'{project1.id},foo bar\\\\"']) > 0
+        assert len(trends_call_args_data_2[f"{project2.id},foo bar*"]) > 0
 
         for trends_call_args_data in [trends_call_args_data_1, trends_call_args_data_2]:
             for k, v in trends_call_args_data.items():
+                count = 0
                 for entry in v["data"]:
                     # each entry should have exactly 1 data point
                     assert len(entry[1]) == 1
+                    count += entry[1][0]["count"]
+                assert count > 0, k  # make sure the timeseries has some data
