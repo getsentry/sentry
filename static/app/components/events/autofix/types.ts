@@ -23,8 +23,8 @@ export type AutofixResult = {
 
 export type AutofixData = {
   created_at: string;
-  status: 'PROCESSING' | 'COMPLETED' | 'NOFIX' | 'ERROR';
-
+  run_id: string;
+  status: 'PROCESSING' | 'COMPLETED' | 'NOFIX' | 'ERROR' | 'NEED_MORE_INFORMATION';
   codebase_indexing?: {
     status: 'COMPLETED';
   };
@@ -35,19 +35,59 @@ export type AutofixData = {
 };
 
 export type AutofixProgressItem = {
-  data: any;
   message: string;
   timestamp: string;
   type: 'INFO' | 'WARNING' | 'ERROR' | 'NEED_MORE_INFORMATION' | 'USER_RESPONSE';
+  data?: any;
 };
 
-export type AutofixStep = {
+export type AutofixRootCauseProgressItem = {
+  data: {
+    causes: AutofixRootCauseData[];
+  };
+  message: string;
+  timestamp: string;
+  type: 'NEED_MORE_INFORMATION';
+};
+
+export type AutofixStep = BaseAutofixStep | AutofixRootCauseStep;
+
+export type BaseAutofixStep = {
   id: string;
   index: number;
   status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'ERROR' | 'CANCELLED';
   title: string;
   completedMessage?: string;
   progress?: Array<AutofixProgressItem | AutofixStep>;
+};
+
+export type AutofixRootCauseStep = {
+  id: 'root_cause_analysis';
+  progress: [AutofixRootCauseProgressItem];
+  status: 'NEED_MORE_INFORMATION' | 'COMPLETED';
+  title: string;
+  completedMessage?: string;
+};
+
+export type AutofixRootCauseSuggestedFixSnippet = {
+  file_path: string;
+  snippet: string;
+};
+
+export type AutofixRootCauseSuggestedFix = {
+  description: string;
+  id: string;
+  title: string;
+  snippet?: AutofixRootCauseSuggestedFixSnippet;
+};
+
+export type AutofixRootCauseData = {
+  actionability: number;
+  description: string;
+  id: string;
+  likelihood: number;
+  suggested_fixes: AutofixRootCauseSuggestedFix[];
+  title: string;
 };
 
 export type EventMetadataWithAutofix = EventMetadata & {

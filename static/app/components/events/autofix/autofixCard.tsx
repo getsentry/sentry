@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {AutofixDoneLogs} from 'sentry/components/events/autofix/autofixDoneLogs';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
 import {AutofixResult} from 'sentry/components/events/autofix/fixResult';
 import type {AutofixData} from 'sentry/components/events/autofix/types';
@@ -8,17 +7,24 @@ import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-export function AutofixCard({data, onRetry}: {data: AutofixData; onRetry: () => void}) {
+type AutofixCardProps = {
+  data: AutofixData;
+  groupId: string;
+  onRetry: () => void;
+};
+
+export function AutofixCard({data, onRetry, groupId}: AutofixCardProps) {
   const hasSteps = data.steps && data.steps.length > 0;
 
-  const isDone = data.status !== 'PROCESSING';
+  const isDone = data.status === 'COMPLETED';
 
   return (
     <AutofixPanel>
       <Title>{t('Autofix')}</Title>
-      <AutofixResult autofixData={data} onRetry={onRetry} />
-      {hasSteps && !isDone ? <AutofixSteps data={data} /> : null}
-      {hasSteps && isDone ? <AutofixDoneLogs data={data} /> : null}
+      {hasSteps && !isDone ? (
+        <AutofixSteps data={data} groupId={groupId} runId={data.run_id} />
+      ) : null}
+      {isDone && <AutofixResult autofixData={data} onRetry={onRetry} />}
     </AutofixPanel>
   );
 }

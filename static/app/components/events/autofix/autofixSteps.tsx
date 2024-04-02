@@ -3,9 +3,11 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import DateTime from 'sentry/components/dateTime';
+import {AutofixRootCause} from 'sentry/components/events/autofix/autofixRootCause';
 import type {
   AutofixData,
   AutofixProgressItem,
+  AutofixRootCauseStep,
   AutofixStep,
 } from 'sentry/components/events/autofix/types';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -34,6 +36,8 @@ function StepIcon({status}: StepIconProps) {
 }
 
 interface StepProps {
+  groupId: string;
+  runId: string;
   step: AutofixStep;
   isChild?: boolean;
   stepNumber?: number;
@@ -41,6 +45,8 @@ interface StepProps {
 
 interface AutofixStepsProps {
   data: AutofixData;
+  groupId: string;
+  runId: string;
 }
 
 function isProgressLog(
@@ -49,7 +55,19 @@ function isProgressLog(
   return 'message' in item && 'timestamp' in item;
 }
 
-function Progress({progress}: {progress: AutofixProgressItem | AutofixStep}) {
+function isRootCauseStep(step: AutofixStep): step is AutofixRootCauseStep {
+  return step.id === 'root_cause_analysis';
+}
+
+function Progress({
+  progress,
+  groupId,
+  runId,
+}: {
+  groupId: string;
+  progress: AutofixProgressItem | AutofixStep;
+  runId: string;
+}) {
   if (isProgressLog(progress)) {
     return (
       <Fragment>
@@ -61,27 +79,29 @@ function Progress({progress}: {progress: AutofixProgressItem | AutofixStep}) {
 
   return (
     <ProgressStepContainer>
-      <Step step={progress} isChild />
+      <Step step={progress} isChild groupId={groupId} runId={runId} />
     </ProgressStepContainer>
   );
 }
 
-export function Step({step, isChild}: StepProps) {
+export function Step({step, isChild, groupId, runId}: StepProps) {
   const isActive = step.status !== 'PENDING' && step.status !== 'CANCELLED';
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(isRootCauseStep(step));
 
-  const logs = step.progress?.filter(isProgressLog) ?? [];
-
+  const logs: AutofixProgressItem[] = isRootCauseStep(step)
+    ? step.progress?.filter(isProgressLog) ?? []
+    : [];
   const activeLog = step.completedMessage ?? logs.at(-1)?.message ?? null;
-  const hasContent = step.completedMessage || step.progress?.length;
+  const hasContent = Boolean(step.completedMessage || step.progress?.length);
+  const canToggle = Boolean(isActive && hasContent && !isRootCauseStep(step));
 
   return (
     <StepCard active={isActive}>
       <StepHeader
-        isActive={isActive}
+        canToggle={canToggle}
         isChild={isChild}
         onClick={() => {
-          if (isActive && hasContent) {
+          if (canToggle) {
             setIsExpanded(value => !value);
           }
         }}
@@ -96,7 +116,7 @@ export function Step({step, isChild}: StepProps) {
           )}
         </StepHeaderLeft>
         <StepHeaderRight>
-          {isActive && hasContent ? (
+          {canToggle ? (
             <Button
               icon={<IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />}
               aria-label={t('Toggle step details')}
@@ -110,24 +130,38 @@ export function Step({step, isChild}: StepProps) {
       {isExpanded && (
         <Fragment>
           {step.completedMessage && <StepBody>{step.completedMessage}</StepBody>}
-          {step.progress && step.progress.length > 0 ? (
+          {step.progress && step.progress.length > 0 && !isRootCauseStep(step) ? (
             <ProgressContainer>
               {step.progress.map((progress, i) => (
-                <Progress progress={progress} key={i} />
+                <Progress progress={progress} key={i} groupId={groupId} runId={runId} />
               ))}
             </ProgressContainer>
           ) : null}
+          {isRootCauseStep(step) && (
+            <AutofixRootCause
+              groupId={groupId}
+              runId={runId}
+              causes={logs.at(-1)?.data.causes}
+              selectedOption={logs.at(-1)?.data.selected_option}
+            />
+          )}
         </Fragment>
       )}
     </StepCard>
   );
 }
 
-export function AutofixSteps({data}: AutofixStepsProps) {
+export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
   return (
     <div>
       {data.steps?.map((step, index) => (
-        <Step step={step} key={step.id} stepNumber={index + 1} />
+        <Step
+          step={step}
+          key={step.id}
+          stepNumber={index + 1}
+          groupId={groupId}
+          runId={runId}
+        />
       ))}
     </div>
   );
@@ -142,14 +176,14 @@ const StepCard = styled(Panel)<{active?: boolean}>`
   }
 `;
 
-const StepHeader = styled('div')<{isActive: boolean; isChild?: boolean}>`
+const StepHeader = styled('div')<{canToggle: boolean; isChild?: boolean}>`
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: ${space(2)};
   font-size: ${p => p.theme.fontSizeMedium};
   font-family: ${p => p.theme.text.family};
-  cursor: ${p => (p.isActive ? 'pointer' : 'default')};
+  cursor: ${p => (p.canToggle ? 'pointer' : 'default')};
 
   &:last-child {
     padding-bottom: ${space(2)};

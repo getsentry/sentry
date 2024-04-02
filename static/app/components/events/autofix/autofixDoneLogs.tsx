@@ -10,9 +10,10 @@ import {space} from 'sentry/styles/space';
 
 type AutofixDoneLogsProps = {
   data: AutofixData;
+  groupId: string;
 };
 
-export function AutofixDoneLogs({data}: AutofixDoneLogsProps) {
+export function AutofixDoneLogs({data, groupId}: AutofixDoneLogsProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
@@ -29,7 +30,7 @@ export function AutofixDoneLogs({data}: AutofixDoneLogsProps) {
       </AccordionHeader>
       {isExpanded ? (
         <AccordionContent>
-          <AutofixSteps data={data} />
+          <AutofixSteps data={data} groupId={groupId} />
         </AccordionContent>
       ) : null}
     </AfterFixContainer>

@@ -17,7 +17,7 @@ export function Autofix({event, group}: Props) {
     <ErrorBoundary mini>
       <div>
         {autofixData ? (
-          <AutofixCard data={autofixData} onRetry={reset} />
+          <AutofixCard data={autofixData} onRetry={reset} groupId={group.id} />
         ) : (
           <AutofixBanner triggerAutofix={triggerAutofix} />
         )}
