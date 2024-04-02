@@ -52,3 +52,30 @@ class ProjectSlugTests(TestCase, APIIdOrSlugTestMixin):
         self.assert_conversion(
             endpoint_class, converted_slugs, converted_ids, reverse_non_slug_mappings
         )
+
+    def project_codeowners_details_test(self, endpoint_class, slug_params, *args):
+        slug_kwargs = {param: self.slug_mappings[param].slug for param in slug_params}
+        id_kwargs = {param: self.slug_mappings[param].id for param in slug_params}
+
+        request = Request(self.make_request(user=self.user))
+
+        codeowners = self.create_codeowners(project=self.project)
+
+        non_slug_mappings: dict[str, Any] = {
+            "codeowners_id": codeowners.id,
+        }
+
+        reverse_non_slug_mappings: dict[str, Any] = {
+            "codeowners": codeowners,
+        }
+
+        _, converted_slugs = endpoint_class().convert_args(
+            request=request, **slug_kwargs, **non_slug_mappings
+        )
+        _, converted_ids = endpoint_class().convert_args(
+            request=request, **id_kwargs, **non_slug_mappings
+        )
+
+        self.assert_conversion(
+            endpoint_class, converted_slugs, converted_ids, reverse_non_slug_mappings
+        )

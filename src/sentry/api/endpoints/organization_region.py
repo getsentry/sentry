@@ -61,14 +61,11 @@ class OrganizationRegionEndpoint(Endpoint):
 
         try:
             # We don't use the lookup since OrganizationMapping uses SlugField instead of SentrySlugField
+            org_mapping: OrganizationMapping
             if options.get("api.id-or-slug-enabled") and str(organization_slug).isnumeric():
-                org_mapping: OrganizationMapping = OrganizationMapping.objects.get(
-                    organization_id=organization_slug
-                )
+                org_mapping = OrganizationMapping.objects.get(organization_id=organization_slug)
             else:
-                org_mapping: OrganizationMapping = OrganizationMapping.objects.get(
-                    slug=organization_slug
-                )
+                org_mapping = OrganizationMapping.objects.get(slug=organization_slug)
         except OrganizationMapping.DoesNotExist:
             raise ResourceDoesNotExist
 

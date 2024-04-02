@@ -22,6 +22,7 @@ from sentry.api.bases.sentryapps import (
     SentryAppInstallationsBaseEndpoint,
 )
 from sentry.api.endpoints.broadcast_index import BroadcastIndexEndpoint
+from sentry.api.endpoints.codeowners.details import ProjectCodeOwnersDetailsEndpoint
 from sentry.api.endpoints.codeowners.external_actor.user_details import ExternalUserDetailsEndpoint
 from sentry.api.endpoints.integrations.sentry_apps import SentryInternalAppTokenDetailsEndpoint
 from sentry.api.endpoints.notifications.notification_actions_details import (
@@ -164,6 +165,7 @@ class APIIdOrSlugPathParamTest(
             OrganizationSearchDetailsEndpoint.convert_args: self.organization_search_details_test,
             ProjectAlertRuleEndpoint.convert_args: self.project_alert_rule_endpoint_test,
             ProjectEndpoint.convert_args: self.project_test,
+            ProjectCodeOwnersDetailsEndpoint.convert_args: self.project_codeowners_details_test,
             RegionOrganizationIntegrationBaseEndpoint.convert_args: self.region_organization_integration_test,
             RegionSentryAppBaseEndpoint.convert_args: self.region_sentry_app_test,
             SentryAppBaseEndpoint.convert_args: self.sentry_app_test,

@@ -255,11 +255,11 @@ class ControlSiloOrganizationEndpoint(Endpoint):
             # It is ok that `get_organization_by_id` doesn't check for visibility as we
             # don't check the visibility in `get_organization_by_slug` either (only_active=False).
             organization_context = organization_service.get_organization_by_id(
-                id=organization_slug, user_id=request.user.id
+                id=int(organization_slug), user_id=request.user.id
             )
         else:
             organization_context = organization_service.get_organization_by_slug(
-                slug=organization_slug, only_visible=False, user_id=request.user.id
+                slug=str(organization_slug), only_visible=False, user_id=request.user.id
             )
         if organization_context is None:
             raise ResourceDoesNotExist
