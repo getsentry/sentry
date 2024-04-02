@@ -37,7 +37,7 @@ export function CronDetailsTimeline({monitor, organization}: Props) {
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
 
-  const {dates, selectionQuery, timeWindowConfig} = useMonitorTimes({timelineWidth});
+  const {selectionQuery, timeWindowConfig} = useMonitorTimes({timelineWidth});
 
   const monitorStatsQueryKey = `/organizations/${organization.slug}/monitors-stats/`;
   const {data: monitorStats, isLoading} = useApiQuery<Record<string, MonitorBucketData>>(
@@ -45,7 +45,7 @@ export function CronDetailsTimeline({monitor, organization}: Props) {
       monitorStatsQueryKey,
       {
         query: {
-          monitor: monitor.slug,
+          monitor: monitor.id,
           ...selectionQuery,
           ...location.query,
         },
@@ -115,26 +115,18 @@ export function CronDetailsTimeline({monitor, organization}: Props) {
       <TimelineWidthTracker ref={elementRef} />
       <Header>
         <TimelineTitle>{t('Check-Ins')}</TimelineTitle>
-        <GridLineTimeLabels
-          timeWindowConfig={timeWindowConfig}
-          start={dates.start}
-          end={dates.end}
-          width={timelineWidth}
-        />
+        <GridLineTimeLabels timeWindowConfig={timeWindowConfig} width={timelineWidth} />
       </Header>
       <StyledGridLineOverlay
+        allowZoom={!isLoading}
         showCursor={!isLoading}
         timeWindowConfig={timeWindowConfig}
-        start={dates.start}
-        end={dates.end}
         width={timelineWidth}
       />
       <TimelineTableRow
         monitor={monitor}
-        bucketedData={monitorStats?.[monitor.slug]}
+        bucketedData={monitorStats?.[monitor.id]}
         timeWindowConfig={timeWindowConfig}
-        start={dates.start}
-        end={dates.end}
         width={timelineWidth}
         onDeleteEnvironment={handleDeleteEnvironment}
         onToggleMuteEnvironment={handleToggleMuteEnvironment}

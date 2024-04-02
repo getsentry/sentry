@@ -1,8 +1,8 @@
 import {t} from 'sentry/locale';
 import type {MRI} from 'sentry/types';
 import type {
-  MetricFormulaWidgetParams,
-  MetricQueryWidgetParams,
+  MetricsEquationWidget,
+  MetricsQueryWidget,
   SortState,
 } from 'sentry/utils/metrics/types';
 import {MetricDisplayType, MetricExpressionType} from 'sentry/utils/metrics/types';
@@ -31,7 +31,7 @@ export const DEFAULT_SORT_STATE: SortState = {
 
 export const NO_QUERY_ID = -1;
 
-export const emptyMetricsQueryWidget: MetricQueryWidgetParams = {
+export const emptyMetricsQueryWidget: MetricsQueryWidget = {
   type: MetricExpressionType.QUERY,
   id: NO_QUERY_ID,
   mri: 'd:transactions/duration@millisecond' satisfies MRI,
@@ -43,7 +43,7 @@ export const emptyMetricsQueryWidget: MetricQueryWidgetParams = {
   isHidden: false,
 };
 
-export const emptyMetricsFormulaWidget: MetricFormulaWidgetParams = {
+export const emptyMetricsFormulaWidget: MetricsEquationWidget = {
   type: MetricExpressionType.EQUATION,
   id: NO_QUERY_ID,
   formula: '',

@@ -2,11 +2,11 @@ import {emptyMetricsQueryWidget} from 'sentry/utils/metrics/constants';
 import {
   MetricDisplayType,
   MetricExpressionType,
-  type MetricWidgetQueryParams,
+  type MetricsWidget,
 } from 'sentry/utils/metrics/types';
 import {parseMetricWidgetsQueryParam} from 'sentry/views/metrics/utils/parseMetricWidgetsQueryParam';
 
-function testParsing(input: any, result: MetricWidgetQueryParams[]) {
+function testParsing(input: any, result: MetricsWidget[]) {
   expect(parseMetricWidgetsQueryParam(JSON.stringify(input))).toStrictEqual(result);
 }
 

@@ -34,7 +34,7 @@ NUM_CONSECUTIVE_BROKEN_CHECKINS = 4
 # The number of days a monitor env has to be failing to qualify as broken
 NUM_DAYS_BROKEN_PERIOD = 14
 
-# The number of days until a monitor env is auto-muted AFTER it has been marked broken
+# The number of days until a monitor env is auto-muted AFTER user has been notified it was broken
 NUM_DAYS_MUTED_PERIOD = 14
 
 # Max number of environments to have in the broken monitor email link

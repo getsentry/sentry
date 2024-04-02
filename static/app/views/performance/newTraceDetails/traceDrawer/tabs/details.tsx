@@ -1,10 +1,9 @@
-import type {Location} from 'history';
-
 import type {Organization} from 'sentry/types';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/virtualizedViewManager';
 
 import {
   isMissingInstrumentationNode,
+  isNoDataNode,
   isParentAutogroupedNode,
   isSiblingAutogroupedNode,
   isSpanNode,
@@ -14,6 +13,7 @@ import {
 import type {TraceTree, TraceTreeNode} from '../../traceTree';
 import {ErrorNodeDetails} from '../details/error';
 import {MissingInstrumentationNodeDetails} from '../details/missingInstrumentation';
+import {NoDataDetails} from '../details/noData';
 import {ParentAutogroupNodeDetails} from '../details/parentAutogroup';
 import {SiblingAutogroupNodeDetails} from '../details/siblingAutogroup';
 import {SpanNodeDetails} from '../details/span';
@@ -22,12 +22,10 @@ import {TransactionNodeDetails} from '../details/transaction';
 export default function NodeDetail({
   node,
   organization,
-  location,
   manager,
   scrollToNode,
   onParentClick,
 }: {
-  location: Location;
   manager: VirtualizedViewManager;
   node: TraceTreeNode<TraceTree.NodeValue>;
   onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
@@ -40,7 +38,6 @@ export default function NodeDetail({
         node={node}
         organization={organization}
         onParentClick={onParentClick}
-        location={location}
         manager={manager}
         scrollToNode={scrollToNode}
       />
@@ -64,7 +61,6 @@ export default function NodeDetail({
         node={node}
         organization={organization}
         onParentClick={onParentClick}
-        location={location}
         scrollToNode={scrollToNode}
       />
     );
@@ -76,6 +72,7 @@ export default function NodeDetail({
         node={node}
         organization={organization}
         onParentClick={onParentClick}
+        scrollToNode={scrollToNode}
       />
     );
   }
@@ -86,13 +83,29 @@ export default function NodeDetail({
         node={node}
         organization={organization}
         onParentClick={onParentClick}
+        scrollToNode={scrollToNode}
       />
     );
   }
 
   if (isMissingInstrumentationNode(node)) {
     return (
-      <MissingInstrumentationNodeDetails node={node} onParentClick={onParentClick} />
+      <MissingInstrumentationNodeDetails
+        node={node}
+        onParentClick={onParentClick}
+        scrollToNode={scrollToNode}
+      />
+    );
+  }
+
+  if (isNoDataNode(node)) {
+    return (
+      <NoDataDetails
+        node={node}
+        onParentClick={onParentClick}
+        organization={organization}
+        scrollToNode={scrollToNode}
+      />
     );
   }
 

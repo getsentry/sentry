@@ -392,8 +392,8 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
         # This broken detection shouldn't be automatically disabled, because it's not long enough
         broken_detection = MonitorEnvBrokenDetection.objects.create(
             monitor_incident=incident,
-            detection_timestamp=now - timedelta(days=10),
-            user_notified_timestamp=now - timedelta(days=10),
+            detection_timestamp=now - timedelta(days=0),
+            user_notified_timestamp=now - timedelta(days=0),
         )
         second_broken_detection = MonitorEnvBrokenDetection.objects.create(
             monitor_incident=second_incident,

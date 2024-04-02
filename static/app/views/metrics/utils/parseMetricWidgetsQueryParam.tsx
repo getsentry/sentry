@@ -10,9 +10,9 @@ import {
   type FocusedMetricsSeries,
   MetricDisplayType,
   MetricExpressionType,
-  type MetricFormulaWidgetParams,
-  type MetricQueryWidgetParams,
-  type MetricWidgetQueryParams,
+  type MetricsEquationWidget,
+  type MetricsQueryWidget,
+  type MetricsWidget,
   type SortState,
 } from 'sentry/utils/metrics/types';
 import {getUniqueQueryIdGenerator} from 'sentry/views/metrics/utils/uniqueQueryId';
@@ -130,7 +130,7 @@ function parseQueryType(
 function parseQueryWidget(
   widget: Record<string, unknown>,
   baseWidgetParams: BaseWidgetParams
-): MetricQueryWidgetParams | null {
+): MetricsQueryWidget | null {
   const mri = getMRIParam(widget);
   // If we cannot retrieve an MRI, there is nothing to display
   if (!mri) {
@@ -153,7 +153,7 @@ function parseQueryWidget(
 function parseFormulaWidget(
   widget: Record<string, unknown>,
   baseWidgetParams: BaseWidgetParams
-): MetricFormulaWidgetParams | null {
+): MetricsEquationWidget | null {
   const formula = parseStringParam(widget, 'formula');
   // If we cannot retrieve a formula, there is nothing to display
   if (formula === undefined) {
@@ -173,10 +173,10 @@ function parseQueryId(widget: Record<string, unknown>, key: string): number {
 }
 
 function fillIds(
-  entries: MetricWidgetQueryParams[],
+  entries: MetricsWidget[],
   indezesWithoutId: Set<number>,
   usedIds: Set<number>
-): MetricWidgetQueryParams[] {
+): MetricsWidget[] {
   if (indezesWithoutId.size > 0) {
     const generateId = getUniqueQueryIdGenerator(usedIds);
     for (const index of indezesWithoutId) {
@@ -190,9 +190,7 @@ function fillIds(
   return entries;
 }
 
-export function parseMetricWidgetsQueryParam(
-  queryParam?: string
-): MetricWidgetQueryParams[] {
+export function parseMetricWidgetsQueryParam(queryParam?: string): MetricsWidget[] {
   let currentWidgets: unknown = undefined;
 
   try {
@@ -206,11 +204,11 @@ export function parseMetricWidgetsQueryParam(
     currentWidgets = [];
   }
 
-  const queries: MetricQueryWidgetParams[] = [];
+  const queries: MetricsQueryWidget[] = [];
   const usedQueryIds = new Set<number>();
   const queryIndezesWithoutId = new Set<number>();
 
-  const formulas: MetricFormulaWidgetParams[] = [];
+  const formulas: MetricsEquationWidget[] = [];
   const usedFormulaIds = new Set<number>();
   const formulaIndezesWithoutId = new Set<number>();
 

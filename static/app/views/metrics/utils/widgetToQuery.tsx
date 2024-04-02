@@ -1,16 +1,13 @@
-import {
-  MetricExpressionType,
-  type MetricWidgetQueryParams,
-} from 'sentry/utils/metrics/types';
+import {isMetricsEquationWidget, type MetricsWidget} from 'sentry/utils/metrics/types';
 import type {MetricsQueryApiQueryParams} from 'sentry/utils/metrics/useMetricsQuery';
 import {getEquationSymbol} from 'sentry/views/metrics/equationSymbol copy';
 import {getQuerySymbol} from 'sentry/views/metrics/querySymbol';
 
 export function widgetToQuery(
-  widget: MetricWidgetQueryParams,
+  widget: MetricsWidget,
   isQueryOnly = false
 ): MetricsQueryApiQueryParams {
-  return widget.type === MetricExpressionType.EQUATION
+  return isMetricsEquationWidget(widget)
     ? {
         name: getEquationSymbol(widget.id),
         formula: widget.formula,

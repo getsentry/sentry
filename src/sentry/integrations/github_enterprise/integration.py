@@ -73,6 +73,12 @@ FEATURES = [
         """,
         IntegrationFeatures.CODEOWNERS,
     ),
+    FeatureDescription(
+        """
+        Automatically create GitHub issues based on Issue Alert conditions.
+        """,
+        IntegrationFeatures.TICKET_RULES,
+    ),
 ]
 
 

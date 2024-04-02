@@ -8,8 +8,9 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getMetricsCorrelationSpanUrl} from 'sentry/utils/metrics';
 import {
+  isMetricsEquationWidget,
   MetricExpressionType,
-  type MetricWidgetQueryParams,
+  type MetricsWidget,
 } from 'sentry/utils/metrics/types';
 import type {MetricsQueryApiQueryParams} from 'sentry/utils/metrics/useMetricsQuery';
 import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples';
@@ -48,7 +49,7 @@ export function MetricScratchpad() {
   }, [widgets]);
 
   const handleChange = useCallback(
-    (index: number, widget: Partial<MetricWidgetQueryParams>) => {
+    (index: number, widget: Partial<MetricsWidget>) => {
       updateWidget(index, widget);
     },
     [updateWidget]
@@ -161,12 +162,12 @@ function MultiChartWidgetQueries({
 }: {
   children: (queries: MetricsQueryApiQueryParams[]) => JSX.Element;
   formulaDependencies: ReturnType<typeof useFormulaDependencies>;
-  widget: MetricWidgetQueryParams;
+  widget: MetricsWidget;
 }) {
   const queries = useMemo(() => {
     return [
       widgetToQuery(widget),
-      ...(widget.type === MetricExpressionType.EQUATION
+      ...(isMetricsEquationWidget(widget)
         ? formulaDependencies[widget.id]?.dependencies?.map(dependency =>
             widgetToQuery(dependency, true)
           )
