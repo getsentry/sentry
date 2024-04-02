@@ -498,6 +498,7 @@ def get_stream_processor(
 
     if enable_dlq:
         try:
+
             dlq_topic = consumer_definition["dlq_topic"]
         except KeyError as e:
             raise click.BadParameter(
@@ -514,6 +515,11 @@ def get_stream_processor(
         producer_config = get_kafka_producer_cluster_options(cluster_setting)
         dlq_producer = KafkaProducer(producer_config)
 
+        # Placeholder for DLQ size check mechanism
+        # This is a conceptual snippet. Actual implementation would require access to Kafka's administrative functionalities
+        # to query the current size of the DLQ and compare it against a predefined maximum size.
+        # If the DLQ size exceeds the maximum, the system should either drop the incoming invalid messages
+        # or implement a backpressure mechanism.
         dlq_policy = DlqPolicy(
             KafkaDlqProducer(dlq_producer, ArroyoTopic(dlq_topic_defn["real_topic_name"])),
             DlqLimit(
