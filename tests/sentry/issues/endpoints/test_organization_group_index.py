@@ -109,7 +109,11 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(group.id)
 
-    def test_sort_by_trends(self):
+    @patch(
+        "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
+        side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
+    )
+    def test_sort_by_trends(self, mock_query):
         group = self.store_event(
             data={
                 "timestamp": iso_format(before_now(seconds=10)),
@@ -159,6 +163,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         }
 
         response = self.get_success_response(
+            useGroupSnubaDataset=1,  # won't use snuba if trends is used
             sort="trends",
             query="is:unresolved",
             limit=25,
@@ -168,6 +173,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
         assert len(response.data) == 2
         assert [item["id"] for item in response.data] == [str(group.id), str(group_2.id)]
+        assert not mock_query.called
 
     def test_sort_by_inbox(self):
         group_1 = self.store_event(
@@ -2453,7 +2459,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
         response = self.get_success_response(
-            sort="user_count",
+            sort="user",
             useGroupSnubaDataset=1,
             qs_params={"query": ""},
         )
