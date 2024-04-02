@@ -41,7 +41,13 @@ export function getUtcDateString(dateObj: moment.MomentInput): string {
  * given: '2024-04-01T20:15:18+00:00'
  * returns: 1712002518
  */
-export function getTimeStampFromTableDateField(date: keyof TableDataRow): number {
+export function getTimeStampFromTableDateField(
+  date: keyof TableDataRow | undefined
+): number | undefined {
+  if (!date) {
+    return undefined;
+  }
+
   if (typeof date === 'number') {
     return date;
   }
