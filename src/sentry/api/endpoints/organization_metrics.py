@@ -445,8 +445,17 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
         metrics_queries_plan = MetricsQueriesPlan()
 
         queries = request.data.get("queries") or []
-        for query in queries:
-            metrics_queries_plan.declare_query(name=query["name"], mql=query["mql"])
+        # Placeholder for refactored logic to use IN conditions
+        # Group queries by a common attribute if applicable
+        grouped_queries = group_queries_by_attribute(queries)
+        for group in grouped_queries:
+            if len(group) > 1:
+                # Use IN condition for groups with more than one query
+                in_condition = construct_in_condition(group)
+                metrics_queries_plan.declare_query(name=group[0]["name"], mql=in_condition)
+            else:
+                # Single query, no change needed
+                metrics_queries_plan.declare_query(name=group[0]["name"], mql=group[0]["mql"])
 
         formulas = request.data.get("formulas") or []
         for formula in formulas:
