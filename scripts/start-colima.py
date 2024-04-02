@@ -43,8 +43,6 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
     )
     if rc != 0:
-        with open("/Users/runner/.colima/_lima/colima/ha.stderr.log", "r") as f:
-            print(f.read())
         return rc
     return subprocess.call(("docker", "context", "use", "colima"))
 

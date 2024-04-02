@@ -26,16 +26,10 @@ CI = os.environ.get("CI") is not None
 # https://github.com/python/mypy/issues/12286
 DARWIN = sys.platform == "darwin"
 
-# TODO: this needs to be updated for repolocal bins
-COLIMA = os.path.expanduser("~/.local/share/sentry-devenv/bin/colima")
-
-USE_COLIMA = os.path.exists(COLIMA) and os.environ.get("SENTRY_USE_COLIMA") != "0"
+USE_COLIMA = bool(shutil.which("colima")) and os.environ.get("SENTRY_USE_COLIMA") != "0"
 USE_ORBSTACK = (
     os.path.exists("/Applications/OrbStack.app") and os.environ.get("SENTRY_USE_ORBSTACK") != "0"
 )
-
-if CI and DARWIN:
-    USE_COLIMA = True
 
 if USE_ORBSTACK:
     USE_COLIMA = False
@@ -200,11 +194,7 @@ def devservices() -> None:
     os.environ["SENTRY_SKIP_BACKEND_VALIDATION"] = "1"
 
     if CI:
-        if not DARWIN:
-            click.echo("Assuming docker (CI).")
-            return
-        click.echo("Using colima (CI).")
-        ensure_docker_cli_context("colima")
+        click.echo("Assuming docker (CI).")
         return
 
     if USE_DOCKER_DESKTOP:
