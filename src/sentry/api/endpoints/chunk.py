@@ -78,10 +78,12 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
                 int(sentrycli_version.group("patch")),
             )
 
+        relative_urls_disabled = options.get("hybrid_cloud.disable_relative_upload_urls")
         requires_region_url = sentrycli_version_split and sentrycli_version_split >= (2, 30, 0)
 
         supports_relative_url = (
-            not requires_region_url
+            not relative_urls_disabled
+            and not requires_region_url
             and sentrycli_version_split
             and sentrycli_version_split >= (1, 70, 1)
         )
