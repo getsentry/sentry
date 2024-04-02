@@ -29,6 +29,12 @@ Install-Package Sentry -Version ${getPackageVersion(params, 'sentry.dotnet', '3.
 const getInstallSnippetCoreCli = (params: Params) => `
 dotnet add package Sentry -v ${getPackageVersion(params, 'sentry.dotnet', '3.34.0')}`;
 
+const getInstallProfilingSnippetPackageManager = () => `
+Install-Package Sentry.Profiling --prerelease`;
+
+const getInstallProfilingSnippetCoreCli = () => `
+dotnet add package Sentry.Profiling --prerelease`;
+
 const getConfigureSnippet = (params: Params) => `
 using Sentry;
 
@@ -50,10 +56,30 @@ SentrySdk.Init(options =>
 
     // This option is recommended for client applications only. It ensures all threads use the same global scope.
     // If you're writing a background service of any kind, you should remove this.
-    options.IsGlobalModeEnabled = true;
+    options.IsGlobalModeEnabled = true;${
+      params.isPerformanceSelected
+        ? `
 
     // This option will enable Sentry's tracing features. You still need to start transactions and spans.
-    options.EnableTracing = true;
+    options.EnableTracing = true;`
+        : ''
+    }${
+      params.isProfilingSelected
+        ? `
+
+    // Sample rate for profiling, applied on top of othe TracesSampleRate,
+    // e.g. 0.2 means we want to profile 20 % of the captured transactions.
+    // We recommend adjusting this value in production.
+    options.ProfilesSampleRate = 1.0;
+
+    // Requires NuGet package: Sentry.Profiling
+    // Note: By default, the profiler is initialized asynchronously. This can be tuned by passing a desired initialization timeout to the constructor.
+    options.AddIntegration(new ProfilingIntegration(
+        // During startup, wait up to 500ms to profile the app startup code. This could make launching the app a bit slower so comment it out if your prefer profiling to start asynchronously
+        TimeSpan.FromMilliseconds(500)
+    ));`
+        : ''
+    }
 });`;
 
 const getPerformanceMonitoringSnippet = () => `
@@ -106,6 +132,37 @@ const onboarding: OnboardingConfig = {
             },
           ],
         },
+        ...(params.isProfilingSelected
+          ? [
+              {
+                description: tct(
+                  'Additionally, for all platforms except iOS/Mac Catalyst, you need to add a dependency on the [sentryProfilingPackage:Sentry.Profiling] NuGet package.',
+                  {
+                    sentryProfilingPackage: <code />,
+                  }
+                ),
+                code: [
+                  {
+                    language: 'shell',
+                    label: 'Package Manager',
+                    value: 'packageManager',
+                    code: getInstallProfilingSnippetPackageManager(),
+                  },
+                  {
+                    language: 'shell',
+                    label: '.NET Core CLI',
+                    value: 'coreCli',
+                    code: getInstallProfilingSnippetCoreCli(),
+                  },
+                ],
+              },
+              {
+                description: t(
+                  '.NET profiling alpha is available for Windows, Linux, MacOS, iOS, Mac Catalyst on .NET 6.0+ (tested on .NET 7.0 & .NET 8.0).'
+                ),
+              },
+            ]
+          : []),
       ],
     },
   ],
@@ -127,7 +184,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: () => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
       description: t('Verify Sentry is correctly configured by sending a message:'),
@@ -138,26 +195,30 @@ const onboarding: OnboardingConfig = {
         },
       ],
     },
-    {
-      title: t('Performance Monitoring'),
-      description: t(
-        'You can measure the performance of your code by capturing transactions and spans.'
-      ),
-      configurations: [
-        {
-          language: 'csharp',
-          code: getPerformanceMonitoringSnippet(),
-        },
-      ],
-      additionalInfo: tct(
-        'Check out [link:the documentation] to learn more about the API and automatic instrumentations.',
-        {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/dotnet/performance/instrumentation/" />
-          ),
-        }
-      ),
-    },
+    ...(params.isPerformanceSelected
+      ? [
+          {
+            title: t('Performance Monitoring'),
+            description: t(
+              'You can measure the performance of your code by capturing transactions and spans.'
+            ),
+            configurations: [
+              {
+                language: 'csharp',
+                code: getPerformanceMonitoringSnippet(),
+              },
+            ],
+            additionalInfo: tct(
+              'Check out [link:the documentation] to learn more about the API and automatic instrumentations.',
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/platforms/dotnet/performance/instrumentation/" />
+                ),
+              }
+            ),
+          },
+        ]
+      : []),
     {
       title: t('Samples'),
       description: (
