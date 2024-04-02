@@ -13,10 +13,6 @@ import tempfile
 PAT = re.compile('(?:library stub for module named |Skipping analyzing )"([^"]+)"')
 
 
-def _format_mods(mods: list[str]) -> str:
-    return "".join(f'    "{mod}",\n' for mod in mods)
-
-
 def main() -> int:
     shutil.rmtree(".mypy_cache", ignore_errors=True)
 

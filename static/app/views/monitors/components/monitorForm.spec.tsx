@@ -136,12 +136,12 @@ describe('MonitorForm', function () {
     await userEvent.click(screen.getByRole('button', {name: 'Add Monitor'}));
 
     const config = {
-      checkin_margin: '5',
-      max_runtime: '20',
-      failure_issue_threshold: '4',
-      recovery_threshold: '2',
+      checkinMargin: '5',
+      maxRuntime: '20',
+      failureIssueThreshold: '4',
+      recoveryThreshold: '2',
       schedule: '5 * * * *',
-      schedule_type: 'crontab',
+      scheduleType: 'crontab',
       timezone: 'America/Los_Angeles',
     };
 
@@ -247,13 +247,13 @@ describe('MonitorForm', function () {
     // monitor they come in as numbers, when changed via the toggles they
     // are translated to strings :(
     const config = {
-      max_runtime: monitor.config.max_runtime,
-      checkin_margin: monitor.config.checkin_margin,
-      recovery_threshold: monitor.config.recovery_threshold,
+      maxRuntime: monitor.config.max_runtime,
+      checkinMargin: monitor.config.checkin_margin,
+      recoveryThreshold: monitor.config.recovery_threshold,
       schedule: monitor.config.schedule,
-      schedule_type: monitor.config.schedule_type,
+      scheduleType: monitor.config.schedule_type,
       timezone: monitor.config.timezone,
-      failure_issue_threshold: '10',
+      failureIssueThreshold: '10',
     };
 
     const alertRule = {

@@ -1038,8 +1038,8 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "monitors-detect-broken-monitor-envs": {
         "task": "sentry.monitors.tasks.detect_broken_monitor_envs",
-        # 17:00 PDT, 20:00 EDT, 0:00 UTC
-        "schedule": crontab(minute="0", hour="0"),
+        # 8:00 PDT, 11:00 EDT, 15:00 UTC
+        "schedule": crontab(minute="0", hour="15", day_of_week="mon-fri"),
         "options": {"expires": 15 * 60},
     },
     "clear-expired-snoozes": {
@@ -1450,8 +1450,6 @@ SENTRY_EARLY_FEATURES = {
 
 # NOTE: Please maintain alphabetical order when adding new feature flags
 SENTRY_FEATURES: dict[str, bool | None] = {
-    # Enables the staff cookie on requests
-    "auth:enterprise-staff-cookie": False,
     # Enables superuser read vs. write separation
     "auth:enterprise-superuser-read-write": False,
     # Enables user registration.
@@ -1886,8 +1884,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:sourcemaps-upload-release-as-artifact-bundle": False,
     # Enable Slack messages using Block Kit
     "organizations:slack-block-kit": False,
-    # Send Slack notifications to threads for Metric Alerts
-    "organizations:slack-thread": False,
     # Send Slack notifications to threads for Issue Alerts
     "organizations:slack-thread-issue-alert": False,
     # Use SNQL table join on weekly reports / daily summary
@@ -3978,9 +3974,6 @@ REGION_PINNED_URL_NAMES = {
     "sentry-api-0-shared-group-details",
     # Unscoped profiling URLs
     "sentry-api-0-profiling-project-profile",
-    # Legacy monitor endpoints
-    "sentry-api-0-monitor-ingest-check-in-index",
-    "sentry-api-0-monitor-ingest-check-in-details",
     # These paths are used by relay which is implicitly region scoped
     "sentry-api-0-relays-index",
     "sentry-api-0-relay-register-challenge",

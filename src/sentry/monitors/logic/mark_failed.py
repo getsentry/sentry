@@ -291,7 +291,7 @@ def create_issue_platform_occurrence(
         "fingerprint": [fingerprint],
         "platform": "other",
         "project_id": monitor_env.monitor.project_id,
-        # We set this to the time that the checkin that triggered the occurrence was written to the ingest topic
+        # We set this to the time that the checkin that triggered the occurrence was written to relay if available
         "received": (received if received else current_timestamp).isoformat(),
         "sdk": None,
         "tags": {
