@@ -29,7 +29,7 @@ export function getTraceTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
   }
 
   if (isAutogroupedNode(node)) {
-    return t('Autogroup');
+    return t('Autogroup') + ' - ' + node.value.autogrouped_by.op;
   }
 
   if (isMissingInstrumentationNode(node)) {
@@ -53,7 +53,8 @@ export function getTraceTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
 }
 
 type Tab = {
-  node: TraceTreeNode<TraceTree.NodeValue> | 'Trace';
+  node: TraceTreeNode<TraceTree.NodeValue> | 'trace' | 'vitals';
+  label?: string;
 };
 
 export type TraceTabsReducerState = {
@@ -63,6 +64,7 @@ export type TraceTabsReducerState = {
 };
 
 export type TraceTabsReducerAction =
+  | {payload: TraceTabsReducerState; type: 'initialize'}
   | {
       payload: Tab['node'] | number;
       type: 'activate tab';
@@ -77,6 +79,9 @@ export function traceTabsReducer(
   action: TraceTabsReducerAction
 ): TraceTabsReducerState {
   switch (action.type) {
+    case 'initialize': {
+      return action.payload;
+    }
     case 'activate tab': {
       // If an index was passed, activate the tab at that index
       if (typeof action.payload === 'number') {
