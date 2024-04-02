@@ -118,25 +118,16 @@ class ProjectEndpoint(Endpoint):
         **kwargs,
     ):
         try:
-            if options.get("api.id-or-slug-enabled"):
-                if str(organization_slug).isnumeric():
-                    project = (
-                        Project.objects.filter(
-                            organization__id=organization_slug, slug__id_or_slug=project_slug
-                        )
-                        .select_related("organization")
-                        .prefetch_related("teams")
-                        .get()
+            if options.get("api.id-or-slug-enabled") and str(organization_slug).isnumeric():
+                project = (
+                    Project.objects.filter(
+                        organization__slug__id_or_slug=organization_slug,
+                        slug__id_or_slug=project_slug,
                     )
-                else:
-                    project = (
-                        Project.objects.filter(
-                            organization__slug=organization_slug, slug__id_or_slug=project_slug
-                        )
-                        .select_related("organization")
-                        .prefetch_related("teams")
-                        .get()
-                    )
+                    .select_related("organization")
+                    .prefetch_related("teams")
+                    .get()
+                )
             else:
                 project = (
                     Project.objects.filter(organization__slug=organization_slug, slug=project_slug)
@@ -148,17 +139,11 @@ class ProjectEndpoint(Endpoint):
             try:
                 # Project may have been renamed
                 redirect = ProjectRedirect.objects.select_related("project")
-                if options.get("api.id-or-slug-enabled"):
-                    if str(organization_slug).isnumeric():
-                        redirect = redirect.get(
-                            organization__id=organization_slug,
-                            redirect_slug__id_or_slug=project_slug,
-                        )
-                    else:
-                        redirect = redirect.get(
-                            organization__slug=organization_slug,
-                            redirect_slug__id_or_slug=project_slug,
-                        )
+                if options.get("api.id-or-slug-enabled") and str(organization_slug).isnumeric():
+                    redirect = redirect.get(
+                        organization__id=organization_slug,
+                        redirect_slug__id_or_slug=project_slug,
+                    )
                 else:
                     redirect = redirect.get(
                         organization__slug=organization_slug, redirect_slug=project_slug

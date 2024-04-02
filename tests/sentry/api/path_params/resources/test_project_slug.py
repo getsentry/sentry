@@ -59,7 +59,7 @@ class ProjectSlugTests(TestCase, APIIdOrSlugTestMixin):
 
         request = Request(self.make_request(user=self.user))
 
-        codeowners = self.create_codeowners(project=self.project)
+        codeowners = self.create_codeowners(project=self.project, code_mapping=self.code_mapping)
 
         non_slug_mappings: dict[str, Any] = {
             "codeowners_id": codeowners.id,
