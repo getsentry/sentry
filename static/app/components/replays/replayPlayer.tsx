@@ -64,6 +64,7 @@ function BasePlayerRoot({className, overlayContent, isPreview = false}: Props) {
     fastForwardSpeed,
     initRoot,
     isBuffering,
+    isVideoBuffering,
     isFetching,
     isFinished,
     isVideoReplay,
@@ -127,6 +128,7 @@ function BasePlayerRoot({className, overlayContent, isPreview = false}: Props) {
         </Overlay>
       )}
       <StyledNegativeSpaceContainer ref={windowEl} className="sentry-block">
+        {isVideoBuffering ? <OverlayBuffering /> : null}
         <div ref={viewEl} className={className} />
         {fastForwardSpeed ? <PositionedFastForward speed={fastForwardSpeed} /> : null}
         {isBuffering ? <PositionedBuffering /> : null}
@@ -149,6 +151,9 @@ const PositionedBuffering = styled(BufferingOverlay)`
   left: 0;
   right: 0;
   bottom: 0;
+`;
+const OverlayBuffering = styled(PositionedBuffering)`
+  z-index: 100;
 `;
 
 const PositionedLoadingIndicator = styled(LoadingIndicator)`

@@ -25,4 +25,26 @@ describe('Replay Timer', () => {
     expect(spy3).toHaveBeenCalledTimes(0);
     expect(spy4).toHaveBeenCalledTimes(0);
   });
+
+  it('works', () => {
+    const timer = new Timer();
+
+    timer.start();
+    jest.advanceTimersByTime(1008);
+
+    timer.pause();
+    expect(timer.getTime()).toBe(1008);
+    jest.advanceTimersByTime(1008);
+    expect(timer.getTime()).toBe(1008);
+
+    timer.pause();
+    expect(timer.getTime()).toBe(1008);
+    jest.advanceTimersByTime(1008);
+    expect(timer.getTime()).toBe(1008);
+
+    timer.resume();
+    jest.advanceTimersByTime(1008);
+    timer.stop();
+    expect(timer.getTime()).toBe(2016);
+  });
 });
