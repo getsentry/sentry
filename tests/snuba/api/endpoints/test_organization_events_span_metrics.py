@@ -1260,6 +1260,25 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             f"avg_by_timestamp(span.self_time,greater,{int(self.two_min_ago.timestamp())})": 3.0,
         }
 
+    def test_avg_self_time_by_timestamp_invalid_condition(self):
+        response = self.do_request(
+            {
+                "field": [
+                    f"avg_by_timestamp(span.self_time,INVALID_ARG,{int(self.two_min_ago.timestamp())})",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "1h",
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert (
+            response.data["detail"]
+            == "avg_by_timestamp: condition argument invalid: string must be one of ['greater', 'less']"
+        )
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsMetricsEnhancedPerformanceEndpointTest
