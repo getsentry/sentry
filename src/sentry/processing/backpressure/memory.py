@@ -39,7 +39,6 @@ def query_rabbitmq_memory_usage(host: str) -> ServiceMemory:
 # Based on configuration, this could be:
 # - a `rediscluster` Cluster (actually `RetryingRedisCluster`)
 # - a `rb.Cluster` (client side routing cluster client)
-# - or any class configured via `client_class`.
 Cluster = Union[RedisCluster, rb.Cluster]
 
 

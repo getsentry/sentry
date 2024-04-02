@@ -52,7 +52,7 @@ class ClusterManagerTestCase(TestCase):
         # We wrap the cluster in a Simple Lazy Object, force creation of the
         # object to verify it's correct.
 
-        # cluster foo is fine since it's a single node, without specific client_class
+        # cluster foo is fine since it's a single node
         assert isinstance(manager.get("foo")._setupfunc(), FailoverRedis)  # type: ignore[attr-defined]
         # baz works becasue it's explicitly is_redis_cluster
         assert manager.get("baz")._setupfunc() is RetryingRedisCluster.return_value  # type: ignore[attr-defined]
