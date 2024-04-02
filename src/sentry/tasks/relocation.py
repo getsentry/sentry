@@ -109,12 +109,12 @@ ERR_PREPROCESSING_MISSING_ORGS = Template(
     "The following organization slug imports were requested, but could not be found in your submitted JSON: $orgs."
 )
 
-ERR_VALIDATING_ATTEMPT_MISSING = "Internal error during validating - validation attempt missing."
-ERR_VALIDATING_INSTANCE_MISSING = "Internal error during validating - validation instance missing."
-ERR_VALIDATING_INTERNAL = "Internal error during validating."
+ERR_VALIDATING_ATTEMPT_MISSING = "Internal error while validating - validation attempt missing."
+ERR_VALIDATING_INSTANCE_MISSING = "Internal error while validating - validation instance missing."
+ERR_VALIDATING_INTERNAL = "Internal error while validating."
 ERR_VALIDATING_MAX_RUNS = "All validation attempts timed out."
 
-ERR_IMPORTING_INTERNAL = "Internal error during importing."
+ERR_IMPORTING_INTERNAL = "Internal error while importing."
 
 ERR_POSTPROCESSING_INTERNAL = "Internal error during postprocessing."
 

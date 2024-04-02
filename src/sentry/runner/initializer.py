@@ -555,8 +555,8 @@ def apply_legacy_settings(settings: Any) -> None:
         ("MAILGUN_API_KEY", "mail.mailgun-api-key"),
         ("SENTRY_FILESTORE", "filestore.backend"),
         ("SENTRY_FILESTORE_OPTIONS", "filestore.options"),
-        ("SENTRY_RELOCATION_FILESTORE", "filestore.relocation-backend"),
-        ("SENTRY_RELOCATION_FILESTORE_OPTIONS", "filestore.relocation-options"),
+        ("SENTRY_RELOCATION_BACKEND", "filestore.relocation-backend"),
+        ("SENTRY_RELOCATION_OPTIONS", "filestore.relocation-options"),
         ("GOOGLE_CLIENT_ID", "auth-google.client-id"),
         ("GOOGLE_CLIENT_SECRET", "auth-google.client-secret"),
     ):

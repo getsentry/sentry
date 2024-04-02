@@ -219,7 +219,7 @@ IMPORT_VALIDATION_STEP_TEMPLATE = Template(
       - "--findings-file"
       - "/findings/import-$jsonfile"
       $args
-    timeout: 300s
+    timeout: 900s
     """
 )
 
@@ -250,7 +250,7 @@ EXPORT_VALIDATION_STEP_TEMPLATE = Template(
       - "--findings-file"
       - "/findings/export-$jsonfile"
       $args
-    timeout: 300s
+    timeout: 900s
     """
 )
 
