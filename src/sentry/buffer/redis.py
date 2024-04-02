@@ -4,6 +4,7 @@ import logging
 import pickle
 import threading
 from datetime import date, datetime, timezone
+from enum import Enum
 from time import time
 from typing import Any
 
@@ -47,6 +48,13 @@ def _validate_json_roundtrip(value: dict[str, Any], model: type[models.Model]) -
                 logger.error("buffer.corrupted_value", extra={"value": value, "model": model})
         except Exception:
             logger.exception("buffer.invalid_value", extra={"value": value, "model": model})
+
+
+class RedisOperation(Enum):
+    SET_ADD = "sadd"
+    SET_GET = "smembers"
+    HASH_ADD = "hset"
+    HASH_GET_ALL = "hgetall"
 
 
 class PendingBuffer:
@@ -220,7 +228,7 @@ class RedisBuffer(Buffer):
         pipe = conn.pipeline()
         return pipe
 
-    def _execute_redis_operation(self, key: str, operation: str, *args: Any) -> Any:
+    def _execute_redis_operation(self, key: str, operation: RedisOperation, *args: Any) -> Any:
         pending_key = self._make_pending_key_from_key(key)
         pipe = self.get_redis_connection(pending_key)
         if pipe:
@@ -230,10 +238,10 @@ class RedisBuffer(Buffer):
             return pipe.execute()
 
     def push_to_set(self, key: str, value: list[int] | int) -> None:
-        self._execute_redis_operation(key, "sadd", value)
+        self._execute_redis_operation(key, RedisOperation.SET_ADD.value, value)
 
     def get_set(self, key: str) -> list[set]:
-        return self._execute_redis_operation(key, "smembers")
+        return self._execute_redis_operation(key, RedisOperation.SET_GET.value)
 
     def push_to_hash(
         self,
@@ -243,13 +251,13 @@ class RedisBuffer(Buffer):
         value: int,
     ) -> None:
         key = self._make_key(model, filters)
-        self._execute_redis_operation(key, "hsetnx", field, value)
+        self._execute_redis_operation(key, RedisOperation.HASH_ADD.value, field, value)
 
     def get_hash(
         self, model: type[models.Model], field: dict[str, models.Model | str | int]
     ) -> dict[str, str]:
         key = self._make_key(model, field)
-        return self._execute_redis_operation(key, "hgetall")
+        return self._execute_redis_operation(key, RedisOperation.HASH_GET_ALL.value)
 
     def incr(
         self,

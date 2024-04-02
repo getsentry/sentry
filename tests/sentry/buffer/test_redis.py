@@ -249,6 +249,19 @@ class TestRedisBuffer:
         # Make sure we didn't queue up more
         assert len(process_pending.apply_async.mock_calls) == 2
 
+    def group_rule_data_by_project_id(self, buffer, project_ids):
+        project_ids_to_rule_data = defaultdict(list)
+        for proj_id in project_ids[0]:
+            rule_group_pairs = buffer.get_hash(Project, {"project_id": proj_id})
+            for pair in rule_group_pairs:
+                for k, v in pair.items():
+                    if isinstance(k, bytes):
+                        k = k.decode("utf-8")
+                    if isinstance(v, bytes):
+                        v = v.decode("utf-8")
+                    project_ids_to_rule_data[int(proj_id)].append({k: v})
+        return project_ids_to_rule_data
+
     def test_enqueue(self):
         PROJECT_ID_BUFFER_LIST_KEY = "project_id_buffer_list"
         project_id = 1
@@ -262,6 +275,7 @@ class TestRedisBuffer:
         rule2_id = 8
         group3_id = 9
         event3_id = 10
+        event4_id = 11
 
         # store the project ids
         self.buf.push_to_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=project_id)
@@ -290,23 +304,28 @@ class TestRedisBuffer:
         project_ids = self.buf.get_set(PROJECT_ID_BUFFER_LIST_KEY)
         assert project_ids
 
-        project_ids_to_rule_data = defaultdict(list)
-        for proj_id in project_ids[0]:
-            rule_group_pairs = self.buf.get_hash(Project, {"project_id": proj_id})
-            for pair in rule_group_pairs:
-                for k, v in pair.items():
-                    if isinstance(k, bytes):
-                        k = k.decode("utf-8")
-                    if isinstance(v, bytes):
-                        v = v.decode("utf-8")
-                    project_ids_to_rule_data[int(proj_id)].append({k: v})
-
+        project_ids_to_rule_data = self.group_rule_data_by_project_id(self.buf, project_ids)
         assert project_ids_to_rule_data[project_id][0].get(f"{rule_id}:{group_id}") == str(event_id)
         assert project_ids_to_rule_data[project_id][1].get(f"{rule_id}:{group2_id}") == str(
             event2_id
         )
         assert project_ids_to_rule_data[project_id2][0].get(f"{rule2_id}:{group3_id}") == str(
             event3_id
+        )
+
+        # overwrite the value to event4_id
+        self.buf.push_to_hash(
+            model=Project,
+            filters={"project_id": project_id2},
+            field=f"{rule2_id}:{group3_id}",
+            value=event4_id,
+        )
+
+        project_ids_to_rule_data = project_ids_to_rule_data = self.group_rule_data_by_project_id(
+            self.buf, project_ids
+        )
+        assert project_ids_to_rule_data[project_id2][0].get(f"{rule2_id}:{group3_id}") == str(
+            event4_id
         )
 
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
