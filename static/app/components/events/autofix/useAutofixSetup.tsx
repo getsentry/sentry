@@ -26,7 +26,8 @@ export function useAutofixSetup(
   return {
     ...queryData,
     hasSuccessfulSetup: Boolean(
-      queryData.data?.genAIConsent.ok && queryData.data?.integration.ok
+      // TODO: Add other checks here when we can actually configure them
+      queryData.data?.integration.ok
     ),
   };
 }
