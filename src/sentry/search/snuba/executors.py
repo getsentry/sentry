@@ -1131,10 +1131,8 @@ def get_assigned(search_filter: SearchFilter, attr_entity: Entity) -> Condition:
     """
     Returns the assigned lookup for a search filter.
     """
-    users = filter(lambda x: isinstance(x, RpcUser), search_filter.value.raw_value)
-    user_ids = [user.id for user in users]
-    teams = filter(lambda x: isinstance(x, Team), search_filter.value.raw_value)
-    team_ids = [team.id for team in teams]
+    user_ids = [user.id for user in search_filter.value.raw_value if isinstance(user, RpcUser)]
+    team_ids = [team.id for team in search_filter.value.raw_value if isinstance(team, Team)]
 
     conditions = []
     if user_ids:
