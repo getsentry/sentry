@@ -641,5 +641,6 @@ module = [
     "tests.sentry.tasks.test_on_demand_metrics",
     "tests.sentry.relay.config.test_metric_extraction",
 ]
+disallow_any_generics = true
 disallow_untyped_defs = true
 # end: stronger typing

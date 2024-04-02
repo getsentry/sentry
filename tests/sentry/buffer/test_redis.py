@@ -19,6 +19,14 @@ from sentry.utils.redis import (
 )
 
 
+def _hgetall_decode_keys(client, key, is_redis_cluster):
+    ret = client.hgetall(key)
+    if not is_redis_cluster:
+        return {k.decode(): v for k, v in ret.items()}
+    else:
+        return ret
+
+
 class TestRedisBuffer:
     @pytest.fixture(params=["cluster", "blaster"])
     def buffer(self, set_sentry_option, request):
@@ -146,9 +154,7 @@ class TestRedisBuffer:
         filters = {"pk": 1, "datetime": now}
         key = self.buf._make_key(model, filters=filters)
         self.buf.incr(model, columns, filters, extra={"foo": "bar", "datetime": now})
-        result = client.hgetall(key)
-        if not self.buf.is_redis_cluster:
-            result = {k.decode(): v for k, v in result.items()}
+        result = _hgetall_decode_keys(client, key, self.buf.is_redis_cluster)
 
         f = result.pop("f")
         if self.buf.is_redis_cluster:
@@ -176,9 +182,7 @@ class TestRedisBuffer:
         else:
             assert pending == [key.encode("utf-8")]
         self.buf.incr(model, columns, filters, extra={"foo": "baz", "datetime": now})
-        result = client.hgetall(key)
-        if not self.buf.is_redis_cluster:
-            result = {k.decode(): v for k, v in result.items()}
+        result = _hgetall_decode_keys(client, key, self.buf.is_redis_cluster)
         f = result.pop("f")
         assert load_values(f) == {"pk": 1, "datetime": now}
         assert load_value(result.pop("e+datetime")) == now
