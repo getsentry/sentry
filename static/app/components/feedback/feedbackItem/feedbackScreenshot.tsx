@@ -1,7 +1,6 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Role} from 'sentry/components/acl/role';
 import ImageVisualization from 'sentry/components/events/eventTagsAndScreenshot/screenshot/imageVisualization';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -23,40 +22,26 @@ export default function FeedbackScreenshot({
   onClick,
 }: Props) {
   const [isLoading, setIsLoading] = useState(true);
+  const img = (
+    <StyledImageVisualization
+      attachment={screenshot}
+      orgId={organization.slug}
+      projectSlug={projectSlug}
+      eventId={screenshot.event_id}
+      onLoad={() => setIsLoading(false)}
+      onError={() => setIsLoading(false)}
+    />
+  );
 
   return (
-    <Role organization={organization} role={organization.attachmentsRole}>
-      {({hasRole}) => {
-        if (!hasRole) {
-          return null;
-        }
-        const img = (
-          <StyledImageVisualization
-            attachment={screenshot}
-            orgId={organization.slug}
-            projectSlug={projectSlug}
-            eventId={screenshot.event_id}
-            onLoad={() => setIsLoading(false)}
-            onError={() => setIsLoading(false)}
-          />
-        );
-
-        return (
-          <StyledPanel className={className}>
-            {isLoading && (
-              <StyledLoadingIndicator>
-                <LoadingIndicator mini />
-              </StyledLoadingIndicator>
-            )}
-            {onClick ? (
-              <StyledImageButton onClick={onClick}>{img}</StyledImageButton>
-            ) : (
-              img
-            )}
-          </StyledPanel>
-        );
-      }}
-    </Role>
+    <StyledPanel className={className}>
+      {isLoading && (
+        <StyledLoadingIndicator>
+          <LoadingIndicator mini />
+        </StyledLoadingIndicator>
+      )}
+      {onClick ? <StyledImageButton onClick={onClick}>{img}</StyledImageButton> : img}
+    </StyledPanel>
   );
 }
 

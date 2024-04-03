@@ -36,14 +36,14 @@ export default function ScreenshotsModal({
       <Header closeButton>
         <PaginationWrapper lightText>
           <StyledScreenshotPagination
-            nextDisabled={false}
+            nextDisabled={screenshots.length > 1}
             onNext={() => {
               setSelectedIndex(prev => prev + 1);
             }}
             onPrevious={() => {
               setSelectedIndex(prev => prev - 1);
             }}
-            previousDisabled={false}
+            previousDisabled={screenshots.length > 1}
             headerText={tct('[currentScreenshotIndex] of [totalScreenshotCount]', {
               currentScreenshotIndex: currentIndex + 1,
               totalScreenshotCount: screenshots.length,
