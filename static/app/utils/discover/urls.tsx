@@ -1,4 +1,4 @@
-import type {Location} from 'history';
+import type {Location, LocationDescriptorObject} from 'history';
 
 import type {Organization, OrganizationSummary} from 'sentry/types';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
@@ -70,15 +70,20 @@ export function generateEventIDLinkTarget({
   }
 
   const eventSlug = generateEventSlug(dataRow);
-  const pathname = eventDetailsRoute({
-    orgSlug: organization.slug,
-    eventSlug,
-  });
 
-  return {
-    pathname,
+  const target: LocationDescriptorObject = {
+    pathname: eventDetailsRoute({
+      orgSlug: organization.slug,
+      eventSlug,
+    }),
     query: {...eventView.generateQueryStringObject(), homepage: isHomepage},
   };
+
+  if (spanId) {
+    target.hash = `span-${spanId}`;
+  }
+
+  return target;
 }
 
 /**

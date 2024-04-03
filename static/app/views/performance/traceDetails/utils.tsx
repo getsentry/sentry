@@ -53,18 +53,12 @@ export function getTraceDetailsUrl(
     queryParams.limit = DEFAULT_TRACE_ROWS_LIMIT;
   }
 
-  const target: LocationDescriptorObject = {
+  return {
     pathname: normalizeUrl(
       `/organizations/${organization.slug}/performance/trace/${traceSlug}/`
     ),
     query: queryParams,
   };
-
-  if (spanId) {
-    target.hash = `span-${spanId}`;
-  }
-
-  return target;
 }
 
 function transactionVisitor() {
