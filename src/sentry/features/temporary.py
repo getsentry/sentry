@@ -184,6 +184,7 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:profiling-global-suspect-functions", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:profiling-summary-redesign", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:profiling-using-transactions", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:continuous-profiling", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:project-create-replay-feedback", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:project-event-date-limit", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:project-stats", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
