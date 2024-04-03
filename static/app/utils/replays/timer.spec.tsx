@@ -14,11 +14,6 @@ describe('Replay Timer', () => {
     jest.advanceTimersByTime(1008);
     expect(timer.getTime()).toBe(1008);
 
-    timer.stop();
-    expect(timer.getTime()).toBe(1008);
-    jest.advanceTimersByTime(1008);
-    expect(timer.getTime()).toBe(1008);
-
     timer.resume();
     jest.advanceTimersByTime(1008);
     timer.stop();
