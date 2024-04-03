@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -44,6 +44,8 @@ type IssueProps = {
 };
 
 const MAX_DISPLAYED_ISSUES_COUNT = 10;
+
+const MIN_ISSUES_TABLE_WIDTH = 600;
 
 function Issue(props: IssueProps) {
   const {
@@ -123,12 +125,13 @@ type IssueListProps = {
 };
 
 export function IssueList({issues, node, organization}: IssueListProps) {
+  const panelRef = useRef<HTMLDivElement>(null);
   if (!issues.length) {
     return null;
   }
 
   return (
-    <StyledPanel>
+    <StyledPanel ref={panelRef} width={panelRef.current?.clientWidth}>
       <IssueListHeader node={node} />
       {issues.slice(0, MAX_DISPLAYED_ISSUES_COUNT).map((issue, index) => (
         <Issue key={index} issue={issue} organization={organization} />
@@ -264,9 +267,18 @@ const UsersHeading = styled(Heading)`
   justify-content: center;
 `;
 
-const StyledPanel = styled(Panel)`
+const StyledPanel = styled(Panel)<{width?: number}>`
   margin-bottom: 0;
   border: 1px solid ${p => p.theme.red200};
+
+  ${p =>
+    p.width &&
+    p.width < MIN_ISSUES_TABLE_WIDTH &&
+    `
+    ${ChartWrapper}, ${GraphHeading} {
+      display: none;
+    }
+  `}
 `;
 
 const StyledPanelHeader = styled(PanelHeader)`
