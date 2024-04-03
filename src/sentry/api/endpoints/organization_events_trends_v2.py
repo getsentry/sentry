@@ -86,14 +86,13 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
 
         trend_function = request.GET.get("trendFunction", "p50()")
 
-        selected_columns = self.get_field_list(organization, request)
+        selected_columns = ["project_id", "transaction"]
 
         query = request.GET.get("query")
 
         def get_top_events(user_query, params, event_limit, referrer):
             top_event_columns = selected_columns[:]
             top_event_columns.append("count()")
-            top_event_columns.append("project_id")
 
             # Granularity is set to 1d - the highest granularity possible
             # in order to optimize the top event query since we don't care
