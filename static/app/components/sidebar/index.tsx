@@ -240,7 +240,9 @@ function Sidebar() {
           organization.features.includes('performance-database-view') ||
           organization.features.includes('starfish-browser-webvitals') ||
           organization.features.includes('performance-screens-view') ||
-          organization.features.includes('performance-http-view')
+          organization.features.includes('performance-http-view') ||
+          organization.features.includes('performance-cache-view') ||
+          organization.features.includes('starfish-browser-resource-module-ui')
         ) {
           return (
             <SidebarAccordion
@@ -273,6 +275,17 @@ function Sidebar() {
                   id="performance-http"
                   icon={<SubitemDot collapsed />}
                   {...HTTPModuleBadgeProps}
+                />
+              </Feature>
+              <Feature features="performance-cache-view" organization={organization}>
+                <SidebarItem
+                  {...sidebarItemProps}
+                  label={
+                    <GuideAnchor target="performance-cache">{t('Cache')}</GuideAnchor>
+                  }
+                  to={`/organizations/${organization.slug}/performance/cache/`}
+                  id="performance-cache"
+                  icon={<SubitemDot collapsed />}
                 />
               </Feature>
               <Feature features="starfish-browser-webvitals" organization={organization}>
