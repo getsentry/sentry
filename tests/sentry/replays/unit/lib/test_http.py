@@ -20,9 +20,7 @@ from sentry.replays.lib.http import (
         (11, 12, b"d!"),
         (12, 12, b"!"),
         (1, 2, b"el"),
-        (2, 1, b""),
         (0, 1000, b"hello, world!"),
-        (1000, 10_000, b""),
     ),
 )
 def test_bounded_range(start: int, end: int, expected: bytes) -> None:
@@ -56,7 +54,6 @@ def test_suffix_length(length: int, expected: bytes) -> None:
         (1, b"ello, world!"),
         (11, b"d!"),
         (12, b"!"),
-        (1000, b""),
     ),
 )
 def test_unbounded_range(start: int, expected: bytes) -> None:
@@ -101,6 +98,7 @@ def test_parse_range_header_unbounded() -> None:
         ("bytes=1-10.0",),
         ("",),
         ("=-",),
+        ("bytes=-",),
     ),
 )
 def test_parse_range_header_malformed_input(header: str) -> None:

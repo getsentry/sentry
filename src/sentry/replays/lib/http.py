@@ -7,8 +7,12 @@ class MalformedRangeHeader(Exception):
     ...
 
 
+class UnsatisfiableRange(Exception):
+    ...
+
+
 class RangeProtocol(Protocol):
-    def make_range(self, last_index: int) -> tuple[int, int] | None:
+    def make_range(self, last_index: int) -> tuple[int, int]:
         ...
 
     def read_range(self, bytes: io.BytesIO) -> bytes:
@@ -30,18 +34,16 @@ class BoundedRange:
         self.start = start
         self.end = end
 
-    def make_range(self, last_index: int) -> tuple[int, int] | None:
+    def make_range(self, last_index: int) -> tuple[int, int]:
         if self.start > last_index or self.end < self.start or self.start < 0:
-            return None
+            raise UnsatisfiableRange()
+
         return (self.start, min(last_index, self.end))
 
     def read_range(self, bytes: io.BytesIO) -> bytes:
-        range = self.make_range(bytes.getbuffer().nbytes - 1)
-        if range is None:
-            return b""
-
-        bytes.seek(range[0])
-        return bytes.read(range[1] - range[0] + 1)
+        start_index, end_index = self.make_range(bytes.getbuffer().nbytes - 1)
+        bytes.seek(start_index)
+        return bytes.read(end_index - start_index + 1)
 
 
 class UnboundedRange:
@@ -55,17 +57,15 @@ class UnboundedRange:
     def __init__(self, start: int) -> None:
         self.start = start
 
-    def make_range(self, last_index: int) -> tuple[int, int] | None:
+    def make_range(self, last_index: int) -> tuple[int, int]:
         if self.start > last_index or self.start < 0:
-            return None
+            raise UnsatisfiableRange()
+
         return (self.start, last_index)
 
     def read_range(self, bytes: io.BytesIO) -> bytes:
-        range = self.make_range(bytes.getbuffer().nbytes - 1)
-        if range is None:
-            return b""
-
-        bytes.seek(range[0])
+        start_index, _ = self.make_range(bytes.getbuffer().nbytes - 1)
+        bytes.seek(start_index)
         return bytes.read()
 
 
@@ -79,15 +79,12 @@ class SuffixLength:
     def __init__(self, suffix_length: int) -> None:
         self.suffix_length = suffix_length
 
-    def make_range(self, last_index: int) -> tuple[int, int] | None:
+    def make_range(self, last_index: int) -> tuple[int, int]:
         return (max(0, last_index - self.suffix_length + 1), last_index)
 
     def read_range(self, bytes: io.BytesIO) -> bytes:
-        range = self.make_range(bytes.getbuffer().nbytes - 1)
-        if range is None:
-            return b""
-
-        bytes.seek(range[0])
+        start_index, _ = self.make_range(bytes.getbuffer().nbytes - 1)
+        bytes.seek(start_index)
         return bytes.read()
 
 

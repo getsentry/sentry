@@ -86,10 +86,7 @@ class ProjectReplayVideoDetailsEndpoint(ProjectEndpoint):
         else:
             iterator = iter(lambda: video_io.read(4096), b"")
             status_code = 200
-            headers = {
-                "Content-Length": len(video),
-                "Content-Range": f"0-{len(video)-1}",
-            }
+            headers = {"Content-Length": len(video)}
 
         response = StreamingHttpResponse(
             iterator,
