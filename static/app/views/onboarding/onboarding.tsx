@@ -69,7 +69,7 @@ function getOrganizationOnboardingSteps(): StepDescriptor[] {
 }
 
 function Onboarding(props: Props) {
-const api = useApi();
+  const api = useApi();
   const organization = useOrganization();
   const onboardingContext = useContext(OnboardingContext);
   const selectedSDK = onboardingContext.data.selectedSDK;
