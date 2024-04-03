@@ -342,7 +342,7 @@ def customer_domain_path(path: str) -> str:
 
 def method_dispatch(**dispatch_mapping):
     """
-    Dispatches a incoming request to a different handler based on the HTTP method
+    Dispatches an incoming request to a different handler based on the HTTP method
 
     >>> re_path('^foo$', method_dispatch(POST = post_handler, GET = get_handler)))
     """
@@ -353,6 +353,10 @@ def method_dispatch(**dispatch_mapping):
     def dispatcher(request, *args, **kwargs):
         handler = dispatch_mapping.get(request.method, invalid_method)
         return handler(request, *args, **kwargs)
+
+    # This allows us to surface the mapping when iterating through the URL patterns
+    # Check `tes_id_or_slug_path_params.py` for usage
+    dispatcher.dispatch_mapping = dispatch_mapping  # type: ignore[attr-defined]
 
     if dispatch_mapping.get("csrf_exempt"):
         return csrf_exempt(dispatcher)
