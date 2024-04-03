@@ -127,7 +127,7 @@ steps:
   - --overwrite-configs
   id: import-baseline-config
   name: gcr.io/cloud-builders/docker
-  timeout: 2400s
+  timeout: 300s
   waitFor:
   - copy-inputs-being-validated
   - create-working-dirs
@@ -157,7 +157,7 @@ steps:
   - importing
   id: import-colliding-users
   name: gcr.io/cloud-builders/docker
-  timeout: 2400s
+  timeout: 300s
   waitFor:
   - copy-inputs-being-validated
   - create-working-dirs
@@ -221,7 +221,7 @@ steps:
   - /findings/export-baseline-config.json
   id: export-baseline-config
   name: gcr.io/cloud-builders/docker
-  timeout: 2400s
+  timeout: 300s
   waitFor:
   - import-baseline-config
   - import-raw-relocation-data
@@ -254,7 +254,7 @@ steps:
   - importing
   id: export-colliding-users
   name: gcr.io/cloud-builders/docker
-  timeout: 2400s
+  timeout: 300s
   waitFor:
   - import-colliding-users
   - export-baseline-config
@@ -329,7 +329,7 @@ steps:
   - /findings/compare-baseline-config.json
   id: compare-baseline-config
   name: gcr.io/cloud-builders/docker
-  timeout: 300s
+  timeout: 120s
   waitFor:
   - export-baseline-config
   - export-raw-relocation-data
@@ -361,7 +361,7 @@ steps:
   - /findings/compare-colliding-users.json
   id: compare-colliding-users
   name: gcr.io/cloud-builders/docker
-  timeout: 300s
+  timeout: 120s
   waitFor:
   - export-colliding-users
   - compare-baseline-config
