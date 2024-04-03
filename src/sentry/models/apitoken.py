@@ -29,7 +29,7 @@ def default_expiration():
     return timezone.now() + DEFAULT_EXPIRATION
 
 
-def generate_token(token_type: AuthTokenType | None = AuthTokenType.__empty__) -> str:
+def generate_token(token_type: AuthTokenType | str | None = AuthTokenType.__empty__) -> str:
     if token_type:
         return f"{token_type}{secrets.token_hex(nbytes=32)}"
 
