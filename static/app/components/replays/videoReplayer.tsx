@@ -143,7 +143,7 @@ export class VideoReplayer {
 
   /**
    * Resume timer only if replay is running. This accounts for
-   * playing through "dead air". This is used only in `setBuffering`. 
+   * playing through "dead air". This is used only in `setBuffering`.
    */
   private resumeTimer() {
     if (!this._isPlaying) {
