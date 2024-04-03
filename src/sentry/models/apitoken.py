@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import secrets
 from collections.abc import Collection
 from datetime import timedelta
@@ -32,6 +33,57 @@ def generate_token():
     return secrets.token_hex(nbytes=32)
 
 
+class ApiTokenManager(ControlOutboxProducingManager):
+    def create(self, *args, **kwargs):
+        token_type: AuthTokenType | None = kwargs.get("token_type", None)
+
+        # Typically the .create() method is called with `refresh_token=None` as an
+        # argument when we specifically do not want a refresh_token.
+        #
+        # But if it is not None or not specified, we should generate a token since
+        # that is the expected behavior... the refresh_token field on ApiToken has
+        # a default of generate_token()
+        #
+        # TODO(mdtro): All of these if/else statements will be cleaned up at a later time
+        # to use a match statment on the AuthTokenType. Move each of the various token type
+        # create calls one at a time.
+        if "refresh_token" in kwargs:
+            plaintext_refresh_token = kwargs["refresh_token"]
+        else:
+            plaintext_refresh_token = generate_token()
+
+        if token_type == AuthTokenType.USER:
+            plaintext_token = f"{token_type}{generate_token()}"
+            plaintext_refresh_token = None  # user auth tokens do not have refresh tokens
+        else:
+            plaintext_token = generate_token()
+
+        if options.get("apitoken.save-hash-on-create"):
+            kwargs["hashed_token"] = hashlib.sha256(plaintext_token.encode()).hexdigest()
+
+            if plaintext_refresh_token is not None:
+                kwargs["hashed_refresh_token"] = hashlib.sha256(
+                    plaintext_refresh_token.encode()
+                ).hexdigest()
+
+        kwargs["token"] = plaintext_token
+        kwargs["refresh_token"] = plaintext_refresh_token
+
+        if plaintext_refresh_token is not None:
+            kwargs["refresh_token"] = plaintext_refresh_token
+            kwargs["hashed_refresh_token"] = hashlib.sha256(
+                plaintext_refresh_token.encode()
+            ).hexdigest()
+
+        api_token = super().create(*args, **kwargs)
+
+        # Store the plaintext tokens for one-time retrieval
+        api_token.__plaintext_token = plaintext_token
+        api_token.__plaintext_refresh_token = plaintext_refresh_token
+
+        return api_token
+
+
 @control_silo_only_model
 class ApiToken(ReplicatedControlModel, HasApiScopes):
     __relocation_scope__ = {RelocationScope.Global, RelocationScope.Config}
@@ -50,7 +102,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
     expires_at = models.DateTimeField(null=True, default=default_expiration)
     date_added = models.DateTimeField(default=timezone.now)
 
-    objects: ClassVar[ControlOutboxProducingManager[ApiToken]] = ControlOutboxProducingManager(
+    objects: ClassVar[ControlOutboxProducingManager[ApiToken]] = ApiTokenManager(
         cache_fields=("token",)
     )
 
@@ -62,6 +114,40 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
 
     def __str__(self):
         return force_str(self.token)
+
+    @property
+    def _plaintext_token(self):
+        """
+        To be called immediately after creation of a new token to return the
+        plaintext token to the user. After reading the token, it will be set
+        to `None` to prevent future accidental leaking of the token in logs,
+        exceptions, etc.
+        """
+        manager_class_name = self.objects.__class__.__name__
+        plaintext_token: str | None = getattr(self, f"_{manager_class_name}__plaintext_token", None)
+
+        if plaintext_token is not None:
+            setattr(self, f"_{manager_class_name}__plaintext_token", None)
+
+        return plaintext_token
+
+    @property
+    def _plaintext_refresh_token(self):
+        """
+        To be called immediately after creation of a new token to return the
+        plaintext refresh token to the user. After reading the refresh token, it will be set
+        to `None` to prevent future accidental leaking of the refresh token in logs,
+        exceptions, etc.
+        """
+        manager_class_name = self.objects.__class__.__name__
+        plaintext_refresh_token: str | None = getattr(
+            self, f"_{manager_class_name}__plaintext_refresh_token", None
+        )
+
+        if plaintext_refresh_token is not None:
+            setattr(self, f"_{manager_class_name}__plaintext_refresh_token", None)
+
+        return plaintext_refresh_token
 
     def save(self, *args: Any, **kwargs: Any) -> None:
         if options.get("apitoken.auto-add-last-chars"):

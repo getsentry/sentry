@@ -1,3 +1,4 @@
+import hashlib
 from datetime import timedelta
 
 from django.utils import timezone
@@ -12,6 +13,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.types.token import AuthTokenType
 
 
 @control_silo_test
@@ -73,6 +75,41 @@ class ApiTokenTest(TestCase):
         user = self.create_user()
         token = ApiToken.objects.create(user_id=user.id)
         assert token.token_last_characters is None
+
+    @override_options({"apitoken.save-hash-on-create": True})
+    def test_hash_exists_on_user_token(self):
+        user = self.create_user()
+        token = ApiToken.objects.create(user_id=user.id, token_type=AuthTokenType.USER)
+        assert token.hashed_token is not None
+        assert len(token.hashed_token) == 64  # sha256 hash
+        assert token.hashed_refresh_token is None  # user auth tokens don't have refresh tokens
+
+    @override_options({"apitoken.save-hash-on-create": False})
+    def test_hash_does_not_exist_on_user_token_with_option_off(self):
+        user = self.create_user()
+        token = ApiToken.objects.create(user_id=user.id, token_type=AuthTokenType.USER)
+        assert token.hashed_token is None
+        assert token.hashed_refresh_token is None  # user auth tokens don't have refresh tokens
+
+    @override_options({"apitoken.save-hash-on-create": True})
+    def test_plaintext_values_only_available_immediately_after_create(self):
+        user = self.create_user()
+        token = ApiToken.objects.create(user_id=user.id, token_type=AuthTokenType.USER)
+        assert token._plaintext_token is not None
+        assert token._plaintext_refresh_token is None  # user auth tokens don't have refresh tokens
+
+        _ = token._plaintext_token
+
+        # we read the value above so now it should
+        # now be None as it is a "read once" property
+        assert token._plaintext_token is None
+
+    @override_options({"apitoken.save-hash-on-create": True})
+    def test_user_auth_token_hash(self):
+        user = self.create_user()
+        token = ApiToken.objects.create(user_id=user.id, token_type=AuthTokenType.USER)
+        expected_hash = hashlib.sha256(token._plaintext_token.encode()).hexdigest()
+        assert expected_hash == token.hashed_token
 
 
 @control_silo_test
