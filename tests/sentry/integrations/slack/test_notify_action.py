@@ -71,7 +71,7 @@ class SlackNotifyActionTest(RuleTestCase):
         attachments = json.loads(data["attachments"][0])
 
         assert len(attachments) == 1
-        assert attachments[0]["title"] == event.title
+        assert event.title in attachments[0]["text"]
 
     def test_render_label(self):
         rule = self.get_rule(
@@ -422,8 +422,8 @@ class SlackNotifyActionTest(RuleTestCase):
             attachments = json.loads(data["attachments"][0])
 
             assert len(attachments) == 2
-            assert attachments[0]["title"] == event.title
-            assert attachments[1]["title"] == self.organization.slug
+            assert event.title in attachments[0]["text"]
+            assert attachments[-1]["title"] == self.organization.slug
             assert attachments[1]["text"] == self.integration.id
             mock_record.assert_called_with(
                 "alert.sent",

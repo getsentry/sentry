@@ -172,9 +172,7 @@ def mark_failed_threshold(
     if not monitor_env.monitor.is_muted and not monitor_env.is_muted and incident:
         checkins = MonitorCheckIn.objects.filter(id__in=[c["id"] for c in previous_checkins])
         for previous_checkin in checkins:
-            create_issue_platform_occurrence(
-                previous_checkin, incident.grouphash, received=received
-            )
+            create_issue_platform_occurrence(previous_checkin, incident, received=received)
 
     monitor_environment_failed.send(monitor_environment=monitor_env, sender=type(monitor_env))
 
@@ -236,7 +234,7 @@ def create_legacy_event(failed_checkin: MonitorCheckIn):
 
 def create_issue_platform_occurrence(
     failed_checkin: MonitorCheckIn,
-    fingerprint: str,
+    incident: MonitorIncident,
     received: datetime | None,
 ):
     from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
@@ -258,7 +256,7 @@ def create_issue_platform_occurrence(
         resource_id=None,
         project_id=monitor_env.monitor.project_id,
         event_id=uuid.uuid4().hex,
-        fingerprint=[fingerprint],
+        fingerprint=[incident.grouphash],
         type=occurrence_data["group_type"],
         issue_title=f"Monitor failure: {monitor_env.monitor.name}",
         subtitle=occurrence_data["subtitle"],
@@ -288,15 +286,16 @@ def create_issue_platform_occurrence(
         "contexts": {"monitor": get_monitor_environment_context(monitor_env)},
         "environment": monitor_env.get_environment().name,
         "event_id": occurrence.event_id,
-        "fingerprint": [fingerprint],
+        "fingerprint": [incident.grouphash],
         "platform": "other",
         "project_id": monitor_env.monitor.project_id,
-        # We set this to the time that the checkin that triggered the occurrence was written to the ingest topic
+        # We set this to the time that the checkin that triggered the occurrence was written to relay if available
         "received": (received if received else current_timestamp).isoformat(),
         "sdk": None,
         "tags": {
             "monitor.id": str(monitor_env.monitor.guid),
             "monitor.slug": str(monitor_env.monitor.slug),
+            "monitor.incident": str(incident.id),
         },
         "timestamp": current_timestamp.isoformat(),
     }

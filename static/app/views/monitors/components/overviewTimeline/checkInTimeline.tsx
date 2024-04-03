@@ -9,12 +9,10 @@ import {getAggregateStatus} from 'sentry/views/monitors/utils/getAggregateStatus
 import {mergeBuckets} from 'sentry/views/monitors/utils/mergeBuckets';
 
 import {JobTickTooltip} from './jobTickTooltip';
-import type {MonitorBucketData, TimeWindowOptions} from './types';
+import type {MonitorBucketData, TimeWindowConfig} from './types';
 
 interface TimelineProps {
-  end: Date;
-  start: Date;
-  timeWindowConfig: TimeWindowOptions;
+  timeWindowConfig: TimeWindowConfig;
   width: number;
 }
 
@@ -33,7 +31,8 @@ function getBucketedCheckInsPosition(
 }
 
 export function CheckInTimeline(props: CheckInTimelineProps) {
-  const {bucketedData, start, end, timeWindowConfig, width, environment} = props;
+  const {bucketedData, timeWindowConfig, width, environment} = props;
+  const {start, end} = timeWindowConfig;
 
   const elapsedMs = end.getTime() - start.getTime();
   const msPerPixel = elapsedMs / width;
@@ -79,11 +78,10 @@ export interface MockCheckInTimelineProps extends TimelineProps {
 
 export function MockCheckInTimeline({
   mockTimestamps,
-  start,
-  end,
   timeWindowConfig,
   width,
 }: MockCheckInTimelineProps) {
+  const {start, end} = timeWindowConfig;
   const elapsedMs = end.getTime() - start.getTime();
   const msPerPixel = elapsedMs / width;
 

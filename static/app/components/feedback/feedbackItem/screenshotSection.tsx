@@ -1,16 +1,18 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useState} from 'react';
+import styled from '@emotion/styled';
 
-import {
-  useDeleteEventAttachmentOptimistic,
-  useFetchEventAttachments,
-} from 'sentry/actionCreators/events';
+import {useDeleteEventAttachmentOptimistic} from 'sentry/actionCreators/events';
 import {openModal} from 'sentry/actionCreators/modal';
-import Screenshot from 'sentry/components/events/eventTagsAndScreenshot/screenshot';
-import Modal, {
+import {Button} from 'sentry/components/button';
+import {openConfirmModal} from 'sentry/components/confirm';
+import FeedbackScreenshot from 'sentry/components/feedback/feedbackItem/feedbackScreenshot';
+import OpenScreenshotModal, {
   modalCss,
-} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/modal';
-import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
+} from 'sentry/components/feedback/feedbackItem/openScreenshotModal';
+import useFeedbackScreenshot from 'sentry/components/feedback/feedbackItem/useFeedbackHasScreenshot';
+import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import type {EventAttachment} from 'sentry/types/group';
@@ -23,17 +25,9 @@ type Props = {
 };
 
 export function ScreenshotSection({projectSlug, event, organization}: Props) {
+  const {screenshots} = useFeedbackScreenshot({projectSlug, event});
   const hasContext = !objectIsEmpty(event.user ?? {}) || !objectIsEmpty(event.contexts);
-  const {data: attachments} = useFetchEventAttachments({
-    orgSlug: organization.slug,
-    projectSlug,
-    eventId: event.id,
-  });
   const {mutate: deleteAttachment} = useDeleteEventAttachmentOptimistic();
-  const screenshots = useMemo(() => {
-    return attachments ?? [];
-  }, [attachments]);
-
   const [screenshotInFocus, setScreenshotInFocus] = useState<number>(0);
 
   const handleDeleteScreenshot = useCallback(
@@ -49,22 +43,15 @@ export function ScreenshotSection({projectSlug, event, organization}: Props) {
   );
 
   const handleOpenVisualizationModal = useCallback(
-    (eventAttachment: EventAttachment, downloadUrl: string) => {
-      function handleDelete() {
-        handleDeleteScreenshot(eventAttachment.id);
-      }
-
+    (eventAttachment: EventAttachment) => {
       openModal(
         modalProps => (
-          <Modal
+          <OpenScreenshotModal
             {...modalProps}
             event={event}
             orgSlug={organization.slug}
             projectSlug={projectSlug}
             eventAttachment={eventAttachment}
-            downloadUrl={downloadUrl}
-            onDelete={handleDelete}
-            onDownload={() => undefined}
             attachments={screenshots}
             attachmentIndex={screenshotInFocus}
           />
@@ -72,14 +59,7 @@ export function ScreenshotSection({projectSlug, event, organization}: Props) {
         {modalCss}
       );
     },
-    [
-      event,
-      handleDeleteScreenshot,
-      organization.slug,
-      projectSlug,
-      screenshotInFocus,
-      screenshots,
-    ]
+    [event, organization.slug, projectSlug, screenshotInFocus, screenshots]
   );
 
   if (!hasContext && !screenshots.length) {
@@ -90,19 +70,38 @@ export function ScreenshotSection({projectSlug, event, organization}: Props) {
   const screenshot = screenshots[screenshotInFocus];
 
   return showScreenshot ? (
-    <Section title={t('Screenshot')}>
-      <Screenshot
+    <ScreenshotWrapper>
+      <FeedbackScreenshot
         organization={organization}
         eventId={event.id}
         projectSlug={projectSlug}
         screenshot={screenshot}
-        onDelete={handleDeleteScreenshot}
         onNext={() => setScreenshotInFocus(screenshotInFocus + 1)}
         onPrevious={() => setScreenshotInFocus(screenshotInFocus - 1)}
         screenshotInFocus={screenshotInFocus}
         totalScreenshots={screenshots.length}
         openVisualizationModal={handleOpenVisualizationModal}
       />
-    </Section>
+      <Button
+        icon={<IconDelete />}
+        borderless
+        size="xs"
+        onClick={() => {
+          openConfirmModal({
+            header: t('Delete screenshot?'),
+            message: t('This action cannot be undone.'),
+            confirmText: t('Delete screenshot'),
+            onConfirm: () => handleDeleteScreenshot(screenshot.id),
+            priority: 'danger',
+          });
+        }}
+        aria-label={t('Delete screenshot')}
+      />
+    </ScreenshotWrapper>
   ) : null;
 }
+
+const ScreenshotWrapper = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+`;

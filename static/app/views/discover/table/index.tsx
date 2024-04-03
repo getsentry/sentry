@@ -116,6 +116,24 @@ class Table extends PureComponent<TableProps, TableState> {
 
     const apiPayload = eventView.getEventsAPIPayload(location) as LocationQuery &
       EventQuery;
+
+    // To generate the target url for TRACE ID and EVENT ID links we always include a timestamp,
+    // to speed up the trace endpoint. Adding timestamp for the non-aggregate case and
+    // max(timestamp) for the aggregate case as fields, to accomodate this.
+    if (
+      eventView.hasAggregateField() &&
+      apiPayload.field.includes('trace') &&
+      !apiPayload.field.includes('max(timestamp)')
+    ) {
+      apiPayload.field.push('max(timestamp)');
+    } else if (
+      apiPayload.field.includes('trace') &&
+      !apiPayload.field.includes('timestamp') &&
+      !apiPayload.field.includes('max(timestamp)')
+    ) {
+      apiPayload.field.push('timestamp');
+    }
+
     apiPayload.referrer = 'api.discover.query-table';
 
     setError('', 200);

@@ -34,9 +34,9 @@ import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {formatMRI, formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
 import type {
-  DdmQueryParams,
   MetricsQuery,
-  MetricWidgetQueryParams,
+  MetricsQueryParams,
+  MetricsWidget,
 } from 'sentry/utils/metrics/types';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import {
@@ -68,7 +68,7 @@ export const getMetricDisplayType = (displayType: unknown): MetricDisplayType =>
   return MetricDisplayType.LINE;
 };
 
-export function getDdmUrl(
+export function getMetricsUrl(
   orgSlug: string,
   {
     widgets,
@@ -77,12 +77,12 @@ export function getDdmUrl(
     statsPeriod,
     project,
     ...otherParams
-  }: Omit<DdmQueryParams, 'project' | 'widgets'> & {
-    widgets: Partial<MetricWidgetQueryParams>[];
+  }: Omit<MetricsQueryParams, 'project' | 'widgets'> & {
+    widgets: Partial<MetricsWidget>[];
     project?: (string | number)[];
   }
 ) {
-  const urlParams: Partial<DdmQueryParams> = {
+  const urlParams: Partial<MetricsQueryParams> = {
     ...otherParams,
     project: project?.map(id => (typeof id === 'string' ? parseInt(id, 10) : id)),
     widgets: JSON.stringify(widgets),

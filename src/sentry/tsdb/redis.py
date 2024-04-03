@@ -1,4 +1,3 @@
-import importlib.resources
 import itertools
 import logging
 import random
@@ -22,6 +21,7 @@ from sentry.utils.redis import (
     check_cluster_versions,
     get_cluster_from_options,
     is_instance_rb_cluster,
+    load_redis_script,
 )
 from sentry.utils.versioning import Version
 
@@ -31,9 +31,7 @@ T = TypeVar("T")
 
 SketchParameters = namedtuple("SketchParameters", "depth width capacity")
 
-CountMinScript = Script(
-    None, importlib.resources.files("sentry").joinpath("scripts/tsdb/cmsketch.lua").read_bytes()
-)
+CountMinScript = load_redis_script("tsdb/cmsketch.lua")
 
 
 class SuppressionWrapper(Generic[T]):
@@ -121,10 +119,7 @@ class RedisTSDB(BaseTSDB):
 
     def __init__(self, prefix: str = "ts:", vnodes: int = 64, **options: Any):
         cluster, options = get_cluster_from_options("SENTRY_TSDB_OPTIONS", options)
-        if is_instance_rb_cluster(cluster, False):
-            self.cluster = cluster
-        else:
-            raise AssertionError("unreachable")
+        self.cluster = cluster
         self.prefix = prefix
         self.vnodes = vnodes
         self.enable_frequency_sketches = options.pop("enable_frequency_sketches", False)

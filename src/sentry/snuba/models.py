@@ -101,6 +101,7 @@ class QuerySubscription(Model):
         DELETING = 3
         DISABLED = 4
 
+    # NOTE: project fk SHOULD match AlertRule's fk
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
     snuba_query = FlexibleForeignKey("sentry.SnubaQuery", null=True, related_name="subscriptions")
     type = (

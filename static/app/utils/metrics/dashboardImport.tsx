@@ -4,7 +4,7 @@ import {convertToDashboardWidget} from 'sentry/utils/metrics/dashboard';
 import type {MetricsQuery} from 'sentry/utils/metrics/types';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import type {Widget} from 'sentry/views/dashboards/types';
-import {getQuerySymbol} from 'sentry/views/ddm/querySymbol';
+import {getQuerySymbol} from 'sentry/views/metrics/querySymbol';
 // import types
 export type ImportDashboard = {
   description: string;

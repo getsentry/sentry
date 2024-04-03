@@ -4,7 +4,6 @@ from django.db import router
 from django.urls import reverse
 from rest_framework import status
 
-from sentry.integrations.utils.code_mapping import FrameFilename, _get_code_mapping_source_path
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.repository import Repository
@@ -61,15 +60,14 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
     @patch("sentry.integrations.github.GitHubIntegration.get_trees_for_org")
     def test_get_start_with_backslash(self, mock_get_trees_for_org):
         file = "stack/root/file.py"
-        frame_info = FrameFilename(f"/{file}")
         config_data = {"stacktraceFilename": f"/{file}"}
         expected_matches = [
             {
                 "filename": file,
                 "repo_name": "getsentry/codemap",
                 "repo_branch": "master",
-                "stacktrace_root": f"{frame_info.root}",
-                "source_path": _get_code_mapping_source_path(file, frame_info),
+                "stacktrace_root": "",
+                "source_path": "",
             }
         ]
         with patch(
@@ -116,8 +114,9 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             "projectId": self.project.id,
             "stacktraceFilename": "stack/root/file.py",
         }
-        with assume_test_silo_mode(SiloMode.CONTROL), unguarded_write(
-            using=router.db_for_write(Integration)
+        with (
+            assume_test_silo_mode(SiloMode.CONTROL),
+            unguarded_write(using=router.db_for_write(Integration)),
         ):
             Integration.objects.all().delete()
         response = self.client.get(self.url, data=config_data, format="json")
@@ -184,8 +183,9 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             "defaultBranch": "master",
             "repoName": "name",
         }
-        with assume_test_silo_mode(SiloMode.CONTROL), unguarded_write(
-            using=router.db_for_write(Integration)
+        with (
+            assume_test_silo_mode(SiloMode.CONTROL),
+            unguarded_write(using=router.db_for_write(Integration)),
         ):
             Integration.objects.all().delete()
         response = self.client.post(self.url, data=config_data, format="json")

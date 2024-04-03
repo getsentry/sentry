@@ -69,7 +69,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
       ? TrendChangeType.IMPROVED
       : TrendChangeType.REGRESSION;
   const derivedTrendChangeType = withBreakpoint ? TrendChangeType.ANY : trendChangeType;
-  const trendFunctionField = TrendFunctionField.P50; // Setting p50 to match trends page
+  const trendFunctionField = TrendFunctionField.P95;
 
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
 

@@ -70,10 +70,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             useCase="unknown",
             status_code=400,
         )
-        assert (
-            response.data["detail"]
-            == f"Invalid useCase parameter. Please use one of: {[uc.value for uc in UseCaseID]}"
-        )
+        assert response.data["detail"] == "The supplied use case doesn't exist or it's private"
 
     def test_invalid_field(self):
         for field in ["", "(*&%", "foo(session", "foo(session)"]:

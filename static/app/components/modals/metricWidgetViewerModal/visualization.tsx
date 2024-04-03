@@ -24,11 +24,11 @@ import {toMetricDisplayType} from 'sentry/views/dashboards/metrics/utils';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {displayTypes} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {LoadingScreen} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
-import {getIngestionSeriesId, MetricChart} from 'sentry/views/ddm/chart/chart';
-import {SummaryTable} from 'sentry/views/ddm/summaryTable';
-import {useSeriesHover} from 'sentry/views/ddm/useSeriesHover';
-import {createChartPalette} from 'sentry/views/ddm/utils/metricsChartPalette';
-import {getChartTimeseries, getWidgetTitle} from 'sentry/views/ddm/widget';
+import {getIngestionSeriesId, MetricChart} from 'sentry/views/metrics/chart/chart';
+import {SummaryTable} from 'sentry/views/metrics/summaryTable';
+import {useSeriesHover} from 'sentry/views/metrics/useSeriesHover';
+import {createChartPalette} from 'sentry/views/metrics/utils/metricsChartPalette';
+import {getChartTimeseries, getWidgetTitle} from 'sentry/views/metrics/widget';
 
 function useFocusedSeries({
   timeseriesData,
