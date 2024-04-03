@@ -77,6 +77,9 @@ export class VideoReplayer {
     // Initially, only load some videos
     this.preloadVideos({low: 0, high: PRELOAD_BUFFER});
 
+    // Show first frame by default
+    this.showVideo(this._videos[0]);
+
     this._trackList = this._attachments.map(({timestamp}, i) => [timestamp, i]);
   }
 
@@ -87,6 +90,12 @@ export class VideoReplayer {
 
     // TODO: only attach these when needed
     el.addEventListener('ended', () => this.handleSegmentEnd(index));
+    el.addEventListener('loadeddata', event => {
+      // Used to correctly set the dimensions of the first frame
+      if (this._currentIndex === undefined && index === 0) {
+        this._callbacks.onLoaded(event);
+      }
+    });
     el.addEventListener('play', event => {
       if (index === this._currentIndex) {
         this._callbacks.onLoaded(event);
@@ -200,6 +209,7 @@ export class VideoReplayer {
       return;
     }
 
+    // TODO: resize video if it changes orientation
     video.style.display = 'block';
   }
 
@@ -418,14 +428,19 @@ export class VideoReplayer {
   public pause(videoOffsetMs: number) {
     const index = this._currentIndex ?? 0;
 
+    // Hide first frame if we seek to a later part of the replay first
+    if (videoOffsetMs > 0) {
+      this.hideVideo(0);
+    }
+
     // Preload videos before and after this index
     this.preloadVideos({
       low: index - PRELOAD_BUFFER,
       high: index + PRELOAD_BUFFER,
     });
 
-    // Pause the current video
-    const currentVideo = this.getVideo(this._currentIndex);
+    // Pause the old video
+    const currentVideo = this.getVideo(index);
     currentVideo?.pause();
     this._timer.stop(videoOffsetMs);
 
