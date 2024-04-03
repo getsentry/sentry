@@ -104,7 +104,7 @@ def _extract_name_from_custom_metric_mri(mri: str) -> str | None:
         return None
 
     # Custom metrics are fully custom metrics that the sdks can emit.
-    is_custom_metric = parsed_mri.name == "custom"
+    is_custom_metric = parsed_mri.namespace == "custom"
     # Custom measurements are a special kind of custom metrics that are more limited and were existing
     # before fully custom metrics.
     is_custom_measurement = parsed_mri.entity == "d" and parsed_mri.namespace == "transactions"
