@@ -1370,10 +1370,12 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             Condition(Column("timestamp", event_entity), Op.LT, end),
         ]
         for search_filter in search_filters or ():
-            fn = self.group_conditions_lookup.get(
-                search_filter.key.name, self.get_basic_event_snuba_condition
-            )
-            where_conditions.append(fn(search_filter))
+            # use the stored function if it exists in our mapping, otherwise use the basic lookup
+            fn = self.group_conditions_lookup.get(search_filter.key.name)
+            if fn:
+                where_conditions.append(fn(self, search_filter))
+            else:
+                where_conditions.append(self.get_basic_event_snuba_condition(search_filter))
 
         if environments:
             # TODO: Should this be handled via filter_keys, once we have a snql compatible version?
