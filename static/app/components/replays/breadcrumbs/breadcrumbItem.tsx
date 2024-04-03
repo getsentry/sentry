@@ -216,7 +216,7 @@ function HTMLTree({description, frame}: {description: string; frame: ClickFrame}
       {componentName ? (
         <Fragment>
           <div style={{display: 'inline'}}>
-            {description?.toString().substring(0, lastComponentIndex)}
+            {description.substring(0, lastComponentIndex)}
           </div>
           <Tooltip title={t('Search by this component')} isHoverable>
             <Link
