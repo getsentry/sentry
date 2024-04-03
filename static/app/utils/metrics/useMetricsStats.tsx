@@ -34,7 +34,8 @@ export function getMetricsStatsRequest(pageFilters: PageFilters) {
         groupBy: [OUTCOME_METRIC_TAG],
       },
     ],
-    pageFilters
+    pageFilters,
+    {intervalLadder: 'bar'}
   );
 }
 
