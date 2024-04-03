@@ -407,7 +407,7 @@ class ExampleSpan:
             "startTimestamp": self.start_timestamp,
             "finishTimestamp": self.finish_timestamp,
             "exclusiveTime": self.exclusive_time,
-            "traceId": self.trace_id,
+            "trace": self.trace_id,
         }
 
 

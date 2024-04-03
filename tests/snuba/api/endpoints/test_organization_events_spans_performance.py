@@ -178,7 +178,7 @@ class OrganizationEventsSpansEndpointTestBase(APITestCase, SnubaTestCase):
                             "startTimestamp",
                             "finishTimestamp",
                             "exclusiveTime",
-                            "traceId",
+                            "trace",
                         ]:
                             assert span[key] == expected_span[key], key
 
@@ -277,7 +277,7 @@ class OrganizationEventsSpansEndpointTestBase(APITestCase, SnubaTestCase):
                                     self.min_ago + timedelta(seconds=8)
                                 ).timestamp(),
                                 "exclusiveTime": 4.0,
-                                "traceId": "a" * 32,
+                                "trace": "a" * 32,
                             }
                         ],
                     },
@@ -1515,7 +1515,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
                                 "finishTimestamp": (
                                     self.min_ago + timedelta(seconds=5)
                                 ).timestamp(),
-                                "traceId": "a" * 32,
+                                "trace": "a" * 32,
                             }
                             for x in ["d", "e", "f"]
                         ],
@@ -1620,7 +1620,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
                                 "finishTimestamp": (
                                     self.min_ago + timedelta(seconds=4)
                                 ).timestamp(),
-                                "traceId": "a" * 32,
+                                "trace": "a" * 32,
                             }
                             for x in ["b", "c"]
                         ],
@@ -1693,7 +1693,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
                                 "finishTimestamp": (
                                     self.min_ago + timedelta(seconds=5)
                                 ).timestamp(),
-                                "traceId": "a" * 32,
+                                "trace": "a" * 32,
                             }
                             for x in ["d", "e", "f"]
                         ],
@@ -1769,7 +1769,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
                                 "finishTimestamp": (
                                     self.min_ago + timedelta(seconds=5)
                                 ).timestamp(),
-                                "traceId": "a" * 32,
+                                "trace": "a" * 32,
                             }
                             for x in ["d", "e", "f"]
                         ],
