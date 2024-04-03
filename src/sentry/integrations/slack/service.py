@@ -140,6 +140,16 @@ class SlackService:
     ) -> None:
         # For each parent notification, we need to get the channel that the notification is replied to
         # Get the channel by using the action uuid
+        if not parent_notification.rule_fire_history:
+            raise RuleDataError(
+                f"parent notification {parent_notification.id} does not have a rule_fire_history"
+            )
+
+        if not parent_notification.rule_action_uuid:
+            raise RuleDataError(
+                f"parent notification {parent_notification.id} does not have a rule_action_uuid"
+            )
+
         rule: Rule = parent_notification.rule_fire_history.rule
         rule_action = rule.get_rule_action_details_by_uuid(parent_notification.rule_action_uuid)
         if not rule_action:
