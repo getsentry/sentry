@@ -7,6 +7,7 @@ from sentry.replays.lib.http import (
     MalformedRangeHeader,
     SuffixLength,
     UnboundedRange,
+    UnsatisfiableRange,
     iter_range_header,
     parse_range_header,
 )
@@ -31,6 +32,23 @@ def test_bounded_range(start: int, end: int, expected: bytes) -> None:
 
 
 @pytest.mark.parametrize(
+    ("start", "end"),
+    (
+        (-1, 0),
+        (14, 15),
+        (1, 0),
+    ),
+)
+def test_bounded_range_invalid(start: int, end: int) -> None:
+    """Test invalid bounded range reads."""
+    a = BoundedRange(start, end)
+    b = io.BytesIO(b"hello, world!")
+
+    with pytest.raises(UnsatisfiableRange):
+        a.read_range(b)
+
+
+@pytest.mark.parametrize(
     ("length", "expected"),
     (
         (13, b"hello, world!"),
@@ -47,6 +65,15 @@ def test_suffix_length(length: int, expected: bytes) -> None:
     assert a.read_range(b) == expected
 
 
+def test_suffix_length_invalid() -> None:
+    """Test invaild suffix length range reads."""
+    a = SuffixLength(-1)
+    b = io.BytesIO(b"hello, world!")
+
+    with pytest.raises(UnsatisfiableRange):
+        a.read_range(b)
+
+
 @pytest.mark.parametrize(
     ("start", "expected"),
     (
@@ -61,6 +88,16 @@ def test_unbounded_range(start: int, expected: bytes) -> None:
     a = UnboundedRange(start)
     b = io.BytesIO(b"hello, world!")
     assert a.read_range(b) == expected
+
+
+@pytest.mark.parametrize(("start",), ((-1,), (14,)))
+def test_unbounded_range_invalid(start: int) -> None:
+    """Test invalid unbounded range reads."""
+    a = UnboundedRange(start)
+    b = io.BytesIO(b"hello, world!")
+
+    with pytest.raises(UnsatisfiableRange):
+        a.read_range(b)
 
 
 def test_parse_range_header_bounded() -> None:

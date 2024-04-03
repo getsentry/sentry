@@ -80,6 +80,9 @@ class SuffixLength:
         self.suffix_length = suffix_length
 
     def make_range(self, last_index: int) -> tuple[int, int]:
+        if self.suffix_length <= 0:
+            raise UnsatisfiableRange()
+
         return (max(0, last_index - self.suffix_length + 1), last_index)
 
     def read_range(self, bytes: io.BytesIO) -> bytes:
@@ -126,3 +129,11 @@ def _range_value(value: str) -> int:
         return signed_int
     except ValueError:
         raise MalformedRangeHeader(f"Expected value of type integer; received: {value}")
+
+
+def content_length(offsets: list[tuple[int, int]]) -> int:
+    return sum(end - start + 1 for start, end in offsets)
+
+
+def content_range(offset: tuple[int, int], resource_size: int) -> str:
+    return f"bytes {f'{offset[0]}-{offset[1]}'}/{resource_size}"
