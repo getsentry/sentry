@@ -347,7 +347,7 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
         }}
       >
         {/* A trace is technically an entry in the list, so it has a color */}
-        {props.tab.node === 'trace' || props.tab.node === 'vitals' ? null : (
+        {props.tab.node === 'trace' ? null : (
           <TabButtonIndicator
             backgroundColor={makeTraceNodeBarColor(props.theme, root)}
           />
@@ -471,14 +471,14 @@ const Tab = styled('li')<{active: boolean}>`
   padding: 0 ${space(0.25)};
   position: relative;
 
-  &:has(+ :not(.Static)) {
-    margin-right: ${space(2)};
+  &.Static + li:not(.Static) {
+    margin-left: ${space(2)};
 
     &:after {
       display: block;
       content: '';
       position: absolute;
-      right: -10px;
+      left: -14px;
       top: 50%;
       transform: translateY(-50%);
       height: 72%;
