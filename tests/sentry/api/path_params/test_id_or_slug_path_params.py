@@ -11,10 +11,18 @@ from sentry.api.base import Endpoint
 from sentry.api.bases.doc_integrations import DocIntegrationBaseEndpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.bases.incident import IncidentEndpoint
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrganizationEndpoint
 from sentry.api.bases.organization_integrations import RegionOrganizationIntegrationBaseEndpoint
 from sentry.api.bases.organizationmember import OrganizationMemberEndpoint
-from sentry.api.bases.sentryapps import RegionSentryAppBaseEndpoint, SentryAppBaseEndpoint
+from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.sentryapps import (
+    RegionSentryAppBaseEndpoint,
+    SentryAppBaseEndpoint,
+    SentryAppInstallationBaseEndpoint,
+    SentryAppInstallationsBaseEndpoint,
+)
+from sentry.api.endpoints.broadcast_index import BroadcastIndexEndpoint
+from sentry.api.endpoints.codeowners.details import ProjectCodeOwnersDetailsEndpoint
 from sentry.api.endpoints.codeowners.external_actor.user_details import ExternalUserDetailsEndpoint
 from sentry.api.endpoints.integrations.sentry_apps import SentryInternalAppTokenDetailsEndpoint
 from sentry.api.endpoints.notifications.notification_actions_details import (
@@ -27,8 +35,9 @@ from sentry.api.endpoints.organization_code_mapping_details import (
     OrganizationCodeMappingDetailsEndpoint,
 )
 from sentry.api.endpoints.organization_dashboard_details import OrganizationDashboardDetailsEndpoint
+from sentry.api.endpoints.organization_region import OrganizationRegionEndpoint
 from sentry.api.endpoints.organization_search_details import OrganizationSearchDetailsEndpoint
-from sentry.incidents.endpoints.bases import OrganizationAlertRuleEndpoint
+from sentry.incidents.endpoints.bases import OrganizationAlertRuleEndpoint, ProjectAlertRuleEndpoint
 from sentry.incidents.endpoints.organization_incident_comment_details import CommentDetailsEndpoint
 from sentry.incidents.models.incident import IncidentActivityType
 from sentry.models.repository import Repository
@@ -36,10 +45,11 @@ from sentry.scim.endpoints.members import OrganizationSCIMMemberDetails
 from sentry.scim.endpoints.teams import OrganizationSCIMTeamDetails
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import no_silo_test
-from sentry.web.frontend.base import BaseView
+from sentry.web.frontend.base import AbstractOrganizationView, BaseView
 
 from .resources.test_doc_integration_slug import DocIntegrationSlugTests
 from .resources.test_organization_slug import OrganizationSlugTests
+from .resources.test_project_slug import ProjectSlugTests
 from .resources.test_sentry_app_slug import SentryAppSlugTests
 
 
@@ -64,7 +74,9 @@ def extract_all_url_patterns(
 
 
 @no_silo_test
-class APIIdOrSlugPathParamTest(DocIntegrationSlugTests, SentryAppSlugTests, OrganizationSlugTests):
+class APIIdOrSlugPathParamTest(
+    DocIntegrationSlugTests, SentryAppSlugTests, OrganizationSlugTests, ProjectSlugTests
+):
     """
     This test class is used to test if all endpoints work with both slugs and ids as path parameters.
     Ex: /api/0/organizations/{organization_slug}/integrations/{doc_integration_slug}/ &
@@ -130,8 +142,11 @@ class APIIdOrSlugPathParamTest(DocIntegrationSlugTests, SentryAppSlugTests, Orga
         # Step 1: Add new endpoints to the registry
         # If a new `convert_args` method is created for an endpoint, add the endpoint to the registry and create/assign a test method
         self.convert_args_setup_registry: dict[Any, Callable] = {
+            AbstractOrganizationView.convert_args: self.ignore_test,
             BaseView.convert_args: self.ignore_test,
+            BroadcastIndexEndpoint.convert_args: self.control_silo_organization_endpoint_test,
             CommentDetailsEndpoint.convert_args: self.comment_details_test,
+            ControlSiloOrganizationEndpoint.convert_args: self.control_silo_organization_endpoint_test,
             DocIntegrationBaseEndpoint.convert_args: self.doc_integration_test,
             Endpoint.convert_args: self.ignore_test,
             ExternalUserDetailsEndpoint.convert_args: self.external_user_details_test,
@@ -144,12 +159,18 @@ class APIIdOrSlugPathParamTest(DocIntegrationSlugTests, SentryAppSlugTests, Orga
             OrganizationDashboardDetailsEndpoint.convert_args: self.organization_dashboard_details_test,
             OrganizationEndpoint.convert_args: self.organization_test,
             OrganizationMemberEndpoint.convert_args: self.organization_member_test,
+            OrganizationRegionEndpoint.convert_args: self.organization_region_test,
             OrganizationSCIMMemberDetails.convert_args: self.organization_member_test,
             OrganizationSCIMTeamDetails.convert_args: self.organization_team_test,
             OrganizationSearchDetailsEndpoint.convert_args: self.organization_search_details_test,
+            ProjectAlertRuleEndpoint.convert_args: self.project_alert_rule_endpoint_test,
+            ProjectEndpoint.convert_args: self.project_test,
+            ProjectCodeOwnersDetailsEndpoint.convert_args: self.project_codeowners_details_test,
             RegionOrganizationIntegrationBaseEndpoint.convert_args: self.region_organization_integration_test,
             RegionSentryAppBaseEndpoint.convert_args: self.region_sentry_app_test,
             SentryAppBaseEndpoint.convert_args: self.sentry_app_test,
+            SentryAppInstallationBaseEndpoint.convert_args: self.ignore_test,
+            SentryAppInstallationsBaseEndpoint.convert_args: self.sentry_app_installations_base_test,
             SentryInternalAppTokenDetailsEndpoint.convert_args: self.sentry_app_token_test,
         }
 
@@ -161,6 +182,8 @@ class APIIdOrSlugPathParamTest(DocIntegrationSlugTests, SentryAppSlugTests, Orga
             "doc_integration_slug": self.doc_integration,
             "sentry_app_slug": self.sentry_app,
             "organization_slug": self.organization,
+            "project_slug": self.project,
+            "team_slug": self.team,
         }
 
         # Map values in kwargs to the actual objects
@@ -168,6 +191,8 @@ class APIIdOrSlugPathParamTest(DocIntegrationSlugTests, SentryAppSlugTests, Orga
             "doc_integration": self.doc_integration,
             "sentry_app": self.sentry_app,
             "organization": self.organization,
+            "project": self.project,
+            "team": self.team,
         }
 
     def test_if_endpoints_work_with_id_or_slug(self):
@@ -180,14 +205,16 @@ class APIIdOrSlugPathParamTest(DocIntegrationSlugTests, SentryAppSlugTests, Orga
             if hasattr(callback, "convert_args"):
                 slug_path_params = extract_slug_path_params(pattern)
                 if slug_path_params:
-                    if slug_path_params == ["doc_integration_slug"] or slug_path_params == [
-                        "sentry_app_slug"
-                    ]:
+                    if (
+                        slug_path_params == ["doc_integration_slug"]
+                        or slug_path_params == ["sentry_app_slug"]
+                        or slug_path_params == ["organization_slug"]
+                    ):
                         self.convert_args_setup_registry[callback.convert_args](
                             callback, slug_path_params
                         )
-                    elif slug_path_params == ["organization_slug"]:
-                        if convert_args := self.convert_args_setup_registry.get(
-                            callback.convert_args
-                        ):
-                            convert_args(callback, slug_path_params)
+                    # Temporary for "project_slug" endpoints
+                    elif convert_args := self.convert_args_setup_registry.get(
+                        callback.convert_args
+                    ):
+                        convert_args(callback, slug_path_params)

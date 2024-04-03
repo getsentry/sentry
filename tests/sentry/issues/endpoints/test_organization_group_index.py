@@ -2469,6 +2469,202 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert int(response.data[1]["id"]) == event2.group.id
         assert mock_query.call_count == 1
 
+    @override_options({"issues.group_attributes.send_kafka": True})
+    def test_snuba_assignee_filter(self):
+
+        # issue 1: assigned to user
+        time = datetime.now() - timedelta(minutes=10)
+        event1 = self.store_event(
+            data={"timestamp": time.timestamp(), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        GroupAssignee.objects.assign(event1.group, self.user)
+
+        # issue 2: assigned to team
+        time = datetime.now() - timedelta(minutes=9)
+        event2 = self.store_event(
+            data={"timestamp": time.timestamp(), "fingerprint": ["group-2"]},
+            project_id=self.project.id,
+        )
+        GroupAssignee.objects.assign(event2.group, self.team)
+
+        # issue 3: suspect commit for user
+        time = datetime.now() - timedelta(minutes=8)
+        event3 = self.store_event(
+            data={"timestamp": time.timestamp(), "fingerprint": ["group-3"]},
+            project_id=self.project.id,
+        )
+        GroupOwner.objects.create(
+            group=event3.group,
+            project=event3.group.project,
+            organization=event3.group.project.organization,
+            type=0,
+            team_id=None,
+            user_id=self.user.id,
+        )
+
+        # issue 4: ownership rule for team
+        time = datetime.now() - timedelta(minutes=7)
+        event4 = self.store_event(
+            data={"timestamp": time.timestamp(), "fingerprint": ["group-4"]},
+            project_id=self.project.id,
+        )
+        GroupOwner.objects.create(
+            group=event4.group,
+            project=event4.group.project,
+            organization=event4.group.project.organization,
+            type=1,
+            team_id=self.team.id,
+            user_id=None,
+        )
+
+        # issue 5: assigned to another user
+        time = datetime.now() - timedelta(minutes=6)
+        event5 = self.store_event(
+            data={"timestamp": time.timestamp(), "fingerprint": ["group-5"]},
+            project_id=self.project.id,
+        )
+        GroupAssignee.objects.assign(event5.group, self.create_user())
+
+        # issue 6: assigned to another team
+        time = datetime.now() - timedelta(minutes=5)
+        event6 = self.store_event(
+            data={"timestamp": time.timestamp(), "fingerprint": ["group-6"]},
+            project_id=self.project.id,
+        )
+        GroupAssignee.objects.assign(event6.group, self.create_team())
+
+        # issue 7: suggested to another user
+        time = datetime.now() - timedelta(minutes=4)
+        event7 = self.store_event(
+            data={"timestamp": time.timestamp(), "fingerprint": ["group-7"]},
+            project_id=self.project.id,
+        )
+        GroupOwner.objects.create(
+            group=event7.group,
+            project=event7.group.project,
+            organization=event7.group.project.organization,
+            type=0,
+            team_id=None,
+            user_id=self.create_user().id,
+        )
+        # issue 8: suggested to another team
+        time = datetime.now() - timedelta(minutes=3)
+        event8 = self.store_event(
+            data={"timestamp": time.timestamp(), "fingerprint": ["group-8"]},
+            project_id=self.project.id,
+        )
+        GroupOwner.objects.create(
+            group=event8.group,
+            project=event8.group.project,
+            organization=event8.group.project.organization,
+            type=0,
+            team_id=self.create_team().id,
+            user_id=None,
+        )
+
+        # issue 9: unassigned
+        time = datetime.now() - timedelta(minutes=2)
+        event9 = self.store_event(
+            data={"timestamp": time.timestamp(), "fingerprint": ["group-9"]},
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+
+        for query in [
+            "assigned_or_suggested:[me]",
+            "assigned_or_suggested:[my_teams]",
+            "assigned_or_suggested:[me, my_teams]",
+            "assigned_or_suggested:[me, my_teams, none]",
+            "assigned_or_suggested:none",
+            "assigned:[me]",
+            "assigned:[my_teams]",
+            "assigned:[me, my_teams]",
+            "assigned:[me, my_teams, none]",
+            "assigned:none",
+        ]:
+            response = self.get_success_response(
+                sort="new",
+                useGroupSnubaDataset=1,
+                query=query,
+            )
+
+            if query == "assigned_or_suggested:[me]":
+                assert len(response.data) == 2
+                assert int(response.data[0]["id"]) == event3.group.id
+                assert int(response.data[1]["id"]) == event1.group.id
+            elif query == "assigned_or_suggested:[my_teams]":
+                assert len(response.data) == 2
+                assert int(response.data[0]["id"]) == event4.group.id
+                assert int(response.data[1]["id"]) == event2.group.id
+            elif query == "assigned_or_suggested:[me, my_teams]":
+                assert len(response.data) == 4
+                assert int(response.data[0]["id"]) == event4.group.id
+                assert int(response.data[1]["id"]) == event3.group.id
+                assert int(response.data[2]["id"]) == event2.group.id
+                assert int(response.data[3]["id"]) == event1.group.id
+            elif query == "assigned_or_suggested:[me, my_teams, none]":
+                assert len(response.data) == 5
+                assert int(response.data[0]["id"]) == event9.group.id
+                assert int(response.data[1]["id"]) == event4.group.id
+                assert int(response.data[2]["id"]) == event3.group.id
+                assert int(response.data[3]["id"]) == event2.group.id
+                assert int(response.data[4]["id"]) == event1.group.id
+
+            elif query == "assigned_or_suggested:none":
+                assert len(response.data) == 1
+                assert int(response.data[0]["id"]) == event9.group.id
+            elif query == "assigned:[me]":
+                assert len(response.data) == 1
+                assert int(response.data[0]["id"]) == event1.group.id
+            elif query == "assigned:[my_teams]":
+                assert len(response.data) == 1
+                assert int(response.data[0]["id"]) == event2.group.id
+            elif query == "assigned:[me, my_teams]":
+                assert len(response.data) == 2
+                assert int(response.data[0]["id"]) == event2.group.id
+                assert int(response.data[1]["id"]) == event1.group.id
+            elif query == "assigned:[me, my_teams, none]":
+                assert len(response.data) == 7
+                assert int(response.data[0]["id"]) == event9.group.id
+                assert int(response.data[1]["id"]) == event8.group.id
+                assert int(response.data[2]["id"]) == event7.group.id
+                assert int(response.data[3]["id"]) == event4.group.id
+                assert int(response.data[4]["id"]) == event3.group.id
+                assert int(response.data[5]["id"]) == event2.group.id
+                assert int(response.data[6]["id"]) == event1.group.id
+            elif query == "assigned:none":
+                assert len(response.data) == 5
+                assert int(response.data[0]["id"]) == event9.group.id
+                assert int(response.data[1]["id"]) == event8.group.id
+                assert int(response.data[2]["id"]) == event7.group.id
+                assert int(response.data[3]["id"]) == event4.group.id
+                assert int(response.data[4]["id"]) == event3.group.id
+            else:
+                assert False, f"Unexpected query {query}"
+
+    def test_snuba_unsupported_filters(self):
+        self.login_as(user=self.user)
+        for query in [
+            "bookmarks:me",
+            "is:linked",
+            "is:unlinked",
+            "subscribed:me",
+            "regressed_in_release:latest",
+            "issue.priority:high",
+        ]:
+            with patch(
+                "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
+                side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
+            ) as mock_query:
+                self.get_success_response(
+                    sort="new",
+                    useGroupSnubaDataset=1,
+                    query=query,
+                )
+                assert mock_query.call_count == 0
+
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"

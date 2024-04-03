@@ -71,6 +71,7 @@ EXPOSABLE_FEATURES = [
     "organizations:metric-meta",
     "organizations:standalone-span-ingestion",
     "projects:discard-transaction",
+    "organizations:continuous-profiling",
 ]
 
 EXTRACT_METRICS_VERSION = 1
@@ -248,6 +249,11 @@ class CardinalityLimit(TypedDict):
     namespace: str | None
 
 
+class CardinalityLimitOption(TypedDict):
+    rollout_rate: NotRequired[float]
+    limit: CardinalityLimit
+
+
 def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, Any] | None:
     metrics_config = {}
 
@@ -280,6 +286,18 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
             if id in passive_limits:
                 limit["passive"] = True
             cardinality_limits.append(limit)
+
+        clos: list[CardinalityLimitOption] = options.get("relay.cardinality-limiter.limits")
+        for clo in clos:
+            rollout_rate = clo.get("rollout_rate", 1.0)
+            if (project.organization.id % 100000) / 100000 >= rollout_rate:
+                continue
+
+            try:
+                cardinality_limits.append(clo["limit"])
+            except KeyError:
+                pass
+
         metrics_config["cardinalityLimits"] = cardinality_limits
 
     if features.has("organizations:metrics-blocking", project.organization):
@@ -827,9 +845,6 @@ def _get_project_config(
                 EXTRACT_ABNORMAL_MECHANISM_VERSION
                 if _should_extract_abnormal_mechanism(project)
                 else EXTRACT_METRICS_VERSION
-            ),
-            "drop": features.has(
-                "organizations:release-health-drop-sessions", project.organization
             ),
         }
 

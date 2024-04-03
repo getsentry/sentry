@@ -6,15 +6,15 @@ describe('GuidedSteps', function () {
   it('can navigate through steps and shows previous ones as completed', async function () {
     render(
       <GuidedSteps>
-        <GuidedSteps.Step title="Step 1 Title">
+        <GuidedSteps.Step stepKey="step-1" title="Step 1 Title">
           This is the first step.
           <GuidedSteps.StepButtons />
         </GuidedSteps.Step>
-        <GuidedSteps.Step title="Step 2 Title">
+        <GuidedSteps.Step stepKey="step-2" title="Step 2 Title">
           This is the second step.
           <GuidedSteps.StepButtons />
         </GuidedSteps.Step>
-        <GuidedSteps.Step title="Step 3 Title">
+        <GuidedSteps.Step stepKey="step-3" title="Step 3 Title">
           This is the third step.
           <GuidedSteps.StepButtons />
         </GuidedSteps.Step>
@@ -40,15 +40,15 @@ describe('GuidedSteps', function () {
   it('starts at the first incomplete step', function () {
     render(
       <GuidedSteps>
-        <GuidedSteps.Step title="Step 1 Title" isCompleted>
+        <GuidedSteps.Step stepKey="step-1" title="Step 1 Title" isCompleted>
           This is the first step.
           <GuidedSteps.StepButtons />
         </GuidedSteps.Step>
-        <GuidedSteps.Step title="Step 2 Title" isCompleted={false}>
+        <GuidedSteps.Step stepKey="step-2" title="Step 2 Title" isCompleted={false}>
           This is the second step.
           <GuidedSteps.StepButtons />
         </GuidedSteps.Step>
-        <GuidedSteps.Step title="Step 3 Title" isCompleted={false}>
+        <GuidedSteps.Step stepKey="step-3" title="Step 3 Title" isCompleted={false}>
           This is the third step.
           <GuidedSteps.StepButtons />
         </GuidedSteps.Step>
