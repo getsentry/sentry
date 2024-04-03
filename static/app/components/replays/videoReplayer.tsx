@@ -218,7 +218,7 @@ export class VideoReplayer {
    * Called when a video finishes playing, so that it can proceed
    * to the next video
    */
-  private handleSegmentEnd(index: number) {
+  private async handleSegmentEnd(index: number): Promise<void> {
     const nextIndex = index + 1;
 
     // No more segments
@@ -232,7 +232,17 @@ export class VideoReplayer {
       return;
     }
 
-    this.playSegmentAtIndex(nextIndex);
+    const loadedSegmentIndex = await this.loadSegment(nextIndex, {segmentOffsetMs: 0});
+
+    // Preload videos before and after this index
+    this.preloadVideos({
+      low: loadedSegmentIndex - PRELOAD_BUFFER,
+      high: loadedSegmentIndex + PRELOAD_BUFFER,
+    });
+
+    if (loadedSegmentIndex !== undefined) {
+      this.playVideo(this.getVideo(loadedSegmentIndex));
+    }
   }
 
   /**
@@ -415,24 +425,6 @@ export class VideoReplayer {
     }
 
     return this._currentIndex;
-  }
-
-  /**
-   * Plays a segment at the segment index
-   */
-  protected async playSegmentAtIndex(index: number | undefined) {
-    this._isPlaying = true;
-    const loadedSegmentIndex = await this.loadSegment(index, {segmentOffsetMs: 0});
-
-    // Preload videos before and after this index
-    this.preloadVideos({
-      low: loadedSegmentIndex - PRELOAD_BUFFER,
-      high: loadedSegmentIndex + PRELOAD_BUFFER,
-    });
-
-    if (loadedSegmentIndex !== undefined) {
-      this.playVideo(this.getVideo(loadedSegmentIndex));
-    }
   }
 
   /**
