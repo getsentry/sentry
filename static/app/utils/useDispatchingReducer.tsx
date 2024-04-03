@@ -18,6 +18,7 @@ import {
  */
 
 type ArgumentTypes<F extends Function> = F extends (...args: infer A) => any ? A : never;
+
 export interface DispatchingReducerMiddleware<R extends React.Reducer<any, any>> {
   ['before action']: (S: Readonly<ReducerState<R>>, A: React.ReducerAction<R>) => void;
   ['before next state']: (
