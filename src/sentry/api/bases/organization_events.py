@@ -125,10 +125,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             return params, filter_params
 
     def get_snuba_params(
-        self,
-        request: Request,
-        organization: Organization,
-        check_global_views: bool = True,
+        self, request: Request, organization: Organization, check_global_views: bool = True
     ) -> ParamsType:
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params"):
             if (
@@ -140,7 +137,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                     detail=f"You can view up to {MAX_FIELDS} fields at a time. Please delete some and try again."
                 )
 
-            # For the trace view we want to include all accessible projects
             params: ParamsType = self.get_filter_params(request, organization)
             params = self.quantize_date_params(request, params)
             params["user_id"] = request.user.id if request.user else None

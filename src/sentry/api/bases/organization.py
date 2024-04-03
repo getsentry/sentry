@@ -488,10 +488,7 @@ class OrganizationEndpoint(Endpoint):
             if isinstance(project_slugs, list):
                 project_slugs = set(project_slugs)
             projects = self.get_projects(
-                request,
-                organization,
-                project_ids=project_ids,
-                project_slugs=project_slugs,
+                request, organization, project_ids=project_ids, project_slugs=project_slugs
             )
         except ValueError:
             raise ParseError(detail="Invalid project ids")
