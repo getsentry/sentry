@@ -155,7 +155,8 @@ class FrameMatch(Match):
         try:
             self.key = MATCHERS[key]
         except KeyError:
-            raise InvalidEnhancerConfig("Unknown matcher '%s'" % key)
+            error_message = f"Unknown matcher '{key}'. Available matchers are: {', '.join(MATCHERS.keys())}"
+            raise InvalidEnhancerConfig(error_message)
         self.pattern = pattern
         self._encoded_pattern = pattern.encode("utf-8")
         self.negated = negated
