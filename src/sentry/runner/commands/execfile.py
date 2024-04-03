@@ -8,7 +8,7 @@ import click
     name="execfile", context_settings=dict(ignore_unknown_options=True, allow_extra_args=True)
 )
 @click.argument("filename", required=True)
-def execfile(filename):
+def execfile(filename: str) -> None:
     """Execute a script.
 
     This is very similar to `exec`, with the following differences:
@@ -27,7 +27,7 @@ def execfile(filename):
 
     - __file__ is set to the filename of the script.
     """
-    filename = pathlib.Path(filename)
+    filename_src = pathlib.Path(filename).read_text()
     preamble = "\n".join(
         [
             "from sentry.runner import configure; configure()",
@@ -39,5 +39,5 @@ def execfile(filename):
     preamble_code = compile(preamble, filename, "exec")
     exec(preamble_code, script_globals, script_globals)
     sys.argv = sys.argv[1:]
-    script_code = compile(filename.read_text(), filename, "exec")
+    script_code = compile(filename_src, filename, "exec")
     exec(script_code, script_globals, script_globals)

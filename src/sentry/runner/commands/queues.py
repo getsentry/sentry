@@ -4,7 +4,7 @@ from sentry.runner.decorators import configuration
 
 
 @click.group()
-def queues():
+def queues() -> None:
     "Manage Sentry queues."
 
 
@@ -12,7 +12,7 @@ def queues():
 @click.option("-S", "sort_size", default=False, is_flag=True, help="Sort by size.")
 @click.option("-r", "reverse", default=False, is_flag=True, help="Reverse the sort order.")
 @configuration
-def list(sort_size, reverse):
+def list(sort_size: bool, reverse: bool) -> None:
     "List queues and their sizes."
 
     from django.conf import settings
@@ -37,7 +37,7 @@ def list(sort_size, reverse):
 @click.option("-f", "--force", default=False, is_flag=True, help="Do not prompt for confirmation.")
 @click.argument("queue")
 @configuration
-def purge(force, queue):
+def purge(force: bool, queue: str) -> None:
     "Purge all messages from a queue."
 
     from sentry.monitoring.queues import backend, get_queue_by_name

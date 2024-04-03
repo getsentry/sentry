@@ -80,7 +80,7 @@ def _attempt_update(
 @log_options()
 @click.pass_context
 @configuration
-def configoptions(ctx, dry_run: bool, file: str | None, hide_drift: bool) -> None:
+def configoptions(ctx: click.Context, dry_run: bool, file: str | None, hide_drift: bool) -> None:
     """
     Makes changes to options in bulk starting from a yaml file.
     Contrarily to the `config` command, this is meant to perform
@@ -155,7 +155,7 @@ def configoptions(ctx, dry_run: bool, file: str | None, hide_drift: bool) -> Non
 @configoptions.command()
 @click.pass_context
 @configuration
-def patch(ctx) -> None:
+def patch(ctx: click.Context) -> None:
     """
     Applies to the DB the option values found in the config file.
     Only the options present in the file are updated. No deletions
@@ -217,7 +217,7 @@ def patch(ctx) -> None:
 @configoptions.command()
 @click.pass_context
 @configuration
-def sync(ctx):
+def sync(ctx: click.Context) -> None:
     """
     Synchronizes the content of the file with the DB. The source of
     truth is the config file, not the DB. If an option is missing in

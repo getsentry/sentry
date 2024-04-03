@@ -11,8 +11,7 @@ import click
     "--no-clobber", default=False, is_flag=True, help="Don't ask to overwrite existing config."
 )
 @click.argument("directory", required=False)
-@click.pass_context
-def init(ctx, dev, no_clobber, directory):
+def init(dev: bool, no_clobber: bool, directory: str) -> None:
     "Initialize new configuration directory."
     from sentry.runner.settings import discover_configs, generate_settings
 
