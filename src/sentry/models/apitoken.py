@@ -69,19 +69,13 @@ class ApiTokenManager(ControlOutboxProducingManager):
         if options.get("apitoken.save-hash-on-create"):
             kwargs["hashed_token"] = hashlib.sha256(plaintext_token.encode()).hexdigest()
 
-            if plaintext_refresh_token is not None:
+            if plaintext_refresh_token:
                 kwargs["hashed_refresh_token"] = hashlib.sha256(
                     plaintext_refresh_token.encode()
                 ).hexdigest()
 
         kwargs["token"] = plaintext_token
         kwargs["refresh_token"] = plaintext_refresh_token
-
-        if plaintext_refresh_token is not None:
-            kwargs["refresh_token"] = plaintext_refresh_token
-            kwargs["hashed_refresh_token"] = hashlib.sha256(
-                plaintext_refresh_token.encode()
-            ).hexdigest()
 
         api_token = super().create(*args, **kwargs)
 
