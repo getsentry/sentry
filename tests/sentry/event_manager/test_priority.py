@@ -134,3 +134,15 @@ class TestEventManagerPriority(TestCase):
         assert event.group.priority == PriorityLevel.HIGH
         assert event.group.get_event_metadata()["initial_priority"] == PriorityLevel.HIGH
         assert mock_get_severity_score.call_count == 1
+
+    @patch("sentry.event_manager._get_severity_metadata_for_group", return_value={})
+    def test_severity_error(self, mock_get_severity_metadata_for_group):
+        event = EventManager(
+            make_event(level=logging.WARNING, fingerprint=["def"], platform="python")
+        ).save(self.project.id)
+
+        assert event.group
+        assert "severity" not in event.group.get_event_metadata()
+        assert event.group.priority == PriorityLevel.MEDIUM
+        assert event.group.get_event_metadata()["initial_priority"] == PriorityLevel.MEDIUM
+        assert mock_get_severity_metadata_for_group.call_count == 1
