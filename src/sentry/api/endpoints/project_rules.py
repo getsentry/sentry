@@ -35,6 +35,7 @@ from sentry.rules.actions.base import instantiate_action
 from sentry.rules.processor import is_condition_slow
 from sentry.signals import alert_rule_created
 from sentry.tasks.integrations.slack import find_channel_id_for_rule
+from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 
 
@@ -869,5 +870,9 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             "organizations:rule-create-edit-confirm-notification", project.organization
         ):
             send_confirmation_notification(rule=rule, new=True)
+            metrics.incr(
+                "rule_confirmation.create.notification.sent",
+                skip_internal=False,
+            )
 
         return Response(serialize(rule, request.user))
