@@ -53,7 +53,7 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
-from sentry.search.events.builder.discover import QueryBuilder
+from sentry.search.events.builder.discover import UnresolvedQuery
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.snuba.dataset import Dataset
@@ -1132,14 +1132,10 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         """
         Returns the basic lookup for a search filter.
         """
-        query_builder = QueryBuilder(
+        query_builder = UnresolvedQuery(
             dataset=Dataset.Events,
             entity=self.entities["event"],
-            # passing in fake values of start and end since we don't use them
-            params={
-                "start": timezone.now() - timedelta(days=1),
-                "end": timezone.now(),
-            },
+            params={},
         )
         return query_builder.default_filter_converter(search_filter)
 
