@@ -747,7 +747,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.backfill_outboxes",
     "sentry.tasks.beacon",
     "sentry.tasks.check_auth",
-    "sentry.tasks.check_new_issue_threshold_met",
     "sentry.tasks.clear_expired_snoozes",
     "sentry.tasks.clear_expired_rulesnoozes",
     "sentry.tasks.codeowners.code_owners_auto_sync",
@@ -942,7 +941,6 @@ CELERY_QUEUES_REGION = [
     Queue("nudge.invite_missing_org_members", routing_key="invite_missing_org_members"),
     Queue("auto_resolve_issues", routing_key="auto_resolve_issues"),
     Queue("on_demand_metrics", routing_key="on_demand_metrics"),
-    Queue("check_new_issue_threshold_met", routing_key="check_new_issue_threshold_met"),
 ]
 
 from celery.schedules import crontab
@@ -1230,12 +1228,6 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.tasks.on_demand_metrics.schedule_on_demand_check",
         # Run every 5 minutes
         "schedule": crontab(minute="*/5"),
-    },
-    "check_new_issue_threshold_met": {
-        "task": "sentry.tasks.check_new_issue_threshold_met",
-        # 02:00 PDT, 06:00 EDT, 08:00 UTC
-        "schedule": crontab(hour="9", minute="0"),
-        "options": {"expires": 60 * 25},
     },
 }
 
