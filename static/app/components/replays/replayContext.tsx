@@ -427,8 +427,8 @@ function ProviderNonMemo({
               return;
             }
             setDimensions({
-              height: event.target.videoHeight,
-              width: event.target.videoWidth,
+              height: videoHeight,
+              width: videoWidth,
             });
           },
           onBuffer: buffering => {
