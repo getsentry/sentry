@@ -86,6 +86,9 @@ def adjust_end(end: datetime.datetime, interval: int) -> datetime.datetime:
     return end
 
 
+@pytest.mark.xfail(
+    reason="Deprecated test. Will be faded out once SessionsReleaseHealthBackend will be removed."
+)
 class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -1313,7 +1316,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
 @patch("sentry.release_health.backend", MetricsReleaseHealthBackend())
 class OrganizationSessionsEndpointMetricsTest(
-    BaseMetricsTestCase, OrganizationSessionsEndpointTest
+    OrganizationSessionsEndpointTest, BaseMetricsTestCase
 ):
     """Repeat all tests with metrics backend"""
 
