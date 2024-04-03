@@ -287,6 +287,22 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Killswitch to enable id or slug path parameters for some endpoints
+register(
+    "api.id-or-slug-enabled-ea",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Killswitch to enable id or slug path parameters for some endpoints for certain organizations, if available
+register(
+    "api.id-or-slug-enabled-ea-org",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # API Tokens
 register(
     "apitoken.auto-add-last-chars",
