@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 from pytest import fixture
 from rest_framework.request import Request
 
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 
@@ -62,7 +63,6 @@ class OrganizationSlugTests(TestCase, APIIdOrSlugTestMixin):
         non_slug_mappings: dict[str, Any] = {
             "config_id": self.code_mapping.id,
         }
-
         reverse_non_slug_mappings: dict[str, Any] = {
             "config": self.code_mapping,
         }
@@ -88,8 +88,6 @@ class OrganizationSlugTests(TestCase, APIIdOrSlugTestMixin):
         non_slug_mappings: dict[str, Any] = {
             "search_id": search.id,
         }
-
-        # mapping kwargs to the actual objects
         reverse_non_slug_mappings: dict[str, Any] = {
             "search": search,
         }
@@ -141,7 +139,6 @@ class OrganizationSlugTests(TestCase, APIIdOrSlugTestMixin):
         non_slug_mappings: dict[str, Any] = {
             "team_id": self.team.id,
         }
-
         reverse_non_slug_mappings: dict[str, Any] = {
             "team": self.team,
         }
@@ -166,7 +163,6 @@ class OrganizationSlugTests(TestCase, APIIdOrSlugTestMixin):
         non_slug_mappings: dict[str, Any] = {
             "issue_id": self.group.id,
         }
-
         reverse_non_slug_mappings: dict[str, Any] = {
             "group": self.group,
         }
@@ -193,7 +189,6 @@ class OrganizationSlugTests(TestCase, APIIdOrSlugTestMixin):
         non_slug_mappings: dict[str, Any] = {
             "external_user_id": external_user.id,
         }
-
         reverse_non_slug_mappings: dict[str, Any] = {
             "external_user": external_user,
         }
@@ -252,10 +247,8 @@ class OrganizationSlugTests(TestCase, APIIdOrSlugTestMixin):
         non_slug_mappings: dict[str, Any] = {
             "incident_identifier": str(self.incident.id),
         }
-
         reverse_non_slug_mappings: dict[str, Any] = {
             "incident": self.incident,
-            # "activity": self.incident_activity,
         }
 
         _, converted_slugs = endpoint_class().convert_args(
@@ -288,7 +281,6 @@ class OrganizationSlugTests(TestCase, APIIdOrSlugTestMixin):
             "incident_identifier": str(self.incident.id),
             "activity_id": self.incident_activity.id,
         }
-
         reverse_non_slug_mappings: dict[str, Any] = {
             "incident": self.incident,
             "activity": self.incident_activity,
@@ -326,7 +318,6 @@ class OrganizationSlugTests(TestCase, APIIdOrSlugTestMixin):
         non_slug_mappings: dict[str, Any] = {
             "action_id": notification_action.id,
         }
-
         reverse_non_slug_mappings: dict[str, Any] = {
             "action": notification_action,
         }
@@ -376,4 +367,63 @@ class OrganizationSlugTests(TestCase, APIIdOrSlugTestMixin):
 
         self.assert_conversion(
             endpoint_class, converted_slugs, converted_ids, reverse_non_slug_mappings
+        )
+
+    @patch("sentry.api.bases.sentryapps.is_active_superuser")
+    def sentry_app_installations_base_test(self, endpoint_class, slug_params, *args):
+        slug_kwargs = {param: self.slug_mappings[param].slug for param in slug_params}
+        id_kwargs = {param: self.slug_mappings[param].id for param in slug_params}
+
+        request = MagicMock()
+        request.configure_mock(
+            **{
+                "access.has_project_access.return_value": True,
+                "_access.organization": MagicMock(),
+                "user.is_authenticated": True,
+                "user.is_superuser": True,
+            }
+        )
+
+        _, converted_slugs = endpoint_class().convert_args(request=None, **slug_kwargs)
+        _, converted_ids = endpoint_class().convert_args(request=None, **id_kwargs)
+
+        self.assert_conversion(endpoint_class, converted_slugs, converted_ids, use_id=True)
+
+    def control_silo_organization_endpoint_test(self, endpoint_class, slug_params, *args):
+        slug_kwargs = {param: self.slug_mappings[param].slug for param in slug_params}
+        id_kwargs = {param: self.slug_mappings[param].id for param in slug_params}
+
+        request = Request(request=self.make_request())
+
+        _, converted_slugs = endpoint_class().convert_args(request=request, **slug_kwargs)
+        _, converted_ids = endpoint_class().convert_args(request=request, **id_kwargs)
+
+        # Checking if the organization_context is the same for both slugs and ids
+        # Conducting this check because the organization_context is not in the reverse_slug_mappings
+        assert converted_slugs == converted_ids
+
+        converted_slugs.pop("organization_context")
+        converted_ids.pop("organization_context")
+
+        self.assert_conversion(endpoint_class, converted_slugs, converted_ids, use_id=True)
+
+    def organization_region_test(self, endpoint_class, slug_params, *args):
+        slug_kwargs = {param: self.slug_mappings[param].slug for param in slug_params}
+        id_kwargs = {param: self.slug_mappings[param].id for param in slug_params}
+
+        request = Request(request=self.make_request())
+
+        reverse_non_slug_mappings: dict[str, Any] = {
+            "organization_mapping": OrganizationMapping.objects.get(slug=self.organization.slug)
+        }
+
+        _, converted_slugs = endpoint_class().convert_args(request=request, **slug_kwargs)
+        _, converted_ids = endpoint_class().convert_args(request=request, **id_kwargs)
+
+        self.assert_conversion(
+            endpoint_class,
+            converted_slugs,
+            converted_ids,
+            reverse_non_slug_mappings,
+            use_id=True,
         )

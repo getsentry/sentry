@@ -47,3 +47,4 @@ class IdOrSlugLookup(Lookup):
 
 
 SentrySlugField.register_lookup(IdOrSlugLookup)
+SentryOrgSlugField.register_lookup(IdOrSlugLookup)
