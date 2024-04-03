@@ -298,11 +298,42 @@ def parse_mri(mri_string: str | None) -> ParsedMRI | None:
     return ParsedMRI(**match.groupdict())
 
 
+def parse_mri_lenient(mri_string: str | None) -> ParsedMRI | None:
+    """
+    Parse a mri string in a lenient way, meaning that the goal of the parsing is just
+    to find the common structure of the mri which is split by a series of known delimiters ':', '/', '@'.
+    """
+    mri_delimiters = [":", "/", "@"]
+    mri_components = []
+    start = 0
+
+    # Find the MRI delimiters one after the other
+    for i in range(len(mri_string)):
+        if mri_delimiters and mri_string[i] in mri_delimiters[0]:
+            mri_components.append(mri_string[start:i])
+            mri_delimiters.pop(0)
+            start = i + 1
+
+    # Append the substring after the last delimiter
+    mri_components.append(mri_string[start:])
+
+    # In case we do not find the exact number of components that we expect in the MRI, we will return `None`.
+    if len(mri_components) != 4:
+        return None
+
+    return ParsedMRI(
+        entity=mri_components[0],
+        namespace=mri_components[1],
+        name=mri_components[2],
+        unit=mri_components[3],
+    )
+
+
 def is_mri(mri_string: str | None) -> bool:
     """
     Returns true if the passed value is a mri.
     """
-    return parse_mri(mri_string) is not None
+    return parse_mri_lenient(mri_string) is not None
 
 
 def is_custom_metric(parsed_mri: ParsedMRI) -> bool:
@@ -366,7 +397,7 @@ def extract_use_case_id(mri: str) -> UseCaseID:
     """
     Returns the use case ID given the MRI, throws an error if MRI is invalid or the use case doesn't exist.
     """
-    parsed_mri = parse_mri(mri)
+    parsed_mri = parse_mri_lenient(mri)
     if parsed_mri is not None:
         if parsed_mri.namespace in {id.value for id in UseCaseID}:
             return UseCaseID(parsed_mri.namespace)

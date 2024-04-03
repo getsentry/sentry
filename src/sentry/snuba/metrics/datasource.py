@@ -59,7 +59,7 @@ from sentry.snuba.metrics.naming_layer.mri import (
     get_available_operations,
     is_custom_measurement,
     is_mri,
-    parse_mri,
+    parse_mri_lenient,
 )
 from sentry.snuba.metrics.query import Groupable, MetricField, MetricsQuery
 from sentry.snuba.metrics.query_builder import (
@@ -158,7 +158,7 @@ def _get_mri_constraints_for_use_case(entity_key: EntityKey, use_case_id: UseCas
     max_metric_id = 0
 
     for mri, id in SHARED_STRINGS.items():
-        parsed_mri = parse_mri(mri)
+        parsed_mri = parse_mri_lenient(mri)
         if parsed_mri is not None and parsed_mri.namespace == use_case_id.value:
             min_metric_id = min(id, min_metric_id)
             max_metric_id = max(id, max_metric_id)
@@ -339,7 +339,7 @@ def get_metrics_meta(
 
     metrics_metas = []
     for metric_mri, project_ids in stored_metrics.items():
-        parsed_mri = parse_mri(metric_mri)
+        parsed_mri = parse_mri_lenient(metric_mri)
         if parsed_mri is None:
             with sentry_sdk.push_scope() as scope:
                 scope.set_extra("project_ids", project_ids)
@@ -361,7 +361,7 @@ def get_metrics_meta(
         metrics_metas.append(_build_metric_meta(parsed_mri, project_ids, blocking_status))
 
     for metric_mri, metric_blocking in metrics_blocking_state.items():
-        parsed_mri = parse_mri(metric_mri)
+        parsed_mri = parse_mri_lenient(metric_mri)
         if parsed_mri is None:
             continue
 
@@ -468,7 +468,7 @@ def get_custom_measurements(
 
         for row in rows:
             mri_index = row.get("metric_id")
-            parsed_mri = parse_mri(mris.get(mri_index))
+            parsed_mri = parse_mri_lenient(mris.get(mri_index))
             if parsed_mri is not None and is_custom_measurement(parsed_mri):
                 metrics_meta.append(
                     MetricMeta(

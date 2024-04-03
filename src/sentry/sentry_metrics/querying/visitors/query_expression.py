@@ -20,7 +20,7 @@ from sentry.sentry_metrics.querying.visitors.base import (
     QueryConditionVisitor,
     QueryExpressionVisitor,
 )
-from sentry.snuba.metrics import parse_mri
+from sentry.snuba.metrics.naming_layer.mri import parse_mri_lenient
 
 
 class EnvironmentsInjectionVisitor(QueryExpressionVisitor[QueryExpression]):
@@ -106,7 +106,7 @@ class QueryValidationV2Visitor(QueryExpressionVisitor[QueryExpression]):
         if timeseries.metric.mri is None:
             raise InvalidMetricsQueryError("You must supply a metric MRI when querying a metric")
 
-        parsed_mri = parse_mri(timeseries.metric.mri)
+        parsed_mri = parse_mri_lenient(timeseries.metric.mri)
         if parsed_mri is None:
             raise InvalidMetricsQueryError(
                 f"The metric MRI {timeseries.metric.mri} couldn't be parsed"
@@ -387,7 +387,7 @@ class UnitsNormalizationVisitor(QueryExpressionVisitor[tuple[UnitMetadata, Query
         if timeseries.aggregate in self.UNITLESS_AGGREGATES:
             return None
 
-        parsed_mri = parse_mri(timeseries.metric.mri)
+        parsed_mri = parse_mri_lenient(timeseries.metric.mri)
         if parsed_mri is not None:
             return parsed_mri.unit
 

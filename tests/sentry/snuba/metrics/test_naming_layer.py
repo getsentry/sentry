@@ -7,6 +7,7 @@ from sentry.snuba.metrics.naming_layer.mri import (
     ParsedMRI,
     is_custom_measurement,
     parse_mri,
+    parse_mri_lenient,
 )
 from sentry.snuba.metrics.naming_layer.public import PUBLIC_NAME_REGEX
 
@@ -104,10 +105,58 @@ def test_invalid_mri_schema_regex(name):
         ),
     ],
 )
-def test_parse_mri(name, expected):
+def test_parse_mri_with_valid_mri(name, expected):
     parsed_mri = parse_mri(name)
     assert parsed_mri == expected
     assert parsed_mri.mri_string == name
+
+
+@pytest.mark.parametrize(
+    "name, expected",
+    [
+        (
+            "d:transactions/measurements.stall_longest_time@millisecond",
+            ParsedMRI("d", "transactions", "measurements.stall_longest_time", "millisecond"),
+        ),
+        (
+            "d:transactions/breakdowns.span_ops.ops.http@millisecond",
+            ParsedMRI("d", "transactions", "breakdowns.span_ops.ops.http", "millisecond"),
+        ),
+        (
+            "c:transactions/measurements.db_calls@none",
+            ParsedMRI("c", "transactions", "measurements.db_calls", "none"),
+        ),
+        (
+            "s:sessions/error@none",
+            ParsedMRI("s", "sessions", "error", "none"),
+        ),
+        (
+            "s:sessions/error@",
+            ParsedMRI("s", "sessions", "error", ""),
+        ),
+        (
+            "dist:my_namespace/organizations/v1/my endpoint@{none}",
+            ParsedMRI("dist", "my_namespace", "organizations/v1/my endpoint", "{none}"),
+        ),
+    ],
+)
+def test_parse_mri_lenient_with_valid_mri(name, expected):
+    parsed_mri = parse_mri_lenient(name)
+    assert parsed_mri == expected
+    assert parsed_mri.mri_string == name
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "d@transactions/measurements.stall_longest_time",
+        "d:transactions/breakdowns.span_ops.ops.http",
+        "d/transactions@breakdowns.span_ops.ops.http:millisecond",
+    ],
+)
+def test_parse_mri_lenient_with_invalid_mri(name):
+    parsed_mri = parse_mri_lenient(name)
+    assert parsed_mri is None
 
 
 @pytest.mark.parametrize(

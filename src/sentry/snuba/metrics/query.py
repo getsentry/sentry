@@ -15,7 +15,7 @@ from sentry.models.project import Project
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.fields import metric_object_factory
 from sentry.snuba.metrics.fields.base import get_derived_metrics
-from sentry.snuba.metrics.naming_layer.mri import parse_mri
+from sentry.snuba.metrics.naming_layer.mri import parse_mri_lenient
 
 # TODO: Add __all__ to be consistent with sibling modules
 from ...models import ONE_DAY
@@ -42,7 +42,7 @@ class MetricField:
 
     def __post_init__(self) -> None:
         # Validate that it is a valid MRI format
-        parsed_mri = parse_mri(self.metric_mri)
+        parsed_mri = parse_mri_lenient(self.metric_mri)
         if parsed_mri is None:
             raise InvalidParams(f"Invalid Metric MRI: {self.metric_mri}")
 
@@ -181,7 +181,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
     @staticmethod
     def _use_case_id(metric_mri: str) -> UseCaseID:
         """Find correct use_case_id based on metric_name"""
-        parsed_mri = parse_mri(metric_mri)
+        parsed_mri = parse_mri_lenient(metric_mri)
         assert parsed_mri is not None
         try:
             return UseCaseID(parsed_mri.namespace)

@@ -70,7 +70,11 @@ from sentry.snuba.entity_subscription import (
     get_entity_subscription_from_snuba_query,
 )
 from sentry.snuba.metrics.extraction import should_use_on_demand_metrics
-from sentry.snuba.metrics.naming_layer.mri import get_available_operations, is_mri, parse_mri
+from sentry.snuba.metrics.naming_layer.mri import (
+    get_available_operations,
+    is_mri,
+    parse_mri_lenient,
+)
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.subscriptions import (
     bulk_delete_snuba_subscriptions,
@@ -1600,7 +1604,7 @@ def get_column_from_aggregate_with_mri(aggregate):
     function = match.group("function")
     columns = match.group("columns")
 
-    parsed_mri = parse_mri(columns)
+    parsed_mri = parse_mri_lenient(columns)
     if parsed_mri is None:
         return None
 

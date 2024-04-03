@@ -44,7 +44,7 @@ from sentry.search.events import fields
 from sentry.search.events.builder import UnresolvedQuery
 from sentry.search.events.constants import DEFAULT_PROJECT_THRESHOLD, VITAL_THRESHOLDS
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.metrics.naming_layer.mri import ParsedMRI, parse_mri
+from sentry.snuba.metrics.naming_layer.mri import ParsedMRI, parse_mri_lenient
 from sentry.snuba.metrics.utils import MetricOperationType
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -723,7 +723,7 @@ def _extract_mri(args: list[str]) -> ParsedMRI | None:
     if len(args) == 0:
         return None
 
-    return parse_mri(args[0])
+    return parse_mri_lenient(args[0])
 
 
 def _get_aggregate_supported_by(function: str, args: list[str]) -> SupportedBy:

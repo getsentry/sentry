@@ -21,7 +21,7 @@ from sentry.snuba.metrics.naming_layer.mri import (
     TransactionMRI,
     is_custom_metric,
     is_measurement,
-    parse_mri,
+    parse_mri_lenient,
 )
 from sentry.snuba.referrer import Referrer
 
@@ -431,7 +431,7 @@ class TransactionMeasurementsSamplesListExecutor(SegmentsSamplesListExecutor):
 
     @classmethod
     def mri_to_measurement_name(cls, mri) -> str | None:
-        parsed_mri = parse_mri(mri)
+        parsed_mri = parse_mri_lenient(mri)
         if parsed_mri is not None and is_measurement(parsed_mri):
             return parsed_mri.name[len("measurements:") :]
         return None
@@ -678,7 +678,7 @@ class SpansMeasurementsSamplesListExecutor(SpansSamplesListExecutor):
             return name
 
         # some web vitals exist on spans
-        parsed_mri = parse_mri(mri)
+        parsed_mri = parse_mri_lenient(mri)
         if (
             parsed_mri is not None
             and parsed_mri.namespace == "spans"
@@ -732,7 +732,7 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
 
     @classmethod
     def supports_mri(cls, mri: str) -> bool:
-        parsed_mri = parse_mri(mri)
+        parsed_mri = parse_mri_lenient(mri)
         if parsed_mri is not None and is_custom_metric(parsed_mri):
             return True
         return False
