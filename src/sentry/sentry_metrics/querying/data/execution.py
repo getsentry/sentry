@@ -674,7 +674,9 @@ class QueryExecutor:
                 except AttributeError as e:
                     logger = logging.getLogger(__name__)
                     logger.error(f"Error parsing formula parameters: {e}", exc_info=True)
-                    raise MetricsQueryExecutionError("Failed to parse formula parameters. Please check the formula syntax.") from e
+                    raise MetricsQueryExecutionError(
+                        "Failed to parse formula parameters. Please check the formula syntax."
+                    ) from e
         except SnubaError as e:
             sentry_sdk.capture_exception(e)
             metrics.incr(key="ddm.metrics_api.execution.error")
