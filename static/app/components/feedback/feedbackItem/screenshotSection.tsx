@@ -92,4 +92,5 @@ const ScreenshotWrapper = styled('ul')`
 const FixedSizeFeedbackScreenshot = styled(FeedbackScreenshot)`
   max-width: 360px;
   max-height: 360px;
+  gap: ${space(1)};
 `;

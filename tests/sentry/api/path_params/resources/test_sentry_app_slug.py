@@ -27,7 +27,6 @@ class SentryAppSlugTests(TestCase, APIIdOrSlugTestMixin):
         non_slug_mappings: dict[str, Any] = {
             "api_token_id": api_token.id,
         }
-
         # mapping kwargs to the actual objects
         reverse_non_slug_mappings: dict[str, Any] = {
             "api_token": api_token,

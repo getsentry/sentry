@@ -16,11 +16,11 @@ type Props = {
 };
 
 export default function FeedbackScreenshot({
-  organization,
-  screenshot,
-  projectSlug,
-  onClick,
   className,
+  organization,
+  projectSlug,
+  screenshot,
+  onClick,
 }: Props) {
   const [isLoading, setIsLoading] = useState(true);
 
@@ -30,7 +30,6 @@ export default function FeedbackScreenshot({
         if (!hasRole) {
           return null;
         }
-
         const img = (
           <StyledImageVisualization
             attachment={screenshot}
@@ -41,6 +40,7 @@ export default function FeedbackScreenshot({
             onError={() => setIsLoading(false)}
           />
         );
+
         return (
           <StyledPanel className={className}>
             {isLoading && (
@@ -67,7 +67,6 @@ const StyledPanel = styled(Panel)`
   align-items: center;
   margin-bottom: 0;
   border: 0;
-
   border-radius: ${p => p.theme.borderRadius};
 `;
 

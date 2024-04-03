@@ -628,6 +628,7 @@ register(
 register("symbolicator.proguard-processing-projects", type=Sequence, default=[])
 # Enable use of Symbolicator proguard processing for fraction of projects.
 register("symbolicator.proguard-processing-sample-rate", default=0.0)
+register("symbolicator.proguard-processing-ab-test", default=0.0)
 
 # Post Process Error Hook Sampling
 register(
@@ -993,6 +994,15 @@ register(
 register(
     "relay.cardinality-limiter.error-sample-rate", default=0.01, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
+# List of additional cardinality limits and selectors.
+#
+# ```
+# {
+#   "rollout_rate": 0.001,
+#   "limit": { .. Cardinality Limit .. }
+# }
+# ```
+register("relay.cardinality-limiter.limits", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Controls the encoding used in Relay for encoding distributions and sets
 # when writing to Kafka.

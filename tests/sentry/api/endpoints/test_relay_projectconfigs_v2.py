@@ -357,7 +357,7 @@ def test_session_metrics_extraction(call_endpoint, task_runner, drop_sessions):
 
         for config in result["configs"].values():
             config = config["config"]
-            assert config["sessionMetrics"] == {"version": 1, "drop": drop_sessions}
+            assert config["sessionMetrics"] == {"version": 1}
 
 
 @django_db_all
@@ -378,5 +378,4 @@ def test_session_metrics_abnormal_mechanism_tag_extraction(
                 config = config["config"]
                 assert config["sessionMetrics"] == {
                     "version": 2 if abnormal_mechanism_rollout else 1,
-                    "drop": False,
                 }
