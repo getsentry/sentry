@@ -3,8 +3,8 @@ import {useContext, useEffect, useMemo} from 'react';
 import Avatar from 'sentry/components/avatar';
 import {t} from 'sentry/locale';
 import {useMembers} from 'sentry/utils/useMembers';
-import {useTeams} from 'sentry/utils/useTeams';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
+import {useUserTeams} from 'sentry/utils/useUserTeams';
 
 import FormContext from '../formContext';
 
@@ -70,12 +70,7 @@ function SentryMemberTeamSelectorField({
   );
   useTeamsById({ids: ensureTeamIds});
 
-  const {
-    teams,
-    fetching: fetchingTeams,
-    onSearch: onTeamSearch,
-    loadMore: loadMoreTeams,
-  } = useTeams({provideUserTeams: true});
+  const {teams, isLoading: loadingTeams} = useUserTeams();
 
   const teamOptions = teams?.map(team => ({
     value: `team:${team.id}`,
@@ -92,7 +87,6 @@ function SentryMemberTeamSelectorField({
   useEffect(
     () => {
       loadMoreMembers();
-      loadMoreTeams();
     },
     // Only ensure things are loaded at mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -105,9 +99,8 @@ function SentryMemberTeamSelectorField({
       allowClear
       onInputChange={value => {
         onMemberSearch(value);
-        onTeamSearch(value);
       }}
-      isLoading={fetchingMembers || fetchingTeams}
+      isLoading={fetchingMembers || loadingTeams}
       options={[
         {
           label: t('Members'),
