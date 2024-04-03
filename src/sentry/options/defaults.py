@@ -813,22 +813,6 @@ register(
 )
 
 register(
-    "issues.priority.projects-allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-
-# Killswitch for issue priority
-register(
-    "issues.priority.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "issues.similarity-embeddings.projects-allowlist",
     type=Sequence,
     default=[],
