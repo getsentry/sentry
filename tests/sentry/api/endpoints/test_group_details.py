@@ -4,11 +4,12 @@ from unittest import mock
 from django.test import override_settings
 from django.utils import timezone
 
-from sentry import buffer, tsdb
+from sentry import audit_log, buffer, tsdb
 from sentry.buffer.redis import RedisBuffer
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
+from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
@@ -24,6 +25,7 @@ from sentry.models.release import Release
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.plugins.base import plugins
 from sentry.silo import SiloMode
+from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
@@ -274,8 +276,9 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         redis_buffer = RedisBuffer()
-        with mock.patch("sentry.buffer.backend.get", redis_buffer.get), mock.patch(
-            "sentry.buffer.backend.incr", redis_buffer.incr
+        with (
+            mock.patch("sentry.buffer.backend.get", redis_buffer.get),
+            mock.patch("sentry.buffer.backend.incr", redis_buffer.incr),
         ):
             event = self.store_event(
                 data={"message": "testing", "fingerprint": ["group-1"]}, project_id=self.project.id
@@ -689,6 +692,15 @@ class GroupDeleteTest(APITestCase):
         # Now we killed everything with fire
         assert not Group.objects.filter(id=group.id).exists()
         assert not GroupHash.objects.filter(group_id=group.id).exists()
+        with self.tasks():
+            schedule_hybrid_cloud_foreign_key_jobs()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert (
+                AuditLogEntry.objects.get(
+                    event=audit_log.get_event_id("ISSUE_DELETE"),
+                ).data["issue_id"]
+                == group.id
+            )
 
     def test_delete_performance_issue(self):
         """Test that a performance issue cannot be deleted"""
