@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from sentry import features
 from sentry.models.activity import Activity
 from sentry.models.actor import get_actor_id_for_user
-from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus, record_group_history
+from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.project import Project
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.user.model import RpcUser
@@ -97,23 +97,11 @@ def get_priority_for_ongoing_group(group: Group) -> PriorityLevel | None:
     if not features.has("projects:issue-priority", group.project, actor=None):
         return None
 
-    previous_priority_history = GroupHistory.objects.filter(
-        group_id=group.id, status__in=PRIORITY_TO_GROUP_HISTORY_STATUS.values()
-    ).order_by("-date_added")
-
-    new_priority = None
-    if len(previous_priority_history) > 1:
-        # Skip the most recent history entry since that is the current state
-        previous_history = previous_priority_history[1].status
-        new_priority = GROUP_HISTORY_STATUS_TO_PRIORITY.get(previous_history, None)
-
-    if not new_priority:
-        # If we can't find a previous priority history entry, fall back to the initial priority
-        new_priority = get_initial_priority(group)
-
+    # Fall back to the initial priority
+    new_priority = get_initial_priority(group)
     if not new_priority:
         logger.error(
-            "get_priority_for_ongoing_group.priority_not_found",
+            "get_priority_for_ongoing_group.initial_priority_not_found",
             extra={"group": group.id},
         )
         return None

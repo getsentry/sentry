@@ -95,56 +95,6 @@ class TestUpdatesPriority(TestCase):
             self.group, PriorityLevel.LOW, PriorityChangeReason.ONGOING
         )
 
-    def test_updates_priority_ongoing_multiple_histories(self) -> None:
-        self.group = self.create_group(
-            status=GroupStatus.UNRESOLVED,
-            substatus=GroupSubStatus.NEW,
-            priority=PriorityLevel.MEDIUM,
-        )
-        self.group.data.get("metadata", {})["initial_priority"] = PriorityLevel.MEDIUM
-        group_history_data = {
-            "group": self.group,
-            "organization_id": self.group.project.organization_id,
-            "project_id": self.group.project_id,
-        }
-        GroupHistory.objects.create(
-            **group_history_data,
-            status=GroupHistoryStatus.PRIORITY_LOW,
-        )
-        GroupHistory.objects.create(
-            **group_history_data,
-            status=GroupHistoryStatus.PRIORITY_HIGH,
-        )
-        GroupHistory.objects.create(
-            **group_history_data,
-            status=GroupHistoryStatus.PRIORITY_MEDIUM,
-        )
-        auto_update_priority(self.group, PriorityChangeReason.ESCALATING)
-        auto_update_priority(self.group, PriorityChangeReason.ONGOING)
-        assert self.group.priority == PriorityLevel.MEDIUM
-        assert Activity.objects.filter(
-            group=self.group, type=ActivityType.SET_PRIORITY.value
-        ).exists()
-        assert (
-            GroupHistory.objects.filter(group=self.group).order_by("-date_added").first().status
-            == GroupHistoryStatus.PRIORITY_MEDIUM
-        )
-
-    def test_updates_priority_ongoing_no_history(self) -> None:
-        self.group = self.create_group(
-            status=GroupStatus.UNRESOLVED,
-            substatus=GroupSubStatus.ESCALATING,
-            priority=PriorityLevel.HIGH,
-        )
-        self.group.data.get("metadata", {})["initial_priority"] = PriorityLevel.MEDIUM
-        self.group.save()
-
-        auto_update_priority(self.group, PriorityChangeReason.ONGOING)
-        assert self.group.priority == PriorityLevel.MEDIUM
-        self.assert_activity_grouphistory_set(
-            self.group, PriorityLevel.MEDIUM, PriorityChangeReason.ONGOING
-        )
-
     @patch("sentry.issues.priority.logger.error")
     def test_updates_priority_ongoing_no_initial_priority(self, mock_logger: MagicMock) -> None:
         self.group = self.create_group(
@@ -155,7 +105,7 @@ class TestUpdatesPriority(TestCase):
 
         auto_update_priority(self.group, PriorityChangeReason.ONGOING)
         mock_logger.assert_called_with(
-            "get_priority_for_ongoing_group.priority_not_found",
+            "get_priority_for_ongoing_group.initial_priority_not_found",
             extra={"group": self.group.id},
         )
         assert not self.group.priority
