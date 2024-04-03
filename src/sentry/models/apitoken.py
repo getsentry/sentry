@@ -85,32 +85,35 @@ class ApiTokenManager(ControlOutboxProducingManager):
         kwargs["token"] = plaintext_token
         kwargs["refresh_token"] = plaintext_refresh_token
 
-        api_token = super().create(*args, **kwargs)
-
         # Store the plaintext tokens for one-time retrieval
-        api_token.__plaintext_token = plaintext_token
-        api_token.__plaintext_refresh_token = plaintext_refresh_token
+        self.__plaintext_token = plaintext_token
+        self.__plaintext_refresh_token = plaintext_refresh_token
 
-        return api_token
+        return super().create(*args, **kwargs)
 
-    # This does not work... it's never called?
-    def update(self, *args, **kwargs) -> int:
-        raise Exception
-        # if the token or refresh_token was updated, we need to
-        # re-calculate the hashed values
-        if options.get("apitoken.save-hash-on-create"):
-            if "token" in kwargs:
-                kwargs["hashed_token"] = hashlib.sha256(kwargs["token"].encode()).hexdigest()
+    @property
+    def plaintext_token(self):
+        plaintext_token = getattr(self, "_ApiTokenManager__plaintext_token", None)
 
-            if "refresh_token" in kwargs:
-                kwargs["hashed_refresh_token"] = hashlib.sha256(
-                    kwargs["refresh_token"].encode()
-                ).hexdigest()
+        if plaintext_token:
+            setattr(self, "_ApiTokenManager__plaintext_token", None)
+        else:
+            raise PlaintextSecretAlreadyRead()
 
-        if "token" in kwargs:
-            kwargs["token_last_characters"] = kwargs["token"][-4:]
+        return plaintext_token
 
-        return super().update(*args, **kwargs)
+    @property
+    def plaintext_refresh_token(self):
+        plaintext_refresh_token: str | None = getattr(
+            self, "_ApiTokenManager__plaintext_refresh_token", None
+        )
+
+        if plaintext_refresh_token:
+            setattr(self, "_ApiTokenManager__plaintext_refresh_token", None)
+        else:
+            raise PlaintextSecretAlreadyRead()
+
+        return plaintext_refresh_token
 
 
 @control_silo_only_model
@@ -152,15 +155,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         to `None` to prevent future accidental leaking of the token in logs,
         exceptions, etc.
         """
-        manager_class_name = self.objects.__class__.__name__
-        plaintext_token: str | None = getattr(self, f"_{manager_class_name}__plaintext_token", None)
-
-        if plaintext_token is not None:
-            setattr(self, f"_{manager_class_name}__plaintext_token", None)
-        else:
-            raise PlaintextSecretAlreadyRead()
-
-        return plaintext_token
+        return ApiToken.objects.plaintext_token
 
     @property
     def _plaintext_refresh_token(self):
@@ -170,34 +165,41 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         to `None` to prevent future accidental leaking of the refresh token in logs,
         exceptions, etc.
         """
-        manager_class_name = self.objects.__class__.__name__
-        plaintext_refresh_token: str | None = getattr(
-            self, f"_{manager_class_name}__plaintext_refresh_token", None
-        )
-
-        if plaintext_refresh_token:
-            setattr(self, f"_{manager_class_name}__plaintext_refresh_token", None)
-
-        # some token types do not have refresh tokens, so we check to see
-        # if there's a hash value that exists for the refresh token.
-        #
-        # if there is a hash value, then a refresh token is expected
-        # and if the plaintext_refresh_token is None, then it has already
-        # been read once so we should throw the exception
-        #
-        # we check for either the hashed or plaintext refresh token stored in the DB
-        # for backwards compatibility
-        if not plaintext_refresh_token and (self.hashed_refresh_token or self.refresh_token):
-            raise PlaintextSecretAlreadyRead()
-
-        return plaintext_refresh_token
+        if self.refresh_token or self.hashed_refresh_token:
+            return ApiToken.objects.plaintext_refresh_token
+        else:
+            raise NotImplementedError("This API token type does not support refresh tokens")
 
     def save(self, *args: Any, **kwargs: Any) -> None:
+        if options.get("apitoken.save-hash-on-create"):
+            self.hashed_token = hashlib.sha256(self.token.encode()).hexdigest()
+
+            if self.refresh_token:
+                self.hashed_refresh_token = hashlib.sha256(self.refresh_token.encode()).hexdigest()
+
         if options.get("apitoken.auto-add-last-chars"):
             token_last_characters = self.token[-4:]
             self.token_last_characters = token_last_characters
 
         return super().save(*args, **kwargs)
+
+    def update(self, *args: Any, **kwargs: Any) -> int:
+        # if the token or refresh_token was updated, we need to
+        # re-calculate the hashed values
+        if options.get("apitoken.save-hash-on-create"):
+            if "token" in kwargs:
+                kwargs["hashed_token"] = hashlib.sha256(kwargs["token"].encode()).hexdigest()
+
+            if "refresh_token" in kwargs:
+                kwargs["hashed_refresh_token"] = hashlib.sha256(
+                    kwargs["refresh_token"].encode()
+                ).hexdigest()
+
+        if options.get("apitoken.auto-add-last-chars"):
+            if "token" in kwargs:
+                kwargs["token_last_characters"] = kwargs["token"][-4:]
+
+        return super().update(*args, **kwargs)
 
     def outbox_region_names(self) -> Collection[str]:
         return list(find_all_region_names())
@@ -233,10 +235,16 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         return ()
 
     def refresh(self, expires_at=None):
+        if self.token_type == AuthTokenType.USER:
+            raise NotImplementedError("User auth tokens do not support refreshing the token")
+
         if expires_at is None:
             expires_at = timezone.now() + DEFAULT_EXPIRATION
 
-        self.update(token=generate_token(), refresh_token=generate_token(), expires_at=expires_at)
+        new_token = generate_token(token_type=self.token_type)
+        new_refresh_token = generate_token(token_type=self.token_type)
+
+        self.update(token=new_token, refresh_token=new_refresh_token, expires_at=expires_at)
 
     def get_relocation_scope(self) -> RelocationScope:
         if self.application_id is not None:

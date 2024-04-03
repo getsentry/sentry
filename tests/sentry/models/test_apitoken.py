@@ -139,14 +139,12 @@ class ApiTokenTest(TestCase):
         initial_expected_hash = hashlib.sha256(token._plaintext_token.encode()).hexdigest()
         assert initial_expected_hash == token.hashed_token
 
-        initial_last_four = token.token_last_characters
-
         new_token = "abc1234"
         new_token_expected_hash = hashlib.sha256(new_token.encode()).hexdigest()
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             with outbox_runner():
-                to_update = ApiToken.objects.filter(id=token.id).update(token=new_token)
+                token.update(token=new_token)
 
         token.refresh_from_db()
 
