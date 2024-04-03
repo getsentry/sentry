@@ -101,7 +101,8 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
   isSkippingInactive: boolean;
 
   /**
-   * Set to true while the current video is loading
+   * Set to true while the current video is loading (this is used
+   * only for video replays and in lieu of `isBuffering`)
    */
   isVideoBuffering: boolean;
 
