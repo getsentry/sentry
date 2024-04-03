@@ -4,7 +4,7 @@ import importlib.metadata
 import logging
 import os
 import sys
-from typing import Any
+from typing import IO, Any
 
 import click
 from django.conf import settings
@@ -16,7 +16,7 @@ from sentry.utils.warnings import DeprecatedSettingWarning
 
 
 class ConfigurationError(ValueError, click.ClickException):
-    def show(self, file=None):
+    def show(self, file: IO[str] | None = None) -> None:
         if file is None:
             from click._compat import get_text_stderr
 
@@ -732,7 +732,7 @@ See: https://github.com/getsentry/snuba#sentry--snuba"""
         )
 
 
-def validate_outbox_config():
+def validate_outbox_config() -> None:
     from sentry.models.outbox import ControlOutboxBase, RegionOutboxBase
 
     for outbox_name in settings.SENTRY_OUTBOX_MODELS["CONTROL"]:
