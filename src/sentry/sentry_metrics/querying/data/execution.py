@@ -5,8 +5,8 @@ from enum import Enum
 from typing import Any, Union, cast
 
 import sentry_sdk
-from snuba_sdk import Column, Direction, MetricsQuery, MetricsScope, Request
-from snuba_sdk.conditions import BooleanCondition, BooleanOp, Condition, Op
+from snuba_sdk import Direction, Function, MetricsQuery, MetricsScope, Request
+from snuba_sdk.conditions import Condition, Op
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -89,23 +89,27 @@ def _push_down_group_filters(
     if not groups_collection:
         return metrics_query
 
-    # We perform a transformation in the form [(key_1 = value_1 AND key_2 = value_2) OR (key_3 = value_3)].
-    groups_filters = []
+    groups_keys = set()
     for groups in groups_collection:
-        inner_snuba_filters = []
-        for filter_key, filter_value in groups:
-            inner_snuba_filters.append(Condition(Column(filter_key), Op.EQ, filter_value))
+        for filter_key, _ in groups:
+            groups_keys.add(filter_key)
 
-        # In case we have more than one filter, we have to group them into an `AND`.
-        if len(inner_snuba_filters) > 1:
-            groups_filters.append(BooleanCondition(BooleanOp.AND, inner_snuba_filters))
-        else:
-            groups_filters.append(inner_snuba_filters[0])
+    groups_keys = sorted(list(groups_keys))
+    groups_values_tuples = []
+    for groups in groups_collection:
+        group_values = []
+        for group_key in groups_keys:
+            for filter_key, filter_value in groups:
+                if group_key == filter_key:
+                    group_values.append(filter_value)
+                else:
+                    group_values.append("")
 
-    # In case we have more than one filter, we have to group them into an `OR`.
-    if len(groups_filters) > 1:
-        groups_filters = [BooleanCondition(BooleanOp.OR, groups_filters)]
+        groups_values_tuples.append(Function("tuple", group_values))
 
+    groups_filters = [
+        Condition(Function("tuple", groups_keys), Op.IN, Function("tuple", groups_values_tuples))
+    ]
     merged_query = TimeseriesConditionInjectionVisitor(groups_filters).visit(metrics_query.query)
     return metrics_query.set_query(merged_query)
 
