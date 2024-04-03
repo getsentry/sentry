@@ -239,6 +239,7 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:starfish-browser-webvitals-pageoverview-v2", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:starfish-browser-webvitals-replace-fid-with-inp", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:starfish-browser-webvitals-score-computed-total", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:starfish-cache-module-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:starfish-browser-webvitals-use-backend-scores", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:starfish-mobile-appstart", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:starfish-mobile-ui-module", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
