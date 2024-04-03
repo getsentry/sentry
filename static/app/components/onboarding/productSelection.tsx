@@ -77,6 +77,7 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
 export const platformProductAvailability = {
   android: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   bun: [ProductSolution.PERFORMANCE_MONITORING],
+  flutter: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   kotlin: [ProductSolution.PERFORMANCE_MONITORING],
   java: [ProductSolution.PERFORMANCE_MONITORING],
   'java-spring-boot': [ProductSolution.PERFORMANCE_MONITORING],
