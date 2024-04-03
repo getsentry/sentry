@@ -414,7 +414,7 @@ function ProviderNonMemo({
       // check if this is a video replay and if we can use the video replayer
       if (isVideoReplay && videoEvents && startTimestampMs) {
         const inst = new VideoReplayer(videoEvents, {
-          videoApiPrefix: `${window.origin}/api/0/projects/${
+          videoApiPrefix: `/api/0/projects/${
             organization.slug
           }/${projectSlug}/replays/${replay?.getReplay().id}/videos/`,
           root,

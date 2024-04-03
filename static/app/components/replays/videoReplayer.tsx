@@ -7,7 +7,7 @@ type RootElem = HTMLDivElement | null;
 
 // The number of segments to load on either side of the requested segment (around 15 seconds)
 // Also the number of segments we load initially
-const PRELOAD_BUFFER = 1;
+const PRELOAD_BUFFER = 3;
 
 interface OffsetOptions {
   segmentOffsetMs?: number;
