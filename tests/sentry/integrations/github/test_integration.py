@@ -350,44 +350,6 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert b"The GitHub installation could not be found." in resp.content
 
     @responses.activate
-    def test_reinstall_flow(self):
-        self._stub_github()
-        self.assert_setup_flow()
-
-        integration = Integration.objects.get(provider=self.provider.key)
-        integration.update(status=ObjectStatus.DISABLED)
-        assert integration.status == ObjectStatus.DISABLED
-        assert integration.external_id == self.installation_id
-
-        resp = self.client.get(
-            "{}?{}".format(self.init_path, urlencode({"reinstall_id": integration.id}))
-        )
-
-        assert resp.status_code == 302
-        redirect = urlparse(resp["Location"])
-        assert redirect.scheme == "https"
-        assert redirect.netloc == "github.com"
-        assert redirect.path == "/apps/sentry-test-app"
-
-        # New Installation
-        self.installation_id = "install_2"
-
-        self._stub_github()
-
-        resp = self.client.get(
-            "{}?{}".format(self.setup_path, urlencode({"installation_id": self.installation_id}))
-        )
-
-        assert resp.status_code == 200
-
-        auth_header = responses.calls[0].request.headers["Authorization"]
-        assert auth_header == "Bearer jwt_token_1"
-
-        integration = Integration.objects.get(provider=self.provider.key)
-        assert integration.status == ObjectStatus.ACTIVE
-        assert integration.external_id == self.installation_id
-
-    @responses.activate
     def test_disable_plugin_when_fully_migrated(self):
         self._stub_github()
 
@@ -914,7 +876,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             lineno=10,
             ref="master",
             repo=repo,
-            code_mapping=None,  # type: ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
 
         responses.add(

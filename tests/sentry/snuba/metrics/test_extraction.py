@@ -74,6 +74,7 @@ def test_equality_of_specs(default_project) -> None:
         ("user_misery(300)", "transaction.duration:>0", True),
     ],
 )
+@django_db_all
 def test_should_use_on_demand(agg: str, query: str, result: bool) -> None:
     assert should_use_on_demand_metrics(Dataset.PerformanceMetrics, agg, query) is result
 
@@ -89,6 +90,7 @@ def test_should_use_on_demand(agg: str, query: str, result: bool) -> None:
         ("p95(d:spans/duration@millisecond)", "transaction.duration:>0", False),
     ],
 )
+@django_db_all
 def test_should_use_on_demand_with_mri(agg, query, result) -> None:
     assert should_use_on_demand_metrics(Dataset.PerformanceMetrics, agg, query) is result
 
@@ -142,6 +144,7 @@ class TestCreatesOndemandMetricSpec:
             ("count()", "transaction.source:route"),
         ],
     )
+    @django_db_all
     def test_creates_on_demand_spec(self, aggregate, query) -> None:
         assert create_spec_if_needed(self.dataset, aggregate, query)
 
@@ -168,6 +171,7 @@ class TestCreatesOndemandMetricSpec:
             ("failure_rate()", ""),
         ],
     )
+    @django_db_all
     def test_does_not_create_on_demand_spec(self, aggregate, query) -> None:
         assert not create_spec_if_needed(self.dataset, aggregate, query)
 

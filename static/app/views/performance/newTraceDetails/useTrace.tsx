@@ -1,9 +1,9 @@
 import {useMemo} from 'react';
 import type {Location} from 'history';
+import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import type {PageFilters} from 'sentry/types';
 import type {
   TraceFullDetailed,
@@ -11,7 +11,6 @@ import type {
 } from 'sentry/utils/performance/quickTrace/types';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
@@ -39,7 +38,6 @@ export function getTraceQueryParams(
 ): {
   eventId: string | undefined;
   limit: number;
-  project: string;
   timestamp: string | undefined;
   useSpans: number;
   pageEnd?: string | undefined;
@@ -50,7 +48,6 @@ export function getTraceQueryParams(
     allowAbsolutePageDatetime: true,
   });
   const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
-  const project = decodeScalar(normalizedParams.project, ALL_ACCESS_PROJECTS + '');
   const timestamp = decodeScalar(normalizedParams.timestamp);
   let decodedLimit: string | number | undefined =
     options.limit ?? decodeScalar(normalizedParams.limit);
@@ -75,7 +72,13 @@ export function getTraceQueryParams(
     statsPeriod: statsPeriod || filters.datetime?.period,
   };
 
-  const queryParams = {...otherParams, limit, project, timestamp, eventId, useSpans: 1};
+  // We prioritize timestamp over statsPeriod as it makes the query more specific, faster
+  // and not prone to time drift issues.
+  if (timestamp) {
+    delete otherParams.statsPeriod;
+  }
+
+  const queryParams = {...otherParams, limit, timestamp, eventId, useSpans: 1};
   for (const key in queryParams) {
     if (
       queryParams[key] === '' ||
@@ -98,12 +101,12 @@ export function useTrace(
   options: Partial<UseTraceParams> = DEFAULT_OPTIONS
 ): UseApiQueryResult<TraceSplitResults<TraceFullDetailed>, any> {
   const filters = usePageFilters();
-  const location = useLocation();
   const organization = useOrganization();
   const params = useParams<{traceSlug?: string}>();
 
   const queryParams = useMemo(() => {
-    return getTraceQueryParams(location.query, filters.selection, options);
+    const query = qs.parse(location.search);
+    return getTraceQueryParams(query, filters.selection, options);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options]);
 

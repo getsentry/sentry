@@ -102,12 +102,6 @@ def derive_code_mappings(
         logger.info("Event should not be processed.", extra=extra)
         return
 
-    # php automatic code mappings currently in LA
-    if data["platform"].startswith("php") and not features.has(
-        "organizations:derive-code-mappings-php", org
-    ):
-        return
-
     stacktrace_paths: list[str] = identify_stacktrace_paths(data)
     if not stacktrace_paths:
         logger.info("No stacktrace paths found.", extra=extra)
@@ -125,7 +119,7 @@ def derive_code_mappings(
     try:
         with lock.acquire():
             # This method is specific to the GithubIntegration
-            trees = installation.get_trees_for_org()  # type: ignore
+            trees = installation.get_trees_for_org()  # type: ignore[attr-defined]
     except ApiError as error:
         process_error(error, extra)
         return

@@ -66,22 +66,16 @@ def generate_file_path_mapping(files: Sequence[SourceLineInfo]) -> FilePathMappi
     return file_path_mapping
 
 
-def create_blame_query(file_path_mapping: FilePathMapping, extra: Mapping[str, Any]) -> str:
+def create_blame_query(
+    file_path_mapping: FilePathMapping, extra: Mapping[str, Any]
+) -> tuple[str, dict[str, str]]:
     """
     Create a GraphQL query to get blame information for a list of files
     """
     repo_queries = ""
+    variable_names: list[str] = []
+    variable_data: dict[str, str] = {}
     for repo_index, (full_repo_name, ref) in enumerate(file_path_mapping.items()):
-        ref_queries = ""
-        for ref_index, (ref_name, file_paths) in enumerate(ref.items()):
-            blame_queries = "".join(
-                [
-                    _make_blame_query(file_path, file_path_index)
-                    for file_path_index, file_path in enumerate(file_paths)
-                ]
-            )
-            ref_queries += _make_ref_query(ref_name, blame_queries, ref_index)
-
         try:
             [repo_owner, repo_name] = full_repo_name.split("/", maxsplit=1)
         except ValueError:
@@ -91,9 +85,36 @@ def create_blame_query(file_path_mapping: FilePathMapping, extra: Mapping[str, A
             )
             continue
 
-        repo_queries += _make_repo_query(repo_name, repo_owner, ref_queries, repo_index)
+        var_repo_name = f"repo_name_{repo_index}"
+        var_repo_owner = f"repo_owner_{repo_index}"
+        variable_names.append(f"${var_repo_name}: String!")
+        variable_names.append(f"${var_repo_owner}: String!")
+        variable_data[var_repo_name] = repo_name
+        variable_data[var_repo_owner] = repo_owner
 
-    return f"""query {{{repo_queries}\n}}"""
+        ref_queries = ""
+
+        for ref_index, (ref_name, file_paths) in enumerate(ref.items()):
+            var_ref = f"ref_{repo_index}_{ref_index}"
+            variable_names.append(f"${var_ref}: String!")
+            variable_data[var_ref] = ref_name
+
+            blame_queries = ""
+            for file_path_index, file_path in enumerate(file_paths):
+                var_path = f"path_{repo_index}_{ref_index}_{file_path_index}"
+                blame_queries += _make_blame_query(var_path, file_path_index)
+                variable_names.append(f"${var_path}: String!")
+                variable_data[var_path] = file_path.strip("/")
+            ref_queries += _make_ref_query(var_ref, blame_queries, ref_index)
+
+        repo_queries += _make_repo_query(
+            var_repo_name=var_repo_name,
+            var_repo_owner=var_repo_owner,
+            ref_queries=ref_queries,
+            index=repo_index,
+        )
+
+    return f"""query ({", ".join(variable_names)}) {{{repo_queries}\n}}""", variable_data
 
 
 def extract_commits_from_blame_response(
@@ -245,9 +266,9 @@ def _get_matching_file_blame(
     return blame
 
 
-def _make_ref_query(ref: str, blame_queries: str, index: int) -> str:
+def _make_ref_query(var_ref: str, blame_queries: str, index: int) -> str:
     return f"""
-        ref{index}: ref(qualifiedName: "{ref}") {{
+        ref{index}: ref(qualifiedName: ${var_ref}) {{
             target {{
                 ... on Commit {{{blame_queries}
                 }}
@@ -255,9 +276,9 @@ def _make_ref_query(ref: str, blame_queries: str, index: int) -> str:
         }}"""
 
 
-def _make_blame_query(path: str, index: int) -> str:
+def _make_blame_query(var_repo: str, blame_index: int) -> str:
     return f"""
-                    blame{index}: blame(path: "{path.strip('/')}") {{
+                    blame{blame_index}: blame(path: ${var_repo}) {{
                         ranges {{
                             commit {{
                                 oid
@@ -275,7 +296,7 @@ def _make_blame_query(path: str, index: int) -> str:
                     }}"""
 
 
-def _make_repo_query(repo_name: str, repo_owner: str, ref_queries: str, index: int) -> str:
+def _make_repo_query(var_repo_name: str, var_repo_owner: str, ref_queries: str, index: int) -> str:
     return f"""
-    repository{index}: repository(name: "{repo_name}", owner: "{repo_owner}") {{{ref_queries}
+    repository{index}: repository(name: ${var_repo_name}, owner: ${var_repo_owner}) {{{ref_queries}
     }}"""

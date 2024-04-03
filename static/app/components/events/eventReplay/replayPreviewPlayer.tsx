@@ -119,9 +119,13 @@ function ReplayPreviewPlayer({
                 onClick={() => handleBackClick?.()}
                 aria-label={t('Previous Clip')}
                 disabled={!handleBackClick}
+                analyticsEventName="Replay Preview Player: Clicked Previous Clip"
+                analyticsEventKey="replay_preview_player.clicked_previous_clip"
               />
             )}
             <ReplayPlayPauseButton
+              analyticsEventName="Replay Preview Player: Clicked Play/Plause Clip"
+              analyticsEventKey="replay_preview_player.clicked_play_pause_clip"
               priority={
                 playPausePriority ?? (isFinished || isPlaying ? 'primary' : 'default')
               }
@@ -134,6 +138,8 @@ function ReplayPreviewPlayer({
                 onClick={() => handleForwardClick?.()}
                 aria-label={t('Next Clip')}
                 disabled={!handleForwardClick}
+                analyticsEventName="Replay Preview Player: Clicked Next Clip"
+                analyticsEventKey="replay_preview_player.clicked_next_clip"
               />
             )}
             <Container>

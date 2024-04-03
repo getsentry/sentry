@@ -1,10 +1,14 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import * as qs from 'query-string';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import Count from 'sentry/components/count';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
+import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -16,10 +20,21 @@ import {space} from 'sentry/styles/space';
 import type {Group, Organization} from 'sentry/types';
 import type {TraceErrorOrIssue} from 'sentry/utils/performance/quickTrace/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {decodeScalar} from 'sentry/utils/queryString';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import type {
   TraceTree,
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceTree';
+
+import {
+  isAutogroupedNode,
+  isMissingInstrumentationNode,
+  isSpanNode,
+  isTraceErrorNode,
+  isTransactionNode,
+} from '../../../guards';
 
 import {IssueSummary} from './issueSummary';
 
@@ -122,38 +137,89 @@ export function IssueList({issues, node, organization}: IssueListProps) {
   );
 }
 
+function getSearchParamFromNode(node: TraceTreeNode<TraceTree.NodeValue>) {
+  if (isTransactionNode(node) || isTraceErrorNode(node)) {
+    return `id:${node.value.event_id}`;
+  }
+
+  // Issues associated to a span or autogrouped node are not queryable, so we query by
+  // the parent transaction's id
+  const parentTransaction = node.parent_transaction;
+  if ((isSpanNode(node) || isAutogroupedNode(node)) && parentTransaction) {
+    return `id:${parentTransaction.value.event_id}`;
+  }
+
+  if (isMissingInstrumentationNode(node)) {
+    throw new Error('Missing instrumentation nodes do not have associated issues');
+  }
+
+  return '';
+}
+
 function IssueListHeader({node}: {node: TraceTreeNode<TraceTree.NodeValue>}) {
   const {errors, performance_issues} = node;
+  const organization = useOrganization();
+  const params = useParams<{traceSlug?: string}>();
+
+  const traceSlug = params.traceSlug?.trim() ?? '';
+
+  const dateSelection = useMemo(() => {
+    const normalizedParams = normalizeDateTimeParams(qs.parse(window.location.search), {
+      allowAbsolutePageDatetime: true,
+    });
+    const start = decodeScalar(normalizedParams.start);
+    const end = decodeScalar(normalizedParams.end);
+    const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
+
+    return {start, end, statsPeriod};
+  }, []);
 
   return (
     <StyledPanelHeader disablePadding>
       <IssueHeading>
-        {errors.length + performance_issues.length > MAX_DISPLAYED_ISSUES_COUNT
-          ? t(`%s+  issues`, MAX_DISPLAYED_ISSUES_COUNT)
-          : errors.length > 0 && performance_issues.length === 0
+        {errors.size + performance_issues.size > MAX_DISPLAYED_ISSUES_COUNT
+          ? tct(`[count]+  issues, [link]`, {
+              count: MAX_DISPLAYED_ISSUES_COUNT,
+              link: (
+                <StyledLink
+                  to={{
+                    pathname: `/organizations/${organization.slug}/issues/`,
+                    query: {
+                      query: `trace:${traceSlug} ${getSearchParamFromNode(node)}`,
+                      start: dateSelection.start,
+                      end: dateSelection.end,
+                      statsPeriod: dateSelection.statsPeriod,
+                    },
+                  }}
+                >
+                  {t('View All')}
+                </StyledLink>
+              ),
+            })
+          : errors.size > 0 && performance_issues.size === 0
             ? tct('[count] [text]', {
-                count: errors.length,
-                text: tn('Error', 'Errors', errors.length),
+                count: errors.size,
+                text: tn('Error', 'Errors', errors.size),
               })
-            : performance_issues.length > 0 && errors.length === 0
+            : performance_issues.size > 0 && errors.size === 0
               ? tct('[count] [text]', {
-                  count: performance_issues.length,
+                  count: performance_issues.size,
                   text: tn(
                     'Performance issue',
                     'Performance Issues',
-                    performance_issues.length
+                    performance_issues.size
                   ),
                 })
               : tct(
                   '[errors] [errorsText] and [performance_issues] [performanceIssuesText]',
                   {
-                    errors: errors.length,
-                    performance_issues: performance_issues.length,
-                    errorsText: tn('Error', 'Errors', errors.length),
+                    errors: errors.size,
+                    performance_issues: performance_issues.size,
+                    errorsText: tn('Error', 'Errors', errors.size),
                     performanceIssuesText: tn(
                       'performance issue',
                       'performance issues',
-                      performance_issues.length
+                      performance_issues.size
                     ),
                   }
                 )}
@@ -165,6 +231,10 @@ function IssueListHeader({node}: {node: TraceTreeNode<TraceTree.NodeValue>}) {
     </StyledPanelHeader>
   );
 }
+
+const StyledLink = styled(Link)`
+  margin-left: ${space(0.5)};
+`;
 
 const Heading = styled('div')`
   display: flex;

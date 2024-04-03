@@ -20,11 +20,10 @@ from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.slack import link_team
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 
 
-@region_silo_test
 class SubscribeTest(TestCase):
     def test_simple(self):
         group = self.create_group()
@@ -190,7 +189,6 @@ class SubscribeTest(TestCase):
         GroupSubscription.objects.subscribe_actor(group=group, actor=team)
 
 
-@region_silo_test
 class GetParticipantsTest(TestCase):
     def setUp(self):
         self.org = self.create_organization()

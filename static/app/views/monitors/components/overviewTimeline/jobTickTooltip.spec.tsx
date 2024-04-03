@@ -2,7 +2,7 @@ import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {getFormat} from 'sentry/utils/dates';
 import {JobTickTooltip} from 'sentry/views/monitors/components/overviewTimeline/jobTickTooltip';
-import type {TimeWindowOptions} from 'sentry/views/monitors/components/overviewTimeline/types';
+import type {TimeWindowConfig} from 'sentry/views/monitors/components/overviewTimeline/types';
 
 type StatusCounts = [
   in_progress: number,
@@ -19,10 +19,13 @@ export function generateEnvMapping(name: string, counts: StatusCounts) {
   };
 }
 
-const tickConfig: TimeWindowOptions = {
+const tickConfig: TimeWindowConfig = {
+  start: new Date('2023-06-15T11:00:00Z'),
+  end: new Date('2023-06-15T12:00:00Z'),
   dateLabelFormat: getFormat({timeOnly: true, seconds: true}),
   elapsedMinutes: 60,
-  timeMarkerInterval: 10,
+  markerInterval: 10,
+  minimumMarkerInterval: 10,
   dateTimeProps: {timeOnly: true},
 };
 

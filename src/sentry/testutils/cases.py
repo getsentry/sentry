@@ -674,8 +674,10 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
     Extend APITestCase to inherit access to `client`, an object with methods
     that simulate API calls to Sentry, and the helper `get_response`, which
     combines and simplifies a lot of tedious parts of making API calls in tests.
-    When creating API tests, use a new class per endpoint-method pair. The class
-    must set the string `endpoint`.
+    When creating API tests, use a new class per endpoint-method pair.
+
+    The class must set the string `endpoint`.
+    If your endpoint requires kwargs implement the `reverse_url` method.
     """
 
     # We need Django to flush all databases.
@@ -701,7 +703,11 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
             * raw_data: (Optional) Sometimes we want to precompute the JSON body.
         :returns Response object
         """
-        url = reverse(self.endpoint, args=args)
+        url = (
+            self.reverse_url()
+            if hasattr(self, "reverse_url")
+            else reverse(self.endpoint, args=args)
+        )
         # In some cases we want to pass querystring params to put/post, handle this here.
         if "qs_params" in params:
             query_string = urlencode(params.pop("qs_params"), doseq=True)
@@ -957,13 +963,13 @@ class DRFPermissionTestCase(TestCase):
         Override the return type of make_request b/c DRF permission classes
         expect a DRF request (go figure)
         """
-        drf_request: Request = super().make_request(*arg, **kwargs)  # type: ignore
+        drf_request: Request = super().make_request(*arg, **kwargs)  # type: ignore[assignment]
         return drf_request
 
     def setUp(self):
-        self.superuser_user = self.create_user(is_superuser=True, is_staff=False)
+        self.superuser = self.create_user(is_superuser=True, is_staff=False)
         self.staff_user = self.create_user(is_staff=True, is_superuser=False)
-        self.superuser_request = self.make_request(user=self.superuser_user, is_superuser=True)
+        self.superuser_request = self.make_request(user=self.superuser, is_superuser=True)
         self.staff_request = self.make_request(user=self.staff_user, method="GET", is_staff=True)
 
 
@@ -2850,14 +2856,15 @@ class SlackActivityNotificationTest(ActivityTestCase):
     def assert_performance_issue_attachments(
         self, attachment, project_slug, referrer, alert_type="workflow"
     ):
-        assert attachment["title"] == "N+1 Query"
+        assert "N+1 Query" in attachment["text"]
         assert (
-            attachment["text"]
-            == "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
+            "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
+            in attachment["blocks"][1]["text"]["text"]
         )
-        notification_uuid = self.get_notification_uuid(attachment["title_link"])
+        title_link = attachment["blocks"][0]["text"]["text"][13:][1:-1]
+        notification_uuid = self.get_notification_uuid(title_link)
         assert (
-            attachment["footer"]
+            attachment["blocks"][-2]["elements"][0]["text"]
             == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
@@ -3137,14 +3144,6 @@ class MonitorIngestTestCase(MonitorTestCase):
     """
 
     @property
-    def endpoint_with_org(self):
-        raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
-
-    @property
-    def dsn_auth_headers(self):
-        return {"HTTP_AUTHORIZATION": f"DSN {self.project_key.dsn_public}"}
-
-    @property
     def token_auth_headers(self):
         return {"HTTP_AUTHORIZATION": f"Bearer {self.token.token}"}
 
@@ -3162,17 +3161,6 @@ class MonitorIngestTestCase(MonitorTestCase):
             slug=sentry_app.slug, organization=self.organization
         )
         self.token = self.create_internal_integration_token(install=app, user=self.user)
-
-    def _get_path_functions(self):
-        # Monitor paths are supported both with an org slug and without.  We test both as long as we support both.
-        # Because removing old urls takes time and consideration of the cost of breaking lingering references, a
-        # decision to permanently remove either path schema is a TODO.
-        return (
-            lambda monitor_slug: reverse(self.endpoint, args=[monitor_slug]),
-            lambda monitor_slug: reverse(
-                self.endpoint_with_org, args=[self.organization.slug, monitor_slug]
-            ),
-        )
 
 
 class IntegratedApiTestCase(BaseTestCase):

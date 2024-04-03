@@ -4,6 +4,8 @@ import logging
 from collections.abc import Iterable, Mapping
 from typing import TYPE_CHECKING, Any
 
+from django.urls import reverse
+
 from sentry.db.models import Model
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.services.hybrid_cloud.actor import RpcActor
@@ -44,7 +46,7 @@ class DailySummaryNotification(BaseNotification):
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         return self.get_message_description(self.recipient, self.provider)
 
-    def get_context(self) -> dict[int, DailySummaryProjectContext]:  # type: ignore
+    def get_context(self) -> dict[int, DailySummaryProjectContext]:  # type: ignore[explicit-override, override]
         return self.project_context
 
     def get_notification_title(
@@ -64,6 +66,5 @@ class DailySummaryNotification(BaseNotification):
         return ""
 
     def build_notification_footer(self, recipient: RpcActor, provider: ExternalProviders) -> str:
-        return (
-            "Getting this at a funky time? This sends at 4pm for whatever time zone you have set."
-        )
+        url = self.organization.absolute_url(reverse("sentry-account-settings"))
+        return f"Getting this at a funky time? This sends at 4pm for whatever time zone you have set. | <{url}|*Account Settings*>"

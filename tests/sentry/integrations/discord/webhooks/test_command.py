@@ -5,12 +5,10 @@ from sentry.integrations.discord.requests.base import DiscordRequestTypes
 from sentry.integrations.discord.webhooks.command import HELP_MESSAGE, NOT_LINKED_MESSAGE
 from sentry.integrations.discord.webhooks.types import DiscordResponseTypes
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 
 WEBHOOK_URL = "/extensions/discord/interactions/"
 
 
-@region_silo_test
 class DiscordCommandInteractionTest(APITestCase):
     @mock.patch("sentry.integrations.discord.requests.base.verify_signature")
     def test_command_interaction(self, mock_verify_signature):

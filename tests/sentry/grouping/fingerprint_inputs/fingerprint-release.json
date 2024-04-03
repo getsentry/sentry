@@ -1,0 +1,38 @@
+{
+  "_fingerprinting_rules": [
+    {
+      "matchers": [
+        ["release", "foo.bar@*"]
+      ],
+      "fingerprint": ["foo.bar-release"],
+      "__test_description": "Shows that the custom fingerprinting rule is applied when release matches"
+    }
+  ],
+  "fingerprint": ["my-route", "{{ default }}"],
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "main",
+              "abs_path": "Application.java",
+              "module": "io.sentry.example.Application",
+              "filename": "Application.java",
+              "lineno": 13,
+              "in_app": false
+            }
+          ]
+        },
+        "type": "DatabaseUnavailable",
+        "value": "For some reason the database went away"
+      }
+    ]
+  },
+  "release": "foo.bar@1.2.3",
+  "platform": "java",
+  "sdk": {
+    "name": "sentry.java",
+    "version": "1.7.30"
+  }
+}
