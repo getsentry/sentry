@@ -293,6 +293,13 @@ export function HTTPSamplesPanel() {
                   data={samplesData}
                   isLoading={isDurationDataFetching || isSamplesDataFetching}
                   error={samplesDataError}
+                  // TODO: The samples endpoint doesn't provide its own meta, so we need to create it manually
+                  meta={{
+                    fields: {
+                      'span.response_code': 'number',
+                    },
+                    units: {},
+                  }}
                 />
               </ModuleLayout.Full>
             </Fragment>
