@@ -143,7 +143,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
             # For the trace view we want to include all accessible projects
             params: ParamsType = self.get_filter_params(
-                request, organization, include_all_accessible=include_all_projects
+                request, organization, include_all_projects=include_all_projects
             )
             params = self.quantize_date_params(request, params)
             params["user_id"] = request.user.id if request.user else None

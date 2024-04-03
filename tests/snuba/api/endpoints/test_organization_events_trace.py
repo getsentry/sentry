@@ -1694,15 +1694,16 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
     def test_project_param(self):
         self.load_trace()
         with self.feature(self.FEATURES):
-            # If project is included we should only include the parts of the trace for that given project
+            # If project is included we should still return the entire trace
             response = self.client_get(
                 data={"project": self.project.id},
             )
         assert response.status_code == 200, response.content
         trace_transaction = response.data["transactions"][0]
-        self.assert_event(trace_transaction, self.root_event, "root")
-        # No children since they belong to a different project
-        assert len(trace_transaction["children"]) == 0
+        self.assert_trace_data(trace_transaction)
+        # We shouldn't have detailed fields here
+        assert "transaction.status" not in trace_transaction
+        assert "tags" not in trace_transaction
 
 
 class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBase):
