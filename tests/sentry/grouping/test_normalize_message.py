@@ -201,7 +201,7 @@ def test_normalize_message(name, input, expected):
         (
             "Int - parens",
             """Tb.Worker {"msg" => "(#239323) Received ...""",
-            """Tb.Worker {"mmsg" => "(#<int>) Received ...""",
+            """Tb.Worker {"msg" => "(#<int>) Received ...""",
         ),
         (
             "Uniq ID - Snuba query",
