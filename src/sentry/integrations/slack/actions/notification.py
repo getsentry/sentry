@@ -116,6 +116,10 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                     "link_names": 1,
                     "attachments": json.dumps(attachments),
                 }
+                self.logger.info(
+                    "rule.slack_post.attachments",
+                    extra={"organization_id": event.group.project.organization_id},
+                )
 
             client = SlackClient(integration_id=integration.id)
             try:
