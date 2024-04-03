@@ -316,7 +316,6 @@ class SentryAppInstallationsBaseEndpoint(IntegrationPlatformEndpoint):
     permission_classes = (SentryAppInstallationsPermission,)
 
     def convert_args(self, request: Request, organization_slug, *args, **kwargs):
-
         extra_args = {}
         # We need to pass user_id if the user is not a superuser
         if not is_active_superuser(request):

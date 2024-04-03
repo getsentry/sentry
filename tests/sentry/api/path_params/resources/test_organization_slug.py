@@ -63,7 +63,6 @@ class OrganizationSlugTests(TestCase, APIIdOrSlugTestMixin):
         non_slug_mappings: dict[str, Any] = {
             "config_id": self.code_mapping.id,
         }
-
         reverse_non_slug_mappings: dict[str, Any] = {
             "config": self.code_mapping,
         }
@@ -89,8 +88,6 @@ class OrganizationSlugTests(TestCase, APIIdOrSlugTestMixin):
         non_slug_mappings: dict[str, Any] = {
             "search_id": search.id,
         }
-
-        # mapping kwargs to the actual objects
         reverse_non_slug_mappings: dict[str, Any] = {
             "search": search,
         }
@@ -142,7 +139,6 @@ class OrganizationSlugTests(TestCase, APIIdOrSlugTestMixin):
         non_slug_mappings: dict[str, Any] = {
             "team_id": self.team.id,
         }
-
         reverse_non_slug_mappings: dict[str, Any] = {
             "team": self.team,
         }
@@ -167,7 +163,6 @@ class OrganizationSlugTests(TestCase, APIIdOrSlugTestMixin):
         non_slug_mappings: dict[str, Any] = {
             "issue_id": self.group.id,
         }
-
         reverse_non_slug_mappings: dict[str, Any] = {
             "group": self.group,
         }
@@ -194,7 +189,6 @@ class OrganizationSlugTests(TestCase, APIIdOrSlugTestMixin):
         non_slug_mappings: dict[str, Any] = {
             "external_user_id": external_user.id,
         }
-
         reverse_non_slug_mappings: dict[str, Any] = {
             "external_user": external_user,
         }
@@ -253,10 +247,8 @@ class OrganizationSlugTests(TestCase, APIIdOrSlugTestMixin):
         non_slug_mappings: dict[str, Any] = {
             "incident_identifier": str(self.incident.id),
         }
-
         reverse_non_slug_mappings: dict[str, Any] = {
             "incident": self.incident,
-            # "activity": self.incident_activity,
         }
 
         _, converted_slugs = endpoint_class().convert_args(
@@ -289,7 +281,6 @@ class OrganizationSlugTests(TestCase, APIIdOrSlugTestMixin):
             "incident_identifier": str(self.incident.id),
             "activity_id": self.incident_activity.id,
         }
-
         reverse_non_slug_mappings: dict[str, Any] = {
             "incident": self.incident,
             "activity": self.incident_activity,
@@ -327,7 +318,6 @@ class OrganizationSlugTests(TestCase, APIIdOrSlugTestMixin):
         non_slug_mappings: dict[str, Any] = {
             "action_id": notification_action.id,
         }
-
         reverse_non_slug_mappings: dict[str, Any] = {
             "action": notification_action,
         }

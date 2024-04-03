@@ -37,7 +37,6 @@ class ProjectSlugTests(TestCase, APIIdOrSlugTestMixin):
         non_slug_mappings: dict[str, Any] = {
             "alert_rule_id": alert_rule.id,
         }
-
         reverse_non_slug_mappings: dict[str, Any] = {
             "alert_rule": alert_rule,
         }
@@ -64,7 +63,6 @@ class ProjectSlugTests(TestCase, APIIdOrSlugTestMixin):
         non_slug_mappings: dict[str, Any] = {
             "codeowners_id": codeowners.id,
         }
-
         reverse_non_slug_mappings: dict[str, Any] = {
             "codeowners": codeowners,
         }
