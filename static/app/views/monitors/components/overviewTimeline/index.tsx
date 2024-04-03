@@ -17,9 +17,11 @@ import useRouter from 'sentry/utils/useRouter';
 import type {Monitor} from 'sentry/views/monitors/types';
 import {makeMonitorListQueryKey} from 'sentry/views/monitors/utils';
 
+import {DateNavigator} from './dateNavigator';
 import {GridLineOverlay, GridLineTimeLabels} from './gridLines';
 import {SortSelector} from './sortSelector';
 import {TimelineTableRow} from './timelineTableRow';
+import {useDateNavigation} from './useDateNavigation';
 import {useMonitorStats} from './useMonitorStats';
 import {useTimeWindowConfig} from './useTimeWindowConfig';
 
@@ -38,6 +40,7 @@ export function OverviewTimeline({monitorList}: Props) {
   const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
 
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
+  const dateNavigation = useDateNavigation();
 
   const {data: monitorStats, isLoading} = useMonitorStats({
     monitors: monitorList.map(m => m.id),
@@ -122,10 +125,24 @@ export function OverviewTimeline({monitorList}: Props) {
     <MonitorListPanel>
       <TimelineWidthTracker ref={elementRef} />
       <Header>
-        <HeaderControls>
+        <HeaderControlsLeft>
           <SortSelector size="xs" />
-        </HeaderControls>
+          <DateNavigator
+            dateNavigation={dateNavigation}
+            direction="back"
+            size="xs"
+            borderless
+          />
+        </HeaderControlsLeft>
         <GridLineTimeLabels timeWindowConfig={timeWindowConfig} width={timelineWidth} />
+        <HeaderControlsRight>
+          <DateNavigator
+            dateNavigation={dateNavigation}
+            direction="forward"
+            size="xs"
+            borderless
+          />
+        </HeaderControlsRight>
       </Header>
       <GridLineOverlay
         stickyCursor
@@ -155,7 +172,7 @@ export function OverviewTimeline({monitorList}: Props) {
 
 const MonitorListPanel = styled(Panel)`
   display: grid;
-  grid-template-columns: 350px 135px 1fr;
+  grid-template-columns: 350px 135px 1fr max-content;
 `;
 
 const Header = styled(Sticky)`
@@ -177,10 +194,15 @@ const Header = styled(Sticky)`
   }
 `;
 
-const HeaderControls = styled('div')`
+const HeaderControlsLeft = styled('div')`
   grid-column: 1/3;
   display: flex;
+  justify-content: space-between;
   gap: ${space(0.5)};
+  padding: ${space(1.5)} ${space(2)};
+`;
+
+const HeaderControlsRight = styled('div')`
   padding: ${space(1.5)} ${space(2)};
 `;
 
@@ -188,5 +210,5 @@ const TimelineWidthTracker = styled('div')`
   position: absolute;
   width: 100%;
   grid-row: 1;
-  grid-column: 3;
+  grid-column: 3 / 4;
 `;
