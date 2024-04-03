@@ -115,7 +115,8 @@ class RpcServiceTest(TestCase):
         args = {"organization_ids": [organization.id]}
         with assume_test_silo_mode(SiloMode.CONTROL):
             service = AuthService.create_delegation()
-            result = dispatch_to_local_service(service.key, "get_org_auth_config", args)
+            response = dispatch_to_local_service(service.key, "get_org_auth_config", args)
+            result = response["value"]
             assert len(result) == 1
             assert result[0]["organization_id"] == organization.id
 
