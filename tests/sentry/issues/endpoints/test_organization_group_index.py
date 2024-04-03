@@ -2644,6 +2644,27 @@ class GroupListTest(APITestCase, SnubaTestCase):
             else:
                 assert False, f"Unexpected query {query}"
 
+    def test_snuba_unsupported_filters(self):
+        self.login_as(user=self.user)
+        for query in [
+            "bookmarks:me",
+            "is:linked",
+            "is:unlinked",
+            "subscribed:me",
+            "regressed_in_release:latest",
+            "issue.priority:high",
+        ]:
+            with patch(
+                "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
+                side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
+            ) as mock_query:
+                self.get_success_response(
+                    sort="new",
+                    useGroupSnubaDataset=1,
+                    query=query,
+                )
+                assert mock_query.call_count == 0
+
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
