@@ -22,7 +22,7 @@ from sentry.utils.json import JSONData
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.safe import get_path
 
-SUPPORTED_LANGUAGES = ["javascript", "python", "node", "ruby", "php"]
+SUPPORTED_LANGUAGES = ["javascript", "python", "node", "ruby", "php", "go"]
 
 logger = logging.getLogger(__name__)
 
@@ -100,6 +100,11 @@ def derive_code_mappings(
         and data.get("platform") in SUPPORTED_LANGUAGES
     ):
         logger.info("Event should not be processed.", extra=extra)
+        return
+
+    if data["platform"].startswith("go") and not features.has(
+        "organizations:derive-code-mappings-go", org
+    ):
         return
 
     stacktrace_paths: list[str] = identify_stacktrace_paths(data)
