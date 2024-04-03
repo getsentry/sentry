@@ -43,7 +43,6 @@ def test_dlq_invalid_messages(factories, topic_name, consumer_type) -> None:
     project = factories.create_project(organization=organization)
 
     bogus_payload = b"bogus message"
-
     empty_event_payload = msgpack.packb(
         {
             "type": "event",

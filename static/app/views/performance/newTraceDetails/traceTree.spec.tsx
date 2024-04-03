@@ -56,15 +56,12 @@ function makeTransaction(overrides: Partial<TraceFullDetailed> = {}): TraceFullD
 
 function makeSpan(overrides: Partial<RawSpanType> = {}): TraceTree.Span {
   return {
+    span_id: '',
     op: '',
     description: '',
-    span_id: '',
     start_timestamp: 0,
     timestamp: 10,
     event: makeEvent(),
-    errors: [],
-    performance_issues: [],
-    childTransaction: undefined,
     ...overrides,
   } as TraceTree.Span;
 }
@@ -530,10 +527,10 @@ describe('TreeNode', () => {
       }
 
       it('first txn node', () => {
-        expect(child.parent.parent.path).toEqual(['txn:parent']);
+        expect(child.parent.parent.path).toEqual(['txn-parent']);
       });
       it('leafmost node', () => {
-        expect(child.path).toEqual(['txn:grandchild', 'txn:child', 'txn:parent']);
+        expect(child.path).toEqual(['txn-grandchild', 'txn-child', 'txn-parent']);
       });
     });
 
@@ -545,7 +542,7 @@ describe('TreeNode', () => {
         })
       );
 
-      expect(tree.list[1].path).toEqual(['error:error_id']);
+      expect(tree.list[1].path).toEqual(['error-error_id']);
     });
 
     describe('spans', () => {
@@ -593,13 +590,13 @@ describe('TreeNode', () => {
         });
 
         expect(tree.list[tree.list.length - 1].path).toEqual([
-          'span:span',
-          'txn:event_id',
+          'span-span',
+          'txn-event_id',
         ]);
       });
 
       it('missing instrumentation', () => {
-        expect(tree.list[3].path).toEqual(['ms:span', 'txn:event_id']);
+        expect(tree.list[3].path).toEqual(['ms-span', 'txn-event_id']);
       });
     });
 
@@ -666,14 +663,14 @@ describe('TreeNode', () => {
         });
         tree.expand(tree.list[2], true);
         assertAutogroupedNode(tree.list[2]);
-        expect(tree.list[2].path).toEqual(['ag:2', 'txn:event_id']);
+        expect(tree.list[2].path).toEqual(['ag-2', 'txn-event_id']);
       });
 
       it('child is part of autogrouping', () => {
         expect(tree.list[tree.list.length - 1].path).toEqual([
-          'span:5',
-          'ag:2',
-          'txn:event_id',
+          'span-5',
+          'ag-2',
+          'txn-event_id',
         ]);
       });
     });
@@ -761,13 +758,13 @@ describe('TreeNode', () => {
           expect(tree.list.length).toBe(4);
         });
         assertAutogroupedNode(tree.list[2]);
-        expect(tree.list[2].path).toEqual(['ag:2', 'txn:event_id']);
+        expect(tree.list[2].path).toEqual(['ag-2', 'txn-event_id']);
       });
       it('span node skips autogrouped node because it is not expanded', async () => {
         await waitFor(() => {
           expect(tree.list.length).toBe(4);
         });
-        expect(tree.list[tree.list.length - 1].path).toEqual(['span:6', 'txn:event_id']);
+        expect(tree.list[tree.list.length - 1].path).toEqual(['span-6', 'txn-event_id']);
       });
     });
   });
@@ -2172,10 +2169,14 @@ describe('TraceTree', () => {
 
       for (let i = 0; i < 5; i++) {
         root.children.push(
-          new TraceTreeNode(root, makeSpan({start_timestamp: i, timestamp: i + 1}), {
-            project_slug: '',
-            event_id: '',
-          })
+          new TraceTreeNode(
+            root,
+            makeSpan({start_timestamp: i, op: 'db', timestamp: i + 1}),
+            {
+              project_slug: '',
+              event_id: '',
+            }
+          )
         );
       }
 

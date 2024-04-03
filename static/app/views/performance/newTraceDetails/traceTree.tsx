@@ -16,6 +16,11 @@ import {
   isTraceError,
   isTraceTransaction,
 } from 'sentry/utils/performance/quickTrace/utils';
+import {
+  MOBILE_VITAL_DETAILS,
+  WEB_VITAL_DETAILS,
+} from 'sentry/utils/performance/vitals/constants';
+import type {Vital} from 'sentry/utils/performance/vitals/types';
 
 import {TraceType} from '../traceDetails/newTraceDetailsContent';
 import {isRootTransaction} from '../traceDetails/utils';
@@ -143,7 +148,7 @@ export declare namespace TraceTree {
     | null;
 
   type NodePath =
-    `${'txn' | 'span' | 'ag' | 'trace' | 'ms' | 'error' | 'empty'}:${string}`;
+    `${'txn' | 'span' | 'ag' | 'trace' | 'ms' | 'error' | 'empty'}-${string}`;
 
   type Metadata = {
     event_id: string | undefined;
@@ -158,6 +163,8 @@ export declare namespace TraceTree {
     start: number;
     type: 'cls' | 'fcp' | 'fp' | 'lcp' | 'ttfb';
   };
+
+  type CollectedVital = {key: string; measurement: Measurement};
 }
 
 function cacheKey(organization: Organization, project_slug: string, event_id: string) {
@@ -266,7 +273,35 @@ const RENDERABLE_MEASUREMENTS = [
   WebVital.LCP,
   MobileVital.TIME_TO_FULL_DISPLAY,
   MobileVital.TIME_TO_INITIAL_DISPLAY,
+]
+  .map(n => n.replace('measurements.', ''))
+  .reduce((acc, curr) => {
+    acc[curr] = true;
+    return acc;
+  }, {});
+
+const WEB_VITALS = [
+  WebVital.TTFB,
+  WebVital.FP,
+  WebVital.FCP,
+  WebVital.LCP,
+  WebVital.CLS,
+  WebVital.FID,
+  WebVital.INP,
+  WebVital.REQUEST_TIME,
 ].map(n => n.replace('measurements.', ''));
+
+const MOBILE_VITALS = [
+  MobileVital.TIME_TO_FULL_DISPLAY,
+  MobileVital.TIME_TO_INITIAL_DISPLAY,
+].map(n => n.replace('measurements.', ''));
+
+const WEB_VITALS_LOOKUP = new Set<string>(WEB_VITALS);
+const MOBILE_VITALS_LOOKUP = new Set<string>(MOBILE_VITALS);
+
+const COLLECTABLE_MEASUREMENTS = [...WEB_VITALS, ...MOBILE_VITALS].map(n =>
+  n.replace('measurements.', '')
+);
 
 const MEASUREMENT_ACRONYM_MAPPING = {
   [MobileVital.TIME_TO_FULL_DISPLAY.replace('measurements.', '')]: 'TTFD',
@@ -281,10 +316,20 @@ const MEASUREMENT_THRESHOLDS = {
   [MobileVital.TIME_TO_INITIAL_DISPLAY.replace('measurements.', '')]: 2000,
 };
 
+export const TRACE_MEASUREMENT_LOOKUP: Record<string, Vital> = {};
+for (const key in {...MOBILE_VITAL_DETAILS, ...WEB_VITAL_DETAILS}) {
+  TRACE_MEASUREMENT_LOOKUP[key.replace('measurements.', '')] = {
+    ...MOBILE_VITAL_DETAILS[key],
+    ...WEB_VITAL_DETAILS[key],
+  };
+}
+
 export class TraceTree {
   type: 'loading' | 'empty' | 'error' | 'trace' = 'trace';
   root: TraceTreeNode<null> = TraceTreeNode.Root();
   indicators: TraceTree.Indicator[] = [];
+  vitals: Map<TraceTreeNode<TraceTree.NodeValue>, TraceTree.CollectedVital[]> = new Map();
+  vital_types: Set<'web' | 'mobile'> = new Set();
   eventsCount: number = 0;
 
   private _spanPromises: Map<string, Promise<Event>> = new Map();
@@ -371,8 +416,11 @@ export class TraceTree {
 
       if (value && 'measurements' in value) {
         tree.collectMeasurements(
+          node,
           traceStart,
           value.measurements as Record<string, Measurement>,
+          tree.vitals,
+          tree.vital_types,
           tree.indicators
         );
       }
@@ -726,7 +774,7 @@ export class TraceTree {
         queue.push(child);
       }
 
-      if (isSiblingAutogroupedNode(node) || isParentAutogroupedNode(node)) {
+      if (isAutogroupedNode(node)) {
         continue;
       }
 
@@ -738,11 +786,17 @@ export class TraceTree {
       let matchCount = 0;
 
       while (index < node.children.length) {
+        if (!isSpanNode(node.children[index])) {
+          index++;
+          matchCount = 0;
+          continue;
+        }
         const current = node.children[index] as TraceTreeNode<TraceTree.Span>;
         const next = node.children[index + 1] as TraceTreeNode<TraceTree.Span>;
 
         if (
           next &&
+          isSpanNode(next) &&
           next.children.length === 0 &&
           current.children.length === 0 &&
           next.value.op === current.value.op &&
@@ -797,12 +851,6 @@ export class TraceTree {
               start_timestamp = child.value.start_timestamp;
             }
 
-            if (!isSpanNode(child)) {
-              throw new TypeError(
-                'Expected child of autogrouped node to be a span node.'
-              );
-            }
-
             if (child.has_errors) {
               for (const error of child.errors) {
                 autoGroupedNode.errors.add(error);
@@ -835,13 +883,34 @@ export class TraceTree {
   }
 
   collectMeasurements(
+    node: TraceTreeNode<TraceTree.NodeValue>,
     start_timestamp: number,
     measurements: Record<string, Measurement>,
+    vitals: Map<TraceTreeNode<TraceTree.NodeValue>, TraceTree.CollectedVital[]>,
+    vital_types: Set<'web' | 'mobile'>,
     indicators: TraceTree.Indicator[]
   ): void {
-    for (const measurement of RENDERABLE_MEASUREMENTS) {
+    for (const measurement of COLLECTABLE_MEASUREMENTS) {
       const value = measurements[measurement];
-      if (!value) {
+
+      if (!value || typeof value.value !== 'number') {
+        continue;
+      }
+
+      if (!vitals.has(node)) {
+        vitals.set(node, []);
+      }
+
+      WEB_VITALS_LOOKUP.has(measurement) && vital_types.add('web');
+      MOBILE_VITALS_LOOKUP.has(measurement) && vital_types.add('mobile');
+
+      const vital = vitals.get(node)!;
+      vital.push({
+        key: measurement,
+        measurement: value,
+      });
+
+      if (!RENDERABLE_MEASUREMENTS[measurement]) {
         continue;
       }
 
@@ -975,7 +1044,13 @@ export class TraceTree {
 
     promise
       .then(data => {
+        // The user may have collapsed the node before the promise resolved. When that
+        // happens, dont update the tree with the resolved data. Alternatively, we could implement
+        // a cancellable promise and avoid this cumbersome heuristic.
         node.fetchStatus = 'resolved';
+        if (!node.expanded) {
+          return data;
+        }
 
         const spans = data.entries.find(s => s.type === 'spans') ?? {data: []};
 
@@ -1703,32 +1778,32 @@ export function makeExampleTrace(metadata: TraceTree.Metadata): TraceTree {
 
 function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
   if (isTransactionNode(n)) {
-    return `txn:${n.value.event_id}`;
+    return `txn-${n.value.event_id}`;
   }
   if (isSpanNode(n)) {
-    return `span:${n.value.span_id}`;
+    return `span-${n.value.span_id}`;
   }
   if (isAutogroupedNode(n)) {
     if (isParentAutogroupedNode(n)) {
-      return `ag:${n.head.value.span_id}`;
+      return `ag-${n.head.value.span_id}`;
     }
     if (isSiblingAutogroupedNode(n)) {
       const child = n.children[0];
       if (isSpanNode(child)) {
-        return `ag:${child.value.span_id}`;
+        return `ag-${child.value.span_id}`;
       }
     }
   }
   if (isTraceNode(n)) {
-    return `trace:root`;
+    return `trace-root`;
   }
 
   if (isTraceErrorNode(n)) {
-    return `error:${n.value.event_id}`;
+    return `error-${n.value.event_id}`;
   }
 
   if (isNoDataNode(n)) {
-    return `empty:node`;
+    return `empty-node`;
   }
 
   if (isRootNode(n)) {
@@ -1737,10 +1812,10 @@ function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
 
   if (isMissingInstrumentationNode(n)) {
     if (n.previous) {
-      return `ms:${n.previous.value.span_id}`;
+      return `ms-${n.previous.value.span_id}`;
     }
     if (n.next) {
-      return `ms:${n.next.value.span_id}`;
+      return `ms-${n.next.value.span_id}`;
     }
 
     throw new Error('Missing instrumentation node must have a previous or next node');

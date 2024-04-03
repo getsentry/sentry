@@ -279,6 +279,7 @@ const StyledButton = styled(LinkButton)`
   border-left: none;
   border-right: none;
   font-size: ${p => p.theme.fontSizeMedium};
+  background-color: transparent;
 `;
 
 const StyledAccordionHeader = styled('div')`

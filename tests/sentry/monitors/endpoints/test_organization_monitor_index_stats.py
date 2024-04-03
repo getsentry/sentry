@@ -152,9 +152,8 @@ class OrganizationMonitorIndexStatsTest(MonitorTestCase):
                 "production": {"in_progress": 1, "ok": 1, "error": 0, "missed": 0, "timeout": 0},
             },
         ]
+
         assert min_2 == [
             1647849540,
-            {
-                "debug": {"in_progress": 0, "ok": 1, "error": 0, "missed": 0, "timeout": 0},
-            },
+            {},
         ]

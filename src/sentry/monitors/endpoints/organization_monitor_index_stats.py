@@ -114,8 +114,8 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
         check_ins = MonitorCheckIn.objects.filter(
             monitor_id__in=monitor_map.keys(),
             status__in=tracked_statuses,
-            date_added__gt=args["start"],
-            date_added__lte=args["end"],
+            date_added__gte=args["start"],
+            date_added__lt=args["end"],
         )
 
         if monitor_environment_map:

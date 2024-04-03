@@ -5,8 +5,7 @@ import os
 import subprocess
 
 from devenv import constants
-from devenv.lib import venv  # type: ignore[attr-defined]
-from devenv.lib import colima, config, limactl, proc, volta
+from devenv.lib import colima, config, limactl, proc, venv, volta
 
 
 # TODO: need to replace this with a nicer process executor in devenv.lib
@@ -34,8 +33,8 @@ def run_procs(
                         **constants.user_environ,
                         **proc.base_env,
                         "VIRTUAL_ENV": venv_path,
-                        "VOLTA_HOME": constants.VOLTA_HOME,
-                        "PATH": f"{venv_path}/bin:{proc.base_path}",
+                        "VOLTA_HOME": f"{reporoot}/.devenv/bin/volta-home",
+                        "PATH": f"{venv_path}/bin:{reporoot}/.devenv/bin:{proc.base_path}",
                     },
                     cwd=reporoot,
                 ),
@@ -75,27 +74,26 @@ def main(context: dict[str, str]) -> int:
     print(f"ensuring {repo} venv at {venv_dir}...")
     venv.ensure(venv_dir, python_version, url, sha256)
 
-    # This is for engineers with existing dev environments transitioning over.
-    # Bootstrap will set devenv-managed volta up but they won't be running
-    # devenv bootstrap, just installing devenv then running devenv sync.
-    # make install-js-dev will fail since our run_procs expects devenv-managed
-    # volta.
-    volta.install()
+    # TODO: move volta version into per-repo config
+    try:
+        volta.install(reporoot)
+    except TypeError:
+        # this is needed for devenv <=1.4.0,>1.2.3 to finish syncing and therefore update itself
+        volta.install()
 
     if constants.DARWIN:
         repo_config = configparser.ConfigParser()
         repo_config.read(f"{reporoot}/devenv/config.ini")
 
-        # we don't officially support colima on linux yet
-        if constants.CI:
-            # colima 0.6.8 doesn't work with macos-13,
-            # but integration coverage is still handy
+        try:
             colima.install(
-                "v0.6.2",
-                "https://github.com/abiosoft/colima/releases/download/v0.6.2/colima-Darwin-x86_64",
-                "43ef3fc80a8347d51b8ec1706f9caf8863bd8727a6f7532caf1ccd20497d8485",
+                repo_config["colima"]["version"],
+                repo_config["colima"][constants.SYSTEM_MACHINE],
+                repo_config["colima"][f"{constants.SYSTEM_MACHINE}_sha256"],
+                reporoot,
             )
-        else:
+        except TypeError:
+            # this is needed for devenv <=1.4.0,>1.2.3 to finish syncing and therefore update itself
             colima.install(
                 repo_config["colima"]["version"],
                 repo_config["colima"][constants.SYSTEM_MACHINE],
@@ -103,7 +101,11 @@ def main(context: dict[str, str]) -> int:
             )
 
         # TODO: move limactl version into per-repo config
-        limactl.install()
+        try:
+            limactl.install(reporoot)
+        except TypeError:
+            # this is needed for devenv <=1.4.0,>1.2.3 to finish syncing and therefore update itself
+            limactl.install()
 
     if not run_procs(
         repo,
@@ -145,6 +147,7 @@ def main(context: dict[str, str]) -> int:
             "redis",
             "postgres",
         ),
+        pathprepend=f"{reporoot}/.devenv/bin",
         exit=True,
     )
 

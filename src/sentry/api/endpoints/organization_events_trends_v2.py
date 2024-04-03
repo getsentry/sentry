@@ -112,7 +112,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
 
         def generate_top_transaction_query(events):
             pairs = [
-                (event["project_id"], re.sub(r'"', '\\"', event["transaction"])) for event in events
+                (event["project_id"], escape_transaction(event["transaction"])) for event in events
             ]
             conditions = [
                 f'(project_id:{project_id} transaction:"{transaction}")'
@@ -169,11 +169,14 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                     "project_id": item["project_id"],
                 }
 
+            discarded = 0
+
             for row in result.get("data", []):
                 result_key = create_result_key(row, translated_groupby, {})
                 if result_key in results:
                     results[result_key]["data"].append(row)
                 else:
+                    discarded += 1
                     # TODO filter out entries that don't have transaction or trend_function
                     logger.warning(
                         "trends.top-events.timeseries.key-mismatch",
@@ -182,6 +185,22 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                             "top_event_keys": list(results.keys()),
                         },
                     )
+
+            # If we discard any rows, there's a chance we have a bad query and it'll
+            # most likely be a transaction name being parsed in an unexpected way in
+            # the search.
+            # A common side effect of this is that we return data for the same series
+            # in more than 1 query which can lead to a validation error in seer.
+            if discarded > 0:
+                logger.warning(
+                    "trends.top-events.timeseries.discarded-rows",
+                    extra={
+                        "discarded": discarded,
+                        "transactions": [event["transaction"] for event in data],
+                    },
+                )
+                sentry_sdk.capture_message("Possibility of bad trends query")
+
             for key, item in results.items():
                 formatted_results[key] = SnubaTSResult(
                     {
@@ -363,3 +382,9 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 default_per_page=5,
                 max_per_page=5,
             )
+
+
+def escape_transaction(transaction: str) -> str:
+    transaction = re.sub(r'"', r"\"", transaction)
+    transaction = re.sub(r"\*", r"\*", transaction)
+    return transaction
