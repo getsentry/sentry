@@ -38,6 +38,7 @@ _KNOWN_TAGS = {
     "sentry.objc",
     "sentry.perl",
     "sentry.php",
+    "sentry.powershell",
     "sentry.python",
     "sentry.ruby",
     "sentry.rust",
