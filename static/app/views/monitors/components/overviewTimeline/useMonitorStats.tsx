@@ -2,7 +2,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
-import {MonitorBucketData, TimeWindowConfig} from './types';
+import type {MonitorBucketData, TimeWindowConfig} from './types';
 
 interface Options {
   /**
