@@ -1,5 +1,11 @@
-import type {OrganizationSummary} from 'sentry/types';
+import type {Location} from 'history';
 
+import type {Organization, OrganizationSummary} from 'sentry/types';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+
+import {getTimeStampFromTableDateField} from '../dates';
+
+import type {TableDataRow} from './discoverQuery';
 import type {EventData} from './eventView';
 import type EventView from './eventView';
 
@@ -25,6 +31,51 @@ export function eventDetailsRoute({
   orgSlug: string;
 }): string {
   return `/organizations/${orgSlug}/discover/${eventSlug}/`;
+}
+
+/**
+ * Return a URL to the trace view or the event details view depending on the
+ * feature flag.
+ *
+ * TODO Abdullah Khan: Add link to new trace view doc explaining why we route to the traceview.
+ */
+export function generateEventIDTarget({
+  dataRow,
+  organization,
+  eventView,
+  isHomepage,
+  location,
+}: {
+  dataRow: TableDataRow;
+  eventView: EventView;
+  location: Location;
+  organization: Organization;
+  isHomepage?: boolean;
+}) {
+  const dateSelection = eventView.normalizeDateSelection(location);
+  const timestamp = getTimeStampFromTableDateField(dataRow.timestamp);
+
+  if (organization.features.includes('trace-view-v1')) {
+    return getTraceDetailsUrl(
+      organization,
+      String(dataRow.trace),
+      dateSelection,
+      {},
+      timestamp,
+      dataRow.id
+    );
+  }
+
+  const eventSlug = generateEventSlug(dataRow);
+  const pathname = eventDetailsRoute({
+    orgSlug: organization.slug,
+    eventSlug,
+  });
+
+  return {
+    pathname,
+    query: {...eventView.generateQueryStringObject(), homepage: isHomepage},
+  };
 }
 
 /**
