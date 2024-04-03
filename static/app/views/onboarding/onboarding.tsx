@@ -69,7 +69,7 @@ function getOrganizationOnboardingSteps(): StepDescriptor[] {
 }
 
 function Onboarding(props: Props) {
-  const api = useApi();
+const api = useApi();
   const organization = useOrganization();
   const onboardingContext = useContext(OnboardingContext);
   const selectedSDK = onboardingContext.data.selectedSDK;
@@ -85,10 +85,16 @@ function Onboarding(props: Props) {
   const projectSlug =
     stepObj && stepObj.id === 'setup-docs' ? selectedProjectSlug : undefined;
 
-  const recentCreatedProject = useRecentCreatedProject({
-    orgSlug: organization.slug,
-    projectSlug,
-  });
+  let recentCreatedProject;
+  if (stepIndex !== -1) {
+    recentCreatedProject = useRecentCreatedProject({
+      orgSlug: organization.slug,
+      projectSlug,
+    });
+  } else {
+    // Handle the case where stepIndex is -1, e.g., set recentCreatedProject to null or provide a default value
+    recentCreatedProject = null; // or appropriate handling
+  }
 
   const cornerVariantTimeoutRed = useRef<number | undefined>(undefined);
 
