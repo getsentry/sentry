@@ -14,6 +14,7 @@ import {getConfigurePerformanceDocsLink} from 'sentry/utils/docs';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {NoDataMessage} from 'sentry/views/performance/database/noDataMessage';
+import {MODULE_TITLE as HTTP_MODULE_TITLE} from 'sentry/views/performance/http/settings';
 import {getIsMultiProject} from 'sentry/views/performance/utils';
 
 type Props = {
@@ -128,7 +129,7 @@ export function WidgetAddInstrumentationWarning({type}: {type: 'db' | 'http'}) {
         {tct(
           'No transactions with [spanCategory] spans found. You may need to add integrations to your [link] to capture these spans.',
           {
-            spanCategory: type === 'db' ? t('Database') : t('HTTP'),
+            spanCategory: type === 'db' ? t('Database') : HTTP_MODULE_TITLE,
             link: (
               <ExternalLink href={docsLink}>
                 {t('performance monitoring setup')}
