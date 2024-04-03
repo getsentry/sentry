@@ -25,6 +25,7 @@ jobs:
         id: oldschema
         run: |
           # Debugging -- TODO: Remove
+          git fetch
           echo ${{ github.base_ref }} ${{ github.head_ref }}
           echo `git merge-base ${{ github.base_ref }} ${{ github.head_ref }}`
 
