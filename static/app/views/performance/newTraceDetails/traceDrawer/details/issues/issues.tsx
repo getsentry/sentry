@@ -260,6 +260,10 @@ const GraphHeading = styled(Heading)`
   width: 160px;
   display: flex;
   justify-content: center;
+
+  @container (width < ${MIN_ISSUES_TABLE_WIDTH}px) {
+    display: none;
+  }
 `;
 
 const UsersHeading = styled(Heading)`
@@ -270,15 +274,7 @@ const UsersHeading = styled(Heading)`
 const StyledPanel = styled(Panel)<{width?: number}>`
   margin-bottom: 0;
   border: 1px solid ${p => p.theme.red200};
-
-  ${p =>
-    p.width &&
-    p.width < MIN_ISSUES_TABLE_WIDTH &&
-    `
-    ${ChartWrapper}, ${GraphHeading} {
-      display: none;
-    }
-  `}
+  container-type: inline-size;
 `;
 
 const StyledPanelHeader = styled(PanelHeader)`
@@ -317,6 +313,10 @@ const IssueSummaryWrapper = styled('div')`
 const ChartWrapper = styled('div')`
   width: 200px;
   align-self: center;
+
+  @container (width < ${MIN_ISSUES_TABLE_WIDTH}px) {
+    display: none;
+  }
 `;
 
 const ColumnWrapper = styled('div')`
