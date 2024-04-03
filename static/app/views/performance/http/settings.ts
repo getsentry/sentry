@@ -1,4 +1,7 @@
 import type {BadgeType} from 'sentry/components/featureBadge';
+import {t} from 'sentry/locale';
+
+export const MODULE_TITLE = t('HTTP');
 
 export const RELEASE_LEVEL: BadgeType = 'alpha';
 
