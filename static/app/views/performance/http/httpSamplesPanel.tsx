@@ -7,7 +7,6 @@ import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Series} from 'sentry/types/echarts';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -20,7 +19,7 @@ import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {DurationChart} from 'sentry/views/performance/http/durationChart';
 import decodePanel from 'sentry/views/performance/http/queryParameterDecoders/panel';
-import {ResponseCodeBarChart} from 'sentry/views/performance/http/responseCodeBarChart';
+import {ResponseRateChart} from 'sentry/views/performance/http/responseRateChart';
 import {SpanSamplesTable} from 'sentry/views/performance/http/spanSamplesTable';
 import {useSpanSamples} from 'sentry/views/performance/http/useSpanSamples';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
@@ -114,26 +113,15 @@ export function HTTPSamplesPanel() {
   });
 
   const {
-    data: responseCodeData,
     isFetching: isResponseCodeDataLoading,
-    error: responseCodeDataError,
-  } = useSpanMetrics({
+    data: responseCodeData,
+    error: responseCodeError,
+  } = useSpanMetricsSeries({
     search: MutableSearch.fromQueryObject(filters),
-    fields: ['span.status_code', 'count()'],
-    sorts: [{field: 'span.status_code', kind: 'asc'}],
+    yAxis: ['http_response_rate(3)', 'http_response_rate(4)', 'http_response_rate(5)'],
     enabled: isPanelOpen && query.panel === 'status',
-    referrer: 'api.starfish.http-module-samples-panel-response-bar-chart',
+    referrer: 'api.starfish.http-module-samples-panel-response-code-chart',
   });
-
-  const responseCodeBarChartSeries: Series = {
-    seriesName: 'span.status_code',
-    data: (responseCodeData ?? []).map(item => {
-      return {
-        name: item['span.status_code'] || t('N/A'),
-        value: item['count()'],
-      };
-    }),
-  };
 
   const durationAxisMax = computeAxisMax([durationData?.[`avg(span.self_time)`]]);
 
@@ -307,10 +295,23 @@ export function HTTPSamplesPanel() {
 
           {query.panel === 'status' && (
             <ModuleLayout.Full>
-              <ResponseCodeBarChart
-                series={responseCodeBarChartSeries}
+              <ResponseRateChart
+                series={[
+                  {
+                    ...responseCodeData[`http_response_rate(3)`],
+                    seriesName: t('3XX'),
+                  },
+                  {
+                    ...responseCodeData[`http_response_rate(4)`],
+                    seriesName: t('4XX'),
+                  },
+                  {
+                    ...responseCodeData[`http_response_rate(5)`],
+                    seriesName: t('5XX'),
+                  },
+                ]}
                 isLoading={isResponseCodeDataLoading}
-                error={responseCodeDataError}
+                error={responseCodeError}
               />
             </ModuleLayout.Full>
           )}
