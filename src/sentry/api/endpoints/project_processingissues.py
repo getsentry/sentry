@@ -8,7 +8,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.helpers.processing_issues import get_processing_issues
 from sentry.api.serializers import serialize
 from sentry.models.processingissue import ProcessingIssue
-from sentry.reprocessing import trigger_reprocessing
+from sentry.reprocessing import REPROCESSING_OPTION, trigger_reprocessing
 
 
 @region_silo_endpoint
@@ -48,7 +48,8 @@ class ProjectProcessingIssuesEndpoint(ProjectEndpoint):
         This deletes all open processing issues and triggers reprocessing if
         the user disabled the checkbox
         """
-        reprocessing_active = bool(project.get_option("sentry:reprocessing_active", True))
+        # XXX: Why does this default to `True` here?
+        reprocessing_active = bool(project.get_option(REPROCESSING_OPTION, True))
         if not reprocessing_active:
             ProcessingIssue.objects.resolve_all_processing_issue(project=project)
             trigger_reprocessing(project)
