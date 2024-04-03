@@ -396,9 +396,6 @@ export class VideoReplayer {
     const nextVideo = this.getVideo(index);
 
     if (nextVideo) {
-      // Will need to hide previous video if next video is ready to
-      // be played immediately
-      // const previousVideoIndex = this._currentIndex;
       // Set video to proper offset
       this.setVideoTime(nextVideo, segmentOffsetMs);
       this._currentIndex = index;
