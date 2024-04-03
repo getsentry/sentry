@@ -49,7 +49,7 @@ function TraceDetailsRouting(props: Props) {
         const spanId = spanHashValue.split('-')[1];
 
         if (spanId) {
-          query.node = [`span:${spanId}`, `txn:${event.eventID}`];
+          query.node = [`span-${spanId}`, `txn-${event.eventID}`];
         }
       }
 
