@@ -1836,6 +1836,7 @@ def _create_group(project: Project, event: Event, **group_creation_kwargs: Any) 
     group_data.setdefault("metadata", {}).update(sdk_metadata_from_event(event))
 
     # add severity to metadata for alert filtering
+    severity: Mapping[str, Any] = {}
     try:
         group_type = group_creation_kwargs.get("type", None)
         severity = _get_severity_metadata_for_group(event, project.id, group_type)
