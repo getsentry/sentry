@@ -8,6 +8,8 @@ from urllib.parse import urljoin
 
 from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
 from requests import Request, Response
+from rest_framework.request import Request as DRFRequest
+from rest_framework.response import Response as DRFResponse
 from sentry_sdk import Scope
 
 from sentry.api.api_owners import ApiOwner
@@ -226,13 +228,13 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         logger.info("proxy_success", extra=self.log_extra)
         return response
 
-    def handle_exception(
+    def handle_exception(  # type: ignore[override]
         self,
-        request: Request,
+        request: DRFRequest,
         exc: Exception,
         handler_context: Mapping[str, Any] | None = None,
         scope: Scope | None = None,
-    ) -> Response:
+    ) -> DRFResponse:
         if isinstance(exc, IdentityNotValid):
             return self.respond(status=400)
 
