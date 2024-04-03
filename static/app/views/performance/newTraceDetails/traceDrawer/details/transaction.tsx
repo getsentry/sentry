@@ -4,7 +4,7 @@ import omit from 'lodash/omit';
 
 import {Button} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import {Chunk} from 'sentry/components/events/contexts/chunk';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {

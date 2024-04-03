@@ -3,7 +3,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import ConfigStore from 'sentry/stores/configStore';
 
 describe('DateTime', () => {

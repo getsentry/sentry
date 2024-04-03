@@ -4,7 +4,7 @@ import {mergeRefs} from '@react-aria/utils';
 import moment from 'moment';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import {space} from 'sentry/styles/space';
 import useRouter from 'sentry/utils/useRouter';
 import type {TimeWindowConfig} from 'sentry/views/monitors/components/overviewTimeline/types';

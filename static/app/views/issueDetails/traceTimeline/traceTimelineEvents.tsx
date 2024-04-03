@@ -2,7 +2,7 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import color from 'color';
 
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

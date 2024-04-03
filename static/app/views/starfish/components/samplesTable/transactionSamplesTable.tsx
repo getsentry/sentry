@@ -2,7 +2,7 @@ import type {CSSProperties} from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import type {GridColumnHeader} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';

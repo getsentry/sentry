@@ -8,7 +8,7 @@ import moment from 'moment';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import type {Client, ResponseMeta} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';

@@ -1,4 +1,4 @@
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import {BannerContainer, BannerSummary} from 'sentry/components/events/styles';
 import ExternalLink from 'sentry/components/links/externalLink';

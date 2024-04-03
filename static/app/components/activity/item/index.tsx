@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import TimeSince from 'sentry/components/timeSince';
 import {space} from 'sentry/styles/space';
 import textStyles from 'sentry/styles/text';

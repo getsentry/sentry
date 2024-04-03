@@ -13,7 +13,7 @@ import {
 import {resendMemberInvite, updateMember} from 'sentry/actionCreators/members';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import NotFound from 'sentry/components/errors/notFound';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import HookOrDefault from 'sentry/components/hookOrDefault';

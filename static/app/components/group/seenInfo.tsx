@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import {Body, Header, Hovercard} from 'sentry/components/hovercard';
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
