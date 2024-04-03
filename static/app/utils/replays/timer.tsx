@@ -14,13 +14,6 @@ export class Timer extends EventTarget {
     super();
   }
 
-  private _stopTimer() {
-    if (this._id) {
-      window.cancelAnimationFrame(this._id);
-    }
-    this._active = false;
-  }
-
   step = () => {
     if (!this._active) {
       return;
@@ -49,19 +42,18 @@ export class Timer extends EventTarget {
   }
 
   /**
-   * Stops timer and moves time to `seconds` if provided
+   * Stops/pauses timer, can use `resume` to restart
    */
   stop() {
-    this._stopTimer();
-  }
-
-  pause() {
     if (!this._active) {
       // already paused, do nothing
       return;
     }
     this._pausedAt = window.performance.now();
-    this._stopTimer();
+    if (this._id) {
+      window.cancelAnimationFrame(this._id);
+    }
+    this._active = false;
   }
 
   resume() {
@@ -84,6 +76,7 @@ export class Timer extends EventTarget {
     this.stop();
     this._start = 0;
     this._time = 0;
+    this._pausedAt = 0;
   }
 
   getTime() {

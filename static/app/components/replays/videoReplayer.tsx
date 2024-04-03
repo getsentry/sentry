@@ -147,7 +147,7 @@ export class VideoReplayer {
     if (!this._isPlaying) {
       return;
     }
-    this._timer.pause();
+    this._timer.stop();
   }
 
   private startReplay(videoOffsetMs: number) {
