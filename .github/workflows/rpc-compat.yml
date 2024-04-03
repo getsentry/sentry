@@ -24,7 +24,10 @@ jobs:
       - name: Dump RPC schema for old version
         id: oldschema
         run: |
-          # git fetch
+          # Debugging -- TODO: Remove
+          echo ${{ github.base_ref }} ${{ github.head_ref }}
+          echo `git merge-base ${{ github.base_ref }} ${{ github.head_ref }}`
+
           git checkout `git merge-base ${{ github.base_ref }} ${{ github.head_ref }}`
           sentry rpcschema --canned > schemas/old_schema.json
       - name: Invoke oasdiff on two outputs
