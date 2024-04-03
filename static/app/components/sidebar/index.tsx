@@ -31,6 +31,7 @@ import {
   IconTelescope,
   IconTimer,
 } from 'sentry/icons';
+import {IconRobot} from 'sentry/icons/iconRobot';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
@@ -379,6 +380,20 @@ function Sidebar() {
     />
   );
 
+  const aiAnalytics = hasOrganization && (
+    <Feature features="ai-analytics" organization={organization}>
+      <SidebarItem
+        {...sidebarItemProps}
+        icon={<IconRobot />}
+        label={t('AI Analytics')}
+        isAlpha
+        variant="short"
+        to={`/organizations/${organization.slug}/ai-analytics/`}
+        id="ai-analytics"
+      />
+    </Feature>
+  );
+
   const userFeedback = hasOrganization && (
     <Feature features="old-user-feedback" organization={organization}>
       <SidebarItem
@@ -544,6 +559,7 @@ function Sidebar() {
                 {profiling}
                 {metrics}
                 {replays}
+                {aiAnalytics}
                 {feedback}
                 {monitors}
                 {alerts}
