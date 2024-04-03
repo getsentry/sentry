@@ -1,15 +1,136 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
-import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
+import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
+import type {PlatformKey, Project} from 'sentry/types';
+import useOrganization from 'sentry/utils/useOrganization';
+import FirstEventIndicator from 'sentry/views/onboarding/components/firstEventIndicator';
 
-export default function UpdatedEmptyState() {
+type GuidedStepInfo = {
+  install: string;
+  installCode: string;
+  configure?: string;
+  configureCode?: string;
+  sourcemaps?: string;
+  sourcemapsCode?: string;
+  verify?: string;
+  verifyCode?: string;
+};
+
+const GuidedStepsMap: Partial<Record<PlatformKey, GuidedStepInfo>> = {
+  'javascript-nextjs': {
+    install: t(
+      'Add Sentry automiatcally to your app with the Sentry Wizard (call this inside your project directory)'
+    ),
+    installCode: 'npx @sentry/wizard@latest -i nextjs',
+  },
+  node: {
+    install: t('Add the Sentry Node SDK as a dependency'),
+    installCode: 'npm install --save @sentry/node',
+    configure: t(
+      "Initialize Sentry as early as possible in your application's lifecycle"
+    ),
+    configureCode: `// You can also use ESM 'import * as Sentry from "@sentry/node"' instead of 'require'
+const Sentry = require("@sentry/node");
+
+Sentry.init({
+  dsn: "http://5f97ad6946bfd6086d8d289e9325e3fb@localhost:8000/22",
+  // Performance Monitoring
+  tracesSampleRate: 1.0, //  Capture 100% of the transactions
+});`,
+    sourcemaps: t(
+      'Automatically upload your source maps to enable readable stack traces for Errors.'
+    ),
+    sourcemapsCode: 'npx @sentry/wizard@latest -i sourcemaps',
+    verify: t(
+      'Add this intentional error to your application to test that everything is working right away.'
+    ),
+    verifyCode: `const transaction = Sentry.startTransaction({
+      op: "test",
+      name: "My First Test Transaction",
+});
+
+setTimeout(() => {
+  try {
+    foo();
+  } catch (e) {
+    Sentry.captureException(e);
+  } finally {
+    transaction.finish();
+  }
+}, 99);`,
+  },
+  'python-django': {
+    install: t('Use the following command to install our Python Django SDK'),
+    installCode: "pip install --upgrade 'sentry-sdk[django]'",
+    configure: t(
+      'If you have the django package in your dependencies, the Django integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK in your Django settings.py file'
+    ),
+    configureCode: `# settings.py
+import sentry_sdk
+
+sentry_sdk.init(dsn="http://dc21aeced16ec1aaee075661e7a063f0@localhost:8000/18",
+enable_tracing=True)`,
+    verify: t(
+      'Add this intentional error to your application to test that everything is working right away.'
+    ),
+    verifyCode: `# urls.py
+from django.urls import path
+
+def trigger_error(request):
+    division_by_zero = 1 / 0
+
+urlpatterns = [
+    path('sentry-debug/', trigger_error),
+    # ...
+]`,
+  },
+  android: {
+    install: t(
+      'Add Sentry automiatcally to your app with the Sentry Wizard (call this inside your project directory)'
+    ),
+    installCode: 'brew install getsentry/tools/sentry-wizard && sentry-wizard -i android',
+  },
+};
+
+function WaitingForEvent() {
+  return (
+    <Fragment>
+      <StatusWrapper>
+        <WaitingIndicator />
+        <WaitingText>Waiting for first event</WaitingText>
+      </StatusWrapper>
+    </Fragment>
+  );
+}
+
+export default function UpdatedEmptyState({project}: {project?: Project}) {
+  const organization = useOrganization();
+  const platformGuidedSteps = project?.platform ? GuidedStepsMap[project.platform] : null;
+  if (!platformGuidedSteps || !project) {
+    return null;
+  }
+
+  const language = project?.platform === 'node' ? 'javascript' : 'python';
+
+  const {
+    install,
+    configure,
+    verify,
+    installCode,
+    configureCode,
+    verifyCode,
+    sourcemaps,
+    sourcemapsCode,
+  } = platformGuidedSteps;
   return (
     <div>
       <HeaderWrapper>
@@ -21,38 +142,80 @@ export default function UpdatedEmptyState() {
       <Body>
         <Setup>
           <GuidedSteps>
-            <GuidedSteps.Step title="Install Sentry">
-              Use the following command to install our Python SDK
-              <CodeSnippet language="python">
-                pip install --upgrade sentry-sdk
-              </CodeSnippet>
-              <GuidedSteps.StepButtons />
+            <GuidedSteps.Step stepKey="install-sentry" title={t('Install Sentry')}>
+              <div>
+                <div>
+                  {install}
+                  <CodeSnippet>{installCode}</CodeSnippet>
+                  {!verify && <WaitingForEvent />}
+                </div>
+                <GuidedSteps.BackButton size="md" />
+                <GuidedSteps.NextButton size="md" />
+              </div>
             </GuidedSteps.Step>
-            <GuidedSteps.Step title="Install Sentry">
-              Add the following code to your application, as early in the lifecycle as
-              possible.
-              <CodeSnippet language="python">
-                {`import sentry_sdk
-sentry_sdk.init(dsn="http://dc21aeced16ec1aaee075661e7a063f0@localhost:8000/18",
-enable_tracing=True)`}
-              </CodeSnippet>
-              <GuidedSteps.StepButtons />
-            </GuidedSteps.Step>
-            <GuidedSteps.Step title="Verify">
-              Add this intentional error to your application to test that everything is
-              working right away.
-              <CodeSnippet language="python">division_by_zero = 1 / 0</CodeSnippet>
-              <StatusWrapper>
-                <WaitingIndicator />
-                <WaitingText>Waiting for first event</WaitingText>
-              </StatusWrapper>
-              <GuidedSteps.StepButtons />
-            </GuidedSteps.Step>
+            {configure ? (
+              <GuidedSteps.Step stepKey="configure-sentry" title={t('Configure Sentry')}>
+                <div>
+                  <div>
+                    {configure}
+                    {configureCode && (
+                      <CodeSnippet language={language}>{configureCode}</CodeSnippet>
+                    )}
+                  </div>
+                  <GuidedSteps.BackButton size="md" />
+                  <GuidedSteps.NextButton size="md" />
+                </div>
+              </GuidedSteps.Step>
+            ) : (
+              <Fragment />
+            )}
+            {sourcemaps ? (
+              <GuidedSteps.Step stepKey="sourcemaps" title={t('Upload Source Maps')}>
+                <div>
+                  <div>
+                    {sourcemaps}
+                    {sourcemapsCode && (
+                      <CodeSnippet language={language}>{sourcemapsCode}</CodeSnippet>
+                    )}
+                  </div>
+                  <GuidedSteps.BackButton size="md" />
+                  <GuidedSteps.NextButton size="md" />
+                </div>
+              </GuidedSteps.Step>
+            ) : (
+              <Fragment />
+            )}
+            {verify ? (
+              <GuidedSteps.Step stepKey="verify" title={t('Verify')}>
+                <div>
+                  {verify}
+                  {verifyCode && (
+                    <CodeSnippet language={language}>{verifyCode}</CodeSnippet>
+                  )}
+                  <FirstEventIndicator
+                    organization={organization}
+                    project={project}
+                    eventType="error"
+                  >
+                    {({indicator, firstEventButton}) => (
+                      <div>
+                        <IndicatorWrapper>{indicator}</IndicatorWrapper>
+                        <StyledButtonBar gap={1}>
+                          <GuidedSteps.BackButton size="md" />
+                          {firstEventButton}
+                        </StyledButtonBar>
+                      </div>
+                    )}
+                  </FirstEventIndicator>
+                </div>
+              </GuidedSteps.Step>
+            ) : (
+              <Fragment />
+            )}
           </GuidedSteps>
         </Setup>
         <Preview>
           <BodyTitle>Preview Sentry Issue</BodyTitle>
-          <Button>View Sample Event</Button>
           <ArcadeWrapper>
             <Arcade
               src="https://demo.arcade.software/LjEJ1sfLaVRdtOs3mri1?embed"
@@ -140,9 +303,9 @@ const Divider = styled('hr')`
 `;
 
 const Arcade = styled('iframe')`
-  width: 600px;
+  width: 750px;
   max-width: 100%;
-  height: 440px;
+  height: 600px;
   border: 0;
 `;
 
@@ -151,6 +314,7 @@ const StatusWrapper = styled('div')`
   flex-direction: row;
   gap: ${space(1)};
   align-items: center;
+  margin-top: ${space(1)};
 `;
 
 const WaitingIndicator = styled(motion.div)`
@@ -160,4 +324,12 @@ const WaitingIndicator = styled(motion.div)`
 
 const WaitingText = styled('div')`
   color: ${p => p.theme.pink300};
+`;
+
+const StyledButtonBar = styled(ButtonBar)`
+  display: flex;
+`;
+
+const IndicatorWrapper = styled('div')`
+  width: 30%;
 `;
