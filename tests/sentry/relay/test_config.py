@@ -497,7 +497,6 @@ def test_project_config_with_organizations_metrics_extraction(
         session_metrics = get_path(cfg, "config", "sessionMetrics")
         if has_metrics_extraction:
             assert session_metrics == {
-                "drop": False,
                 "version": 2 if abnormal_mechanism_rollout else 1,
             }
         else:

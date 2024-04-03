@@ -845,9 +845,6 @@ def _get_project_config(
                 if _should_extract_abnormal_mechanism(project)
                 else EXTRACT_METRICS_VERSION
             ),
-            "drop": features.has(
-                "organizations:release-health-drop-sessions", project.organization
-            ),
         }
 
     performance_score_profiles = [
