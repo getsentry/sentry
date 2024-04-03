@@ -6,7 +6,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import ScreenshotPagination from 'sentry/components/events/eventTagsAndScreenshot/screenshot/screenshotPagination';
 import FeedbackScreenshot from 'sentry/components/feedback/feedbackItem/feedbackScreenshot';
 import PanelHeader from 'sentry/components/panels/panelHeader';
-import {t, tct} from 'sentry/locale';
+import {tct} from 'sentry/locale';
 import type {EventAttachment, Organization, Project} from 'sentry/types';
 
 type Props = ModalRenderProps & {
@@ -34,26 +34,22 @@ export default function ScreenshotsModal({
   return (
     <Fragment>
       <Header closeButton>
-        {screenshots.length ? (
-          <PaginationWrapper lightText>
-            <StyledScreenshotPagination
-              nextDisabled={false}
-              onNext={() => {
-                setSelectedIndex(prev => prev + 1);
-              }}
-              onPrevious={() => {
-                setSelectedIndex(prev => prev - 1);
-              }}
-              previousDisabled={false}
-              headerText={tct('[currentScreenshotIndex] of [totalScreenshotCount]', {
-                currentScreenshotIndex: currentIndex + 1,
-                totalScreenshotCount: screenshots.length,
-              })}
-            />
-          </PaginationWrapper>
-        ) : (
-          t('Screenshot')
-        )}
+        <PaginationWrapper lightText>
+          <StyledScreenshotPagination
+            nextDisabled={false}
+            onNext={() => {
+              setSelectedIndex(prev => prev + 1);
+            }}
+            onPrevious={() => {
+              setSelectedIndex(prev => prev - 1);
+            }}
+            previousDisabled={false}
+            headerText={tct('[currentScreenshotIndex] of [totalScreenshotCount]', {
+              currentScreenshotIndex: currentIndex + 1,
+              totalScreenshotCount: screenshots.length,
+            })}
+          />
+        </PaginationWrapper>
       </Header>
       <Body>
         <FeedbackScreenshot
