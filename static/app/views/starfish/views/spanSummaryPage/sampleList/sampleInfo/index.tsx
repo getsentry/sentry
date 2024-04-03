@@ -86,7 +86,7 @@ function SampleInfo(props: Props) {
         );
       case 'time_spent_percentage()':
         return (
-          <Block title={DataTitles.timeSpent} alignment="left">
+          <Block key={metric} title={DataTitles.timeSpent} alignment="left">
             <TimeSpentCell
               containerProps={{style}}
               percentage={spanMetrics?.[`time_spent_percentage()`]}
