@@ -176,6 +176,11 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
 
             if self.refresh_token:
                 self.hashed_refresh_token = hashlib.sha256(self.refresh_token.encode()).hexdigest()
+            else:
+                # The backup tests create a token with a refresh_token and then clear it out.
+                # So if the refresh_token is None, wipe out any hashed value that may exist too.
+                # https://github.com/getsentry/sentry/blob/1fc699564e79c62bff6cc3c168a49bfceadcac52/tests/sentry/backup/test_imports.py#L1306
+                self.hashed_refresh_token = None
 
         if options.get("apitoken.auto-add-last-chars"):
             token_last_characters = self.token[-4:]
