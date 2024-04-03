@@ -311,7 +311,7 @@ class EventFrequencyPercentConditionTestCase(BaseMetricsTestCase, RuleTestCase):
                 duration=None,
                 errors=0,
                 # The line below is crucial to spread sessions throughout the time period.
-                started=received - i,
+                started=received - i - 1,
                 received=received,
             )
 

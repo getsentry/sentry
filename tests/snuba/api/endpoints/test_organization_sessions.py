@@ -87,6 +87,7 @@ def adjust_end(end: datetime.datetime, interval: int) -> datetime.datetime:
     return end
 
 
+# TODO: why is this not patching the backend correctly?
 @patch("sentry.release_health.backend", SessionsReleaseHealthBackend())
 class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
