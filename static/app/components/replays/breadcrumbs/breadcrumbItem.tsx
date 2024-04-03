@@ -1,5 +1,5 @@
 import type {CSSProperties, MouseEvent} from 'react';
-import {isValidElement, memo} from 'react';
+import {Fragment, isValidElement, memo} from 'react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
@@ -12,14 +12,17 @@ import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useReplayGroupContext} from 'sentry/components/replays/replayGroupContext';
 import {Tooltip} from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getShortEventId} from 'sentry/utils/events';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
-import type {ErrorFrame, ReplayFrame} from 'sentry/utils/replays/types';
+import type {ClickFrame, ErrorFrame, ReplayFrame} from 'sentry/utils/replays/types';
 import {isErrorFrame, isFeedbackFrame} from 'sentry/utils/replays/types';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
 import TraceGrid from 'sentry/views/replays/detail/perfTable/traceGrid';
 import type {ReplayTraceRow} from 'sentry/views/replays/detail/perfTable/useReplayPerfData';
@@ -97,9 +100,7 @@ function BreadcrumbItem({
 
         {typeof description === 'string' ||
         (description !== undefined && isValidElement(description)) ? (
-          <Description title={description} showOnlyOnOverflow isHoverable>
-            {description}
-          </Description>
+          <HTMLTree description={description.toString()} frame={frame as ClickFrame} />
         ) : (
           <InspectorWrapper>
             <ObjectInspector
@@ -198,6 +199,42 @@ function CrumbErrorIssue({frame}: {frame: ErrorFrame}) {
       {projectBadge}
       <Link to={url}>{frame.data.groupShortId}</Link>
     </CrumbIssueWrapper>
+  );
+}
+
+function HTMLTree({description, frame}: {description: string; frame: ClickFrame}) {
+  const location = useLocation();
+  const organization = useOrganization();
+
+  const componentName = frame.data.node?.attributes['data-sentry-component'];
+  const lastComponentIndex =
+    description.lastIndexOf('>') === -1 ? 0 : description.lastIndexOf('>') + 2;
+
+  return (
+    <Description title={description} showOnlyOnOverflow isHoverable>
+      {componentName ? (
+        <Fragment>
+          <div style={{display: 'inline'}}>
+            {description?.toString().substring(0, lastComponentIndex)}
+          </div>
+          <Tooltip title={t('Search by this component')} isHoverable>
+            <Link
+              to={{
+                pathname: normalizeUrl(`/organizations/${organization.slug}/replays/`),
+                query: {
+                  ...location.query,
+                  query: `click.component_name:${componentName}`,
+                },
+              }}
+            >
+              {componentName}
+            </Link>
+          </Tooltip>
+        </Fragment>
+      ) : (
+        description
+      )}
+    </Description>
   );
 }
 
