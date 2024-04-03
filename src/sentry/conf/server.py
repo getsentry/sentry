@@ -1458,6 +1458,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:activated-alert-rules": False,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
+    # Enable AI analytics pages (sentry for AI teams)
+    "organizations:ai-analytics": False,
     # Enables alert creation on indexed events in UI (use for PoC/testing only)
     "organizations:alert-allow-indexed": False,
     # Use metrics as the dataset for crash free metric alerts
@@ -1915,6 +1917,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:starfish-browser-webvitals-replace-fid-with-inp": False,
     # Uses a computed total count to calculate the score in the browser starfish webvitals module, instead of measurements.score.total
     "organizations:starfish-browser-webvitals-score-computed-total": False,
+    # Enable browser starfish cache module ui
+    "organizations:performance-cache-view": False,
     # Enable mobile starfish app start module view
     "organizations:starfish-mobile-appstart": False,
     # Enable mobile starfish ui module view

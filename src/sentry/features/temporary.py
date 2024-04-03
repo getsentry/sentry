@@ -38,6 +38,7 @@ def register_temporary_features(manager: FeatureManager):
 
     # Organization scoped features that are in development or in customer trials.
     manager.add("organizations:activated-alert-rules", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:ai-analytics", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:alert-allow-indexed", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:alert-crash-free-metrics", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:alert-filters", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
@@ -239,6 +240,7 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:starfish-browser-webvitals-pageoverview-v2", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:starfish-browser-webvitals-replace-fid-with-inp", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:starfish-browser-webvitals-score-computed-total", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:performance-cache-view", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:starfish-browser-webvitals-use-backend-scores", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:starfish-mobile-appstart", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:starfish-mobile-ui-module", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
