@@ -786,11 +786,17 @@ export class TraceTree {
       let matchCount = 0;
 
       while (index < node.children.length) {
+        if (!isSpanNode(node.children[index])) {
+          index++;
+          matchCount = 0;
+          continue;
+        }
         const current = node.children[index] as TraceTreeNode<TraceTree.Span>;
         const next = node.children[index + 1] as TraceTreeNode<TraceTree.Span>;
 
         if (
           next &&
+          isSpanNode(next) &&
           next.children.length === 0 &&
           current.children.length === 0 &&
           next.value.op === current.value.op &&
@@ -843,12 +849,6 @@ export class TraceTree {
               child.value.start_timestamp < start_timestamp
             ) {
               start_timestamp = child.value.start_timestamp;
-            }
-
-            if (!isSpanNode(child)) {
-              throw new TypeError(
-                'Expected child of autogrouped node to be a span node.'
-              );
             }
 
             if (child.has_errors) {

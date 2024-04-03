@@ -1186,6 +1186,7 @@ export class VirtualizedViewManager {
       // and we should scroll the view to this node.
       const index = tree.list.findIndex(node => node === current);
       if (index === -1) {
+        rerender();
         throw new Error(`Couldn't find node in list ${scrollQueue.join(',')}`);
       }
 
