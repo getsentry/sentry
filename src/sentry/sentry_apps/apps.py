@@ -14,8 +14,9 @@ from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 from sentry_sdk.api import push_scope
 
-from sentry import analytics, audit_log, features
+from sentry import analytics, audit_log
 from sentry.api.helpers.slugs import sentry_slugify
+from sentry.auth.staff import has_staff_option
 from sentry.constants import SentryAppStatus
 from sentry.coreapi import APIError
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
@@ -69,16 +70,14 @@ def expand_events(rolled_up_events: list[str]) -> set[str]:
     )
 
 
-# TODO(schew2381): Delete this method after the feature flag is removed
+# TODO(schew2381): Delete this method after staff is GA'd and the options are removed
 def _is_elevated_user(user) -> bool:
     """
     This is a temporary helper method that checks if the user can become staff
-    if the feature flag is enabled. Otherwise, it defaults to checking that the
-    user can become a superuser.
+    if staff mode is enabled. Otherwise, it defaults to checking that the user
+    can become a superuser.
     """
-    return (
-        user.is_staff if features.has("auth:enterprise-staff-cookie", user) else user.is_superuser
-    )
+    return user.is_staff if has_staff_option(user) else user.is_superuser
 
 
 @dataclasses.dataclass

@@ -152,7 +152,18 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
         # This event_id is the event that the user is looking at when they click the "Fix" button
         event_id = data.get("event_id", None)
         if event_id is None:
-            raise ValueError("event_id is required")
+            event = group.get_recommended_event_for_environments()
+            if not event:
+                event = group.get_latest_event()
+
+            if not event:
+                return Response(
+                    {
+                        "detail": "Could not find an event for the issue, please try providing an event_id"
+                    },
+                    status=400,
+                )
+            event_id = event.event_id
 
         created_at = datetime.now().isoformat()
         metadata = group.data.get("metadata", {})

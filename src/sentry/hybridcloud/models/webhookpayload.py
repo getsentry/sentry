@@ -76,7 +76,7 @@ class WebhookPayload(Model):
         *,
         region: str,
         provider: str,
-        identifier: int,
+        identifier: int | str,
         request: HttpRequest,
         integration_id: int | None = None,
     ) -> Self:

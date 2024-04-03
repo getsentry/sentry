@@ -9,7 +9,6 @@ from sentry.replays.testutils import mock_replay
 from sentry.search.events.constants import RELEASE_ALIAS, SEMVER_ALIAS
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 
 
@@ -42,7 +41,6 @@ class OrganizationTagKeyTestCase(APITestCase, SnubaTestCase):
         return self.create_group(project=self.project)
 
 
-@region_silo_test
 class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
     def test_simple(self):
         self.store_event(
@@ -564,7 +562,6 @@ class TransactionTagKeyValues(OrganizationTagKeyTestCase):
         self.run_test("stack.in_app", expected=[("true", None), ("false", None)])
 
 
-@region_silo_test
 class ReplayOrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, ReplaysSnubaTestCase):
     def setUp(self):
         super().setUp()

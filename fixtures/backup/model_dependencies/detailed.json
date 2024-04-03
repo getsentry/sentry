@@ -3224,7 +3224,7 @@
         "guid"
       ],
       [
-        "organization_id",
+        "project_id",
         "slug"
       ]
     ]
@@ -6100,7 +6100,7 @@
     },
     "model": "sentry.userip",
     "relocation_dependencies": [],
-    "relocation_scope": "User",
+    "relocation_scope": "Global",
     "silos": [
       "Control"
     ],

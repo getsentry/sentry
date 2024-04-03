@@ -7,13 +7,11 @@ from sentry.models.files.file import File
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_kafka, requires_snuba
 
 pytestmark = [requires_snuba, requires_kafka]
 
 
-@region_silo_test
 class SourceMapDebugEndpointTestCase(APITestCase):
     endpoint = "sentry-api-0-event-source-map-debug"
 

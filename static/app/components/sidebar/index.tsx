@@ -50,7 +50,7 @@ import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import MetricsOnboardingSidebar from 'sentry/views/ddm/ddmOnboarding/sidebar';
+import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
 import {releaseLevelAsBadgeProps as HTTPModuleBadgeProps} from 'sentry/views/performance/http/settings';
 
 import {ProfilingOnboardingSidebar} from '../profiling/ProfilingOnboarding/profilingOnboardingSidebar';
@@ -723,7 +723,7 @@ const PrimaryItems = styled('div')`
   gap: 1px;
   -ms-overflow-style: -ms-autohiding-scrollbar;
   @media (max-height: 675px) and (min-width: ${p => p.theme.breakpoints.medium}) {
-    border-bottom: 1px solid ${p => p.theme.gray400};
+    border-bottom: 1px solid ${p => p.theme.sidebarBorder};
     padding-bottom: ${space(1)};
     box-shadow: rgba(0, 0, 0, 0.15) 0px -10px 10px inset;
   }
@@ -732,7 +732,7 @@ const PrimaryItems = styled('div')`
     flex-direction: row;
     height: 100%;
     align-items: center;
-    border-right: 1px solid ${p => p.theme.gray400};
+    border-right: 1px solid ${p => p.theme.sidebarBorder};
     padding-right: ${space(1)};
     margin-right: ${space(0.5)};
     box-shadow: rgba(0, 0, 0, 0.15) -10px 0px 10px inset;
