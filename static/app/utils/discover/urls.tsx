@@ -39,7 +39,7 @@ export function eventDetailsRoute({
  *
  * TODO Abdullah Khan: Add link to new trace view doc explaining why we route to the traceview.
  */
-export function generateEventIDTarget({
+export function generateEventIDLinkTarget({
   dataRow,
   organization,
   eventView,

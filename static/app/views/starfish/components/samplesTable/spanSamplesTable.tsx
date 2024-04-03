@@ -9,7 +9,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconProfiling} from 'sentry/icons/iconProfiling';
 import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
-import {generateEventIDTarget} from 'sentry/utils/discover/urls';
+import {generateEventIDLinkTarget} from 'sentry/utils/discover/urls';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -125,7 +125,7 @@ export function SpanSamplesTable({
     if (column.key === 'transaction_id') {
       return (
         <Link
-          to={generateEventIDTarget({
+          to={generateEventIDLinkTarget({
             organization,
             location,
             eventView: EventView.fromLocation(location),

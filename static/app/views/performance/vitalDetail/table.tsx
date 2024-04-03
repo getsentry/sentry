@@ -19,7 +19,7 @@ import {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
-import {generateEventIDTarget} from 'sentry/utils/discover/urls';
+import {generateEventIDLinkTarget} from 'sentry/utils/discover/urls';
 import type {WebVital} from 'sentry/utils/fields';
 import type {
   TableData,
@@ -156,7 +156,7 @@ class Table extends Component<Props, State> {
 
       const transaction = String(dataRow.transaction) || '';
 
-      const target = generateEventIDTarget({
+      const target = generateEventIDLinkTarget({
         dataRow,
         eventView: summaryView,
         organization,
