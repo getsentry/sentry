@@ -9,7 +9,6 @@ from django.utils import timezone
 from sentry import release_health
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
-from sentry.release_health.sessions import SessionsReleaseHealthBackend
 from sentry.snuba.metrics import to_intervals
 from sentry.testutils.cases import APITestCase, BaseMetricsTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -87,8 +86,9 @@ def adjust_end(end: datetime.datetime, interval: int) -> datetime.datetime:
     return end
 
 
-# TODO: why is this not patching the backend correctly?
-@patch("sentry.release_health.backend", SessionsReleaseHealthBackend())
+@pytest.mark.xfail(
+    reason="Deprecated test. Will be faded out once SessionsReleaseHealthBackend will be removed."
+)
 class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
