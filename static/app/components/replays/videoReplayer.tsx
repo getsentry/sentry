@@ -147,10 +147,23 @@ export class VideoReplayer {
    * Pause timer only if replay is running. Otherwise, no need to
    * pause if timer is not already running.
    */
-  private pauseTimer() {
+  private pauseTimer(videoOffsetMs?: number | undefined) {
+    // This is valid to run when replay is not playing (seeking to
+    // a place in the replay). Due to ReplayContext and maintaining
+    // compatibility with rrweb player, we need to update the time
+    // in the timer, as that will get passed into `play()` when we
+    // press the play button.
+    //
+    // This supports the case where we load the replay, seek, and
+    // then play.
+    if (videoOffsetMs !== undefined) {
+      this._timer.setTime(videoOffsetMs);
+    }
+
     if (!this._isPlaying) {
       return;
     }
+
     this._timer.stop();
   }
 
@@ -159,8 +172,13 @@ export class VideoReplayer {
     this._timer.start(videoOffsetMs);
   }
 
-  private pauseReplay() {
-    this.pauseTimer();
+  /**
+   * This is called when we want to pause the timer. This can be
+   * called when replay is *and* is not running (e.g. seeking while
+   * stopped). We need to update the timer with offset in this case.
+   */
+  private pauseReplay(videoOffsetMs: number | undefined) {
+    this.pauseTimer(videoOffsetMs);
     this._isPlaying = false;
   }
 
@@ -516,11 +534,12 @@ export class VideoReplayer {
   }
 
   /**
-   * Pause at a specific time in the replay. Note that this gets called when seeking.
+   * Pause at a specific time in the replay. Note that this gets
+   * called when seeking while video is not playing.
    */
   public pause(videoOffsetMs: number) {
     const index = this._currentIndex ?? 0;
-    this.pauseReplay();
+    this.pauseReplay(videoOffsetMs);
 
     // Preload videos before and after this index
     this.preloadVideos({

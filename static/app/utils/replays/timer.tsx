@@ -39,6 +39,7 @@ export class Timer extends EventTarget {
     this._pausedAt = 0;
     this._start = window.performance.now() - (seconds ?? 0);
     this.resume();
+    this.step();
   }
 
   /**
@@ -77,6 +78,17 @@ export class Timer extends EventTarget {
     this._start = 0;
     this._time = 0;
     this._pausedAt = 0;
+  }
+
+  /**
+   * Allow updating `_time` directly. Needed for replay in the case
+   * where we seek to a place in the replay before we start the
+   * replay. `play()` in ReplayContext will call `this.getTime()`
+   * when the play button is pressed, so we need to have the correct
+   * playtime to start at.
+   */
+  setTime(time: number) {
+    this._time = time;
   }
 
   getTime() {
