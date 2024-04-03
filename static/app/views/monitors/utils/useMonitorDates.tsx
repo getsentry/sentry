@@ -36,7 +36,7 @@ interface UseMonitorTimesResult {
  * selected page filters.
  */
 export function useMonitorTimes({timelineWidth}: Options): UseMonitorTimesResult {
-  const nowRef = useRef<Date>(new Date());
+  const nowRef = useRef<Date>(moment().seconds(0).add(1, 'minutes').toDate());
   const {selection} = usePageFilters();
   const {start, end, period} = selection.datetime;
 

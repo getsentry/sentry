@@ -9,8 +9,8 @@ from sentry.utils import json, redis
 SEGMENT_TTL = 5 * 60  # 5 min TTL in seconds
 
 
-def get_redis_client() -> RedisCluster | StrictRedis:
-    return redis.redis_clusters.get(settings.SENTRY_SPAN_BUFFER_CLUSTER, decode_responses=False)
+def get_redis_client() -> RedisCluster[bytes] | StrictRedis[bytes]:
+    return redis.redis_clusters.get_binary(settings.SENTRY_SPAN_BUFFER_CLUSTER)
 
 
 def get_segment_key(project_id: str | int, segment_id: str) -> str:
