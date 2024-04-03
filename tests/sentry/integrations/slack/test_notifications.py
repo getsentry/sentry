@@ -29,6 +29,27 @@ class SlackNotificationsTest(SlackActivityNotificationTest):
         self.notification = DummyNotification(self.organization)
 
     @responses.activate
+    def test_additional_attachment(self):
+        with mock.patch.dict(
+            manager.attachment_generators,
+            {ExternalProviders.SLACK: additional_attachment_generator},
+        ):
+            with self.tasks():
+                send_notification_as_slack(self.notification, [self.user], {}, {})
+
+            data = parse_qs(responses.calls[0].request.body)
+
+            assert "attachments" in data
+            assert data["text"][0] == "Notification Title"
+
+            attachments = json.loads(data["attachments"][0])
+            assert len(attachments) == 2
+
+            assert attachments[0]["title"] == "My Title"
+            assert attachments[1]["title"] == self.organization.slug
+            assert attachments[1]["text"] == self.integration.id
+
+    @responses.activate
     def test_additional_attachment_block_kit(self):
         with (
             self.feature("organizations:slack-block-kit"),
