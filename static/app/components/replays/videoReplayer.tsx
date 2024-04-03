@@ -99,11 +99,16 @@ export class VideoReplayer {
       }
     });
 
+    // Finished loading data, ready to play
     el.addEventListener('loadeddata', () => {
-      // Only call this for current segment?
+      // Only call this for current segment as we preload multiple
+      // segments simultaneously
       if (index === this._currentIndex) {
-        this.resumeTimer();
-        this._callbacks.onBuffer(false);
+        this.setBuffering(false);
+
+        // We want to display the previous segment until next video
+        // is loaded and ready to play and since video is loaded and
+        // ready here, we hide the previous video
         if (this._currentIndex > 0) {
           this.hideVideo(this._currentIndex - 1);
         }
@@ -160,6 +165,12 @@ export class VideoReplayer {
     this._isPlaying = false;
   }
 
+  /**
+   * Sets the current buffering state by:
+   *
+   * - calling `onBuffer` callback to propagate up
+   * - control timers as they should not run while buffering
+   */
   private setBuffering(isBuffering: boolean) {
     if (isBuffering) {
       this.pauseTimer();
