@@ -247,11 +247,9 @@ class UnfurlTest(TestCase):
         )
 
     def test_escape_issue(self):
-        # wraps text in markdown code block
-        escape_text = "<https://example.com/|*Click Here*>"
         group = self.create_group(
             project=self.project,
-            data={"type": "error", "metadata": {"value": escape_text}},
+            data={"type": "error", "metadata": {"value": "<https://example.com/|*Click Here*>"}},
         )
 
         links = [
@@ -262,7 +260,7 @@ class UnfurlTest(TestCase):
         ]
 
         unfurls = link_handlers[LinkType.ISSUES].fn(self.request, self.integration, links)
-        assert unfurls[links[0].url]["blocks"][1]["text"]["text"] == "```" + escape_text + "```"
+        assert unfurls[links[0].url]["text"] == "&amp;lt;https://example.com/|*Click Here*&amp;gt;"
 
     def test_unfurl_metric_alert(self):
         alert_rule = self.create_alert_rule()
