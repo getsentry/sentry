@@ -1,11 +1,12 @@
 import hashlib
 from datetime import timedelta
 
+import pytest
 from django.utils import timezone
 
 from sentry.conf.server import SENTRY_SCOPE_HIERARCHY_MAPPING, SENTRY_SCOPES
 from sentry.hybridcloud.models import ApiTokenReplica
-from sentry.models.apitoken import ApiToken
+from sentry.models.apitoken import ApiToken, PlaintextSecretAlreadyRead
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.silo import SiloMode
@@ -98,11 +99,10 @@ class ApiTokenTest(TestCase):
         assert token._plaintext_token is not None
         assert token._plaintext_refresh_token is None  # user auth tokens don't have refresh tokens
 
-        _ = token._plaintext_token
-
-        # we read the value above so now it should
-        # now be None as it is a "read once" property
-        assert token._plaintext_token is None
+        # we accessed the plaintext token above when we asserted it was not None
+        # accessing it again should throw an exception
+        with pytest.raises(PlaintextSecretAlreadyRead):
+            _ = token._plaintext_token
 
     @override_options({"apitoken.save-hash-on-create": True})
     def test_user_auth_token_hash(self):

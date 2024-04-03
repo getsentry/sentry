@@ -33,6 +33,14 @@ def generate_token():
     return secrets.token_hex(nbytes=32)
 
 
+class PlaintextSecretAlreadyRead(Exception):
+    def __init__(
+        self,
+        message="the secret you are trying to read is read-once and cannot be accessed directly again",
+    ):
+        super().__init__(message)
+
+
 class ApiTokenManager(ControlOutboxProducingManager):
     def create(self, *args, **kwargs):
         token_type: AuthTokenType | None = kwargs.get("token_type", None)
@@ -128,6 +136,8 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
 
         if plaintext_token is not None:
             setattr(self, f"_{manager_class_name}__plaintext_token", None)
+        else:
+            raise PlaintextSecretAlreadyRead()
 
         return plaintext_token
 
@@ -144,8 +154,17 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
             self, f"_{manager_class_name}__plaintext_refresh_token", None
         )
 
-        if plaintext_refresh_token is not None:
+        if plaintext_refresh_token:
             setattr(self, f"_{manager_class_name}__plaintext_refresh_token", None)
+
+        # some token types do not have refresh tokens, so we check to see
+        # if there's a hash value that exists for the refresh token.
+        #
+        # if there is a hash value, then a refresh token is expected
+        # and if the plaintext_refresh_token is None, then it has already
+        # been read once so we should throw the exception
+        if not plaintext_refresh_token and self.refresh_token:
+            raise PlaintextSecretAlreadyRead()
 
         return plaintext_refresh_token
 
