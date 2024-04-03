@@ -129,7 +129,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         request: Request,
         organization: Organization,
         check_global_views: bool = True,
-        include_all_projects: bool = False,
     ) -> ParamsType:
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params"):
             if (
@@ -142,9 +141,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 )
 
             # For the trace view we want to include all accessible projects
-            params: ParamsType = self.get_filter_params(
-                request, organization, include_all_projects=include_all_projects
-            )
+            params: ParamsType = self.get_filter_params(request, organization)
             params = self.quantize_date_params(request, params)
             params["user_id"] = request.user.id if request.user else None
             params["team_id"] = self.get_team_ids(request, organization)

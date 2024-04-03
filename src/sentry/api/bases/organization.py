@@ -435,7 +435,6 @@ class OrganizationEndpoint(Endpoint):
         request: Request,
         organization: Organization | RpcOrganization,
         date_filter_optional: bool = False,
-        include_all_projects: bool = False,
         project_ids: list[int] | set[int] | None = None,
         project_slugs: list[str] | set[str] | None = None,
     ) -> FilterParams:
@@ -484,21 +483,15 @@ class OrganizationEndpoint(Endpoint):
             raise ParseError(detail=f"Invalid date range: {e}")
 
         try:
-            # We're going to include all projects, ignore whatever these are set to
-            if include_all_projects:
-                project_ids = {-1}
-                project_slugs = None
-            else:
-                if isinstance(project_ids, list):
-                    project_ids = set(project_ids)
-                if isinstance(project_slugs, list):
-                    project_slugs = set(project_slugs)
+            if isinstance(project_ids, list):
+                project_ids = set(project_ids)
+            if isinstance(project_slugs, list):
+                project_slugs = set(project_slugs)
             projects = self.get_projects(
                 request,
                 organization,
                 project_ids=project_ids,
                 project_slugs=project_slugs,
-                include_all_accessible=include_all_projects,
             )
         except ValueError:
             raise ParseError(detail="Invalid project ids")

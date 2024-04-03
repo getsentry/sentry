@@ -8,6 +8,7 @@ from typing import Any, Deque, Optional, TypedDict, TypeVar, cast
 import sentry_sdk
 from django.http import Http404, HttpRequest, HttpResponse
 from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk import Column, Condition, Function, Op
@@ -743,6 +744,15 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
+    def get_projects(self, request: Request, organization, project_ids=None, project_slugs=None):
+        return super().get_projects(
+            request,
+            organization,
+            project_ids={-1},
+            project_slugs=None,
+            include_all_accessible=True,
+        )
+
     def has_feature(self, organization: Organization, request: HttpRequest) -> bool:
         return bool(
             features.has("organizations:performance-view", organization, actor=request.user)
@@ -817,9 +827,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
 
         try:
             # The trace view isn't useful without global views, so skipping the check here
-            params = self.get_snuba_params(
-                request, organization, check_global_views=False, include_all_projects=True
-            )
+            params = self.get_snuba_params(request, organization, check_global_views=False)
         except NoProjects:
             return Response(status=404)
 
