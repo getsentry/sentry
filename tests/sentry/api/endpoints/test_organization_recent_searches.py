@@ -11,10 +11,8 @@ from sentry.models.recentsearch import RecentSearch
 from sentry.models.search_common import SearchType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class RecentSearchesListTest(APITestCase):
     endpoint = "sentry-api-0-organization-recent-searches"
 

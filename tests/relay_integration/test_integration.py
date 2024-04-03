@@ -9,13 +9,11 @@ from sentry.tasks.relay import invalidate_project_config
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format, timestamp_format
 from sentry.testutils.relay import RelayStoreHelper
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_kafka
 
 pytestmark = [requires_kafka]
 
 
-@region_silo_test
 class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
     # used to be test_ungzipped_data
     def test_simple_data(self):

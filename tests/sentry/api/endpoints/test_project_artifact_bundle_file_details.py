@@ -9,11 +9,9 @@ from sentry.models.artifactbundle import ArtifactBundle, ProjectArtifactBundle
 from sentry.models.files.file import File
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.response import close_streaming_response
-from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 
-@region_silo_test
 class ProjectArtifactBundleFileDetailsEndpointTest(APITestCase):
     @staticmethod
     def get_compressed_zip_file(artifact_name, files, type="artifact.bundle"):

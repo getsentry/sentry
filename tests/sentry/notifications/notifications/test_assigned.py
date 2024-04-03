@@ -5,14 +5,12 @@ from django.core.mail.message import EmailMultiAlternatives
 from sentry.models.activity import Activity
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import get_attachment, get_channel
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class AssignedNotificationAPITest(APITestCase):
     def validate_email(self, outbox, index, email, txt_msg, html_msg):
         msg = outbox[index]
@@ -27,8 +25,8 @@ class AssignedNotificationAPITest(APITestCase):
     def validate_slack_message(self, msg, group, project, user_id, index=0):
         attachment, text = get_attachment(index)
         assert text == msg
-        assert attachment["title"] == group.title
-        assert project.slug in attachment["footer"]
+        assert group.title in attachment["text"]
+        assert project.slug in attachment["blocks"][-2]["elements"][0]["text"]
         channel = get_channel(index)
         assert channel == user_id
 
@@ -85,8 +83,8 @@ class AssignedNotificationAPITest(APITestCase):
         attachment, text = get_attachment()
 
         assert text == f"Issue assigned to {user.get_display_name()} by themselves"
-        assert attachment["title"] == self.group.title
-        assert self.project.slug in attachment["footer"]
+        assert self.group.title in attachment["text"]
+        assert self.project.slug in attachment["blocks"][-2]["elements"][0]["text"]
 
     @responses.activate
     def test_sends_reassignment_notification_user(self):

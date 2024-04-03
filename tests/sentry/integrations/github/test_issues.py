@@ -18,7 +18,7 @@ from sentry.silo.util import PROXY_BASE_URL_HEADER, PROXY_OI_HEADER, PROXY_SIGNA
 from sentry.testutils.cases import IntegratedApiTestCase, PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
-from sentry.testutils.silo import all_silo_test, region_silo_test
+from sentry.testutils.silo import all_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 
@@ -92,7 +92,6 @@ class GitHubIssueBasicAllSiloTest(TestCase):
         assert label_field["label"] == "Labels"
 
 
-@region_silo_test
 class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTestCase):
     @cached_property
     def request(self):

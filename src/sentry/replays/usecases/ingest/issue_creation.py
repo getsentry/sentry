@@ -78,7 +78,7 @@ def report_rage_click_issue_with_replay_event(
             "contexts": _make_contexts(replay_id, replay_event),
             "level": RAGE_CLICK_LEVEL,
             "tags": _make_tags(replay_id, url, replay_event),
-            "user": replay_event["user"],
+            "user": replay_event.get("user"),
             "release": replay_event.get("release"),
             "sdk": replay_event.get("sdk"),
             "dist": replay_event.get("dist"),

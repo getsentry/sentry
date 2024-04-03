@@ -8,7 +8,6 @@ from sentry.api.endpoints.project_app_store_connect_credentials import (
 )
 from sentry.lang.native.appconnect import AppStoreConnectConfig
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 
@@ -81,7 +80,6 @@ class TestAppStoreUpdateCredentialsSerializer:
         assert data["appconnectPrivateKey"] == "honk"
 
 
-@region_silo_test
 class TestAppStoreConnectRefreshEndpoint(TestCase):
     def setUp(self):
         super().setUp()

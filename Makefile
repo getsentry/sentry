@@ -161,7 +161,8 @@ test-monolith-dbs:
 
 test-tools:
 	@echo "--> Running tools tests"
-	pytest -c /dev/null --confcutdir tests/tools tests/tools -vv --cov=tools --cov=tests/tools --cov-report="xml:.artifacts/tools.coverage.xml"
+	@# bogus configuration to force vanilla pytest
+	python3 -m pytest -c setup.cfg --confcutdir tests/tools tests/tools -vv --cov=tools --cov=tests/tools --cov-report="xml:.artifacts/tools.coverage.xml"
 	@echo ""
 
 # JavaScript relay tests are meant to be run within Symbolicator test suite, as they are parametrized to verify both processing pipelines during migration process.
@@ -170,6 +171,7 @@ test-symbolicator:
 	@echo "--> Running symbolicator tests"
 	pytest tests/symbolicator -vv --cov . --cov-report="xml:.artifacts/symbolicator.coverage.xml"
 	pytest tests/relay_integration/lang/javascript/ -vv -m symbolicator
+	pytest tests/relay_integration/lang/java/ -vv -m symbolicator
 	@echo ""
 
 test-acceptance: node-version-check

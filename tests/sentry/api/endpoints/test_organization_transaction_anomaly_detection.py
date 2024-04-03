@@ -8,10 +8,8 @@ from django.urls import reverse
 from sentry.api.endpoints.organization_transaction_anomaly_detection import get_time_params
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 @freeze_time("2022-02-21")
 class OrganizationTransactionAnomalyDetectionEndpointTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-transaction-anomaly-detection"

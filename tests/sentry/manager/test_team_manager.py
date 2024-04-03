@@ -2,10 +2,8 @@ from sentry.app import env
 from sentry.models.team import Team
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class TeamManagerTest(TestCase):
     def setUp(self) -> None:
         super().setUp()

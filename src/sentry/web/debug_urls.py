@@ -15,6 +15,7 @@ from sentry.web.frontend.debug.debug_codeowners_auto_sync_failure_email import (
 from sentry.web.frontend.debug.debug_cron_broken_monitor_email import (
     DebugCronBrokenMonitorEmailView,
 )
+from sentry.web.frontend.debug.debug_cron_muted_monitor_email import DebugCronMutedMonitorEmailView
 from sentry.web.frontend.debug.debug_error_embed import DebugErrorPageEmbedView
 from sentry.web.frontend.debug.debug_generic_issue import DebugGenericIssueEmailView
 from sentry.web.frontend.debug.debug_incident_activity_email import DebugIncidentActivityEmailView
@@ -167,4 +168,5 @@ urlpatterns = [
     re_path(r"^debug/mail/notify-disable/$", DebugNotifyDisableView.as_view()),
     re_path(r"^debug/mail/sentry-app-notify-disable/$", DebugSentryAppNotifyDisableView.as_view()),
     re_path(r"^debug/mail/cron-broken-monitor-email/$", DebugCronBrokenMonitorEmailView.as_view()),
+    re_path(r"^debug/mail/cron-muted-monitor-email/$", DebugCronMutedMonitorEmailView.as_view()),
 ]
