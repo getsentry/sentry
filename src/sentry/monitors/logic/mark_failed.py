@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import uuid
 from datetime import datetime, timezone
+from time import time
 
 from django.db.models import Q
 
@@ -198,9 +199,10 @@ def mark_failed_no_threshold(failed_checkin: MonitorCheckIn):
 
 
 def create_legacy_event(failed_checkin: MonitorCheckIn):
-    from sentry.coreapi import insert_data_to_database_legacy
     from sentry.event_manager import EventManager
+    from sentry.eventstore.processing import event_processing_store
     from sentry.models.project import Project
+    from sentry.tasks.store import preprocess_event
 
     monitor_env = failed_checkin.monitor_environment
     context = get_monitor_environment_context(monitor_env)
@@ -229,7 +231,11 @@ def create_legacy_event(failed_checkin: MonitorCheckIn):
     )
     event_manager.normalize()
     data = event_manager.get_data()
-    insert_data_to_database_legacy(data)
+
+    # Ingest the event through `preprocess_event` like any other event:
+    raw_data = dict(data.items())
+    cache_key = event_processing_store.store(raw_data)
+    preprocess_event.delay(cache_key=cache_key, start_time=time(), event_id=raw_data["event_id"])
 
 
 def create_issue_platform_occurrence(

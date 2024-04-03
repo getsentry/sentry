@@ -28,8 +28,8 @@ from sentry.testutils.helpers import with_feature
 
 class MarkFailedTestCase(TestCase):
     @with_feature({"organizations:issue-platform": False})
-    @patch("sentry.coreapi.insert_data_to_database_legacy")
-    def test_mark_failed_default_params_legacy(self, mock_insert_data_to_database_legacy):
+    @patch("sentry.eventstore.processing.event_processing_store.store")
+    def test_mark_failed_default_params_legacy(self, mock_store):
         monitor = Monitor.objects.create(
             name="test monitor",
             organization_id=self.organization.id,
@@ -55,9 +55,8 @@ class MarkFailedTestCase(TestCase):
         )
         assert mark_failed(checkin, ts=checkin.date_added)
 
-        assert len(mock_insert_data_to_database_legacy.mock_calls) == 1
-
-        event = mock_insert_data_to_database_legacy.mock_calls[0].args[0]
+        assert len(mock_store.mock_calls) == 1
+        event = mock_store.mock_calls[0].args[0]
 
         assert dict(
             event,
@@ -89,8 +88,8 @@ class MarkFailedTestCase(TestCase):
         ) == dict(event)
 
     @with_feature({"organizations:issue-platform": False})
-    @patch("sentry.coreapi.insert_data_to_database_legacy")
-    def test_mark_failed_with_reason_legacy(self, mock_insert_data_to_database_legacy):
+    @patch("sentry.eventstore.processing.event_processing_store.store")
+    def test_mark_failed_with_reason_legacy(self, mock_store):
         monitor = Monitor.objects.create(
             name="test monitor",
             organization_id=self.organization.id,
@@ -116,9 +115,8 @@ class MarkFailedTestCase(TestCase):
         )
         assert mark_failed(checkin, ts=checkin.date_added)
 
-        assert len(mock_insert_data_to_database_legacy.mock_calls) == 1
-
-        event = mock_insert_data_to_database_legacy.mock_calls[0].args[0]
+        assert len(mock_store.mock_calls) == 1
+        event = mock_store.mock_calls[0].args[0]
 
         assert dict(
             event,
@@ -150,8 +148,8 @@ class MarkFailedTestCase(TestCase):
         ) == dict(event)
 
     @with_feature({"organizations:issue-platform": False})
-    @patch("sentry.coreapi.insert_data_to_database_legacy")
-    def test_mark_failed_with_missed_reason_legacy(self, mock_insert_data_to_database_legacy):
+    @patch("sentry.eventstore.processing.event_processing_store.store")
+    def test_mark_failed_with_missed_reason_legacy(self, mock_store):
         last_checkin = timezone.now().replace(second=0, microsecond=0)
         next_checkin = last_checkin + timedelta(hours=1)
 
@@ -187,9 +185,8 @@ class MarkFailedTestCase(TestCase):
         monitor_environment.refresh_from_db()
         assert monitor_environment.status == MonitorStatus.ERROR
 
-        assert len(mock_insert_data_to_database_legacy.mock_calls) == 1
-
-        event = mock_insert_data_to_database_legacy.mock_calls[0].args[0]
+        assert len(mock_store.mock_calls) == 1
+        event = mock_store.mock_calls[0].args[0]
 
         assert dict(
             event,
