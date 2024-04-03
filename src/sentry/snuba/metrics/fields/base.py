@@ -1647,7 +1647,7 @@ DERIVED_METRICS = {
             metric_mri=TransactionMRI.HTTP_ERROR_RATE.value,
             metrics=[
                 TransactionMRI.HTTP_ERROR_COUNT.value,
-                TransactionMRI.ALL.value,
+                TransactionMRI.ALL_DURATION.value,
             ],
             unit="transactions",
             snql=lambda http_error_count, tx_count, project_ids, org_id, metric_ids, alias=None: division_float(
