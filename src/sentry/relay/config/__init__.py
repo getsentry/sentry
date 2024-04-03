@@ -288,7 +288,7 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
 
         clos: list[CardinalityLimitOption] = options.get("relay.cardinality-limiter.limits")
         for clo in clos:
-            rollout_rate = clo.pop("rollout_rate", 1.0)
+            rollout_rate = clo.get("rollout_rate", 1.0)
             if (project.organization.id % 100000) / 100000 >= rollout_rate:
                 continue
 
