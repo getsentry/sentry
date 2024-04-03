@@ -144,7 +144,7 @@ const SidebarAccordionExpandButton = styled(Button)<{sidebarCollapsed?: boolean}
   &:hover,
   a:hover &,
   a[active] & {
-    color: ${p => p.theme.white};
+    color: ${p => p.theme.textColor};
   }
 
   ${p => p.sidebarCollapsed && `display: none;`}

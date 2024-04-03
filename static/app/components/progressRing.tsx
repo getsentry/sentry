@@ -55,7 +55,7 @@ const Text = styled('div')<Omit<TextProps, 'theme'>>`
   justify-content: center;
   height: 100%;
   width: 100%;
-  color: ${p => p.theme.chartLabel};
+  color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   transition: color 100ms;
   ${p => p.textCss?.(p)}

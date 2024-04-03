@@ -597,59 +597,62 @@ function Sidebar() {
             hidePanel={hidePanel}
             {...sidebarItemProps}
           />
-          <SidebarSection noMargin noPadding>
-            <OnboardingStatus
-              org={organization}
-              currentPanel={activePanel}
-              onShowPanel={() => togglePanel(SidebarPanelKey.ONBOARDING_WIZARD)}
-              hidePanel={hidePanel}
-              {...sidebarItemProps}
-            />
-          </SidebarSection>
 
-          <SidebarSection>
-            {HookStore.get('sidebar:bottom-items').length > 0 &&
-              HookStore.get('sidebar:bottom-items')[0]({
-                orientation,
-                collapsed,
-                hasPanel,
-                organization,
-              })}
-            <SidebarHelp
-              orientation={orientation}
-              collapsed={collapsed}
-              hidePanel={hidePanel}
-              organization={organization}
-            />
-            <Broadcasts
-              orientation={orientation}
-              collapsed={collapsed}
-              currentPanel={activePanel}
-              onShowPanel={() => togglePanel(SidebarPanelKey.BROADCASTS)}
-              hidePanel={hidePanel}
-              organization={organization}
-            />
-            <ServiceIncidents
-              orientation={orientation}
-              collapsed={collapsed}
-              currentPanel={activePanel}
-              onShowPanel={() => togglePanel(SidebarPanelKey.SERVICE_INCIDENTS)}
-              hidePanel={hidePanel}
-            />
-          </SidebarSection>
-
-          {!horizontal && (
-            <SidebarSection>
-              <SidebarCollapseItem
-                id="collapse"
-                data-test-id="sidebar-collapse"
+          <SidebarGradientWrapper>
+            <SidebarSection noMargin noPadding>
+              <OnboardingStatus
+                org={organization}
+                currentPanel={activePanel}
+                onShowPanel={() => togglePanel(SidebarPanelKey.ONBOARDING_WIZARD)}
+                hidePanel={hidePanel}
                 {...sidebarItemProps}
-                icon={<IconChevron direction={collapsed ? 'right' : 'left'} size="sm" />}
-                label={collapsed ? t('Expand') : t('Collapse')}
-                onClick={toggleCollapse}
               />
             </SidebarSection>
-          )}
+            <SidebarSection>
+              {HookStore.get('sidebar:bottom-items').length > 0 &&
+                HookStore.get('sidebar:bottom-items')[0]({
+                  orientation,
+                  collapsed,
+                  hasPanel,
+                  organization,
+                })}
+              <SidebarHelp
+                orientation={orientation}
+                collapsed={collapsed}
+                hidePanel={hidePanel}
+                organization={organization}
+              />
+              <Broadcasts
+                orientation={orientation}
+                collapsed={collapsed}
+                currentPanel={activePanel}
+                onShowPanel={() => togglePanel(SidebarPanelKey.BROADCASTS)}
+                hidePanel={hidePanel}
+                organization={organization}
+              />
+              <ServiceIncidents
+                orientation={orientation}
+                collapsed={collapsed}
+                currentPanel={activePanel}
+                onShowPanel={() => togglePanel(SidebarPanelKey.SERVICE_INCIDENTS)}
+                hidePanel={hidePanel}
+              />
+            </SidebarSection>
+            {!horizontal && (
+              <SidebarSection>
+                <SidebarCollapseItem
+                  id="collapse"
+                  data-test-id="sidebar-collapse"
+                  {...sidebarItemProps}
+                  icon={
+                    <IconChevron direction={collapsed ? 'right' : 'left'} size="sm" />
+                  }
+                  label={collapsed ? t('Expand') : t('Collapse')}
+                  onClick={toggleCollapse}
+                />
+              </SidebarSection>
+            )}
+          </SidebarGradientWrapper>
         </SidebarSectionGroup>
       )}
     </SidebarWrapper>
@@ -658,18 +661,8 @@ function Sidebar() {
 
 export default Sidebar;
 
-const responsiveFlex = css`
-  display: flex;
-  flex-direction: column;
-
-  @media (max-width: ${theme.breakpoints.medium}) {
-    flex-direction: row;
-  }
-`;
-
 export const SidebarWrapper = styled('nav')<{collapsed: boolean}>`
-  background: ${p => p.theme.sidebarGradient};
-  color: ${p => p.theme.sidebar.color};
+  background: ${p => p.theme.background};
   line-height: 1;
   padding: 12px 0 2px; /* Allows for 32px avatars  */
   width: ${p => p.theme.sidebar[p.collapsed ? 'collapsedWidth' : 'expandedWidth']};
@@ -679,8 +672,14 @@ export const SidebarWrapper = styled('nav')<{collapsed: boolean}>`
   bottom: 0;
   justify-content: space-between;
   z-index: ${p => p.theme.zIndex.sidebar};
-  border-right: solid 1px ${p => p.theme.sidebarBorder};
-  ${responsiveFlex};
+  border-right: solid 1px ${p => p.theme.border};
+
+  display: flex;
+  flex-direction: column;
+
+  @media (max-width: ${theme.breakpoints.medium}) {
+    flex-direction: row;
+  }
 
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     top: 0;
@@ -696,14 +695,46 @@ export const SidebarWrapper = styled('nav')<{collapsed: boolean}>`
   }
 `;
 
+const SidebarGradientWrapper = styled('div')`
+  &:after {
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 12px;
+    content: '';
+    display: block;
+    position: absolute;
+    transform: translateY(-100%);
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0.15) 0%, transparent 100%);
+    opacity: 0;
+
+    @media (max-height: 675px) and (min-width: ${p => p.theme.breakpoints.medium}) {
+      opacity: 1;
+    }
+  }
+`;
+
 const SidebarSectionGroup = styled('div')`
-  ${responsiveFlex};
+  display: flex;
+  flex-direction: column;
+  position: relative;
+
+  @media (max-width: ${theme.breakpoints.medium}) {
+    flex-direction: row;
+  }
+
   flex-shrink: 0; /* prevents shrinking on Safari */
   gap: 1px;
 `;
 
 const SidebarSectionGroupPrimary = styled('div')`
-  ${responsiveFlex};
+  display: flex;
+  flex-direction: column;
+
+  @media (max-width: ${theme.breakpoints.medium}) {
+    flex-direction: row;
+  }
+
   /* necessary for child flexing on msedge and ff */
   min-height: 0;
   min-width: 0;
@@ -722,11 +753,12 @@ const PrimaryItems = styled('div')`
   flex-direction: column;
   gap: 1px;
   -ms-overflow-style: -ms-autohiding-scrollbar;
+
   @media (max-height: 675px) and (min-width: ${p => p.theme.breakpoints.medium}) {
     border-bottom: 1px solid ${p => p.theme.sidebarBorder};
     padding-bottom: ${space(1)};
-    box-shadow: rgba(0, 0, 0, 0.15) 0px -10px 10px inset;
   }
+
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     overflow-y: visible;
     flex-direction: row;
@@ -735,8 +767,8 @@ const PrimaryItems = styled('div')`
     border-right: 1px solid ${p => p.theme.sidebarBorder};
     padding-right: ${space(1)};
     margin-right: ${space(0.5)};
-    box-shadow: rgba(0, 0, 0, 0.15) -10px 0px 10px inset;
-    ::-webkit-scrollbar {
+
+    &::-webkit-scrollbar {
       display: none;
     }
   }
@@ -758,8 +790,8 @@ const SidebarSection = styled(SidebarSectionGroup)<{
   noMargin?: boolean;
   noPadding?: boolean;
 }>`
-  ${p => !p.noMargin && `margin: ${space(1)} 0`};
-  ${p => !p.noPadding && `padding: 0 ${space(2)}`};
+  ${p => !p.noMargin && `margin: ${space(1)} 0;`}
+  ${p => !p.noPadding && `padding: 0 ${space(2)};`}
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     margin: 0;

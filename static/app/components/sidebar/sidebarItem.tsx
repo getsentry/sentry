@@ -1,7 +1,5 @@
 import {Fragment, isValidElement, useCallback, useMemo} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-import type {Theme} from '@emotion/react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
@@ -191,13 +189,12 @@ function SidebarItem({
       <StyledSidebarItem
         {...props}
         id={`sidebar-item-${id}`}
-        active={isActive ? 'true' : undefined}
         to={toProps}
-        className={className}
+        className={[className, isActive ? 'Active' : ''].join(' ')}
         aria-current={isActive ? 'page' : undefined}
         onClick={handleItemClick}
       >
-        <InteractionStateLayer isPressed={isActive} color="white" higherOpacity />
+        <InteractionStateLayer isPressed={isActive} color={'gray400'} higherOpacity />
         <SidebarItemWrapper collapsed={collapsed}>
           <SidebarItemIcon>{icon}</SidebarItemIcon>
           {!collapsed && !isTop && (
@@ -269,30 +266,11 @@ export function isItemActive(
 
 export default SidebarItem;
 
-const getActiveStyle = ({active, theme}: {active?: string; theme?: Theme}) => {
-  if (!active) {
-    return '';
-  }
-  return css`
-    color: ${theme?.white};
-
-    &:active,
-    &:focus,
-    &:hover {
-      color: ${theme?.white};
-    }
-
-    &:before {
-      background-color: ${theme?.active};
-    }
-  `;
-};
-
 const StyledSidebarItem = styled(Link, {
   shouldForwardProp: p => typeof p === 'string' && isPropValid(p),
 })`
   display: flex;
-  color: inherit;
+  color: ${p => p.theme.textColor};
   position: relative;
   cursor: pointer;
   font-size: 15px;
@@ -328,7 +306,7 @@ const StyledSidebarItem = styled(Link, {
 
   &:hover,
   &:focus-visible {
-    color: ${p => p.theme.white};
+    color: ${p => p.theme.textColor};
   }
 
   &:focus {
@@ -340,7 +318,19 @@ const StyledSidebarItem = styled(Link, {
     box-shadow: 0 0 0 2px ${p => p.theme.purple300};
   }
 
-  ${getActiveStyle};
+  &.Active {
+    color: ${p => p.theme.textColor};
+
+    &:active,
+    &:focus,
+    &:hover {
+      color: ${p => p.theme.textColor};
+    }
+
+    &:before {
+      background-color: ${p => p.theme.purple300};
+    }
+  }
 `;
 
 const SidebarItemWrapper = styled('div')<{collapsed?: boolean}>`
@@ -348,8 +338,8 @@ const SidebarItemWrapper = styled('div')<{collapsed?: boolean}>`
   align-items: center;
   justify-content: center;
   width: 100%;
+  padding-right: ${p => (!p.collapsed ? space(1) : space(0))};
 
-  ${p => !p.collapsed && `padding-right: ${space(1)};`}
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     padding-right: 0;
   }
@@ -381,29 +371,12 @@ const SidebarItemLabel = styled('span')`
   overflow: hidden;
 `;
 
-const getCollapsedBadgeStyle = ({collapsed, theme}) => {
-  if (!collapsed) {
-    return '';
-  }
-
-  return css`
-    text-indent: -99999em;
-    position: absolute;
-    right: 0;
-    top: 1px;
-    background: ${theme.red300};
-    width: ${theme.sidebar.smallBadgeSize};
-    height: ${theme.sidebar.smallBadgeSize};
-    border-radius: ${theme.sidebar.smallBadgeSize};
-    line-height: ${theme.sidebar.smallBadgeSize};
-    box-shadow: ${theme.sidebar.boxShadow};
-  `;
-};
-
-const SidebarItemBadge = styled(({collapsed: _, ...props}) => <span {...props} />)`
+const SidebarItemBadge = styled(({collapsed, ...props}) => (
+  <span {...props} className={collapsed ? 'Collapsed' : ''} />
+))`
   display: block;
   text-align: center;
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.textColor};
   font-size: 12px;
   background: ${p => p.theme.red300};
   width: ${p => p.theme.sidebar.badgeSize};
@@ -411,7 +384,18 @@ const SidebarItemBadge = styled(({collapsed: _, ...props}) => <span {...props} /
   border-radius: ${p => p.theme.sidebar.badgeSize};
   line-height: ${p => p.theme.sidebar.badgeSize};
 
-  ${getCollapsedBadgeStyle};
+  &.Collapsed {
+    text-indent: -99999em;
+    position: absolute;
+    right: 0;
+    top: 1px;
+    background: ${p => p.theme.red300};
+    width: ${p => p.theme.sidebar.smallBadgeSize};
+    height: ${p => p.theme.sidebar.smallBadgeSize};
+    border-radius: ${p => p.theme.sidebar.smallBadgeSize};
+    line-height: ${p => p.theme.sidebar.smallBadgeSize};
+    box-shadow: ${p => p.theme.sidebar.boxShadow};
+  }
 `;
 
 const CollapsedFeatureBadge = styled(FeatureBadge)`

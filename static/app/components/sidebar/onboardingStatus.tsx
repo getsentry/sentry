@@ -6,11 +6,7 @@ import styled from '@emotion/styled';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import OnboardingSidebar from 'sentry/components/onboardingWizard/sidebar';
 import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
-import ProgressRing, {
-  RingBackground,
-  RingBar,
-  RingText,
-} from 'sentry/components/progressRing';
+import ProgressRing, {RingBar, RingText} from 'sentry/components/progressRing';
 import {isDone} from 'sentry/components/sidebar/utils';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -122,14 +118,14 @@ export default function OnboardingStatus({
 const Heading = styled('div')`
   transition: color 100ms;
   font-size: ${p => p.theme.fontSizeLarge};
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.textColor};
   margin-bottom: ${space(0.25)};
 `;
 
 const Remaining = styled('div')`
   transition: color 100ms;
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.textColor};
   display: grid;
   grid-template-columns: max-content max-content;
   gap: ${space(0.75)};
@@ -143,24 +139,23 @@ const PendingSeenIndicator = styled('div')`
   width: 7px;
 `;
 
-const hoverCss = (p: {theme: Theme}) => css`
-  background: rgba(255, 255, 255, 0.05);
+const hoverCss = (p: {theme: Theme}, type: 'hover' | 'active') => css`
+  background: ${type === 'hover'
+    ? p.theme.backgroundSecondary
+    : p.theme.backgroundTertiary};
 
-  ${RingBackground} {
-    stroke: rgba(255, 255, 255, 0.3);
-  }
   ${RingBar} {
-    stroke: ${p.theme.green200};
+    stroke: ${p.theme.green300};
   }
   ${RingText} {
-    color: ${p.theme.white};
+    color: ${p.theme.textColor};
   }
 
   ${Heading} {
-    color: ${p.theme.white};
+    color: ${p.theme.textColor};
   }
   ${Remaining} {
-    color: ${p.theme.white};
+    color: ${p.theme.textColor};
   }
 `;
 
@@ -173,9 +168,9 @@ const Container = styled('div')<{isActive: boolean}>`
   align-items: center;
   transition: background 100ms;
 
-  ${p => p.isActive && hoverCss(p)};
+  ${p => p.isActive && hoverCss(p, 'active')};
 
   &:hover {
-    ${hoverCss};
+    ${p => hoverCss(p, p.isActive ? 'active' : 'hover')};
   }
 `;
