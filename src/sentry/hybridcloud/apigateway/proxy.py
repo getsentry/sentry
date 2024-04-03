@@ -1,6 +1,7 @@
 """
 Utilities related to proxying a request to a region silo
 """
+
 from __future__ import annotations
 
 import logging
@@ -156,6 +157,11 @@ def proxy_region_request(
 
     timeout = ENDPOINT_TIMEOUT_OVERRIDE.get(url_name, settings.GATEWAY_PROXY_TIMEOUT)
     metric_tags = {"region": region.name, "url_name": url_name}
+
+    # XXX: See sentry.testutils.pytest.sentry for more information
+    if settings.APIGATEWAY_PROXY_SKIP_RELAY and request.path.startswith("/api/0/relays/"):
+        return StreamingHttpResponse(streaming_content="relay proxy skipped", status=404)
+
     try:
         with metrics.timer("apigateway.proxy_request.duration", tags=metric_tags):
             resp = external_request(
@@ -166,6 +172,10 @@ def proxy_region_request(
                 data=_body_with_length(request),
                 stream=True,
                 timeout=timeout,
+                # By default, external_request will resolve any redirects for any verb except for HEAD.
+                # We explicitly disable this behavior to avoid misrepresenting the original sentry.io request with the
+                # body response of the redirect.
+                allow_redirects=False,
             )
     except Timeout:
         # remote silo timeout. Use DRF timeout instead

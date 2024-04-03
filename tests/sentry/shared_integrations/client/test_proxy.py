@@ -5,21 +5,22 @@ from django.test import override_settings
 from pytest import raises
 from requests import Request
 
+from sentry.constants import ObjectStatus
 from sentry.net.http import Session
 from sentry.shared_integrations.client.proxy import (
     IntegrationProxyClient,
     get_control_silo_ip_address,
+    infer_org_integration,
 )
 from sentry.shared_integrations.exceptions import ApiHostError
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_OI_HEADER, PROXY_PATH, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 
 control_address = "http://controlserver"
 
 
-@region_silo_test
 class IntegrationProxyClientTest(TestCase):
     oi_id = 24
     base_url = "https://example.com"
@@ -33,6 +34,30 @@ class IntegrationProxyClientTest(TestCase):
             _use_proxy_url_for_tests = True
 
         self.client_cls = TestClient
+
+    def test_infer_organization_is_active(self):
+        integration = self.create_provider_integration(provider="slack", external_id="workspace:1")
+        # Share the slack workspace across two organizations
+        organization_invalid = self.create_organization()
+        organization_valid = self.create_organization()
+        # Create a valid one, and an invalid one
+        org_integration_invalid = self.create_organization_integration(
+            integration_id=integration.id,
+            organization_id=organization_invalid.id,
+            status=ObjectStatus.DISABLED,
+        )
+        org_integration_valid = self.create_organization_integration(
+            integration_id=integration.id,
+            organization_id=organization_valid.id,
+            status=ObjectStatus.ACTIVE,
+        )
+        # Infer should always look for the first ACTIVE organization_integration
+        assert infer_org_integration(integration_id=integration.id) == org_integration_valid.id
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            org_integration_valid.delete()
+        second_inference = infer_org_integration(integration_id=integration.id)
+        assert second_inference is not org_integration_invalid.id
+        assert second_inference is None
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_authorize_request_noop(self):

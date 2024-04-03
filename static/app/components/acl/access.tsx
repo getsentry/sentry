@@ -11,7 +11,8 @@ type ChildRenderProps = {
   hasSuperuser: boolean;
 };
 
-type ChildFunction = (props: ChildRenderProps) => JSX.Element;
+// TODO(TS): This should be ReactNode but conflicts between react 17 & 18
+type ChildFunction = (props: ChildRenderProps) => any;
 
 type Props = {
   organization: Organization;

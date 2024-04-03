@@ -453,11 +453,7 @@ class _RemoteSiloCall:
 
         return_value = serial_response["value"]
         service, _ = _look_up_service_method(self.service_name, self.method_name)
-        return (
-            None
-            if return_value is None
-            else service.deserialize_rpc_response(self.method_name, return_value)
-        )
+        return service.deserialize_rpc_response(self.method_name, return_value)
 
     def _metrics_tags(self, **additional_tags: str | int) -> Mapping[str, str | int | None]:
         return dict(
@@ -518,8 +514,9 @@ class _RemoteSiloCall:
         return RpcRemoteException(self.service_name, self.method_name, message)
 
     def _raise_from_response_status_error(self, response: requests.Response) -> NoReturn:
+        rpc_method = f"{self.service_name}.{self.method_name}"
         with sentry_sdk.configure_scope() as scope:
-            scope.set_tag("rpc_method", f"{self.service_name}.{self.method_name}")
+            scope.set_tag("rpc_method", rpc_method)
             scope.set_tag("rpc_status_code", response.status_code)
 
         if in_test_environment():
@@ -535,6 +532,13 @@ class _RemoteSiloCall:
         if response.status_code == 403:
             raise self._remote_exception("Unauthorized service access")
         if response.status_code == 400:
+            logger.warning(
+                "rpc.bad_request",
+                extra={
+                    "rpc_method": rpc_method,
+                    "error": response.content.decode("utf8"),
+                },
+            )
             raise self._remote_exception("Invalid service request")
         raise self._remote_exception(f"Service unavailable ({response.status_code} status)")
 
@@ -577,11 +581,6 @@ class _RemoteSiloCall:
         # TODO: Performance considerations (persistent connections, pooling, etc.)?
         url = self.address + self.path
 
-        # Add tracing continuation headers as the SDK doesn't monkeypatch requests.
-        if traceparent := sentry_sdk.get_traceparent():
-            headers["Sentry-Trace"] = traceparent
-        if baggage := sentry_sdk.get_baggage():
-            headers["Baggage"] = baggage
         try:
             return http.post(url, headers=headers, data=data, timeout=settings.RPC_TIMEOUT)
         except requests.exceptions.ConnectionError as e:

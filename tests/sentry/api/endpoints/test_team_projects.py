@@ -5,10 +5,8 @@ from sentry.notifications.types import FallthroughChoiceType
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class TeamProjectsListTest(APITestCase):
     endpoint = "sentry-api-0-team-project-index"
     method = "get"
@@ -38,7 +36,6 @@ class TeamProjectsListTest(APITestCase):
         assert str(proj3.id) not in response.data
 
 
-@region_silo_test
 class TeamProjectsCreateTest(APITestCase):
     endpoint = "sentry-api-0-team-project-index"
     method = "post"
@@ -132,7 +129,6 @@ class TeamProjectsCreateTest(APITestCase):
         project = Project.objects.get(id=response.data["id"])
         assert not Rule.objects.filter(project=project).exists()
 
-    @with_feature("organizations:default-inbound-filters")
     def test_default_inbound_filters(self):
         filters = ["browser-extensions", "legacy-browsers", "web-crawlers", "filtered-transaction"]
         python_response = self.get_success_response(
@@ -184,7 +180,6 @@ class TeamProjectsCreateTest(APITestCase):
         assert javascript_filter_states["web-crawlers"]
         assert javascript_filter_states["filtered-transaction"]
 
-    @with_feature("organizations:default-inbound-filters")
     @with_feature("organizations:legacy-browser-update")
     def test_updated_legacy_browser_default(self):
         project_data = {"name": "foo", "slug": "baz", "platform": "javascript-react"}

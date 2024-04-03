@@ -2,16 +2,11 @@ from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
-from django.db.models import Prefetch, prefetch_related_objects
-
 from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.models.role import OrganizationRoleSerializer
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.team import Team
 from sentry.models.user import User
-from sentry.roles import organization_roles
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 
@@ -24,28 +19,6 @@ class OrganizationMemberSerializer(Serializer):
     def __init__(self, expand: Sequence[str] | None = None) -> None:
         self.expand = expand or []
 
-    def __sorted_org_roles_for_user(self, item: OrganizationMember) -> Sequence[Mapping[str, Any]]:
-        org_roles = [
-            (team.slug, organization_roles.get(team.org_role)) for team in item.team_role_prefetch
-        ]
-
-        sorted_org_roles = sorted(
-            org_roles,
-            key=lambda r: r[1].priority,
-            reverse=True,
-        )
-
-        return [
-            {
-                "teamSlug": slug,
-                "role": serialize(
-                    role,
-                    serializer=OrganizationRoleSerializer(organization=item.organization),
-                ),
-            }
-            for slug, role in sorted_org_roles
-        ]
-
     def get_attrs(
         self, item_list: Sequence[OrganizationMember], user: User, **kwargs: Any
     ) -> MutableMapping[OrganizationMember, MutableMapping[str, Any]]:
@@ -54,16 +27,6 @@ class OrganizationMemberSerializer(Serializer):
         the organization_members in `item_list`.
         TODO(dcramer): assert on relations
         """
-
-        # Preload to avoid fetching each team individually
-        prefetch_related_objects(
-            item_list,
-            Prefetch(
-                "teams",
-                queryset=Team.objects.all().exclude(org_role=None),
-                to_attr="team_role_prefetch",
-            ),
-        )
 
         # Bulk load users
         users_set = sorted(

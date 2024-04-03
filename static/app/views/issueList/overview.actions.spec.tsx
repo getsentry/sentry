@@ -8,7 +8,13 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 import {TagsFixture} from 'sentry-fixture/tags';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import Indicators from 'sentry/components/indicators';
 import GroupStore from 'sentry/stores/groupStore';
@@ -157,7 +163,7 @@ describe('IssueListOverview (actions)', function () {
         headers: {Link: DEFAULT_LINKS_HEADER},
       });
 
-      await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
 
       expect(updateIssueMock).toHaveBeenCalledWith(
         '/organizations/org-slug/issues/',
@@ -201,7 +207,7 @@ describe('IssueListOverview (actions)', function () {
         headers: {Link: DEFAULT_LINKS_HEADER},
       });
 
-      await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
 
       expect(updateIssueMock).toHaveBeenCalledWith(
         '/organizations/org-slug/issues/',
@@ -296,7 +302,10 @@ describe('IssueListOverview (actions)', function () {
         headers: {Link: DEFAULT_LINKS_HEADER},
       });
 
-      await userEvent.click(screen.getByRole('button', {name: 'Mark Reviewed'}));
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'More issue actions'})
+      );
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Mark Reviewed'}));
 
       expect(updateIssueMock).toHaveBeenCalledWith(
         '/organizations/org-slug/issues/',
@@ -331,7 +340,7 @@ describe('IssueListOverview (actions)', function () {
       });
     });
 
-    it('removes issues after reprioritizing (when excluding priorities)', async function () {
+    it('removes issues after bulk reprioritizing (when excluding priorities)', async function () {
       const updateIssueMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         method: 'PUT',
@@ -354,8 +363,7 @@ describe('IssueListOverview (actions)', function () {
         headers: {Link: DEFAULT_LINKS_HEADER},
       });
 
-      await userEvent.click(screen.getByRole('button', {name: /more issue actions/i}));
-      await userEvent.hover(screen.getByRole('menuitemradio', {name: /priority/i}));
+      await userEvent.click(await screen.findByRole('button', {name: /set priority/i}));
       await userEvent.click(screen.getByRole('menuitemradio', {name: /low/i}));
 
       expect(updateIssueMock).toHaveBeenCalledWith(
@@ -369,7 +377,44 @@ describe('IssueListOverview (actions)', function () {
       expect(screen.queryByText('Medium priority issue')).not.toBeInTheDocument();
     });
 
-    it('does not remove issues after reprioritizing (when query includes all priorities)', async function () {
+    it('removes issues after reprioritizing single issue (when excluding priorities)', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/prompts-activity/',
+        body: {data: {dismissed_ts: null}},
+      });
+      const updateIssueMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        method: 'PUT',
+      });
+
+      render(<IssueListOverview {...defaultProps} />, {organization});
+
+      expect(screen.getByText('Medium priority issue')).toBeInTheDocument();
+
+      // After action, will refetch so need to mock that response
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [highPriorityGroup],
+        headers: {Link: DEFAULT_LINKS_HEADER},
+      });
+
+      await userEvent.click(screen.getByText('Med'));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Low'}));
+
+      await waitFor(() => {
+        expect(updateIssueMock).toHaveBeenCalledWith(
+          '/organizations/org-slug/issues/',
+          expect.objectContaining({
+            query: expect.objectContaining({id: ['1']}),
+            data: {priority: PriorityLevel.LOW},
+          })
+        );
+      });
+
+      expect(screen.queryByText('Medium priority issue')).not.toBeInTheDocument();
+    });
+
+    it('does not remove issues after bulk reprioritizing (when query includes all priorities)', async function () {
       const updateIssueMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         method: 'PUT',
@@ -400,8 +445,7 @@ describe('IssueListOverview (actions)', function () {
 
       expect(screen.getByText('Medium priority issue')).toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('button', {name: /more issue actions/i}));
-      await userEvent.hover(screen.getByRole('menuitemradio', {name: /priority/i}));
+      await userEvent.click(await screen.findByRole('button', {name: /set priority/i}));
       await userEvent.click(screen.getByRole('menuitemradio', {name: /low/i}));
 
       expect(updateIssueMock).toHaveBeenCalledWith(

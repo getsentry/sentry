@@ -3,6 +3,8 @@ from collections.abc import Callable
 from typing import Any
 
 import pytest
+from django.core import mail
+from django.db.models import F
 
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
@@ -22,8 +24,9 @@ from sentry.services.hybrid_cloud.project import RpcProject
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
+from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 
 
 def basic_filled_out_org() -> tuple[Organization, list[User]]:
@@ -86,7 +89,6 @@ def assert_team_equals(orm_team: Team, team: RpcTeam):
     assert team.slug == orm_team.slug
     assert team.status == orm_team.status
     assert team.organization_id == orm_team.organization_id
-    assert team.org_role == orm_team.org_role
 
 
 @assume_test_silo_mode(SiloMode.REGION)
@@ -200,6 +202,32 @@ def test_get_organization_id(org_factory: Callable[[], tuple[Organization, list[
         assert_get_organization_by_id_works(user_context, orm_org)
 
 
+@assume_test_silo_mode(SiloMode.REGION)
+def assert_get_org_by_id_works(user_context: User | None, orm_org: Organization):
+    assert (
+        organization_service.get_org_by_id(id=-2, user_id=user_context.id if user_context else None)
+        is None
+    )
+    org_context = organization_service.get_org_by_id(
+        id=orm_org.id, user_id=user_context.id if user_context else None
+    )
+    assert org_context is not None
+
+    assert orm_org.id == org_context.id
+    assert orm_org.name == org_context.name
+    assert orm_org.slug == org_context.slug
+
+
+@django_db_all(transaction=True)
+@all_silo_test
+@parameterize_with_orgs
+def test_get_org_id(org_factory: Callable[[], tuple[Organization, list[User]]]):
+    orm_org, orm_users = org_factory()
+
+    for user_context in itertools.chain([None], orm_users):
+        assert_get_org_by_id_works(user_context, orm_org)
+
+
 @django_db_all(transaction=True)
 @all_silo_test
 @parameterize_with_orgs
@@ -247,8 +275,7 @@ class RpcOrganizationMemberTest(TestCase):
 
 
 @django_db_all(transaction=True)
-@region_silo_test
-def test_org_member():
+def test_update_organization_member():
     org = Factories.create_organization()
     user = Factories.create_user(email="test@sentry.io")
     rpc_member = organization_service.add_organization_member(
@@ -268,3 +295,65 @@ def test_org_member():
     member_query = OrganizationMember.objects.all()
     assert member_query.count() == 1
     assert member_query[0].role == "manager"
+
+
+@django_db_all(transaction=True)
+@all_silo_test
+def test_count_members_without_sso():
+    org = Factories.create_organization()
+    user = Factories.create_user(email="test@sentry.io")
+    user_two = Factories.create_user(email="has.sso@sentry.io")
+    Factories.create_member(organization=org, user=user)
+    Factories.create_member(organization=org, email="invite@sentry.io")
+    # has sso setup, not included in result
+    Factories.create_member(
+        organization=org,
+        user=user_two,
+        flags=OrganizationMember.flags["sso:linked"],
+    )
+    result = organization_service.count_members_without_sso(organization_id=org.id)
+    assert result == 2
+
+
+@django_db_all(transaction=True)
+@all_silo_test
+def test_send_sso_unlink_emails():
+    org = Factories.create_organization()
+    user = Factories.create_user(email="test@sentry.io")
+    user_two = Factories.create_user(email="two@sentry.io")
+    Factories.create_member(
+        organization=org, user=user, flags=OrganizationMember.flags["sso:linked"]
+    )
+    Factories.create_member(
+        organization=org, user=user_two, flags=OrganizationMember.flags["sso:linked"]
+    )
+    Factories.create_member(
+        organization=org, email="invite@sentry.io", flags=OrganizationMember.flags["sso:invalid"]
+    )
+    with TaskRunner():
+        result = organization_service.send_sso_unlink_emails(
+            organization_id=org.id,
+            sending_user_email="owner@sentry.io",
+            provider_key="google",
+        )
+        assert result is None
+
+    with assume_test_silo_mode(SiloMode.REGION):
+        # No members should be linked or invalid now
+        assert (
+            OrganizationMember.objects.filter(
+                flags=F("flags").bitor(OrganizationMember.flags["sso:linked"])
+            ).count()
+            == 0
+        )
+        assert (
+            OrganizationMember.objects.filter(
+                flags=F("flags").bitor(OrganizationMember.flags["sso:invalid"])
+            ).count()
+            == 0
+        )
+
+    # Only real members should get emails
+    assert len(mail.outbox) == 2
+    assert "Action Required" in mail.outbox[0].subject
+    assert "Single Sign-On" in mail.outbox[0].body

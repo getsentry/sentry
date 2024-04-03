@@ -105,7 +105,7 @@ PostQueryFuncReturnType = Optional[Union[tuple[Any, ...], ClickhouseHistogram, i
 MetricOperationParams = Mapping[str, Union[str, int, float]]
 
 
-def run_metrics_query(
+def build_metrics_query(
     *,
     entity_key: EntityKey,
     select: list[Column],
@@ -113,18 +113,15 @@ def run_metrics_query(
     groupby: list[Column],
     project_ids: Sequence[int],
     org_id: int,
-    referrer: str,
     use_case_id: UseCaseID,
     start: datetime | None = None,
     end: datetime | None = None,
-) -> list[SnubaDataType]:
+) -> Request:
     if end is None:
         end = datetime.now()
     if start is None:
         start = end - timedelta(hours=24)
 
-    # Round timestamp to minute to get cache efficiency:
-    # Also floor start to match the daily granularity
     end = end.replace(second=0, microsecond=0)
     start = start.replace(hour=0, minute=0, second=0, microsecond=0)
 
@@ -141,11 +138,42 @@ def run_metrics_query(
         + where,
         granularity=Granularity(GRANULARITY),
     )
+
     request = Request(
-        dataset=Dataset.Metrics.value,
+        dataset=Dataset.Metrics.value
+        if use_case_id == UseCaseID.SESSIONS
+        else Dataset.PerformanceMetrics.value,
         app_id="metrics",
         query=query,
         tenant_ids={"organization_id": org_id, "use_case_id": use_case_id.value},
+    )
+
+    return request
+
+
+def run_metrics_query(
+    *,
+    entity_key: EntityKey,
+    select: list[Column],
+    where: list[Condition],
+    groupby: list[Column],
+    project_ids: Sequence[int],
+    org_id: int,
+    referrer: str,
+    use_case_id: UseCaseID,
+    start: datetime | None = None,
+    end: datetime | None = None,
+) -> list[SnubaDataType]:
+    request = build_metrics_query(
+        entity_key=entity_key,
+        select=select,
+        where=where,
+        groupby=groupby,
+        project_ids=project_ids,
+        org_id=org_id,
+        use_case_id=use_case_id,
+        start=start,
+        end=end,
     )
     result = raw_snql_query(request, referrer, use_cache=True)
     return result["data"]

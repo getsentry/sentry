@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from functools import cached_property
 from typing import Any
 
@@ -32,7 +32,12 @@ from sentry.services.hybrid_cloud.user import UserSerializeType
 from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo.base import SiloMode
-from sentry.types.region import find_all_multitenant_region_names, get_region_by_name
+from sentry.types.region import (
+    Region,
+    RegionCategory,
+    find_all_multitenant_region_names,
+    get_region_by_name,
+)
 from sentry.utils import auth, json
 from sentry.utils.assets import get_frontend_dist_prefix
 from sentry.utils.email import is_smtp_enabled
@@ -216,6 +221,8 @@ class _ClientConfig:
             "organizations:multi-region-selector", actor=self.user
         ):
             yield "organizations:multi-region-selector"
+        if options.get("organizations:react-concurrent-renderer-enabled"):
+            yield "organizations:react-concurrent-renderer-enabled"
 
     @property
     def needs_upgrade(self) -> bool:
@@ -286,9 +293,9 @@ class _ClientConfig:
         yield "regionUrl", region_url
         yield "sentryUrl", options.get("system.url-prefix")
 
-        if self._is_superuser() and superuser.ORG_ID is not None:
+        if self._is_superuser() and superuser.SUPERUSER_ORG_ID is not None:
             org_context = organization_service.get_organization_by_id(
-                id=superuser.ORG_ID,
+                id=superuser.SUPERUSER_ORG_ID,
                 user_id=None,
                 include_projects=False,
                 include_teams=False,
@@ -319,29 +326,73 @@ class _ClientConfig:
             user_details["isSuperuser"] = self.user.is_superuser
         return user_details
 
+    @cached_property
+    def _member_region_names(self) -> frozenset[str]:
+        # If the user is not authenticated they have no region membership
+        if not self.user or not self.user.id:
+            return frozenset()
+
+        region_names = user_service.get_member_region_names(user_id=self.user.id)
+        return frozenset(region_names)
+
+    @staticmethod
+    def _serialize_regions(
+        region_names: Iterable[str], display_order: Callable[[Region], Any]
+    ) -> list[Mapping[str, Any]]:
+        regions = [get_region_by_name(name) for name in region_names]
+        regions.sort(key=display_order)
+        return [region.api_serialize() for region in regions]
+
     @property
     def regions(self) -> list[Mapping[str, Any]]:
         """
         The regions available to the current user.
 
-        This will include *all* multi-tenant regions, and if the customer
+        This will include *all* multi-tenant regions, and if the user
         has membership on any single-tenant regions those will also be included.
         """
-        user = self.user
+
+        # Only expose visible regions.
+        # When new regions are added they can take some work to get working correctly.
+        # Before they are working we need ways to bring parts of the region online without
+        # exposing the region to customers.
         region_names = find_all_multitenant_region_names()
+
         if not region_names:
             return [{"name": "default", "url": options.get("system.url-prefix")}]
 
-        # No logged in user.
-        if not user or not user.id:
-            return [get_region_by_name(region).api_serialize() for region in region_names]
+        def region_display_order(region: Region) -> tuple[bool, bool, str]:
+            return (
+                not region.is_historic_monolith_region(),  # default region comes first
+                region.category != RegionCategory.MULTI_TENANT,  # multi-tenants before single
+                region.name,  # then sort alphabetically
+            )
 
-        # Ensure all regions the current user is in are included as there
-        # could be single tenants as well.
-        memberships = user_service.get_organizations(user_id=user.id)
-        unique_regions = set(region_names) | {membership.region_name for membership in memberships}
+        # Show all visible multi-tenant regions to unauthenticated users as they could
+        # create a new account. Else, ensure all regions the current user is in are
+        # included as there could be single tenants or hidden regions.
+        unique_regions = set(region_names) | self._member_region_names
+        return self._serialize_regions(unique_regions, region_display_order)
 
-        return [get_region_by_name(name).api_serialize() for name in unique_regions]
+    @property
+    def member_regions(self) -> list[Mapping[str, Any]]:
+        """
+        The regions the user has membership in. Includes single-tenant regions.
+        """
+        return self._serialize_regions(self._member_region_names, lambda r: r.name)
+
+    @property
+    def should_preload_data(self) -> bool:
+        """
+        Indicates if the preload-data functionality is enabled when rendering
+        the preload-data.html template. This is only used when layout.html is
+        rendered.
+        """
+        # Don't send requests if there is no logged in user.
+        if not self.user_details:
+            return False
+
+        return True
 
     def get_context(self) -> Mapping[str, Any]:
         return {
@@ -361,6 +412,7 @@ class _ClientConfig:
             # Maintain isOnPremise key for backcompat (plugins?).
             "isOnPremise": is_self_hosted(),
             "isSelfHosted": is_self_hosted(),
+            "shouldPreloadData": self.should_preload_data,
             "shouldShowBeaconConsentPrompt": not self.needs_upgrade
             and should_show_beacon_consent_prompt(),
             "invitesEnabled": settings.SENTRY_ENABLE_INVITES,
@@ -390,6 +442,7 @@ class _ClientConfig:
                 "allowUrls": self.allow_list,
                 "tracePropagationTargets": settings.SENTRY_FRONTEND_TRACE_PROPAGATION_TARGETS or [],
             },
+            "memberRegions": self.member_regions,
             "regions": self.regions,
             "relocationConfig": {"selectableRegions": options.get("relocation.selectable-regions")},
             "demoMode": settings.DEMO_MODE,

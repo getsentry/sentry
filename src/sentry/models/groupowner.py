@@ -104,66 +104,22 @@ class GroupOwner(Model):
         return ActorTuple.from_actor_identifier(self.owner_id())
 
     @classmethod
-    def get_autoassigned_owner_cache_key(self, group_id, project_id, autoassignment_types):
-        if not len(autoassignment_types):
-            raise Exception("Requires the autoassignment types")
-        return f"groupowner_id:{group_id}:{project_id}:{':'.join([str(t) for t in autoassignment_types])}"
-
-    @classmethod
-    def get_autoassigned_owner_cached(cls, group_id, project_id, autoassignment_types):
+    def get_autoassigned_owner(cls, group_id, project_id, autoassignment_types):
         """
-        Cached read access to find the autoassigned GroupOwner.
+        Non-cached read access to find the autoassigned GroupOwner.
         """
-        cache_key = cls.get_autoassigned_owner_cache_key(group_id, project_id, autoassignment_types)
-        issue_owner = cache.get(cache_key)
+        issue_owner = (
+            cls.objects.filter(
+                group_id=group_id, project_id=project_id, type__in=autoassignment_types
+            )
+            .exclude(user_id__isnull=True, team_id__isnull=True)
+            .order_by("type")
+            .first()
+        )
+        # should return False if no owner
         if issue_owner is None:
-            issue_owner = (
-                cls.objects.filter(
-                    group_id=group_id, project_id=project_id, type__in=autoassignment_types
-                )
-                .exclude(user_id__isnull=True, team_id__isnull=True)
-                .order_by("type")
-                .first()
-            )
-            if issue_owner is None:
-                issue_owner = False
-            # Store either the GroupOwner if exists or False for no owners
-            cache.set(cache_key, issue_owner, READ_CACHE_DURATION)
-
+            return False
         return issue_owner
-
-    @classmethod
-    def invalidate_autoassigned_owner_cache(cls, project_id, autoassignment_types, group_id=None):
-        """
-        If `group_id` is provided, clear the autoassigned owner cache for that group, else clear
-        the cache of all groups for a project that had an event within the READ_CACHE_DURATION
-        window.
-        """
-        if group_id:
-            cache_key = cls.get_autoassigned_owner_cache_key(
-                group_id, project_id, autoassignment_types
-            )
-            cache.delete(cache_key)
-            return
-
-        # Get all the groups for a project that had an event within the READ_CACHE_DURATION window.
-        # Any groups without events in that window would have expired their TTL in the cache.
-        queryset = Group.objects.filter(
-            project_id=project_id,
-            last_seen__gte=timezone.now() - timedelta(seconds=READ_CACHE_DURATION),
-        ).values_list("id", flat=True)
-
-        # Run cache invalidation in batches
-        group_id_iter = queryset.iterator(chunk_size=1000)
-        while True:
-            group_ids = list(itertools.islice(group_id_iter, 1000))
-            if not group_ids:
-                break
-            cache_keys = [
-                cls.get_autoassigned_owner_cache_key(group_id, project_id, autoassignment_types)
-                for group_id in group_ids
-            ]
-            cache.delete_many(cache_keys)
 
     @classmethod
     def invalidate_debounce_issue_owners_evaluation_cache(cls, project_id, group_id=None):

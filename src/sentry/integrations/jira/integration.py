@@ -402,7 +402,6 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
         return JiraCloudClient(
             integration=self.model,
-            org_integration_id=self.org_integration.id,
             verify_ssl=True,
             logging_context=logging_context,
         )

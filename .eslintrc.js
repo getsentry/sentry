@@ -1,36 +1,20 @@
 /* eslint-env node */
 
-const isRelaxed = !!process.env.SENTRY_ESLINT_RELAXED;
-const isCi = !!process.env.CI;
-
-// Strict ruleset that runs on pre-commit and in local environments
-const ADDITIONAL_HOOKS_TO_CHECK_DEPS_FOR =
-  '(useEffectAfterFirstRender|useMemoWithPrevious)';
-
-const strictRulesNotCi = {
-  'react-hooks/exhaustive-deps': [
-    'error',
-    {additionalHooks: ADDITIONAL_HOOKS_TO_CHECK_DEPS_FOR},
-  ],
-};
-
 module.exports = {
   root: true,
-  extends: [isRelaxed ? 'sentry-app' : 'sentry-app/strict'],
+  extends: ['sentry-app/strict'],
   globals: {
     require: false,
     expect: false,
-    sinon: false,
     MockApiClient: true,
     tick: true,
     jest: true,
   },
   rules: {
     'react-hooks/exhaustive-deps': [
-      'warn',
-      {additionalHooks: ADDITIONAL_HOOKS_TO_CHECK_DEPS_FOR},
+      'error',
+      {additionalHooks: '(useEffectAfterFirstRender|useMemoWithPrevious)'},
     ],
-    ...(!isRelaxed && !isCi ? strictRulesNotCi : {}),
 
     // TODO(@anonrig): Remove this from eslint-sentry-config
     'space-infix-ops': 'off',
@@ -49,7 +33,7 @@ module.exports = {
   ignorePatterns: ['*.json'],
   overrides: [
     {
-      files: ['tests/js/**/*.{ts,js}'],
+      files: ['static/**/*.spec.{ts,js}', 'tests/js/**/*.{ts,js}'],
       extends: ['plugin:testing-library/react', 'sentry-app/strict'],
       rules: {
         // TODO(@anonrig): Remove this from eslint-sentry-config

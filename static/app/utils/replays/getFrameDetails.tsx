@@ -5,7 +5,6 @@ import FeatureBadge from 'sentry/components/featureBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
 import {
-  IconChat,
   IconCursorArrow,
   IconFire,
   IconFix,
@@ -13,6 +12,7 @@ import {
   IconInput,
   IconKeyDown,
   IconLocation,
+  IconMegaphone,
   IconSort,
   IconTerminal,
   IconUser,
@@ -23,6 +23,7 @@ import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type {
   BreadcrumbFrame,
   ErrorFrame,
+  FeedbackFrame,
   LargestContentfulPaintFrame,
   MultiClickFrame,
   MutationFrame,
@@ -61,6 +62,13 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     tabKey: TabKey.NETWORK,
     title: 'Navigation',
     icon: <IconLocation size="xs" />,
+  }),
+  feedback: (frame: FeedbackFrame) => ({
+    color: 'pink300',
+    description: frame.data.projectSlug,
+    tabKey: TabKey.BREADCRUMBS,
+    title: defaultTitle(frame),
+    icon: <IconMegaphone size="xs" />,
   }),
   issue: (frame: ErrorFrame) => ({
     color: 'red300',
@@ -269,13 +277,6 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     title: 'Paint',
     icon: <IconInfo size="xs" />,
   }),
-  'sentry.feedback': () => ({
-    color: 'blue300',
-    description: '',
-    tabKey: TabKey.BREADCRUMBS,
-    title: 'User Feedback Submitted',
-    icon: <IconChat size="xs" />,
-  }),
   'resource.css': frame => ({
     color: 'gray300',
     description: undefined,
@@ -353,6 +354,10 @@ export default function getFrameDetails(frame: ReplayFrame): Details {
 }
 
 function defaultTitle(frame: ReplayFrame) {
+  // Override title for User Feedback frames
+  if ('message' in frame && frame.message === 'User Feedback') {
+    return t('User Feedback');
+  }
   if ('category' in frame) {
     const [type, action] = frame.category.split('.');
     return `${type} ${action || ''}`.trim();

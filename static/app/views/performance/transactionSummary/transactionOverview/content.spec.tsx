@@ -89,7 +89,7 @@ describe('Transaction Summary Content', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/?limit=5&query=is%3Aunresolved%20transaction%3Aexample-transaction&sort=new&statsPeriod=14d',
+      url: '/organizations/org-slug/issues/?limit=5&query=is%3Aunresolved%20transaction%3Aexample-transaction&sort=trends&statsPeriod=14d',
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -140,7 +140,7 @@ describe('Transaction Summary Content', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('performs basic rendering', function () {
+  it('performs basic rendering', async function () {
     const project = ProjectFixture();
     const {
       organization,
@@ -169,7 +169,9 @@ describe('Transaction Summary Content', function () {
       {context: routerContext}
     );
 
-    expect(screen.getByTestId('page-filter-environment-selector')).toBeInTheDocument();
+    expect(
+      await screen.findByTestId('page-filter-environment-selector')
+    ).toBeInTheDocument();
     expect(screen.getByTestId('page-filter-timerange-selector')).toBeInTheDocument();
     expect(screen.getByTestId('smart-search-bar')).toBeInTheDocument();
     expect(screen.getByTestId('transaction-summary-charts')).toBeInTheDocument();

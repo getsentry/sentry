@@ -24,10 +24,7 @@ LOADER_FOLDER = os.path.abspath(os.path.join(os.path.dirname(sentry.__file__), "
 def dump_registry(path, data):
     fn = os.path.join(LOADER_FOLDER, path + ".json")
     directory = os.path.dirname(fn)
-    try:
-        os.makedirs(directory)
-    except OSError:
-        pass
+    os.makedirs(directory, exist_ok=True)
     with open(fn, "w", encoding="utf-8") as f:
         f.write(json.dumps(data, indent=2))
         f.write("\n")

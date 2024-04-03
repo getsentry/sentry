@@ -59,7 +59,7 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         assert blocks[0]["text"]["text"] == fallback_text
         notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
         assert blocks[1]["text"]["text"] == (
-            f":exclamation: <http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=regression_activity-slack&notification_uuid={notification_uuid}|*{self.group.title}*>"
+            f":red_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=regression_activity-slack&notification_uuid={notification_uuid}|*{self.group.title}*>"
         )
         assert blocks[3]["elements"][0]["text"] == (
             f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=regression_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
@@ -105,7 +105,7 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         )
         assert blocks[0]["text"]["text"] == fallback_text
         assert blocks[1]["text"]["text"] == (
-            f":exclamation: <http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=regression_activity-slack&notification_uuid={notification_uuid}|*{self.group.title}*>"
+            f":red_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=regression_activity-slack&notification_uuid={notification_uuid}|*{self.group.title}*>"
         )
         assert blocks[3]["elements"][0]["text"] == (
             f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=regression_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"

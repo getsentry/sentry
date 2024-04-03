@@ -3,7 +3,8 @@ from datetime import datetime, timezone
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 
-from sentry.incidents.models import AlertRule, IncidentTrigger
+from sentry.incidents.models.alert_rule import AlertRule
+from sentry.incidents.models.incident import IncidentTrigger
 from sentry.models.project import Project
 
 
@@ -15,8 +16,6 @@ def add_project_to_include_all_rules(instance, created, **kwargs):
 
     NOTE: This feature is not currently utilized and may break the UX flow
     """
-    from sentry.incidents.logic import subscribe_projects_to_alert_rule
-
     if not created:
         return
 
@@ -24,7 +23,8 @@ def add_project_to_include_all_rules(instance, created, **kwargs):
         organization=instance.organization, include_all_projects=True
     )
     for alert_rule in alert_rules:
-        subscribe_projects_to_alert_rule(alert_rule, [instance])
+        # NOTE: defaults to only subscribe if AlertRule.monitor_type === 'CONTINUOUS'
+        alert_rule.subscribe_projects(projects=[instance])
 
 
 @receiver(pre_save, sender=IncidentTrigger)

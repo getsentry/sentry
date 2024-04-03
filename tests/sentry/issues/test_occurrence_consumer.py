@@ -90,6 +90,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
             result = _process_message(message)
         assert result is not None
         occurrence = result[0]
+        assert occurrence is not None
 
         fetched_occurrence = IssueOccurrence.fetch(occurrence.id, self.project.id)
         assert fetched_occurrence is not None
@@ -113,6 +114,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         assert result is not None
         project_id = event_data["event"]["project_id"]
         occurrence = result[0]
+        assert occurrence is not None
 
         event = eventstore.backend.get_event_by_id(project_id, event_data["event"]["event_id"])
         event = event.for_group(event.group)
@@ -156,6 +158,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
             result = _process_message(message)
         assert result is not None
         occurrence = result[0]
+        assert occurrence is not None
 
         fetched_occurrence = IssueOccurrence.fetch(occurrence.id, self.project.id)
         assert fetched_occurrence is not None
@@ -177,11 +180,14 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
             result = _process_message(message)
         assert result is not None
         occurrence = result[0]
+        assert occurrence is not None
         group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).first()
         assert group.priority == PriorityLevel.LOW
 
     @with_feature("projects:issue-priority")
-    def test_issue_platform_override_priority(self):
+    @with_feature("projects:first-event-severity-calculation")
+    @mock.patch("sentry.event_manager._get_severity_score")
+    def test_issue_platform_override_priority(self, mock_get_severity_score):
         # test explicitly set priority of HIGH
         message = get_test_message(self.project.id)
         message["initial_issue_priority"] = PriorityLevel.HIGH.value
@@ -189,8 +195,11 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
             result = _process_message(message)
         assert result is not None
         occurrence = result[0]
+        assert occurrence is not None
+        assert mock_get_severity_score.call_count == 0
         group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).first()
         assert group.priority == PriorityLevel.HIGH
+        assert "severity" not in group.data["metadata"]
 
 
 class IssueOccurrenceLookupEventIdTest(IssueOccurrenceTestBase):
@@ -224,6 +233,7 @@ class IssueOccurrenceLookupEventIdTest(IssueOccurrenceTestBase):
             processed = _process_message(message)
         assert processed is not None
         occurrence, _ = processed[0], processed[1]
+        assert occurrence is not None
 
         fetched_event = self.eventstore.get_event_by_id(self.project.id, occurrence.event_id)
         assert fetched_event is not None

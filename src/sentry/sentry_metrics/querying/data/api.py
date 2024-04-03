@@ -1,33 +1,50 @@
 from collections.abc import Sequence
 from datetime import datetime
+from typing import cast
 
 from snuba_sdk import MetricsQuery, MetricsScope, Rollup
 
+from sentry import features
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.data.execution import QueryExecutor
+from sentry.sentry_metrics.querying.data.execution import QueryExecutor, QueryResult
 from sentry.sentry_metrics.querying.data.parsing import QueryParser
-from sentry.sentry_metrics.querying.data.transformation import QueryTransformer
-from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
-from sentry.utils import metrics
+from sentry.sentry_metrics.querying.data.plan import MetricsQueriesPlan, MetricsQueriesPlanResult
+from sentry.sentry_metrics.querying.data.preparation.base import (
+    IntermediateQuery,
+    run_preparation_steps,
+)
+from sentry.sentry_metrics.querying.data.preparation.units_normalization import (
+    UnitsNormalizationStep,
+)
+from sentry.sentry_metrics.querying.types import QueryType
 
 
-def run_metrics_query(
-    fields: Sequence[str],
-    interval: int,
+def run_metrics_queries_plan(
+    metrics_queries_plan: MetricsQueriesPlan,
     start: datetime,
     end: datetime,
+    interval: int,
     organization: Organization,
     projects: Sequence[Project],
     environments: Sequence[Environment],
     referrer: str,
-    query: str | None = None,
-    group_bys: Sequence[str] | None = None,
-    order_by: str | None = None,
-    limit: int | None = None,
-):
-    # We build the basic query that contains the metadata.
+    query_type: QueryType = QueryType.TOTALS_AND_SERIES,
+) -> MetricsQueriesPlanResult:
+    """
+    Runs a MetricsQueriesPlan which is converted into a series of queries that are executed in Snuba.
+
+    Returns:
+        A MetricsQueriesPlanResult object which encapsulates the results of the plan and allows a QueryTransformer
+        to be run on the data.
+    """
+    # For now, if the query plan is empty, we return an empty dictionary. In the future, we might want to default
+    # to a better data type.
+    if metrics_queries_plan.is_empty():
+        return MetricsQueriesPlanResult([])
+
+    # We build the basic query that contains the metadata which will be shared across all queries.
     base_query = MetricsQuery(
         start=start,
         end=end,
@@ -37,43 +54,37 @@ def run_metrics_query(
         ),
     )
 
-    # We prepare the executor, that will be responsible for scheduling the execution multiple queries.
-    executor = QueryExecutor(organization=organization, projects=projects, referrer=referrer)
-
-    # We parse the input and iterating over each timeseries.
-    parser = QueryParser(projects=projects, fields=fields, query=query, group_bys=group_bys)
-
-    applied_order_by = False
-    for field, timeseries in parser.generate_queries(environments=environments):
-        query = base_query.set_query(timeseries).set_rollup(Rollup(interval=interval))
-
-        # We will apply the order by if it only matches the field. This is done since for now we don't support a custom
-        # since for order bys.
-        query_order_by = None
-        if order_by and field == order_by.removeprefix("-"):
-            query_order_by = order_by
-            applied_order_by = True
-
-        # The identifier of the query is the field which it tries to fetch. It has been chosen as the identifier since
-        # it's stable and uniquely identifies the query.
-        executor.schedule(
-            identifier=field, query=query, group_bys=group_bys, order_by=query_order_by, limit=limit
+    intermediate_queries = []
+    # We parse the query plan and obtain a series of queries.
+    parser = QueryParser(
+        projects=projects, environments=environments, metrics_queries_plan=metrics_queries_plan
+    )
+    for query_expression, query_order, query_limit in parser.generate_queries():
+        intermediate_queries.append(
+            IntermediateQuery(
+                metrics_query=base_query.set_query(query_expression).set_rollup(
+                    Rollup(interval=interval)
+                ),
+                order=query_order,
+                limit=query_limit,
+            )
         )
 
-    if order_by and not applied_order_by:
-        raise InvalidMetricsQueryError(
-            f"The supplied orderBy {order_by} is not matching with any field of the query"
-        )
-
-    with metrics.timer(
-        key="ddm.metrics_api.queries_execution_time",
-        tags={"with_order_by": (order_by is not None), "with_group_by": (group_bys is not None)},
+    preparation_steps = []
+    if features.has(
+        "organizations:ddm-metrics-api-unit-normalization", organization=organization, actor=None
     ):
-        # Iterating over each result.
-        results = []
-        for result in executor.execute():
-            results.append(result)
+        preparation_steps.append(UnitsNormalizationStep())
 
-    # We transform the result into a custom format which for now it's statically defined.
-    transformer = QueryTransformer(results)
-    return transformer.transform()
+    # We run a series of preparation steps which operate on the entire list of queries.
+    intermediate_queries = run_preparation_steps(intermediate_queries, *preparation_steps)
+
+    # We prepare the executor, that will be responsible for scheduling the execution of multiple queries.
+    executor = QueryExecutor(organization=organization, projects=projects, referrer=referrer)
+    for intermediate_query in intermediate_queries:
+        executor.schedule(intermediate_query=intermediate_query, query_type=query_type)
+
+    results = executor.execute()
+
+    # We wrap the result in a class that exposes some utils methods to operate on results.
+    return MetricsQueriesPlanResult(cast(list[QueryResult], results))

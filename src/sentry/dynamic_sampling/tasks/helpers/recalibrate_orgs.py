@@ -26,12 +26,15 @@ def get_adjusted_factor(org_id: int) -> float:
     cache_key = generate_recalibrate_orgs_cache_key(org_id)
 
     try:
-        return float(redis_client.get(cache_key))
+        value = redis_client.get(cache_key)
+        if value is not None:
+            return float(value)
     except (TypeError, ValueError):
         # By default, the previous factor is equal to the identity of the multiplication and this is done because
         # the recalibration rule will be a factor rule and thus multiplied with the first sample rate rule that will
         # match after this.
-        return 1.0
+        pass
+    return 1.0
 
 
 def delete_adjusted_factor(org_id: int) -> None:

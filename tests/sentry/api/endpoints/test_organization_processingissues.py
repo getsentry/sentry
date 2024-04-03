@@ -4,10 +4,8 @@ from sentry.models.processingissue import EventProcessingIssue, ProcessingIssue
 from sentry.models.rawevent import RawEvent
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class OrganizationProcessingIssuesTest(APITestCase):
     endpoint = "sentry-api-0-organization-processing-issues"
 

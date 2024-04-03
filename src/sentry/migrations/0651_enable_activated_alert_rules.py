@@ -6,7 +6,7 @@ from django.db import migrations, models
 
 import sentry.db.models.fields.bounded
 import sentry.db.models.fields.foreignkey
-import sentry.incidents.models
+import sentry.incidents.models.alert_rule
 from sentry.new_migrations.migrations import CheckedMigration
 
 
@@ -45,7 +45,7 @@ class Migration(CheckedMigration):
                     model_name="alertrule",
                     name="monitor_type",
                     field=models.IntegerField(
-                        default=sentry.incidents.models.AlertRuleMonitorType.CONTINUOUS.value
+                        default=sentry.incidents.models.alert_rule.AlertRuleMonitorType.CONTINUOUS.value
                     ),
                 ),
             ],

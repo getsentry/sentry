@@ -103,22 +103,16 @@ export function MockTimelineVisualization({schedule}: Props) {
         <Fragment>
           <StyledGridLineTimeLabels
             timeWindowConfig={timeWindowConfig}
-            start={start}
-            end={end}
             width={timelineWidth}
           />
           <StyledGridLineOverlay
             showCursor={!isLoading}
             timeWindowConfig={timeWindowConfig}
-            start={start}
-            end={end}
             width={timelineWidth}
           />
           <MockCheckInTimeline
             width={timelineWidth}
             mockTimestamps={mockTimestamps.slice(1, mockTimestamps.length - 1)}
-            start={start}
-            end={end}
             timeWindowConfig={timeWindowConfig}
           />
         </Fragment>
@@ -136,6 +130,7 @@ const TimelineContainer = styled(Panel)`
 
 const StyledGridLineTimeLabels = styled(GridLineTimeLabels)`
   grid-column: 0;
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const StyledGridLineOverlay = styled(GridLineOverlay)`

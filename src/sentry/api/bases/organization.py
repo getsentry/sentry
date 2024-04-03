@@ -11,6 +11,7 @@ from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 
+from sentry import options
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
@@ -25,7 +26,8 @@ from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.orgauthtoken import is_org_auth_token_auth
 from sentry.models.project import Project
-from sentry.models.release import Release, ReleaseProject
+from sentry.models.release import Release
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.services.hybrid_cloud.organization import (
     RpcOrganization,
     RpcUserOrganizationContext,
@@ -56,7 +58,7 @@ class OrganizationPermission(SentryPermission):
         if not organization.flags.require_2fa:
             return False
 
-        if request.user.has_2fa():  # type: ignore
+        if request.user.has_2fa():  # type: ignore[union-attr]
             return False
 
         if is_active_superuser(request):
@@ -232,10 +234,14 @@ class ControlSiloOrganizationEndpoint(Endpoint):
     A base class for endpoints that use an organization scoping but lives in the control silo
     """
 
-    permission_classes = (OrganizationPermission,)
+    permission_classes: tuple[type[BasePermission], ...] = (OrganizationPermission,)
 
     def convert_args(
-        self, request: Request, organization_slug: str | None = None, *args: Any, **kwargs: Any
+        self,
+        request: Request,
+        organization_slug: str | int | None = None,
+        *args: Any,
+        **kwargs: Any,
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         if not subdomain_is_region(request):
             subdomain = getattr(request, "subdomain", None)
@@ -245,9 +251,16 @@ class ControlSiloOrganizationEndpoint(Endpoint):
         if not organization_slug:
             raise ResourceDoesNotExist
 
-        organization_context = organization_service.get_organization_by_slug(
-            slug=organization_slug, only_visible=False, user_id=request.user.id
-        )
+        if options.get("api.id-or-slug-enabled") and str(organization_slug).isnumeric():
+            # It is ok that `get_organization_by_id` doesn't check for visibility as we
+            # don't check the visibility in `get_organization_by_slug` either (only_active=False).
+            organization_context = organization_service.get_organization_by_id(
+                id=int(organization_slug), user_id=request.user.id
+            )
+        else:
+            organization_context = organization_service.get_organization_by_slug(
+                slug=str(organization_slug), only_visible=False, user_id=request.user.id
+            )
         if organization_context is None:
             raise ResourceDoesNotExist
 
@@ -267,7 +280,7 @@ class ControlSiloOrganizationEndpoint(Endpoint):
         kwargs["organization"] = organization_context.organization
 
         # Used for API access logs
-        request._request.organization = organization_context.organization  # type: ignore
+        request._request.organization = organization_context.organization  # type: ignore[attr-defined]
 
         return (args, kwargs)
 
@@ -388,23 +401,23 @@ class OrganizationEndpoint(Endpoint):
                 span.set_tag("mode", "force_global_perms")
                 return projects
 
+            # There is a special case for staff, where we want to fetch a single project (OrganizationStatsEndpointV2)
+            # or all projects (OrganizationMetricsDetailsEndpoint) in _admin. Staff cannot use has_project_access
+            # like superuser because it fails due to staff having no scopes. The workaround is to create a lambda that
+            # mimics checking for active projects like has_project_access without further validation.
+            # NOTE: We must check staff before superuser or else _admin will fail when both cookies are active
+            if is_active_staff(request):
+                span.set_tag("mode", "staff_fetch_all")
+                proj_filter = lambda proj: proj.status == ObjectStatus.ACTIVE  # noqa: E731
             # Superuser should fetch all projects.
             # Also fetch all accessible projects if requesting $all
-            if is_active_superuser(request) or include_all_accessible:
+            elif is_active_superuser(request) or include_all_accessible:
                 span.set_tag("mode", "has_project_access")
                 proj_filter = request.access.has_project_access
             # Check if explicitly requesting specific projects
             elif not filter_by_membership:
-                if is_active_staff(request):
-                    # There is a special case for staff, where we want to fetch usage stats for a single
-                    # project in _admin using OrganizationStatsEndpointV2 but cannot use has_project_access
-                    # like superuser because it fails. The workaround is to create a lambda that mimics
-                    # checking for active projects like has_project_access without further validation.
-                    span.set_tag("mode", "staff_fetch_all")
-                    proj_filter = lambda proj: proj.status == ObjectStatus.ACTIVE  # noqa: E731
-                else:
-                    span.set_tag("mode", "has_project_access")
-                    proj_filter = request.access.has_project_access
+                span.set_tag("mode", "has_project_access")
+                proj_filter = request.access.has_project_access
             else:
                 span.set_tag("mode", "has_project_membership")
                 proj_filter = request.access.has_project_membership
@@ -515,8 +528,16 @@ class OrganizationEndpoint(Endpoint):
         return params
 
     def convert_args(
-        self, request: Request, organization_slug: str | None = None, *args: Any, **kwargs: Any
+        self,
+        request: Request,
+        organization_slug: str | int | None = None,
+        *args: Any,
+        **kwargs: Any,
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        """
+        We temporarily allow the organization_slug to be an integer as it actually can be both slug or id
+        Eventually, we will rename this method to organization_id_or_slug
+        """
         if not subdomain_is_region(request):
             subdomain = getattr(request, "subdomain", None)
             if subdomain is not None and subdomain != organization_slug:
@@ -526,7 +547,10 @@ class OrganizationEndpoint(Endpoint):
             raise ResourceDoesNotExist
 
         try:
-            organization = Organization.objects.get_from_cache(slug=organization_slug)
+            if options.get("api.id-or-slug-enabled") and str(organization_slug).isnumeric():
+                organization = Organization.objects.get_from_cache(id=organization_slug)
+            else:
+                organization = Organization.objects.get_from_cache(slug=organization_slug)
         except Organization.DoesNotExist:
             raise ResourceDoesNotExist
 
@@ -535,7 +559,7 @@ class OrganizationEndpoint(Endpoint):
 
         bind_organization_context(organization)
 
-        request._request.organization = organization  # type: ignore
+        request._request.organization = organization  # type: ignore[attr-defined]
 
         # Track the 'active' organization when the request came from
         # a cookie based agent (react app)
@@ -565,18 +589,18 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         """
         has_valid_api_key = False
         if is_api_key_auth(request.auth):
-            if request.auth.organization_id != organization.id:  # type: ignore
+            if request.auth.organization_id != organization.id:  # type: ignore[union-attr]
                 return []
-            has_valid_api_key = request.auth.has_scope(  # type: ignore
+            has_valid_api_key = request.auth.has_scope(  # type: ignore[union-attr]
                 "project:releases"
-            ) or request.auth.has_scope(  # type: ignore
+            ) or request.auth.has_scope(  # type: ignore[union-attr]
                 "project:write"
             )
 
         if is_org_auth_token_auth(request.auth):
-            if request.auth.organization_id != organization.id:  # type: ignore
+            if request.auth.organization_id != organization.id:  # type: ignore[union-attr]
                 return []
-            has_valid_api_key = request.auth.has_scope("org:ci")  # type: ignore
+            has_valid_api_key = request.auth.has_scope("org:ci")  # type: ignore[union-attr]
 
         if not (
             has_valid_api_key or (getattr(request, "user", None) and request.user.is_authenticated)
@@ -613,9 +637,9 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         if getattr(request, "user", None) and request.user.id:
             actor_id = "user:%s" % request.user.id
         if getattr(request, "auth", None) and getattr(request.auth, "id", None):
-            actor_id = "apikey:%s" % request.auth.id  # type: ignore
+            actor_id = "apikey:%s" % request.auth.id  # type: ignore[union-attr]
         elif getattr(request, "auth", None) and getattr(request.auth, "entity_id", None):
-            actor_id = "apikey:%s" % request.auth.entity_id  # type: ignore
+            actor_id = "apikey:%s" % request.auth.entity_id  # type: ignore[union-attr]
         if actor_id is not None:
             requested_project_ids = project_ids
             if requested_project_ids is None:

@@ -4,8 +4,8 @@ from django.db.models import F
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
 from rest_framework.response import Response
-from snuba_sdk import Request
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -93,11 +93,8 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
         except NoProjects:
             return Response({})
 
-        if features.has(
-            "organizations:session-replay-count-query-optimize", organization, actor=request.user
-        ):
-            if not project_in_org_has_sent_replay(organization):
-                return Response({})
+        if not project_in_org_has_sent_replay(organization):
+            return Response({})
 
         result = ReplayDataSourceValidator(data=request.GET)
         if not result.is_valid():

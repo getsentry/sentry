@@ -1,15 +1,17 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
+from datetime import datetime
 
 import sentry_sdk
 from snuba_sdk import AliasedExpression, Column, Condition, Function, Identifier, Op, OrderBy
 
 from sentry.api.event_search import SearchFilter
-from sentry.exceptions import IncompatibleMetricsQuery
+from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import builder, constants, fields
 from sentry.search.events.datasets import field_aliases, filter_aliases, function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
+from sentry.search.events.fields import SnQLStringArg
 from sentry.search.events.types import SelectType, WhereType
 from sentry.search.utils import DEVICE_CLASS
 from sentry.snuba.metrics.naming_layer.mri import SpanMRI
@@ -331,6 +333,31 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     default_result_type="percentage",
                 ),
                 fields.MetricsFunction(
+                    "http_response_rate",
+                    required_args=[
+                        SnQLStringArg("code"),
+                    ],
+                    snql_distribution=lambda args, alias: function_aliases.resolve_division(
+                        self._resolve_http_response_count(args),
+                        Function(
+                            "countIf",
+                            [
+                                Column("value"),
+                                Function(
+                                    "equals",
+                                    [
+                                        Column("metric_id"),
+                                        self.resolve_metric("span.self_time"),
+                                    ],
+                                ),
+                            ],
+                        ),
+                        alias,
+                    ),
+                    default_result_type="percentage",
+                ),
+                # TODO: Deprecated, use `http_response_rate(5)` instead
+                fields.MetricsFunction(
                     "http_error_rate",
                     snql_distribution=lambda args, alias: function_aliases.resolve_division(
                         self._resolve_http_error_count(args),
@@ -351,6 +378,15 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     ),
                     default_result_type="percentage",
                 ),
+                fields.MetricsFunction(
+                    "http_response_count",
+                    required_args=[
+                        SnQLStringArg("code"),
+                    ],
+                    snql_distribution=self._resolve_http_response_count,
+                    default_result_type="integer",
+                ),
+                # TODO: Deprecated, use `http_response_count(5)` instead
                 fields.MetricsFunction(
                     "http_error_count",
                     snql_distribution=self._resolve_http_error_count,
@@ -440,6 +476,36 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         self.builder.column, args, alias
                     ),
                     default_result_type="percent_change",
+                ),
+                fields.MetricsFunction(
+                    "regression_score",
+                    required_args=[
+                        fields.MetricArg(
+                            "column",
+                            allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
+                            allow_custom_measurements=False,
+                        ),
+                        fields.TimestampArg("timestamp"),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=self._resolve_regression_score,
+                    default_result_type="number",
+                ),
+                fields.MetricsFunction(
+                    "avg_by_timestamp",
+                    required_args=[
+                        fields.MetricArg(
+                            "column",
+                            allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
+                        ),
+                        fields.SnQLStringArg("condition", allowed_strings=["greater", "less"]),
+                        fields.TimestampArg("timestamp"),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=lambda args, alias: self._resolve_avg_condition(
+                        args, args["condition"], alias
+                    ),
+                    default_result_type="duration",
                 ),
             ]
         }
@@ -582,6 +648,31 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 ],
             ),
             total_time,
+            alias,
+        )
+
+    def _resolve_http_response_count(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+        condition = Function(
+            "startsWith",
+            [
+                self.builder.column("span.status_code"),
+                args["code"],
+            ],
+        )
+
+        return self._resolve_count_if(
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    self.resolve_metric("span.self_time"),
+                ],
+            ),
+            condition,
             alias,
         )
 
@@ -741,6 +832,98 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 args["interval"]
                 if interval is None
                 else Function("divide", [args["interval"], interval]),
+            ],
+            alias,
+        )
+
+    def _resolve_regression_score(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float | datetime],
+        alias: str | None = None,
+    ) -> SelectType:
+        return Function(
+            "minus",
+            [
+                Function(
+                    "multiply",
+                    [
+                        self._resolve_avg_condition(args, "greater"),
+                        self._resolve_epm_condition(args, "greater"),
+                    ],
+                ),
+                Function(
+                    "multiply",
+                    [
+                        self._resolve_avg_condition(args, "less"),
+                        self._resolve_epm_condition(args, "less"),
+                    ],
+                ),
+            ],
+            alias,
+        )
+
+    def _resolve_epm_condition(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float | datetime],
+        condition: str,
+    ) -> SelectType:
+        if condition == "greater":
+            interval = (self.builder.params.end - args["timestamp"]).total_seconds()
+        elif condition == "less":
+            interval = (args["timestamp"] - self.builder.params.start).total_seconds()
+        else:
+            raise InvalidSearchQuery(f"Unsupported condition for epm: {condition}")
+
+        return Function(
+            "divide",
+            [
+                Function(
+                    "countIf",
+                    [
+                        Function(
+                            condition,
+                            [
+                                Column("timestamp"),
+                                args["timestamp"],
+                            ],
+                        ),
+                    ],
+                ),
+                Function("divide", [interval, 60]),
+            ],
+        )
+
+    def _resolve_avg_condition(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        condition: str,
+        alias: str | None = None,
+    ) -> SelectType:
+        conditional_aggregate = Function(
+            "avgIf",
+            [
+                Column("value"),
+                Function(
+                    "and",
+                    [
+                        Function(
+                            "equals",
+                            [
+                                Column("metric_id"),
+                                self.resolve_metric(args["column"]),
+                            ],
+                        ),
+                        Function(condition, [Column("timestamp"), args["timestamp"]]),
+                    ],
+                ),
+            ],
+        )
+        return Function(
+            "if",
+            [
+                Function("isNaN", [conditional_aggregate]),
+                0,
+                conditional_aggregate,
             ],
             alias,
         )

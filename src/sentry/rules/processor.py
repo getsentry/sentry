@@ -15,9 +15,10 @@ from sentry.eventstore.models import GroupEvent
 from sentry.models.environment import Environment
 from sentry.models.grouprulestatus import GroupRuleStatus
 from sentry.models.rule import Rule
+from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules import EventState, history, rules
-from sentry.rules.actions.base import EventAction
+from sentry.rules.actions.base import instantiate_action
 from sentry.rules.conditions.base import EventCondition
 from sentry.rules.filters.base import EventFilter
 from sentry.types.rules import RuleFuture
@@ -262,20 +263,19 @@ class RuleProcessor:
             )
 
         notification_uuid = str(uuid.uuid4())
-        history.record(rule, self.group, self.event.event_id, notification_uuid)
-        self.activate_downstream_actions(rule, notification_uuid)
+        rule_fire_history = history.record(rule, self.group, self.event.event_id, notification_uuid)
+        self.activate_downstream_actions(rule, notification_uuid, rule_fire_history)
 
-    def activate_downstream_actions(self, rule: Rule, notification_uuid: str | None = None) -> None:
+    def activate_downstream_actions(
+        self,
+        rule: Rule,
+        notification_uuid: str | None = None,
+        rule_fire_history: RuleFireHistory | None = None,
+    ) -> None:
         state = self.get_state()
         for action in rule.data.get("actions", ()):
-            action_cls = rules.get(action["id"])
-            if action_cls is None:
-                self.logger.warning("Unregistered action %r", action["id"])
-                continue
-
-            action_inst = action_cls(self.project, data=action, rule=rule)
-            if not isinstance(action_inst, EventAction):
-                self.logger.warning("Unregistered action %r", action["id"])
+            action_inst = instantiate_action(rule, action, rule_fire_history)
+            if not action_inst:
                 continue
 
             results = safe_execute(

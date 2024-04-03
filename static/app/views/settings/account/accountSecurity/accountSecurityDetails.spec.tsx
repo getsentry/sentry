@@ -209,7 +209,7 @@ describe('AccountSecurityDetails', function () {
       });
     });
 
-    it('has enrolled circle indicator', function () {
+    it('has enrolled circle indicator', async function () {
       const params = {
         authId: '16',
       };
@@ -231,6 +231,7 @@ describe('AccountSecurityDetails', function () {
         {context: routerContext}
       );
 
+      expect(await screen.findByTestId('auth-status-enabled')).toBeInTheDocument();
       // does not have remove button
       expect(screen.queryByRole('button', {name: 'Remove'})).not.toBeInTheDocument();
     });

@@ -4,8 +4,9 @@ import pytest
 from django.utils import timezone
 
 from sentry.models.group import GroupStatus
-from sentry.models.release import Release, ReleaseProject
+from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.team import Team
 from sentry.search.base import ANY
 from sentry.search.utils import (
@@ -25,7 +26,7 @@ from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
-from sentry.testutils.silo import control_silo_test, region_silo_test
+from sentry.testutils.silo import control_silo_test
 
 
 def test_get_numeric_field_value():
@@ -139,7 +140,6 @@ def test_get_numeric_field_value_invalid():
         get_numeric_field_value("foo", ">=1k")
 
 
-@region_silo_test
 class ParseQueryTest(APITestCase, SnubaTestCase):
     @property
     def rpc_user(self):
@@ -670,7 +670,6 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
         assert result["assigned_or_suggested"].id == 0
 
 
-@region_silo_test
 class GetLatestReleaseTest(TestCase):
     def test(self):
         with pytest.raises(Release.DoesNotExist):
@@ -804,7 +803,6 @@ class GetLatestReleaseTest(TestCase):
         ]
 
 
-@region_silo_test
 class GetFirstLastReleaseForGroupTest(TestCase):
     def test_date(self):
         with pytest.raises(Release.DoesNotExist):

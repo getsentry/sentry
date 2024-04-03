@@ -347,7 +347,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
    * This method is replaced by the hook "component:enhanced-org-stats"
    */
   renderUsageStatsOrg() {
-    const {organization, router} = this.props;
+    const {organization, router, location, params, routes} = this.props;
     return (
       <UsageStatsOrg
         isSingleProject={this.isSingleProject}
@@ -359,6 +359,9 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
         chartTransform={this.chartTransform}
         handleChangeState={this.setStateOnUrl}
         router={router}
+        location={location}
+        params={params}
+        routes={routes}
       />
     );
   }

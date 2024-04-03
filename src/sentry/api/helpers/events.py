@@ -10,7 +10,7 @@ from sentry.api.serializers import serialize
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import GroupCategory
 from sentry.search.events.builder import QueryBuilder
-from sentry.search.events.types import ParamsType
+from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.utils.validators import normalize_event_id
 
@@ -52,17 +52,33 @@ def get_direct_hit_response(
 
 
 def get_query_builder_for_group(
-    query: str, snuba_params: ParamsType, group: Group, limit: int, offset: int
+    query: str,
+    snuba_params: ParamsType,
+    group: Group,
+    limit: int,
+    offset: int,
+    orderby: str | None = None,
 ) -> QueryBuilder:
     dataset = Dataset.IssuePlatform
     if group.issue_category == GroupCategory.ERROR:
         dataset = Dataset.Events
+    selected_columns = ["id", "project.id", "issue.id", "timestamp"]
+
+    if orderby is None:
+        orderby = "-timestamp"
+    elif orderby == "sample":
+        # IDs are UUIDs, so should be random, but we'll hasd them just in case
+        selected_columns.append("column_hash(id) as sample")
+
     return QueryBuilder(
         dataset=dataset,
         query=f"issue:{group.qualified_short_id} {query}",
         params=snuba_params,
-        selected_columns=["id", "project.id", "issue.id", "timestamp"],
-        orderby=["-timestamp"],
+        selected_columns=selected_columns,
+        orderby=[orderby],
         limit=limit,
         offset=offset,
+        config=QueryBuilderConfig(
+            functions_acl=["column_hash"],
+        ),
     )

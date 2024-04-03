@@ -78,7 +78,7 @@ function List({
         </Header>
       )}
       {hasSimilarityEmbeddingsFeature && (
-        <LegendSmall>0 = Not Similar, 1 = Similar</LegendSmall>
+        <LegendSmall>-1 = Not Similar, 1 = Similar</LegendSmall>
       )}
       <Panel>
         <Toolbar

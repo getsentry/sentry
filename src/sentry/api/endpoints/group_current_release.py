@@ -9,8 +9,8 @@ from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.grouprelease import GroupReleaseWithStatsSerializer
 from sentry.models.grouprelease import GroupRelease
-from sentry.models.release import ReleaseProject
 from sentry.models.releaseenvironment import ReleaseEnvironment
+from sentry.models.releases.release_project import ReleaseProject
 
 
 @region_silo_endpoint

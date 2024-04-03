@@ -665,7 +665,8 @@ function getSectionFieldSet(section: Section, fields: Field[]) {
   return (
     <fieldset key={section.key}>
       {section.heading && <legend>{section.heading}</legend>}
-      {fields}
+      {/* TODO(TS): Types indicate fields can be an object */}
+      {fields as React.ReactNode}
     </fieldset>
   );
 }

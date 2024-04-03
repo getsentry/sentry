@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from .base import SlackNotificationsMessageBuilder
+from .daily_summary import SlackDailySummaryMessageBuilder
 from .digest import DigestNotificationMessageBuilder
 from .issues import IssueNotificationMessageBuilder
 
@@ -11,6 +12,7 @@ def get_message_builder(class_name: str) -> type[SlackNotificationsMessageBuilde
         "DigestNotificationMessageBuilder": DigestNotificationMessageBuilder,
         "IssueNotificationMessageBuilder": IssueNotificationMessageBuilder,
         "SlackNotificationsMessageBuilder": SlackNotificationsMessageBuilder,
+        "SlackDailySummaryMessageBuilder": SlackDailySummaryMessageBuilder,
     }[class_name]
 
 
@@ -19,4 +21,5 @@ __all__ = (
     "DigestNotificationMessageBuilder",
     "IssueNotificationMessageBuilder",
     "SlackNotificationsMessageBuilder",
+    "SlackDailySummaryMessageBuilder",
 )

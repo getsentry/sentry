@@ -33,7 +33,7 @@ export function useReleases(searchTerm?: string) {
         },
       },
     ],
-    {staleTime: Infinity, enabled: isReady}
+    {staleTime: Infinity, enabled: isReady, retry: false}
   );
 
   const chunks = releaseResults.data?.length ? chunk(releaseResults.data, 10) : [];
@@ -67,7 +67,9 @@ export function useReleases(searchTerm?: string) {
             method: 'GET',
             query: queryKey[1]?.query,
           }) as Promise<TableData>,
-        ...{staleTime: Infinity, enabled: isReady && !releaseResults.isLoading},
+        staleTime: Infinity,
+        enabled: isReady && !releaseResults.isLoading,
+        retry: false,
       };
     }),
   });

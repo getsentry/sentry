@@ -2,7 +2,7 @@ import type {CheckInStatus} from 'sentry/views/monitors/types';
 
 export type TimeWindow = '1h' | '24h' | '7d' | '30d';
 
-export interface TimeWindowOptions {
+export interface TimeWindowConfig {
   /**
    * The time format used for the cursor label and job tick tooltip
    */
@@ -16,9 +16,26 @@ export interface TimeWindowOptions {
    */
   elapsedMinutes: number;
   /**
-   * The interval between each grid line and time label in minutes
+   * The end of the window
    */
-  timeMarkerInterval: number;
+  end: Date;
+  /**
+   * The interval in minutes between each grid line and time label.
+   */
+  markerInterval: number;
+  /**
+   * The smallest allowed interval in minutes between time markers. This is
+   * used to determine the gap between the start and end timeline makers.
+   */
+  minimumMarkerInterval: number;
+  /**
+   * The start of the window
+   */
+  start: Date;
+  /**
+   * The width in pixels of the timeline
+   */
+  timelineWidth: number;
 }
 
 // TODO(davidenwang): Remove this type as its a little too specific

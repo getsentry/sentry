@@ -6,6 +6,6 @@ export type SignupAnalyticsParameters = {
 
 type SignupAnalyticsKeys = keyof SignupAnalyticsParameters;
 
-export const SignupEventMap: Record<SignupAnalyticsKeys, string | null> = {
+export const signupEventMap: Record<SignupAnalyticsKeys, string | null> = {
   'join_request.created': 'Join Request Created',
 };

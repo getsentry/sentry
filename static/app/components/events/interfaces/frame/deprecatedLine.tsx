@@ -13,7 +13,7 @@ import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfac
 import {SourceMapsDebuggerModal} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {getThreadById} from 'sentry/components/events/interfaces/utils';
 import StrictClick from 'sentry/components/strictClick';
-import Tag from 'sentry/components/tag';
+import {Tag} from 'sentry/components/tag';
 import {IconChevron, IconFix, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
@@ -52,7 +52,9 @@ const VALID_SOURCE_MAP_DEBUGGER_FILE_ENDINGS = [
   '.js',
   '.mjs',
   '.cjs',
-  '.jsbundle', // React Native file ending
+  '.jsbundle', // React Native iOS file ending
+  '.bundle', // React Native Android file ending
+  '.hbc', // Hermes Bytecode (from Expo updates) file ending
   '.js.gz', // file ending idiomatic for Ember.js
 ];
 
@@ -480,6 +482,7 @@ export class DeprecatedLine extends Component<Props, State> {
           isExpanded={this.state.isExpanded}
           registersMeta={this.props.registersMeta}
           frameMeta={this.props.frameMeta}
+          platform={this.props.platform}
         />
       </StyledLi>
     );

@@ -1,15 +1,20 @@
+from unittest.mock import patch
+
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import (
     CombinedRuleSerializer,
     DetailedAlertRuleSerializer,
 )
-from sentry.incidents.logic import create_alert_rule_trigger
-from sentry.incidents.models import AlertRule, AlertRuleThresholdType
+from sentry.incidents.logic import create_alert_rule_trigger, create_alert_rule_trigger_action
+from sentry.incidents.models.alert_rule import (
+    AlertRule,
+    AlertRuleThresholdType,
+    AlertRuleTriggerAction,
+)
 from sentry.models.rule import Rule
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import SnubaQueryEventType
 from sentry.testutils.cases import APITestCase, TestCase
-from sentry.testutils.silo import region_silo_test
 
 NOT_SET = object()
 
@@ -103,7 +108,6 @@ class BaseAlertRuleSerializerTest:
         return rule
 
 
-@region_silo_test
 class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
     def test_simple(self):
         alert_rule = self.create_alert_rule()
@@ -159,7 +163,6 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         self.assert_alert_rule_serialized(alert_rule, result, resolve_threshold=10)
 
 
-@region_silo_test
 class DetailedAlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
     def test_simple(self):
         projects = [self.project, self.create_project()]
@@ -197,8 +200,28 @@ class DetailedAlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         assert result[0]["triggers"] == [serialize(trigger)]
         assert result[1]["triggers"] == []
 
+    @patch(
+        "sentry.incidents.logic.get_target_identifier_display_for_integration",
+        return_value=(123, "test"),
+    )
+    def test_trigger_actions(self, mock_get):
+        alert_rule = self.create_alert_rule()
+        other_alert_rule = self.create_alert_rule()
+        trigger = create_alert_rule_trigger(alert_rule, "test", 1000)
+        trigger_action = create_alert_rule_trigger_action(
+            trigger,
+            AlertRuleTriggerAction.Type.PAGERDUTY,
+            AlertRuleTriggerAction.TargetType.SPECIFIC,
+            target_identifier="123",
+            integration_id=self.integration.id,
+            priority="error",
+        )
+        result = serialize([alert_rule, other_alert_rule], serializer=DetailedAlertRuleSerializer())
+        assert result[0]["triggers"] == [serialize(trigger)]
+        assert result[0]["triggers"][0]["actions"] == [serialize(trigger_action)]
+        assert result[1]["triggers"] == []
 
-@region_silo_test
+
 class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestCase):
     def test_combined_serializer(self):
         projects = [self.project, self.create_project()]

@@ -157,7 +157,10 @@ function ProjectStabilityScoreCard(props: Props) {
   if (error) {
     return (
       <LoadingError
-        message={error.responseJSON?.detail || t('There was an error loading data.')}
+        message={
+          (error.responseJSON?.detail as React.ReactNode) ||
+          t('There was an error loading data.')
+        }
         onRetry={refetch}
       />
     );

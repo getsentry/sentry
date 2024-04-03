@@ -1,4 +1,3 @@
-import selectEvent from 'react-select-event';
 import {CommitFixture} from 'sentry-fixture/commit';
 import {ReleaseFixture} from 'sentry-fixture/release';
 import {ReleaseProjectFixture} from 'sentry-fixture/releaseProject';
@@ -6,6 +5,7 @@ import {RepositoryFixture} from 'sentry-fixture/repository';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import RepositoryStore from 'sentry/stores/repositoryStore';
 import type {ReleaseProject} from 'sentry/types';
@@ -120,8 +120,10 @@ describe('Commits', () => {
     renderComponent();
     expect(await screen.findByRole('button')).toHaveTextContent('example/repo-name');
     expect(screen.queryByText('getsentry/sentry-frontend')).not.toBeInTheDocument();
-    selectEvent.openMenu(screen.getByRole('button'));
-    expect(screen.getByText('getsentry/sentry-frontend')).toBeInTheDocument();
+    await selectEvent.openMenu(
+      screen.getByRole('button', {name: 'Filter example/repo-name'})
+    );
+    expect(await screen.findByText('getsentry/sentry-frontend')).toBeInTheDocument();
   });
 
   it('should render the commits from the selected repo', async () => {

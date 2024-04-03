@@ -93,6 +93,9 @@ class ContextType:
             # we still want to display the info the UI
             if value is not None:
                 ctx_data[force_str(key)] = value
+            # Numbers exceeding 15 place values will be converted to strings to avoid rendering issues
+            if isinstance(value, (int, float)) and len(str_value := force_str(value)) > 15:
+                ctx_data[force_str(key)] = str_value
         self.data = ctx_data
 
     def to_json(self):

@@ -8,7 +8,7 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
-import Tag from 'sentry/components/tag';
+import {Tag} from 'sentry/components/tag';
 import {IconEdit, IconEllipsis, IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -17,15 +17,15 @@ import type {Series} from 'sentry/types/echarts';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
-import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
+import {hasMetricsExperimentalFeature} from 'sentry/utils/metrics/features';
 import {
   MEPConsumer,
   MEPState,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {
-  getWidgetDDMUrl,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
+  getWidgetMetricsUrl,
 } from 'sentry/views/dashboards/utils';
 
 import type {Widget} from '../types';
@@ -93,7 +93,7 @@ function WidgetCardContextMenu({
   };
 
   const openWidgetViewerIcon =
-    hasDDMExperimentalFeature(organization) &&
+    hasMetricsExperimentalFeature(organization) &&
     widget.widgetType === WidgetType.METRICS ? (
       <IconEdit />
     ) : (
@@ -209,10 +209,10 @@ function WidgetCardContextMenu({
   }
 
   if (widget.widgetType === WidgetType.METRICS) {
-    const ddmLocation = getWidgetDDMUrl(widget, selection, organization);
+    const ddmLocation = getWidgetMetricsUrl(widget, selection, organization);
 
     menuOptions.push({
-      key: 'open-in-ddm',
+      key: 'open-in-metrics',
       label: t('Open in Metrics'),
       to: ddmLocation,
     });

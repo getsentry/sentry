@@ -1,6 +1,6 @@
-from datetime import datetime
 from unittest import mock
 
+from django.utils import timezone
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
 
@@ -18,7 +18,7 @@ class GetErrorCountTimeseriesTest(TestCase):
 
     @mock.patch("sentry.api.endpoints.release_thresholds.utils.snuba.raw_snql_query")
     def test_errors_timeseries_snuba_fetch(self, mock_snql_query):
-        now = datetime.utcnow()
+        now = timezone.now()
         get_errors_counts_timeseries_by_project_and_release(
             end=now,
             organization_id=self.org.id,
@@ -31,7 +31,7 @@ class GetErrorCountTimeseriesTest(TestCase):
 
     @mock.patch("sentry.api.endpoints.release_thresholds.utils.snuba.raw_snql_query")
     def test_errors_timeseries_snuba_fetch_called_with_env(self, mock_snql_query):
-        now = datetime.utcnow()
+        now = timezone.now()
         env_list = ["foo"]
         get_errors_counts_timeseries_by_project_and_release(
             end=now,

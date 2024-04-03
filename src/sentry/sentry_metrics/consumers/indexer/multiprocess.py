@@ -10,6 +10,7 @@ from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.types import Commit, FilteredPayload, Message, Partition
 from confluent_kafka import Producer
 
+from sentry.conf.types.kafka_definition import Topic
 from sentry.utils import kafka_config, metrics
 
 logger = logging.getLogger(__name__)
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
 class SimpleProduceStep(ProcessingStep[KafkaPayload]):
     def __init__(
         self,
-        output_topic: str,
+        output_topic: Topic,
         commit_function: Commit,
         producer: AbstractProducer[KafkaPayload] | None = None,
     ) -> None:
@@ -26,7 +27,7 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
         self.__producer = Producer(
             kafka_config.get_kafka_producer_cluster_options(snuba_metrics["cluster"]),
         )
-        self.__producer_topic = output_topic
+        self.__producer_topic = snuba_metrics["real_topic_name"]
         self.__commit_function = commit_function
 
         self.__closed = False
@@ -71,7 +72,7 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
 
     def submit(self, message: Message[KafkaPayload | FilteredPayload]) -> None:
         if isinstance(message.payload, FilteredPayload):
-            # FilteredPayload will not be commited, this may cause the the indexer to consume
+            # FilteredPayload will not be commited, this may cause the indexer to consume
             # and produce invalid message to the DLQ twice if the last messages it consume
             # are invalid and is then shutdown. But it will never produce valid messages
             # twice to snuba

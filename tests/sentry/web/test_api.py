@@ -15,12 +15,11 @@ from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.scheduled import run_deletion
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, create_test_regions, region_silo_test
 from sentry.utils import json
 
 
-@region_silo_test
 class CrossDomainXmlTest(TestCase):
     @cached_property
     def path(self):
@@ -163,6 +162,24 @@ class ClientConfigViewTest(TestCase):
             data = json.loads(resp.content)
             assert data["features"] == ["organizations:create", "organizations:customer-domains"]
 
+    def test_react_concurrent_feature(self):
+        with override_options({"organizations:react-concurrent-renderer-enabled": True}):
+            resp = self.client.get(self.path)
+            assert resp.status_code == 200
+            assert resp["Content-Type"] == "application/json"
+            data = json.loads(resp.content)
+            assert data["features"] == [
+                "organizations:create",
+                "organizations:react-concurrent-renderer-enabled",
+            ]
+
+        with override_options({"organizations:react-concurrent-renderer-enabled": False}):
+            resp = self.client.get(self.path)
+            assert resp.status_code == 200
+            assert resp["Content-Type"] == "application/json"
+            data = json.loads(resp.content)
+            assert data["features"] == ["organizations:create"]
+
     def test_unauthenticated(self):
         resp = self.client.get(self.path)
         assert resp.status_code == 200
@@ -196,7 +213,7 @@ class ClientConfigViewTest(TestCase):
 
         other_org = self.create_organization()
 
-        with mock.patch("sentry.auth.superuser.ORG_ID", self.organization.id):
+        with mock.patch("sentry.auth.superuser.SUPERUSER_ORG_ID", self.organization.id):
             resp = self.client.get(self.path)
 
         assert resp.status_code == 200
@@ -224,9 +241,11 @@ class ClientConfigViewTest(TestCase):
         assert "activeorg" not in self.client.session
 
         # Induce last active organization
-        with override_settings(SENTRY_USE_CUSTOMER_DOMAINS=True), self.feature(
-            {"organizations:customer-domains": [other_org.slug]}
-        ), assume_test_silo_mode(SiloMode.MONOLITH):
+        with (
+            override_settings(SENTRY_USE_CUSTOMER_DOMAINS=True),
+            self.feature({"organizations:customer-domains": [other_org.slug]}),
+            assume_test_silo_mode(SiloMode.MONOLITH),
+        ):
             response = self.client.get(
                 "/",
                 HTTP_HOST=f"{other_org.slug}.testserver",
@@ -245,7 +264,7 @@ class ClientConfigViewTest(TestCase):
                 assert "activeorg" not in self.client.session
 
         # lastOrganization is set
-        with mock.patch("sentry.auth.superuser.ORG_ID", self.organization.id):
+        with mock.patch("sentry.auth.superuser.SUPERUSER_ORG_ID", self.organization.id):
             resp = self.client.get(self.path)
         assert resp.status_code == 200
         assert resp["Content-Type"] == "application/json"
@@ -271,11 +290,11 @@ class ClientConfigViewTest(TestCase):
     def test_superuser(self):
         self._run_test_with_privileges(is_superuser=True, is_staff=False)
 
-    @with_feature("auth:enterprise-staff-cookie")
+    @override_options({"staff.ga-rollout": True})
     def test_staff(self):
         self._run_test_with_privileges(is_superuser=False, is_staff=True)
 
-    @with_feature("auth:enterprise-staff-cookie")
+    @override_options({"staff.ga-rollout": True})
     def test_superuser_and_staff(self):
         self._run_test_with_privileges(is_superuser=True, is_staff=True)
 

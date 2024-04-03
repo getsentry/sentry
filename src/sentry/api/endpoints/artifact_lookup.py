@@ -20,7 +20,7 @@ from sentry.debug_files.artifact_bundles import (
     query_artifact_bundles_containing_file,
 )
 from sentry.lang.native.sources import get_internal_artifact_lookup_source_url
-from sentry.models.artifactbundle import NULL_STRING, ArtifactBundle, ArtifactBundleFlatFileIndex
+from sentry.models.artifactbundle import NULL_STRING, ArtifactBundle
 from sentry.models.distribution import Distribution
 from sentry.models.project import Project
 from sentry.models.release import Release
@@ -37,7 +37,7 @@ MAX_RELEASEFILES_QUERY = 10
 
 @region_silo_endpoint
 class ProjectArtifactLookupEndpoint(ProjectEndpoint):
-    owner = ApiOwner.OWNERS_PROCESSING
+    owner = ApiOwner.PROCESSING
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -81,16 +81,6 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
                 .first()
             )
             metrics.incr("sourcemaps.download.release_file")
-        elif ty == "bundle_index":
-            file = ArtifactBundleFlatFileIndex.objects.filter(
-                id=ty_id, project_id=project.id
-            ).first()
-            metrics.incr("sourcemaps.download.flat_file_index")
-
-            if file is not None and (data := file.load_flat_file_index()):
-                return HttpResponse(data, content_type="application/json")
-            else:
-                raise Http404
 
         if file is None:
             raise Http404

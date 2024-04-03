@@ -50,7 +50,7 @@ describe('IssueDiff', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('is loading when initially rendering', function () {
+  it('is loading when initially rendering', async function () {
     render(
       <IssueDiff
         api={api}
@@ -61,6 +61,7 @@ describe('IssueDiff', function () {
       />
     );
     expect(screen.queryByTestId('split-diff')).not.toBeInTheDocument();
+    expect(await screen.findByTestId('split-diff')).toBeInTheDocument();
   });
 
   it('can dynamically import SplitDiff', async function () {

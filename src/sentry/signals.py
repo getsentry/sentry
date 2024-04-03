@@ -153,6 +153,9 @@ issue_archived = BetterSignal()  # ["project", "user", "group_list", "activity_d
 issue_escalating = BetterSignal()  # ["project", "group", "event", "was_until_escalating"]
 issue_unignored = BetterSignal()  # ["project", "user_id", "group", "transition_type"]
 issue_mark_reviewed = BetterSignal()  # ["project", "user", "group"]
+issue_update_priority = (
+    BetterSignal()
+)  # ["project", "group", "new_priority", "previous_priority", "user_id", "reason"]
 
 # comments
 comment_created = BetterSignal()  # ["project", "user", "group", "activity_data"]

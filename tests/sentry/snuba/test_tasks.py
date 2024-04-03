@@ -89,6 +89,7 @@ class BaseSnubaTaskTest(TestCase, metaclass=abc.ABCMeta):
         query=None,
         aggregate=None,
         time_window=None,
+        query_extra=None,
     ):
         if status is None:
             status = self.expected_status
@@ -116,6 +117,7 @@ class BaseSnubaTaskTest(TestCase, metaclass=abc.ABCMeta):
             subscription_id=subscription_id,
             project=self.project,
             type="something",
+            query_extra=query_extra,
         )
 
     def test_no_subscription(self):
@@ -186,6 +188,13 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
 
+    def test_subscription_with_query_extra(self):
+        sub = self.create_subscription(QuerySubscription.Status.CREATING, query_extra="foo:bar")
+        create_subscription_in_snuba(sub.id)
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.ACTIVE.value
+        assert sub.subscription_id is not None
+
     @responses.activate
     def test_adds_type(self):
         sub = self.create_subscription(QuerySubscription.Status.CREATING)
@@ -203,7 +212,7 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
     def test_granularity_on_metrics_crash_rate_alerts(self):
         for tag in [SessionMRI.RAW_SESSION.value, SessionMRI.RAW_USER.value, "session.status"]:
             rh_indexer_record(self.organization.id, tag)
-        for (time_window, expected_granularity) in [
+        for time_window, expected_granularity in [
             (30, 10),
             (90, 60),
             (5 * 60, 3600),

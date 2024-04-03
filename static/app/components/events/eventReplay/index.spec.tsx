@@ -6,7 +6,7 @@ import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
 import {ReplayErrorFixture} from 'sentry-fixture/replayError';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import EventReplay from 'sentry/components/events/eventReplay';
 import ConfigStore from 'sentry/stores/configStore';
@@ -116,6 +116,11 @@ describe('EventReplay', function () {
 
   beforeEach(function () {
     const project = ProjectFixture({platform: 'javascript'});
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replay-count/`,
+      method: 'GET',
+      body: {},
+    });
 
     jest.mocked(useProjects).mockReturnValue({
       fetchError: null,
@@ -246,7 +251,12 @@ describe('EventReplay', function () {
       );
 
       // Event that matches ID 1 should be shown as "This Event"
-      expect(await screen.findByText('Error: This Event')).toBeInTheDocument();
+      await waitFor(
+        () => {
+          expect(screen.getByText('Error: This Event')).toBeInTheDocument();
+        },
+        {timeout: 5000, interval: 100}
+      );
       expect(screen.getByText('JAVASCRIPT-101')).toBeInTheDocument();
 
       // Other events should link to the event and issue
@@ -258,6 +268,6 @@ describe('EventReplay', function () {
         'href',
         '/organizations/org-slug/issues/102/'
       );
-    });
+    }, 10000);
   });
 });

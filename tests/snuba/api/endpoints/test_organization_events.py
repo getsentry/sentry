@@ -1,6 +1,6 @@
 import math
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any
 from unittest import mock
 from uuid import uuid4
@@ -8,7 +8,7 @@ from uuid import uuid4
 import pytest
 from django.test import override_settings
 from django.urls import reverse
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 from snuba_sdk.column import Column
 from snuba_sdk.function import Function
 
@@ -33,7 +33,6 @@ from sentry.testutils.cases import (
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.helpers.discover import user_misery_formula
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_not_arm64
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json
@@ -178,7 +177,6 @@ class OrganizationEventsEndpointTestBase(APITestCase, SnubaTestCase):
                 )
 
 
-@region_silo_test
 class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, PerformanceIssueTestCase):
     def test_no_projects(self):
         response = self.do_request({})
@@ -1372,13 +1370,13 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         replaced_release = self.create_release(
             version="replaced_release",
             environments=[self.environment],
-            adopted=django_timezone.now(),
-            unadopted=django_timezone.now(),
+            adopted=timezone.now(),
+            unadopted=timezone.now(),
         )
         adopted_release = self.create_release(
             version="adopted_release",
             environments=[self.environment],
-            adopted=django_timezone.now(),
+            adopted=timezone.now(),
         )
         self.create_release(version="not_adopted_release", environments=[self.environment])
 
@@ -4126,7 +4124,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
     @mock.patch("sentry.utils.snuba.quantize_time")
     def test_quantize_dates(self, mock_quantize):
         self.create_project()
-        mock_quantize.return_value = before_now(days=1).replace(tzinfo=timezone.utc)
+        mock_quantize.return_value = before_now(days=1)
 
         # Don't quantize short time periods
         query = {"statsPeriod": "1h", "query": "", "field": ["id", "timestamp"]}
@@ -5676,7 +5674,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["floored_epm()"] == 10
 
 
-@region_silo_test
 class OrganizationEventsProfilesDatasetEndpointTest(OrganizationEventsEndpointTestBase):
     @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
     def test_profiles_dataset_simple(self, mock_snql_query):
@@ -5778,7 +5775,6 @@ class OrganizationEventsProfilesDatasetEndpointTest(OrganizationEventsEndpointTe
         assert set(fields) == unit_keys
 
 
-@region_silo_test
 class OrganizationEventsProfileFunctionsDatasetEndpointTest(
     OrganizationEventsEndpointTestBase, ProfilesSnubaTestCase
 ):
@@ -5869,7 +5865,6 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(
         }
 
 
-@region_silo_test
 class OrganizationEventsIssuePlatformDatasetEndpointTest(
     OrganizationEventsEndpointTestBase, SearchIssueTestMixin, PerformanceIssueTestCase
 ):
@@ -5898,7 +5893,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
-            before_now(hours=1).replace(tzinfo=timezone.utc),
+            before_now(hours=1),
             user=user_data,
         )
         event, _, group_info = self.store_search_issue(
@@ -5906,7 +5901,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group2"],
             "prod",
-            before_now(hours=1).replace(tzinfo=timezone.utc),
+            before_now(hours=1),
             user=user_data,
         )
         assert group_info is not None
@@ -5980,7 +5975,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
             1,
             ["group1-fingerprint"],
             None,
-            before_now(hours=1).replace(tzinfo=timezone.utc),
+            before_now(hours=1),
             user=user_data,
         )
         assert group_info is not None

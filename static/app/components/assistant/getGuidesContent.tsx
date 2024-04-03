@@ -11,45 +11,53 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
   return [
     {
       guide: 'issue',
-      requiredTargets: ['issue_number', 'exception'],
+      requiredTargets: ['issue_header_stats', 'breadcrumbs', 'issue_sidebar_owners'],
       steps: [
         {
-          title: t('Identify Your Issues'),
-          target: 'issue_number',
-          description: tct(
-            `You have Issues. That's fine. Use the Issue number in your commit message,
-                and we'll automatically resolve the Issue when your code is deployed. [link:Learn more]`,
-            {link: <ExternalLink href="https://docs.sentry.io/product/releases/" />}
-          ),
-        },
-        {
-          title: t('Annoy the Right People'),
-          target: 'owners',
-          description: tct(
-            `Notification overload makes it tempting to hurl your phone into the ocean.
-                Define who is responsible for what, so alerts reach the right people and your
-                devices stay on dry land. [link:Learn more]`,
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/" />
-              ),
-            }
-          ),
-        },
-        {
-          title: t('Narrow Down Suspects'),
-          target: 'exception',
+          title: t('How bad is it?'),
+          target: 'issue_header_stats',
           description: t(
-            `We've got stack trace. See the exact sequence of function calls leading to the error
-                in question, no detective skills necessary.`
+            `You have Issues and that's fine.
+              Understand impact at a glance by viewing total issue frequency and affected users.`
+          ),
+        },
+        {
+          title: t('Find problematic releases'),
+          target: 'issue_sidebar_releases',
+          description: t(
+            `See which release introduced the issue and which release it last appeared in.`
+          ),
+        },
+        {
+          title: t('Not your typical stack trace'),
+          target: 'stacktrace',
+          description: t(
+            `Sentry can show your source code in the stack trace.
+              See the exact sequence of function calls leading to the error in question.`
+          ),
+        },
+        {
+          title: t('Pinpoint hotspots'),
+          target: 'issue_sidebar_tags',
+          description: t(
+            `Tags are key/value string pairs that are automatically indexed and searchable in Sentry.`
           ),
         },
         {
           title: t('Retrace Your Steps'),
           target: 'breadcrumbs',
           description: t(
-            `Not sure how you got here? Sentry automatically captures breadcrumbs for events in web
-                frameworks to lead you straight to your error.`
+            `Not sure how you got here? Sentry automatically captures breadcrumbs for
+              events your user and app took that lead to the error.`
+          ),
+        },
+        {
+          title: t('Annoy the Right People'),
+          target: 'issue_sidebar_owners',
+          description: t(
+            `Automatically assign issues to the person who introduced the commit,
+              notify them over notification tools like Slack,
+              and triage through issue management tools like Jira. `
           ),
         },
       ],
@@ -163,137 +171,6 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
           description: t(
             'Use this menu to adjust each transaction’s satisfactory response time threshold, which can vary across transactions. These thresholds are used to calculate Apdex and User Misery, metrics that indicate how satisfied and miserable users are, respectively.'
           ),
-        },
-      ],
-    },
-    {
-      guide: 'semver',
-      requiredTargets: ['releases_search'],
-      dateThreshold: new Date('2021-05-01'),
-      steps: [
-        {
-          title: t('Filter by Semver'),
-          target: 'releases_search',
-          description: tct(
-            'You can now filter releases by semver. For example: release.version:>14.0 [br] [link:View the docs]',
-            {
-              br: <br />,
-              link: (
-                <ExternalLink href="https://docs.sentry.io/product/releases/usage/sorting-filtering/#filtering-releases" />
-              ),
-            }
-          ),
-          nextText: t('Leave me alone'),
-        },
-      ],
-    },
-    {
-      guide: 'releases_widget',
-      requiredTargets: ['releases_widget'],
-      dateThreshold: new Date('2022-06-22'),
-      steps: [
-        {
-          title: t('Releases are here'),
-          target: 'releases_widget',
-          description: t(
-            'Want to know how your latest release is doing? Monitor release health and crash rates in Dashboards.'
-          ),
-          nextText: t('Sounds good'),
-        },
-      ],
-    },
-    {
-      guide: 'activate_sampling_rule',
-      requiredTargets: ['sampling_rule_toggle'],
-      dateThreshold: new Date('2022-07-05'),
-      steps: [
-        {
-          title: t('Activate your first rule'),
-          target: 'sampling_rule_toggle',
-          description: t(
-            'Activating a rule will take immediate effect, as well as any changes given to an active rule.'
-          ),
-          nextText: t('Activate Rule'),
-          dismissText: t('Later'),
-          hasNextGuide: true,
-        },
-      ],
-    },
-    {
-      guide: 'create_conditional_rule',
-      requiredTargets: ['add_conditional_rule'],
-      dateThreshold: new Date('2022-07-05'),
-      steps: [
-        {
-          title: t('Create a new sample rule'),
-          target: 'add_conditional_rule',
-          description: t(
-            'Sample transactions under specific conditions, keeping what you need and dropping what you don’t.'
-          ),
-          dismissText: t('Enough already'),
-        },
-      ],
-    },
-    {
-      guide: 'explain_archive_button_issue_details',
-      requiredTargets: ['issue_details_archive_button'],
-      dateThreshold: new Date('2023-07-05'),
-      steps: [
-        {
-          title: t('Ignore is Now Archive'),
-          target: 'issue_details_archive_button',
-          description: t(
-            "Archive this issue to move it out of the stream - but don't worry, we'll bring it back if it escalates."
-          ),
-          dismissText: t('Go Away'),
-        },
-      ],
-    },
-    {
-      guide: 'explain_archive_button_issue_stream',
-      requiredTargets: ['issue_stream_archive_button'],
-      dateThreshold: new Date('2023-10-02'),
-      steps: [
-        {
-          title: t('"Archive" is the new "Ignore"'),
-          target: 'issue_stream_archive_button',
-          description: t(
-            "Archive this issue to move it out of the stream - but don't worry, we'll bring it back if it escalates."
-          ),
-          dismissText: t('Got It'),
-        },
-      ],
-    },
-    {
-      guide: 'explain_new_default_event_issue_detail',
-      requiredTargets: ['issue_details_default_event'],
-      dateThreshold: new Date('2023-08-22'),
-      steps: [
-        {
-          title: t('New Default Event'),
-          target: 'issue_details_default_event',
-          description: tct(
-            'Rather than the latest event, we now default to a recent event with the most context (replays, traces, and profiles). You can easily switch between events or [link:configure your default event] in settings.',
-            {
-              link: <Link to="/settings/account/details/#defaultIssueEvent" />,
-            }
-          ),
-          dismissText: t('Got It'),
-        },
-      ],
-    },
-    {
-      guide: 'explain_archive_tab_issue_stream',
-      requiredTargets: ['issue_stream_archive_tab'],
-      dateThreshold: new Date('2023-07-05'),
-      steps: [
-        {
-          title: t('Nothing to see here'),
-          target: 'issue_stream_archive_tab',
-          description: t(
-            "Archived issues will live here. We'll mark them as Escalating if we detect a large number of events."
-          ),
-          dismissText: t('Goodbye Forever'),
         },
       ],
     },

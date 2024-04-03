@@ -27,7 +27,13 @@ from snuba_sdk import (
 
 from sentry.models.files.file import File
 from sentry.models.files.fileblobindex import FileBlobIndex
-from sentry.replays.lib.storage import RecordingSegmentStorageMeta, filestore, storage
+from sentry.replays.lib.storage import (
+    RecordingSegmentStorageMeta,
+    filestore,
+    make_video_filename,
+    storage,
+    storage_kv,
+)
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.utils.snuba import raw_snql_query
 
@@ -243,6 +249,10 @@ def segment_row_to_storage_meta(
 
 
 # BLOB DOWNLOAD BEHAVIOR.
+
+
+def download_video(segment: RecordingSegmentStorageMeta) -> bytes | None:
+    return storage_kv.get(make_video_filename(segment))
 
 
 def download_segments(segments: list[RecordingSegmentStorageMeta]) -> Iterator[bytes]:

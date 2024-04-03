@@ -34,7 +34,7 @@ from sentry.testutils.helpers.backups import (
     clear_database,
     generate_rsa_key_pair,
 )
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json
 
 GOOD_FILE_PATH = get_fixture_path("backup", "fresh-install.json")
@@ -413,7 +413,6 @@ def cli_import_then_export(
             assert len(findings) == 0
 
 
-@region_silo_test
 class GoodImportExportCommandTests(TransactionTestCase):
     """
     Test success cases of the `sentry import` and `sentry export` CLI command. We're not asserting
@@ -705,7 +704,7 @@ class BadImportExportCommandTests(TestCase):
             )
             assert isinstance(rv.exception, ValueError)
             assert rv.exit_code == 1
-            assert "Could not deserialize" in str(rv.exception)
+            assert "Unable to load PEM file" in str(rv.exception)
 
     def test_export_invalid_gcp_kms_config(self):
         with TemporaryDirectory() as tmp_dir:

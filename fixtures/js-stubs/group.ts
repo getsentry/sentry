@@ -39,6 +39,7 @@ export function GroupFixture(params: Partial<Group> = {}): Group {
     pluginContexts: [],
     pluginIssues: [],
     priority: PriorityLevel.MEDIUM,
+    priorityLockedAt: null,
     project: ProjectFixture({
       platform: 'javascript',
     }),

@@ -7,7 +7,8 @@ from snuba_sdk import Column, Condition, Op
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models.release import Release, SemverFilter
+from sentry.models.release import Release
+from sentry.models.releases.util import SemverFilter
 from sentry.search.events import builder, constants
 from sentry.search.events.filter import (
     _flip_field_sort,
@@ -52,7 +53,7 @@ def release_filter_converter(
         operator = operator_conversions.get(search_filter.operator, search_filter.operator)
         value = SearchValue(
             reduce(
-                lambda x, y: x + y,  # type: ignore
+                lambda x, y: x + y,  # type: ignore[operator]
                 [
                     parse_release(
                         v,
@@ -298,3 +299,13 @@ def device_class_converter(
     if value not in device_class_map:
         raise InvalidSearchQuery(f"{value} is not a supported device.class")
     return Condition(builder.column("device.class"), Op.IN, list(device_class_map[value]))
+
+
+def lowercase_search(
+    builder: builder.QueryBuilder, search_filter: SearchFilter
+) -> WhereType | None:
+    """Convert the search value to lower case"""
+    value = search_filter.value.value
+    return builder.default_filter_converter(
+        SearchFilter(search_filter.key, search_filter.operator, SearchValue(value.lower()))
+    )

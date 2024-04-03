@@ -1,5 +1,5 @@
 import type {CSSProperties, MouseEvent} from 'react';
-import {isValidElement, memo} from 'react';
+import {Fragment, isValidElement, memo} from 'react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
@@ -8,19 +8,21 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
-import OpenFeedbackButton from 'sentry/components/replays/breadcrumbs/openFeedbackButton';
 import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/openReplayComparisonButton';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useReplayGroupContext} from 'sentry/components/replays/replayGroupContext';
 import {Tooltip} from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getShortEventId} from 'sentry/utils/events';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
-import type {ErrorFrame, ReplayFrame} from 'sentry/utils/replays/types';
-import {isErrorFrame} from 'sentry/utils/replays/types';
+import type {ClickFrame, ErrorFrame, ReplayFrame} from 'sentry/utils/replays/types';
+import {isClickFrame, isErrorFrame, isFeedbackFrame} from 'sentry/utils/replays/types';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
 import TraceGrid from 'sentry/views/replays/detail/perfTable/traceGrid';
 import type {ReplayTraceRow} from 'sentry/views/replays/detail/perfTable/useReplayPerfData';
@@ -28,7 +30,7 @@ import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 type MouseCallback = (frame: ReplayFrame, e: React.MouseEvent<HTMLElement>) => void;
 
-const FRAMES_WITH_BUTTONS = ['replay.hydrate-error', 'sentry.feedback'];
+const FRAMES_WITH_BUTTONS = ['replay.hydrate-error'];
 
 interface Props {
   extraction: Extraction | undefined;
@@ -42,7 +44,6 @@ interface Props {
   ) => void;
   onMouseEnter: MouseCallback;
   onMouseLeave: MouseCallback;
-  projectSlug: string | undefined;
   startTimestampMs: number;
   traces: ReplayTraceRow | undefined;
   className?: string;
@@ -60,7 +61,6 @@ function BreadcrumbItem({
   onInspectorExpanded,
   onMouseEnter,
   onMouseLeave,
-  projectSlug,
   startTimestampMs,
   style,
   traces,
@@ -100,8 +100,17 @@ function BreadcrumbItem({
 
         {typeof description === 'string' ||
         (description !== undefined && isValidElement(description)) ? (
-          <Description title={description} showOnlyOnOverflow isHoverable>
-            {description}
+          <Description
+            title={
+              <HTMLTree
+                description={description.toString()}
+                frame={frame as ClickFrame}
+              />
+            }
+            showOnlyOnOverflow
+            isHoverable
+          >
+            <HTMLTree description={description.toString()} frame={frame as ClickFrame} />
           </Description>
         ) : (
           <InspectorWrapper>
@@ -130,15 +139,6 @@ function BreadcrumbItem({
           </div>
         ) : null}
 
-        {projectSlug && 'data' in frame && frame.data && 'feedbackId' in frame.data ? (
-          <div>
-            <OpenFeedbackButton
-              projectSlug={projectSlug}
-              eventId={frame.data.feedbackId}
-            />
-          </div>
-        ) : null}
-
         {extraction?.html ? (
           <CodeContainer>
             <CodeSnippet language="html" hideCopyButton>
@@ -155,7 +155,9 @@ function BreadcrumbItem({
           />
         ))}
 
-        {isErrorFrame(frame) ? <CrumbErrorIssue frame={frame} /> : null}
+        {isErrorFrame(frame) || isFeedbackFrame(frame) ? (
+          <CrumbErrorIssue frame={frame as ErrorFrame} />
+        ) : null}
       </CrumbDetails>
     </CrumbItem>
   );
@@ -199,13 +201,52 @@ function CrumbErrorIssue({frame}: {frame: ErrorFrame}) {
     );
   }
 
+  const url = isFeedbackFrame(frame as ReplayFrame)
+    ? `/organizations/${organization.slug}/feedback/?feedbackSlug=${frame.data.projectSlug}%3A${frame.data.groupId}/`
+    : `/organizations/${organization.slug}/issues/${frame.data.groupId}/`;
+
   return (
     <CrumbIssueWrapper>
       {projectBadge}
-      <Link to={`/organizations/${organization.slug}/issues/${frame.data.groupId}/`}>
-        {frame.data.groupShortId}
-      </Link>
+      <Link to={url}>{frame.data.groupShortId}</Link>
     </CrumbIssueWrapper>
+  );
+}
+
+function HTMLTree({description, frame}: {description: string; frame: ClickFrame}) {
+  const location = useLocation();
+  const organization = useOrganization();
+
+  const componentName =
+    isClickFrame(frame) && frame.data.node?.attributes['data-sentry-component'];
+  const lastComponentIndex =
+    description.lastIndexOf('>') === -1 ? 0 : description.lastIndexOf('>') + 2;
+
+  return (
+    <Fragment>
+      {componentName ? (
+        <Fragment>
+          <div style={{display: 'inline'}}>
+            {description.substring(0, lastComponentIndex)}
+          </div>
+          <Tooltip title={t('Search by this component')} isHoverable>
+            <Link
+              to={{
+                pathname: normalizeUrl(`/organizations/${organization.slug}/replays/`),
+                query: {
+                  ...location.query,
+                  query: `click.component_name:${componentName}`,
+                },
+              }}
+            >
+              {componentName}
+            </Link>
+          </Tooltip>
+        </Fragment>
+      ) : (
+        description
+      )}
+    </Fragment>
   );
 }
 

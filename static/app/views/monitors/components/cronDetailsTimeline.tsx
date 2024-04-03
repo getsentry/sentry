@@ -1,6 +1,5 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
-import moment from 'moment';
 
 import {
   deleteMonitorEnvironment,
@@ -11,21 +10,20 @@ import Text from 'sentry/components/text';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
-import {parsePeriodToHours} from 'sentry/utils/dates';
-import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {
   GridLineOverlay,
   GridLineTimeLabels,
 } from 'sentry/views/monitors/components/overviewTimeline/gridLines';
 import {TimelineTableRow} from 'sentry/views/monitors/components/overviewTimeline/timelineTableRow';
-import type {MonitorBucketData} from 'sentry/views/monitors/components/overviewTimeline/types';
-import {getConfigFromTimeRange} from 'sentry/views/monitors/components/overviewTimeline/utils';
 import type {Monitor} from 'sentry/views/monitors/types';
 import {makeMonitorDetailsQueryKey} from 'sentry/views/monitors/utils';
+
+import {useMonitorStats} from './overviewTimeline/useMonitorStats';
+import {useTimeWindowConfig} from './overviewTimeline/useTimeWindowConfig';
 
 interface Props {
   monitor: Monitor;
@@ -36,59 +34,26 @@ export function CronDetailsTimeline({monitor, organization}: Props) {
   const {location} = useRouter();
   const api = useApi();
   const queryClient = useQueryClient();
-  const nowRef = useRef<Date>(new Date());
-  const {selection} = usePageFilters();
-  const {period} = selection.datetime;
-  let {end, start} = selection.datetime;
-
-  if (!start || !end) {
-    end = nowRef.current;
-    start = moment(end)
-      .subtract(parsePeriodToHours(period ?? '24h'), 'hour')
-      .toDate();
-  } else {
-    start = new Date(start);
-    end = new Date(end);
-  }
 
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
-  const config = getConfigFromTimeRange(start, end, timelineWidth);
 
-  const elapsedMinutes = config.elapsedMinutes;
-  const rollup = Math.floor((elapsedMinutes * 60) / timelineWidth);
+  const timeWindowConfig = useTimeWindowConfig({timelineWidth});
 
-  const monitorStatsQueryKey = `/organizations/${organization.slug}/monitors-stats/`;
-  const {data: monitorStats, isLoading} = useApiQuery<Record<string, MonitorBucketData>>(
-    [
-      monitorStatsQueryKey,
-      {
-        query: {
-          until: Math.floor(end.getTime() / 1000),
-          since: Math.floor(start.getTime() / 1000),
-          monitor: monitor.slug,
-          resolution: `${rollup}s`,
-          ...location.query,
-        },
-      },
-    ],
-    {
-      staleTime: 0,
-      enabled: timelineWidth > 0,
-    }
-  );
-
-  const monitorDetailsQueryKey = makeMonitorDetailsQueryKey(organization, monitor.slug, {
-    ...location.query,
+  const {data: monitorStats, isLoading} = useMonitorStats({
+    monitors: [monitor.id],
+    timeWindowConfig,
   });
 
+  const monitorDetailsQueryKey = makeMonitorDetailsQueryKey(
+    organization,
+    monitor.project.slug,
+    monitor.slug,
+    {...location.query}
+  );
+
   const handleDeleteEnvironment = async (env: string) => {
-    const success = await deleteMonitorEnvironment(
-      api,
-      organization.slug,
-      monitor.slug,
-      env
-    );
+    const success = await deleteMonitorEnvironment(api, organization.slug, monitor, env);
     if (!success) {
       return;
     }
@@ -108,7 +73,7 @@ export function CronDetailsTimeline({monitor, organization}: Props) {
     const resp = await setEnvironmentIsMuted(
       api,
       organization.slug,
-      monitor.slug,
+      monitor,
       env,
       isMuted
     );
@@ -136,26 +101,20 @@ export function CronDetailsTimeline({monitor, organization}: Props) {
   return (
     <TimelineContainer>
       <TimelineWidthTracker ref={elementRef} />
-      <TimelineTitle>{t('Check-Ins')}</TimelineTitle>
-      <StyledGridLineTimeLabels
-        timeWindowConfig={config}
-        start={start}
-        end={end}
-        width={timelineWidth}
-      />
+      <Header>
+        <TimelineTitle>{t('Check-Ins')}</TimelineTitle>
+        <GridLineTimeLabels timeWindowConfig={timeWindowConfig} width={timelineWidth} />
+      </Header>
       <StyledGridLineOverlay
+        allowZoom={!isLoading}
         showCursor={!isLoading}
-        timeWindowConfig={config}
-        start={start}
-        end={end}
+        timeWindowConfig={timeWindowConfig}
         width={timelineWidth}
       />
       <TimelineTableRow
         monitor={monitor}
-        bucketedData={monitorStats?.[monitor.slug]}
-        timeWindowConfig={config}
-        end={end}
-        start={start}
+        bucketedData={monitorStats?.[monitor.id]}
+        timeWindowConfig={timeWindowConfig}
         width={timelineWidth}
         onDeleteEnvironment={handleDeleteEnvironment}
         onToggleMuteEnvironment={handleToggleMuteEnvironment}
@@ -170,8 +129,11 @@ const TimelineContainer = styled(Panel)`
   grid-template-columns: 135px 1fr;
 `;
 
-const StyledGridLineTimeLabels = styled(GridLineTimeLabels)`
-  grid-column: 2;
+const Header = styled('div')`
+  grid-column: 1/-1;
+  display: grid;
+  grid-template-columns: subgrid;
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const StyledGridLineOverlay = styled(GridLineOverlay)`
@@ -187,6 +149,6 @@ const TimelineWidthTracker = styled('div')`
 
 const TimelineTitle = styled(Text)`
   ${p => p.theme.text.cardTitle};
-  border-bottom: 1px solid ${p => p.theme.border};
   padding: ${space(2)};
+  grid-column: 1;
 `;

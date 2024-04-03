@@ -1,4 +1,3 @@
-import importlib.resources
 import itertools
 import logging
 import random
@@ -17,11 +16,12 @@ from redis.client import Script
 
 from sentry.tsdb.base import BaseTSDB, IncrMultiOptions, TSDBModel
 from sentry.utils.compat import crc32
-from sentry.utils.dates import to_datetime, to_timestamp
+from sentry.utils.dates import to_datetime
 from sentry.utils.redis import (
     check_cluster_versions,
     get_cluster_from_options,
     is_instance_rb_cluster,
+    load_redis_script,
 )
 from sentry.utils.versioning import Version
 
@@ -31,9 +31,7 @@ T = TypeVar("T")
 
 SketchParameters = namedtuple("SketchParameters", "depth width capacity")
 
-CountMinScript = Script(
-    None, importlib.resources.files("sentry").joinpath("scripts/tsdb/cmsketch.lua").read_bytes()
-)
+CountMinScript = load_redis_script("tsdb/cmsketch.lua")
 
 
 class SuppressionWrapper(Generic[T]):
@@ -121,10 +119,7 @@ class RedisTSDB(BaseTSDB):
 
     def __init__(self, prefix: str = "ts:", vnodes: int = 64, **options: Any):
         cluster, options = get_cluster_from_options("SENTRY_TSDB_OPTIONS", options)
-        if is_instance_rb_cluster(cluster, False):
-            self.cluster = cluster
-        else:
-            raise AssertionError("unreachable")
+        self.cluster = cluster
         self.prefix = prefix
         self.vnodes = vnodes
         self.enable_frequency_sketches = options.pop("enable_frequency_sketches", False)
@@ -347,9 +342,7 @@ class RedisTSDB(BaseTSDB):
                     hash_key, hash_field = self.make_counter_key(
                         model, rollup, timestamp, key, environment_id
                     )
-                    results.append(
-                        (to_timestamp(timestamp), key, client.hget(hash_key, hash_field))
-                    )
+                    results.append((timestamp.timestamp(), key, client.hget(hash_key, hash_field)))
 
         results_by_key: dict[int, dict[float, int]] = defaultdict(dict)
         for epoch, key, count in results:
@@ -471,7 +464,7 @@ class RedisTSDB(BaseTSDB):
         if timestamp is None:
             timestamp = timezone.now()
 
-        ts = int(to_timestamp(timestamp))  # ``timestamp`` is not actually a timestamp :(
+        ts = int(timestamp.timestamp())  # ``timestamp`` is not actually a timestamp :(
 
         for (cluster, durable), environment_ids in self.get_cluster_groups({None, environment_id}):
             manager = cluster.fanout()
@@ -687,7 +680,7 @@ class RedisTSDB(BaseTSDB):
                         for _timestamp, results in series.items():
                             for environment_id in _ids:
                                 key = self.make_key(
-                                    model, rollup, to_timestamp(_timestamp), source, environment_id
+                                    model, rollup, _timestamp.timestamp(), source, environment_id
                                 )
                                 results[environment_id].append(c.get(key))
                                 c.delete(key)
@@ -711,7 +704,7 @@ class RedisTSDB(BaseTSDB):
                                 key = self.make_key(
                                     model,
                                     rollup,
-                                    to_timestamp(_timestamp),
+                                    _timestamp.timestamp(),
                                     destination,
                                     environment_id,
                                 )
@@ -754,7 +747,7 @@ class RedisTSDB(BaseTSDB):
                                         self.make_key(
                                             model,
                                             rollup,
-                                            to_timestamp(_timestamp),
+                                            _timestamp.timestamp(),
                                             key,
                                             environment_id,
                                         )
@@ -785,7 +778,7 @@ class RedisTSDB(BaseTSDB):
         if timestamp is None:
             timestamp = timezone.now()
 
-        ts = int(to_timestamp(timestamp))  # ``timestamp`` is not actually a timestamp :(
+        ts = int(timestamp.timestamp())  # ``timestamp`` is not actually a timestamp :(
 
         for (cluster, durable), environment_ids in self.get_cluster_groups({None, environment_id}):
             commands: dict[str, list] = {}
@@ -1025,7 +1018,7 @@ class RedisTSDB(BaseTSDB):
                                 self.make_frequency_table_keys(
                                     model,
                                     rollup,
-                                    to_timestamp(serie_timestamp),
+                                    serie_timestamp.timestamp(),
                                     source,
                                     environment_id,
                                 )
@@ -1054,7 +1047,7 @@ class RedisTSDB(BaseTSDB):
                                     self.make_frequency_table_keys(
                                         model,
                                         rollup,
-                                        to_timestamp(_timestamp),
+                                        _timestamp.timestamp(),
                                         destination,
                                         environment_id,
                                     ),
@@ -1097,6 +1090,6 @@ class RedisTSDB(BaseTSDB):
                                 c = client.target_key(key)
                                 for environment_id in _environment_ids:
                                     for k in self.make_frequency_table_keys(
-                                        model, rollup, to_timestamp(timestamp), key, environment_id
+                                        model, rollup, timestamp.timestamp(), key, environment_id
                                     ):
                                         c.delete(k)

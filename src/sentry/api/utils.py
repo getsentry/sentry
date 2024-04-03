@@ -20,6 +20,7 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.exceptions import APIException, ParseError
 from rest_framework.request import Request
 from sentry_sdk import Scope
+from urllib3.exceptions import MaxRetryError, ReadTimeoutError
 
 from sentry import options
 from sentry.auth.staff import is_active_staff
@@ -420,6 +421,7 @@ def handle_query_errors() -> Generator[None, None, None]:
         raise ParseError(detail=message)
     except SnubaError as error:
         message = "Internal error. Please try again."
+        arg = error.args[0] if len(error.args) > 0 else None
         if isinstance(
             error,
             (
@@ -428,6 +430,9 @@ def handle_query_errors() -> Generator[None, None, None]:
                 QueryExecutionTimeMaximum,
                 QueryTooManySimultaneous,
             ),
+        ) or isinstance(
+            arg,
+            ReadTimeoutError,
         ):
             sentry_sdk.set_tag("query.error_reason", "Timeout")
             raise ParseError(detail=TIMEOUT_ERROR_MESSAGE)
@@ -447,6 +452,12 @@ def handle_query_errors() -> Generator[None, None, None]:
         ):
             sentry_sdk.capture_exception(error)
             message = "Internal error. Your query failed to run."
+        elif isinstance(
+            arg,
+            (MaxRetryError),
+        ):
+            sentry_sdk.capture_message(str(error), level="warning")
+            message = "Internal error. Your query failed to run. This may be temporary please try again later."
         else:
             sentry_sdk.capture_exception(error)
         raise APIException(detail=message)

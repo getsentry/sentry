@@ -1,12 +1,16 @@
 import {Fragment} from 'react';
 
-import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  getCrashReportGenericInstallStep,
+  getCrashReportModalConfigDescription,
+  getCrashReportModalIntroduction,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 
@@ -16,67 +20,49 @@ const getInstallSnippet = () => `
 defp deps do
   [
     # ...
-    {:sentry, "~> 8.0"},
-    {:jason, "~> 1.1"},
-    {:hackney, "~> 1.8"},
-    # if you are using plug_cowboy
-    {:plug_cowboy, "~> 2.3"}
+    {:sentry, "~> 10.2.0"},
+    {:jason, "~> 1.2"},
+    {:hackney, "~> 1.8"}
   ]
 end`;
 
 const getConfigureSnippet = (params: Params) => `
-config :sentry,
-dsn: "${params.dsn}",
-environment_name: :prod,
-enable_source_code_context: true,
-root_source_code_path: File.cwd!(),
-tags: %{
-  env: "production"
-},
-included_environments: [:prod]`;
+  config :sentry,
+  dsn: "${params.dsn}",
+  environment_name: Mix.env(),
+  enable_source_code_context: true,
+  root_source_code_paths: File.cwd!()`;
 
-const getConfigureSnippetMixEnv = (params: Params) => `
-config :sentry, dsn: "${params.dsn}",
-included_environments: [:prod],
-environment_name: Mix.env`;
+const getPlugSnippet = () => `
+ defmodule MyAppWeb.Endpoint
++  use Sentry.PlugCapture
+   use Phoenix.Endpoint, otp_app: :my_app
 
-const getCustomEnvironmentNameSnippet = (params: Params) => `
-config :sentry, dsn: "${params.dsn}",
-included_environments: ~w(production staging),
-environment_name: System.get_env("RELEASE_LEVEL") || "development"`;
+   # ...
 
-const getConfigureRouterSnippet = () => `
-# Phoenix
-use Sentry.PlugCapture
-use Phoenix.Endpoint, otp_app: :my_app
-# ...
-plug Plug.Parsers,
-  parsers: [:urlencoded, :multipart, :json],
-  pass: ["*/*"],
-  json_decoder: Phoenix.json_library()
-plug Sentry.PlugContext
-# Plug
-use Plug.Router
-use Sentry.PlugCapture
-# ...
-plug Plug.Parsers,
-  parsers: [:urlencoded, :multipart, :json],
-  pass: ["*/*"],
-  json_decoder: Phoenix.json_library()
-plug Sentry.PlugContext`;
+   plug Plug.Parsers,
+     parsers: [:urlencoded, :multipart, :json],
+     pass: ["*/*"],
+     json_decoder: Phoenix.json_library()
 
-const getCaptureExceptionSnippet = () => `
++  plug Sentry.PlugContext`;
+
+const getLoggerHandlerSnippet = () => `
 # lib/my_app/application.ex
 
 def start(_type, _args) do
-  Logger.add_backend(Sentry.LoggerBackend)`;
+  :logger.add_handler(:my_sentry_handler, Sentry.LoggerHandler, %{
+    config: %{metadata: [:file, :line]}
+  })
+  # ...
+end`;
 
-const getCaptureErrorsSnippet = () => `
+const getVerifySnippet = () => `
 try do
   ThisWillError.really()
 rescue
   my_exception ->
-    Sentry.capture_exception(my_exception, [stacktrace: __STACKTRACE__, extra: %{extra: information}])
+    Sentry.capture_exception(my_exception, stacktrace: __STACKTRACE__)
 end`;
 
 const onboarding: OnboardingConfig = {
@@ -110,128 +96,91 @@ const onboarding: OnboardingConfig = {
           language: 'elixir',
           code: getConfigureSnippet(params),
         },
-        {
-          description: (
-            <Fragment>
-              <p>
-                {tct(
-                  'The [environmentNameCode:environment_name] and [includedEnvironmentsCode:included_environments] work together to determine if and when Sentry should record exceptions. The [environmentNameCode:environment_name] is the name of the current environment. In the example above, we have explicitly set the environment to [prodCode::prod] which works well if you are inside an environment specific configuration like [configCode:config/prod.exs].',
-                  {
-                    environmentNameCode: <code />,
-                    includedEnvironmentsCode: <code />,
-                    prodCode: <code />,
-                    configCode: <code />,
-                  }
-                )}
-              </p>
-              <p>
-                {tct(
-                  'An alternative is to use [code:Mix.env] in your general configuration file:',
-                  {code: <code />}
-                )}
-              </p>
-            </Fragment>
-          ),
-          configurations: [
-            {
-              language: 'elixir',
-              code: getConfigureSnippetMixEnv(params),
-            },
-          ],
-        },
-        {
-          description: (
-            <Fragment>
-              <p>
-                {tct(
-                  'This will set the environment name to whatever the current Mix environment atom is, but it will only send events if the current environment is [prodCode::prod], since that is the only entry in the [includedEnvironmentsCode:included_environments] key.',
-                  {
-                    prodCode: <code />,
-                    includedEnvironmentsCode: <code />,
-                  }
-                )}
-              </p>
-              {t(
-                "You can even rely on more custom determinations of the environment name. It's not uncommon for most applications to have a 'staging' environment. In order to handle this without adding an additional Mix environment, you can set an environment variable that determines the release level."
-              )}
-            </Fragment>
-          ),
-          language: 'elixir',
-          code: getCustomEnvironmentNameSnippet(params),
-        },
-        {
-          description: (
-            <Fragment>
-              <p>
-                {tct(
-                  "In this example, we are getting the environment name from the [code:RELEASE_LEVEL] environment variable. If that variable does not exist, it will default to [code:'development']. Now, on our servers, we can set the environment variable appropriately. On our local development machines, exceptions will never be sent, because the default value is not in the list of [code:included_environments].",
-                  {
-                    code: <code />,
-                  }
-                )}
-              </p>
-              <p>
-                {tct(
-                  'If using an environment with Plug or Phoenix, add the following to [plugRouterCode:Plug.Router] or [phoenixEndpointCode:Phoenix.Endpoint]:',
-                  {plugRouterCode: <code />, phoenixEndpointCode: <code />}
-                )}
-              </p>
-            </Fragment>
-          ),
-          language: 'elixir',
-          code: getConfigureRouterSnippet(),
-          additionalInfo: tct(
-            '[sentryPlugContextCode:Sentry.PlugContext] gathers the contextual information for errors, and [sentryPlugCaptureCode:Sentry.PlugCapture] captures and sends any errors that occur in the Plug stack. [sentryPlugContextCode:Sentry.PlugContext] should be below [sentryPlugParsersCode:Plug.Parsers] if you are using it.',
-            {
-              sentryPlugCaptureCode: <code />,
-              sentryPlugContextCode: <code />,
-              sentryPlugParsersCode: <code />,
-            }
-          ),
-        },
       ],
     },
     {
-      title: t('Capture Crashed Process Exceptions'),
+      title: t('Package Source Code'),
       description: tct(
-        'This library comes with an extension to capture all error messages that the Plug handler might not. This is based on [link:Logger.Backend]. You can add it as a backend when your application starts:',
-        {
-          link: (
-            <ExternalLink href="https://hexdocs.pm/logger/Logger.html#module-backends" />
-          ),
-        }
+        'Add a call to [code:mix sentry.package_source_code] in your release script to make sure the stacktraces you receive are complete.',
+        {code: <code />}
       ),
-      configurations: [
-        {
-          language: 'elixir',
-          code: getCaptureExceptionSnippet(),
-        },
-      ],
     },
     {
-      title: t('Capturing Errors'),
+      title: t('Setup for Plug and Phoenix Applications'),
       description: (
         <Fragment>
-          {t(
-            'If you use the LoggerBackend and set up the Plug/Phoenix integrations, all errors will bubble up to Sentry.'
-          )}
-          <p>{t('Otherwise, we provide a simple way to capture exceptions manually:')}</p>
+          <p>
+            {tct(
+              'You can capture errors in Plug (and Phoenix) applications with [plugContext:Sentry.PlugContext] and [plugCapture:Sentry.PlugCapture]:',
+              {
+                plugContext: <code />,
+                plugCapture: <code />,
+              }
+            )}
+          </p>
         </Fragment>
       ),
       configurations: [
         {
+          language: 'diff',
+          code: getPlugSnippet(),
+        },
+      ],
+      additionalInfo: tct(
+        '[sentryPlugContextCode:Sentry.PlugContext] gathers the contextual information for errors, and [sentryPlugCaptureCode:Sentry.PlugCapture] captures and sends any errors that occur in the Plug stack.',
+        {
+          sentryPlugCaptureCode: <code />,
+          sentryPlugContextCode: <code />,
+        }
+      ),
+    },
+    {
+      title: t('Capture Crashed Process Exceptions'),
+      description: t(
+        'This library comes with an extension to capture all error messages that the Plug handler might not. This is based on adding an erlang logger handler when your application starts:'
+      ),
+      configurations: [
+        {
           language: 'elixir',
-          code: getCaptureErrorsSnippet(),
+          code: getLoggerHandlerSnippet(),
         },
       ],
     },
   ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t('You can then report errors or messages to Sentry:'),
+      configurations: [
+        {
+          language: 'elixir',
+
+          code: getVerifySnippet(),
+        },
+      ],
+    },
+  ],
+};
+
+const crashReportOnboarding: OnboardingConfig = {
+  introduction: () => getCrashReportModalIntroduction(),
+  install: (params: Params) => getCrashReportGenericInstallStep(params),
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: getCrashReportModalConfigDescription({
+        link: 'https://docs.sentry.io/platforms/elixir/user-feedback/configuration/#crash-report-modal',
+      }),
+    },
+  ],
   verify: () => [],
+  nextSteps: () => [],
 };
 
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
+  crashReportOnboarding,
 };
 
 export default docs;

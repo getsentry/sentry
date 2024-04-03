@@ -141,6 +141,11 @@ register(
     epoch_defaults={12: True},
 )
 
+register(
+    key="sentry:feedback_ai_spam_detection",
+    default=True,
+)
+
 
 # Replacement rules for transaction names discovered by the transaction clusterer.
 # Contains a mapping from rule to last seen timestamp,
@@ -164,7 +169,8 @@ register(
 )
 
 # The available loader SDK versions
+# todo: v8 add version
 register(
     key="sentry:loader_available_sdk_versions",
-    epoch_defaults={1: ["latest", "7.x", "6.x", "5.x", "4.x"], 11: ["latest", "7.x"]},
+    epoch_defaults={1: ["7.x", "6.x", "5.x", "4.x"], 11: ["7.x"]},
 )

@@ -1,4 +1,3 @@
-from unittest.mock import call as mock_call
 from unittest.mock import patch
 
 import pytest
@@ -7,7 +6,6 @@ from django.utils import timezone
 
 from sentry.api.exceptions import InvalidRepository
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
-from sentry.dynamic_sampling import ProjectBoostedReleases
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -18,25 +16,18 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.release import (
-    Release,
-    ReleaseProject,
-    ReleaseProjectModelManager,
-    ReleaseStatus,
-    follows_semver_versioning_scheme,
-)
+from sentry.models.release import Release, ReleaseStatus, follows_semver_versioning_scheme
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
 from sentry.search.events.filter import parse_semver
 from sentry.signals import receivers_raise_on_send
-from sentry.testutils.cases import SetRefsTestCase, TestCase, TransactionTestCase
+from sentry.testutils.cases import SetRefsTestCase, TestCase
 from sentry.testutils.factories import Factories
-from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.strings import truncatechars
 
 
@@ -68,7 +59,6 @@ def test_version_is_semver_invalid(release_version):
     assert Release.is_semver_version(release_version) is False
 
 
-@region_silo_test
 class MergeReleasesTest(TestCase):
     @receivers_raise_on_send()
     def test_simple(self):
@@ -199,7 +189,6 @@ class MergeReleasesTest(TestCase):
         assert not Release.objects.filter(id=release3.id).exists()
 
 
-@region_silo_test
 class SetCommitsTestCase(TestCase):
     @receivers_raise_on_send()
     def test_simple(self):
@@ -585,7 +574,6 @@ class SetCommitsTestCase(TestCase):
         assert commit.author.email == truncatechars(commit_email, 75)
 
 
-@region_silo_test
 class SetRefsTest(SetRefsTestCase):
     def setUp(self):
         super().setUp()
@@ -737,7 +725,6 @@ class SetRefsTest(SetRefsTestCase):
         assert not Release.is_valid_version(version)
 
 
-@region_silo_test
 class SemverReleaseParseTestCase(TestCase):
     def setUp(self):
         self.org = self.create_organization()
@@ -920,7 +907,6 @@ class SemverReleaseParseTestCase(TestCase):
         assert release.build_code == "-2020"
 
 
-@region_silo_test
 class ReleaseFilterBySemverTest(TestCase):
     def test_invalid_query(self):
         with pytest.raises(
@@ -1019,7 +1005,6 @@ class ReleaseFilterBySemverTest(TestCase):
         self.run_test(">=", "test@1.2.3", [release_3, release_4], projects=[project_2])
 
 
-@region_silo_test
 class ReleaseFilterBySemverBuildTest(TestCase):
     def run_test(self, operator, build, expected_releases, organization_id=None, projects=None):
         organization_id = organization_id if organization_id else self.organization.id
@@ -1065,7 +1050,6 @@ class ReleaseFilterBySemverBuildTest(TestCase):
         self.run_test("exact", "123abc", [release_3])
 
 
-@region_silo_test
 class FollowsSemverVersioningSchemeTestCase(TestCase):
     def setUp(self):
         self.org = self.create_organization()
@@ -1257,7 +1241,6 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
         )
 
 
-@region_silo_test
 class ClearCommitsTestCase(TestCase):
     @receivers_raise_on_send()
     def test_simple(self):
@@ -1333,56 +1316,3 @@ class ClearCommitsTestCase(TestCase):
         assert Commit.objects.filter(
             id=commit2.id, organization_id=org.id, repository_id=repo.id
         ).exists()
-
-
-@region_silo_test
-class ReleaseProjectManagerTestCase(TransactionTestCase):
-    def test_custom_manager(self):
-        self.assertIsInstance(ReleaseProject.objects, ReleaseProjectModelManager)
-
-    @receivers_raise_on_send()
-    def test_post_save_signal_runs_if_dynamic_sampling_is_disabled(self):
-        project = self.create_project(name="foo")
-        release = Release.objects.create(organization_id=project.organization_id, version="42")
-
-        with patch("sentry.models.release.schedule_invalidate_project_config") as mock_task:
-            release.add_project(project)
-            assert mock_task.mock_calls == []
-
-    @receivers_raise_on_send()
-    def test_post_save_signal_runs_if_dynamic_sampling_is_enabled_and_latest_release_rule_does_not_exist(
-        self,
-    ):
-        with Feature(
-            {
-                "organizations:dynamic-sampling": True,
-            }
-        ):
-            project = self.create_project(name="foo")
-            release = Release.objects.create(organization_id=project.organization_id, version="42")
-
-            with patch("sentry.models.release.schedule_invalidate_project_config") as mock_task:
-                release.add_project(project)
-                assert mock_task.mock_calls == []
-
-    @receivers_raise_on_send()
-    def test_post_save_signal_runs_if_dynamic_sampling_is_enabled_and_latest_release_rule_exists(
-        self,
-    ):
-        with Feature(
-            {
-                "organizations:dynamic-sampling": True,
-            }
-        ):
-            project = self.create_project(name="foo")
-            release = Release.objects.create(organization_id=project.organization_id, version="42")
-            project_boosted_releases = ProjectBoostedReleases(project.id)
-            # We store a boosted release for this project.
-            project_boosted_releases.add_boosted_release(release.id, None)
-            assert project_boosted_releases.has_boosted_releases
-
-            with patch("sentry.models.release.schedule_invalidate_project_config") as mock_task:
-                release.add_project(project)
-                assert mock_task.mock_calls == [
-                    mock_call(project_id=project.id, trigger="releaseproject.post_save")
-                ]

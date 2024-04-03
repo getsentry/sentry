@@ -12,6 +12,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   ORDER,
   ORDER_WITH_INP,
+  ORDER_WITH_INP_WITHOUT_FID,
 } from 'sentry/views/performance/browser/webVitals/performanceScoreChart';
 import {PERFORMANCE_SCORE_WEIGHTS} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import type {WebVitalsScoreBreakdown} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsTimeseriesQuery';
@@ -22,9 +23,10 @@ import type {UnweightedWebVitalsScoreBreakdown} from 'sentry/views/performance/b
 import {useProjectWebVitalsTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useProjectWebVitalsTimeseriesQuery';
 import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webVitals/utils/useReplaceFidWithInpSetting';
 import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
-import Chart from 'sentry/views/starfish/components/chart';
+import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 
 export const SCORE_MIGRATION_TIMESTAMP = 1702771200000;
+export const FID_DEPRECATION_DATE = 1710259200000;
 
 type Props = {
   transaction?: string;
@@ -56,7 +58,7 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
   const shouldUseStoredScores = useStoredScoresSetting();
   const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
   const theme = useTheme();
-  const segmentColors = theme.charts.getColorPalette(3);
+  const segmentColors = [...theme.charts.getColorPalette(3).slice(0, 5), theme.gray200];
 
   const pageFilters = usePageFilters();
 
@@ -91,7 +93,15 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
   const period = pageFilters.selection.datetime.period;
   const performanceScoreSubtext = (period && DEFAULT_RELATIVE_PERIODS[period]) ?? '';
 
-  const chartSeriesOrder = shouldReplaceFidWithInp ? ORDER_WITH_INP : ORDER;
+  const hasFid =
+    timeseriesData?.fid?.find(({value}) => value > 0) !== undefined ||
+    preMigrationTimeseriesData?.fid?.find(({value}) => value > 0) !== undefined;
+
+  const chartSeriesOrder = shouldReplaceFidWithInp
+    ? hasFid
+      ? ORDER_WITH_INP
+      : ORDER_WITH_INP_WITHOUT_FID
+    : ORDER;
 
   const preMigrationWeightedTimeseries = formatTimeSeriesResultsToChartData(
     preMigrationTimeseriesData,
@@ -223,6 +233,7 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
           (isRawScoreTimeseriesDataLoading && scoreMigrationTimestampAfterStart) ||
           (shouldUseStoredScores && isProjectScoresLoading)
         }
+        type={ChartType.AREA}
         grid={{
           left: 5,
           right: 5,
@@ -234,6 +245,9 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
         preserveIncompletePoints
         tooltipFormatterOptions={{
           nameFormatter: (name, seriesParams: any) => {
+            if (shouldReplaceFidWithInp && name === 'FID') {
+              return `${name} Score </strong>(${t('Deprecated')})</strong>`;
+            }
             const timestamp = seriesParams?.data[0];
             const weights = weightsSeries.find(
               series => series.name === timestamp

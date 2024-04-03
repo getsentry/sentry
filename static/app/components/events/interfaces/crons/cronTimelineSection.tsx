@@ -10,7 +10,7 @@ import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
-import type {Event, Organization} from 'sentry/types';
+import type {Event, Organization, Project} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useRouter from 'sentry/utils/useRouter';
@@ -31,13 +31,15 @@ import {getTimeRangeFromEvent} from 'sentry/views/monitors/utils/getTimeRangeFro
 interface Props {
   event: Event;
   organization: Organization;
+  project: Project;
 }
 
 const DEFAULT_ENVIRONMENT = 'production';
 
-export function CronTimelineSection({event, organization}: Props) {
+export function CronTimelineSection({event, organization, project}: Props) {
   const {location} = useRouter();
   const timeWindow: TimeWindow = location.query?.timeWindow ?? '24h';
+  const monitorId = event.tags.find(({key}) => key === 'monitor.id')?.value;
   const monitorSlug = event.tags.find(({key}) => key === 'monitor.slug')?.value;
   const environment = event.tags.find(({key}) => key === 'environment')?.value;
 
@@ -57,18 +59,18 @@ export function CronTimelineSection({event, organization}: Props) {
         query: {
           until: Math.floor(end.getTime() / 1000),
           since: Math.floor(start.getTime() / 1000),
-          monitor: monitorSlug,
+          monitor: monitorId,
           resolution: `${rollup}s`,
         },
       },
     ],
     {
       staleTime: 0,
-      enabled: !!monitorSlug && timelineWidth > 0,
+      enabled: !!monitorId && timelineWidth > 0,
     }
   );
 
-  if (!monitorSlug) {
+  if (!monitorId) {
     return null;
   }
 
@@ -81,7 +83,7 @@ export function CronTimelineSection({event, organization}: Props) {
       <LinkButton
         size="xs"
         icon={<IconOpen />}
-        to={`/organizations/${organization.slug}/crons/${monitorSlug}`}
+        to={`/organizations/${organization.slug}/crons/${project.slug}/${monitorSlug}`}
       >
         {t('View in Monitor Details')}
       </LinkButton>
@@ -100,15 +102,11 @@ export function CronTimelineSection({event, organization}: Props) {
         <TimelineWidthTracker ref={elementRef} />
         <StyledGridLineTimeLabels
           timeWindowConfig={timeWindowConfig}
-          start={start}
-          end={end}
           width={timelineWidth}
         />
-        <StyledGridLineOverlay
+        <GridLineOverlay
           showCursor={!isLoading}
           timeWindowConfig={timeWindowConfig}
-          start={start}
-          end={end}
           width={timelineWidth}
         />
         {monitorStats && !isLoading ? (
@@ -120,9 +118,7 @@ export function CronTimelineSection({event, organization}: Props) {
             <FadeInContainer>
               <CheckInTimeline
                 width={timelineWidth}
-                bucketedData={monitorStats[monitorSlug]}
-                start={start}
-                end={end}
+                bucketedData={monitorStats[monitorId]}
                 timeWindowConfig={timeWindowConfig}
                 environment={environment ?? DEFAULT_ENVIRONMENT}
               />
@@ -144,11 +140,7 @@ const TimelineContainer = styled(Panel)`
 `;
 
 const StyledGridLineTimeLabels = styled(GridLineTimeLabels)`
-  grid-column: 0;
-`;
-
-const StyledGridLineOverlay = styled(GridLineOverlay)`
-  grid-column: 0;
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const TimelineWidthTracker = styled('div')`

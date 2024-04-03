@@ -1,6 +1,0 @@
----
-created: '2024-02-06T12:13:12.884044Z'
-creator: sentry
-source: tests/sentry/snuba/metrics/test_extraction.py
----
-{"category":"transaction","mri":"c:transactions/on_demand@none","field":null,"tags":[{"key":"query_hash","value":"0c6ddfa6"}],"condition":{"op":"glob","name":"event.transaction","value":["*\\?dispatch*"]}}

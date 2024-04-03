@@ -1,5 +1,9 @@
 import {bulkUpdate} from 'sentry/actionCreators/group';
-import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  clearIndicators,
+} from 'sentry/actionCreators/indicator';
 import {GroupPriorityDropdown} from 'sentry/components/group/groupPriority';
 import {t} from 'sentry/locale';
 import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
@@ -11,13 +15,14 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 type GroupDetailsPriorityProps = {
   group: Group;
+  onChange?: (priority: PriorityLevel) => void;
 };
 
-function GroupPriority({group}: GroupDetailsPriorityProps) {
+function GroupPriority({group, onChange}: GroupDetailsPriorityProps) {
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
 
-  const onChange = (priority: PriorityLevel) => {
+  const onChangePriority = (priority: PriorityLevel) => {
     if (priority === group.priority) {
       return;
     }
@@ -36,18 +41,33 @@ function GroupPriority({group}: GroupDetailsPriorityProps) {
       api,
       {
         orgId: organization.slug,
-        projectId: group.project.slug,
         itemIds: [group.id],
         data: {priority},
+        failSilently: true,
       },
-      {complete: clearIndicators}
+      {
+        success: () => {
+          clearIndicators();
+          onChange?.(priority);
+        },
+        error: () => {
+          clearIndicators();
+          addErrorMessage(t('Unable to update issue priority'));
+        },
+      }
     );
   };
 
+  // We can assume that when there is not `priorityLockedAt`, there were no
+  // user edits to the priority.
+  const lastEditedBy = !group.priorityLockedAt ? 'system' : undefined;
+
   return (
     <GroupPriorityDropdown
-      onChange={onChange}
+      groupId={group.id}
+      onChange={onChangePriority}
       value={group.priority ?? PriorityLevel.MEDIUM}
+      lastEditedBy={lastEditedBy}
     />
   );
 }

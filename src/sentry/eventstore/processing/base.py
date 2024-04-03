@@ -33,6 +33,11 @@ class EventProcessingStore(Service):
     def __get_unprocessed_key(self, key: str) -> str:
         return key + ":u"
 
+    def exists(self, event: Event) -> bool:
+        key = cache_key_for_event(event)
+        return self.get(key) is not None
+
+    @sentry_sdk.tracing.trace
     def store(self, event: Event, unprocessed: bool = False) -> str:
         with sentry_sdk.start_span(op="eventstore.processing.store"):
             key = cache_key_for_event(event)

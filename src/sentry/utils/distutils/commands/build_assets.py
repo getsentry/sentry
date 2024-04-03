@@ -136,7 +136,7 @@ class BuildAssetsCommand(BaseBuildCommand):
 
     def _write_version_file(self, version_info):
         manifest = {
-            "createdAt": datetime.datetime.utcnow().isoformat() + "Z",
+            "createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
             "version": version_info["version"],
             "build": version_info["build"],
         }

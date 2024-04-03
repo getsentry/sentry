@@ -9,7 +9,6 @@ from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import TestCase
 from sentry.testutils.performance_issues.event_generators import get_event
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.performance_issues.detectors.mn_plus_one_db_span_detector import (
     MNPlusOneDBSpanDetector,
 )
@@ -21,7 +20,6 @@ from sentry.utils.performance_issues.performance_detection import (
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 
 
-@region_silo_test
 @pytest.mark.django_db
 class MNPlusOneDBDetectorTest(TestCase):
     def setUp(self):
@@ -127,6 +125,7 @@ class MNPlusOneDBDetectorTest(TestCase):
             [
                 call("_pi_all_issue_count", 1),
                 call("_pi_sdk_name", "sentry.javascript.node"),
+                call("is_standalone_spans", False),
                 call("_pi_transaction", "3818ae4f54ba4fa6ac6f68c9e32793c4"),
                 call(
                     "_pi_m_n_plus_one_db_fp",

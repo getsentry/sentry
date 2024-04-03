@@ -10,6 +10,7 @@ function getPlatformPath(platform: PlatformIntegration) {
   if (platform.type === 'framework') {
     switch (platform.id) {
       case 'capacitor':
+      case 'ionic':
         return `capacitor/capacitor`;
       case 'dart':
         return `dart/dart`;
@@ -19,6 +20,12 @@ function getPlatformPath(platform: PlatformIntegration) {
         return `flutter/flutter`;
       case 'unreal':
         return `unreal/unreal`;
+      case 'unity':
+        return `unity/unity`;
+      case 'minidump':
+        return `minidump/minidump`;
+      case 'native-qt':
+        return `native/native-qt`;
       default:
         return platform.id.replace(`${platform.language}-`, `${platform.language}/`);
     }

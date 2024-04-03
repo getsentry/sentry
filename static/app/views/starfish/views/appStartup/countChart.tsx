@@ -1,5 +1,6 @@
 import {getInterval} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {MultiSeriesEventsStats} from 'sentry/types';
 import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
@@ -15,7 +16,7 @@ import {
   PRIMARY_RELEASE_COLOR,
   SECONDARY_RELEASE_COLOR,
 } from 'sentry/views/starfish/colours';
-import Chart from 'sentry/views/starfish/components/chart';
+import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
@@ -24,6 +25,7 @@ import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/cons
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {useEventsStatsQuery} from 'sentry/views/starfish/utils/useEventsStatsQuery';
 import {MAX_CHART_RELEASE_CHARS} from 'sentry/views/starfish/views/appStartup';
+import {COLD_START_TYPE} from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
 import {OUTPUT_TYPE, YAxis} from 'sentry/views/starfish/views/screens';
 
 function transformData(data?: MultiSeriesEventsStats, primaryRelease?: string) {
@@ -68,7 +70,7 @@ export function CountChart({chartHeight}: Props) {
   } = useReleaseSelection();
 
   const appStartType =
-    decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? '';
+    decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? COLD_START_TYPE;
 
   const query = new MutableSearch([`span.op:app.start.${appStartType}`]);
   const queryString = `${appendReleaseFilters(
@@ -134,12 +136,12 @@ export function CountChart({chartHeight}: Props) {
         grid={{
           left: '0',
           right: '0',
-          top: '8px',
+          top: space(2),
           bottom: '0',
         }}
         showLegend
         definedAxisTicks={2}
-        isLineChart
+        type={ChartType.LINE}
         aggregateOutputFormat={OUTPUT_TYPE[YAxis.COUNT]}
         tooltipFormatterOptions={{
           valueFormatter: value =>

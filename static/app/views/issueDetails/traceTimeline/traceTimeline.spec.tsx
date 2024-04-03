@@ -2,7 +2,7 @@ import {EventFixture} from 'sentry-fixture/event';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -13,7 +13,7 @@ import type {TraceEventResponse} from './useTraceTimelineEvents';
 jest.mock('sentry/utils/routeAnalytics/useRouteAnalyticsParams');
 
 describe('TraceTimeline', () => {
-  const organization = OrganizationFixture({features: ['issues-trace-timeline']});
+  const organization = OrganizationFixture();
   const event = EventFixture({
     dateCreated: '2024-01-24T09:09:03+00:00',
     contexts: {
@@ -93,11 +93,13 @@ describe('TraceTimeline', () => {
       body: discoverBody,
       match: [MockApiClient.matchQuery({dataset: 'discover'})],
     });
-    render(<TraceTimeline event={event} />, {organization});
-    expect(await screen.findByTestId('trace-timeline-empty')).toBeInTheDocument();
-    expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
-      trace_timeline_status: 'empty',
-    });
+    const {container} = render(<TraceTimeline event={event} />, {organization});
+    await waitFor(() =>
+      expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
+        trace_timeline_status: 'empty',
+      })
+    );
+    expect(container).toBeEmptyDOMElement();
   });
 
   it('displays nothing if there are no events', async () => {
@@ -111,11 +113,13 @@ describe('TraceTimeline', () => {
       body: emptyBody,
       match: [MockApiClient.matchQuery({dataset: 'discover'})],
     });
-    render(<TraceTimeline event={event} />, {organization});
-    expect(await screen.findByTestId('trace-timeline-empty')).toBeInTheDocument();
-    expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
-      trace_timeline_status: 'empty',
-    });
+    const {container} = render(<TraceTimeline event={event} />, {organization});
+    await waitFor(() =>
+      expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
+        trace_timeline_status: 'empty',
+      })
+    );
+    expect(container).toBeEmptyDOMElement();
   });
 
   it('shows seconds for very short timelines', async () => {

@@ -24,6 +24,13 @@ export const Dropdown = storyBook(GroupPriorityDropdown, story => {
   story('Default', () => {
     const [value, setValue] = useState(PriorityLevel.MEDIUM);
 
-    return <GroupPriorityDropdown value={value} onChange={setValue} />;
+    return (
+      <GroupPriorityDropdown
+        value={value}
+        onChange={setValue}
+        groupId="1"
+        lastEditedBy="system"
+      />
+    );
   });
 });

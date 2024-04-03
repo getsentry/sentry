@@ -13,7 +13,8 @@ export const WARM_START_TYPE = 'warm';
 export function StartTypeSelector() {
   const location = useLocation();
 
-  const value = decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? '';
+  const value =
+    decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? COLD_START_TYPE;
 
   const options = [
     {value: COLD_START_TYPE, label: t('Cold Start')},

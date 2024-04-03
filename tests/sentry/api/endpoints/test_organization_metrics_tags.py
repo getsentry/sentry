@@ -11,7 +11,6 @@ from sentry.snuba.metrics.naming_layer import get_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.metrics.naming_layer.public import SessionMetricKey
 from sentry.testutils.cases import MetricsAPIBaseTestCase, OrganizationMetricsIntegrationTestCase
-from sentry.testutils.silo import region_silo_test
 from tests.sentry.api.endpoints.test_organization_metrics import (
     MOCKED_DERIVED_METRICS,
     mocked_mri_resolver,
@@ -24,9 +23,7 @@ def mocked_bulk_reverse_resolve(use_case_id, org_id: int, ids: Collection[int]):
     return {}
 
 
-@region_silo_test
 class OrganizationMetricsTagsTest(OrganizationMetricsIntegrationTestCase):
-
     endpoint = "sentry-api-0-organization-metrics-tags"
 
     @property
@@ -111,6 +108,30 @@ class OrganizationMetricsTagsTest(OrganizationMetricsIntegrationTestCase):
             self.organization.slug,
         )
         assert response.data == []
+
+    def test_staff_session_metric_tags(self):
+        staff_user = self.create_user(is_staff=True)
+        self.login_as(user=staff_user, staff=True)
+
+        self.store_session(
+            self.build_session(
+                project_id=self.project.id,
+                started=(time.time() // 60) * 60,
+                status="ok",
+                release="foobar@2.0",
+            )
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+        )
+        assert response.data == [
+            {"key": "environment"},
+            {"key": "release"},
+            {"key": "tag1"},
+            {"key": "tag2"},
+            {"key": "tag3"},
+            {"key": "tag4"},
+        ]
 
     def test_session_metric_tags(self):
         self.store_session(

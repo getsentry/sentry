@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from typing import Literal
-from urllib.parse import quote
 
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.client import ApiClient
@@ -20,13 +19,7 @@ OpsgeniePriority = Literal["P1", "P2", "P3", "P4", "P5"]
 class OpsgenieClient(ApiClient):
     integration_name = "opsgenie"
 
-    def __init__(
-        self,
-        integration: RpcIntegration | Integration,
-        integration_key: str,
-        org_integration_id: int | None = None,  # deprecated but still passed by getsentry
-        keyid: str | None = None,  # deprecated but still passed by getsentry
-    ) -> None:
+    def __init__(self, integration: RpcIntegration | Integration, integration_key: str) -> None:
         self.integration = integration
         self.base_url = f"{self.metadata['base_url']}{OPSGENIE_API_VERSION}"
         self.integration_key = integration_key
@@ -39,13 +32,9 @@ class OpsgenieClient(ApiClient):
     def _get_auth_headers(self):
         return {"Authorization": f"GenieKey {self.integration_key}"}
 
-    # This doesn't work if the team name is "." or "..", which Opsgenie allows for some reason
-    # despite their API not working with these names.
-    def get_team_id(self, team_name: str) -> BaseApiResponseX:
-        params = {"identifierType": "name"}
-        quoted_name = quote(team_name)
-        path = f"/teams/{quoted_name}"
-        return self.get(path=path, headers=self._get_auth_headers(), params=params)
+    def get_alerts(self, limit: int | None = 1) -> BaseApiResponseX:
+        path = f"/alerts?limit={limit}"
+        return self.get(path=path, headers=self._get_auth_headers())
 
     def authorize_integration(self, type: str) -> BaseApiResponseX:
         body = {"type": type}

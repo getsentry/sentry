@@ -1,7 +1,7 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, cleanup, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
@@ -64,17 +64,17 @@ describe('OrganizationStats', function () {
   /**
    * Features and Alerts
    */
-  it('renders header state without tabs', () => {
+  it('renders header state without tabs', async () => {
     const newOrg = initializeOrg();
     render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
       context: newOrg.routerContext,
     });
-    expect(screen.getByText('Organization Usage Stats')).toBeInTheDocument();
+    expect(await screen.findByText('Organization Usage Stats')).toBeInTheDocument();
   });
 
-  it('renders header state with tabs', () => {
+  it('renders header state with tabs', async () => {
     render(<OrganizationStats {...defaultProps} />, {context: routerContext});
-    expect(screen.getByText('Stats')).toBeInTheDocument();
+    expect(await screen.findByText('Stats')).toBeInTheDocument();
     expect(screen.getByText('Usage')).toBeInTheDocument();
     expect(screen.getByText('Issues')).toBeInTheDocument();
     expect(screen.getByText('Health')).toBeInTheDocument();
@@ -140,7 +140,7 @@ describe('OrganizationStats', function () {
     }
   });
 
-  it('renders with an error on stats endpoint', () => {
+  it('renders with an error on stats endpoint', async () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: endpoint,
@@ -148,12 +148,12 @@ describe('OrganizationStats', function () {
     });
     render(<OrganizationStats {...defaultProps} />, {context: routerContext});
 
-    expect(screen.getByTestId('usage-stats-chart')).toBeInTheDocument();
+    expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
     expect(screen.getByTestId('error-messages')).toBeInTheDocument();
   });
 
-  it('renders with an error when user has no projects', () => {
+  it('renders with an error when user has no projects', async () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: endpoint,
@@ -162,7 +162,7 @@ describe('OrganizationStats', function () {
     });
     render(<OrganizationStats {...defaultProps} />, {context: routerContext});
 
-    expect(screen.getByTestId('usage-stats-chart')).toBeInTheDocument();
+    expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
     expect(screen.getByTestId('empty-message')).toBeInTheDocument();
   });
@@ -173,34 +173,40 @@ describe('OrganizationStats', function () {
   it('pushes state changes to the route', async () => {
     render(<OrganizationStats {...defaultProps} />, {context: routerContext});
 
-    await userEvent.click(screen.getByText('Category'));
+    await userEvent.click(await screen.findByText('Category'));
     await userEvent.click(screen.getByText('Attachments'));
-    expect(router.push).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: {dataCategory: DATA_CATEGORY_INFO.attachment.plural},
-      })
+    await waitFor(() =>
+      expect(router.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {dataCategory: DATA_CATEGORY_INFO.attachment.plural},
+        })
+      )
     );
 
     await userEvent.click(screen.getByText('Periodic'));
     await userEvent.click(screen.getByText('Cumulative'));
-    expect(router.push).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: {transform: ChartDataTransform.CUMULATIVE},
-      })
+    await waitFor(() =>
+      expect(router.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {transform: ChartDataTransform.CUMULATIVE},
+        })
+      )
     );
     const inputQuery = 'proj-1';
     await userEvent.type(
-      screen.getByPlaceholderText('Filter your projects'),
-      `${inputQuery}{enter}`
+      screen.getByRole('textbox', {name: 'Filter projects'}),
+      `${inputQuery}{Enter}`
     );
-    expect(router.push).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: {query: inputQuery},
-      })
+    await waitFor(() =>
+      expect(router.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {query: inputQuery},
+        })
+      )
     );
   });
 
-  it('does not leak query params onto next page links', () => {
+  it('does not leak query params onto next page links', async () => {
     const dummyLocation = PAGE_QUERY_PARAMS.reduce(
       (location, param) => {
         location.query[param] = '';
@@ -212,7 +218,7 @@ describe('OrganizationStats', function () {
       context: routerContext,
     });
 
-    const projectLinks = screen.getAllByTestId('badge-display-name');
+    const projectLinks = await screen.findAllByTestId('badge-display-name');
     expect(projectLinks.length).toBeGreaterThan(0);
     const leakingRegex = PAGE_QUERY_PARAMS.join('|');
     for (const projectLink of projectLinks) {
@@ -226,7 +232,7 @@ describe('OrganizationStats', function () {
   /**
    * Project Selection
    */
-  it('renders single project without global-views', () => {
+  it('renders single project without global-views', async () => {
     const newOrg = initializeOrg();
     newOrg.organization.features = [
       'team-insights',
@@ -239,12 +245,12 @@ describe('OrganizationStats', function () {
       organization: newOrg.organization,
     });
 
+    expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
     expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('usage-stats-chart')).toBeInTheDocument();
     expect(screen.queryByText('usage-stats-table')).not.toBeInTheDocument();
   });
 
-  it('renders default projects with global-views', () => {
+  it('renders default projects with global-views', async () => {
     const newOrg = initializeOrg();
     newOrg.organization.features = [
       'global-views',
@@ -258,7 +264,7 @@ describe('OrganizationStats', function () {
       organization: newOrg.organization,
     });
 
-    expect(screen.getByText('All Projects')).toBeInTheDocument();
+    expect(await screen.findByText('All Projects')).toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-chart')).toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
 
@@ -272,7 +278,7 @@ describe('OrganizationStats', function () {
     });
   });
 
-  it('renders with multiple projects selected', () => {
+  it('renders with multiple projects selected', async () => {
     const newOrg = initializeOrg();
     newOrg.organization.features = [
       'global-views',
@@ -300,8 +306,8 @@ describe('OrganizationStats', function () {
     );
     act(() => PageFiltersStore.updateProjects(selectedProjects, []));
 
+    expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
     expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
-    expect(screen.getByTestId('usage-stats-chart')).toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
 
     expect(mockRequest).toHaveBeenCalledWith(
@@ -318,7 +324,7 @@ describe('OrganizationStats', function () {
     );
   });
 
-  it('renders with a single project selected', () => {
+  it('renders with a single project selected', async () => {
     const newOrg = initializeOrg();
     newOrg.organization.features = [
       'global-views',
@@ -345,8 +351,8 @@ describe('OrganizationStats', function () {
     );
     act(() => PageFiltersStore.updateProjects(selectedProject, []));
 
+    expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
     expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
-    expect(screen.getByTestId('usage-stats-chart')).toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
     expect(screen.getByText('All Projects')).toBeInTheDocument();
 
@@ -384,7 +390,7 @@ describe('OrganizationStats', function () {
   /**
    * Feature Flagging
    */
-  it('renders legacy organization stats without appropriate flags', () => {
+  it('renders legacy organization stats without appropriate flags', async () => {
     const selectedProject = [1];
     const newSelection = {
       ...defaultSelection,
@@ -405,8 +411,9 @@ describe('OrganizationStats', function () {
         }
       );
       act(() => PageFiltersStore.updateProjects(selectedProject, []));
+
+      await act(tick);
       expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
-      cleanup();
     }
   });
 });

@@ -8,7 +8,8 @@ import sentry_sdk
 from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.incidents.charts import build_metric_alert_chart
-from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus
+from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.repository import get_default_metric_alert_repository
 from sentry.integrations.repository.metric_alert import (
     MetricAlertNotificationMessageRepository,
@@ -71,33 +72,34 @@ def send_incident_alert_notification(
 
     repository: MetricAlertNotificationMessageRepository = get_default_metric_alert_repository()
     parent_notification_message = None
-    if features.has("organizations:slack-thread", organization):
-        try:
-            parent_notification_message = repository.get_parent_notification_message(
-                alert_rule_id=incident.alert_rule_id,
-                incident_id=incident.id,
-                trigger_action_id=action.id,
-            )
-        except Exception:
-            # if there's an error trying to grab a parent notification, don't let that error block this flow
-            pass
+    try:
+        parent_notification_message = repository.get_parent_notification_message(
+            alert_rule_id=incident.alert_rule_id,
+            incident_id=incident.id,
+            trigger_action_id=action.id,
+        )
+    except Exception:
+        # if there's an error trying to grab a parent notification, don't let that error block this flow
+        pass
 
     new_notification_message_object = NewMetricAlertNotificationMessage(
         incident_id=incident.id,
         trigger_action_id=action.id,
     )
 
-    # Only reply and use threads if the organization is enabled in the FF
-    if features.has("organizations:slack-thread", organization):
-        # If a parent notification exists for this rule and action, then we can reply in a thread
-        if parent_notification_message is not None:
-            # Make sure we track that this reply will be in relation to the parent row
-            new_notification_message_object.parent_notification_message_id = (
-                parent_notification_message.id
-            )
-            # To reply to a thread, use the specific key in the payload as referenced by the docs
-            # https://api.slack.com/methods/chat.postMessage#arg_thread_ts
-            payload["thread_ts"] = parent_notification_message.message_identifier
+    # If a parent notification exists for this rule and action, then we can reply in a thread
+    if parent_notification_message is not None:
+        # Make sure we track that this reply will be in relation to the parent row
+        new_notification_message_object.parent_notification_message_id = (
+            parent_notification_message.id
+        )
+        # To reply to a thread, use the specific key in the payload as referenced by the docs
+        # https://api.slack.com/methods/chat.postMessage#arg_thread_ts
+        payload["thread_ts"] = parent_notification_message.message_identifier
+
+        # If the incident is critical status, even if it's in a thread, send to main channel
+        if incident.status == IncidentStatus.CRITICAL.value:
+            payload["reply_broadcast"] = True
 
     client = SlackClient(integration_id=integration.id)
     success = False
@@ -134,14 +136,13 @@ def send_incident_alert_notification(
             )
         new_notification_message_object.message_identifier = str(ts) if ts is not None else None
 
-    if features.has("organizations:slack-thread", organization):
-        # Save the notification message we just sent with the response id or error we received
-        try:
-            repository.create_notification_message(data=new_notification_message_object)
-        except Exception:
-            # If we had an unexpected error with saving a record to our datastore,
-            # do not let the error bubble up, nor block this flow from finishing
-            pass
+    # Save the notification message we just sent with the response id or error we received
+    try:
+        repository.create_notification_message(data=new_notification_message_object)
+    except Exception:
+        # If we had an unexpected error with saving a record to our datastore,
+        # do not let the error bubble up, nor block this flow from finishing
+        pass
 
     return success
 

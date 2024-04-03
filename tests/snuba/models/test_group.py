@@ -5,12 +5,10 @@ from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOG
 from sentry.models.group import Group
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
-@region_silo_test
 class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, OccurrenceTestMixin):
     def test_get_oldest_latest_for_environments(self):
         project = self.create_project()

@@ -41,6 +41,7 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
+import {defaultMetricWidget} from 'sentry/views/dashboards/metrics/utils';
 import {
   cloneDashboard,
   getCurrentPageFilters,
@@ -54,7 +55,6 @@ import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {MetricsDashboardContextProvider} from 'sentry/views/dashboards/widgetCard/metricsContext';
 import {MetricsDataSwitcherAlert} from 'sentry/views/performance/landing/metricsDataSwitcherAlert';
 
-import {defaultMetricWidget} from '../../utils/metrics/dashboard';
 import {generatePerformanceEventView} from '../performance/data';
 import {MetricsDataSwitcher} from '../performance/landing/metricsDataSwitcher';
 import {DiscoverQueryPageSource} from '../performance/utils';
@@ -497,13 +497,12 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   handleAddMetricWidget = (layout?: Widget['layout']) => {
-    const {dashboard, selection, router, location} = this.props;
+    const {dashboard, router, location} = this.props;
 
     const widgetCopy = cloneDeep(
       assignTempId({
         layout,
-        ...defaultMetricWidget(selection),
-        widgetType: WidgetType.METRICS,
+        ...defaultMetricWidget(),
       })
     );
 
@@ -535,23 +534,25 @@ class DashboardDetail extends Component<Props, State> {
       this.handleAddMetricWidget();
       return;
     }
-    this.setState({
-      modifiedDashboard: cloneDashboard(dashboard),
-    });
-
-    if (dashboardId) {
-      router.push(
-        normalizeUrl({
-          pathname: `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/new/`,
-          query: {
-            ...location.query,
-            source: DashboardWidgetSource.DASHBOARDS,
-            dataset,
-          },
-        })
-      );
-      return;
-    }
+    this.setState(
+      {
+        modifiedDashboard: cloneDashboard(dashboard),
+      },
+      () => {
+        if (dashboardId) {
+          router.push(
+            normalizeUrl({
+              pathname: `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/new/`,
+              query: {
+                ...location.query,
+                source: DashboardWidgetSource.DASHBOARDS,
+                dataset,
+              },
+            })
+          );
+        }
+      }
+    );
   };
 
   onCommit = () => {
@@ -584,18 +585,21 @@ class DashboardDetail extends Component<Props, State> {
             (newDashboard: DashboardDetails) => {
               addSuccessMessage(t('Dashboard created'));
               trackAnalytics('dashboards2.create.complete', {organization});
-              this.setState({
-                dashboardState: DashboardState.VIEW,
-              });
-
-              // redirect to new dashboard
-              browserHistory.replace(
-                normalizeUrl({
-                  pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
-                  query: {
-                    query: omit(location.query, Object.values(DashboardFilterKeys)),
-                  },
-                })
+              this.setState(
+                {
+                  dashboardState: DashboardState.VIEW,
+                },
+                () => {
+                  // redirect to new dashboard
+                  browserHistory.replace(
+                    normalizeUrl({
+                      pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
+                      query: {
+                        query: omit(location.query, Object.values(DashboardFilterKeys)),
+                      },
+                    })
+                  );
+                }
               );
             },
             () => undefined
@@ -620,22 +624,24 @@ class DashboardDetail extends Component<Props, State> {
               }
               addSuccessMessage(t('Dashboard updated'));
               trackAnalytics('dashboards2.edit.complete', {organization});
-              this.setState({
-                dashboardState: DashboardState.VIEW,
-                modifiedDashboard: null,
-              });
-
-              if (dashboard && newDashboard.id !== dashboard.id) {
-                browserHistory.replace(
-                  normalizeUrl({
-                    pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
-                    query: {
-                      ...location.query,
-                    },
-                  })
-                );
-                return;
-              }
+              this.setState(
+                {
+                  dashboardState: DashboardState.VIEW,
+                  modifiedDashboard: null,
+                },
+                () => {
+                  if (dashboard && newDashboard.id !== dashboard.id) {
+                    browserHistory.replace(
+                      normalizeUrl({
+                        pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
+                        query: {
+                          ...location.query,
+                        },
+                      })
+                    );
+                  }
+                }
+              );
             },
             // `updateDashboard` does its own error handling
             () => undefined
@@ -938,22 +944,35 @@ class DashboardDetail extends Component<Props, State> {
                                       newModifiedDashboard
                                     ).then(
                                       (newDashboard: DashboardDetails) => {
+                                        addSuccessMessage(t('Dashboard filters updated'));
+
+                                        const navigateToDashboard = () => {
+                                          browserHistory.replace(
+                                            normalizeUrl({
+                                              pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
+                                              query: omit(
+                                                location.query,
+                                                Object.values(DashboardFilterKeys)
+                                              ),
+                                            })
+                                          );
+                                        };
+
                                         if (onDashboardUpdate) {
                                           onDashboardUpdate(newDashboard);
-                                          this.setState({
-                                            modifiedDashboard: null,
-                                          });
+                                          this.setState(
+                                            {
+                                              modifiedDashboard: null,
+                                            },
+                                            () => {
+                                              // Wait for modifiedDashboard state to update before navigating
+                                              navigateToDashboard();
+                                            }
+                                          );
+                                          return;
                                         }
-                                        addSuccessMessage(t('Dashboard filters updated'));
-                                        browserHistory.replace(
-                                          normalizeUrl({
-                                            pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
-                                            query: omit(
-                                              location.query,
-                                              Object.values(DashboardFilterKeys)
-                                            ),
-                                          })
-                                        );
+
+                                        navigateToDashboard();
                                       },
                                       // `updateDashboard` does its own error handling
                                       () => undefined

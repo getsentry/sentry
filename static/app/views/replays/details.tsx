@@ -54,7 +54,7 @@ function ReplayDetails({params: {replaySlug}}: Props) {
   // TODO: replayId is known ahead of time and useReplayData is parsing it from the replaySlug
   // once we fix the route params and links we should fix this to accept replayId and stop returning it
   const {
-    errors: replayErrors,
+    errors,
     fetchError,
     fetching,
     onRetry,
@@ -66,6 +66,8 @@ function ReplayDetails({params: {replaySlug}}: Props) {
     replaySlug,
     orgSlug,
   });
+
+  const replayErrors = errors.filter(e => e.title !== 'User Feedback');
 
   useLogReplayDataLoaded({fetchError, fetching, projectSlug, replay});
 
@@ -144,6 +146,11 @@ function ReplayDetails({params: {replaySlug}}: Props) {
     );
   }
 
+  const isVideoReplay = Boolean(
+    organization.features.includes('session-replay-mobile-player') &&
+      replay?.isVideoReplay()
+  );
+
   return (
     <ReplayContextProvider
       analyticsContext="replay_details"
@@ -154,12 +161,13 @@ function ReplayDetails({params: {replaySlug}}: Props) {
     >
       <ReplayTransactionContext replayRecord={replayRecord}>
         <Page
+          isVideoReplay={isVideoReplay}
           orgSlug={orgSlug}
           replayRecord={replayRecord}
           projectSlug={projectSlug}
           replayErrors={replayErrors}
         >
-          <ReplaysLayout />
+          <ReplaysLayout isVideoReplay={isVideoReplay} />
         </Page>
       </ReplayTransactionContext>
     </ReplayContextProvider>

@@ -1,5 +1,6 @@
 import {getInterval} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {MultiSeriesEventsStats} from 'sentry/types';
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
@@ -15,7 +16,7 @@ import {
   PRIMARY_RELEASE_COLOR,
   SECONDARY_RELEASE_COLOR,
 } from 'sentry/views/starfish/colours';
-import Chart from 'sentry/views/starfish/components/chart';
+import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
@@ -68,7 +69,8 @@ function StartDurationWidget({additionalFilters, chartHeight}: Props) {
     isLoading: isReleasesLoading,
   } = useReleaseSelection();
 
-  const startType = decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? '';
+  const startType =
+    decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? COLD_START_TYPE;
 
   const query = new MutableSearch([
     ...(startType === COLD_START_TYPE ? COLD_START_CONDITIONS : WARM_START_CONDITIONS),
@@ -136,12 +138,12 @@ function StartDurationWidget({additionalFilters, chartHeight}: Props) {
         grid={{
           left: '0',
           right: '0',
-          top: '8px',
+          top: space(2),
           bottom: '0',
         }}
         showLegend
         definedAxisTicks={2}
-        isLineChart
+        type={ChartType.LINE}
         aggregateOutputFormat="duration"
         tooltipFormatterOptions={{
           valueFormatter: value =>

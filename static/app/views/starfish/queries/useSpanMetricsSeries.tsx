@@ -7,11 +7,11 @@ import {intervalToMilliseconds} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {getIntervalForMetricFunction} from 'sentry/views/performance/database/getIntervalForMetricFunction';
 import {DEFAULT_INTERVAL} from 'sentry/views/performance/database/settings';
-import type {MetricsProperty, SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
+import type {MetricsProperty} from 'sentry/views/starfish/types';
 import {useWrappedDiscoverTimeseriesQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
 interface SpanMetricTimeseriesRow {
@@ -20,27 +20,26 @@ interface SpanMetricTimeseriesRow {
 }
 
 interface UseSpanMetricsSeriesOptions<Fields> {
-  filters?: SpanMetricsQueryFilters;
+  enabled?: boolean;
   referrer?: string;
+  search?: MutableSearch;
   yAxis?: Fields;
 }
 
 export const useSpanMetricsSeries = <Fields extends MetricsProperty[]>(
   options: UseSpanMetricsSeriesOptions<Fields> = {}
 ) => {
-  const {filters = {}, yAxis = [], referrer = 'span-metrics-series'} = options;
+  const {search = undefined, yAxis = [], referrer = 'span-metrics-series'} = options;
 
   const pageFilters = usePageFilters();
 
-  const eventView = getEventView(filters, pageFilters.selection, yAxis);
-
-  const enabled = Object.values(filters).every(value => Boolean(value));
+  const eventView = getEventView(search, pageFilters.selection, yAxis);
 
   const result = useWrappedDiscoverTimeseriesQuery<SpanMetricTimeseriesRow[]>({
     eventView,
     initialData: [],
     referrer,
-    enabled,
+    enabled: options.enabled,
   });
 
   const parsedData = keyBy(
@@ -62,12 +61,10 @@ export const useSpanMetricsSeries = <Fields extends MetricsProperty[]>(
 };
 
 function getEventView(
-  filters: SpanMetricsQueryFilters,
+  search: MutableSearch | undefined,
   pageFilters: PageFilters,
   yAxis: string[]
 ) {
-  const query = MutableSearch.fromQueryObject(filters);
-
   // Pick the highest possible interval for the given yAxis selection. Find the ideal interval for each function, then choose the largest one. This results in the lowest granularity, but best performance.
   const interval = sortBy(
     yAxis.map(yAxisFunctionName => {
@@ -87,7 +84,7 @@ function getEventView(
   return EventView.fromNewQueryWithPageFilters(
     {
       name: '',
-      query: query.formatString(),
+      query: search?.formatString() ?? undefined,
       fields: [],
       yAxis,
       dataset: DiscoverDatasets.SPANS_METRICS,

@@ -58,10 +58,7 @@ export function useSourceMapDebuggerData(event: Event, projectSlug: string) {
       }/source-map-debug-blue-thunder-edition/`,
     ],
     {
-      enabled:
-        isSdkThatShouldShowSourceMapsDebugger &&
-        organization !== null &&
-        organization.features.includes('source-maps-debugger-blue-thunder-edition'),
+      enabled: isSdkThatShouldShowSourceMapsDebugger && organization !== null,
       staleTime: Infinity,
       retry: false,
       refetchOnWindowFocus: false,

@@ -5,9 +5,8 @@ import BadgeDisplayName from 'sentry/components/idBadge/badgeDisplayName';
 import BaseBadge from 'sentry/components/idBadge/baseBadge';
 import type {LinkProps} from 'sentry/components/links/link';
 import Link from 'sentry/components/links/link';
-import type {Organization} from 'sentry/types';
 import getPlatformName from 'sentry/utils/getPlatformName';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type BaseBadgeProps = React.ComponentProps<typeof BaseBadge>;
 type Project = NonNullable<BaseBadgeProps['project']>;
@@ -25,7 +24,6 @@ export interface ProjectBadgeProps
    * If true, will use default max-width, or specify one as a string
    */
   hideOverflow?: boolean | string;
-  organization?: Organization;
   /**
    * Overrides where the project badge links
    */
@@ -34,7 +32,6 @@ export interface ProjectBadgeProps
 
 function ProjectBadge({
   project,
-  organization,
   to,
   hideOverflow = true,
   disableLink = false,
@@ -42,6 +39,7 @@ function ProjectBadge({
   className,
   ...props
 }: ProjectBadgeProps) {
+  const organization = useOrganization();
   const {slug, id} = project;
 
   const badge = (
@@ -81,4 +79,4 @@ const StyledLink = styled(Link)`
   }
 `;
 
-export default withOrganization(ProjectBadge);
+export default ProjectBadge;

@@ -283,8 +283,6 @@ class BaseTeamSerializer(Serializer):
             # Teams only have letter avatars.
             "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
         }
-        if obj.org_role:
-            result["orgRole"] = obj.org_role
 
         return result
 

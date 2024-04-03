@@ -8,6 +8,7 @@ from datetime import datetime
 from functools import reduce
 from typing import Any, Literal, NamedTuple, Union
 
+import sentry_sdk
 from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
 from parsimonious.grammar import Grammar
@@ -507,6 +508,7 @@ class SearchConfig:
 class SearchVisitor(NodeVisitor):
     unwrapped_exceptions = (InvalidSearchQuery,)
 
+    @sentry_sdk.tracing.trace
     def __init__(self, config=None, params=None, builder=None):
         super().__init__()
 
@@ -1170,6 +1172,7 @@ QueryOp = Literal["AND", "OR"]
 QueryToken = Union[SearchFilter, QueryOp, ParenExpression]
 
 
+@sentry_sdk.tracing.trace
 def parse_search_query(
     query, config=None, params=None, builder=None, config_overrides=None
 ) -> list[

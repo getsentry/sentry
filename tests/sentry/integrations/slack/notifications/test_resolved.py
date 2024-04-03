@@ -67,7 +67,7 @@ class SlackResolvedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         assert blocks[0]["text"]["text"] == fallback_text
         assert (
             blocks[1]["text"]["text"]
-            == f":exclamation: <{issue_link}/?referrer=resolved_activity-slack&notification_uuid={notification_uuid}|*{self.group.title}*>"
+            == f":red_circle: <{issue_link}/?referrer=resolved_activity-slack&notification_uuid={notification_uuid}|*{self.group.title}*>"
         )
         assert (
             blocks[3]["elements"][0]["text"]

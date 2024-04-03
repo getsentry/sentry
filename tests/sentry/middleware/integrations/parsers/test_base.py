@@ -1,4 +1,3 @@
-import dataclasses
 from collections.abc import Iterable
 from unittest.mock import MagicMock, patch
 
@@ -7,13 +6,9 @@ from django.test import RequestFactory, override_settings
 from pytest import raises
 from rest_framework import status
 
+from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.middleware.integrations.parsers.base import BaseRequestParser
-from sentry.models.outbox import (
-    ControlOutbox,
-    OutboxCategory,
-    OutboxScope,
-    WebhookProviderIdentifier,
-)
+from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.types.region import Region, RegionCategory
@@ -92,23 +87,22 @@ class BaseRequestParserTest(TestCase):
             assert type(response_map[region.name].error) is SiloLimit.AvailabilityError
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_get_response_from_outbox_creation(self):
+    def test_get_response_from_webhookpayload_creation(self):
         with pytest.raises(NotImplementedError):
             self.parser.get_response_from_outbox_creation(regions=self.region_config)
 
         class MockParser(BaseRequestParser):
             webhook_identifier = WebhookProviderIdentifier.SLACK
+            provider = "slack"
 
         parser = MockParser(self.request, self.response_handler)
 
         response = parser.get_response_from_outbox_creation(regions=self.region_config)
         assert response.status_code == status.HTTP_202_ACCEPTED
-        new_outboxes = ControlOutbox.objects.all()
-        assert len(new_outboxes) == 2
-        for outbox in new_outboxes:
-            assert outbox.region_name in ["us", "eu"]
-            assert outbox.category == OutboxCategory.WEBHOOK_PROXY
-            assert outbox.shard_scope == OutboxScope.WEBHOOK_SCOPE
-            assert outbox.shard_identifier == WebhookProviderIdentifier.SLACK.value
-            payload = outbox.get_webhook_payload_from_request(self.request)
-            assert outbox.payload == dataclasses.asdict(payload)
+        payloads = WebhookPayload.objects.all()
+        assert len(payloads) == 2
+        for payload in payloads:
+            assert payload.region_name in ["us", "eu"]
+            assert payload.mailbox_name == "slack:0"
+            assert payload.request_path
+            assert payload.request_method

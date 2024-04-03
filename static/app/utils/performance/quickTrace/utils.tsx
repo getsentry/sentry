@@ -308,7 +308,7 @@ export function filterTrace(
 export function isTraceTransaction<U extends TraceFull | TraceFullDetailed>(
   transaction: TraceRoot | TraceError | QuickTraceEvent | U
 ): transaction is U {
-  return 'event_id' in transaction;
+  return 'transaction' in transaction;
 }
 
 export function isTraceError(

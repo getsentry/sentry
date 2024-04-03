@@ -139,6 +139,17 @@ class DatabaseBackedUserService(UserService):
             org_query = org_query.filter(status=OrganizationStatus.ACTIVE)
         return [serialize_organization_mapping(o) for o in org_query]
 
+    def get_member_region_names(self, *, user_id: int) -> list[str]:
+        org_ids = OrganizationMemberMapping.objects.filter(user_id=user_id).values_list(
+            "organization_id", flat=True
+        )
+        region_query = (
+            OrganizationMapping.objects.filter(organization_id__in=org_ids)
+            .values_list("region_name", flat=True)
+            .distinct()
+        )
+        return list(region_query)
+
     def flush_nonce(self, *, user_id: int) -> None:
         user = User.objects.filter(id=user_id).first()
         if user is not None:

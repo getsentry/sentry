@@ -4,7 +4,14 @@ import {
   generateSuspectSpansResponse,
   initializeData as _initializeData,
 } from 'sentry-test/performance/initializePerformanceData';
-import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import SpanDetails from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails';
@@ -375,7 +382,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         });
       });
 
-      it('renders a search bar', function () {
+      it('renders a search bar', async function () {
         const data = initializeData({
           features: FEATURES,
           query: {project: '1', transaction: 'transaction'},
@@ -386,11 +393,11 @@ describe('Performance > Transaction Spans > Span Summary', function () {
           organization: data.organization,
         });
 
-        const searchBarNode = screen.getByPlaceholderText('Filter Transactions');
+        const searchBarNode = await screen.findByPlaceholderText('Filter Transactions');
         expect(searchBarNode).toBeInTheDocument();
       });
 
-      it('disables reset button when no min or max query parameters were set', function () {
+      it('disables reset button when no min or max query parameters were set', async function () {
         const data = initializeData({
           features: FEATURES,
           query: {project: '1', transaction: 'transaction'},
@@ -401,14 +408,14 @@ describe('Performance > Transaction Spans > Span Summary', function () {
           organization: data.organization,
         });
 
-        const resetButton = screen.getByRole('button', {
+        const resetButton = await screen.findByRole('button', {
           name: /reset view/i,
         });
         expect(resetButton).toBeInTheDocument();
         expect(resetButton).toBeDisabled();
       });
 
-      it('enables reset button when min and max are set', function () {
+      it('enables reset button when min and max are set', async function () {
         const data = initializeData({
           features: FEATURES,
           query: {project: '1', transaction: 'transaction', min: '10', max: '100'},
@@ -419,13 +426,13 @@ describe('Performance > Transaction Spans > Span Summary', function () {
           organization: data.organization,
         });
 
-        const resetButton = screen.getByRole('button', {
+        const resetButton = await screen.findByRole('button', {
           name: /reset view/i,
         });
         expect(resetButton).toBeEnabled();
       });
 
-      it('clears min and max query parameters when reset button is clicked', function () {
+      it('clears min and max query parameters when reset button is clicked', async function () {
         const data = initializeData({
           features: FEATURES,
           query: {project: '1', transaction: 'transaction', min: '10', max: '100'},
@@ -436,10 +443,10 @@ describe('Performance > Transaction Spans > Span Summary', function () {
           organization: data.organization,
         });
 
-        const resetButton = screen.getByRole('button', {
+        const resetButton = await screen.findByRole('button', {
           name: /reset view/i,
         });
-        resetButton.click();
+        await userEvent.click(resetButton);
         expect(browserHistory.push).toHaveBeenCalledWith(
           expect.not.objectContaining({min: expect.any(String), max: expect.any(String)})
         );
@@ -494,12 +501,12 @@ describe('Performance > Transaction Spans > Span Summary', function () {
           'Self Time Breakdown'
         );
 
-        (await within(displayToggle).findByRole('button')).click();
-        (
+        await userEvent.click(await within(displayToggle).findByRole('button'));
+        await userEvent.click(
           await within(displayToggle).findByRole('option', {
             name: 'Self Time Distribution',
           })
-        ).click();
+        );
 
         expect(browserHistory.push).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -584,7 +591,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         expect(nodes[0]).toBeInTheDocument();
       });
 
-      it('sends min and max to span example query', function () {
+      it('sends min and max to span example query', async function () {
         const mock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/events-spans/',
           body: {},
@@ -599,18 +606,20 @@ describe('Performance > Transaction Spans > Span Summary', function () {
           organization: data.organization,
         });
 
-        expect(mock).toHaveBeenLastCalledWith(
-          '/organizations/org-slug/events-spans/',
-          expect.objectContaining({
-            query: expect.objectContaining({
-              min_exclusive_time: '10',
-              max_exclusive_time: '120',
-            }),
-          })
-        );
+        await waitFor(() => {
+          expect(mock).toHaveBeenLastCalledWith(
+            '/organizations/org-slug/events-spans/',
+            expect.objectContaining({
+              query: expect.objectContaining({
+                min_exclusive_time: '10',
+                max_exclusive_time: '120',
+              }),
+            })
+          );
+        });
       });
 
-      it('sends min and max to suspect spans query', function () {
+      it('sends min and max to suspect spans query', async function () {
         const mock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/events-spans-performance/',
           body: {},
@@ -625,15 +634,17 @@ describe('Performance > Transaction Spans > Span Summary', function () {
           organization: data.organization,
         });
 
-        expect(mock).toHaveBeenLastCalledWith(
-          '/organizations/org-slug/events-spans-performance/',
-          expect.objectContaining({
-            query: expect.objectContaining({
-              min_exclusive_time: '10',
-              max_exclusive_time: '120',
-            }),
-          })
-        );
+        await waitFor(() => {
+          expect(mock).toHaveBeenLastCalledWith(
+            '/organizations/org-slug/events-spans-performance/',
+            expect.objectContaining({
+              query: expect.objectContaining({
+                min_exclusive_time: '10',
+                max_exclusive_time: '120',
+              }),
+            })
+          );
+        });
       });
     });
   });

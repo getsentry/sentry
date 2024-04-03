@@ -420,6 +420,13 @@ class Quota(Service):
                 scope=QuotaScope.ORGANIZATION,
             ),
             AbuseQuota(
+                id="oacm",
+                option="organization-abuse-quota.custom-metric-bucket-limit",
+                categories=[DataCategory.METRIC_BUCKET],
+                scope=QuotaScope.ORGANIZATION,
+                namespace="custom",
+            ),
+            AbuseQuota(
                 id="gam",
                 option="global-abuse-quota.metric-bucket-limit",
                 categories=[DataCategory.METRIC_BUCKET],
@@ -491,12 +498,12 @@ class Quota(Service):
             # Negative limits in config mean a reject-all quota.
             if limit < 0:
                 yield QuotaConfig(
+                    limit=0,
                     scope=quota.scope,
                     categories=quota.categories,
-                    limit=0,
                     reason_code="disabled",
+                    namespace=quota.namespace,
                 )
-
             else:
                 yield QuotaConfig(
                     id=quota.id,
@@ -573,7 +580,7 @@ class Quota(Service):
     ) -> float | None:
         """
         Returns the blended sample rate for an org based on the package that they are currently on. Returns ``None``
-        if the the organization doesn't have dynamic sampling.
+        if the organization doesn't have dynamic sampling.
 
         The reasoning for having two params as `Optional` is because this method was first designed to work with
         `Project` but due to requirements change the `Organization` was needed and since we can get the `Organization`

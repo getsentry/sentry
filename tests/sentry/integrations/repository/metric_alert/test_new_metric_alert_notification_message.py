@@ -1,8 +1,8 @@
 import pytest
 
+from sentry.integrations.repository.base import MessageIdentifierWithErrorValidationError
 from sentry.integrations.repository.metric_alert import (
     IncidentAndTriggerActionValidationError,
-    MessageIdentifierWithErrorValidationError,
     NewMetricAlertNotificationMessage,
 )
 

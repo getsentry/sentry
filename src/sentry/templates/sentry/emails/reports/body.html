@@ -214,7 +214,7 @@
         </h1>
       </td>
       <td class="align-right">
-        <strong>Weekly Update for {{ organization.name }}</strong><br />
+        <strong>Weekly Update for {{ organization.name|sanitize_periods }}</strong><br />
         {{ start }} &ndash; {{ end }}
       </td>
     </tr>

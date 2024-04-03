@@ -235,7 +235,7 @@ class ProjectOwnership(Model):
         group: Group | None = None,
         organization_id: int | None = None,
         force_autoassign: bool = False,
-        logging_extra: dict[str, str] | None = None,
+        logging_extra: dict[str, str | bool] | None = None,
     ):
         """
         Get the auto-assign owner for a project if there are any.
@@ -262,6 +262,7 @@ class ProjectOwnership(Model):
             return
 
         with metrics.timer("projectownership.get_autoassign_owners"):
+
             ownership = cls.get_ownership_cached(project_id)
             if not ownership:
                 ownership = cls(project_id=project_id)
@@ -274,9 +275,10 @@ class ProjectOwnership(Model):
             logging_extra["autoassignment_types"] = autoassignment_types
 
             # Get the most recent GroupOwner that matches the following order: Suspect Committer, then Ownership Rule, then Code Owner
-            issue_owner = GroupOwner.get_autoassigned_owner_cached(
+            issue_owner = GroupOwner.get_autoassigned_owner(
                 group.id, project_id, autoassignment_types
             )
+
             if issue_owner is False:
                 logger.info("handle_auto_assignment.no_issue_owner", extra=logging_extra)
                 return
@@ -390,9 +392,6 @@ def process_resource_change(instance, change, **kwargs):
         instance if change == "updated" else None,
         READ_CACHE_DURATION,
     )
-    autoassignment_types = ProjectOwnership._get_autoassignment_types(instance)
-    if len(autoassignment_types) > 0:
-        GroupOwner.invalidate_autoassigned_owner_cache(instance.project_id, autoassignment_types)
     GroupOwner.invalidate_assignee_exists_cache(instance.project.id)
     GroupOwner.invalidate_debounce_issue_owners_evaluation_cache(instance.project_id)
 

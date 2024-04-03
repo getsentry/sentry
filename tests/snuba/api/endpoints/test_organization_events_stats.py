@@ -1,5 +1,5 @@
 import uuid
-from datetime import timedelta, timezone
+from datetime import timedelta
 from unittest import mock
 from uuid import uuid4
 
@@ -16,14 +16,12 @@ from sentry.models.transaction_threshold import ProjectTransactionThreshold, Tra
 from sentry.snuba.discover import OTHER_KEY
 from sentry.testutils.cases import APITestCase, ProfilesSnubaTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 pytestmark = pytest.mark.sentry_metrics
 
 
-@region_silo_test
 class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     endpoint = "sentry-api-0-organization-events-stats"
 
@@ -99,7 +97,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
-            self.day_ago.replace(tzinfo=timezone.utc),
+            self.day_ago,
         )
         assert group_info is not None
         self.store_search_issue(
@@ -107,14 +105,14 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
-            self.day_ago.replace(tzinfo=timezone.utc) + timedelta(hours=1, minutes=1),
+            self.day_ago + timedelta(hours=1, minutes=1),
         )
         self.store_search_issue(
             self.project.id,
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
-            self.day_ago.replace(tzinfo=timezone.utc) + timedelta(hours=1, minutes=2),
+            self.day_ago + timedelta(hours=1, minutes=2),
         )
         with self.feature(
             [
@@ -142,7 +140,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
-            self.day_ago.replace(tzinfo=timezone.utc) + timedelta(minutes=1),
+            self.day_ago + timedelta(minutes=1),
         )
         assert group_info is not None
         self.store_search_issue(
@@ -150,14 +148,14 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
-            self.day_ago.replace(tzinfo=timezone.utc) + timedelta(minutes=1),
+            self.day_ago + timedelta(minutes=1),
         )
         self.store_search_issue(
             self.project.id,
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
-            self.day_ago.replace(tzinfo=timezone.utc) + timedelta(minutes=2),
+            self.day_ago + timedelta(minutes=2),
         )
         with self.feature(
             [
@@ -867,7 +865,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
 
     @mock.patch("sentry.utils.snuba.quantize_time")
     def test_quantize_dates(self, mock_quantize):
-        mock_quantize.return_value = before_now(days=1).replace(tzinfo=timezone.utc)
+        mock_quantize.return_value = before_now(days=1)
         # Don't quantize short time periods
         self.do_request(
             data={"statsPeriod": "1h", "query": "", "interval": "30m", "yAxis": "count()"},
@@ -1108,7 +1106,6 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert all([interval[1][0]["count"] == 0 for interval in response.data["data"]])
 
 
-@region_silo_test
 class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -2626,7 +2623,6 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert response.status_code == 200
 
 
-@region_silo_test
 class OrganizationEventsStatsProfileFunctionDatasetEndpointTest(
     APITestCase, ProfilesSnubaTestCase, SearchIssueTestMixin
 ):
@@ -2692,7 +2688,6 @@ class OrganizationEventsStatsProfileFunctionDatasetEndpointTest(
             }
 
 
-@region_silo_test
 class OrganizationEventsStatsTopNEventsProfileFunctionDatasetEndpointTest(
     APITestCase, ProfilesSnubaTestCase, SearchIssueTestMixin
 ):

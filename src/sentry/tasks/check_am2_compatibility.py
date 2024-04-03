@@ -9,7 +9,7 @@ from django.db.models import Q
 
 from sentry.dynamic_sampling import get_redis_client_for_ds
 from sentry.exceptions import IncompatibleMetricsQuery
-from sentry.incidents.models import AlertRule
+from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.dashboard_widget import (
     ON_DEMAND_ENABLED_KEY,
     DashboardWidgetQuery,
@@ -675,12 +675,16 @@ def get_check_status(org_id):
     redis_client = get_redis_client_for_ds()
     cache_key = generate_cache_key_for_async_progress(org_id)
 
-    cached_status = redis_client.get(cache_key)
     try:
-        float_cached_status = float(cached_status)
-        return CheckStatus(float_cached_status)
+        cached_status = redis_client.get(cache_key)
+        if cached_status:
+            float_cached_status = float(cached_status)
+            return CheckStatus(float_cached_status)
+
     except (TypeError, ValueError):
-        return None
+        pass
+
+    return None
 
 
 def set_check_results(org_id, results):

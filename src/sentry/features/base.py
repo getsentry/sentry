@@ -4,11 +4,12 @@ from enum import Enum
 
 __all__ = [
     "Feature",
+    "FeatureHandlerStrategy",
     "OrganizationFeature",
     "ProjectFeature",
     "ProjectPluginFeature",
+    "SystemFeature",
     "UserFeature",
-    "FeatureHandlerStrategy",
 ]
 
 import abc

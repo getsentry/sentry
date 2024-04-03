@@ -42,6 +42,7 @@ function InviteMembersModal({
     inviteStatus,
     pendingInvites,
     sendingInvites,
+    error,
   } = useInviteModal({
     initialData,
     organization,
@@ -95,6 +96,7 @@ function InviteMembersModal({
               setRole={setRole}
               setTeams={setTeams}
               willInvite={willInvite}
+              error={error}
             />
           );
         }}

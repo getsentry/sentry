@@ -7,6 +7,7 @@ import Access from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import EmptyMessage from 'sentry/components/emptyMessage';
+import {TAGS_DOCS_LINK} from 'sentry/components/events/eventTags/util';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -93,9 +94,7 @@ function ProjectTags(props: Props) {
           `Each event in Sentry may be annotated with various tags (key and value pairs).
                  Learn how to [link:add custom tags].`,
           {
-            link: (
-              <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=/enriching-events/tags/" />
-            ),
+            link: <ExternalLink href={TAGS_DOCS_LINK} />,
           }
         )}
       </TextBlock>

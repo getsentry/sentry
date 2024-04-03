@@ -51,7 +51,7 @@ class ProjectKeysEndpoint(ProjectEndpoint):
         """
         Return a list of client keys bound to a project.
         """
-        queryset = ProjectKey.objects.filter(
+        queryset = ProjectKey.objects.for_request(request).filter(
             project=project, roles=F("roles").bitor(ProjectKey.roles.store)
         )
         status = request.GET.get("status")
@@ -66,7 +66,7 @@ class ProjectKeysEndpoint(ProjectEndpoint):
             request=request,
             queryset=queryset,
             order_by="-id",
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: serialize(x, request.user, request=request),
         )
 
     @extend_schema(
@@ -122,4 +122,4 @@ class ProjectKeysEndpoint(ProjectEndpoint):
             data=key.get_audit_log_data(),
         )
 
-        return Response(serialize(key, request.user), status=201)
+        return Response(serialize(key, request.user, request=request), status=201)

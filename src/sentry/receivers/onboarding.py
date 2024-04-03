@@ -227,6 +227,7 @@ def record_first_profile(project, **kwargs):
 
 @first_replay_received.connect(weak=False)
 def record_first_replay(project, **kwargs):
+    logger.info("record_first_replay_start")
     project.update(flags=F("flags").bitor(Project.flags.has_replays))
 
     success = OrganizationOnboardingTask.objects.record(
@@ -235,8 +236,10 @@ def record_first_replay(project, **kwargs):
         status=OnboardingTaskStatus.COMPLETE,
         date_completed=django_timezone.now(),
     )
+    logger.info("record_first_replay_onboard_task", extra={"success": success})
 
     if success:
+        logger.info("record_first_replay_analytics_start")
         analytics.record(
             "first_replay.sent",
             user_id=project.organization.default_owner_id,
@@ -244,6 +247,7 @@ def record_first_replay(project, **kwargs):
             project_id=project.id,
             platform=project.platform,
         )
+        logger.info("record_first_replay_analytics_end")
         try_mark_onboarding_complete(project.organization_id)
 
 

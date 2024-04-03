@@ -40,6 +40,7 @@ from .issue_deleted import *  # noqa: F401,F403
 from .issue_escalating import *  # noqa: F401,F403
 from .issue_ignored import *  # noqa: F401,F403
 from .issue_mark_reviewed import *  # noqa: F401,F403
+from .issue_priority import *  # noqa: F401,F403
 from .issue_resolved import *  # noqa: F401,F403
 from .issue_tracker_used import *  # noqa: F401,F403
 from .issue_unignored import *  # noqa: F401,F403

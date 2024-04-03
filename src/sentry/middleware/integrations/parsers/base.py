@@ -4,18 +4,17 @@ import abc
 import logging
 from collections.abc import Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 from django.urls import ResolverMatch, resolve
 from rest_framework import status
 
-from sentry import options
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.models.integrations import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
+from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
@@ -27,6 +26,16 @@ from sentry.utils import metrics
 logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from sentry.middleware.integrations.integration_control import ResponseHandler
+
+
+def create_async_request_payload(request: HttpRequest) -> dict[str, Any]:
+    return {
+        "method": request.method,
+        "path": request.get_full_path(),
+        "uri": request.build_absolute_uri(),
+        "headers": {k: v for k, v in request.headers.items()},
+        "body": request.body.decode(encoding="utf-8"),
+    }
 
 
 class RegionResult:
@@ -133,68 +142,45 @@ class BaseRequestParser(abc.ABC):
 
         return region_to_response_map
 
-    def get_response_from_outbox_creation(
-        self, regions: Sequence[Region], shard_identifier_override: int | None = None
+    def get_response_from_webhookpayload(
+        self,
+        regions: Sequence[Region],
+        identifier: int | str | None = None,
+        shard_identifier_override: int | None = None,  # deprecated used in getsentry
+        integration_id: int | None = None,
     ):
         """
-        DEPRECATED: use get_response_from_outbox_creation_for_integration
-
-        Used to create outboxes for provided regions to handle the webhooks asynchronously.
+        Used to create webhookpayloads for provided regions to handle the webhooks asynchronously.
         Responds to the webhook provider with a 202 Accepted status.
         """
         if len(regions) < 1:
             return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
-        # TODO(hybridcloud) Rename/remove this once webhookpayloads are stable.
-        shard_identifier = shard_identifier_override or self.webhook_identifier.value
-        rollout_rate = options.get("hybridcloud.webhookpayload.rollout")
-        if ((shard_identifier % 100000) / 100000) < rollout_rate:
-            for region in regions:
-                WebhookPayload.create_from_request(
-                    region=region.name,
-                    provider=self.provider,
-                    identifier=shard_identifier,
-                    request=self.request,
-                )
-        else:
-            for outbox in ControlOutbox.for_webhook_update(
-                shard_identifier=shard_identifier,
-                region_names=[region.name for region in regions],
+        shard_identifier = identifier or shard_identifier_override or self.webhook_identifier.value
+        for region in regions:
+            WebhookPayload.create_from_request(
+                region=region.name,
+                provider=self.provider,
+                identifier=shard_identifier,
+                integration_id=integration_id,
                 request=self.request,
-            ):
-                outbox.save()
+            )
 
         return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
-    def get_response_from_outbox_creation_for_integration(
+    # Alias to prop up getsentry
+    get_response_from_outbox_creation = get_response_from_webhookpayload
+
+    def get_response_from_webhookpayload_for_integration(
         self, regions: Sequence[Region], integration: Integration | RpcIntegration
     ):
         """
         Used to create outboxes for provided regions to handle the webhooks asynchronously.
         Responds to the webhook provider with a 202 Accepted status.
         """
-        if not regions:
-            return HttpResponse(status=status.HTTP_202_ACCEPTED)
-
-        identifier = integration.id
-        rollout_rate = options.get("hybridcloud.webhookpayload.rollout")
-        if ((identifier % 100000) / 100000) < rollout_rate:
-            for region in regions:
-                WebhookPayload.create_from_request(
-                    region=region.name,
-                    provider=self.provider,
-                    identifier=identifier,
-                    request=self.request,
-                    integration_id=identifier,
-                )
-        else:
-            for outbox in ControlOutbox.for_webhook_update(
-                shard_identifier=integration.id,
-                request=self.request,
-                region_names=[region.name for region in regions],
-            ):
-                outbox.save()
-        return HttpResponse(status=status.HTTP_202_ACCEPTED)
+        return self.get_response_from_webhookpayload(
+            regions=regions, identifier=integration.id, integration_id=integration.id
+        )
 
     def get_response_from_first_region(self):
         regions = self.get_regions_from_organizations()

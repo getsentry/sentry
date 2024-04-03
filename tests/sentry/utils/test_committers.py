@@ -1,6 +1,7 @@
 import unittest
 from datetime import timedelta
-from unittest.mock import Mock
+from typing import Any
+from unittest.mock import Mock, patch
 from uuid import uuid4
 
 import pytest
@@ -19,8 +20,7 @@ from sentry.models.repository import Repository
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.committers import (
     _get_commit_file_changes,
     _match_commits_path,
@@ -249,7 +249,6 @@ class GetPreviousReleasesTestCase(TestCase):
         assert releases[1] == release1
 
 
-@region_silo_test
 class GetEventFileCommitters(CommitTestCase):
     def setUp(self):
         super().setUp()
@@ -739,7 +738,64 @@ class GetEventFileCommitters(CommitTestCase):
         assert result[0]["commits"][0]["id"] == "a" * 40
         assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
 
-    @with_feature("organizations:commit-context")
+    @patch("sentry.utils.committers.get_frame_paths")
+    def test_none_frame(self, mock_get_frame_paths):
+        """Test that if a frame is None, we skip over it"""
+        frames: list[Any] = [
+            {
+                "function": "handle_set_commits",
+                "abs_path": "/usr/src/sentry/src/sentry/tasks.py",
+                "module": "sentry.tasks",
+                "in_app": True,
+                "lineno": 30,
+                "filename": "sentry/tasks.py",
+            },
+            {
+                "function": "set_commits",
+                "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
+                "module": "sentry.models.release",
+                "in_app": True,
+                "lineno": 39,
+                "filename": "sentry/models/release.py",
+            },
+        ]
+        event = self.store_event(
+            data={
+                "message": "Kaboom!",
+                "platform": "python",
+                "timestamp": iso_format(before_now(seconds=1)),
+                "stacktrace": {
+                    "frames": frames,
+                },
+                "tags": {"sentry:release": self.release.version},
+            },
+            project_id=self.project.id,
+        )
+        self.release.set_commits(
+            [
+                {
+                    "id": "a" * 40,
+                    "repository": self.repo.name,
+                    "author_email": "bob@example.com",
+                    "author_name": "Bob",
+                    "message": "i fixed a bug",
+                    "patch_set": [{"path": "src/sentry/models/release.py", "type": "M"}],
+                }
+            ]
+        )
+        assert event.group is not None
+        GroupRelease.objects.create(
+            group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
+        )
+        frames.append(None)
+        mock_get_frame_paths.return_value = frames
+        result = get_serialized_event_file_committers(self.project, event)
+        assert len(result) == 1
+        assert "commits" in result[0]
+        assert len(result[0]["commits"]) == 1
+        assert result[0]["commits"][0]["id"] == "a" * 40
+        assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
+
     def test_no_author(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
             model = self.create_provider_integration(
@@ -926,7 +982,6 @@ class GetEventFileCommitters(CommitTestCase):
         with pytest.raises(Commit.DoesNotExist):
             get_serialized_event_file_committers(self.project, event)
 
-    @with_feature("organizations:commit-context")
     def test_commit_context_fallback(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
             Integration.objects.all().delete()

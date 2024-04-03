@@ -1,7 +1,6 @@
 from .array import *  # NOQA
 from .bounded import *  # NOQA
 from .citext import *  # NOQA
-from .encrypted import *  # NOQA
 from .foreignkey import *  # NOQA
 from .gzippeddict import *  # NOQA
 from .jsonfield import *  # NOQA

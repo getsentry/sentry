@@ -75,21 +75,11 @@ const GraphHeaderWrapper = styled('div')<{isSavedSearchesOpen?: boolean}>`
   width: 160px;
   margin-left: ${space(2)};
   margin-right: ${space(2)};
-  animation: 0.25s FadeIn linear forwards;
 
   /* prettier-ignore */
   @media (max-width: ${p =>
     p.isSavedSearchesOpen ? p.theme.breakpoints.xlarge : p.theme.breakpoints.large}) {
     display: none;
-  }
-
-  @keyframes FadeIn {
-    0% {
-      opacity: 0;
-    }
-    100% {
-      opacity: 1;
-    }
   }
 `;
 
@@ -126,10 +116,10 @@ const EventsOrUsersLabel = styled(ToolbarHeader)`
   }
 `;
 
-const PriorityLabel = styled('div')<{isSavedSearchesOpen?: boolean}>`
+const PriorityLabel = styled(ToolbarHeader)<{isSavedSearchesOpen?: boolean}>`
   justify-content: flex-end;
   text-align: right;
-  width: 85px;
+  width: 70px;
   margin: 0 ${space(2)};
 
   /* prettier-ignore */
@@ -139,7 +129,7 @@ const PriorityLabel = styled('div')<{isSavedSearchesOpen?: boolean}>`
   }
 `;
 
-const AssigneeLabel = styled('div')<{isSavedSearchesOpen?: boolean}>`
+const AssigneeLabel = styled(ToolbarHeader)<{isSavedSearchesOpen?: boolean}>`
   justify-content: flex-end;
   text-align: right;
   width: 60px;

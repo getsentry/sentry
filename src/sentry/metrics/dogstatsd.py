@@ -14,6 +14,7 @@ class DogStatsdMetricsBackend(MetricsBackend):
         self.tags = kwargs.pop("tags", None)
         initialize(**kwargs)
         statsd.disable_telemetry()
+        statsd.disable_buffering = False
         super().__init__(prefix=prefix)
 
     def incr(

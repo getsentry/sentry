@@ -22,8 +22,10 @@ from sentry import audit_log, roles
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organizationmember import OrganizationMemberEndpoint
-from sentry.api.endpoints.organization_member.details import ROLE_CHOICES
-from sentry.api.endpoints.organization_member.index import OrganizationMemberSerializer
+from sentry.api.endpoints.organization_member.index import (
+    ROLE_CHOICES,
+    OrganizationMemberRequestSerializer,
+)
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
@@ -440,7 +442,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
     permission_classes = (OrganizationSCIMMemberPermission,)
 
     @extend_schema(
-        operation_id="List an Organization's Members",
+        operation_id="List an Organization's SCIM Members",
         parameters=[GlobalParams.ORG_SLUG, SCIMQueryParamSerializer],
         responses={
             200: inline_sentry_response_serializer(
@@ -550,7 +552,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
                 raise SCIMApiError(detail=SCIM_400_INVALID_ORGROLE)
 
             scope.set_tag("invalid_role_selection", False)
-            serializer = OrganizationMemberSerializer(
+            serializer = OrganizationMemberRequestSerializer(
                 data={
                     "email": request.data.get("userName"),
                     "role": roles.get(role).id,

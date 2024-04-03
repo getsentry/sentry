@@ -1,26 +1,23 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {useMemo} from 'react';
 import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
+import {ErrorBoundary} from '@sentry/react';
 import type {Location} from 'history';
 
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {HeaderTitle} from 'sentry/components/charts/styles';
-import TransitionChart from 'sentry/components/charts/transitionChart';
-import EmptyMessage from 'sentry/components/emptyMessage';
 import TextOverflow from 'sentry/components/textOverflow';
-import {IconSearch, IconWarning} from 'sentry/icons';
+import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, PageFilters} from 'sentry/types';
-import type {ReactEchartsRef} from 'sentry/types/echarts';
-import {getWidgetTitle} from 'sentry/utils/metrics';
+import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
+import {MetricBigNumberContainer} from 'sentry/views/dashboards/metrics/bigNumber';
+import {MetricChartContainer} from 'sentry/views/dashboards/metrics/chart';
+import {MetricTableContainer} from 'sentry/views/dashboards/metrics/table';
 import {
-  type MetricsQueryApiRequestQuery,
-  useMetricsQuery,
-} from 'sentry/utils/metrics/useMetricsQuery';
-import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
-import {
-  getMetricQueries,
+  expressionsToApiQueries,
+  getMetricExpressions,
   toMetricDisplayType,
 } from 'sentry/views/dashboards/metrics/utils';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
@@ -29,10 +26,7 @@ import {WidgetCardPanel, WidgetTitleRow} from 'sentry/views/dashboards/widgetCar
 import {DashboardsMEPContext} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import {Toolbar} from 'sentry/views/dashboards/widgetCard/toolbar';
 import WidgetCardContextMenu from 'sentry/views/dashboards/widgetCard/widgetCardContextMenu';
-import {MetricChart} from 'sentry/views/ddm/chart/chart';
-import {createChartPalette} from 'sentry/views/ddm/utils/metricsChartPalette';
-import {getChartTimeseries} from 'sentry/views/ddm/widget';
-import {LoadingScreen} from 'sentry/views/starfish/components/chart';
+import {getWidgetTitle} from 'sentry/views/metrics/widget';
 
 type Props = {
   isEditingDashboard: boolean;
@@ -65,11 +59,51 @@ export function MetricWidgetCard({
   showContextMenu = true,
 }: Props) {
   const metricQueries = useMemo(
-    () => getMetricQueries(widget, dashboardFilters),
+    () => expressionsToApiQueries(getMetricExpressions(widget, dashboardFilters)),
     [widget, dashboardFilters]
   );
 
   const widgetMQL = useMemo(() => getWidgetTitle(metricQueries), [metricQueries]);
+
+  const {
+    data: timeseriesData,
+    isLoading,
+    isError,
+    error,
+  } = useMetricsQuery(metricQueries, selection, {
+    intervalLadder: widget.displayType === DisplayType.BAR ? 'bar' : 'dashboard',
+  });
+
+  const vizualizationComponent = useMemo(() => {
+    if (widget.displayType === DisplayType.TABLE) {
+      return (
+        <MetricTableContainer
+          metricQueries={metricQueries}
+          timeseriesData={timeseriesData}
+          isLoading={isLoading}
+        />
+      );
+    }
+    if (widget.displayType === DisplayType.BIG_NUMBER) {
+      return (
+        <MetricBigNumberContainer
+          timeseriesData={timeseriesData}
+          isLoading={isLoading}
+          metricQueries={metricQueries}
+        />
+      );
+    }
+
+    return (
+      <MetricChartContainer
+        timeseriesData={timeseriesData}
+        isLoading={isLoading}
+        metricQueries={metricQueries}
+        displayType={toMetricDisplayType(widget.displayType)}
+        chartHeight={!showContextMenu ? 200 : undefined}
+      />
+    );
+  }, [widget.displayType, metricQueries, timeseriesData, isLoading, showContextMenu]);
 
   return (
     <DashboardsMEPContext.Provider
@@ -113,91 +147,37 @@ export function MetricWidgetCard({
             )}
           </ContextMenuWrapper>
         </WidgetHeaderWrapper>
-
-        <MetricWidgetChartContainer
-          metricQueries={metricQueries}
-          selection={selection}
-          renderErrorMessage={renderErrorMessage}
-          chartHeight={!showContextMenu ? 200 : undefined}
-          displayType={widget.displayType}
-        />
+        <ErrorBoundary>
+          <WidgetCardBody
+            isError={isError}
+            timeseriesData={timeseriesData}
+            renderErrorMessage={renderErrorMessage}
+            error={error}
+          >
+            {vizualizationComponent}
+          </WidgetCardBody>
+        </ErrorBoundary>
         {isEditingDashboard && <Toolbar onDelete={onDelete} onDuplicate={onDuplicate} />}
       </WidgetCardPanel>
     </DashboardsMEPContext.Provider>
   );
 }
 
-type MetricWidgetChartContainerProps = {
-  displayType: DisplayType;
-  metricQueries: MetricsQueryApiRequestQuery[];
-  selection: PageFilters;
-  chartHeight?: number;
-  renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
-};
-
-export function MetricWidgetChartContainer({
-  selection,
-  renderErrorMessage,
-  metricQueries,
-  chartHeight,
-  displayType,
-}: MetricWidgetChartContainerProps) {
-  const {
-    data: timeseriesData,
-    isLoading,
-    isError,
-    error,
-  } = useMetricsQuery(metricQueries, selection, {
-    intervalLadder: displayType === DisplayType.BAR ? 'bar' : 'dashboard',
-  });
-
-  const chartRef = useRef<ReactEchartsRef>(null);
-
-  const chartSeries = useMemo(() => {
-    return timeseriesData
-      ? getChartTimeseries(timeseriesData, metricQueries, {
-          getChartPalette: createChartPalette,
-        })
-      : [];
-  }, [timeseriesData, metricQueries]);
-
+function WidgetCardBody({children, isError, timeseriesData, renderErrorMessage, error}) {
   if (isError && !timeseriesData) {
     const errorMessage =
       error?.responseJSON?.detail?.toString() || t('Error while fetching metrics data');
     return (
-      <Fragment>
+      <ErrorWrapper>
         {renderErrorMessage?.(errorMessage)}
         <ErrorPanel>
           <IconWarning color="gray500" size="lg" />
         </ErrorPanel>
-      </Fragment>
+      </ErrorWrapper>
     );
   }
 
-  if (timeseriesData?.data.length === 0) {
-    return (
-      <EmptyMessage
-        icon={<IconSearch size="xxl" />}
-        title={t('No results')}
-        description={t('No results found for the given query')}
-      />
-    );
-  }
-
-  return (
-    <MetricWidgetChartWrapper>
-      <TransitionChart loading={isLoading} reloading={isLoading}>
-        <LoadingScreen loading={isLoading} />
-        <MetricChart
-          ref={chartRef}
-          series={chartSeries}
-          displayType={toMetricDisplayType(displayType)}
-          group={DASHBOARD_CHART_GROUP}
-          height={chartHeight}
-        />
-      </TransitionChart>
-    </MetricWidgetChartWrapper>
-  );
+  return children;
 }
 
 const WidgetHeaderWrapper = styled('div')`
@@ -225,9 +205,6 @@ const WidgetTitle = styled(HeaderTitle)`
   font-weight: normal;
 `;
 
-const MetricWidgetChartWrapper = styled('div')`
-  height: 100%;
-  width: 100%;
-  padding: ${space(3)};
-  padding-top: ${space(2)};
+const ErrorWrapper = styled('div')`
+  padding-top: ${space(1)};
 `;

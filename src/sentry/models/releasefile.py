@@ -240,7 +240,7 @@ class ReleaseArchive:
         The caller is responsible for cleanup of the temporary files.
         """
         temp_dir = TemporaryDirectory()
-        safe_extract_zip(self._fileobj, temp_dir.name, strip_toplevel=False)
+        safe_extract_zip(self._fileobj, temp_dir.name)
 
         return temp_dir
 

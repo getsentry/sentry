@@ -17,7 +17,7 @@ from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMe
 from sentry_kafka_schemas.schema_types.snuba_metrics_v1 import Metric
 
 from sentry import options
-from sentry.sentry_metrics.aggregation_option_registry import get_aggregation_option
+from sentry.sentry_metrics.aggregation_option_registry import get_aggregation_options
 from sentry.sentry_metrics.configuration import MAX_INDEXED_COLUMN_LENGTH
 from sentry.sentry_metrics.consumers.indexer.common import (
     BrokerMeta,
@@ -27,7 +27,8 @@ from sentry.sentry_metrics.consumers.indexer.common import (
 from sentry.sentry_metrics.consumers.indexer.parsed_message import ParsedMessage
 from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
 from sentry.sentry_metrics.indexer.base import Metadata
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID, extract_use_case_id
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.snuba.metrics.naming_layer.mri import extract_use_case_id
 from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
@@ -66,7 +67,7 @@ class IndexerBatchMetrics:
     max_tags_len: int = 0
     max_value_len: int = 0
 
-    def add_metric(self, num_bytes: int, tags_len: int, value_len: int):
+    def add_metric(self, num_bytes: int, tags_len: int, value_len: int) -> None:
         self.message_count += 1
         self.total_bytes += num_bytes
         self.total_tags_len += tags_len
@@ -75,13 +76,13 @@ class IndexerBatchMetrics:
         self.max_tags_len = max(self.max_tags_len, tags_len)
         self.max_value_len = max(self.max_value_len, value_len)
 
-    def avg_bytes(self):
+    def avg_bytes(self) -> float:
         return self.total_bytes / self.message_count
 
-    def avg_tags_len(self):
+    def avg_tags_len(self) -> float:
         return self.total_tags_len / self.message_count
 
-    def avg_value_len(self):
+    def avg_value_len(self) -> float:
         return self.total_value_len / self.message_count
 
 
@@ -484,13 +485,14 @@ class IndexerBatch:
                         "timestamp": old_payload_value["timestamp"],
                         "project_id": old_payload_value["project_id"],
                         "type": old_payload_value["type"],
-                        # XXX: The payload in ingest-metrics is "any"-typed,
-                        # but the payload in generic-metrics is string-typed
-                        "value": cast(Any, old_payload_value["value"]),
+                        "value": old_payload_value["value"],
                         "sentry_received_timestamp": sentry_received_timestamp,
                     }
-                    if aggregation_option := get_aggregation_option(old_payload_value["name"]):
-                        new_payload_v2["aggregation_option"] = aggregation_option.value
+                    if aggregation_options := get_aggregation_options(old_payload_value["name"]):
+                        # TODO: This should eventually handle multiple aggregation options
+                        option = list(aggregation_options.items())[0][0]
+                        assert option is not None
+                        new_payload_v2["aggregation_option"] = option.value
 
                     new_payload_value = new_payload_v2
 
@@ -504,7 +506,7 @@ class IndexerBatch:
                             *message.payload.headers,
                             ("mapping_sources", mapping_header_content),
                             # XXX: type mismatch, but seems to work fine in prod
-                            ("metric_type", new_payload_value["type"]),  # type: ignore
+                            ("metric_type", new_payload_value["type"]),  # type: ignore[list-item]
                         ],
                     )
                 if self.is_output_sliced:
@@ -519,6 +521,8 @@ class IndexerBatch:
         with metrics.timer("metrics_consumer.reconstruct_messages.emit_payload_metrics"):
             for use_case_id, metrics_by_type in self._message_metrics.items():
                 for metric_type, batch_metric in metrics_by_type.items():
+                    if batch_metric.message_count == 0:
+                        continue
                     metrics.incr(
                         "metrics_consumer.process_message.messages_seen",
                         amount=batch_metric.message_count,
@@ -565,33 +569,34 @@ class IndexerBatch:
                 for use_case_metrics in self._message_metrics.values()
                 for type_metrics in use_case_metrics.values()
             )
-            metrics.gauge(
-                "metrics_consumer.process_message.message.avg_size_in_batch",
-                sum(
-                    type_metrics.total_bytes
-                    for use_case_metrics in self._message_metrics.values()
-                    for type_metrics in use_case_metrics.values()
+            if not num_messages == 0:
+                metrics.gauge(
+                    "metrics_consumer.process_message.message.avg_size_in_batch",
+                    sum(
+                        type_metrics.total_bytes
+                        for use_case_metrics in self._message_metrics.values()
+                        for type_metrics in use_case_metrics.values()
+                    )
+                    / num_messages,
                 )
-                / num_messages,
-            )
-            metrics.gauge(
-                "metrics_consumer.process_message.message.avg_tags_len_in_batch",
-                sum(
-                    type_metrics.total_tags_len
-                    for use_case_metrics in self._message_metrics.values()
-                    for type_metrics in use_case_metrics.values()
+                metrics.gauge(
+                    "metrics_consumer.process_message.message.avg_tags_len_in_batch",
+                    sum(
+                        type_metrics.total_tags_len
+                        for use_case_metrics in self._message_metrics.values()
+                        for type_metrics in use_case_metrics.values()
+                    )
+                    / num_messages,
                 )
-                / num_messages,
-            )
-            metrics.gauge(
-                "metrics_consumer.process_message.message.avg_value_len_in_batch",
-                sum(
-                    type_metrics.total_value_len
-                    for use_case_metrics in self._message_metrics.values()
-                    for type_metrics in use_case_metrics.values()
+                metrics.gauge(
+                    "metrics_consumer.process_message.message.avg_value_len_in_batch",
+                    sum(
+                        type_metrics.total_value_len
+                        for use_case_metrics in self._message_metrics.values()
+                        for type_metrics in use_case_metrics.values()
+                    )
+                    / num_messages,
                 )
-                / num_messages,
-            )
 
         return IndexerOutputMessageBatch(
             new_messages,

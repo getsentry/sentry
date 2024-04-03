@@ -10,7 +10,7 @@ from sentry import analytics
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import AppPlatformEvent
 from sentry.constants import SentryAppInstallationStatus
-from sentry.incidents.models import INCIDENT_STATUS, IncidentStatus
+from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus
 from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.msteams import MsTeamsClient
 from sentry.models.integrations import Integration, OrganizationIntegration
@@ -32,7 +32,6 @@ from sentry.services.hybrid_cloud.integration.serial import (
     serialize_integration_external_project,
     serialize_organization_integration,
 )
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json, metrics
@@ -357,15 +356,10 @@ class DatabaseBackedIntegrationService(IntegrationService):
         incident_id: int,
         new_status: int,
         incident_attachment_json: str,
-        organization: RpcOrganizationSummary | None = None,  # deprecated
-        organization_id: int | None = None,
+        organization_id: int,
         metric_value: str | None = None,
         notification_uuid: str | None = None,
     ) -> bool:
-        if organization_id is None and organization is not None:
-            organization_id = organization.id
-        assert organization_id is not None, "organization or organization_id is required"
-
         sentry_app = SentryApp.objects.get(id=sentry_app_id)
 
         metrics.incr("notifications.sent", instance=sentry_app.slug, skip_internal=False)

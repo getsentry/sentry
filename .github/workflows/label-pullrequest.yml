@@ -25,7 +25,7 @@ jobs:
 
       - name: Add frontend label
         uses: getsentry/action-add-labels@54d0cba498c1eaf8bd34985d715504d1b6e2935f
-        if: steps.changes.outputs.frontend_src == 'true'
+        if: steps.changes.outputs.frontend_all == 'true'
         with:
           labels: 'Scope: Frontend'
 
@@ -46,7 +46,7 @@ jobs:
       - name: Add frontend/backend warning comment
         uses: peter-evans/create-or-update-comment@b95e16d2859ad843a14218d1028da5b2c4cbc4b4
         if: >
-          steps.changes.outputs.frontend_src == 'true' &&
+          steps.changes.outputs.frontend_all == 'true' &&
           steps.changes.outputs.backend_src == 'true' &&
           steps.fc.outputs.comment-id == 0
         with:

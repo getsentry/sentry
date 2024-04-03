@@ -72,7 +72,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
           mql: 'avg(c:custom/sessions@none){error} by (project)',
         },
       ],
-      formulas: [{mql: '$query_1', limit: undefined, order: 'desc'}],
+      formulas: [{mql: '$query_1', limit: undefined, order: undefined}],
     });
   });
 
@@ -106,7 +106,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
           mql: 'avg(c:custom/sessions@none){error} by (project)',
         },
       ],
-      formulas: [{mql: '$query_1', limit: undefined, order: 'desc'}],
+      formulas: [{mql: '$query_1', limit: undefined, order: undefined}],
     });
   });
 
@@ -143,7 +143,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
           mql: 'avg(c:custom/sessions@none){error} by (project)',
         },
       ],
-      formulas: [{mql: '$query_1', limit: undefined, order: 'desc'}],
+      formulas: [{mql: '$query_1', limit: undefined, order: undefined}],
     });
   });
 

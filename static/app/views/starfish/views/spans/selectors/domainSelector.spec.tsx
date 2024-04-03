@@ -1,4 +1,3 @@
-import selectEvent from 'react-select-event';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
@@ -8,6 +7,7 @@ import {
   waitFor,
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -110,7 +110,7 @@ describe('DomainSelector', function () {
     expect(screen.queryByText('sentry_user')).not.toBeInTheDocument();
     expect(screen.queryByText('sentry_organization')).not.toBeInTheDocument();
 
-    userEvent.clear(screen.getByRole('textbox'));
+    await userEvent.clear(screen.getByRole('textbox'));
 
     expect(screen.getByText('pg_data')).toBeInTheDocument();
     expect(screen.getByText('sentry_user')).toBeInTheDocument();

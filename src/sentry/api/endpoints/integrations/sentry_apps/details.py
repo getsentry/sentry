@@ -10,9 +10,14 @@ from sentry import analytics, audit_log, deletions, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases.sentryapps import SentryAppBaseEndpoint, catch_raised_errors
+from sentry.api.bases.sentryapps import (
+    SentryAppAndStaffPermission,
+    SentryAppBaseEndpoint,
+    catch_raised_errors,
+)
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import SentryAppSerializer
+from sentry.auth.staff import is_active_staff
 from sentry.constants import SentryAppStatus
 from sentry.mediators.sentry_app_installations.installation_notifier import InstallationNotifier
 from sentry.models.integrations.sentry_app import SentryApp
@@ -26,6 +31,12 @@ logger = logging.getLogger(__name__)
 PARTNERSHIP_RESTRICTED_ERROR_MESSAGE = "This integration is managed by an active partnership and cannot be modified until the end of the partnership."
 
 
+class SentryAppDetailsEndpointPermission(SentryAppAndStaffPermission):
+    """Allows staff to access the GET and PUT methods which are used in _admin."""
+
+    staff_allowed_methods = {"GET", "PUT"}
+
+
 @control_silo_endpoint
 class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
     owner = ApiOwner.INTEGRATIONS
@@ -34,6 +45,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         "GET": ApiPublishStatus.UNKNOWN,
         "PUT": ApiPublishStatus.UNKNOWN,
     }
+    permission_classes = (SentryAppDetailsEndpointPermission,)
 
     def get(self, request: Request, sentry_app) -> Response:
         return Response(serialize(sentry_app, request.user, access=request.access))
@@ -46,7 +58,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                 status=403,
             )
         owner_context = organization_service.get_organization_by_id(
-            id=sentry_app.owner_id, user_id=None
+            id=sentry_app.owner_id, user_id=None, include_projects=False, include_teams=False
         )
         if (
             owner_context
@@ -69,7 +81,13 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         # isInternal is not field of our model but it is a field of the serializer
         data = request.data.copy()
         data["isInternal"] = sentry_app.status == SentryAppStatus.INTERNAL
-        serializer = SentryAppSerializer(sentry_app, data=data, partial=True, access=request.access)
+        serializer = SentryAppSerializer(
+            sentry_app,
+            data=data,
+            partial=True,
+            access=request.access,
+            active_staff=is_active_staff(request),
+        )
 
         if serializer.is_valid():
             result = serializer.validated_data

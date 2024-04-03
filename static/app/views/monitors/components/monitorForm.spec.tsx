@@ -1,4 +1,3 @@
-import selectEvent from 'react-select-event';
 import {MemberFixture} from 'sentry-fixture/member';
 import {MonitorFixture} from 'sentry-fixture/monitor';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -7,6 +6,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import {useMembers} from 'sentry/utils/useMembers';
 import useProjects from 'sentry/utils/useProjects';
@@ -118,7 +118,7 @@ describe('MonitorForm', function () {
 
     const notifySelect = screen.getByRole('textbox', {name: 'Notify'});
 
-    selectEvent.openMenu(notifySelect);
+    await selectEvent.openMenu(notifySelect);
     expect(
       screen.getByRole('menuitemcheckbox', {name: 'John Smith'})
     ).toBeInTheDocument();
@@ -136,12 +136,12 @@ describe('MonitorForm', function () {
     await userEvent.click(screen.getByRole('button', {name: 'Add Monitor'}));
 
     const config = {
-      checkin_margin: '5',
-      max_runtime: '20',
-      failure_issue_threshold: '4',
-      recovery_threshold: '2',
+      checkinMargin: '5',
+      maxRuntime: '20',
+      failureIssueThreshold: '4',
+      recoveryThreshold: '2',
       schedule: '5 * * * *',
-      schedule_type: 'crontab',
+      scheduleType: 'crontab',
       timezone: 'America/Los_Angeles',
     };
 
@@ -169,7 +169,7 @@ describe('MonitorForm', function () {
   it('prefills with an existing monitor', async function () {
     const monitor = MonitorFixture({project});
 
-    const apiEndpont = `/organizations/${organization.slug}/monitors/${monitor.slug}/`;
+    const apiEndpont = `/projects/${organization.slug}/${monitor.project.slug}/monitors/${monitor.slug}/`;
 
     if (monitor.config.schedule_type !== ScheduleType.CRONTAB) {
       throw new Error('Fixture is not crontab');
@@ -195,7 +195,7 @@ describe('MonitorForm', function () {
     expect(screen.getByText(project.slug)).toBeInTheDocument();
 
     // Schedule type
-    selectEvent.openMenu(screen.getByRole('textbox', {name: 'Schedule Type'}));
+    await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Schedule Type'}));
     const crontabOption = screen.getByRole('menuitemradio', {name: 'Crontab'});
     expect(crontabOption).toBeChecked();
     await userEvent.click(crontabOption);
@@ -206,7 +206,7 @@ describe('MonitorForm', function () {
     );
 
     // Schedule timezone
-    selectEvent.openMenu(screen.getByRole('textbox', {name: 'Timezone'}));
+    await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Timezone'}));
     const losAngelesOption = screen.getByRole('menuitemradio', {name: 'Los Angeles'});
     expect(losAngelesOption).toBeChecked();
     await userEvent.click(losAngelesOption);
@@ -220,7 +220,7 @@ describe('MonitorForm', function () {
     expect(screen.getByRole('spinbutton', {name: 'Recovery Tolerance'})).toHaveValue(2);
 
     // Alert rule configuration
-    selectEvent.openMenu(screen.getByRole('textbox', {name: 'Notify'}));
+    await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Notify'}));
     const memberOption = screen.getByRole('menuitemcheckbox', {name: member.user?.name});
     expect(memberOption).toBeChecked();
     await userEvent.keyboard('{Escape}');
@@ -247,13 +247,13 @@ describe('MonitorForm', function () {
     // monitor they come in as numbers, when changed via the toggles they
     // are translated to strings :(
     const config = {
-      max_runtime: monitor.config.max_runtime,
-      checkin_margin: monitor.config.checkin_margin,
-      recovery_threshold: monitor.config.recovery_threshold,
+      maxRuntime: monitor.config.max_runtime,
+      checkinMargin: monitor.config.checkin_margin,
+      recoveryThreshold: monitor.config.recovery_threshold,
       schedule: monitor.config.schedule,
-      schedule_type: monitor.config.schedule_type,
+      scheduleType: monitor.config.schedule_type,
       timezone: monitor.config.timezone,
-      failure_issue_threshold: '10',
+      failureIssueThreshold: '10',
     };
 
     const alertRule = {

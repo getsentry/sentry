@@ -1,4 +1,3 @@
-import type {List} from 'react-virtualized';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
@@ -7,7 +6,10 @@ import type {
   TraceFullDetailed,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
-import {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/virtualizedViewManager';
+import {
+  type VirtualizedList,
+  VirtualizedViewManager,
+} from 'sentry/views/performance/newTraceDetails/virtualizedViewManager';
 
 import {TraceTree} from './traceTree';
 
@@ -36,6 +38,8 @@ function makeTransaction(overrides: Partial<TraceFullDetailed> = {}): TraceFullD
     transaction: 'transaction',
     'transaction.op': '',
     'transaction.status': '',
+    errors: [],
+    performance_issues: [],
     ...overrides,
   } as TraceFullDetailed;
 }
@@ -93,11 +97,14 @@ function makeSingleTransactionTree(): TraceTree {
   );
 }
 
-function makeList(): List {
+function makeList(): VirtualizedList {
   return {
     scrollToRow: jest.fn(),
-  } as unknown as List;
+  } as unknown as VirtualizedList;
 }
+
+const EVENT_REQUEST_URL =
+  '/organizations/org-slug/events/project:event_id/?averageColumn=span.self_time';
 
 describe('VirtualizedViewManger', () => {
   it('initializes space', () => {
@@ -301,6 +308,25 @@ describe('VirtualizedViewManger', () => {
       span_list: {width: 0.5},
     });
 
+    it('scrolls to root node', async () => {
+      const tree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [makeTransaction()],
+          orphan_errors: [],
+        })
+      );
+
+      manager.list = makeList();
+
+      const result = await manager.scrollToPath(tree, tree.list[0].path, () => void 0, {
+        api: api,
+        organization,
+      });
+
+      expect(result?.node).toBe(tree.list[0]);
+      expect(manager.list.scrollToRow).toHaveBeenCalledWith(0);
+    });
+
     it('scrolls to transaction', async () => {
       const tree = TraceTree.FromTrace(
         makeTrace({
@@ -316,12 +342,12 @@ describe('VirtualizedViewManger', () => {
 
       manager.list = makeList();
 
-      const result = await manager.scrollToPath(tree, ['txn:event_id'], () => void 0, {
+      const result = await manager.scrollToPath(tree, ['txn-event_id'], () => void 0, {
         api: api,
         organization,
       });
 
-      expect(result).toBe(tree.list[2]);
+      expect(result?.node).toBe(tree.list[2]);
       expect(manager.list.scrollToRow).toHaveBeenCalledWith(2);
     });
 
@@ -350,13 +376,13 @@ describe('VirtualizedViewManger', () => {
       manager.list = makeList();
 
       expect(tree.list[tree.list.length - 1].path).toEqual([
-        'txn:event_id',
-        'txn:child',
-        'txn:root',
+        'txn-event_id',
+        'txn-child',
+        'txn-root',
       ]);
       const result = await manager.scrollToPath(
         tree,
-        ['txn:event_id', 'txn:child', 'txn:root'],
+        ['txn-event_id', 'txn-child', 'txn-root'],
         () => void 0,
         {
           api: api,
@@ -364,7 +390,7 @@ describe('VirtualizedViewManger', () => {
         }
       );
 
-      expect(result).toBe(tree.list[tree.list.length - 1]);
+      expect(result?.node).toBe(tree.list[tree.list.length - 1]);
       expect(manager.list.scrollToRow).toHaveBeenCalledWith(3);
     });
 
@@ -376,7 +402,7 @@ describe('VirtualizedViewManger', () => {
           transactions: [
             makeTransaction({
               event_id: 'event_id',
-              project_slug: 'project_slug',
+              project_slug: 'project',
               children: [],
             }),
           ],
@@ -384,14 +410,14 @@ describe('VirtualizedViewManger', () => {
       );
 
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events/project_slug:event_id/',
+        url: EVENT_REQUEST_URL,
         method: 'GET',
         body: makeEvent(undefined, [makeSpan({span_id: 'span_id'})]),
       });
 
       const result = await manager.scrollToPath(
         tree,
-        ['span:span_id', 'txn:event_id'],
+        ['span-span_id', 'txn-event_id'],
         () => void 0,
         {
           api: api,
@@ -400,8 +426,43 @@ describe('VirtualizedViewManger', () => {
       );
 
       expect(tree.list[1].zoomedIn).toBe(true);
-      expect(result).toBeTruthy();
-      expect(result).toBe(tree.list[2]);
+      expect(result?.node).toBe(tree.list[2]);
+      expect(manager.list.scrollToRow).toHaveBeenCalledWith(2);
+    });
+
+    it('scrolls to empty data node of expanded transaction', async () => {
+      manager.list = makeList();
+
+      const tree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              event_id: 'event_id',
+              project_slug: 'project',
+              children: [],
+            }),
+          ],
+        })
+      );
+
+      MockApiClient.addMockResponse({
+        url: EVENT_REQUEST_URL,
+        method: 'GET',
+        body: makeEvent(undefined, []),
+      });
+
+      const result = await manager.scrollToPath(
+        tree,
+        ['empty-node', 'txn-event_id'],
+        () => void 0,
+        {
+          api: api,
+          organization,
+        }
+      );
+
+      expect(tree.list[1].zoomedIn).toBe(true);
+      expect(result?.node).toBe(tree.list[2]);
       expect(manager.list.scrollToRow).toHaveBeenCalledWith(2);
     });
 
@@ -427,7 +488,7 @@ describe('VirtualizedViewManger', () => {
       );
 
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events/project_slug:event_id/',
+        url: EVENT_REQUEST_URL,
         method: 'GET',
         body: makeEvent(undefined, [
           makeSpan({span_id: 'other_child_span'}),
@@ -436,14 +497,14 @@ describe('VirtualizedViewManger', () => {
       });
 
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events/project_slug:child_event_id/',
+        url: '/organizations/org-slug/events/project_slug:child_event_id/?averageColumn=span.self_time',
         method: 'GET',
         body: makeEvent(undefined, [makeSpan({span_id: 'other_child_span'})]),
       });
 
       const result = await manager.scrollToPath(
         tree,
-        ['span:other_child_span', 'txn:child_event_id', 'txn:event_id'],
+        ['span-other_child_span', 'txn-child_event_id', 'txn-event_id'],
         () => void 0,
         {
           api: api,
@@ -462,14 +523,14 @@ describe('VirtualizedViewManger', () => {
           const tree = makeSingleTransactionTree();
 
           MockApiClient.addMockResponse({
-            url: '/organizations/org-slug/events/project:event_id/',
+            url: EVENT_REQUEST_URL,
             method: 'GET',
             body: makeEvent({}, makeParentAutogroupSpans()),
           });
 
           const result = await manager.scrollToPath(
             tree,
-            [`ag:${headOrTailId}`, 'txn:event_id'],
+            [`ag-${headOrTailId}`, 'txn-event_id'],
             () => void 0,
             {
               api: api,
@@ -488,14 +549,14 @@ describe('VirtualizedViewManger', () => {
           const tree = makeSingleTransactionTree();
 
           MockApiClient.addMockResponse({
-            url: '/organizations/org-slug/events/project:event_id/',
+            url: EVENT_REQUEST_URL,
             method: 'GET',
             body: makeEvent({}, makeParentAutogroupSpans()),
           });
 
           const result = await manager.scrollToPath(
             tree,
-            ['span:middle_span', `ag:${headOrTailId}`, 'txn:event_id'],
+            ['span-middle_span', `ag-${headOrTailId}`, 'txn-event_id'],
             () => void 0,
             {
               api: api,
@@ -515,14 +576,14 @@ describe('VirtualizedViewManger', () => {
         const tree = makeSingleTransactionTree();
 
         MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events/project:event_id/',
+          url: EVENT_REQUEST_URL,
           method: 'GET',
           body: makeEvent({}, makeSiblingAutogroupedSpans()),
         });
 
         const result = await manager.scrollToPath(
           tree,
-          ['span:middle_span', `ag:first_span`, 'txn:event_id'],
+          ['span-middle_span', `ag-first_span`, 'txn-event_id'],
           () => void 0,
           {
             api: api,
@@ -533,9 +594,115 @@ describe('VirtualizedViewManger', () => {
         expect(result).toBeTruthy();
         expect(manager.list.scrollToRow).toHaveBeenCalledWith(4);
       });
+    });
 
-      it.todo('scrolls to orphan transactions');
-      it.todo('scrolls to orphan transactions child span');
+    describe('missing instrumentation', () => {
+      it('scrolls to missing instrumentation via previous span_id', async () => {
+        manager.list = makeList();
+        const tree = makeSingleTransactionTree();
+
+        MockApiClient.addMockResponse({
+          url: EVENT_REQUEST_URL,
+          method: 'GET',
+          body: makeEvent({}, [
+            makeSpan({
+              description: 'span',
+              op: 'db',
+              start_timestamp: 0,
+              timestamp: 0.5,
+              span_id: 'first_span',
+            }),
+            makeSpan({
+              description: 'span',
+              op: 'db',
+              start_timestamp: 0.7,
+              timestamp: 1,
+              span_id: 'middle_span',
+            }),
+          ]),
+        });
+
+        const result = await manager.scrollToPath(
+          tree,
+          ['ms-first_span', 'txn-event_id'],
+          () => void 0,
+          {
+            api: api,
+            organization,
+          }
+        );
+
+        expect(result).toBeTruthy();
+        expect(manager.list.scrollToRow).toHaveBeenCalledWith(3);
+      });
+      it('scrolls to missing instrumentation via next span_id', async () => {
+        manager.list = makeList();
+        const tree = makeSingleTransactionTree();
+
+        MockApiClient.addMockResponse({
+          url: EVENT_REQUEST_URL,
+          method: 'GET',
+          body: makeEvent({}, [
+            makeSpan({
+              description: 'span',
+              op: 'db',
+              start_timestamp: 0,
+              timestamp: 0.5,
+              span_id: 'first_span',
+            }),
+            makeSpan({
+              description: 'span',
+              op: 'db',
+              start_timestamp: 0.7,
+              timestamp: 1,
+              span_id: 'second_span',
+            }),
+          ]),
+        });
+
+        const result = await manager.scrollToPath(
+          tree,
+          ['ms-second_span', 'txn-event_id'],
+          () => void 0,
+          {
+            api: api,
+            organization,
+          }
+        );
+
+        expect(result).toBeTruthy();
+        expect(manager.list.scrollToRow).toHaveBeenCalledWith(3);
+      });
+    });
+
+    it('scrolls to orphan error', async () => {
+      manager.list = makeList();
+      const tree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [makeTransaction()],
+          orphan_errors: [
+            {
+              event_id: 'ded',
+              project_slug: 'project_slug',
+              project_id: 1,
+              issue: 'whoa rusty',
+              issue_id: 0,
+              span: '',
+              level: 'error',
+              title: 'ded fo good',
+              timestamp: 1,
+            },
+          ],
+        })
+      );
+
+      const result = await manager.scrollToPath(tree, ['error-ded'], () => void 0, {
+        api: api,
+        organization,
+      });
+
+      expect(result?.node).toBe(tree.list[2]);
+      expect(manager.list.scrollToRow).toHaveBeenCalledWith(2);
     });
   });
 });

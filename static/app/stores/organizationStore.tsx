@@ -24,6 +24,7 @@ interface OrganizationStoreDefinition extends CommonStoreDefinition<State> {
   onUpdate(org: Organization, options?: {replace: true}): void;
   onUpdate(org: Partial<Organization>, options?: {replace?: false}): void;
   reset(): void;
+  setNoOrganization(): void;
 }
 
 const storeConfig: OrganizationStoreDefinition = {
@@ -74,6 +75,14 @@ const storeConfig: OrganizationStoreDefinition = {
     }
     this.loading = false;
     this.error = err;
+    this.dirty = false;
+    this.trigger(this.get());
+  },
+
+  setNoOrganization() {
+    this.organization = null;
+    this.errorType = ORGANIZATION_FETCH_ERROR_TYPES.NO_ORGS;
+    this.loading = false;
     this.dirty = false;
     this.trigger(this.get());
   },

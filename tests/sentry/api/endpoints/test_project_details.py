@@ -31,7 +31,7 @@ from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json
 
 
@@ -106,7 +106,6 @@ def first_symbol_source_id(sources_json):
     return sources[0]["id"]
 
 
-@region_silo_test
 class ProjectDetailsTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
 
@@ -248,7 +247,6 @@ class ProjectDetailsTest(APITestCase):
         self.get_error_response(other_org.slug, "old_slug", status_code=403)
 
 
-@region_silo_test
 class ProjectUpdateTestTokenAuthenticated(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"
@@ -427,7 +425,6 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         assert response.data["detail"] == "You do not have permission to perform this action."
 
 
-@region_silo_test
 class ProjectUpdateTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"
@@ -610,7 +607,8 @@ class ProjectUpdateTest(APITestCase):
             "sentry:token_header": "*",
             "sentry:verify_ssl": False,
             "sentry:replay_rage_click_issues": True,
-            "sentry:feedback_user_report_notification": True,
+            "sentry:feedback_user_report_notifications": True,
+            "sentry:feedback_ai_spam_detection": True,
             "feedback:branding": False,
             "filters:react-hydration-errors": True,
             "filters:chunk-load-error": True,
@@ -725,7 +723,8 @@ class ProjectUpdateTest(APITestCase):
             ).exists()
         assert project.get_option("feedback:branding") == "0"
         assert project.get_option("sentry:replay_rage_click_issues") is True
-        assert project.get_option("sentry:feedback_user_report_notification") is True
+        assert project.get_option("sentry:feedback_user_report_notifications") is True
+        assert project.get_option("sentry:feedback_ai_spam_detection") is True
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert AuditLogEntry.objects.filter(
@@ -1123,80 +1122,7 @@ class ProjectUpdateTest(APITestCase):
             assert resp.status_code == 200
             assert project.get_option("sentry:symbol_sources", json.dumps([source1]))
 
-    @mock.patch("sentry.tasks.recap_servers.poll_project_recap_server.delay")
-    def test_recap_server(self, poll_project_recap_server):
-        project = Project.objects.get(id=self.project.id)
-        with Feature({"organizations:recap-server": True}):
-            resp = self.get_response(
-                self.org_slug, self.proj_slug, recapServerUrl="http://example.com"
-            )
 
-            assert resp.status_code == 200
-            assert project.get_option("sentry:recap_server_url") == "http://example.com"
-            assert poll_project_recap_server.called
-
-            resp = self.get_response(self.org_slug, self.proj_slug, recapServerToken="wat")
-
-            assert resp.status_code == 200
-            assert project.get_option("sentry:recap_server_token") == "wat"
-            assert poll_project_recap_server.called
-
-    @mock.patch("sentry.tasks.recap_servers.poll_project_recap_server.delay")
-    def test_recap_server_no_feature(self, poll_project_recap_server):
-        project = Project.objects.get(id=self.project.id)
-        with Feature({"organizations:recap-server": False}):
-            resp = self.get_response(
-                self.org_slug, self.proj_slug, recapServerUrl="http://example.com"
-            )
-
-            assert resp.status_code == 400
-            assert project.get_option("sentry:recap_server_url") is None
-
-            resp = self.get_response(self.org_slug, self.proj_slug, recapServerToken="wat")
-
-            assert resp.status_code == 400
-            assert project.get_option("sentry:recap_server_token") is None
-
-    @mock.patch("sentry.tasks.recap_servers.poll_project_recap_server.delay")
-    def test_recap_server_no_modification(self, poll_project_recap_server):
-        project = Project.objects.get(id=self.project.id)
-        project.update_option("sentry:recap_server_url", "http://example.com")
-        project.update_option("sentry:recap_server_token", "wat")
-        with Feature({"organizations:recap-server": True}):
-            resp = self.get_response(
-                self.org_slug, self.proj_slug, recapServerUrl="http://example.com"
-            )
-
-            assert resp.status_code == 200
-            assert project.get_option("sentry:recap_server_url") == "http://example.com"
-            assert not poll_project_recap_server.called
-
-            resp = self.get_response(self.org_slug, self.proj_slug, recapServerToken="wat")
-
-            assert resp.status_code == 200
-            assert project.get_option("sentry:recap_server_token") == "wat"
-            assert not poll_project_recap_server.called
-
-    @mock.patch("sentry.tasks.recap_servers.poll_project_recap_server.delay")
-    def test_recap_server_deletion(self, poll_project_recap_server):
-        project = Project.objects.get(id=self.project.id)
-        project.update_option("sentry:recap_server_url", "http://example.com")
-        project.update_option("sentry:recap_server_token", "wat")
-        with Feature({"organizations:recap-server": True}):
-            resp = self.get_response(self.org_slug, self.proj_slug, recapServerUrl="")
-
-            assert resp.status_code == 200
-            assert project.get_option("sentry:recap_server_url") is None
-            assert not poll_project_recap_server.called
-
-            resp = self.get_response(self.org_slug, self.proj_slug, recapServerToken="")
-
-            assert resp.status_code == 200
-            assert project.get_option("sentry:recap_server_token") is None
-            assert not poll_project_recap_server.called
-
-
-@region_silo_test
 class CopyProjectSettingsTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"
@@ -1395,7 +1321,6 @@ class CopyProjectSettingsTest(APITestCase):
         self.assert_other_project_settings_not_changed()
 
 
-@region_silo_test
 class ProjectDeleteTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "delete"
@@ -1476,7 +1401,6 @@ class TestProjectDetailsDynamicSamplingBase(APITestCase, ABC):
         self.project.update(date_added=old_date)
 
 
-@region_silo_test
 class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingBase):
     endpoint = "sentry-api-0-project-details"
 

@@ -279,28 +279,28 @@ class DigestSlackNotification(SlackActivityNotificationTest):
             fallback_text
             == f"<!date^{timestamp_secs}^2 issues detected {{date_pretty}} in| Digest Report for> <http://testserver/organizations/{self.organization.slug}/projects/{self.project.slug}/|{self.project.name}>"
         )
-        assert len(blocks) == 11
+        assert len(blocks) == 9
         assert blocks[0]["text"]["text"] == fallback_text
 
         assert event1.group
-        event1_alert_title = f":exclamation: <http://testserver/organizations/{self.organization.slug}/issues/{event1.group.id}/?referrer=digest-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*{event1.group.title}*>"
+        event1_alert_title = f":red_circle: <http://testserver/organizations/{self.organization.slug}/issues/{event1.group.id}/?referrer=digest-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*{event1.group.title}*>"
 
         assert event2.group
-        event2_alert_title = f":exclamation: <http://testserver/organizations/{self.organization.slug}/issues/{event2.group.id}/?referrer=digest-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*{event2.group.title}*>"
+        event2_alert_title = f":red_circle: <http://testserver/organizations/{self.organization.slug}/issues/{event2.group.id}/?referrer=digest-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*{event2.group.title}*>"
 
         # digest order not definitive
         try:
             assert blocks[1]["text"]["text"] == event1_alert_title
-            assert blocks[6]["text"]["text"] == event2_alert_title
+            assert blocks[5]["text"]["text"] == event2_alert_title
         except AssertionError:
             assert blocks[1]["text"]["text"] == event2_alert_title
-            assert blocks[6]["text"]["text"] == event1_alert_title
+            assert blocks[5]["text"]["text"] == event1_alert_title
 
         assert (
-            blocks[4]["elements"][0]["text"]
+            blocks[3]["elements"][0]["text"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/?referrer=digest-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
         assert (
-            blocks[9]["elements"][0]["text"]
+            blocks[7]["elements"][0]["text"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/?referrer=digest-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )

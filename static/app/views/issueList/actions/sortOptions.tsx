@@ -51,6 +51,7 @@ function IssueListSortOptions({onSelect, sort, query}: Props) {
         label: getSortLabel(key),
         details: getSortTooltip(key),
       }))}
+      menuWidth={240}
       value={sortKey}
       triggerProps={{
         size: 'xs',

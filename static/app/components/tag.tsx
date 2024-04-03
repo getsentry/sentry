@@ -17,7 +17,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Color} from 'sentry/utils/theme';
 import theme from 'sentry/utils/theme';
 
-interface Props extends React.HTMLAttributes<HTMLSpanElement> {
+interface TagProps extends React.HTMLAttributes<HTMLSpanElement> {
   /**
    * Makes the tag clickable. Use for external links.
    * If no icon is passed, it defaults to IconOpen (can be removed by passing icon={null})
@@ -70,10 +70,10 @@ function BaseTag({
   children,
   textMaxWidth = 150,
   ...props
-}: Props) {
+}: TagProps) {
   const iconsProps: SVGIconProps = {
     size: 'xs',
-    color: theme.tag[type].iconColor as Color,
+    color: theme.tag[type].color as Color,
   };
 
   const isLink = href !== undefined || to !== undefined;
@@ -163,10 +163,7 @@ const IconWrapper = styled('span')`
 `;
 
 const Text = styled('span')<{maxWidth: number; type: keyof Theme['tag']}>`
-  color: ${p =>
-    ['black', 'white'].includes(p.type)
-      ? p.theme.tag[p.type].iconColor
-      : p.theme.textColor};
+  color: ${p => p.theme.tag[p.type].color};
   max-width: ${p => p.maxWidth}px;
   overflow: hidden;
   white-space: nowrap;
@@ -180,4 +177,4 @@ const DismissButton = styled(Button)`
   border: none;
 `;
 
-export default Tag;
+export {Tag, type TagProps};

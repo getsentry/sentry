@@ -29,13 +29,20 @@ function OrganizationContainer({children}: Props) {
 
   // XXX(epurkhiser): There is a special case scenarion when we're unable to
   // load an organization due to access issues. Right now this is VERY SPECIFIC
-  // to being able to enable 2FA
+  // to being able to enable 2FA, or a user not being a member of any org.
   //
   // In this scenario we render the children **explicitly without an
   // organization in context**.
   //
   // TODO(epurkhiser): This scenario desprately should be improved
-  if (error && errorType === ORGANIZATION_FETCH_ERROR_TYPES.ORG_NO_ACCESS) {
+  if (
+    error &&
+    errorType &&
+    [
+      ORGANIZATION_FETCH_ERROR_TYPES.ORG_NO_ACCESS,
+      ORGANIZATION_FETCH_ERROR_TYPES.NO_ORGS,
+    ].includes(errorType)
+  ) {
     return children;
   }
 

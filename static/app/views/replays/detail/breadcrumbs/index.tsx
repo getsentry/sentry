@@ -10,7 +10,6 @@ import {t} from 'sentry/locale';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useExtractedDomNodes from 'sentry/utils/replays/hooks/useExtractedDomNodes';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromId from 'sentry/utils/useProjectFromId';
 import useVirtualizedInspector from 'sentry/views/replays/detail//useVirtualizedInspector';
 import BreadcrumbFilters from 'sentry/views/replays/detail/breadcrumbs/breadcrumbFilters';
 import BreadcrumbRow from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
@@ -35,10 +34,6 @@ function Breadcrumbs() {
   const {currentTime, replay} = useReplayContext();
   const organization = useOrganization();
   const hasPerfTab = organization.features.includes('session-replay-trace-table');
-
-  const projectSlug = useProjectFromId({
-    project_id: replay?.getReplay().project_id,
-  })?.slug;
 
   const {onClickTimestamp} = useCrumbHandlers();
   const {data: frameToExtraction, isFetching: isFetchingExtractions} =
@@ -109,7 +104,6 @@ function Breadcrumbs() {
           frame={item}
           extraction={frameToExtraction?.get(item)}
           traces={hasPerfTab ? frameToTrace?.get(item) : undefined}
-          projectSlug={projectSlug}
           startTimestampMs={startTimestampMs}
           style={style}
           expandPaths={Array.from(expandPathsRef.current?.get(index) || [])}

@@ -36,6 +36,7 @@ export function MonitorFixture(params: Partial<Monitor> = {}): Monitor {
         nextCheckIn: '2023-12-25T16:10:00Z',
         nextCheckInLatest: '2023-12-25T15:15:00Z',
         status: MonitorStatus.OK,
+        activeIncident: null,
       },
     ],
     alertRule: {

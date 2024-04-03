@@ -60,6 +60,11 @@ const COLUMN_ORDER: GridColumnOrder<keyof RowWithScoreAndOpportunity>[] = [
 
 const MAX_ROWS = 25;
 
+const DEFAULT_SORT: Sort = {
+  field: 'opportunity_score(measurements.score.total)',
+  kind: 'desc',
+};
+
 export function PagePerformanceTable() {
   const organization = useOrganization();
   const location = useLocation();
@@ -82,7 +87,7 @@ export function PagePerformanceTable() {
     [projects, location.query.project]
   );
 
-  let sort = useWebVitalsSort();
+  let sort = useWebVitalsSort({defaultSort: DEFAULT_SORT});
   // Need to map fid back to inp for rendering
   if (shouldReplaceFidWithInp && sort.field === 'p75(measurements.fid)') {
     sort = {...sort, field: 'p75(measurements.inp)'};
@@ -104,7 +109,11 @@ export function PagePerformanceTable() {
     data,
     pageLinks,
     isLoading: isTransactionWebVitalsQueryLoading,
-  } = useTransactionWebVitalsQuery({limit: MAX_ROWS, transaction: query});
+  } = useTransactionWebVitalsQuery({
+    limit: MAX_ROWS,
+    transaction: query,
+    defaultSort: DEFAULT_SORT,
+  });
 
   const count = projectData?.data?.[0]?.['count()'] as number;
   const scoreCount = projectScoresData?.data?.[0]?.[

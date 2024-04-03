@@ -1,8 +1,8 @@
-import selectEvent from 'react-select-event';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import {t} from 'sentry/locale';
 import type {Organization, Project, ProjectKey} from 'sentry/types';
@@ -124,7 +124,7 @@ describe('Loader Script Settings', function () {
     );
 
     // Toggle performance option
-    userEvent.click(
+    await userEvent.click(
       screen.getByRole('checkbox', {
         name: t('Enable Performance Monitoring'),
       })
@@ -145,14 +145,14 @@ describe('Loader Script Settings', function () {
     });
 
     // Update SDK version
-    await selectEvent.select(screen.getByText('latest'), '7.x');
+    await selectEvent.select(screen.getByText('7.x'), '6.x');
 
     await waitFor(() => {
       expect(mockRequests.projectKeys).toHaveBeenCalledWith(
         `/projects/${organization.slug}/${params.projectSlug}/keys/${params.keyId}/`,
         expect.objectContaining({
           data: expect.objectContaining({
-            browserSdkVersion: '7.x',
+            browserSdkVersion: '6.x',
           }),
         })
       );
@@ -188,7 +188,7 @@ describe('Loader Script Settings', function () {
     );
 
     // Update SDK version - should reset performance & replay
-    await selectEvent.select(screen.getByText('latest'), '6.x');
+    await selectEvent.select(screen.getByText('7.x'), '6.x');
 
     await waitFor(() => {
       expect(mockRequests.projectKeys).toHaveBeenCalledWith(
@@ -278,7 +278,8 @@ describe('Loader Script Settings', function () {
 
     expect(
       screen.getByText(
-        'When using Replay, the loader will load the ES6 bundle instead of the ES5 bundle.'
+        'When using Replay, the loader will load the ES6 bundle instead of the ES5 bundle.',
+        {exact: false}
       )
     ).toBeInTheDocument();
 
@@ -296,7 +297,8 @@ describe('Loader Script Settings', function () {
 
     expect(
       screen.queryByText(
-        'When using Replay, the loader will load the ES6 bundle instead of the ES5 bundle.'
+        'When using Replay, the loader will load the ES6 bundle instead of the ES5 bundle.',
+        {exact: false}
       )
     ).not.toBeInTheDocument();
   });

@@ -25,7 +25,7 @@ export type FeedbackIssue = Overwrite<
 
 export type FeedbackEvent = Event;
 
-export type FeedbackIssueList = Overwrite<
+export type FeedbackIssueListItem = Overwrite<
   BaseGroup & GroupStats,
   {
     issueCategory: 'feedback';
@@ -44,4 +44,4 @@ export type FeedbackIssueList = Overwrite<
     };
     owners: null | unknown;
   }
->[];
+>;

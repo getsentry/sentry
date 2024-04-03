@@ -2,8 +2,8 @@ import types
 from unittest import mock
 
 import pytest
-from django.conf import settings
 
+from sentry.conf.types.kafka_definition import Topic
 from sentry.utils import json, kafka_config, outcomes
 from sentry.utils.outcomes import Outcome, track_outcome
 
@@ -60,52 +60,43 @@ def test_parse_outcome(name, outcome):
 def test_track_outcome_default(setup):
     """
     Asserts an outcomes serialization roundtrip with defaults.
-
-    Additionally checks that non-billing outcomes are routed to the DEFAULT
-    outcomes cluster and topic, even if there is a separate cluster for billing
-    outcomes.
     """
+    track_outcome(
+        org_id=1,
+        project_id=2,
+        key_id=3,
+        outcome=Outcome.INVALID,
+        reason="project_id",
+    )
 
-    # Provide a billing cluster config that should be ignored
-    with mock.patch.dict(
-        settings.KAFKA_TOPICS, {settings.KAFKA_OUTCOMES_BILLING: {"cluster": "different"}}
-    ):
-        track_outcome(
-            org_id=1,
-            project_id=2,
-            key_id=3,
-            outcome=Outcome.INVALID,
-            reason="project_id",
-        )
+    cluster_args, _ = setup.mock_get_kafka_producer_cluster_options.call_args
+    assert cluster_args == (kafka_config.get_topic_definition(Topic.OUTCOMES)["cluster"],)
 
-        cluster_args, _ = setup.mock_get_kafka_producer_cluster_options.call_args
-        assert cluster_args == (
-            kafka_config.get_topic_definition(settings.KAFKA_OUTCOMES)["cluster"],
-        )
+    assert outcomes.outcomes_publisher
+    (topic_name, payload), _ = setup.mock_publisher.return_value.publish.call_args
 
-        assert outcomes.outcomes_publisher
-        (topic_name, payload), _ = setup.mock_publisher.return_value.publish.call_args
-        assert topic_name == settings.KAFKA_OUTCOMES
+    # not billing because it's not accepted/rate limited
+    assert topic_name == "outcomes"
 
-        data = json.loads(payload)
-        del data["timestamp"]
-        assert data == {
-            "org_id": 1,
-            "project_id": 2,
-            "key_id": 3,
-            "outcome": Outcome.INVALID.value,
-            "reason": "project_id",
-            "event_id": None,
-            "category": None,
-            "quantity": 1,
-        }
+    data = json.loads(payload)
+    del data["timestamp"]
+    assert data == {
+        "org_id": 1,
+        "project_id": 2,
+        "key_id": 3,
+        "outcome": Outcome.INVALID.value,
+        "reason": "project_id",
+        "event_id": None,
+        "category": None,
+        "quantity": 1,
+    }
 
-        assert outcomes.billing_publisher is None
+    assert outcomes.billing_publisher is None
 
 
 def test_track_outcome_billing(setup):
     """
-    Checks that outcomes are routed to the SHARED topic within the same cluster
+    Checks that outcomes are routed to the DEDICATED topic within the same cluster
     in default configuration.
     """
 
@@ -117,11 +108,11 @@ def test_track_outcome_billing(setup):
     )
 
     cluster_args, _ = setup.mock_get_kafka_producer_cluster_options.call_args
-    assert cluster_args == (kafka_config.get_topic_definition(settings.KAFKA_OUTCOMES)["cluster"],)
+    assert cluster_args == (kafka_config.get_topic_definition(Topic.OUTCOMES)["cluster"],)
 
     assert outcomes.outcomes_publisher
     (topic_name, _), _ = setup.mock_publisher.return_value.publish.call_args
-    assert topic_name == settings.KAFKA_OUTCOMES
+    assert topic_name == "outcomes-billing"
 
     assert outcomes.billing_publisher is None
 
@@ -131,32 +122,21 @@ def test_track_outcome_billing_topic(setup):
     Checks that outcomes are routed to the DEDICATED billing topic within the
     same cluster in default configuration.
     """
+    track_outcome(
+        org_id=1,
+        project_id=1,
+        key_id=1,
+        outcome=Outcome.ACCEPTED,
+    )
 
-    with mock.patch.dict(
-        settings.KAFKA_TOPICS,
-        {
-            settings.KAFKA_OUTCOMES_BILLING: {
-                "cluster": kafka_config.get_topic_definition(settings.KAFKA_OUTCOMES)["cluster"],
-            }
-        },
-    ):
-        track_outcome(
-            org_id=1,
-            project_id=1,
-            key_id=1,
-            outcome=Outcome.ACCEPTED,
-        )
+    cluster_args, _ = setup.mock_get_kafka_producer_cluster_options.call_args
+    assert cluster_args == (kafka_config.get_topic_definition(Topic.OUTCOMES)["cluster"],)
 
-        cluster_args, _ = setup.mock_get_kafka_producer_cluster_options.call_args
-        assert cluster_args == (
-            kafka_config.get_topic_definition(settings.KAFKA_OUTCOMES)["cluster"],
-        )
+    assert outcomes.outcomes_publisher
+    (topic_name, _), _ = setup.mock_publisher.return_value.publish.call_args
+    assert topic_name == "outcomes-billing"
 
-        assert outcomes.outcomes_publisher
-        (topic_name, _), _ = setup.mock_publisher.return_value.publish.call_args
-        assert topic_name == settings.KAFKA_OUTCOMES_BILLING
-
-        assert outcomes.billing_publisher is None
+    assert outcomes.billing_publisher is None
 
 
 def test_track_outcome_billing_cluster(settings, setup):
@@ -164,9 +144,7 @@ def test_track_outcome_billing_cluster(settings, setup):
     Checks that outcomes are routed to the dedicated cluster and topic.
     """
 
-    with mock.patch.dict(
-        settings.KAFKA_TOPICS, {settings.KAFKA_OUTCOMES_BILLING: {"cluster": "different"}}
-    ):
+    with mock.patch.dict(settings.KAFKA_TOPIC_TO_CLUSTER, {"outcomes-billing": "different"}):
         track_outcome(
             org_id=1,
             project_id=1,
@@ -179,6 +157,6 @@ def test_track_outcome_billing_cluster(settings, setup):
 
         assert outcomes.billing_publisher
         (topic_name, _), _ = setup.mock_publisher.return_value.publish.call_args
-        assert topic_name == settings.KAFKA_OUTCOMES_BILLING
+        assert topic_name == "outcomes-billing"
 
         assert outcomes.outcomes_publisher is None

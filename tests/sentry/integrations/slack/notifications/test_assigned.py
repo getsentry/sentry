@@ -9,7 +9,6 @@ from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotifi
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import get_attachment, get_blocks_and_fallback_text
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
@@ -17,7 +16,6 @@ from sentry.types.integrations import ExternalProviders
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIssueTestCase):
     def create_notification(self, group, notification):
         return notification(
@@ -144,7 +142,7 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
         assert (
             blocks[1]["text"]["text"]
-            == f":exclamation: <http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=assigned_activity-slack&notification_uuid={notification_uuid}|*{self.group.title}*>"
+            == f":red_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=assigned_activity-slack&notification_uuid={notification_uuid}|*{self.group.title}*>"
         )
         assert (
             blocks[3]["elements"][0]["text"]

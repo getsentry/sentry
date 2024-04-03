@@ -264,8 +264,10 @@ class MQLTest(TestCase, BaseMetricsTestCase):
         result = run_query(request)
         assert len(result["data"]) == 2
         rows = result["data"]
-        assert rows[0]["aggregate_value"] == [0]
-        assert rows[1]["aggregate_value"] == [6.0]
+        # TODO: Snuba is going to start returning 0 instead of [0] for single value aggregates
+        # For now handle both cases for backwards compatibility
+        assert rows[0]["aggregate_value"] in ([0], 0)
+        assert rows[1]["aggregate_value"] in ([6.0], 6)
 
     def test_complex_generic_metrics(self) -> None:
         query = MetricsQuery(
@@ -301,9 +303,11 @@ class MQLTest(TestCase, BaseMetricsTestCase):
         result = run_query(request)
         assert len(result["data"]) == 2
         rows = result["data"]
-        assert rows[0]["aggregate_value"] == [0]
+        # TODO: Snuba is going to start returning 0 instead of [0] for single value aggregates
+        # For now handle both cases for backwards compatibility
+        assert rows[0]["aggregate_value"] in ([0], 0)
         assert rows[0]["transaction"] == "transaction_0"
-        assert rows[1]["aggregate_value"] == [6.0]
+        assert rows[1]["aggregate_value"] in ([6.0], 6)
         assert rows[1]["transaction"] == "transaction_0"
 
     def test_totals(self) -> None:
@@ -735,7 +739,9 @@ class MQLTest(TestCase, BaseMetricsTestCase):
         assert len(result["data"]) == 10
         rows = result["data"]
         for i in range(10):
-            assert rows[i]["aggregate_value"] == [i]
+            # TODO: Snuba is going to start returning 0 instead of [0] for single value aggregates
+            # For now handle both cases for backwards compatibility
+            assert rows[i]["aggregate_value"] in ([i], i)
             assert (
                 rows[i]["time"]
                 == (
@@ -842,3 +848,27 @@ class MQLTest(TestCase, BaseMetricsTestCase):
         )
         result = run_query(request)
         assert len(result["data"]) == 1
+
+    def test_formulas_with_scalar_formulas(self) -> None:
+        query = MetricsQuery(
+            query=f"sum({TransactionMRI.DURATION.value}) + (24 * 3600)",
+            start=self.hour_ago,
+            end=self.now,
+            rollup=Rollup(interval=60, granularity=60),
+            scope=MetricsScope(
+                org_ids=[self.org_id],
+                project_ids=[self.project.id],
+                use_case_id=UseCaseID.TRANSACTIONS.value,
+            ),
+        )
+
+        request = Request(
+            dataset="generic_metrics",
+            app_id="tests",
+            query=query,
+            tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
+        )
+        result = run_query(request)
+        assert len(result["data"]) == 10
+        for row in result["data"]:
+            assert row["aggregate_value"] >= 86400

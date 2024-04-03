@@ -7,10 +7,10 @@ from typing import Any
 from requests import PreparedRequest, Response
 
 from sentry.constants import ObjectStatus
-from sentry.models.integrations.integration import Integration
-from sentry.services.hybrid_cloud.util import control_silo_function
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
+from sentry.integrations.client import ApiClient
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.client import BaseApiResponse
-from sentry.shared_integrations.client.proxy import IntegrationProxyClient, infer_org_integration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils import json, metrics
@@ -19,7 +19,7 @@ SLACK_DATADOG_METRIC = "integrations.slack.http_response"
 logger = logging.getLogger(__name__)
 
 
-class SlackClient(IntegrationProxyClient):
+class SlackClient(ApiClient):
     allow_redirects = False
     integration_name = "slack"
     base_url = "https://slack.com/api"
@@ -28,37 +28,34 @@ class SlackClient(IntegrationProxyClient):
     def __init__(
         self,
         integration_id: int | None = None,
-        org_integration_id: int | None = None,
         verify_ssl: bool = True,
         logging_context: Mapping[str, Any] | None = None,
+        org_integration_id: int | None = None,  # deprecated but used by getsentry
     ) -> None:
         self.integration_id = integration_id
-        if not org_integration_id and integration_id is not None:
-            org_integration_id = infer_org_integration(
-                integration_id=self.integration_id, ctx_logger=logger
-            )
 
         super().__init__(
-            org_integration_id=org_integration_id,
             verify_ssl=verify_ssl,
             integration_id=integration_id,
             logging_context=logging_context,
         )
 
-    @control_silo_function
     def authorize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
-        integration = None
-        base_qs = {
-            "provider": EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
-            "status": ObjectStatus.ACTIVE,
-        }
-        if self.integration_id:
-            integration = Integration.objects.filter(id=self.integration_id, **base_qs).first()
-        elif self.org_integration_id:
-            integration = Integration.objects.filter(
-                organizationintegration__id=self.org_integration_id, **base_qs
-            ).first()
+        if "Authorization" in prepared_request.headers or not self.integration_id:
+            return prepared_request
 
+        # TODO(hybridcloud) Pass integration into SlackClient.__init__() so
+        # we don't have to workaround watermarks here.
+        # In order to send requests, SlackClient needs to fetch the integration
+        # to get access tokens which trips up rpc method/transaction
+        # boundary detection. Those boundaries are not relevant because
+        # this is a read operation.
+        with in_test_hide_transaction_boundary():
+            integration = integration_service.get_integration(
+                integration_id=self.integration_id,
+                provider=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
+                status=ObjectStatus.ACTIVE,
+            )
         if not integration:
             logger.info("no_integration", extra={"path_url": prepared_request.path_url})
             return prepared_request
@@ -67,6 +64,12 @@ class SlackClient(IntegrationProxyClient):
         )
         prepared_request.headers["Authorization"] = f"Bearer {token}"
         return prepared_request
+
+    def finalize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
+        """
+        Add request authorization headers
+        """
+        return self.authorize_request(prepared_request=prepared_request)
 
     def is_response_fatal(self, response: Response) -> bool:
         try:

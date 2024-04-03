@@ -13,11 +13,10 @@ from sentry.silo import SiloMode
 from sentry.tasks.assemble import ChunkFileState, assemble_artifacts
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
-@region_silo_test
 class OrganizationArtifactBundleAssembleTest(APITestCase):
     def setUp(self):
         self.organization = self.create_organization(owner=self.user)
@@ -255,49 +254,48 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
         )
 
     def test_assemble_with_missing_chunks(self):
-        with self.options({"sourcemaps.artifact_bundles.assemble_with_missing_chunks": True}):
-            dist = "android"
-            bundle_file = self.create_artifact_bundle_zip(
-                org=self.organization.slug, release=self.release.version
-            )
-            total_checksum = sha1(bundle_file).hexdigest()
+        dist = "android"
+        bundle_file = self.create_artifact_bundle_zip(
+            org=self.organization.slug, release=self.release.version
+        )
+        total_checksum = sha1(bundle_file).hexdigest()
 
-            # We try to upload with all the checksums missing.
-            response = self.client.post(
-                self.url,
-                data={
-                    "checksum": total_checksum,
-                    "chunks": [total_checksum],
-                    "projects": [self.project.slug],
-                    "version": self.release.version,
-                    "dist": dist,
-                },
-                HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
-            )
+        # We try to upload with all the checksums missing.
+        response = self.client.post(
+            self.url,
+            data={
+                "checksum": total_checksum,
+                "chunks": [total_checksum],
+                "projects": [self.project.slug],
+                "version": self.release.version,
+                "dist": dist,
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
 
-            assert response.status_code == 200, response.content
-            assert response.data["state"] == ChunkFileState.NOT_FOUND
-            assert set(response.data["missingChunks"]) == {total_checksum}
+        assert response.status_code == 200, response.content
+        assert response.data["state"] == ChunkFileState.NOT_FOUND
+        assert set(response.data["missingChunks"]) == {total_checksum}
 
-            # We store the blobs into the database.
-            blob1 = FileBlob.from_file(ContentFile(bundle_file))
-            FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob1)
+        # We store the blobs into the database.
+        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob1)
 
-            # We make the request again after the file have been uploaded.
-            response = self.client.post(
-                self.url,
-                data={
-                    "checksum": total_checksum,
-                    "chunks": [total_checksum],
-                    "projects": [self.project.slug],
-                    "version": self.release.version,
-                    "dist": dist,
-                },
-                HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
-            )
+        # We make the request again after the file have been uploaded.
+        response = self.client.post(
+            self.url,
+            data={
+                "checksum": total_checksum,
+                "chunks": [total_checksum],
+                "projects": [self.project.slug],
+                "version": self.release.version,
+                "dist": dist,
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
 
-            assert response.status_code == 200, response.content
-            assert response.data["state"] == ChunkFileState.CREATED
+        assert response.status_code == 200, response.content
+        assert response.data["state"] == ChunkFileState.CREATED
 
     def test_assemble_response(self):
         bundle_file = self.create_artifact_bundle_zip(

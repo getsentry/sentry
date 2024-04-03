@@ -199,10 +199,19 @@ USE_CASE_ID_TO_ENTITY_KEYS = {
         EntityKey.GenericMetricsSets,
         EntityKey.GenericMetricsDistributions,
     },
+    UseCaseID.PROFILES: {
+        EntityKey.GenericMetricsCounters,
+        EntityKey.GenericMetricsSets,
+        EntityKey.GenericMetricsDistributions,
+    },
     UseCaseID.CUSTOM: {
         EntityKey.GenericMetricsCounters,
         EntityKey.GenericMetricsSets,
         EntityKey.GenericMetricsDistributions,
+        EntityKey.GenericMetricsGauges,
+    },
+    UseCaseID.METRIC_STATS: {
+        EntityKey.GenericMetricsCounters,
         EntityKey.GenericMetricsGauges,
     },
 }

@@ -20,18 +20,18 @@
         "noGlobalObjectCalls": "error",
         "noUnreachable": "error",
         "useHookAtTopLevel": "error",
-        "useIsNan": "error"
+        "useIsNan": "error",
+        "noUnusedPrivateClassMembers": "error"
       },
       "complexity": {
         "useFlatMap": "error",
-        "useOptionalChain": "error"
+        "useOptionalChain": "error",
+        "noEmptyTypeParameters": "error",
+        "noUselessLoneBlockStatements": "error"
       },
       "nursery": {
         "noDuplicateJsonKeys": "error",
-        "noNodejsModules": "error",
-        "useExportType": "error",
-        "useImportType": "error",
-        "useShorthandFunctionType": "error"
+        "noNodejsModules": "error"
       },
       "security": {
         "noDangerouslySetInnerHtmlWithChildren": "error"
@@ -48,14 +48,20 @@
         "noSparseArray": "error",
         "noUnsafeDeclarationMerging": "error",
         "noUnsafeNegation": "error",
-        "useIsArray": "error"
+        "useIsArray": "error",
+        "noApproximativeNumericConstant": "error",
+        "noMisrefactoredShorthandAssign": "error"
       },
       "style": {
         "noCommaOperator": "error",
         "noShoutyConstants": "error",
         "noParameterProperties": "error",
         "noVar": "error",
-        "useConst": "error"
+        "useConst": "error",
+        "useShorthandFunctionType": "error",
+        "useExportType": "error",
+        "useImportType": "error",
+        "useNodejsImportProtocol": "error"
       }
     }
   },
@@ -70,7 +76,7 @@
     ]
   },
   "formatter": {
-    "enabled": true,
+    "enabled": false,
     "formatWithErrors": true,
     "indentStyle": "space",
     "indentWidth": 2,
@@ -94,18 +100,28 @@
   "json": {
     "formatter": {
       "enabled": true
-    },
-    "parser": {
-      "allowComments": true,
-      "allowTrailingCommas": true
     }
   },
   "overrides": [
     {
       "include": [
+        "biome.json",
+        "config/tsconfig.*",
+        "tsconfig.json",
+        ".vscode/*"
+      ],
+      "json": {
+        "parser": {
+          "allowComments": true,
+          "allowTrailingCommas": true
+        }
+      }
+    },
+    {
+      "include": [
         "api-docs/*.ts",
         "build-utils/*.ts",
-        "config/webpack.chartcuterie.config.ts",
+        "config/*.ts",
         "scripts",
         "tests/js/sentry-test/loadFixtures.ts",
         "tests/js/jest-pegjs-transform.js",

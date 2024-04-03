@@ -11,13 +11,7 @@ from sentry.middleware.integrations.parsers.jira import JiraRequestParser
 from sentry.models.integrations.integration import Integration
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.options import override_options
-from sentry.testutils.outbox import (
-    assert_no_webhook_outboxes,
-    assert_no_webhook_payloads,
-    assert_webhook_outboxes_with_shard_id,
-    assert_webhook_payloads_for_mailbox,
-)
+from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_payloads_for_mailbox
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
@@ -75,7 +69,7 @@ class JiraRequestParserTest(TestCase):
             assert isinstance(response, HttpResponse)
             assert response.status_code == 200
             assert response.content == b"passthrough"
-            assert_no_webhook_outboxes()
+            assert_no_webhook_payloads()
 
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
@@ -97,7 +91,7 @@ class JiraRequestParserTest(TestCase):
         assert isinstance(response, HttpResponse)
         assert response.status_code == 200
         assert response.content == b"region response"
-        assert_no_webhook_outboxes()
+        assert_no_webhook_payloads()
 
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
@@ -121,37 +115,12 @@ class JiraRequestParserTest(TestCase):
         assert isinstance(response, HttpResponse)
         assert response.status_code == 200
         assert response.content == b"passthrough"
-        assert_no_webhook_outboxes()
+        assert_no_webhook_payloads()
 
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
     def test_get_response_routing_to_region_async(self):
-        request = self.factory.post(path=f"{self.path_base}/issue-updated/")
-        parser = JiraRequestParser(request, self.get_response)
-
-        integration = self.get_integration()
-        assert_no_webhook_outboxes()
-        with patch.object(parser, "get_integration_from_request") as method:
-            method.return_value = integration
-            response = parser.get_response()
-
-        assert isinstance(response, HttpResponse)
-        assert response.status_code == 202
-        assert response.content == b""
-
-        assert len(responses.calls) == 0
-        assert_webhook_outboxes_with_shard_id(
-            factory_request=request,
-            expected_shard_id=integration.id,
-            region_names=[region.name],
-        )
-
-    @responses.activate
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_regions(region_config)
-    @override_options({"hybridcloud.webhookpayload.rollout": 1.0})
-    def test_get_response_routing_to_region_async_webhookpayload(self):
         request = self.factory.post(path=f"{self.path_base}/issue-updated/")
         parser = JiraRequestParser(request, self.get_response)
 
@@ -166,7 +135,6 @@ class JiraRequestParserTest(TestCase):
         assert response.content == b""
 
         assert len(responses.calls) == 0
-
         assert_webhook_payloads_for_mailbox(
             mailbox_name=f"jira:{integration.id}", region_names=[region.name], request=request
         )
@@ -187,7 +155,7 @@ class JiraRequestParserTest(TestCase):
         assert response.status_code == 200
         assert response.content == b"passthrough"
         assert len(responses.calls) == 0
-        assert_no_webhook_outboxes()
+        assert_no_webhook_payloads()
 
     @override_regions(region_config)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
@@ -216,4 +184,4 @@ class JiraRequestParserTest(TestCase):
         assert response.status_code == 200
         assert response.content == b"region response"
         assert len(responses.calls) == 1
-        assert_no_webhook_outboxes()
+        assert_no_webhook_payloads()

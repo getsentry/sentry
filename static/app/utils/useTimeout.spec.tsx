@@ -56,7 +56,7 @@ describe('useTimeout', () => {
 
     const firstRender = {...result.current};
 
-    rerender();
+    rerender({timeMs, onTimeout});
 
     expect(result.current.start).toBe(firstRender.start);
     expect(result.current.cancel).toBe(firstRender.cancel);

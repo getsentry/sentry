@@ -1,4 +1,6 @@
 import {
+  MissingInstrumentationNode,
+  NoDataNode,
   ParentAutogroupNode,
   SiblingAutogroupNode,
   type TraceTree,
@@ -7,12 +9,8 @@ import {
 
 export function isMissingInstrumentationNode(
   node: TraceTreeNode<TraceTree.NodeValue>
-): node is TraceTreeNode<TraceTree.MissingInstrumentationSpan> {
-  return !!(
-    node.value &&
-    'type' in node.value &&
-    node.value.type === 'missing_instrumentation'
-  );
+): node is MissingInstrumentationNode {
+  return node instanceof MissingInstrumentationNode;
 }
 
 export function isSpanNode(
@@ -20,7 +18,7 @@ export function isSpanNode(
 ): node is TraceTreeNode<TraceTree.Span> {
   return (
     !!(node.value && !('transaction' in node.value) && 'span_id' in node.value) &&
-    !('autogrouped_by' in node.value)
+    !isAutogroupedNode(node)
   );
 }
 
@@ -45,7 +43,7 @@ export function isSiblingAutogroupedNode(
 export function isAutogroupedNode(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): node is ParentAutogroupNode | SiblingAutogroupNode {
-  return !!(node.value && 'autogrouped_by' in node.value);
+  return node instanceof ParentAutogroupNode || node instanceof SiblingAutogroupNode;
 }
 
 export function isTraceErrorNode(
@@ -57,13 +55,22 @@ export function isTraceErrorNode(
 export function isRootNode(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): node is TraceTreeNode<null> {
-  return !!(node.value && node.value === null);
+  return node.value === null && !(node instanceof NoDataNode);
 }
 
 export function isTraceNode(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): node is TraceTreeNode<TraceTree.Trace> {
-  return !!(node.value && 'orphan_errors' in node.value);
+  return !!(
+    node.value &&
+    ('orphan_errors' in node.value || 'transactions' in node.value)
+  );
+}
+
+export function isNoDataNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): node is NoDataNode {
+  return node instanceof NoDataNode;
 }
 
 export function shouldAddMissingInstrumentationSpan(sdk: string | undefined): boolean {

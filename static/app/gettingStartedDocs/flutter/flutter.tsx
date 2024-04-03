@@ -22,10 +22,21 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 Future<void> main() async {
   await SentryFlutter.init(
     (options) {
-      options.dsn = '${params.dsn}';
+      options.dsn = '${params.dsn}';${
+        params.isPerformanceSelected
+          ? `
       // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
       // We recommend adjusting this value in production.
-      options.tracesSampleRate = 1.0;
+      options.tracesSampleRate = 1.0;`
+          : ''
+      }${
+        params.isProfilingSelected
+          ? `
+      // The sampling rate for profiling is relative to tracesSampleRate
+      // Setting to 1.0 will profile 100% of sampled transactions:
+      options.profilesSampleRate = 1.0;`
+          : ''
+      }
     },
     appRunner: () => runApp(MyApp()),
   );
@@ -100,6 +111,15 @@ const onboarding: OnboardingConfig = {
         sentryFlutter: <code />,
       }),
       configurations: [
+        ...(params.isProfilingSelected
+          ? [
+              {
+                description: t(
+                  'Flutter Profiling alpha is available for iOS and macOS since SDK version 7.12.0.'
+                ),
+              },
+            ]
+          : []),
         {
           language: 'dart',
           code: getConfigureSnippet(params),
@@ -117,7 +137,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: () => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
       description: t(
@@ -136,26 +156,30 @@ const onboarding: OnboardingConfig = {
         },
       ],
     },
-    {
-      title: t('Performance'),
-      description: t(
-        "You'll be able to monitor the performance of your app using the SDK. For example:"
-      ),
-      configurations: [
-        {
-          language: 'dart',
-          code: getPerformanceSnippet(),
-          additionalInfo: tct(
-            'To learn more about the API and automatic instrumentations, check out the [perfDocs: performance documentation].',
-            {
-              perfDocs: (
-                <ExternalLink href="https://docs.sentry.io/platforms/flutter/performance/instrumentation/" />
-              ),
-            }
-          ),
-        },
-      ],
-    },
+    ...(params.isPerformanceSelected
+      ? [
+          {
+            title: t('Performance'),
+            description: t(
+              "You'll be able to monitor the performance of your app using the SDK. For example:"
+            ),
+            configurations: [
+              {
+                language: 'dart',
+                code: getPerformanceSnippet(),
+                additionalInfo: tct(
+                  'To learn more about the API and automatic instrumentations, check out the [perfDocs: performance documentation].',
+                  {
+                    perfDocs: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/flutter/performance/instrumentation/" />
+                    ),
+                  }
+                ),
+              },
+            ],
+          },
+        ]
+      : []),
   ],
   nextSteps: () => [
     {
@@ -178,6 +202,7 @@ const onboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi: feedbackOnboardingCrashApiDart,
+  crashReportOnboarding: feedbackOnboardingCrashApiDart,
 };
 
 export default docs;

@@ -2,13 +2,12 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 
 import pytest
-import rb
 
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.tsdb.base import ONE_DAY, ONE_HOUR, ONE_MINUTE, TSDBModel
 from sentry.tsdb.redis import CountMinScript, RedisTSDB, SuppressionWrapper
-from sentry.utils.dates import to_datetime, to_timestamp
+from sentry.utils.dates import to_datetime
 
 
 def test_suppression_wrapper():
@@ -46,12 +45,10 @@ class RedisTSDBTest(TestCase):
             cluster="tsdb",
         )
 
-        assert isinstance(self.db.cluster, rb.Cluster)
         # the point of this test is to demonstrate behaviour with a multi-host cluster
         assert len(self.db.cluster.hosts) == 3
 
     def tearDown(self):
-        assert isinstance(self.db.cluster, rb.Cluster)
         with self.db.cluster.all() as client:
             client.flushdb()
 
@@ -85,7 +82,7 @@ class RedisTSDBTest(TestCase):
         dts = [now + timedelta(hours=i) for i in range(4)]
 
         def timestamp(d):
-            t = int(to_timestamp(d))
+            t = int(d.timestamp())
             return t - (t % 3600)
 
         self.db.incr(TSDBModel.project, 1, dts[0])
@@ -195,7 +192,7 @@ class RedisTSDBTest(TestCase):
         model = TSDBModel.users_affected_by_group
 
         def timestamp(d):
-            t = int(to_timestamp(d))
+            t = int(d.timestamp())
             return t - (t % 3600)
 
         self.db.record(model, 1, ("foo", "bar"), dts[0])
@@ -420,7 +417,7 @@ class RedisTSDBTest(TestCase):
             environment_id=0,
         ) == {"organization:1": [], "organization:2": []}
 
-        timestamp = int(to_timestamp(now) // rollup) * rollup
+        timestamp = int(now.timestamp() // rollup) * rollup
 
         assert self.db.get_most_frequent_series(
             model,
@@ -594,7 +591,6 @@ class RedisTSDBTest(TestCase):
         ) == {"organization:1": [], "organization:2": []}
 
     def test_frequency_table_import_export_no_estimators(self):
-        assert isinstance(self.db.cluster, rb.Cluster)
         client = self.db.cluster.get_local_client_for_key("key")
 
         parameters = [64, 5, 10]
@@ -645,7 +641,6 @@ class RedisTSDBTest(TestCase):
         assert client.exists("1:e")
 
     def test_frequency_table_import_export_both_estimators(self):
-        assert isinstance(self.db.cluster, rb.Cluster)
         client = self.db.cluster.get_local_client_for_key("key")
 
         parameters = [64, 5, 5]
@@ -708,7 +703,6 @@ class RedisTSDBTest(TestCase):
         ]
 
     def test_frequency_table_import_export_source_estimators(self):
-        assert isinstance(self.db.cluster, rb.Cluster)
         client = self.db.cluster.get_local_client_for_key("key")
 
         parameters = [64, 5, 5]
@@ -767,7 +761,6 @@ class RedisTSDBTest(TestCase):
         ]
 
     def test_frequency_table_import_export_destination_estimators(self):
-        assert isinstance(self.db.cluster, rb.Cluster)
         client = self.db.cluster.get_local_client_for_key("key")
 
         parameters = [64, 5, 5]

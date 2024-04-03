@@ -17,7 +17,7 @@ class OverwritableConfigMixin:
         self, scope: ImportScope, flags: ImportFlags
     ) -> tuple[int, ImportKind] | None:
         # Get all unique sets that will potentially cause collisions.
-        uniq_sets = dependencies()[get_model_name(self)].get_uniques_without_foreign_keys()  # type: ignore
+        uniq_sets = dependencies()[get_model_name(self)].get_uniques_without_foreign_keys()  # type: ignore[arg-type]
 
         # Don't use this mixin for models with multiple unique sets; write custom logic instead.
         assert len(uniq_sets) <= 1
@@ -25,7 +25,7 @@ class OverwritableConfigMixin:
         # Must set `__relocation_custom_ordinal__` on models that use this mixin.
         assert getattr(self.__class__, "__relocation_custom_ordinal__", None) is not None
 
-        if self.get_relocation_scope() == RelocationScope.Config:  # type: ignore
+        if self.get_relocation_scope() == RelocationScope.Config:  # type: ignore[attr-defined]
             if len(uniq_sets) == 1:
                 uniq_set = uniq_sets[0]
                 query = dict()
@@ -36,7 +36,7 @@ class OverwritableConfigMixin:
                 # If all of the fields in the unique set are NULL, we'll avoid a collision, so exit
                 # early and write a new entry.
                 if len(query) > 0:
-                    existing = self.__class__.objects.filter(**query).first()  # type: ignore
+                    existing = self.__class__.objects.filter(**query).first()  # type: ignore[attr-defined]
                     if existing:
                         # Re-use the existing data if config overwrite is disabled.
                         if not flags.overwrite_configs:
@@ -45,8 +45,8 @@ class OverwritableConfigMixin:
                         # We are performing an overwrite (ie, keeping the old pk, but using all of
                         # the imported values).
                         self.pk = existing.pk
-                        self.save()  # type: ignore
+                        self.save()  # type: ignore[attr-defined]
                         return (self.pk, ImportKind.Overwrite)
 
         # Does not have a single colliding unique field - write as usual.
-        return super().write_relocation_import(scope, flags)  # type: ignore
+        return super().write_relocation_import(scope, flags)  # type: ignore[misc]

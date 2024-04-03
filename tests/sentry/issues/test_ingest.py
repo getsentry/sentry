@@ -5,6 +5,8 @@ from hashlib import md5
 from unittest import mock
 from unittest.mock import patch
 
+from django.utils import timezone
+
 from sentry.constants import LOG_LEVELS_MAP
 from sentry.issues.grouptype import (
     ErrorGroupType,
@@ -26,14 +28,14 @@ from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouprelease import GroupRelease
-from sentry.models.release import Release, ReleaseProject
+from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.ratelimits.sliding_windows import RequestedQuota
 from sentry.receivers import create_default_projects
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import PriorityLevel
 from sentry.utils import json
@@ -44,7 +46,6 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
@@ -119,7 +120,7 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
         create_default_projects()
         event_data = load_data("generic-event-profiling").data
         project_id = event_data["event"].pop("project_id", self.project.id)
-        event_data["event"]["timestamp"] = datetime.utcnow().isoformat()
+        event_data["event"]["timestamp"] = timezone.now().isoformat()
         event = self.store_event(data=event_data["event"], project_id=project_id)
         occurrence = self.build_occurrence()
         with self.assertRaisesMessage(
@@ -147,7 +148,6 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
         assert group_info.group.priority == PriorityLevel.HIGH
 
 
-@region_silo_test
 class ProcessOccurrenceDataTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
         data = self.build_occurrence_data(fingerprint=["hi", "bye"])
@@ -157,7 +157,6 @@ class ProcessOccurrenceDataTest(OccurrenceTestMixin, TestCase):
         ]
 
 
-@region_silo_test
 class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
     def test_new_group(self) -> None:
         occurrence = self.build_occurrence(type=ErrorGroupType.type_id)
@@ -373,11 +372,14 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
         assert materialize_metadata(occurrence, event) == {
             "type": "default",
             "culprit": occurrence.culprit,
-            "metadata": {"title": occurrence.issue_title, "value": occurrence.subtitle},
+            "metadata": {
+                "title": occurrence.issue_title,
+                "value": occurrence.subtitle,
+                "initial_priority": occurrence.initial_issue_priority,
+            },
             "title": occurrence.issue_title,
             "location": event.location,
             "last_received": json.datetime_to_str(event.datetime),
-            "initial_priority": occurrence.initial_issue_priority,
         }
 
     def test_preserves_existing_metadata(self) -> None:
@@ -391,6 +393,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
             "title": occurrence.issue_title,
             "value": occurrence.subtitle,
             "dogs": "are great",
+            "initial_priority": occurrence.initial_issue_priority,
         }
 
     def test_populates_feedback_metadata(self) -> None:
@@ -416,16 +419,16 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
             "message": "test",
             "name": "Name Test",
             "source": "crash report widget",
+            "initial_priority": occurrence.initial_issue_priority,
         }
 
 
-@region_silo_test
 class SaveIssueOccurrenceToEventstreamTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
         create_default_projects()
         event_data = load_data("generic-event-profiling").data
         project_id = event_data["event"].pop("project_id")
-        event_data["event"]["timestamp"] = datetime.utcnow().isoformat()
+        event_data["event"]["timestamp"] = timezone.now().isoformat()
         event = self.store_event(data=event_data["event"], project_id=project_id)
         occurrence = self.build_occurrence(event_id=event.event_id)
         group_info = save_issue_from_occurrence(occurrence, event, None)

@@ -41,12 +41,11 @@ async function fetchOrg(
   OrganizationStore.onUpdate(org, {replace: true});
   setActiveOrganization(org);
 
-  Sentry.configureScope(scope => {
-    // XXX(dcramer): this is duplicated in sdk.py on the backend
-    scope.setTag('organization', org.id);
-    scope.setTag('organization.slug', org.slug);
-    scope.setContext('organization', {id: org.id, slug: org.slug});
-  });
+  const scope = Sentry.getCurrentScope();
+  // XXX(dcramer): this is duplicated in sdk.py on the backend
+  scope.setTag('organization', org.id);
+  scope.setTag('organization.slug', org.slug);
+  scope.setContext('organization', {id: org.id, slug: org.slug});
 
   return org;
 }
@@ -73,7 +72,7 @@ async function fetchProjectsAndTeams(
         includeAllArgs: true,
         query: {
           all_projects: 1,
-          collapse: 'latestDeploys',
+          collapse: ['latestDeploys', 'unusedFeatures'],
         },
       }),
     usePreload

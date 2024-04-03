@@ -48,3 +48,9 @@ class IssueCategoryFilter(EventFilter):
             return False
 
         return self._passes(group)
+
+    def render_label(self) -> str:
+        value = self.data["value"]
+        title = CATEGORY_CHOICES.get(value)
+        group_category_name = title.title() if title else ""
+        return self.label.format(value=group_category_name)

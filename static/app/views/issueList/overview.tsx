@@ -17,6 +17,7 @@ import {addMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
 import type {Client} from 'sentry/api';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
@@ -108,7 +109,6 @@ type Props = {
   WithRouteAnalyticsProps;
 
 type State = {
-  actionTaken: boolean;
   error: string | null;
   groupIds: string[];
   issuesLoading: boolean;
@@ -125,7 +125,6 @@ type State = {
   queryMaxCount: number;
   realtimeActive: boolean;
   selectAllActive: boolean;
-  undo: boolean;
   // Will be set to true if there is valid session data from issue-stats api call
   query?: string;
 };
@@ -139,6 +138,7 @@ interface EndpointParams extends Partial<PageFilters['datetime']> {
   query?: string;
   sort?: string;
   statsPeriod?: string | null;
+  useGroupSnubaDataset?: boolean;
 }
 
 type CountsEndpointParams = Omit<EndpointParams, 'cursor' | 'page' | 'query'> & {
@@ -149,6 +149,11 @@ type StatEndpointParams = Omit<EndpointParams, 'cursor' | 'page'> & {
   groups: string[];
   expand?: string | string[];
 };
+
+const DataConsentBanner = HookOrDefault({
+  hookName: 'component:data-consent-banner',
+  defaultComponent: null,
+});
 
 class IssueListOverview extends Component<Props, State> {
   state: State = this.getInitialState();
@@ -163,7 +168,6 @@ class IssueListOverview extends Component<Props, State> {
     return {
       groupIds: [],
       actionTaken: false,
-      undo: false,
       selectAllActive: false,
       realtimeActive,
       pageLinks: '',
@@ -312,6 +316,8 @@ class IssueListOverview extends Component<Props, State> {
   private _lastRequest: any;
   private _lastStatsRequest: any;
   private _lastFetchCountsRequest: any;
+  private actionTaken = false;
+  private undo = false;
 
   getQueryFromSavedSearchOrLocation({
     savedSearch,
@@ -433,6 +439,10 @@ class IssueListOverview extends Component<Props, State> {
       params.groupStatsPeriod = groupStatsPeriod;
     }
 
+    if (this.props.location.query.useGroupSnubaDataset) {
+      params.useGroupSnubaDataset = true;
+    }
+
     // only include defined values.
     return pickBy(params, v => defined(v)) as EndpointParams;
   };
@@ -486,7 +496,7 @@ class IssueListOverview extends Component<Props, State> {
           return;
         }
         GroupStore.onPopulateStats(groups, data);
-        this.trackTabViewed(groups, data);
+        this.trackTabViewed(groups, data, this.state.queryCount);
       },
       error: err => {
         this.setState({
@@ -498,9 +508,9 @@ class IssueListOverview extends Component<Props, State> {
 
         // End navigation transaction to prevent additional page requests from impacting page metrics.
         // Other transactions include stacktrace preview request
-        const currentTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
+        const currentTransaction = Sentry.getActiveTransaction();
         if (currentTransaction?.op === 'navigation') {
-          currentTransaction.finish();
+          currentTransaction.end();
         }
       },
     });
@@ -577,7 +587,7 @@ class IssueListOverview extends Component<Props, State> {
     const query = this.getQuery();
 
     if (!this.state.realtimeActive) {
-      if (!this.state.actionTaken && !this.state.undo) {
+      if (!this.actionTaken && !this.undo) {
         GroupStore.loadInitialData([]);
 
         this.setState({
@@ -691,7 +701,7 @@ class IssueListOverview extends Component<Props, State> {
           return;
         }
 
-        if (this.state.undo) {
+        if (this.undo) {
           GroupStore.loadInitialData(data);
         }
         GroupStore.add(data);
@@ -744,7 +754,8 @@ class IssueListOverview extends Component<Props, State> {
         this.resumePolling();
 
         if (!this.state.realtimeActive) {
-          this.setState({actionTaken: false, undo: false});
+          this.actionTaken = false;
+          this.undo = false;
         }
       },
     });
@@ -816,7 +827,7 @@ class IssueListOverview extends Component<Props, State> {
     }
   }
 
-  trackTabViewed(groups: string[], data: Group[]) {
+  trackTabViewed(groups: string[], data: Group[], numHits: number | null) {
     const {organization, location} = this.props;
     const page = location.query.page;
     const endpointParams = this.getEndpointParams();
@@ -850,6 +861,7 @@ class IssueListOverview extends Component<Props, State> {
       num_old_issues: numOldIssues,
       num_new_issues: numNewIssues,
       num_issues: data.length,
+      total_issues_count: numHits,
       sort: this.getSort(),
     });
   }
@@ -994,7 +1006,7 @@ class IssueListOverview extends Component<Props, State> {
   };
 
   onDelete = () => {
-    this.setState({actionTaken: true});
+    this.actionTaken = true;
     this.fetchData(true);
   };
 
@@ -1032,7 +1044,7 @@ class IssueListOverview extends Component<Props, State> {
         if (!query.includes('is:ignored') && !isForReviewQuery(query)) {
           GroupStore.add(groups);
         }
-        this.setState({undo: true});
+        this.undo = true;
       },
       error: err => {
         this.setState({
@@ -1142,10 +1154,8 @@ class IssueListOverview extends Component<Props, State> {
     GroupStore.remove(itemIds);
 
     const queryCount = this.state.queryCount - itemIds.length;
-    this.setState({
-      actionTaken: true,
-      queryCount,
-    });
+    this.actionTaken = true;
+    this.setState({queryCount});
 
     if (GroupStore.getAllItemIds().length === 0) {
       // If we run out of issues on the last page, navigate back a page to
@@ -1247,6 +1257,7 @@ class IssueListOverview extends Component<Props, State> {
         />
         <StyledBody>
           <StyledMain>
+            <DataConsentBanner source="issues" />
             <IssueListFilters query={query} onSearch={this.onSearch} />
 
             <Panel>
@@ -1285,6 +1296,7 @@ class IssueListOverview extends Component<Props, State> {
                     loading={issuesLoading}
                     error={error}
                     refetchGroups={this.fetchData}
+                    onActionTaken={this.onActionTaken}
                   />
                 </VisuallyCompleteWithData>
               </PanelBody>

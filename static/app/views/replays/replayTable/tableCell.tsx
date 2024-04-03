@@ -9,6 +9,7 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import Link from 'sentry/components/links/link';
 import ContextIcon from 'sentry/components/replays/contextIcon';
+import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
 import {formatTime} from 'sentry/components/replays/utils';
 import ScoreBar from 'sentry/components/scoreBar';
 import TimeSince from 'sentry/components/timeSince';
@@ -20,6 +21,7 @@ import {
   IconDelete,
   IconEllipsis,
   IconFire,
+  IconPlay,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {ValidSize} from 'sentry/styles/space';
@@ -287,12 +289,14 @@ export function ReplayCell({
   replay,
   referrer_table,
   isWidget,
+  className,
 }: Props & {
   eventView: EventView;
   organization: Organization;
   referrer: string;
-  referrer_table: ReferrerTableType;
+  className?: string;
   isWidget?: boolean;
+  referrer_table?: ReferrerTableType;
 }) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === replay.project_id);
@@ -369,7 +373,7 @@ export function ReplayCell({
   );
 
   return (
-    <Item isWidget={isWidget} isReplayCell>
+    <Item isWidget={isWidget} isReplayCell className={className}>
       <UserBadge
         avatarSize={24}
         displayName={
@@ -609,6 +613,30 @@ export function ActivityCell({replay, showDropdownFilters}: Props) {
       </Container>
     </Item>
   );
+}
+
+export function PlayPauseCell({
+  isSelected,
+  handleClick,
+}: {
+  handleClick: () => void;
+  isSelected: boolean;
+}) {
+  const inner = isSelected ? (
+    <ReplayPlayPauseButton size="sm" iconSize="sm" priority="default" borderless />
+  ) : (
+    <Button
+      title={t('Play')}
+      aria-label={t('Play')}
+      icon={<IconPlay size="sm" />}
+      onClick={handleClick}
+      data-test-id="replay-table-play-button"
+      borderless
+      size="sm"
+      priority="default"
+    />
+  );
+  return <Item>{inner}</Item>;
 }
 
 const Item = styled('div')<{

@@ -30,8 +30,9 @@ from sentry.digests.notifications import Notification, build_digest
 from sentry.digests.utils import get_digest_metadata
 from sentry.event_manager import EventManager, get_event_type
 from sentry.http import get_server_hostname
-from sentry.issues.grouptype import NoiseConfig, PerformanceNPlusOneGroupType
+from sentry.issues.grouptype import NoiseConfig
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
+from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.mail.notifications import get_builder_args
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
@@ -61,7 +62,7 @@ from sentry.testutils.helpers.notifications import (  # NOQA:S007
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json, loremipsum
 from sentry.utils.auth import AuthenticatedHttpRequest
-from sentry.utils.dates import to_datetime, to_timestamp
+from sentry.utils.dates import to_datetime
 from sentry.utils.email import MessageBuilder, inline_css
 from sentry.utils.http import absolute_uri
 from sentry.utils.samples import load_data
@@ -143,7 +144,7 @@ def make_group_metadata(random: Random) -> dict[str, Any]:
 
 
 def make_group_generator(random: Random, project: Project) -> Generator[Group, None, None]:
-    epoch = int(to_timestamp(datetime(2016, 6, 1, 0, 0, 0, tzinfo=timezone.utc)))
+    epoch = int(datetime(2016, 6, 1, 0, 0, 0, tzinfo=timezone.utc).timestamp())
     for id in itertools.count(1):
         first_seen = epoch + random.randint(0, 60 * 60 * 24 * 30)
         last_seen = random.randint(first_seen, first_seen + (60 * 60 * 24 * 30))
@@ -203,19 +204,22 @@ def make_performance_event(project: Project, sample_name: str):
     timestamp = datetime(2017, 9, 6, 0, 0)
     start_timestamp = timestamp - timedelta(seconds=3)
     event_id = "44f1419e73884cd2b45c79918f4b6dc4"
-    occurrence_data = SAMPLE_TO_OCCURRENCE_MAP[sample_name].to_dict()
+    mock_occurrence = SAMPLE_TO_OCCURRENCE_MAP[sample_name]
+    occurrence_data = mock_occurrence.to_dict()
     occurrence_data["event_id"] = event_id
     perf_data = dict(load_data(sample_name, start_timestamp=start_timestamp, timestamp=timestamp))
     perf_data["event_id"] = event_id
     perf_data["project_id"] = project.id
 
     with mock.patch.object(
-        PerformanceNPlusOneGroupType, "noise_config", new=NoiseConfig(0, timedelta(minutes=1))
+        mock_occurrence.type, "noise_config", new=NoiseConfig(0, timedelta(minutes=1))
     ):
         occurrence, group_info = process_event_and_issue_occurrence(
             occurrence_data,
             perf_data,
         )
+        produce_occurrence_to_kafka(payload_type=PayloadType.OCCURRENCE, occurrence=occurrence)
+
     assert group_info is not None
     generic_group = group_info.group
     group_event = generic_group.get_latest_event()
@@ -502,7 +506,7 @@ def digest(request):
             data = event_manager.get_data()
 
             data["timestamp"] = random.randint(
-                int(to_timestamp(group.first_seen)), int(to_timestamp(group.last_seen))
+                int(group.first_seen.timestamp()), int(group.last_seen.timestamp())
             )
 
             event = eventstore.backend.create_event(
@@ -518,7 +522,7 @@ def digest(request):
                         ),
                         notification_uuid,
                     ),
-                    to_timestamp(event.datetime),
+                    event.datetime.timestamp(),
                 )
             )
 
@@ -543,7 +547,7 @@ def digest(request):
                     notification_uuid,
                 ),
                 # this is required for acceptance tests to pass as the EventManager won't accept a timestamp in the past
-                to_timestamp(datetime(2016, 6, 22, 16, 16, 0, tzinfo=timezone.utc)),
+                datetime(2016, 6, 22, 16, 16, 0, tzinfo=timezone.utc).timestamp(),
             )
         )
         state["groups"][perf_group.id] = perf_group
@@ -567,7 +571,7 @@ def digest(request):
                     notification_uuid,
                 ),
                 # this is required for acceptance tests to pass as the EventManager won't accept a timestamp in the past
-                to_timestamp(datetime(2016, 6, 22, 16, 16, 0, tzinfo=timezone.utc)),
+                datetime(2016, 6, 22, 16, 16, 0, tzinfo=timezone.utc).timestamp(),
             )
         )
         state["groups"][generic_group.id] = generic_group

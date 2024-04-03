@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -8,10 +8,8 @@ from sentry.models.group import GroupStatus
 from sentry.models.userreport import UserReport
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class ProjectUserReportListTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -58,7 +56,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
         project = self.create_project()
         event1 = self.store_event(
             data={
-                "timestamp": iso_format(datetime.utcnow()),
+                "timestamp": timezone.now().isoformat(),
                 "event_id": "a" * 32,
                 "message": "something went wrong",
             },
@@ -67,7 +65,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
         group = event1.group
         event2 = self.store_event(
             data={
-                "timestamp": iso_format(datetime.utcnow()),
+                "timestamp": timezone.now().isoformat(),
                 "event_id": "c" * 32,
                 "message": "testing",
             },
@@ -130,7 +128,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
         project = self.create_project()
         event = self.store_event(
             data={
-                "timestamp": iso_format(datetime.utcnow()),
+                "timestamp": timezone.now().isoformat(),
                 "event_id": "a" * 32,
                 "message": "testing",
             },
@@ -190,7 +188,6 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
         assert response.data == []
 
 
-@region_silo_test
 class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

@@ -10,8 +10,9 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers.models.release import expose_version_info
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.projectplatform import ProjectPlatform
-from sentry.models.release import Release, ReleaseProject
+from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.releases.release_project import ReleaseProject
 
 
 @region_silo_endpoint

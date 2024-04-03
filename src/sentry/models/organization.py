@@ -255,7 +255,7 @@ class Organization(
 
     def delete(self, **kwargs):
         if self.is_default:
-            raise Exception("You cannot delete the the default organization.")
+            raise Exception("You cannot delete the default organization.")
         return super().delete(**kwargs)
 
     def handle_async_replication(self, shard_identifier: int) -> None:

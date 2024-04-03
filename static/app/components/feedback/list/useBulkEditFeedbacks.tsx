@@ -11,6 +11,8 @@ import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
 import {t, tct} from 'sentry/locale';
 import {GroupStatus} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {decodeList} from 'sentry/utils/queryString';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const statusToButtonLabel: Record<string, string> = {
@@ -33,9 +35,15 @@ interface Props
 
 export default function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) {
   const organization = useOrganization();
+  const queryView = useLocationQuery({
+    fields: {
+      project: decodeList,
+    },
+  });
   const {markAsRead, resolve} = useMutateFeedback({
     feedbackIds: selectedIds,
     organization,
+    projectIds: queryView.project,
   });
 
   const onToggleResovled = useCallback(

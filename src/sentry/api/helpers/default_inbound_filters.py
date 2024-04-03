@@ -3,13 +3,16 @@ from sentry.ingest import inbound_filters
 
 
 # Turns on certain inbound filters by default for project.
-def set_default_inbound_filters(project, organization):
-    filters = [
+def set_default_inbound_filters(
+    project,
+    organization,
+    filters=(
         "browser-extensions",
         "legacy-browsers",
         "web-crawlers",
         "filtered-transaction",
-    ]
+    ),
+):
     if features.has("organizations:legacy-browser-update", organization):
         browser_subfilters = [
             "ie",

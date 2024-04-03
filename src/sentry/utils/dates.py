@@ -1,7 +1,7 @@
 import re
 import zoneinfo
 from collections.abc import Mapping
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import Any, overload
 
 from dateutil.parser import parse
@@ -24,22 +24,6 @@ def ensure_aware(value: datetime) -> datetime:
     if is_aware(value):
         return value
     return make_aware(value)
-
-
-def to_timestamp(value: datetime) -> float:
-    """
-    Convert a time zone aware datetime to a POSIX timestamp (with fractional
-    component.)
-    """
-    return (value - epoch).total_seconds()
-
-
-def to_timestamp_from_iso_format(value: str) -> float:
-    """
-    Convert a str representation of datetime in iso format to
-    a POSIX timestamp
-    """
-    return datetime.fromisoformat(value).timestamp()
 
 
 @overload
@@ -65,10 +49,13 @@ def to_datetime(value: float | int | None) -> datetime | None:
     return epoch + timedelta(seconds=value)
 
 
+def date_to_utc_datetime(d: date) -> datetime:
+    """Convert a `date` to an aware `datetime`."""
+    return datetime(d.year, d.month, d.day, tzinfo=UTC)
+
+
 def floor_to_utc_day(value: datetime) -> datetime:
-    """
-    Floors a given datetime to UTC midnight.
-    """
+    """Floors a given datetime to UTC midnight."""
     return value.astimezone(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
 
 

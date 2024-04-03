@@ -74,7 +74,7 @@ class SanitizableField:
 
     def validate_json_model(self, json: JSONData) -> None:
         """
-        Validates the the JSON model is shaped the way we expect a serialized Django model to be,
+        Validates the JSON model is shaped the way we expect a serialized Django model to be,
         and that we have the right kind of model for this `SanitizableField`. Raises errors if there
         is a validation failure.
         """
@@ -450,7 +450,7 @@ def sanitize(export: JSONData, datetime_offset: timedelta | None = None) -> JSON
         if model_class is None:
             continue
 
-        model_class.sanitize_relocation_json(clone, sanitizer)  # type: ignore
+        model_class.sanitize_relocation_json(clone, sanitizer)  # type: ignore[attr-defined]
         sanitized.append(clone)
 
     return sanitized

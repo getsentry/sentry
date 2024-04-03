@@ -53,48 +53,50 @@ describe('Request entry', function () {
               url: null,
               query: null,
               data: {
-                a: {
-                  '': {
-                    rem: [['organization:0', 's', 0, 0]],
-                    len: 1,
-                    chunks: [
-                      {
-                        type: 'redaction',
-                        text: '',
-                        rule_id: 'organization:0',
-                        remark: 's',
-                      },
-                    ],
-                  },
-                },
-                c: {
-                  0: {
-                    d: {
-                      '': {
-                        rem: [['organization:0', 's', 0, 0]],
-                        len: 1,
-                        chunks: [
-                          {
-                            type: 'redaction',
-                            text: '',
-                            rule_id: 'organization:0',
-                            remark: 's',
-                          },
-                        ],
-                      },
+                0: {
+                  a: {
+                    '': {
+                      rem: [['organization:0', 's', 0, 0]],
+                      len: 1,
+                      chunks: [
+                        {
+                          type: 'redaction',
+                          text: '',
+                          rule_id: 'organization:0',
+                          remark: 's',
+                        },
+                      ],
                     },
-                    f: {
-                      '': {
-                        rem: [['organization:0', 's', 0, 0]],
-                        len: 1,
-                        chunks: [
-                          {
-                            type: 'redaction',
-                            text: '',
-                            rule_id: 'organization:0',
-                            remark: 's',
-                          },
-                        ],
+                  },
+                  c: {
+                    0: {
+                      d: {
+                        '': {
+                          rem: [['organization:0', 's', 0, 0]],
+                          len: 1,
+                          chunks: [
+                            {
+                              type: 'redaction',
+                              text: '',
+                              rule_id: 'organization:0',
+                              remark: 's',
+                            },
+                          ],
+                        },
+                      },
+                      f: {
+                        '': {
+                          rem: [['organization:0', 's', 0, 0]],
+                          len: 1,
+                          chunks: [
+                            {
+                              type: 'redaction',
+                              text: '',
+                              rule_id: 'organization:0',
+                              remark: 's',
+                            },
+                          ],
+                        },
                       },
                     },
                   },
@@ -172,6 +174,8 @@ describe('Request entry', function () {
 
     expect(screen.getAllByText(/redacted/)).toHaveLength(5);
 
+    // Expand two levels down
+    await userEvent.click(await screen.findByLabelText('Expand'));
     await userEvent.click(await screen.findByLabelText('Expand'));
 
     expect(screen.getAllByText(/redacted/)).toHaveLength(7);

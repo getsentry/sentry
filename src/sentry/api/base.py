@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import abc
 import functools
 import logging
 import time
@@ -22,12 +23,13 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from sentry_sdk import Scope
 
-from sentry import analytics, features, options, tsdb
+from sentry import analytics, options, tsdb
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.exceptions import StaffRequired, SuperuserRequired
 from sentry.apidocs.hooks import HTTP_METHOD_NAME
 from sentry.auth import access
+from sentry.auth.staff import has_staff_option
 from sentry.models.environment import Environment
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.silo import SiloLimit, SiloMode
@@ -55,8 +57,9 @@ from .authentication import (
     ApiKeyAuthentication,
     OrgAuthTokenAuthentication,
     UserAuthTokenAuthentication,
+    update_token_access_record,
 )
-from .paginator import BadPaginationError, Paginator
+from .paginator import BadPaginationError, MissingPaginationError, Paginator
 from .permissions import (
     NoPermission,
     StaffPermission,
@@ -164,6 +167,38 @@ def apply_cors_headers(
     return response
 
 
+class BaseEndpointMixin(abc.ABC):
+    """
+    Inherit from this class when adding mixin classes that call `Endpoint` methods. This allows typing to
+    work correctly
+    """
+
+    @abc.abstractmethod
+    def create_audit_entry(self, request: Request, transaction_id=None, **kwargs):
+        pass
+
+    @abc.abstractmethod
+    def respond(self, context: object | None = None, **kwargs: Any) -> Response:
+        pass
+
+    @abc.abstractmethod
+    def paginate(
+        self,
+        request,
+        on_results=None,
+        paginator=None,
+        paginator_cls=Paginator,
+        default_per_page: int | None = None,
+        max_per_page: int | None = None,
+        cursor_cls=Cursor,
+        response_cls=Response,
+        response_kwargs=None,
+        count_hits=None,
+        **paginator_kwargs,
+    ):
+        pass
+
+
 class Endpoint(APIView):
     # Note: the available renderer and parser classes can be found in conf/server.py.
     authentication_classes: tuple[type[BaseAuthentication], ...] = DEFAULT_AUTHENTICATION
@@ -222,9 +257,7 @@ class Endpoint(APIView):
         permissions = self.get_permissions()
         if request.user.is_authenticated and len(permissions) == 1:
             permission_cls = permissions[0]
-            enforce_staff_permission = features.has(
-                "auth:enterprise-staff-cookie", actor=request.user
-            )
+            enforce_staff_permission = has_staff_option(request.user)
 
             # TODO(schew2381): Remove SuperuserOrStaffFeatureFlaggedPermission
             # from isinstance checks once feature flag is removed.
@@ -332,6 +365,10 @@ class Endpoint(APIView):
                 rv.user = orig_user
         return rv
 
+    def has_pagination(self, response: Response) -> bool:
+        # If response is paginated, it will have a "Link" header
+        return response.headers.get("Link") is not None
+
     @csrf_exempt
     @allow_cors_options
     def dispatch(self, request: Request, *args, **kwargs) -> Response:
@@ -370,6 +407,9 @@ class Endpoint(APIView):
                         response = Response(f"Invalid origin: {origin}", status=400)
                         self.response = self.finalize_response(request, response, *args, **kwargs)
                         return self.response
+
+                if request.auth:
+                    update_token_access_record(request.auth)
 
                 self.initial(request, *args, **kwargs)
 
@@ -417,6 +457,18 @@ class Endpoint(APIView):
                     span.set_data("SENTRY_API_RESPONSE_DELAY", settings.SENTRY_API_RESPONSE_DELAY)
                     time.sleep(settings.SENTRY_API_RESPONSE_DELAY / 1000.0 - duration)
 
+        # Only enforced in dev environment
+        if settings.ENFORCE_PAGINATION:
+            if request.method.lower() == "get":
+                # Response can either be Response or HttpResponse, check if it's value is an array
+                if hasattr(self.response, "data") and isinstance(self.response.data, list):
+                    # if not paginated and not in  settings.SENTRY_API_PAGINATION_ALLOWLIST, raise error
+                    if (
+                        handler.__self__.__class__.__name__
+                        not in settings.SENTRY_API_PAGINATION_ALLOWLIST
+                        and not self.has_pagination(self.response)
+                    ):
+                        raise MissingPaginationError(handler.__func__.__qualname__)
         return self.response
 
     def add_cors_headers(self, request: Request, response):

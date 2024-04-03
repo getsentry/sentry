@@ -26,7 +26,7 @@ from sentry.models.team import Team
 from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json
@@ -37,7 +37,6 @@ from . import BaseEventTest
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
     def setUp(self):
         super().setUp()
@@ -350,7 +349,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         expect_status = f"*Issue archived by <@{self.external_id}>*"
         assert self.notification_text in update_data["blocks"][1]["text"]["text"]
         assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
-        assert "via" not in update_data["blocks"][5]["elements"][0]["text"]
+        assert "via" not in update_data["blocks"][4]["elements"][0]["text"]
 
     @responses.activate
     def test_archive_issue_until_escalating_block_kit_through_unfurl(self):

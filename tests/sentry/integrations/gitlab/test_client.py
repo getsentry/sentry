@@ -211,17 +211,13 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         )
         responses.add(
             method=responses.GET,
-            url=f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/CODEOWNERS?ref=master",
+            url=f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/CODEOWNERS/raw?ref=master",
             body="docs/*    @NisanthanNanthakumar   @getsentry/ecosystem\n* @NisanthanNanthakumar\n",
         )
         result = self.installation.get_codeowner_file(
             self.config.repository, ref=self.config.default_branch
         )
 
-        assert (
-            responses.calls[0].request.headers["Content-Type"] == "application/raw; charset=utf-8"
-        )
-        assert responses.calls[0].request.headers["Accept"] == "application/vnd.github.raw"
         assert result == GITLAB_CODEOWNERS
 
     @responses.activate
@@ -295,28 +291,28 @@ class GitLabBlameForFilesTest(GitLabClientTest):
             lineno=10,
             ref="master",
             repo=self.repo,
-            code_mapping=None,  # type: ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         self.file_2 = SourceLineInfo(
             path="src/sentry/integrations/github/client_1.py",
             lineno=15,
             ref="master",
             repo=self.repo,
-            code_mapping=None,  # type: ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         self.file_3 = SourceLineInfo(
             path="src/sentry/integrations/github/client_2.py",
             lineno=20,
             ref="master",
             repo=self.repo,
-            code_mapping=None,  # type: ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         self.file_4 = SourceLineInfo(
             path="src/sentry/integrations/github/client_3.py",
             lineno=20,
             ref="master",
             repo=self.repo,
-            code_mapping=None,  # type: ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         self.blame_1 = FileBlameInfo(
             **asdict(self.file_1),
@@ -625,9 +621,11 @@ class GitLabUnhappyPathTest(GitLabClientTest):
             f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/src%2Ffile.py?ref={ref}",
             body=ConnectionError("Unable to reach host: https://example.gitlab.com"),
         )
-        with self.feature(
-            {"organizations:gitlab-disable-on-broken": True}
-        ), outbox_runner(), pytest.raises(ApiHostError):
+        with (
+            self.feature({"organizations:gitlab-disable-on-broken": True}),
+            outbox_runner(),
+            pytest.raises(ApiHostError),
+        ):
             self.gitlab_client.check_file(self.repo, path, ref)
 
         # Assert integration is disabled.
