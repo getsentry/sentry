@@ -100,7 +100,18 @@ function BreadcrumbItem({
 
         {typeof description === 'string' ||
         (description !== undefined && isValidElement(description)) ? (
-          <HTMLTree description={description.toString()} frame={frame as ClickFrame} />
+          <Description
+            title={
+              <HTMLTree
+                description={description.toString()}
+                frame={frame as ClickFrame}
+              />
+            }
+            showOnlyOnOverflow
+            isHoverable
+          >
+            <HTMLTree description={description.toString()} frame={frame as ClickFrame} />
+          </Description>
         ) : (
           <InspectorWrapper>
             <ObjectInspector
@@ -212,7 +223,7 @@ function HTMLTree({description, frame}: {description: string; frame: ClickFrame}
     description.lastIndexOf('>') === -1 ? 0 : description.lastIndexOf('>') + 2;
 
   return (
-    <Description title={description} showOnlyOnOverflow isHoverable>
+    <Fragment>
       {componentName ? (
         <Fragment>
           <div style={{display: 'inline'}}>
@@ -235,7 +246,7 @@ function HTMLTree({description, frame}: {description: string; frame: ClickFrame}
       ) : (
         description
       )}
-    </Description>
+    </Fragment>
   );
 }
 
