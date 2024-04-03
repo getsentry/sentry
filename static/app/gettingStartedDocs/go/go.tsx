@@ -25,18 +25,30 @@ import (
 
 func main() {
   err := sentry.Init(sentry.ClientOptions{
-    Dsn: "${params.dsn}",
+    Dsn: "${params.dsn}",${
+      params.isPerformanceSelected
+        ? `
     // Set TracesSampleRate to 1.0 to capture 100%
     // of transactions for performance monitoring.
     // We recommend adjusting this value in production,
-    TracesSampleRate: 1.0,
+    TracesSampleRate: 1.0,`
+        : ''
+    }${
+      params.isProfilingSelected
+        ? `
+    // Set ProfilesSampleRate to 1.0 to capture 100%
+    // of sampled transactions.
+    // We recommend adjusting this value in production.
+    ProfilesSampleRate: 1.0,`
+        : ''
+    }
   })
   if err != nil {
     log.Fatalf("sentry.Init: %s", err)
   }
 }`;
 
-const getVerifySnippet = () => `
+const getVerifySnippet = (params: Params) => `
 package main
 
 import (
@@ -48,11 +60,23 @@ import (
 
 func main() {
   err := sentry.Init(sentry.ClientOptions{
-    Dsn: "___PUBLIC_DSN___",
+    Dsn: "___PUBLIC_DSN___",${
+      params.isPerformanceSelected
+        ? `
     // Set TracesSampleRate to 1.0 to capture 100%
     // of transactions for performance monitoring.
     // We recommend adjusting this value in production,
-    TracesSampleRate: 1.0,
+    TracesSampleRate: 1.0,`
+        : ''
+    }${
+      params.isProfilingSelected
+        ? `
+    // Set ProfilesSampleRate to 1.0 to capture 100%
+    // of sampled transactions.
+    // We recommend adjusting this value in production.
+    ProfilesSampleRate: 1.0,`
+        : ''
+    }
   })
   if err != nil {
     log.Fatalf("sentry.Init: %s", err)
@@ -86,13 +110,16 @@ const onboarding: OnboardingConfig = {
       ),
       configurations: [
         {
+          description: params.isProfilingSelected
+            ? t('Go Profiling alpha is available since SDK version 0.22.0.')
+            : undefined,
           language: 'go',
           code: getConfigureSnippet(params),
         },
       ],
     },
   ],
-  verify: () => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
       description: t(
@@ -101,7 +128,7 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'go',
-          code: getVerifySnippet(),
+          code: getVerifySnippet(params),
         },
       ],
     },

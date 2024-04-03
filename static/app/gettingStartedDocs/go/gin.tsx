@@ -31,14 +31,26 @@ import (
 
 // To initialize Sentry's handler, you need to initialize Sentry itself beforehand
 if err := sentry.Init(sentry.ClientOptions{
-  Dsn: "${params.dsn}",
+  Dsn: "${params.dsn}",${
+    params.isPerformanceSelected
+      ? `
   EnableTracing: true,
   // Set TracesSampleRate to 1.0 to capture 100%
   // of transactions for performance monitoring.
   // We recommend adjusting this value in production,
-  TracesSampleRate: 1.0,
+  TracesSampleRate: 1.0,`
+      : ''
+  }${
+    params.isProfilingSelected
+      ? `
+  // Set ProfilesSampleRate to 1.0 to capture 100%
+  // of sampled transactions.
+  // We recommend adjusting this value in production.
+  ProfilesSampleRate: 1.0,`
+      : ''
+  }
 }); err != nil {
-  fmt.Printf("Sentry initialization failed: %v\n", err)
+  fmt.Printf("Sentry initialization failed: %v\\n", err)
 }
 
 // Then create your app
@@ -135,6 +147,9 @@ const onboarding: OnboardingConfig = {
       ),
       configurations: [
         {
+          description: params.isProfilingSelected
+            ? t('Go Profiling alpha is available since SDK version 0.22.0.')
+            : undefined,
           language: 'go',
           code: getConfigureSnippet(params),
         },
