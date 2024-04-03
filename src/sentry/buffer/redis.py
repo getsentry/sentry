@@ -33,6 +33,8 @@ logger = logging.getLogger(__name__)
 # Debounce our JSON validation a bit in order to not cause too much additional
 # load everywhere
 _last_validation_log: float | None = None
+Pipeline = Any
+# TODO type Pipeline instead of using Any here
 
 
 def _validate_json_roundtrip(value: dict[str, Any], model: type[models.Model]) -> None:
@@ -216,8 +218,7 @@ class RedisBuffer(Buffer):
             col: (int(results[i]) if results[i] is not None else 0) for i, col in enumerate(columns)
         }
 
-    def get_redis_connection(self, key: str) -> Any | None:
-        # TODO type RedisPipeline instead of using Any here
+    def get_redis_connection(self, key: str) -> Pipeline | None:
         if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
             conn = self.cluster
         elif is_instance_rb_cluster(self.cluster, self.is_redis_cluster):
