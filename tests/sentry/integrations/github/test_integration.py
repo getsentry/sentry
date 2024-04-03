@@ -230,7 +230,10 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert redirect.scheme == "https"
         assert redirect.netloc == "github.com"
         assert redirect.path == "/login/oauth/authorize"
-        assert redirect.query == "client_id=github-client-id&state=9cae5e88803f35ed7970fc131e6e65d3"
+        assert (
+            redirect.query
+            == "client_id=github-client-id&state=9cae5e88803f35ed7970fc131e6e65d3&redirect_uri=http://testserver/extensions/github/setup/"
+        )
 
         resp = self.client.get(
             "{}?{}".format(

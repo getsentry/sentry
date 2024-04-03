@@ -7,6 +7,7 @@ from typing import Any
 from urllib.parse import parse_qsl
 
 from django.http import HttpResponse
+from django.urls import reverse
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
@@ -38,6 +39,7 @@ from sentry.tasks.integrations import migrate_repo
 from sentry.tasks.integrations.github.constants import RATE_LIMITED_MESSAGE
 from sentry.tasks.integrations.link_all_repos import link_all_repos
 from sentry.utils import metrics
+from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
 from .client import GitHubAppsClient, GitHubClientMixin
@@ -399,8 +401,11 @@ class OAuthLoginView(PipelineView):
         if not request.GET.get("state"):
             state = pipeline.signature
 
+            redirect_uri = absolute_uri(
+                reverse("sentry-extension-setup", kwargs={"provider_id": "github"})
+            )
             return self.redirect(
-                f"{ghip.get_oauth_authorize_url()}?client_id={github_client_id}&state={state}"
+                f"{ghip.get_oauth_authorize_url()}?client_id={github_client_id}&state={state}&redirect_uri={redirect_uri}"
             )
 
         # At this point, we are past the GitHub "authorize" step
