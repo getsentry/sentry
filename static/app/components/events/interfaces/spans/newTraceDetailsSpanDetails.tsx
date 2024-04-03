@@ -6,7 +6,7 @@ import * as qs from 'query-string';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import DiscoverButton from 'sentry/components/discoverButton';
 import SpanSummaryButton from 'sentry/components/events/interfaces/spans/spanSummaryButton';
 import FileSize from 'sentry/components/fileSize';
@@ -15,6 +15,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pill from 'sentry/components/pill';
 import Pills from 'sentry/components/pills';
 import {TransactionToProfileButton} from 'sentry/components/profiling/transactionToProfileButton';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {ALL_ACCESS_PROJECTS, PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -29,16 +30,18 @@ import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types'
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
-import {CustomMetricsEventData} from 'sentry/views/ddm/customMetricsEventData';
+import {CustomMetricsEventData} from 'sentry/views/metrics/customMetricsEventData';
 import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
+import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceTabs';
 import type {
   TraceTree,
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceTree';
+import {GeneralSpanDetailsValue} from 'sentry/views/performance/traceDetails/newTraceDetailsValueRenderer';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
-import {getPerformanceDuration} from 'sentry/views/performance/utils';
+import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {resolveSpanModule} from 'sentry/views/starfish/utils/resolveSpanModule';
@@ -342,8 +345,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
     const {start: startTimeWithLeadingZero, end: endTimeWithLeadingZero} =
       getFormattedTimeRangeWithLeadingAndTrailingZero(startTimestamp, endTimestamp);
 
-    const duration = (endTimestamp - startTimestamp) * 1000;
-    const durationString = `${Number(duration.toFixed(3)).toLocaleString()}ms`;
+    const duration = endTimestamp - startTimestamp;
 
     const unknownKeys = Object.keys(span).filter(key => {
       return !isHiddenDataKey(key) && !rawSpanKeys.has(key as any);
@@ -357,6 +359,9 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
 
     const timingKeys = getSpanSubTimings(span) ?? [];
     const parentTransaction = props.node.parent_transaction;
+    const averageSpanSelfTimeInSeconds: number | undefined = span['span.average_time']
+      ? span['span.average_time'] / 1000
+      : undefined;
 
     return (
       <Fragment>
@@ -366,6 +371,26 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
         <SpanDetails>
           <table className="table key-value">
             <tbody>
+              <Row title={t('Duration')}>
+                <TraceDrawerComponents.Duration
+                  duration={duration}
+                  baseline={undefined}
+                />
+              </Row>
+              {span.exclusive_time ? (
+                <Row
+                  title={t('Self Time')}
+                  toolTipText={t(
+                    'The time spent exclusively in this span, excluding the total duration of its children'
+                  )}
+                >
+                  <TraceDrawerComponents.Duration
+                    ratio={span.exclusive_time / 1000 / duration}
+                    duration={span.exclusive_time / 1000}
+                    baseline={averageSpanSelfTimeInSeconds}
+                  />
+                </Row>
+              ) : null}
               {parentTransaction ? (
                 <Row title="Parent Transaction">
                   <td className="value">
@@ -422,7 +447,6 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                 </Row>
               )}
               <Row title={t('Status')}>{span.status || ''}</Row>
-              <Row title={t('Duration')}>{durationString}</Row>
               <SpanHTTPInfo span={props.span} />
               <Row
                 title={
@@ -476,11 +500,6 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
               <Row title={t('Span Group')}>
                 {defined(span.hash) ? String(span.hash) : null}
               </Row>
-              <Row title={t('Span Self Time')}>
-                {defined(span.exclusive_time)
-                  ? `${Number(span.exclusive_time.toFixed(3)).toLocaleString()}ms`
-                  : null}
-              </Row>
               {timingKeys.map(timing => (
                 <Row
                   title={timing.name}
@@ -505,20 +524,20 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                 <Row title={key} key={key}>
                   <Fragment>
                     <FileSize bytes={value} />
-                    {value >= 1024 && <span>{` (${maybeStringify(value)} B)`}</span>}
+                    {value >= 1024 && <span>{` (${value} B)`}</span>}
                   </Fragment>
                 </Row>
               ))}
               {Object.entries(nonSizeKeys).map(([key, value]) =>
                 !isHiddenDataKey(key) ? (
                   <Row title={key} key={key}>
-                    {maybeStringify(value)}
+                    <GeneralSpanDetailsValue value={value} />
                   </Row>
                 ) : null
               )}
               {unknownKeys.map(key => (
                 <Row title={key} key={key}>
-                  {maybeStringify(span[key])}
+                  <GeneralSpanDetailsValue value={span[key]} />
                 </Row>
               ))}
             </tbody>
@@ -576,13 +595,6 @@ function RowTimingPrefix({timing}: {timing: SubTimingInfo}) {
   return <OpsDot style={{backgroundColor: timing.color}} />;
 }
 
-function maybeStringify(value: unknown): string {
-  if (typeof value === 'string') {
-    return value;
-  }
-  return JSON.stringify(value, null, 4);
-}
-
 const StyledDiscoverButton = styled(DiscoverButton)`
   position: absolute;
   top: ${space(0.75)};
@@ -597,8 +609,6 @@ export const SpanDetailContainer = styled('div')`
 `;
 
 export const SpanDetails = styled('div')`
-  padding: ${space(2)};
-
   table.table.key-value td.key {
     max-width: 280px;
   }
@@ -649,12 +659,14 @@ export function Row({
   children,
   prefix,
   extra = null,
+  toolTipText,
 }: {
   children: React.ReactNode;
   title: JSX.Element | string | null;
   extra?: React.ReactNode;
   keep?: boolean;
   prefix?: JSX.Element;
+  toolTipText?: string;
 }) {
   if (!keep && !children) {
     return null;
@@ -666,6 +678,7 @@ export function Row({
         <Flex>
           {prefix}
           {title}
+          {toolTipText ? <StyledQuestionTooltip size="xs" title={toolTipText} /> : null}
         </Flex>
       </td>
       <ValueTd className="value">
@@ -741,6 +754,10 @@ const StyledPre = styled('pre')`
 
 const ButtonContainer = styled('div')`
   padding: 8px 10px;
+`;
+
+const StyledQuestionTooltip = styled(QuestionTooltip)`
+  margin-left: ${space(0.5)};
 `;
 
 export default NewTraceDetailsSpanDetail;

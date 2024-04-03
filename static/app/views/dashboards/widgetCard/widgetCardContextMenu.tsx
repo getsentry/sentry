@@ -23,9 +23,9 @@ import {
   MEPState,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {
-  getWidgetDDMUrl,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
+  getWidgetMetricsUrl,
 } from 'sentry/views/dashboards/utils';
 
 import type {Widget} from '../types';
@@ -209,10 +209,10 @@ function WidgetCardContextMenu({
   }
 
   if (widget.widgetType === WidgetType.METRICS) {
-    const ddmLocation = getWidgetDDMUrl(widget, selection, organization);
+    const ddmLocation = getWidgetMetricsUrl(widget, selection, organization);
 
     menuOptions.push({
-      key: 'open-in-ddm',
+      key: 'open-in-metrics',
       label: t('Open in Metrics'),
       to: ddmLocation,
     });

@@ -1,17 +1,23 @@
 from unittest.mock import Mock, patch
 
 from sentry.constants import TICKET_ACTIONS
+from sentry.integrations.github_enterprise import GitHubEnterpriseCreateTicketAction
+from sentry.rules import rules as default_rules
 from sentry.rules.filters.issue_category import IssueCategoryFilter
 from sentry.rules.registry import RuleRegistry
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 
 EMAIL_ACTION = "sentry.mail.actions.NotifyEmailAction"
 APP_ACTION = "sentry.rules.actions.notify_event_service.NotifyEventServiceAction"
 SENTRY_APP_ALERT_ACTION = "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction"
 
+# Adding GitHub Enterprise ticket action is protected by an option, and we
+# cannot override the option before importing it in the test so we need to
+# manually add it here.
+if GitHubEnterpriseCreateTicketAction.id not in default_rules:
+    default_rules.add(GitHubEnterpriseCreateTicketAction)
 
-@region_silo_test
+
 class ProjectRuleConfigurationTest(APITestCase):
     endpoint = "sentry-api-0-project-rules-configuration"
 
@@ -25,7 +31,7 @@ class ProjectRuleConfigurationTest(APITestCase):
         self.create_project(teams=[team], name="baz")
 
         response = self.get_success_response(self.organization.slug, project1.slug)
-        assert len(response.data["actions"]) == 11
+        assert len(response.data["actions"]) == 12
         assert len(response.data["conditions"]) == 7
         assert len(response.data["filters"]) == 8
 
@@ -131,7 +137,7 @@ class ProjectRuleConfigurationTest(APITestCase):
 
         response = self.get_success_response(self.organization.slug, project1.slug)
 
-        assert len(response.data["actions"]) == 12
+        assert len(response.data["actions"]) == 13
         assert {
             "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
             "label": "Send a notification via {service}",
@@ -161,7 +167,7 @@ class ProjectRuleConfigurationTest(APITestCase):
         )
         response = self.get_success_response(self.organization.slug, project1.slug)
 
-        assert len(response.data["actions"]) == 12
+        assert len(response.data["actions"]) == 13
         assert {
             "id": SENTRY_APP_ALERT_ACTION,
             "service": sentry_app.slug,
@@ -177,7 +183,7 @@ class ProjectRuleConfigurationTest(APITestCase):
 
     def test_issue_type_and_category_filter_feature(self):
         response = self.get_success_response(self.organization.slug, self.project.slug)
-        assert len(response.data["actions"]) == 11
+        assert len(response.data["actions"]) == 12
         assert len(response.data["conditions"]) == 7
         assert len(response.data["filters"]) == 8
 

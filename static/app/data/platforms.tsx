@@ -559,7 +559,7 @@ export const platforms: PlatformIntegration[] = [
   },
   {
     id: 'python-serverless',
-    name: 'Serverless',
+    name: 'Serverless (Python)',
     type: 'framework',
     language: 'python',
     link: 'https://docs.sentry.io/platforms/python/guides/serverless/',

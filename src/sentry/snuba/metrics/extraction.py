@@ -46,6 +46,7 @@ from sentry.search.events.constants import DEFAULT_PROJECT_THRESHOLD, VITAL_THRE
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import ParsedMRI, parse_mri
 from sentry.snuba.metrics.utils import MetricOperationType
+from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 from sentry.utils.snuba import is_measurement, is_span_op_breakdown, resolve_column
@@ -466,6 +467,7 @@ def _transform_search_query(query: Sequence[QueryToken]) -> Sequence[QueryToken]
     return transformed_query
 
 
+@metrics.wraps("metrics.extraction.parse_search_query")
 def parse_search_query(
     query: str | None,
     removed_blacklisted: bool = False,
@@ -662,6 +664,7 @@ def _should_use_on_demand_metrics(
     return not supported_by.standard_metrics and supported_by.on_demand_metrics
 
 
+@metrics.wraps("on_demand_metrics.should_use_on_demand_metrics")
 def should_use_on_demand_metrics(
     dataset: str | Dataset | None,
     aggregate: str,
@@ -678,8 +681,15 @@ def should_use_on_demand_metrics(
         ).hexdigest()
         cached_result = cache.get(cache_key)
         if cached_result:
+            metrics.incr("on_demand_metrics.should_use_on_demand_metrics.cache_hit")
             return cached_result
         else:
+            logger.info(
+                "should_use_on_demand_metrics.cache_miss",
+                extra={
+                    "cache_key": cache_key,
+                },
+            )
             result = _should_use_on_demand_metrics(
                 dataset=dataset,
                 aggregate=aggregate,
@@ -687,7 +697,8 @@ def should_use_on_demand_metrics(
                 groupbys=groupbys,
                 prefilling=prefilling,
             )
-            cache.set(cache_key, result, timeout=3600)
+            metrics.incr("on_demand_metrics.should_use_on_demand_metrics.cache_miss")
+            cache.set(cache_key, result, timeout=5400)
             return result
 
     return _should_use_on_demand_metrics(

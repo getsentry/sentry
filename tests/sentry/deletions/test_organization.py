@@ -29,10 +29,9 @@ from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 
 
-@region_silo_test
 class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
     def test_simple(self):
         org_owner = self.create_user()

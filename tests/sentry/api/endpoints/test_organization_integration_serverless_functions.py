@@ -8,7 +8,7 @@ from sentry.integrations.aws_lambda.integration import AwsLambdaIntegration
 from sentry.models.projectkey import ProjectKey
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 
 cloudformation_arn = (
     "arn:aws:cloudformation:us-east-2:599817902985:stack/"
@@ -97,7 +97,6 @@ class AbstractServerlessTest(APITestCase):
         )
 
 
-@region_silo_test
 @override_settings(
     SENTRY_SUBNET_SECRET="hush-hush-im-invisible",
     SENTRY_CONTROL_ADDRESS="http://controlserver",
@@ -224,7 +223,6 @@ class OrganizationIntegrationServerlessFunctionsGetTest(AbstractServerlessTest):
         ]
 
 
-@region_silo_test
 @override_settings(
     SENTRY_SUBNET_SECRET="hush-hush-im-invisible",
     SENTRY_CONTROL_ADDRESS="http://controlserver",

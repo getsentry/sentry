@@ -65,6 +65,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
     EntitySubscription,
+    get_entity_from_query_builder,
     get_entity_key_from_query_builder,
     get_entity_subscription_from_snuba_query,
 )
@@ -354,11 +355,13 @@ def build_incident_query_builder(
     for i, column in enumerate(query_builder.columns):
         if column.alias == CRASH_RATE_ALERT_AGGREGATE_ALIAS:
             query_builder.columns[i] = replace(column, alias="count")
-    time_col = ENTITY_TIME_COLUMNS[get_entity_key_from_query_builder(query_builder)]
+    entity_key = get_entity_key_from_query_builder(query_builder)
+    time_col = ENTITY_TIME_COLUMNS[entity_key]
+    entity = get_entity_from_query_builder(query_builder)
     query_builder.add_conditions(
         [
-            Condition(Column(time_col), Op.GTE, start),
-            Condition(Column(time_col), Op.LT, end),
+            Condition(Column(time_col, entity=entity), Op.GTE, start),
+            Condition(Column(time_col, entity=entity), Op.LT, end),
         ]
     )
     query_builder.limit = Limit(10000)
@@ -590,18 +593,16 @@ def create_alert_rule(
                 for project in excluded_projects
             ]
             AlertRuleExcludedProjects.objects.bulk_create(exclusions)
-        elif monitor_type == AlertRuleMonitorType.ACTIVATED and projects:
-            # initialize projects join table for activated alert rules
-            arps = [
-                AlertRuleProjects(alert_rule=alert_rule, project=project) for project in projects
-            ]
-            AlertRuleProjects.objects.bulk_create(arps)
 
         if monitor_type == AlertRuleMonitorType.ACTIVATED and activation_condition:
             # NOTE: if monitor_type is activated, activation_condition is required
             AlertRuleActivationCondition.objects.create(
                 alert_rule=alert_rule, condition_type=activation_condition.value
             )
+
+        # initialize projects join table for alert rules
+        arps = [AlertRuleProjects(alert_rule=alert_rule, project=project) for project in projects]
+        AlertRuleProjects.objects.bulk_create(arps)
 
         # NOTE: This constructs the query in snuba
         # NOTE: Will only subscribe if AlertRule.monitor_type === 'CONTINUOUS'
@@ -840,6 +841,10 @@ def update_alert_rule(
                 project for project in projects if project.slug not in existing_project_slugs
             ]
             updated_project_slugs = {project.slug for project in projects}
+
+            AlertRuleProjects.objects.exclude(project__slug__in=updated_project_slugs).delete()
+            for project in projects:
+                alert_rule.projects.add(project)
             # Find any subscriptions that were removed as part of this update
             deleted_subs = [
                 sub for sub in existing_subs if sub.project.slug not in updated_project_slugs

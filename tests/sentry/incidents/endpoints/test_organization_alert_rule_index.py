@@ -17,6 +17,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTrigger,
     AlertRuleTriggerAction,
 )
+from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.outbox import outbox_context
@@ -32,7 +33,7 @@ from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
@@ -121,7 +122,6 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase):
         assert resp.data == serialize([alert_rule1])
 
 
-@region_silo_test
 @freeze_time()
 class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
     method = "post"
@@ -158,6 +158,37 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
             resp.renderer_context["request"].META["REMOTE_ADDR"]
             == list(audit_log_entry)[0].ip_address
         )
+
+    def test_monitor_type_with_condition(self):
+        data = {
+            **self.alert_rule_dict,
+            "monitorType": AlertRuleMonitorType.ACTIVATED.value,
+            "activationCondition": AlertRuleActivationConditionType.RELEASE_CREATION.value,
+        }
+        with (
+            outbox_runner(),
+            self.feature(["organizations:incidents"]),
+        ):
+            err_resp = self.get_error_response(
+                self.organization.slug,
+                method=responses.POST,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                **data,
+            ).json()
+        assert err_resp == {"monitorType": ["Invalid monitor type"]}
+
+        with (
+            outbox_runner(),
+            self.feature(["organizations:incidents", "organizations:activated-alert-rules"]),
+        ):
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **data,
+            )
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
 
     def test_multiple_projects(self):
         new_project = self.create_project()
@@ -924,7 +955,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
         assert resp.data["name"][0] == "Ensure this field has no more than 256 characters."
 
 
-@region_silo_test
 @freeze_time()
 class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase):
     method = "post"
@@ -1068,7 +1098,6 @@ class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase):
         mock_find_channel_id_for_alert_rule.assert_called_once_with(kwargs=kwargs)
 
 
-@region_silo_test
 @freeze_time()
 class MetricsCrashRateAlertCreationTest(AlertRuleCreateEndpointTestCrashRateAlert):
     method = "post"

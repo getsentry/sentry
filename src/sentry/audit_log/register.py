@@ -458,3 +458,11 @@ default_manager.add(
         template="unblocked {tags} tags of metric {metric_mri} for project {project_slug}",
     )
 )
+default_manager.add(
+    AuditLogEvent(
+        event_id=186,
+        name="ISSUE_DELETE",
+        api_name="issue.delete",
+        template="Deleted issue {issue_id} for project {project_slug}",
+    )
+)

@@ -4,14 +4,12 @@ from uuid import uuid4
 from sentry.api.endpoints.relocations.abort import ERR_NOT_ABORTABLE_STATUS
 from sentry.models.relocation import Relocation
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.helpers.options import override_options
 from sentry.utils.relocation import OrderedTask
 
 TEST_DATE_ADDED = datetime(2023, 1, 23, 1, 23, 45, tzinfo=timezone.utc)
 
 
-@region_silo_test
 class AbortRelocationTest(APITestCase):
     endpoint = "sentry-api-0-relocations-abort"
     method = "put"
@@ -36,7 +34,7 @@ class AbortRelocationTest(APITestCase):
             latest_task_attempts=1,
         )
 
-    @with_feature("auth:enterprise-staff-cookie")
+    @override_options({"staff.ga-rollout": True})
     def test_good_staff_abort_in_progress(self):
         self.login_as(user=self.staff_user, staff=True)
         self.relocation.status = Relocation.Status.PAUSE.value
@@ -55,7 +53,7 @@ class AbortRelocationTest(APITestCase):
         assert response.data["status"] == Relocation.Status.FAILURE.name
         assert response.data["step"] == Relocation.Step.PREPROCESSING.name
 
-    @with_feature("auth:enterprise-staff-cookie")
+    @override_options({"staff.ga-rollout": True})
     def test_good_staff_abort_paused(self):
         self.login_as(user=self.staff_user, staff=True)
         self.relocation.status = Relocation.Status.PAUSE.value
@@ -74,7 +72,7 @@ class AbortRelocationTest(APITestCase):
         assert response.data["status"] == Relocation.Status.FAILURE.name
         assert response.data["step"] == Relocation.Step.PREPROCESSING.name
 
-    @with_feature("auth:enterprise-staff-cookie")
+    @override_options({"staff.ga-rollout": True})
     def test_bad_staff_already_succeeded(self):
         self.login_as(user=self.staff_user, staff=True)
         self.relocation.status = Relocation.Status.SUCCESS.value
@@ -93,7 +91,7 @@ class AbortRelocationTest(APITestCase):
         assert response.data.get("detail") is not None
         assert response.data.get("detail") == ERR_NOT_ABORTABLE_STATUS
 
-    @with_feature("auth:enterprise-staff-cookie")
+    @override_options({"staff.ga-rollout": True})
     def test_bad_staff_already_failed(self):
         self.login_as(user=self.staff_user, staff=True)
         self.relocation.status = Relocation.Status.FAILURE.value
@@ -112,7 +110,7 @@ class AbortRelocationTest(APITestCase):
         assert response.data.get("detail") is not None
         assert response.data.get("detail") == ERR_NOT_ABORTABLE_STATUS
 
-    @with_feature("auth:enterprise-staff-cookie")
+    @override_options({"staff.ga-rollout": True})
     def test_bad_staff_not_found(self):
         self.login_as(user=self.staff_user, staff=True)
         does_not_exist_uuid = uuid4().hex
@@ -123,8 +121,8 @@ class AbortRelocationTest(APITestCase):
         does_not_exist_uuid = uuid4().hex
         self.get_error_response(str(does_not_exist_uuid), status_code=404)
 
-    @with_feature("auth:enterprise-staff-cookie")
-    def test_superuser_fails_with_flag(self):
+    @override_options({"staff.ga-rollout": True})
+    def test_superuser_fails_with_option(self):
         self.login_as(user=self.superuser, superuser=True)
         self.get_error_response(self.relocation.uuid, status_code=403)
 

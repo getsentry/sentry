@@ -3,7 +3,7 @@ from unittest.mock import patch
 from sentry.api.permissions import StaffPermission
 from sentry.models.userpermission import UserPermission
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 
 
@@ -50,7 +50,7 @@ class UserPermissionDetailsGetTest(UserDetailsTest):
         self.login_as(self.superuser, superuser=True)
         self.get_error_response("me", "broadcasts.admin", status_code=404)
 
-    @with_feature("auth:enterprise-staff-cookie")
+    @override_options({"staff.ga-rollout": True})
     @patch.object(StaffPermission, "has_permission", wraps=StaffPermission().has_permission)
     def test_staff_with_permission(self, mock_has_permission):
         self.login_as(self.staff_user, staff=True)
@@ -60,7 +60,7 @@ class UserPermissionDetailsGetTest(UserDetailsTest):
         # ensure we fail the scope check and call is_active_staff
         assert mock_has_permission.call_count == 1
 
-    @with_feature("auth:enterprise-staff-cookie")
+    @override_options({"staff.ga-rollout": True})
     @patch.object(StaffPermission, "has_permission", wraps=StaffPermission().has_permission)
     def test_staff_without_permission(self, mock_has_permission):
         self.login_as(self.staff_user, staff=True)
@@ -91,7 +91,7 @@ class UserPermissionDetailsPostTest(UserDetailsTest):
             user=self.superuser, permission="broadcasts.admin"
         ).exists()
 
-    @with_feature("auth:enterprise-staff-cookie")
+    @override_options({"staff.ga-rollout": True})
     @patch.object(StaffPermission, "has_permission", wraps=StaffPermission().has_permission)
     def test_staff_with_permission(self, mock_has_permission):
         self.login_as(self.staff_user, staff=True)
@@ -103,7 +103,7 @@ class UserPermissionDetailsPostTest(UserDetailsTest):
         # ensure we fail the scope check and call is_active_staff
         assert mock_has_permission.call_count == 1
 
-    @with_feature("auth:enterprise-staff-cookie")
+    @override_options({"staff.ga-rollout": True})
     @patch.object(StaffPermission, "has_permission", wraps=StaffPermission().has_permission)
     def test_staff_duplicate_permission(self, mock_has_permission):
         self.login_as(self.staff_user, staff=True)
@@ -138,7 +138,7 @@ class UserPermissionDetailsDeleteTest(UserDetailsTest):
             user=self.superuser, permission="broadcasts.admin"
         ).exists()
 
-    @with_feature("auth:enterprise-staff-cookie")
+    @override_options({"staff.ga-rollout": True})
     @patch.object(StaffPermission, "has_permission", wraps=StaffPermission().has_permission)
     def test_staff_with_permission(self, mock_has_permission):
         self.login_as(self.staff_user, staff=True)
@@ -151,7 +151,7 @@ class UserPermissionDetailsDeleteTest(UserDetailsTest):
         # ensure we fail the scope check and call is_active_staff
         assert mock_has_permission.call_count == 1
 
-    @with_feature("auth:enterprise-staff-cookie")
+    @override_options({"staff.ga-rollout": True})
     @patch.object(StaffPermission, "has_permission", wraps=StaffPermission().has_permission)
     def test_staff_without_permission(self, mock_has_permission):
         self.login_as(self.staff_user, staff=True)

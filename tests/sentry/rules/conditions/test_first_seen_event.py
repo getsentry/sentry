@@ -1,13 +1,11 @@
 from sentry.models.rule import Rule
 from sentry.rules.conditions.first_seen_event import FirstSeenEventCondition
 from sentry.testutils.cases import RuleTestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class FirstSeenEventConditionTest(RuleTestCase):
     rule_cls = FirstSeenEventCondition
 

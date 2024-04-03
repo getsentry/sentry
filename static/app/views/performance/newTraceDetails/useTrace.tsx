@@ -4,7 +4,6 @@ import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import type {PageFilters} from 'sentry/types';
 import type {
   TraceFullDetailed,
@@ -39,7 +38,6 @@ export function getTraceQueryParams(
 ): {
   eventId: string | undefined;
   limit: number;
-  project: string;
   timestamp: string | undefined;
   useSpans: number;
   pageEnd?: string | undefined;
@@ -50,7 +48,6 @@ export function getTraceQueryParams(
     allowAbsolutePageDatetime: true,
   });
   const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
-  const project = decodeScalar(normalizedParams.project, ALL_ACCESS_PROJECTS + '');
   const timestamp = decodeScalar(normalizedParams.timestamp);
   let decodedLimit: string | number | undefined =
     options.limit ?? decodeScalar(normalizedParams.limit);
@@ -81,7 +78,7 @@ export function getTraceQueryParams(
     delete otherParams.statsPeriod;
   }
 
-  const queryParams = {...otherParams, limit, project, timestamp, eventId, useSpans: 1};
+  const queryParams = {...otherParams, limit, timestamp, eventId, useSpans: 1};
   for (const key in queryParams) {
     if (
       queryParams[key] === '' ||
