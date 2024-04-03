@@ -745,6 +745,11 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
     }
 
     def get_projects(self, request: Request, organization, project_ids=None, project_slugs=None):
+        """The trace endpoint always wants to get all projects regardless of what's passed into the API
+
+        This is because a trace can span any number of projects in an organization. But we still want to
+        use the get_projects function to check for any permissions. So we'll just pass project_ids=-1 everytime
+        which is what would be sent if we wanted all projects"""
         return super().get_projects(
             request,
             organization,
