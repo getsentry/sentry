@@ -148,7 +148,7 @@ export declare namespace TraceTree {
     | null;
 
   type NodePath =
-    `${'txn' | 'span' | 'ag' | 'trace' | 'ms' | 'error' | 'empty'}:${string}`;
+    `${'txn' | 'span' | 'ag' | 'trace' | 'ms' | 'error' | 'empty'}-${string}`;
 
   type Metadata = {
     event_id: string | undefined;
@@ -1778,32 +1778,32 @@ export function makeExampleTrace(metadata: TraceTree.Metadata): TraceTree {
 
 function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
   if (isTransactionNode(n)) {
-    return `txn:${n.value.event_id}`;
+    return `txn-${n.value.event_id}`;
   }
   if (isSpanNode(n)) {
-    return `span:${n.value.span_id}`;
+    return `span-${n.value.span_id}`;
   }
   if (isAutogroupedNode(n)) {
     if (isParentAutogroupedNode(n)) {
-      return `ag:${n.head.value.span_id}`;
+      return `ag-${n.head.value.span_id}`;
     }
     if (isSiblingAutogroupedNode(n)) {
       const child = n.children[0];
       if (isSpanNode(child)) {
-        return `ag:${child.value.span_id}`;
+        return `ag-${child.value.span_id}`;
       }
     }
   }
   if (isTraceNode(n)) {
-    return `trace:root`;
+    return `trace-root`;
   }
 
   if (isTraceErrorNode(n)) {
-    return `error:${n.value.event_id}`;
+    return `error-${n.value.event_id}`;
   }
 
   if (isNoDataNode(n)) {
-    return `empty:node`;
+    return `empty-node`;
   }
 
   if (isRootNode(n)) {
@@ -1812,10 +1812,10 @@ function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
 
   if (isMissingInstrumentationNode(n)) {
     if (n.previous) {
-      return `ms:${n.previous.value.span_id}`;
+      return `ms-${n.previous.value.span_id}`;
     }
     if (n.next) {
-      return `ms:${n.next.value.span_id}`;
+      return `ms-${n.next.value.span_id}`;
     }
 
     throw new Error('Missing instrumentation node must have a previous or next node');

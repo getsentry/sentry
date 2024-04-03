@@ -1112,7 +1112,7 @@ export class VirtualizedViewManager {
       return Promise.resolve(null);
     }
 
-    if (segments.length === 1 && segments[0] === 'trace:root') {
+    if (segments.length === 1 && segments[0] === 'trace-root') {
       rerender();
       this.scrollToRow(0);
       return Promise.resolve({index: 0, node: tree.root.children[0]});
@@ -1135,7 +1135,7 @@ export class VirtualizedViewManager {
         // that this is happening, we will perform a final check to see if we've actually already
         // arrived to the node in the previous search call.
         if (path) {
-          const [type, id] = path.split(':');
+          const [type, id] = path.split('-');
 
           if (
             type === 'span' &&
@@ -1160,10 +1160,10 @@ export class VirtualizedViewManager {
       if (isTransactionNode(current)) {
         const nextSegment = segments[segments.length - 1];
         if (
-          nextSegment?.startsWith('span:') ||
-          nextSegment?.startsWith('empty:') ||
-          nextSegment?.startsWith('ag:') ||
-          nextSegment?.startsWith('ms:')
+          nextSegment?.startsWith('span-') ||
+          nextSegment?.startsWith('empty-') ||
+          nextSegment?.startsWith('ag-') ||
+          nextSegment?.startsWith('ms-')
         ) {
           await tree.zoomIn(current, true, {
             api,
@@ -2130,10 +2130,10 @@ function findInTreeFromSegment(
   start: TraceTreeNode<TraceTree.NodeValue>,
   segment: TraceTree.NodePath
 ): TraceTreeNode<TraceTree.NodeValue> | null {
-  const [type, id] = segment.split(':');
+  const [type, id] = segment.split('-');
 
   if (!type || !id) {
-    throw new TypeError('Node path must be in the format of `type:id`');
+    throw new TypeError('Node path must be in the format of `type-id`');
   }
 
   return TraceTreeNode.Find(start, node => {
