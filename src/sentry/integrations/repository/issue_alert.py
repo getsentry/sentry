@@ -157,19 +157,21 @@ class IssueAlertNotificationMessageRepository:
     ) -> Generator[IssueAlertNotificationMessage, None, None]:
         """
         If no filters are passed, then all parent notification objects are returned.
-        Because all parent notification objects can be returned, this method leverages generator to control the usage of
-        memory in the application.
+
+        Because an unbounded amount of parent notification objects can be returned, this method leverages generator to
+        control the usage of memory in the application.
         It is up to the caller to iterate over all the data, or store in memory if they need all objects concurrently.
         """
-        try:
-            group_id_filter = Q(rule_fire_history__group__id__in=group_ids) if group_ids else Q()
-            project_id_filter = (
-                Q(rule_fire_history__project_id__in=project_ids) if project_ids else Q()
-            )
+        group_id_filter = Q(rule_fire_history__group__id__in=group_ids) if group_ids else Q()
+        project_id_filter = Q(rule_fire_history__project_id__in=project_ids) if project_ids else Q()
 
-            query = self._model.objects.filter(group_id_filter & project_id_filter).filter(
-                self._parent_notification_message_base_filter()
-            )
+        query = self._model.objects.filter(group_id_filter & project_id_filter).filter(
+            self._parent_notification_message_base_filter()
+        )
+
+        try:
+            for instance in query:
+                yield IssueAlertNotificationMessage.from_model(instance=instance)
         except Exception as e:
             self._logger.exception(
                 "Failed to get parent notifications on filters",
@@ -177,6 +179,3 @@ class IssueAlertNotificationMessageRepository:
                 extra=filter.__dict__,
             )
             raise
-
-        for instance in query:
-            yield IssueAlertNotificationMessage.from_model(instance=instance)
