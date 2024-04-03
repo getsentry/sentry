@@ -15,7 +15,6 @@ from sentry.models.organization import Organization
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
-from sentry.models.userip import UserIP
 from sentry.models.userpermission import UserPermission
 from sentry.models.userrole import UserRole, UserRoleUser
 from sentry.testutils.helpers.backups import (
@@ -162,11 +161,10 @@ class FilteringTests(ExportTestCase):
             data = self.export(tmp_dir, scope=ExportScope.User, filter_by={"user_2"})
 
             # Count users, but also count a random model naively derived from just `User` alone,
-            # like `UserIP`. Because `Email` and `UserEmail` have some automagic going on that
+            # like `UserEmail`. Because `Email` and `UserEmail` have some automagic going on that
             # causes them to be created when a `User` is, we explicitly check to ensure that they
             # are behaving correctly as well.
             assert self.count(data, User) == 1
-            assert self.count(data, UserIP) == 1
             assert self.count(data, UserEmail) == 1
             assert self.count(data, Email) == 1
 
@@ -187,7 +185,6 @@ class FilteringTests(ExportTestCase):
             )
 
             assert self.count(data, User) == 3
-            assert self.count(data, UserIP) == 3
             assert self.count(data, UserEmail) == 3
             assert self.count(data, Email) == 2
 
@@ -231,7 +228,6 @@ class FilteringTests(ExportTestCase):
             assert not self.exists(data, Organization, "slug", "org-c")
 
             assert self.count(data, User) == 4
-            assert self.count(data, UserIP) == 4
             assert self.count(data, UserEmail) == 4
             assert self.count(data, Email) == 3  # Lower due to `shared@example.com`
 
@@ -268,7 +264,6 @@ class FilteringTests(ExportTestCase):
             assert self.exists(data, Organization, "slug", "org-c")
 
             assert self.count(data, User) == 5
-            assert self.count(data, UserIP) == 5
             assert self.count(data, UserEmail) == 5
             assert self.count(data, Email) == 3  # Lower due to `shared@example.com`
 

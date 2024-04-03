@@ -6100,7 +6100,7 @@
     },
     "model": "sentry.userip",
     "relocation_dependencies": [],
-    "relocation_scope": "User",
+    "relocation_scope": "Global",
     "silos": [
       "Control"
     ],
