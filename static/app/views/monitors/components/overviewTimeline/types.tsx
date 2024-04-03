@@ -32,6 +32,10 @@ export interface TimeWindowConfig {
    * The start of the window
    */
   start: Date;
+  /**
+   * The width in pixels of the timeline
+   */
+  timelineWidth: number;
 }
 
 // TODO(davidenwang): Remove this type as its a little too specific

@@ -73,6 +73,7 @@ export function getConfigFromTimeRange(
     start,
     end,
     elapsedMinutes,
+    timelineWidth,
     minimumMarkerInterval: minTickMinutesApart,
   };
 
