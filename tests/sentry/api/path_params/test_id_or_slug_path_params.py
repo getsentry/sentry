@@ -278,7 +278,9 @@ class APIIdOrSlugPathParamTest(
             if hasattr(callback, "convert_args"):
                 slug_path_params = extract_slug_path_params(pattern)
                 if slug_path_params:
-                    if (convert_args := self.convert_args_setup_registry.get(callback)) is not None:
+                    if (
+                        convert_args := self.convert_args_setup_registry.get(callback.convert_args)
+                    ) is not None:
                         convert_args(callback, slug_path_params)
                     else:
                         self.fail(f"Missing test method for {callback}.")
