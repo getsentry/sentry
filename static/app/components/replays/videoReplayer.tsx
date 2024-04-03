@@ -40,6 +40,7 @@ export class VideoReplayer {
   private _attachments: VideoEvent[];
   private _callbacks: Record<string, (args?: any) => unknown>;
   private _currentIndex: number | undefined;
+  private _currentVideo: HTMLVideoElement | undefined;
   private _startTimestamp: number;
   private _timer = new Timer();
   private _trackList: [ts: number, index: number][];
@@ -107,11 +108,9 @@ export class VideoReplayer {
         this.setBuffering(false);
 
         // We want to display the previous segment until next video
-        // is loaded and ready to play and since video is loaded and
-        // ready here, we hide the previous video
-        if (this._currentIndex > 0) {
-          this.hideVideo(this._currentIndex - 1);
-        }
+        // is loaded and ready to play and since video is loaded
+        // and ready here, we can show next video and hide the
+        // previous video
         this.showVideo(el);
       }
     });
@@ -271,22 +270,27 @@ export class VideoReplayer {
     return this._videos[index];
   }
 
-  protected hideVideo(index: number | undefined): void {
-    const video = this.getVideo(index);
-
-    if (!video) {
+  /**
+   * Shows the video -- it is assumed that it is preloaded. Also
+   * hides the previous video, there should not be a reason we show
+   * a video and not hide the previous video, otherwise there will
+   * be multiple video elements stacked on top of each other.
+   */
+  protected showVideo(nextVideo: HTMLVideoElement | undefined): void {
+    if (!nextVideo) {
       return;
     }
 
-    video.style.display = 'none';
-  }
-
-  protected showVideo(video: HTMLVideoElement | undefined): void {
-    if (!video) {
-      return;
+    // This is the soon-to-be previous video that needs to be hidden
+    if (this._currentVideo) {
+      this._currentVideo.style.display = 'none';
     }
 
-    video.style.display = 'block';
+    nextVideo.style.display = 'block';
+
+    // Update current video so that we can hide it when showing the
+    // next video
+    this._currentVideo = nextVideo;
   }
 
   protected async playVideo(video: HTMLVideoElement | undefined): Promise<void> {
@@ -301,13 +305,6 @@ export class VideoReplayer {
       // Note that we do not handle when the load finishes here, it
       // is handled via the `loadeddata` event handler
       this.setBuffering(true);
-    } else {
-      // Only hide the previous video when current video is ready,
-      // otherwise there will be no video present in the replay
-      // container while next video loads
-      if (this._currentIndex && this._currentIndex > 0) {
-        this.hideVideo(this._currentIndex - 1);
-      }
     }
 
     const playPromise = video.play();
@@ -370,8 +367,11 @@ export class VideoReplayer {
 
     const nextVideo = this.getVideo(index);
 
-    // Set video to proper offset
     if (nextVideo) {
+      // Will need to hide previous video if next video is ready to
+      // be played immediately
+      // const previousVideoIndex = this._currentIndex;
+      // Set video to proper offset
       this.setVideoTime(nextVideo, segmentOffsetMs);
       this._currentIndex = index;
 
@@ -379,7 +379,7 @@ export class VideoReplayer {
         // Video is not ready to be played, show buffering state
         this.setBuffering(true);
       } else {
-        // Show the next video
+        // Video is ready to be played, show the next video
         this.showVideo(nextVideo);
       }
     } else {
@@ -492,7 +492,6 @@ export class VideoReplayer {
     this.startReplay(videoOffsetMs);
 
     // When we seek to a new spot in the replay, pause the old video
-    const previousVideoIndex = this._currentIndex;
     const previousVideo = this.getVideo(this._currentIndex);
 
     if (previousVideo) {
@@ -505,14 +504,6 @@ export class VideoReplayer {
       // TODO: this shouldn't happen, loadSegment should load the previous
       // segment until it's time to start the next segment
       return Promise.resolve();
-    }
-
-    // `play()` is called when we restart a replay, ensure that the
-    // previous video is hidden before we play next video. This
-    // also handles the case where we start a replay and previous
-    // == current
-    if (previousVideoIndex !== loadedSegmentIndex) {
-      this.hideVideo(previousVideoIndex);
     }
 
     // Preload videos before and after this index
