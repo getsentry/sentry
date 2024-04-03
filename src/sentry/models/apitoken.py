@@ -29,7 +29,10 @@ def default_expiration():
     return timezone.now() + DEFAULT_EXPIRATION
 
 
-def generate_token():
+def generate_token(token_type: AuthTokenType | None = AuthTokenType.__empty__) -> str:
+    if token_type:
+        return f"{token_type}{secrets.token_hex(nbytes=32)}"
+
     return secrets.token_hex(nbytes=32)
 
 
@@ -61,10 +64,15 @@ class ApiTokenManager(ControlOutboxProducingManager):
             plaintext_refresh_token = generate_token()
 
         if token_type == AuthTokenType.USER:
-            plaintext_token = f"{token_type}{generate_token()}"
+            plaintext_token = generate_token(token_type=AuthTokenType.USER)
             plaintext_refresh_token = None  # user auth tokens do not have refresh tokens
         else:
-            plaintext_token = generate_token()
+            # to maintain compatibility with current
+            # code that currently calls create with token= specified
+            if "token" in kwargs:
+                plaintext_token = kwargs["token"]
+            else:
+                plaintext_token = generate_token()
 
         if options.get("apitoken.save-hash-on-create"):
             kwargs["hashed_token"] = hashlib.sha256(plaintext_token.encode()).hexdigest()
@@ -84,6 +92,25 @@ class ApiTokenManager(ControlOutboxProducingManager):
         api_token.__plaintext_refresh_token = plaintext_refresh_token
 
         return api_token
+
+    # This does not work... it's never called?
+    def update(self, *args, **kwargs) -> int:
+        raise Exception
+        # if the token or refresh_token was updated, we need to
+        # re-calculate the hashed values
+        if options.get("apitoken.save-hash-on-create"):
+            if "token" in kwargs:
+                kwargs["hashed_token"] = hashlib.sha256(kwargs["token"].encode()).hexdigest()
+
+            if "refresh_token" in kwargs:
+                kwargs["hashed_refresh_token"] = hashlib.sha256(
+                    kwargs["refresh_token"].encode()
+                ).hexdigest()
+
+        if "token" in kwargs:
+            kwargs["token_last_characters"] = kwargs["token"][-4:]
+
+        return super().update(*args, **kwargs)
 
 
 @control_silo_only_model
@@ -157,7 +184,10 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         # if there is a hash value, then a refresh token is expected
         # and if the plaintext_refresh_token is None, then it has already
         # been read once so we should throw the exception
-        if not plaintext_refresh_token and self.refresh_token:
+        #
+        # we check for either the hashed or plaintext refresh token stored in the DB
+        # for backwards compatibility
+        if not plaintext_refresh_token and (self.hashed_refresh_token or self.refresh_token):
             raise PlaintextSecretAlreadyRead()
 
         return plaintext_refresh_token
@@ -167,7 +197,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
             token_last_characters = self.token[-4:]
             self.token_last_characters = token_last_characters
 
-        return super().save(**kwargs)
+        return super().save(*args, **kwargs)
 
     def outbox_region_names(self) -> Collection[str]:
         return list(find_all_region_names())
@@ -224,9 +254,9 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         )
         existing = self.__class__.objects.filter(query).first()
         if existing:
-            self.token = generate_token()
+            self.token = generate_token(token_type=self.token_type)
             if self.refresh_token is not None:
-                self.refresh_token = generate_token()
+                self.refresh_token = generate_token(token_type=self.token_type)
             if self.expires_at is not None:
                 self.expires_at = timezone.now() + DEFAULT_EXPIRATION
 
