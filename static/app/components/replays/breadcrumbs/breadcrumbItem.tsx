@@ -18,7 +18,7 @@ import {getShortEventId} from 'sentry/utils/events';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import type {ClickFrame, ErrorFrame, ReplayFrame} from 'sentry/utils/replays/types';
-import {isErrorFrame, isFeedbackFrame} from 'sentry/utils/replays/types';
+import {isClickFrame, isErrorFrame, isFeedbackFrame} from 'sentry/utils/replays/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
@@ -206,7 +206,8 @@ function HTMLTree({description, frame}: {description: string; frame: ClickFrame}
   const location = useLocation();
   const organization = useOrganization();
 
-  const componentName = frame.data.node?.attributes['data-sentry-component'];
+  const componentName =
+    isClickFrame(frame) && frame.data.node?.attributes['data-sentry-component'];
   const lastComponentIndex =
     description.lastIndexOf('>') === -1 ? 0 : description.lastIndexOf('>') + 2;
 
