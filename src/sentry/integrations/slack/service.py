@@ -102,6 +102,7 @@ class SlackService:
                     "project_id": activity.project.id,
                 },
             )
+            return None
 
         slack_client = SlackClient(integration_id=integration.id)
 
