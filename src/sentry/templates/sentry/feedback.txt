@@ -16,7 +16,7 @@ Details
 
 
 {% if generic_issue_data %}
-Issue Data
+User Feedback
 ----------
 {% for label, html, _ in generic_issue_data %}
     {{ label }}  {{ html }}
