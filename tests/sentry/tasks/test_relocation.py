@@ -23,7 +23,7 @@ from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.helpers import ImportFlags, Printer
 from sentry.backup.imports import import_in_organization_scope
 from sentry.models.files.file import File
-from sentry.models.files.utils import get_relocation_storage, get_storage
+from sentry.models.files.utils import get_relocation_storage
 from sentry.models.importchunk import (
     ControlImportChunk,
     ControlImportChunkReplica,
@@ -1469,7 +1469,7 @@ class ValidatingCompleteTest(RelocationTaskTestCase):
             )
         )
 
-        self.storage = get_storage()
+        self.storage = get_relocation_storage()
         self.storage.save(
             f"runs/{self.uuid}/findings/artifacts-prefixes-are-ignored.json",
             BytesIO(b"invalid-json"),
@@ -2092,7 +2092,7 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
         RelocationTaskTestCase.setUp(self)
         TransactionTestCase.setUp(self)
 
-        self.storage = get_storage()
+        self.storage = get_relocation_storage()
         files = [
             "null.json",
             "import-baseline-config.json",
