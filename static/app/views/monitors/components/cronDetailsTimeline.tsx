@@ -23,7 +23,7 @@ import type {Monitor} from 'sentry/views/monitors/types';
 import {makeMonitorDetailsQueryKey} from 'sentry/views/monitors/utils';
 
 import {useMonitorStats} from './overviewTimeline/useMonitorStats';
-import {useTimewindowConfig} from './overviewTimeline/useTimeWindowConfig';
+import {useTimeWindowConfig} from './overviewTimeline/useTimeWindowConfig';
 
 interface Props {
   monitor: Monitor;
@@ -38,7 +38,7 @@ export function CronDetailsTimeline({monitor, organization}: Props) {
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
 
-  const timeWindowConfig = useTimewindowConfig({timelineWidth});
+  const timeWindowConfig = useTimeWindowConfig({timelineWidth});
 
   const {data: monitorStats, isLoading} = useMonitorStats({
     monitors: [monitor.id],

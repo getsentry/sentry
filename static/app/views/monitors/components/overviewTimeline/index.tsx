@@ -21,7 +21,7 @@ import {GridLineOverlay, GridLineTimeLabels} from './gridLines';
 import {SortSelector} from './sortSelector';
 import {TimelineTableRow} from './timelineTableRow';
 import {useMonitorStats} from './useMonitorStats';
-import {useTimewindowConfig} from './useTimeWindowConfig';
+import {useTimeWindowConfig} from './useTimeWindowConfig';
 
 interface Props {
   monitorList: Monitor[];
@@ -37,7 +37,7 @@ export function OverviewTimeline({monitorList}: Props) {
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
 
-  const timeWindowConfig = useTimewindowConfig({timelineWidth});
+  const timeWindowConfig = useTimeWindowConfig({timelineWidth});
 
   const {data: monitorStats, isLoading} = useMonitorStats({
     monitors: monitorList.map(m => m.id),
