@@ -9,6 +9,7 @@ from django.utils import timezone
 from sentry import release_health
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
+from sentry.release_health.sessions import SessionsReleaseHealthBackend
 from sentry.snuba.metrics import to_intervals
 from sentry.testutils.cases import APITestCase, BaseMetricsTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -86,7 +87,7 @@ def adjust_end(end: datetime.datetime, interval: int) -> datetime.datetime:
     return end
 
 
-@pytest.mark.xfail(reason="Does not work with the metrics release health backend")
+@patch("sentry.release_health.backend", SessionsReleaseHealthBackend())
 class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -1314,7 +1315,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
 @patch("sentry.release_health.backend", MetricsReleaseHealthBackend())
 class OrganizationSessionsEndpointMetricsTest(
-    BaseMetricsTestCase, OrganizationSessionsEndpointTest
+    OrganizationSessionsEndpointTest, BaseMetricsTestCase
 ):
     """Repeat all tests with metrics backend"""
 

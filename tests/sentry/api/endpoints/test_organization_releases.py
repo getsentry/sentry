@@ -37,7 +37,7 @@ from sentry.search.events.constants import (
 from sentry.silo import SiloMode
 from sentry.testutils.cases import (
     APITestCase,
-    BaseMetricsLayerTestCase,
+    BaseMetricsTestCase,
     ReleaseCommitPatchTest,
     SetRefsTestCase,
     TestCase,
@@ -51,11 +51,8 @@ from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
 
 
-class OrganizationReleaseListTest(APITestCase, BaseMetricsLayerTestCase):
+class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
     endpoint = "sentry-api-0-organization-releases"
-
-    def now(self):
-        return timezone.now()
 
     def assert_expected_versions(self, response, expected):
         assert [item["version"] for item in response.data] == [e.version for e in expected]
