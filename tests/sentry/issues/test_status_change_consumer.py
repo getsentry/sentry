@@ -132,12 +132,9 @@ class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
             substatus=GroupSubStatus.ESCALATING,
             priority=PriorityLevel.HIGH,
         )
-        GroupHistory.objects.create(
-            group=self.group,
-            project=self.group.project,
-            organization=self.organization,
-            status=GroupHistoryStatus.PRIORITY_MEDIUM,
-        )
+        self.group.data.get("metadata", {}).update({"initial_priority": PriorityLevel.MEDIUM})
+        self.group.save()
+
         message = get_test_message_status_change(
             self.project.id,
             fingerprint=self.fingerprint,
