@@ -100,11 +100,11 @@
                       <br />
                       <br />
                       {% if metadata.name and metadata.contact_email %}
-                      <p><strong>{{ metadata.name }}</strong> {{ metadata.contact_email }}</p>
+                      <p><strong>{{ metadata.name }}</strong> <a href="mailto:{{ metadata.contact_email }}">{{ metadata.contact_email }}</a></p>
                       {% elif metadata.name %}
                       <p><strong>{{ metadata.name }}</strong></p>
                       {% elif metadata.contact_email %}
-                      <p>{{ metadata.contact_email }}</p>
+                      <p><a href="mailto:{{ metadata.contact_email }}">{{ metadata.contact_email }}</a></p>
                       {% endif %}
                       <br />
                       <div class="event">

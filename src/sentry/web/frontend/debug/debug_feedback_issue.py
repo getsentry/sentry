@@ -1,4 +1,4 @@
-import pytz
+from django.conf import settings
 from django.utils.safestring import mark_safe
 from django.views.generic import View
 
@@ -31,7 +31,7 @@ class DebugFeedbackIssueEmailView(View):
                 "rules": get_rules([rule], org, project),
                 "group": group,
                 "event": event,
-                "timezone": pytz.timezone("Europe/Vienna"),
+                "timezone": settings.SENTRY_DEFAULT_TIME_ZONE,
                 "link": get_group_settings_link(group, None, get_rules([rule], org, project), 1337),
                 "generic_issue_data": [(section_header, mark_safe(generic_issue_data_html), None)],
                 "tags": event.tags,
