@@ -29,6 +29,7 @@ from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -663,7 +664,7 @@ class GroupUpdateTest(APITestCase):
 
 
 class GroupDeleteTest(APITestCase):
-    def test_delete(self):
+    def test_delete_deferred(self):
         self.login_as(user=self.user)
 
         group = self.create_group()
@@ -682,6 +683,13 @@ class GroupDeleteTest(APITestCase):
 
         Group.objects.filter(id=group.id).update(status=GroupStatus.UNRESOLVED)
 
+    def test_delete_and_tasks_run(self):
+        self.login_as(user=self.user)
+
+        group = self.create_group()
+        hash = "x" * 32
+        GroupHash.objects.create(project=group.project, hash=hash, group=group)
+
         url = f"/api/0/issues/{group.id}/"
 
         with self.tasks():
@@ -692,7 +700,7 @@ class GroupDeleteTest(APITestCase):
         # Now we killed everything with fire
         assert not Group.objects.filter(id=group.id).exists()
         assert not GroupHash.objects.filter(group_id=group.id).exists()
-        with self.tasks():
+        with self.tasks(), outbox_runner():
             schedule_hybrid_cloud_foreign_key_jobs()
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert (
