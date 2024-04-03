@@ -146,10 +146,10 @@ function Duration(props: DurationProps) {
 
   const deltaText =
     status === 'equal'
-      ? t(`Equal to avg %s`, `${deltaPct}%`, formattedAvgDuration)
+      ? t(`equal to the avg of %s`, `${deltaPct}%`, formattedAvgDuration)
       : status === 'faster'
-        ? t(`%s faster than avg %s`, `${deltaPct}%`, formattedAvgDuration)
-        : t(`%s slower than avg %s`, `${deltaPct}%`, formattedAvgDuration);
+        ? t(`%s faster than the avg of %s`, `${deltaPct}%`, formattedAvgDuration)
+        : t(`%s slower than the avg of %s`, `${deltaPct}%`, formattedAvgDuration);
 
   return (
     <Fragment>
