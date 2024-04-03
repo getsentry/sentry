@@ -55,8 +55,6 @@ UNSUPPORTED_SNUBA_FILTERS = [
     "linked",
     "subscribed_by",
     "regressed_in_release",
-    "issue.category",
-    "issue.type",
     "issue.priority",
 ]
 

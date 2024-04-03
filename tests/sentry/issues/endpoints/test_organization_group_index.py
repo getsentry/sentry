@@ -2652,8 +2652,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
             "is:unlinked",
             "subscribed:me",
             "regressed_in_release:latest",
-            "issue.category:error",
-            "issue.type:performance_n_plus_one_db_queries",
             "issue.priority:high",
         ]:
             with patch(
