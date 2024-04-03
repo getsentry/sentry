@@ -65,7 +65,9 @@ export const useProjectWebVitalsScoresTimeseriesQuery = ({
         'transaction.op:[pageload,""]',
         'span.op:[ui.interaction.click,""]',
         search.formatString(),
-      ].join(' '),
+      ]
+        .join(' ')
+        .trim(),
       version: 2,
       fields: [],
       interval: getInterval(pageFilters.selection.datetime, 'low'),

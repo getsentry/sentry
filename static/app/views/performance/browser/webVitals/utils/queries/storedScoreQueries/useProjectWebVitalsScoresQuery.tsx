@@ -67,7 +67,9 @@ export const useProjectWebVitalsScoresQuery = ({
         'transaction.op:[pageload,""]',
         'span.op:[ui.interaction.click,""]',
         search.formatString(),
-      ].join(' '),
+      ]
+        .join(' ')
+        .trim(),
       version: 2,
       dataset: dataset ?? DiscoverDatasets.METRICS,
     },

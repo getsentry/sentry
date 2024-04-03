@@ -73,7 +73,9 @@ export const useTransactionWebVitalsScoresQuery = ({
         'transaction.op:[pageload,""]',
         'span.op:[ui.interaction.click,""]',
         search.formatString(),
-      ].join(' '),
+      ]
+        .join(' ')
+        .trim(),
       version: 2,
       dataset: DiscoverDatasets.METRICS,
     },
