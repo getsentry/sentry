@@ -181,11 +181,11 @@ class TestTokenAuthentication(TestCase):
 
         self.auth = UserAuthTokenAuthentication()
         self.org = self.create_organization(owner=self.user)
-        self.token = "abc123"
         self.api_token = ApiToken.objects.create(
-            token=self.token,
+            token_type=AuthTokenType.USER,
             user=self.user,
         )
+        self.token = self.api_token._plaintext_token
 
     def test_authenticate(self):
         request = HttpRequest()
