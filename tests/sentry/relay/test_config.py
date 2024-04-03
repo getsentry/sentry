@@ -957,6 +957,28 @@ def test_project_config_cardinality_limits(default_project, insta_snapshot, pass
             ]
         }
 
+    options["relay.cardinality-limiter.limits"] = [
+        {
+            "rollout_rate": 0,
+            "limit": {
+                "id": "test1",
+                "window": {"windowSeconds": 7000, "granularitySeconds": 700},
+                "limit": 70,
+                "scope": "name",
+            },
+        },
+        {
+            "rollout_rate": 1,
+            "limit": {
+                "id": "test2",
+                "window": {"windowSeconds": 8000, "granularitySeconds": 800},
+                "limit": 80,
+                "scope": "name",
+                "report": True,
+            },
+        },
+    ]
+
     features = Feature({"organizations:relay-cardinality-limiter": True})
 
     with override_options(options), features:
