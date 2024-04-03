@@ -8,6 +8,7 @@ from django.test import RequestFactory, override_settings
 from requests import Response
 
 from sentry.api.endpoints.internal.integration_proxy import InternalIntegrationProxyEndpoint
+from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.integrations.client import ApiClient
 from sentry.integrations.example.integration import ExampleIntegration
@@ -247,3 +248,34 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         )
         request = self.factory.get(self.path, **header_kwargs)
         assert self.endpoint_cls._validate_request(request)
+
+    def raise_identity_exception(self, *args, **kwargs):
+        raise IdentityNotValid
+
+    @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
+    @patch.object(ExampleIntegration, "get_client")
+    @patch.object(InternalIntegrationProxyEndpoint, "client", spec=IntegrationProxyClient)
+    def test_the_thing(self, mock_client, mock_get_client):
+        signature_path = f"/{self.proxy_path}"
+        signature = encode_subnet_signature(
+            secret=self.secret,
+            base_url="https://example.com/api",
+            path=signature_path,
+            identifier=str(self.org_integration.id),
+            request_body=b"",
+        )
+        headers = SiloHttpHeaders(
+            HTTP_X_SENTRY_SUBNET_BASE_URL="https://example.com/api",
+            HTTP_X_SENTRY_SUBNET_SIGNATURE=signature,
+            HTTP_X_SENTRY_SUBNET_ORGANIZATION_INTEGRATION=str(self.org_integration.id),
+            HTTP_X_SENTRY_SUBNET_PATH=signature_path,
+        )
+        mock_client.base_url = "https://example.com/api"
+        mock_client.authorize_request = MagicMock(side_effect=lambda req: req)
+        mock_client.request = MagicMock(side_effect=self.raise_identity_exception)
+        mock_get_client.return_value = mock_client
+
+        proxy_response = self.client.get(self.path, **headers)
+
+        assert proxy_response.status_code == 400
+        assert proxy_response.data is None

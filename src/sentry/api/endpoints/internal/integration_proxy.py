@@ -10,6 +10,7 @@ from requests import Request, Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
+from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.silo.base import SiloMode
@@ -200,7 +201,13 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         self.log_extra["full_url"] = full_url
         headers = clean_outbound_headers(request.headers)
 
-        response = self._call_third_party_api(request=request, full_url=full_url, headers=headers)
+        try:
+            response = self._call_third_party_api(
+                request=request, full_url=full_url, headers=headers
+            )
+        except IdentityNotValid:
+            # Handle invalid identity errors by explicitly responding with a 400 error
+            return self.respond(status=400)
 
         # TODO(hybridcloud) Remove this logging once we have resolved slack delivery issues.
         if response.status_code != 200 and self.integration.provider == "slack":
