@@ -51,6 +51,7 @@ import {
   stringToFilter,
 } from 'sentry/views/performance/transactionSummary/filter';
 import {PercentChangeCell} from 'sentry/views/starfish/components/tableCells/percentChangeCell';
+import {ResponseStatusCodeCell} from 'sentry/views/starfish/components/tableCells/responseStatusCodeCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 
@@ -340,6 +341,7 @@ type SpecialFields = {
   project: SpecialField;
   release: SpecialField;
   replayId: SpecialField;
+  'span.status_code': SpecialField;
   team_key_transaction: SpecialField;
   'timestamp.to_day': SpecialField;
   'timestamp.to_hour': SpecialField;
@@ -688,6 +690,18 @@ const SPECIAL_FIELDS: SpecialFields = {
           fixed: 'timestamp.to_day',
         })}
       </Container>
+    ),
+  },
+  'span.status_code': {
+    sortField: 'span.status_code',
+    renderFunc: data => (
+      <NumberContainer>
+        {data['span.status_code'] ? (
+          <ResponseStatusCodeCell code={parseInt(data['span.status_code'], 10)} />
+        ) : (
+          t('Unknown')
+        )}
+      </NumberContainer>
     ),
   },
 };
