@@ -1932,7 +1932,7 @@ def test_bad_user_password_obfuscating_comparator_unclaimed_user_last_password_c
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
     assert "`last_password_change`" in res[0].reason
-    assert "nulled" in res[0].reason
+    assert "less than" in res[0].reason
 
 
 def test_good_user_password_obfuscating_comparator_existence():

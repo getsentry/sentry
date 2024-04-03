@@ -440,8 +440,8 @@ class UserPasswordObfuscatingComparator(ObfuscatingComparator):
         # New user, password must change.
         left_password = left["fields"]["password"]
         right_password = right["fields"]["password"]
-        left_lpc = left["fields"].get("last_password_change", None)
-        right_lpc = right["fields"].get("last_password_change", None)
+        left_lpc = left["fields"].get("last_password_change") or UNIX_EPOCH
+        right_lpc = right["fields"].get("last_password_change") or UNIX_EPOCH
         if left_password == right_password:
             left_pw_truncated = self.truncate(
                 [left_password] if not isinstance(left_password, list) else left_password
@@ -461,16 +461,15 @@ class UserPasswordObfuscatingComparator(ObfuscatingComparator):
                 )
             )
 
-        # Ensure that the `last_password_change` field was not nulled.
-        if right_lpc is None:
+        # Ensure that the `last_password_change` field was not nulled or less than the left side.
+        if parser.parse(left_lpc) > parser.parse(right_lpc):
             findings.append(
                 ComparatorFinding(
                     kind=self.get_kind(),
                     on=on,
                     left_pk=left["pk"],
                     right_pk=right["pk"],
-                    reason=f"""the left value ("{left_lpc}") of `last_password_change` was nulled
-                            out on the right side""",
+                    reason=f"""the left value ({left_lpc}) of `last_password_change` was not less than or equal to the right value ({right_lpc})""",
                 )
             )
 
@@ -721,11 +720,17 @@ def auto_assign_datetime_equality_comparators(comps: ComparatorMap) -> None:
         assign = set()
         for f in fields:
             if isinstance(f, models.DateTimeField) and name in comps:
-                date_updated_comparator = next(
-                    filter(lambda e: isinstance(e, DateUpdatedComparator), comps[name]), None
-                )
-                if not date_updated_comparator or f.name not in date_updated_comparator.fields:
-                    assign.add(f.name)
+                # Only auto assign the `DatetimeEqualityComparator` if this field is not mentioned
+                # by a conflicting comparator.
+                possibly_conflicting = [
+                    e
+                    for e in comps[name]
+                    if isinstance(e, DateUpdatedComparator) or isinstance(e, IgnoredComparator)
+                ]
+                assign.add(f.name)
+                for comp in possibly_conflicting:
+                    if f.name in comp.fields:
+                        assign.remove(f.name)
 
         if len(assign):
             found = next(
@@ -777,7 +782,7 @@ ComparatorMap = dict[str, ComparatorList]
 
 # No arguments, so we lazily cache the result after the first calculation.
 @lru_cache(maxsize=1)
-def get_default_comparators():
+def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
     """Helper function executed at startup time which builds the static default comparators map."""
 
     from sentry.models.actor import Actor

@@ -1,5 +1,5 @@
 ---
-created: '2024-04-03T23:39:07.177210+00:00'
+created: '2024-04-03T23:41:19.059630+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -350,7 +350,6 @@ source: tests/sentry/backup/test_comparators.py
     fields:
     - date_joined
     - last_login
-    - last_password_change
   - class: EmailObfuscatingComparator
     fields:
     - email
