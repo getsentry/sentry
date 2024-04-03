@@ -45,12 +45,14 @@ export function generateEventIDTarget({
   eventView,
   isHomepage,
   location,
+  spanId,
 }: {
   dataRow: TableDataRow;
   eventView: EventView;
   location: Location;
   organization: Organization;
   isHomepage?: boolean;
+  spanId?: string;
 }) {
   const dateSelection = eventView.normalizeDateSelection(location);
   const timestamp = getTimeStampFromTableDateField(dataRow.timestamp);
@@ -62,7 +64,8 @@ export function generateEventIDTarget({
       dateSelection,
       {},
       timestamp,
-      dataRow.id
+      dataRow.id,
+      spanId
     );
   }
 
