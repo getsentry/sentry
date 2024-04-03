@@ -82,14 +82,14 @@ const StyledImageButton = styled('button')`
   cursor: zoom-in;
   background: none;
   padding: 0;
-  border-radius: ${p => p.theme.borderRadius};
   border: 0;
-  overflow: hidden;
 `;
 
 const StyledImageVisualization = styled(ImageVisualization)`
   z-index: 1;
   border: 0;
+  border-radius: ${p => p.theme.borderRadius};
+  overflow: hidden;
   img {
     width: auto;
     height: auto;
