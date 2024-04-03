@@ -78,12 +78,13 @@ export class VideoReplayer {
       root.appendChild(this.wrapper);
     }
 
-    // Initially, only load some videos
-    this.preloadVideos({low: 0, high: PRELOAD_BUFFER});
+    // Initially load the first segment so that users are not staring at a
+    // blank replay. This initially caused some issues
+    // (https://github.com/getsentry/sentry/pull/67911), but the problem was
+    // due to the logic around our timers and the assumption that we were
+    // always hiding the video at the previous index, and not the video that
+    // was previously displayed, e.g. when you "restart" a replay.
     this.loadSegment(0);
-
-    // Show first frame by default
-    this.showVideo(this._videos[0]);
 
     this._trackList = this._attachments.map(({timestamp}, i) => [timestamp, i]);
   }
@@ -547,11 +548,6 @@ export class VideoReplayer {
   public pause(videoOffsetMs: number) {
     const index = this._currentIndex ?? 0;
     this.pauseReplay(videoOffsetMs);
-
-    // Hide first frame if we seek to a later part of the replay first
-    if (videoOffsetMs > 0) {
-      this.hideVideo(0);
-    }
 
     // Preload videos before and after this index
     this.preloadVideos({
