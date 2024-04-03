@@ -271,7 +271,6 @@ def format_mri_field_value(field: str, value: str) -> str:
     it will be returned as 1 minute.
 
     """
-
     try:
         parsed_mri_field = parse_mri_field(field)
         if parsed_mri_field is None:
@@ -303,6 +302,9 @@ def parse_mri_lenient(mri_string: str | None) -> ParsedMRI | None:
     Parse a mri string in a lenient way, meaning that the goal of the parsing is just
     to find the common structure of the mri which is split by a series of known delimiters ':', '/', '@'.
     """
+    if mri_string is None:
+        return None
+
     mri_delimiters = [":", "/", "@"]
     mri_components = []
     start = 0
