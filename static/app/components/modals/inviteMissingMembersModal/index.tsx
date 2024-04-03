@@ -130,9 +130,11 @@ export function InviteMissingMembersModal({
       return (
         <StatusMessage status="success">
           <IconCheckmark size="sm" />
-          {errorCount > 0
-            ? tct('Sent [invites], [failed] failed to send.', tctComponents)
-            : tct('Sent [invites]', tctComponents)}
+          <span>
+            {errorCount > 0
+              ? tct('Sent [invites], [failed] failed to send.', tctComponents)
+              : tct('Sent [invites]', tctComponents)}
+          </span>
         </StatusMessage>
       );
     }
