@@ -45,6 +45,7 @@ from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.rules.actions.utils import get_changed_data, get_updated_rule_data
 from sentry.signals import alert_rule_edited
 from sentry.tasks.integrations.slack import find_channel_id_for_rule
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -378,6 +379,10 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                 new_rule_data = get_updated_rule_data(rule)
                 changed_data = get_changed_data(rule, new_rule_data, rule_data_before)
                 send_confirmation_notification(rule=rule, new=False, changed=changed_data)
+                metrics.incr(
+                    "rule_confirmation.edit.notification.sent",
+                    skip_internal=False,
+                )
             return Response(serialize(updated_rule, request.user))
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
