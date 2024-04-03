@@ -30,7 +30,7 @@ from sentry.backup.exports import export_in_config_scope, export_in_user_scope
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.imports import import_in_organization_scope
 from sentry.models.files.file import File
-from sentry.models.files.utils import get_relocation_storage, get_storage
+from sentry.models.files.utils import get_relocation_storage
 from sentry.models.importchunk import ControlImportChunkReplica, RegionImportChunk
 from sentry.models.lostpasswordhash import LostPasswordHash as LostPasswordHash
 from sentry.models.organization import Organization
@@ -951,7 +951,7 @@ def validating_complete(uuid: str, build_id: str) -> None:
         attempts_left,
         ERR_VALIDATING_INTERNAL,
     ):
-        storage = get_storage()
+        storage = get_relocation_storage()
         final_status = ValidationStatus.VALID
         (_, findings_files) = storage.listdir(f"runs/{uuid}/findings")
         for file in sorted(findings_files, reverse=True):
