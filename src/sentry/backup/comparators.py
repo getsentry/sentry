@@ -104,8 +104,9 @@ class JSONScrubbingComparator(ABC):
         self,
         left: JSONData,
         right: JSONData,
-        f: Callable[[list[str]], list[str]]
-        | Callable[[list[str]], ScrubbedData] = lambda _: ScrubbedData(),
+        f: (
+            Callable[[list[str]], list[str]] | Callable[[list[str]], ScrubbedData]
+        ) = lambda _: ScrubbedData(),
     ) -> None:
         """Removes all of the fields compared by this comparator from the `fields` dict, so that the
         remaining fields may be compared for equality. Public callers should use the inheritance-safe wrapper, `scrub`, rather than using this internal method directly.
@@ -420,11 +421,27 @@ class UserPasswordObfuscatingComparator(ObfuscatingComparator):
         # Old user, password must remain constant.
         if not right["fields"].get("is_unclaimed"):
             findings.extend(super().compare(on, left, right))
+
+            # Ensure that `last_password_change` did not get mutated either.
+            lv = left["fields"].get("last_password_change", None)
+            rv = right["fields"].get("last_password_change", None)
+            if lv != rv:
+                findings.append(
+                    ComparatorFinding(
+                        kind=self.get_kind(),
+                        on=on,
+                        left_pk=left["pk"],
+                        right_pk=right["pk"],
+                        reason=f"""the left value ("{lv}") of `last_password_change` was not equal to the right value ("{rv}")""",
+                    )
+                )
             return findings
 
         # New user, password must change.
         left_password = left["fields"]["password"]
         right_password = right["fields"]["password"]
+        left_lpc = left["fields"].get("last_password_change", None)
+        right_lpc = right["fields"].get("last_password_change", None)
         if left_password == right_password:
             left_pw_truncated = self.truncate(
                 [left_password] if not isinstance(left_password, list) else left_password
@@ -441,6 +458,19 @@ class UserPasswordObfuscatingComparator(ObfuscatingComparator):
                     reason=f"""the left value ("{left_pw_truncated}") of `password` was equal to the
                             right value ("{right_pw_truncated}"), which is disallowed when
                             `is_unclaimed` is `True`""",
+                )
+            )
+
+        # Ensure that the `last_password_change` field was not nulled.
+        if right_lpc is None:
+            findings.append(
+                ComparatorFinding(
+                    kind=self.get_kind(),
+                    on=on,
+                    left_pk=left["pk"],
+                    right_pk=right["pk"],
+                    reason=f"""the left value ("{left_lpc}") of `last_password_change` was nulled
+                            out on the right side""",
                 )
             )
 
@@ -817,11 +847,11 @@ def get_default_comparators():
             ],
             "sentry.user": [
                 AutoSuffixComparator("username"),
-                DateUpdatedComparator("last_active", "last_password_change"),
-                # UserPasswordComparator handles `is_unclaimed` and `password` for us. Because of
-                # this, we can ignore the `is_unclaimed` field otherwise and scrub it from the
-                # comparison.
-                IgnoredComparator("is_unclaimed"),
+                DateUpdatedComparator("last_active"),
+                # UserPasswordComparator handles `last_password_change`, `is_unclaimed` and
+                # `password` for us. Because of this, we can ignore the `last_password_change`
+                # and`is_unclaimed` fields otherwise and scrub them from the comparison.
+                IgnoredComparator("last_password_change", "is_unclaimed"),
                 UserPasswordObfuscatingComparator(),
             ],
             "sentry.useremail": [
