@@ -16,7 +16,8 @@ describe('useDispatchingReducer', () => {
     const reducer = jest.fn().mockImplementation(s => s) as () => {};
     const initialState = {type: 'initial'};
     const {result} = reactHooks.renderHook(() =>
-      useDispatchingReducer(reducer, {}, () => initialState)
+      // @ts-expect-error force undfined
+      useDispatchingReducer(reducer, undefined, () => initialState)
     );
 
     expect(result.current[0]).toBe(initialState);
