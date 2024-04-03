@@ -994,6 +994,15 @@ register(
 register(
     "relay.cardinality-limiter.error-sample-rate", default=0.01, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
+# List of additional cardinality limits and selectors.
+#
+# ```
+# {
+#   "rollout_rate": 0.001,
+#   "limit": { .. Cardinality Limit .. }
+# }
+# ```
+register("relay.cardinality-limiter.limits", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Controls the encoding used in Relay for encoding distributions and sets
 # when writing to Kafka.
