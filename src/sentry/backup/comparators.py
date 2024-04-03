@@ -848,9 +848,10 @@ def get_default_comparators():
             "sentry.user": [
                 AutoSuffixComparator("username"),
                 DateUpdatedComparator("last_active"),
-                # UserPasswordComparator handles `last_password_change`, `is_unclaimed` and
-                # `password` for us. Because of this, we can ignore the `last_password_change`
-                # and`is_unclaimed` fields otherwise and scrub them from the comparison.
+                # `UserPasswordObfuscatingComparator` handles `last_password_change`,
+                # `is_unclaimed`, and `password` for us. Because of this, we can ignore the
+                # `last_password_change` and`is_unclaimed` fields otherwise and scrub them from the
+                # comparison.
                 IgnoredComparator("last_password_change", "is_unclaimed"),
                 UserPasswordObfuscatingComparator(),
             ],

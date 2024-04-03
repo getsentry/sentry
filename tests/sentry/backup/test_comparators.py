@@ -1657,7 +1657,7 @@ def test_good_user_password_obfuscating_comparator_claimed_user_never_changed_pa
         "fields": {
             "is_unclaimed": False,
             "password": "pbkdf2_sha256$260000$3v4Cyy3TAhp14YCB8Zh7Gq$SjB35BELrwwfOCaiz8O/SdbvhXq+l02BRpKtwxOCTiw=",
-            "left_password_change": None,
+            "last_password_change": None,
         },
     }
     nulled: JSONData = {
