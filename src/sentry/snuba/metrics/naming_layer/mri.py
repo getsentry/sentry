@@ -66,6 +66,13 @@ def _build_namespace_regex() -> str:
     return rf"({'|'.join(use_case_ids)})"
 
 
+# These regexes are referring to the strictest MRI specification, but we currently switched over to a more lenient
+# implementation in `parse_mri_lenient` since we are assuming that all MRIs in the system are going first through Relay
+# which performs validation and normalization of MRIs.
+#
+# Should we ever need to validate MRIs in places where they don't go through Relay first (e.g., an endpoint receives
+# an MRI that needs to be stored somewhere), then we would still like to use our regexes directly from the `parse_mri`
+# function.
 MRI_METRIC_TYPE_REGEX = r"(c|s|d|g|e)"
 MRI_NAMESPACE_REGEX = _build_namespace_regex()
 MRI_NAME_REGEX = r"([a-zA-Z0-9_/.]+)"
@@ -286,6 +293,9 @@ def format_mri_field_value(field: str, value: str) -> str:
 def parse_mri(mri_string: str | None) -> ParsedMRI | None:
     """
     Parse a mri string to determine its entity, namespace, name and unit.
+
+    Note that this function is currently unused, but we decided to keep it along with its regexes because we might
+    want stricter validation of MRIs in specific cases where the MRIs are input by the user.
     """
     if mri_string is None:
         return None
