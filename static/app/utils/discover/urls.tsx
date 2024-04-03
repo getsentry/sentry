@@ -4,6 +4,7 @@ import type {Organization, OrganizationSummary} from 'sentry/types';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 import {getTimeStampFromTableDateField} from '../dates';
+import {getTransactionDetailsUrl} from '../performance/urls';
 
 import type {TableDataRow} from './discoverQuery';
 import type {EventData} from './eventView';
@@ -46,13 +47,17 @@ export function generateEventIDLinkTarget({
   isHomepage,
   location,
   spanId,
+  eventSlug,
+  type = 'performance',
 }: {
   dataRow: TableDataRow;
+  eventSlug: string;
   eventView: EventView;
   location: Location;
   organization: Organization;
   isHomepage?: boolean;
   spanId?: string;
+  type?: 'performance' | 'discover';
 }) {
   const dateSelection = eventView.normalizeDateSelection(location);
   const timestamp = getTimeStampFromTableDateField(dataRow.timestamp);
@@ -69,7 +74,15 @@ export function generateEventIDLinkTarget({
     );
   }
 
-  const eventSlug = generateEventSlug(dataRow);
+  if (type === 'performance') {
+    return getTransactionDetailsUrl(
+      organization.slug,
+      eventSlug,
+      undefined,
+      location.query,
+      spanId
+    );
+  }
 
   const target: LocationDescriptorObject = {
     pathname: eventDetailsRoute({

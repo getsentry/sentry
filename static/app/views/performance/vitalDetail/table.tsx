@@ -19,7 +19,6 @@ import {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
-import {generateEventIDLinkTarget} from 'sentry/utils/discover/urls';
 import type {WebVital} from 'sentry/utils/fields';
 import type {
   TableData,
@@ -29,9 +28,14 @@ import VitalsDetailsTableQuery from 'sentry/utils/performance/vitals/vitalsDetai
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
-import {normalizeSearchConditionsWithTransactionName} from 'sentry/views/performance/transactionSummary/utils';
+import {
+  DisplayModes,
+  normalizeSearchConditionsWithTransactionName,
+  TransactionFilterOptions,
+  transactionSummaryRouteWithQuery,
+} from 'sentry/views/performance/transactionSummary/utils';
 
-import {getSelectedProjectPlatforms} from '../utils';
+import {getProjectID, getSelectedProjectPlatforms} from '../utils';
 
 import {
   getVitalDetailTableMehStatusFunction,
@@ -107,7 +111,7 @@ class Table extends Component<Props, State> {
     dataRow: TableDataRow,
     vitalName: WebVital
   ): React.ReactNode {
-    const {eventView, organization, location, summaryConditions} = this.props;
+    const {eventView, organization, projects, location, summaryConditions} = this.props;
 
     if (!tableData || !tableData.meta?.fields) {
       return dataRow[column.key];
@@ -149,6 +153,7 @@ class Table extends Component<Props, State> {
     ];
 
     if (field === 'transaction') {
+      const projectID = getProjectID(dataRow, projects);
       const summaryView = eventView.clone();
       const conditions = new MutableSearch(summaryConditions);
       conditions.addFilterValues('has', [`${vitalName}`]);
@@ -156,11 +161,13 @@ class Table extends Component<Props, State> {
 
       const transaction = String(dataRow.transaction) || '';
 
-      const target = generateEventIDLinkTarget({
-        dataRow,
-        eventView: summaryView,
-        organization,
-        location,
+      const target = transactionSummaryRouteWithQuery({
+        orgSlug: organization.slug,
+        transaction,
+        query: summaryView.generateQueryStringObject(),
+        projectID,
+        showTransactions: TransactionFilterOptions.RECENT,
+        display: DisplayModes.VITALS,
       });
 
       return (

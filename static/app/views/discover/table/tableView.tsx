@@ -37,7 +37,7 @@ import {
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
 import {DisplayModes, TOP_N} from 'sentry/utils/discover/types';
-import {generateEventIDLinkTarget} from 'sentry/utils/discover/urls';
+import {generateEventIDLinkTarget, generateEventSlug} from 'sentry/utils/discover/urls';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
 import {getShortEventId} from 'sentry/utils/events';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
@@ -187,11 +187,13 @@ function TableView(props: TableViewProps) {
       }
 
       const target = generateEventIDLinkTarget({
+        eventSlug: generateEventSlug(dataRow),
         dataRow,
         organization,
         eventView,
         isHomepage,
         location,
+        type: 'discover',
       });
 
       const eventIdLink = (
@@ -293,11 +295,13 @@ function TableView(props: TableViewProps) {
 
     if (columnKey === 'id') {
       const target = generateEventIDLinkTarget({
+        eventSlug: generateEventSlug(dataRow),
         dataRow,
         organization,
         eventView,
         isHomepage,
         location,
+        type: 'discover',
       });
 
       const idLink = (

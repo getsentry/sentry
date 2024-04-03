@@ -19,7 +19,7 @@ import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {generateEventIDLinkTarget} from 'sentry/utils/discover/urls';
+import {generateEventIDLinkTarget, generateEventSlug} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import {getDuration} from 'sentry/utils/formatters';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
@@ -373,6 +373,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
 
     if (key === 'id' && 'id' in row) {
       const eventTarget = generateEventIDLinkTarget({
+        eventSlug: generateEventSlug({...row, project: row.projectSlug}),
         dataRow: row,
         eventView: EventView.fromLocation(location),
         organization,

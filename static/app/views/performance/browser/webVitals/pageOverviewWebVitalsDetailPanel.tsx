@@ -207,6 +207,7 @@ export function PageOverviewWebVitalsDetailPanel({
     }
     if (key === 'id') {
       const eventTarget = generateEventIDLinkTarget({
+        eventSlug: `${projectSlug}:${row.id}`,
         dataRow: row,
         organization,
         eventView: EventView.fromLocation(location),
