@@ -778,15 +778,15 @@ register(
 
 register(
     "issues.severity.seer-project-rate-limit",
-    type=Int,
-    default=5,
+    type=Any,
+    default={"limit": 5, "window": 1},
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(
     "issues.severity.seer-global-rate-limit",
-    type=Int,
-    default=25,
+    type=Any,
+    default={"limit": 20, "window": 1},
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 

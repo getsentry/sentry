@@ -146,8 +146,6 @@ NON_TITLE_EVENT_TITLES = ["<untitled>", "<unknown>", "<unlabeled event>", "Error
 
 HIGH_SEVERITY_THRESHOLD = 0.1
 
-SEER_GLOBAL_RATE_LIMIT_DEFAULT = 1200  # 1200 requests per minute
-SEER_PROJECT_RATE_LIMIT_DEFAULT = 300  # 300 requests per minute
 SEER_ERROR_COUNT_KEY = ERROR_COUNT_CACHE_KEY("sentry.seer.severity-failures")
 
 
@@ -2212,25 +2210,39 @@ def _get_severity_metadata_for_group(
 
     from sentry import ratelimits as ratelimiter
 
-    limit = options.get("issues.severity.seer-global-rate-limit", SEER_GLOBAL_RATE_LIMIT_DEFAULT)
+    ratelimit = options.get("issues.severity.seer-global-rate-limit")
+    # This is temporary until we update the option values to be a dict
+    if "limit" not in ratelimit or "window" not in ratelimit:
+        return {}
+
     if ratelimiter.backend.is_limited(
-        "seer:severity-calculation:global-limit", limit=limit, window=60
+        "seer:severity-calculation:global-limit",
+        limit=ratelimit["limit"],
+        window=ratelimit["window"],
     ):
         logger.warning(
             "get_severity_metadata_for_group.rate_limited_globally",
             extra={"event_id": event.event_id, "project_id": project_id},
         )
         metrics.incr("issues.severity.rate_limited_globally")
+        return {}
 
-    limit = options.get("issues.severity.seer-project-rate-limit", SEER_PROJECT_RATE_LIMIT_DEFAULT)
+    ratelimit = options.get("issues.severity.seer-project-rate-limit")
+    # This is temporary until we update the option values to be a dict
+    if "limit" not in ratelimit or "window" not in ratelimit:
+        return {}
+
     if ratelimiter.backend.is_limited(
-        f"seer:severity-calculation:{project_id}", limit=limit, window=60
+        f"seer:severity-calculation:{project_id}",
+        limit=ratelimit["limit"],
+        window=ratelimit["window"],
     ):
         logger.warning(
             "get_severity_metadata_for_group.rate_limited_for_project",
             extra={"event_id": event.event_id, "project_id": project_id},
         )
         metrics.incr("issues.severity.rate_limited_for_project", tags={"project_id": project_id})
+        return {}
 
     try:
         severity, reason = _get_severity_score(event)
