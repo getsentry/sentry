@@ -49,6 +49,10 @@ class CodeMapping(NamedTuple):
     source_path: str
 
 
+class UnexpectedPathException(Exception):
+    pass
+
+
 class UnsupportedFrameFilename(Exception):
     pass
 
@@ -140,16 +144,38 @@ class CodeMappingTreesHelper:
             ]
 
             for file in matches:
-                stacktrace_root, source_path = find_roots(frame_filename.raw_path, file)
-                file_matches.append(
-                    {
-                        "filename": file,
-                        "repo_name": repo_tree.repo.name,
-                        "repo_branch": repo_tree.repo.branch,
-                        "stacktrace_root": stacktrace_root,
-                        "source_path": source_path,
-                    }
-                )
+                stack_path = frame_filename.raw_path
+                source_path = file
+
+                try:
+                    stack_root, source_root = find_roots(stack_path, source_path)
+                except UnexpectedPathException:
+                    logger.info(
+                        "Unexpected format for stack_path or source_path",
+                        extra={"stack_path": stack_path, "source_path": source_path},
+                    )
+                    continue
+
+                if stack_path.replace(stack_root, source_root, 1) != source_path:
+                    logger.info(
+                        "Unexpected stack_path/source_path found. A code mapping was not generated.",
+                        extra={
+                            "stack_path": stack_path,
+                            "source_path": source_path,
+                            "stack_root": stack_root,
+                            "source_root": source_root,
+                        },
+                    )
+                else:
+                    file_matches.append(
+                        {
+                            "filename": file,
+                            "repo_name": repo_tree.repo.name,
+                            "repo_branch": repo_tree.repo.branch,
+                            "stacktrace_root": stack_root,
+                            "source_path": source_root,
+                        }
+                    )
         return file_matches
 
     def _stacktrace_buckets(self, stacktraces: list[str]) -> dict[str, list[FrameFilename]]:
@@ -234,7 +260,15 @@ class CodeMappingTreesHelper:
 
         stack_path = frame_filename.raw_path
         source_path = matched_files[0]
-        stack_root, source_root = find_roots(stack_path, source_path)
+
+        try:
+            stack_root, source_root = find_roots(stack_path, source_path)
+        except UnexpectedPathException:
+            logger.info(
+                "Unexpected format for stack_path or source_path",
+                extra={"stack_path": stack_path, "source_path": source_path},
+            )
+            return []
 
         if stack_path.replace(stack_root, source_root, 1) != source_path:
             logger.info(
@@ -492,4 +526,4 @@ def find_roots(stack_path: str, source_path: str) -> tuple[str, str]:
 
     # validate_source_url should have ensured the file names match
     # so if we get here something went wrong and there is a bug
-    raise Exception("Could not find common root from paths")
+    raise UnexpectedPathException("Could not find common root from paths")
