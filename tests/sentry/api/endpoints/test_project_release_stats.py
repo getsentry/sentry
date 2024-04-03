@@ -1,12 +1,13 @@
 from datetime import UTC, datetime
 
+import pytest
 from django.urls import reverse
 
 from sentry.models.release import Release
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.skips import requires_snuba
 
-pytestmark = [requires_snuba]
+pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
 
 
 class ProjectReleaseStatsTest(APITestCase):
