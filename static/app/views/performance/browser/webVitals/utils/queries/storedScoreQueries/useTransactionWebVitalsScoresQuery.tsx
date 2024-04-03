@@ -2,6 +2,7 @@ import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -37,6 +38,13 @@ export const useTransactionWebVitalsScoresQuery = ({
 
   const sort = useWebVitalsSort({sortName, defaultSort});
 
+  const search = new MutableSearch([
+    'avg(measurements.score.total):>=0',
+    ...(query ? [query] : []),
+  ]);
+  if (transaction) {
+    search.addFilterValue('transaction', transaction);
+  }
   const eventView = EventView.fromNewQueryWithPageFilters(
     {
       fields: [
@@ -64,10 +72,10 @@ export const useTransactionWebVitalsScoresQuery = ({
       query: [
         'transaction.op:[pageload,""]',
         'span.op:[ui.interaction.click,""]',
-        'avg(measurements.score.total):>=0',
-        ...(transaction ? [`transaction:"${transaction}"`] : []),
-        ...(query ? [query] : []),
-      ].join(' '),
+        search.formatString(),
+      ]
+        .join(' ')
+        .trim(),
       version: 2,
       dataset: DiscoverDatasets.METRICS,
     },

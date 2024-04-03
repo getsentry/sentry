@@ -131,4 +131,57 @@ describe('PageOverview', function () {
       )
     );
   });
+
+  it('escapes transaction name before querying discover', async () => {
+    const organizationWithInp = OrganizationFixture({
+      features: [
+        'starfish-browser-webvitals',
+        'performance-database-view',
+        'starfish-browser-webvitals-replace-fid-with-inp',
+      ],
+    });
+    jest.mocked(useOrganization).mockReturnValue(organizationWithInp);
+    jest.mocked(useLocation).mockReturnValue({
+      pathname: '',
+      search: '',
+      query: {
+        useStoredScores: 'true',
+        transaction: '/page-with-a-*/',
+        type: 'interactions',
+      },
+      hash: '',
+      state: undefined,
+      action: 'PUSH',
+      key: '',
+    });
+    render(<PageOverview />);
+    await waitFor(() =>
+      expect(eventsMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            dataset: 'spansIndexed',
+            field: [
+              'measurements.inp',
+              'measurements.score.inp',
+              'measurements.score.weight.inp',
+              'measurements.score.total',
+              'span_id',
+              'timestamp',
+              'profile_id',
+              'replay.id',
+              'user',
+              'origin.transaction',
+              'project',
+              'browser.name',
+              'span.self_time',
+              'span.description',
+            ],
+            query:
+              'span.op:ui.interaction.click measurements.score.weight.inp:>0 origin.transaction:"/page-with-a-\\*/"',
+          }),
+        })
+      )
+    );
+  });
 });

@@ -6,6 +6,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
 import {useGenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -35,6 +36,13 @@ export const useProjectWebVitalsScoresTimeseriesQuery = ({
   const pageFilters = usePageFilters();
   const location = useLocation();
   const organization = useOrganization();
+  const search = new MutableSearch([
+    'has:measurements.score.total',
+    ...(tag ? [`${tag.key}:"${tag.name}"`] : []),
+  ]);
+  if (transaction) {
+    search.addFilterValue('transaction', transaction);
+  }
   const projectTimeSeriesEventView = EventView.fromNewQueryWithPageFilters(
     {
       yAxis: [
@@ -56,10 +64,10 @@ export const useProjectWebVitalsScoresTimeseriesQuery = ({
       query: [
         'transaction.op:[pageload,""]',
         'span.op:[ui.interaction.click,""]',
-        'has:measurements.score.total',
-        ...(transaction ? [`transaction:"${transaction}"`] : []),
-        ...(tag ? [`${tag.key}:"${tag.name}"`] : []),
-      ].join(' '),
+        search.formatString(),
+      ]
+        .join(' ')
+        .trim(),
       version: 2,
       fields: [],
       interval: getInterval(pageFilters.selection.datetime, 'low'),

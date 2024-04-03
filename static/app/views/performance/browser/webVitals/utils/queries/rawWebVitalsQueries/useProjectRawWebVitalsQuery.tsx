@@ -2,6 +2,7 @@ import type {Tag} from 'sentry/types';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -16,6 +17,13 @@ export const useProjectRawWebVitalsQuery = ({transaction, tag, dataset}: Props =
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const location = useLocation();
+  const search = new MutableSearch([]);
+  if (transaction) {
+    search.addFilterValue('transaction', transaction);
+  }
+  if (tag) {
+    search.addFilterValue(tag.key, tag.name);
+  }
 
   const projectEventView = EventView.fromNewQueryWithPageFilters(
     {
@@ -38,9 +46,10 @@ export const useProjectRawWebVitalsQuery = ({transaction, tag, dataset}: Props =
       query: [
         'transaction.op:[pageload,""]',
         'span.op:[ui.interaction.click,""]',
-        ...(transaction ? [`transaction:"${transaction}"`] : []),
-        ...(tag ? [`{tag.key}:"${tag.name}"`] : []),
-      ].join(' '),
+        search.formatString(),
+      ]
+        .join(' ')
+        .trim(),
       version: 2,
       dataset: dataset ?? DiscoverDatasets.METRICS,
     },
