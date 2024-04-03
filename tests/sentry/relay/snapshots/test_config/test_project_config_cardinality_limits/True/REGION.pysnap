@@ -42,3 +42,10 @@ cardinalityLimits:
   window:
     granularitySeconds: 600
     windowSeconds: 3600
+- id: test2
+  limit: 80
+  report: true
+  scope: name
+  window:
+    granularitySeconds: 800
+    windowSeconds: 8000
