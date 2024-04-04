@@ -16,11 +16,20 @@ https://github.com/getsentry/devenv#install
     exit 1
 fi
 
-if ! [[ "$VIRTUAL_ENV" -ef "${HERE}/../.venv" ]]; then
-    echo "
-Your virtualenv isn't activated. You need to successfully run 'direnv allow'.
+if [[ ${GETSENTRY:-0} -eq 1 ]]; then
+    if ! [[ "$VIRTUAL_ENV" -ef "${HERE}/../../getsentry/.venv" ]]; then
+        echo "
+Your getsentry virtualenv isn't activated. You need to successfully run 'direnv allow'.
 "
-    exit 1
+        exit 1
+    fi
+else
+    if ! [[ "$VIRTUAL_ENV" -ef "${HERE}/../.venv" ]]; then
+        echo "
+    Your sentry virtualenv isn't activated. You need to successfully run 'direnv allow'.
+    "
+        exit 1
+    fi
 fi
 
 # shellcheck disable=SC1090
