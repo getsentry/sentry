@@ -19,7 +19,6 @@ export function AverageValueMarkLine({value}: Props = {}) {
         yAxis: value,
       },
     ],
-    symbol: ['none', 'none'],
     lineStyle: {
       color: theme.gray400,
     },
