@@ -1716,7 +1716,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             with self.feature("organizations:event-attachments"):
                 with self.tasks():
                     with pytest.raises(HashDiscarded):
-                        event = manager.save(self.project.id, cache_key=cache_key)
+                        event = manager.save(
+                            self.project.id, cache_key=cache_key, has_attachments=True
+                        )
 
         assert mock_track_outcome.call_count == 3
 
@@ -1753,7 +1755,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
             with self.feature("organizations:event-attachments"):
                 with self.tasks():
-                    manager.save(self.project.id, cache_key=cache_key)
+                    manager.save(self.project.id, cache_key=cache_key, has_attachments=True)
 
         # The first minidump should be accepted, since the limit is 1
         assert mock_track_outcome.call_count == 3
@@ -1774,7 +1776,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
             with self.feature("organizations:event-attachments"):
                 with self.tasks():
-                    event = manager.save(self.project.id, cache_key=cache_key)
+                    event = manager.save(self.project.id, cache_key=cache_key, has_attachments=True)
 
         assert event.data["metadata"]["stripped_crash"] is True
 
@@ -1813,7 +1815,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         mock_track_outcome = mock.Mock()
         with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
             with self.feature("organizations:event-attachments"):
-                manager.save(self.project.id, cache_key=cache_key)
+                manager.save(self.project.id, cache_key=cache_key, has_attachments=True)
 
         assert mock_track_outcome.call_count == 3
 
@@ -1842,7 +1844,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         mock_track_outcome = mock.Mock()
         with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
             with self.feature("organizations:event-attachments"):
-                manager.save(self.project.id, cache_key=cache_key)
+                manager.save(self.project.id, cache_key=cache_key, has_attachments=True)
 
         assert mock_track_outcome.call_count == 3
 

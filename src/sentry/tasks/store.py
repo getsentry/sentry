@@ -728,6 +728,7 @@ def _do_save_event(
     start_time: int | None = None,
     event_id: str | None = None,
     project_id: int | None = None,
+    has_attachments: bool = False,
     **kwargs: Any,
 ) -> None:
     """
@@ -803,6 +804,7 @@ def _do_save_event(
                         assume_normalized=True,
                         start_time=start_time,
                         cache_key=cache_key,
+                        has_attachments=has_attachments,
                     )
                 # Put the updated event back into the cache so that post_process
                 # has the most recent data.
@@ -822,7 +824,7 @@ def _do_save_event(
 
         finally:
             reprocessing2.mark_event_reprocessed(data)
-            if cache_key:
+            if cache_key and has_attachments:
                 with metrics.timer("tasks.store.do_save_event.delete_attachment_cache"):
                     attachment_cache.delete(cache_key)
 
@@ -958,7 +960,9 @@ def save_event_attachments(
     project_id: int | None = None,
     **kwargs: Any,
 ) -> None:
-    _do_save_event(cache_key, data, start_time, event_id, project_id, **kwargs)
+    _do_save_event(
+        cache_key, data, start_time, event_id, project_id, has_attachments=True, **kwargs
+    )
 
 
 @instrumented_task(
