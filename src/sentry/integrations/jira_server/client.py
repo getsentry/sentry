@@ -13,7 +13,6 @@ from sentry.integrations.client import ApiClient
 from sentry.models.identity import Identity
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.services.hybrid_cloud.util import control_silo_function
-from sentry.shared_integrations.client.proxy import IntegrationProxyClient, infer_org_integration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri
@@ -26,7 +25,7 @@ ISSUE_KEY_RE = re.compile(r"^[A-Za-z][A-Za-z0-9]*-\d+$")
 CUSTOMFIELD_PREFIX = "customfield_"
 
 
-class JiraServerClient(IntegrationProxyClient):
+class JiraServerClient(ApiClient):
     COMMENTS_URL = "/rest/api/2/issue/%s/comment"
     COMMENT_URL = "/rest/api/2/issue/%s/comment/%s"
     STATUS_URL = "/rest/api/2/status"
@@ -57,17 +56,12 @@ class JiraServerClient(IntegrationProxyClient):
         self,
         integration: RpcIntegration,
         identity_id: int,
-        org_integration_id: int | None = None,
         logging_context: JSONData | None = None,
     ):
         self.base_url = integration.metadata["base_url"]
         self.identity_id = identity_id
-        if not org_integration_id:
-            org_integration_id = infer_org_integration(
-                integration_id=integration.id, ctx_logger=logger
-            )
         super().__init__(
-            org_integration_id=org_integration_id,
+            integration_id=integration.id,
             verify_ssl=integration.metadata["verify_ssl"],
             logging_context=logging_context,
         )
