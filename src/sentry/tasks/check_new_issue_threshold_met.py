@@ -1,12 +1,15 @@
 from datetime import timedelta
 
+from django.db.models import Count, Q
 from django.utils import timezone
 
 from sentry.models.group import Group
-from sentry.models.rule import Rule
+from sentry.models.project import Project
 from sentry.tasks.base import instrumented_task
+from sentry.utils.cache import cache
 
 NEW_ISSUE_WEEKLY_THRESHOLD = 10
+CACHE_KEY = lambda project_id: f"issues.priority.calculate_new_issue_threshold:{project_id}"
 
 
 def calculate_threshold_met(project_id: int) -> bool:
@@ -20,32 +23,30 @@ def calculate_threshold_met(project_id: int) -> bool:
     two_weeks_ago = timezone.now() - timedelta(weeks=2)
     three_weeks_ago = timezone.now() - timedelta(weeks=3)
 
-    # Get the count of new issues per week for the past 3 weeks
-    new_groups = Group.objects.filter(
+    counts = Group.objects.filter(
         project_id=project_id,
         first_seen__gte=three_weeks_ago,
+    ).aggregate(
+        last_week=Count("id", filter=Q(first_seen__gte=one_week_ago)),
+        two_weeks_ago=Count(
+            "id", filter=Q(first_seen__gte=two_weeks_ago, first_seen__lt=one_week_ago)
+        ),
+        three_weeks_ago=Count(
+            "id", filter=Q(first_seen__gte=three_weeks_ago, first_seen__lt=two_weeks_ago)
+        ),
     )
-    last_week_count = new_groups.filter(first_seen__gte=one_week_ago).count()
-    two_weeks_ago_count = new_groups.filter(
-        first_seen__gte=two_weeks_ago,
-        first_seen__lt=one_week_ago,
-    ).count()
-    three_weeks_ago_count = new_groups.filter(
-        first_seen__gte=three_weeks_ago,
-        first_seen__lt=two_weeks_ago,
-    ).count()
 
-    # Case 1: 10 new issues per week for the last 3 weeks
+    # Case 1: The weekly threshold has been met for the last 3 weeks
     condition_1 = (
-        last_week_count >= NEW_ISSUE_WEEKLY_THRESHOLD
-        and two_weeks_ago_count >= NEW_ISSUE_WEEKLY_THRESHOLD
-        and three_weeks_ago_count >= NEW_ISSUE_WEEKLY_THRESHOLD
+        counts["last_week"] >= NEW_ISSUE_WEEKLY_THRESHOLD
+        and counts["two_weeks_ago"] >= NEW_ISSUE_WEEKLY_THRESHOLD
+        and counts["three_weeks_ago"] >= NEW_ISSUE_WEEKLY_THRESHOLD
     )
 
-    # Case 2: 20 new issues per week for the last 2 weeks
+    # Case 2: The weekly threshold has been doubled for the last 2 weeks
     condition_2 = (
-        last_week_count >= 2 * NEW_ISSUE_WEEKLY_THRESHOLD
-        and two_weeks_ago_count >= 2 * NEW_ISSUE_WEEKLY_THRESHOLD
+        counts["last_week"] >= 2 * NEW_ISSUE_WEEKLY_THRESHOLD
+        and counts["two_weeks_ago"] >= 2 * NEW_ISSUE_WEEKLY_THRESHOLD
     )
 
     return condition_1 or condition_2
@@ -57,32 +58,26 @@ def calculate_threshold_met(project_id: int) -> bool:
     default_retry_delay=60,
     max_retries=1,
 )
-def check_new_issue_threshold_met(project_id: int) -> None:
+def check_new_issue_threshold_met(project: Project) -> None:
     """
-    Check if the new issue threshold has been met for a project.
-    Update the data for rules with HighPriorityIssueCondition if the threshold has been met.
+    Check if the new issue threshold has been met for a project and sets the project flag accordingly.
 
+    The calculation is done once per day and the result is cached for 24 hours.
     Rules with {new_issue_threshold_met: False} will default to using the FirstSeenEventCondition condition when applied.
     """
-    rules_with_high_priority = Rule.objects.filter(
-        project_id=project_id, data__contains="HighPriorityIssueCondition"
-    )
-
-    if not rules_with_high_priority.exists():
+    if project.flags.has_high_priority_alerts:
         return
 
-    threshold_met = any(
-        rule.data.get("new_issue_threshold_met") for rule in rules_with_high_priority
-    )
-    if not threshold_met:
-        threshold_met = calculate_threshold_met(project_id)
-
-    if not threshold_met:
+    project_key = CACHE_KEY(project.id)
+    threshold_met = cache.get(project_key)
+    # If the threshold has already been calculated today, don't recalculate regardless of the value
+    if threshold_met is not None:
         return
 
-    for rule in rules_with_high_priority:
-        if rule.data.get("new_issue_threshold_met"):
-            continue
+    threshold_met = calculate_threshold_met(project.id)
+    if threshold_met:
+        project.flags.has_high_priority_alerts = True
+        project.save()
 
-        rule.data["new_issue_threshold_met"] = True
-        rule.save()
+    # Add the key to cache for 24 hours
+    cache.set(project_key, True, 60 * 60 * 24)

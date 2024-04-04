@@ -708,6 +708,18 @@ def post_process_group(
         if should_update_escalating_metrics(event, is_transaction_event):
             _update_escalating_metrics(event)
 
+        try:
+            if not event.project.flags.has_high_priority_alerts:
+                from sentry.tasks.check_new_issue_threshold_met import check_new_issue_threshold_met
+
+                check_new_issue_threshold_met.delay(event.project)
+        except Exception as e:
+            logger.warning(
+                "Failed to check new issue threshold met",
+                repr(e),
+                extra={"project_id": event.project_id},
+            )
+
         group_events: Mapping[int, GroupEvent] = {
             ge.group_id: ge for ge in list(event.build_group_events())
         }
