@@ -6,6 +6,7 @@ import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
 
 import {
@@ -159,9 +160,14 @@ class GridEditable<
     this.setGridTemplateColumns(this.props.columnOrder);
   }
 
-  componentDidUpdate() {
+  componentDidUpdate(previousProps: typeof this.props) {
     // Redraw columns whenever new props are received
     this.setGridTemplateColumns(this.props.columnOrder);
+
+    // Re-highlight rows if the highlighted row key changed
+    if (this.props.highlightedRowKey !== previousProps.highlightedRowKey) {
+      this.highlightRow(this.props.highlightedRowKey);
+    }
   }
 
   componentWillUnmount() {
@@ -257,6 +263,26 @@ class GridEditable<
     }
 
     window.requestAnimationFrame(() => this.resizeGridColumn(e, resizeMetadata));
+  };
+
+  /**
+   * Manually toggle the "highlighted" class on the row, to prevent a costly re-render of the entire table
+   */
+  highlightRow = (rowNumber: number | undefined) => {
+    const highlightedRows = this.refGrid.current?.getElementsByClassName('highlighted');
+
+    if (highlightedRows) {
+      Array.from(highlightedRows).forEach(row => {
+        row.classList.remove('highlighted');
+      });
+    }
+
+    if (defined(rowNumber)) {
+      const rows = this.refGrid.current?.getElementsByTagName('tr');
+      if (rows) {
+        rows.item(rowNumber + 1)?.classList.add('highlighted');
+      }
+    }
   };
 
   resizeGridColumn(e: MouseEvent, metadata: ColResizeMetadata) {
@@ -392,17 +418,19 @@ class GridEditable<
       <GridRow
         key={row}
         onMouseOver={event => {
-          this.setState(state => ({
-            ...state,
-            highlightedRowKey: row,
-          }));
+          // Only update highlight state if it's not manually set
+          if (!defined(this.props.highlightedRowKey)) {
+            this.highlightRow(row);
+          }
+
           onRowMouseOver?.(dataRow, row, event);
         }}
         onMouseOut={event => {
-          this.setState(state => ({
-            ...state,
-            highlightedRowKey: undefined,
-          }));
+          // Only update highlight state if it's not manually set
+          if (!defined(this.props.highlightedRowKey)) {
+            this.highlightRow(undefined);
+          }
+
           onRowMouseOut?.(dataRow, row, event);
         }}
         isHighlighted={row === highlightedRowKey}

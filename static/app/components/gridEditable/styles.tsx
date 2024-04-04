@@ -186,7 +186,11 @@ export const GridRow = styled('tr')<{isHighlighted?: boolean}>`
   grid-column: 1/-1;
 
   &:not(thead > &) {
-    background-color: ${p => (p.isHighlighted ? p.theme.gray100 : p.theme.background)};
+    background-color: ${p => p.theme.background};
+
+    &.highlighted {
+      background-color: ${p => p.theme.gray100};
+    }
 
     &:not(:last-child) {
       border-bottom: 1px solid ${p => p.theme.innerBorder};
