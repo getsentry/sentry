@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from sentry.issues.grouptype import (
+    FeedbackGroup,
     PerformanceNPlusOneAPICallsGroupType,
     PerformanceNPlusOneGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
@@ -118,6 +119,33 @@ TEST_ISSUE_OCCURRENCE = IssueOccurrence(
     datetime.now(UTC),
     "info",
     "/api/123/",
+)
+TEST_FEEDBACK_ISSUE_OCCURENCE = IssueOccurrence(
+    id=uuid.uuid4().hex,
+    project_id=1,
+    event_id=uuid.uuid4().hex,
+    fingerprint=["c" * 32],
+    issue_title="User Feedback",
+    subtitle="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed vel aliquam velit, nec condimentum mi. Maecenas accumsan, nunc ac venenatis hendrerit, mi libero facilisis nunc, fringilla molestie dui est vulputate diam. Duis ac justo euismod, sagittis est at, bibendum purus. Praesent nec tortor vel ante accumsan lobortis. Morbi mollis augue nec dolor feugiat congue. Nullam eget blandit nisi. Sed in arcu odio. Aenean malesuada tortor quis felis dapibus congue.d",
+    culprit="api/123",
+    resource_id="1234",
+    evidence_data={
+        "contact_email": "test@test.com",
+        "message": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed vel aliquam velit, nec condimentum mi. Maecenas accumsan, nunc ac venenatis hendrerit, mi libero facilisis nunc, fringilla molestie dui est vulputate diam. Duis ac justo euismod, sagittis est at, bibendum purus. Praesent nec tortor vel ante accumsan lobortis. Morbi mollis augue nec dolor feugiat congue. Nullam eget blandit nisi. Sed in arcu odio. Aenean malesuada tortor quis felis dapibus congue.",
+        "name": "Test Name",
+    },
+    evidence_display=[
+        IssueEvidence("contact_email", "test@test.com", False),
+        IssueEvidence(
+            "message",
+            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed vel aliquam velit, nec condimentum mi. Maecenas accumsan, nunc ac venenatis hendrerit, mi libero facilisis nunc, fringilla molestie dui est vulputate diam. Duis ac justo euismod, sagittis est at, bibendum purus. Praesent nec tortor vel ante accumsan lobortis. Morbi mollis augue nec dolor feugiat congue. Nullam eget blandit nisi. Sed in arcu odio. Aenean malesuada tortor quis felis dapibus congue.",
+            True,
+        ),
+        IssueEvidence("name", "Test Name", False),
+    ],
+    type=FeedbackGroup,
+    detection_time=datetime.now(UTC),
+    level="info",
 )
 TEST_PERF_ISSUE_OCCURRENCE = IssueOccurrence(
     uuid.uuid4().hex,
