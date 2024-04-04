@@ -56,18 +56,7 @@ describe('WebVitalMeters', function () {
     jest.mocked(useOrganization).mockReturnValue(organization);
   });
 
-  it('renders web vital meters with first input delay', async () => {
-    render(<WebVitalMeters projectData={projectData} projectScore={projectScore} />);
-    await screen.findByText('Largest Contentful Paint');
-    screen.getByText('First Contentful Paint');
-    screen.getByText('Cumulative Layout Shift');
-    screen.getByText('Time To First Byte');
-    screen.getByText('First Input Delay');
-  });
-
   it('renders web vital meters with interaction to next paint', async () => {
-    const organizationWithInp = OrganizationFixture();
-    jest.mocked(useOrganization).mockReturnValue(organizationWithInp);
     render(<WebVitalMeters projectData={projectData} projectScore={projectScore} />);
     await screen.findByText('Largest Contentful Paint');
     screen.getByText('First Contentful Paint');
