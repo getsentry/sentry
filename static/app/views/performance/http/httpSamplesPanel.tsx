@@ -18,6 +18,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {AverageValueMarkLine} from 'sentry/views/performance/charts/averageValueMarkLine';
 import {DurationChart} from 'sentry/views/performance/http/durationChart';
 import decodePanel from 'sentry/views/performance/http/queryParameterDecoders/panel';
 import {ResponseCodeBarChart} from 'sentry/views/performance/http/responseCodeBarChart';
@@ -164,6 +165,10 @@ export function HTTPSamplesPanel() {
       },
     });
   };
+
+  durationData['avg(span.self_time)'].markLine = AverageValueMarkLine({
+    value: domainTransactionMetrics?.[0]?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`],
+  });
 
   return (
     <PageAlertProvider>
