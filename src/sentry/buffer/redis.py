@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import pickle
 import threading
+from collections.abc import Callable
 from datetime import date, datetime, timezone
 from enum import Enum
 from time import time
@@ -50,6 +51,33 @@ def _validate_json_roundtrip(value: dict[str, Any], model: type[models.Model]) -
                 logger.error("buffer.corrupted_value", extra={"value": value, "model": model})
         except Exception:
             logger.exception("buffer.invalid_value", extra={"value": value, "model": model})
+
+
+class BufferHookEvent(Enum):
+    FLUSH = "flush"
+
+
+class BufferHookRegistry:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        self._registry: dict[BufferHookEvent, Callable[..., Any]] = {}
+
+    def add_handler(self, key: BufferHookEvent) -> Callable[..., Any]:
+        def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+            self._registry[key] = func
+            return func
+
+        return decorator
+
+    def callback(self, buffer_hook_event: BufferHookEvent, data: RedisBuffer) -> bool:
+        try:
+            callback = self._registry[buffer_hook_event]
+        except KeyError:
+            return False
+
+        return callback(data)
+
+
+redis_buffer_registry = BufferHookRegistry()
 
 
 class RedisOperation(Enum):
