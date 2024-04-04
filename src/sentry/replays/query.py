@@ -99,20 +99,31 @@ def query_replay_instance(
     )["data"]
 
 
+def query_replay_project_ids(
+    project_ids: list[int],
+    replay_id: str,
+    start: datetime,
+    end: datetime,
+    organization: Organization | None = None,
+):
+    # TODO:
+    pass
+
+
 def query_replay_viewed_by_ids(
     project_id: int | list[int],
     replay_id: str,
     start: datetime,
     end: datetime,
     organization: Organization | None = None,
-):
-    """Query aggregated replay instance."""
+) -> list[int]:
+    """Query unique user ids who viewed a given replay."""
     if isinstance(project_id, list):
         project_ids = project_id
     else:
         project_ids = [project_id]
 
-    return execute_query(
+    agg_snuba_response = execute_query(
         query=make_full_aggregation_query(
             fields=["viewed_by_ids"],
             replay_ids=[replay_id],
@@ -122,7 +133,9 @@ def query_replay_viewed_by_ids(
         ),
         tenant_id={"organization_id": organization.id} if organization else {},
         referrer="replays.query.viewed_by_query",
-    )["data"][0]
+    )
+    snuba_response = agg_snuba_response["data"][0]
+    return snuba_response["viewed_by_ids"]
 
 
 def query_replays_count(

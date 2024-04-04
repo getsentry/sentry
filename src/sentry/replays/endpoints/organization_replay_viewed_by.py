@@ -56,6 +56,7 @@ class OrganizationReplayViewedByEndpoint(OrganizationEndpoint):
         except NoProjects:
             return Response(status=404)
 
+        # TODO: do we need this range filter?
         if not filter_params["start"] or not filter_params["end"]:
             return Response(status=404)
 
@@ -64,23 +65,23 @@ class OrganizationReplayViewedByEndpoint(OrganizationEndpoint):
         except ValueError:
             return Response(status=404)
 
-        snuba_response = query_replay_viewed_by_ids(
+        viewed_by_ids: list[int] = query_replay_viewed_by_ids(
             project_id=filter_params["project_id"],
             replay_id=replay_id,
             start=filter_params["start"],
             end=filter_params["end"],
             organization=organization,
         )
-
-        response = generate_viewed_by_response(replay_id, snuba_response)
-
-        if len(response["viewed_by"]) == 0:
+        if not viewed_by_ids:
             return Response(status=404)
-        else:
-            return Response({"data": response}, status=200)
+
+        response = generate_viewed_by_response(
+            replay_id=replay_id, viewed_by_ids=viewed_by_ids, as_user=request.user
+        )
+        return Response({"data": response}, status=200)
 
     @extend_schema(
-        operation_id="",  # TODO:,
+        operation_id="Mark a replay as viewed, by the authorized user",
         parameters=[GlobalParams.ORG_SLUG, ReplayParams.REPLAY_ID],
         responses={
             200: RESPONSE_SUCCESS,
@@ -101,6 +102,10 @@ class OrganizationReplayViewedByEndpoint(OrganizationEndpoint):
             )
         except NoProjects:
             return Response(status=404)
+
+        # query_replay_instance(
+        #     # TODO:
+        # )
 
         project_ids = filter_params["project_id"]
         # TODO: find the project_id this replay belongs to

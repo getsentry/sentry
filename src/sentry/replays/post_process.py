@@ -8,8 +8,14 @@ from typing import Any, TypedDict
 from drf_spectacular.utils import extend_schema_serializer
 
 from sentry import models
-from sentry.api.serializers.models.user import UserSerializerResponse as UserModelResponseType
+from sentry.api.serializers import serialize
+from sentry.api.serializers.models.user import UserSerializer, UserSerializerResponse
 from sentry.replays.validators import VALID_FIELD_SET
+
+# from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
+# from sentry.services.hybrid_cloud.user.service import user_service
+
+user_serializer = UserSerializer()
 
 
 class DeviceResponseType(TypedDict, total=False):
@@ -81,7 +87,7 @@ class ReplayDetailsResponse(TypedDict, total=False):
 @extend_schema_serializer
 class ReplayViewedByResponse(TypedDict):
     id: str
-    viewed_by: list[UserModelResponseType]
+    viewed_by: list[UserSerializerResponse]
 
 
 def process_raw_response(
@@ -215,12 +221,28 @@ def generate_sorted_urls(url_groups: list[tuple[int, list[str]]]) -> Iterator[st
 
 
 def generate_viewed_by_response(
-    replay_id: str, viewed_by_query_response: dict[str, Any]
+    replay_id: str,
+    viewed_by_ids: list[int],
+    as_user: models.User,
 ) -> ReplayViewedByResponse:
-    users = [models.User.objects.get(id=id) for id in viewed_by_query_response["viewed_by_ids"]]
+    """Fetch user objects from postgres, serialize them, and format to the output expected by ReplayViewedByEndpoint."""
+    global user_serializer
+
+    # TODO: what happens if a viewed_by_id is invalid or unauthorized?
+
+    # method 1: hybrid cloud user_service. Based on GroupSeenSerializer. No way
+    # users = user_service.serialize_many(
+    #     filter=dict(user_ids=[viewed_by_ids]),
+    #     as_user=serialize_rpc_user(as_user),  # as_user checks we have auth for these users
+    # )
+
+    # method 2: api.serializers
+    users = models.User.objects.filter(id__in=viewed_by_ids)
+    serialized_users = serialize(users, user=as_user, serializer=user_serializer)
+
     return {
         "id": replay_id,
-        "viewed_by": users,
+        "viewed_by": serialized_users,
     }
 
 
