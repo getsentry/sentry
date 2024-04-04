@@ -354,12 +354,9 @@ class RuleProcessorTest(TestCase):
                 "actions": [EMAIL_ACTION_DATA],
             },
         )
-        with (
-            patch("sentry.rules.processor.rules", init_registry()),
-            patch(
-                "sentry.rules.conditions.event_frequency.BaseEventFrequencyCondition.passes"
-            ) as passes,
-        ):
+        with patch("sentry.rules.processor.rules", init_registry()), patch(
+            "sentry.rules.conditions.event_frequency.BaseEventFrequencyCondition.passes"
+        ) as passes:
             rp = RuleProcessor(
                 self.group_event,
                 is_new=True,
@@ -695,9 +692,7 @@ class RuleProcessorTestFilters(TestCase):
         mock_post.assert_called_once()
         assert (
             "notification_uuid"
-            in json.loads(mock_post.call_args[1]["data"]["attachments"])[0]["blocks"][0]["text"][
-                "text"
-            ]
+            in json.loads(mock_post.call_args[1]["data"]["attachments"])[0]["title_link"]
         )
 
     @patch("sentry.shared_integrations.client.base.BaseApiClient.post")

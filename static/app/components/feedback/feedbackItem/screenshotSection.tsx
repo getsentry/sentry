@@ -1,4 +1,3 @@
-import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {useDeleteEventAttachmentOptimistic} from 'sentry/actionCreators/events';
@@ -15,8 +14,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
-import type {EventAttachment} from 'sentry/types/group';
-import {objectIsEmpty} from 'sentry/utils';
 
 type Props = {
   event: Event;
@@ -24,84 +21,72 @@ type Props = {
   projectSlug: string;
 };
 
-export function ScreenshotSection({projectSlug, event, organization}: Props) {
+export function ScreenshotSection({event, organization, projectSlug}: Props) {
   const {screenshots} = useFeedbackScreenshot({projectSlug, event});
-  const hasContext = !objectIsEmpty(event.user ?? {}) || !objectIsEmpty(event.contexts);
   const {mutate: deleteAttachment} = useDeleteEventAttachmentOptimistic();
-  const [screenshotInFocus, setScreenshotInFocus] = useState<number>(0);
 
-  const handleDeleteScreenshot = useCallback(
-    (attachmentId: string) => {
-      deleteAttachment({
-        orgSlug: organization.slug,
-        projectSlug,
-        eventId: event.id,
-        attachmentId,
-      });
-    },
-    [deleteAttachment, event.id, organization.slug, projectSlug]
-  );
-
-  const handleOpenVisualizationModal = useCallback(
-    (eventAttachment: EventAttachment) => {
-      openModal(
-        modalProps => (
-          <OpenScreenshotModal
-            {...modalProps}
-            event={event}
-            orgSlug={organization.slug}
-            projectSlug={projectSlug}
-            eventAttachment={eventAttachment}
-            attachments={screenshots}
-            attachmentIndex={screenshotInFocus}
-          />
-        ),
-        {modalCss}
-      );
-    },
-    [event, organization.slug, projectSlug, screenshotInFocus, screenshots]
-  );
-
-  if (!hasContext && !screenshots.length) {
-    return null;
-  }
-
-  const showScreenshot = !!screenshots.length;
-  const screenshot = screenshots[screenshotInFocus];
-
-  return showScreenshot ? (
+  return screenshots.length ? (
     <ScreenshotWrapper>
-      <FeedbackScreenshot
-        organization={organization}
-        eventId={event.id}
-        projectSlug={projectSlug}
-        screenshot={screenshot}
-        onNext={() => setScreenshotInFocus(screenshotInFocus + 1)}
-        onPrevious={() => setScreenshotInFocus(screenshotInFocus - 1)}
-        screenshotInFocus={screenshotInFocus}
-        totalScreenshots={screenshots.length}
-        openVisualizationModal={handleOpenVisualizationModal}
-      />
-      <Button
-        icon={<IconDelete />}
-        borderless
-        size="xs"
-        onClick={() => {
-          openConfirmModal({
-            header: t('Delete screenshot?'),
-            message: t('This action cannot be undone.'),
-            confirmText: t('Delete screenshot'),
-            onConfirm: () => handleDeleteScreenshot(screenshot.id),
-            priority: 'danger',
-          });
-        }}
-        aria-label={t('Delete screenshot')}
-      />
+      {screenshots.map(screenshot => (
+        <li key={screenshot.id}>
+          <FeedbackScreenshot
+            organization={organization}
+            projectSlug={projectSlug}
+            screenshot={screenshot}
+            onClick={() => {
+              openModal(
+                modalProps => (
+                  <OpenScreenshotModal
+                    {...modalProps}
+                    event={event}
+                    orgSlug={organization.slug}
+                    projectSlug={projectSlug}
+                    eventAttachment={screenshot}
+                    attachments={screenshots}
+                    attachmentIndex={screenshots.indexOf(screenshot)}
+                  />
+                ),
+                {modalCss}
+              );
+            }}
+          />
+          <Button
+            icon={<IconDelete />}
+            borderless
+            size="xs"
+            onClick={() => {
+              openConfirmModal({
+                header: t('Delete screenshot?'),
+                message: t('This action cannot be undone.'),
+                confirmText: t('Delete screenshot'),
+                onConfirm: () =>
+                  deleteAttachment({
+                    orgSlug: organization.slug,
+                    projectSlug,
+                    eventId: screenshot.event_id,
+                    attachmentId: screenshot.id,
+                  }),
+                priority: 'danger',
+              });
+            }}
+            aria-label={t('Delete screenshot')}
+          />
+        </li>
+      ))}
     </ScreenshotWrapper>
   ) : null;
 }
 
-const ScreenshotWrapper = styled('div')`
+const ScreenshotWrapper = styled('ul')`
   display: flex;
-  gap: ${space(1)};
+  flex-wrap: wrap;
+  gap: ${space(1.5)};
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  & > li {
+    display: flex;
+    gap: ${space(1)};
+  }
 `;
