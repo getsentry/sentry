@@ -2213,7 +2213,7 @@ def _get_severity_metadata_for_group(
 
     ratelimit = options.get("issues.severity.seer-global-rate-limit")
     # This is temporary until we update the option values to be a dict
-    if "limit" not in ratelimit or "window" not in ratelimit:
+    if type(ratelimit) is not dict or "limit" not in ratelimit or "window" not in ratelimit:
         return {}
 
     if ratelimiter.backend.is_limited(
@@ -2230,7 +2230,7 @@ def _get_severity_metadata_for_group(
 
     ratelimit = options.get("issues.severity.seer-project-rate-limit")
     # This is temporary until we update the option values to be a dict
-    if "limit" not in ratelimit or "window" not in ratelimit:
+    if type(ratelimit) is not dict or "limit" not in ratelimit or "window" not in ratelimit:
         return {}
 
     if ratelimiter.backend.is_limited(
