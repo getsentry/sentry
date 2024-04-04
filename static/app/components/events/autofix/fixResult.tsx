@@ -60,7 +60,7 @@ function AutofixResultContent({autofixData, onRetry}: Props) {
 
   return (
     <Content>
-      <AutofixDiff fix={autofixData.fix} />
+      <AutofixDiff diff={autofixData.fix.diff ?? []} />
       <PreviewContent>
         <PrefixText>
           {tct('Pull request #[prNumber] created in [repository]', {
