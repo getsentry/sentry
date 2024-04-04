@@ -1,5 +1,5 @@
 ---
-created: '2024-04-03T23:41:19.059630+00:00'
+created: '2024-04-04T03:50:03.648903+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -341,6 +341,7 @@ source: tests/sentry/backup/test_comparators.py
     - last_active
   - class: IgnoredComparator
     fields:
+    - is_password_expired
     - is_unclaimed
     - last_password_change
   - class: UserPasswordObfuscatingComparator

@@ -418,23 +418,9 @@ class UserPasswordObfuscatingComparator(ObfuscatingComparator):
                 )
             )
 
-        # Old user, password must remain constant.
+        # Old user, all fields must remain constant.
         if not right["fields"].get("is_unclaimed"):
             findings.extend(super().compare(on, left, right))
-
-            # Ensure that `last_password_change` did not get mutated either.
-            lv = left["fields"].get("last_password_change", None)
-            rv = right["fields"].get("last_password_change", None)
-            if lv != rv:
-                findings.append(
-                    ComparatorFinding(
-                        kind=self.get_kind(),
-                        on=on,
-                        left_pk=left["pk"],
-                        right_pk=right["pk"],
-                        reason=f"""the left value ("{lv}") of `last_password_change` was not equal to the right value ("{rv}")""",
-                    )
-                )
             return findings
 
         # New user, password must change.
@@ -470,6 +456,18 @@ class UserPasswordObfuscatingComparator(ObfuscatingComparator):
                     left_pk=left["pk"],
                     right_pk=right["pk"],
                     reason=f"""the left value ({left_lpc}) of `last_password_change` was not less than or equal to the right value ({right_lpc})""",
+                )
+            )
+
+        if right["fields"].get("is_password_expired"):
+            findings.append(
+                ComparatorFinding(
+                    kind=self.get_kind(),
+                    on=on,
+                    left_pk=left["pk"],
+                    right_pk=right["pk"],
+                    reason="""the right value of `is_password_expired` must be `False` for unclaimed
+                           users""",
                 )
             )
 
@@ -854,10 +852,10 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
                 AutoSuffixComparator("username"),
                 DateUpdatedComparator("last_active"),
                 # `UserPasswordObfuscatingComparator` handles `last_password_change`,
-                # `is_unclaimed`, and `password` for us. Because of this, we can ignore the
-                # `last_password_change` and`is_unclaimed` fields otherwise and scrub them from the
-                # comparison.
-                IgnoredComparator("last_password_change", "is_unclaimed"),
+                # `is_unclaimed`, `is_password_expired`, and `password` for us. Because of this, we
+                # can ignore the `last_password_change`, `is_unclaimed`, and `is_password_expired`
+                # fields otherwise and scrub them from the comparison.
+                IgnoredComparator("last_password_change", "is_unclaimed", "is_password_expired"),
                 UserPasswordObfuscatingComparator(),
             ],
             "sentry.useremail": [

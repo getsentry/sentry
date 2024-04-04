@@ -1643,6 +1643,7 @@ def test_good_user_password_obfuscating_comparator_claimed_user():
             "is_unclaimed": False,
             "password": "pbkdf2_sha256$260000$3v4Cyy3TAhp14YCB8Zh7Gq$SjB35BELrwwfOCaiz8O/SdbvhXq+l02BRpKtwxOCTiw=",
             "last_password_change": None,
+            "is_password_expired": False,
         },
     }
     assert not cmp.compare(id, model, model)
@@ -1659,6 +1660,7 @@ def test_good_user_password_obfuscating_comparator_claimed_user_never_changed_pa
             "is_unclaimed": False,
             "password": "pbkdf2_sha256$260000$3v4Cyy3TAhp14YCB8Zh7Gq$SjB35BELrwwfOCaiz8O/SdbvhXq+l02BRpKtwxOCTiw=",
             "last_password_change": None,
+            "is_password_expired": True,
         },
     }
     nulled: JSONData = {
@@ -1687,6 +1689,7 @@ def test_good_user_password_obfuscating_comparator_newly_unclaimed_user():
             "is_unclaimed": False,
             "password": "pbkdf2_sha256$260000$3v4Cyy3TAhp14YCB8Zh7Gq$SjB35BELrwwfOCaiz8O/SdbvhXq+l02BRpKtwxOCTiw=",
             "last_password_change": "2023-06-23T00:00:00.000Z",
+            "is_password_expired": True,
         },
     }
     right: JSONData = {
@@ -1697,6 +1700,7 @@ def test_good_user_password_obfuscating_comparator_newly_unclaimed_user():
             "is_unclaimed": True,
             "password": "pbkdf2_sha256$260000$HabqnqSUf1q5nKLC24gRMF$tEH6ZbeBSx21Pk8DJO2w5+/NiEI77N2MS3D6QF+Qayg=",
             "last_password_change": "2023-07-23T00:00:00.000Z",
+            "is_password_expired": False,
         },
     }
     assert not cmp.compare(id, left, right)
@@ -1713,6 +1717,7 @@ def test_good_user_password_obfuscating_comparator_newly_unclaimed_user_never_ch
             "is_unclaimed": False,
             "password": "pbkdf2_sha256$260000$3v4Cyy3TAhp14YCB8Zh7Gq$SjB35BELrwwfOCaiz8O/SdbvhXq+l02BRpKtwxOCTiw=",
             "last_password_change": None,
+            "is_password_expired": False,
         },
     }
     right: JSONData = {
@@ -1723,6 +1728,7 @@ def test_good_user_password_obfuscating_comparator_newly_unclaimed_user_never_ch
             "is_unclaimed": True,
             "password": "pbkdf2_sha256$260000$HabqnqSUf1q5nKLC24gRMF$tEH6ZbeBSx21Pk8DJO2w5+/NiEI77N2MS3D6QF+Qayg=",
             "last_password_change": "2023-07-23T00:00:00.000Z",
+            "is_password_expired": False,
         },
     }
     assert not cmp.compare(id, left, right)
@@ -1739,6 +1745,7 @@ def test_good_user_password_obfuscating_comparator_already_unclaimed_user():
             "is_unclaimed": True,
             "password": "pbkdf2_sha256$260000$3v4Cyy3TAhp14YCB8Zh7Gq$SjB35BELrwwfOCaiz8O/SdbvhXq+l02BRpKtwxOCTiw=",
             "last_password_change": "2023-06-23T00:00:00.000Z",
+            "is_password_expired": False,
         },
     }
     right: JSONData = {
@@ -1749,6 +1756,7 @@ def test_good_user_password_obfuscating_comparator_already_unclaimed_user():
             "is_unclaimed": True,
             "password": "pbkdf2_sha256$260000$HabqnqSUf1q5nKLC24gRMF$tEH6ZbeBSx21Pk8DJO2w5+/NiEI77N2MS3D6QF+Qayg=",
             "last_password_change": "2023-06-23T00:00:00.000Z",
+            "is_password_expired": False,
         },
     }
     assert not cmp.compare(id, left, right)
@@ -1765,6 +1773,7 @@ def test_bad_user_password_obfuscating_comparator_claimed_user_password_changed(
             "is_unclaimed": False,
             "password": "pbkdf2_sha256$260000$3v4Cyy3TAhp14YCB8Zh7Gq$SjB35BELrwwfOCaiz8O/SdbvhXq+l02BRpKtwxOCTiw=",
             "last_password_change": "2023-06-23T00:00:00.000Z",
+            "is_password_expired": False,
         },
     }
     right: JSONData = {
@@ -1775,6 +1784,7 @@ def test_bad_user_password_obfuscating_comparator_claimed_user_password_changed(
             # Absence of `is_unclaimed` is treated as `False`.
             "password": "pbkdf2_sha256$260000$HabqnqSUf1q5nKLC24gRMF$tEH6ZbeBSx21Pk8DJO2w5+/NiEI77N2MS3D6QF+Qayg=",
             "last_password_change": "2023-06-23T00:00:00.000Z",
+            "is_password_expired": False,
         },
     }
     res = cmp.compare(id, left, right)
@@ -1802,6 +1812,7 @@ def test_bad_user_password_obfuscating_comparator_newly_unclaimed_user_password_
             # Absence of `is_unclaimed` is treated as `False`.
             "password": "pbkdf2_sha256$260000$3v4Cyy3TAhp14YCB8Zh7Gq$SjB35BELrwwfOCaiz8O/SdbvhXq+l02BRpKtwxOCTiw=",
             "last_password_change": "2023-06-23T00:00:00.000Z",
+            "is_password_expired": False,
         },
     }
     right: JSONData = {
@@ -1812,6 +1823,7 @@ def test_bad_user_password_obfuscating_comparator_newly_unclaimed_user_password_
             "is_unclaimed": True,
             "password": "pbkdf2_sha256$260000$3v4Cyy3TAhp14YCB8Zh7Gq$SjB35BELrwwfOCaiz8O/SdbvhXq+l02BRpKtwxOCTiw=",
             "last_password_change": "2023-06-23T00:00:00.000Z",
+            "is_password_expired": False,
         },
     }
     res = cmp.compare(id, left, right)
@@ -1838,6 +1850,7 @@ def test_bad_user_password_obfuscating_comparator_already_unclaimed_user_passwor
             "is_unclaimed": True,
             "password": "pbkdf2_sha256$260000$3v4Cyy3TAhp14YCB8Zh7Gq$SjB35BELrwwfOCaiz8O/SdbvhXq+l02BRpKtwxOCTiw=",
             "last_password_change": "2023-06-23T00:00:00.000Z",
+            "is_password_expired": False,
         },
     }
     right: JSONData = {
@@ -1848,6 +1861,7 @@ def test_bad_user_password_obfuscating_comparator_already_unclaimed_user_passwor
             "is_unclaimed": True,
             "password": "pbkdf2_sha256$260000$3v4Cyy3TAhp14YCB8Zh7Gq$SjB35BELrwwfOCaiz8O/SdbvhXq+l02BRpKtwxOCTiw=",
             "last_password_change": "2023-06-23T00:00:00.000Z",
+            "is_password_expired": False,
         },
     }
     res = cmp.compare(id, left, right)
@@ -1874,6 +1888,7 @@ def test_bad_user_password_obfuscating_comparator_impossible_newly_claimed_user(
             "is_unclaimed": True,
             "password": "pbkdf2_sha256$260000$3v4Cyy3TAhp14YCB8Zh7Gq$SjB35BELrwwfOCaiz8O/SdbvhXq+l02BRpKtwxOCTiw=",
             "last_password_change": "2023-06-23T00:00:00.000Z",
+            "is_password_expired": False,
         },
     }
     right: JSONData = {
@@ -1884,6 +1899,7 @@ def test_bad_user_password_obfuscating_comparator_impossible_newly_claimed_user(
             "is_unclaimed": False,
             "password": "pbkdf2_sha256$260000$3v4Cyy3TAhp14YCB8Zh7Gq$SjB35BELrwwfOCaiz8O/SdbvhXq+l02BRpKtwxOCTiw=",
             "last_password_change": "2023-06-23T00:00:00.000Z",
+            "is_password_expired": False,
         },
     }
     res = cmp.compare(id, left, right)
@@ -1910,6 +1926,7 @@ def test_bad_user_password_obfuscating_comparator_unclaimed_user_last_password_c
             "is_unclaimed": True,
             "password": "pbkdf2_sha256$260000$3v4Cyy3TAhp14YCB8Zh7Gq$SjB35BELrwwfOCaiz8O/SdbvhXq+l02BRpKtwxOCTiw=",
             "last_password_change": "2023-06-23T00:00:00.000Z",
+            "is_password_expired": False,
         },
     }
     right: JSONData = {
@@ -1920,6 +1937,7 @@ def test_bad_user_password_obfuscating_comparator_unclaimed_user_last_password_c
             "is_unclaimed": True,
             "password": "pbkdf2_sha256$260000$HabqnqSUf1q5nKLC24gRMF$tEH6ZbeBSx21Pk8DJO2w5+/NiEI77N2MS3D6QF+Qayg=",
             "last_password_change": None,
+            "is_password_expired": False,
         },
     }
     res = cmp.compare(id, left, right)
@@ -1933,6 +1951,81 @@ def test_bad_user_password_obfuscating_comparator_unclaimed_user_last_password_c
     assert res[0].right_pk == 1
     assert "`last_password_change`" in res[0].reason
     assert "less than" in res[0].reason
+
+
+def test_bad_user_password_obfuscating_comparator_already_unclaimed_user_password_unexpired():
+    cmp = UserPasswordObfuscatingComparator()
+    id = InstanceID("sentry.test", 0)
+    left: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "is_unclaimed": True,
+            "password": "pbkdf2_sha256$260000$3v4Cyy3TAhp14YCB8Zh7Gq$SjB35BELrwwfOCaiz8O/SdbvhXq+l02BRpKtwxOCTiw=",
+            "last_password_change": "2023-06-23T00:00:00.000Z",
+            "is_password_expired": False,
+        },
+    }
+    right: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "is_unclaimed": True,
+            "password": "pbkdf2_sha256$260000$HabqnqSUf1q5nKLC24gRMF$tEH6ZbeBSx21Pk8DJO2w5+/NiEI77N2MS3D6QF+Qayg=",
+            "last_password_change": "2023-06-23T00:00:00.000Z",
+            "is_password_expired": True,
+        },
+    }
+    res = cmp.compare(id, left, right)
+    assert res
+    assert len(res) == 1
+
+    assert res[0]
+    assert res[0].kind == ComparatorFindingKind.UserPasswordObfuscatingComparator
+    assert res[0].on == id
+    assert res[0].left_pk == 1
+    assert res[0].right_pk == 1
+    assert "`is_password_expired`" in res[0].reason
+
+
+def test_bad_user_password_obfuscating_comparator_newly_unclaimed_user_password_still_expired():
+    cmp = UserPasswordObfuscatingComparator()
+    id = InstanceID("sentry.test", 0)
+    left: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "is_unclaimed": True,
+            "password": "pbkdf2_sha256$260000$3v4Cyy3TAhp14YCB8Zh7Gq$SjB35BELrwwfOCaiz8O/SdbvhXq+l02BRpKtwxOCTiw=",
+            "last_password_change": "2023-06-23T00:00:00.000Z",
+            "is_password_expired": True,
+        },
+    }
+    right: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "is_unclaimed": True,
+            "password": "pbkdf2_sha256$260000$HabqnqSUf1q5nKLC24gRMF$tEH6ZbeBSx21Pk8DJO2w5+/NiEI77N2MS3D6QF+Qayg=",
+            "last_password_change": "2023-06-23T00:00:00.000Z",
+            "is_password_expired": True,
+        },
+    }
+    res = cmp.compare(id, left, right)
+    assert res
+    assert len(res) == 1
+
+    assert res[0]
+    assert res[0].kind == ComparatorFindingKind.UserPasswordObfuscatingComparator
+    assert res[0].on == id
+    assert res[0].left_pk == 1
+    assert res[0].right_pk == 1
+    assert "`is_password_expired`" in res[0].reason
+    assert "False" in res[0].reason
 
 
 def test_good_user_password_obfuscating_comparator_existence():
