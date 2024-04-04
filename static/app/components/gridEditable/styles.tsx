@@ -180,7 +180,7 @@ export const GridBody = styled('tbody')`
   grid-column: 1/-1;
 `;
 
-export const GridRow = styled('tr')<{isHighlighted?: boolean}>`
+export const GridRow = styled('tr')`
   display: grid;
   grid-template-columns: subgrid;
   grid-column: 1/-1;

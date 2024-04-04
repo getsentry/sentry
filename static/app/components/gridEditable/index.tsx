@@ -409,9 +409,6 @@ class GridEditable<
       ? grid.renderPrependColumns(false, dataRow, row)
       : [];
 
-    const highlightedRowKey =
-      this.props.highlightedRowKey ?? this.state.highlightedRowKey;
-
     return (
       <GridRow
         key={row}
@@ -431,7 +428,6 @@ class GridEditable<
 
           onRowMouseOut?.(dataRow, row, event);
         }}
-        isHighlighted={row === highlightedRowKey}
         data-test-id="grid-body-row"
       >
         {prependColumns?.map((item, i) => (
