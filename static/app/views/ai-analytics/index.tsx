@@ -8,42 +8,37 @@ import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 import AiAnalyticsFilters from 'sentry/views/ai-analytics/filters';
 
-type Props = {
-  children: React.ReactNode;
-  organization: Organization;
-};
+function NoAccessComponent() {
+  return (
+    <Layout.Page withPadding>
+      <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+    </Layout.Page>
+  );
+}
 
-function AiAnalyticsContainer({organization, children}: Props) {
+function AiAnalyticsContainer() {
   const [search, setSearch] = useState('');
-
-  function renderNoAccess() {
-    return (
-      <Layout.Page withPadding>
-        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
-      </Layout.Page>
-    );
-  }
-
+  const organization = useOrganization();
   return (
     <Feature
       features="ai-analytics"
       organization={organization}
-      renderDisabled={renderNoAccess}
+      renderDisabled={NoAccessComponent}
     >
-      <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
-      <Layout.Page>
-        <StyledBody>
-          <StyledMain>
-            <PageFiltersContainer>
-              <AiAnalyticsFilters onSearch={x => setSearch(x)} query={search} />
-            </PageFiltersContainer>
-          </StyledMain>
-        </StyledBody>
-      </Layout.Page>
+      <NoProjectMessage organization={organization}>
+        <Layout.Page>
+          <StyledBody>
+            <StyledMain>
+              <PageFiltersContainer>
+                <AiAnalyticsFilters onSearch={x => setSearch(x)} query={search} />
+              </PageFiltersContainer>
+            </StyledMain>
+          </StyledBody>
+        </Layout.Page>
+      </NoProjectMessage>
     </Feature>
   );
 }
@@ -70,4 +65,4 @@ const StyledMain = styled('section')`
   }
 `;
 
-export default withOrganization(AiAnalyticsContainer);
+export default AiAnalyticsContainer;
