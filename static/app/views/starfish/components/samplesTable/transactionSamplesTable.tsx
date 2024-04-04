@@ -13,6 +13,10 @@ import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {SPAN_OP_RELATIVE_BREAKDOWN_FIELD} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {
+  generateEventSlug,
+  generateLinkToEventInTraceView,
+} from 'sentry/utils/discover/urls';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -181,9 +185,13 @@ export function TransactionSamplesTable({
       return (
         <Link
           {...commonProps}
-          to={normalizeUrl(
-            `/organizations/${organization.slug}/performance/${row['project.name']}:${row.id}`
-          )}
+          to={generateLinkToEventInTraceView({
+            eventSlug: generateEventSlug(row),
+            organization,
+            location,
+            eventView,
+            dataRow: row,
+          })}
         >
           {row.id.slice(0, 8)}
         </Link>

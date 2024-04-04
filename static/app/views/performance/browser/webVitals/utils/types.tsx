@@ -18,6 +18,7 @@ export type TransactionSampleRow = {
   projectSlug: string;
   replayId: string;
   timestamp: string;
+  trace: string;
   transaction: string;
   'user.display': string;
   'measurements.cls'?: number;

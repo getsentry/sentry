@@ -11,6 +11,7 @@ type Transaction = {
   id: string;
   'project.name': string;
   timestamp: string;
+  trace: string;
   'transaction.duration': number;
 };
 
@@ -20,7 +21,7 @@ export function useTransactions(eventIDs: string[], referrer = 'use-transactions
 
   const eventView = EventView.fromNewQueryWithLocation(
     {
-      fields: ['id', 'timestamp', 'project.name', 'transaction.duration'],
+      fields: ['id', 'timestamp', 'project.name', 'transaction.duration', 'trace'],
       name: 'Transactions',
       version: 2,
       query: `id:[${eventIDs.join(',')}]`,

@@ -17,11 +17,14 @@ import {IconChevron, IconPlay, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {generateEventSlug} from 'sentry/utils/discover/urls';
+import {
+  generateEventSlug,
+  generateLinkToEventInTraceView,
+} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import {getDuration} from 'sentry/utils/formatters';
-import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useReplayExists from 'sentry/utils/replayCount/useReplayExists';
@@ -372,8 +375,14 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     }
 
     if (key === 'id' && 'id' in row) {
-      const eventSlug = generateEventSlug({...row, project: row.projectSlug});
-      const eventTarget = getTransactionDetailsUrl(organization.slug, eventSlug);
+      const eventTarget = generateLinkToEventInTraceView({
+        eventSlug: generateEventSlug({...row, project: row.projectSlug}),
+        dataRow: row,
+        eventView: EventView.fromLocation(location),
+        organization,
+        location,
+      });
+
       return (
         <NoOverflow>
           <Tooltip title={t('View Transaction')}>

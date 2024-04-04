@@ -38,8 +38,8 @@ import {
 } from 'sentry/utils/discover/fields';
 import {DisplayModes, TOP_N} from 'sentry/utils/discover/types';
 import {
-  eventDetailsRouteWithEventView,
   generateEventSlug,
+  generateLinkToEventInTraceView,
 } from 'sentry/utils/discover/urls';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
 import {getShortEventId} from 'sentry/utils/events';
@@ -189,13 +189,14 @@ function TableView(props: TableViewProps) {
         value = fieldRenderer(dataRow, {organization, location});
       }
 
-      const eventSlug = generateEventSlug(dataRow);
-
-      const target = eventDetailsRouteWithEventView({
-        orgSlug: organization.slug,
-        eventSlug,
+      const target = generateLinkToEventInTraceView({
+        eventSlug: generateEventSlug(dataRow),
+        dataRow,
+        organization,
         eventView,
         isHomepage,
+        location,
+        type: 'discover',
       });
 
       const eventIdLink = (
@@ -296,13 +297,14 @@ function TableView(props: TableViewProps) {
     let cell = fieldRenderer(dataRow, {organization, location, unit});
 
     if (columnKey === 'id') {
-      const eventSlug = generateEventSlug(dataRow);
-
-      const target = eventDetailsRouteWithEventView({
-        orgSlug: organization.slug,
-        eventSlug,
+      const target = generateLinkToEventInTraceView({
+        eventSlug: generateEventSlug(dataRow),
+        dataRow,
+        organization,
         eventView,
         isHomepage,
+        location,
+        type: 'discover',
       });
 
       const idLink = (

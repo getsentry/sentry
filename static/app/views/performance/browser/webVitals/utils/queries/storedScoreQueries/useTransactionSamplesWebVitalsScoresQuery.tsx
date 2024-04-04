@@ -61,6 +61,7 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
     {
       fields: [
         'id',
+        'trace',
         'user.display',
         'transaction',
         'measurements.lcp',
@@ -112,6 +113,7 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
       ? (data.data.map(
           row => ({
             id: row.id?.toString(),
+            trace: row.trace?.toString(),
             'user.display': row['user.display']?.toString(),
             transaction: row.transaction?.toString(),
             'measurements.lcp': toNumber(row['measurements.lcp']),

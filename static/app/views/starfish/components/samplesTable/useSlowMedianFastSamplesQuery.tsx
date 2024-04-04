@@ -30,6 +30,10 @@ export default function useSlowMedianFastSamplesQuery(
 
   const commonColumns: QueryFieldValue[] = [
     {
+      field: 'trace',
+      kind: 'field',
+    },
+    {
       field: 'transaction.duration',
       kind: 'field',
     },

@@ -37,6 +37,7 @@ export type SpanSample = Pick<
   | SpanIndexedField.ID
   | SpanIndexedField.PROFILE_ID
   | SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH
+  | SpanIndexedField.TRACE
 >;
 
 export const useSpanSamples = (options: Options) => {

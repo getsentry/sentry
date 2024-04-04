@@ -8,6 +8,11 @@ import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable'
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconProfiling} from 'sentry/icons/iconProfiling';
 import {t} from 'sentry/locale';
+import EventView from 'sentry/utils/discover/eventView';
+import {
+  generateEventSlug,
+  generateLinkToEventInTraceView,
+} from 'sentry/utils/discover/urls';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -57,6 +62,7 @@ type SpanTableRow = {
     id: string;
     'project.name': string;
     timestamp: string;
+    trace: string;
     'transaction.duration': number;
   };
 } & SpanSample;
@@ -122,9 +128,21 @@ export function SpanSamplesTable({
     if (column.key === 'transaction_id') {
       return (
         <Link
-          to={normalizeUrl(
-            `/organizations/${organization.slug}/performance/${row.project}:${row['transaction.id']}#span-${row.span_id}`
-          )}
+          to={generateLinkToEventInTraceView({
+            eventSlug: generateEventSlug({
+              id: row['transaction.id'],
+              project: row.project,
+            }),
+            organization,
+            location,
+            eventView: EventView.fromLocation(location),
+            dataRow: {
+              id: row['transaction.id'],
+              trace: row.transaction?.trace,
+              timestamp: row.timestamp,
+            },
+            spanId: row.span_id,
+          })}
           {...commonProps}
         >
           {row['transaction.id'].slice(0, 8)}
