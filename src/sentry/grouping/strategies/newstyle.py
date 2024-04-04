@@ -529,9 +529,7 @@ def _single_stacktrace_variant(
     for frame in frames:
         with context:
             context["is_recursion"] = is_recursion_v1(frame, prev_frame)
-            frame_component = context.get_grouping_component(
-                frame, event=event, start_span=False, **meta
-            )
+            frame_component = context.get_grouping_component(frame, event=event, **meta)
         if not context["hierarchical_grouping"] and variant == "app" and not frame.in_app:
             frame_component.update(contributes=False, hint="non app frame")
         values.append(frame_component)

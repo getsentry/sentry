@@ -2,8 +2,6 @@ import inspect
 from collections.abc import Callable, Iterator, Sequence
 from typing import Any, Generic, Protocol, TypeVar
 
-import sentry_sdk
-
 from sentry import projectoptions
 from sentry.eventstore.models import Event
 from sentry.grouping.component import GroupingComponent
@@ -112,7 +110,7 @@ class GroupingContext:
         self._stack.pop()
 
     def get_grouping_component(
-        self, interface: Interface, *, event: Event, start_span: bool = True, **kwargs: Any
+        self, interface: Interface, *, event: Event, **kwargs: Any
     ) -> GroupingComponent | ReturnedVariants:
         """Invokes a delegate grouping strategy.  If no such delegate is
         configured a fallback grouping component is returned.
@@ -124,13 +122,7 @@ class GroupingContext:
 
         kwargs["context"] = self
         kwargs["event"] = event
-        if start_span:
-            with sentry_sdk.start_span(
-                op="sentry.grouping.GroupingContext.get_grouping_component", description=path
-            ):
-                rv = strategy(interface, **kwargs)
-        else:
-            rv = strategy(interface, **kwargs)
+        rv = strategy(interface, **kwargs)
         assert isinstance(rv, dict)
 
         if self["variant"] is not None:
