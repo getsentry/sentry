@@ -81,7 +81,7 @@ export function ApiTokens() {
           setApiQueryData<InternalAppApiToken[]>(
             queryClient,
             API_TOKEN_QUERY_KEY,
-            context?.previous
+            context.previous
           );
         }
       },
