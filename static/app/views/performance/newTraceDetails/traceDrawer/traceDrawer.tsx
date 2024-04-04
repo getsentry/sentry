@@ -78,8 +78,7 @@ const LAYOUT_STORAGE: Partial<Record<TraceDrawerProps['layout'], number>> = {};
 
 export function TraceDrawer(props: TraceDrawerProps) {
   const theme = useTheme();
-  const location = useLocation();
-  const panelRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
   const [minimized, setMinimized] = useState(
     Math.round(props.drawerSize) <= getDrawerMinSize(props.layout)
   );
@@ -128,7 +127,10 @@ export function TraceDrawer(props: TraceDrawerProps) {
 
         // Track the value to see if the user manually minimized or expanded the drawer
         if (!minimizedRef.current && newSize <= min) {
-          setMinimized(true);
+          // Only auto collapse when drawer is pinned to bottom
+          if (props.layout === 'drawer bottom') {
+            setMinimized(true);
+          }
         } else if (minimizedRef.current && newSize > min) {
           setMinimized(false);
         }
@@ -172,7 +174,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
     };
   }, [props.layout, onResize, props.drawerSize]);
 
-  const {onMouseDown, setSize} = useResizableDrawer(resizableDrawerOptions);
+  const {onMouseDown, size, setSize} = useResizableDrawer(resizableDrawerOptions);
   const onMinimize = useCallback(
     (value: boolean) => {
       minimizedRef.current = value;
@@ -215,108 +217,160 @@ export function TraceDrawer(props: TraceDrawerProps) {
     [props]
   );
 
+  if (minimized && (props.layout === 'drawer left' || props.layout === 'drawer right')) {
+    return (
+      <TabsHeightContainer
+        absolute
+        hasIndicators={
+          // Syncs the height of the tabs with the trace indicators
+          props.trace.indicators.length > 0
+        }
+      >
+        <TabLayoutControlItem>
+          <TabIconButton
+            size="xs"
+            active={minimized}
+            onClick={() => onMinimize(!minimized)}
+            aria-label={t('Minimize')}
+            icon={
+              <SmallerChevronIcon
+                size="sm"
+                isCircled
+                direction={
+                  props.layout === 'drawer left'
+                    ? minimized
+                      ? 'right'
+                      : 'left'
+                    : minimized
+                      ? 'left'
+                      : 'right'
+                }
+              />
+            }
+          />
+        </TabLayoutControlItem>
+      </TabsHeightContainer>
+    );
+  }
+
   return (
-    <PanelWrapper layout={props.layout} ref={panelRef}>
+    <PanelWrapper
+      layout={props.layout}
+      ref={r => {
+        panelRef.current = r;
+        if (r) {
+          if (props.layout === 'drawer left' || props.layout === 'drawer right') {
+            r.style.width = `${size}px`;
+            r.style.height = `100%`;
+          } else {
+            r.style.height = `${size}px`;
+            r.style.width = `100%`;
+          }
+        }
+      }}
+    >
       <ResizeableHandle layout={props.layout} onMouseDown={onMouseDown} />
-      <TabsLayout
+      <TabsHeightContainer
         hasIndicators={
           // Syncs the height of the tabs with the trace indicators
           props.trace.indicators.length > 0 && props.layout !== 'drawer bottom'
         }
       >
-        <TabActions>
-          <TabLayoutControlItem>
-            <TabIconButton
-              size="xs"
-              active={minimized}
-              onClick={() => onMinimize(!minimized)}
-              aria-label={t('Minimize')}
-              icon={
-                <SmallerChevronIcon
-                  size="sm"
-                  isCircled
-                  direction={
-                    props.layout === 'drawer bottom'
-                      ? minimized
-                        ? 'up'
-                        : 'down'
-                      : props.layout === 'drawer left'
+        <TabsLayout>
+          <TabActions>
+            <TabLayoutControlItem>
+              <TabIconButton
+                size="xs"
+                active={minimized}
+                onClick={() => onMinimize(!minimized)}
+                aria-label={t('Minimize')}
+                icon={
+                  <SmallerChevronIcon
+                    size="sm"
+                    isCircled
+                    direction={
+                      props.layout === 'drawer bottom'
                         ? minimized
-                          ? 'right'
-                          : 'left'
-                        : minimized
-                          ? 'left'
-                          : 'right'
-                  }
+                          ? 'up'
+                          : 'down'
+                        : props.layout === 'drawer left'
+                          ? minimized
+                            ? 'right'
+                            : 'left'
+                          : minimized
+                            ? 'left'
+                            : 'right'
+                    }
+                  />
+                }
+              />
+            </TabLayoutControlItem>
+          </TabActions>
+          <TabsContainer
+            style={{
+              gridTemplateColumns: `repeat(${props.tabs.tabs.length + (props.tabs.last_clicked ? 1 : 0)}, minmax(0, min-content))`,
+            }}
+          >
+            {props.tabs.tabs.map((n, i) => {
+              return (
+                <TraceDrawerTab
+                  key={i}
+                  tab={n}
+                  index={i}
+                  theme={theme}
+                  tabs={props.tabs}
+                  tabsDispatch={props.tabsDispatch}
+                  scrollToNode={props.scrollToNode}
+                  trace={props.trace}
+                  pinned
                 />
-              }
-            />
-          </TabLayoutControlItem>
-        </TabActions>
-        <TabsContainer
-          style={{
-            gridTemplateColumns: `repeat(${props.tabs.tabs.length + (props.tabs.last_clicked ? 1 : 0)}, minmax(0, min-content))`,
-          }}
-        >
-          {props.tabs.tabs.map((n, i) => {
-            return (
+              );
+            })}
+            {props.tabs.last_clicked ? (
               <TraceDrawerTab
-                key={i}
-                tab={n}
-                index={i}
+                pinned={false}
+                key="last-clicked"
+                tab={props.tabs.last_clicked}
+                index={props.tabs.tabs.length}
                 theme={theme}
                 tabs={props.tabs}
                 tabsDispatch={props.tabsDispatch}
                 scrollToNode={props.scrollToNode}
                 trace={props.trace}
-                pinned
               />
-            );
-          })}
-          {props.tabs.last_clicked ? (
-            <TraceDrawerTab
-              pinned={false}
-              key="last-clicked"
-              tab={props.tabs.last_clicked}
-              index={props.tabs.tabs.length}
-              theme={theme}
-              tabs={props.tabs}
-              tabsDispatch={props.tabsDispatch}
-              scrollToNode={props.scrollToNode}
-              trace={props.trace}
-            />
-          ) : null}
-        </TabsContainer>
-        <TabActions>
-          <TabLayoutControlItem>
-            <TabIconButton
-              active={props.layout === 'drawer left'}
-              onClick={() => props.onLayoutChange('drawer left')}
-              size="xs"
-              aria-label={t('Drawer left')}
-              icon={<IconPanel size="xs" direction="left" />}
-            />
-          </TabLayoutControlItem>
-          <TabLayoutControlItem>
-            <TabIconButton
-              active={props.layout === 'drawer bottom'}
-              onClick={() => props.onLayoutChange('drawer bottom')}
-              size="xs"
-              aria-label={t('Drawer bottom')}
-              icon={<IconPanel size="xs" direction="down" />}
-            />
-          </TabLayoutControlItem>
-          <TabLayoutControlItem>
-            <TabIconButton
-              active={props.layout === 'drawer right'}
-              onClick={() => props.onLayoutChange('drawer right')}
-              size="xs"
-              aria-label={t('Drawer right')}
-              icon={<IconPanel size="xs" direction="right" />}
-            />
-          </TabLayoutControlItem>
-        </TabActions>
-      </TabsLayout>
+            ) : null}
+          </TabsContainer>
+          <TabActions>
+            <TabLayoutControlItem>
+              <TabIconButton
+                active={props.layout === 'drawer left'}
+                onClick={() => props.onLayoutChange('drawer left')}
+                size="xs"
+                aria-label={t('Drawer left')}
+                icon={<IconPanel size="xs" direction="left" />}
+              />
+            </TabLayoutControlItem>
+            <TabLayoutControlItem>
+              <TabIconButton
+                active={props.layout === 'drawer bottom'}
+                onClick={() => props.onLayoutChange('drawer bottom')}
+                size="xs"
+                aria-label={t('Drawer bottom')}
+                icon={<IconPanel size="xs" direction="down" />}
+              />
+            </TabLayoutControlItem>
+            <TabLayoutControlItem>
+              <TabIconButton
+                active={props.layout === 'drawer right'}
+                onClick={() => props.onLayoutChange('drawer right')}
+                size="xs"
+                aria-label={t('Drawer right')}
+                icon={<IconPanel size="xs" direction="right" />}
+              />
+            </TabLayoutControlItem>
+          </TabActions>
+        </TabsLayout>
+      </TabsHeightContainer>
       <Content layout={props.layout}>
         <ContentWrapper>
           {props.tabs.current ? (
@@ -452,12 +506,19 @@ const SmallerChevronIcon = styled(IconChevron)`
   transition: none;
 `;
 
-const TabsLayout = styled('div')<{hasIndicators: boolean}>`
-  display: grid;
-  grid-template-columns: auto 1fr auto;
+const TabsHeightContainer = styled('div')<{hasIndicators: boolean; absolute?: boolean}>`
+  position: ${p => (p.absolute ? 'absolute' : 'relative')};
+  height: ${p => (p.hasIndicators ? '44px' : '26px')};
   border-bottom: 1px solid ${p => p.theme.border};
   background-color: ${p => p.theme.backgroundSecondary};
-  height: ${p => (p.hasIndicators ? '44px' : '26px')};
+  display: flex;
+  flex-direction: column;
+  justify-content: end;
+`;
+
+const TabsLayout = styled('div')`
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   padding-left: ${space(0.25)};
   padding-right: ${space(0.5)};
 `;
