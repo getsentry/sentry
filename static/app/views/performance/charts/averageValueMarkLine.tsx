@@ -3,18 +3,18 @@ import {useTheme} from '@emotion/react';
 import MarkLine from 'sentry/components/charts/components/markLine';
 
 interface Props {
-  value: number;
+  value?: number;
 }
 
-export function AverageValueMarkLine({value}: Props) {
+export function AverageValueMarkLine({value}: Props = {}) {
   const theme = useTheme();
-
-  if (!value) return undefined;
 
   return MarkLine({
     data: [
+      // If a `value` is provided, set the markline to that value. If not, `type: 'average'` will automatically set it
       {
-        valueDim: 'x',
+        valueDim: 'y',
+        type: 'average',
         yAxis: value,
       },
     ],

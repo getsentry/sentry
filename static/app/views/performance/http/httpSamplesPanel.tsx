@@ -166,9 +166,7 @@ export function HTTPSamplesPanel() {
     });
   };
 
-  durationData['avg(span.self_time)'].markLine = AverageValueMarkLine({
-    value: domainTransactionMetrics?.[0]?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`],
-  });
+  durationData['avg(span.self_time)'].markLine = AverageValueMarkLine();
 
   return (
     <PageAlertProvider>
